@@ -20,7 +20,7 @@ import { Spinner } from "../components/LoadingSpinner";
 import { motion } from "framer-motion";
 import { TrendingUp, TrendingDown, Star, Trophy, CheckCircle, AlertTriangle, Target, Medal, Award, BarChart2, PieChart, Briefcase, GraduationCap, Check, X, ArrowLeft, Building2, FileText } from "lucide-react";
 
-const GRADE_POINTS = { O: 10, E: 9, A: 8, B: 7, C: 6, D: 5, F: 2 };
+const GRADE_POINTS = { O: 10, E: 9, A: 8, B: 7, C: 6, D: 5, F: 2, M: 0, S: 0 };
 const GRADE_ORDER = ["O", "E", "A", "B", "C", "D", "F"];
 
 function calcCGPAUpTo(results, upToIdx) {
@@ -209,9 +209,13 @@ export default function Analytics() {
           isLatest && whatIfGrades[s.subCode]
             ? whatIfGrades[s.subCode]
             : s.grade;
-        const gp = GRADE_POINTS[grade] || 0;
-        if (grade !== "F" && s.credit) {
-          tw += s.credit * gp;
+            
+        if (Number(r.semester) === 5 && grade === 'R' && (Number(s.credit) === 6 || (s.subName && s.subName.toLowerCase().includes('project')))) {
+          return;
+        }
+
+        if (s.credit && GRADE_POINTS[grade] !== undefined) {
+          tw += s.credit * GRADE_POINTS[grade];
           tc += s.credit;
         }
       });
