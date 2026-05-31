@@ -7,7 +7,7 @@ import axios from "axios";
 import { motion } from "framer-motion";
 import jsPDF from "jspdf";
 import html2canvas from "html2canvas";
-import { User, TrendingUp, Star, Target, CheckCircle, Trophy, Award, AlertTriangle, FileText, FileEdit, Calendar, Printer, Share2, DownloadCloud } from "lucide-react";
+import { User, TrendingUp, Star, Target, CheckCircle, Trophy, Award, AlertTriangle, FileText, FileEdit, Calendar, Printer, Share2, DownloadCloud, Loader2 } from "lucide-react";
 
 const GRADE_COLORS = {
   O: "#f59e0b",
@@ -238,7 +238,13 @@ export default function Dashboard() {
               disabled={isDownloadingBatch}
               style={{ display: "flex", alignItems: "center", gap: 6, background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)", color: "#fff" }}
             >
-              {isDownloadingBatch ? <Spinner /> : <DownloadCloud size={16} />}
+              {isDownloadingBatch ? (
+                <motion.div animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 1, ease: "linear" }} style={{ display: "flex" }}>
+                  <Loader2 size={16} />
+                </motion.div>
+              ) : (
+                <DownloadCloud size={16} />
+              )}
               {isDownloadingBatch ? "Exporting..." : "Full Transcript"}
             </motion.button>
             <motion.button
@@ -807,7 +813,7 @@ export default function Dashboard() {
       )}
 
       {/* Hidden container for Batch PDF Export */}
-      <div style={{ position: "fixed", top: 0, left: 0, zIndex: -9999, opacity: 0.01, pointerEvents: "none" }}>
+      <div style={{ position: "fixed", top: 0, left: "200vw", zIndex: -9999, pointerEvents: "none" }}>
         {isDownloadingBatch && studentData.results.map((r) => (
           <div key={r.semester} id={`batch-export-sem-${r.semester}`} style={{ background: "#fff", padding: 20 }}>
             <GradeSheet result={r} studentData={studentData} />
