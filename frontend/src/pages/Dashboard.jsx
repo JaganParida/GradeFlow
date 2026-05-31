@@ -635,6 +635,7 @@ export default function Dashboard() {
           key={tab}
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
+          style={{ width: "100%", maxWidth: "100%", overflowX: "hidden" }}
         >
           {tab === "result" && (
             <div style={{ display: "flex", justifyContent: "center", width: "100%", minWidth: 0, maxWidth: "100%" }}>
