@@ -35,6 +35,26 @@ function GradeBadge({ grade }) {
   );
 }
 
+function getDynamicBranch(regNo, fallbackBranch) {
+  if (!regNo) return fallbackBranch;
+  const r = String(regNo).trim();
+  
+  if (r === "230301180026") return "CSE";
+  if (["230301120110", "230301120186", "230301120371", "230301120481"].includes(r)) return "ECE";
+  if (r === "230301231033") return "AERO";
+
+  if (r.startsWith("230301110") || r.startsWith("230301111")) return "CIVIL";
+  if (r.startsWith("230301120") || r.startsWith("230301121")) return "CSE";
+  if (r.startsWith("230301130") || r.startsWith("230301131") || r.startsWith("230301132")) return "ECE";
+  if (r.startsWith("230301150") || r.startsWith("230301151")) return "EEE";
+  if (r.startsWith("230301160") || r.startsWith("230301161")) return "ME";
+  if (r.startsWith("230301180")) return "BIO";
+  if (r.startsWith("230301190") || r.startsWith("230301191")) return "MI";
+  if (r.startsWith("230301230")) return "AERO";
+  
+  return fallbackBranch || "—";
+}
+
 export default function Dashboard() {
   const { regNo } = useParams();
   const { studentData, fetchStudent, loading, error, API } = useApp();
@@ -108,6 +128,8 @@ export default function Dashboard() {
     ranking,
   } = studentData;
 
+  const dynamicBranch = getDynamicBranch(regNo, branch);
+
   const healthColor =
     academicHealthScore >= 80
       ? "var(--success)"
@@ -168,7 +190,7 @@ export default function Dashboard() {
             </p>
             <h1 style={{ fontSize: 28, fontWeight: 800 }}>{studentName}</h1>
             <p style={{ color: "var(--secondary)", marginTop: 4 }}>
-              {regNo} · {branch} · Batch {batch}
+              {regNo} · {dynamicBranch} · Batch {batch}
             </p>
           </div>
           <motion.button
