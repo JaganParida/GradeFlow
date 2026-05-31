@@ -29,7 +29,7 @@ function calcCGPAUpTo(results, upToIdx) {
       }
     });
   });
-  return tc > 0 ? parseFloat((tw / tc).toFixed(2)) : 0;
+  return tc > 0 ? Math.floor((tw / tc) * 100 + 0.0001) / 100 : 0;
 }
 
 function generateInsights(data) {

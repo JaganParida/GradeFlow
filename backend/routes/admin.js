@@ -49,7 +49,7 @@ function calcSGPA(subjects, semester) {
     }
   });
   return totalCredits > 0
-    ? parseFloat((totalWeighted / totalCredits).toFixed(2))
+    ? Math.floor((totalWeighted / totalCredits) * 100 + 0.0001) / 100
     : 0;
 }
 
@@ -94,7 +94,7 @@ async function generateRankingForSemester(semester) {
         }
       }),
     );
-    const cgpa = totalC > 0 ? parseFloat((totalW / totalC).toFixed(2)) : 0;
+    const cgpa = totalC > 0 ? Math.floor((totalW / totalC) * 100 + 0.0001) / 100 : 0;
     studentData.push({
       regNo: r.regNo,
       studentName: r.studentName,

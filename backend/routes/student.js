@@ -32,7 +32,7 @@ function calcCGPA(results) {
     });
   });
   return totalCredits > 0
-    ? parseFloat((totalWeighted / totalCredits).toFixed(2))
+    ? Math.floor((totalWeighted / totalCredits) * 100 + 0.0001) / 100
     : 0;
 }
 
