@@ -34,47 +34,9 @@
 
 ---
 
-## 🚀 Quick Start (Local Development)
+## 🔒 License & Usage
 
-### 1. Clone the Repository
-```bash
-git clone https://github.com/JaganParida/GradeFlow.git
-cd GradeFlow
-```
+**Proprietary Software**  
+All rights reserved. This repository is provided for showcase and portfolio purposes only. 
 
-### 2. Setup the Backend
-```bash
-cd backend
-npm install
-```
-Create a `.env` file in the `backend` directory:
-```env
-PORT=5000
-MONGO_URI=mongodb://localhost:27017/gradeflow
-JWT_SECRET=your_super_secret_jwt_key
-ADMIN_EMAIL=admin@gradeflow.com
-ADMIN_PASSWORD=admin123
-```
-Start the backend server:
-```bash
-npm start
-```
-
-### 3. Setup the Frontend
-```bash
-cd ../frontend
-npm install
-```
-Start the Vite development server:
-```bash
-npm run dev
-```
-
----
-
-## ☁️ Deployment
-
-GradeFlow is designed to be easily deployed to modern cloud providers:
-* **Frontend:** Deploy the `/frontend` directory directly to **Vercel** as a Vite project.
-* **Backend:** Deploy the `/backend` directory to **Render** as a Node Web Service.
-* **Database:** Connect your deployed backend to a free **MongoDB Atlas** sandbox instance.
+⚠️ **Cloning, distribution, modification, and third-party contributions are strictly prohibited.**
