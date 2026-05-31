@@ -232,7 +232,7 @@ export default function Dashboard() {
               {regNo} · {dynamicBranch} · Batch {batch}
             </p>
           </div>
-          <div style={{ display: "flex", gap: 12 }}>
+          <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
             <motion.button
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
@@ -361,15 +361,44 @@ export default function Dashboard() {
           }}
         >
           <p
-            style={{ color: "var(--danger)", fontWeight: 700, marginBottom: 8, display: "flex", alignItems: "center", gap: 8 }}
+            style={{ color: "var(--danger)", fontWeight: 700, marginBottom: 16, display: "flex", alignItems: "center", gap: 8 }}
           >
             <AlertTriangle size={18} /> Active Backlogs Found
           </p>
-          {backlogs.map((b, i) => (
-            <p key={i} style={{ color: "var(--secondary)", fontSize: 13, marginLeft: 26 }}>
-              • {b.subName} ({b.subCode})
-            </p>
-          ))}
+          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+            {backlogs.map((b, i) => (
+              <motion.div
+                key={i}
+                whileHover={{ scale: 1.01 }}
+                whileTap={{ scale: 0.99 }}
+                onClick={() => {
+                  setTab("result");
+                  setSelectedSem(b.semester);
+                }}
+                style={{
+                  background: "rgba(239,68,68,0.05)",
+                  border: "1px solid rgba(239,68,68,0.2)",
+                  padding: "12px 16px",
+                  borderRadius: 8,
+                  cursor: "pointer",
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: 8,
+                }}
+              >
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12 }}>
+                  <span style={{ fontWeight: 600, color: "var(--text)", fontSize: 14 }}>{b.subName}</span>
+                  <div style={{ display: "flex", gap: 6 }}>
+                    <span style={{ background: "rgba(255,255,255,0.1)", color: "var(--secondary)", padding: "2px 8px", borderRadius: 4, fontSize: 11, fontWeight: 700 }}>Sem {b.semester}</span>
+                  </div>
+                </div>
+                <div style={{ display: "flex", gap: 8 }}>
+                  <span style={{ background: "rgba(239,68,68,0.15)", color: "var(--danger)", padding: "2px 8px", borderRadius: 4, fontSize: 11, fontWeight: 700 }}>{b.subCode}</span>
+                  <span style={{ background: "rgba(239,68,68,0.15)", color: "var(--danger)", padding: "2px 8px", borderRadius: 4, fontSize: 11, fontWeight: 700 }}>{b.credit} Credits</span>
+                </div>
+              </motion.div>
+            ))}
+          </div>
         </motion.div>
       ) : (
         <motion.div

@@ -56,7 +56,15 @@ router.get("/:regNo", async (req, res) => {
 
     const cgpa = calcCGPA(results);
     const backlogs = results.flatMap((r) =>
-      r.subjects.filter((s) => ["F", "M", "S"].includes(s.grade)),
+      r.subjects
+        .filter((s) => ["F", "M", "S", "R"].includes(s.grade))
+        .map((s) => ({
+          subName: s.subName,
+          subCode: s.subCode,
+          credit: s.credit,
+          grade: s.grade,
+          semester: r.semester,
+        }))
     );
     const latestResult = results[results.length - 1];
     const healthScore = calcAcademicHealth(
@@ -88,15 +96,12 @@ router.get("/:regNo", async (req, res) => {
       creditsCleared: results.reduce((a, r) => {
         return a + r.subjects.reduce((sum, s) => {
           if (Number(r.semester) === 5 && s.grade === 'R' && (s.credit === 6 || (s.subName && s.subName.toLowerCase().includes('project')))) return sum;
-          if (["F", "M", "S"].includes(s.grade)) return sum;
+          if (["F", "M", "S", "R"].includes(s.grade)) return sum;
           return sum + (s.credit || 0);
         }, 0);
       }, 0),
       academicHealthScore: healthScore,
-      backlogs: backlogs.map((b) => ({
-        subName: b.subName,
-        subCode: b.subCode,
-      })),
+      backlogs: backlogs, // Now contains subName, subCode, credit, grade, semester
       results,
       ranking: ranking || null,
     });

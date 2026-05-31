@@ -1022,6 +1022,7 @@ export default function Analytics() {
                     style={{
                       display: "flex",
                       alignItems: "center",
+                      flexWrap: "wrap",
                       gap: 14,
                       padding: "12px 16px",
                       background: eligible

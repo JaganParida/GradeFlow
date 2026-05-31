@@ -57,6 +57,17 @@ body {
   font-family: "Space Mono", monospace;
 }
 
+.tabs {
+  display: inline-flex;
+  gap: 8px;
+  background: var(--surface);
+  padding: 6px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  max-width: 100%;
+  overflow-x: auto;
+}
+
 .btn {
   display: inline-flex;
   align-items: center;
