@@ -121,6 +121,39 @@ export default function Analytics() {
     if (!studentData || studentData.regNo !== regNo) fetchStudent(regNo);
   }, [regNo]);
 
+  const radarData = useMemo(() => {
+    if (!studentData || !studentData.results) return [];
+    
+    let theoryW = 0, theoryC = 0;
+    let practicalW = 0, practicalC = 0;
+    let projectW = 0, projectC = 0;
+
+    studentData.results.forEach(r => {
+      r.subjects?.forEach(s => {
+        if (!s.credit || !GRADE_POINTS[s.grade]) return;
+        const type = s.type ? s.type.toLowerCase() : (s.subName ? s.subName.toLowerCase() : "");
+        const points = s.credit * GRADE_POINTS[s.grade];
+        
+        if (type.includes("proj")) {
+          projectW += points;
+          projectC += s.credit;
+        } else if (type.includes("p") || type.includes("lab") || type.includes("practical") || type.includes("sess")) {
+          practicalW += points;
+          practicalC += s.credit;
+        } else {
+          theoryW += points;
+          theoryC += s.credit;
+        }
+      });
+    });
+
+    return [
+      { subject: 'Theory', score: theoryC ? (theoryW / theoryC) * 10 : 0, fullMark: 100 },
+      { subject: 'Practical', score: practicalC ? (practicalW / practicalC) * 10 : 0, fullMark: 100 },
+      { subject: 'Projects', score: projectC ? (projectW / projectC) * 10 : 0, fullMark: 100 },
+    ];
+  }, [studentData]);
+
   if (loading || !studentData)
     return (
       <div className="page">
@@ -163,39 +196,7 @@ export default function Analytics() {
     ).toFixed(2);
   }
 
-  // Radar Chart Data for Advanced Insights
-  const radarData = useMemo(() => {
-    if (!studentData || !studentData.results) return [];
-    
-    let theoryW = 0, theoryC = 0;
-    let practicalW = 0, practicalC = 0;
-    let projectW = 0, projectC = 0;
-
-    studentData.results.forEach(r => {
-      r.subjects?.forEach(s => {
-        if (!s.credit || !GRADE_POINTS[s.grade]) return;
-        const type = s.type ? s.type.toLowerCase() : (s.subName ? s.subName.toLowerCase() : "");
-        const points = s.credit * GRADE_POINTS[s.grade];
-        
-        if (type.includes("proj")) {
-          projectW += points;
-          projectC += s.credit;
-        } else if (type.includes("p") || type.includes("lab") || type.includes("practical") || type.includes("sess")) {
-          practicalW += points;
-          practicalC += s.credit;
-        } else {
-          theoryW += points;
-          theoryC += s.credit;
-        }
-      });
-    });
-
-    return [
-      { subject: 'Theory', score: theoryC ? (theoryW / theoryC) * 10 : 0, fullMark: 100 },
-      { subject: 'Practical', score: practicalC ? (practicalW / practicalC) * 10 : 0, fullMark: 100 },
-      { subject: 'Projects', score: projectC ? (projectW / projectC) * 10 : 0, fullMark: 100 },
-    ];
-  }, [studentData]);
+  // Radar Chart Data calculated above
 
   // What-if simulator
   function calcWhatIfCGPA() {
