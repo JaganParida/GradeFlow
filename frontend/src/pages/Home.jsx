@@ -26,13 +26,16 @@ export default function Home() {
   ];
 
   const gradeTableData = [
-    { grade: "O", range: "90 - 100", points: "10", interpretation: "Outstanding", color: "#f59e0b" },
-    { grade: "E", range: "80 - 89", points: "9", interpretation: "Excellent", color: "#22c55e" },
-    { grade: "A", range: "70 - 79", points: "8", interpretation: "Very Good", color: "#3ea6ff" },
-    { grade: "B", range: "60 - 69", points: "7", interpretation: "Good", color: "#a855f7" },
-    { grade: "C", range: "50 - 59", points: "6", interpretation: "Average", color: "#f97316" },
-    { grade: "D", range: "40 - 49", points: "5", interpretation: "Below Average", color: "#9ca3af" },
-    { grade: "F", range: "Below 40", points: "2", interpretation: "Fail", color: "#ef4444" },
+    { grade: "O", range: "90 & above", points: "10", interpretation: "Outstanding", counted: "Yes", color: "#f59e0b" },
+    { grade: "E", range: "80 - 89", points: "9", interpretation: "Excellent", counted: "Yes", color: "#22c55e" },
+    { grade: "A", range: "70 - 79", points: "8", interpretation: "Very Good", counted: "Yes", color: "#3ea6ff" },
+    { grade: "B", range: "60 - 69", points: "7", interpretation: "Good", counted: "Yes", color: "#a855f7" },
+    { grade: "C", range: "50 - 59", points: "6", interpretation: "Fair (Average)", counted: "Yes", color: "#f97316" },
+    { grade: "D", range: "40 - 49", points: "5", interpretation: "Pass (Theory Only)", counted: "Yes", color: "#9ca3af" },
+    { grade: "F", range: "Below 40", points: "2", interpretation: "Failed", counted: "Yes", color: "#ef4444" },
+    { grade: "R", range: "Non-Clearance", points: "0", interpretation: "Repeat", counted: "Yes", color: "#f43f5e" },
+    { grade: "M", range: "—", points: "0", interpretation: "Malpractice", counted: "No", color: "#64748b" },
+    { grade: "S", range: "—", points: "0", interpretation: "Absent", counted: "No", color: "#64748b" },
   ];
 
   return (
@@ -260,7 +263,15 @@ export default function Home() {
             </div>
           </div>
 
-          <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 2fr 1.5fr 1fr 1fr", gap: 12, padding: "0 16px 12px", borderBottom: "1px solid rgba(255,255,255,0.1)", marginBottom: 12, fontSize: 11, fontWeight: 700, color: "var(--secondary)", textTransform: "uppercase", letterSpacing: 1 }}>
+            <span>Grade</span>
+            <span>Qualification</span>
+            <span>Range</span>
+            <span>Points</span>
+            <span style={{ textAlign: "right" }}>Counted?</span>
+          </div>
+
+          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
             {gradeTableData.map((row, i) => (
               <motion.div
                 key={row.grade}
@@ -269,45 +280,39 @@ export default function Home() {
                 transition={{ delay: 0.5 + i * 0.05 }}
                 whileHover={{ scale: 1.02, background: "rgba(255,255,255,0.03)" }}
                 style={{
-                  display: "flex",
+                  display: "grid",
+                  gridTemplateColumns: "1fr 2fr 1.5fr 1fr 1fr",
                   alignItems: "center",
-                  justifyContent: "space-between",
-                  padding: "12px 16px",
-                  borderRadius: 12,
-                  background: "rgba(255,255,255,0.01)",
+                  gap: 12,
+                  padding: "10px 16px",
+                  borderRadius: 10,
+                  background: "rgba(255,255,255,0.02)",
                   border: "1px solid rgba(255,255,255,0.05)",
                   cursor: "default"
                 }}
               >
-                <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
-                  <div
-                    style={{
-                      width: 40,
-                      height: 40,
-                      borderRadius: 10,
-                      background: `rgba(${parseInt(row.color.slice(1,3),16)},${parseInt(row.color.slice(3,5),16)},${parseInt(row.color.slice(5,7),16)}, 0.1)`,
-                      color: row.color,
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      fontWeight: 800,
-                      fontFamily: "Space Mono, monospace",
-                      fontSize: 18,
-                      border: `1px solid ${row.color}44`
-                    }}
-                  >
+                <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                  <div style={{ width: 28, height: 28, borderRadius: 8, background: `${row.color}15`, color: row.color, display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700, fontSize: 14 }}>
                     {row.grade}
                   </div>
-                  <div>
-                    <p style={{ fontWeight: 600, fontSize: 14 }}>{row.interpretation}</p>
-                    <p style={{ fontSize: 12, color: "var(--secondary)", fontFamily: "Space Mono" }}>{row.range} Marks</p>
-                  </div>
                 </div>
+                
+                <div style={{ fontSize: 13, color: "var(--text)", fontWeight: 500 }}>
+                  {row.interpretation}
+                </div>
+
+                <div style={{ fontSize: 12, color: "var(--secondary)", fontFamily: "Space Mono, monospace" }}>
+                  {row.range}
+                </div>
+
+                <div style={{ fontSize: 14, fontWeight: 700, color: row.color }}>
+                  {row.points}
+                </div>
+                
                 <div style={{ textAlign: "right" }}>
-                  <span style={{ fontSize: 18, fontWeight: 800, color: row.grade === "F" ? row.color : "var(--text)", fontFamily: "Space Mono" }}>
-                    {row.points}
+                  <span style={{ padding: "4px 8px", borderRadius: 6, fontSize: 11, fontWeight: 600, background: row.counted === "Yes" ? "rgba(34, 197, 94, 0.1)" : "rgba(239, 68, 68, 0.1)", color: row.counted === "Yes" ? "#22c55e" : "#ef4444" }}>
+                    {row.counted}
                   </span>
-                  <span style={{ fontSize: 11, color: "var(--secondary)", display: "block" }}>PTS</span>
                 </div>
               </motion.div>
             ))}

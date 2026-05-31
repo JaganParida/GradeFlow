@@ -20,8 +20,8 @@ const GRADE_POINTS = {
   B: 7,
   C: 6,
   D: 5,
-  R: 10,
   F: 2,
+  R: 0,
   M: 0,
   S: 0,
 };
@@ -86,6 +86,9 @@ async function generateRankingForSemester(semester) {
     allResults.forEach((ar) =>
       ar.subjects.forEach((s) => {
         if (Number(ar.semester) === 5 && s.grade === 'R' && (s.credit === 6 || (s.subName && s.subName.toLowerCase().includes('project')))) {
+          return;
+        }
+        if (s.grade === 'M' || s.grade === 'S') {
           return;
         }
         if (s.credit && GRADE_POINTS[s.grade] !== undefined) {

@@ -56,7 +56,8 @@ function calcSGPA(subjects) {
   let totalWeighted = 0,
     totalCredits = 0;
   subjects.forEach((s) => {
-    if (PASSING_GRADES.includes(s.grade) && s.credit) {
+    if (s.grade === 'M' || s.grade === 'S') return;
+    if (s.credit && GRADE_POINTS[s.grade] !== undefined) {
       totalWeighted += s.credit * GRADE_POINTS[s.grade];
       totalCredits += s.credit;
     }
@@ -129,7 +130,8 @@ export default function GradeSheet({ result, studentData, highlightedSubject }) 
     });
 
     validSubs.forEach((s) => {
-      if (PASSING_GRADES.includes(s.grade) && s.credit) {
+      if (s.grade === 'M' || s.grade === 'S') return;
+      if (s.credit && GRADE_POINTS[s.grade] !== undefined) {
         totalTW += s.credit * GRADE_POINTS[s.grade];
         totalTC += s.credit;
       }

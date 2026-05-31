@@ -4,7 +4,7 @@ const Ranking = require("./models/Ranking");
 require("dotenv").config();
 
 const GRADE_POINTS = {
-  O: 10, E: 9, A: 8, B: 7, C: 6, D: 5, R: 10, F: 2, M: 0, S: 0,
+  O: 10, E: 9, A: 8, B: 7, C: 6, D: 5, R: 0, F: 2, M: 0, S: 0,
 };
 
 async function regenerate() {
@@ -27,6 +27,12 @@ async function regenerate() {
         let totalW = 0, totalC = 0;
         allResults.forEach((ar) =>
           ar.subjects.forEach((s) => {
+            if (Number(ar.semester) === 5 && s.grade === 'R' && (s.credit === 6 || (s.subName && s.subName.toLowerCase().includes('project')))) {
+              return;
+            }
+            if (s.grade === 'M' || s.grade === 'S') {
+              return;
+            }
             if (s.credit && GRADE_POINTS[s.grade] !== undefined) {
               totalW += s.credit * GRADE_POINTS[s.grade];
               totalC += s.credit;
