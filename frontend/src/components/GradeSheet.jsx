@@ -66,7 +66,7 @@ function calcSGPA(subjects) {
     : 0;
 }
 
-export default function GradeSheet({ result, studentData }) {
+export default function GradeSheet({ result, studentData, highlightedSubject }) {
   const sheetRef = useRef();
   const [zoomLevel, setZoomLevel] = useState(1);
 
@@ -402,16 +402,14 @@ export default function GradeSheet({ result, studentData }) {
             {subjects.map((s, i) => {
               const isFail = FAIL_GRADES.includes(s.grade);
               const gradeColor = GRADE_COLOR[s.grade] || "#000";
+              const isHighlighted = highlightedSubject && highlightedSubject === s.subCode;
               
               return (
                 <tr
                   key={i}
                   style={{
-                    background: isFail
-                      ? "#fff8f7"
-                      : i % 2 === 0
-                        ? "#fff"
-                        : "#fafafa",
+                    background: isHighlighted ? "#fff9c4" : (isFail ? "#fff8f7" : (i % 2 === 0 ? "#fff" : "#fafafa")),
+                    transition: "background 0.5s ease",
                   }}
                 >
                   <td style={td("center", { color: "#555" })}>{i + 1}</td>
