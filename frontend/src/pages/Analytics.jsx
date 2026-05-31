@@ -155,6 +155,45 @@ export default function Analytics() {
     ];
   }, [studentData]);
 
+  // What-if simulator (Auto-calculate)
+  useEffect(() => {
+    if (!studentData || !studentData.results || Object.keys(whatIfGrades).length === 0) {
+      setWhatIfCGPA(null);
+      setWhatIfSGPA(null);
+      return;
+    }
+
+    const results = studentData.results;
+    let tw = 0, tc = 0;
+    let sgpa_tw = 0, sgpa_tc = 0;
+
+    results.forEach((r, ri) => {
+      const isLatest = ri === results.length - 1;
+      r.subjects.forEach((s) => {
+        const grade =
+          isLatest && whatIfGrades[s.subCode]
+            ? whatIfGrades[s.subCode]
+            : s.grade;
+            
+        if (Number(r.semester) === 5 && grade === 'R' && (Number(s.credit) === 6 || (s.subName && s.subName.toLowerCase().includes('project')))) {
+          return;
+        }
+
+        if (s.credit && GRADE_POINTS[grade] !== undefined) {
+          tw += s.credit * GRADE_POINTS[grade];
+          tc += s.credit;
+          if (isLatest) {
+            sgpa_tw += s.credit * GRADE_POINTS[grade];
+            sgpa_tc += s.credit;
+          }
+        }
+      });
+    });
+
+    setWhatIfCGPA(tc > 0 ? (Math.floor((tw / tc) * 100 + 0.0001) / 100).toFixed(2) : 0);
+    setWhatIfSGPA(sgpa_tc > 0 ? (Math.floor((sgpa_tw / sgpa_tc) * 100 + 0.0001) / 100).toFixed(2) : 0);
+  }, [whatIfGrades, studentData]);
+
   if (loading || !studentData)
     return (
       <div className="page">
@@ -198,45 +237,6 @@ export default function Analytics() {
   }
 
   // Radar Chart Data calculated above
-
-  // What-if simulator
-  // What-if simulator (Auto-calculate)
-  useEffect(() => {
-    if (Object.keys(whatIfGrades).length === 0) {
-      setWhatIfCGPA(null);
-      setWhatIfSGPA(null);
-      return;
-    }
-
-    let tw = 0, tc = 0;
-    let sgpa_tw = 0, sgpa_tc = 0;
-
-    results.forEach((r, ri) => {
-      const isLatest = ri === results.length - 1;
-      r.subjects.forEach((s) => {
-        const grade =
-          isLatest && whatIfGrades[s.subCode]
-            ? whatIfGrades[s.subCode]
-            : s.grade;
-            
-        if (Number(r.semester) === 5 && grade === 'R' && (Number(s.credit) === 6 || (s.subName && s.subName.toLowerCase().includes('project')))) {
-          return;
-        }
-
-        if (s.credit && GRADE_POINTS[grade] !== undefined) {
-          tw += s.credit * GRADE_POINTS[grade];
-          tc += s.credit;
-          if (isLatest) {
-            sgpa_tw += s.credit * GRADE_POINTS[grade];
-            sgpa_tc += s.credit;
-          }
-        }
-      });
-    });
-
-    setWhatIfCGPA(tc > 0 ? (Math.floor((tw / tc) * 100 + 0.0001) / 100).toFixed(2) : 0);
-    setWhatIfSGPA(sgpa_tc > 0 ? (Math.floor((sgpa_tw / sgpa_tc) * 100 + 0.0001) / 100).toFixed(2) : 0);
-  }, [whatIfGrades, results]);
 
   // Subject analysis
   const latestSubjects = results[results.length - 1]?.subjects || [];
