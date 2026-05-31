@@ -28,7 +28,7 @@ export default function BasketDashboard({ results }) {
   const baskets = useMemo(() => categorizeBaskets(results), [results]);
   const inferredDomain = useMemo(() => inferStudentDomainTrack(baskets.B5.subjects, BASKET_5_DOMAINS_DATA), [baskets.B5.subjects]);
 
-  const totalEarned = baskets.B1.credits + baskets.B2.credits + baskets.B3.credits + baskets.B4.credits + baskets.B5.credits;
+  const totalEarned = baskets.B1.credits + baskets.B2.credits + baskets.B3.credits + baskets.B4.credits + baskets.B5.credits + (baskets.EX ? baskets.EX.credits : 0);
   const targetTotal = 160;
 
   // Honours logic: Extra 20 credits in Basket V
