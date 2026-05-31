@@ -116,6 +116,7 @@ export default function Analytics() {
   const [targetCGPA, setTargetCGPA] = useState("");
   const [whatIfGrades, setWhatIfGrades] = useState({});
   const [whatIfCGPA, setWhatIfCGPA] = useState(null);
+  const [whatIfSGPA, setWhatIfSGPA] = useState(null);
 
   useEffect(() => {
     if (!studentData || studentData.regNo !== regNo) fetchStudent(regNo);
@@ -199,9 +200,17 @@ export default function Analytics() {
   // Radar Chart Data calculated above
 
   // What-if simulator
-  function calcWhatIfCGPA() {
-    let tw = 0,
-      tc = 0;
+  // What-if simulator (Auto-calculate)
+  useEffect(() => {
+    if (Object.keys(whatIfGrades).length === 0) {
+      setWhatIfCGPA(null);
+      setWhatIfSGPA(null);
+      return;
+    }
+
+    let tw = 0, tc = 0;
+    let sgpa_tw = 0, sgpa_tc = 0;
+
     results.forEach((r, ri) => {
       const isLatest = ri === results.length - 1;
       r.subjects.forEach((s) => {
@@ -217,11 +226,17 @@ export default function Analytics() {
         if (s.credit && GRADE_POINTS[grade] !== undefined) {
           tw += s.credit * GRADE_POINTS[grade];
           tc += s.credit;
+          if (isLatest) {
+            sgpa_tw += s.credit * GRADE_POINTS[grade];
+            sgpa_tc += s.credit;
+          }
         }
       });
     });
-    setWhatIfCGPA(tc > 0 ? (tw / tc).toFixed(2) : 0);
-  }
+
+    setWhatIfCGPA(tc > 0 ? (Math.floor((tw / tc) * 100 + 0.0001) / 100).toFixed(2) : 0);
+    setWhatIfSGPA(sgpa_tc > 0 ? (Math.floor((sgpa_tw / sgpa_tc) * 100 + 0.0001) / 100).toFixed(2) : 0);
+  }, [whatIfGrades, results]);
 
   // Subject analysis
   const latestSubjects = results[results.length - 1]?.subjects || [];
@@ -819,17 +834,11 @@ export default function Analytics() {
             ))}
           </div>
           <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
-            <button className="btn btn-primary" onClick={calcWhatIfCGPA}>
-              Calculate
-            </button>
             <button
               className="btn btn-ghost"
-              onClick={() => {
-                setWhatIfGrades({});
-                setWhatIfCGPA(null);
-              }}
+              onClick={() => setWhatIfGrades({})}
             >
-              Reset
+              Reset All
             </button>
           </div>
           {whatIfCGPA && (
@@ -838,44 +847,41 @@ export default function Analytics() {
               animate={{ opacity: 1, scale: 1 }}
               style={{
                 marginTop: 20,
-                background: "rgba(62,166,255,0.1)",
-                border: "1px solid rgba(62,166,255,0.3)",
-                borderRadius: 10,
-                padding: 20,
+                display: "grid",
+                gridTemplateColumns: "repeat(auto-fit, minmax(250px, 1fr))",
+                gap: 16,
               }}
             >
-              <p style={{ color: "var(--secondary)", fontSize: 13 }}>
-                Simulated CGPA
-              </p>
-              <div style={{ display: "flex", alignItems: "baseline", gap: 16 }}>
-                <p
-                  style={{
-                    fontFamily: "Space Mono",
-                    fontSize: 36,
-                    fontWeight: 700,
-                    color: "var(--accent)",
-                  }}
-                >
-                  {whatIfCGPA}
-                </p>
-                <p
-                  style={{
-                    color:
-                      parseFloat(whatIfCGPA) > cgpa
-                        ? "var(--success)"
-                        : parseFloat(whatIfCGPA) < cgpa
-                          ? "var(--danger)"
-                          : "var(--secondary)",
+              {/* Simulated CGPA */}
+              <div style={{ background: "rgba(62,166,255,0.1)", border: "1px solid rgba(62,166,255,0.3)", borderRadius: 10, padding: 20 }}>
+                <p style={{ color: "var(--secondary)", fontSize: 13 }}>Simulated CGPA</p>
+                <div style={{ display: "flex", alignItems: "baseline", gap: 16, flexWrap: "wrap" }}>
+                  <p style={{ fontFamily: "Space Mono", fontSize: 36, fontWeight: 700, color: "var(--accent)" }}>
+                    {whatIfCGPA}
+                  </p>
+                  <p style={{
+                    color: parseFloat(whatIfCGPA) > cgpa ? "var(--success)" : parseFloat(whatIfCGPA) < cgpa ? "var(--danger)" : "var(--secondary)",
                     fontWeight: 600,
-                  }}
-                >
-                  {parseFloat(whatIfCGPA) > cgpa
-                    ? `▲ +${(whatIfCGPA - cgpa).toFixed(2)}`
-                    : parseFloat(whatIfCGPA) < cgpa
-                      ? `▼ ${(whatIfCGPA - cgpa).toFixed(2)}`
-                      : "→ No change"}{" "}
-                  from {cgpa}
-                </p>
+                  }}>
+                    {parseFloat(whatIfCGPA) > cgpa ? `▲ +${(whatIfCGPA - cgpa).toFixed(2)}` : parseFloat(whatIfCGPA) < cgpa ? `▼ ${(whatIfCGPA - cgpa).toFixed(2)}` : "→ No change"} from {cgpa}
+                  </p>
+                </div>
+              </div>
+
+              {/* Simulated SGPA */}
+              <div style={{ background: "rgba(34,197,94,0.1)", border: "1px solid rgba(34,197,94,0.3)", borderRadius: 10, padding: 20 }}>
+                <p style={{ color: "var(--secondary)", fontSize: 13 }}>Simulated SGPA</p>
+                <div style={{ display: "flex", alignItems: "baseline", gap: 16, flexWrap: "wrap" }}>
+                  <p style={{ fontFamily: "Space Mono", fontSize: 36, fontWeight: 700, color: "var(--success)" }}>
+                    {whatIfSGPA}
+                  </p>
+                  <p style={{
+                    color: parseFloat(whatIfSGPA) > latestSgpa ? "var(--success)" : parseFloat(whatIfSGPA) < latestSgpa ? "var(--danger)" : "var(--secondary)",
+                    fontWeight: 600,
+                  }}>
+                    {parseFloat(whatIfSGPA) > latestSgpa ? `▲ +${(whatIfSGPA - latestSgpa).toFixed(2)}` : parseFloat(whatIfSGPA) < latestSgpa ? `▼ ${(whatIfSGPA - latestSgpa).toFixed(2)}` : "→ No change"} from {latestSgpa?.toFixed(2) || "0.00"}
+                  </p>
+                </div>
               </div>
             </motion.div>
           )}
