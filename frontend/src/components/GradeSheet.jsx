@@ -109,6 +109,35 @@ export default function GradeSheet({ result, studentData }) {
   const sgpa = calcSGPA(validSubjectsForCalc);
   const hasFailed = subjects.some((s) => FAIL_GRADES.includes(s.grade));
 
+  // Calculate CGPA up to current semester
+  let totalTW = 0;
+  let totalTC = 0;
+  const allResults = studentData?.results || [];
+  const pastResults = allResults.filter(r => r.semester <= result.semester);
+
+  pastResults.forEach(r => {
+    const validSubs = (r.subjects || []).filter((s) => {
+      if (
+        Number(r.semester) === 5 &&
+        s.grade === "R" &&
+        s.credit === 6 &&
+        (s.type && s.type.toLowerCase().includes("proj"))
+      ) {
+        return false;
+      }
+      return true;
+    });
+
+    validSubs.forEach((s) => {
+      if (PASSING_GRADES.includes(s.grade) && s.credit) {
+        totalTW += s.credit * GRADE_POINTS[s.grade];
+        totalTC += s.credit;
+      }
+    });
+  });
+
+  const cgpaUpToNow = totalTC > 0 ? Math.floor((totalTW / totalTC) * 100 + 0.0001) / 100 : 0;
+
   const today = new Date().toLocaleDateString("en-IN", {
     day: "2-digit",
     month: "short",
@@ -456,7 +485,7 @@ export default function GradeSheet({ result, studentData }) {
             <span>Credits Cleared : {creditsCleared}</span>
             <span>SGPA : {sgpa.toFixed(2)}</span>
             {studentData?.cgpa !== undefined && (
-              <span>CGPA : {studentData.cgpa.toFixed(2)}</span>
+              <span>CGPA : {cgpaUpToNow.toFixed(2)}</span>
             )}
           </div>
 
