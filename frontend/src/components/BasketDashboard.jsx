@@ -1,5 +1,5 @@
 import React, { useMemo } from "react";
-import { categorizeBaskets, BASKET_1_SYLLABUS, BASKET_2_SYLLABUS, BASKET_3_SYLLABUS, BASKET_5_DOMAINS_DATA, inferStudentDomainTrack } from "../utils/basketLogic";
+import { categorizeBaskets, BASKET_1_SYLLABUS, BASKET_2_SYLLABUS, BASKET_3_SYLLABUS, BASKET_4_SYLLABUS, BASKET_5_DOMAINS_DATA, inferStudentDomainTrack } from "../utils/basketLogic";
 import { CheckCircle, Award, Target, BookOpen, Hexagon, Cpu, Zap, ChevronDown, ChevronUp, Folder } from "lucide-react";
 import { motion } from "framer-motion";
 
@@ -109,20 +109,33 @@ export default function BasketDashboard({ results }) {
     }
     
     if (key === 'B4') {
+      const b4ExtraSubjects = data.subjects.filter(s => !BASKET_4_SYLLABUS.some(bs => (s.subCode && bs.subCode && s.subCode.toLowerCase() === bs.subCode.toLowerCase()) || (s.subName && bs.subName && s.subName.toLowerCase().includes(bs.subName.toLowerCase()))));
       return (
-        <div style={{ display: "flex", flexDirection: "column" }}>
-          {data.subjects.length === 0 ? (
-            <p style={{ padding: 20, fontSize: 13, color: "var(--secondary)", fontStyle: "italic" }}>No subjects completed in this basket yet.</p>
-          ) : (
-            <>
-              <div className="basket-grid-header" style={{ display: "grid", gridTemplateColumns: "3fr 1fr 1fr 1fr", padding: "16px 24px", borderBottom: "1px solid var(--border-color)", borderTop: "1px solid var(--border-color)", fontSize: 12, color: "var(--secondary)", fontWeight: 700, letterSpacing: 0.5, textTransform: "uppercase" }}>
-                <div>Subject</div>
-                <div style={{ textAlign: "center" }}>Sem</div>
-                <div style={{ textAlign: "center" }}>Grade</div>
-                <div style={{ textAlign: "right" }}>Credits</div>
+        <div style={{ display: "flex", flexDirection: "column", background: "var(--bg-main)" }}>
+          <div className="basket-grid-header" style={{ display: "grid", gridTemplateColumns: "3fr 1fr 1fr 1fr", padding: "16px 24px", borderBottom: "1px solid var(--border-color)", borderTop: "1px solid var(--border-color)", fontSize: 12, color: "var(--secondary)", fontWeight: 700, letterSpacing: 0.5, textTransform: "uppercase" }}>
+            <div>Subject</div>
+            <div style={{ textAlign: "center" }}>Sem</div>
+            <div style={{ textAlign: "center" }}>Status</div>
+            <div style={{ textAlign: "right" }}>Credits</div>
+          </div>
+          {BASKET_4_SYLLABUS.map((syllabusSub, idx) => {
+             const takenSub = data.subjects.find(s => (s.subCode && syllabusSub.subCode && s.subCode.toLowerCase() === syllabusSub.subCode.toLowerCase()) || (s.subName && syllabusSub.subName && s.subName.toLowerCase().includes(syllabusSub.subName.toLowerCase())));
+             if (takenSub) return renderSubjectRow(takenSub, idx, false);
+             return renderSubjectRow({ subName: syllabusSub.subName, subCode: syllabusSub.subCode, credits: syllabusSub.credits }, idx, true);
+          })}
+          {b4ExtraSubjects.length > 0 && (
+            <div style={{ marginTop: 24, padding: "0 24px 24px" }}>
+              <h4 style={{ fontSize: 14, fontWeight: 700, color: "var(--text-main)", marginBottom: 16 }}>Additional B4 Electives</h4>
+              <div style={{ border: "1px solid var(--border-color)", borderRadius: 12, overflow: "hidden", background: "rgba(255,255,255,0.02)" }}>
+                 <div className="basket-grid-header" style={{ display: "grid", gridTemplateColumns: "3fr 1fr 1fr 1fr", padding: "16px 24px", borderBottom: "1px solid var(--border-color)", fontSize: 12, color: "var(--secondary)", fontWeight: 700, letterSpacing: 0.5, textTransform: "uppercase" }}>
+                   <div>Subject</div>
+                   <div style={{ textAlign: "center" }}>Sem</div>
+                   <div style={{ textAlign: "center" }}>Status</div>
+                   <div style={{ textAlign: "right" }}>Credits</div>
+                 </div>
+                 {b4ExtraSubjects.map((sub, idx) => renderSubjectRow(sub, 'extra-' + idx, false))}
               </div>
-              {data.subjects.map((sub, idx) => renderSubjectRow(sub, idx, false))}
-            </>
+            </div>
           )}
         </div>
       );

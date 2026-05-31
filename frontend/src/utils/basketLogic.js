@@ -104,6 +104,84 @@ export function categorizeBaskets(results) {
   return baskets;
 }
 
+
+export const BASKET_4_SYLLABUS = [
+  {
+    "subCode": "CUCS1001",
+    "subName": "Programming in C",
+    "credits": 6
+  },
+  {
+    "subCode": "CUCS1002",
+    "subName": "Data Structures with Competitive Coding",
+    "credits": 6
+  },
+  {
+    "subCode": "CUCS1003",
+    "subName": "Design and Analysis of Algorithms",
+    "credits": 6
+  },
+  {
+    "subCode": "CUCS1004",
+    "subName": "Java Programming",
+    "credits": 6
+  },
+  {
+    "subCode": "CUCS1005",
+    "subName": "Relational and Distributed Databases",
+    "credits": 4
+  },
+  {
+    "subCode": "CUCS1006",
+    "subName": "Network and Protocols for IoT",
+    "credits": 3
+  },
+  {
+    "subCode": "CUCS1007",
+    "subName": "Information Security (CISCO)",
+    "credits": 3
+  },
+  {
+    "subCode": "CUCS1008",
+    "subName": "Theory of Computation and Compiler Design",
+    "credits": 4
+  },
+  {
+    "subCode": "CUCS1009",
+    "subName": "System Administrator (RedHat)",
+    "credits": 3
+  },
+  {
+    "subCode": "CUCS1010",
+    "subName": "Cloud Practitioner (AWS)",
+    "credits": 2
+  },
+  {
+    "subCode": "CUCS1011",
+    "subName": "Software Engineering and Testing",
+    "credits": 3
+  },
+  {
+    "subCode": "CUCS1012",
+    "subName": "Customer Experience Design and Programming",
+    "credits": 4
+  },
+  {
+    "subCode": "CUCS1013",
+    "subName": "Android Development with Kotlin",
+    "credits": 6
+  },
+  {
+    "subCode": "CUCS1014",
+    "subName": "Prompt Engineering using ChatGPT",
+    "credits": 2
+  },
+  {
+    "subCode": "CUCS1015",
+    "subName": "Cloud Fundamentals (Azure)",
+    "credits": 2
+  }
+];
 export const BASKET_1_SYLLABUS = [
   { subName: "Differential Equations & Linear Algebra", credits: 3 },
   { subName: "Laplace & Fourier Transforms", credits: 3 },
