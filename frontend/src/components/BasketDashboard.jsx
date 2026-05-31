@@ -37,18 +37,18 @@ export default function BasketDashboard({ results }) {
     const isBacklog = !isPending && ['F','R','M','S','I'].includes(sub.grade);
     const isPassed = !isPending && !isBacklog;
 
-    let rowBg = "transparent";
+    let rowBg = undefined;
     if (isPassed) rowBg = "rgba(34, 197, 94, 0.06)"; // subtle green for completed
     if (isBacklog) rowBg = "rgba(239, 68, 68, 0.06)"; // subtle red for backlogs
 
     return (
-      <div key={idx} className="basket-subject-row" style={{ display: "grid", gridTemplateColumns: "3fr 1fr 1fr 1fr", padding: "16px 24px", alignItems: "center", borderBottom: "1px solid var(--border-color)", background: rowBg, opacity: isPending ? 0.6 : 1 }}>
-        <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+      <div key={idx} className="basket-subject-row" style={{ display: "grid", gridTemplateColumns: "3fr 1fr 1fr 1fr", padding: "16px 24px", alignItems: "center", borderBottom: "1px solid var(--border-color)", backgroundColor: rowBg }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: 4, opacity: isPending ? 0.6 : 1 }}>
           <span style={{ fontSize: 13, color: "var(--text-main)", fontWeight: 700, lineHeight: 1.4, textTransform: "uppercase" }}>{sub.subName}</span>
           {sub.subCode && <span style={{ fontSize: 12, color: "var(--secondary)", fontFamily: "Space Mono, monospace" }}>{sub.subCode}</span>}
         </div>
         
-        <div className="mobile-flex-row" style={{ textAlign: "center", fontSize: 14, color: "var(--secondary)", fontWeight: 600 }}>
+        <div className="mobile-flex-row" style={{ textAlign: "center", fontSize: 14, color: "var(--secondary)", fontWeight: 600, opacity: isPending ? 0.6 : 1 }}>
           <span className="mobile-label">Semester</span>
           <span>{isPending ? "—" : sub.semester}</span>
         </div>
@@ -71,7 +71,7 @@ export default function BasketDashboard({ results }) {
           )}
         </div>
         
-        <div className="mobile-flex-row" style={{ textAlign: "right", fontSize: 15, color: "var(--text-main)", fontWeight: 800 }}>
+        <div className="mobile-flex-row" style={{ textAlign: "right", fontSize: 15, color: "var(--text-main)", fontWeight: 800, opacity: isPending ? 0.6 : 1 }}>
           <span className="mobile-label">Credits</span>
           <span>{isPending ? sub.credits : sub.earnedCredits}</span>
         </div>
