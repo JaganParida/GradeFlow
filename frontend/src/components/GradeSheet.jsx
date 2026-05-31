@@ -237,6 +237,7 @@ export default function GradeSheet({ result, studentData }) {
     <div style={{ width: "100%", maxWidth: "100%" }}>
       {/* ── Action Buttons ── */}
       <div
+        data-html2canvas-ignore="true"
         style={{
           display: "flex",
           gap: 16,
@@ -493,6 +494,7 @@ export default function GradeSheet({ result, studentData }) {
           {/* Fail warning */}
           {hasFailed && (
             <div
+              data-html2canvas-ignore="true"
               style={{
                 background: "#fff5f5",
                 border: "1px solid #fecaca",
