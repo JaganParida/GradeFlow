@@ -236,10 +236,10 @@ export default function Home() {
       <div
         style={{
           width: "100%",
-          maxWidth: 900,
+          maxWidth: 1200,
           margin: "80px auto 0",
           display: "grid",
-          gridTemplateColumns: "repeat(auto-fit, minmax(250px, 1fr))",
+          gridTemplateColumns: "repeat(auto-fit, minmax(350px, 1fr))",
           gap: 32,
           position: "relative",
           zIndex: 1,
@@ -263,15 +263,17 @@ export default function Home() {
             </div>
           </div>
 
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 2fr 1.5fr 1fr 1fr", gap: 12, padding: "0 16px 12px", borderBottom: "1px solid rgba(255,255,255,0.1)", marginBottom: 12, fontSize: 11, fontWeight: 700, color: "var(--secondary)", textTransform: "uppercase", letterSpacing: 1 }}>
-            <span>Grade</span>
-            <span>Qualification</span>
-            <span>Range</span>
-            <span>Points</span>
-            <span style={{ textAlign: "right" }}>Counted?</span>
-          </div>
+          <div style={{ overflowX: "auto" }}>
+            <div style={{ minWidth: 500 }}>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 2fr 1.5fr 1fr 1fr", gap: 12, padding: "0 16px 12px", borderBottom: "1px solid rgba(255,255,255,0.1)", marginBottom: 12, fontSize: 11, fontWeight: 700, color: "var(--secondary)", textTransform: "uppercase", letterSpacing: 1 }}>
+                <span>Grade</span>
+                <span>Qualification</span>
+                <span>Range</span>
+                <span>Points</span>
+                <span style={{ textAlign: "right" }}>Counted?</span>
+              </div>
 
-          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
             {gradeTableData.map((row, i) => (
               <motion.div
                 key={row.grade}
@@ -317,6 +319,8 @@ export default function Home() {
               </motion.div>
             ))}
           </div>
+            </div>
+          </div>
         </motion.div>
 
         {/* Core Algorithms */}
@@ -341,17 +345,17 @@ export default function Home() {
             {[
               {
                 title: "CREDIT POINT (CI)",
-                formula: "CREDIT × GRADE POINT",
+                formula: "Cᵢ × Gᵢ",
                 color: "#f59e0b"
               },
               {
                 title: "SEMESTER GPA (SGPA)",
-                formula: "Σ CI / Σ CREDITS",
+                formula: "Σ(Cᵢ × Gᵢ) / ΣCᵢ",
                 color: "#a855f7"
               },
               {
                 title: "CUMULATIVE GPA (CGPA)",
-                formula: "[Σ CI of all sem] / [Σ CREDITS]",
+                formula: "Σ(SGPAⱼ × Crⱼ) / ΣCrⱼ",
                 color: "#3ea6ff"
               }
             ].map((alg, i) => (

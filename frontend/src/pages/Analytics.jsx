@@ -47,19 +47,31 @@ function AnimatedNumber({ value }) {
 }
 
 function calcCGPAUpTo(results, upToIdx) {
-  let tw = 0,
-    tc = 0;
+  let cgpaNumerator = 0;
+  let cgpaDenominator = 0;
+
+  // We need to calculate SGPA per semester and then weighted average
+  // Since results is an array of semesters, we can process each up to upToIdx
   results.slice(0, upToIdx + 1).forEach((r) => {
+    let semTW = 0;
+    let semTC = 0;
     r.subjects.forEach((s) => {
       if (Number(r.semester) === 5 && s.grade === 'R' && (Number(s.credit) === 6 || (s.subName && s.subName.toLowerCase().includes('project')))) return;
       if (s.grade === 'M' || s.grade === 'S') return;
       if (s.credit && GRADE_POINTS[s.grade] !== undefined) {
-        tw += s.credit * GRADE_POINTS[s.grade];
-        tc += s.credit;
+        semTW += s.credit * GRADE_POINTS[s.grade];
+        semTC += s.credit;
       }
     });
+    
+    if (semTC > 0) {
+      let semSGPA = Math.floor((semTW / semTC) * 100 + 0.0001) / 100;
+      cgpaNumerator += semSGPA * semTC;
+      cgpaDenominator += semTC;
+    }
   });
-  return tc > 0 ? Math.floor((tw / tc) * 100 + 0.0001) / 100 : 0;
+
+  return cgpaDenominator > 0 ? Math.floor((cgpaNumerator / cgpaDenominator) * 100 + 0.0001) / 100 : 0;
 }
 
 function generateInsights(data) {
@@ -189,11 +201,13 @@ export default function Analytics() {
     }
 
     const results = studentData.results;
-    let tw = 0, tc = 0;
+    let cgpaNumerator = 0, cgpaDenominator = 0;
     let sgpa_tw = 0, sgpa_tc = 0;
 
     results.forEach((r, ri) => {
       const isLatest = ri === results.length - 1;
+      let semTW = 0, semTC = 0;
+
       r.subjects.forEach((s) => {
         const grade =
           isLatest && whatIfGrades[s.subCode]
@@ -209,17 +223,23 @@ export default function Analytics() {
         }
 
         if (s.credit && GRADE_POINTS[grade] !== undefined) {
-          tw += s.credit * GRADE_POINTS[grade];
-          tc += s.credit;
+          semTW += s.credit * GRADE_POINTS[grade];
+          semTC += s.credit;
           if (isLatest) {
             sgpa_tw += s.credit * GRADE_POINTS[grade];
             sgpa_tc += s.credit;
           }
         }
       });
+      
+      if (semTC > 0) {
+        let semSGPA = Math.floor((semTW / semTC) * 100 + 0.0001) / 100;
+        cgpaNumerator += semSGPA * semTC;
+        cgpaDenominator += semTC;
+      }
     });
 
-    setWhatIfCGPA(tc > 0 ? (Math.floor((tw / tc) * 100 + 0.0001) / 100).toFixed(2) : 0);
+    setWhatIfCGPA(cgpaDenominator > 0 ? (Math.floor((cgpaNumerator / cgpaDenominator) * 100 + 0.0001) / 100).toFixed(2) : 0);
     setWhatIfSGPA(sgpa_tc > 0 ? (Math.floor((sgpa_tw / sgpa_tc) * 100 + 0.0001) / 100).toFixed(2) : 0);
   }, [whatIfGrades, studentData]);
 

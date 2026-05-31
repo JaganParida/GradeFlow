@@ -81,23 +81,36 @@ async function generateRankingForSemester(semester) {
     const allResults = await SemesterResult.find({ regNo: r.regNo }).sort({
       semester: 1,
     });
-    let totalW = 0,
-      totalC = 0;
-    allResults.forEach((ar) =>
-      ar.subjects.forEach((s) => {
-        if (Number(ar.semester) === 5 && s.grade === 'R' && (s.credit === 6 || (s.subName && s.subName.toLowerCase().includes('project')))) {
-          return;
-        }
-        if (s.grade === 'M' || s.grade === 'S') {
-          return;
-        }
-        if (s.credit && GRADE_POINTS[s.grade] !== undefined) {
-          totalW += s.credit * GRADE_POINTS[s.grade];
-          totalC += s.credit;
-        }
-      }),
-    );
-    const cgpa = totalC > 0 ? Math.floor((totalW / totalC) * 100 + 0.0001) / 100 : 0;
+    let cgpaNumerator = 0,
+      cgpaDenominator = 0;
+    
+    // Group subjects by semester to calculate SGPA per semester
+    const sems = [...new Set(allResults.map(r => r.semester))];
+    sems.forEach(sem => {
+      let semW = 0, semC = 0;
+      allResults.filter(r => r.semester === sem).forEach(ar => {
+        ar.subjects.forEach((s) => {
+          if (Number(ar.semester) === 5 && s.grade === 'R' && (s.credit === 6 || (s.subName && s.subName.toLowerCase().includes('project')))) {
+            return;
+          }
+          if (s.grade === 'M' || s.grade === 'S') {
+            return;
+          }
+          if (s.credit && GRADE_POINTS[s.grade] !== undefined) {
+            semW += s.credit * GRADE_POINTS[s.grade];
+            semC += s.credit;
+          }
+        });
+      });
+      
+      if (semC > 0) {
+        let semSGPA = Math.floor((semW / semC) * 100 + 0.0001) / 100;
+        cgpaNumerator += semSGPA * semC;
+        cgpaDenominator += semC;
+      }
+    });
+
+    const cgpa = cgpaDenominator > 0 ? Math.floor((cgpaNumerator / cgpaDenominator) * 100 + 0.0001) / 100 : 0;
     studentData.push({
       regNo: r.regNo,
       studentName: r.studentName,

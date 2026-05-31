@@ -18,9 +18,13 @@ const GRADE_POINTS = {
 };
 
 function calcCGPA(results) {
-  let totalWeighted = 0,
-    totalCredits = 0;
+  let cgpaNumerator = 0;
+  let cgpaDenominator = 0;
+
   results.forEach((r) => {
+    let semTW = 0;
+    let semTC = 0;
+
     r.subjects.forEach((s) => {
       if (Number(r.semester) === 5 && s.grade === 'R' && (Number(s.credit) === 6 || (s.subName && s.subName.toLowerCase().includes('project')))) {
         return; // Ignore Sem 5 R grade projects
@@ -29,13 +33,20 @@ function calcCGPA(results) {
         return; // M and S credits are not counted in SGPA/CGPA denominator
       }
       if (s.credit && GRADE_POINTS[s.grade] !== undefined) {
-        totalWeighted += s.credit * GRADE_POINTS[s.grade];
-        totalCredits += s.credit;
+        semTW += s.credit * GRADE_POINTS[s.grade];
+        semTC += s.credit;
       }
     });
+
+    if (semTC > 0) {
+      const semSGPA = Math.floor((semTW / semTC) * 100 + 0.0001) / 100;
+      cgpaNumerator += semSGPA * semTC;
+      cgpaDenominator += semTC;
+    }
   });
-  return totalCredits > 0
-    ? Math.floor((totalWeighted / totalCredits) * 100 + 0.0001) / 100
+
+  return cgpaDenominator > 0
+    ? Math.floor((cgpaNumerator / cgpaDenominator) * 100 + 0.0001) / 100
     : 0;
 }
 
