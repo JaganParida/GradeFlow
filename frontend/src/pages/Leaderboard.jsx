@@ -282,19 +282,7 @@ export default function Leaderboard() {
                       </tr>
                     </thead>
                     <tbody>
-                      {top10.length === 0 && filters.search && (
-                        <tr>
-                          <td colSpan="5" style={{ textAlign: "center", padding: "60px 20px" }}>
-                            <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
-                              <div style={{ marginBottom: 16, display: "flex", justifyContent: "center" }}><Target size={48} color="var(--accent)" /></div>
-                              <h3 style={{ fontSize: 20, fontWeight: 800, marginBottom: 8 }}>Not in the Top {showCount} Yet</h3>
-                              <p style={{ color: "var(--secondary)", fontSize: 15, maxWidth: 400, margin: "0 auto", lineHeight: 1.6 }}>
-                                Every expert was once a beginner. Keep pushing forward—consistent effort and dedication will get you there. You've got this! 🚀
-                              </p>
-                            </motion.div>
-                          </td>
-                        </tr>
-                      )}
+
                       {top10.map((r, i) => {
                         const isGold = r.displayRank === 1;
                         const isSilver = r.displayRank === 2;
