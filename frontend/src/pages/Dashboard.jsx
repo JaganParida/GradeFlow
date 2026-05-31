@@ -67,6 +67,7 @@ export default function Dashboard() {
   const [isDownloadingBatch, setIsDownloadingBatch] = useState(false);
   const [expandedBacklog, setExpandedBacklog] = useState(null);
   const [highlightedSubject, setHighlightedSubject] = useState(null);
+  const [isBacklogsListExpanded, setIsBacklogsListExpanded] = useState(false);
 
   const downloadFullTranscript = async () => {
     setIsDownloadingBatch(true);
@@ -362,78 +363,86 @@ export default function Dashboard() {
             marginBottom: 24,
           }}
         >
-          <p
-            style={{ color: "var(--danger)", fontWeight: 700, marginBottom: 16, display: "flex", alignItems: "center", gap: 8 }}
+          <div
+            onClick={() => setIsBacklogsListExpanded(!isBacklogsListExpanded)}
+            style={{ display: "flex", justifyContent: "space-between", alignItems: "center", cursor: "pointer" }}
           >
-            <AlertTriangle size={18} /> {backlogs.length} Active Backlogs Found
-          </p>
-          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-            {backlogs.map((b, i) => {
-              const isExpanded = expandedBacklog === i;
-              return (
-                <motion.div
-                  key={i}
-                  style={{
-                    background: "rgba(239,68,68,0.05)",
-                    border: "1px solid rgba(239,68,68,0.2)",
-                    borderRadius: 8,
-                    overflow: "hidden",
-                  }}
-                >
-                  {/* Header (Click to expand) */}
-                  <div
-                    onClick={() => setExpandedBacklog(isExpanded ? null : i)}
+            <p
+              style={{ color: "var(--danger)", fontWeight: 700, margin: 0, display: "flex", alignItems: "center", gap: 8 }}
+            >
+              <AlertTriangle size={18} /> {backlogs.length} Active Backlogs Found
+            </p>
+            {isBacklogsListExpanded ? <ChevronUp size={20} color="var(--danger)" /> : <ChevronDown size={20} color="var(--danger)" />}
+          </div>
+          
+          {isBacklogsListExpanded && (
+            <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 16, overflow: "hidden" }}>
+              {backlogs.map((b, i) => {
+                const isExpanded = expandedBacklog === i;
+                return (
+                  <motion.div
+                    key={i}
                     style={{
-                      padding: "12px 16px",
-                      cursor: "pointer",
-                      display: "flex",
-                      justifyContent: "space-between",
-                      alignItems: "center",
-                      gap: 12,
+                      background: "rgba(239,68,68,0.05)",
+                      border: "1px solid rgba(239,68,68,0.2)",
+                      borderRadius: 8,
+                      overflow: "hidden",
                     }}
                   >
-                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                      <span style={{ fontWeight: 600, color: "var(--text)", fontSize: 14 }}>{b.subName}</span>
-                    </div>
-                    <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                      <span style={{ background: "rgba(255,255,255,0.1)", color: "var(--secondary)", padding: "2px 8px", borderRadius: 4, fontSize: 11, fontWeight: 700 }}>Sem {b.semester}</span>
-                      {isExpanded ? <ChevronUp size={16} color="var(--secondary)" /> : <ChevronDown size={16} color="var(--secondary)" />}
-                    </div>
-                  </div>
-
-                  {/* Expanded Content */}
-                  {isExpanded && (
-                    <motion.div
-                      initial={{ height: 0, opacity: 0 }}
-                      animate={{ height: "auto", opacity: 1 }}
-                      style={{ padding: "0 16px 16px 16px" }}
+                    {/* Header (Click to expand) */}
+                    <div
+                      onClick={(e) => { e.stopPropagation(); setExpandedBacklog(isExpanded ? null : i); }}
+                      style={{
+                        padding: "12px 16px",
+                        cursor: "pointer",
+                        display: "flex",
+                        justifyContent: "space-between",
+                        alignItems: "center",
+                        gap: 12,
+                      }}
                     >
-                      <div style={{ display: "flex", gap: 8, marginBottom: 12 }}>
-                        <span style={{ background: "rgba(239,68,68,0.15)", color: "var(--danger)", padding: "4px 10px", borderRadius: 4, fontSize: 12, fontWeight: 700 }}>{b.subCode}</span>
-                        <span style={{ background: "rgba(239,68,68,0.15)", color: "var(--danger)", padding: "4px 10px", borderRadius: 4, fontSize: 12, fontWeight: 700 }}>{b.credit} Credits</span>
+                      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                        <span style={{ fontWeight: 600, color: "var(--text)", fontSize: 14 }}>{b.subName}</span>
                       </div>
-                      
-                      <button
-                        className="btn btn-primary"
-                        onClick={() => {
-                          setTab("result");
-                          setSelectedSem(b.semester);
-                          setHighlightedSubject(b.subCode);
-                          // Auto remove highlight after 3.5 seconds
-                          setTimeout(() => setHighlightedSubject(null), 3500);
-                          // Scroll into view gently
-                          window.scrollTo({ top: document.body.scrollHeight, behavior: "smooth" });
-                        }}
-                        style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 13, padding: "8px 16px" }}
+                      <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                        <span style={{ background: "rgba(255,255,255,0.1)", color: "var(--secondary)", padding: "2px 8px", borderRadius: 4, fontSize: 11, fontWeight: 700 }}>Sem {b.semester}</span>
+                        {isExpanded ? <ChevronUp size={16} color="var(--secondary)" /> : <ChevronDown size={16} color="var(--secondary)" />}
+                      </div>
+                    </div>
+
+                    {/* Expanded Content */}
+                    {isExpanded && (
+                      <motion.div
+                        initial={{ height: 0, opacity: 0 }}
+                        animate={{ height: "auto", opacity: 1 }}
+                        style={{ padding: "0 16px 16px 16px" }}
                       >
-                        <Search size={14} /> Find in Report Card
-                      </button>
-                    </motion.div>
-                  )}
-                </motion.div>
-              );
-            })}
-          </div>
+                        <div style={{ display: "flex", gap: 8, marginBottom: 12 }}>
+                          <span style={{ background: "rgba(239,68,68,0.15)", color: "var(--danger)", padding: "4px 10px", borderRadius: 4, fontSize: 12, fontWeight: 700 }}>{b.subCode}</span>
+                          <span style={{ background: "rgba(239,68,68,0.15)", color: "var(--danger)", padding: "4px 10px", borderRadius: 4, fontSize: 12, fontWeight: 700 }}>{b.credit} Credits</span>
+                        </div>
+                        
+                        <button
+                          className="btn btn-primary"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setTab("result");
+                            setSelectedSem(b.semester);
+                            setHighlightedSubject(b.subCode);
+                            setTimeout(() => setHighlightedSubject(null), 3500);
+                            window.scrollTo({ top: document.body.scrollHeight, behavior: "smooth" });
+                          }}
+                          style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 13, padding: "8px 16px" }}
+                        >
+                          <Search size={14} /> Find in Report Card
+                        </button>
+                      </motion.div>
+                    )}
+                  </motion.div>
+                );
+              })}
+            </motion.div>
+          )}
         </motion.div>
       ) : (
         <motion.div
