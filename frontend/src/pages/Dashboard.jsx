@@ -356,11 +356,12 @@ export default function Dashboard() {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           style={{
-            background: "rgba(239,68,68,0.08)",
-            border: "1px solid rgba(239,68,68,0.3)",
+            background: "var(--surface)",
+            border: "1px solid var(--border)",
             borderRadius: "var(--radius)",
             padding: "16px 20px",
             marginBottom: 24,
+            boxShadow: "0 2px 10px rgba(0,0,0,0.1)",
           }}
         >
           <div
@@ -368,11 +369,11 @@ export default function Dashboard() {
             style={{ display: "flex", justifyContent: "space-between", alignItems: "center", cursor: "pointer" }}
           >
             <p
-              style={{ color: "var(--danger)", fontWeight: 700, margin: 0, display: "flex", alignItems: "center", gap: 8 }}
+              style={{ color: "var(--text)", fontWeight: 700, margin: 0, display: "flex", alignItems: "center", gap: 8 }}
             >
-              <AlertTriangle size={18} /> {backlogs.length} Active Backlogs Found
+              <AlertTriangle size={18} color="var(--danger)" /> {backlogs.length} Active Backlogs Found
             </p>
-            {isBacklogsListExpanded ? <ChevronUp size={20} color="var(--danger)" /> : <ChevronDown size={20} color="var(--danger)" />}
+            {isBacklogsListExpanded ? <ChevronUp size={20} color="var(--secondary)" /> : <ChevronDown size={20} color="var(--secondary)" />}
           </div>
           
           {isBacklogsListExpanded && (
@@ -383,8 +384,8 @@ export default function Dashboard() {
                   <motion.div
                     key={i}
                     style={{
-                      background: "rgba(239,68,68,0.05)",
-                      border: "1px solid rgba(239,68,68,0.2)",
+                      background: "var(--bg)",
+                      border: "1px solid var(--border)",
                       borderRadius: 8,
                       overflow: "hidden",
                     }}
@@ -418,8 +419,8 @@ export default function Dashboard() {
                         style={{ padding: "0 16px 16px 16px" }}
                       >
                         <div style={{ display: "flex", gap: 8, marginBottom: 12 }}>
-                          <span style={{ background: "rgba(239,68,68,0.15)", color: "var(--danger)", padding: "4px 10px", borderRadius: 4, fontSize: 12, fontWeight: 700 }}>{b.subCode}</span>
-                          <span style={{ background: "rgba(239,68,68,0.15)", color: "var(--danger)", padding: "4px 10px", borderRadius: 4, fontSize: 12, fontWeight: 700 }}>{b.credit} Credits</span>
+                          <span style={{ background: "rgba(255,255,255,0.05)", color: "var(--secondary)", border: "1px solid var(--border)", padding: "4px 10px", borderRadius: 4, fontSize: 12, fontWeight: 700 }}>{b.subCode}</span>
+                          <span style={{ background: "rgba(255,255,255,0.05)", color: "var(--secondary)", border: "1px solid var(--border)", padding: "4px 10px", borderRadius: 4, fontSize: 12, fontWeight: 700 }}>{b.credit} Credits</span>
                         </div>
                         
                         <button
