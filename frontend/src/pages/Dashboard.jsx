@@ -356,12 +356,13 @@ export default function Dashboard() {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           style={{
-            background: "var(--surface)",
-            border: "1px solid var(--border)",
-            borderRadius: "var(--radius)",
-            padding: "16px 20px",
+            background: "rgba(239,68,68,0.05)",
+            border: "1px solid rgba(239,68,68,0.2)",
+            borderLeft: "4px solid var(--danger)",
+            borderRadius: 8,
+            padding: "12px 16px",
             marginBottom: 24,
-            boxShadow: "0 2px 10px rgba(0,0,0,0.1)",
+            boxShadow: "0 2px 8px rgba(0,0,0,0.05)",
           }}
         >
           <div
@@ -369,11 +370,11 @@ export default function Dashboard() {
             style={{ display: "flex", justifyContent: "space-between", alignItems: "center", cursor: "pointer" }}
           >
             <p
-              style={{ color: "var(--text)", fontWeight: 700, margin: 0, display: "flex", alignItems: "center", gap: 8 }}
+              style={{ color: "var(--danger)", fontWeight: 600, margin: 0, display: "flex", alignItems: "center", gap: 8, fontSize: 14 }}
             >
-              <AlertTriangle size={18} color="var(--danger)" /> {backlogs.length} Active Backlogs Found
+              <AlertTriangle size={16} /> {backlogs.length} Active Backlogs Found
             </p>
-            {isBacklogsListExpanded ? <ChevronUp size={20} color="var(--secondary)" /> : <ChevronDown size={20} color="var(--secondary)" />}
+            {isBacklogsListExpanded ? <ChevronUp size={18} color="var(--danger)" /> : <ChevronDown size={18} color="var(--danger)" />}
           </div>
           
           {isBacklogsListExpanded && (
