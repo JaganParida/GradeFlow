@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useApp } from "../context/AppContext";
 import {
@@ -17,11 +17,34 @@ import {
   PolarRadiusAxis,
 } from "recharts";
 import { Spinner } from "../components/LoadingSpinner";
-import { motion } from "framer-motion";
+import { motion, animate } from "framer-motion";
 import { TrendingUp, TrendingDown, Star, Trophy, CheckCircle, AlertTriangle, Target, Medal, Award, BarChart2, PieChart, Briefcase, GraduationCap, Check, X, ArrowLeft, Building2, FileText } from "lucide-react";
 
 const GRADE_POINTS = { O: 10, E: 9, A: 8, B: 7, C: 6, D: 5, F: 2, M: 0, S: 0 };
 const GRADE_ORDER = ["O", "E", "A", "B", "C", "D", "F"];
+
+function AnimatedNumber({ value }) {
+  const nodeRef = useRef();
+
+  useEffect(() => {
+    const node = nodeRef.current;
+    if (!node || value == null) return;
+
+    const startValue = parseFloat(node.textContent) || value;
+    const controls = animate(startValue, value, {
+      duration: 0.6,
+      ease: "easeOut",
+      onUpdate(v) {
+        node.textContent = v.toFixed(2);
+      },
+    });
+
+    return controls.stop;
+  }, [value]);
+
+  if (value == null) return null;
+  return <span ref={nodeRef}>{value.toFixed(2)}</span>;
+}
 
 function calcCGPAUpTo(results, upToIdx) {
   let tw = 0,
@@ -157,7 +180,7 @@ export default function Analytics() {
 
   // What-if simulator (Auto-calculate)
   useEffect(() => {
-    if (!studentData || !studentData.results || Object.keys(whatIfGrades).length === 0) {
+    if (!studentData || !studentData.results) {
       setWhatIfCGPA(null);
       setWhatIfSGPA(null);
       return;
@@ -837,14 +860,15 @@ export default function Analytics() {
             <button
               className="btn btn-ghost"
               onClick={() => setWhatIfGrades({})}
+              disabled={Object.keys(whatIfGrades).length === 0}
             >
               Reset All
             </button>
           </div>
-          {whatIfCGPA && (
+          {(whatIfCGPA !== null) && (
             <motion.div
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
               style={{
                 marginTop: 20,
                 display: "grid",
@@ -853,11 +877,11 @@ export default function Analytics() {
               }}
             >
               {/* Simulated CGPA */}
-              <div style={{ background: "rgba(62,166,255,0.1)", border: "1px solid rgba(62,166,255,0.3)", borderRadius: 10, padding: 20 }}>
-                <p style={{ color: "var(--secondary)", fontSize: 13 }}>Simulated CGPA</p>
-                <div style={{ display: "flex", alignItems: "baseline", gap: 16, flexWrap: "wrap" }}>
-                  <p style={{ fontFamily: "Space Mono", fontSize: 36, fontWeight: 700, color: "var(--accent)" }}>
-                    {whatIfCGPA}
+              <div style={{ background: "rgba(62,166,255,0.06)", border: "1px solid rgba(62,166,255,0.2)", borderRadius: 10, padding: 20 }}>
+                <p style={{ color: "var(--secondary)", fontSize: 13, display: "flex", alignItems: "center", gap: 6 }}><Target size={14}/> Simulated CGPA</p>
+                <div style={{ display: "flex", alignItems: "baseline", gap: 16, flexWrap: "wrap", marginTop: 8 }}>
+                  <p style={{ fontFamily: "Space Mono", fontSize: 42, fontWeight: 800, color: "var(--accent)", lineHeight: 1 }}>
+                    <AnimatedNumber value={parseFloat(whatIfCGPA)} />
                   </p>
                   <p style={{
                     color: parseFloat(whatIfCGPA) > cgpa ? "var(--success)" : parseFloat(whatIfCGPA) < cgpa ? "var(--danger)" : "var(--secondary)",
@@ -869,11 +893,11 @@ export default function Analytics() {
               </div>
 
               {/* Simulated SGPA */}
-              <div style={{ background: "rgba(34,197,94,0.1)", border: "1px solid rgba(34,197,94,0.3)", borderRadius: 10, padding: 20 }}>
-                <p style={{ color: "var(--secondary)", fontSize: 13 }}>Simulated SGPA</p>
-                <div style={{ display: "flex", alignItems: "baseline", gap: 16, flexWrap: "wrap" }}>
-                  <p style={{ fontFamily: "Space Mono", fontSize: 36, fontWeight: 700, color: "var(--success)" }}>
-                    {whatIfSGPA}
+              <div style={{ background: "rgba(34,197,94,0.06)", border: "1px solid rgba(34,197,94,0.2)", borderRadius: 10, padding: 20 }}>
+                <p style={{ color: "var(--secondary)", fontSize: 13, display: "flex", alignItems: "center", gap: 6 }}><TrendingUp size={14}/> Simulated SGPA</p>
+                <div style={{ display: "flex", alignItems: "baseline", gap: 16, flexWrap: "wrap", marginTop: 8 }}>
+                  <p style={{ fontFamily: "Space Mono", fontSize: 42, fontWeight: 800, color: "var(--success)", lineHeight: 1 }}>
+                    <AnimatedNumber value={parseFloat(whatIfSGPA)} />
                   </p>
                   <p style={{
                     color: parseFloat(whatIfSGPA) > latestSgpa ? "var(--success)" : parseFloat(whatIfSGPA) < latestSgpa ? "var(--danger)" : "var(--secondary)",
