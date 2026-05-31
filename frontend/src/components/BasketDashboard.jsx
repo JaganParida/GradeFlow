@@ -33,42 +33,51 @@ export default function BasketDashboard({ results }) {
   const honoursTarget = 20;
   const isHonoursEligible = honoursCredits >= honoursTarget;
 
-  const renderSubjectRow = (sub, idx, isPending = false) => (
-    <div key={idx} className="basket-subject-row" style={{ display: "grid", gridTemplateColumns: "3fr 1fr 1fr 1fr", padding: "16px 24px", alignItems: "center", borderBottom: "1px solid var(--border-color)", opacity: isPending ? 0.6 : 1 }}>
-      <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-        <span style={{ fontSize: 13, color: "var(--text-main)", fontWeight: 700, lineHeight: 1.4, textTransform: "uppercase" }}>{sub.subName}</span>
-        {sub.subCode && <span style={{ fontSize: 12, color: "var(--secondary)", fontFamily: "Space Mono, monospace" }}>{sub.subCode}</span>}
+  const renderSubjectRow = (sub, idx, isPending = false) => {
+    const isBacklog = !isPending && ['F','R','M','S','I'].includes(sub.grade);
+    const isPassed = !isPending && !isBacklog;
+
+    let rowBg = "transparent";
+    if (isPassed) rowBg = "rgba(34, 197, 94, 0.06)"; // subtle green for completed
+    if (isBacklog) rowBg = "rgba(239, 68, 68, 0.06)"; // subtle red for backlogs
+
+    return (
+      <div key={idx} className="basket-subject-row" style={{ display: "grid", gridTemplateColumns: "3fr 1fr 1fr 1fr", padding: "16px 24px", alignItems: "center", borderBottom: "1px solid var(--border-color)", background: rowBg, opacity: isPending ? 0.6 : 1 }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+          <span style={{ fontSize: 13, color: "var(--text-main)", fontWeight: 700, lineHeight: 1.4, textTransform: "uppercase" }}>{sub.subName}</span>
+          {sub.subCode && <span style={{ fontSize: 12, color: "var(--secondary)", fontFamily: "Space Mono, monospace" }}>{sub.subCode}</span>}
+        </div>
+        
+        <div className="mobile-flex-row" style={{ textAlign: "center", fontSize: 14, color: "var(--secondary)", fontWeight: 600 }}>
+          <span className="mobile-label">Semester</span>
+          <span>{isPending ? "—" : sub.semester}</span>
+        </div>
+        
+        <div className="mobile-flex-row" style={{ textAlign: "center", display: "flex", justifyContent: "center" }}>
+          <span className="mobile-label">Status</span>
+          {isPending ? (
+            <span style={{ padding: "4px 10px", borderRadius: 8, fontSize: 12, fontWeight: 800, background: "rgba(255,255,255,0.05)", color: "var(--secondary)" }}>PENDING</span>
+          ) : (
+            <span style={{ 
+              padding: "4px 10px", 
+              borderRadius: 8, 
+              fontSize: 13, 
+              fontWeight: 800,
+              background: isBacklog ? "rgba(239, 68, 68, 0.15)" : "rgba(34, 197, 94, 0.15)",
+              color: isBacklog ? "var(--danger)" : "var(--success)"
+            }}>
+              {sub.grade}
+            </span>
+          )}
+        </div>
+        
+        <div className="mobile-flex-row" style={{ textAlign: "right", fontSize: 15, color: "var(--text-main)", fontWeight: 800 }}>
+          <span className="mobile-label">Credits</span>
+          <span>{isPending ? sub.credits : sub.earnedCredits}</span>
+        </div>
       </div>
-      
-      <div className="mobile-flex-row" style={{ textAlign: "center", fontSize: 14, color: "var(--secondary)", fontWeight: 600 }}>
-        <span className="mobile-label">Semester</span>
-        <span>{isPending ? "—" : sub.semester}</span>
-      </div>
-      
-      <div className="mobile-flex-row" style={{ textAlign: "center", display: "flex", justifyContent: "center" }}>
-        <span className="mobile-label">Status</span>
-        {isPending ? (
-          <span style={{ padding: "4px 10px", borderRadius: 8, fontSize: 12, fontWeight: 800, background: "rgba(255,255,255,0.05)", color: "var(--secondary)" }}>PENDING</span>
-        ) : (
-          <span style={{ 
-            padding: "4px 10px", 
-            borderRadius: 8, 
-            fontSize: 13, 
-            fontWeight: 800,
-            background: ['F','R','M','S','I'].includes(sub.grade) ? "rgba(239, 68, 68, 0.15)" : "rgba(34, 197, 94, 0.15)",
-            color: ['F','R','M','S','I'].includes(sub.grade) ? "var(--danger)" : "var(--success)"
-          }}>
-            {sub.grade}
-          </span>
-        )}
-      </div>
-      
-      <div className="mobile-flex-row" style={{ textAlign: "right", fontSize: 15, color: "var(--text-main)", fontWeight: 800 }}>
-        <span className="mobile-label">Credits</span>
-        <span>{isPending ? sub.credits : sub.earnedCredits}</span>
-      </div>
-    </div>
-  );
+    );
+  };
 
   const renderBasketContents = (key, data) => {
     let syllabusList = [];
