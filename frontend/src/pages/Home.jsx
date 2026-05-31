@@ -236,11 +236,11 @@ export default function Home() {
       <div
         style={{
           width: "100%",
-          maxWidth: 1200,
+          maxWidth: 1000,
           margin: "80px auto 0",
-          display: "grid",
-          gridTemplateColumns: "repeat(auto-fit, minmax(350px, 1fr))",
-          gap: 32,
+          display: "flex",
+          flexDirection: "column",
+          gap: 40,
           position: "relative",
           zIndex: 1,
         }}
@@ -341,48 +341,69 @@ export default function Home() {
             </div>
           </div>
 
-          <div style={{ display: "flex", flexDirection: "column", gap: 16, flex: 1, justifyContent: "center" }}>
-            {[
-              {
-                title: "CREDIT POINT (CI)",
-                formula: "Cᵢ × Gᵢ",
-                color: "#f59e0b"
-              },
-              {
-                title: "SEMESTER GPA (SGPA)",
-                formula: "Σ(Cᵢ × Gᵢ) / ΣCᵢ",
-                color: "#a855f7"
-              },
-              {
-                title: "CUMULATIVE GPA (CGPA)",
-                formula: "Σ(SGPAⱼ × Crⱼ) / ΣCrⱼ",
-                color: "#3ea6ff"
-              }
-            ].map((alg, i) => (
-              <motion.div
-                key={alg.title}
-                whileHover={{ scale: 1.02, borderColor: alg.color }}
-                style={{
-                  padding: 20,
-                  borderRadius: 16,
-                  background: "var(--bg)",
-                  border: "1px solid var(--border)",
-                  transition: "all 0.3s"
-                }}
-              >
-                <p style={{ fontSize: 11, fontWeight: 700, color: "var(--secondary)", letterSpacing: 1, marginBottom: 8, textTransform: "uppercase" }}>
-                  {alg.title}
-                </p>
-                <p style={{ fontFamily: "Space Mono, monospace", fontSize: 15, color: alg.color, fontWeight: 600 }}>
-                  {alg.formula}
-                </p>
-              </motion.div>
-            ))}
+          <div style={{ display: "flex", flexDirection: "column", gap: 32 }}>
+            {/* SGPA Formula */}
+            <div style={{ background: "rgba(255,255,255,0.02)", padding: 24, borderRadius: 16, border: "1px solid rgba(255,255,255,0.05)" }}>
+              <h4 style={{ fontSize: 18, fontWeight: 700, color: "var(--text)", marginBottom: 12, display: "flex", alignItems: "center", gap: 8 }}>
+                1. SGPA (Semester Grade Point Average) Formula
+              </h4>
+              <p style={{ fontSize: 14, color: "var(--secondary)", lineHeight: 1.6, marginBottom: 20 }}>
+                The SGPA measures your academic performance for a single semester. It is the ratio of your total earned Credit Points to the total Course Credits registered.
+              </p>
+              
+              <div style={{ display: "flex", justifyContent: "center", padding: "24px 0", marginBottom: 20 }}>
+                <div style={{ fontFamily: "Space Mono, monospace", fontSize: 20, fontWeight: 600, color: "#a855f7", display: "flex", alignItems: "center", gap: 12 }}>
+                  <span>SGPA =</span>
+                  <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 8 }}>
+                    <span style={{ borderBottom: "1px solid #a855f7", paddingBottom: 4 }}>Σ(Cᵢ × Gᵢ)</span>
+                    <span>ΣCᵢ</span>
+                  </div>
+                </div>
+              </div>
+
+              <div style={{ fontSize: 14, color: "var(--secondary)" }}>
+                <p style={{ fontWeight: 700, color: "var(--text)", marginBottom: 12 }}>Where:</p>
+                <ul style={{ display: "flex", flexDirection: "column", gap: 10, paddingLeft: 20 }}>
+                  <li><strong style={{ color: "var(--text)" }}>Cᵢ</strong> = The number of credits assigned to the i-th subject.</li>
+                  <li><strong style={{ color: "var(--text)" }}>Gᵢ</strong> = The grade point secured in the i-th subject (e.g., O = 10, E = 9, F = 2, R = 0).</li>
+                  <li><strong style={{ color: "var(--text)" }}>n</strong> = The total number of subjects registered in that semester.</li>
+                </ul>
+              </div>
+            </div>
+
+            {/* CGPA Formula */}
+            <div style={{ background: "rgba(255,255,255,0.02)", padding: 24, borderRadius: 16, border: "1px solid rgba(255,255,255,0.05)" }}>
+              <h4 style={{ fontSize: 18, fontWeight: 700, color: "var(--text)", marginBottom: 12, display: "flex", alignItems: "center", gap: 8 }}>
+                2. CGPA (Cumulative Grade Point Average) Formula
+              </h4>
+              <p style={{ fontSize: 14, color: "var(--secondary)", lineHeight: 1.6, marginBottom: 20 }}>
+                The CGPA measures your cumulative academic performance across all semesters completed so far. It is a weighted average of your SGPAs based on the total credits assigned to each individual semester.
+              </p>
+              
+              <div style={{ display: "flex", justifyContent: "center", padding: "24px 0", marginBottom: 20 }}>
+                <div style={{ fontFamily: "Space Mono, monospace", fontSize: 20, fontWeight: 600, color: "#3ea6ff", display: "flex", alignItems: "center", gap: 12 }}>
+                  <span>CGPA =</span>
+                  <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 8 }}>
+                    <span style={{ borderBottom: "1px solid #3ea6ff", paddingBottom: 4 }}>Σ(SGPAⱼ × Crⱼ)</span>
+                    <span>ΣCrⱼ</span>
+                  </div>
+                </div>
+              </div>
+
+              <div style={{ fontSize: 14, color: "var(--secondary)" }}>
+                <p style={{ fontWeight: 700, color: "var(--text)", marginBottom: 12 }}>Where:</p>
+                <ul style={{ display: "flex", flexDirection: "column", gap: 10, paddingLeft: 20 }}>
+                  <li><strong style={{ color: "var(--text)" }}>SGPAⱼ</strong> = The final SGPA scored in the j-th semester.</li>
+                  <li><strong style={{ color: "var(--text)" }}>Crⱼ</strong> = The total number of registered credits assigned to that specific j-th semester.</li>
+                  <li><strong style={{ color: "var(--text)" }}>m</strong> = The total number of semesters completed up to the current date.</li>
+                </ul>
+              </div>
+            </div>
           </div>
           
           <div style={{ marginTop: 24, padding: 16, borderRadius: 12, background: "rgba(62,166,255,0.05)", border: "1px dashed rgba(62,166,255,0.3)" }}>
             <p style={{ fontSize: 12, color: "var(--secondary)", lineHeight: 1.6 }}>
-              <span style={{ color: "#3ea6ff", fontWeight: 700 }}>Note:</span> All calculations are strictly based on standard university formulas and consider full backlogs clearance paths for CGPA aggregation.
+              <span style={{ color: "#3ea6ff", fontWeight: 700 }}>Note:</span> Special rules apply: M (Malpractice) and S (Absent) credits are entirely excluded. A 6-credit Semester 5 Project with an R grade is ignored. Backlogs dynamically update affected SGPAs!
             </p>
           </div>
         </motion.div>
