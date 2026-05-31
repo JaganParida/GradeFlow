@@ -22,7 +22,7 @@ function calcCGPA(results) {
     totalCredits = 0;
   results.forEach((r) => {
     r.subjects.forEach((s) => {
-      if (s.grade === 'R' && (s.credit === 6 || (s.subName && s.subName.toLowerCase().includes('project')))) {
+      if (Number(s.credit) === 6 && s.subName && s.subName.toLowerCase().includes('project')) {
         return; // Ignore Sem 5 R grade projects
       }
       if (s.credit && GRADE_POINTS[s.grade] !== undefined) {
@@ -89,13 +89,13 @@ router.get("/:regNo", async (req, res) => {
       latestSemester: latestResult.semester,
       totalCredits: results.reduce((a, r) => {
         return a + r.subjects.reduce((sum, s) => {
-          if (s.grade === 'R' && (s.credit === 6 || (s.subName && s.subName.toLowerCase().includes('project')))) return sum;
+          if (Number(s.credit) === 6 && s.subName && s.subName.toLowerCase().includes('project')) return sum;
           return sum + (s.credit || 0);
         }, 0);
       }, 0),
       creditsCleared: results.reduce((a, r) => {
         return a + r.subjects.reduce((sum, s) => {
-          if (s.grade === 'R' && (s.credit === 6 || (s.subName && s.subName.toLowerCase().includes('project')))) return sum;
+          if (Number(s.credit) === 6 && s.subName && s.subName.toLowerCase().includes('project')) return sum;
           if (["F", "M", "S", "R"].includes(s.grade)) return sum;
           return sum + (s.credit || 0);
         }, 0);

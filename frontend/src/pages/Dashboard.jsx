@@ -428,6 +428,7 @@ export default function Dashboard() {
                             e.stopPropagation();
                             setTab("result");
                             setSelectedSem(b.semester);
+                            loadSemester(b.semester);
                             setHighlightedSubject(b.subCode);
                             setTimeout(() => setHighlightedSubject(null), 3500);
                             window.scrollTo({ top: document.body.scrollHeight, behavior: "smooth" });
