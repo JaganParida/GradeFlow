@@ -1,5 +1,5 @@
 import React, { useMemo } from "react";
-import { categorizeBaskets, BASKET_1_SYLLABUS, BASKET_2_SYLLABUS, BASKET_3_SYLLABUS, BASKET_4_SYLLABUS, BASKET_5_DOMAINS_DATA, inferStudentDomainTrack, COMMON_BASKET_5_SYLLABUS, isMatch } from "../utils/basketLogic";
+import { categorizeBaskets, BASKET_1_SYLLABUS, BASKET_2_SYLLABUS, BASKET_3_SYLLABUS, BASKET_4_SYLLABUS, BASKET_5_DOMAINS_DATA, inferStudentDomainTrack, COMMON_BASKET_5_SYLLABUS, isMatch, BASKET_5_SKILL_COURSES } from "../utils/basketLogic";
 import { CheckCircle, Award, Target, BookOpen, Hexagon, Cpu, Zap, ChevronDown, ChevronUp, Folder } from "lucide-react";
 import { motion } from "framer-motion";
 
@@ -148,6 +148,9 @@ export default function BasketDashboard({ results }) {
       const b5ExtraSubjects = data.subjects.filter(s => {
         const isInCommon = COMMON_BASKET_5_SYLLABUS.some(cs => isMatch(s, cs));
         if (isInCommon) return false;
+        
+        const isSkill = BASKET_5_SKILL_COURSES.some(sc => isMatch(s, sc));
+        if (isSkill) return false;
 
         if (!inferredDomain) return true; 
         return !inferredDomain.subjects.some(ds => isMatch(s, ds));

@@ -91,6 +91,11 @@ export function categorizeBaskets(results) {
       baskets.B5.credits += earnedCredits;
       return;
     }
+    if (BASKET_5_SKILL_COURSES.some(bs => isMatch(s, bs))) {
+      baskets.B5.subjects.push(subjectData);
+      baskets.B5.credits += earnedCredits;
+      return;
+    }
     
     let matchedDomain = false;
     for (const domain of BASKET_5_DOMAINS_DATA) {
@@ -201,6 +206,209 @@ export const COMMON_BASKET_5_SYLLABUS = [
   { subCode: "CUTM1577", subName: "MINOR PROJECT II", credits: 2 },
   { subCode: "CUTM1905", subName: "INTERNSHIP", credits: 2 },
   { subCode: "CUTM1906", subName: "MINOR PROJECT", credits: 2 }
+];
+
+export const BASKET_5_SKILL_COURSES = [
+  {
+    "subCode": "CUTM3081",
+    "subName": "Organic Farming",
+    "credits": 4
+  },
+  {
+    "subCode": "CUTM3082",
+    "subName": "Mushroom Grower",
+    "credits": 4
+  },
+  {
+    "subCode": "CUTM3083",
+    "subName": "Hydroponics Technology",
+    "credits": 4
+  },
+  {
+    "subCode": "CUTM3084",
+    "subName": "Poultry Farming",
+    "credits": 4
+  },
+  {
+    "subCode": "CUTM3085",
+    "subName": "Dairy Farming",
+    "credits": 4
+  },
+  {
+    "subCode": "CUTM3086",
+    "subName": "Vermicomposting Farming",
+    "credits": 4
+  },
+  {
+    "subCode": "CUTM3087",
+    "subName": "Transformer Manufacturing, Repairing and Maintenance",
+    "credits": 4
+  },
+  {
+    "subCode": "CUTM3089",
+    "subName": "Electrical Installation",
+    "credits": 4
+  },
+  {
+    "subCode": "CUTM3090",
+    "subName": "Repair and Maintenance of Home Appliances",
+    "credits": 4
+  },
+  {
+    "subCode": "CUTM3091",
+    "subName": "Refrigeration and Air Conditioning",
+    "credits": 4
+  },
+  {
+    "subCode": "CUTM3092",
+    "subName": "Super Critical Co2 Plant Operation",
+    "credits": 4
+  },
+  {
+    "subCode": "CUTM3095",
+    "subName": "Business Plan Preparation",
+    "credits": 4
+  },
+  {
+    "subCode": "CUTM3098",
+    "subName": "Composite Fabrication Practice",
+    "credits": 4
+  },
+  {
+    "subCode": "CUTM3100",
+    "subName": "Farm Appliances Operation",
+    "credits": 4
+  },
+  {
+    "subCode": "CUTM3102",
+    "subName": "Solid Waste Management",
+    "credits": 4
+  },
+  {
+    "subCode": "CUTM3103",
+    "subName": "Bio Fertilisers Preparation",
+    "credits": 4
+  },
+  {
+    "subCode": "CUTM3104",
+    "subName": "PCB Designing & Fabrication",
+    "credits": 4
+  },
+  {
+    "subCode": "CUTM3105",
+    "subName": "Introduction to Block Chain Technology",
+    "credits": 4
+  },
+  {
+    "subCode": "CUTM3106",
+    "subName": "Introduction to Nutraceuticals",
+    "credits": 4
+  },
+  {
+    "subCode": "CUTM3108",
+    "subName": "Introduction to Computational Biology",
+    "credits": 4
+  },
+  {
+    "subCode": "CUTM3109",
+    "subName": "Product Life Cycle Management through Gate process",
+    "credits": 4
+  },
+  {
+    "subCode": "CUTM3110",
+    "subName": "New Material Development with Biovia",
+    "credits": 4
+  },
+  {
+    "subCode": "CUTM3111",
+    "subName": "Spectral Image Processing Using Python",
+    "credits": 4
+  },
+  {
+    "subCode": "CUTM3112",
+    "subName": "Satellite Data Processing",
+    "credits": 4
+  },
+  {
+    "subCode": "CUTM3113",
+    "subName": "Working with Graphene and carbon fibre",
+    "credits": 4
+  },
+  {
+    "subCode": "CUTM3114",
+    "subName": "Adobe Tools and Illustrations",
+    "credits": 4
+  },
+  {
+    "subCode": "CUTM3115",
+    "subName": "Digital Painting",
+    "credits": 4
+  },
+  {
+    "subCode": "CUTM3120",
+    "subName": "Computer Installation and Maintenance",
+    "credits": 4
+  },
+  {
+    "subCode": "CUTM3121",
+    "subName": "3D Game Art",
+    "credits": 4
+  },
+  {
+    "subCode": "CUTM3122",
+    "subName": "Drug Design using Biovia Discovery Studio",
+    "credits": 4
+  },
+  {
+    "subCode": "CUTM3123",
+    "subName": "Opthalmic Lens and Spectacle Manufacturing Techniques",
+    "credits": 4
+  },
+  {
+    "subCode": "CUTM3124",
+    "subName": "Medical Diagnostic Techniques",
+    "credits": 4
+  },
+  {
+    "subCode": "CUTM3125",
+    "subName": "Introduction to Aquaponics",
+    "credits": 4
+  },
+  {
+    "subCode": "CUTM3126",
+    "subName": "Polyhouse Automation",
+    "credits": 4
+  },
+  {
+    "subCode": "CUTM3127",
+    "subName": "Development of Processor (Shakti)",
+    "credits": 4
+  },
+  {
+    "subCode": "CUTM3128",
+    "subName": "Spectroscopy",
+    "credits": 4
+  },
+  {
+    "subCode": "CUTM3129",
+    "subName": "Extraction Technologies",
+    "credits": 4
+  },
+  {
+    "subCode": "CUTM3130",
+    "subName": "Gamified DIY Kits Using Lasers",
+    "credits": 4
+  },
+  {
+    "subCode": "CUTM3131",
+    "subName": "VR Assets Development",
+    "credits": 4
+  },
+  {
+    "subCode": "CUTM3134",
+    "subName": "GIS and Remote Sensing",
+    "credits": 4
+  }
 ];
 
 export const BASKET_1_SYLLABUS = [
