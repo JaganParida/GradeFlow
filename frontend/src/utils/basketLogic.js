@@ -189,35 +189,132 @@ export const COMMON_BASKET_5_SYLLABUS = [
 ];
 
 export const BASKET_1_SYLLABUS = [
-  { subName: "Differential Equations & Linear Algebra", credits: 3 },
-  { subName: "Laplace & Fourier Transforms", credits: 3 },
-  { subName: "Complex Analysis & Numerical Methods", credits: 3 },
-  { subName: "Discrete Mathematics", credits: 3 },
-  { subName: "Probability & Statistics", credits: 3 },
-  { subName: "Mechanics for Engineers", credits: 3 },
-  { subName: "Optics and Optical Fibres", credits: 3 },
-  { subName: "Applied Analytical Chemistry", credits: 3 },
-  { subName: "Applied Engineering Materials", credits: 3 },
-  { subName: "Environmental Studies", credits: 2 },
+  {
+    "subCode": "CUTM1001",
+    "subName": "Differential Equations and Linear Algebra",
+    "credits": 3
+  },
+  {
+    "subCode": "CUTM1002",
+    "subName": "Laplace & Fourier Transforms",
+    "credits": 3
+  },
+  {
+    "subCode": "CUTM1003",
+    "subName": "Complex Analysis & Numerical Methods",
+    "credits": 3
+  },
+  {
+    "subCode": "CUTM1004",
+    "subName": "Discrete Mathematics",
+    "credits": 3
+  },
+  {
+    "subCode": "CUTM1005",
+    "subName": "Probability & Statistics",
+    "credits": 3
+  },
+  {
+    "subCode": "CUTM1925",
+    "subName": "Calculus",
+    "credits": 3
+  },
+  {
+    "subCode": "CUTM1006",
+    "subName": "Mechanics for Engineers",
+    "credits": 3
+  },
+  {
+    "subCode": "CUTM1007",
+    "subName": "Optics and Optical Fibres",
+    "credits": 3
+  },
+  {
+    "subCode": "CUTM1008",
+    "subName": "Applied Analytical Chemistry",
+    "credits": 3
+  },
+  {
+    "subCode": "CUTM1009",
+    "subName": "Applied Engineering Materials",
+    "credits": 3
+  },
+  {
+    "subCode": "CUTM1674",
+    "subName": "Environmental Science",
+    "credits": 4
+  }
 ];
 
 export const BASKET_2_SYLLABUS = [
-  { subName: "Job Readiness", credits: 6 },
-  { subName: "Engineering Economics & Costing", credits: 3 },
-  { subName: "Project Management", credits: 3 },
-  { subName: "Gender, Human Rights, and Ethics", credits: 3 },
-  { subName: "Climate Change & Sustainability", credits: 3 },
-  { subName: "Optimization Techniques", credits: 3 },
+  {
+    "subCode": "CUTM1011",
+    "subName": "Optimisation Techniques",
+    "credits": 2
+  },
+  {
+    "subCode": "CUTM1012",
+    "subName": "Engineering Economics and Costing",
+    "credits": 3
+  },
+  {
+    "subCode": "CUTM1013",
+    "subName": "Project Management",
+    "credits": 3
+  },
+  {
+    "subCode": "CUTM1014",
+    "subName": "Gender, Human Rights and Ethics",
+    "credits": 3
+  },
+  {
+    "subCode": "CUTM1015",
+    "subName": "Climate Change, Sustainability and Organisation",
+    "credits": 3
+  },
+  {
+    "subCode": "CUTM1016",
+    "subName": "Job Readiness",
+    "credits": 6
+  }
 ];
 
 export const BASKET_3_SYLLABUS = [
-  { subName: "Industrial IoT and Automation", credits: 4 },
-  { subName: "Data Analysis & Visualization using Python", credits: 4 },
-  { subName: "Machine Learning using Python", credits: 4 },
-  { subName: "Robotic Automation (ROS & C++)", credits: 4 },
-  { subName: "Basics of Design Thinking", credits: 2 },
-  { subName: "System Integration with DYMOLA", credits: 2 },
-  { subName: "Smart Engineering Project (G2M)", credits: 3 },
+  {
+    "subCode": "CUTM1017",
+    "subName": "Industrial IOT and Automation",
+    "credits": 6
+  },
+  {
+    "subCode": "CUTM1018",
+    "subName": "Data Analysis and Visualisation using Python",
+    "credits": 4
+  },
+  {
+    "subCode": "CUTM1019",
+    "subName": "Machine Learning using Python",
+    "credits": 4
+  },
+  {
+    "subCode": "CUTM1020",
+    "subName": "Robotic automation with ROS and C++",
+    "credits": 4
+  },
+  {
+    "subCode": "CUTM1021",
+    "subName": "Basics of Design Thinking",
+    "credits": 2
+  },
+  {
+    "subCode": "CUTM1022",
+    "subName": "System Integration with DYMOLA",
+    "credits": 2
+  },
+  {
+    "subCode": "CUTM1023",
+    "subName": "Smart Engineering Project (G2M)",
+    "credits": 3
+  }
 ];
 
 

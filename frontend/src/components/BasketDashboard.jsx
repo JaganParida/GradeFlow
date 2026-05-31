@@ -34,6 +34,17 @@ export default function BasketDashboard({ results }) {
   const honoursTarget = 20;
   const isHonoursEligible = honoursCredits >= honoursTarget;
 
+
+  const isMatch = (sub, syllabusSub) => {
+    if (sub.subCode && syllabusSub.subCode && sub.subCode.toLowerCase() === syllabusSub.subCode.toLowerCase()) return true;
+    if (!sub.subName || !syllabusSub.subName) return false;
+    
+    // Fallback to name if code fails. Also strip non-alphanumeric to handle " & " vs " and "
+    const norm1 = sub.subName.toLowerCase().replace(/and/g, '').replace(/[^a-z0-9]/g, '');
+    const norm2 = syllabusSub.subName.toLowerCase().replace(/and/g, '').replace(/[^a-z0-9]/g, '');
+    return norm1.includes(norm2) || norm2.includes(norm1);
+  };
+
   const renderSubjectRow = (sub, idx, isPending = false) => {
     const isBacklog = !isPending && ['F','R','M','S','I'].includes(sub.grade);
     const isPassed = !isPending && !isBacklog;
@@ -97,12 +108,12 @@ export default function BasketDashboard({ results }) {
           </div>
           {syllabusList.map((syllabusSub, idx) => {
              // Find if student has taken this subject
-             const takenSub = data.subjects.find(s => s.subName && s.subName.toLowerCase().includes(syllabusSub.subName.toLowerCase()));
+             const takenSub = data.subjects.find(s => isMatch(s, syllabusSub));
              if (takenSub) return renderSubjectRow(takenSub, idx, false);
              return renderSubjectRow({ subName: syllabusSub.subName, credits: syllabusSub.credits }, idx, true);
           })}
           {/* Render extra subjects the student took in this basket not in static list */}
-          {data.subjects.filter(s => !syllabusList.some(syllabusSub => s.subName && s.subName.toLowerCase().includes(syllabusSub.subName.toLowerCase()))).map((extraSub, idx) => {
+          {data.subjects.filter(s => !syllabusList.some(syllabusSub => isMatch(s, syllabusSub))).map((extraSub, idx) => {
              return renderSubjectRow(extraSub, 'extra-' + idx, false);
           })}
         </div>
@@ -110,7 +121,7 @@ export default function BasketDashboard({ results }) {
     }
     
     if (key === 'B4') {
-      const b4ExtraSubjects = data.subjects.filter(s => !BASKET_4_SYLLABUS.some(bs => (s.subCode && bs.subCode && s.subCode.toLowerCase() === bs.subCode.toLowerCase()) || (s.subName && bs.subName && s.subName.toLowerCase().includes(bs.subName.toLowerCase()))));
+      const b4ExtraSubjects = data.subjects.filter(s => !BASKET_4_SYLLABUS.some(bs => isMatch(s, bs)));
       return (
         <div style={{ display: "flex", flexDirection: "column", background: "var(--bg-main)" }}>
           <div className="basket-grid-header" style={{ display: "grid", gridTemplateColumns: "3fr 1fr 1fr 1fr", padding: "16px 24px", borderBottom: "1px solid var(--border-color)", borderTop: "1px solid var(--border-color)", fontSize: 12, color: "var(--secondary)", fontWeight: 700, letterSpacing: 0.5, textTransform: "uppercase" }}>
@@ -120,7 +131,7 @@ export default function BasketDashboard({ results }) {
             <div style={{ textAlign: "right" }}>Credits</div>
           </div>
           {BASKET_4_SYLLABUS.map((syllabusSub, idx) => {
-             const takenSub = data.subjects.find(s => (s.subCode && syllabusSub.subCode && s.subCode.toLowerCase() === syllabusSub.subCode.toLowerCase()) || (s.subName && syllabusSub.subName && s.subName.toLowerCase().includes(syllabusSub.subName.toLowerCase())));
+             const takenSub = data.subjects.find(s => isMatch(s, syllabusSub));
              if (takenSub) return renderSubjectRow(takenSub, idx, false);
              return renderSubjectRow({ subName: syllabusSub.subName, subCode: syllabusSub.subCode, credits: syllabusSub.credits }, idx, true);
           })}
@@ -144,17 +155,11 @@ export default function BasketDashboard({ results }) {
 
     if (key === 'B5') {
       const b5ExtraSubjects = data.subjects.filter(s => {
-        const isInCommon = COMMON_BASKET_5_SYLLABUS.some(cs => 
-          (s.subCode && cs.subCode && s.subCode.toLowerCase() === cs.subCode.toLowerCase()) || 
-          (s.subName && cs.subName && s.subName.toLowerCase().includes(cs.subName.toLowerCase()))
-        );
+        const isInCommon = COMMON_BASKET_5_SYLLABUS.some(cs => isMatch(s, cs));
         if (isInCommon) return false;
 
         if (!inferredDomain) return true; 
-        return !inferredDomain.subjects.some(ds => 
-          (s.subCode && ds.subCode && s.subCode.toLowerCase() === ds.subCode.toLowerCase()) || 
-          (s.subName && ds.subName && s.subName.toLowerCase().includes(ds.subName.toLowerCase()))
-        );
+        return !inferredDomain.subjects.some(ds => isMatch(s, ds));
       });
 
       const fullB5Syllabus = inferredDomain ? [...inferredDomain.subjects, ...COMMON_BASKET_5_SYLLABUS] : COMMON_BASKET_5_SYLLABUS;
@@ -179,10 +184,7 @@ export default function BasketDashboard({ results }) {
           </div>
           
           {fullB5Syllabus.map((syllabusSub, idx) => {
-             const takenSub = data.subjects.find(s => 
-               (s.subCode && syllabusSub.subCode && s.subCode.toLowerCase() === syllabusSub.subCode.toLowerCase()) || 
-               (s.subName && syllabusSub.subName && s.subName.toLowerCase().includes(syllabusSub.subName.toLowerCase()))
-             );
+             const takenSub = data.subjects.find(s => isMatch(s, syllabusSub));
              if (takenSub) return renderSubjectRow(takenSub, idx, false);
              return renderSubjectRow({ subName: syllabusSub.subName, subCode: syllabusSub.subCode, credits: syllabusSub.credits }, idx, true);
           })}
