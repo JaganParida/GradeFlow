@@ -8,6 +8,17 @@ export const BASKET_TARGETS = {
 };
 
 // Returns { b1: [], b2: [], b3: [], b4: [], b5: [] }
+
+export const isMatch = (sub, syllabusSub) => {
+  if (sub.subCode && syllabusSub.subCode && sub.subCode.toLowerCase() === syllabusSub.subCode.toLowerCase()) return true;
+  if (!sub.subName || !syllabusSub.subName) return false;
+  
+  const norm1 = sub.subName.toLowerCase().replace(/and/g, '').replace(/[^a-z0-9]/g, '');
+  const norm2 = syllabusSub.subName.toLowerCase().replace(/and/g, '').replace(/[^a-z0-9]/g, '');
+  return norm1.includes(norm2) || norm2.includes(norm1);
+};
+
+// Returns { b1: [], b2: [], b3: [], b4: [], b5: [] }
 export function categorizeBaskets(results) {
   const baskets = {
     B1: { credits: 0, subjects: [], target: BASKET_TARGETS.B1 },
@@ -36,66 +47,56 @@ export function categorizeBaskets(results) {
   const allSubjects = Array.from(allSubjectsMap.values());
 
   allSubjects.forEach(s => {
-    const name = (s.subName || "").toLowerCase();
     const cr = Number(s.credit) || 0;
-    
-    // Only count credits if the grade is passing (not F, R, M, S, I)
     const isPassing = !['F', 'R', 'M', 'S', 'I'].includes(s.grade);
     const earnedCredits = isPassing ? cr : 0;
-
     const subjectData = { ...s, earnedCredits };
 
-    // --- BASKET I: Sciences ---
-    if (
-      name.includes("differential equation") || name.includes("linear algebra") ||
-      name.includes("laplace") || name.includes("fourier") ||
-      name.includes("complex analysis") || name.includes("numerical methods") ||
-      name.includes("discrete mathematics") || name.includes("probability") || name.includes("statistics") ||
-      name.includes("mechanics for engineers") || name.includes("optics") || name.includes("optical fibres") ||
-      name.includes("applied analytical chemistry") || name.includes("applied engineering materials") ||
-      name.includes("environmental studies") || name.includes("physics") || name.includes("chemistry") || name.includes("mathematics")
-    ) {
+    if (BASKET_1_SYLLABUS.some(bs => isMatch(s, bs))) {
       baskets.B1.subjects.push(subjectData);
       baskets.B1.credits += earnedCredits;
+      return;
     }
-    // --- BASKET II: Humanities & Management ---
-    else if (
-      name.includes("job readiness") || name.includes("economics") || name.includes("costing") ||
-      name.includes("project management") || name.includes("gender") || name.includes("human rights") ||
-      name.includes("ethics") || name.includes("climate change") || name.includes("sustainability") ||
-      name.includes("optimization") || name.includes("management") || name.includes("communication") || name.includes("english")
-    ) {
+    if (BASKET_2_SYLLABUS.some(bs => isMatch(s, bs))) {
       baskets.B2.subjects.push(subjectData);
       baskets.B2.credits += earnedCredits;
+      return;
     }
-    // --- BASKET III: Smart Stack ---
-    else if (
-      name.includes("iot") || name.includes("automation") || name.includes("data analysis") ||
-      name.includes("visualization") || name.includes("machine learning") || name.includes("robotic") ||
-      name.includes("ros") || name.includes("design thinking") || name.includes("dymola") ||
-      name.includes("smart engineering") || name.includes("g2m") || name.includes("python") || name.includes("programming in c") || name.includes("c++")
-    ) {
+    if (BASKET_3_SYLLABUS.some(bs => isMatch(s, bs))) {
       baskets.B3.subjects.push(subjectData);
       baskets.B3.credits += earnedCredits;
+      return;
     }
-    // --- BASKET V: Domain, Skills & Projects ---
-    else if (
-      name.includes("internship") || name.includes("skill") || name.includes("minor project") ||
-      name.includes("major project") || name.includes("domain") || 
-      // If it's 4+ credits and not caught above, it might be a domain track subject.
-      // We'll also catch typical project keywords
-      (name.includes("project") && !name.includes("management") && !name.includes("smart engineering"))
-    ) {
+    if (BASKET_4_SYLLABUS.some(bs => isMatch(s, bs))) {
+      baskets.B4.subjects.push(subjectData);
+      baskets.B4.credits += earnedCredits;
+      return;
+    }
+    if (COMMON_BASKET_5_SYLLABUS.some(bs => isMatch(s, bs))) {
       baskets.B5.subjects.push(subjectData);
       baskets.B5.credits += earnedCredits;
+      return;
     }
-    // --- BASKET IV: Core Engineering ---
-    // If it doesn't match B1, B2, B3, or explicitly B5, we assume it's a Core Engineering subject (B4).
-    else {
-      // Examples: Data Structures, OS, Networks, DBMS, Java, Thermodynamics, etc.
-      // To prevent everything falling here, we can assume anything left is B4.
-      // If a student is taking a Domain subject that isn't named "Project" or "Skill", it might fall here.
-      // But we will use B4 as the fallback for standard engineering subjects.
+    
+    let matchedDomain = false;
+    for (const domain of BASKET_5_DOMAINS_DATA) {
+      if (domain.subjects.some(bs => isMatch(s, bs))) {
+        matchedDomain = true;
+        break;
+      }
+    }
+    
+    if (matchedDomain) {
+      baskets.B5.subjects.push(subjectData);
+      baskets.B5.credits += earnedCredits;
+      return;
+    }
+
+    const name = (s.subName || "").toLowerCase();
+    if (name.includes("internship") || name.includes("project") || name.includes("skill")) {
+      baskets.B5.subjects.push(subjectData);
+      baskets.B5.credits += earnedCredits;
+    } else {
       baskets.B4.subjects.push(subjectData);
       baskets.B4.credits += earnedCredits;
     }

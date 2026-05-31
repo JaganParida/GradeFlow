@@ -1,5 +1,5 @@
 import React, { useMemo } from "react";
-import { categorizeBaskets, BASKET_1_SYLLABUS, BASKET_2_SYLLABUS, BASKET_3_SYLLABUS, BASKET_4_SYLLABUS, BASKET_5_DOMAINS_DATA, inferStudentDomainTrack, COMMON_BASKET_5_SYLLABUS } from "../utils/basketLogic";
+import { categorizeBaskets, BASKET_1_SYLLABUS, BASKET_2_SYLLABUS, BASKET_3_SYLLABUS, BASKET_4_SYLLABUS, BASKET_5_DOMAINS_DATA, inferStudentDomainTrack, COMMON_BASKET_5_SYLLABUS, isMatch } from "../utils/basketLogic";
 import { CheckCircle, Award, Target, BookOpen, Hexagon, Cpu, Zap, ChevronDown, ChevronUp, Folder } from "lucide-react";
 import { motion } from "framer-motion";
 
@@ -35,15 +35,6 @@ export default function BasketDashboard({ results }) {
   const isHonoursEligible = honoursCredits >= honoursTarget;
 
 
-  const isMatch = (sub, syllabusSub) => {
-    if (sub.subCode && syllabusSub.subCode && sub.subCode.toLowerCase() === syllabusSub.subCode.toLowerCase()) return true;
-    if (!sub.subName || !syllabusSub.subName) return false;
-    
-    // Fallback to name if code fails. Also strip non-alphanumeric to handle " & " vs " and "
-    const norm1 = sub.subName.toLowerCase().replace(/and/g, '').replace(/[^a-z0-9]/g, '');
-    const norm2 = syllabusSub.subName.toLowerCase().replace(/and/g, '').replace(/[^a-z0-9]/g, '');
-    return norm1.includes(norm2) || norm2.includes(norm1);
-  };
 
   const renderSubjectRow = (sub, idx, isPending = false) => {
     const isBacklog = !isPending && ['F','R','M','S','I'].includes(sub.grade);
