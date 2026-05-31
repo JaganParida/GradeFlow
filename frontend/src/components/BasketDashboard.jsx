@@ -53,7 +53,7 @@ export default function BasketDashboard({ results }) {
           <span>{isPending ? "—" : sub.semester}</span>
         </div>
         
-        <div className="mobile-flex-row" style={{ textAlign: "center", display: "flex", justifyContent: "center" }}>
+        <div className="mobile-flex-row" style={{ textAlign: "center", opacity: isPending ? 0.6 : 1 }}>
           <span className="mobile-label">Status</span>
           {isPending ? (
             <span style={{ padding: "4px 10px", borderRadius: 8, fontSize: 12, fontWeight: 800, background: "rgba(255,255,255,0.05)", color: "var(--secondary)" }}>PENDING</span>
