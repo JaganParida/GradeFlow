@@ -1,0 +1,4565 @@
+{
+  "3": {
+    "subject": {
+      "subCode": "CUTM1098",
+      "subName": "AIRCRAFT STRUCTURE",
+      "type": "PP"
+    },
+    "assessment": "assignment",
+    "metric": "obtained"
+  },
+  "4": {
+    "subject": {
+      "subCode": "CUTM1098",
+      "subName": "AIRCRAFT STRUCTURE",
+      "type": "PP"
+    },
+    "assessment": "assignment",
+    "metric": "max"
+  },
+  "5": {
+    "subject": {
+      "subCode": "CUTM1098",
+      "subName": "AIRCRAFT STRUCTURE",
+      "type": "PP"
+    },
+    "assessment": "assignment",
+    "metric": "roundOff"
+  },
+  "6": {
+    "subject": {
+      "subCode": "CUTM1098",
+      "subName": "AIRCRAFT STRUCTURE",
+      "type": "PP"
+    },
+    "assessment": "assignment",
+    "metric": "roundOff"
+  },
+  "7": {
+    "subject": {
+      "subCode": "CUTM1098",
+      "subName": "AIRCRAFT STRUCTURE",
+      "type": "PP"
+    },
+    "assessment": "assignment",
+    "metric": "max"
+  },
+  "8": {
+    "subject": {
+      "subCode": "CUTM1098",
+      "subName": "AIRCRAFT STRUCTURE",
+      "type": "PP"
+    },
+    "assessment": "midSem",
+    "metric": "obtained"
+  },
+  "9": {
+    "subject": {
+      "subCode": "CUTM1098",
+      "subName": "AIRCRAFT STRUCTURE",
+      "type": "PP"
+    },
+    "assessment": "midSem",
+    "metric": "max"
+  },
+  "10": {
+    "subject": {
+      "subCode": "CUTM1098",
+      "subName": "AIRCRAFT STRUCTURE",
+      "type": "PP"
+    },
+    "assessment": "midSem",
+    "metric": "roundOff"
+  },
+  "11": {
+    "subject": {
+      "subCode": "CUTM1098",
+      "subName": "AIRCRAFT STRUCTURE",
+      "type": "PP"
+    },
+    "assessment": "midSem",
+    "metric": "roundOff"
+  },
+  "12": {
+    "subject": {
+      "subCode": "CUTM1098",
+      "subName": "AIRCRAFT STRUCTURE",
+      "type": "PP"
+    },
+    "assessment": "midSem",
+    "metric": "max"
+  },
+  "13": {
+    "subject": {
+      "subCode": "CUTM1098",
+      "subName": "AIRCRAFT STRUCTURE",
+      "type": "PP"
+    },
+    "assessment": "presentation",
+    "metric": "obtained"
+  },
+  "14": {
+    "subject": {
+      "subCode": "CUTM1098",
+      "subName": "AIRCRAFT STRUCTURE",
+      "type": "PP"
+    },
+    "assessment": "presentation",
+    "metric": "max"
+  },
+  "15": {
+    "subject": {
+      "subCode": "CUTM1098",
+      "subName": "AIRCRAFT STRUCTURE",
+      "type": "PP"
+    },
+    "assessment": "presentation",
+    "metric": "roundOff"
+  },
+  "16": {
+    "subject": {
+      "subCode": "CUTM1098",
+      "subName": "AIRCRAFT STRUCTURE",
+      "type": "PP"
+    },
+    "assessment": "presentation",
+    "metric": "roundOff"
+  },
+  "17": {
+    "subject": {
+      "subCode": "CUTM1098",
+      "subName": "AIRCRAFT STRUCTURE",
+      "type": "PP"
+    },
+    "assessment": "presentation",
+    "metric": "max"
+  },
+  "18": {
+    "subject": {
+      "subCode": "CUTM1098",
+      "subName": "AIRCRAFT STRUCTURE",
+      "type": "PP"
+    },
+    "assessment": "learningRecord",
+    "metric": "obtained"
+  },
+  "19": {
+    "subject": {
+      "subCode": "CUTM1098",
+      "subName": "AIRCRAFT STRUCTURE",
+      "type": "PP"
+    },
+    "assessment": "learningRecord",
+    "metric": "max"
+  },
+  "20": {
+    "subject": {
+      "subCode": "CUTM1098",
+      "subName": "AIRCRAFT STRUCTURE",
+      "type": "PP"
+    },
+    "assessment": "learningRecord",
+    "metric": "roundOff"
+  },
+  "21": {
+    "subject": {
+      "subCode": "CUTM1098",
+      "subName": "AIRCRAFT STRUCTURE",
+      "type": "PP"
+    },
+    "assessment": "learningRecord",
+    "metric": "roundOff"
+  },
+  "22": {
+    "subject": {
+      "subCode": "CUTM1098",
+      "subName": "AIRCRAFT STRUCTURE",
+      "type": "PP"
+    },
+    "assessment": "learningRecord",
+    "metric": "max"
+  },
+  "23": {
+    "subject": {
+      "subCode": "CUTM1098",
+      "subName": "AIRCRAFT STRUCTURE",
+      "type": "PP"
+    },
+    "assessment": "learningRecord",
+    "metric": "roundOff"
+  },
+  "24": {
+    "subject": {
+      "subCode": "CUTM1098",
+      "subName": "AIRCRAFT STRUCTURE",
+      "type": "PP"
+    },
+    "assessment": "learningRecord",
+    "metric": "max"
+  },
+  "25": {
+    "subject": {
+      "subCode": "CUTM1098",
+      "subName": "AIRCRAFT STRUCTURE",
+      "type": "PP"
+    },
+    "assessment": "total",
+    "metric": "obtained"
+  },
+  "26": {
+    "subject": {
+      "subCode": "CUTM1098",
+      "subName": "AIRCRAFT STRUCTURE",
+      "type": "PP"
+    },
+    "assessment": "total",
+    "metric": "max"
+  },
+  "27": {
+    "subject": {
+      "subCode": "CUTM1098",
+      "subName": "AIRCRAFT STRUCTURE",
+      "type": "PR"
+    },
+    "assessment": "internalPractical",
+    "metric": "obtained"
+  },
+  "28": {
+    "subject": {
+      "subCode": "CUTM1098",
+      "subName": "AIRCRAFT STRUCTURE",
+      "type": "PR"
+    },
+    "assessment": "internalPractical",
+    "metric": "max"
+  },
+  "29": {
+    "subject": {
+      "subCode": "CUTM1098",
+      "subName": "AIRCRAFT STRUCTURE",
+      "type": "PR"
+    },
+    "assessment": "internalPractical",
+    "metric": "roundOff"
+  },
+  "30": {
+    "subject": {
+      "subCode": "CUTM1098",
+      "subName": "AIRCRAFT STRUCTURE",
+      "type": "PR"
+    },
+    "assessment": "internalPractical",
+    "metric": "roundOff"
+  },
+  "31": {
+    "subject": {
+      "subCode": "CUTM1098",
+      "subName": "AIRCRAFT STRUCTURE",
+      "type": "PR"
+    },
+    "assessment": "internalPractical",
+    "metric": "max"
+  },
+  "32": {
+    "subject": {
+      "subCode": "CUTM1098",
+      "subName": "AIRCRAFT STRUCTURE",
+      "type": "PR"
+    },
+    "assessment": "internalPractical",
+    "metric": "roundOff"
+  },
+  "33": {
+    "subject": {
+      "subCode": "CUTM1098",
+      "subName": "AIRCRAFT STRUCTURE",
+      "type": "PR"
+    },
+    "assessment": "internalPractical",
+    "metric": "max"
+  },
+  "34": {
+    "subject": {
+      "subCode": "CUTM1098",
+      "subName": "AIRCRAFT STRUCTURE",
+      "type": "PR"
+    },
+    "assessment": "total",
+    "metric": "obtained"
+  },
+  "35": {
+    "subject": {
+      "subCode": "CUTM1098",
+      "subName": "AIRCRAFT STRUCTURE",
+      "type": "PR"
+    },
+    "assessment": "total",
+    "metric": "max"
+  },
+  "36": {
+    "subject": {
+      "subCode": "CUTM1059",
+      "subName": "DATABASE MANAGEMENT SYSTEMS",
+      "type": "PP"
+    },
+    "assessment": "midSem",
+    "metric": "obtained"
+  },
+  "37": {
+    "subject": {
+      "subCode": "CUTM1059",
+      "subName": "DATABASE MANAGEMENT SYSTEMS",
+      "type": "PP"
+    },
+    "assessment": "midSem",
+    "metric": "max"
+  },
+  "38": {
+    "subject": {
+      "subCode": "CUTM1059",
+      "subName": "DATABASE MANAGEMENT SYSTEMS",
+      "type": "PP"
+    },
+    "assessment": "midSem",
+    "metric": "roundOff"
+  },
+  "39": {
+    "subject": {
+      "subCode": "CUTM1059",
+      "subName": "DATABASE MANAGEMENT SYSTEMS",
+      "type": "PP"
+    },
+    "assessment": "midSem",
+    "metric": "roundOff"
+  },
+  "40": {
+    "subject": {
+      "subCode": "CUTM1059",
+      "subName": "DATABASE MANAGEMENT SYSTEMS",
+      "type": "PP"
+    },
+    "assessment": "midSem",
+    "metric": "max"
+  },
+  "41": {
+    "subject": {
+      "subCode": "CUTM1059",
+      "subName": "DATABASE MANAGEMENT SYSTEMS",
+      "type": "PP"
+    },
+    "assessment": "presentation",
+    "metric": "obtained"
+  },
+  "42": {
+    "subject": {
+      "subCode": "CUTM1059",
+      "subName": "DATABASE MANAGEMENT SYSTEMS",
+      "type": "PP"
+    },
+    "assessment": "presentation",
+    "metric": "max"
+  },
+  "43": {
+    "subject": {
+      "subCode": "CUTM1059",
+      "subName": "DATABASE MANAGEMENT SYSTEMS",
+      "type": "PP"
+    },
+    "assessment": "presentation",
+    "metric": "roundOff"
+  },
+  "44": {
+    "subject": {
+      "subCode": "CUTM1059",
+      "subName": "DATABASE MANAGEMENT SYSTEMS",
+      "type": "PP"
+    },
+    "assessment": "presentation",
+    "metric": "roundOff"
+  },
+  "45": {
+    "subject": {
+      "subCode": "CUTM1059",
+      "subName": "DATABASE MANAGEMENT SYSTEMS",
+      "type": "PP"
+    },
+    "assessment": "presentation",
+    "metric": "max"
+  },
+  "46": {
+    "subject": {
+      "subCode": "CUTM1059",
+      "subName": "DATABASE MANAGEMENT SYSTEMS",
+      "type": "PP"
+    },
+    "assessment": "learningRecord",
+    "metric": "obtained"
+  },
+  "47": {
+    "subject": {
+      "subCode": "CUTM1059",
+      "subName": "DATABASE MANAGEMENT SYSTEMS",
+      "type": "PP"
+    },
+    "assessment": "learningRecord",
+    "metric": "max"
+  },
+  "48": {
+    "subject": {
+      "subCode": "CUTM1059",
+      "subName": "DATABASE MANAGEMENT SYSTEMS",
+      "type": "PP"
+    },
+    "assessment": "learningRecord",
+    "metric": "roundOff"
+  },
+  "49": {
+    "subject": {
+      "subCode": "CUTM1059",
+      "subName": "DATABASE MANAGEMENT SYSTEMS",
+      "type": "PP"
+    },
+    "assessment": "learningRecord",
+    "metric": "roundOff"
+  },
+  "50": {
+    "subject": {
+      "subCode": "CUTM1059",
+      "subName": "DATABASE MANAGEMENT SYSTEMS",
+      "type": "PP"
+    },
+    "assessment": "learningRecord",
+    "metric": "max"
+  },
+  "51": {
+    "subject": {
+      "subCode": "CUTM1059",
+      "subName": "DATABASE MANAGEMENT SYSTEMS",
+      "type": "PP"
+    },
+    "assessment": "assignment",
+    "metric": "obtained"
+  },
+  "52": {
+    "subject": {
+      "subCode": "CUTM1059",
+      "subName": "DATABASE MANAGEMENT SYSTEMS",
+      "type": "PP"
+    },
+    "assessment": "assignment",
+    "metric": "max"
+  },
+  "53": {
+    "subject": {
+      "subCode": "CUTM1059",
+      "subName": "DATABASE MANAGEMENT SYSTEMS",
+      "type": "PP"
+    },
+    "assessment": "assignment",
+    "metric": "roundOff"
+  },
+  "54": {
+    "subject": {
+      "subCode": "CUTM1059",
+      "subName": "DATABASE MANAGEMENT SYSTEMS",
+      "type": "PP"
+    },
+    "assessment": "assignment",
+    "metric": "roundOff"
+  },
+  "55": {
+    "subject": {
+      "subCode": "CUTM1059",
+      "subName": "DATABASE MANAGEMENT SYSTEMS",
+      "type": "PP"
+    },
+    "assessment": "assignment",
+    "metric": "max"
+  },
+  "56": {
+    "subject": {
+      "subCode": "CUTM1059",
+      "subName": "DATABASE MANAGEMENT SYSTEMS",
+      "type": "PP"
+    },
+    "assessment": "assignment",
+    "metric": "roundOff"
+  },
+  "57": {
+    "subject": {
+      "subCode": "CUTM1059",
+      "subName": "DATABASE MANAGEMENT SYSTEMS",
+      "type": "PP"
+    },
+    "assessment": "assignment",
+    "metric": "max"
+  },
+  "58": {
+    "subject": {
+      "subCode": "CUTM1059",
+      "subName": "DATABASE MANAGEMENT SYSTEMS",
+      "type": "PP"
+    },
+    "assessment": "total",
+    "metric": "obtained"
+  },
+  "59": {
+    "subject": {
+      "subCode": "CUTM1059",
+      "subName": "DATABASE MANAGEMENT SYSTEMS",
+      "type": "PP"
+    },
+    "assessment": "total",
+    "metric": "max"
+  },
+  "60": {
+    "subject": {
+      "subCode": "CUTM1059",
+      "subName": "DATABASE MANAGEMENT SYSTEMS",
+      "type": "PR"
+    },
+    "assessment": "internalPractical",
+    "metric": "obtained"
+  },
+  "61": {
+    "subject": {
+      "subCode": "CUTM1059",
+      "subName": "DATABASE MANAGEMENT SYSTEMS",
+      "type": "PR"
+    },
+    "assessment": "internalPractical",
+    "metric": "max"
+  },
+  "62": {
+    "subject": {
+      "subCode": "CUTM1059",
+      "subName": "DATABASE MANAGEMENT SYSTEMS",
+      "type": "PR"
+    },
+    "assessment": "internalPractical",
+    "metric": "roundOff"
+  },
+  "63": {
+    "subject": {
+      "subCode": "CUTM1059",
+      "subName": "DATABASE MANAGEMENT SYSTEMS",
+      "type": "PR"
+    },
+    "assessment": "internalPractical",
+    "metric": "roundOff"
+  },
+  "64": {
+    "subject": {
+      "subCode": "CUTM1059",
+      "subName": "DATABASE MANAGEMENT SYSTEMS",
+      "type": "PR"
+    },
+    "assessment": "internalPractical",
+    "metric": "max"
+  },
+  "65": {
+    "subject": {
+      "subCode": "CUTM1059",
+      "subName": "DATABASE MANAGEMENT SYSTEMS",
+      "type": "PR"
+    },
+    "assessment": "internalPractical",
+    "metric": "roundOff"
+  },
+  "66": {
+    "subject": {
+      "subCode": "CUTM1059",
+      "subName": "DATABASE MANAGEMENT SYSTEMS",
+      "type": "PR"
+    },
+    "assessment": "internalPractical",
+    "metric": "max"
+  },
+  "67": {
+    "subject": {
+      "subCode": "CUTM1059",
+      "subName": "DATABASE MANAGEMENT SYSTEMS",
+      "type": "PR"
+    },
+    "assessment": "total",
+    "metric": "obtained"
+  },
+  "68": {
+    "subject": {
+      "subCode": "CUTM1059",
+      "subName": "DATABASE MANAGEMENT SYSTEMS",
+      "type": "PR"
+    },
+    "assessment": "total",
+    "metric": "max"
+  },
+  "69": {
+    "subject": {
+      "subCode": "CUTM1017",
+      "subName": "INDUSTRIAL IOT AND AUTOMATION",
+      "type": "PP"
+    },
+    "assessment": "midSem",
+    "metric": "obtained"
+  },
+  "70": {
+    "subject": {
+      "subCode": "CUTM1017",
+      "subName": "INDUSTRIAL IOT AND AUTOMATION",
+      "type": "PP"
+    },
+    "assessment": "midSem",
+    "metric": "max"
+  },
+  "71": {
+    "subject": {
+      "subCode": "CUTM1017",
+      "subName": "INDUSTRIAL IOT AND AUTOMATION",
+      "type": "PP"
+    },
+    "assessment": "midSem",
+    "metric": "roundOff"
+  },
+  "72": {
+    "subject": {
+      "subCode": "CUTM1017",
+      "subName": "INDUSTRIAL IOT AND AUTOMATION",
+      "type": "PP"
+    },
+    "assessment": "midSem",
+    "metric": "roundOff"
+  },
+  "73": {
+    "subject": {
+      "subCode": "CUTM1017",
+      "subName": "INDUSTRIAL IOT AND AUTOMATION",
+      "type": "PP"
+    },
+    "assessment": "midSem",
+    "metric": "max"
+  },
+  "74": {
+    "subject": {
+      "subCode": "CUTM1017",
+      "subName": "INDUSTRIAL IOT AND AUTOMATION",
+      "type": "PP"
+    },
+    "assessment": "learningRecord",
+    "metric": "obtained"
+  },
+  "75": {
+    "subject": {
+      "subCode": "CUTM1017",
+      "subName": "INDUSTRIAL IOT AND AUTOMATION",
+      "type": "PP"
+    },
+    "assessment": "learningRecord",
+    "metric": "max"
+  },
+  "76": {
+    "subject": {
+      "subCode": "CUTM1017",
+      "subName": "INDUSTRIAL IOT AND AUTOMATION",
+      "type": "PP"
+    },
+    "assessment": "learningRecord",
+    "metric": "roundOff"
+  },
+  "77": {
+    "subject": {
+      "subCode": "CUTM1017",
+      "subName": "INDUSTRIAL IOT AND AUTOMATION",
+      "type": "PP"
+    },
+    "assessment": "learningRecord",
+    "metric": "roundOff"
+  },
+  "78": {
+    "subject": {
+      "subCode": "CUTM1017",
+      "subName": "INDUSTRIAL IOT AND AUTOMATION",
+      "type": "PP"
+    },
+    "assessment": "learningRecord",
+    "metric": "max"
+  },
+  "79": {
+    "subject": {
+      "subCode": "CUTM1017",
+      "subName": "INDUSTRIAL IOT AND AUTOMATION",
+      "type": "PP"
+    },
+    "assessment": "assignment",
+    "metric": "obtained"
+  },
+  "80": {
+    "subject": {
+      "subCode": "CUTM1017",
+      "subName": "INDUSTRIAL IOT AND AUTOMATION",
+      "type": "PP"
+    },
+    "assessment": "assignment",
+    "metric": "max"
+  },
+  "81": {
+    "subject": {
+      "subCode": "CUTM1017",
+      "subName": "INDUSTRIAL IOT AND AUTOMATION",
+      "type": "PP"
+    },
+    "assessment": "assignment",
+    "metric": "roundOff"
+  },
+  "82": {
+    "subject": {
+      "subCode": "CUTM1017",
+      "subName": "INDUSTRIAL IOT AND AUTOMATION",
+      "type": "PP"
+    },
+    "assessment": "assignment",
+    "metric": "roundOff"
+  },
+  "83": {
+    "subject": {
+      "subCode": "CUTM1017",
+      "subName": "INDUSTRIAL IOT AND AUTOMATION",
+      "type": "PP"
+    },
+    "assessment": "assignment",
+    "metric": "max"
+  },
+  "84": {
+    "subject": {
+      "subCode": "CUTM1017",
+      "subName": "INDUSTRIAL IOT AND AUTOMATION",
+      "type": "PP"
+    },
+    "assessment": "presentation",
+    "metric": "obtained"
+  },
+  "85": {
+    "subject": {
+      "subCode": "CUTM1017",
+      "subName": "INDUSTRIAL IOT AND AUTOMATION",
+      "type": "PP"
+    },
+    "assessment": "presentation",
+    "metric": "max"
+  },
+  "86": {
+    "subject": {
+      "subCode": "CUTM1017",
+      "subName": "INDUSTRIAL IOT AND AUTOMATION",
+      "type": "PP"
+    },
+    "assessment": "presentation",
+    "metric": "roundOff"
+  },
+  "87": {
+    "subject": {
+      "subCode": "CUTM1017",
+      "subName": "INDUSTRIAL IOT AND AUTOMATION",
+      "type": "PP"
+    },
+    "assessment": "presentation",
+    "metric": "roundOff"
+  },
+  "88": {
+    "subject": {
+      "subCode": "CUTM1017",
+      "subName": "INDUSTRIAL IOT AND AUTOMATION",
+      "type": "PP"
+    },
+    "assessment": "presentation",
+    "metric": "max"
+  },
+  "89": {
+    "subject": {
+      "subCode": "CUTM1017",
+      "subName": "INDUSTRIAL IOT AND AUTOMATION",
+      "type": "PP"
+    },
+    "assessment": "presentation",
+    "metric": "roundOff"
+  },
+  "90": {
+    "subject": {
+      "subCode": "CUTM1017",
+      "subName": "INDUSTRIAL IOT AND AUTOMATION",
+      "type": "PP"
+    },
+    "assessment": "presentation",
+    "metric": "max"
+  },
+  "91": {
+    "subject": {
+      "subCode": "CUTM1017",
+      "subName": "INDUSTRIAL IOT AND AUTOMATION",
+      "type": "PP"
+    },
+    "assessment": "total",
+    "metric": "obtained"
+  },
+  "92": {
+    "subject": {
+      "subCode": "CUTM1017",
+      "subName": "INDUSTRIAL IOT AND AUTOMATION",
+      "type": "PP"
+    },
+    "assessment": "total",
+    "metric": "max"
+  },
+  "93": {
+    "subject": {
+      "subCode": "CUTM1017",
+      "subName": "INDUSTRIAL IOT AND AUTOMATION",
+      "type": "PR"
+    },
+    "assessment": "internalPractical",
+    "metric": "obtained"
+  },
+  "94": {
+    "subject": {
+      "subCode": "CUTM1017",
+      "subName": "INDUSTRIAL IOT AND AUTOMATION",
+      "type": "PR"
+    },
+    "assessment": "internalPractical",
+    "metric": "max"
+  },
+  "95": {
+    "subject": {
+      "subCode": "CUTM1017",
+      "subName": "INDUSTRIAL IOT AND AUTOMATION",
+      "type": "PR"
+    },
+    "assessment": "internalPractical",
+    "metric": "roundOff"
+  },
+  "96": {
+    "subject": {
+      "subCode": "CUTM1017",
+      "subName": "INDUSTRIAL IOT AND AUTOMATION",
+      "type": "PR"
+    },
+    "assessment": "internalPractical",
+    "metric": "roundOff"
+  },
+  "97": {
+    "subject": {
+      "subCode": "CUTM1017",
+      "subName": "INDUSTRIAL IOT AND AUTOMATION",
+      "type": "PR"
+    },
+    "assessment": "internalPractical",
+    "metric": "max"
+  },
+  "98": {
+    "subject": {
+      "subCode": "CUTM1017",
+      "subName": "INDUSTRIAL IOT AND AUTOMATION",
+      "type": "PR"
+    },
+    "assessment": "internalPractical",
+    "metric": "roundOff"
+  },
+  "99": {
+    "subject": {
+      "subCode": "CUTM1017",
+      "subName": "INDUSTRIAL IOT AND AUTOMATION",
+      "type": "PR"
+    },
+    "assessment": "internalPractical",
+    "metric": "max"
+  },
+  "100": {
+    "subject": {
+      "subCode": "CUTM1017",
+      "subName": "INDUSTRIAL IOT AND AUTOMATION",
+      "type": "PR"
+    },
+    "assessment": "total",
+    "metric": "obtained"
+  },
+  "101": {
+    "subject": {
+      "subCode": "CUTM1017",
+      "subName": "INDUSTRIAL IOT AND AUTOMATION",
+      "type": "PR"
+    },
+    "assessment": "total",
+    "metric": "max"
+  },
+  "102": {
+    "subject": {
+      "subCode": "CUTM1017",
+      "subName": "INDUSTRIAL IOT AND AUTOMATION",
+      "type": "TUT"
+    },
+    "assessment": "projectInternal",
+    "metric": "obtained"
+  },
+  "103": {
+    "subject": {
+      "subCode": "CUTM1017",
+      "subName": "INDUSTRIAL IOT AND AUTOMATION",
+      "type": "TUT"
+    },
+    "assessment": "projectInternal",
+    "metric": "max"
+  },
+  "104": {
+    "subject": {
+      "subCode": "CUTM1017",
+      "subName": "INDUSTRIAL IOT AND AUTOMATION",
+      "type": "TUT"
+    },
+    "assessment": "projectInternal",
+    "metric": "roundOff"
+  },
+  "105": {
+    "subject": {
+      "subCode": "CUTM1017",
+      "subName": "INDUSTRIAL IOT AND AUTOMATION",
+      "type": "TUT"
+    },
+    "assessment": "projectInternal",
+    "metric": "roundOff"
+  },
+  "106": {
+    "subject": {
+      "subCode": "CUTM1017",
+      "subName": "INDUSTRIAL IOT AND AUTOMATION",
+      "type": "TUT"
+    },
+    "assessment": "projectInternal",
+    "metric": "max"
+  },
+  "107": {
+    "subject": {
+      "subCode": "CUTM1017",
+      "subName": "INDUSTRIAL IOT AND AUTOMATION",
+      "type": "TUT"
+    },
+    "assessment": "projectInternal",
+    "metric": "roundOff"
+  },
+  "108": {
+    "subject": {
+      "subCode": "CUTM1017",
+      "subName": "INDUSTRIAL IOT AND AUTOMATION",
+      "type": "TUT"
+    },
+    "assessment": "projectInternal",
+    "metric": "max"
+  },
+  "109": {
+    "subject": {
+      "subCode": "CUTM1017",
+      "subName": "INDUSTRIAL IOT AND AUTOMATION",
+      "type": "TUT"
+    },
+    "assessment": "total",
+    "metric": "obtained"
+  },
+  "110": {
+    "subject": {
+      "subCode": "CUTM1017",
+      "subName": "INDUSTRIAL IOT AND AUTOMATION",
+      "type": "TUT"
+    },
+    "assessment": "total",
+    "metric": "max"
+  },
+  "111": {
+    "subject": {
+      "subCode": "CUTM1023",
+      "subName": "SMART ENGINEERING PROJECT (G2M)",
+      "type": "TUT"
+    },
+    "assessment": "projectInternal",
+    "metric": "obtained"
+  },
+  "112": {
+    "subject": {
+      "subCode": "CUTM1023",
+      "subName": "SMART ENGINEERING PROJECT (G2M)",
+      "type": "TUT"
+    },
+    "assessment": "projectInternal",
+    "metric": "max"
+  },
+  "113": {
+    "subject": {
+      "subCode": "CUTM1023",
+      "subName": "SMART ENGINEERING PROJECT (G2M)",
+      "type": "TUT"
+    },
+    "assessment": "projectInternal",
+    "metric": "roundOff"
+  },
+  "114": {
+    "subject": {
+      "subCode": "CUTM1023",
+      "subName": "SMART ENGINEERING PROJECT (G2M)",
+      "type": "TUT"
+    },
+    "assessment": "projectInternal",
+    "metric": "roundOff"
+  },
+  "115": {
+    "subject": {
+      "subCode": "CUTM1023",
+      "subName": "SMART ENGINEERING PROJECT (G2M)",
+      "type": "TUT"
+    },
+    "assessment": "projectInternal",
+    "metric": "max"
+  },
+  "116": {
+    "subject": {
+      "subCode": "CUTM1023",
+      "subName": "SMART ENGINEERING PROJECT (G2M)",
+      "type": "TUT"
+    },
+    "assessment": "projectInternal",
+    "metric": "roundOff"
+  },
+  "117": {
+    "subject": {
+      "subCode": "CUTM1023",
+      "subName": "SMART ENGINEERING PROJECT (G2M)",
+      "type": "TUT"
+    },
+    "assessment": "projectInternal",
+    "metric": "max"
+  },
+  "118": {
+    "subject": {
+      "subCode": "CUTM1023",
+      "subName": "SMART ENGINEERING PROJECT (G2M)",
+      "type": "TUT"
+    },
+    "assessment": "total",
+    "metric": "obtained"
+  },
+  "119": {
+    "subject": {
+      "subCode": "CUTM1023",
+      "subName": "SMART ENGINEERING PROJECT (G2M)",
+      "type": "TUT"
+    },
+    "assessment": "total",
+    "metric": "max"
+  },
+  "120": {
+    "subject": {
+      "subCode": "CUGM2143",
+      "subName": "PRODUCT DEVELOPMENT",
+      "type": "TUT"
+    },
+    "assessment": "projectInternal",
+    "metric": "obtained"
+  },
+  "121": {
+    "subject": {
+      "subCode": "CUGM2143",
+      "subName": "PRODUCT DEVELOPMENT",
+      "type": "TUT"
+    },
+    "assessment": "projectInternal",
+    "metric": "max"
+  },
+  "122": {
+    "subject": {
+      "subCode": "CUGM2143",
+      "subName": "PRODUCT DEVELOPMENT",
+      "type": "TUT"
+    },
+    "assessment": "projectInternal",
+    "metric": "roundOff"
+  },
+  "123": {
+    "subject": {
+      "subCode": "CUGM2143",
+      "subName": "PRODUCT DEVELOPMENT",
+      "type": "TUT"
+    },
+    "assessment": "projectInternal",
+    "metric": "roundOff"
+  },
+  "124": {
+    "subject": {
+      "subCode": "CUGM2143",
+      "subName": "PRODUCT DEVELOPMENT",
+      "type": "TUT"
+    },
+    "assessment": "projectInternal",
+    "metric": "max"
+  },
+  "125": {
+    "subject": {
+      "subCode": "CUGM2143",
+      "subName": "PRODUCT DEVELOPMENT",
+      "type": "TUT"
+    },
+    "assessment": "projectInternal",
+    "metric": "roundOff"
+  },
+  "126": {
+    "subject": {
+      "subCode": "CUGM2143",
+      "subName": "PRODUCT DEVELOPMENT",
+      "type": "TUT"
+    },
+    "assessment": "projectInternal",
+    "metric": "max"
+  },
+  "127": {
+    "subject": {
+      "subCode": "CUGM2143",
+      "subName": "PRODUCT DEVELOPMENT",
+      "type": "TUT"
+    },
+    "assessment": "total",
+    "metric": "obtained"
+  },
+  "128": {
+    "subject": {
+      "subCode": "CUGM2143",
+      "subName": "PRODUCT DEVELOPMENT",
+      "type": "TUT"
+    },
+    "assessment": "total",
+    "metric": "max"
+  },
+  "129": {
+    "subject": {
+      "subCode": "CUTM1021",
+      "subName": "DESIGN THINKING",
+      "type": "TUT"
+    },
+    "assessment": "projectInternal",
+    "metric": "obtained"
+  },
+  "130": {
+    "subject": {
+      "subCode": "CUTM1021",
+      "subName": "DESIGN THINKING",
+      "type": "TUT"
+    },
+    "assessment": "projectInternal",
+    "metric": "max"
+  },
+  "131": {
+    "subject": {
+      "subCode": "CUTM1021",
+      "subName": "DESIGN THINKING",
+      "type": "TUT"
+    },
+    "assessment": "projectInternal",
+    "metric": "roundOff"
+  },
+  "132": {
+    "subject": {
+      "subCode": "CUTM1021",
+      "subName": "DESIGN THINKING",
+      "type": "TUT"
+    },
+    "assessment": "projectInternal",
+    "metric": "roundOff"
+  },
+  "133": {
+    "subject": {
+      "subCode": "CUTM1021",
+      "subName": "DESIGN THINKING",
+      "type": "TUT"
+    },
+    "assessment": "projectInternal",
+    "metric": "max"
+  },
+  "134": {
+    "subject": {
+      "subCode": "CUTM1021",
+      "subName": "DESIGN THINKING",
+      "type": "TUT"
+    },
+    "assessment": "projectInternal",
+    "metric": "roundOff"
+  },
+  "135": {
+    "subject": {
+      "subCode": "CUTM1021",
+      "subName": "DESIGN THINKING",
+      "type": "TUT"
+    },
+    "assessment": "projectInternal",
+    "metric": "max"
+  },
+  "136": {
+    "subject": {
+      "subCode": "CUTM1021",
+      "subName": "DESIGN THINKING",
+      "type": "TUT"
+    },
+    "assessment": "total",
+    "metric": "obtained"
+  },
+  "137": {
+    "subject": {
+      "subCode": "CUTM1021",
+      "subName": "DESIGN THINKING",
+      "type": "TUT"
+    },
+    "assessment": "total",
+    "metric": "max"
+  },
+  "138": {
+    "subject": {
+      "subCode": "CUTM3032",
+      "subName": "LIGHT MOTOR VEHICLE DRIVING",
+      "type": "PR"
+    },
+    "assessment": "internalPractical",
+    "metric": "obtained"
+  },
+  "139": {
+    "subject": {
+      "subCode": "CUTM3032",
+      "subName": "LIGHT MOTOR VEHICLE DRIVING",
+      "type": "PR"
+    },
+    "assessment": "internalPractical",
+    "metric": "max"
+  },
+  "140": {
+    "subject": {
+      "subCode": "CUTM3032",
+      "subName": "LIGHT MOTOR VEHICLE DRIVING",
+      "type": "PR"
+    },
+    "assessment": "internalPractical",
+    "metric": "roundOff"
+  },
+  "141": {
+    "subject": {
+      "subCode": "CUTM3032",
+      "subName": "LIGHT MOTOR VEHICLE DRIVING",
+      "type": "PR"
+    },
+    "assessment": "internalPractical",
+    "metric": "roundOff"
+  },
+  "142": {
+    "subject": {
+      "subCode": "CUTM3032",
+      "subName": "LIGHT MOTOR VEHICLE DRIVING",
+      "type": "PR"
+    },
+    "assessment": "internalPractical",
+    "metric": "max"
+  },
+  "143": {
+    "subject": {
+      "subCode": "CUTM3032",
+      "subName": "LIGHT MOTOR VEHICLE DRIVING",
+      "type": "PR"
+    },
+    "assessment": "internalPractical",
+    "metric": "roundOff"
+  },
+  "144": {
+    "subject": {
+      "subCode": "CUTM3032",
+      "subName": "LIGHT MOTOR VEHICLE DRIVING",
+      "type": "PR"
+    },
+    "assessment": "internalPractical",
+    "metric": "max"
+  },
+  "145": {
+    "subject": {
+      "subCode": "CUTM3032",
+      "subName": "LIGHT MOTOR VEHICLE DRIVING",
+      "type": "PR"
+    },
+    "assessment": "total",
+    "metric": "obtained"
+  },
+  "146": {
+    "subject": {
+      "subCode": "CUTM3032",
+      "subName": "LIGHT MOTOR VEHICLE DRIVING",
+      "type": "PR"
+    },
+    "assessment": "total",
+    "metric": "max"
+  },
+  "147": {
+    "subject": {
+      "subCode": "CUTM3032",
+      "subName": "LIGHT MOTOR VEHICLE DRIVING",
+      "type": "TUT"
+    },
+    "assessment": "projectInternal",
+    "metric": "obtained"
+  },
+  "148": {
+    "subject": {
+      "subCode": "CUTM3032",
+      "subName": "LIGHT MOTOR VEHICLE DRIVING",
+      "type": "TUT"
+    },
+    "assessment": "projectInternal",
+    "metric": "max"
+  },
+  "149": {
+    "subject": {
+      "subCode": "CUTM3032",
+      "subName": "LIGHT MOTOR VEHICLE DRIVING",
+      "type": "TUT"
+    },
+    "assessment": "projectInternal",
+    "metric": "roundOff"
+  },
+  "150": {
+    "subject": {
+      "subCode": "CUTM3032",
+      "subName": "LIGHT MOTOR VEHICLE DRIVING",
+      "type": "TUT"
+    },
+    "assessment": "projectInternal",
+    "metric": "roundOff"
+  },
+  "151": {
+    "subject": {
+      "subCode": "CUTM3032",
+      "subName": "LIGHT MOTOR VEHICLE DRIVING",
+      "type": "TUT"
+    },
+    "assessment": "projectInternal",
+    "metric": "max"
+  },
+  "152": {
+    "subject": {
+      "subCode": "CUTM3032",
+      "subName": "LIGHT MOTOR VEHICLE DRIVING",
+      "type": "TUT"
+    },
+    "assessment": "projectInternal",
+    "metric": "roundOff"
+  },
+  "153": {
+    "subject": {
+      "subCode": "CUTM3032",
+      "subName": "LIGHT MOTOR VEHICLE DRIVING",
+      "type": "TUT"
+    },
+    "assessment": "projectInternal",
+    "metric": "max"
+  },
+  "154": {
+    "subject": {
+      "subCode": "CUTM3032",
+      "subName": "LIGHT MOTOR VEHICLE DRIVING",
+      "type": "TUT"
+    },
+    "assessment": "total",
+    "metric": "obtained"
+  },
+  "155": {
+    "subject": {
+      "subCode": "CUTM3032",
+      "subName": "LIGHT MOTOR VEHICLE DRIVING",
+      "type": "TUT"
+    },
+    "assessment": "total",
+    "metric": "max"
+  },
+  "156": {
+    "subject": {
+      "subCode": "CUTM3225",
+      "subName": "CNC TURNING AND MILLING PROGRAMMER",
+      "type": "PR"
+    },
+    "assessment": "internalPractical",
+    "metric": "obtained"
+  },
+  "157": {
+    "subject": {
+      "subCode": "CUTM3225",
+      "subName": "CNC TURNING AND MILLING PROGRAMMER",
+      "type": "PR"
+    },
+    "assessment": "internalPractical",
+    "metric": "max"
+  },
+  "158": {
+    "subject": {
+      "subCode": "CUTM3225",
+      "subName": "CNC TURNING AND MILLING PROGRAMMER",
+      "type": "PR"
+    },
+    "assessment": "internalPractical",
+    "metric": "roundOff"
+  },
+  "159": {
+    "subject": {
+      "subCode": "CUTM3225",
+      "subName": "CNC TURNING AND MILLING PROGRAMMER",
+      "type": "PR"
+    },
+    "assessment": "internalPractical",
+    "metric": "roundOff"
+  },
+  "160": {
+    "subject": {
+      "subCode": "CUTM3225",
+      "subName": "CNC TURNING AND MILLING PROGRAMMER",
+      "type": "PR"
+    },
+    "assessment": "internalPractical",
+    "metric": "max"
+  },
+  "161": {
+    "subject": {
+      "subCode": "CUTM3225",
+      "subName": "CNC TURNING AND MILLING PROGRAMMER",
+      "type": "PR"
+    },
+    "assessment": "internalPractical",
+    "metric": "roundOff"
+  },
+  "162": {
+    "subject": {
+      "subCode": "CUTM3225",
+      "subName": "CNC TURNING AND MILLING PROGRAMMER",
+      "type": "PR"
+    },
+    "assessment": "internalPractical",
+    "metric": "max"
+  },
+  "163": {
+    "subject": {
+      "subCode": "CUTM3225",
+      "subName": "CNC TURNING AND MILLING PROGRAMMER",
+      "type": "PR"
+    },
+    "assessment": "total",
+    "metric": "obtained"
+  },
+  "164": {
+    "subject": {
+      "subCode": "CUTM3225",
+      "subName": "CNC TURNING AND MILLING PROGRAMMER",
+      "type": "PR"
+    },
+    "assessment": "total",
+    "metric": "max"
+  },
+  "165": {
+    "subject": {
+      "subCode": "CUTM3225",
+      "subName": "CNC TURNING AND MILLING PROGRAMMER",
+      "type": "TUT"
+    },
+    "assessment": "projectInternal",
+    "metric": "obtained"
+  },
+  "166": {
+    "subject": {
+      "subCode": "CUTM3225",
+      "subName": "CNC TURNING AND MILLING PROGRAMMER",
+      "type": "TUT"
+    },
+    "assessment": "projectInternal",
+    "metric": "max"
+  },
+  "167": {
+    "subject": {
+      "subCode": "CUTM3225",
+      "subName": "CNC TURNING AND MILLING PROGRAMMER",
+      "type": "TUT"
+    },
+    "assessment": "projectInternal",
+    "metric": "roundOff"
+  },
+  "168": {
+    "subject": {
+      "subCode": "CUTM3225",
+      "subName": "CNC TURNING AND MILLING PROGRAMMER",
+      "type": "TUT"
+    },
+    "assessment": "projectInternal",
+    "metric": "roundOff"
+  },
+  "169": {
+    "subject": {
+      "subCode": "CUTM3225",
+      "subName": "CNC TURNING AND MILLING PROGRAMMER",
+      "type": "TUT"
+    },
+    "assessment": "projectInternal",
+    "metric": "max"
+  },
+  "170": {
+    "subject": {
+      "subCode": "CUTM3225",
+      "subName": "CNC TURNING AND MILLING PROGRAMMER",
+      "type": "TUT"
+    },
+    "assessment": "projectInternal",
+    "metric": "roundOff"
+  },
+  "171": {
+    "subject": {
+      "subCode": "CUTM3225",
+      "subName": "CNC TURNING AND MILLING PROGRAMMER",
+      "type": "TUT"
+    },
+    "assessment": "projectInternal",
+    "metric": "max"
+  },
+  "172": {
+    "subject": {
+      "subCode": "CUTM3225",
+      "subName": "CNC TURNING AND MILLING PROGRAMMER",
+      "type": "TUT"
+    },
+    "assessment": "total",
+    "metric": "obtained"
+  },
+  "173": {
+    "subject": {
+      "subCode": "CUTM3225",
+      "subName": "CNC TURNING AND MILLING PROGRAMMER",
+      "type": "TUT"
+    },
+    "assessment": "total",
+    "metric": "max"
+  },
+  "174": {
+    "subject": {
+      "subCode": "CUTM3074",
+      "subName": "SOLAR LIGHTING TECHNOLOGY",
+      "type": "TUT"
+    },
+    "assessment": "projectInternal",
+    "metric": "obtained"
+  },
+  "175": {
+    "subject": {
+      "subCode": "CUTM3074",
+      "subName": "SOLAR LIGHTING TECHNOLOGY",
+      "type": "TUT"
+    },
+    "assessment": "projectInternal",
+    "metric": "max"
+  },
+  "176": {
+    "subject": {
+      "subCode": "CUTM3074",
+      "subName": "SOLAR LIGHTING TECHNOLOGY",
+      "type": "TUT"
+    },
+    "assessment": "projectInternal",
+    "metric": "roundOff"
+  },
+  "177": {
+    "subject": {
+      "subCode": "CUTM3074",
+      "subName": "SOLAR LIGHTING TECHNOLOGY",
+      "type": "TUT"
+    },
+    "assessment": "projectInternal",
+    "metric": "roundOff"
+  },
+  "178": {
+    "subject": {
+      "subCode": "CUTM3074",
+      "subName": "SOLAR LIGHTING TECHNOLOGY",
+      "type": "TUT"
+    },
+    "assessment": "projectInternal",
+    "metric": "max"
+  },
+  "179": {
+    "subject": {
+      "subCode": "CUTM3074",
+      "subName": "SOLAR LIGHTING TECHNOLOGY",
+      "type": "TUT"
+    },
+    "assessment": "projectInternal",
+    "metric": "roundOff"
+  },
+  "180": {
+    "subject": {
+      "subCode": "CUTM3074",
+      "subName": "SOLAR LIGHTING TECHNOLOGY",
+      "type": "TUT"
+    },
+    "assessment": "projectInternal",
+    "metric": "max"
+  },
+  "181": {
+    "subject": {
+      "subCode": "CUTM3074",
+      "subName": "SOLAR LIGHTING TECHNOLOGY",
+      "type": "TUT"
+    },
+    "assessment": "total",
+    "metric": "obtained"
+  },
+  "182": {
+    "subject": {
+      "subCode": "CUTM3074",
+      "subName": "SOLAR LIGHTING TECHNOLOGY",
+      "type": "TUT"
+    },
+    "assessment": "total",
+    "metric": "max"
+  },
+  "183": {
+    "subject": {
+      "subCode": "CUTM3074",
+      "subName": "SOLAR LIGHTING TECHNOLOGY",
+      "type": "PR"
+    },
+    "assessment": "internalPractical",
+    "metric": "obtained"
+  },
+  "184": {
+    "subject": {
+      "subCode": "CUTM3074",
+      "subName": "SOLAR LIGHTING TECHNOLOGY",
+      "type": "PR"
+    },
+    "assessment": "internalPractical",
+    "metric": "max"
+  },
+  "185": {
+    "subject": {
+      "subCode": "CUTM3074",
+      "subName": "SOLAR LIGHTING TECHNOLOGY",
+      "type": "PR"
+    },
+    "assessment": "internalPractical",
+    "metric": "roundOff"
+  },
+  "186": {
+    "subject": {
+      "subCode": "CUTM3074",
+      "subName": "SOLAR LIGHTING TECHNOLOGY",
+      "type": "PR"
+    },
+    "assessment": "internalPractical",
+    "metric": "roundOff"
+  },
+  "187": {
+    "subject": {
+      "subCode": "CUTM3074",
+      "subName": "SOLAR LIGHTING TECHNOLOGY",
+      "type": "PR"
+    },
+    "assessment": "internalPractical",
+    "metric": "max"
+  },
+  "188": {
+    "subject": {
+      "subCode": "CUTM3074",
+      "subName": "SOLAR LIGHTING TECHNOLOGY",
+      "type": "PR"
+    },
+    "assessment": "internalPractical",
+    "metric": "roundOff"
+  },
+  "189": {
+    "subject": {
+      "subCode": "CUTM3074",
+      "subName": "SOLAR LIGHTING TECHNOLOGY",
+      "type": "PR"
+    },
+    "assessment": "internalPractical",
+    "metric": "max"
+  },
+  "190": {
+    "subject": {
+      "subCode": "CUTM3074",
+      "subName": "SOLAR LIGHTING TECHNOLOGY",
+      "type": "PR"
+    },
+    "assessment": "total",
+    "metric": "obtained"
+  },
+  "191": {
+    "subject": {
+      "subCode": "CUTM3074",
+      "subName": "SOLAR LIGHTING TECHNOLOGY",
+      "type": "PR"
+    },
+    "assessment": "total",
+    "metric": "max"
+  },
+  "192": {
+    "subject": {
+      "subCode": "CUTM3046",
+      "subName": "FABRICATION",
+      "type": "PR"
+    },
+    "assessment": "internalPractical",
+    "metric": "obtained"
+  },
+  "193": {
+    "subject": {
+      "subCode": "CUTM3046",
+      "subName": "FABRICATION",
+      "type": "PR"
+    },
+    "assessment": "internalPractical",
+    "metric": "max"
+  },
+  "194": {
+    "subject": {
+      "subCode": "CUTM3046",
+      "subName": "FABRICATION",
+      "type": "PR"
+    },
+    "assessment": "internalPractical",
+    "metric": "roundOff"
+  },
+  "195": {
+    "subject": {
+      "subCode": "CUTM3046",
+      "subName": "FABRICATION",
+      "type": "PR"
+    },
+    "assessment": "internalPractical",
+    "metric": "roundOff"
+  },
+  "196": {
+    "subject": {
+      "subCode": "CUTM3046",
+      "subName": "FABRICATION",
+      "type": "PR"
+    },
+    "assessment": "internalPractical",
+    "metric": "max"
+  },
+  "197": {
+    "subject": {
+      "subCode": "CUTM3046",
+      "subName": "FABRICATION",
+      "type": "PR"
+    },
+    "assessment": "internalPractical",
+    "metric": "roundOff"
+  },
+  "198": {
+    "subject": {
+      "subCode": "CUTM3046",
+      "subName": "FABRICATION",
+      "type": "PR"
+    },
+    "assessment": "internalPractical",
+    "metric": "max"
+  },
+  "199": {
+    "subject": {
+      "subCode": "CUTM3046",
+      "subName": "FABRICATION",
+      "type": "PR"
+    },
+    "assessment": "total",
+    "metric": "obtained"
+  },
+  "200": {
+    "subject": {
+      "subCode": "CUTM3046",
+      "subName": "FABRICATION",
+      "type": "PR"
+    },
+    "assessment": "total",
+    "metric": "max"
+  },
+  "201": {
+    "subject": {
+      "subCode": "CUTM3046",
+      "subName": "FABRICATION",
+      "type": "TUT"
+    },
+    "assessment": "projectInternal",
+    "metric": "obtained"
+  },
+  "202": {
+    "subject": {
+      "subCode": "CUTM3046",
+      "subName": "FABRICATION",
+      "type": "TUT"
+    },
+    "assessment": "projectInternal",
+    "metric": "max"
+  },
+  "203": {
+    "subject": {
+      "subCode": "CUTM3046",
+      "subName": "FABRICATION",
+      "type": "TUT"
+    },
+    "assessment": "projectInternal",
+    "metric": "roundOff"
+  },
+  "204": {
+    "subject": {
+      "subCode": "CUTM3046",
+      "subName": "FABRICATION",
+      "type": "TUT"
+    },
+    "assessment": "projectInternal",
+    "metric": "roundOff"
+  },
+  "205": {
+    "subject": {
+      "subCode": "CUTM3046",
+      "subName": "FABRICATION",
+      "type": "TUT"
+    },
+    "assessment": "projectInternal",
+    "metric": "max"
+  },
+  "206": {
+    "subject": {
+      "subCode": "CUTM3046",
+      "subName": "FABRICATION",
+      "type": "TUT"
+    },
+    "assessment": "projectInternal",
+    "metric": "roundOff"
+  },
+  "207": {
+    "subject": {
+      "subCode": "CUTM3046",
+      "subName": "FABRICATION",
+      "type": "TUT"
+    },
+    "assessment": "projectInternal",
+    "metric": "max"
+  },
+  "208": {
+    "subject": {
+      "subCode": "CUTM3046",
+      "subName": "FABRICATION",
+      "type": "TUT"
+    },
+    "assessment": "total",
+    "metric": "obtained"
+  },
+  "209": {
+    "subject": {
+      "subCode": "CUTM3046",
+      "subName": "FABRICATION",
+      "type": "TUT"
+    },
+    "assessment": "total",
+    "metric": "max"
+  },
+  "210": {
+    "subject": {
+      "subCode": "CUTM3035",
+      "subName": "TWO WHEELER SERVICE TECHNOLOGY",
+      "type": "PR"
+    },
+    "assessment": "internalPractical",
+    "metric": "obtained"
+  },
+  "211": {
+    "subject": {
+      "subCode": "CUTM3035",
+      "subName": "TWO WHEELER SERVICE TECHNOLOGY",
+      "type": "PR"
+    },
+    "assessment": "internalPractical",
+    "metric": "max"
+  },
+  "212": {
+    "subject": {
+      "subCode": "CUTM3035",
+      "subName": "TWO WHEELER SERVICE TECHNOLOGY",
+      "type": "PR"
+    },
+    "assessment": "internalPractical",
+    "metric": "roundOff"
+  },
+  "213": {
+    "subject": {
+      "subCode": "CUTM3035",
+      "subName": "TWO WHEELER SERVICE TECHNOLOGY",
+      "type": "PR"
+    },
+    "assessment": "internalPractical",
+    "metric": "roundOff"
+  },
+  "214": {
+    "subject": {
+      "subCode": "CUTM3035",
+      "subName": "TWO WHEELER SERVICE TECHNOLOGY",
+      "type": "PR"
+    },
+    "assessment": "internalPractical",
+    "metric": "max"
+  },
+  "215": {
+    "subject": {
+      "subCode": "CUTM3035",
+      "subName": "TWO WHEELER SERVICE TECHNOLOGY",
+      "type": "PR"
+    },
+    "assessment": "internalPractical",
+    "metric": "roundOff"
+  },
+  "216": {
+    "subject": {
+      "subCode": "CUTM3035",
+      "subName": "TWO WHEELER SERVICE TECHNOLOGY",
+      "type": "PR"
+    },
+    "assessment": "internalPractical",
+    "metric": "max"
+  },
+  "217": {
+    "subject": {
+      "subCode": "CUTM3035",
+      "subName": "TWO WHEELER SERVICE TECHNOLOGY",
+      "type": "PR"
+    },
+    "assessment": "total",
+    "metric": "obtained"
+  },
+  "218": {
+    "subject": {
+      "subCode": "CUTM3035",
+      "subName": "TWO WHEELER SERVICE TECHNOLOGY",
+      "type": "PR"
+    },
+    "assessment": "total",
+    "metric": "max"
+  },
+  "219": {
+    "subject": {
+      "subCode": "CUTM3035",
+      "subName": "TWO WHEELER SERVICE TECHNOLOGY",
+      "type": "TUT"
+    },
+    "assessment": "projectInternal",
+    "metric": "obtained"
+  },
+  "220": {
+    "subject": {
+      "subCode": "CUTM3035",
+      "subName": "TWO WHEELER SERVICE TECHNOLOGY",
+      "type": "TUT"
+    },
+    "assessment": "projectInternal",
+    "metric": "max"
+  },
+  "221": {
+    "subject": {
+      "subCode": "CUTM3035",
+      "subName": "TWO WHEELER SERVICE TECHNOLOGY",
+      "type": "TUT"
+    },
+    "assessment": "projectInternal",
+    "metric": "roundOff"
+  },
+  "222": {
+    "subject": {
+      "subCode": "CUTM3035",
+      "subName": "TWO WHEELER SERVICE TECHNOLOGY",
+      "type": "TUT"
+    },
+    "assessment": "projectInternal",
+    "metric": "roundOff"
+  },
+  "223": {
+    "subject": {
+      "subCode": "CUTM3035",
+      "subName": "TWO WHEELER SERVICE TECHNOLOGY",
+      "type": "TUT"
+    },
+    "assessment": "projectInternal",
+    "metric": "max"
+  },
+  "224": {
+    "subject": {
+      "subCode": "CUTM3035",
+      "subName": "TWO WHEELER SERVICE TECHNOLOGY",
+      "type": "TUT"
+    },
+    "assessment": "projectInternal",
+    "metric": "roundOff"
+  },
+  "225": {
+    "subject": {
+      "subCode": "CUTM3035",
+      "subName": "TWO WHEELER SERVICE TECHNOLOGY",
+      "type": "TUT"
+    },
+    "assessment": "projectInternal",
+    "metric": "max"
+  },
+  "226": {
+    "subject": {
+      "subCode": "CUTM3035",
+      "subName": "TWO WHEELER SERVICE TECHNOLOGY",
+      "type": "TUT"
+    },
+    "assessment": "total",
+    "metric": "obtained"
+  },
+  "227": {
+    "subject": {
+      "subCode": "CUTM3035",
+      "subName": "TWO WHEELER SERVICE TECHNOLOGY",
+      "type": "TUT"
+    },
+    "assessment": "total",
+    "metric": "max"
+  },
+  "228": {
+    "subject": {
+      "subCode": "CUTM3053",
+      "subName": "CAMERA OPERATION",
+      "type": "PR"
+    },
+    "assessment": "internalPractical",
+    "metric": "obtained"
+  },
+  "229": {
+    "subject": {
+      "subCode": "CUTM3053",
+      "subName": "CAMERA OPERATION",
+      "type": "PR"
+    },
+    "assessment": "internalPractical",
+    "metric": "max"
+  },
+  "230": {
+    "subject": {
+      "subCode": "CUTM3053",
+      "subName": "CAMERA OPERATION",
+      "type": "PR"
+    },
+    "assessment": "internalPractical",
+    "metric": "roundOff"
+  },
+  "231": {
+    "subject": {
+      "subCode": "CUTM3053",
+      "subName": "CAMERA OPERATION",
+      "type": "PR"
+    },
+    "assessment": "internalPractical",
+    "metric": "roundOff"
+  },
+  "232": {
+    "subject": {
+      "subCode": "CUTM3053",
+      "subName": "CAMERA OPERATION",
+      "type": "PR"
+    },
+    "assessment": "internalPractical",
+    "metric": "max"
+  },
+  "233": {
+    "subject": {
+      "subCode": "CUTM3053",
+      "subName": "CAMERA OPERATION",
+      "type": "PR"
+    },
+    "assessment": "internalPractical",
+    "metric": "roundOff"
+  },
+  "234": {
+    "subject": {
+      "subCode": "CUTM3053",
+      "subName": "CAMERA OPERATION",
+      "type": "PR"
+    },
+    "assessment": "internalPractical",
+    "metric": "max"
+  },
+  "235": {
+    "subject": {
+      "subCode": "CUTM3053",
+      "subName": "CAMERA OPERATION",
+      "type": "PR"
+    },
+    "assessment": "total",
+    "metric": "obtained"
+  },
+  "236": {
+    "subject": {
+      "subCode": "CUTM3053",
+      "subName": "CAMERA OPERATION",
+      "type": "PR"
+    },
+    "assessment": "total",
+    "metric": "max"
+  },
+  "237": {
+    "subject": {
+      "subCode": "CUTM3053",
+      "subName": "CAMERA OPERATION",
+      "type": "TUT"
+    },
+    "assessment": "projectInternal",
+    "metric": "obtained"
+  },
+  "238": {
+    "subject": {
+      "subCode": "CUTM3053",
+      "subName": "CAMERA OPERATION",
+      "type": "TUT"
+    },
+    "assessment": "projectInternal",
+    "metric": "max"
+  },
+  "239": {
+    "subject": {
+      "subCode": "CUTM3053",
+      "subName": "CAMERA OPERATION",
+      "type": "TUT"
+    },
+    "assessment": "projectInternal",
+    "metric": "roundOff"
+  },
+  "240": {
+    "subject": {
+      "subCode": "CUTM3053",
+      "subName": "CAMERA OPERATION",
+      "type": "TUT"
+    },
+    "assessment": "projectInternal",
+    "metric": "roundOff"
+  },
+  "241": {
+    "subject": {
+      "subCode": "CUTM3053",
+      "subName": "CAMERA OPERATION",
+      "type": "TUT"
+    },
+    "assessment": "projectInternal",
+    "metric": "max"
+  },
+  "242": {
+    "subject": {
+      "subCode": "CUTM3053",
+      "subName": "CAMERA OPERATION",
+      "type": "TUT"
+    },
+    "assessment": "projectInternal",
+    "metric": "roundOff"
+  },
+  "243": {
+    "subject": {
+      "subCode": "CUTM3053",
+      "subName": "CAMERA OPERATION",
+      "type": "TUT"
+    },
+    "assessment": "projectInternal",
+    "metric": "max"
+  },
+  "244": {
+    "subject": {
+      "subCode": "CUTM3053",
+      "subName": "CAMERA OPERATION",
+      "type": "TUT"
+    },
+    "assessment": "total",
+    "metric": "obtained"
+  },
+  "245": {
+    "subject": {
+      "subCode": "CUTM3053",
+      "subName": "CAMERA OPERATION",
+      "type": "TUT"
+    },
+    "assessment": "total",
+    "metric": "max"
+  },
+  "246": {
+    "subject": {
+      "subCode": "CUTM3061",
+      "subName": "RADIOLOGY TECHNOLOGY",
+      "type": "TUT"
+    },
+    "assessment": "projectInternal",
+    "metric": "obtained"
+  },
+  "247": {
+    "subject": {
+      "subCode": "CUTM3061",
+      "subName": "RADIOLOGY TECHNOLOGY",
+      "type": "TUT"
+    },
+    "assessment": "projectInternal",
+    "metric": "max"
+  },
+  "248": {
+    "subject": {
+      "subCode": "CUTM3061",
+      "subName": "RADIOLOGY TECHNOLOGY",
+      "type": "TUT"
+    },
+    "assessment": "projectInternal",
+    "metric": "roundOff"
+  },
+  "249": {
+    "subject": {
+      "subCode": "CUTM3061",
+      "subName": "RADIOLOGY TECHNOLOGY",
+      "type": "TUT"
+    },
+    "assessment": "projectInternal",
+    "metric": "roundOff"
+  },
+  "250": {
+    "subject": {
+      "subCode": "CUTM3061",
+      "subName": "RADIOLOGY TECHNOLOGY",
+      "type": "TUT"
+    },
+    "assessment": "projectInternal",
+    "metric": "max"
+  },
+  "251": {
+    "subject": {
+      "subCode": "CUTM3061",
+      "subName": "RADIOLOGY TECHNOLOGY",
+      "type": "TUT"
+    },
+    "assessment": "projectInternal",
+    "metric": "roundOff"
+  },
+  "252": {
+    "subject": {
+      "subCode": "CUTM3061",
+      "subName": "RADIOLOGY TECHNOLOGY",
+      "type": "TUT"
+    },
+    "assessment": "projectInternal",
+    "metric": "max"
+  },
+  "253": {
+    "subject": {
+      "subCode": "CUTM3061",
+      "subName": "RADIOLOGY TECHNOLOGY",
+      "type": "TUT"
+    },
+    "assessment": "total",
+    "metric": "obtained"
+  },
+  "254": {
+    "subject": {
+      "subCode": "CUTM3061",
+      "subName": "RADIOLOGY TECHNOLOGY",
+      "type": "TUT"
+    },
+    "assessment": "total",
+    "metric": "max"
+  },
+  "255": {
+    "subject": {
+      "subCode": "CUTM3061",
+      "subName": "RADIOLOGY TECHNOLOGY",
+      "type": "PR"
+    },
+    "assessment": "internalPractical",
+    "metric": "obtained"
+  },
+  "256": {
+    "subject": {
+      "subCode": "CUTM3061",
+      "subName": "RADIOLOGY TECHNOLOGY",
+      "type": "PR"
+    },
+    "assessment": "internalPractical",
+    "metric": "max"
+  },
+  "257": {
+    "subject": {
+      "subCode": "CUTM3061",
+      "subName": "RADIOLOGY TECHNOLOGY",
+      "type": "PR"
+    },
+    "assessment": "internalPractical",
+    "metric": "roundOff"
+  },
+  "258": {
+    "subject": {
+      "subCode": "CUTM3061",
+      "subName": "RADIOLOGY TECHNOLOGY",
+      "type": "PR"
+    },
+    "assessment": "internalPractical",
+    "metric": "roundOff"
+  },
+  "259": {
+    "subject": {
+      "subCode": "CUTM3061",
+      "subName": "RADIOLOGY TECHNOLOGY",
+      "type": "PR"
+    },
+    "assessment": "internalPractical",
+    "metric": "max"
+  },
+  "260": {
+    "subject": {
+      "subCode": "CUTM3061",
+      "subName": "RADIOLOGY TECHNOLOGY",
+      "type": "PR"
+    },
+    "assessment": "internalPractical",
+    "metric": "roundOff"
+  },
+  "261": {
+    "subject": {
+      "subCode": "CUTM3061",
+      "subName": "RADIOLOGY TECHNOLOGY",
+      "type": "PR"
+    },
+    "assessment": "internalPractical",
+    "metric": "max"
+  },
+  "262": {
+    "subject": {
+      "subCode": "CUTM3061",
+      "subName": "RADIOLOGY TECHNOLOGY",
+      "type": "PR"
+    },
+    "assessment": "total",
+    "metric": "obtained"
+  },
+  "263": {
+    "subject": {
+      "subCode": "CUTM3061",
+      "subName": "RADIOLOGY TECHNOLOGY",
+      "type": "PR"
+    },
+    "assessment": "total",
+    "metric": "max"
+  },
+  "264": {
+    "subject": {
+      "subCode": "CUTM3246",
+      "subName": "VERMIMANURING TECHNICIAN",
+      "type": "PR"
+    },
+    "assessment": "internalPractical",
+    "metric": "obtained"
+  },
+  "265": {
+    "subject": {
+      "subCode": "CUTM3246",
+      "subName": "VERMIMANURING TECHNICIAN",
+      "type": "PR"
+    },
+    "assessment": "internalPractical",
+    "metric": "max"
+  },
+  "266": {
+    "subject": {
+      "subCode": "CUTM3246",
+      "subName": "VERMIMANURING TECHNICIAN",
+      "type": "PR"
+    },
+    "assessment": "internalPractical",
+    "metric": "roundOff"
+  },
+  "267": {
+    "subject": {
+      "subCode": "CUTM3246",
+      "subName": "VERMIMANURING TECHNICIAN",
+      "type": "PR"
+    },
+    "assessment": "internalPractical",
+    "metric": "roundOff"
+  },
+  "268": {
+    "subject": {
+      "subCode": "CUTM3246",
+      "subName": "VERMIMANURING TECHNICIAN",
+      "type": "PR"
+    },
+    "assessment": "internalPractical",
+    "metric": "max"
+  },
+  "269": {
+    "subject": {
+      "subCode": "CUTM3246",
+      "subName": "VERMIMANURING TECHNICIAN",
+      "type": "PR"
+    },
+    "assessment": "internalPractical",
+    "metric": "roundOff"
+  },
+  "270": {
+    "subject": {
+      "subCode": "CUTM3246",
+      "subName": "VERMIMANURING TECHNICIAN",
+      "type": "PR"
+    },
+    "assessment": "internalPractical",
+    "metric": "max"
+  },
+  "271": {
+    "subject": {
+      "subCode": "CUTM3246",
+      "subName": "VERMIMANURING TECHNICIAN",
+      "type": "PR"
+    },
+    "assessment": "total",
+    "metric": "obtained"
+  },
+  "272": {
+    "subject": {
+      "subCode": "CUTM3246",
+      "subName": "VERMIMANURING TECHNICIAN",
+      "type": "PR"
+    },
+    "assessment": "total",
+    "metric": "max"
+  },
+  "273": {
+    "subject": {
+      "subCode": "CUTM3246",
+      "subName": "VERMIMANURING TECHNICIAN",
+      "type": "TUT"
+    },
+    "assessment": "projectInternal",
+    "metric": "obtained"
+  },
+  "274": {
+    "subject": {
+      "subCode": "CUTM3246",
+      "subName": "VERMIMANURING TECHNICIAN",
+      "type": "TUT"
+    },
+    "assessment": "projectInternal",
+    "metric": "max"
+  },
+  "275": {
+    "subject": {
+      "subCode": "CUTM3246",
+      "subName": "VERMIMANURING TECHNICIAN",
+      "type": "TUT"
+    },
+    "assessment": "projectInternal",
+    "metric": "roundOff"
+  },
+  "276": {
+    "subject": {
+      "subCode": "CUTM3246",
+      "subName": "VERMIMANURING TECHNICIAN",
+      "type": "TUT"
+    },
+    "assessment": "projectInternal",
+    "metric": "roundOff"
+  },
+  "277": {
+    "subject": {
+      "subCode": "CUTM3246",
+      "subName": "VERMIMANURING TECHNICIAN",
+      "type": "TUT"
+    },
+    "assessment": "projectInternal",
+    "metric": "max"
+  },
+  "278": {
+    "subject": {
+      "subCode": "CUTM3246",
+      "subName": "VERMIMANURING TECHNICIAN",
+      "type": "TUT"
+    },
+    "assessment": "projectInternal",
+    "metric": "roundOff"
+  },
+  "279": {
+    "subject": {
+      "subCode": "CUTM3246",
+      "subName": "VERMIMANURING TECHNICIAN",
+      "type": "TUT"
+    },
+    "assessment": "projectInternal",
+    "metric": "max"
+  },
+  "280": {
+    "subject": {
+      "subCode": "CUTM3246",
+      "subName": "VERMIMANURING TECHNICIAN",
+      "type": "TUT"
+    },
+    "assessment": "total",
+    "metric": "obtained"
+  },
+  "281": {
+    "subject": {
+      "subCode": "CUTM3246",
+      "subName": "VERMIMANURING TECHNICIAN",
+      "type": "TUT"
+    },
+    "assessment": "total",
+    "metric": "max"
+  },
+  "282": {
+    "subject": {
+      "subCode": "CUML1025",
+      "subName": "PROJECT",
+      "type": "TUT"
+    },
+    "assessment": "projectInternal",
+    "metric": "obtained"
+  },
+  "283": {
+    "subject": {
+      "subCode": "CUML1025",
+      "subName": "PROJECT",
+      "type": "TUT"
+    },
+    "assessment": "projectInternal",
+    "metric": "max"
+  },
+  "284": {
+    "subject": {
+      "subCode": "CUML1025",
+      "subName": "PROJECT",
+      "type": "TUT"
+    },
+    "assessment": "projectInternal",
+    "metric": "roundOff"
+  },
+  "285": {
+    "subject": {
+      "subCode": "CUML1025",
+      "subName": "PROJECT",
+      "type": "TUT"
+    },
+    "assessment": "projectInternal",
+    "metric": "roundOff"
+  },
+  "286": {
+    "subject": {
+      "subCode": "CUML1025",
+      "subName": "PROJECT",
+      "type": "TUT"
+    },
+    "assessment": "projectInternal",
+    "metric": "max"
+  },
+  "287": {
+    "subject": {
+      "subCode": "CUML1025",
+      "subName": "PROJECT",
+      "type": "TUT"
+    },
+    "assessment": "projectInternal",
+    "metric": "roundOff"
+  },
+  "288": {
+    "subject": {
+      "subCode": "CUML1025",
+      "subName": "PROJECT",
+      "type": "TUT"
+    },
+    "assessment": "projectInternal",
+    "metric": "max"
+  },
+  "289": {
+    "subject": {
+      "subCode": "CUML1025",
+      "subName": "PROJECT",
+      "type": "TUT"
+    },
+    "assessment": "total",
+    "metric": "obtained"
+  },
+  "290": {
+    "subject": {
+      "subCode": "CUML1025",
+      "subName": "PROJECT",
+      "type": "TUT"
+    },
+    "assessment": "total",
+    "metric": "max"
+  },
+  "291": {
+    "subject": {
+      "subCode": "CUTM3037",
+      "subName": "E",
+      "type": "PR"
+    },
+    "assessment": "internalPractical",
+    "metric": "obtained"
+  },
+  "292": {
+    "subject": {
+      "subCode": "CUTM3037",
+      "subName": "E",
+      "type": "PR"
+    },
+    "assessment": "internalPractical",
+    "metric": "max"
+  },
+  "293": {
+    "subject": {
+      "subCode": "CUTM3037",
+      "subName": "E",
+      "type": "PR"
+    },
+    "assessment": "internalPractical",
+    "metric": "roundOff"
+  },
+  "294": {
+    "subject": {
+      "subCode": "CUTM3037",
+      "subName": "E",
+      "type": "PR"
+    },
+    "assessment": "internalPractical",
+    "metric": "roundOff"
+  },
+  "295": {
+    "subject": {
+      "subCode": "CUTM3037",
+      "subName": "E",
+      "type": "PR"
+    },
+    "assessment": "internalPractical",
+    "metric": "max"
+  },
+  "296": {
+    "subject": {
+      "subCode": "CUTM3037",
+      "subName": "E",
+      "type": "PR"
+    },
+    "assessment": "internalPractical",
+    "metric": "roundOff"
+  },
+  "297": {
+    "subject": {
+      "subCode": "CUTM3037",
+      "subName": "E",
+      "type": "PR"
+    },
+    "assessment": "internalPractical",
+    "metric": "max"
+  },
+  "298": {
+    "subject": {
+      "subCode": "CUTM3037",
+      "subName": "E",
+      "type": "PR"
+    },
+    "assessment": "total",
+    "metric": "obtained"
+  },
+  "299": {
+    "subject": {
+      "subCode": "CUTM3037",
+      "subName": "E",
+      "type": "PR"
+    },
+    "assessment": "total",
+    "metric": "max"
+  },
+  "300": {
+    "subject": {
+      "subCode": "CUTM3037",
+      "subName": "E",
+      "type": "TUT"
+    },
+    "assessment": "projectInternal",
+    "metric": "obtained"
+  },
+  "301": {
+    "subject": {
+      "subCode": "CUTM3037",
+      "subName": "E",
+      "type": "TUT"
+    },
+    "assessment": "projectInternal",
+    "metric": "max"
+  },
+  "302": {
+    "subject": {
+      "subCode": "CUTM3037",
+      "subName": "E",
+      "type": "TUT"
+    },
+    "assessment": "projectInternal",
+    "metric": "roundOff"
+  },
+  "303": {
+    "subject": {
+      "subCode": "CUTM3037",
+      "subName": "E",
+      "type": "TUT"
+    },
+    "assessment": "projectInternal",
+    "metric": "roundOff"
+  },
+  "304": {
+    "subject": {
+      "subCode": "CUTM3037",
+      "subName": "E",
+      "type": "TUT"
+    },
+    "assessment": "projectInternal",
+    "metric": "max"
+  },
+  "305": {
+    "subject": {
+      "subCode": "CUTM3037",
+      "subName": "E",
+      "type": "TUT"
+    },
+    "assessment": "projectInternal",
+    "metric": "roundOff"
+  },
+  "306": {
+    "subject": {
+      "subCode": "CUTM3037",
+      "subName": "E",
+      "type": "TUT"
+    },
+    "assessment": "projectInternal",
+    "metric": "max"
+  },
+  "307": {
+    "subject": {
+      "subCode": "CUTM3037",
+      "subName": "E",
+      "type": "TUT"
+    },
+    "assessment": "total",
+    "metric": "obtained"
+  },
+  "308": {
+    "subject": {
+      "subCode": "CUTM3037",
+      "subName": "E",
+      "type": "TUT"
+    },
+    "assessment": "total",
+    "metric": "max"
+  },
+  "309": {
+    "subject": {
+      "subCode": "CUTM3233",
+      "subName": "FINE ART",
+      "type": "PR"
+    },
+    "assessment": "internalPractical",
+    "metric": "obtained"
+  },
+  "310": {
+    "subject": {
+      "subCode": "CUTM3233",
+      "subName": "FINE ART",
+      "type": "PR"
+    },
+    "assessment": "internalPractical",
+    "metric": "max"
+  },
+  "311": {
+    "subject": {
+      "subCode": "CUTM3233",
+      "subName": "FINE ART",
+      "type": "PR"
+    },
+    "assessment": "internalPractical",
+    "metric": "roundOff"
+  },
+  "312": {
+    "subject": {
+      "subCode": "CUTM3233",
+      "subName": "FINE ART",
+      "type": "PR"
+    },
+    "assessment": "internalPractical",
+    "metric": "roundOff"
+  },
+  "313": {
+    "subject": {
+      "subCode": "CUTM3233",
+      "subName": "FINE ART",
+      "type": "PR"
+    },
+    "assessment": "internalPractical",
+    "metric": "max"
+  },
+  "314": {
+    "subject": {
+      "subCode": "CUTM3233",
+      "subName": "FINE ART",
+      "type": "PR"
+    },
+    "assessment": "internalPractical",
+    "metric": "roundOff"
+  },
+  "315": {
+    "subject": {
+      "subCode": "CUTM3233",
+      "subName": "FINE ART",
+      "type": "PR"
+    },
+    "assessment": "internalPractical",
+    "metric": "max"
+  },
+  "316": {
+    "subject": {
+      "subCode": "CUTM3233",
+      "subName": "FINE ART",
+      "type": "PR"
+    },
+    "assessment": "total",
+    "metric": "obtained"
+  },
+  "317": {
+    "subject": {
+      "subCode": "CUTM3233",
+      "subName": "FINE ART",
+      "type": "PR"
+    },
+    "assessment": "total",
+    "metric": "max"
+  },
+  "318": {
+    "subject": {
+      "subCode": "CUTM3233",
+      "subName": "FINE ART",
+      "type": "TUT"
+    },
+    "assessment": "projectInternal",
+    "metric": "obtained"
+  },
+  "319": {
+    "subject": {
+      "subCode": "CUTM3233",
+      "subName": "FINE ART",
+      "type": "TUT"
+    },
+    "assessment": "projectInternal",
+    "metric": "max"
+  },
+  "320": {
+    "subject": {
+      "subCode": "CUTM3233",
+      "subName": "FINE ART",
+      "type": "TUT"
+    },
+    "assessment": "projectInternal",
+    "metric": "roundOff"
+  },
+  "321": {
+    "subject": {
+      "subCode": "CUTM3233",
+      "subName": "FINE ART",
+      "type": "TUT"
+    },
+    "assessment": "projectInternal",
+    "metric": "roundOff"
+  },
+  "322": {
+    "subject": {
+      "subCode": "CUTM3233",
+      "subName": "FINE ART",
+      "type": "TUT"
+    },
+    "assessment": "projectInternal",
+    "metric": "max"
+  },
+  "323": {
+    "subject": {
+      "subCode": "CUTM3233",
+      "subName": "FINE ART",
+      "type": "TUT"
+    },
+    "assessment": "projectInternal",
+    "metric": "roundOff"
+  },
+  "324": {
+    "subject": {
+      "subCode": "CUTM3233",
+      "subName": "FINE ART",
+      "type": "TUT"
+    },
+    "assessment": "projectInternal",
+    "metric": "max"
+  },
+  "325": {
+    "subject": {
+      "subCode": "CUTM3233",
+      "subName": "FINE ART",
+      "type": "TUT"
+    },
+    "assessment": "total",
+    "metric": "obtained"
+  },
+  "326": {
+    "subject": {
+      "subCode": "CUTM3233",
+      "subName": "FINE ART",
+      "type": "TUT"
+    },
+    "assessment": "total",
+    "metric": "max"
+  },
+  "327": {
+    "subject": {
+      "subCode": "CUTM3051",
+      "subName": "INTRODUCTION TO NANOTECHNOLOGY",
+      "type": "PR"
+    },
+    "assessment": "internalPractical",
+    "metric": "obtained"
+  },
+  "328": {
+    "subject": {
+      "subCode": "CUTM3051",
+      "subName": "INTRODUCTION TO NANOTECHNOLOGY",
+      "type": "PR"
+    },
+    "assessment": "internalPractical",
+    "metric": "max"
+  },
+  "329": {
+    "subject": {
+      "subCode": "CUTM3051",
+      "subName": "INTRODUCTION TO NANOTECHNOLOGY",
+      "type": "PR"
+    },
+    "assessment": "internalPractical",
+    "metric": "roundOff"
+  },
+  "330": {
+    "subject": {
+      "subCode": "CUTM3051",
+      "subName": "INTRODUCTION TO NANOTECHNOLOGY",
+      "type": "PR"
+    },
+    "assessment": "internalPractical",
+    "metric": "roundOff"
+  },
+  "331": {
+    "subject": {
+      "subCode": "CUTM3051",
+      "subName": "INTRODUCTION TO NANOTECHNOLOGY",
+      "type": "PR"
+    },
+    "assessment": "internalPractical",
+    "metric": "max"
+  },
+  "332": {
+    "subject": {
+      "subCode": "CUTM3051",
+      "subName": "INTRODUCTION TO NANOTECHNOLOGY",
+      "type": "PR"
+    },
+    "assessment": "internalPractical",
+    "metric": "roundOff"
+  },
+  "333": {
+    "subject": {
+      "subCode": "CUTM3051",
+      "subName": "INTRODUCTION TO NANOTECHNOLOGY",
+      "type": "PR"
+    },
+    "assessment": "internalPractical",
+    "metric": "max"
+  },
+  "334": {
+    "subject": {
+      "subCode": "CUTM3051",
+      "subName": "INTRODUCTION TO NANOTECHNOLOGY",
+      "type": "PR"
+    },
+    "assessment": "total",
+    "metric": "obtained"
+  },
+  "335": {
+    "subject": {
+      "subCode": "CUTM3051",
+      "subName": "INTRODUCTION TO NANOTECHNOLOGY",
+      "type": "PR"
+    },
+    "assessment": "total",
+    "metric": "max"
+  },
+  "336": {
+    "subject": {
+      "subCode": "CUTM3051",
+      "subName": "INTRODUCTION TO NANOTECHNOLOGY",
+      "type": "TUT"
+    },
+    "assessment": "projectInternal",
+    "metric": "obtained"
+  },
+  "337": {
+    "subject": {
+      "subCode": "CUTM3051",
+      "subName": "INTRODUCTION TO NANOTECHNOLOGY",
+      "type": "TUT"
+    },
+    "assessment": "projectInternal",
+    "metric": "max"
+  },
+  "338": {
+    "subject": {
+      "subCode": "CUTM3051",
+      "subName": "INTRODUCTION TO NANOTECHNOLOGY",
+      "type": "TUT"
+    },
+    "assessment": "projectInternal",
+    "metric": "roundOff"
+  },
+  "339": {
+    "subject": {
+      "subCode": "CUTM3051",
+      "subName": "INTRODUCTION TO NANOTECHNOLOGY",
+      "type": "TUT"
+    },
+    "assessment": "projectInternal",
+    "metric": "roundOff"
+  },
+  "340": {
+    "subject": {
+      "subCode": "CUTM3051",
+      "subName": "INTRODUCTION TO NANOTECHNOLOGY",
+      "type": "TUT"
+    },
+    "assessment": "projectInternal",
+    "metric": "max"
+  },
+  "341": {
+    "subject": {
+      "subCode": "CUTM3051",
+      "subName": "INTRODUCTION TO NANOTECHNOLOGY",
+      "type": "TUT"
+    },
+    "assessment": "projectInternal",
+    "metric": "roundOff"
+  },
+  "342": {
+    "subject": {
+      "subCode": "CUTM3051",
+      "subName": "INTRODUCTION TO NANOTECHNOLOGY",
+      "type": "TUT"
+    },
+    "assessment": "projectInternal",
+    "metric": "max"
+  },
+  "343": {
+    "subject": {
+      "subCode": "CUTM3051",
+      "subName": "INTRODUCTION TO NANOTECHNOLOGY",
+      "type": "TUT"
+    },
+    "assessment": "total",
+    "metric": "obtained"
+  },
+  "344": {
+    "subject": {
+      "subCode": "CUTM3051",
+      "subName": "INTRODUCTION TO NANOTECHNOLOGY",
+      "type": "TUT"
+    },
+    "assessment": "total",
+    "metric": "max"
+  },
+  "345": {
+    "subject": {
+      "subCode": "CUTM1012",
+      "subName": "ENGINEERING ECONOMICS AND COSTING",
+      "type": "PP"
+    },
+    "assessment": "assignment",
+    "metric": "obtained"
+  },
+  "346": {
+    "subject": {
+      "subCode": "CUTM1012",
+      "subName": "ENGINEERING ECONOMICS AND COSTING",
+      "type": "PP"
+    },
+    "assessment": "assignment",
+    "metric": "max"
+  },
+  "347": {
+    "subject": {
+      "subCode": "CUTM1012",
+      "subName": "ENGINEERING ECONOMICS AND COSTING",
+      "type": "PP"
+    },
+    "assessment": "assignment",
+    "metric": "roundOff"
+  },
+  "348": {
+    "subject": {
+      "subCode": "CUTM1012",
+      "subName": "ENGINEERING ECONOMICS AND COSTING",
+      "type": "PP"
+    },
+    "assessment": "assignment",
+    "metric": "roundOff"
+  },
+  "349": {
+    "subject": {
+      "subCode": "CUTM1012",
+      "subName": "ENGINEERING ECONOMICS AND COSTING",
+      "type": "PP"
+    },
+    "assessment": "assignment",
+    "metric": "max"
+  },
+  "350": {
+    "subject": {
+      "subCode": "CUTM1012",
+      "subName": "ENGINEERING ECONOMICS AND COSTING",
+      "type": "PP"
+    },
+    "assessment": "midSem",
+    "metric": "obtained"
+  },
+  "351": {
+    "subject": {
+      "subCode": "CUTM1012",
+      "subName": "ENGINEERING ECONOMICS AND COSTING",
+      "type": "PP"
+    },
+    "assessment": "midSem",
+    "metric": "max"
+  },
+  "352": {
+    "subject": {
+      "subCode": "CUTM1012",
+      "subName": "ENGINEERING ECONOMICS AND COSTING",
+      "type": "PP"
+    },
+    "assessment": "midSem",
+    "metric": "roundOff"
+  },
+  "353": {
+    "subject": {
+      "subCode": "CUTM1012",
+      "subName": "ENGINEERING ECONOMICS AND COSTING",
+      "type": "PP"
+    },
+    "assessment": "midSem",
+    "metric": "roundOff"
+  },
+  "354": {
+    "subject": {
+      "subCode": "CUTM1012",
+      "subName": "ENGINEERING ECONOMICS AND COSTING",
+      "type": "PP"
+    },
+    "assessment": "midSem",
+    "metric": "max"
+  },
+  "355": {
+    "subject": {
+      "subCode": "CUTM1012",
+      "subName": "ENGINEERING ECONOMICS AND COSTING",
+      "type": "PP"
+    },
+    "assessment": "learningRecord",
+    "metric": "obtained"
+  },
+  "356": {
+    "subject": {
+      "subCode": "CUTM1012",
+      "subName": "ENGINEERING ECONOMICS AND COSTING",
+      "type": "PP"
+    },
+    "assessment": "learningRecord",
+    "metric": "max"
+  },
+  "357": {
+    "subject": {
+      "subCode": "CUTM1012",
+      "subName": "ENGINEERING ECONOMICS AND COSTING",
+      "type": "PP"
+    },
+    "assessment": "learningRecord",
+    "metric": "roundOff"
+  },
+  "358": {
+    "subject": {
+      "subCode": "CUTM1012",
+      "subName": "ENGINEERING ECONOMICS AND COSTING",
+      "type": "PP"
+    },
+    "assessment": "learningRecord",
+    "metric": "roundOff"
+  },
+  "359": {
+    "subject": {
+      "subCode": "CUTM1012",
+      "subName": "ENGINEERING ECONOMICS AND COSTING",
+      "type": "PP"
+    },
+    "assessment": "learningRecord",
+    "metric": "max"
+  },
+  "360": {
+    "subject": {
+      "subCode": "CUTM1012",
+      "subName": "ENGINEERING ECONOMICS AND COSTING",
+      "type": "PP"
+    },
+    "assessment": "presentation",
+    "metric": "obtained"
+  },
+  "361": {
+    "subject": {
+      "subCode": "CUTM1012",
+      "subName": "ENGINEERING ECONOMICS AND COSTING",
+      "type": "PP"
+    },
+    "assessment": "presentation",
+    "metric": "max"
+  },
+  "362": {
+    "subject": {
+      "subCode": "CUTM1012",
+      "subName": "ENGINEERING ECONOMICS AND COSTING",
+      "type": "PP"
+    },
+    "assessment": "presentation",
+    "metric": "roundOff"
+  },
+  "363": {
+    "subject": {
+      "subCode": "CUTM1012",
+      "subName": "ENGINEERING ECONOMICS AND COSTING",
+      "type": "PP"
+    },
+    "assessment": "presentation",
+    "metric": "roundOff"
+  },
+  "364": {
+    "subject": {
+      "subCode": "CUTM1012",
+      "subName": "ENGINEERING ECONOMICS AND COSTING",
+      "type": "PP"
+    },
+    "assessment": "presentation",
+    "metric": "max"
+  },
+  "365": {
+    "subject": {
+      "subCode": "CUTM1012",
+      "subName": "ENGINEERING ECONOMICS AND COSTING",
+      "type": "PP"
+    },
+    "assessment": "presentation",
+    "metric": "roundOff"
+  },
+  "366": {
+    "subject": {
+      "subCode": "CUTM1012",
+      "subName": "ENGINEERING ECONOMICS AND COSTING",
+      "type": "PP"
+    },
+    "assessment": "presentation",
+    "metric": "max"
+  },
+  "367": {
+    "subject": {
+      "subCode": "CUTM1012",
+      "subName": "ENGINEERING ECONOMICS AND COSTING",
+      "type": "PP"
+    },
+    "assessment": "total",
+    "metric": "obtained"
+  },
+  "368": {
+    "subject": {
+      "subCode": "CUTM1012",
+      "subName": "ENGINEERING ECONOMICS AND COSTING",
+      "type": "PP"
+    },
+    "assessment": "total",
+    "metric": "max"
+  },
+  "369": {
+    "subject": {
+      "subCode": "CUTM1012",
+      "subName": "ENGINEERING ECONOMICS AND COSTING",
+      "type": "TUT"
+    },
+    "assessment": "projectInternal",
+    "metric": "obtained"
+  },
+  "370": {
+    "subject": {
+      "subCode": "CUTM1012",
+      "subName": "ENGINEERING ECONOMICS AND COSTING",
+      "type": "TUT"
+    },
+    "assessment": "projectInternal",
+    "metric": "max"
+  },
+  "371": {
+    "subject": {
+      "subCode": "CUTM1012",
+      "subName": "ENGINEERING ECONOMICS AND COSTING",
+      "type": "TUT"
+    },
+    "assessment": "projectInternal",
+    "metric": "roundOff"
+  },
+  "372": {
+    "subject": {
+      "subCode": "CUTM1012",
+      "subName": "ENGINEERING ECONOMICS AND COSTING",
+      "type": "TUT"
+    },
+    "assessment": "projectInternal",
+    "metric": "roundOff"
+  },
+  "373": {
+    "subject": {
+      "subCode": "CUTM1012",
+      "subName": "ENGINEERING ECONOMICS AND COSTING",
+      "type": "TUT"
+    },
+    "assessment": "projectInternal",
+    "metric": "max"
+  },
+  "374": {
+    "subject": {
+      "subCode": "CUTM1012",
+      "subName": "ENGINEERING ECONOMICS AND COSTING",
+      "type": "TUT"
+    },
+    "assessment": "projectInternal",
+    "metric": "roundOff"
+  },
+  "375": {
+    "subject": {
+      "subCode": "CUTM1012",
+      "subName": "ENGINEERING ECONOMICS AND COSTING",
+      "type": "TUT"
+    },
+    "assessment": "projectInternal",
+    "metric": "max"
+  },
+  "376": {
+    "subject": {
+      "subCode": "CUTM1012",
+      "subName": "ENGINEERING ECONOMICS AND COSTING",
+      "type": "TUT"
+    },
+    "assessment": "total",
+    "metric": "obtained"
+  },
+  "377": {
+    "subject": {
+      "subCode": "CUTM1012",
+      "subName": "ENGINEERING ECONOMICS AND COSTING",
+      "type": "TUT"
+    },
+    "assessment": "total",
+    "metric": "max"
+  },
+  "378": {
+    "subject": {
+      "subCode": "CUTM1008",
+      "subName": "APPLIED ANALYTICAL CHEMISTRY",
+      "type": "PP"
+    },
+    "assessment": "midSem",
+    "metric": "obtained"
+  },
+  "379": {
+    "subject": {
+      "subCode": "CUTM1008",
+      "subName": "APPLIED ANALYTICAL CHEMISTRY",
+      "type": "PP"
+    },
+    "assessment": "midSem",
+    "metric": "max"
+  },
+  "380": {
+    "subject": {
+      "subCode": "CUTM1008",
+      "subName": "APPLIED ANALYTICAL CHEMISTRY",
+      "type": "PP"
+    },
+    "assessment": "midSem",
+    "metric": "roundOff"
+  },
+  "381": {
+    "subject": {
+      "subCode": "CUTM1008",
+      "subName": "APPLIED ANALYTICAL CHEMISTRY",
+      "type": "PP"
+    },
+    "assessment": "midSem",
+    "metric": "roundOff"
+  },
+  "382": {
+    "subject": {
+      "subCode": "CUTM1008",
+      "subName": "APPLIED ANALYTICAL CHEMISTRY",
+      "type": "PP"
+    },
+    "assessment": "midSem",
+    "metric": "max"
+  },
+  "383": {
+    "subject": {
+      "subCode": "CUTM1008",
+      "subName": "APPLIED ANALYTICAL CHEMISTRY",
+      "type": "PP"
+    },
+    "assessment": "presentation",
+    "metric": "obtained"
+  },
+  "384": {
+    "subject": {
+      "subCode": "CUTM1008",
+      "subName": "APPLIED ANALYTICAL CHEMISTRY",
+      "type": "PP"
+    },
+    "assessment": "presentation",
+    "metric": "max"
+  },
+  "385": {
+    "subject": {
+      "subCode": "CUTM1008",
+      "subName": "APPLIED ANALYTICAL CHEMISTRY",
+      "type": "PP"
+    },
+    "assessment": "presentation",
+    "metric": "roundOff"
+  },
+  "386": {
+    "subject": {
+      "subCode": "CUTM1008",
+      "subName": "APPLIED ANALYTICAL CHEMISTRY",
+      "type": "PP"
+    },
+    "assessment": "presentation",
+    "metric": "roundOff"
+  },
+  "387": {
+    "subject": {
+      "subCode": "CUTM1008",
+      "subName": "APPLIED ANALYTICAL CHEMISTRY",
+      "type": "PP"
+    },
+    "assessment": "presentation",
+    "metric": "max"
+  },
+  "388": {
+    "subject": {
+      "subCode": "CUTM1008",
+      "subName": "APPLIED ANALYTICAL CHEMISTRY",
+      "type": "PP"
+    },
+    "assessment": "learningRecord",
+    "metric": "obtained"
+  },
+  "389": {
+    "subject": {
+      "subCode": "CUTM1008",
+      "subName": "APPLIED ANALYTICAL CHEMISTRY",
+      "type": "PP"
+    },
+    "assessment": "learningRecord",
+    "metric": "max"
+  },
+  "390": {
+    "subject": {
+      "subCode": "CUTM1008",
+      "subName": "APPLIED ANALYTICAL CHEMISTRY",
+      "type": "PP"
+    },
+    "assessment": "learningRecord",
+    "metric": "roundOff"
+  },
+  "391": {
+    "subject": {
+      "subCode": "CUTM1008",
+      "subName": "APPLIED ANALYTICAL CHEMISTRY",
+      "type": "PP"
+    },
+    "assessment": "learningRecord",
+    "metric": "roundOff"
+  },
+  "392": {
+    "subject": {
+      "subCode": "CUTM1008",
+      "subName": "APPLIED ANALYTICAL CHEMISTRY",
+      "type": "PP"
+    },
+    "assessment": "learningRecord",
+    "metric": "max"
+  },
+  "393": {
+    "subject": {
+      "subCode": "CUTM1008",
+      "subName": "APPLIED ANALYTICAL CHEMISTRY",
+      "type": "PP"
+    },
+    "assessment": "assignment",
+    "metric": "obtained"
+  },
+  "394": {
+    "subject": {
+      "subCode": "CUTM1008",
+      "subName": "APPLIED ANALYTICAL CHEMISTRY",
+      "type": "PP"
+    },
+    "assessment": "assignment",
+    "metric": "max"
+  },
+  "395": {
+    "subject": {
+      "subCode": "CUTM1008",
+      "subName": "APPLIED ANALYTICAL CHEMISTRY",
+      "type": "PP"
+    },
+    "assessment": "assignment",
+    "metric": "roundOff"
+  },
+  "396": {
+    "subject": {
+      "subCode": "CUTM1008",
+      "subName": "APPLIED ANALYTICAL CHEMISTRY",
+      "type": "PP"
+    },
+    "assessment": "assignment",
+    "metric": "roundOff"
+  },
+  "397": {
+    "subject": {
+      "subCode": "CUTM1008",
+      "subName": "APPLIED ANALYTICAL CHEMISTRY",
+      "type": "PP"
+    },
+    "assessment": "assignment",
+    "metric": "max"
+  },
+  "398": {
+    "subject": {
+      "subCode": "CUTM1008",
+      "subName": "APPLIED ANALYTICAL CHEMISTRY",
+      "type": "PP"
+    },
+    "assessment": "assignment",
+    "metric": "roundOff"
+  },
+  "399": {
+    "subject": {
+      "subCode": "CUTM1008",
+      "subName": "APPLIED ANALYTICAL CHEMISTRY",
+      "type": "PP"
+    },
+    "assessment": "assignment",
+    "metric": "max"
+  },
+  "400": {
+    "subject": {
+      "subCode": "CUTM1008",
+      "subName": "APPLIED ANALYTICAL CHEMISTRY",
+      "type": "PP"
+    },
+    "assessment": "total",
+    "metric": "obtained"
+  },
+  "401": {
+    "subject": {
+      "subCode": "CUTM1008",
+      "subName": "APPLIED ANALYTICAL CHEMISTRY",
+      "type": "PP"
+    },
+    "assessment": "total",
+    "metric": "max"
+  },
+  "402": {
+    "subject": {
+      "subCode": "CUTM1008",
+      "subName": "APPLIED ANALYTICAL CHEMISTRY",
+      "type": "PR"
+    },
+    "assessment": "internalPractical",
+    "metric": "obtained"
+  },
+  "403": {
+    "subject": {
+      "subCode": "CUTM1008",
+      "subName": "APPLIED ANALYTICAL CHEMISTRY",
+      "type": "PR"
+    },
+    "assessment": "internalPractical",
+    "metric": "max"
+  },
+  "404": {
+    "subject": {
+      "subCode": "CUTM1008",
+      "subName": "APPLIED ANALYTICAL CHEMISTRY",
+      "type": "PR"
+    },
+    "assessment": "internalPractical",
+    "metric": "roundOff"
+  },
+  "405": {
+    "subject": {
+      "subCode": "CUTM1008",
+      "subName": "APPLIED ANALYTICAL CHEMISTRY",
+      "type": "PR"
+    },
+    "assessment": "internalPractical",
+    "metric": "roundOff"
+  },
+  "406": {
+    "subject": {
+      "subCode": "CUTM1008",
+      "subName": "APPLIED ANALYTICAL CHEMISTRY",
+      "type": "PR"
+    },
+    "assessment": "internalPractical",
+    "metric": "max"
+  },
+  "407": {
+    "subject": {
+      "subCode": "CUTM1008",
+      "subName": "APPLIED ANALYTICAL CHEMISTRY",
+      "type": "PR"
+    },
+    "assessment": "internalPractical",
+    "metric": "roundOff"
+  },
+  "408": {
+    "subject": {
+      "subCode": "CUTM1008",
+      "subName": "APPLIED ANALYTICAL CHEMISTRY",
+      "type": "PR"
+    },
+    "assessment": "internalPractical",
+    "metric": "max"
+  },
+  "409": {
+    "subject": {
+      "subCode": "CUTM1008",
+      "subName": "APPLIED ANALYTICAL CHEMISTRY",
+      "type": "PR"
+    },
+    "assessment": "total",
+    "metric": "obtained"
+  },
+  "410": {
+    "subject": {
+      "subCode": "CUTM1008",
+      "subName": "APPLIED ANALYTICAL CHEMISTRY",
+      "type": "PR"
+    },
+    "assessment": "total",
+    "metric": "max"
+  },
+  "411": {
+    "subject": {
+      "subCode": "CUTM3035",
+      "subName": "TWO WHEELER SERVICE TECHNOLOGY",
+      "type": "PR"
+    },
+    "assessment": "internalPractical",
+    "metric": "roundOff"
+  },
+  "412": {
+    "subject": {
+      "subCode": "CUTM3035",
+      "subName": "TWO WHEELER SERVICE TECHNOLOGY",
+      "type": "PR"
+    },
+    "assessment": "internalPractical",
+    "metric": "max"
+  },
+  "413": {
+    "subject": {
+      "subCode": "CUTM3035",
+      "subName": "TWO WHEELER SERVICE TECHNOLOGY",
+      "type": "PR"
+    },
+    "assessment": "internalPractical",
+    "metric": "roundOff"
+  },
+  "414": {
+    "subject": {
+      "subCode": "CUTM3035",
+      "subName": "TWO WHEELER SERVICE TECHNOLOGY",
+      "type": "PR"
+    },
+    "assessment": "internalPractical",
+    "metric": "max"
+  },
+  "415": {
+    "subject": {
+      "subCode": "CUTM3035",
+      "subName": "TWO WHEELER SERVICE TECHNOLOGY",
+      "type": "PR"
+    },
+    "assessment": "total",
+    "metric": "obtained"
+  },
+  "416": {
+    "subject": {
+      "subCode": "CUTM3035",
+      "subName": "TWO WHEELER SERVICE TECHNOLOGY",
+      "type": "PR"
+    },
+    "assessment": "total",
+    "metric": "max"
+  },
+  "417": {
+    "subject": {
+      "subCode": "CUTM3035",
+      "subName": "TWO WHEELER SERVICE TECHNOLOGY",
+      "type": "TUT"
+    },
+    "assessment": "projectInternal",
+    "metric": "obtained"
+  },
+  "418": {
+    "subject": {
+      "subCode": "CUTM3035",
+      "subName": "TWO WHEELER SERVICE TECHNOLOGY",
+      "type": "TUT"
+    },
+    "assessment": "projectInternal",
+    "metric": "max"
+  },
+  "419": {
+    "subject": {
+      "subCode": "CUTM3035",
+      "subName": "TWO WHEELER SERVICE TECHNOLOGY",
+      "type": "TUT"
+    },
+    "assessment": "projectInternal",
+    "metric": "roundOff"
+  },
+  "420": {
+    "subject": {
+      "subCode": "CUTM3035",
+      "subName": "TWO WHEELER SERVICE TECHNOLOGY",
+      "type": "TUT"
+    },
+    "assessment": "projectInternal",
+    "metric": "roundOff"
+  },
+  "421": {
+    "subject": {
+      "subCode": "CUTM3035",
+      "subName": "TWO WHEELER SERVICE TECHNOLOGY",
+      "type": "TUT"
+    },
+    "assessment": "projectInternal",
+    "metric": "max"
+  },
+  "422": {
+    "subject": {
+      "subCode": "CUTM3035",
+      "subName": "TWO WHEELER SERVICE TECHNOLOGY",
+      "type": "TUT"
+    },
+    "assessment": "projectInternal",
+    "metric": "roundOff"
+  },
+  "423": {
+    "subject": {
+      "subCode": "CUTM3035",
+      "subName": "TWO WHEELER SERVICE TECHNOLOGY",
+      "type": "TUT"
+    },
+    "assessment": "projectInternal",
+    "metric": "max"
+  },
+  "424": {
+    "subject": {
+      "subCode": "CUTM3035",
+      "subName": "TWO WHEELER SERVICE TECHNOLOGY",
+      "type": "TUT"
+    },
+    "assessment": "total",
+    "metric": "obtained"
+  },
+  "425": {
+    "subject": {
+      "subCode": "CUTM3035",
+      "subName": "TWO WHEELER SERVICE TECHNOLOGY",
+      "type": "TUT"
+    },
+    "assessment": "total",
+    "metric": "max"
+  },
+  "426": {
+    "subject": {
+      "subCode": "CUTM1017",
+      "subName": "INDUSTRIAL IOT AND AUTOMATION",
+      "type": "PP"
+    },
+    "assessment": "midSem",
+    "metric": "obtained"
+  },
+  "427": {
+    "subject": {
+      "subCode": "CUTM1017",
+      "subName": "INDUSTRIAL IOT AND AUTOMATION",
+      "type": "PP"
+    },
+    "assessment": "midSem",
+    "metric": "max"
+  },
+  "428": {
+    "subject": {
+      "subCode": "CUTM1017",
+      "subName": "INDUSTRIAL IOT AND AUTOMATION",
+      "type": "PP"
+    },
+    "assessment": "midSem",
+    "metric": "roundOff"
+  },
+  "429": {
+    "subject": {
+      "subCode": "CUTM1017",
+      "subName": "INDUSTRIAL IOT AND AUTOMATION",
+      "type": "PP"
+    },
+    "assessment": "midSem",
+    "metric": "roundOff"
+  },
+  "430": {
+    "subject": {
+      "subCode": "CUTM1017",
+      "subName": "INDUSTRIAL IOT AND AUTOMATION",
+      "type": "PP"
+    },
+    "assessment": "midSem",
+    "metric": "max"
+  },
+  "431": {
+    "subject": {
+      "subCode": "CUTM1017",
+      "subName": "INDUSTRIAL IOT AND AUTOMATION",
+      "type": "PP"
+    },
+    "assessment": "learningRecord",
+    "metric": "obtained"
+  },
+  "432": {
+    "subject": {
+      "subCode": "CUTM1017",
+      "subName": "INDUSTRIAL IOT AND AUTOMATION",
+      "type": "PP"
+    },
+    "assessment": "learningRecord",
+    "metric": "max"
+  },
+  "433": {
+    "subject": {
+      "subCode": "CUTM1017",
+      "subName": "INDUSTRIAL IOT AND AUTOMATION",
+      "type": "PP"
+    },
+    "assessment": "learningRecord",
+    "metric": "roundOff"
+  },
+  "434": {
+    "subject": {
+      "subCode": "CUTM1017",
+      "subName": "INDUSTRIAL IOT AND AUTOMATION",
+      "type": "PP"
+    },
+    "assessment": "learningRecord",
+    "metric": "roundOff"
+  },
+  "435": {
+    "subject": {
+      "subCode": "CUTM1017",
+      "subName": "INDUSTRIAL IOT AND AUTOMATION",
+      "type": "PP"
+    },
+    "assessment": "learningRecord",
+    "metric": "max"
+  },
+  "436": {
+    "subject": {
+      "subCode": "CUTM1017",
+      "subName": "INDUSTRIAL IOT AND AUTOMATION",
+      "type": "PP"
+    },
+    "assessment": "assignment",
+    "metric": "obtained"
+  },
+  "437": {
+    "subject": {
+      "subCode": "CUTM1017",
+      "subName": "INDUSTRIAL IOT AND AUTOMATION",
+      "type": "PP"
+    },
+    "assessment": "assignment",
+    "metric": "max"
+  },
+  "438": {
+    "subject": {
+      "subCode": "CUTM1017",
+      "subName": "INDUSTRIAL IOT AND AUTOMATION",
+      "type": "PP"
+    },
+    "assessment": "assignment",
+    "metric": "roundOff"
+  },
+  "439": {
+    "subject": {
+      "subCode": "CUTM1017",
+      "subName": "INDUSTRIAL IOT AND AUTOMATION",
+      "type": "PP"
+    },
+    "assessment": "assignment",
+    "metric": "roundOff"
+  },
+  "440": {
+    "subject": {
+      "subCode": "CUTM1017",
+      "subName": "INDUSTRIAL IOT AND AUTOMATION",
+      "type": "PP"
+    },
+    "assessment": "assignment",
+    "metric": "max"
+  },
+  "441": {
+    "subject": {
+      "subCode": "CUTM1017",
+      "subName": "INDUSTRIAL IOT AND AUTOMATION",
+      "type": "PP"
+    },
+    "assessment": "presentation",
+    "metric": "obtained"
+  },
+  "442": {
+    "subject": {
+      "subCode": "CUTM1017",
+      "subName": "INDUSTRIAL IOT AND AUTOMATION",
+      "type": "PP"
+    },
+    "assessment": "presentation",
+    "metric": "max"
+  },
+  "443": {
+    "subject": {
+      "subCode": "CUTM1017",
+      "subName": "INDUSTRIAL IOT AND AUTOMATION",
+      "type": "PP"
+    },
+    "assessment": "presentation",
+    "metric": "roundOff"
+  },
+  "444": {
+    "subject": {
+      "subCode": "CUTM1017",
+      "subName": "INDUSTRIAL IOT AND AUTOMATION",
+      "type": "PP"
+    },
+    "assessment": "presentation",
+    "metric": "roundOff"
+  },
+  "445": {
+    "subject": {
+      "subCode": "CUTM1017",
+      "subName": "INDUSTRIAL IOT AND AUTOMATION",
+      "type": "PP"
+    },
+    "assessment": "presentation",
+    "metric": "max"
+  },
+  "446": {
+    "subject": {
+      "subCode": "CUTM1017",
+      "subName": "INDUSTRIAL IOT AND AUTOMATION",
+      "type": "PP"
+    },
+    "assessment": "presentation",
+    "metric": "roundOff"
+  },
+  "447": {
+    "subject": {
+      "subCode": "CUTM1017",
+      "subName": "INDUSTRIAL IOT AND AUTOMATION",
+      "type": "PP"
+    },
+    "assessment": "presentation",
+    "metric": "max"
+  },
+  "448": {
+    "subject": {
+      "subCode": "CUTM1017",
+      "subName": "INDUSTRIAL IOT AND AUTOMATION",
+      "type": "PP"
+    },
+    "assessment": "total",
+    "metric": "obtained"
+  },
+  "449": {
+    "subject": {
+      "subCode": "CUTM1017",
+      "subName": "INDUSTRIAL IOT AND AUTOMATION",
+      "type": "PP"
+    },
+    "assessment": "total",
+    "metric": "max"
+  },
+  "450": {
+    "subject": {
+      "subCode": "CUTM1017",
+      "subName": "INDUSTRIAL IOT AND AUTOMATION",
+      "type": "PR"
+    },
+    "assessment": "internalPractical",
+    "metric": "obtained"
+  },
+  "451": {
+    "subject": {
+      "subCode": "CUTM1017",
+      "subName": "INDUSTRIAL IOT AND AUTOMATION",
+      "type": "PR"
+    },
+    "assessment": "internalPractical",
+    "metric": "max"
+  },
+  "452": {
+    "subject": {
+      "subCode": "CUTM1017",
+      "subName": "INDUSTRIAL IOT AND AUTOMATION",
+      "type": "PR"
+    },
+    "assessment": "internalPractical",
+    "metric": "roundOff"
+  },
+  "453": {
+    "subject": {
+      "subCode": "CUTM1017",
+      "subName": "INDUSTRIAL IOT AND AUTOMATION",
+      "type": "PR"
+    },
+    "assessment": "internalPractical",
+    "metric": "roundOff"
+  },
+  "454": {
+    "subject": {
+      "subCode": "CUTM1017",
+      "subName": "INDUSTRIAL IOT AND AUTOMATION",
+      "type": "PR"
+    },
+    "assessment": "internalPractical",
+    "metric": "max"
+  },
+  "455": {
+    "subject": {
+      "subCode": "CUTM1017",
+      "subName": "INDUSTRIAL IOT AND AUTOMATION",
+      "type": "PR"
+    },
+    "assessment": "internalPractical",
+    "metric": "roundOff"
+  },
+  "456": {
+    "subject": {
+      "subCode": "CUTM1017",
+      "subName": "INDUSTRIAL IOT AND AUTOMATION",
+      "type": "PR"
+    },
+    "assessment": "internalPractical",
+    "metric": "max"
+  },
+  "457": {
+    "subject": {
+      "subCode": "CUTM1017",
+      "subName": "INDUSTRIAL IOT AND AUTOMATION",
+      "type": "PR"
+    },
+    "assessment": "total",
+    "metric": "obtained"
+  },
+  "458": {
+    "subject": {
+      "subCode": "CUTM1017",
+      "subName": "INDUSTRIAL IOT AND AUTOMATION",
+      "type": "PR"
+    },
+    "assessment": "total",
+    "metric": "max"
+  },
+  "459": {
+    "subject": {
+      "subCode": "CUTM1017",
+      "subName": "INDUSTRIAL IOT AND AUTOMATION",
+      "type": "TUT"
+    },
+    "assessment": "projectInternal",
+    "metric": "obtained"
+  },
+  "460": {
+    "subject": {
+      "subCode": "CUTM1017",
+      "subName": "INDUSTRIAL IOT AND AUTOMATION",
+      "type": "TUT"
+    },
+    "assessment": "projectInternal",
+    "metric": "max"
+  },
+  "461": {
+    "subject": {
+      "subCode": "CUTM1017",
+      "subName": "INDUSTRIAL IOT AND AUTOMATION",
+      "type": "TUT"
+    },
+    "assessment": "projectInternal",
+    "metric": "roundOff"
+  },
+  "462": {
+    "subject": {
+      "subCode": "CUTM1017",
+      "subName": "INDUSTRIAL IOT AND AUTOMATION",
+      "type": "TUT"
+    },
+    "assessment": "projectInternal",
+    "metric": "roundOff"
+  },
+  "463": {
+    "subject": {
+      "subCode": "CUTM1017",
+      "subName": "INDUSTRIAL IOT AND AUTOMATION",
+      "type": "TUT"
+    },
+    "assessment": "projectInternal",
+    "metric": "max"
+  },
+  "464": {
+    "subject": {
+      "subCode": "CUTM1017",
+      "subName": "INDUSTRIAL IOT AND AUTOMATION",
+      "type": "TUT"
+    },
+    "assessment": "projectInternal",
+    "metric": "roundOff"
+  },
+  "465": {
+    "subject": {
+      "subCode": "CUTM1017",
+      "subName": "INDUSTRIAL IOT AND AUTOMATION",
+      "type": "TUT"
+    },
+    "assessment": "projectInternal",
+    "metric": "max"
+  },
+  "466": {
+    "subject": {
+      "subCode": "CUTM1017",
+      "subName": "INDUSTRIAL IOT AND AUTOMATION",
+      "type": "TUT"
+    },
+    "assessment": "total",
+    "metric": "obtained"
+  },
+  "467": {
+    "subject": {
+      "subCode": "CUTM1017",
+      "subName": "INDUSTRIAL IOT AND AUTOMATION",
+      "type": "TUT"
+    },
+    "assessment": "total",
+    "metric": "max"
+  },
+  "468": {
+    "subject": {
+      "subCode": "CUTM1019",
+      "subName": "MACHINE LEARNING USING PYTHON",
+      "type": "PP"
+    },
+    "assessment": "assignment",
+    "metric": "obtained"
+  },
+  "469": {
+    "subject": {
+      "subCode": "CUTM1019",
+      "subName": "MACHINE LEARNING USING PYTHON",
+      "type": "PP"
+    },
+    "assessment": "assignment",
+    "metric": "max"
+  },
+  "470": {
+    "subject": {
+      "subCode": "CUTM1019",
+      "subName": "MACHINE LEARNING USING PYTHON",
+      "type": "PP"
+    },
+    "assessment": "assignment",
+    "metric": "roundOff"
+  },
+  "471": {
+    "subject": {
+      "subCode": "CUTM1019",
+      "subName": "MACHINE LEARNING USING PYTHON",
+      "type": "PP"
+    },
+    "assessment": "assignment",
+    "metric": "roundOff"
+  },
+  "472": {
+    "subject": {
+      "subCode": "CUTM1019",
+      "subName": "MACHINE LEARNING USING PYTHON",
+      "type": "PP"
+    },
+    "assessment": "assignment",
+    "metric": "max"
+  },
+  "473": {
+    "subject": {
+      "subCode": "CUTM1019",
+      "subName": "MACHINE LEARNING USING PYTHON",
+      "type": "PP"
+    },
+    "assessment": "learningRecord",
+    "metric": "obtained"
+  },
+  "474": {
+    "subject": {
+      "subCode": "CUTM1019",
+      "subName": "MACHINE LEARNING USING PYTHON",
+      "type": "PP"
+    },
+    "assessment": "learningRecord",
+    "metric": "max"
+  },
+  "475": {
+    "subject": {
+      "subCode": "CUTM1019",
+      "subName": "MACHINE LEARNING USING PYTHON",
+      "type": "PP"
+    },
+    "assessment": "learningRecord",
+    "metric": "roundOff"
+  },
+  "476": {
+    "subject": {
+      "subCode": "CUTM1019",
+      "subName": "MACHINE LEARNING USING PYTHON",
+      "type": "PP"
+    },
+    "assessment": "learningRecord",
+    "metric": "roundOff"
+  },
+  "477": {
+    "subject": {
+      "subCode": "CUTM1019",
+      "subName": "MACHINE LEARNING USING PYTHON",
+      "type": "PP"
+    },
+    "assessment": "learningRecord",
+    "metric": "max"
+  },
+  "478": {
+    "subject": {
+      "subCode": "CUTM1019",
+      "subName": "MACHINE LEARNING USING PYTHON",
+      "type": "PP"
+    },
+    "assessment": "midSem",
+    "metric": "obtained"
+  },
+  "479": {
+    "subject": {
+      "subCode": "CUTM1019",
+      "subName": "MACHINE LEARNING USING PYTHON",
+      "type": "PP"
+    },
+    "assessment": "midSem",
+    "metric": "max"
+  },
+  "480": {
+    "subject": {
+      "subCode": "CUTM1019",
+      "subName": "MACHINE LEARNING USING PYTHON",
+      "type": "PP"
+    },
+    "assessment": "midSem",
+    "metric": "roundOff"
+  },
+  "481": {
+    "subject": {
+      "subCode": "CUTM1019",
+      "subName": "MACHINE LEARNING USING PYTHON",
+      "type": "PP"
+    },
+    "assessment": "midSem",
+    "metric": "roundOff"
+  },
+  "482": {
+    "subject": {
+      "subCode": "CUTM1019",
+      "subName": "MACHINE LEARNING USING PYTHON",
+      "type": "PP"
+    },
+    "assessment": "midSem",
+    "metric": "max"
+  },
+  "483": {
+    "subject": {
+      "subCode": "CUTM1019",
+      "subName": "MACHINE LEARNING USING PYTHON",
+      "type": "PP"
+    },
+    "assessment": "presentation",
+    "metric": "obtained"
+  },
+  "484": {
+    "subject": {
+      "subCode": "CUTM1019",
+      "subName": "MACHINE LEARNING USING PYTHON",
+      "type": "PP"
+    },
+    "assessment": "presentation",
+    "metric": "max"
+  },
+  "485": {
+    "subject": {
+      "subCode": "CUTM1019",
+      "subName": "MACHINE LEARNING USING PYTHON",
+      "type": "PP"
+    },
+    "assessment": "presentation",
+    "metric": "roundOff"
+  },
+  "486": {
+    "subject": {
+      "subCode": "CUTM1019",
+      "subName": "MACHINE LEARNING USING PYTHON",
+      "type": "PP"
+    },
+    "assessment": "presentation",
+    "metric": "roundOff"
+  },
+  "487": {
+    "subject": {
+      "subCode": "CUTM1019",
+      "subName": "MACHINE LEARNING USING PYTHON",
+      "type": "PP"
+    },
+    "assessment": "presentation",
+    "metric": "max"
+  },
+  "488": {
+    "subject": {
+      "subCode": "CUTM1019",
+      "subName": "MACHINE LEARNING USING PYTHON",
+      "type": "PP"
+    },
+    "assessment": "presentation",
+    "metric": "roundOff"
+  },
+  "489": {
+    "subject": {
+      "subCode": "CUTM1019",
+      "subName": "MACHINE LEARNING USING PYTHON",
+      "type": "PP"
+    },
+    "assessment": "presentation",
+    "metric": "max"
+  },
+  "490": {
+    "subject": {
+      "subCode": "CUTM1019",
+      "subName": "MACHINE LEARNING USING PYTHON",
+      "type": "PP"
+    },
+    "assessment": "total",
+    "metric": "obtained"
+  },
+  "491": {
+    "subject": {
+      "subCode": "CUTM1019",
+      "subName": "MACHINE LEARNING USING PYTHON",
+      "type": "PP"
+    },
+    "assessment": "total",
+    "metric": "max"
+  },
+  "492": {
+    "subject": {
+      "subCode": "CUTM1019",
+      "subName": "MACHINE LEARNING USING PYTHON",
+      "type": "PR"
+    },
+    "assessment": "internalPractical",
+    "metric": "obtained"
+  },
+  "493": {
+    "subject": {
+      "subCode": "CUTM1019",
+      "subName": "MACHINE LEARNING USING PYTHON",
+      "type": "PR"
+    },
+    "assessment": "internalPractical",
+    "metric": "max"
+  },
+  "494": {
+    "subject": {
+      "subCode": "CUTM1019",
+      "subName": "MACHINE LEARNING USING PYTHON",
+      "type": "PR"
+    },
+    "assessment": "internalPractical",
+    "metric": "roundOff"
+  },
+  "495": {
+    "subject": {
+      "subCode": "CUTM1019",
+      "subName": "MACHINE LEARNING USING PYTHON",
+      "type": "PR"
+    },
+    "assessment": "internalPractical",
+    "metric": "roundOff"
+  },
+  "496": {
+    "subject": {
+      "subCode": "CUTM1019",
+      "subName": "MACHINE LEARNING USING PYTHON",
+      "type": "PR"
+    },
+    "assessment": "internalPractical",
+    "metric": "max"
+  },
+  "497": {
+    "subject": {
+      "subCode": "CUTM1019",
+      "subName": "MACHINE LEARNING USING PYTHON",
+      "type": "PR"
+    },
+    "assessment": "internalPractical",
+    "metric": "roundOff"
+  },
+  "498": {
+    "subject": {
+      "subCode": "CUTM1019",
+      "subName": "MACHINE LEARNING USING PYTHON",
+      "type": "PR"
+    },
+    "assessment": "internalPractical",
+    "metric": "max"
+  },
+  "499": {
+    "subject": {
+      "subCode": "CUTM1019",
+      "subName": "MACHINE LEARNING USING PYTHON",
+      "type": "PR"
+    },
+    "assessment": "total",
+    "metric": "obtained"
+  },
+  "500": {
+    "subject": {
+      "subCode": "CUTM1019",
+      "subName": "MACHINE LEARNING USING PYTHON",
+      "type": "PR"
+    },
+    "assessment": "total",
+    "metric": "max"
+  },
+  "501": {
+    "subject": {
+      "subCode": "CUTM1019",
+      "subName": "MACHINE LEARNING USING PYTHON",
+      "type": "TUT"
+    },
+    "assessment": "projectInternal",
+    "metric": "obtained"
+  },
+  "502": {
+    "subject": {
+      "subCode": "CUTM1019",
+      "subName": "MACHINE LEARNING USING PYTHON",
+      "type": "TUT"
+    },
+    "assessment": "projectInternal",
+    "metric": "max"
+  },
+  "503": {
+    "subject": {
+      "subCode": "CUTM1019",
+      "subName": "MACHINE LEARNING USING PYTHON",
+      "type": "TUT"
+    },
+    "assessment": "projectInternal",
+    "metric": "roundOff"
+  },
+  "504": {
+    "subject": {
+      "subCode": "CUTM1019",
+      "subName": "MACHINE LEARNING USING PYTHON",
+      "type": "TUT"
+    },
+    "assessment": "projectInternal",
+    "metric": "roundOff"
+  },
+  "505": {
+    "subject": {
+      "subCode": "CUTM1019",
+      "subName": "MACHINE LEARNING USING PYTHON",
+      "type": "TUT"
+    },
+    "assessment": "projectInternal",
+    "metric": "max"
+  },
+  "506": {
+    "subject": {
+      "subCode": "CUTM1019",
+      "subName": "MACHINE LEARNING USING PYTHON",
+      "type": "TUT"
+    },
+    "assessment": "projectInternal",
+    "metric": "roundOff"
+  },
+  "507": {
+    "subject": {
+      "subCode": "CUTM1019",
+      "subName": "MACHINE LEARNING USING PYTHON",
+      "type": "TUT"
+    },
+    "assessment": "projectInternal",
+    "metric": "max"
+  },
+  "508": {
+    "subject": {
+      "subCode": "CUTM1019",
+      "subName": "MACHINE LEARNING USING PYTHON",
+      "type": "TUT"
+    },
+    "assessment": "total",
+    "metric": "obtained"
+  },
+  "509": {
+    "subject": {
+      "subCode": "CUTM1019",
+      "subName": "MACHINE LEARNING USING PYTHON",
+      "type": "TUT"
+    },
+    "assessment": "total",
+    "metric": "max"
+  }
+}

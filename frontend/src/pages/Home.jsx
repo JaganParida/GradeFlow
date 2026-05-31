@@ -1,0 +1,383 @@
+import { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { useApp } from "../context/AppContext";
+import { motion } from "framer-motion";
+import { GraduationCap, ArrowRight, AlertTriangle, BarChart2, Trophy, TrendingUp, Target, Sparkles, FileText, Star, Sigma } from "lucide-react";
+
+export default function Home() {
+  const [regNo, setRegNo] = useState("");
+  const { fetchStudent, loading, error } = useApp();
+  const navigate = useNavigate();
+
+  async function handleSearch(e) {
+    e.preventDefault();
+    if (!regNo.trim()) return;
+    const data = await fetchStudent(regNo.trim());
+    if (data) navigate(`/dashboard/${regNo.trim()}`);
+  }
+
+  const features = [
+    { label: "SGPA & CGPA", icon: <BarChart2 size={14} /> },
+    { label: "Rankings", icon: <Trophy size={14} /> },
+    { label: "Analytics", icon: <TrendingUp size={14} /> },
+    { label: "Backlogs", icon: <Target size={14} /> },
+    { label: "AI Insights", icon: <Sparkles size={14} /> },
+    { label: "Grade Sheet", icon: <FileText size={14} /> },
+  ];
+
+  const gradeTableData = [
+    { grade: "O", range: "90 - 100", points: "10", interpretation: "Outstanding", color: "#f59e0b" },
+    { grade: "E", range: "80 - 89", points: "9", interpretation: "Excellent", color: "#22c55e" },
+    { grade: "A", range: "70 - 79", points: "8", interpretation: "Very Good", color: "#3ea6ff" },
+    { grade: "B", range: "60 - 69", points: "7", interpretation: "Good", color: "#a855f7" },
+    { grade: "C", range: "50 - 59", points: "6", interpretation: "Average", color: "#f97316" },
+    { grade: "D", range: "40 - 49", points: "5", interpretation: "Below Average", color: "#9ca3af" },
+    { grade: "F", range: "Below 40", points: "2", interpretation: "Fail", color: "#ef4444" },
+  ];
+
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      style={{
+        minHeight: "100vh",
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        padding: "100px 24px 60px",
+        position: "relative",
+        overflow: "hidden",
+      }}
+    >
+      {/* Background gradient orbs */}
+      <div
+        style={{
+          position: "absolute",
+          width: 500,
+          height: 500,
+          background: "radial-gradient(circle, rgba(62,166,255,0.08) 0%, transparent 70%)",
+          top: "10%",
+          left: "20%",
+          pointerEvents: "none",
+        }}
+      />
+      <div
+        style={{
+          position: "absolute",
+          width: 400,
+          height: 400,
+          background: "radial-gradient(circle, rgba(168,85,247,0.06) 0%, transparent 70%)",
+          bottom: "15%",
+          right: "15%",
+          pointerEvents: "none",
+        }}
+      />
+
+      <motion.div
+        initial={{ y: 20, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        transition={{ delay: 0.1 }}
+        style={{
+          textAlign: "center",
+          maxWidth: 600,
+          position: "relative",
+          zIndex: 1,
+          width: "100%",
+        }}
+      >
+        {/* Logo */}
+        <div style={{ marginBottom: 24 }}>
+          <motion.div
+            whileHover={{ scale: 1.05 }}
+            style={{
+              width: 64,
+              height: 64,
+              background: "linear-gradient(135deg, var(--accent), #7c3aed)",
+              borderRadius: 16,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              margin: "0 auto 16px",
+              boxShadow: "0 0 40px rgba(62,166,255,0.3)",
+            }}
+          >
+            <GraduationCap color="#fff" size={32} />
+          </motion.div>
+          <div
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 6,
+              background: "rgba(62,166,255,0.1)",
+              border: "1px solid rgba(62,166,255,0.2)",
+              borderRadius: 20,
+              padding: "4px 12px",
+              fontSize: 12,
+              color: "var(--accent)",
+              fontWeight: 600,
+              marginBottom: 16,
+            }}
+          >
+            ✦ Academic Analytics Platform
+          </div>
+        </div>
+
+        <h1
+          style={{
+            fontSize: "clamp(36px, 6vw, 58px)",
+            fontWeight: 800,
+            lineHeight: 1.1,
+            marginBottom: 16,
+            letterSpacing: -1,
+          }}
+        >
+          Track Your Academic
+          <span
+            style={{
+              display: "block",
+              background: "linear-gradient(135deg, var(--accent), #a855f7)",
+              WebkitBackgroundClip: "text",
+              WebkitTextFillColor: "transparent",
+            }}
+          >
+            Journey
+          </span>
+        </h1>
+
+        <p
+          style={{
+            color: "var(--secondary)",
+            fontSize: 17,
+            marginBottom: 40,
+            lineHeight: 1.7,
+          }}
+        >
+          View your grades, SGPA, CGPA, rankings, analytics, and academic
+          insights — all in one place.
+        </p>
+
+        {/* Search */}
+        <form onSubmit={handleSearch}>
+          <div
+            style={{
+              display: "flex",
+              gap: 12,
+              maxWidth: 500,
+              margin: "0 auto",
+              flexWrap: "wrap",
+            }}
+          >
+            <input
+              value={regNo}
+              onChange={(e) => setRegNo(e.target.value)}
+              placeholder="Registration No. (e.g. 230301120170)"
+              style={{ flex: "1 1 260px", fontSize: 15, padding: "14px 20px", borderRadius: 12 }}
+              disabled={loading}
+            />
+            <motion.button
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              className="btn btn-primary"
+              type="submit"
+              disabled={loading}
+              style={{ flex: "1 1 120px", whiteSpace: "nowrap", padding: "14px 24px", display: "flex", alignItems: "center", justifyContent: "center", gap: 8, borderRadius: 12, fontSize: 15 }}
+            >
+              {loading ? "Searching..." : "Search"}
+              {!loading && <ArrowRight size={18} />}
+            </motion.button>
+          </div>
+          {error && (
+            <p style={{ color: "var(--danger)", marginTop: 12, fontSize: 14, display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}>
+              <AlertTriangle size={16} /> {error}
+            </p>
+          )}
+        </form>
+
+        {/* Feature pills */}
+        <div
+          style={{
+            display: "flex",
+            gap: 8,
+            justifyContent: "center",
+            flexWrap: "wrap",
+            marginTop: 48,
+          }}
+        >
+          {features.map((f, i) => (
+            <motion.span
+              key={f.label}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.2 + i * 0.05 }}
+              whileHover={{ y: -2, background: "rgba(255,255,255,0.05)" }}
+              style={{
+                background: "var(--card)",
+                border: "1px solid var(--border)",
+                borderRadius: 20,
+                padding: "6px 14px",
+                fontSize: 13,
+                color: "var(--secondary)",
+                display: "flex",
+                alignItems: "center",
+                gap: 6,
+                cursor: "default"
+              }}
+            >
+              {f.icon} {f.label}
+            </motion.span>
+          ))}
+        </div>
+      </motion.div>
+
+      <div
+        style={{
+          width: "100%",
+          maxWidth: 900,
+          margin: "80px auto 0",
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fit, minmax(250px, 1fr))",
+          gap: 32,
+          position: "relative",
+          zIndex: 1,
+        }}
+      >
+        {/* Grade Interpretation System */}
+        <motion.div
+          initial={{ y: 30, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          transition={{ delay: 0.4 }}
+          className="card"
+          style={{ padding: 32, background: "rgba(20,20,20,0.4)", backdropFilter: "blur(20px)" }}
+        >
+          <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 24 }}>
+            <div style={{ background: "rgba(168,85,247,0.1)", padding: 10, borderRadius: 12 }}>
+              <Star color="#a855f7" size={20} />
+            </div>
+            <div>
+              <h3 style={{ fontSize: 20, fontWeight: 700 }}>Grading Scale</h3>
+              <p style={{ color: "var(--secondary)", fontSize: 13 }}>Standard university grade point mapping</p>
+            </div>
+          </div>
+
+          <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+            {gradeTableData.map((row, i) => (
+              <motion.div
+                key={row.grade}
+                initial={{ opacity: 0, x: -10 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 0.5 + i * 0.05 }}
+                whileHover={{ scale: 1.02, background: "rgba(255,255,255,0.03)" }}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  padding: "12px 16px",
+                  borderRadius: 12,
+                  background: "rgba(255,255,255,0.01)",
+                  border: "1px solid rgba(255,255,255,0.05)",
+                  cursor: "default"
+                }}
+              >
+                <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+                  <div
+                    style={{
+                      width: 40,
+                      height: 40,
+                      borderRadius: 10,
+                      background: `rgba(${parseInt(row.color.slice(1,3),16)},${parseInt(row.color.slice(3,5),16)},${parseInt(row.color.slice(5,7),16)}, 0.1)`,
+                      color: row.color,
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      fontWeight: 800,
+                      fontFamily: "Space Mono, monospace",
+                      fontSize: 18,
+                      border: `1px solid ${row.color}44`
+                    }}
+                  >
+                    {row.grade}
+                  </div>
+                  <div>
+                    <p style={{ fontWeight: 600, fontSize: 14 }}>{row.interpretation}</p>
+                    <p style={{ fontSize: 12, color: "var(--secondary)", fontFamily: "Space Mono" }}>{row.range} Marks</p>
+                  </div>
+                </div>
+                <div style={{ textAlign: "right" }}>
+                  <span style={{ fontSize: 18, fontWeight: 800, color: row.grade === "F" ? row.color : "var(--text)", fontFamily: "Space Mono" }}>
+                    {row.points}
+                  </span>
+                  <span style={{ fontSize: 11, color: "var(--secondary)", display: "block" }}>PTS</span>
+                </div>
+              </motion.div>
+            ))}
+          </div>
+        </motion.div>
+
+        {/* Core Algorithms */}
+        <motion.div
+          initial={{ y: 30, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          transition={{ delay: 0.5 }}
+          className="card"
+          style={{ padding: 32, background: "rgba(20,20,20,0.4)", backdropFilter: "blur(20px)", display: "flex", flexDirection: "column" }}
+        >
+          <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 24 }}>
+            <div style={{ background: "rgba(62,166,255,0.1)", padding: 10, borderRadius: 12 }}>
+              <Sigma color="#3ea6ff" size={20} />
+            </div>
+            <div>
+              <h3 style={{ fontSize: 20, fontWeight: 700 }}>Core Algorithms</h3>
+              <p style={{ color: "var(--secondary)", fontSize: 13 }}>The mathematical logic behind calculations</p>
+            </div>
+          </div>
+
+          <div style={{ display: "flex", flexDirection: "column", gap: 16, flex: 1, justifyContent: "center" }}>
+            {[
+              {
+                title: "CREDIT POINT (CI)",
+                formula: "CREDIT × GRADE POINT",
+                color: "#f59e0b"
+              },
+              {
+                title: "SEMESTER GPA (SGPA)",
+                formula: "Σ CI / Σ CREDITS",
+                color: "#a855f7"
+              },
+              {
+                title: "CUMULATIVE GPA (CGPA)",
+                formula: "[Σ CI of all sem] / [Σ CREDITS]",
+                color: "#3ea6ff"
+              }
+            ].map((alg, i) => (
+              <motion.div
+                key={alg.title}
+                whileHover={{ scale: 1.02, borderColor: alg.color }}
+                style={{
+                  padding: 20,
+                  borderRadius: 16,
+                  background: "var(--bg)",
+                  border: "1px solid var(--border)",
+                  transition: "all 0.3s"
+                }}
+              >
+                <p style={{ fontSize: 11, fontWeight: 700, color: "var(--secondary)", letterSpacing: 1, marginBottom: 8, textTransform: "uppercase" }}>
+                  {alg.title}
+                </p>
+                <p style={{ fontFamily: "Space Mono, monospace", fontSize: 15, color: alg.color, fontWeight: 600 }}>
+                  {alg.formula}
+                </p>
+              </motion.div>
+            ))}
+          </div>
+          
+          <div style={{ marginTop: 24, padding: 16, borderRadius: 12, background: "rgba(62,166,255,0.05)", border: "1px dashed rgba(62,166,255,0.3)" }}>
+            <p style={{ fontSize: 12, color: "var(--secondary)", lineHeight: 1.6 }}>
+              <span style={{ color: "#3ea6ff", fontWeight: 700 }}>Note:</span> All calculations are strictly based on standard university formulas and consider full backlogs clearance paths for CGPA aggregation.
+            </p>
+          </div>
+        </motion.div>
+      </div>
+    </motion.div>
+  );
+}

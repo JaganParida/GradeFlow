@@ -1,0 +1,151 @@
+const express = require("express");
+const router = express.Router();
+const SemesterResult = require("../models/SemesterResult");
+const InternalMark = require("../models/InternalMark");
+const Ranking = require("../models/Ranking");
+
+const GRADE_POINTS = {
+  O: 10,
+  E: 9,
+  A: 8,
+  B: 7,
+  C: 6,
+  D: 5,
+  R: 10,
+  F: 2,
+  M: 0,
+  S: 0,
+};
+
+function calcCGPA(results) {
+  let totalWeighted = 0,
+    totalCredits = 0;
+  results.forEach((r) => {
+    r.subjects.forEach((s) => {
+      if (Number(r.semester) === 5 && s.grade === 'R' && (s.credit === 6 || (s.subName && s.subName.toLowerCase().includes('project')))) {
+        return; // Ignore Sem 5 R grade projects
+      }
+      if (s.credit && GRADE_POINTS[s.grade] !== undefined) {
+        totalWeighted += s.credit * GRADE_POINTS[s.grade];
+        totalCredits += s.credit;
+      }
+    });
+  });
+  return totalCredits > 0
+    ? parseFloat((totalWeighted / totalCredits).toFixed(2))
+    : 0;
+}
+
+function calcAcademicHealth(cgpa, sgpa, backlogs, results) {
+  let score = 0;
+  score += Math.min(cgpa * 5, 50);
+  score += Math.min(sgpa * 2, 20);
+  score += backlogs === 0 ? 20 : Math.max(0, 20 - backlogs * 5);
+  const totalSubjects = results.reduce((a, r) => a + r.subjects.length, 0);
+  score += Math.min(10, totalSubjects > 0 ? 10 : 0);
+  return Math.round(Math.min(score, 100));
+}
+
+// GET student full profile
+router.get("/:regNo", async (req, res) => {
+  try {
+    const { regNo } = req.params;
+    const results = await SemesterResult.find({ regNo }).sort({ semester: 1 });
+    if (!results.length)
+      return res.status(404).json({ message: "Student not found" });
+
+    const cgpa = calcCGPA(results);
+    const backlogs = results.flatMap((r) =>
+      r.subjects.filter((s) => ["F", "M", "S"].includes(s.grade)),
+    );
+    const latestResult = results[results.length - 1];
+    const healthScore = calcAcademicHealth(
+      cgpa,
+      latestResult.sgpa,
+      backlogs.length,
+      results,
+    );
+
+    const ranking = await Ranking.findOne({
+      regNo,
+      semester: latestResult.semester,
+    });
+
+    res.json({
+      regNo,
+      studentName: latestResult.studentName,
+      branch: latestResult.branch,
+      batch: latestResult.batch,
+      cgpa,
+      latestSgpa: latestResult.sgpa,
+      latestSemester: latestResult.semester,
+      totalCredits: results.reduce((a, r) => {
+        return a + r.subjects.reduce((sum, s) => {
+          if (Number(r.semester) === 5 && s.grade === 'R' && (s.credit === 6 || (s.subName && s.subName.toLowerCase().includes('project')))) return sum;
+          return sum + (s.credit || 0);
+        }, 0);
+      }, 0),
+      creditsCleared: results.reduce((a, r) => {
+        return a + r.subjects.reduce((sum, s) => {
+          if (Number(r.semester) === 5 && s.grade === 'R' && (s.credit === 6 || (s.subName && s.subName.toLowerCase().includes('project')))) return sum;
+          if (["F", "M", "S"].includes(s.grade)) return sum;
+          return sum + (s.credit || 0);
+        }, 0);
+      }, 0),
+      academicHealthScore: healthScore,
+      backlogs: backlogs.map((b) => ({
+        subName: b.subName,
+        subCode: b.subCode,
+      })),
+      results,
+      ranking: ranking || null,
+    });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+// GET specific semester result
+router.get("/:regNo/semester/:sem", async (req, res) => {
+  try {
+    const result = await SemesterResult.findOne({
+      regNo: req.params.regNo,
+      semester: req.params.sem,
+    });
+    if (!result) return res.status(404).json({ message: "Result not found" });
+    res.json(result);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+// GET specific semester ranking
+router.get("/:regNo/ranking/:sem", async (req, res) => {
+  try {
+    const ranking = await Ranking.findOne({
+      regNo: req.params.regNo,
+      semester: req.params.sem,
+    });
+    if (!ranking) return res.status(404).json({ message: "Ranking not found" });
+    res.json(ranking);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+// GET internal marks
+router.get("/:regNo/internal/:sem", async (req, res) => {
+  try {
+    const marks = await InternalMark.findOne({
+      regNo: req.params.regNo,
+      semester: req.params.sem,
+    });
+    if (!marks)
+      return res.status(404).json({ message: "Internal marks not found" });
+    res.json(marks);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+module.exports = router;
