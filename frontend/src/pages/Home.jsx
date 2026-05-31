@@ -263,9 +263,9 @@ export default function Home() {
             </div>
           </div>
 
-          <div style={{ overflowX: "auto" }}>
-            <div style={{ minWidth: 500 }}>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 2fr 1.5fr 1fr 1fr", gap: 12, padding: "0 16px 12px", borderBottom: "1px solid rgba(255,255,255,0.1)", marginBottom: 12, fontSize: 11, fontWeight: 700, color: "var(--secondary)", textTransform: "uppercase", letterSpacing: 1 }}>
+          <div>
+            <div>
+              <div className="responsive-table-header">
                 <span>Grade</span>
                 <span>Qualification</span>
                 <span>Range</span>
@@ -281,37 +281,32 @@ export default function Home() {
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: 0.5 + i * 0.05 }}
                 whileHover={{ scale: 1.02, background: "rgba(255,255,255,0.03)" }}
-                style={{
-                  display: "grid",
-                  gridTemplateColumns: "1fr 2fr 1.5fr 1fr 1fr",
-                  alignItems: "center",
-                  gap: 12,
-                  padding: "10px 16px",
-                  borderRadius: 10,
-                  background: "rgba(255,255,255,0.02)",
-                  border: "1px solid rgba(255,255,255,0.05)",
-                  cursor: "default"
-                }}
+                className="responsive-table-row"
               >
-                <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                <div className="responsive-table-cell">
+                  <span className="mobile-label">Grade</span>
                   <div style={{ width: 28, height: 28, borderRadius: 8, background: `${row.color}15`, color: row.color, display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700, fontSize: 14 }}>
                     {row.grade}
                   </div>
                 </div>
                 
-                <div style={{ fontSize: 13, color: "var(--text)", fontWeight: 500 }}>
-                  {row.interpretation}
+                <div className="responsive-table-cell" style={{ fontSize: 13, color: "var(--text)", fontWeight: 500 }}>
+                  <span className="mobile-label">Qualification</span>
+                  <span>{row.interpretation}</span>
                 </div>
 
-                <div style={{ fontSize: 12, color: "var(--secondary)", fontFamily: "Space Mono, monospace" }}>
-                  {row.range}
+                <div className="responsive-table-cell" style={{ fontSize: 12, color: "var(--secondary)", fontFamily: "Space Mono, monospace" }}>
+                  <span className="mobile-label">Range</span>
+                  <span>{row.range}</span>
                 </div>
 
-                <div style={{ fontSize: 14, fontWeight: 700, color: row.color }}>
-                  {row.points}
+                <div className="responsive-table-cell" style={{ fontSize: 14, fontWeight: 700, color: row.color }}>
+                  <span className="mobile-label">Points</span>
+                  <span>{row.points}</span>
                 </div>
                 
-                <div style={{ textAlign: "right" }}>
+                <div className="responsive-table-cell" style={{ textAlign: "right" }}>
+                  <span className="mobile-label" style={{ textAlign: "left" }}>Counted?</span>
                   <span style={{ padding: "4px 8px", borderRadius: 6, fontSize: 11, fontWeight: 600, background: row.counted === "Yes" ? "rgba(34, 197, 94, 0.1)" : "rgba(239, 68, 68, 0.1)", color: row.counted === "Yes" ? "#22c55e" : "#ef4444" }}>
                     {row.counted}
                   </span>
@@ -351,8 +346,8 @@ export default function Home() {
                 The SGPA measures your academic performance for a single semester. It is the ratio of your total earned Credit Points to the total Course Credits registered.
               </p>
               
-              <div style={{ display: "flex", justifyContent: "center", padding: "24px 0", marginBottom: 20 }}>
-                <div style={{ fontFamily: "Space Mono, monospace", fontSize: 20, fontWeight: 600, color: "#a855f7", display: "flex", alignItems: "center", gap: 12 }}>
+              <div className="math-formula-container">
+                <div className="math-formula-text" style={{ color: "#a855f7" }}>
                   <span>SGPA =</span>
                   <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 8 }}>
                     <span style={{ borderBottom: "1px solid #a855f7", paddingBottom: 4 }}>Σ(Cᵢ × Gᵢ)</span>
@@ -380,8 +375,8 @@ export default function Home() {
                 The CGPA measures your cumulative academic performance across all semesters completed so far. It is a weighted average of your SGPAs based on the total credits assigned to each individual semester.
               </p>
               
-              <div style={{ display: "flex", justifyContent: "center", padding: "24px 0", marginBottom: 20 }}>
-                <div style={{ fontFamily: "Space Mono, monospace", fontSize: 20, fontWeight: 600, color: "#3ea6ff", display: "flex", alignItems: "center", gap: 12 }}>
+              <div className="math-formula-container">
+                <div className="math-formula-text" style={{ color: "#3ea6ff" }}>
                   <span>CGPA =</span>
                   <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 8 }}>
                     <span style={{ borderBottom: "1px solid #3ea6ff", paddingBottom: 4 }}>Σ(SGPAⱼ × Crⱼ)</span>

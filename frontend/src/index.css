@@ -416,3 +416,89 @@ input::placeholder {
   border-radius: 10px;
   transition: width 1s ease;
 }
+
+/* Responsive Table Layout */
+.responsive-table-header {
+  display: grid;
+  grid-template-columns: 1fr 2fr 1.5fr 1fr 1fr;
+  gap: 12px;
+  padding: 0 16px 12px;
+  border-bottom: 1px solid rgba(255,255,255,0.1);
+  margin-bottom: 12px;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--secondary);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.responsive-table-row {
+  display: grid;
+  grid-template-columns: 1fr 2fr 1.5fr 1fr 1fr;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 16px;
+  border-radius: 10px;
+  background: rgba(255,255,255,0.02);
+  border: 1px solid rgba(255,255,255,0.05);
+  cursor: default;
+}
+
+.mobile-label {
+  display: none;
+  font-size: 11px;
+  color: var(--secondary);
+  text-transform: uppercase;
+  font-weight: 700;
+}
+
+@media (max-width: 768px) {
+  .responsive-table-header {
+    display: none;
+  }
+  .responsive-table-row {
+    grid-template-columns: 1fr;
+    gap: 8px;
+    padding: 16px;
+  }
+  .responsive-table-cell {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+  }
+  .mobile-label {
+    display: inline-block;
+  }
+}
+
+/* Math Formula Layout */
+.math-formula-container {
+  display: flex;
+  justify-content: center;
+  padding: 24px 0;
+  margin-bottom: 20px;
+  overflow-x: auto;
+}
+.math-formula-text {
+  font-family: "Space Mono", monospace;
+  font-size: 20px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  white-space: nowrap;
+}
+.math-formula-text span {
+  white-space: nowrap;
+}
+@media (max-width: 768px) {
+  .math-formula-container {
+    padding: 12px 0;
+    justify-content: flex-start;
+  }
+  .math-formula-text {
+    font-size: 15px;
+    gap: 8px;
+  }
+}
