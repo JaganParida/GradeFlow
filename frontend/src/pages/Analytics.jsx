@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useApp } from "../context/AppContext";
 import {
@@ -10,6 +10,11 @@ import {
   Tooltip,
   ResponsiveContainer,
   ReferenceLine,
+  Radar,
+  RadarChart,
+  PolarGrid,
+  PolarAngleAxis,
+  PolarRadiusAxis,
 } from "recharts";
 import { Spinner } from "../components/LoadingSpinner";
 import { motion } from "framer-motion";
@@ -158,6 +163,40 @@ export default function Analytics() {
     ).toFixed(2);
   }
 
+  // Radar Chart Data for Advanced Insights
+  const radarData = useMemo(() => {
+    if (!studentData || !studentData.results) return [];
+    
+    let theoryW = 0, theoryC = 0;
+    let practicalW = 0, practicalC = 0;
+    let projectW = 0, projectC = 0;
+
+    studentData.results.forEach(r => {
+      r.subjects?.forEach(s => {
+        if (!s.credit || !GRADE_POINTS[s.grade]) return;
+        const type = s.type ? s.type.toLowerCase() : (s.subName ? s.subName.toLowerCase() : "");
+        const points = s.credit * GRADE_POINTS[s.grade];
+        
+        if (type.includes("proj")) {
+          projectW += points;
+          projectC += s.credit;
+        } else if (type.includes("p") || type.includes("lab") || type.includes("practical") || type.includes("sess")) {
+          practicalW += points;
+          practicalC += s.credit;
+        } else {
+          theoryW += points;
+          theoryC += s.credit;
+        }
+      });
+    });
+
+    return [
+      { subject: 'Theory', score: theoryC ? (theoryW / theoryC) * 10 : 0, fullMark: 100 },
+      { subject: 'Practical', score: practicalC ? (practicalW / practicalC) * 10 : 0, fullMark: 100 },
+      { subject: 'Projects', score: projectC ? (projectW / projectC) * 10 : 0, fullMark: 100 },
+    ];
+  }, [studentData]);
+
   // What-if simulator
   function calcWhatIfCGPA() {
     let tw = 0,
@@ -299,53 +338,90 @@ export default function Analytics() {
             </motion.div>
           </div>
 
-          {/* CGPA Trend Chart */}
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="card" style={{ marginBottom: 24 }}>
-            <h3 style={{ marginBottom: 20, fontWeight: 700, display: "flex", alignItems: "center", gap: 8 }}>
-              <TrendingUp size={18} /> SGPA & CGPA Trend
-            </h3>
-            <ResponsiveContainer width="100%" height={window.innerWidth < 768 ? 180 : 260}>
-              <LineChart data={chartData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#2a2a2a" />
-                <XAxis dataKey="sem" tick={{ fill: "#aaa", fontSize: 12 }} />
-                <YAxis domain={[0, 10]} tick={{ fill: "#aaa", fontSize: 12 }} />
-                <Tooltip
-                  contentStyle={{
-                    background: "#212121",
-                    border: "1px solid #2a2a2a",
-                    borderRadius: 8,
-                    color: "#f1f1f1",
-                  }}
-                />
-                <ReferenceLine
-                  y={cgpa}
-                  stroke="#a855f7"
-                  strokeDasharray="4 4"
-                  label={{
-                    value: `CGPA ${cgpa}`,
-                    fill: "#a855f7",
-                    fontSize: 11,
-                  }}
-                />
-                <Line
-                  type="monotone"
-                  dataKey="SGPA"
-                  stroke="#3ea6ff"
-                  strokeWidth={2.5}
-                  dot={{ fill: "#3ea6ff", r: 5 }}
-                  activeDot={{ r: 7 }}
-                />
-                <Line
-                  type="monotone"
-                  dataKey="CGPA"
-                  stroke="#a855f7"
-                  strokeWidth={2}
-                  strokeDasharray="5 5"
-                  dot={{ fill: "#a855f7", r: 4 }}
-                />
-              </LineChart>
-            </ResponsiveContainer>
-          </motion.div>
+          {/* Charts Grid */}
+          <div className="grid-2" style={{ marginBottom: 24, alignItems: "stretch" }}>
+            {/* CGPA Trend Chart */}
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="card" style={{ display: "flex", flexDirection: "column" }}>
+              <h3 style={{ marginBottom: 20, fontWeight: 700, display: "flex", alignItems: "center", gap: 8 }}>
+                <TrendingUp size={18} /> SGPA & CGPA Trend
+              </h3>
+              <div style={{ flex: 1 }}>
+                <ResponsiveContainer width="100%" height={window.innerWidth < 768 ? 180 : 260}>
+                  <LineChart data={chartData}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#2a2a2a" />
+                    <XAxis dataKey="sem" tick={{ fill: "#aaa", fontSize: 12 }} />
+                    <YAxis domain={[0, 10]} tick={{ fill: "#aaa", fontSize: 12 }} />
+                    <Tooltip
+                      contentStyle={{
+                        background: "#212121",
+                        border: "1px solid #2a2a2a",
+                        borderRadius: 8,
+                        color: "#f1f1f1",
+                      }}
+                    />
+                    <ReferenceLine
+                      y={cgpa}
+                      stroke="#a855f7"
+                      strokeDasharray="4 4"
+                      label={{
+                        value: `CGPA ${cgpa}`,
+                        fill: "#a855f7",
+                        fontSize: 11,
+                      }}
+                    />
+                    <Line
+                      type="monotone"
+                      dataKey="SGPA"
+                      stroke="#3ea6ff"
+                      strokeWidth={2.5}
+                      dot={{ fill: "#3ea6ff", r: 5 }}
+                      activeDot={{ r: 7 }}
+                    />
+                    <Line
+                      type="monotone"
+                      dataKey="CGPA"
+                      stroke="#a855f7"
+                      strokeWidth={2}
+                      strokeDasharray="5 5"
+                      dot={{ fill: "#a855f7", r: 4 }}
+                    />
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
+            </motion.div>
+
+            {/* Subject Insights Radar Chart */}
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="card" style={{ display: "flex", flexDirection: "column" }}>
+              <h3 style={{ marginBottom: 20, fontWeight: 700, display: "flex", alignItems: "center", gap: 8 }}>
+                <Target size={18} /> Advanced Subject Insights
+              </h3>
+              <div style={{ flex: 1 }}>
+                <ResponsiveContainer width="100%" height={window.innerWidth < 768 ? 200 : 260}>
+                  <RadarChart cx="50%" cy="50%" outerRadius="70%" data={radarData}>
+                    <PolarGrid stroke="#333" />
+                    <PolarAngleAxis dataKey="subject" tick={{ fill: "#aaa", fontSize: 12 }} />
+                    <PolarRadiusAxis angle={30} domain={[0, 10]} tick={false} axisLine={false} />
+                    <Radar
+                      name="Score"
+                      dataKey="score"
+                      stroke="#3ea6ff"
+                      fill="#3ea6ff"
+                      fillOpacity={0.4}
+                    />
+                    <Tooltip
+                      contentStyle={{
+                        background: "#212121",
+                        border: "1px solid #2a2a2a",
+                        borderRadius: 8,
+                        color: "#f1f1f1",
+                      }}
+                      formatter={(value) => [value.toFixed(2), "Performance"]}
+                    />
+                  </RadarChart>
+                </ResponsiveContainer>
+              </div>
+            </motion.div>
+          </div>
 
           {/* Subject Performance */}
           {best && worst && (

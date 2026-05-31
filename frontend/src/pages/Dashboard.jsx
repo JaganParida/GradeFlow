@@ -5,7 +5,9 @@ import { Spinner, SkeletonGrid } from "../components/LoadingSpinner";
 import GradeSheet from "../components/GradeSheet";
 import axios from "axios";
 import { motion } from "framer-motion";
-import { User, TrendingUp, Star, Target, CheckCircle, Trophy, Award, AlertTriangle, FileText, FileEdit, Calendar, Printer } from "lucide-react";
+import jsPDF from "jspdf";
+import html2canvas from "html2canvas";
+import { User, TrendingUp, Star, Target, CheckCircle, Trophy, Award, AlertTriangle, FileText, FileEdit, Calendar, Printer, Share2, DownloadCloud } from "lucide-react";
 
 const GRADE_COLORS = {
   O: "#f59e0b",
@@ -61,6 +63,40 @@ export default function Dashboard() {
   const [tab, setTab] = useState("result");
   const [selectedSem, setSelectedSem] = useState(null);
   const [semResult, setSemResult] = useState(null);
+  const [activeCard, setActiveCard] = useState(null);
+  const [isDownloadingBatch, setIsDownloadingBatch] = useState(false);
+
+  const downloadFullTranscript = async () => {
+    setIsDownloadingBatch(true);
+    
+    setTimeout(async () => {
+      try {
+        const pdf = new jsPDF("p", "mm", "a4");
+        
+        for (let i = 0; i < studentData.results.length; i++) {
+          const r = studentData.results[i];
+          const element = document.getElementById(`batch-export-sem-${r.semester}`);
+          if (!element) continue;
+          
+          const canvas = await html2canvas(element, { scale: 2, useCORS: true });
+          const imgData = canvas.toDataURL("image/png");
+          
+          const pdfWidth = pdf.internal.pageSize.getWidth();
+          const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
+          
+          if (i > 0) pdf.addPage();
+          pdf.addImage(imgData, "PNG", 0, 0, pdfWidth, pdfHeight);
+        }
+        
+        pdf.save(`${studentData.studentName}_Full_Transcript.pdf`);
+      } catch (err) {
+        console.error(err);
+        alert("Failed to export full transcript.");
+      } finally {
+        setIsDownloadingBatch(false);
+      }
+    }, 1500);
+  };
   const [internalMarks, setInternalMarks] = useState(null);
   const [semesterRanking, setSemesterRanking] = useState(null);
   const [loadingSem, setLoadingSem] = useState(false);
@@ -193,15 +229,47 @@ export default function Dashboard() {
               {regNo} · {dynamicBranch} · Batch {batch}
             </p>
           </div>
-          <motion.button
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
-            className="btn btn-primary"
-            onClick={() => navigate("/analytics/" + regNo)}
-            style={{ display: "flex", alignItems: "center", gap: 6 }}
-          >
-            <TrendingUp size={16} /> View Analytics
-          </motion.button>
+          <div style={{ display: "flex", gap: 12 }}>
+            <motion.button
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              className="btn"
+              onClick={downloadFullTranscript}
+              disabled={isDownloadingBatch}
+              style={{ display: "flex", alignItems: "center", gap: 6, background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)", color: "#fff" }}
+            >
+              {isDownloadingBatch ? <Spinner /> : <DownloadCloud size={16} />}
+              {isDownloadingBatch ? "Exporting..." : "Full Transcript"}
+            </motion.button>
+            <motion.button
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              className="btn"
+              onClick={() => {
+                if (navigator.share) {
+                  navigator.share({
+                    title: `${studentName}'s GradeFlow Profile`,
+                    url: window.location.href,
+                  }).catch(console.error);
+                } else {
+                  navigator.clipboard.writeText(window.location.href);
+                  alert("Link copied to clipboard!");
+                }
+              }}
+              style={{ display: "flex", alignItems: "center", gap: 6, background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)", color: "#fff" }}
+            >
+              <Share2 size={16} /> Share
+            </motion.button>
+            <motion.button
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              className="btn btn-primary"
+              onClick={() => navigate("/analytics/" + regNo)}
+              style={{ display: "flex", alignItems: "center", gap: 6 }}
+            >
+              <TrendingUp size={16} /> View Analytics
+            </motion.button>
+          </div>
         </div>
 
         {/* Badges */}
@@ -377,6 +445,28 @@ export default function Dashboard() {
                 </p>
                 <p style={{ fontSize: 12, color: "var(--secondary)", display: "flex", alignItems: "center", gap: 4 }}>
                   {semesterRanking ? `of ${semesterRanking.totalStudents}` : "Not Generated"}
+                </p>
+              </motion.div>
+              <motion.div
+                whileHover={{ scale: 1.05 }} 
+                whileTap={{ scale: 0.95 }}
+                onClick={() => navigate(`/leaderboard?highlight=${regNo}&branch=${branch}&tab=sgpa`)}
+                style={{ cursor: "pointer" }}
+                title="View Branch Leaderboard"
+              >
+                <p style={{ color: "var(--secondary)", fontSize: 12 }}>BRANCH RANK</p>
+                <p
+                  style={{
+                    fontFamily: "Space Mono",
+                    fontSize: 24,
+                    fontWeight: 700,
+                    color: semesterRanking ? "#22c55e" : "var(--muted)",
+                  }}
+                >
+                  {semesterRanking && semesterRanking.deptRank ? `#${semesterRanking.deptRank}` : "—"}
+                </p>
+                <p style={{ fontSize: 12, color: "var(--secondary)", display: "flex", alignItems: "center", gap: 4 }}>
+                  {semesterRanking && semesterRanking.deptStudents ? `of ${semesterRanking.deptStudents}` : "Not Generated"}
                 </p>
               </motion.div>
             </>
