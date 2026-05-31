@@ -35,6 +35,7 @@ export function categorizeBaskets(results) {
     B3: { credits: 0, subjects: [], target: BASKET_TARGETS.B3 },
     B4: { credits: 0, subjects: [], target: BASKET_TARGETS.B4 },
     B5: { credits: 0, subjects: [], target: BASKET_TARGETS.B5 },
+    EX: { credits: 0, subjects: [], target: 0 },
   };
 
   if (!results) return baskets;
@@ -116,8 +117,8 @@ export function categorizeBaskets(results) {
       baskets.B5.subjects.push(subjectData);
       baskets.B5.credits += earnedCredits;
     } else {
-      baskets.B4.subjects.push(subjectData);
-      baskets.B4.credits += earnedCredits;
+      baskets.EX.subjects.push(subjectData);
+      baskets.EX.credits += earnedCredits;
     }
   });
 

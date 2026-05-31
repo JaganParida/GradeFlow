@@ -9,6 +9,7 @@ const BASKET_ICONS = {
   B3: <Zap size={24} color="#f59e0b" />,
   B4: <Cpu size={24} color="#ef4444" />,
   B5: <Target size={24} color="var(--success)" />,
+  EX: <Folder size={24} color="#64748b" />,
 };
 
 const BASKET_NAMES = {
@@ -17,6 +18,7 @@ const BASKET_NAMES = {
   B3: "Smart Stack",
   B4: "Core Engineering",
   B5: "Domain, Skills & Projects",
+  EX: "Additional Subjects",
 };
 
 export default function BasketDashboard({ results }) {
@@ -83,6 +85,21 @@ export default function BasketDashboard({ results }) {
   };
 
   const renderBasketContents = (key, data) => {
+    if (key === 'EX') {
+      return (
+        <div style={{ display: "flex", flexDirection: "column" }}>
+          <div className="basket-grid-header" style={{ display: "grid", gridTemplateColumns: "3fr 1fr 1fr 1fr", padding: "16px 24px", borderBottom: "1px solid var(--border-color)", borderTop: "1px solid var(--border-color)", fontSize: 12, color: "var(--secondary)", fontWeight: 700, letterSpacing: 0.5, textTransform: "uppercase" }}>
+            <div>Subject</div>
+            <div style={{ textAlign: "center" }}>Sem</div>
+            <div style={{ textAlign: "center" }}>Status</div>
+            <div style={{ textAlign: "right" }}>Credits</div>
+          </div>
+          {data.subjects.length > 0 ? data.subjects.map((sub, idx) => renderSubjectRow(sub, 'ex-' + idx, false)) : (
+            <div style={{ padding: 24, textAlign: "center", color: "var(--secondary)", fontSize: 14 }}>No additional subjects found.</div>
+          )}
+        </div>
+      );
+    }
     let syllabusList = [];
     if (key === 'B1') syllabusList = BASKET_1_SYLLABUS;
     if (key === 'B2') syllabusList = BASKET_2_SYLLABUS;
@@ -272,7 +289,7 @@ export default function BasketDashboard({ results }) {
                     {BASKET_ICONS[key]}
                   </div>
                   <div>
-                    <h4 style={{ fontSize: 15, fontWeight: 700, color: "var(--text-main)", marginBottom: 4 }}>Basket {key.replace('B', '')}: {BASKET_NAMES[key]}</h4>
+                    <h4 style={{ fontSize: 15, fontWeight: 700, color: "var(--text-main)", marginBottom: 4 }}>{key.startsWith('B') ? `Basket ${key.replace('B', '')}: ` : ''}{BASKET_NAMES[key]}</h4>
                     <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                       <div style={{ width: 150, height: 6, background: "var(--bg-main)", borderRadius: 3, overflow: "hidden" }}>
                         <div style={{ height: "100%", background: isComplete ? "var(--success)" : "var(--accent)", width: `${progress}%`, borderRadius: 3 }} />
