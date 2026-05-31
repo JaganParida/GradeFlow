@@ -28,9 +28,11 @@ function AnimatedNumber({ value }) {
 
   useEffect(() => {
     const node = nodeRef.current;
-    if (!node || value == null) return;
+    if (!node || value == null || Number.isNaN(value)) return;
 
     const startValue = parseFloat(node.textContent) || value;
+    if (Number.isNaN(startValue)) return;
+
     const controls = animate(startValue, value, {
       duration: 0.6,
       ease: "easeOut",
@@ -42,7 +44,7 @@ function AnimatedNumber({ value }) {
     return controls.stop;
   }, [value]);
 
-  if (value == null) return null;
+  if (value == null || Number.isNaN(value)) return null;
   return <span ref={nodeRef}>{value.toFixed(2)}</span>;
 }
 
