@@ -221,6 +221,7 @@ export default function GradeSheet({ result, studentData }) {
     textAlign: align,
     letterSpacing: "0.05em",
     textTransform: "uppercase",
+    color: "#000",
   });
   const td = (align = "center", extra = {}) => ({
     border: "1px solid #d0d0d0",

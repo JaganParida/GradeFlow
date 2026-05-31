@@ -805,6 +805,15 @@ export default function Dashboard() {
           )}
         </motion.div>
       )}
+
+      {/* Hidden container for Batch PDF Export */}
+      <div style={{ position: "fixed", top: 0, left: 0, zIndex: -9999, opacity: 0.01, pointerEvents: "none" }}>
+        {isDownloadingBatch && studentData.results.map((r) => (
+          <div key={r.semester} id={`batch-export-sem-${r.semester}`} style={{ background: "#fff", padding: 20 }}>
+            <GradeSheet result={r} studentData={studentData} />
+          </div>
+        ))}
+      </div>
     </motion.div>
   );
 }
