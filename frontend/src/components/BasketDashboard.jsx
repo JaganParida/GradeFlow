@@ -1,5 +1,5 @@
 import React, { useMemo } from "react";
-import { categorizeBaskets } from "../utils/basketLogic";
+import { categorizeBaskets, SYLLABUS } from "../utils/basketLogic";
 import { CheckCircle, Award, Target, BookOpen, Hexagon, Cpu, Zap, ChevronDown, ChevronUp } from "lucide-react";
 import { motion } from "framer-motion";
 
@@ -23,6 +23,55 @@ export default function BasketDashboard({ results }) {
   const [expandedBasket, setExpandedBasket] = React.useState(null);
   
   const baskets = useMemo(() => categorizeBaskets(results), [results]);
+
+  const buildDisplayList = (key, data) => {
+    let displayList = [];
+    let syllabusList = SYLLABUS[key] || [];
+
+    if (key === 'B5') {
+       syllabusList = [
+         { subName: "Summer Internship", target: 4, isOngoing: true },
+         { subName: "Skill Course", target: 4 }
+       ];
+       if (baskets.domain) {
+         syllabusList = [...syllabusList, ...baskets.domain.subjects];
+       }
+    }
+
+    const usedActualIndexes = new Set();
+
+    syllabusList.forEach(syl => {
+       const sylKeyword = syl.subName.split(' ')[0].toLowerCase();
+       const matchIdx = data.subjects.findIndex((s, idx) => {
+          if (usedActualIndexes.has(idx)) return false;
+          const actualName = s.subName.toLowerCase();
+          const targetName = syl.subName.toLowerCase();
+          return actualName.includes(sylKeyword) || targetName.includes(actualName.split(' ')[0]);
+       });
+
+       if (matchIdx !== -1) {
+         usedActualIndexes.add(matchIdx);
+         displayList.push({ ...data.subjects[matchIdx], isSyllabusMatch: true });
+       } else {
+         displayList.push({
+           subName: syl.subName,
+           subCode: syl.subCode || "PENDING",
+           semester: syl.isOngoing ? "Ongoing" : "Not Taken",
+           grade: syl.isOngoing ? "IP" : "-",
+           earnedCredits: syl.target,
+           isPending: true
+         });
+       }
+    });
+
+    data.subjects.forEach((s, idx) => {
+       if (!usedActualIndexes.has(idx)) {
+         displayList.push({ ...s, isExtra: true });
+       }
+    });
+
+    return displayList;
+  };
 
   const totalEarned = baskets.B1.credits + baskets.B2.credits + baskets.B3.credits + baskets.B4.credits + baskets.B5.credits;
   const targetTotal = 160;
@@ -80,9 +129,12 @@ export default function BasketDashboard({ results }) {
       <h3 style={{ fontSize: 18, fontWeight: 700, color: "var(--text-main)", marginTop: 10 }}>Curriculum Baskets</h3>
       <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: 16 }}>
         {Object.entries(baskets).map(([key, data], i) => {
+          if (key === "domain") return null;
+          
           const progress = Math.min(100, (data.credits / data.target) * 100);
           const isComplete = data.credits >= data.target;
           const isExpanded = expandedBasket === key;
+          const displaySubjects = buildDisplayList(key, data);
 
           return (
             <motion.div 
@@ -148,7 +200,7 @@ export default function BasketDashboard({ results }) {
                     `}
                   </style>
 
-                  {data.subjects.length === 0 ? (
+                  {displaySubjects.length === 0 ? (
                     <p style={{ padding: 20, fontSize: 13, color: "var(--secondary)", fontStyle: "italic" }}>No subjects completed in this basket yet.</p>
                   ) : (
                     <div style={{ display: "flex", flexDirection: "column" }}>
@@ -161,8 +213,8 @@ export default function BasketDashboard({ results }) {
                       </div>
 
                       {/* Rows */}
-                      {data.subjects.map((sub, idx) => (
-                        <div key={idx} className="basket-subject-row" style={{ display: "grid", gridTemplateColumns: "3fr 1fr 1fr 1fr", padding: "16px 24px", alignItems: "center", borderBottom: "1px solid var(--border-color)" }}>
+                      {displaySubjects.map((sub, idx) => (
+                        <div key={idx} className="basket-subject-row" style={{ display: "grid", gridTemplateColumns: "3fr 1fr 1fr 1fr", padding: "16px 24px", alignItems: "center", borderBottom: "1px solid var(--border-color)", opacity: sub.isPending ? 0.6 : 1, background: sub.isSyllabusMatch ? "rgba(34, 197, 94, 0.05)" : "transparent" }}>
                           <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
                             <span style={{ fontSize: 13, color: "var(--text-main)", fontWeight: 700, lineHeight: 1.4, textTransform: "uppercase" }}>{sub.subName}</span>
                             <span style={{ fontSize: 12, color: "var(--secondary)", fontFamily: "Space Mono, monospace" }}>{sub.subCode}</span>
@@ -180,8 +232,8 @@ export default function BasketDashboard({ results }) {
                               borderRadius: 8, 
                               fontSize: 13, 
                               fontWeight: 800,
-                              background: ['F','R','M','S','I'].includes(sub.grade) ? "rgba(239, 68, 68, 0.15)" : "rgba(34, 197, 94, 0.15)",
-                              color: ['F','R','M','S','I'].includes(sub.grade) ? "var(--danger)" : "var(--success)"
+                              background: sub.isPending ? "rgba(255, 255, 255, 0.1)" : ['F','R','M','S','I'].includes(sub.grade) ? "rgba(239, 68, 68, 0.15)" : "rgba(34, 197, 94, 0.15)",
+                              color: sub.isPending ? "var(--secondary)" : ['F','R','M','S','I'].includes(sub.grade) ? "var(--danger)" : "var(--success)"
                             }}>
                               {sub.grade}
                             </span>
