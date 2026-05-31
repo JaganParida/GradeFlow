@@ -120,46 +120,80 @@ export default function BasketDashboard({ results }) {
 
               {/* Expanded Subject List */}
               {isExpanded && (
-                <div style={{ borderTop: "1px solid var(--border-color)", padding: 20, background: "var(--bg-main)" }}>
+                <div style={{ padding: "0 0 16px 0", background: "var(--bg-main)" }}>
+                  <style>
+                    {`
+                      @media (max-width: 640px) {
+                        .basket-grid-header { display: none !important; }
+                        .basket-subject-row {
+                          grid-template-columns: 1fr !important;
+                          gap: 12px;
+                          background: rgba(255,255,255,0.02);
+                          border-radius: 12px;
+                          margin: 12px 16px;
+                          border: 1px solid var(--border-color) !important;
+                          padding: 16px !important;
+                        }
+                        .mobile-flex-row {
+                          text-align: right !important;
+                          display: flex;
+                          justify-content: space-between;
+                          align-items: center;
+                          border-top: 1px dashed rgba(255,255,255,0.1);
+                          padding-top: 12px;
+                        }
+                        .mobile-label { display: block !important; color: var(--secondary); font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; }
+                      }
+                      .mobile-label { display: none; }
+                    `}
+                  </style>
+
                   {data.subjects.length === 0 ? (
-                    <p style={{ fontSize: 13, color: "var(--secondary)", fontStyle: "italic" }}>No subjects completed in this basket yet.</p>
+                    <p style={{ padding: 20, fontSize: 13, color: "var(--secondary)", fontStyle: "italic" }}>No subjects completed in this basket yet.</p>
                   ) : (
-                    <table style={{ width: "100%", borderCollapse: "collapse" }}>
-                      <thead>
-                        <tr>
-                          <th style={{ textAlign: "left", paddingBottom: 10, fontSize: 12, color: "var(--secondary)", borderBottom: "1px solid var(--border-color)" }}>Subject</th>
-                          <th style={{ textAlign: "center", paddingBottom: 10, fontSize: 12, color: "var(--secondary)", borderBottom: "1px solid var(--border-color)" }}>Sem</th>
-                          <th style={{ textAlign: "center", paddingBottom: 10, fontSize: 12, color: "var(--secondary)", borderBottom: "1px solid var(--border-color)" }}>Grade</th>
-                          <th style={{ textAlign: "right", paddingBottom: 10, fontSize: 12, color: "var(--secondary)", borderBottom: "1px solid var(--border-color)" }}>Credits</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {data.subjects.map((sub, idx) => (
-                          <tr key={idx}>
-                            <td style={{ padding: "12px 0", fontSize: 13, color: "var(--text-main)", fontWeight: 500 }}>
-                              {sub.subName}
-                              <div style={{ fontSize: 11, color: "var(--secondary)", marginTop: 2 }}>{sub.subCode}</div>
-                            </td>
-                            <td style={{ padding: "12px 0", fontSize: 13, color: "var(--secondary)", textAlign: "center" }}>{sub.semester}</td>
-                            <td style={{ padding: "12px 0", textAlign: "center" }}>
-                              <span style={{ 
-                                padding: "2px 8px", 
-                                borderRadius: 6, 
-                                fontSize: 12, 
-                                fontWeight: 700,
-                                background: ['F','R','M','S','I'].includes(sub.grade) ? "rgba(239, 68, 68, 0.1)" : "rgba(34, 197, 94, 0.1)",
-                                color: ['F','R','M','S','I'].includes(sub.grade) ? "var(--danger)" : "var(--success)"
-                              }}>
-                                {sub.grade}
-                              </span>
-                            </td>
-                            <td style={{ padding: "12px 0", fontSize: 13, color: "var(--text-main)", fontWeight: 700, textAlign: "right" }}>
-                              {sub.earnedCredits}
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
+                    <div style={{ display: "flex", flexDirection: "column" }}>
+                      {/* Desktop Header */}
+                      <div className="basket-grid-header" style={{ display: "grid", gridTemplateColumns: "3fr 1fr 1fr 1fr", padding: "16px 24px", borderBottom: "1px solid var(--border-color)", borderTop: "1px solid var(--border-color)", fontSize: 12, color: "var(--secondary)", fontWeight: 700, letterSpacing: 0.5, textTransform: "uppercase" }}>
+                        <div>Subject</div>
+                        <div style={{ textAlign: "center" }}>Sem</div>
+                        <div style={{ textAlign: "center" }}>Grade</div>
+                        <div style={{ textAlign: "right" }}>Credits</div>
+                      </div>
+
+                      {/* Rows */}
+                      {data.subjects.map((sub, idx) => (
+                        <div key={idx} className="basket-subject-row" style={{ display: "grid", gridTemplateColumns: "3fr 1fr 1fr 1fr", padding: "16px 24px", alignItems: "center", borderBottom: "1px solid var(--border-color)" }}>
+                          <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                            <span style={{ fontSize: 13, color: "var(--text-main)", fontWeight: 700, lineHeight: 1.4, textTransform: "uppercase" }}>{sub.subName}</span>
+                            <span style={{ fontSize: 12, color: "var(--secondary)", fontFamily: "Space Mono, monospace" }}>{sub.subCode}</span>
+                          </div>
+                          
+                          <div className="mobile-flex-row" style={{ textAlign: "center", fontSize: 14, color: "var(--secondary)", fontWeight: 600 }}>
+                            <span className="mobile-label">Semester</span>
+                            <span>{sub.semester}</span>
+                          </div>
+                          
+                          <div className="mobile-flex-row" style={{ textAlign: "center", display: "flex", justifyContent: "center" }}>
+                            <span className="mobile-label">Grade</span>
+                            <span style={{ 
+                              padding: "4px 10px", 
+                              borderRadius: 8, 
+                              fontSize: 13, 
+                              fontWeight: 800,
+                              background: ['F','R','M','S','I'].includes(sub.grade) ? "rgba(239, 68, 68, 0.15)" : "rgba(34, 197, 94, 0.15)",
+                              color: ['F','R','M','S','I'].includes(sub.grade) ? "var(--danger)" : "var(--success)"
+                            }}>
+                              {sub.grade}
+                            </span>
+                          </div>
+                          
+                          <div className="mobile-flex-row" style={{ textAlign: "right", fontSize: 15, color: "var(--text-main)", fontWeight: 800 }}>
+                            <span className="mobile-label">Credits</span>
+                            <span>{sub.earnedCredits}</span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
                   )}
                 </div>
               )}
