@@ -24,6 +24,7 @@ export default function BasketDashboard({ results }) {
   const [expandedDomain, setExpandedDomain] = React.useState(null);
   
   const baskets = useMemo(() => categorizeBaskets(results), [results]);
+  const inferredDomain = useMemo(() => inferStudentDomainTrack(baskets.B5.subjects, BASKET_5_DOMAINS_DATA), [baskets.B5.subjects]);
 
   const totalEarned = baskets.B1.credits + baskets.B2.credits + baskets.B3.credits + baskets.B4.credits + baskets.B5.credits;
   const targetTotal = 160;
