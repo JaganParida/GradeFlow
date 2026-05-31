@@ -325,9 +325,10 @@ router.post(
             };
           } else {
             record = { ...(record.toObject ? record.toObject() : record) };
-            // Update metadata if the new file has it and old record doesn't
-            if (!record.branch && data.branch) record.branch = data.branch;
-            if (!record.batch && data.batch) record.batch = data.batch;
+            // Forcefully update metadata with newly corrected data from upload
+            if (data.branch) record.branch = data.branch;
+            if (data.batch) record.batch = data.batch;
+            if (data.studentName) record.studentName = data.studentName;
           }
 
           const existingSub = record.subjects.find(s => s.subCode === newSub.subCode);
@@ -661,3 +662,4 @@ router.get("/stats", protect, async (req, res) => {
 });
 
 module.exports = router;
+
