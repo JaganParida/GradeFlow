@@ -10,11 +10,20 @@ export const BASKET_TARGETS = {
 // Returns { b1: [], b2: [], b3: [], b4: [], b5: [] }
 
 export const isMatch = (sub, syllabusSub) => {
+  const norm1 = (sub.subName || "").toLowerCase().replace(/and/g, '').replace(/[^a-z0-9]/g, '');
+  const norm2 = (syllabusSub.subName || "").toLowerCase().replace(/and/g, '').replace(/[^a-z0-9]/g, '');
+
+  const isMinorProject = norm1.includes("minorproject") || norm2.includes("minorproject");
+  
+  if (isMinorProject) {
+     const hasII_1 = norm1.includes("ii") || norm1.includes("2");
+     const hasII_2 = norm2.includes("ii") || norm2.includes("2");
+     if (hasII_1 !== hasII_2) return false; // Force distinction between I and II
+  }
+
   if (sub.subCode && syllabusSub.subCode && sub.subCode.toLowerCase() === syllabusSub.subCode.toLowerCase()) return true;
   if (!sub.subName || !syllabusSub.subName) return false;
   
-  const norm1 = sub.subName.toLowerCase().replace(/and/g, '').replace(/[^a-z0-9]/g, '');
-  const norm2 = syllabusSub.subName.toLowerCase().replace(/and/g, '').replace(/[^a-z0-9]/g, '');
   return norm1.includes(norm2) || norm2.includes(norm1);
 };
 
@@ -40,7 +49,12 @@ export function categorizeBaskets(results) {
       if (Number(sem.semester) === 5 && sub.grade === 'R' && (Number(sub.credit) === 6 || (sub.subName && sub.subName.toLowerCase().includes('project')))) {
          return; // Ignore this specific dropped R grade
       }
-      allSubjectsMap.set(sub.subCode, { ...sub, semester: sem.semester });
+      
+      let key = sub.subCode;
+      if (sub.subName && sub.subName.toLowerCase().includes("minor project")) {
+         key = `${sub.subCode}_${sub.subName.toLowerCase().trim()}`;
+      }
+      allSubjectsMap.set(key, { ...sub, semester: sem.semester });
     });
   });
 
