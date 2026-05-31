@@ -28,10 +28,21 @@ const GRADE_POINTS = {
 const NON_PASSING_GRADES = ["F", "M", "S"];
 
 // All grades contribute to SGPA calculation
-function calcSGPA(subjects) {
+function calcSGPA(subjects, semester) {
   let totalWeighted = 0,
     totalCredits = 0;
   subjects.forEach((s) => {
+    // Exception: Semester 5, "R" grade, "Project" type (or type including project), 6 credits
+    if (
+      semester === 5 &&
+      s.grade === "R" &&
+      s.credit === 6 &&
+      (s.type && s.type.toLowerCase().includes("proj"))
+    ) {
+      // Grade point = 0, credit count = 0 (completely skip)
+      return;
+    }
+
     if (s.credit && GRADE_POINTS[s.grade] !== undefined) {
       totalWeighted += s.credit * GRADE_POINTS[s.grade];
       totalCredits += s.credit;
@@ -357,7 +368,12 @@ router.post(
 
         for (const [sem, record] of recordsToSave.entries()) {
           const validSubjectsForCalc = record.subjects.filter(s => {
-            if (Number(record.semester) === 5 && s.grade === 'R' && (s.credit === 6 || (s.subName && s.subName.toLowerCase().includes('project')))) {
+            if (
+              Number(record.semester) === 5 &&
+              s.grade === 'R' &&
+              s.credit === 6 &&
+              (s.type && s.type.toLowerCase().includes('proj'))
+            ) {
               return false;
             }
             return true;
@@ -367,7 +383,7 @@ router.post(
           const creditsCleared = validSubjectsForCalc
             .filter((s) => !NON_PASSING_GRADES.includes(s.grade))
             .reduce((a, s) => a + (s.credit || 0), 0);
-          const sgpa = calcSGPA(validSubjectsForCalc);
+          const sgpa = calcSGPA(validSubjectsForCalc, record.semester);
 
           bulkOps.push({
             updateOne: {

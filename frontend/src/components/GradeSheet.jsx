@@ -88,11 +88,25 @@ export default function GradeSheet({ result, studentData }) {
   if (!result) return null;
 
   const subjects = result.subjects || [];
-  const totalCredits = subjects.reduce((a, s) => a + (s.credit || 0), 0);
-  const creditsCleared = subjects
+
+  // Exclude Sem 5, R grade, 6-credit projects from calculations
+  const validSubjectsForCalc = subjects.filter((s) => {
+    if (
+      Number(result.semester) === 5 &&
+      s.grade === "R" &&
+      s.credit === 6 &&
+      (s.type && s.type.toLowerCase().includes("proj"))
+    ) {
+      return false;
+    }
+    return true;
+  });
+
+  const totalCredits = validSubjectsForCalc.reduce((a, s) => a + (s.credit || 0), 0);
+  const creditsCleared = validSubjectsForCalc
     .filter((s) => PASSING_GRADES.includes(s.grade))
     .reduce((a, s) => a + (s.credit || 0), 0);
-  const sgpa = calcSGPA(subjects);
+  const sgpa = calcSGPA(validSubjectsForCalc);
   const hasFailed = subjects.some((s) => FAIL_GRADES.includes(s.grade));
 
   const today = new Date().toLocaleDateString("en-IN", {
