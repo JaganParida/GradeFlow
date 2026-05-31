@@ -1,6 +1,6 @@
 import React, { useMemo } from "react";
-import { categorizeBaskets, SYLLABUS } from "../utils/basketLogic";
-import { CheckCircle, Award, Target, BookOpen, Hexagon, Cpu, Zap, ChevronDown, ChevronUp } from "lucide-react";
+import { categorizeBaskets, BASKET_1_SYLLABUS, BASKET_2_SYLLABUS, BASKET_3_SYLLABUS, BASKET_5_DOMAINS } from "../utils/basketLogic";
+import { CheckCircle, Award, Target, BookOpen, Hexagon, Cpu, Zap, ChevronDown, ChevronUp, Folder } from "lucide-react";
 import { motion } from "framer-motion";
 
 const BASKET_ICONS = {
@@ -21,57 +21,9 @@ const BASKET_NAMES = {
 
 export default function BasketDashboard({ results }) {
   const [expandedBasket, setExpandedBasket] = React.useState(null);
+  const [expandedDomain, setExpandedDomain] = React.useState(null);
   
   const baskets = useMemo(() => categorizeBaskets(results), [results]);
-
-  const buildDisplayList = (key, data) => {
-    let displayList = [];
-    let syllabusList = SYLLABUS[key] || [];
-
-    if (key === 'B5') {
-       syllabusList = [
-         { subName: "Summer Internship", target: 4, isOngoing: true },
-         { subName: "Skill Course", target: 4 }
-       ];
-       if (baskets.domain) {
-         syllabusList = [...syllabusList, ...baskets.domain.subjects];
-       }
-    }
-
-    const usedActualIndexes = new Set();
-
-    syllabusList.forEach(syl => {
-       const sylKeyword = syl.subName.split(' ')[0].toLowerCase();
-       const matchIdx = data.subjects.findIndex((s, idx) => {
-          if (usedActualIndexes.has(idx)) return false;
-          const actualName = s.subName.toLowerCase();
-          const targetName = syl.subName.toLowerCase();
-          return actualName.includes(sylKeyword) || targetName.includes(actualName.split(' ')[0]);
-       });
-
-       if (matchIdx !== -1) {
-         usedActualIndexes.add(matchIdx);
-         displayList.push({ ...data.subjects[matchIdx], isSyllabusMatch: true });
-       } else {
-         displayList.push({
-           subName: syl.subName,
-           subCode: syl.subCode || "PENDING",
-           semester: syl.isOngoing ? "Ongoing" : "Not Taken",
-           grade: syl.isOngoing ? "IP" : "-",
-           earnedCredits: syl.target,
-           isPending: true
-         });
-       }
-    });
-
-    data.subjects.forEach((s, idx) => {
-       if (!usedActualIndexes.has(idx)) {
-         displayList.push({ ...s, isExtra: true });
-       }
-    });
-
-    return displayList;
-  };
 
   const totalEarned = baskets.B1.credits + baskets.B2.credits + baskets.B3.credits + baskets.B4.credits + baskets.B5.credits;
   const targetTotal = 160;
@@ -80,6 +32,140 @@ export default function BasketDashboard({ results }) {
   const honoursCredits = Math.max(0, baskets.B5.credits - baskets.B5.target);
   const honoursTarget = 20;
   const isHonoursEligible = honoursCredits >= honoursTarget;
+
+  const renderSubjectRow = (sub, idx, isPending = false) => (
+    <div key={idx} className="basket-subject-row" style={{ display: "grid", gridTemplateColumns: "3fr 1fr 1fr 1fr", padding: "16px 24px", alignItems: "center", borderBottom: "1px solid var(--border-color)", opacity: isPending ? 0.6 : 1 }}>
+      <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+        <span style={{ fontSize: 13, color: "var(--text-main)", fontWeight: 700, lineHeight: 1.4, textTransform: "uppercase" }}>{sub.subName}</span>
+        {sub.subCode && <span style={{ fontSize: 12, color: "var(--secondary)", fontFamily: "Space Mono, monospace" }}>{sub.subCode}</span>}
+      </div>
+      
+      <div className="mobile-flex-row" style={{ textAlign: "center", fontSize: 14, color: "var(--secondary)", fontWeight: 600 }}>
+        <span className="mobile-label">Semester</span>
+        <span>{isPending ? "—" : sub.semester}</span>
+      </div>
+      
+      <div className="mobile-flex-row" style={{ textAlign: "center", display: "flex", justifyContent: "center" }}>
+        <span className="mobile-label">Status</span>
+        {isPending ? (
+          <span style={{ padding: "4px 10px", borderRadius: 8, fontSize: 12, fontWeight: 800, background: "rgba(255,255,255,0.05)", color: "var(--secondary)" }}>PENDING</span>
+        ) : (
+          <span style={{ 
+            padding: "4px 10px", 
+            borderRadius: 8, 
+            fontSize: 13, 
+            fontWeight: 800,
+            background: ['F','R','M','S','I'].includes(sub.grade) ? "rgba(239, 68, 68, 0.15)" : "rgba(34, 197, 94, 0.15)",
+            color: ['F','R','M','S','I'].includes(sub.grade) ? "var(--danger)" : "var(--success)"
+          }}>
+            {sub.grade}
+          </span>
+        )}
+      </div>
+      
+      <div className="mobile-flex-row" style={{ textAlign: "right", fontSize: 15, color: "var(--text-main)", fontWeight: 800 }}>
+        <span className="mobile-label">Credits</span>
+        <span>{isPending ? sub.credits : sub.earnedCredits}</span>
+      </div>
+    </div>
+  );
+
+  const renderBasketContents = (key, data) => {
+    let syllabusList = [];
+    if (key === 'B1') syllabusList = BASKET_1_SYLLABUS;
+    if (key === 'B2') syllabusList = BASKET_2_SYLLABUS;
+    if (key === 'B3') syllabusList = BASKET_3_SYLLABUS;
+
+    if (['B1', 'B2', 'B3'].includes(key)) {
+      return (
+        <div style={{ display: "flex", flexDirection: "column" }}>
+          <div className="basket-grid-header" style={{ display: "grid", gridTemplateColumns: "3fr 1fr 1fr 1fr", padding: "16px 24px", borderBottom: "1px solid var(--border-color)", borderTop: "1px solid var(--border-color)", fontSize: 12, color: "var(--secondary)", fontWeight: 700, letterSpacing: 0.5, textTransform: "uppercase" }}>
+            <div>Subject</div>
+            <div style={{ textAlign: "center" }}>Sem</div>
+            <div style={{ textAlign: "center" }}>Status</div>
+            <div style={{ textAlign: "right" }}>Credits</div>
+          </div>
+          {syllabusList.map((syllabusSub, idx) => {
+             // Find if student has taken this subject
+             const takenSub = data.subjects.find(s => s.subName && s.subName.toLowerCase().includes(syllabusSub.subName.toLowerCase()));
+             if (takenSub) return renderSubjectRow(takenSub, idx, false);
+             return renderSubjectRow({ subName: syllabusSub.subName, credits: syllabusSub.credits }, idx, true);
+          })}
+          {/* Render extra subjects the student took in this basket not in static list */}
+          {data.subjects.filter(s => !syllabusList.some(syllabusSub => s.subName && s.subName.toLowerCase().includes(syllabusSub.subName.toLowerCase()))).map((extraSub, idx) => {
+             return renderSubjectRow(extraSub, 'extra-' + idx, false);
+          })}
+        </div>
+      );
+    }
+    
+    if (key === 'B4') {
+      return (
+        <div style={{ display: "flex", flexDirection: "column" }}>
+          {data.subjects.length === 0 ? (
+            <p style={{ padding: 20, fontSize: 13, color: "var(--secondary)", fontStyle: "italic" }}>No subjects completed in this basket yet.</p>
+          ) : (
+            <>
+              <div className="basket-grid-header" style={{ display: "grid", gridTemplateColumns: "3fr 1fr 1fr 1fr", padding: "16px 24px", borderBottom: "1px solid var(--border-color)", borderTop: "1px solid var(--border-color)", fontSize: 12, color: "var(--secondary)", fontWeight: 700, letterSpacing: 0.5, textTransform: "uppercase" }}>
+                <div>Subject</div>
+                <div style={{ textAlign: "center" }}>Sem</div>
+                <div style={{ textAlign: "center" }}>Grade</div>
+                <div style={{ textAlign: "right" }}>Credits</div>
+              </div>
+              {data.subjects.map((sub, idx) => renderSubjectRow(sub, idx, false))}
+            </>
+          )}
+        </div>
+      );
+    }
+
+    if (key === 'B5') {
+      return (
+        <div style={{ display: "flex", flexDirection: "column", background: "var(--bg-main)", padding: "16px 24px" }}>
+          <h4 style={{ fontSize: 14, fontWeight: 700, color: "var(--text-main)", marginBottom: 16 }}>Specialization Domains</h4>
+          <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+            {BASKET_5_DOMAINS.map((domain, dIdx) => (
+              <div key={dIdx} style={{ background: "rgba(255,255,255,0.02)", border: "1px solid var(--border-color)", borderRadius: 12, overflow: "hidden" }}>
+                <div 
+                  onClick={() => setExpandedDomain(expandedDomain === domain ? null : domain)}
+                  style={{ padding: "16px", display: "flex", alignItems: "center", justifyContent: "space-between", cursor: "pointer", background: expandedDomain === domain ? "rgba(255,255,255,0.04)" : "transparent" }}
+                >
+                  <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                    <Folder size={18} color="var(--accent)" />
+                    <span style={{ fontSize: 14, fontWeight: 600, color: "var(--text-main)" }}>{domain}</span>
+                  </div>
+                  {expandedDomain === domain ? <ChevronUp size={18} color="var(--secondary)" /> : <ChevronDown size={18} color="var(--secondary)" />}
+                </div>
+                {expandedDomain === domain && (
+                  <div style={{ padding: "0 16px 16px 16px", borderTop: "1px solid var(--border-color)" }}>
+                    <p style={{ marginTop: 16, fontSize: 13, color: "var(--secondary)", fontStyle: "italic", lineHeight: 1.5 }}>
+                      The specific subjects for the <strong>{domain}</strong> track are managed directly by your department. Register for these tracks via ERP to build your domain specialization!
+                    </p>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+
+          <h4 style={{ fontSize: 14, fontWeight: 700, color: "var(--text-main)", marginTop: 24, marginBottom: 16 }}>Your Completed B5 Subjects & Projects</h4>
+          {data.subjects.length === 0 ? (
+             <p style={{ fontSize: 13, color: "var(--secondary)", fontStyle: "italic" }}>No subjects completed in this basket yet.</p>
+          ) : (
+             <div style={{ border: "1px solid var(--border-color)", borderRadius: 12, overflow: "hidden", background: "rgba(255,255,255,0.02)" }}>
+               {/* Desktop Header for Completed B5 Subjects */}
+               <div className="basket-grid-header" style={{ display: "grid", gridTemplateColumns: "3fr 1fr 1fr 1fr", padding: "16px 24px", borderBottom: "1px solid var(--border-color)", fontSize: 12, color: "var(--secondary)", fontWeight: 700, letterSpacing: 0.5, textTransform: "uppercase" }}>
+                 <div>Subject</div>
+                 <div style={{ textAlign: "center" }}>Sem</div>
+                 <div style={{ textAlign: "center" }}>Grade</div>
+                 <div style={{ textAlign: "right" }}>Credits</div>
+               </div>
+               {data.subjects.map((sub, idx) => renderSubjectRow(sub, idx, false))}
+             </div>
+          )}
+        </div>
+      );
+    }
+  };
 
   return (
     <div style={{ padding: "20px 0", display: "flex", flexDirection: "column", gap: 24 }}>
@@ -129,12 +215,9 @@ export default function BasketDashboard({ results }) {
       <h3 style={{ fontSize: 18, fontWeight: 700, color: "var(--text-main)", marginTop: 10 }}>Curriculum Baskets</h3>
       <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: 16 }}>
         {Object.entries(baskets).map(([key, data], i) => {
-          if (key === "domain") return null;
-          
           const progress = Math.min(100, (data.credits / data.target) * 100);
           const isComplete = data.credits >= data.target;
           const isExpanded = expandedBasket === key;
-          const displaySubjects = buildDisplayList(key, data);
 
           return (
             <motion.div 
@@ -172,7 +255,7 @@ export default function BasketDashboard({ results }) {
 
               {/* Expanded Subject List */}
               {isExpanded && (
-                <div style={{ padding: "0 0 16px 0", background: "var(--bg-main)" }}>
+                <div style={{ padding: "0 0 16px 0", background: "var(--bg-main)", borderTop: "1px solid var(--border-color)" }}>
                   <style>
                     {`
                       @media (max-width: 640px) {
@@ -200,53 +283,7 @@ export default function BasketDashboard({ results }) {
                     `}
                   </style>
 
-                  {displaySubjects.length === 0 ? (
-                    <p style={{ padding: 20, fontSize: 13, color: "var(--secondary)", fontStyle: "italic" }}>No subjects completed in this basket yet.</p>
-                  ) : (
-                    <div style={{ display: "flex", flexDirection: "column" }}>
-                      {/* Desktop Header */}
-                      <div className="basket-grid-header" style={{ display: "grid", gridTemplateColumns: "3fr 1fr 1fr 1fr", padding: "16px 24px", borderBottom: "1px solid var(--border-color)", borderTop: "1px solid var(--border-color)", fontSize: 12, color: "var(--secondary)", fontWeight: 700, letterSpacing: 0.5, textTransform: "uppercase" }}>
-                        <div>Subject</div>
-                        <div style={{ textAlign: "center" }}>Sem</div>
-                        <div style={{ textAlign: "center" }}>Grade</div>
-                        <div style={{ textAlign: "right" }}>Credits</div>
-                      </div>
-
-                      {/* Rows */}
-                      {displaySubjects.map((sub, idx) => (
-                        <div key={idx} className="basket-subject-row" style={{ display: "grid", gridTemplateColumns: "3fr 1fr 1fr 1fr", padding: "16px 24px", alignItems: "center", borderBottom: "1px solid var(--border-color)", opacity: sub.isPending ? 0.6 : 1, background: sub.isSyllabusMatch ? "rgba(34, 197, 94, 0.05)" : "transparent" }}>
-                          <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-                            <span style={{ fontSize: 13, color: "var(--text-main)", fontWeight: 700, lineHeight: 1.4, textTransform: "uppercase" }}>{sub.subName}</span>
-                            <span style={{ fontSize: 12, color: "var(--secondary)", fontFamily: "Space Mono, monospace" }}>{sub.subCode}</span>
-                          </div>
-                          
-                          <div className="mobile-flex-row" style={{ textAlign: "center", fontSize: 14, color: "var(--secondary)", fontWeight: 600 }}>
-                            <span className="mobile-label">Semester</span>
-                            <span>{sub.semester}</span>
-                          </div>
-                          
-                          <div className="mobile-flex-row" style={{ textAlign: "center", display: "flex", justifyContent: "center" }}>
-                            <span className="mobile-label">Grade</span>
-                            <span style={{ 
-                              padding: "4px 10px", 
-                              borderRadius: 8, 
-                              fontSize: 13, 
-                              fontWeight: 800,
-                              background: sub.isPending ? "rgba(255, 255, 255, 0.1)" : ['F','R','M','S','I'].includes(sub.grade) ? "rgba(239, 68, 68, 0.15)" : "rgba(34, 197, 94, 0.15)",
-                              color: sub.isPending ? "var(--secondary)" : ['F','R','M','S','I'].includes(sub.grade) ? "var(--danger)" : "var(--success)"
-                            }}>
-                              {sub.grade}
-                            </span>
-                          </div>
-                          
-                          <div className="mobile-flex-row" style={{ textAlign: "right", fontSize: 15, color: "var(--text-main)", fontWeight: 800 }}>
-                            <span className="mobile-label">Credits</span>
-                            <span>{sub.earnedCredits}</span>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
+                  {renderBasketContents(key, data)}
                 </div>
               )}
             </motion.div>
