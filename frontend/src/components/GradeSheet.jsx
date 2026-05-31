@@ -73,8 +73,8 @@ export default function GradeSheet({ result, studentData, highlightedSubject }) 
   useEffect(() => {
     const handleResize = () => {
       if (window.innerWidth < 860) {
-        // Mathematically calculate the perfect zoom to fit the 820px sheet exactly into the device screen (minus padding)
-        const perfectZoom = (window.innerWidth - 32) / 820;
+        // Default to 35% on standard mobile devices to guarantee no cutoff
+        const perfectZoom = window.innerWidth < 500 ? 0.35 : (window.innerWidth - 32) / 820;
         setZoomLevel(Number(Math.min(perfectZoom, 1).toFixed(2)));
       } else {
         setZoomLevel(1);
