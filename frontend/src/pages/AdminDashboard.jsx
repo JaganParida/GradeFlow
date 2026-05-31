@@ -48,14 +48,6 @@ function UploadCard({
     setMsg("");
     setErr("");
 
-    // Simulate upload/processing progress for premium UX
-    let currentProgress = 0;
-    const progressInterval = setInterval(() => {
-      currentProgress += Math.random() * 8 + 2; // Add 2-10%
-      if (currentProgress > 95) currentProgress = 95;
-      setProgress(Math.floor(currentProgress));
-    }, 150);
-
     try {
       const fd = new FormData();
       fd.append("file", file);
@@ -66,10 +58,16 @@ function UploadCard({
         headers: {
           ...authHeaders.headers,
           "Content-Type": "multipart/form-data",
+        },
+        onUploadProgress: (progressEvent) => {
+          if (progressEvent.total) {
+            const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+            // Cap at 90% to leave room for server processing time
+            setProgress(Math.min(90, Math.floor(percentCompleted * 0.9)));
+          }
         }
       });
       
-      clearInterval(progressInterval);
       setProgress(100);
       
       setTimeout(() => {
@@ -82,7 +80,6 @@ function UploadCard({
       }, 500);
       
     } catch (e) {
-      clearInterval(progressInterval);
       setErr(e.response?.data?.message || "Upload failed");
       setLoading(false);
       setProgress(0);
