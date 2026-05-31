@@ -211,6 +211,221 @@ export const COMMON_BASKET_5_SYLLABUS = [
 
 export const BASKET_5_SKILL_COURSES = [
   {
+    "subCode": "CUTM3029",
+    "subName": "Apparel Production & Marketing",
+    "credits": 4
+  },
+  {
+    "subCode": "CUTM3030",
+    "subName": "Line Stitching Supervising",
+    "credits": 4
+  },
+  {
+    "subCode": "CUTM3031",
+    "subName": "Apparel Production",
+    "credits": 4
+  },
+  {
+    "subCode": "CUTM3032",
+    "subName": "Light Motor Vehicle Driving",
+    "credits": 4
+  },
+  {
+    "subCode": "CUTM3033",
+    "subName": "Fork Lift Operation",
+    "credits": 4
+  },
+  {
+    "subCode": "CUTM3034",
+    "subName": "Heavy Vehicle Technology",
+    "credits": 4
+  },
+  {
+    "subCode": "CUTM3035",
+    "subName": "Two Wheeler Service Technology",
+    "credits": 4
+  },
+  {
+    "subCode": "CUTM3036",
+    "subName": "Four Wheeler Service Technology",
+    "credits": 4
+  },
+  {
+    "subCode": "CUTM3037",
+    "subName": "E-Vehicle Assembly and Service Technology",
+    "credits": 4
+  },
+  {
+    "subCode": "CUTM3039",
+    "subName": "CNC Machinist",
+    "credits": 4
+  },
+  {
+    "subCode": "CUTM3040",
+    "subName": "CNC Programming (CAM)",
+    "credits": 4
+  },
+  {
+    "subCode": "CUTM3041",
+    "subName": "Design Supervising Wooden and Modular Furniture",
+    "credits": 4
+  },
+  {
+    "subCode": "CUTM3043",
+    "subName": "3D Modelling and Printing",
+    "credits": 4
+  },
+  {
+    "subCode": "CUTM3045",
+    "subName": "Precast Concrete Manufacturing",
+    "credits": 4
+  },
+  {
+    "subCode": "CUTM3046",
+    "subName": "Fabrication",
+    "credits": 4
+  },
+  {
+    "subCode": "CUTM3047",
+    "subName": "Hi-Tech Surveying",
+    "credits": 4
+  },
+  {
+    "subCode": "CUTM3048",
+    "subName": "Internet of Things",
+    "credits": 4
+  },
+  {
+    "subCode": "CUTM3049",
+    "subName": "Mechatronics System Design",
+    "credits": 4
+  },
+  {
+    "subCode": "CUTM3051",
+    "subName": "Introduction to Nanotechnology",
+    "credits": 4
+  },
+  {
+    "subCode": "CUTM3053",
+    "subName": "Camera Operation",
+    "credits": 4
+  },
+  {
+    "subCode": "CUTM3054",
+    "subName": "Editor",
+    "credits": 4
+  },
+  {
+    "subCode": "CUTM3055",
+    "subName": "Desktop Publishing",
+    "credits": 4
+  },
+  {
+    "subCode": "CUTM3056",
+    "subName": "Introduction to Blender and Unity tools",
+    "credits": 4
+  },
+  {
+    "subCode": "CUTM3057",
+    "subName": "Refraction Technology",
+    "credits": 4
+  },
+  {
+    "subCode": "CUTM3058",
+    "subName": "Emergency Medical Technology",
+    "credits": 4
+  },
+  {
+    "subCode": "CUTM3059",
+    "subName": "Medical Lab Technology",
+    "credits": 4
+  },
+  {
+    "subCode": "CUTM3060",
+    "subName": "Operating Theatre Technology",
+    "credits": 4
+  },
+  {
+    "subCode": "CUTM3061",
+    "subName": "Radiology Technology",
+    "credits": 4
+  },
+  {
+    "subCode": "CUTM3062",
+    "subName": "Phlebotomy Technology",
+    "credits": 4
+  },
+  {
+    "subCode": "CUTM3063",
+    "subName": "First Aid Service",
+    "credits": 4
+  },
+  {
+    "subCode": "CUTM3064",
+    "subName": "General Duty Assistance Service",
+    "credits": 4
+  },
+  {
+    "subCode": "CUTM3065",
+    "subName": "X-ray Technology",
+    "credits": 4
+  },
+  {
+    "subCode": "CUTM3067",
+    "subName": "Retail Sales",
+    "credits": 4
+  },
+  {
+    "subCode": "CUTM3068",
+    "subName": "Basketball",
+    "credits": 4
+  },
+  {
+    "subCode": "CUTM3069",
+    "subName": "Gym Fitness",
+    "credits": 4
+  },
+  {
+    "subCode": "CUTM3070",
+    "subName": "Swimming",
+    "credits": 4
+  },
+  {
+    "subCode": "CUTM3072",
+    "subName": "Yoga & Meditation",
+    "credits": 4
+  },
+  {
+    "subCode": "CUTM3073",
+    "subName": "Solar PV Installation",
+    "credits": 4
+  },
+  {
+    "subCode": "CUTM3074",
+    "subName": "Solar Lighting Technology",
+    "credits": 4
+  },
+  {
+    "subCode": "CUTM3076",
+    "subName": "Solar PV Microgrid System",
+    "credits": 4
+  },
+  {
+    "subCode": "CUTM3077",
+    "subName": "Solar PV Driven Equipment Assembly",
+    "credits": 4
+  },
+  {
+    "subCode": "CUTM3078",
+    "subName": "Solar Thermal Engineering",
+    "credits": 4
+  },
+  {
+    "subCode": "CUTM3079",
+    "subName": "Introduction to Quantum Computing",
+    "credits": 4
+  },
+  {
     "subCode": "CUTM3081",
     "subName": "Organic Farming",
     "credits": 4
