@@ -177,6 +177,25 @@ export default function BasketDashboard({ results }) {
 
       return (
         <div style={{ display: "flex", flexDirection: "column", background: "var(--bg-main)", padding: "16px 24px" }}>
+          {(() => {
+            const takenSkillCourses = data.subjects.filter(s => BASKET_5_SKILL_COURSES.some(sc => isMatch(s, sc)));
+            if (takenSkillCourses.length === 0) return null;
+            return (
+              <div style={{ marginBottom: 32 }}>
+                 <h4 style={{ fontSize: 14, fontWeight: 700, color: "var(--text-main)", marginBottom: 16 }}>Your Skill Courses</h4>
+                 <div style={{ border: "1px solid var(--border-color)", borderRadius: 12, overflow: "hidden", background: "rgba(255,255,255,0.02)" }}>
+                   <div className="basket-grid-header" style={{ display: "grid", gridTemplateColumns: "3fr 1fr 1fr 1fr", padding: "16px 24px", borderBottom: "1px solid var(--border-color)", fontSize: 12, color: "var(--secondary)", fontWeight: 700, letterSpacing: 0.5, textTransform: "uppercase" }}>
+                     <div>Subject</div>
+                     <div style={{ textAlign: "center" }}>Sem</div>
+                     <div style={{ textAlign: "center" }}>Status</div>
+                     <div style={{ textAlign: "right" }}>Credits</div>
+                   </div>
+                   {takenSkillCourses.map((sub, idx) => renderSubjectRow(sub, 'skill-' + idx, false))}
+                 </div>
+              </div>
+            );
+          })()}
+
           {inferredDomain ? (
             <h4 style={{ fontSize: 14, fontWeight: 700, color: "var(--text-main)", marginBottom: 16 }}>Your Domain Track: <span style={{color: "var(--accent)"}}>{inferredDomain.name}</span></h4>
           ) : (
