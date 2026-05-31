@@ -182,6 +182,12 @@ export const BASKET_4_SYLLABUS = [
     "credits": 2
   }
 ];
+export const COMMON_BASKET_5_SYLLABUS = [
+  { subCode: "CUTM1577", subName: "MINOR PROJECT II", credits: 2 },
+  { subCode: "CUTM1905", subName: "INTERNSHIP", credits: 2 },
+  { subCode: "CUTM1906", subName: "MINOR PROJECT", credits: 2 }
+];
+
 export const BASKET_1_SYLLABUS = [
   { subName: "Differential Equations & Linear Algebra", credits: 3 },
   { subName: "Laplace & Fourier Transforms", credits: 3 },

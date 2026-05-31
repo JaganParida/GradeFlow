@@ -1,5 +1,5 @@
 import React, { useMemo } from "react";
-import { categorizeBaskets, BASKET_1_SYLLABUS, BASKET_2_SYLLABUS, BASKET_3_SYLLABUS, BASKET_4_SYLLABUS, BASKET_5_DOMAINS_DATA, inferStudentDomainTrack } from "../utils/basketLogic";
+import { categorizeBaskets, BASKET_1_SYLLABUS, BASKET_2_SYLLABUS, BASKET_3_SYLLABUS, BASKET_4_SYLLABUS, BASKET_5_DOMAINS_DATA, inferStudentDomainTrack, COMMON_BASKET_5_SYLLABUS } from "../utils/basketLogic";
 import { CheckCircle, Award, Target, BookOpen, Hexagon, Cpu, Zap, ChevronDown, ChevronUp, Folder } from "lucide-react";
 import { motion } from "framer-motion";
 
@@ -143,6 +143,12 @@ export default function BasketDashboard({ results }) {
 
     if (key === 'B5') {
       const b5ExtraSubjects = data.subjects.filter(s => {
+        const isInCommon = COMMON_BASKET_5_SYLLABUS.some(cs => 
+          (s.subCode && cs.subCode && s.subCode.toLowerCase() === cs.subCode.toLowerCase()) || 
+          (s.subName && cs.subName && s.subName.toLowerCase().includes(cs.subName.toLowerCase()))
+        );
+        if (isInCommon) return false;
+
         if (!inferredDomain) return true; 
         return !inferredDomain.subjects.some(ds => 
           (s.subCode && ds.subCode && s.subCode.toLowerCase() === ds.subCode.toLowerCase()) || 
@@ -150,38 +156,39 @@ export default function BasketDashboard({ results }) {
         );
       });
 
+      const fullB5Syllabus = inferredDomain ? [...inferredDomain.subjects, ...COMMON_BASKET_5_SYLLABUS] : COMMON_BASKET_5_SYLLABUS;
+
       return (
         <div style={{ display: "flex", flexDirection: "column", background: "var(--bg-main)", padding: "16px 24px" }}>
           {inferredDomain ? (
-            <>
-              <h4 style={{ fontSize: 14, fontWeight: 700, color: "var(--text-main)", marginBottom: 16 }}>Your Domain Track: <span style={{color: "var(--accent)"}}>{inferredDomain.name}</span></h4>
-              
-              <div className="basket-grid-header" style={{ display: "grid", gridTemplateColumns: "3fr 1fr 1fr 1fr", padding: "16px 24px", borderBottom: "1px solid var(--border-color)", borderTop: "1px solid var(--border-color)", fontSize: 12, color: "var(--secondary)", fontWeight: 700, letterSpacing: 0.5, textTransform: "uppercase" }}>
-                <div>Subject</div>
-                <div style={{ textAlign: "center" }}>Sem</div>
-                <div style={{ textAlign: "center" }}>Status</div>
-                <div style={{ textAlign: "right" }}>Credits</div>
-              </div>
-              
-              {inferredDomain.subjects.map((syllabusSub, idx) => {
-                 const takenSub = data.subjects.find(s => 
-                   (s.subCode && syllabusSub.subCode && s.subCode.toLowerCase() === syllabusSub.subCode.toLowerCase()) || 
-                   (s.subName && syllabusSub.subName && s.subName.toLowerCase().includes(syllabusSub.subName.toLowerCase()))
-                 );
-                 if (takenSub) return renderSubjectRow(takenSub, idx, false);
-                 return renderSubjectRow({ subName: syllabusSub.subName, subCode: syllabusSub.subCode, credits: syllabusSub.credits }, idx, true);
-              })}
-            </>
+            <h4 style={{ fontSize: 14, fontWeight: 700, color: "var(--text-main)", marginBottom: 16 }}>Your Domain Track: <span style={{color: "var(--accent)"}}>{inferredDomain.name}</span></h4>
           ) : (
             <>
                <h4 style={{ fontSize: 14, fontWeight: 700, color: "var(--text-main)", marginBottom: 8 }}>Specialization Domain</h4>
                <p style={{ fontSize: 13, color: "var(--secondary)", marginBottom: 16 }}>You have not registered for any specific Domain Track subjects yet. Once you do, your syllabus will automatically appear here!</p>
+               <h4 style={{ fontSize: 14, fontWeight: 700, color: "var(--text-main)", marginBottom: 16 }}>Standard B5 Requirements</h4>
             </>
           )}
 
+          <div className="basket-grid-header" style={{ display: "grid", gridTemplateColumns: "3fr 1fr 1fr 1fr", padding: "16px 24px", borderBottom: "1px solid var(--border-color)", borderTop: "1px solid var(--border-color)", fontSize: 12, color: "var(--secondary)", fontWeight: 700, letterSpacing: 0.5, textTransform: "uppercase" }}>
+            <div>Subject</div>
+            <div style={{ textAlign: "center" }}>Sem</div>
+            <div style={{ textAlign: "center" }}>Status</div>
+            <div style={{ textAlign: "right" }}>Credits</div>
+          </div>
+          
+          {fullB5Syllabus.map((syllabusSub, idx) => {
+             const takenSub = data.subjects.find(s => 
+               (s.subCode && syllabusSub.subCode && s.subCode.toLowerCase() === syllabusSub.subCode.toLowerCase()) || 
+               (s.subName && syllabusSub.subName && s.subName.toLowerCase().includes(syllabusSub.subName.toLowerCase()))
+             );
+             if (takenSub) return renderSubjectRow(takenSub, idx, false);
+             return renderSubjectRow({ subName: syllabusSub.subName, subCode: syllabusSub.subCode, credits: syllabusSub.credits }, idx, true);
+          })}
+
           {b5ExtraSubjects.length > 0 && (
             <>
-              <h4 style={{ fontSize: 14, fontWeight: 700, color: "var(--text-main)", marginTop: 24, marginBottom: 16 }}>{inferredDomain ? "Additional B5 Subjects & Internships" : "Your Completed B5 Subjects"}</h4>
+              <h4 style={{ fontSize: 14, fontWeight: 700, color: "var(--text-main)", marginTop: 24, marginBottom: 16 }}>{inferredDomain ? "Additional B5 Subjects" : "Your Completed B5 Subjects"}</h4>
               <div style={{ border: "1px solid var(--border-color)", borderRadius: 12, overflow: "hidden", background: "rgba(255,255,255,0.02)" }}>
                  <div className="basket-grid-header" style={{ display: "grid", gridTemplateColumns: "3fr 1fr 1fr 1fr", padding: "16px 24px", borderBottom: "1px solid var(--border-color)", fontSize: 12, color: "var(--secondary)", fontWeight: 700, letterSpacing: 0.5, textTransform: "uppercase" }}>
                    <div>Subject</div>
