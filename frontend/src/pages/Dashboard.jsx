@@ -75,8 +75,11 @@ export default function Dashboard() {
         
         for (let i = 0; i < studentData.results.length; i++) {
           const r = studentData.results[i];
-          const element = document.getElementById(`batch-export-sem-${r.semester}`);
+          const element = document.getElementById(`gradesheet-capture-${r.semester}`);
           if (!element) continue;
+          
+          // Let the browser breathe and animate the spinner before the next heavy html2canvas task
+          await new Promise(resolve => setTimeout(resolve, 50));
           
           const canvas = await html2canvas(element, { scale: 2, useCORS: true });
           const imgData = canvas.toDataURL("image/png");

@@ -288,21 +288,22 @@ export default function GradeSheet({ result, studentData }) {
             borderRadius: 10 /* Matches inner paper to cleanly cut off shadow without looking bad */
         }}>
           <div
+            id={`gradesheet-capture-${result.semester}`}
             ref={sheetRef}
             style={{
               background: "#fff",
               color: "#000",
-              padding: "32px 44px 36px",
-              borderRadius: 10,
+              padding: "36px 44px",
+              borderRadius: 8,
               width: 820,
               transform: `scale(${zoomLevel})`,
               transformOrigin: "top left",
-          fontFamily: "'Times New Roman', Georgia, serif",
-          fontSize: 13,
-          boxShadow: "0 2px 16px rgba(0,0,0,0.10)",
-          border: "1px solid #e0e0e0",
-        }}
-      >
+              fontFamily: "'DM Sans', 'Inter', sans-serif",
+              fontSize: 13,
+              boxShadow: "0 2px 16px rgba(0,0,0,0.10)",
+              border: "1px solid #e0e0e0",
+            }}
+          >
         {/* Top bar */}
         <div
           style={{
@@ -330,7 +331,6 @@ export default function GradeSheet({ result, studentData }) {
             style={{
               fontSize: 22,
               fontWeight: 800,
-              fontFamily: "Georgia, serif",
               lineHeight: 1.3,
               marginBottom: 4,
             }}
