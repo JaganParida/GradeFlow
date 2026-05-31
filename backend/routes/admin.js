@@ -166,10 +166,12 @@ router.post(
       function detectBranch(regNo) {
         if (!regNo) return "";
         const r = String(regNo).trim();
-        // Exceptions
+        
+        // Exact Matches (Exceptions)
         if (r === "230301180026") return "CSE";
         if (["230301120110", "230301120186", "230301120371", "230301120481"].includes(r)) return "ECE";
         if (r === "230301231033") return "AERO";
+
         // Prefixes
         if (r.startsWith("230301110") || r.startsWith("230301111")) return "CIVIL";
         if (r.startsWith("230301120") || r.startsWith("230301121")) return "CSE";
@@ -179,6 +181,7 @@ router.post(
         if (r.startsWith("230301180")) return "BIO";
         if (r.startsWith("230301190") || r.startsWith("230301191")) return "MI";
         if (r.startsWith("230301230")) return "AERO";
+        
         return "";
       }
 
