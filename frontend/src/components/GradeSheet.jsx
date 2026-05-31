@@ -234,7 +234,7 @@ export default function GradeSheet({ result, studentData, highlightedSubject }) 
   });
 
   return (
-    <div style={{ width: "100%", maxWidth: "100%" }}>
+    <div style={{ width: "100%", maxWidth: "100%", minWidth: 0, overflow: "hidden" }}>
       {/* ── Action Buttons ── */}
       <div
         data-html2canvas-ignore="true"
