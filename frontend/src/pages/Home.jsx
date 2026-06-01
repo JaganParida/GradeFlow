@@ -124,6 +124,8 @@ export default function Home() {
             animate={{ y: 0, opacity: 1 }}
             style={{
               display: "flex",
+              flexDirection: "row",
+              flexWrap: "nowrap",
               gap: 12,
               background: "rgba(20,20,20,0.8)",
               backdropFilter: "blur(12px)",
@@ -137,16 +139,17 @@ export default function Home() {
               justifyContent: "center",
               alignItems: "center",
               whiteSpace: "nowrap",
+              width: "max-content",
             }}
           >
-            <div style={{ display: "flex", alignItems: "center", gap: 6, color: "var(--text)" }}>
-              <div style={{ width: 8, height: 8, borderRadius: "50%", background: "#22c55e", boxShadow: "0 0 10px #22c55e" }} />
+            <div style={{ display: "flex", alignItems: "center", gap: 6, color: "var(--text)", whiteSpace: "nowrap" }}>
+              <div style={{ width: 8, height: 8, borderRadius: "50%", background: "#22c55e", boxShadow: "0 0 10px #22c55e", flexShrink: 0 }} />
               {stats.activeUsers} {stats.activeUsers === 1 ? "User" : "Users"} Online
             </div>
-            <div style={{ width: 1, height: 14, background: "rgba(255,255,255,0.15)" }} />
-            <div style={{ display: "flex", alignItems: "center", gap: 6, color: isServerBusy ? "var(--danger)" : "var(--accent)" }}>
-              <Activity size={14} />
-              {stats.activeRequests} / {stats.maxRequests} Slots Used
+            <div style={{ width: 1, height: 14, background: "rgba(255,255,255,0.15)", flexShrink: 0 }} />
+            <div style={{ display: "flex", alignItems: "center", gap: 6, color: isServerBusy ? "var(--danger)" : "var(--accent)", whiteSpace: "nowrap" }}>
+              <Activity size={14} style={{ flexShrink: 0 }} />
+              {stats.activeRequests} / {stats.maxRequests} Active Searches
             </div>
           </motion.div>
         )}
