@@ -11,7 +11,7 @@ const GRADE_POINTS = {
   B: 7,
   C: 6,
   D: 5,
-  F: 2,
+  F: 0,
   R: 0,
   M: 0,
   S: 0,
@@ -29,8 +29,8 @@ function calcCGPA(results) {
       if (Number(r.semester) === 5 && s.grade === 'R' && (Number(s.credit) === 6 || (s.subName && s.subName.toLowerCase().includes('project')))) {
         return; // Ignore Sem 5 R grade projects
       }
-      if (s.grade === 'M' || s.grade === 'S') {
-        return; // M and S credits are not counted in SGPA/CGPA denominator
+      if (['F', 'R', 'M', 'S'].includes(s.grade)) {
+        return; // Excluded from SGPA/CGPA denominator
       }
       if (s.credit && GRADE_POINTS[s.grade] !== undefined) {
         semTW += s.credit * GRADE_POINTS[s.grade];
@@ -111,7 +111,7 @@ router.get("/:regNo", checkQueue, async (req, res) => {
       totalCredits: results.reduce((a, r) => {
         return a + r.subjects.reduce((sum, s) => {
           if (Number(r.semester) === 5 && s.grade === 'R' && (Number(s.credit) === 6 || (s.subName && s.subName.toLowerCase().includes('project')))) return sum;
-          if (s.grade === 'M' || s.grade === 'S') return sum;
+          if (['F', 'R', 'M', 'S'].includes(s.grade)) return sum;
           return sum + (s.credit || 0);
         }, 0);
       }, 0),
