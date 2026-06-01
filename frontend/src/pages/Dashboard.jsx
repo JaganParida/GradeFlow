@@ -103,7 +103,20 @@ function getSubjectTotal(subject, semester, assessments = getInternalAssessments
       ? subject.totalScore
       : null;
   const score = firstAvailableMark(explicitTotalScore, hasComponentScore ? computedScore : null);
-  const max = firstAvailableMark(subject.totalMax, computedMax > 0 ? computedMax : null);
+  const explicitTotalMax = isMarkAvailable(subject.totalMax) ? subject.totalMax : null;
+  const explicitMaxLooksValid =
+    explicitTotalMax === null ||
+    !isSem1 ||
+    !isMarkAvailable(score) ||
+    Number(explicitTotalMax) >= Number(score);
+  const computedMaxLooksValid = !isMarkAvailable(score) || computedMax >= Number(score);
+  const sem1DefaultMax =
+    isSem1 && isMarkAvailable(score) && Number(score) <= 50 ? 50 : null;
+  const max = firstAvailableMark(
+    explicitMaxLooksValid ? explicitTotalMax : null,
+    computedMax > 0 && computedMaxLooksValid ? computedMax : null,
+    sem1DefaultMax,
+  );
 
   return {
     hasAny: isMarkAvailable(score),

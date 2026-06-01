@@ -447,31 +447,121 @@ router.post(
       const formSession = req.body.session;
       const grouped = {};
       const wb = XLSX.read(req.file.buffer, { type: "buffer" });
+      const uploadSemester = Number(formSemester);
+      const isSem1Upload = uploadSemester === 1;
       
       let colMap = {};
+
+      const sem1Assessments = new Set(["classTest1", "classTest2", "classTest3", "classTest4", "assignment", "total"]);
+      const regularAssessments = new Set([
+        "midSem",
+        "presentation",
+        "assignment",
+        "learningRecord",
+        "internalPractical",
+        "projectInternal",
+        "total",
+      ]);
+
+      const compactHeader = (value) =>
+        String(value || "")
+          .trim()
+          .toUpperCase()
+          .replace(/[\s\-_.:]+/g, "");
+
+      const detectAssessment = (value) => {
+        const val = String(value || "").trim().toUpperCase();
+        const compactVal = compactHeader(value);
+        if (!compactVal) return null;
+
+        if (compactVal.includes("MIDSEMESTER") || compactVal.includes("MIDSEM")) return "midSem";
+        if (compactVal.includes("CLASSTESTIV") || compactVal.includes("CLASSTEST4") || compactVal.includes("CTIV") || compactVal.includes("CT4")) return "classTest4";
+        if (compactVal.includes("CLASSTESTIII") || compactVal.includes("CLASSTEST3") || compactVal.includes("CTIII") || compactVal.includes("CT3")) return "classTest3";
+        if (compactVal.includes("CLASSTESTII") || compactVal.includes("CLASSTEST2") || compactVal.includes("CTII") || compactVal.includes("CT2")) return "classTest2";
+        if (compactVal.includes("CLASSTESTI") || compactVal.includes("CLASSTEST1") || compactVal.includes("CTI") || compactVal.includes("CT1")) return "classTest1";
+        if (compactVal.includes("PRESENTATION")) return "presentation";
+        if (compactVal.includes("ASSIGNMENT")) return "assignment";
+        if (compactVal.includes("LEARNINGRECORD")) return "learningRecord";
+        if (compactVal.includes("INTERNALPRACTICAL") || compactVal.includes("INTERNALPRAC")) return "internalPractical";
+        if (compactVal.includes("PROJECTINTERNAL")) return "projectInternal";
+        if (compactVal === "TOTAL" || compactVal.includes("TOTALSCORE") || val.includes("TOTAL:")) return "total";
+
+        return null;
+      };
+
+      const isAllowedAssessment = (assessment) =>
+        assessment && (isSem1Upload ? sem1Assessments.has(assessment) : regularAssessments.has(assessment));
+
+      const isMetricHeader = (value) => {
+        const cleanVal = compactHeader(value);
+        return (
+          cleanVal.includes("ROUND") ||
+          cleanVal.includes("OBTAINED") ||
+          cleanVal.includes("OBT") ||
+          cleanVal.includes("MAX")
+        );
+      };
+
+      const isSubjectNoise = (value) => {
+        const val = String(value || "").trim().toLowerCase();
+        const compactVal = compactHeader(val);
+        return (
+          !val ||
+          detectAssessment(val) ||
+          isMetricHeader(val) ||
+          val.includes("semester") ||
+          val.includes("student") ||
+          val.includes("roll") ||
+          val.includes("regno") ||
+          val.includes("reg no") ||
+          ["SRNO", "SLNO", "SNO", "SINO"].includes(compactVal)
+        );
+      };
+
+      const hasNumericValue = (value) =>
+        value !== undefined &&
+        value !== null &&
+        value !== "" &&
+        !Number.isNaN(Number(value));
 
       const hasInternalScore = (subject) =>
         Object.entries(subject).some(([key, value]) =>
           (key.endsWith("Obtained") || key.endsWith("RoundOff") || key === "totalScore") &&
-          value !== undefined &&
-          value !== null &&
-          value !== "" &&
-          !Number.isNaN(Number(value))
+          hasNumericValue(value)
         );
 
       const hasComponentScore = (subject) =>
         Object.entries(subject).some(([key, value]) =>
           (key.endsWith("Obtained") || key.endsWith("RoundOff")) &&
-          value !== undefined &&
-          value !== null &&
-          value !== "" &&
-          !Number.isNaN(Number(value))
+          hasNumericValue(value)
         );
 
       const normalizeInternalSubject = (subject) => {
         if (!hasComponentScore(subject) && Number(subject.totalScore) === 0) {
           delete subject.totalScore;
         }
+
+        if (isSem1Upload && hasNumericValue(subject.totalScore)) {
+          const totalScore = Number(subject.totalScore);
+          const componentMax = [
+            subject.classTest1Max,
+            subject.classTest2Max,
+            subject.classTest3Max,
+            subject.classTest4Max,
+            subject.assignmentMax,
+          ]
+            .filter(hasNumericValue)
+            .reduce((sum, value) => sum + Number(value), 0);
+
+          if (!hasNumericValue(subject.totalMax) || Number(subject.totalMax) < totalScore) {
+            if (componentMax >= totalScore) {
+              subject.totalMax = componentMax;
+            } else if (totalScore <= 50) {
+              subject.totalMax = 50;
+            }
+          }
+        }
+
         return subject;
       };
 
@@ -521,7 +611,7 @@ router.post(
                   subName: val.split("-")[0].trim().toUpperCase(),
                   type: subMatch[2].toUpperCase(),
                 };
-              } else if (val.length > 5 && !val.includes("semester") && !val.includes("assignment") && !val.includes("presentation") && !val.includes("record") && !val.includes("practical") && !val.includes("project") && !val.includes("total") && !val.includes("obtained") && !val.includes("round") && !val.includes("max")) {
+              } else if (val.length > 5 && !isSubjectNoise(val)) {
                 foundSubject = {
                   subCode: val.substring(0, 8).toUpperCase(),
                   subName: val.toUpperCase(),
@@ -539,19 +629,8 @@ router.post(
           // Check for Assessment
           let foundAss = null;
           for (let r = Math.max(0, headerRowIdx - 3); r <= headerRowIdx + 2; r++) {
-            const val = String(rows[r] && rows[r][c] ? rows[r][c] : "").trim().toUpperCase();
-            const compactVal = val.replace(/[\s\-_.]+/g, "");
-            if (val.includes("MID SEMESTER")) foundAss = "midSem";
-            else if (compactVal.includes("CLASSTESTIV") || compactVal.includes("CLASSTEST4")) foundAss = "classTest4";
-            else if (compactVal.includes("CLASSTESTIII") || compactVal.includes("CLASSTEST3")) foundAss = "classTest3";
-            else if (compactVal.includes("CLASSTESTII") || compactVal.includes("CLASSTEST2")) foundAss = "classTest2";
-            else if (compactVal.includes("CLASSTESTI") || compactVal.includes("CLASSTEST1")) foundAss = "classTest1";
-            else if (val.includes("PRESENTATION")) foundAss = "presentation";
-            else if (val.includes("ASSIGNMENT")) foundAss = "assignment";
-            else if (val.includes("LEARNING RECORD")) foundAss = "learningRecord";
-            else if (val.includes("INTERNAL PRACTICAL")) foundAss = "internalPractical";
-            else if (val.includes("PROJECT INTERNAL")) foundAss = "projectInternal";
-            else if (val.includes("TOTAL:") || val === "TOTAL") foundAss = "total";
+            const detected = detectAssessment(rows[r] && rows[r][c]);
+            if (isAllowedAssessment(detected)) foundAss = detected;
           }
           if (foundAss) {
             if (currentAssessment !== foundAss) {
@@ -564,11 +643,11 @@ router.post(
           let foundMetric = null;
           for (let r = Math.max(0, headerRowIdx - 3); r <= headerRowIdx + 2; r++) {
             const rawText = String(rows[r] && rows[r][c] ? rows[r][c] : "");
-            const cleanVal = rawText.toUpperCase().replace(/[\s\-_.]+/g, "");
+            const cleanVal = compactHeader(rawText);
             if (cleanVal.includes("ROUND")) {
               foundMetric = "roundOff";
             } else if (cleanVal.includes("OBTAINED") || cleanVal.includes("OBT")) {
-              if (assessmentMetrics["obtained"]) {
+              if (!isSem1Upload && assessmentMetrics["obtained"]) {
                 // If we already found the main obtained column for this assessment,
                 // this second "obtained" is actually the round off column due to split headers.
                 foundMetric = "roundOff";
@@ -577,6 +656,8 @@ router.post(
               }
             } else if (cleanVal.includes("MAX")) {
               foundMetric = "max";
+            } else if (currentAssessment === "total" && cleanVal.includes("TOTALSCORE")) {
+              foundMetric = "obtained";
             }
           }
 
@@ -650,9 +731,14 @@ router.post(
               };
             }
 
-            const fieldName = map.assessment === "total" 
-              ? (map.metric === "obtained" ? "totalScore" : "totalMax")
-              : `${map.assessment}${map.metric.charAt(0).toUpperCase() + map.metric.slice(1)}`;
+            let fieldName;
+            if (map.assessment === "total") {
+              if (map.metric === "obtained") fieldName = "totalScore";
+              else if (map.metric === "max") fieldName = "totalMax";
+              else continue;
+            } else {
+              fieldName = `${map.assessment}${map.metric.charAt(0).toUpperCase() + map.metric.slice(1)}`;
+            }
               
             if (grouped[key].subjectsObj[subjKey][fieldName] === undefined) {
               grouped[key].subjectsObj[subjKey][fieldName] = val;
