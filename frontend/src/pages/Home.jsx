@@ -28,16 +28,16 @@ export default function Home() {
   // Auto-admit effect
   useEffect(() => {
     if (isAdmitted && queuedRegNo) {
-      setIsAdmitted(false); // Reset to prevent loop
-      setQueuedRegNo(""); // Clear queue
+      const searchId = queuedRegNo;
+      setQueuedRegNo(""); // Clear queue to prevent duplicate searches
       
       const doSearch = async () => {
-        const data = await fetchStudent(queuedRegNo);
-        if (data) navigate(`/dashboard/${queuedRegNo}`);
+        const data = await fetchStudent(searchId);
+        if (data) navigate(`/dashboard/${searchId}`);
       };
       doSearch();
     }
-  }, [isAdmitted, queuedRegNo, fetchStudent, navigate, setIsAdmitted]);
+  }, [isAdmitted, queuedRegNo, fetchStudent, navigate]);
 
   async function handleSearch(e) {
     e.preventDefault();
