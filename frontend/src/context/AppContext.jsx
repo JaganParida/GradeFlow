@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect } from "react";
+import { createContext, useContext, useState, useEffect, useRef } from "react";
 import axios from "axios";
 import { io } from "socket.io-client";
 
@@ -20,6 +20,8 @@ export function AppProvider({ children }) {
   );
   
   const socketRef = useRef(null);
+  const [queuePosition, setQueuePosition] = useState(null);
+  const [isAdmitted, setIsAdmitted] = useState(false);
 
   useEffect(() => {
     socketRef.current = io(API.replace('/api', ''));
@@ -31,6 +33,15 @@ export function AppProvider({ children }) {
     socketRef.current.on("session_expired", (data) => {
       alert(data.message || "Session expired");
       window.location.href = "/";
+    });
+
+    socketRef.current.on("queue_update", (data) => {
+      setQueuePosition(data.position);
+    });
+
+    socketRef.current.on("queue_admitted", () => {
+      setIsAdmitted(true);
+      setQueuePosition(null);
     });
 
     const handleStorageChange = (e) => {
@@ -63,6 +74,30 @@ export function AppProvider({ children }) {
   const leaveDashboard = () => {
     if (socketRef.current) {
       socketRef.current.emit("leave_dashboard");
+    }
+  };
+
+  const joinQueue = (regNo) => {
+    return new Promise((resolve) => {
+      if (socketRef.current) {
+        socketRef.current.emit("join_queue", { regNo }, (response) => {
+          if (response.status === "admitted") {
+            setIsAdmitted(true);
+          } else if (response.status === "queued") {
+            setQueuePosition(response.position);
+          }
+          resolve(response);
+        });
+      } else {
+        resolve({ status: "error" });
+      }
+    });
+  };
+
+  const leaveQueue = () => {
+    if (socketRef.current) {
+      socketRef.current.emit("leave_queue");
+      setQueuePosition(null);
     }
   };
 
@@ -125,6 +160,11 @@ export function AppProvider({ children }) {
         fetchStudent,
         enterDashboard,
         leaveDashboard,
+        queuePosition,
+        isAdmitted,
+        setIsAdmitted,
+        joinQueue,
+        leaveQueue,
         adminToken,
         adminLogin,
         adminLogout,

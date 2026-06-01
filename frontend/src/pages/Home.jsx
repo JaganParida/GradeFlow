@@ -2,13 +2,14 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useApp } from "../context/AppContext";
 import { motion } from "framer-motion";
-import { GraduationCap, ArrowRight, AlertTriangle, BarChart2, Trophy, TrendingUp, Target, Sparkles, FileText, Activity, Clock, Star, Sigma } from "lucide-react";
+import { GraduationCap, ArrowRight, AlertTriangle, BarChart2, Trophy, TrendingUp, Target, Sparkles, FileText, Activity, Clock, Star, Sigma, Loader2, X } from "lucide-react";
 
 export default function Home() {
   const [regNo, setRegNo] = useState("");
-  const { fetchStudent, loading, error, stats, cooldownExpiry } = useApp();
+  const { fetchStudent, loading, error, stats, cooldownExpiry, queuePosition, isAdmitted, setIsAdmitted, joinQueue, leaveQueue } = useApp();
   const navigate = useNavigate();
   const [cooldownRemaining, setCooldownRemaining] = useState(0);
+  const [queuedRegNo, setQueuedRegNo] = useState("");
 
   useEffect(() => {
     const checkCooldown = () => {
@@ -24,12 +25,29 @@ export default function Home() {
     return () => clearInterval(interval);
   }, [cooldownExpiry]);
 
+  // Auto-admit effect
+  useEffect(() => {
+    if (isAdmitted && queuedRegNo) {
+      setIsAdmitted(false); // Reset to prevent loop
+      setQueuedRegNo(""); // Clear queue
+      
+      const doSearch = async () => {
+        const data = await fetchStudent(queuedRegNo);
+        if (data) navigate(`/dashboard/${queuedRegNo}`);
+      };
+      doSearch();
+    }
+  }, [isAdmitted, queuedRegNo, fetchStudent, navigate, setIsAdmitted]);
+
   async function handleSearch(e) {
     e.preventDefault();
-    if (loading || cooldownRemaining > 0 || (stats && stats.activeRequests >= stats.maxRequests)) return;
+    if (loading || cooldownRemaining > 0 || queuePosition) return;
     if (!regNo.trim()) return;
-    const data = await fetchStudent(regNo.trim());
-    if (data) navigate(`/dashboard/${regNo.trim()}`);
+    
+    const searchRegNo = regNo.trim();
+    setQueuedRegNo(searchRegNo);
+    await joinQueue(searchRegNo);
+    // The auto-admit effect handles the rest!
   }
 
   const formatTime = (seconds) => {
@@ -39,7 +57,7 @@ export default function Home() {
   };
 
   const isServerBusy = stats && stats.activeRequests >= stats.maxRequests;
-  const isSearchDisabled = loading || cooldownRemaining > 0 || isServerBusy;
+  const isSearchDisabled = loading || cooldownRemaining > 0 || queuePosition;
 
   const features = [
     { label: "SGPA & CGPA", icon: <BarChart2 size={14} /> },
@@ -147,10 +165,19 @@ export default function Home() {
               {stats.activeUsers} {stats.activeUsers === 1 ? "User" : "Users"} Online
             </div>
             <div style={{ width: 1, height: 14, background: "rgba(255,255,255,0.15)", flexShrink: 0 }} />
-            <div style={{ display: "flex", alignItems: "center", gap: 6, color: isServerBusy ? "var(--danger)" : "var(--accent)", whiteSpace: "nowrap" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 6, color: isServerBusy ? "var(--warning)" : "var(--accent)", whiteSpace: "nowrap" }}>
               <Activity size={14} style={{ flexShrink: 0 }} />
               {stats.activeRequests} / {stats.maxRequests} Active Sessions
             </div>
+            {stats.queueLength > 0 && (
+              <>
+                <div style={{ width: 1, height: 14, background: "rgba(255,255,255,0.15)", flexShrink: 0 }} />
+                <div style={{ display: "flex", alignItems: "center", gap: 6, color: "var(--danger)", whiteSpace: "nowrap" }}>
+                  <Loader2 className="spinner" size={14} style={{ flexShrink: 0 }} />
+                  {stats.queueLength} Waiting
+                </div>
+              </>
+            )}
           </motion.div>
         )}
 
@@ -226,68 +253,113 @@ export default function Home() {
         </p>
 
         {/* Search */}
-        <form onSubmit={handleSearch}>
-          <div
-            style={{
-              display: "flex",
-              gap: 12,
-              maxWidth: 500,
-              margin: "0 auto",
-              flexWrap: "wrap",
-            }}
-          >
-            <input
-              value={regNo}
-              onChange={(e) => setRegNo(e.target.value)}
-              placeholder="Registration No. (e.g. 230301120170)"
-              style={{ flex: "1 1 260px", fontSize: 15, padding: "14px 20px", borderRadius: 12 }}
-              disabled={isSearchDisabled}
-            />
-            <motion.button
-              whileHover={!isSearchDisabled ? { scale: 1.02 } : {}}
-              whileTap={!isSearchDisabled ? { scale: 0.98 } : {}}
-              className="btn btn-primary"
-              type="submit"
-              disabled={isSearchDisabled}
-              style={{ 
-                flex: "1 1 120px", 
-                whiteSpace: "nowrap", 
-                padding: "14px 24px", 
-                display: "flex", 
-                alignItems: "center", 
-                justifyContent: "center", 
-                gap: 8, 
-                borderRadius: 12, 
-                fontSize: 15,
-                background: cooldownRemaining > 0 || isServerBusy ? "var(--border)" : "var(--primary)",
-                color: cooldownRemaining > 0 || isServerBusy ? "var(--secondary)" : "#fff",
-                cursor: isSearchDisabled ? "not-allowed" : "pointer",
-                opacity: isSearchDisabled ? 0.8 : 1
+        {!queuePosition ? (
+          <form onSubmit={handleSearch}>
+            <div
+              style={{
+                display: "flex",
+                gap: 12,
+                maxWidth: 500,
+                margin: "0 auto",
+                flexWrap: "wrap",
               }}
             >
-              {cooldownRemaining > 0 ? (
-                <>
-                  <Clock size={16} /> Wait {formatTime(cooldownRemaining)}
-                </>
-              ) : isServerBusy ? (
-                <>
-                  <AlertTriangle size={16} /> Queue Full
-                </>
-              ) : loading ? (
-                "Searching..."
-              ) : (
-                <>
-                  Search <ArrowRight size={18} />
-                </>
-              )}
-            </motion.button>
-          </div>
-          {error && (
+              <input
+                value={regNo}
+                onChange={(e) => setRegNo(e.target.value)}
+                placeholder="Registration No. (e.g. 230301120170)"
+                style={{ flex: "1 1 260px", fontSize: 15, padding: "14px 20px", borderRadius: 12 }}
+                disabled={isSearchDisabled}
+              />
+              <motion.button
+                whileHover={!isSearchDisabled ? { scale: 1.02 } : {}}
+                whileTap={!isSearchDisabled ? { scale: 0.98 } : {}}
+                className="btn btn-primary"
+                type="submit"
+                disabled={isSearchDisabled}
+                style={{ 
+                  flex: "1 1 120px", 
+                  whiteSpace: "nowrap", 
+                  padding: "14px 24px", 
+                  display: "flex", 
+                  alignItems: "center", 
+                  justifyContent: "center", 
+                  gap: 8, 
+                  borderRadius: 12, 
+                  fontSize: 15,
+                  background: cooldownRemaining > 0 ? "var(--border)" : "var(--primary)",
+                  color: cooldownRemaining > 0 ? "var(--secondary)" : "#fff",
+                  cursor: isSearchDisabled ? "not-allowed" : "pointer",
+                  opacity: isSearchDisabled ? 0.8 : 1
+                }}
+              >
+                {cooldownRemaining > 0 ? (
+                  <>
+                    <Clock size={16} /> Wait {formatTime(cooldownRemaining)}
+                  </>
+                ) : loading ? (
+                  "Searching..."
+                ) : (
+                  <>
+                    Search <ArrowRight size={18} />
+                  </>
+                )}
+              </motion.button>
+            </div>
+          </form>
+        ) : (
+          <motion.div
+            initial={{ opacity: 0, y: 10, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            style={{
+              maxWidth: 500,
+              margin: "0 auto",
+              padding: "20px",
+              background: "rgba(62,166,255,0.05)",
+              border: "1px solid rgba(62,166,255,0.2)",
+              borderRadius: 16,
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              gap: 12,
+            }}
+          >
+            <div style={{ display: "flex", alignItems: "center", gap: 12, color: "var(--accent)", fontWeight: 600, fontSize: 18 }}>
+              <Loader2 className="spinner" size={24} />
+              Waiting in Queue
+            </div>
+            <p style={{ color: "var(--secondary)", fontSize: 14, margin: 0 }}>
+              The server is currently at maximum capacity. You are in line to enter.
+            </p>
+            <div style={{
+              background: "rgba(0,0,0,0.3)",
+              padding: "12px 24px",
+              borderRadius: 12,
+              display: "inline-block",
+              marginTop: 8,
+              border: "1px solid rgba(255,255,255,0.1)"
+            }}>
+              Your Position: <strong style={{ color: "#fff", fontSize: 24, marginLeft: 8 }}>#{queuePosition}</strong>
+            </div>
+            
+            <button 
+              type="button"
+              className="btn btn-ghost" 
+              onClick={() => {
+                leaveQueue();
+                setQueuedRegNo("");
+              }}
+              style={{ marginTop: 8, color: "var(--danger)", fontSize: 13, display: "flex", alignItems: "center", gap: 6 }}
+            >
+              <X size={14} /> Leave Queue
+            </button>
+          </motion.div>
+        )}
+        {error && (
             <p style={{ color: "var(--danger)", marginTop: 12, fontSize: 14, display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}>
               <AlertTriangle size={16} /> {error}
             </p>
           )}
-        </form>
 
         {/* Feature pills */}
         <div
