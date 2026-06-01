@@ -62,6 +62,7 @@ function getDynamicBranch(regNo, fallbackBranch) {
 export default function Dashboard() {
   const { regNo } = useParams();
   const { studentData, fetchStudent, loading, error, API, enterDashboard, leaveDashboard } = useApp();
+  const navigate = useNavigate();
   const [sessionTimeLeft, setSessionTimeLeft] = useState(180);
 
   useEffect(() => {
@@ -142,7 +143,6 @@ export default function Dashboard() {
   const [internalMarks, setInternalMarks] = useState(null);
   const [semesterRanking, setSemesterRanking] = useState(null);
   const [loadingSem, setLoadingSem] = useState(false);
-  const navigate = useNavigate();
 
   useEffect(() => {
     if (!studentData || studentData.regNo !== regNo) {
