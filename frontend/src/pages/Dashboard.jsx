@@ -126,8 +126,17 @@ function getSubjectTotal(subject, semester, assessments = getInternalAssessments
 }
 
 function hasSubjectInternalScore(subject, semester) {
-  const assessments = getInternalAssessments(subject, semester);
-  return getSubjectTotal(subject, semester, assessments).hasAny;
+  const isSem1 = Number(semester) === 1;
+  const marksKeys = isSem1 ? [
+    'classTest1Obtained', 'classTest2Obtained', 'classTest3Obtained', 'classTest4Obtained', 'assignmentObtained', 'totalScore'
+  ] : [
+    'midSemObtained', 'presentationObtained', 'assignmentObtained', 'learningRecordObtained', 'internalPracticalObtained', 'projectInternalObtained', 'totalScore'
+  ];
+  
+  return marksKeys.some(key => {
+    const val = subject[key];
+    return val !== undefined && val !== null && String(val).trim() !== "";
+  });
 }
 
 function getSortedInternalSubjects(internalMarks) {

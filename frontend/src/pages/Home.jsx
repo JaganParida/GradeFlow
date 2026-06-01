@@ -256,7 +256,7 @@ export default function Home() {
 
         {/* Search */}
         {!queuePosition ? (
-          <form onSubmit={handleSearch}>
+          <form onSubmit={handleSearch} style={{ width: "100%" }}>
             <div className="search-bar-container">
               <input
                 className="search-bar-input"
