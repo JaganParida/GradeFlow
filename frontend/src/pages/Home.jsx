@@ -255,15 +255,7 @@ export default function Home() {
         {/* Search */}
         {!queuePosition ? (
           <form onSubmit={handleSearch}>
-            <div
-              style={{
-                display: "flex",
-                gap: 12,
-                maxWidth: 500,
-                margin: "0 auto",
-                flexWrap: "wrap",
-              }}
-            >
+            <div className="search-bar-container">
               <input
                 value={regNo}
                 onChange={(e) => setRegNo(e.target.value)}

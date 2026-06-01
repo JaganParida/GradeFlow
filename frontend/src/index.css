@@ -502,3 +502,6 @@ input::placeholder {
     gap: 8px;
   }
 }
+
+.search-bar-container { display: flex; gap: 12px; max-width: 600px; margin: 0 auto; flex-wrap: nowrap; }
+@media (max-width: 600px) { .search-bar-container { flex-wrap: wrap; } }
