@@ -152,7 +152,7 @@ export default function GradeSheet({ result, studentData, highlightedSubject }) 
 
   async function downloadPDF() {
     const canvas = await html2canvas(sheetRef.current, {
-      scale: 2,
+      scale: 4,
       backgroundColor: "#fff",
       useCORS: true,
     });
@@ -170,7 +170,7 @@ export default function GradeSheet({ result, studentData, highlightedSubject }) 
 
   async function saveImage() {
     const canvas = await html2canvas(sheetRef.current, {
-      scale: 2,
+      scale: 4,
       backgroundColor: "#fff",
       useCORS: true,
     });
