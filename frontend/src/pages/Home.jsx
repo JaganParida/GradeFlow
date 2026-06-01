@@ -11,6 +11,7 @@ export default function Home() {
 
   async function handleSearch(e) {
     e.preventDefault();
+    if (loading) return;
     if (!regNo.trim()) return;
     const data = await fetchStudent(regNo.trim());
     if (data) navigate(`/dashboard/${regNo.trim()}`);
