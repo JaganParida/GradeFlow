@@ -513,6 +513,10 @@ router.post(
           for (let r = Math.max(0, headerRowIdx - 3); r <= headerRowIdx + 2; r++) {
             const val = String(rows[r] && rows[r][c] ? rows[r][c] : "").trim().toUpperCase();
             if (val.includes("MID SEMESTER")) foundAss = "midSem";
+            else if (val.includes("CLASS TEST-IV")) foundAss = "classTest4";
+            else if (val.includes("CLASS TEST-III")) foundAss = "classTest3";
+            else if (val.includes("CLASS TEST-II")) foundAss = "classTest2";
+            else if (val.includes("CLASS TEST-I")) foundAss = "classTest1";
             else if (val.includes("PRESENTATION")) foundAss = "presentation";
             else if (val.includes("ASSIGNMENT")) foundAss = "assignment";
             else if (val.includes("LEARNING RECORD")) foundAss = "learningRecord";

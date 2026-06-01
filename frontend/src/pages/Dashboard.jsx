@@ -56,7 +56,7 @@ function getDynamicBranch(regNo, fallbackBranch) {
   if (r.startsWith("230301190") || r.startsWith("230301191")) return "MI";
   if (r.startsWith("230301230")) return "AERO";
   
-  return fallbackBranch || "—";
+  return fallbackBranch || "â€”";
 }
 
 export default function Dashboard() {
@@ -155,7 +155,7 @@ export default function Dashboard() {
           <AlertTriangle size={20} /> {error || "Student not found"}
         </p>
         <button className="btn btn-ghost" onClick={() => navigate("/")}>
-          ← Back to Search
+          â† Back to Search
         </button>
       </div>
     );
@@ -234,7 +234,7 @@ export default function Dashboard() {
             </p>
             <h1 style={{ fontSize: 28, fontWeight: 800 }}>{studentName}</h1>
             <p style={{ color: "var(--secondary)", marginTop: 4 }}>
-              {regNo} · {dynamicBranch} · Batch {batch}
+              {regNo} Â· {dynamicBranch} Â· Batch {batch}
             </p>
           </div>
           <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
@@ -462,7 +462,7 @@ export default function Dashboard() {
           }}
         >
           <p style={{ color: "var(--success)", fontWeight: 700, display: "flex", alignItems: "center", gap: 8 }}>
-            <CheckCircle size={18} /> ALL CLEAR — No Active Backlogs
+            <CheckCircle size={18} /> ALL CLEAR â€” No Active Backlogs
           </p>
         </motion.div>
       )}
@@ -506,7 +506,7 @@ export default function Dashboard() {
                     color: semesterRanking ? "var(--accent)" : "var(--muted)",
                   }}
                 >
-                  {semesterRanking ? `#${cgpaRankNum}` : "—"}
+                  {semesterRanking ? `#${cgpaRankNum}` : "â€”"}
                 </p>
                 <p style={{ fontSize: 12, color: "var(--secondary)", display: "flex", alignItems: "center", gap: 4 }}>
                   {semesterRanking ? `of ${semesterRanking.totalStudents}` : "Not Generated"}
@@ -528,7 +528,7 @@ export default function Dashboard() {
                     color: semesterRanking ? "#a855f7" : "var(--muted)",
                   }}
                 >
-                  {semesterRanking ? `#${sgpaRankNum}` : "—"}
+                  {semesterRanking ? `#${sgpaRankNum}` : "â€”"}
                 </p>
                 <p style={{ fontSize: 12, color: "var(--secondary)", display: "flex", alignItems: "center", gap: 4 }}>
                   {semesterRanking ? `of ${semesterRanking.totalStudents}` : "Not Generated"}
@@ -550,7 +550,7 @@ export default function Dashboard() {
                     color: semesterRanking ? "#22c55e" : "var(--muted)",
                   }}
                 >
-                  {semesterRanking && semesterRanking.deptRank ? `#${semesterRanking.deptRank}` : "—"}
+                  {semesterRanking && semesterRanking.deptRank ? `#${semesterRanking.deptRank}` : "â€”"}
                 </p>
                 <p style={{ fontSize: 12, color: "var(--secondary)", display: "flex", alignItems: "center", gap: 4 }}>
                   {semesterRanking && semesterRanking.deptStudents ? `of ${semesterRanking.deptStudents}` : "Not Generated"}
@@ -571,7 +571,7 @@ export default function Dashboard() {
               color: semesterRanking ? "var(--success)" : "var(--muted)",
             }}
           >
-            {semesterRanking ? `${semesterRanking.percentile}%` : "—"}
+            {semesterRanking ? `${semesterRanking.percentile}%` : "â€”"}
           </p>
           <p style={{ fontSize: 12, color: "var(--secondary)" }}>
             {semesterRanking ? `Top ${(100 - semesterRanking.percentile).toFixed(1)}%` : "Not Generated"}
@@ -668,16 +668,28 @@ export default function Dashboard() {
                       <tr>
                         <th rowSpan="2" style={{ borderBottom: "1px solid var(--border)", borderRight: "1px solid var(--border)", width: "40px", textAlign: "center" }}>#</th>
                         <th rowSpan="2" style={{ borderBottom: "1px solid var(--border)", borderRight: "1px solid var(--border)" }}>SUBJECT DETAILS</th>
-                        <th colSpan="2" style={{ textAlign: "center", borderBottom: "1px solid var(--border)", borderRight: "1px solid var(--border)", fontSize: 10, color: "var(--secondary)" }}>MID SEMESTER</th>
-                        <th colSpan="2" style={{ textAlign: "center", borderBottom: "1px solid var(--border)", borderRight: "1px solid var(--border)", fontSize: 10, color: "var(--secondary)" }}>PRESENTATION</th>
-                        <th colSpan="2" style={{ textAlign: "center", borderBottom: "1px solid var(--border)", borderRight: "1px solid var(--border)", fontSize: 10, color: "var(--secondary)" }}>ASSIGNMENT</th>
-                        <th colSpan="2" style={{ textAlign: "center", borderBottom: "1px solid var(--border)", borderRight: "1px solid var(--border)", fontSize: 10, color: "var(--secondary)" }}>LEARNING RECORD</th>
-                        <th colSpan="2" style={{ textAlign: "center", borderBottom: "1px solid var(--border)", borderRight: "1px solid var(--border)", fontSize: 10, color: "var(--secondary)" }}>INTERNAL PRACTICAL</th>
-                        <th colSpan="2" style={{ textAlign: "center", borderBottom: "1px solid var(--border)", borderRight: "1px solid var(--border)", fontSize: 10, color: "var(--secondary)" }}>PROJECT INTERNAL</th>
+                        {internalMarks.semester === 1 ? (
+                          <>
+                            <th colSpan="2" style={{ textAlign: "center", borderBottom: "1px solid var(--border)", borderRight: "1px solid var(--border)", fontSize: 10, color: "var(--secondary)" }}>CLASS TEST I</th>
+                            <th colSpan="2" style={{ textAlign: "center", borderBottom: "1px solid var(--border)", borderRight: "1px solid var(--border)", fontSize: 10, color: "var(--secondary)" }}>CLASS TEST II</th>
+                            <th colSpan="2" style={{ textAlign: "center", borderBottom: "1px solid var(--border)", borderRight: "1px solid var(--border)", fontSize: 10, color: "var(--secondary)" }}>CLASS TEST III</th>
+                            <th colSpan="2" style={{ textAlign: "center", borderBottom: "1px solid var(--border)", borderRight: "1px solid var(--border)", fontSize: 10, color: "var(--secondary)" }}>CLASS TEST IV</th>
+                            <th colSpan="2" style={{ textAlign: "center", borderBottom: "1px solid var(--border)", borderRight: "1px solid var(--border)", fontSize: 10, color: "var(--secondary)" }}>ASSIGNMENT</th>
+                          </>
+                        ) : (
+                          <>
+                            <th colSpan="2" style={{ textAlign: "center", borderBottom: "1px solid var(--border)", borderRight: "1px solid var(--border)", fontSize: 10, color: "var(--secondary)" }}>MID SEMESTER</th>
+                            <th colSpan="2" style={{ textAlign: "center", borderBottom: "1px solid var(--border)", borderRight: "1px solid var(--border)", fontSize: 10, color: "var(--secondary)" }}>PRESENTATION</th>
+                            <th colSpan="2" style={{ textAlign: "center", borderBottom: "1px solid var(--border)", borderRight: "1px solid var(--border)", fontSize: 10, color: "var(--secondary)" }}>ASSIGNMENT</th>
+                            <th colSpan="2" style={{ textAlign: "center", borderBottom: "1px solid var(--border)", borderRight: "1px solid var(--border)", fontSize: 10, color: "var(--secondary)" }}>LEARNING RECORD</th>
+                            <th colSpan="2" style={{ textAlign: "center", borderBottom: "1px solid var(--border)", borderRight: "1px solid var(--border)", fontSize: 10, color: "var(--secondary)" }}>INTERNAL PRACTICAL</th>
+                            <th colSpan="2" style={{ textAlign: "center", borderBottom: "1px solid var(--border)", borderRight: "1px solid var(--border)", fontSize: 10, color: "var(--secondary)" }}>PROJECT INTERNAL</th>
+                          </>
+                        )}
                         <th rowSpan="2" style={{ color: "var(--success)", borderBottom: "1px solid var(--success)", borderLeft: "1px solid var(--success)22", textAlign: "center" }}>TOTAL SCORE</th>
                       </tr>
                       <tr>
-                        {[...Array(6)].map((_, i) => (
+                        {[...Array(internalMarks.semester === 1 ? 5 : 6)].map((_, i) => (
                           <React.Fragment key={i}>
                             <th style={{ fontSize: 9, color: "#3ea6ff", borderBottom: "1px solid var(--border)", borderRight: "1px solid var(--border)", textAlign: "center", padding: "8px 4px" }}>OBTAINED</th>
                             <th style={{ fontSize: 9, color: "#a855f7", borderBottom: "1px solid var(--border)", borderRight: "1px solid var(--border)", textAlign: "center", padding: "8px 4px" }}>ROUND OFF</th>
@@ -701,12 +713,20 @@ export default function Dashboard() {
                             </div>
                           </td>
                           {[
-                            [s.midSemObtained, s.midSemMax, s.midSemRoundOff],
-                            [s.presentationObtained, s.presentationMax, s.presentationRoundOff],
-                            [s.assignmentObtained, s.assignmentMax, s.assignmentRoundOff],
-                            [s.learningRecordObtained, s.learningRecordMax, s.learningRecordRoundOff],
-                            [s.internalPracticalObtained, s.internalPracticalMax, s.internalPracticalRoundOff],
-                            [s.projectInternalObtained, s.projectInternalMax, s.projectInternalRoundOff],
+                            ...(internalMarks.semester === 1 ? [
+                              [s.classTest1Obtained, s.classTest1Max, s.classTest1RoundOff],
+                              [s.classTest2Obtained, s.classTest2Max, s.classTest2RoundOff],
+                              [s.classTest3Obtained, s.classTest3Max, s.classTest3RoundOff],
+                              [s.classTest4Obtained, s.classTest4Max, s.classTest4RoundOff],
+                              [s.assignmentObtained, s.assignmentMax, s.assignmentRoundOff],
+                            ] : [
+                              [s.midSemObtained, s.midSemMax, s.midSemRoundOff],
+                              [s.presentationObtained, s.presentationMax, s.presentationRoundOff],
+                              [s.assignmentObtained, s.assignmentMax, s.assignmentRoundOff],
+                              [s.learningRecordObtained, s.learningRecordMax, s.learningRecordRoundOff],
+                              [s.internalPracticalObtained, s.internalPracticalMax, s.internalPracticalRoundOff],
+                              [s.projectInternalObtained, s.projectInternalMax, s.projectInternalRoundOff],
+                            ])
                           ].map(([obt, max, roundOff], ci) => {
                             const calculatedRoundOff = obt != null ? Math.round(obt) : null;
                             const finalObt = calculatedRoundOff != null ? calculatedRoundOff : obt;
@@ -722,14 +742,14 @@ export default function Dashboard() {
                                   <span style={{ display: "inline-block", color: "#3ea6ff", fontWeight: 700, background: "rgba(62,166,255,0.08)", padding: "4px 8px", borderRadius: 6, whiteSpace: "nowrap" }}>
                                     {obt} <span style={{ color: "rgba(62,166,255,0.6)", fontSize: 10, fontWeight: 500 }}>/{max}</span>
                                   </span>
-                                ) : <span style={{ color: "var(--muted)" }}>—</span>}
+                                ) : <span style={{ color: "var(--muted)" }}>â€”</span>}
                               </td>
                               <td style={{ textAlign: "center", borderRight: "1px solid var(--border)", padding: "8px" }}>
                                 {calculatedRoundOff != null ? (
                                   <span style={{ display: "inline-block", color: "#a855f7", fontWeight: 700, background: "rgba(168,85,247,0.08)", padding: "4px 8px", borderRadius: 6, whiteSpace: "nowrap" }}>
                                     {calculatedRoundOff} <span style={{ color: "rgba(168,85,247,0.6)", fontSize: 10, fontWeight: 500 }}>/{max}</span>
                                   </span>
-                                ) : <span style={{ color: "var(--muted)" }}>—</span>}
+                                ) : <span style={{ color: "var(--muted)" }}>â€”</span>}
                               </td>
                             </React.Fragment>
                             );
@@ -740,7 +760,7 @@ export default function Dashboard() {
                                 {calcTotalObtained} <span style={{ color: "rgba(34,197,94,0.6)", fontSize: 12, fontWeight: 500 }}>/{calcTotalMax || s.totalMax || s.totalScore}</span>
                               </span>
                             ) : (
-                              <span style={{ color: "var(--muted)" }}>—</span>
+                              <span style={{ color: "var(--muted)" }}>â€”</span>
                             )}
                           </td>
                         </tr>
@@ -758,14 +778,20 @@ export default function Dashboard() {
                     let calcTotalMax = 0;
                     let hasAny = false;
 
-                    const mobileAssessments = [
-                      { label: "Mid Sem", obt: s.midSemObtained, max: s.midSemMax, rnd: s.midSemRoundOff },
-                      { label: "Presentation", obt: s.presentationObtained, max: s.presentationMax, rnd: s.presentationRoundOff },
-                      { label: "Assignment", obt: s.assignmentObtained, max: s.assignmentMax, rnd: s.assignmentRoundOff },
-                      { label: "Learning Record", obt: s.learningRecordObtained, max: s.learningRecordMax, rnd: s.learningRecordRoundOff },
-                      { label: "Internal Prac", obt: s.internalPracticalObtained, max: s.internalPracticalMax, rnd: s.internalPracticalRoundOff },
-                      { label: "Project Internal", obt: s.projectInternalObtained, max: s.projectInternalMax, rnd: s.projectInternalRoundOff },
-                    ];
+                    const mobileAssessments = internalMarks.semester === 1 ? [
+                        { label: "Class Test I", obt: s.classTest1Obtained, max: s.classTest1Max, rnd: s.classTest1RoundOff },
+                        { label: "Class Test II", obt: s.classTest2Obtained, max: s.classTest2Max, rnd: s.classTest2RoundOff },
+                        { label: "Class Test III", obt: s.classTest3Obtained, max: s.classTest3Max, rnd: s.classTest3RoundOff },
+                        { label: "Class Test IV", obt: s.classTest4Obtained, max: s.classTest4Max, rnd: s.classTest4RoundOff },
+                        { label: "Assignment", obt: s.assignmentObtained, max: s.assignmentMax, rnd: s.assignmentRoundOff },
+                      ] : [
+                        { label: "Mid Sem", obt: s.midSemObtained, max: s.midSemMax, rnd: s.midSemRoundOff },
+                        { label: "Presentation", obt: s.presentationObtained, max: s.presentationMax, rnd: s.presentationRoundOff },
+                        { label: "Assignment", obt: s.assignmentObtained, max: s.assignmentMax, rnd: s.assignmentRoundOff },
+                        { label: "Learning Record", obt: s.learningRecordObtained, max: s.learningRecordMax, rnd: s.learningRecordRoundOff },
+                        { label: "Internal Prac", obt: s.internalPracticalObtained, max: s.internalPracticalMax, rnd: s.internalPracticalRoundOff },
+                        { label: "Project Internal", obt: s.projectInternalObtained, max: s.projectInternalMax, rnd: s.projectInternalRoundOff },
+                      ];
 
                     mobileAssessments.forEach(item => {
                       const calculatedRnd = item.obt != null ? Math.round(item.obt) : null;
@@ -797,7 +823,7 @@ export default function Dashboard() {
                                 {calcTotalObtained} <span style={{ color: "rgba(34,197,94,0.6)", fontSize: 10, fontWeight: 500 }}>/{calcTotalMax || s.totalMax || s.totalScore}</span>
                               </span>
                             ) : (
-                              <span style={{ color: "var(--muted)" }}>—</span>
+                              <span style={{ color: "var(--muted)" }}>â€”</span>
                             )}
                           </div>
                         </div>
@@ -810,11 +836,11 @@ export default function Dashboard() {
                             <div style={{ display: "flex", justifyContent: "space-between" }}>
                                 <div style={{ fontSize: 12 }}>
                                   <span style={{ color: "var(--secondary)", fontSize: 10, marginRight: 4 }}>OBT</span>
-                                  {item.obt != null ? <span style={{ display: "inline-block", color: "#3ea6ff", fontWeight: 700, background: "rgba(62,166,255,0.08)", padding: "2px 6px", borderRadius: 6, whiteSpace: "nowrap" }}>{item.obt} <span style={{ color: "rgba(62,166,255,0.6)", fontSize: 9 }}>/{item.max}</span></span> : <span style={{ color: "var(--muted)" }}>—</span>}
+                                  {item.obt != null ? <span style={{ display: "inline-block", color: "#3ea6ff", fontWeight: 700, background: "rgba(62,166,255,0.08)", padding: "2px 6px", borderRadius: 6, whiteSpace: "nowrap" }}>{item.obt} <span style={{ color: "rgba(62,166,255,0.6)", fontSize: 9 }}>/{item.max}</span></span> : <span style={{ color: "var(--muted)" }}>â€”</span>}
                                 </div>
                                 <div style={{ fontSize: 12 }}>
                                   <span style={{ color: "var(--secondary)", fontSize: 10, marginRight: 4 }}>RND</span>
-                                  {item.rnd != null ? <span style={{ display: "inline-block", color: "#a855f7", fontWeight: 700, background: "rgba(168,85,247,0.08)", padding: "2px 6px", borderRadius: 6, whiteSpace: "nowrap" }}>{item.rnd} <span style={{ color: "rgba(168,85,247,0.6)", fontSize: 9 }}>/{item.max}</span></span> : <span style={{ color: "var(--muted)" }}>—</span>}
+                                  {item.rnd != null ? <span style={{ display: "inline-block", color: "#a855f7", fontWeight: 700, background: "rgba(168,85,247,0.08)", padding: "2px 6px", borderRadius: 6, whiteSpace: "nowrap" }}>{item.rnd} <span style={{ color: "rgba(168,85,247,0.6)", fontSize: 9 }}>/{item.max}</span></span> : <span style={{ color: "var(--muted)" }}>â€”</span>}
                                 </div>
                             </div>
                           </div>
@@ -885,7 +911,7 @@ export default function Dashboard() {
                         </span>
                       </td>
                       <td style={{ color: "var(--secondary)" }}>
-                        {r.session || "—"}
+                        {r.session || "â€”"}
                       </td>
                     </motion.tr>
                   ))}
