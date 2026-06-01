@@ -126,7 +126,7 @@ export default function Home() {
         transition={{ delay: 0.1 }}
         style={{
           textAlign: "center",
-          maxWidth: 600,
+          maxWidth: 800,
           position: "relative",
           zIndex: 1,
           width: "100%",
@@ -246,7 +246,7 @@ export default function Home() {
             fontSize: 18,
             marginBottom: 48,
             lineHeight: 1.7,
-            maxWidth: 600,
+            maxWidth: 800,
             margin: "0 auto 48px auto",
           }}
         >
@@ -259,11 +259,12 @@ export default function Home() {
           <form onSubmit={handleSearch}>
             <div className="search-bar-container">
               <input
+                className="search-bar-input"
                 value={regNo}
                 onChange={(e) => setRegNo(e.target.value)}
                 placeholder="Registration No. (e.g. 230301120170)"
                 style={{ 
-                  flex: "1 1 300px", 
+                  
                   fontSize: 16, 
                   padding: "16px 24px", 
                   borderRadius: 16, 
@@ -277,11 +278,11 @@ export default function Home() {
               <motion.button
                 whileHover={!isSearchDisabled ? { scale: 1.02, boxShadow: "0 8px 20px rgba(62,166,255,0.4)" } : {}}
                 whileTap={!isSearchDisabled ? { scale: 0.98 } : {}}
-                className="btn btn-primary"
+                className="btn btn-primary search-bar-btn"
                 type="submit"
                 disabled={isSearchDisabled}
                 style={{ 
-                  flex: "0 0 160px", 
+                  
                   whiteSpace: "nowrap", 
                   padding: "16px 32px", 
                   display: "flex", 

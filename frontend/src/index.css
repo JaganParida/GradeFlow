@@ -503,6 +503,12 @@ input::placeholder {
   }
 }
 
-.search-bar-container { display: flex; gap: 14px; max-width: 760px; margin: 0 auto; flex-wrap: nowrap; }
-@media (max-width: 768px) { .search-bar-container { flex-direction: column; } }
+.search-bar-container { display: flex; gap: 14px; max-width: 760px; width: 100%; margin: 0 auto; flex-wrap: nowrap; align-items: stretch; }
+.search-bar-input { flex: 1; width: 100%; }
+.search-bar-btn { flex: 0 0 160px; }
+
+@media (max-width: 768px) { 
+  .search-bar-container { flex-direction: column; } 
+  .search-bar-btn { flex: none; width: 100%; height: auto; }
+}
 
