@@ -149,7 +149,7 @@ export default function Home() {
             <div style={{ width: 1, height: 14, background: "rgba(255,255,255,0.15)", flexShrink: 0 }} />
             <div style={{ display: "flex", alignItems: "center", gap: 6, color: isServerBusy ? "var(--danger)" : "var(--accent)", whiteSpace: "nowrap" }}>
               <Activity size={14} style={{ flexShrink: 0 }} />
-              {stats.activeRequests} / {stats.maxRequests} Active Searches
+              {stats.activeRequests} / {stats.maxRequests} Active Sessions
             </div>
           </motion.div>
         )}

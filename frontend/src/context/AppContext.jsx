@@ -18,13 +18,19 @@ export function AppProvider({ children }) {
   const [cooldownExpiry, setCooldownExpiry] = useState(
     () => Number(localStorage.getItem("gf_cooldown")) || 0
   );
+  
+  const socketRef = useRef(null);
 
   useEffect(() => {
-    // Connect to Socket.io backend
-    const socket = io(API.replace('/api', ''));
+    socketRef.current = io(API.replace('/api', ''));
     
-    socket.on("stats", (data) => {
-      setStats(data);
+    socketRef.current.on("stats", (newStats) => {
+      setStats(newStats);
+    });
+
+    socketRef.current.on("session_expired", (data) => {
+      alert(data.message || "Session expired");
+      window.location.href = "/";
     });
 
     const handleStorageChange = (e) => {
@@ -35,11 +41,30 @@ export function AppProvider({ children }) {
       }
     };
     window.addEventListener("storage", handleStorageChange);
+    
     return () => {
       window.removeEventListener("storage", handleStorageChange);
-      socket.disconnect();
+      if (socketRef.current) socketRef.current.disconnect();
     };
   }, []);
+
+  const enterDashboard = () => {
+    return new Promise((resolve) => {
+      if (socketRef.current) {
+        socketRef.current.emit("enter_dashboard", (response) => {
+          resolve(response);
+        });
+      } else {
+        resolve({ success: false, message: "No connection to server." });
+      }
+    });
+  };
+
+  const leaveDashboard = () => {
+    if (socketRef.current) {
+      socketRef.current.emit("leave_dashboard");
+    }
+  };
 
   async function fetchStudent(regNo) {
     setLoading(true);
@@ -98,6 +123,8 @@ export function AppProvider({ children }) {
         loading,
         error,
         fetchStudent,
+        enterDashboard,
+        leaveDashboard,
         adminToken,
         adminLogin,
         adminLogout,
