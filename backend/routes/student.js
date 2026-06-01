@@ -26,7 +26,7 @@ function calcCGPA(results) {
     let semTC = 0;
 
     r.subjects.forEach((s) => {
-      if (Number(r.semester) === 5 && s.grade === 'R' && (Number(s.credit) === 6 && (s.subName && s.subName.toLowerCase().includes('project')))) {
+      if (Number(r.semester) === 5 && s.grade === 'R' && (Number(s.credit) === 6 && (s.type && s.type.toLowerCase().includes('proj')))) {
         return; // Ignore Sem 5 R grade projects
       }
       if (['F', 'R', 'M', 'S'].includes(s.grade)) {
@@ -74,7 +74,7 @@ router.get("/:regNo", checkQueue, async (req, res) => {
     const backlogs = results.flatMap((r) =>
       r.subjects
         .filter((s) => {
-          if (Number(r.semester) === 5 && s.grade === 'R' && (Number(s.credit) === 6 && (s.subName && s.subName.toLowerCase().includes('project')))) {
+          if (Number(r.semester) === 5 && s.grade === 'R' && (Number(s.credit) === 6 && (s.type && s.type.toLowerCase().includes('proj')))) {
             return false;
           }
           return ["F", "M", "S", "R"].includes(s.grade);
@@ -93,7 +93,7 @@ router.get("/:regNo", checkQueue, async (req, res) => {
     let semTW = 0;
     let semTC = 0;
     latestResult.subjects.forEach((s) => {
-      if (Number(latestResult.semester) === 5 && s.grade === 'R' && (Number(s.credit) === 6 && (s.subName && s.subName.toLowerCase().includes('project')))) {
+      if (Number(latestResult.semester) === 5 && s.grade === 'R' && (Number(s.credit) === 6 && (s.type && s.type.toLowerCase().includes('proj')))) {
         return; 
       }
       if (['F', 'R', 'M', 'S'].includes(s.grade)) {
@@ -130,14 +130,14 @@ router.get("/:regNo", checkQueue, async (req, res) => {
       latestSemester: latestResult.semester,
       totalCredits: results.reduce((a, r) => {
         return a + r.subjects.reduce((sum, s) => {
-          if (Number(r.semester) === 5 && s.grade === 'R' && (Number(s.credit) === 6 && (s.subName && s.subName.toLowerCase().includes('project')))) return sum;
+          if (Number(r.semester) === 5 && s.grade === 'R' && (Number(s.credit) === 6 && (s.type && s.type.toLowerCase().includes('proj')))) return sum;
           if (['F', 'R', 'M', 'S'].includes(s.grade)) return sum;
           return sum + (s.credit || 0);
         }, 0);
       }, 0),
       creditsCleared: results.reduce((a, r) => {
         return a + r.subjects.reduce((sum, s) => {
-          if (Number(r.semester) === 5 && s.grade === 'R' && (Number(s.credit) === 6 && (s.subName && s.subName.toLowerCase().includes('project')))) return sum;
+          if (Number(r.semester) === 5 && s.grade === 'R' && (Number(s.credit) === 6 && (s.type && s.type.toLowerCase().includes('proj')))) return sum;
           if (["F", "M", "S", "R"].includes(s.grade)) return sum;
           return sum + (s.credit || 0);
         }, 0);

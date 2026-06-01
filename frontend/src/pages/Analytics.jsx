@@ -58,7 +58,7 @@ function calcCGPAUpTo(results, upToIdx) {
     let semTW = 0;
     let semTC = 0;
     r.subjects.forEach((s) => {
-      if (Number(r.semester) === 5 && s.grade === 'R' && (Number(s.credit) === 6 && (s.subName && s.subName.toLowerCase().includes('project')))) return;
+      if (Number(r.semester) === 5 && s.grade === 'R' && (Number(s.credit) === 6 && (s.type && s.type.toLowerCase().includes('proj')))) return;
       if (['F', 'R', 'M', 'S'].includes(s.grade)) return;
       if (s.credit && GRADE_POINTS[s.grade] !== undefined) {
         semTW += s.credit * GRADE_POINTS[s.grade];
@@ -216,7 +216,7 @@ export default function Analytics() {
             ? whatIfGrades[s.subCode]
             : s.grade;
             
-        if (Number(r.semester) === 5 && grade === 'R' && (Number(s.credit) === 6 && (s.subName && s.subName.toLowerCase().includes('project')))) {
+        if (Number(r.semester) === 5 && grade === 'R' && (Number(s.credit) === 6 && (s.type && s.type.toLowerCase().includes('proj')))) {
           return;
         }
         
