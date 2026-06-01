@@ -1,4 +1,7 @@
 import { createContext, useContext, useState, useEffect, useRef } from "react";
+import { useNavigate } from "react-router-dom";
+import { motion, AnimatePresence } from "framer-motion";
+import { AlertTriangle } from "lucide-react";
 import axios from "axios";
 import { io } from "socket.io-client";
 
@@ -23,6 +26,9 @@ export function AppProvider({ children }) {
   const [queuePosition, setQueuePosition] = useState(null);
   const [isAdmitted, setIsAdmitted] = useState(false);
   const [sessionTimeLeft, setSessionTimeLeft] = useState(0);
+  const navigate = useNavigate();
+  const [sessionExpiredPopup, setSessionExpiredPopup] = useState(false);
+  const [popupMessage, setPopupMessage] = useState("");
 
   useEffect(() => {
     socketRef.current = io(API.replace('/api', ''));
@@ -32,10 +38,11 @@ export function AppProvider({ children }) {
     });
 
     socketRef.current.on("session_expired", (data) => {
-      alert(data.message || "Session expired");
+      setPopupMessage(data.message || "Your 3-minute session has expired. To give others a chance, you have been returned to the home page.");
+      setSessionExpiredPopup(true);
       setIsAdmitted(false);
       setSessionTimeLeft(0);
-      window.location.href = "/";
+      navigate("/");
     });
 
     socketRef.current.on("queue_update", (data) => {
@@ -182,6 +189,46 @@ export function AppProvider({ children }) {
       }}
     >
       {children}
+      <AnimatePresence>
+        {sessionExpiredPopup && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            style={{
+              position: "fixed", top: 0, left: 0, right: 0, bottom: 0,
+              background: "rgba(0,0,0,0.8)", backdropFilter: "blur(4px)",
+              zIndex: 99999, display: "flex", alignItems: "center", justifyContent: "center"
+            }}
+          >
+            <motion.div
+              initial={{ scale: 0.9, y: 20 }}
+              animate={{ scale: 1, y: 0 }}
+              exit={{ scale: 0.9, y: 20 }}
+              style={{
+                background: "var(--card)", border: "1px solid var(--border)",
+                padding: 32, borderRadius: 20, maxWidth: 400, width: "90%",
+                textAlign: "center", boxShadow: "0 10px 40px rgba(0,0,0,0.5)"
+              }}
+            >
+              <div style={{ background: "rgba(239, 68, 68, 0.1)", width: 64, height: 64, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 20px" }}>
+                <AlertTriangle color="var(--danger)" size={32} />
+              </div>
+              <h2 style={{ fontSize: 24, fontWeight: 700, marginBottom: 12 }}>Time's Up!</h2>
+              <p style={{ color: "var(--secondary)", fontSize: 15, marginBottom: 24, lineHeight: 1.5 }}>
+                {popupMessage}
+              </p>
+              <button
+                className="btn btn-primary"
+                style={{ width: "100%", justifyContent: "center", padding: "12px" }}
+                onClick={() => setSessionExpiredPopup(false)}
+              >
+                Okay, got it
+              </button>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </AppCtx.Provider>
   );
 }
