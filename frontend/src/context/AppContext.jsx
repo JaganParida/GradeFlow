@@ -31,7 +31,13 @@ export function AppProvider({ children }) {
       localStorage.setItem("last_regNo", data.regNo);
       return data;
     } catch (e) {
-      setError(e.response?.data?.message || "Student not found");
+      if (e.response?.status === 429) {
+        setError("Too many requests. Please slow down and wait a minute.");
+      } else if (e.response?.status >= 500) {
+        setError("Server error. Please try again later.");
+      } else {
+        setError(e.response?.data?.message || "Student not found");
+      }
       setStudentData(null);
       return null;
     } finally {
