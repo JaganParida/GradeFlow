@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useApp } from "../context/AppContext";
 import { motion } from "framer-motion";
-import { GraduationCap, ArrowRight, AlertTriangle, BarChart2, Trophy, TrendingUp, Target, Sparkles, FileText, Activity, Clock } from "lucide-react";
+import { GraduationCap, ArrowRight, AlertTriangle, BarChart2, Trophy, TrendingUp, Target, Sparkles, FileText, Activity, Clock, Star, Sigma } from "lucide-react";
 
 export default function Home() {
   const [regNo, setRegNo] = useState("");
