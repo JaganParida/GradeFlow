@@ -37,14 +37,14 @@ async function seedAdmin() {
       email: process.env.ADMIN_EMAIL,
       password: process.env.ADMIN_PASSWORD,
     });
-    console.log("✅ Admin seeded:", process.env.ADMIN_EMAIL);
+    console.log("o. Admin seeded:", process.env.ADMIN_EMAIL);
   }
 }
 
 mongoose
   .connect(process.env.MONGO_URI)
   .then(async () => {
-    console.log("✅ MongoDB connected");
+    console.log("o. MongoDB connected");
     await seedAdmin();
     server.listen(process.env.PORT || 5000, () =>
       console.log(`🚀 Server running on port ${process.env.PORT || 5000}`),

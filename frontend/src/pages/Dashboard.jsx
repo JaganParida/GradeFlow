@@ -354,7 +354,7 @@ export default function Dashboard() {
             </p>
             <h1 style={{ fontSize: 28, fontWeight: 800 }}>{studentName}</h1>
             <p style={{ color: "var(--secondary)", marginTop: 4 }}>
-              {regNo} • {dynamicBranch} • Batch {batch}
+              {regNo} · {dynamicBranch} · Batch {batch}
             </p>
           </div>
           <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
@@ -601,10 +601,10 @@ export default function Dashboard() {
         }}
       >
         {(() => {
-                  {semesterRanking ? # : "—"}
-                  {semesterRanking ? # : "—"}
-                  {semesterRanking ? # : "—"}
-                  {semesterRanking ? # : "—"}
+          const cgpaRankNum = semesterRanking ? (semesterRanking.cgpaRank || semesterRanking.universityRank) : null;
+          const sgpaRankNum = semesterRanking ? (semesterRanking.sgpaRank || semesterRanking.universityRank) : null;
+          const isCgpaTop50 = cgpaRankNum && cgpaRankNum <= 50;
+          const isSgpaTop50 = sgpaRankNum && sgpaRankNum <= 50;
 
           return (
             <>
@@ -626,7 +626,7 @@ export default function Dashboard() {
                     color: semesterRanking ? "var(--accent)" : "var(--muted)",
                   }}
                 >
-                  {semesterRanking ? # : "—"}
+                  {semesterRanking ? `#${cgpaRankNum}` : "—"}
                 </p>
                 <p style={{ fontSize: 12, color: "var(--secondary)", display: "flex", alignItems: "center", gap: 4 }}>
                   {semesterRanking ? `of ${semesterRanking.totalStudents}` : "Not Generated"}
@@ -648,7 +648,7 @@ export default function Dashboard() {
                     color: semesterRanking ? "#a855f7" : "var(--muted)",
                   }}
                 >
-                  {semesterRanking ? # : "—"}
+                  {semesterRanking ? `#${sgpaRankNum}` : "—"}
                 </p>
                 <p style={{ fontSize: 12, color: "var(--secondary)", display: "flex", alignItems: "center", gap: 4 }}>
                   {semesterRanking ? `of ${semesterRanking.totalStudents}` : "Not Generated"}
@@ -670,7 +670,7 @@ export default function Dashboard() {
                     color: semesterRanking ? "#22c55e" : "var(--muted)",
                   }}
                 >
-                  {semesterRanking && semesterRanking.deptRank ? # : "—"}
+                  {semesterRanking && semesterRanking.deptRank ? `#${semesterRanking.deptRank}` : "—"}
                 </p>
                 <p style={{ fontSize: 12, color: "var(--secondary)", display: "flex", alignItems: "center", gap: 4 }}>
                   {semesterRanking && semesterRanking.deptStudents ? `of ${semesterRanking.deptStudents}` : "Not Generated"}
@@ -691,10 +691,10 @@ export default function Dashboard() {
               color: semesterRanking ? "var(--success)" : "var(--muted)",
             }}
           >
-            {semesterRanking ? ${semesterRanking.percentile}% : "—"}
+            {semesterRanking ? `${semesterRanking.percentile}%` : "—"}
           </p>
           <p style={{ fontSize: 12, color: "var(--secondary)" }}>
-            {semesterRanking ? ${semesterRanking.percentile}% : "—"}
+            {semesterRanking ? `Top ${(100 - semesterRanking.percentile).toFixed(1)}%` : "Not Generated"}
           </p>
         </div>
       </motion.div>
@@ -866,8 +866,21 @@ export default function Dashboard() {
                   <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
                     {internalSubjects.map((s, i) => {
                     const isSem1 = Number(internalMarks.semester) === 1;
-                    const mobileAssessments = getInternalAssessments(s, internalMarks.semester);
-                    const total = getSubjectTotal(s, internalMarks.semester, mobileAssessments);
+                    const mobileAssessments = isSem1 ? [
+                      { label: "Class Test I", obt: s.classTest1Obtained, max: s.classTest1Max, rnd: s.classTest1Max },
+                      { label: "Class Test II", obt: s.classTest2Obtained, max: s.classTest2Max, rnd: s.classTest2Max },
+                      { label: "Class Test III", obt: s.classTest3Obtained, max: s.classTest3Max, rnd: s.classTest3Max },
+                      { label: "Class Test IV", obt: s.classTest4Obtained, max: s.classTest4Max, rnd: s.classTest4Max },
+                      { label: "Assignment", obt: s.assignmentObtained, max: s.assignmentMax, rnd: s.assignmentMax },
+                    ] : [
+                      { label: "Mid Sem", obt: s.midSemObtained, max: s.midSemMax, rnd: s.midSemRoundOff },
+                      { label: "Presentation", obt: s.presentationObtained, max: s.presentationMax, rnd: s.presentationRoundOff },
+                      { label: "Assignment", obt: s.assignmentObtained, max: s.assignmentMax, rnd: s.assignmentRoundOff },
+                      { label: "Learning Record", obt: s.learningRecordObtained, max: s.learningRecordMax, rnd: s.learningRecordRoundOff },
+                      { label: "Internal Prac", obt: s.internalPracticalObtained, max: s.internalPracticalMax, rnd: s.internalPracticalRoundOff },
+                      { label: "Project Internal", obt: s.projectInternalObtained, max: s.projectInternalMax, rnd: s.projectInternalRoundOff },
+                    ];
+                    const total = getSubjectTotal(s, internalMarks.semester);
 
                     return (
                     <div key={i} className="card" style={{ padding: 16, display: "flex", flexDirection: "column", gap: 12 }}>
@@ -976,7 +989,7 @@ export default function Dashboard() {
                         </span>
                       </td>
                       <td style={{ color: "var(--secondary)" }}>
-                        {r.session || "—"}
+                        {r.session || "â€”"}
                       </td>
                     </motion.tr>
                   ))}

@@ -426,7 +426,7 @@ router.post(
       }
 
       res.json({
-        message: `✅ Successfully uploaded ${count} student semester record(s) and auto-updated rankings!`,
+✅ Successfully uploaded ${count} student semester record(s) and auto-updated rankings!`,
       });
     } catch (err) {
       console.error("Upload error:", err);
@@ -774,7 +774,7 @@ router.post(
         count++;
       }
       res.json({
-        message: `✅ Uploaded internal marks for ${count} student(s)`,
+✅ Uploaded internal marks for ${count} student(s)`,
       });
     } catch (err) {
       res.status(500).json({ message: err.message });
@@ -794,7 +794,7 @@ router.post("/rankings/generate", protect, async (req, res) => {
 
     await generateRankingForSemester(Number(semester));
     res.json({
-      message: `✅ Rankings generated successfully for Semester ${semester}`,
+      message: `o. Rankings generated successfully for Semester ${semester}`,
     });
   } catch (err) {
     res.status(500).json({ message: err.message });
