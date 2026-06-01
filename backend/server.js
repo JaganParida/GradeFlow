@@ -7,9 +7,10 @@ const rateLimit = require("express-rate-limit");
 const app = express();
 
 // Middleware
+app.set("trust proxy", 1);
 app.use(cors({ origin: "*" }));
 app.use(express.json());
-app.use(rateLimit({ windowMs: 15 * 60 * 1000, max: 200 }));
+app.use(rateLimit({ windowMs: 15 * 60 * 1000, max: 500 }));
 
 // Routes
 app.use("/api/auth", require("./routes/auth"));
