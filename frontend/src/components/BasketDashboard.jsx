@@ -28,7 +28,7 @@ export default function BasketDashboard({ results }) {
   const baskets = useMemo(() => categorizeBaskets(results), [results]);
   const inferredDomain = useMemo(() => inferStudentDomainTrack(baskets.B5.subjects, BASKET_5_DOMAINS_DATA), [baskets.B5.subjects]);
 
-  const totalEarned = baskets.B1.credits + baskets.B2.credits + baskets.B3.credits + baskets.B4.credits + baskets.B5.credits + (baskets.EX ? baskets.EX.credits : 0);
+  const totalEarned = baskets.B1.credits + baskets.B2.credits + baskets.B3.credits + baskets.B4.credits + baskets.B5.credits;
   const targetTotal = 160;
 
   // Honours logic: Extra 20 credits in Basket V
@@ -285,7 +285,7 @@ export default function BasketDashboard({ results }) {
       {/* Baskets Grid */}
       <h3 style={{ fontSize: 18, fontWeight: 700, color: "var(--text-main)", marginTop: 10 }}>Curriculum Baskets</h3>
       <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: 16 }}>
-        {Object.entries(baskets).map(([key, data], i) => {
+        {Object.entries(baskets).filter(([key]) => key !== 'EX').map(([key, data], i) => {
           const progress = Math.min(100, (data.credits / data.target) * 100);
           const isComplete = data.credits >= data.target;
           const isExpanded = expandedBasket === key;
@@ -365,3 +365,6 @@ export default function BasketDashboard({ results }) {
     </div>
   );
 }
+
+
+

@@ -206,7 +206,9 @@ export const BASKET_4_SYLLABUS = [
 export const COMMON_BASKET_5_SYLLABUS = [
   { subCode: "CUTM1577", subName: "MINOR PROJECT II", credits: 2 },
   { subCode: "CUTM1905", subName: "INTERNSHIP", credits: 2 },
-  { subCode: "CUTM1906", subName: "MINOR PROJECT", credits: 2 }
+  { subCode: "CUTM1906", subName: "MINOR PROJECT", credits: 2 },
+  { subCode: "CUTM1046", subName: "ELECTRONIC DEVICES AND SYSTEMS", credits: 3 },
+  { subCode: "CUTM1057", subName: "BASIC ELECTRICAL ENGINEERING", credits: 2 }
 ];
 
 export const BASKET_5_SKILL_COURSES = [
@@ -682,6 +684,11 @@ export const BASKET_1_SYLLABUS = [
     "subCode": "CUTM1674",
     "subName": "Environmental Science",
     "credits": 4
+  },
+  {
+    "subCode": "CUTM1010",
+    "subName": "ENVIRONMENTAL STUDIES",
+    "credits": 2
   }
 ];
 
@@ -1345,3 +1352,5 @@ export function inferStudentDomainTrack(studentSubjects, allDomains) {
 
   return bestTrack;
 }
+
+
