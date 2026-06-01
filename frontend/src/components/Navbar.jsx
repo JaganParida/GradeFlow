@@ -281,14 +281,13 @@ export default function Navbar() {
             style={{
               position: "fixed",
               inset: 0,
-              width: "100vw",
-              minHeight: "100dvh",
-              background: "rgba(0,0,0,0.72)",
-              backdropFilter: "blur(14px)",
-              WebkitBackdropFilter: "blur(14px)",
+              background: "rgba(10,10,10,0.5)",
+              backdropFilter: "blur(20px)",
+              WebkitBackdropFilter: "blur(20px)",
               zIndex: 10000,
-              display: "grid",
-              placeItems: "center",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
               padding: 24,
             }}
           >
@@ -299,14 +298,14 @@ export default function Navbar() {
               transition={{ type: "spring", stiffness: 260, damping: 24 }}
               onClick={(e) => e.stopPropagation()}
               style={{
-                background: "rgba(24,24,24,0.96)",
-                border: "1px solid rgba(255,255,255,0.12)",
-                borderRadius: 18,
+                background: "linear-gradient(180deg, rgba(30,30,30,0.95) 0%, rgba(20,20,20,0.95) 100%)",
+                border: "1px solid rgba(255,255,255,0.08)",
+                borderRadius: 24,
                 padding: 32,
                 maxWidth: 440,
                 width: "100%",
                 textAlign: "center",
-                boxShadow: "0 28px 80px rgba(0,0,0,0.65)",
+                boxShadow: "0 28px 80px rgba(0,0,0,0.8)",
               }}
             >
               <div style={{ background: "rgba(62,166,255,0.12)", width: 64, height: 64, borderRadius: 32, display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 20px auto", border: "1px solid rgba(62,166,255,0.2)" }}>
