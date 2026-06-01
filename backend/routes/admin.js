@@ -20,7 +20,7 @@ const GRADE_POINTS = {
   B: 7,
   C: 6,
   D: 5,
-  F: 2,
+  F: 0,
   R: 0,
   M: 0,
   S: 0,
@@ -40,6 +40,10 @@ function calcSGPA(subjects, semester) {
       (s.type && s.type.toLowerCase().includes("proj"))
     ) {
       // Grade point = 0, credit count = 0 (completely skip)
+      return;
+    }
+
+    if (['F', 'R', 'M', 'S'].includes(s.grade)) {
       return;
     }
 
@@ -93,7 +97,7 @@ async function generateRankingForSemester(semester) {
           if (Number(ar.semester) === 5 && s.grade === 'R' && (s.credit === 6 || (s.subName && s.subName.toLowerCase().includes('project')))) {
             return;
           }
-          if (s.grade === 'M' || s.grade === 'S') {
+          if (['F', 'R', 'M', 'S'].includes(s.grade)) {
             return;
           }
           if (s.credit && GRADE_POINTS[s.grade] !== undefined) {

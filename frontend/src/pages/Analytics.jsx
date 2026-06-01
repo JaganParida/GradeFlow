@@ -20,7 +20,7 @@ import { Spinner } from "../components/LoadingSpinner";
 import { motion, animate } from "framer-motion";
 import { TrendingUp, TrendingDown, Star, Trophy, CheckCircle, AlertTriangle, Target, Medal, Award, BarChart2, PieChart, Briefcase, GraduationCap, Check, X, ArrowLeft, Building2, FileText } from "lucide-react";
 
-const GRADE_POINTS = { O: 10, E: 9, A: 8, B: 7, C: 6, D: 5, F: 2, R: 0, M: 0, S: 0 };
+const GRADE_POINTS = { O: 10, E: 9, A: 8, B: 7, C: 6, D: 5, F: 0, R: 0, M: 0, S: 0 };
 const GRADE_ORDER = ["O", "E", "A", "B", "C", "D", "F"];
 
 function AnimatedNumber({ value }) {
@@ -59,7 +59,7 @@ function calcCGPAUpTo(results, upToIdx) {
     let semTC = 0;
     r.subjects.forEach((s) => {
       if (Number(r.semester) === 5 && s.grade === 'R' && (Number(s.credit) === 6 || (s.subName && s.subName.toLowerCase().includes('project')))) return;
-      if (s.grade === 'M' || s.grade === 'S') return;
+      if (['F', 'R', 'M', 'S'].includes(s.grade)) return;
       if (s.credit && GRADE_POINTS[s.grade] !== undefined) {
         semTW += s.credit * GRADE_POINTS[s.grade];
         semTC += s.credit;
@@ -220,7 +220,7 @@ export default function Analytics() {
           return;
         }
         
-        if (grade === 'M' || grade === 'S') {
+        if (['F', 'R', 'M', 'S'].includes(grade)) {
           return;
         }
 
