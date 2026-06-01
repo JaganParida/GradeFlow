@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useApp } from "../context/AppContext";
 import { motion, AnimatePresence } from "framer-motion";
 import { GraduationCap, LayoutDashboard, BarChart2, Trophy, Menu, X, ShieldAlert, Clock, LogOut } from "lucide-react";
@@ -7,7 +7,9 @@ import { GraduationCap, LayoutDashboard, BarChart2, Trophy, Menu, X, ShieldAlert
 export default function Navbar() {
   const [scrolled, setScrolled] = useState(false);
   const [open, setOpen] = useState(false);
+  const [showAuthModal, setShowAuthModal] = useState(false);
   const location = useLocation();
+  const navigate = useNavigate();
   const { studentData, adminToken, isAdmitted, sessionTimeLeft, leaveSession } = useApp();
 
   useEffect(() => {
@@ -24,15 +26,19 @@ export default function Navbar() {
     || localStorage.getItem("last_regNo");
 
   const links = [
-    { to: "/", label: "Home", icon: <GraduationCap size={16} /> },
-    ...(currentRegNo
-      ? [
-          { to: `/dashboard/${currentRegNo}`, label: "Dashboard", icon: <LayoutDashboard size={16} /> },
-          { to: `/analytics/${currentRegNo}`, label: "Analytics", icon: <BarChart2 size={16} /> },
-        ]
-      : []),
-    { to: "/leaderboard", label: "Leaderboard", icon: <Trophy size={16} /> },
+    { to: "/", label: "Home", icon: <GraduationCap size={16} />, reqAuth: false },
+    { to: currentRegNo ? `/dashboard/${currentRegNo}` : "#", label: "Dashboard", icon: <LayoutDashboard size={16} />, reqAuth: true },
+    { to: currentRegNo ? `/analytics/${currentRegNo}` : "#", label: "Analytics", icon: <BarChart2 size={16} />, reqAuth: true },
+    { to: "/leaderboard", label: "Leaderboard", icon: <Trophy size={16} />, reqAuth: true },
   ];
+
+  const handleLinkClick = (e, l) => {
+    if (l.reqAuth && !isAdmitted) {
+      e.preventDefault();
+      setShowAuthModal(true);
+      setOpen(false);
+    }
+  };
 
   return (
     <nav
@@ -101,8 +107,9 @@ export default function Navbar() {
         >
           {links.map((l) => (
             <Link
-              key={l.to}
+              key={l.label}
               to={l.to}
+              onClick={(e) => handleLinkClick(e, l)}
               style={{
                 display: "flex",
                 alignItems: "center",
@@ -199,8 +206,9 @@ export default function Navbar() {
             <div style={{ padding: "12px 24px 20px" }}>
               {links.map((l) => (
                 <Link
-                  key={l.to}
+                  key={l.label}
                   to={l.to}
+                  onClick={(e) => handleLinkClick(e, l)}
                   style={{
                     display: "flex",
                     alignItems: "center",
@@ -259,6 +267,26 @@ export default function Navbar() {
           .hamburger { display: block !important; }
         }
       `}</style>
+
+      <AnimatePresence>
+        {showAuthModal && (
+          <div style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, background: "rgba(0,0,0,0.8)", backdropFilter: "blur(4px)", zIndex: 9999, display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
+            <motion.div initial={{ opacity: 0, scale: 0.95, y: 10 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 10 }} style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 16, padding: 32, maxWidth: 400, width: "100%", textAlign: "center", boxShadow: "0 20px 40px rgba(0,0,0,0.5)" }}>
+              <div style={{ background: "rgba(62,166,255,0.1)", width: 64, height: 64, borderRadius: 32, display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 20px auto" }}>
+                <Clock color="var(--accent)" size={32} />
+              </div>
+              <h3 style={{ fontSize: 20, fontWeight: 700, color: "var(--text)", marginBottom: 12 }}>Session Required</h3>
+              <p style={{ color: "var(--secondary)", fontSize: 15, lineHeight: 1.6, marginBottom: 24 }}>
+                To access the Dashboard, Analytics, or Leaderboard, please enter your Registration No. on the Home page to start a 3-minute session.
+              </p>
+              <div style={{ display: "flex", gap: 12 }}>
+                <button onClick={() => setShowAuthModal(false)} className="btn btn-ghost" style={{ flex: 1, padding: "12px 0", justifyContent: "center" }}>Cancel</button>
+                <button onClick={() => { setShowAuthModal(false); navigate("/"); window.scrollTo({top: 0, behavior: 'smooth'}); }} className="btn btn-primary" style={{ flex: 1, padding: "12px 0", justifyContent: "center" }}>Go to Home</button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </nav>
   );
 }
