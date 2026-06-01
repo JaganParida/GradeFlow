@@ -440,7 +440,7 @@ export default function Analytics() {
                         fontSize: 11,
                       }}
                     />
-                    <Line
+                    <Line isAnimationActive={false}
                       type="monotone"
                       dataKey="SGPA"
                       stroke="#3ea6ff"
@@ -448,7 +448,7 @@ export default function Analytics() {
                       dot={{ fill: "#3ea6ff", r: 5 }}
                       activeDot={{ r: 7 }}
                     />
-                    <Line
+                    <Line isAnimationActive={false}
                       type="monotone"
                       dataKey="CGPA"
                       stroke="#a855f7"
@@ -472,7 +472,7 @@ export default function Analytics() {
                     <PolarGrid stroke="#333" />
                     <PolarAngleAxis dataKey="subject" tick={{ fill: "#aaa", fontSize: 12 }} />
                     <PolarRadiusAxis angle={30} domain={[0, 10]} tick={false} axisLine={false} />
-                    <Radar
+                    <Radar isAnimationActive={false}
                       name="Score"
                       dataKey="score"
                       stroke="#3ea6ff"
