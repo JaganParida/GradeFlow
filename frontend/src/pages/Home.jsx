@@ -102,39 +102,6 @@ export default function Home() {
         }}
       />
 
-      {/* Live Server Stats Badge */}
-      {stats && (
-        <motion.div
-          initial={{ y: -20, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          style={{
-            position: "absolute",
-            top: 24,
-            display: "flex",
-            gap: 16,
-            background: "rgba(20,20,20,0.8)",
-            backdropFilter: "blur(12px)",
-            border: "1px solid rgba(255,255,255,0.1)",
-            padding: "8px 16px",
-            borderRadius: 30,
-            fontSize: 13,
-            fontWeight: 500,
-            zIndex: 10,
-            boxShadow: "0 4px 20px rgba(0,0,0,0.2)",
-          }}
-        >
-          <div style={{ display: "flex", alignItems: "center", gap: 6, color: "var(--text)" }}>
-            <div style={{ width: 8, height: 8, borderRadius: "50%", background: "#22c55e", boxShadow: "0 0 10px #22c55e" }} />
-            {stats.activeUsers} {stats.activeUsers === 1 ? "User" : "Users"} Online
-          </div>
-          <div style={{ width: 1, background: "rgba(255,255,255,0.1)" }} />
-          <div style={{ display: "flex", alignItems: "center", gap: 6, color: isServerBusy ? "var(--danger)" : "var(--accent)" }}>
-            <Activity size={14} />
-            {stats.activeRequests} / {stats.maxRequests} Slots Used
-          </div>
-        </motion.div>
-      )}
-
       <motion.div
         initial={{ y: 20, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
@@ -145,8 +112,44 @@ export default function Home() {
           position: "relative",
           zIndex: 1,
           width: "100%",
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
         }}
       >
+        {/* Live Server Stats Badge */}
+        {stats && (
+          <motion.div
+            initial={{ y: -20, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            style={{
+              display: "flex",
+              gap: 16,
+              background: "rgba(20,20,20,0.8)",
+              backdropFilter: "blur(12px)",
+              border: "1px solid rgba(255,255,255,0.1)",
+              padding: "8px 16px",
+              borderRadius: 30,
+              fontSize: 13,
+              fontWeight: 500,
+              marginBottom: 32,
+              boxShadow: "0 4px 20px rgba(0,0,0,0.2)",
+              flexWrap: "wrap",
+              justifyContent: "center",
+            }}
+          >
+            <div style={{ display: "flex", alignItems: "center", gap: 6, color: "var(--text)" }}>
+              <div style={{ width: 8, height: 8, borderRadius: "50%", background: "#22c55e", boxShadow: "0 0 10px #22c55e" }} />
+              {stats.activeUsers} {stats.activeUsers === 1 ? "User" : "Users"} Online
+            </div>
+            <div style={{ width: 1, background: "rgba(255,255,255,0.1)" }} />
+            <div style={{ display: "flex", alignItems: "center", gap: 6, color: isServerBusy ? "var(--danger)" : "var(--accent)" }}>
+              <Activity size={14} />
+              {stats.activeRequests} / {stats.maxRequests} Slots Used
+            </div>
+          </motion.div>
+        )}
+
         {/* Logo */}
         <div style={{ marginBottom: 24 }}>
           <motion.div
