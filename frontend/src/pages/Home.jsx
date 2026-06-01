@@ -124,25 +124,26 @@ export default function Home() {
             animate={{ y: 0, opacity: 1 }}
             style={{
               display: "flex",
-              gap: 16,
+              gap: 12,
               background: "rgba(20,20,20,0.8)",
               backdropFilter: "blur(12px)",
               border: "1px solid rgba(255,255,255,0.1)",
               padding: "8px 16px",
               borderRadius: 30,
-              fontSize: 13,
+              fontSize: "clamp(11px, 3.5vw, 13px)",
               fontWeight: 500,
               marginBottom: 32,
               boxShadow: "0 4px 20px rgba(0,0,0,0.2)",
-              flexWrap: "wrap",
               justifyContent: "center",
+              alignItems: "center",
+              whiteSpace: "nowrap",
             }}
           >
             <div style={{ display: "flex", alignItems: "center", gap: 6, color: "var(--text)" }}>
               <div style={{ width: 8, height: 8, borderRadius: "50%", background: "#22c55e", boxShadow: "0 0 10px #22c55e" }} />
               {stats.activeUsers} {stats.activeUsers === 1 ? "User" : "Users"} Online
             </div>
-            <div style={{ width: 1, background: "rgba(255,255,255,0.1)" }} />
+            <div style={{ width: 1, height: 14, background: "rgba(255,255,255,0.15)" }} />
             <div style={{ display: "flex", alignItems: "center", gap: 6, color: isServerBusy ? "var(--danger)" : "var(--accent)" }}>
               <Activity size={14} />
               {stats.activeRequests} / {stats.maxRequests} Slots Used
