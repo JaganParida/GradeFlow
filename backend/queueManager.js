@@ -1,7 +1,7 @@
 const { Server } = require("socket.io");
 
 const MAX_CONCURRENT_SEARCHES = 5;
-const COOLDOWN_MS = 2 * 60 * 1000; // 2 minutes
+const COOLDOWN_MS = 15 * 1000; // 15 seconds
 
 let io = null;
 let activeUsers = 0;
