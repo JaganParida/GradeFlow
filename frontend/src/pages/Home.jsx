@@ -287,7 +287,7 @@ export default function Home() {
                   gap: 8, 
                   borderRadius: 12, 
                   fontSize: 15,
-                  background: cooldownRemaining > 0 ? "var(--border)" : "var(--primary)",
+                  background: cooldownRemaining > 0 ? "var(--border)" : "var(--accent)",
                   color: cooldownRemaining > 0 ? "var(--secondary)" : "#fff",
                   cursor: isSearchDisabled ? "not-allowed" : "pointer",
                   opacity: isSearchDisabled ? 0.8 : 1
