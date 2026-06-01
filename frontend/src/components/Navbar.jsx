@@ -10,7 +10,7 @@ export default function Navbar() {
   const [showAuthModal, setShowAuthModal] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
-  const { studentData, adminToken, isAdmitted, sessionTimeLeft, leaveSession } = useApp();
+  const { studentData, adminToken, hasActiveSession, sessionTimeLeft, leaveSession } = useApp();
 
   useEffect(() => {
     const fn = () => setScrolled(window.scrollY > 20);
@@ -33,7 +33,7 @@ export default function Navbar() {
   ];
 
   const handleLinkClick = (e, l) => {
-    if (l.reqAuth && !isAdmitted) {
+    if (l.reqAuth && !hasActiveSession) {
       e.preventDefault();
       setShowAuthModal(true);
       setOpen(false);
@@ -41,7 +41,8 @@ export default function Navbar() {
   };
 
   return (
-    <nav
+    <>
+      <nav
       style={{
         position: "fixed",
         top: 0,
@@ -139,7 +140,7 @@ export default function Navbar() {
           >
             <ShieldAlert size={16} /> Admin
           </Link>
-          {isAdmitted && (
+          {hasActiveSession && (
             <div style={{ display: "flex", alignItems: "center", gap: 8, marginLeft: 16 }}>
               <div
                 style={{
@@ -238,7 +239,7 @@ export default function Navbar() {
               >
                 <ShieldAlert size={16} /> Admin
               </Link>
-              {isAdmitted && (
+              {hasActiveSession && (
                 <div style={{ padding: "12px 0", borderTop: "1px solid rgba(255,255,255,0.05)", marginTop: 8 }}>
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 8, color: sessionTimeLeft <= 30 ? "var(--danger)" : "var(--text)", fontWeight: 600 }}>
@@ -268,25 +269,61 @@ export default function Navbar() {
         }
       `}</style>
 
+      </nav>
+
       <AnimatePresence>
         {showAuthModal && (
-          <div style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, background: "rgba(0,0,0,0.8)", backdropFilter: "blur(4px)", zIndex: 9999, display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
-            <motion.div initial={{ opacity: 0, scale: 0.95, y: 10 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 10 }} style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 16, padding: 32, maxWidth: 400, width: "100%", textAlign: "center", boxShadow: "0 20px 40px rgba(0,0,0,0.5)" }}>
-              <div style={{ background: "rgba(62,166,255,0.1)", width: 64, height: 64, borderRadius: 32, display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 20px auto" }}>
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={() => setShowAuthModal(false)}
+            style={{
+              position: "fixed",
+              inset: 0,
+              width: "100vw",
+              minHeight: "100dvh",
+              background: "rgba(0,0,0,0.72)",
+              backdropFilter: "blur(14px)",
+              WebkitBackdropFilter: "blur(14px)",
+              zIndex: 10000,
+              display: "grid",
+              placeItems: "center",
+              padding: 24,
+            }}
+          >
+            <motion.div
+              initial={{ opacity: 0, scale: 0.94, y: 18 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.94, y: 18 }}
+              transition={{ type: "spring", stiffness: 260, damping: 24 }}
+              onClick={(e) => e.stopPropagation()}
+              style={{
+                background: "rgba(24,24,24,0.96)",
+                border: "1px solid rgba(255,255,255,0.12)",
+                borderRadius: 18,
+                padding: 32,
+                maxWidth: 440,
+                width: "100%",
+                textAlign: "center",
+                boxShadow: "0 28px 80px rgba(0,0,0,0.65)",
+              }}
+            >
+              <div style={{ background: "rgba(62,166,255,0.12)", width: 64, height: 64, borderRadius: 32, display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 20px auto", border: "1px solid rgba(62,166,255,0.2)" }}>
                 <Clock color="var(--accent)" size={32} />
               </div>
-              <h3 style={{ fontSize: 20, fontWeight: 700, color: "var(--text)", marginBottom: 12 }}>Session Required</h3>
+              <h3 style={{ fontSize: 22, fontWeight: 800, color: "var(--text)", marginBottom: 12 }}>Session Required</h3>
               <p style={{ color: "var(--secondary)", fontSize: 15, lineHeight: 1.6, marginBottom: 24 }}>
                 To access the Dashboard, Analytics, or Leaderboard, please enter your Registration No. on the Home page to start a 3-minute session.
               </p>
-              <div style={{ display: "flex", gap: 12 }}>
-                <button onClick={() => setShowAuthModal(false)} className="btn btn-ghost" style={{ flex: 1, padding: "12px 0", justifyContent: "center" }}>Cancel</button>
-                <button onClick={() => { setShowAuthModal(false); navigate("/"); window.scrollTo({top: 0, behavior: 'smooth'}); }} className="btn btn-primary" style={{ flex: 1, padding: "12px 0", justifyContent: "center" }}>Go to Home</button>
+              <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
+                <button onClick={() => setShowAuthModal(false)} className="btn btn-ghost" style={{ flex: "1 1 150px", padding: "12px 0", justifyContent: "center" }}>Cancel</button>
+                <button onClick={() => { setShowAuthModal(false); navigate("/"); window.scrollTo({top: 0, behavior: 'smooth'}); }} className="btn btn-primary" style={{ flex: "1 1 150px", padding: "12px 0", justifyContent: "center" }}>Go to Home</button>
               </div>
             </motion.div>
-          </div>
+          </motion.div>
         )}
       </AnimatePresence>
-    </nav>
+    </>
   );
 }

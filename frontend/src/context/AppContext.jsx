@@ -6,10 +6,33 @@ import axios from "axios";
 import { io } from "socket.io-client";
 
 const API = import.meta.env.VITE_API_URL || "/api";
+const SESSION_DURATION_MS = 3 * 60 * 1000;
+const SESSION_EXPIRY_KEY = "gf_session_expiry";
+const STUDENT_CACHE_KEY = "gf_student_data";
+
+const getStoredSessionExpiry = () =>
+  Number(localStorage.getItem(SESSION_EXPIRY_KEY)) || 0;
+
+const getSessionSecondsLeft = (expiry = getStoredSessionExpiry()) =>
+  Math.max(0, Math.ceil((expiry - Date.now()) / 1000));
+
+const hasActiveStoredSession = () =>
+  Boolean(localStorage.getItem("last_regNo") && getSessionSecondsLeft() > 0);
+
+const getCachedStudentData = () => {
+  if (!hasActiveStoredSession()) return null;
+  try {
+    return JSON.parse(localStorage.getItem(STUDENT_CACHE_KEY)) || null;
+  } catch {
+    localStorage.removeItem(STUDENT_CACHE_KEY);
+    return null;
+  }
+};
+
 const AppCtx = createContext();
 
 export function AppProvider({ children }) {
-  const [studentData, setStudentData] = useState(null);
+  const [studentData, setStudentData] = useState(() => getCachedStudentData());
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [adminToken, setAdminToken] = useState(
@@ -21,14 +44,38 @@ export function AppProvider({ children }) {
   const [cooldownExpiry, setCooldownExpiry] = useState(
     () => Number(localStorage.getItem("gf_cooldown")) || 0
   );
+  const [sessionExpiry, setSessionExpiry] = useState(() => getStoredSessionExpiry());
   
   const socketRef = useRef(null);
   const [queuePosition, setQueuePosition] = useState(null);
-  const [isAdmitted, setIsAdmitted] = useState(false);
-  const [sessionTimeLeft, setSessionTimeLeft] = useState(0);
+  const [isAdmitted, setIsAdmitted] = useState(() => hasActiveStoredSession());
+  const [sessionTimeLeft, setSessionTimeLeft] = useState(() => getSessionSecondsLeft());
   const navigate = useNavigate();
   const [sessionExpiredPopup, setSessionExpiredPopup] = useState(false);
   const [popupMessage, setPopupMessage] = useState("");
+  const hasActiveSession = isAdmitted && sessionTimeLeft > 0;
+
+  const startLocalSession = (expiry = Date.now() + SESSION_DURATION_MS) => {
+    localStorage.setItem(SESSION_EXPIRY_KEY, expiry.toString());
+    localStorage.setItem("gf_cooldown", expiry.toString());
+    setSessionExpiry(expiry);
+    setCooldownExpiry(expiry);
+    setSessionTimeLeft(getSessionSecondsLeft(expiry));
+    setIsAdmitted(true);
+  };
+
+  const clearLocalSession = ({ clearCooldown = false } = {}) => {
+    localStorage.removeItem(SESSION_EXPIRY_KEY);
+    localStorage.removeItem(STUDENT_CACHE_KEY);
+    setSessionExpiry(0);
+    setIsAdmitted(false);
+    setSessionTimeLeft(0);
+
+    if (clearCooldown) {
+      localStorage.removeItem("gf_cooldown");
+      setCooldownExpiry(0);
+    }
+  };
 
   useEffect(() => {
     socketRef.current = io(API.replace('/api', ''));
@@ -40,8 +87,7 @@ export function AppProvider({ children }) {
     socketRef.current.on("session_expired", (data) => {
       setPopupMessage(data.message || "Your 3-minute session has expired. To give others a chance, you have been returned to the home page.");
       setSessionExpiredPopup(true);
-      setIsAdmitted(false);
-      setSessionTimeLeft(0);
+      clearLocalSession({ clearCooldown: true });
       navigate("/");
     });
 
@@ -50,9 +96,8 @@ export function AppProvider({ children }) {
     });
 
     socketRef.current.on("queue_admitted", () => {
-      setIsAdmitted(true);
       setQueuePosition(null);
-      setSessionTimeLeft(180);
+      startLocalSession();
     });
 
     const handleStorageChange = (e) => {
@@ -60,6 +105,12 @@ export function AppProvider({ children }) {
         setAdminToken(e.newValue || "");
       } else if (e.key === "gf_cooldown") {
         setCooldownExpiry(Number(e.newValue) || 0);
+      } else if (e.key === SESSION_EXPIRY_KEY) {
+        const expiry = Number(e.newValue) || 0;
+        const secondsLeft = getSessionSecondsLeft(expiry);
+        setSessionExpiry(expiry);
+        setSessionTimeLeft(secondsLeft);
+        setIsAdmitted(secondsLeft > 0);
       }
     };
     window.addEventListener("storage", handleStorageChange);
@@ -71,23 +122,27 @@ export function AppProvider({ children }) {
   }, []);
 
   useEffect(() => {
-    let timer;
-    if (isAdmitted && sessionTimeLeft > 0) {
-      timer = setInterval(() => {
-        setSessionTimeLeft((prev) => prev - 1);
-      }, 1000);
-    }
-    return () => {
-      if (timer) clearInterval(timer);
+    if (!isAdmitted) return;
+
+    const updateTimer = () => {
+      const secondsLeft = getSessionSecondsLeft(sessionExpiry);
+      setSessionTimeLeft(secondsLeft);
+
+      if (secondsLeft <= 0) {
+        clearLocalSession({ clearCooldown: true });
+      }
     };
-  }, [isAdmitted, sessionTimeLeft]);
+
+    updateTimer();
+    const timer = setInterval(updateTimer, 1000);
+    return () => clearInterval(timer);
+  }, [isAdmitted, sessionExpiry]);
 
   const leaveSession = () => {
     if (socketRef.current) {
       socketRef.current.emit("leave_session");
-      setIsAdmitted(false);
-      setSessionTimeLeft(0);
     }
+    clearLocalSession();
   };
 
   const joinQueue = (regNo) => {
@@ -95,8 +150,7 @@ export function AppProvider({ children }) {
       if (socketRef.current) {
         socketRef.current.emit("join_queue", { regNo }, (response) => {
           if (response.status === "admitted") {
-            setIsAdmitted(true);
-            setSessionTimeLeft(180);
+            startLocalSession();
           } else if (response.status === "queued") {
             setQueuePosition(response.position);
           }
@@ -122,11 +176,10 @@ export function AppProvider({ children }) {
       const { data } = await axios.get(`${API}/student/${regNo}`);
       setStudentData(data);
       localStorage.setItem("last_regNo", data.regNo);
+      localStorage.setItem(STUDENT_CACHE_KEY, JSON.stringify(data));
       
-      // Start cooldown timer (2 mins)
-      const expiry = Date.now() + 3 * 60 * 1000;
-      localStorage.setItem("gf_cooldown", expiry.toString());
-      setCooldownExpiry(expiry);
+      const expiry = Date.now() + SESSION_DURATION_MS;
+      startLocalSession(expiry);
       
       return data;
     } catch (e) {
@@ -144,7 +197,8 @@ export function AppProvider({ children }) {
       } else {
         setError(e.response?.data?.message || "Student not found");
       }
-      setStudentData(null);
+        setStudentData(null);
+        localStorage.removeItem(STUDENT_CACHE_KEY);
       return null;
     } finally {
       setLoading(false);
@@ -174,6 +228,7 @@ export function AppProvider({ children }) {
         fetchStudent,
         leaveSession,
         sessionTimeLeft,
+        hasActiveSession,
         queuePosition,
         isAdmitted,
         setIsAdmitted,

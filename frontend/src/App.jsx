@@ -9,8 +9,8 @@ import AdminDashboard from "./pages/AdminDashboard";
 import { useApp } from "./context/AppContext";
 
 function ProtectedRoute({ children }) {
-  const { isAdmitted } = useApp();
-  if (!isAdmitted) {
+  const { hasActiveSession } = useApp();
+  if (!hasActiveSession) {
     return <Navigate to="/" replace />;
   }
   return children;
