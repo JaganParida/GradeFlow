@@ -243,9 +243,11 @@ export default function Home() {
         <p
           style={{
             color: "var(--secondary)",
-            fontSize: 17,
-            marginBottom: 40,
+            fontSize: 18,
+            marginBottom: 48,
             lineHeight: 1.7,
+            maxWidth: 600,
+            margin: "0 auto 48px auto",
           }}
         >
           View your grades, SGPA, CGPA, rankings, analytics, and academic
@@ -260,29 +262,41 @@ export default function Home() {
                 value={regNo}
                 onChange={(e) => setRegNo(e.target.value)}
                 placeholder="Registration No. (e.g. 230301120170)"
-                style={{ flex: "1 1 260px", fontSize: 15, padding: "14px 20px", borderRadius: 12 }}
+                style={{ 
+                  flex: "1 1 300px", 
+                  fontSize: 16, 
+                  padding: "16px 24px", 
+                  borderRadius: 16, 
+                  background: "rgba(30, 30, 30, 0.4)",
+                  border: "1px solid rgba(255, 255, 255, 0.08)",
+                  boxShadow: "inset 0 2px 4px rgba(0,0,0,0.2)",
+                  color: "var(--text)"
+                }}
                 disabled={isSearchDisabled}
               />
               <motion.button
-                whileHover={!isSearchDisabled ? { scale: 1.02 } : {}}
+                whileHover={!isSearchDisabled ? { scale: 1.02, boxShadow: "0 8px 20px rgba(62,166,255,0.4)" } : {}}
                 whileTap={!isSearchDisabled ? { scale: 0.98 } : {}}
                 className="btn btn-primary"
                 type="submit"
                 disabled={isSearchDisabled}
                 style={{ 
-                  flex: "1 1 120px", 
+                  flex: "0 0 160px", 
                   whiteSpace: "nowrap", 
-                  padding: "14px 24px", 
+                  padding: "16px 32px", 
                   display: "flex", 
                   alignItems: "center", 
                   justifyContent: "center", 
                   gap: 8, 
-                  borderRadius: 12, 
-                  fontSize: 15,
-                  background: cooldownRemaining > 0 ? "var(--border)" : "var(--accent)",
+                  borderRadius: 16, 
+                  fontSize: 16,
+                  fontWeight: 600,
+                  background: cooldownRemaining > 0 ? "var(--border)" : "linear-gradient(135deg, var(--accent), #3b82f6)",
                   color: cooldownRemaining > 0 ? "var(--secondary)" : "#fff",
+                  border: "none",
                   cursor: isSearchDisabled ? "not-allowed" : "pointer",
-                  opacity: isSearchDisabled ? 0.8 : 1
+                  opacity: isSearchDisabled ? 0.8 : 1,
+                  boxShadow: cooldownRemaining > 0 ? "none" : "0 4px 15px rgba(62,166,255,0.2)"
                 }}
               >
                 {cooldownRemaining > 0 ? (
