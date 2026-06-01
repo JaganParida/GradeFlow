@@ -60,8 +60,10 @@ function calcAcademicHealth(cgpa, sgpa, backlogs, results) {
   return Math.round(Math.min(score, 100));
 }
 
+const { checkQueue } = require("../queueManager");
+
 // GET student full profile
-router.get("/:regNo", async (req, res) => {
+router.get("/:regNo", checkQueue, async (req, res) => {
   try {
     const { regNo } = req.params;
     const results = await SemesterResult.find({ regNo }).sort({ semester: 1 });

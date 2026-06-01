@@ -1,21 +1,45 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useApp } from "../context/AppContext";
 import { motion } from "framer-motion";
-import { GraduationCap, ArrowRight, AlertTriangle, BarChart2, Trophy, TrendingUp, Target, Sparkles, FileText, Star, Sigma } from "lucide-react";
+import { GraduationCap, ArrowRight, AlertTriangle, BarChart2, Trophy, TrendingUp, Target, Sparkles, FileText, Activity, Clock } from "lucide-react";
 
 export default function Home() {
   const [regNo, setRegNo] = useState("");
-  const { fetchStudent, loading, error } = useApp();
+  const { fetchStudent, loading, error, stats, cooldownExpiry } = useApp();
   const navigate = useNavigate();
+  const [cooldownRemaining, setCooldownRemaining] = useState(0);
+
+  useEffect(() => {
+    const checkCooldown = () => {
+      const now = Date.now();
+      if (cooldownExpiry && cooldownExpiry > now) {
+        setCooldownRemaining(Math.ceil((cooldownExpiry - now) / 1000));
+      } else {
+        setCooldownRemaining(0);
+      }
+    };
+    checkCooldown();
+    const interval = setInterval(checkCooldown, 1000);
+    return () => clearInterval(interval);
+  }, [cooldownExpiry]);
 
   async function handleSearch(e) {
     e.preventDefault();
-    if (loading) return;
+    if (loading || cooldownRemaining > 0 || (stats && stats.activeRequests >= stats.maxRequests)) return;
     if (!regNo.trim()) return;
     const data = await fetchStudent(regNo.trim());
     if (data) navigate(`/dashboard/${regNo.trim()}`);
   }
+
+  const formatTime = (seconds) => {
+    const m = Math.floor(seconds / 60);
+    const s = seconds % 60;
+    return `${m}:${s.toString().padStart(2, "0")}`;
+  };
+
+  const isServerBusy = stats && stats.activeRequests >= stats.maxRequests;
+  const isSearchDisabled = loading || cooldownRemaining > 0 || isServerBusy;
 
   const features = [
     { label: "SGPA & CGPA", icon: <BarChart2 size={14} /> },
@@ -77,6 +101,39 @@ export default function Home() {
           pointerEvents: "none",
         }}
       />
+
+      {/* Live Server Stats Badge */}
+      {stats && (
+        <motion.div
+          initial={{ y: -20, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          style={{
+            position: "absolute",
+            top: 24,
+            display: "flex",
+            gap: 16,
+            background: "rgba(20,20,20,0.8)",
+            backdropFilter: "blur(12px)",
+            border: "1px solid rgba(255,255,255,0.1)",
+            padding: "8px 16px",
+            borderRadius: 30,
+            fontSize: 13,
+            fontWeight: 500,
+            zIndex: 10,
+            boxShadow: "0 4px 20px rgba(0,0,0,0.2)",
+          }}
+        >
+          <div style={{ display: "flex", alignItems: "center", gap: 6, color: "var(--text)" }}>
+            <div style={{ width: 8, height: 8, borderRadius: "50%", background: "#22c55e", boxShadow: "0 0 10px #22c55e" }} />
+            {stats.activeUsers} {stats.activeUsers === 1 ? "User" : "Users"} Online
+          </div>
+          <div style={{ width: 1, background: "rgba(255,255,255,0.1)" }} />
+          <div style={{ display: "flex", alignItems: "center", gap: 6, color: isServerBusy ? "var(--danger)" : "var(--accent)" }}>
+            <Activity size={14} />
+            {stats.activeRequests} / {stats.maxRequests} Slots Used
+          </div>
+        </motion.div>
+      )}
 
       <motion.div
         initial={{ y: 20, opacity: 0 }}
@@ -177,18 +234,45 @@ export default function Home() {
               onChange={(e) => setRegNo(e.target.value)}
               placeholder="Registration No. (e.g. 230301120170)"
               style={{ flex: "1 1 260px", fontSize: 15, padding: "14px 20px", borderRadius: 12 }}
-              disabled={loading}
+              disabled={isSearchDisabled}
             />
             <motion.button
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
+              whileHover={!isSearchDisabled ? { scale: 1.02 } : {}}
+              whileTap={!isSearchDisabled ? { scale: 0.98 } : {}}
               className="btn btn-primary"
               type="submit"
-              disabled={loading}
-              style={{ flex: "1 1 120px", whiteSpace: "nowrap", padding: "14px 24px", display: "flex", alignItems: "center", justifyContent: "center", gap: 8, borderRadius: 12, fontSize: 15 }}
+              disabled={isSearchDisabled}
+              style={{ 
+                flex: "1 1 120px", 
+                whiteSpace: "nowrap", 
+                padding: "14px 24px", 
+                display: "flex", 
+                alignItems: "center", 
+                justifyContent: "center", 
+                gap: 8, 
+                borderRadius: 12, 
+                fontSize: 15,
+                background: cooldownRemaining > 0 || isServerBusy ? "var(--border)" : "var(--primary)",
+                color: cooldownRemaining > 0 || isServerBusy ? "var(--secondary)" : "#fff",
+                cursor: isSearchDisabled ? "not-allowed" : "pointer",
+                opacity: isSearchDisabled ? 0.8 : 1
+              }}
             >
-              {loading ? "Searching..." : "Search"}
-              {!loading && <ArrowRight size={18} />}
+              {cooldownRemaining > 0 ? (
+                <>
+                  <Clock size={16} /> Wait {formatTime(cooldownRemaining)}
+                </>
+              ) : isServerBusy ? (
+                <>
+                  <AlertTriangle size={16} /> Queue Full
+                </>
+              ) : loading ? (
+                "Searching..."
+              ) : (
+                <>
+                  Search <ArrowRight size={18} />
+                </>
+              )}
             </motion.button>
           </div>
           {error && (

@@ -22,6 +22,12 @@ app.get("/api/health", (req, res) =>
   res.json({ status: "ok", name: "GradeFlow API" }),
 );
 
+const http = require("http");
+const { initSocket } = require("./queueManager");
+
+const server = http.createServer(app);
+initSocket(server);
+
 // Seed admin on first run
 async function seedAdmin() {
   const Admin = require("./models/Admin");
@@ -40,7 +46,7 @@ mongoose
   .then(async () => {
     console.log("✅ MongoDB connected");
     await seedAdmin();
-    app.listen(process.env.PORT || 5000, () =>
+    server.listen(process.env.PORT || 5000, () =>
       console.log(`🚀 Server running on port ${process.env.PORT || 5000}`),
     );
   })
