@@ -227,13 +227,13 @@ export default function Home() {
             letterSpacing: -1,
           }}
         >
-          Track Your Academic
+          Track Your Academic{" "}
           <span
             style={{
-              display: "block",
               background: "linear-gradient(135deg, var(--accent), #a855f7)",
               WebkitBackgroundClip: "text",
               WebkitTextFillColor: "transparent",
+              display: "inline-block"
             }}
           >
             Journey
