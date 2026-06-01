@@ -124,7 +124,7 @@ export function AppProvider({ children }) {
       localStorage.setItem("last_regNo", data.regNo);
       
       // Start cooldown timer (2 mins)
-      const expiry = Date.now() + 2 * 60 * 1000;
+      const expiry = Date.now() + 3 * 60 * 1000;
       localStorage.setItem("gf_cooldown", expiry.toString());
       setCooldownExpiry(expiry);
       

@@ -85,7 +85,7 @@ export default function Dashboard() {
           if (!element) continue;
           
           // Let the browser breathe and animate the spinner before the next heavy html2canvas task
-          await new Promise(resolve => setTimeout(resolve, 50));
+          await new Promise(resolve => setTimeout(resolve, 150));
           
           const canvas = await html2canvas(element, { scale: 4, useCORS: true });
           const imgData = canvas.toDataURL("image/png");

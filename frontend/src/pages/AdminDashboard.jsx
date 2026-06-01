@@ -141,7 +141,7 @@ function UploadCard({
         style={{
           border: `2px dashed ${file ? "var(--accent)" : "var(--border)"}`,
           borderRadius: 8,
-          padding: "24px 16px",
+          padding: "12px 16px",
           textAlign: "center",
           marginBottom: 12,
           cursor: "pointer",
