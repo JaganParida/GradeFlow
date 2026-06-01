@@ -175,7 +175,7 @@ function getDynamicBranch(regNo, fallbackBranch) {
   if (r.startsWith("230301190") || r.startsWith("230301191")) return "MI";
   if (r.startsWith("230301230")) return "AERO";
   
-  return fallbackBranch || "â€”";
+  return fallbackBranch || "—";
 }
 
 export default function Dashboard() {
@@ -274,7 +274,7 @@ export default function Dashboard() {
           <AlertTriangle size={20} /> {error || "Student not found"}
         </p>
         <button className="btn btn-ghost" onClick={() => navigate("/")}>
-          â† Back to Search
+          ← Back to Search
         </button>
       </div>
     );
@@ -354,7 +354,7 @@ export default function Dashboard() {
             </p>
             <h1 style={{ fontSize: 28, fontWeight: 800 }}>{studentName}</h1>
             <p style={{ color: "var(--secondary)", marginTop: 4 }}>
-              {regNo} Â· {dynamicBranch} Â· Batch {batch}
+              {regNo} • {dynamicBranch} • Batch {batch}
             </p>
           </div>
           <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
@@ -582,7 +582,7 @@ export default function Dashboard() {
           }}
         >
           <p style={{ color: "var(--success)", fontWeight: 700, display: "flex", alignItems: "center", gap: 8 }}>
-            <CheckCircle size={18} /> ALL CLEAR â€” No Active Backlogs
+            <CheckCircle size={18} /> ALL CLEAR — No Active Backlogs
           </p>
         </motion.div>
       )}
@@ -601,10 +601,10 @@ export default function Dashboard() {
         }}
       >
         {(() => {
-          const cgpaRankNum = semesterRanking ? (semesterRanking.cgpaRank || semesterRanking.universityRank) : null;
-          const sgpaRankNum = semesterRanking ? (semesterRanking.sgpaRank || semesterRanking.universityRank) : null;
-          const isCgpaTop50 = cgpaRankNum && cgpaRankNum <= 50;
-          const isSgpaTop50 = sgpaRankNum && sgpaRankNum <= 50;
+                  {semesterRanking ? # : "—"}
+                  {semesterRanking ? # : "—"}
+                  {semesterRanking ? # : "—"}
+                  {semesterRanking ? # : "—"}
 
           return (
             <>
@@ -626,7 +626,7 @@ export default function Dashboard() {
                     color: semesterRanking ? "var(--accent)" : "var(--muted)",
                   }}
                 >
-                  {semesterRanking ? `#${cgpaRankNum}` : "â€”"}
+                  {semesterRanking ? # : "—"}
                 </p>
                 <p style={{ fontSize: 12, color: "var(--secondary)", display: "flex", alignItems: "center", gap: 4 }}>
                   {semesterRanking ? `of ${semesterRanking.totalStudents}` : "Not Generated"}
@@ -648,7 +648,7 @@ export default function Dashboard() {
                     color: semesterRanking ? "#a855f7" : "var(--muted)",
                   }}
                 >
-                  {semesterRanking ? `#${sgpaRankNum}` : "â€”"}
+                  {semesterRanking ? # : "—"}
                 </p>
                 <p style={{ fontSize: 12, color: "var(--secondary)", display: "flex", alignItems: "center", gap: 4 }}>
                   {semesterRanking ? `of ${semesterRanking.totalStudents}` : "Not Generated"}
@@ -670,7 +670,7 @@ export default function Dashboard() {
                     color: semesterRanking ? "#22c55e" : "var(--muted)",
                   }}
                 >
-                  {semesterRanking && semesterRanking.deptRank ? `#${semesterRanking.deptRank}` : "â€”"}
+                  {semesterRanking && semesterRanking.deptRank ? # : "—"}
                 </p>
                 <p style={{ fontSize: 12, color: "var(--secondary)", display: "flex", alignItems: "center", gap: 4 }}>
                   {semesterRanking && semesterRanking.deptStudents ? `of ${semesterRanking.deptStudents}` : "Not Generated"}
@@ -691,10 +691,10 @@ export default function Dashboard() {
               color: semesterRanking ? "var(--success)" : "var(--muted)",
             }}
           >
-            {semesterRanking ? `${semesterRanking.percentile}%` : "â€”"}
+            {semesterRanking ? ${semesterRanking.percentile}% : "—"}
           </p>
           <p style={{ fontSize: 12, color: "var(--secondary)" }}>
-            {semesterRanking ? `Top ${(100 - semesterRanking.percentile).toFixed(1)}%` : "Not Generated"}
+            {semesterRanking ? ${semesterRanking.percentile}% : "—"}
           </p>
         </div>
       </motion.div>
@@ -976,7 +976,7 @@ export default function Dashboard() {
                         </span>
                       </td>
                       <td style={{ color: "var(--secondary)" }}>
-                        {r.session || "â€”"}
+                        {r.session || "—"}
                       </td>
                     </motion.tr>
                   ))}
