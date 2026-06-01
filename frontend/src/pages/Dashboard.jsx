@@ -21,6 +21,112 @@ const GRADE_COLORS = {
   F: "#ef4444",
 };
 
+const MARK_PLACEHOLDER = "-";
+
+function isMarkAvailable(value) {
+  return value !== undefined && value !== null && value !== "" && !Number.isNaN(Number(value));
+}
+
+function formatMark(value) {
+  const num = Number(value);
+  if (!Number.isFinite(num)) return MARK_PLACEHOLDER;
+  return Number.isInteger(num) ? String(num) : String(Number(num.toFixed(2)));
+}
+
+function firstAvailableMark(...values) {
+  return values.find((value) => isMarkAvailable(value));
+}
+
+function MarkValue({ value, max, color = "#3ea6ff", showMax = true }) {
+  if (!isMarkAvailable(value)) {
+    return <span style={{ color: "var(--muted)" }}>{MARK_PLACEHOLDER}</span>;
+  }
+
+  return (
+    <span style={{ display: "inline-block", color, fontWeight: 700, background: `${color}14`, padding: "4px 8px", borderRadius: 6, whiteSpace: "nowrap" }}>
+      {formatMark(value)}
+      {showMax && isMarkAvailable(max) && (
+        <span style={{ color: `${color}99`, fontSize: 10, fontWeight: 500 }}>/{formatMark(max)}</span>
+      )}
+    </span>
+  );
+}
+
+function getInternalAssessments(subject, semester) {
+  const isSem1 = Number(semester) === 1;
+  const sem1Assessment = (label, obtained, max) => ({
+    label,
+    obtained,
+    max,
+    secondary: isMarkAvailable(obtained) ? max : null,
+    secondaryLabel: "MAX",
+  });
+  const regularAssessment = (label, obtained, max, roundOff) => ({
+    label,
+    obtained,
+    max,
+    secondary: firstAvailableMark(roundOff, isMarkAvailable(obtained) ? Math.round(Number(obtained)) : null),
+    secondaryLabel: "RND",
+  });
+
+  if (isSem1) {
+    return [
+      sem1Assessment("Class Test I", subject.classTest1Obtained, subject.classTest1Max),
+      sem1Assessment("Class Test II", subject.classTest2Obtained, subject.classTest2Max),
+      sem1Assessment("Class Test III", subject.classTest3Obtained, subject.classTest3Max),
+      sem1Assessment("Class Test IV", subject.classTest4Obtained, subject.classTest4Max),
+      sem1Assessment("Assignment", subject.assignmentObtained, subject.assignmentMax),
+    ];
+  }
+
+  return [
+    regularAssessment("Mid Sem", subject.midSemObtained, subject.midSemMax, subject.midSemRoundOff),
+    regularAssessment("Presentation", subject.presentationObtained, subject.presentationMax, subject.presentationRoundOff),
+    regularAssessment("Assignment", subject.assignmentObtained, subject.assignmentMax, subject.assignmentRoundOff),
+    regularAssessment("Learning Record", subject.learningRecordObtained, subject.learningRecordMax, subject.learningRecordRoundOff),
+    regularAssessment("Internal Prac", subject.internalPracticalObtained, subject.internalPracticalMax, subject.internalPracticalRoundOff),
+    regularAssessment("Project Internal", subject.projectInternalObtained, subject.projectInternalMax, subject.projectInternalRoundOff),
+  ];
+}
+
+function getSubjectTotal(subject, semester, assessments = getInternalAssessments(subject, semester)) {
+  const isSem1 = Number(semester) === 1;
+  const scoreValues = assessments
+    .map((assessment) => (isSem1 ? assessment.obtained : assessment.secondary))
+    .filter(isMarkAvailable);
+  const maxValues = assessments.map((assessment) => assessment.max).filter(isMarkAvailable);
+  const hasComponentScore = scoreValues.length > 0;
+  const computedScore = scoreValues.reduce((sum, value) => sum + Number(value), 0);
+  const computedMax = maxValues.reduce((sum, value) => sum + Number(value), 0);
+  const explicitTotalScore =
+    isMarkAvailable(subject.totalScore) && (Number(subject.totalScore) !== 0 || hasComponentScore)
+      ? subject.totalScore
+      : null;
+  const score = firstAvailableMark(explicitTotalScore, hasComponentScore ? computedScore : null);
+  const max = firstAvailableMark(subject.totalMax, computedMax > 0 ? computedMax : null);
+
+  return {
+    hasAny: isMarkAvailable(score),
+    score,
+    max,
+  };
+}
+
+function hasSubjectInternalScore(subject, semester) {
+  const assessments = getInternalAssessments(subject, semester);
+  return getSubjectTotal(subject, semester, assessments).hasAny;
+}
+
+function getSortedInternalSubjects(internalMarks) {
+  const subjects = internalMarks?.subjects || [];
+  const semester = internalMarks?.semester;
+
+  return subjects
+    .map((subject, index) => ({ subject, index }))
+    .sort((a, b) => Number(hasSubjectInternalScore(b.subject, semester)) - Number(hasSubjectInternalScore(a.subject, semester)) || a.index - b.index)
+    .map(({ subject }) => subject);
+}
+
 function GradeBadge({ grade }) {
   return (
     <span
@@ -173,6 +279,7 @@ export default function Dashboard() {
   } = studentData;
 
   const dynamicBranch = getDynamicBranch(regNo, branch);
+  const internalSubjects = getSortedInternalSubjects(internalMarks);
 
   const healthColor =
     academicHealthScore >= 80
@@ -692,16 +799,16 @@ export default function Dashboard() {
                         {[...Array(internalMarks.semester === 1 ? 5 : 6)].map((_, i) => (
                           <React.Fragment key={i}>
                             <th style={{ fontSize: 9, color: "#3ea6ff", borderBottom: "1px solid var(--border)", borderRight: "1px solid var(--border)", textAlign: "center", padding: "8px 4px" }}>OBTAINED</th>
-                            <th style={{ fontSize: 9, color: "#a855f7", borderBottom: "1px solid var(--border)", borderRight: "1px solid var(--border)", textAlign: "center", padding: "8px 4px" }}>ROUND OFF</th>
+                            <th style={{ fontSize: 9, color: "#a855f7", borderBottom: "1px solid var(--border)", borderRight: "1px solid var(--border)", textAlign: "center", padding: "8px 4px" }}>{internalMarks.semester === 1 ? "MAX" : "ROUND OFF"}</th>
                           </React.Fragment>
                         ))}
                       </tr>
                     </thead>
                     <tbody>
-                      {internalMarks.subjects.map((s, i) => {
-                        let calcTotalObtained = 0;
-                        let calcTotalMax = 0;
-                        let hasAny = false;
+                      {internalSubjects.map((s, i) => {
+                        const isSem1 = Number(internalMarks.semester) === 1;
+                        const assessments = getInternalAssessments(s, internalMarks.semester);
+                        const total = getSubjectTotal(s, internalMarks.semester, assessments);
                         return (
                         <tr key={i} style={{ borderBottom: "1px solid var(--border)" }}>
                           <td style={{ color: "var(--secondary)", borderRight: "1px solid var(--border)", textAlign: "center" }}>{i + 1}</td>
@@ -712,55 +819,26 @@ export default function Dashboard() {
                               <span style={{ fontSize: 10, color: "#a855f7", background: "rgba(168,85,247,0.1)", padding: "2px 6px", borderRadius: 4 }}>{s.type}</span>
                             </div>
                           </td>
-                          {[
-                            ...(internalMarks.semester === 1 ? [
-                              [s.classTest1Obtained, s.classTest1Max, s.classTest1RoundOff],
-                              [s.classTest2Obtained, s.classTest2Max, s.classTest2RoundOff],
-                              [s.classTest3Obtained, s.classTest3Max, s.classTest3RoundOff],
-                              [s.classTest4Obtained, s.classTest4Max, s.classTest4RoundOff],
-                              [s.assignmentObtained, s.assignmentMax, s.assignmentRoundOff],
-                            ] : [
-                              [s.midSemObtained, s.midSemMax, s.midSemRoundOff],
-                              [s.presentationObtained, s.presentationMax, s.presentationRoundOff],
-                              [s.assignmentObtained, s.assignmentMax, s.assignmentRoundOff],
-                              [s.learningRecordObtained, s.learningRecordMax, s.learningRecordRoundOff],
-                              [s.internalPracticalObtained, s.internalPracticalMax, s.internalPracticalRoundOff],
-                              [s.projectInternalObtained, s.projectInternalMax, s.projectInternalRoundOff],
-                            ])
-                          ].map(([obt, max, roundOff], ci) => {
-                            const calculatedRoundOff = obt != null ? Math.round(obt) : null;
-                            const finalObt = calculatedRoundOff != null ? calculatedRoundOff : obt;
-                            if (finalObt != null) {
-                              calcTotalObtained += finalObt;
-                              if (max != null) calcTotalMax += max;
-                              hasAny = true;
-                            }
+                          {assessments.map((assessment, ci) => {
                             return (
                             <React.Fragment key={ci}>
                               <td style={{ textAlign: "center", borderRight: "1px dashed rgba(255,255,255,0.05)", padding: "8px" }}>
-                                {obt != null ? (
-                                  <span style={{ display: "inline-block", color: "#3ea6ff", fontWeight: 700, background: "rgba(62,166,255,0.08)", padding: "4px 8px", borderRadius: 6, whiteSpace: "nowrap" }}>
-                                    {obt} <span style={{ color: "rgba(62,166,255,0.6)", fontSize: 10, fontWeight: 500 }}>/{max}</span>
-                                  </span>
-                                ) : <span style={{ color: "var(--muted)" }}>â€”</span>}
+                                <MarkValue value={assessment.obtained} max={assessment.max} showMax={!isSem1} />
                               </td>
                               <td style={{ textAlign: "center", borderRight: "1px solid var(--border)", padding: "8px" }}>
-                                {calculatedRoundOff != null ? (
-                                  <span style={{ display: "inline-block", color: "#a855f7", fontWeight: 700, background: "rgba(168,85,247,0.08)", padding: "4px 8px", borderRadius: 6, whiteSpace: "nowrap" }}>
-                                    {calculatedRoundOff} <span style={{ color: "rgba(168,85,247,0.6)", fontSize: 10, fontWeight: 500 }}>/{max}</span>
-                                  </span>
-                                ) : <span style={{ color: "var(--muted)" }}>â€”</span>}
+                                <MarkValue value={assessment.secondary} max={assessment.max} color="#a855f7" showMax={!isSem1} />
                               </td>
                             </React.Fragment>
                             );
                           })}
                           <td style={{ fontWeight: 800, color: "var(--success)", borderLeft: "1px solid rgba(34,197,94,0.2)", background: "rgba(34,197,94,0.02)", textAlign: "center", fontSize: 15 }}>
-                            {hasAny ? (
+                            {total.hasAny ? (
                               <span style={{ display: "inline-block", border: "1px solid rgba(34,197,94,0.3)", background: "rgba(34,197,94,0.1)", padding: "6px 12px", borderRadius: 6, whiteSpace: "nowrap" }}>
-                                {calcTotalObtained} <span style={{ color: "rgba(34,197,94,0.6)", fontSize: 12, fontWeight: 500 }}>/{calcTotalMax || s.totalMax || s.totalScore}</span>
+                                {formatMark(total.score)}
+                                {isMarkAvailable(total.max) && <span style={{ color: "rgba(34,197,94,0.6)", fontSize: 12, fontWeight: 500 }}>/{formatMark(total.max)}</span>}
                               </span>
                             ) : (
-                              <span style={{ color: "var(--muted)" }}>â€”</span>
+                              <span style={{ color: "var(--muted)" }}>{MARK_PLACEHOLDER}</span>
                             )}
                           </td>
                         </tr>
@@ -773,37 +851,10 @@ export default function Dashboard() {
                 {/* Mobile Responsive View */}
                 <div className="mobile-only">
                   <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-                    {internalMarks.subjects.map((s, i) => {
-                    let calcTotalObtained = 0;
-                    let calcTotalMax = 0;
-                    let hasAny = false;
-
-                    const mobileAssessments = internalMarks.semester === 1 ? [
-                        { label: "Class Test I", obt: s.classTest1Obtained, max: s.classTest1Max, rnd: s.classTest1RoundOff },
-                        { label: "Class Test II", obt: s.classTest2Obtained, max: s.classTest2Max, rnd: s.classTest2RoundOff },
-                        { label: "Class Test III", obt: s.classTest3Obtained, max: s.classTest3Max, rnd: s.classTest3RoundOff },
-                        { label: "Class Test IV", obt: s.classTest4Obtained, max: s.classTest4Max, rnd: s.classTest4RoundOff },
-                        { label: "Assignment", obt: s.assignmentObtained, max: s.assignmentMax, rnd: s.assignmentRoundOff },
-                      ] : [
-                        { label: "Mid Sem", obt: s.midSemObtained, max: s.midSemMax, rnd: s.midSemRoundOff },
-                        { label: "Presentation", obt: s.presentationObtained, max: s.presentationMax, rnd: s.presentationRoundOff },
-                        { label: "Assignment", obt: s.assignmentObtained, max: s.assignmentMax, rnd: s.assignmentRoundOff },
-                        { label: "Learning Record", obt: s.learningRecordObtained, max: s.learningRecordMax, rnd: s.learningRecordRoundOff },
-                        { label: "Internal Prac", obt: s.internalPracticalObtained, max: s.internalPracticalMax, rnd: s.internalPracticalRoundOff },
-                        { label: "Project Internal", obt: s.projectInternalObtained, max: s.projectInternalMax, rnd: s.projectInternalRoundOff },
-                      ];
-
-                    mobileAssessments.forEach(item => {
-                      const calculatedRnd = item.obt != null ? Math.round(item.obt) : null;
-                      const finalObt = calculatedRnd != null ? calculatedRnd : item.obt;
-                      if (finalObt != null) {
-                        calcTotalObtained += finalObt;
-                        if (item.max != null) calcTotalMax += item.max;
-                        hasAny = true;
-                      }
-                      // Override the rnd property so the UI below renders it
-                      item.rnd = calculatedRnd;
-                    });
+                    {internalSubjects.map((s, i) => {
+                    const isSem1 = Number(internalMarks.semester) === 1;
+                    const mobileAssessments = getInternalAssessments(s, internalMarks.semester);
+                    const total = getSubjectTotal(s, internalMarks.semester, mobileAssessments);
 
                     return (
                     <div key={i} className="card" style={{ padding: 16, display: "flex", flexDirection: "column", gap: 12 }}>
@@ -818,29 +869,30 @@ export default function Dashboard() {
                         <div style={{ textAlign: "right" }}>
                           <div style={{ fontSize: 10, color: "var(--secondary)", textTransform: "uppercase", letterSpacing: 0.5, fontWeight: 700, marginBottom: 2 }}>Total</div>
                           <div style={{ fontWeight: 800, color: "var(--success)", fontSize: 15 }}>
-                            {hasAny ? (
+                            {total.hasAny ? (
                               <span style={{ display: "inline-block", border: "1px solid rgba(34,197,94,0.3)", background: "rgba(34,197,94,0.1)", padding: "4px 8px", borderRadius: 6, whiteSpace: "nowrap" }}>
-                                {calcTotalObtained} <span style={{ color: "rgba(34,197,94,0.6)", fontSize: 10, fontWeight: 500 }}>/{calcTotalMax || s.totalMax || s.totalScore}</span>
+                                {formatMark(total.score)}
+                                {isMarkAvailable(total.max) && <span style={{ color: "rgba(34,197,94,0.6)", fontSize: 10, fontWeight: 500 }}>/{formatMark(total.max)}</span>}
                               </span>
                             ) : (
-                              <span style={{ color: "var(--muted)" }}>â€”</span>
+                              <span style={{ color: "var(--muted)" }}>{MARK_PLACEHOLDER}</span>
                             )}
                           </div>
                         </div>
                       </div>
                       
                       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginTop: 8 }}>
-                        {mobileAssessments.filter(x => x.obt != null || x.rnd != null).map((item, idx) => (
+                        {mobileAssessments.filter((item) => isMarkAvailable(item.obtained) || isMarkAvailable(item.secondary)).map((item, idx) => (
                           <div key={idx} style={{ background: "rgba(255,255,255,0.02)", padding: 10, borderRadius: 8, border: "1px solid var(--border)" }}>
                             <div style={{ fontSize: 10, color: "var(--secondary)", textTransform: "uppercase", letterSpacing: 0.5, fontWeight: 700, marginBottom: 6 }}>{item.label}</div>
                             <div style={{ display: "flex", justifyContent: "space-between" }}>
                                 <div style={{ fontSize: 12 }}>
                                   <span style={{ color: "var(--secondary)", fontSize: 10, marginRight: 4 }}>OBT</span>
-                                  {item.obt != null ? <span style={{ display: "inline-block", color: "#3ea6ff", fontWeight: 700, background: "rgba(62,166,255,0.08)", padding: "2px 6px", borderRadius: 6, whiteSpace: "nowrap" }}>{item.obt} <span style={{ color: "rgba(62,166,255,0.6)", fontSize: 9 }}>/{item.max}</span></span> : <span style={{ color: "var(--muted)" }}>â€”</span>}
+                                  <MarkValue value={item.obtained} max={item.max} showMax={!isSem1} />
                                 </div>
                                 <div style={{ fontSize: 12 }}>
-                                  <span style={{ color: "var(--secondary)", fontSize: 10, marginRight: 4 }}>RND</span>
-                                  {item.rnd != null ? <span style={{ display: "inline-block", color: "#a855f7", fontWeight: 700, background: "rgba(168,85,247,0.08)", padding: "2px 6px", borderRadius: 6, whiteSpace: "nowrap" }}>{item.rnd} <span style={{ color: "rgba(168,85,247,0.6)", fontSize: 9 }}>/{item.max}</span></span> : <span style={{ color: "var(--muted)" }}>â€”</span>}
+                                  <span style={{ color: "var(--secondary)", fontSize: 10, marginRight: 4 }}>{item.secondaryLabel}</span>
+                                  <MarkValue value={item.secondary} max={item.max} color="#a855f7" showMax={!isSem1} />
                                 </div>
                             </div>
                           </div>

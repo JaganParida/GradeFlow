@@ -450,6 +450,31 @@ router.post(
       
       let colMap = {};
 
+      const hasInternalScore = (subject) =>
+        Object.entries(subject).some(([key, value]) =>
+          (key.endsWith("Obtained") || key.endsWith("RoundOff") || key === "totalScore") &&
+          value !== undefined &&
+          value !== null &&
+          value !== "" &&
+          !Number.isNaN(Number(value))
+        );
+
+      const hasComponentScore = (subject) =>
+        Object.entries(subject).some(([key, value]) =>
+          (key.endsWith("Obtained") || key.endsWith("RoundOff")) &&
+          value !== undefined &&
+          value !== null &&
+          value !== "" &&
+          !Number.isNaN(Number(value))
+        );
+
+      const normalizeInternalSubject = (subject) => {
+        if (!hasComponentScore(subject) && Number(subject.totalScore) === 0) {
+          delete subject.totalScore;
+        }
+        return subject;
+      };
+
       wb.SheetNames.forEach((sheetName) => {
         const ws = wb.Sheets[sheetName];
         // Read as 2D array to process complex headers
@@ -478,6 +503,7 @@ router.post(
           if (rows[r] && rows[r].length > maxCol) maxCol = rows[r].length;
         }
 
+        colMap = {};
         let currentSubject = null;
         let currentAssessment = null;
         let assessmentMetrics = {};
@@ -506,17 +532,20 @@ router.post(
           }
           if (foundSubject) {
             currentSubject = foundSubject;
+            currentAssessment = null;
+            assessmentMetrics = {};
           }
 
           // Check for Assessment
           let foundAss = null;
           for (let r = Math.max(0, headerRowIdx - 3); r <= headerRowIdx + 2; r++) {
             const val = String(rows[r] && rows[r][c] ? rows[r][c] : "").trim().toUpperCase();
+            const compactVal = val.replace(/[\s\-_.]+/g, "");
             if (val.includes("MID SEMESTER")) foundAss = "midSem";
-            else if (val.includes("CLASS TEST-IV")) foundAss = "classTest4";
-            else if (val.includes("CLASS TEST-III")) foundAss = "classTest3";
-            else if (val.includes("CLASS TEST-II")) foundAss = "classTest2";
-            else if (val.includes("CLASS TEST-I")) foundAss = "classTest1";
+            else if (compactVal.includes("CLASSTESTIV") || compactVal.includes("CLASSTEST4")) foundAss = "classTest4";
+            else if (compactVal.includes("CLASSTESTIII") || compactVal.includes("CLASSTEST3")) foundAss = "classTest3";
+            else if (compactVal.includes("CLASSTESTII") || compactVal.includes("CLASSTEST2")) foundAss = "classTest2";
+            else if (compactVal.includes("CLASSTESTI") || compactVal.includes("CLASSTEST1")) foundAss = "classTest1";
             else if (val.includes("PRESENTATION")) foundAss = "presentation";
             else if (val.includes("ASSIGNMENT")) foundAss = "assignment";
             else if (val.includes("LEARNING RECORD")) foundAss = "learningRecord";
@@ -644,7 +673,11 @@ router.post(
       let count = 0;
       for (const key of Object.keys(grouped)) {
         const student = grouped[key];
-        student.subjects = Object.values(student.subjectsObj);
+        student.subjects = Object.values(student.subjectsObj)
+          .map(normalizeInternalSubject)
+          .map((subject, index) => ({ subject, index }))
+          .sort((a, b) => Number(hasInternalScore(b.subject)) - Number(hasInternalScore(a.subject)) || a.index - b.index)
+          .map(({ subject }) => subject);
         delete student.subjectsObj;
 
         await InternalMark.findOneAndUpdate(
