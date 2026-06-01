@@ -11,7 +11,7 @@ const GRADE_POINTS = {
   B: 7,
   C: 6,
   D: 5,
-  F: 0,
+  F: 2,
   R: 0,
   M: 0,
   S: 0,
@@ -88,9 +88,29 @@ router.get("/:regNo", checkQueue, async (req, res) => {
         }))
     );
     const latestResult = results[results.length - 1];
+    
+    let liveLatestSgpa = 0;
+    let semTW = 0;
+    let semTC = 0;
+    latestResult.subjects.forEach((s) => {
+      if (Number(latestResult.semester) === 5 && s.grade === 'R' && (Number(s.credit) === 6 || (s.subName && s.subName.toLowerCase().includes('project')))) {
+        return; 
+      }
+      if (['F', 'R', 'M', 'S'].includes(s.grade)) {
+        return; 
+      }
+      if (s.credit && GRADE_POINTS[s.grade] !== undefined) {
+        semTW += s.credit * GRADE_POINTS[s.grade];
+        semTC += s.credit;
+      }
+    });
+    if (semTC > 0) {
+      liveLatestSgpa = Math.floor((semTW / semTC) * 100 + 0.0001) / 100;
+    }
+
     const healthScore = calcAcademicHealth(
       cgpa,
-      latestResult.sgpa,
+      liveLatestSgpa,
       backlogs.length,
       results,
     );
@@ -106,7 +126,7 @@ router.get("/:regNo", checkQueue, async (req, res) => {
       branch: latestResult.branch,
       batch: latestResult.batch,
       cgpa,
-      latestSgpa: latestResult.sgpa,
+      latestSgpa: liveLatestSgpa,
       latestSemester: latestResult.semester,
       totalCredits: results.reduce((a, r) => {
         return a + r.subjects.reduce((sum, s) => {

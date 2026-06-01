@@ -20,7 +20,7 @@ const GRADE_POINTS = {
   B: 7,
   C: 6,
   D: 5,
-  F: 0,
+  F: 2,
   R: 0,
   M: 0,
   S: 0,
