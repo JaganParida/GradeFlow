@@ -2,13 +2,13 @@ import { useState, useEffect } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { useApp } from "../context/AppContext";
 import { motion, AnimatePresence } from "framer-motion";
-import { GraduationCap, LayoutDashboard, BarChart2, Trophy, Menu, X, ShieldAlert } from "lucide-react";
+import { GraduationCap, LayoutDashboard, BarChart2, Trophy, Menu, X, ShieldAlert, Clock, LogOut } from "lucide-react";
 
 export default function Navbar() {
   const [scrolled, setScrolled] = useState(false);
   const [open, setOpen] = useState(false);
   const location = useLocation();
-  const { studentData, adminToken } = useApp();
+  const { studentData, adminToken, isAdmitted, sessionTimeLeft, leaveSession } = useApp();
 
   useEffect(() => {
     const fn = () => setScrolled(window.scrollY > 20);
@@ -132,6 +132,39 @@ export default function Navbar() {
           >
             <ShieldAlert size={16} /> Admin
           </Link>
+          {isAdmitted && (
+            <div style={{ display: "flex", alignItems: "center", gap: 8, marginLeft: 16 }}>
+              <div
+                style={{
+                  background: sessionTimeLeft <= 30 ? "rgba(239, 68, 68, 0.95)" : "rgba(20, 20, 20, 0.85)",
+                  backdropFilter: "blur(12px)",
+                  border: sessionTimeLeft <= 30 ? "1px solid rgba(239, 68, 68, 0.5)" : "1px solid rgba(255,255,255,0.1)",
+                  color: sessionTimeLeft <= 30 ? "#fff" : "var(--text)",
+                  padding: "4px 12px",
+                  borderRadius: 20,
+                  fontWeight: 600,
+                  fontSize: 13,
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 6,
+                  boxShadow: sessionTimeLeft <= 30 ? "0 4px 20px rgba(239, 68, 68, 0.4)" : "none",
+                }}
+              >
+                <Clock size={14} />
+                {Math.floor(sessionTimeLeft / 60)}:{(sessionTimeLeft % 60).toString().padStart(2, "0")}
+              </div>
+              <button
+                onClick={() => {
+                  leaveSession();
+                }}
+                className="btn btn-ghost"
+                style={{ padding: "4px 10px", fontSize: 13, gap: 4, color: "var(--danger)" }}
+                title="Leave Session"
+              >
+                <LogOut size={14} /> Leave
+              </button>
+            </div>
+          )}
         </div>
 
         {/* Hamburger */}
@@ -197,6 +230,24 @@ export default function Navbar() {
               >
                 <ShieldAlert size={16} /> Admin
               </Link>
+              {isAdmitted && (
+                <div style={{ padding: "12px 0", borderTop: "1px solid rgba(255,255,255,0.05)", marginTop: 8 }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 8, color: sessionTimeLeft <= 30 ? "var(--danger)" : "var(--text)", fontWeight: 600 }}>
+                      <Clock size={16} /> Time Left: {Math.floor(sessionTimeLeft / 60)}:{(sessionTimeLeft % 60).toString().padStart(2, "0")}
+                    </div>
+                    <button
+                      onClick={() => {
+                        leaveSession();
+                      }}
+                      className="btn"
+                      style={{ background: "rgba(239,68,68,0.1)", color: "var(--danger)", padding: "6px 12px", fontSize: 13 }}
+                    >
+                      Leave Session
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           </motion.div>
         )}

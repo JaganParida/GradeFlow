@@ -61,42 +61,8 @@ function getDynamicBranch(regNo, fallbackBranch) {
 
 export default function Dashboard() {
   const { regNo } = useParams();
-  const { studentData, fetchStudent, loading, error, API, enterDashboard, leaveDashboard } = useApp();
+  const { studentData, fetchStudent, loading, error, API } = useApp();
   const navigate = useNavigate();
-  const [sessionTimeLeft, setSessionTimeLeft] = useState(180);
-
-  useEffect(() => {
-    let timer;
-    let isActive = true;
-
-    const initSession = async () => {
-      const res = await enterDashboard();
-      if (!isActive) return;
-      if (!res?.success) {
-        alert(res?.message || "Dashboard is full. Please wait in the queue.");
-        navigate("/");
-        return;
-      }
-      
-      timer = setInterval(() => {
-        setSessionTimeLeft((prev) => {
-          if (prev <= 1) {
-            clearInterval(timer);
-            return 0;
-          }
-          return prev - 1;
-        });
-      }, 1000);
-    };
-
-    initSession();
-
-    return () => {
-      isActive = false;
-      if (timer) clearInterval(timer);
-      leaveDashboard();
-    };
-  }, [navigate]);
   const [tab, setTab] = useState("result");
   const [selectedSem, setSelectedSem] = useState(null);
   const [semResult, setSemResult] = useState(null);
@@ -242,34 +208,6 @@ export default function Dashboard() {
 
   return (
     <motion.div initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} className="page">
-      {/* Strict Session Timer UI */}
-      <motion.div
-        initial={{ y: -50, opacity: 0 }}
-        animate={{ y: 0, opacity: 1 }}
-        style={{
-          position: "fixed",
-          top: 16,
-          right: 16,
-          zIndex: 9999,
-          background: sessionTimeLeft <= 30 ? "rgba(239, 68, 68, 0.95)" : "rgba(20, 20, 20, 0.85)",
-          backdropFilter: "blur(12px)",
-          border: sessionTimeLeft <= 30 ? "1px solid rgba(239, 68, 68, 0.5)" : "1px solid rgba(255,255,255,0.1)",
-          color: sessionTimeLeft <= 30 ? "#fff" : "var(--text)",
-          padding: "8px 16px",
-          borderRadius: 30,
-          fontWeight: 600,
-          fontSize: 14,
-          display: "flex",
-          alignItems: "center",
-          gap: 8,
-          boxShadow: sessionTimeLeft <= 30 ? "0 4px 20px rgba(239, 68, 68, 0.4)" : "0 4px 20px rgba(0,0,0,0.2)",
-          transition: "all 0.3s ease",
-        }}
-      >
-        <Clock size={16} />
-        {Math.floor(sessionTimeLeft / 60)}:{(sessionTimeLeft % 60).toString().padStart(2, "0")} left
-      </motion.div>
-
       {/* Header */}
       <div style={{ marginBottom: 32 }}>
         <div

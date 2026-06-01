@@ -22,6 +22,7 @@ export function AppProvider({ children }) {
   const socketRef = useRef(null);
   const [queuePosition, setQueuePosition] = useState(null);
   const [isAdmitted, setIsAdmitted] = useState(false);
+  const [sessionTimeLeft, setSessionTimeLeft] = useState(0);
 
   useEffect(() => {
     socketRef.current = io(API.replace('/api', ''));
@@ -32,6 +33,8 @@ export function AppProvider({ children }) {
 
     socketRef.current.on("session_expired", (data) => {
       alert(data.message || "Session expired");
+      setIsAdmitted(false);
+      setSessionTimeLeft(0);
       window.location.href = "/";
     });
 
@@ -42,6 +45,7 @@ export function AppProvider({ children }) {
     socketRef.current.on("queue_admitted", () => {
       setIsAdmitted(true);
       setQueuePosition(null);
+      setSessionTimeLeft(180);
     });
 
     const handleStorageChange = (e) => {
@@ -59,21 +63,23 @@ export function AppProvider({ children }) {
     };
   }, []);
 
-  const enterDashboard = () => {
-    return new Promise((resolve) => {
-      if (socketRef.current) {
-        socketRef.current.emit("enter_dashboard", (response) => {
-          resolve(response);
-        });
-      } else {
-        resolve({ success: false, message: "No connection to server." });
-      }
-    });
-  };
+  useEffect(() => {
+    let timer;
+    if (isAdmitted && sessionTimeLeft > 0) {
+      timer = setInterval(() => {
+        setSessionTimeLeft((prev) => prev - 1);
+      }, 1000);
+    }
+    return () => {
+      if (timer) clearInterval(timer);
+    };
+  }, [isAdmitted, sessionTimeLeft]);
 
-  const leaveDashboard = () => {
+  const leaveSession = () => {
     if (socketRef.current) {
-      socketRef.current.emit("leave_dashboard");
+      socketRef.current.emit("leave_session");
+      setIsAdmitted(false);
+      setSessionTimeLeft(0);
     }
   };
 
@@ -83,6 +89,7 @@ export function AppProvider({ children }) {
         socketRef.current.emit("join_queue", { regNo }, (response) => {
           if (response.status === "admitted") {
             setIsAdmitted(true);
+            setSessionTimeLeft(180);
           } else if (response.status === "queued") {
             setQueuePosition(response.position);
           }
@@ -158,8 +165,8 @@ export function AppProvider({ children }) {
         loading,
         error,
         fetchStudent,
-        enterDashboard,
-        leaveDashboard,
+        leaveSession,
+        sessionTimeLeft,
         queuePosition,
         isAdmitted,
         setIsAdmitted,

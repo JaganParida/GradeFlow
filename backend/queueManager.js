@@ -49,25 +49,8 @@ function initSocket(server) {
       removeUserFromQueue(socket.id);
     });
 
-    // Normal dashboard entry (if they somehow bypassed the queue, we still verify)
-    socket.on("enter_dashboard", (callback) => {
-      if (dashboardUsers.has(socket.id)) {
-        clearTimeout(dashboardUsers.get(socket.id));
-        dashboardUsers.set(socket.id, startSessionTimer(socket));
-        if (callback) callback({ success: true });
-        return;
-      }
-      if (dashboardUsers.size >= MAX_CONCURRENT_SEARCHES) {
-        if (callback) callback({ success: false, message: "Dashboard is at full capacity. Please wait for someone to leave." });
-        return;
-      }
-      dashboardUsers.set(socket.id, startSessionTimer(socket));
-      broadcastStats();
-      if (callback) callback({ success: true });
-    });
-
-    // User leaves the dashboard voluntarily
-    socket.on("leave_dashboard", () => {
+    // User leaves their session voluntarily
+    socket.on("leave_session", () => {
       removeDashboardUser(socket);
     });
 
