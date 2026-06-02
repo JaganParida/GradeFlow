@@ -33,7 +33,10 @@ export default function FeedbackModal() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!name || !comment || rating === 0) return;
+    if (!name || !regNo || !comment || rating === 0) {
+      alert("Please fill in all fields and provide a rating.");
+      return;
+    }
     setIsSubmitting(true);
 
     try {
@@ -192,9 +195,10 @@ export default function FeedbackModal() {
                   />
                 </div>
                 <div style={{ flex: "1 1 150px" }}>
-                  <label style={{ display: "block", fontSize: 12, fontWeight: 600, color: "var(--secondary)", marginBottom: 6, textTransform: "uppercase", letterSpacing: "0.5px" }}>Reg No (Optional)</label>
+                  <label style={{ display: "block", fontSize: 12, fontWeight: 600, color: "var(--secondary)", marginBottom: 6, textTransform: "uppercase", letterSpacing: "0.5px" }}>Registration No.</label>
                   <input
                     type="text"
+                    required
                     value={regNo}
                     onChange={(e) => setRegNo(e.target.value)}
                     placeholder="230..."

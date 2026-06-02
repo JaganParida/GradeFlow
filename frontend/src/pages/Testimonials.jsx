@@ -68,7 +68,10 @@ export default function Testimonials() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!name || !comment || rating === 0) return;
+    if (!name || !regNo || !comment || rating === 0) {
+      alert("Please fill in all fields and provide a rating.");
+      return;
+    }
     setIsSubmitting(true);
 
     try {
@@ -266,9 +269,10 @@ export default function Testimonials() {
               />
               <input
                 type="text"
+                required
                 value={regNo}
                 onChange={(e) => setRegNo(e.target.value)}
-                placeholder="Reg No (Optional)"
+                placeholder="Registration No."
                 style={{
                   flex: "1 1 200px", padding: "12px 16px", borderRadius: 12,
                   background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.08)",
