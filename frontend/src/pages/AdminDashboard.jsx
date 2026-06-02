@@ -344,6 +344,9 @@ export default function AdminDashboard() {
   const [rankSem, setRankSem] = useState("");
   const [rankMsg, setRankMsg] = useState("");
   const [rankErr, setRankErr] = useState("");
+  const [regenAllMsg, setRegenAllMsg] = useState("");
+  const [regenAllErr, setRegenAllErr] = useState("");
+  const [regenAllLoading, setRegenAllLoading] = useState(false);
   const [tab, setTab] = useState("overview");
 
   useEffect(() => {
@@ -377,6 +380,26 @@ export default function AdminDashboard() {
       setRankMsg(data.message);
     } catch (e) {
       setRankErr(e.response?.data?.message || "Failed");
+    }
+  }
+
+  async function regenAllRankings() {
+    if (!window.confirm("Regenerate ALL rankings for ALL semesters? This recalculates SGPA & CGPA from raw subjects and may take a moment.")) return;
+    setRegenAllMsg("");
+    setRegenAllErr("");
+    setRegenAllLoading(true);
+    try {
+      const { data } = await axios.post(
+        `${API}/admin/rankings/regenerate-all`,
+        {},
+        authHeaders,
+      );
+      setRegenAllMsg(data.message);
+      fetchStats();
+    } catch (e) {
+      setRegenAllErr(e.response?.data?.message || "Failed");
+    } finally {
+      setRegenAllLoading(false);
     }
   }
 
@@ -619,53 +642,86 @@ export default function AdminDashboard() {
 
       {/* Rankings Tab */}
       {tab === "rankings" && (
-        <div className="card" style={{ maxWidth: 480 }}>
-          <h3 style={{ fontWeight: 700, marginBottom: 4, display: "flex", alignItems: "center", gap: 8 }}>
-            <Trophy size={18} /> Generate Rankings
-          </h3>
-          <p
-            style={{
-              color: "var(--secondary)",
-              fontSize: 13,
-              marginBottom: 20,
-            }}
-          >
-            Generate rankings for all students in a semester based on SGPA.
-          </p>
-          <label
-            style={{
-              display: "block",
-              fontSize: 12,
-              color: "var(--secondary)",
-              marginBottom: 6,
-            }}
-          >
-            Semester Number
-          </label>
-          <input
-            type="number"
-            min="1"
-            max="12"
-            value={rankSem}
-            onChange={(e) => setRankSem(e.target.value)}
-            placeholder="e.g. 6"
-            style={{ marginBottom: 12 }}
-          />
-          <AnimatePresence>
-            {rankErr && (
-              <motion.p initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }} style={{ color: "var(--danger)", fontSize: 13, marginBottom: 8, display: "flex", alignItems: "center", gap: 6 }}>
-                <AlertTriangle size={14} /> {rankErr}
-              </motion.p>
-            )}
-            {rankMsg && (
-              <motion.p initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }} style={{ color: "var(--success)", fontSize: 13, marginBottom: 8, display: "flex", alignItems: "center", gap: 6 }}>
-                <CheckCircle size={14} /> {rankMsg}
-              </motion.p>
-            )}
-          </AnimatePresence>
-          <button className="btn btn-primary" onClick={generateRankings}>
-            Generate Rankings
-          </button>
+        <div style={{ display: "flex", flexDirection: "column", gap: 20, maxWidth: 520 }}>
+          <div className="card">
+            <h3 style={{ fontWeight: 700, marginBottom: 4, display: "flex", alignItems: "center", gap: 8 }}>
+              <Trophy size={18} /> Generate Rankings — Single Semester
+            </h3>
+            <p
+              style={{
+                color: "var(--secondary)",
+                fontSize: 13,
+                marginBottom: 20,
+              }}
+            >
+              Generate rankings for a specific semester based on live-calculated SGPA & CGPA.
+            </p>
+            <label
+              style={{
+                display: "block",
+                fontSize: 12,
+                color: "var(--secondary)",
+                marginBottom: 6,
+              }}
+            >
+              Semester Number
+            </label>
+            <input
+              type="number"
+              min="1"
+              max="12"
+              value={rankSem}
+              onChange={(e) => setRankSem(e.target.value)}
+              placeholder="e.g. 6"
+              style={{ marginBottom: 12 }}
+            />
+            <AnimatePresence>
+              {rankErr && (
+                <motion.p initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }} style={{ color: "var(--danger)", fontSize: 13, marginBottom: 8, display: "flex", alignItems: "center", gap: 6 }}>
+                  <AlertTriangle size={14} /> {rankErr}
+                </motion.p>
+              )}
+              {rankMsg && (
+                <motion.p initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }} style={{ color: "var(--success)", fontSize: 13, marginBottom: 8, display: "flex", alignItems: "center", gap: 6 }}>
+                  <CheckCircle size={14} /> {rankMsg}
+                </motion.p>
+              )}
+            </AnimatePresence>
+            <button className="btn btn-primary" onClick={generateRankings}>
+              Generate Rankings
+            </button>
+          </div>
+
+          <div className="card" style={{ border: "1px solid rgba(168,85,247,0.3)" }}>
+            <h3 style={{ fontWeight: 700, marginBottom: 4, display: "flex", alignItems: "center", gap: 8 }}>
+              <Trophy size={18} color="#a855f7" /> Regenerate ALL Rankings
+            </h3>
+            <p style={{ color: "var(--secondary)", fontSize: 13, marginBottom: 16 }}>
+              Recalculates SGPA &amp; CGPA from raw subject data for <strong>all semesters</strong> using the correct formula.
+              Use this after a formula fix to sync the Leaderboard with the Report Card.
+            </p>
+            <AnimatePresence>
+              {regenAllErr && (
+                <motion.p initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }} style={{ color: "var(--danger)", fontSize: 13, marginBottom: 8, display: "flex", alignItems: "center", gap: 6 }}>
+                  <AlertTriangle size={14} /> {regenAllErr}
+                </motion.p>
+              )}
+              {regenAllMsg && (
+                <motion.p initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }} style={{ color: "var(--success)", fontSize: 13, marginBottom: 8, display: "flex", alignItems: "center", gap: 6 }}>
+                  <CheckCircle size={14} /> {regenAllMsg}
+                </motion.p>
+              )}
+            </AnimatePresence>
+            <button
+              className="btn"
+              onClick={regenAllRankings}
+              disabled={regenAllLoading}
+              style={{ background: "rgba(168,85,247,0.15)", color: "#a855f7", border: "1px solid rgba(168,85,247,0.3)", display: "flex", alignItems: "center", gap: 8 }}
+            >
+              <Trophy size={16} />
+              {regenAllLoading ? "Regenerating... (please wait)" : "Regenerate All Rankings"}
+            </button>
+          </div>
         </div>
       )}
 

@@ -21,6 +21,28 @@ const GRADE_COLORS = {
   F: "#ef4444",
 };
 
+const GRADE_POINTS = { O: 10, E: 9, A: 8, B: 7, C: 6, D: 5, F: 2, R: 0, M: 0, S: 0 };
+
+// Live-calculate SGPA from subjects — mirrors backend & GradeSheet exactly
+function calcSGPAFromSubjects(subjects, semester) {
+  let totalWeighted = 0, totalCredits = 0;
+  (subjects || []).forEach((s) => {
+    if (
+      Number(semester) === 5 &&
+      s.grade === 'R' &&
+      Number(s.credit) === 6 &&
+      s.type && s.type.toLowerCase().includes('proj')
+    ) return;
+    if (s.credit && GRADE_POINTS[s.grade] !== undefined) {
+      totalWeighted += s.credit * GRADE_POINTS[s.grade];
+      totalCredits += s.credit;
+    }
+  });
+  return totalCredits > 0
+    ? Math.floor((totalWeighted / totalCredits) * 100 + 0.0001) / 100
+    : 0;
+}
+
 const MARK_PLACEHOLDER = "-";
 
 function isMarkAvailable(value) {
@@ -923,11 +945,11 @@ export default function Dashboard() {
                             <div style={{ display: "flex", justifyContent: "space-between" }}>
                                 <div style={{ fontSize: 12 }}>
                                   <span style={{ color: "var(--secondary)", fontSize: 10, marginRight: 4 }}>OBT</span>
-                                  <MarkValue value={item.obtained} max={item.max} showMax={!isSem1} />
+                                  <MarkValue value={item.obt} max={item.max} showMax={!isSem1} />
                                 </div>
                                 <div style={{ fontSize: 12 }}>
-                                  <span style={{ color: "var(--secondary)", fontSize: 10, marginRight: 4 }}>{item.secondaryLabel}</span>
-                                  <MarkValue value={item.secondary} max={item.max} color="#a855f7" showMax={!isSem1} />
+                                  <span style={{ color: "var(--secondary)", fontSize: 10, marginRight: 4 }}>{isSem1 ? "MAX" : "RND"}</span>
+                                  <MarkValue value={item.rnd} max={item.max} color="#a855f7" showMax={!isSem1} />
                                 </div>
                             </div>
                           </div>
@@ -976,15 +998,13 @@ export default function Dashboard() {
                       <td
                         style={{
                           fontFamily: "Space Mono",
-                          color:
-                            r.sgpa >= 9
-                              ? "var(--success)"
-                              : r.sgpa >= 7
-                                ? "var(--accent)"
-                                : "var(--warning)",
+                          color: (() => {
+                            const liveSGPA = calcSGPAFromSubjects(r.subjects, r.semester);
+                            return liveSGPA >= 9 ? "var(--success)" : liveSGPA >= 7 ? "var(--accent)" : "var(--warning)";
+                          })(),
                         }}
                       >
-                        {r.sgpa?.toFixed(2)}
+                        {calcSGPAFromSubjects(r.subjects, r.semester).toFixed(2)}
                       </td>
                       <td>{r.totalCredits}</td>
                       <td>{r.creditsCleared}</td>

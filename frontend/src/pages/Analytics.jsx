@@ -23,6 +23,28 @@ import { TrendingUp, TrendingDown, Star, Trophy, CheckCircle, AlertTriangle, Tar
 const GRADE_POINTS = { O: 10, E: 9, A: 8, B: 7, C: 6, D: 5, F: 2, R: 0, M: 0, S: 0 };
 const GRADE_ORDER = ["O", "E", "A", "B", "C", "D", "F"];
 
+// Live-calculate SGPA from a semester's subjects (mirrors backend & GradeSheet exactly)
+function calcSGPA(subjects, semester) {
+  let totalWeighted = 0, totalCredits = 0;
+  (subjects || []).forEach((s) => {
+    // Exception: Sem 5 R-grade 6-credit project is fully excluded
+    if (
+      Number(semester) === 5 &&
+      s.grade === 'R' &&
+      Number(s.credit) === 6 &&
+      s.type && s.type.toLowerCase().includes('proj')
+    ) return;
+    // All other grades (F=2, R=0, S=0, M=0) contribute per official formula
+    if (s.credit && GRADE_POINTS[s.grade] !== undefined) {
+      totalWeighted += s.credit * GRADE_POINTS[s.grade];
+      totalCredits += s.credit;
+    }
+  });
+  return totalCredits > 0
+    ? Math.floor((totalWeighted / totalCredits) * 100 + 0.0001) / 100
+    : 0;
+}
+
 function AnimatedNumber({ value }) {
   const nodeRef = useRef();
 
@@ -79,9 +101,11 @@ function calcCGPAUpTo(results, upToIdx) {
 function generateInsights(data) {
   const insights = [];
   const { results, cgpa, latestSgpa, backlogs, ranking, branch } = data;
+  // Use live-calculated SGPAs for accuracy
+  const liveSGPAs = results.map(r => calcSGPA(r.subjects, r.semester));
   if (results.length >= 2) {
-    const prev = results[results.length - 2]?.sgpa;
-    const curr = results[results.length - 1]?.sgpa;
+    const prev = liveSGPAs[liveSGPAs.length - 2];
+    const curr = liveSGPAs[liveSGPAs.length - 1];
     const diff = (curr - prev).toFixed(2);
     if (diff > 0)
       insights.push({
@@ -96,14 +120,13 @@ function generateInsights(data) {
         type: "warning",
       });
   }
-  const bestSem = results.reduce(
-    (a, r) => (r.sgpa > (a?.sgpa || 0) ? r : a),
-    null,
-  );
+  const bestSemIdx = liveSGPAs.reduce((bestIdx, sgpa, i) => sgpa > (liveSGPAs[bestIdx] || 0) ? i : bestIdx, 0);
+  const bestSem = results[bestSemIdx];
+  const bestSGPA = liveSGPAs[bestSemIdx];
   if (bestSem)
     insights.push({
       icon: <Star size={18} color="var(--accent)" />,
-      text: `Your strongest semester is Semester ${bestSem.semester} with SGPA ${bestSem.sgpa?.toFixed(2)}.`,
+      text: `Your strongest semester is Semester ${bestSem.semester} with SGPA ${bestSGPA?.toFixed(2)}.`,
       type: "info",
     });
   if (cgpa >= 8.5)
@@ -264,10 +287,10 @@ export default function Analytics() {
     batch,
   } = studentData;
 
-  // Chart data
+  // Chart data — use live-calculated SGPA so it always matches the report card
   const chartData = results.map((r, i) => ({
     sem: `Sem ${r.semester}`,
-    SGPA: r.sgpa,
+    SGPA: parseFloat(calcSGPA(r.subjects, r.semester).toFixed(2)),
     CGPA: calcCGPAUpTo(results, i),
   }));
 

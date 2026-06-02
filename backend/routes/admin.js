@@ -86,7 +86,7 @@ async function generateRankingForSemester(semester) {
     let cgpaNumerator = 0,
       cgpaDenominator = 0;
 
-    // Group subjects by semester to calculate SGPA per semester
+    // Group subjects by semester — live-calculate SGPA for each semester
     const sems = [...new Set(allResults.map((r) => r.semester))];
     sems.forEach((sem) => {
       let semW = 0,
@@ -123,13 +123,17 @@ async function generateRankingForSemester(semester) {
       cgpaDenominator > 0
         ? Math.floor((cgpaNumerator / cgpaDenominator) * 100 + 0.0001) / 100
         : 0;
+
+    // Live-calculate SGPA for this semester from raw subjects (don't use stale stored r.sgpa)
+    const liveSGPA = calcSGPA(r.subjects, Number(semester));
+
     studentData.push({
       regNo: r.regNo,
       studentName: r.studentName,
       branch: r.branch,
       batch: r.batch,
       semester: Number(semester),
-      sgpa: r.sgpa,
+      sgpa: liveSGPA,  // ← always live-calculated, matches GradeSheet formula
       cgpa,
     });
   }
@@ -1015,7 +1019,26 @@ router.post("/rankings/generate", protect, async (req, res) => {
 
     await generateRankingForSemester(Number(semester));
     res.json({
-      message: `o. Rankings generated successfully for Semester ${semester}`,
+      message: `✅ Rankings generated successfully for Semester ${semester}`,
+    });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+// Regenerate ALL rankings for ALL semesters (recalculates SGPA & CGPA live)
+router.post("/rankings/regenerate-all", protect, async (req, res) => {
+  try {
+    const semesters = await SemesterResult.distinct("semester");
+    if (!semesters.length)
+      return res.status(404).json({ message: "No semester results found" });
+
+    semesters.sort((a, b) => a - b);
+    for (const sem of semesters) {
+      await generateRankingForSemester(sem);
+    }
+    res.json({
+      message: `✅ All rankings regenerated for ${semesters.length} semester(s): ${semesters.join(", ")}`,
     });
   } catch (err) {
     res.status(500).json({ message: err.message });
