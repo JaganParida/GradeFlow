@@ -236,51 +236,72 @@ export default function Testimonials() {
           ) : (
             feedbacks.map((fb, index) => {
               const isHighlighted = fb._id === highlightedId;
+              
+              // Generate a consistent gradient based on the first letter of the name
+              const charCode = fb.name.charCodeAt(0) || 0;
+              const gradients = [
+                "linear-gradient(135deg, #FF6B6B, #C0392B)", // Red
+                "linear-gradient(135deg, #4facfe, #00f2fe)", // Blue
+                "linear-gradient(135deg, #43e97b, #38f9d7)", // Green
+                "linear-gradient(135deg, #fa709a, #fee140)", // Pink/Yellow
+                "linear-gradient(135deg, #a18cd1, #fbc2eb)", // Purple/Pink
+                "linear-gradient(135deg, #f6d365, #fda085)"  // Orange
+              ];
+              const avatarBg = gradients[charCode % gradients.length];
+
               return (
                 <motion.div
-                  initial={{ opacity: 0, y: 10 }}
+                  initial={{ opacity: 0, y: 15 }}
                   animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: index * 0.05 }}
+                  transition={{ delay: index * 0.05, duration: 0.4, ease: "easeOut" }}
                   id={`feedback-${fb._id}`}
                   key={fb._id}
                   style={{
-                    background: isHighlighted ? "rgba(62,166,255,0.06)" : "#212121",
-                    border: isHighlighted ? "1px solid rgba(62,166,255,0.4)" : "1px solid rgba(255,255,255,0.08)",
-                    borderRadius: 16,
-                    padding: "20px 20px",
-                    boxShadow: isHighlighted ? "0 0 20px rgba(62,166,255,0.15)" : "none",
-                    transition: "all 0.3s ease",
+                    position: "relative",
+                    overflow: "hidden",
+                    background: isHighlighted ? "linear-gradient(145deg, rgba(62,166,255,0.1), rgba(20,20,20,0.8))" : "linear-gradient(145deg, rgba(35,35,35,0.6), rgba(20,20,20,0.9))",
+                    border: isHighlighted ? "1px solid rgba(62,166,255,0.3)" : "1px solid rgba(255,255,255,0.04)",
+                    borderRadius: 24,
+                    padding: "28px 24px",
+                    boxShadow: isHighlighted ? "0 12px 40px rgba(62,166,255,0.15)" : "0 8px 32px rgba(0,0,0,0.3)",
+                    backdropFilter: "blur(12px)",
+                    WebkitBackdropFilter: "blur(12px)",
+                    transition: "transform 0.3s ease, box-shadow 0.3s ease",
                   }}
+                  whileHover={{ y: -4, boxShadow: "0 12px 40px rgba(0,0,0,0.5)" }}
                 >
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 12, marginBottom: 16 }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                  <Quote size={80} color="rgba(255,255,255,0.02)" style={{ position: "absolute", top: 10, right: 10, zIndex: 0 }} />
+                  
+                  <div style={{ position: "relative", zIndex: 1, display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 16, marginBottom: 20 }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
                       <div style={{
-                        width: 42, height: 42, borderRadius: "50%",
-                        background: "rgba(255,255,255,0.05)",
+                        width: 48, height: 48, borderRadius: 16,
+                        background: avatarBg,
                         display: "flex", alignItems: "center", justifyContent: "center",
-                        fontSize: 18, fontWeight: 700, color: "#f1f1f1"
+                        fontSize: 20, fontWeight: 800, color: "#fff",
+                        boxShadow: "0 4px 12px rgba(0,0,0,0.3)"
                       }}>
                         {fb.name.charAt(0).toUpperCase()}
                       </div>
                       <div>
-                        <h4 style={{ margin: 0, fontSize: 15, fontWeight: 700, color: "#f1f1f1" }}>{fb.name}</h4>
+                        <h4 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: "#fff", letterSpacing: "-0.2px" }}>{fb.name}</h4>
                         {fb.regNo && (
-                          <div style={{ fontSize: 12, color: "var(--secondary)", display: "flex", alignItems: "center", gap: 4, marginTop: 2 }}>
-                            <GraduationCap size={12} /> {fb.regNo}
+                          <div style={{ fontSize: 13, color: "var(--muted)", display: "flex", alignItems: "center", gap: 6, marginTop: 4 }}>
+                            <GraduationCap size={14} opacity={0.7} /> {fb.regNo}
                           </div>
                         )}
                       </div>
                     </div>
                     <div style={{ textAlign: "right" }}>
-                      <div style={{ display: "flex", gap: 2, marginBottom: 4 }}>
+                      <div style={{ display: "flex", gap: 4, marginBottom: 6 }}>
                         {[1, 2, 3, 4, 5].map(star => (
-                          <Star key={star} size={14} fill={fb.rating >= star ? "#f59e0b" : "transparent"} color={fb.rating >= star ? "#f59e0b" : "rgba(255,255,255,0.1)"} />
+                          <Star key={star} size={16} fill={fb.rating >= star ? "#f59e0b" : "transparent"} color={fb.rating >= star ? "#f59e0b" : "rgba(255,255,255,0.08)"} />
                         ))}
                       </div>
-                      <div style={{ fontSize: 11, color: "var(--muted)" }}>{formatDate(fb.createdAt)}</div>
+                      <div style={{ fontSize: 12, color: "rgba(255,255,255,0.3)", fontWeight: 500 }}>{formatDate(fb.createdAt)}</div>
                     </div>
                   </div>
-                  <p style={{ margin: 0, fontSize: 14, lineHeight: 1.6, color: "var(--secondary)", whiteSpace: "pre-wrap" }}>
+                  <p style={{ position: "relative", zIndex: 1, margin: 0, fontSize: 15, lineHeight: 1.7, color: "rgba(255,255,255,0.85)", fontStyle: "italic", whiteSpace: "pre-wrap" }}>
                     "{fb.comment}"
                   </p>
                 </motion.div>
