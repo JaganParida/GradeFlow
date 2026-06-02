@@ -162,6 +162,216 @@ body {
   border-radius: var(--radius);
 }
 
+.leaderboard-mobile-list {
+  display: none;
+}
+
+.leaderboard-search-field,
+.leaderboard-mobile-card,
+.leaderboard-mobile-student,
+.leaderboard-mobile-meta,
+.leaderboard-mobile-badges {
+  min-width: 0;
+}
+
+.leaderboard-mobile-card {
+  width: 100%;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: var(--radius-sm);
+  background:
+    linear-gradient(135deg, rgba(62, 166, 255, 0.06), rgba(168, 85, 247, 0.04)),
+    var(--card);
+  padding: 14px;
+  box-shadow: 0 10px 26px rgba(0, 0, 0, 0.24);
+}
+
+.leaderboard-mobile-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.leaderboard-mobile-rank {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-family: "Space Mono", monospace;
+  font-size: 18px;
+  font-weight: 800;
+}
+
+.leaderboard-mobile-score {
+  display: grid;
+  justify-items: end;
+  gap: 1px;
+  flex: 0 0 auto;
+  padding: 5px 9px;
+  border: 1px solid rgba(62, 166, 255, 0.14);
+  border-radius: var(--radius-sm);
+  background: rgba(62, 166, 255, 0.05);
+}
+
+.leaderboard-mobile-score span,
+.leaderboard-mobile-meta span {
+  color: var(--secondary);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.7px;
+  text-transform: uppercase;
+}
+
+.leaderboard-mobile-score strong {
+  font-family: "Space Mono", monospace;
+  font-size: 20px;
+  line-height: 1.1;
+}
+
+.leaderboard-mobile-student {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+}
+
+.leaderboard-mobile-name {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  font-size: 16px;
+  font-weight: 800;
+  line-height: 1.25;
+}
+
+.leaderboard-mobile-dev-badge {
+  flex: 0 0 auto;
+  border: 1px solid rgba(168, 85, 247, 0.3);
+  border-radius: 999px;
+  background: rgba(168, 85, 247, 0.15);
+  color: #a855f7;
+  box-shadow: 0 0 8px rgba(168, 85, 247, 0.2);
+  font-size: 10px;
+  font-weight: 800;
+  padding: 2px 8px;
+}
+
+.leaderboard-mobile-meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  padding-top: 10px;
+}
+
+.leaderboard-mobile-meta strong {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  text-align: right;
+  color: var(--secondary);
+  font-family: "Space Mono", monospace;
+  font-size: 12px;
+}
+
+.leaderboard-mobile-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 10px;
+}
+
+.leaderboard-mobile-badges span {
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 800;
+  padding: 3px 8px;
+}
+
+.leaderboard-mobile-badges .leaderboard-mobile-empty-badge {
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--secondary);
+}
+
+.leaderboard-mobile-empty {
+  text-align: center;
+  padding: 34px 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--card);
+}
+
+@media (max-width: 900px) {
+  .leaderboard-tabs {
+    width: 100%;
+    flex-wrap: wrap;
+  }
+
+  .leaderboard-tab {
+    flex: 1 1 180px;
+    justify-content: center;
+    min-width: 0;
+  }
+
+  .leaderboard-filters {
+    align-items: stretch;
+  }
+
+  .leaderboard-filter-select {
+    flex: 1 1 160px;
+    min-width: 0;
+  }
+
+  .leaderboard-search-form {
+    min-width: 100% !important;
+  }
+
+  .leaderboard-table-wrap {
+    display: none;
+  }
+
+  .leaderboard-mobile-list {
+    display: grid;
+    gap: 12px;
+    width: 100%;
+    max-width: 100%;
+  }
+}
+
+@media (max-width: 560px) {
+  .leaderboard-tabs {
+    gap: 8px !important;
+  }
+
+  .leaderboard-tab {
+    flex-basis: 100%;
+    padding: 10px 12px !important;
+    font-size: 13px;
+  }
+
+  .leaderboard-filters {
+    gap: 10px !important;
+  }
+
+  .leaderboard-filter-select {
+    width: 100% !important;
+    flex-basis: 100%;
+  }
+
+  .leaderboard-search-form {
+    flex-direction: column;
+    gap: 10px !important;
+  }
+
+  .leaderboard-search-button {
+    width: 100%;
+    justify-content: center;
+    min-height: 42px;
+  }
+}
+
 table {
   width: 100%;
   border-collapse: collapse;

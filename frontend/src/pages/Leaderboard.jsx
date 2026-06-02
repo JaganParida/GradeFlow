@@ -60,7 +60,8 @@ export default function Leaderboard() {
   useEffect(() => {
     if (highlightRegNo && rankings.length > 0) {
       setTimeout(() => {
-        const el = document.getElementById(`row-${highlightRegNo}`);
+        const isCompactLeaderboard = window.matchMedia("(max-width: 900px)").matches;
+        const el = document.getElementById(`${isCompactLeaderboard ? "mobile-row" : "row"}-${highlightRegNo}`);
         if (el) {
           el.scrollIntoView({ behavior: "smooth", block: "center" });
           setTimeout(() => setHighlightRegNo(""), 4000);
@@ -73,6 +74,11 @@ export default function Leaderboard() {
     const shell = tableShellRef.current;
     const inner = tableInnerRef.current;
     if (!shell || !inner || loading || rankings.length === 0) return undefined;
+
+    if (window.matchMedia("(max-width: 900px)").matches) {
+      setTableHeight("auto");
+      return undefined;
+    }
 
     const previousHeight = previousTableHeightRef.current;
     const nextHeight = inner.getBoundingClientRect().height;
@@ -159,8 +165,9 @@ export default function Leaderboard() {
       </div>
 
       {/* Tabs */}
-      <div style={{ display: "flex", gap: 12, marginBottom: 24 }}>
+      <div className="leaderboard-tabs" style={{ display: "flex", gap: 12, marginBottom: 24 }}>
         <button 
+          className="leaderboard-tab"
           style={{ 
             padding: "8px 16px", borderRadius: 8, fontWeight: 700, cursor: "pointer", transition: "all 0.2s", 
             background: isSGPA ? 'rgba(62,166,255,0.1)' : 'transparent', 
@@ -178,6 +185,7 @@ export default function Leaderboard() {
           <Trophy size={16} /> SGPA Ranking
         </button>
         <button 
+          className="leaderboard-tab"
           style={{ 
             padding: "8px 16px", borderRadius: 8, fontWeight: 700, cursor: "pointer", transition: "all 0.2s", 
             background: !isSGPA ? 'rgba(168,85,247,0.1)' : 'transparent', 
@@ -198,10 +206,12 @@ export default function Leaderboard() {
 
       {/* Filters */}
       <div
+        className="leaderboard-filters"
         style={{ display: "flex", gap: 12, marginBottom: 24, flexWrap: "wrap" }}
       >
         {isSGPA && (
           <select
+            className="leaderboard-filter-select"
             value={filters.semester}
             onChange={(e) => handleFilter("semester", e.target.value)}
             style={{ width: 140 }}
@@ -217,6 +227,7 @@ export default function Leaderboard() {
         
         {isSGPA && (
           <select
+            className="leaderboard-filter-select"
             value={filters.branch}
             onChange={(e) => handleFilter("branch", e.target.value)}
             style={{ width: 140 }}
@@ -231,13 +242,14 @@ export default function Leaderboard() {
         )}
 
         <form 
+          className="leaderboard-search-form"
           style={{ flex: 1, minWidth: 200, display: "flex", gap: 8 }}
           onSubmit={(e) => {
             e.preventDefault();
             handleFilter("search", searchInput, searchInput.trim() ? 50 : 10);
           }}
         >
-          <div style={{ position: "relative", flex: 1 }}>
+          <div className="leaderboard-search-field" style={{ position: "relative", flex: 1 }}>
             <Search size={16} style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", color: "var(--secondary)" }} />
             <input
               placeholder="Search name or reg no..."
@@ -251,7 +263,7 @@ export default function Leaderboard() {
               style={{ width: "100%", paddingLeft: 36 }}
             />
           </div>
-          <button type="submit" className="btn btn-primary" style={{ padding: "0 16px" }}>Search</button>
+          <button type="submit" className="btn btn-primary leaderboard-search-button" style={{ padding: "0 16px" }}>Search</button>
         </form>
       </div>
 
@@ -412,11 +424,86 @@ export default function Leaderboard() {
               );
             };
 
+            const renderMobileRankingCard = (r) => {
+              const isGold = r.displayRank === 1;
+              const isSilver = r.displayRank === 2;
+              const isBronze = r.displayRank === 3;
+              let rankColor = "var(--text)";
+              let nameColor = "var(--text)";
+              let scoreColor = "var(--text)";
+              let medalColor = null;
+
+              if (isGold) { rankColor = "#facc15"; nameColor = "#fef08a"; scoreColor = "#eab308"; medalColor = "#facc15"; }
+              else if (isSilver) { rankColor = "#a1a1aa"; nameColor = "#e4e4e7"; scoreColor = "#a1a1aa"; medalColor = "#a1a1aa"; }
+              else if (isBronze) { rankColor = "#d97706"; nameColor = "#fed7aa"; scoreColor = "#c2670a"; medalColor = "#d97706"; }
+
+              const isHighlighted = highlightRegNo === r.regNo;
+              const isDeveloper = r.regNo === "230301120327";
+              const badges = getBadges(r);
+
+              return (
+                <article
+                  id={`mobile-row-${r.regNo}`}
+                  key={`mobile-${r.regNo}-${r.displayRank}-${isSGPA ? "sgpa" : "cgpa"}`}
+                  className="leaderboard-mobile-card"
+                  style={{
+                    backgroundColor: isHighlighted ? "rgba(168,85,247,0.18)" : undefined,
+                    boxShadow: isHighlighted ? "inset 0 0 0 2px rgba(168,85,247,0.5)" : undefined,
+                  }}
+                >
+                  <div className="leaderboard-mobile-top">
+                    <div className="leaderboard-mobile-rank" style={{ color: rankColor }}>
+                      <span>#{r.displayRank}</span>
+                      {medalColor && <Medal size={18} color={medalColor} />}
+                    </div>
+                    <div className="leaderboard-mobile-score" style={{ color: scoreColor }}>
+                      <span>{isSGPA ? "SGPA" : "CGPA"}</span>
+                      <strong>{isSGPA ? r.sgpa?.toFixed(2) : r.cgpa?.toFixed(2)}</strong>
+                    </div>
+                  </div>
+
+                  <div className="leaderboard-mobile-student">
+                    <div className="leaderboard-mobile-name" style={{ color: nameColor }}>
+                      {r.studentName}
+                    </div>
+                    {isDeveloper && (
+                      <span className="leaderboard-mobile-dev-badge">
+                        DEVELOPER
+                      </span>
+                    )}
+                  </div>
+
+                  <div className="leaderboard-mobile-meta">
+                    <span>Reg. No</span>
+                    <strong>{r.regNo}</strong>
+                  </div>
+
+                  <div className="leaderboard-mobile-badges">
+                    {badges.length > 0 ? (
+                      badges.map((b, bi) => (
+                        <span
+                          key={bi}
+                          style={{
+                            background: b.color + "20",
+                            color: b.color,
+                          }}
+                        >
+                          {b.label}
+                        </span>
+                      ))
+                    ) : (
+                      <span className="leaderboard-mobile-empty-badge">No badge yet</span>
+                    )}
+                  </div>
+                </article>
+              );
+            };
+
             return (
               <>
                 <div
                   ref={tableShellRef}
-                  className="table-wrap"
+                  className="table-wrap leaderboard-table-wrap"
                   style={{
                     marginBottom: 0,
                     height: tableHeight,
@@ -460,6 +547,20 @@ export default function Leaderboard() {
                       {visibleRankings.map(renderRankingRow)}
                     </tbody>
                   </table>
+                </div>
+
+                <div className="leaderboard-mobile-list">
+                  {visibleRankings.length === 0 && filters.search ? (
+                    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="leaderboard-mobile-empty">
+                      <div style={{ marginBottom: 16, display: "flex", justifyContent: "center" }}><Target size={48} color="var(--accent)" /></div>
+                      <h3 style={{ fontSize: 20, fontWeight: 800, marginBottom: 8 }}>Not in the Top {showCount} Yet</h3>
+                      <p style={{ color: "var(--secondary)", fontSize: 15, maxWidth: 400, margin: "0 auto", lineHeight: 1.6 }}>
+                        Every expert was once a beginner. Keep pushing forwardâ€”consistent effort and dedication will get you there. You've got this! ðŸš€
+                      </p>
+                    </motion.div>
+                  ) : (
+                    visibleRankings.map(renderMobileRankingCard)
+                  )}
                 </div>
                 
                 {hasMoreRankings && (
