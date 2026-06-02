@@ -714,40 +714,35 @@ export default function Dashboard() {
         </div>
       </motion.div>
 
-      {/* Semester Selector */}
-      <div
-        style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 20 }}
-      >
-        {results.map((r) => (
-          <motion.button
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            key={r.semester}
-            onClick={() => {
-              setSelectedSem(r.semester);
-              loadSemester(r.semester);
-            }}
-            style={{
-              padding: "6px 14px",
-              borderRadius: 8,
-              border: `1px solid ${selectedSem === r.semester ? "var(--accent)" : "var(--border)"}`,
-              background:
-                selectedSem === r.semester
-                  ? "rgba(62,166,255,0.1)"
-                  : "transparent",
-              color:
-                selectedSem === r.semester
-                  ? "var(--accent)"
-                  : "var(--secondary)",
-              cursor: "pointer",
-              fontSize: 13,
-              fontWeight: 600,
-              transition: "all 0.2s",
-            }}
-          >
-            Sem {r.semester}
-          </motion.button>
-        ))}
+      {/* Semester Selector — YouTube pill style */}
+      <div style={{ marginBottom: 20 }}>
+        <div style={{ display: "inline-flex", gap: 2, background: "#212121", padding: "4px", borderRadius: 24, border: "1px solid rgba(255,255,255,0.08)", flexWrap: "wrap", maxWidth: "100%" }}>
+          {results.map((r) => (
+            <motion.button
+              whileTap={{ scale: 0.95 }}
+              key={r.semester}
+              onClick={() => {
+                setSelectedSem(r.semester);
+                loadSemester(r.semester);
+              }}
+              style={{
+                padding: "7px 16px",
+                borderRadius: 20,
+                border: "none",
+                background: selectedSem === r.semester ? "#3f3f3f" : "transparent",
+                color: selectedSem === r.semester ? "#f1f1f1" : "#aaaaaa",
+                cursor: "pointer",
+                fontSize: 13,
+                fontWeight: 600,
+                transition: "all 0.2s",
+                boxShadow: selectedSem === r.semester ? "0 1px 4px rgba(0,0,0,0.4)" : "none",
+                whiteSpace: "nowrap",
+              }}
+            >
+              Sem {r.semester}
+            </motion.button>
+          ))}
+        </div>
       </div>
 
       {/* Tabs */}
@@ -788,226 +783,119 @@ export default function Dashboard() {
           {tab === "internal" &&
             (internalMarks ? (
               <div>
-                <div style={{ display: "flex", gap: 10, marginBottom: 16 }}>
-                  <button
-                    className="btn btn-primary"
-                    onClick={() => window.print()}
-                    style={{ display: "flex", alignItems: "center", gap: 6 }}
-                  >
-                    <Printer size={16} /> Print
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 20, flexWrap: "wrap", gap: 12 }}>
+                  <div>
+                    <h3 style={{ fontSize: 16, fontWeight: 700, marginBottom: 2 }}>Internal Assessment Marks</h3>
+                    <p style={{ color: "#aaaaaa", fontSize: 13 }}>Semester {internalMarks.semester} · {internalSubjects.length} Subjects</p>
+                  </div>
+                  <button className="btn btn-ghost" onClick={() => window.print()} style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 13, padding: "8px 14px" }}>
+                    <Printer size={14} /> Print
                   </button>
                 </div>
-                <div className="table-wrap desktop-only">
-                  <table style={{ borderCollapse: "collapse", width: "100%" }}>
-                    <thead>
-                      <tr>
-                        <th rowSpan="2" style={{ borderBottom: "1px solid var(--border)", borderRight: "1px solid var(--border)", width: "40px", textAlign: "center" }}>#</th>
-                        <th rowSpan="2" style={{ borderBottom: "1px solid var(--border)", borderRight: "1px solid var(--border)" }}>SUBJECT DETAILS</th>
-                        {internalMarks.semester === 1 ? (
-                          <>
-                            <th colSpan="2" style={{ textAlign: "center", borderBottom: "1px solid var(--border)", borderRight: "1px solid var(--border)", fontSize: 10, color: "var(--secondary)" }}>CLASS TEST I</th>
-                            <th colSpan="2" style={{ textAlign: "center", borderBottom: "1px solid var(--border)", borderRight: "1px solid var(--border)", fontSize: 10, color: "var(--secondary)" }}>CLASS TEST II</th>
-                            <th colSpan="2" style={{ textAlign: "center", borderBottom: "1px solid var(--border)", borderRight: "1px solid var(--border)", fontSize: 10, color: "var(--secondary)" }}>CLASS TEST III</th>
-                            <th colSpan="2" style={{ textAlign: "center", borderBottom: "1px solid var(--border)", borderRight: "1px solid var(--border)", fontSize: 10, color: "var(--secondary)" }}>CLASS TEST IV</th>
-                            <th colSpan="2" style={{ textAlign: "center", borderBottom: "1px solid var(--border)", borderRight: "1px solid var(--border)", fontSize: 10, color: "var(--secondary)" }}>ASSIGNMENT</th>
-                          </>
-                        ) : (
-                          <>
-                            <th colSpan="2" style={{ textAlign: "center", borderBottom: "1px solid var(--border)", borderRight: "1px solid var(--border)", fontSize: 10, color: "var(--secondary)" }}>MID SEMESTER</th>
-                            <th colSpan="2" style={{ textAlign: "center", borderBottom: "1px solid var(--border)", borderRight: "1px solid var(--border)", fontSize: 10, color: "var(--secondary)" }}>PRESENTATION</th>
-                            <th colSpan="2" style={{ textAlign: "center", borderBottom: "1px solid var(--border)", borderRight: "1px solid var(--border)", fontSize: 10, color: "var(--secondary)" }}>ASSIGNMENT</th>
-                            <th colSpan="2" style={{ textAlign: "center", borderBottom: "1px solid var(--border)", borderRight: "1px solid var(--border)", fontSize: 10, color: "var(--secondary)" }}>LEARNING RECORD</th>
-                            <th colSpan="2" style={{ textAlign: "center", borderBottom: "1px solid var(--border)", borderRight: "1px solid var(--border)", fontSize: 10, color: "var(--secondary)" }}>INTERNAL PRACTICAL</th>
-                            <th colSpan="2" style={{ textAlign: "center", borderBottom: "1px solid var(--border)", borderRight: "1px solid var(--border)", fontSize: 10, color: "var(--secondary)" }}>PROJECT INTERNAL</th>
-                          </>
-                        )}
-                        <th rowSpan="2" style={{ color: "var(--success)", borderBottom: "1px solid var(--success)", borderLeft: "1px solid var(--success)22", textAlign: "center" }}>TOTAL SCORE</th>
-                      </tr>
-                      <tr>
-                        {[...Array(internalMarks.semester === 1 ? 5 : 6)].map((_, i) => (
-                          <React.Fragment key={i}>
-                            <th style={{ fontSize: 9, color: "#3ea6ff", borderBottom: "1px solid var(--border)", borderRight: "1px solid var(--border)", textAlign: "center", padding: "8px 4px" }}>OBTAINED</th>
-                            <th style={{ fontSize: 9, color: "#a855f7", borderBottom: "1px solid var(--border)", borderRight: "1px solid var(--border)", textAlign: "center", padding: "8px 4px" }}>{internalMarks.semester === 1 ? "MAX" : "ROUND OFF"}</th>
-                          </React.Fragment>
-                        ))}
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {internalSubjects.map((s, i) => {
-                        const isSem1 = Number(internalMarks.semester) === 1;
-                        const assessments = getInternalAssessments(s, internalMarks.semester);
-                        const total = getSubjectTotal(s, internalMarks.semester, assessments);
-                        return (
-                        <tr key={i} style={{ borderBottom: "1px solid var(--border)" }}>
-                          <td style={{ color: "var(--secondary)", borderRight: "1px solid var(--border)", textAlign: "center" }}>{i + 1}</td>
-                          <td style={{ borderRight: "1px solid var(--border)", padding: "12px 16px" }}>
-                            <div style={{ fontWeight: 700, fontSize: 13, marginBottom: 8 }}>{s.subName}</div>
-                            <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
-                              <span style={{ fontSize: 10, color: "var(--secondary)", background: "var(--bg-card)", padding: "2px 6px", borderRadius: 4, border: "1px solid var(--border)" }}>{s.subCode}</span>
-                              <span style={{ fontSize: 10, color: "#a855f7", background: "rgba(168,85,247,0.1)", padding: "2px 6px", borderRadius: 4 }}>{s.type}</span>
-                            </div>
-                          </td>
-                          {assessments.map((assessment, ci) => {
-                            return (
-                            <React.Fragment key={ci}>
-                              <td style={{ textAlign: "center", borderRight: "1px dashed rgba(255,255,255,0.05)", padding: "8px" }}>
-                                <MarkValue value={assessment.obtained} max={assessment.max} showMax={!isSem1} />
-                              </td>
-                              <td style={{ textAlign: "center", borderRight: "1px solid var(--border)", padding: "8px" }}>
-                                <MarkValue value={assessment.secondary} max={assessment.max} color="#a855f7" showMax={!isSem1} />
-                              </td>
-                            </React.Fragment>
-                            );
-                          })}
-                          <td style={{ fontWeight: 800, color: "var(--success)", borderLeft: "1px solid rgba(34,197,94,0.2)", background: "rgba(34,197,94,0.02)", textAlign: "center", fontSize: 15 }}>
-                            {total.hasAny ? (
-                              <span style={{ display: "inline-block", border: "1px solid rgba(34,197,94,0.3)", background: "rgba(34,197,94,0.1)", padding: "6px 12px", borderRadius: 6, whiteSpace: "nowrap" }}>
-                                {formatMark(total.score)}
-                                {isMarkAvailable(total.max) && <span style={{ color: "rgba(34,197,94,0.6)", fontSize: 12, fontWeight: 500 }}>/{formatMark(total.max)}</span>}
-                              </span>
-                            ) : (
-                              <span style={{ color: "var(--muted)" }}>{MARK_PLACEHOLDER}</span>
-                            )}
-                          </td>
-                        </tr>
-                      );
-                    })}
-                    </tbody>
-                  </table>
-                </div>
 
-                {/* Mobile Responsive View */}
-                <div className="mobile-only">
-                  <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-                    {internalSubjects.map((s, i) => {
+                <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                  {internalSubjects.map((s, i) => {
                     const isSem1 = Number(internalMarks.semester) === 1;
-                    const mobileAssessments = isSem1 ? [
-                      { label: "Class Test I", obt: s.classTest1Obtained, max: s.classTest1Max, rnd: s.classTest1Max },
-                      { label: "Class Test II", obt: s.classTest2Obtained, max: s.classTest2Max, rnd: s.classTest2Max },
-                      { label: "Class Test III", obt: s.classTest3Obtained, max: s.classTest3Max, rnd: s.classTest3Max },
-                      { label: "Class Test IV", obt: s.classTest4Obtained, max: s.classTest4Max, rnd: s.classTest4Max },
-                      { label: "Assignment", obt: s.assignmentObtained, max: s.assignmentMax, rnd: s.assignmentMax },
-                    ] : [
-                      { label: "Mid Sem", obt: s.midSemObtained, max: s.midSemMax, rnd: s.midSemRoundOff },
-                      { label: "Presentation", obt: s.presentationObtained, max: s.presentationMax, rnd: s.presentationRoundOff },
-                      { label: "Assignment", obt: s.assignmentObtained, max: s.assignmentMax, rnd: s.assignmentRoundOff },
-                      { label: "Learning Record", obt: s.learningRecordObtained, max: s.learningRecordMax, rnd: s.learningRecordRoundOff },
-                      { label: "Internal Prac", obt: s.internalPracticalObtained, max: s.internalPracticalMax, rnd: s.internalPracticalRoundOff },
-                      { label: "Project Internal", obt: s.projectInternalObtained, max: s.projectInternalMax, rnd: s.projectInternalRoundOff },
-                    ];
-                    const total = getSubjectTotal(s, internalMarks.semester);
-
+                    const assessments = getInternalAssessments(s, internalMarks.semester);
+                    const total = getSubjectTotal(s, internalMarks.semester, assessments);
                     return (
-                    <div key={i} className="card" style={{ padding: 16, display: "flex", flexDirection: "column", gap: 12 }}>
-                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
-                        <div>
-                          <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 4 }}>{s.subName}</div>
-                          <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
-                            <span style={{ fontSize: 10, color: "var(--secondary)", background: "var(--bg-card)", padding: "2px 6px", borderRadius: 4, border: "1px solid var(--border)" }}>{s.subCode}</span>
-                            <span style={{ fontSize: 10, color: "#a855f7", background: "rgba(168,85,247,0.1)", padding: "2px 6px", borderRadius: 4 }}>{s.type}</span>
-                          </div>
-                        </div>
-                        <div style={{ textAlign: "right" }}>
-                          <div style={{ fontSize: 10, color: "var(--secondary)", textTransform: "uppercase", letterSpacing: 0.5, fontWeight: 700, marginBottom: 2 }}>Total</div>
-                          <div style={{ fontWeight: 800, color: "var(--success)", fontSize: 15 }}>
-                            {total.hasAny ? (
-                              <span style={{ display: "inline-block", border: "1px solid rgba(34,197,94,0.3)", background: "rgba(34,197,94,0.1)", padding: "4px 8px", borderRadius: 6, whiteSpace: "nowrap" }}>
-                                {formatMark(total.score)}
-                                {isMarkAvailable(total.max) && <span style={{ color: "rgba(34,197,94,0.6)", fontSize: 10, fontWeight: 500 }}>/{formatMark(total.max)}</span>}
-                              </span>
-                            ) : (
-                              <span style={{ color: "var(--muted)" }}>{MARK_PLACEHOLDER}</span>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                      
-                      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginTop: 8 }}>
-                        {mobileAssessments.filter((item) => isMarkAvailable(item.obtained) || isMarkAvailable(item.secondary)).map((item, idx) => (
-                          <div key={idx} style={{ background: "rgba(255,255,255,0.02)", padding: 10, borderRadius: 8, border: "1px solid var(--border)" }}>
-                            <div style={{ fontSize: 10, color: "var(--secondary)", textTransform: "uppercase", letterSpacing: 0.5, fontWeight: 700, marginBottom: 6 }}>{item.label}</div>
-                            <div style={{ display: "flex", justifyContent: "space-between" }}>
-                                <div style={{ fontSize: 12 }}>
-                                  <span style={{ color: "var(--secondary)", fontSize: 10, marginRight: 4 }}>OBT</span>
-                                  <MarkValue value={item.obt} max={item.max} showMax={!isSem1} />
-                                </div>
-                                <div style={{ fontSize: 12 }}>
-                                  <span style={{ color: "var(--secondary)", fontSize: 10, marginRight: 4 }}>{isSem1 ? "MAX" : "RND"}</span>
-                                  <MarkValue value={item.rnd} max={item.max} color="#a855f7" showMax={!isSem1} />
-                                </div>
+                      <motion.div key={i} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.04 }}
+                        style={{ background: "#212121", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 12, overflow: "hidden" }}
+                      >
+                        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "14px 18px", borderBottom: "1px solid rgba(255,255,255,0.06)", gap: 12, flexWrap: "wrap" }}>
+                          <div style={{ display: "flex", alignItems: "center", gap: 12, minWidth: 0, flex: 1 }}>
+                            <div style={{ width: 32, height: 32, borderRadius: 8, background: "rgba(255,255,255,0.06)", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "Space Mono", fontSize: 12, fontWeight: 700, color: "#aaaaaa", flexShrink: 0 }}>{i + 1}</div>
+                            <div style={{ minWidth: 0 }}>
+                              <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 4, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{s.subName}</div>
+                              <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                                <span style={{ fontSize: 10, color: "#aaaaaa", background: "rgba(255,255,255,0.06)", padding: "2px 7px", borderRadius: 5, border: "1px solid rgba(255,255,255,0.08)", fontFamily: "Space Mono" }}>{s.subCode}</span>
+                                {s.type && <span style={{ fontSize: 10, color: "#a855f7", background: "rgba(168,85,247,0.12)", padding: "2px 7px", borderRadius: 5 }}>{s.type}</span>}
+                              </div>
                             </div>
                           </div>
-                        ))}
-                      </div>
-                    </div>
+                          <div style={{ textAlign: "right", flexShrink: 0 }}>
+                            <div style={{ fontSize: 10, color: "#aaaaaa", textTransform: "uppercase", letterSpacing: "0.8px", fontWeight: 700, marginBottom: 4 }}>Total</div>
+                            {total.hasAny ? (
+                              <span style={{ display: "inline-block", border: "1px solid rgba(34,197,94,0.35)", background: "rgba(34,197,94,0.1)", padding: "4px 12px", borderRadius: 20, fontFamily: "Space Mono", fontWeight: 800, fontSize: 14, color: "var(--success)", whiteSpace: "nowrap" }}>
+                                {formatMark(total.score)}{isMarkAvailable(total.max) && <span style={{ color: "rgba(34,197,94,0.55)", fontSize: 11 }}>/{formatMark(total.max)}</span>}
+                              </span>
+                            ) : <span style={{ color: "#717171", fontSize: 13 }}>—</span>}
+                          </div>
+                        </div>
+
+                        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(140px, 1fr))", gap: 1, background: "rgba(255,255,255,0.04)" }}>
+                          {assessments.map((assessment, ci) => (
+                            <div key={ci} style={{ background: "#212121", padding: "12px 16px" }}>
+                              <div style={{ fontSize: 10, color: "#717171", textTransform: "uppercase", letterSpacing: "0.7px", fontWeight: 700, marginBottom: 8 }}>{assessment.label}</div>
+                              <div style={{ display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap" }}>
+                                <div>
+                                  <div style={{ fontSize: 9, color: "#717171", fontWeight: 700, marginBottom: 2, textTransform: "uppercase" }}>Obtained</div>
+                                  <MarkValue value={assessment.obtained} max={assessment.max} color="#f1f1f1" showMax={false} />
+                                </div>
+                                <div>
+                                  <div style={{ fontSize: 9, color: "#717171", fontWeight: 700, marginBottom: 2, textTransform: "uppercase" }}>{isSem1 ? "Max" : "Round Off"}</div>
+                                  <MarkValue value={assessment.secondary} max={assessment.max} color="#a855f7" showMax={false} />
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </motion.div>
                     );
                   })}
-                  </div>
                 </div>
               </div>
             ) : (
-              <p style={{ color: "var(--secondary)", padding: 20 }}>
-                No internal marks data available for this semester.
-              </p>
+              <div style={{ textAlign: "center", padding: "48px 24px", background: "#212121", borderRadius: 12, border: "1px solid rgba(255,255,255,0.08)" }}>
+                <FileEdit size={36} style={{ color: "#717171", marginBottom: 12 }} />
+                <p style={{ color: "#aaaaaa", fontSize: 14 }}>No internal marks available for this semester.</p>
+              </div>
             ))}
 
           {tab === "history" && (
-            <div className="table-wrap">
-              <table>
-                <thead>
-                  <tr>
-                    <th>Semester</th>
-                    <th>SGPA</th>
-                    <th>Total Credits</th>
-                    <th>Credits Cleared</th>
-                    <th>Status</th>
-                    <th>Session</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {results.map((r, i) => (
-                    <motion.tr
-                      initial={{ opacity: 0, x: -10 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      transition={{ delay: i * 0.05 }}
+            <div>
+              <div style={{ marginBottom: 20 }}>
+                <h3 style={{ fontSize: 16, fontWeight: 700, marginBottom: 2 }}>Semester History</h3>
+                <p style={{ color: "#aaaaaa", fontSize: 13 }}>Click any semester to view its result</p>
+              </div>
+              <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                {results.map((r, i) => {
+                  const liveSGPA = calcSGPAFromSubjects(r.subjects, r.semester);
+                  const sgpaColor = liveSGPA >= 9 ? "var(--success)" : liveSGPA >= 7 ? "#f1f1f1" : "var(--warning)";
+                  const isClear = r.creditsCleared === r.totalCredits;
+                  return (
+                    <motion.div
                       key={r.semester}
-                      style={{ cursor: "pointer" }}
-                      onClick={() => {
-                        setSelectedSem(r.semester);
-                        loadSemester(r.semester);
-                        setTab("result");
-                      }}
+                      initial={{ opacity: 0, y: 8 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: i * 0.05 }}
+                      onClick={() => { setSelectedSem(r.semester); loadSemester(r.semester); setTab("result"); }}
+                      style={{ background: "#212121", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 12, padding: "16px 18px", cursor: "pointer", display: "flex", alignItems: "center", gap: 16, flexWrap: "wrap" }}
+                      whileHover={{ borderColor: "rgba(255,255,255,0.18)", backgroundColor: "#2a2a2a" }}
+                      whileTap={{ scale: 0.99 }}
                     >
-                      <td style={{ fontWeight: 600 }}>Semester {r.semester}</td>
-                      <td
-                        style={{
-                          fontFamily: "Space Mono",
-                          color: (() => {
-                            const liveSGPA = calcSGPAFromSubjects(r.subjects, r.semester);
-                            return liveSGPA >= 9 ? "var(--success)" : liveSGPA >= 7 ? "var(--accent)" : "var(--warning)";
-                          })(),
-                        }}
-                      >
-                        {calcSGPAFromSubjects(r.subjects, r.semester).toFixed(2)}
-                      </td>
-                      <td>{r.totalCredits}</td>
-                      <td>{r.creditsCleared}</td>
-                      <td>
-                        <span
-                          className={`badge ${r.creditsCleared === r.totalCredits ? "badge-success" : "badge-danger"}`}
-                        >
-                          {r.creditsCleared === r.totalCredits
-                            ? "Clear"
-                            : "Backlog"}
-                        </span>
-                      </td>
-                      <td style={{ color: "var(--secondary)" }}>
-                        {r.session || "â€”"}
-                      </td>
-                    </motion.tr>
-                  ))}
-                </tbody>
-              </table>
+                      <div style={{ width: 44, height: 44, borderRadius: 10, background: "rgba(255,255,255,0.06)", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                        <span style={{ fontSize: 9, color: "#717171", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.5px" }}>Sem</span>
+                        <span style={{ fontFamily: "Space Mono", fontSize: 16, fontWeight: 800, lineHeight: 1.1, color: "#f1f1f1" }}>{r.semester}</span>
+                      </div>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap", marginBottom: 6 }}>
+                          <span style={{ fontWeight: 700, fontSize: 14, color: "#f1f1f1" }}>Semester {r.semester}</span>
+                          <span style={{ fontSize: 11, fontWeight: 700, padding: "2px 9px", borderRadius: 20, background: isClear ? "rgba(34,197,94,0.12)" : "rgba(239,68,68,0.12)", color: isClear ? "var(--success)" : "var(--danger)", border: `1px solid ${isClear ? "rgba(34,197,94,0.25)" : "rgba(239,68,68,0.25)"}` }}>{isClear ? "✓ Clear" : "✗ Backlog"}</span>
+                        </div>
+                        <div style={{ display: "flex", gap: 16, flexWrap: "wrap" }}>
+                          <span style={{ fontSize: 12, color: "#aaaaaa" }}>Credits: <strong style={{ color: "#f1f1f1" }}>{r.creditsCleared}/{r.totalCredits}</strong></span>
+                          {r.session && <span style={{ fontSize: 12, color: "#aaaaaa" }}>{r.session}</span>}
+                        </div>
+                      </div>
+                      <div style={{ textAlign: "right", flexShrink: 0 }}>
+                        <div style={{ fontSize: 10, color: "#717171", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.8px", marginBottom: 2 }}>SGPA</div>
+                        <div style={{ fontFamily: "Space Mono", fontWeight: 800, fontSize: 22, color: sgpaColor, lineHeight: 1.1 }}>{liveSGPA.toFixed(2)}</div>
+                      </div>
+                    </motion.div>
+                  );
+                })}
+              </div>
             </div>
           )}
 
