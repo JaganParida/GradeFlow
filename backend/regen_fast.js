@@ -41,63 +41,50 @@ async function regenerate() {
       // Get all results for this semester
       const semResults = allResults.filter(r => r.semester === semester);
       
-      const studentData = [];
-      
-      for (const r of semResults) {
-        const studentAllResults = byRegNo[r.regNo] || [];
+      const batches = [...new Set(semResults.map(r => r.batch || ""))];
+      for (const batch of batches) {
+        const batchResults = semResults.filter(r => (r.batch || "") === batch);
+        const studentData = [];
+        for (const r of batchResults) {
+          const studentAllResults = byRegNo[r.regNo] || [];
+          const cgpa = calculateCGPA(studentAllResults, semester);
+          const liveSGPA = calculateSGPA(r.subjects, r.semester);
+          studentData.push({
+            regNo: r.regNo, studentName: r.studentName, branch: r.branch,
+            batch: r.batch, semester: Number(semester), sgpa: liveSGPA, cgpa,
+          });
+        }
         
-        const cgpa = calculateCGPA(studentAllResults, semester);
-        const liveSGPA = calculateSGPA(r.subjects, r.semester);
+        sortByScore(studentData, "cgpa", "sgpa");
+        assignCompetitionRanks(studentData, "cgpa", "cgpaRank");
+        sortByScore(studentData, "sgpa", "cgpa");
+        assignCompetitionRanks(studentData, "sgpa", "sgpaRank");
         
-        studentData.push({
-          regNo: r.regNo,
-          studentName: r.studentName,
-          branch: r.branch,
-          batch: r.batch,
-          semester: Number(semester),
-          sgpa: liveSGPA,
-          cgpa,
+        studentData.forEach((s) => {
+          s.universityRank = s.sgpaRank; s.totalStudents = studentData.length;
+          s.percentile = parseFloat(((1 - (s.sgpaRank - 1) / studentData.length) * 100).toFixed(1));
         });
+        
+        const byBranch = {};
+        studentData.forEach(s => {
+          if (!byBranch[s.branch]) byBranch[s.branch] = [];
+          byBranch[s.branch].push(s);
+        });
+        Object.values(byBranch).forEach(group => {
+          sortByScore(group, "sgpa", "cgpa");
+          assignCompetitionRanks(group, "sgpa", "deptRank");
+          group.forEach(s => s.deptStudents = group.length);
+        });
+        
+        if (studentData.length > 0) {
+          const bulkOps = studentData.map(s => ({
+            updateOne: { filter: { regNo: s.regNo, semester: Number(semester) }, update: { $set: s }, upsert: true }
+          }));
+          await Ranking.bulkWrite(bulkOps);
+        }
       }
       
-      sortByScore(studentData, "cgpa", "sgpa");
-      assignCompetitionRanks(studentData, "cgpa", "cgpaRank");
-      
-      sortByScore(studentData, "sgpa", "cgpa");
-      assignCompetitionRanks(studentData, "sgpa", "sgpaRank");
-      studentData.forEach((s) => {
-        s.universityRank = s.sgpaRank;
-        s.totalStudents = studentData.length;
-        s.percentile = parseFloat(((1 - (s.sgpaRank - 1) / studentData.length) * 100).toFixed(1));
-      });
-      
-      // Dept/branch rank
-      const byBranch = {};
-      studentData.forEach(s => {
-        if (!byBranch[s.branch]) byBranch[s.branch] = [];
-        byBranch[s.branch].push(s);
-      });
-      Object.values(byBranch).forEach(group => {
-        sortByScore(group, "sgpa", "cgpa");
-        assignCompetitionRanks(group, "sgpa", "deptRank");
-        group.forEach((s) => {
-          s.deptStudents = group.length;
-        });
-      });
-      
-      // Bulk upsert rankings
-      if (studentData.length > 0) {
-        const bulkOps = studentData.map(s => ({
-          updateOne: {
-            filter: { regNo: s.regNo, semester: Number(semester) },
-            update: { $set: s },
-            upsert: true,
-          },
-        }));
-        await Ranking.bulkWrite(bulkOps);
-      }
-      
-      console.log(`  Semester ${semester}: processed ${studentData.length} students. Sample CGPA range: ${studentData.slice(-1)[0]?.cgpa} - ${studentData[0]?.cgpa}`);
+      console.log(`  Semester ${semester} processed in batches.`);
     }
     
     console.log("\nAll done! Rankings regenerated with official formula.");

@@ -44,60 +44,47 @@ async function generateRankingForSemester(semester) {
   const results = await SemesterResult.find({ semester: Number(semester) });
   if (!results.length) return;
 
-  const studentData = [];
-  for (const r of results) {
-    const allResults = await SemesterResult.find({ regNo: r.regNo }).sort({
-      semester: 1,
+  const batches = [...new Set(results.map(r => r.batch || ""))];
+  for (const batch of batches) {
+    const batchResults = results.filter(r => (r.batch || "") === batch);
+    const studentData = [];
+    for (const r of batchResults) {
+      const allResults = await SemesterResult.find({ regNo: r.regNo }).sort({ semester: 1 });
+      const cgpa = calculateCGPA(allResults, Number(semester));
+      const liveSGPA = calculateSGPA(r.subjects, Number(semester));
+      studentData.push({
+        regNo: r.regNo, studentName: r.studentName, branch: r.branch,
+        batch: r.batch, semester: Number(semester), sgpa: liveSGPA, cgpa,
+      });
+    }
+    
+    sortByScore(studentData, "cgpa", "sgpa");
+    assignCompetitionRanks(studentData, "cgpa", "cgpaRank");
+    sortByScore(studentData, "sgpa", "cgpa");
+    assignCompetitionRanks(studentData, "sgpa", "sgpaRank");
+    
+    studentData.forEach((s) => {
+      s.universityRank = s.sgpaRank; s.totalStudents = studentData.length;
+      s.percentile = parseFloat(((1 - (s.sgpaRank - 1) / studentData.length) * 100).toFixed(1));
     });
-    const cgpa = calculateCGPA(allResults, Number(semester));
-    const liveSGPA = calculateSGPA(r.subjects, Number(semester));
-
-    studentData.push({
-      regNo: r.regNo,
-      studentName: r.studentName,
-      branch: r.branch,
-      batch: r.batch,
-      semester: Number(semester),
-      sgpa: liveSGPA,  // ← always live-calculated, matches GradeSheet formula
-      cgpa,
+    
+    const byBranch = {};
+    studentData.forEach(s => {
+      if (!byBranch[s.branch]) byBranch[s.branch] = [];
+      byBranch[s.branch].push(s);
     });
-  }
-
-  sortByScore(studentData, "cgpa", "sgpa");
-  assignCompetitionRanks(studentData, "cgpa", "cgpaRank");
-
-  sortByScore(studentData, "sgpa", "cgpa");
-  assignCompetitionRanks(studentData, "sgpa", "sgpaRank");
-  studentData.forEach((s) => {
-    s.universityRank = s.sgpaRank; // keep for backward compat
-    s.totalStudents = studentData.length;
-    s.percentile = parseFloat(
-      ((1 - (s.sgpaRank - 1) / studentData.length) * 100).toFixed(1),
-    );
-  });
-
-  const byBranch = {};
-  studentData.forEach((s) => {
-    if (!byBranch[s.branch]) byBranch[s.branch] = [];
-    byBranch[s.branch].push(s);
-  });
-  Object.values(byBranch).forEach((group) => {
-    sortByScore(group, "sgpa", "cgpa");
-    assignCompetitionRanks(group, "sgpa", "deptRank");
-    group.forEach((s) => {
-      s.deptStudents = group.length;
+    Object.values(byBranch).forEach(group => {
+      sortByScore(group, "sgpa", "cgpa");
+      assignCompetitionRanks(group, "sgpa", "deptRank");
+      group.forEach(s => s.deptStudents = group.length);
     });
-  });
-
-  if (studentData.length > 0) {
-    const bulkOps = studentData.map((s) => ({
-      updateOne: {
-        filter: { regNo: s.regNo, semester: Number(semester) },
-        update: { $set: s },
-        upsert: true,
-      },
-    }));
-    await Ranking.bulkWrite(bulkOps);
+    
+    if (studentData.length > 0) {
+      const bulkOps = studentData.map(s => ({
+        updateOne: { filter: { regNo: s.regNo, semester: Number(semester) }, update: { $set: s }, upsert: true }
+      }));
+      await Ranking.bulkWrite(bulkOps);
+    }
   }
 }
 
