@@ -75,6 +75,11 @@ export default function Testimonials() {
     }
   };
 
+  const totalReviews = feedbacks.length;
+  const averageRating = totalReviews > 0 
+    ? (feedbacks.reduce((sum, fb) => sum + fb.rating, 0) / totalReviews).toFixed(1) 
+    : 0;
+
   const formatDate = (dateString) => {
     const d = new Date(dateString);
     return new Intl.DateTimeFormat('en-US', { 
@@ -114,6 +119,45 @@ export default function Testimonials() {
             Read what other students are saying about their GradeFlow experience. We value every piece of feedback!
           </p>
         </div>
+
+        {/* Rating Summary Section */}
+        {feedbacks.length > 0 && !isLoading && (
+          <motion.div 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            style={{
+              display: "flex", alignItems: "center", justifyContent: "center", gap: 40,
+              background: "linear-gradient(145deg, rgba(30,30,30,0.6), rgba(15,15,15,0.9))",
+              border: "1px solid rgba(255,255,255,0.06)",
+              borderRadius: 24, padding: "32px", marginBottom: 48,
+              boxShadow: "0 12px 40px rgba(0,0,0,0.2)",
+              backdropFilter: "blur(12px)", flexWrap: "wrap"
+            }}
+          >
+            <div style={{ textAlign: "center" }}>
+              <h2 style={{ fontSize: "clamp(48px, 8vw, 64px)", fontWeight: 800, margin: 0, background: "linear-gradient(135deg, #fff, #a0a0a0)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", lineHeight: 1 }}>
+                {averageRating}
+              </h2>
+              <p style={{ margin: "4px 0 0", color: "var(--secondary)", fontSize: 14, fontWeight: 600, letterSpacing: "1px", textTransform: "uppercase" }}>out of 5</p>
+            </div>
+            
+            <div style={{ display: "flex", flexDirection: "column", gap: 10, alignItems: "center" }}>
+              <div style={{ display: "flex", gap: 8 }}>
+                {[1, 2, 3, 4, 5].map(star => (
+                  <Star 
+                    key={star} 
+                    size={28} 
+                    fill={Math.round(averageRating) >= star ? "#f59e0b" : "transparent"} 
+                    color={Math.round(averageRating) >= star ? "#f59e0b" : "rgba(255,255,255,0.1)"} 
+                  />
+                ))}
+              </div>
+              <p style={{ margin: 0, color: "rgba(255,255,255,0.5)", fontSize: 15, fontWeight: 500 }}>
+                Based on <span style={{ color: "#fff", fontWeight: 700 }}>{totalReviews}</span> student review{totalReviews !== 1 ? 's' : ''}
+              </p>
+            </div>
+          </motion.div>
+        )}
 
         {/* Inline Feedback Form */}
         <div style={{
