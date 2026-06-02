@@ -214,7 +214,7 @@ export default function Leaderboard() {
             className="leaderboard-filter-select"
             value={filters.semester}
             onChange={(e) => handleFilter("semester", e.target.value)}
-            style={{ width: 140 }}
+            style={{ width: 150, flexShrink: 0 }}
           >
             <option value="" disabled>Select Semester</option>
             {meta.semesters.map((s) => (
@@ -230,7 +230,7 @@ export default function Leaderboard() {
             className="leaderboard-filter-select"
             value={filters.branch}
             onChange={(e) => handleFilter("branch", e.target.value)}
-            style={{ width: 140 }}
+            style={{ width: 150, flexShrink: 0 }}
           >
             <option value="">All Branches</option>
             {meta.branches.map((b) => (
@@ -250,7 +250,7 @@ export default function Leaderboard() {
           }}
         >
           <div className="leaderboard-search-field" style={{ position: "relative", flex: 1 }}>
-            <Search size={16} style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", color: "var(--secondary)" }} />
+            <Search size={16} style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", color: "var(--secondary)", zIndex: 1, pointerEvents: "none" }} />
             <input
               placeholder="Search name or reg no..."
               value={searchInput}
@@ -260,10 +260,10 @@ export default function Leaderboard() {
                   handleFilter("search", "");
                 }
               }}
-              style={{ width: "100%", paddingLeft: 36 }}
+              style={{ paddingLeft: 38 }}
             />
           </div>
-          <button type="submit" className="btn btn-primary leaderboard-search-button" style={{ padding: "0 16px" }}>Search</button>
+          <button type="submit" className="btn btn-primary leaderboard-search-button" style={{ padding: "10px 20px", flexShrink: 0 }}>Search</button>
         </form>
       </div>
 
