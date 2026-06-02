@@ -109,11 +109,12 @@ export default function Navbar() {
               style={{
                 width: 32,
                 height: 32,
-                background: "linear-gradient(135deg, var(--accent), #7c3aed)",
+                background: "linear-gradient(135deg, #3ea6ff, #7c3aed)",
                 borderRadius: 8,
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
+                boxShadow: "0 0 12px rgba(62,166,255,0.28), 0 2px 6px rgba(0,0,0,0.4)",
               }}
             >
               <GraduationCap color="#fff" size={20} />

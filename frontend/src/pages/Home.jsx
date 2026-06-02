@@ -60,11 +60,10 @@ const S = {
     margin: "0 auto",
   },
   sectionCard: {
-    background: "rgba(255,255,255,0.02)",
-    border: "1px solid rgba(255,255,255,0.06)",
+    background: "#212121",
+    border: "1px solid rgba(255,255,255,0.08)",
     borderRadius: 20,
     padding: "32px 28px",
-    backdropFilter: "blur(8px)",
   },
   sectionHead: {
     display: "flex",
@@ -126,12 +125,7 @@ export default function Home() {
         overflowX: "hidden",
       }}
     >
-      {/* ── Background Orbs ── */}
-      <div style={{ position:"absolute", inset:0, pointerEvents:"none", overflow:"hidden", zIndex: 0 }}>
-        <div style={{ position:"absolute", width:"min(150vw, 600px)", height:"min(150vw, 600px)", borderRadius:"50%", background:"radial-gradient(circle, rgba(62,166,255,0.08) 0%, transparent 70%)", top:"-10%", left:"-10%"}} />
-        <div style={{ position:"absolute", width:"min(100vw, 400px)", height:"min(100vw, 400px)", borderRadius:"50%", background:"radial-gradient(circle, rgba(168,85,247,0.06) 0%, transparent 70%)", bottom:"10%", right:"-5%"}} />
-        <div style={{ position:"absolute", width:"min(80vw, 300px)", height:"min(80vw, 300px)", borderRadius:"50%", background:"radial-gradient(circle, rgba(34,197,94,0.05) 0%, transparent 70%)", bottom:"30%", left:"-5%"}} />
-      </div>
+      {/* Removed Background Orbs to match clean UI */}
 
       {/* ════════════════════════════════════════════
           HERO SECTION
@@ -149,19 +143,6 @@ export default function Home() {
           marginBottom: 72,
         }}
       >
-        {/* Logo */}
-        <motion.div whileHover={{ scale: 1.06 }} style={{ display:"inline-flex", marginBottom:20 }}>
-          <div style={{
-            width: 68, height: 68,
-            background: "linear-gradient(135deg, #3ea6ff, #7c3aed)",
-            borderRadius: 18,
-            display: "flex", alignItems: "center", justifyContent: "center",
-            boxShadow: "0 0 48px rgba(62,166,255,0.28), 0 8px 24px rgba(0,0,0,0.4)",
-          }}>
-            <GraduationCap color="#fff" size={34} />
-          </div>
-        </motion.div>
-
         {/* Badge */}
         <div style={{ marginBottom: 20 }}>
           <span style={{
@@ -288,8 +269,8 @@ export default function Home() {
               style={{
                 display: "flex", alignItems: "center", gap: 7,
                 padding: "7px 14px",
-                background: "rgba(255,255,255,0.03)",
-                border: "1px solid rgba(255,255,255,0.06)",
+                background: "#212121",
+                border: "1px solid rgba(255,255,255,0.08)",
                 borderRadius: 20, fontSize: 13, color: "var(--secondary)",
               }}
             >
@@ -333,7 +314,7 @@ export default function Home() {
           }}>
             {/* SGPA Card */}
             <div style={{
-              background: "rgba(62,166,255,0.05)", border: "1px solid rgba(62,166,255,0.15)",
+              background: "#212121", border: "1px solid rgba(255,255,255,0.08)",
               borderRadius: 16, padding: "24px 20px",
             }}>
               <div style={{ display:"flex", alignItems:"center", gap:10, marginBottom:16 }}>
@@ -387,7 +368,7 @@ export default function Home() {
 
             {/* CGPA Card */}
             <div style={{
-              background: "rgba(168,85,247,0.05)", border: "1px solid rgba(168,85,247,0.15)",
+              background: "#212121", border: "1px solid rgba(255,255,255,0.08)",
               borderRadius: 16, padding: "24px 20px",
             }}>
               <div style={{ display:"flex", alignItems:"center", gap:10, marginBottom:16 }}>
@@ -486,7 +467,7 @@ export default function Home() {
             <button
               onClick={() => setShowGradeTable(v => !v)}
               style={{
-                background: "rgba(255,255,255,0.04)", border:"1px solid rgba(255,255,255,0.08)",
+                background: "#212121", border:"1px solid rgba(255,255,255,0.08)",
                 borderRadius:10, padding:"8px 14px",
                 color:"var(--secondary)", cursor:"pointer",
                 display:"flex", alignItems:"center", gap:6, fontSize:13,
