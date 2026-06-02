@@ -199,7 +199,7 @@ export default function Testimonials() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             style={{
-              display: "flex", alignItems: "center", justifyContent: "center",
+              display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 16,
               marginBottom: 48,
             }}
           >
@@ -234,6 +234,9 @@ export default function Testimonials() {
                 })}
               </div>
             </div>
+            <p style={{ margin: 0, color: "rgba(255,255,255,0.6)", fontSize: 15, fontWeight: 500, letterSpacing: "0.5px" }}>
+              Based on <span style={{ color: "#fff", fontWeight: 700 }}>{totalReviews}</span> student review{totalReviews !== 1 ? 's' : ''}
+            </p>
           </motion.div>
         )}
 
