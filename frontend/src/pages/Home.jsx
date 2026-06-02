@@ -518,64 +518,99 @@ export default function Home() {
                 style={{ overflow:"hidden" }}
               >
 
-                <div style={{ overflowX: "auto", paddingBottom: "12px", margin: "0 -4px", padding: "0 4px" }}>
-                  <div style={{ minWidth: 550 }}>
-                    {/* Column headers */}
-                    <div className="gs-header" style={{
-                      display: "grid",
-                      gridTemplateColumns: "64px 1fr 130px 80px 100px",
-                      gap: 8,
-                      padding: "0 12px 12px",
-                      borderBottom: "1px solid rgba(255,255,255,0.06)",
-                      marginBottom: 10,
-                    }}>
-                      {["Grade", "Qualification", "Range", "Points", "Counted?"].map(h => (
-                        <span key={h} style={{
-                          fontSize:10, fontWeight:700, color:"var(--secondary)",
-                          textTransform:"uppercase", letterSpacing:"0.8px",
-                        }}>{h}</span>
-                      ))}
-                    </div>
+                {/* Column headers — hidden on mobile */}
+                <div className="gs-header" style={{
+                  display: "grid",
+                  gridTemplateColumns: "64px 1fr 130px 80px 100px",
+                  gap: 8,
+                  padding: "0 12px 12px",
+                  borderBottom: "1px solid rgba(255,255,255,0.06)",
+                  marginBottom: 10,
+                }}>
+                  {["Grade", "Qualification", "Range", "Points", "Counted?"].map(h => (
+                    <span key={h} style={{
+                      fontSize:10, fontWeight:700, color:"var(--secondary)",
+                      textTransform:"uppercase", letterSpacing:"0.8px",
+                    }}>{h}</span>
+                  ))}
+                </div>
 
-                    {/* Grade Rows */}
-                    <div style={{ display:"flex", flexDirection:"column", gap:6 }}>
-                      {GRADE_SCALE.map((row, i) => (
-                        <motion.div
-                          key={row.grade}
-                          initial={{ opacity:0, x:-10 }}
-                          animate={{ opacity:1, x:0 }}
-                          transition={{ delay: i * 0.04 }}
-                          className="gs-row"
-                          style={{
-                            borderRadius: 12,
-                            background: row.bg,
-                            border: `1px solid ${row.color}20`,
-                            overflow: "hidden",
-                          }}
-                        >
-                          <div className="gs-row-desktop" style={{
-                            display: "grid",
-                            gridTemplateColumns: "64px 1fr 130px 80px 100px",
-                            gap: 8, padding: "13px 12px",
-                            alignItems: "center",
-                          }}>
-                            <div style={{
-                              width:38, height:38, borderRadius:10,
-                              background: row.color + "25",
-                              border: `1.5px solid ${row.color}50`,
-                              display:"flex", alignItems:"center", justifyContent:"center",
-                              fontWeight:800, fontSize:16, color:row.color,
-                              fontFamily:"'Space Mono', monospace",
-                            }}>{row.grade}</div>
-                            <span style={{ fontWeight:600, fontSize:14, color:"var(--text)" }}>{row.qual}</span>
-                            <span style={{ fontSize:13, color:"var(--secondary)", fontFamily:"'Space Mono', monospace" }}>{row.range}</span>
-                            <span style={{ fontWeight:800, fontSize:20, color: row.pts >= 5 ? row.color : row.pts === 2 ? "#ef4444" : "var(--secondary)", fontFamily:"'Space Mono', monospace" }}>{row.pts}</span>
-                            <div><span style={S.pill(row.counted)}>{row.counted ? "Yes" : "No"}</span></div>
+                {/* Grade Rows */}
+                <div style={{ display:"flex", flexDirection:"column", gap:6 }}>
+                  {GRADE_SCALE.map((row, i) => (
+                    <motion.div
+                      key={row.grade}
+                      initial={{ opacity:0, x:-10 }}
+                      animate={{ opacity:1, x:0 }}
+                      transition={{ delay: i * 0.04 }}
+                      className="gs-row"
+                      style={{
+                        borderRadius: 12,
+                        background: row.bg,
+                        border: `1px solid ${row.color}20`,
+                        overflow: "hidden",
+                      }}
+                    >
+                      {/* Desktop row */}
+                      <div className="gs-row-desktop" style={{
+                        display: "grid",
+                        gridTemplateColumns: "64px 1fr 130px 80px 100px",
+                        gap: 8, padding: "13px 12px",
+                        alignItems: "center",
+                      }}>
+                        <div style={{
+                          width:38, height:38, borderRadius:10,
+                          background: row.color + "25",
+                          border: `1.5px solid ${row.color}50`,
+                          display:"flex", alignItems:"center", justifyContent:"center",
+                          fontWeight:800, fontSize:16, color:row.color,
+                          fontFamily:"'Space Mono', monospace",
+                        }}>{row.grade}</div>
+                        <span style={{ fontWeight:600, fontSize:14, color:"var(--text)" }}>{row.qual}</span>
+                        <span style={{ fontSize:13, color:"var(--secondary)", fontFamily:"'Space Mono', monospace" }}>{row.range}</span>
+                        <span style={{ fontWeight:800, fontSize:20, color: row.pts >= 5 ? row.color : row.pts === 2 ? "#ef4444" : "var(--secondary)", fontFamily:"'Space Mono', monospace" }}>{row.pts}</span>
+                        <div><span style={S.pill(row.counted)}>{row.counted ? "Yes" : "No"}</span></div>
+                      </div>
+
+                      {/* Mobile card (stacked) with headers */}
+                      <div className="gs-row-mobile" style={{ display:"none", padding:"16px 14px" }}>
+                        <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start" }}>
+                          <div style={{ display:"flex", gap:14 }}>
+                            <div style={{ display:"flex", flexDirection:"column", alignItems:"center", gap:6 }}>
+                              <span style={{ fontSize:9, fontWeight:800, color:"var(--secondary)", textTransform:"uppercase", letterSpacing:"0.5px" }}>Grade</span>
+                              <div style={{
+                                width:40, height:40, borderRadius:10,
+                                background: row.color + "25", border:`1.5px solid ${row.color}50`,
+                                display:"flex", alignItems:"center", justifyContent:"center",
+                                fontWeight:800, fontSize:18, color:row.color,
+                                fontFamily:"'Space Mono', monospace", flexShrink:0,
+                              }}>{row.grade}</div>
+                            </div>
+                            <div style={{ display:"flex", flexDirection:"column", gap:6 }}>
+                              <span style={{ fontSize:9, fontWeight:800, color:"var(--secondary)", textTransform:"uppercase", letterSpacing:"0.5px" }}>Qualification</span>
+                              <div style={{ fontWeight:700, fontSize:15, color:"var(--text)" }}>{row.qual}</div>
+                              <div style={{ display:"flex", alignItems:"center", gap:6, marginTop:2 }}>
+                                <span style={{ fontSize:9, fontWeight:800, color:"var(--secondary)", textTransform:"uppercase", letterSpacing:"0.5px" }}>Range:</span>
+                                <span style={{ fontSize:12, color:"var(--secondary)", fontFamily:"'Space Mono', monospace" }}>{row.range}</span>
+                              </div>
+                            </div>
                           </div>
-                        </motion.div>
-                      ))}
-                    </div>
-                  </div>
+                          <div style={{ display:"flex", gap:14 }}>
+                            <div style={{ display:"flex", flexDirection:"column", alignItems:"center", gap:6 }}>
+                              <span style={{ fontSize:9, fontWeight:800, color:"var(--secondary)", textTransform:"uppercase", letterSpacing:"0.5px" }}>Points</span>
+                              <span style={{ fontWeight:800, fontSize:20, color: row.pts >= 5 ? row.color : row.pts === 2 ? "#ef4444" : "var(--secondary)", fontFamily:"'Space Mono', monospace", marginTop: 2 }}>{row.pts}</span>
+                            </div>
+                            <div style={{ display:"flex", flexDirection:"column", alignItems:"center", gap:6 }}>
+                              <span style={{ fontSize:9, fontWeight:800, color:"var(--secondary)", textTransform:"uppercase", letterSpacing:"0.5px" }}>Counted</span>
+                              <div style={{ marginTop: 4 }}>
+                                <span style={S.pill(row.counted)}>{row.counted ? "Yes" : "No"}</span>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </motion.div>
+                  ))}
                 </div>
 
                 {/* Legend */}
@@ -601,6 +636,17 @@ export default function Home() {
 
       {/* ── Responsive CSS ── */}
       <style>{`
+        /* Default: show desktop layout */
+        .gs-row-desktop { display: grid; }
+        .gs-row-mobile  { display: none !important; }
+        .gs-header      { display: grid; }
+
+        @media (max-width: 620px) {
+          .gs-header      { display: none !important; }
+          .gs-row-desktop { display: none !important; }
+          .gs-row-mobile  { display: block !important; }
+        }
+
         /* Search bar: stack on mobile */
         @media (max-width: 560px) {
           .home-search-wrap { flex-direction: column !important; }
