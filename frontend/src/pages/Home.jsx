@@ -589,21 +589,24 @@ export default function Home() {
                         </div>
 
                         {/* Row 2: Qualification */}
-                        <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", gap: 16 }}>
+                        <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center" }}>
                           <span style={{ fontSize:11, fontWeight:800, color:"var(--secondary)", textTransform:"uppercase", letterSpacing:"0.5px" }}>Qualification</span>
-                          <div style={{ textAlign:"right" }}>
-                            <div style={{ fontWeight:700, fontSize:15, color:"var(--text)" }}>{row.qual}</div>
-                            <div style={{ fontSize:12, color:"var(--secondary)", fontFamily:"'Space Mono', monospace", marginTop:2 }}>{row.range}</div>
-                          </div>
+                          <div style={{ fontWeight:700, fontSize:15, color:"var(--text)", textAlign:"right" }}>{row.qual}</div>
                         </div>
 
-                        {/* Row 3: Points */}
+                        {/* Row 3: Range */}
+                        <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center" }}>
+                          <span style={{ fontSize:11, fontWeight:800, color:"var(--secondary)", textTransform:"uppercase", letterSpacing:"0.5px" }}>Range</span>
+                          <div style={{ fontSize:13, color:"var(--secondary)", fontFamily:"'Space Mono', monospace", textAlign:"right" }}>{row.range}</div>
+                        </div>
+
+                        {/* Row 4: Points */}
                         <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center" }}>
                           <span style={{ fontSize:11, fontWeight:800, color:"var(--secondary)", textTransform:"uppercase", letterSpacing:"0.5px" }}>Points</span>
                           <span style={{ fontWeight:800, fontSize:20, color: row.pts >= 5 ? row.color : row.pts === 2 ? "#ef4444" : "var(--secondary)", fontFamily:"'Space Mono', monospace" }}>{row.pts}</span>
                         </div>
 
-                        {/* Row 4: Counted? */}
+                        {/* Row 5: Counted? */}
                         <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center" }}>
                           <span style={{ fontSize:11, fontWeight:800, color:"var(--secondary)", textTransform:"uppercase", letterSpacing:"0.5px" }}>Counted?</span>
                           <span style={S.pill(row.counted)}>{row.counted ? "Yes" : "No"}</span>
