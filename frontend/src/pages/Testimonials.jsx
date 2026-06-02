@@ -204,13 +204,14 @@ export default function Testimonials() {
             }}
           >
             <div style={{
-              background: "#ffffff",
+              background: "linear-gradient(145deg, rgba(30,30,30,0.8), rgba(15,15,15,0.95))",
               borderRadius: 100,
               padding: "16px 32px",
               display: "flex", alignItems: "center", gap: 20,
-              boxShadow: "0 8px 30px rgba(0,0,0,0.15), inset 0 1px 0 rgba(255,255,255,1)",
+              boxShadow: "0 8px 30px rgba(0,0,0,0.2)",
+              border: "1px solid rgba(255,255,255,0.08)"
             }}>
-              <span style={{ fontSize: 36, fontWeight: 900, color: "#111827", lineHeight: 1, letterSpacing: "-1px" }}>
+              <span style={{ fontSize: 36, fontWeight: 900, color: "#ffffff", lineHeight: 1, letterSpacing: "-1px" }}>
                 {averageRating}
               </span>
               <div style={{ display: "flex", gap: 6 }}>
@@ -218,9 +219,15 @@ export default function Testimonials() {
                   const fillPercentage = Math.max(0, Math.min(100, (parseFloat(averageRating) - starIndex + 1) * 100));
                   return (
                     <div key={starIndex} style={{ position: "relative", width: 32, height: 32 }}>
-                      <Star size={32} color="#e5e7eb" fill="#e5e7eb" style={{ position: "absolute", top: 0, left: 0 }} />
+                      {/* Background empty star */}
+                      <div style={{ position: "absolute", top: 0, left: 0, width: 32, height: 32 }}>
+                        <Star size={32} color="rgba(255,255,255,0.15)" fill="rgba(255,255,255,0.15)" />
+                      </div>
+                      {/* Foreground filled star (cropped perfectly) */}
                       <div style={{ position: "absolute", top: 0, left: 0, width: `${fillPercentage}%`, overflow: "hidden", height: "100%" }}>
-                        <Star size={32} color="#facc15" fill="#facc15" />
+                        <div style={{ width: 32, height: 32 }}>
+                          <Star size={32} color="#facc15" fill="#facc15" />
+                        </div>
                       </div>
                     </div>
                   );
