@@ -357,13 +357,13 @@ export default function Home() {
               </div>
 
               {/* Visual fraction formula */}
-              <div style={{
+              <div className="hide-scrollbar" style={{
                 background: "rgba(0,0,0,0.3)", borderRadius: 12,
                 padding: "18px 12px", textAlign: "center",
                 fontFamily: "'Space Mono', monospace",
                 marginBottom: 16,
               }}>
-                <span style={{ color:"var(--text)", fontSize:"clamp(10px, 3.5vw, 15px)", fontWeight:600, whiteSpace:"nowrap" }}>
+                <span style={{ color:"var(--text)", fontSize:"clamp(9px, 2.8vw, 14px)", fontWeight:600, whiteSpace:"nowrap" }}>
                   SGPA =
                   <Fraction
                     num="Σ(Credit × Grade Points)"
@@ -410,13 +410,13 @@ export default function Home() {
                 </div>
               </div>
 
-              <div style={{
+              <div className="hide-scrollbar" style={{
                 background: "rgba(0,0,0,0.3)", borderRadius: 12,
                 padding: "18px 12px", textAlign: "center",
                 fontFamily: "'Space Mono', monospace",
                 marginBottom: 16,
               }}>
-                <span style={{ color:"var(--text)", fontSize:"clamp(10px, 3.5vw, 14px)", fontWeight:600, whiteSpace:"nowrap" }}>
+                <span style={{ color:"var(--text)", fontSize:"clamp(9px, 2.8vw, 14px)", fontWeight:600, whiteSpace:"nowrap" }}>
                   CGPA =
                   <Fraction
                     num="Σ(Sem SGPA × Sem Credits)"
@@ -636,6 +636,10 @@ export default function Home() {
 
       {/* ── Responsive CSS ── */}
       <style>{`
+        /* Hide scrollbar for overflow containers */
+        .hide-scrollbar::-webkit-scrollbar { display: none; }
+        .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; overflow-x: auto; }
+
         /* Default: show desktop layout */
         .gs-row-desktop { display: grid; }
         .gs-row-mobile  { display: none !important; }
@@ -644,7 +648,7 @@ export default function Home() {
         @media (max-width: 620px) {
           .gs-header      { display: none !important; }
           .gs-row-desktop { display: none !important; }
-          .gs-row-mobile  { display: block !important; }
+          .gs-row-mobile  { display: flex !important; }
         }
 
         /* Search bar: stack on mobile */
