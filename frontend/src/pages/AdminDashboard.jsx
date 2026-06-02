@@ -347,6 +347,9 @@ export default function AdminDashboard() {
   const [regenAllMsg, setRegenAllMsg] = useState("");
   const [regenAllErr, setRegenAllErr] = useState("");
   const [regenAllLoading, setRegenAllLoading] = useState(false);
+  const [clearCacheMsg, setClearCacheMsg] = useState("");
+  const [clearCacheErr, setClearCacheErr] = useState("");
+  const [clearCacheLoading, setClearCacheLoading] = useState(false);
   const [tab, setTab] = useState("overview");
 
   useEffect(() => {
@@ -400,6 +403,24 @@ export default function AdminDashboard() {
       setRegenAllErr(e.response?.data?.message || "Failed");
     } finally {
       setRegenAllLoading(false);
+    }
+  }
+
+  async function clearServerCache() {
+    setClearCacheMsg("");
+    setClearCacheErr("");
+    setClearCacheLoading(true);
+    try {
+      const { data } = await axios.post(
+        `${API}/admin/cache/clear`,
+        {},
+        authHeaders,
+      );
+      setClearCacheMsg(data.message);
+    } catch (e) {
+      setClearCacheErr(e.response?.data?.message || "Failed to clear cache");
+    } finally {
+      setClearCacheLoading(false);
     }
   }
 
@@ -720,6 +741,36 @@ export default function AdminDashboard() {
             >
               <Trophy size={16} />
               {regenAllLoading ? "Regenerating... (please wait)" : "Regenerate All Rankings"}
+            </button>
+          </div>
+
+          <div className="card" style={{ border: "1px solid rgba(62,166,255,0.3)" }}>
+            <h3 style={{ fontWeight: 700, marginBottom: 4, display: "flex", alignItems: "center", gap: 8 }}>
+              <Database size={18} color="var(--accent)" /> Clear Server Cache
+            </h3>
+            <p style={{ color: "var(--secondary)", fontSize: 13, marginBottom: 16 }}>
+              Clears the in-memory student data cache on the server. Use this after formula changes so <strong>Dashboard, Analytics &amp; Leaderboard</strong> immediately show fresh, correct CGPA values without waiting.
+            </p>
+            <AnimatePresence>
+              {clearCacheErr && (
+                <motion.p initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }} style={{ color: "var(--danger)", fontSize: 13, marginBottom: 8, display: "flex", alignItems: "center", gap: 6 }}>
+                  <AlertTriangle size={14} /> {clearCacheErr}
+                </motion.p>
+              )}
+              {clearCacheMsg && (
+                <motion.p initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }} style={{ color: "var(--success)", fontSize: 13, marginBottom: 8, display: "flex", alignItems: "center", gap: 6 }}>
+                  <CheckCircle size={14} /> {clearCacheMsg}
+                </motion.p>
+              )}
+            </AnimatePresence>
+            <button
+              className="btn"
+              onClick={clearServerCache}
+              disabled={clearCacheLoading}
+              style={{ background: "rgba(62,166,255,0.15)", color: "var(--accent)", border: "1px solid rgba(62,166,255,0.3)", display: "flex", alignItems: "center", gap: 8 }}
+            >
+              <Database size={16} />
+              {clearCacheLoading ? "Clearing..." : "Clear Server Cache"}
             </button>
           </div>
         </div>

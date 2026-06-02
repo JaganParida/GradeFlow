@@ -1048,9 +1048,21 @@ router.post("/rankings/regenerate-all", protect, async (req, res) => {
     for (const sem of semesters) {
       await generateRankingForSemester(sem);
     }
+    // Clear ALL in-memory student cache so fresh data is served immediately
+    clearStudentCache();
     res.json({
-      message: `✅ All rankings regenerated for ${semesters.length} semester(s): ${semesters.join(", ")}`,
+      message: `✅ All rankings regenerated for ${semesters.length} semester(s): ${semesters.join(", ")}. Cache cleared.`,
     });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+// Clear ALL in-memory student cache (force fresh data for all students)
+router.post("/cache/clear", protect, async (req, res) => {
+  try {
+    clearStudentCache(); // clears all cached entries
+    res.json({ message: "✅ Student cache cleared. All future requests will fetch fresh data." });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }

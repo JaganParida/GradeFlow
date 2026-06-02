@@ -4,9 +4,20 @@ import axios from "axios";
 
 const API_BASE = import.meta.env.VITE_API_URL || "/api";
 const STUDENT_CACHE_KEY = "gf_student_data";
+// Bump this version whenever the CGPA/SGPA formula or data shape changes
+// to automatically invalidate stale cached student data in localStorage
+const CACHE_VERSION = "v4";
+const CACHE_VERSION_KEY = "gf_cache_version";
 
 const getCachedStudentData = () => {
   try {
+    // Invalidate cache if version changed (formula/data updates)
+    const storedVersion = localStorage.getItem(CACHE_VERSION_KEY);
+    if (storedVersion !== CACHE_VERSION) {
+      localStorage.removeItem(STUDENT_CACHE_KEY);
+      localStorage.setItem(CACHE_VERSION_KEY, CACHE_VERSION);
+      return null;
+    }
     return JSON.parse(localStorage.getItem(STUDENT_CACHE_KEY)) || null;
   } catch {
     localStorage.removeItem(STUDENT_CACHE_KEY);
