@@ -58,11 +58,13 @@ const GRADE_SCALE = [
 
 const FEATURES = [
   { label: "SGPA & CGPA", icon: <BarChart2 size={14} />, color: "#3ea6ff" },
+  { label: "Internal Marks", icon: <GraduationCap size={14} />, color: "#ec4899" },
   { label: "Rankings",    icon: <Trophy size={14} />,    color: "#f59e0b" },
   { label: "Analytics",  icon: <TrendingUp size={14} />, color: "#22c55e" },
   { label: "Backlogs",   icon: <Target size={14} />,     color: "#ef4444" },
   { label: "AI Insights",icon: <Sparkles size={14} />,   color: "#a855f7" },
   { label: "Grade Sheet",icon: <FileText size={14} />,   color: "#f97316" },
+  { label: "Testimonials",icon: <Star size={14} />,      color: "#14b8a6" },
 ];
 
 /* ─── Fraction component ─────────────────────────────────────── */
@@ -572,37 +574,40 @@ export default function Home() {
                         <div><span style={S.pill(row.counted)}>{row.counted ? "Yes" : "No"}</span></div>
                       </div>
 
-                      {/* Mobile card (stacked) with headers */}
-                      <div className="gs-row-mobile" style={{ display:"none", padding:"16px 14px" }}>
-                        <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start" }}>
-                          <div style={{ display:"flex", gap:14 }}>
-                            <div style={{ display:"flex", flexDirection:"column", alignItems:"center", gap:6 }}>
-                              <span style={{ fontSize:9, fontWeight:800, color:"var(--secondary)", textTransform:"uppercase", letterSpacing:"0.5px" }}>Grade</span>
+                      {/* Mobile card (stacked) with perfect grid headers */}
+                      <div className="gs-row-mobile" style={{ display:"none", padding:"18px 20px" }}>
+                        <div style={{ display:"grid", gridTemplateColumns:"1fr 1.5fr", gap:16 }}>
+                          {/* Left Column */}
+                          <div style={{ display:"flex", flexDirection:"column", gap:18 }}>
+                            <div style={{ display:"flex", flexDirection:"column", gap:6 }}>
+                              <span style={{ fontSize:10, fontWeight:800, color:"var(--secondary)", textTransform:"uppercase", letterSpacing:"0.5px" }}>Grade</span>
                               <div style={{
-                                width:40, height:40, borderRadius:10,
+                                width:46, height:46, borderRadius:12,
                                 background: row.color + "25", border:`1.5px solid ${row.color}50`,
                                 display:"flex", alignItems:"center", justifyContent:"center",
-                                fontWeight:800, fontSize:18, color:row.color,
-                                fontFamily:"'Space Mono', monospace", flexShrink:0,
+                                fontWeight:800, fontSize:20, color:row.color,
+                                fontFamily:"'Space Mono', monospace",
                               }}>{row.grade}</div>
                             </div>
                             <div style={{ display:"flex", flexDirection:"column", gap:6 }}>
-                              <span style={{ fontSize:9, fontWeight:800, color:"var(--secondary)", textTransform:"uppercase", letterSpacing:"0.5px" }}>Qualification</span>
-                              <div style={{ fontWeight:700, fontSize:15, color:"var(--text)" }}>{row.qual}</div>
-                              <div style={{ display:"flex", alignItems:"center", gap:6, marginTop:2 }}>
-                                <span style={{ fontSize:9, fontWeight:800, color:"var(--secondary)", textTransform:"uppercase", letterSpacing:"0.5px" }}>Range:</span>
-                                <span style={{ fontSize:12, color:"var(--secondary)", fontFamily:"'Space Mono', monospace" }}>{row.range}</span>
-                              </div>
+                              <span style={{ fontSize:10, fontWeight:800, color:"var(--secondary)", textTransform:"uppercase", letterSpacing:"0.5px" }}>Points</span>
+                              <span style={{ fontWeight:800, fontSize:22, color: row.pts >= 5 ? row.color : row.pts === 2 ? "#ef4444" : "var(--secondary)", fontFamily:"'Space Mono', monospace" }}>{row.pts}</span>
                             </div>
                           </div>
-                          <div style={{ display:"flex", gap:14 }}>
-                            <div style={{ display:"flex", flexDirection:"column", alignItems:"center", gap:6 }}>
-                              <span style={{ fontSize:9, fontWeight:800, color:"var(--secondary)", textTransform:"uppercase", letterSpacing:"0.5px" }}>Points</span>
-                              <span style={{ fontWeight:800, fontSize:20, color: row.pts >= 5 ? row.color : row.pts === 2 ? "#ef4444" : "var(--secondary)", fontFamily:"'Space Mono', monospace", marginTop: 2 }}>{row.pts}</span>
+                          
+                          {/* Right Column */}
+                          <div style={{ display:"flex", flexDirection:"column", gap:18 }}>
+                            <div style={{ display:"flex", flexDirection:"column", gap:6 }}>
+                              <span style={{ fontSize:10, fontWeight:800, color:"var(--secondary)", textTransform:"uppercase", letterSpacing:"0.5px" }}>Qualification</span>
+                              <div style={{ fontWeight:700, fontSize:16, color:"var(--text)" }}>{row.qual}</div>
+                              <div style={{ display:"flex", alignItems:"center", gap:6 }}>
+                                <span style={{ fontSize:10, fontWeight:800, color:"var(--secondary)", textTransform:"uppercase", letterSpacing:"0.5px" }}>Range:</span>
+                                <span style={{ fontSize:13, color:"var(--secondary)", fontFamily:"'Space Mono', monospace" }}>{row.range}</span>
+                              </div>
                             </div>
-                            <div style={{ display:"flex", flexDirection:"column", alignItems:"center", gap:6 }}>
-                              <span style={{ fontSize:9, fontWeight:800, color:"var(--secondary)", textTransform:"uppercase", letterSpacing:"0.5px" }}>Counted</span>
-                              <div style={{ marginTop: 4 }}>
+                            <div style={{ display:"flex", flexDirection:"column", gap:6 }}>
+                              <span style={{ fontSize:10, fontWeight:800, color:"var(--secondary)", textTransform:"uppercase", letterSpacing:"0.5px" }}>Counted?</span>
+                              <div>
                                 <span style={S.pill(row.counted)}>{row.counted ? "Yes" : "No"}</span>
                               </div>
                             </div>
