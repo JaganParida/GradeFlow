@@ -1,10 +1,10 @@
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState } from "react";
 import { useLocation } from "react-router-dom";
 import axios from "axios";
 import { useApp } from "../context/AppContext";
 import { Spinner } from "../components/LoadingSpinner";
-import { motion, AnimatePresence } from "framer-motion";
-import { Trophy, Search, Calendar, Medal, Award, Star, Target } from "lucide-react";
+import { motion } from "framer-motion";
+import { Trophy, Search, Calendar, Medal, Star, Target } from "lucide-react";
 
 export default function Leaderboard() {
   const { API } = useApp();
@@ -246,12 +246,19 @@ export default function Leaderboard() {
       ) : (
         <div>
           {(() => {
-            const processedRankings = rankings.map((r, i) => {
+            const processedRankings = rankings.map((r) => {
               const rankFromDB = !isSGPA ? r.cgpaRank : (r.sgpaRank || r.universityRank);
-              return { ...r, displayRank: rankFromDB };
-            });
-            const top10 = processedRankings.filter(r => r.displayRank <= 10);
-            const rest40 = processedRankings.filter(r => r.displayRank > 10 && r.displayRank <= 50);
+              return { ...r, displayRank: Number(rankFromDB) };
+            })
+              .filter((r) => Number.isFinite(r.displayRank) && r.displayRank >= 1 && r.displayRank <= 50)
+              .sort((a, b) => {
+                if (a.displayRank !== b.displayRank) return a.displayRank - b.displayRank;
+                const aScore = isSGPA ? a.sgpa : a.cgpa;
+                const bScore = isSGPA ? b.sgpa : b.cgpa;
+                return (bScore || 0) - (aScore || 0);
+              });
+            const visibleRankings = processedRankings.filter((r) => r.displayRank <= showCount);
+            const hasMoreRankings = processedRankings.some((r) => r.displayRank > 10);
 
             const colGroup = (
               <colgroup>
@@ -263,10 +270,113 @@ export default function Leaderboard() {
               </colgroup>
             );
 
+            const renderRankingRow = (r, i) => {
+              const isGold = r.displayRank === 1;
+              const isSilver = r.displayRank === 2;
+              const isBronze = r.displayRank === 3;
+              let rankColor = "var(--text)";
+              let nameColor = "var(--text)";
+              let scoreColor = "var(--text)";
+              let medalColor = null;
+
+              if (isGold) { rankColor = "#facc15"; nameColor = "#fef08a"; scoreColor = "#eab308"; medalColor = "#facc15"; }
+              else if (isSilver) { rankColor = "#a1a1aa"; nameColor = "#e4e4e7"; scoreColor = "#a1a1aa"; medalColor = "#a1a1aa"; }
+              else if (isBronze) { rankColor = "#d97706"; nameColor = "#fed7aa"; scoreColor = "#c2670a"; medalColor = "#d97706"; }
+
+              const isHighlighted = highlightRegNo === r.regNo;
+              const isDeveloper = r.regNo === "230301120327";
+
+              return (
+                <motion.tr
+                  id={`row-${r.regNo}`}
+                  key={`${r.regNo}-${r.displayRank}-${isSGPA ? "sgpa" : "cgpa"}`}
+                  initial={{ opacity: 0, y: 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.18, delay: Math.min(i * 0.015, 0.2) }}
+                  style={{
+                    backgroundColor: isHighlighted ? "rgba(168,85,247,0.25)" : "transparent",
+                    boxShadow: isHighlighted ? "inset 0 0 0 2px rgba(168,85,247,0.5)" : "none",
+                    transition: "background-color 0.5s ease"
+                  }}
+                >
+                  <td>
+                    <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                      <span style={{ fontSize: 16, fontFamily: "Space Mono", fontWeight: 800, color: rankColor, width: 34, textAlign: "right", display: "inline-block" }}>
+                        #{r.displayRank}
+                      </span>
+                      {medalColor && <Medal size={20} color={medalColor} />}
+                    </div>
+                  </td>
+                  <td style={{ fontWeight: 700, color: nameColor, minWidth: 0 }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", minWidth: 0 }}>
+                      <span style={{ overflowWrap: "anywhere" }}>{r.studentName}</span>
+                      {isDeveloper && (
+                        <span style={{
+                          background: "rgba(168,85,247,0.15)",
+                          color: "#a855f7",
+                          padding: "2px 8px",
+                          borderRadius: 12,
+                          fontSize: 10,
+                          fontWeight: 800,
+                          border: "1px solid rgba(168,85,247,0.3)",
+                          boxShadow: "0 0 8px rgba(168,85,247,0.2)",
+                          whiteSpace: "nowrap"
+                        }}>
+                          DEVELOPER
+                        </span>
+                      )}
+                    </div>
+                  </td>
+                  <td
+                    style={{
+                      fontFamily: "Space Mono",
+                      fontSize: 12,
+                      color: "var(--secondary)",
+                      overflowWrap: "anywhere",
+                    }}
+                  >
+                    {r.regNo}
+                  </td>
+                  <td>
+                    <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
+                      {getBadges(r).map((b, bi) => (
+                        <span
+                          key={bi}
+                          style={{
+                            fontSize: 10,
+                            fontWeight: 700,
+                            background: b.color + "20",
+                            color: b.color,
+                            padding: "2px 7px",
+                            borderRadius: 10,
+                            whiteSpace: "nowrap"
+                          }}
+                        >
+                          {b.label}
+                        </span>
+                      ))}
+                    </div>
+                  </td>
+                  <td
+                    style={{
+                      fontFamily: "Space Mono",
+                      fontWeight: 800,
+                      color: scoreColor,
+                      background: "rgba(62,166,255,0.02)",
+                      borderLeft: "1px solid rgba(62,166,255,0.1)",
+                      borderRight: "1px solid rgba(62,166,255,0.1)"
+                    }}
+                  >
+                    {isSGPA ? r.sgpa?.toFixed(2) : r.cgpa?.toFixed(2)}
+                  </td>
+                </motion.tr>
+              );
+            };
+
             return (
               <>
                 <div className="table-wrap" style={{ marginBottom: 0 }}>
-                  <table style={{ margin: 0 }}>
+                  <table style={{ margin: 0, tableLayout: "fixed", width: "100%" }}>
                     {colGroup}
                     <thead>
                       <tr>
@@ -283,7 +393,7 @@ export default function Leaderboard() {
                       </tr>
                     </thead>
                     <tbody>
-                      {top10.length === 0 && rest40.length === 0 && filters.search && (
+                      {visibleRankings.length === 0 && filters.search && (
                         <tr>
                           <td colSpan="5" style={{ textAlign: "center", padding: "60px 20px" }}>
                             <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
@@ -296,254 +406,12 @@ export default function Leaderboard() {
                           </td>
                         </tr>
                       )}
-                      {top10.map((r, i) => {
-                        const isGold = r.displayRank === 1;
-                        const isSilver = r.displayRank === 2;
-                        const isBronze = r.displayRank === 3;
-                        let rankColor = "var(--text)";
-                        let nameColor = "var(--text)";
-                        let scoreColor = "var(--text)";
-                        let medalColor = null;
-                        
-                        if (isGold) { rankColor = "#facc15"; nameColor = "#fef08a"; scoreColor = "#eab308"; medalColor = "#facc15"; }
-                        else if (isSilver) { rankColor = "#a1a1aa"; nameColor = "#e4e4e7"; scoreColor = "#a1a1aa"; medalColor = "#a1a1aa"; }
-                        else if (isBronze) { rankColor = "#d97706"; nameColor = "#fed7aa"; scoreColor = "#c2670a"; medalColor = "#d97706"; }
-
-                        const isHighlighted = highlightRegNo === r.regNo;
-                        const isDeveloper = r.regNo === "230301120327";
-
-                        return (
-                        <motion.tr 
-                          id={`row-${r.regNo}`}
-                          key={`${r.regNo}-${r.displayRank}`}
-                          initial={{ opacity: 0, y: 10 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          transition={{ duration: 0.2, delay: Math.min(i * 0.02, 0.2) }}
-                          style={{
-                            backgroundColor: isHighlighted ? "rgba(168,85,247,0.25)" : "transparent",
-                            boxShadow: isHighlighted ? "inset 0 0 0 2px rgba(168,85,247,0.5)" : "none",
-                            transition: "background-color 0.5s ease"
-                          }}
-                        >
-                          <td>
-                            <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                              <span style={{ fontSize: 16, fontFamily: "Space Mono", fontWeight: 800, color: rankColor, width: 24, textAlign: 'right' }}>
-                                #{r.displayRank}
-                              </span>
-                              {medalColor && <Medal size={20} color={medalColor} />}
-                            </div>
-                          </td>
-                          <td style={{ fontWeight: 700, color: nameColor }}>
-                            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                              {r.studentName}
-                              {isDeveloper && (
-                                <span style={{
-                                  background: "rgba(168,85,247,0.15)",
-                                  color: "#a855f7",
-                                  padding: "2px 8px",
-                                  borderRadius: 12,
-                                  fontSize: 10,
-                                  fontWeight: 800,
-                                  border: "1px solid rgba(168,85,247,0.3)",
-                                  boxShadow: "0 0 8px rgba(168,85,247,0.2)"
-                                }}>
-                                  DEVELOPER
-                                </span>
-                              )}
-                            </div>
-                          </td>
-                          <td
-                            style={{
-                              fontFamily: "Space Mono",
-                              fontSize: 12,
-                              color: "var(--secondary)",
-                            }}
-                          >
-                            {r.regNo}
-                          </td>
-                          <td>
-                            <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
-                              {getBadges(r).map((b, bi) => (
-                                <span
-                                  key={bi}
-                                  style={{
-                                    fontSize: 10,
-                                    fontWeight: 700,
-                                    background: b.color + "20",
-                                    color: b.color,
-                                    padding: "2px 7px",
-                                    borderRadius: 10,
-                                  }}
-                                >
-                                  {b.label}
-                                </span>
-                              ))}
-                            </div>
-                          </td>
-                          {isSGPA && (
-                            <td
-                              style={{
-                                fontFamily: "Space Mono",
-                                fontWeight: 800,
-                                color: scoreColor,
-                                background: "rgba(62,166,255,0.02)",
-                                borderLeft: "1px solid rgba(62,166,255,0.1)",
-                                borderRight: "1px solid rgba(62,166,255,0.1)"
-                              }}
-                            >
-                              {r.sgpa?.toFixed(2)}
-                            </td>
-                          )}
-                          {!isSGPA && (
-                            <td
-                              style={{
-                                fontFamily: "Space Mono",
-                                fontWeight: 800,
-                                color: scoreColor,
-                                background: "rgba(62,166,255,0.02)",
-                                borderLeft: "1px solid rgba(62,166,255,0.1)",
-                                borderRight: "1px solid rgba(62,166,255,0.1)"
-                              }}
-                            >
-                              {r.cgpa?.toFixed(2)}
-                            </td>
-                          )}
-                        </motion.tr>
-                      )})}
+                      {visibleRankings.map(renderRankingRow)}
                     </tbody>
                   </table>
                 </div>
-
-                {rest40.length > 0 && (
-                  <motion.div
-                    initial={false}
-                    animate={{ height: showCount === 50 ? "auto" : 0, opacity: showCount === 50 ? 1 : 0 }}
-                    transition={{ duration: 0.5, ease: "easeInOut" }}
-                    style={{ overflow: "hidden" }}
-                  >
-                    <div className="table-wrap" style={{ marginTop: 0, borderTop: "none" }}>
-                      <table style={{ margin: 0 }}>
-                        {colGroup}
-                        <tbody>
-                          {rest40.map((r, i) => {
-                            const isGold = r.displayRank === 1;
-                            const isSilver = r.displayRank === 2;
-                            const isBronze = r.displayRank === 3;
-                            let rankColor = "var(--text)";
-                            let nameColor = "var(--text)";
-                            let scoreColor = "var(--text)";
-                            let medalColor = null;
-                            
-                            if (isGold) { rankColor = "#facc15"; nameColor = "#fef08a"; scoreColor = "#eab308"; medalColor = "#facc15"; }
-                            else if (isSilver) { rankColor = "#a1a1aa"; nameColor = "#e4e4e7"; scoreColor = "#a1a1aa"; medalColor = "#a1a1aa"; }
-                            else if (isBronze) { rankColor = "#d97706"; nameColor = "#fed7aa"; scoreColor = "#c2670a"; medalColor = "#d97706"; }
-
-                            const isHighlighted = highlightRegNo === r.regNo;
-                            const isDeveloper = r.regNo === "230301120327";
-
-                            return (
-                            <tr 
-                              id={`row-${r.regNo}`}
-                              key={`${r.regNo}-${r.displayRank}`}
-                              style={{
-                                backgroundColor: isHighlighted ? "rgba(168,85,247,0.25)" : "transparent",
-                                boxShadow: isHighlighted ? "inset 0 0 0 2px rgba(168,85,247,0.5)" : "none",
-                                transition: "background-color 0.5s ease"
-                              }}
-                            >
-                              <td>
-                                <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                                  <span style={{ fontSize: 16, fontFamily: "Space Mono", fontWeight: 800, color: rankColor, width: 24, textAlign: 'right' }}>
-                                    #{r.displayRank}
-                                  </span>
-                                  {medalColor && <Medal size={20} color={medalColor} />}
-                                </div>
-                              </td>
-                              <td style={{ fontWeight: 700, color: nameColor }}>
-                                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                                  {r.studentName}
-                                  {isDeveloper && (
-                                    <span style={{
-                                      background: "rgba(168,85,247,0.15)",
-                                      color: "#a855f7",
-                                      padding: "2px 8px",
-                                      borderRadius: 12,
-                                      fontSize: 10,
-                                      fontWeight: 800,
-                                      border: "1px solid rgba(168,85,247,0.3)",
-                                      boxShadow: "0 0 8px rgba(168,85,247,0.2)"
-                                    }}>
-                                      DEVELOPER
-                                    </span>
-                                  )}
-                                </div>
-                              </td>
-                              <td
-                                style={{
-                                  fontFamily: "Space Mono",
-                                  fontSize: 12,
-                                  color: "var(--secondary)",
-                                }}
-                              >
-                                {r.regNo}
-                              </td>
-                              <td>
-                                <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
-                                  {getBadges(r).map((b, bi) => (
-                                    <span
-                                      key={bi}
-                                      style={{
-                                        fontSize: 10,
-                                        fontWeight: 700,
-                                        background: b.color + "20",
-                                        color: b.color,
-                                        padding: "2px 7px",
-                                        borderRadius: 10,
-                                        whiteSpace: "nowrap"
-                                      }}
-                                    >
-                                      {b.label}
-                                    </span>
-                                  ))}
-                                </div>
-                              </td>
-                              {isSGPA && (
-                                <td
-                                  style={{
-                                    fontFamily: "Space Mono",
-                                    fontWeight: 800,
-                                    color: scoreColor,
-                                    background: "rgba(62,166,255,0.02)",
-                                    borderLeft: "1px solid rgba(62,166,255,0.1)",
-                                    borderRight: "1px solid rgba(62,166,255,0.1)"
-                                  }}
-                                >
-                                  {r.sgpa?.toFixed(2)}
-                                </td>
-                              )}
-                              {!isSGPA && (
-                                <td
-                                  style={{
-                                    fontFamily: "Space Mono",
-                                    fontWeight: 800,
-                                    color: scoreColor,
-                                    background: "rgba(62,166,255,0.02)",
-                                    borderLeft: "1px solid rgba(62,166,255,0.1)",
-                                    borderRight: "1px solid rgba(62,166,255,0.1)"
-                                  }}
-                                >
-                                  {r.cgpa?.toFixed(2)}
-                                </td>
-                              )}
-                            </tr>
-                          )})}
-                        </tbody>
-                      </table>
-                    </div>
-                  </motion.div>
-                )}
                 
-                {rest40.length > 0 && (
+                {hasMoreRankings && (
                   <div style={{ textAlign: "center", marginTop: 24 }}>
                     <button 
                       className="btn btn-ghost" 
