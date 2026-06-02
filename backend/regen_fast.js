@@ -7,9 +7,10 @@ const GRADE_POINTS = {
   O: 10, E: 9, A: 8, B: 7, C: 6, D: 5, R: 0, F: 2, M: 0, S: 0,
 };
 
-// Round to 2 decimal places (matches official university rounding)
-function round2(x) {
-  return Math.round(x * 100) / 100;
+// Truncate to 2 decimal places — official university formula uses floor, NOT round
+// Example: 93/18 = 5.1666... → 5.16 (correct), Math.round gives 5.17 (wrong)
+function trunc2(x) {
+  return Math.floor(x * 100) / 100;
 }
 
 async function regenerate() {
@@ -72,15 +73,15 @@ async function regenerate() {
             });
             
             if (semC > 0) {
-              // Official formula: SGPA rounded to 2 decimal places
-              const semSGPA = round2(semW / semC);
+              // Official formula: SGPA TRUNCATED (floor) to 2 decimal places per semester
+              const semSGPA = trunc2(semW / semC);
               cgpaNumerator += semSGPA * semC;
               cgpaDenominator += semC;
             }
           });
         
-        // CGPA = Σ(SGPA_i × Credits_i) / Σ(Credits_i)
-        const cgpa = cgpaDenominator > 0 ? round2(cgpaNumerator / cgpaDenominator) : 0;
+        // CGPA = Σ(SGPA_i × Credits_i) / Σ(Credits_i), truncated to 2 decimal places
+        const cgpa = cgpaDenominator > 0 ? trunc2(cgpaNumerator / cgpaDenominator) : 0;
         
         // Live-calculate SGPA for THIS semester
         let liveTW = 0, liveTC = 0;
@@ -96,7 +97,7 @@ async function regenerate() {
             liveTC += s.credit;
           }
         });
-        const liveSGPA = liveTC > 0 ? round2(liveTW / liveTC) : 0;
+        const liveSGPA = liveTC > 0 ? trunc2(liveTW / liveTC) : 0;
         
         studentData.push({
           regNo: r.regNo,

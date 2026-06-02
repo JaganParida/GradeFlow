@@ -17,9 +17,10 @@ const GRADE_POINTS = {
   S: 0,
 };
 
-// Round to 2 decimal places (matches official university rounding)
-function round2(x) {
-  return Math.round(x * 100) / 100;
+// Truncate to 2 decimal places — official university formula uses floor, NOT round
+// Example: 93/18 = 5.1666... → 5.16 (correct), Math.round would give 5.17 (wrong)
+function trunc2(x) {
+  return Math.floor(x * 100) / 100;
 }
 
 function calcCGPA(results) {
@@ -43,16 +44,16 @@ function calcCGPA(results) {
     });
 
     if (semTC > 0) {
-      // Official formula: SGPA per semester rounded to 2 decimal places
-      const semSGPA = round2(semTW / semTC);
+      // Official formula: SGPA per semester TRUNCATED (floor) to 2 decimal places
+      const semSGPA = trunc2(semTW / semTC);
       cgpaNumerator += semSGPA * semTC;
       cgpaDenominator += semTC;
     }
   });
 
-  // CGPA = Σ(SGPA_i × Credits_i) / Σ(Credits_i), rounded to 2 decimal places
+  // CGPA = Σ(SGPA_i × Credits_i) / Σ(Credits_i), truncated to 2 decimal places
   return cgpaDenominator > 0
-    ? round2(cgpaNumerator / cgpaDenominator)
+    ? trunc2(cgpaNumerator / cgpaDenominator)
     : 0;
 }
 
@@ -141,7 +142,7 @@ router.get("/:regNo", async (req, res) => {
       }
     });
     if (semTC > 0) {
-      liveLatestSgpa = round2(semTW / semTC);
+      liveLatestSgpa = trunc2(semTW / semTC);
     }
 
     const healthScore = calcAcademicHealth(

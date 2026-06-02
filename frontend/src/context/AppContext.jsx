@@ -6,7 +6,7 @@ const API_BASE = import.meta.env.VITE_API_URL || "/api";
 const STUDENT_CACHE_KEY = "gf_student_data";
 // Bump this version whenever the CGPA/SGPA formula or data shape changes
 // to automatically invalidate stale cached student data in localStorage
-const CACHE_VERSION = "v4";
+const CACHE_VERSION = "v5";
 const CACHE_VERSION_KEY = "gf_cache_version";
 
 const getCachedStudentData = () => {

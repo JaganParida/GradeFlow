@@ -23,9 +23,10 @@ import { TrendingUp, TrendingDown, Star, Trophy, CheckCircle, AlertTriangle, Tar
 const GRADE_POINTS = { O: 10, E: 9, A: 8, B: 7, C: 6, D: 5, F: 2, R: 0, M: 0, S: 0 };
 const GRADE_ORDER = ["O", "E", "A", "B", "C", "D", "F"];
 
-// Round to 2 decimal places (matches official university rounding)
-function round2(x) {
-  return Math.round(x * 100) / 100;
+// Truncate to 2 decimal places — official university formula uses floor, NOT round
+// Example: 93/18 = 5.1666... → 5.16 (correct), Math.round gives 5.17 (wrong)
+function trunc2(x) {
+  return Math.floor(x * 100) / 100;
 }
 
 // Live-calculate SGPA from a semester's subjects (mirrors backend & GradeSheet exactly)
@@ -45,8 +46,8 @@ function calcSGPA(subjects, semester) {
       totalCredits += s.credit;
     }
   });
-  // Official formula: round to 2 decimal places
-  return totalCredits > 0 ? round2(totalWeighted / totalCredits) : 0;
+  // Official formula: truncate to 2 decimal places (floor)
+  return totalCredits > 0 ? trunc2(totalWeighted / totalCredits) : 0;
 }
 
 function AnimatedNumber({ value }) {
@@ -93,15 +94,15 @@ function calcCGPAUpTo(results, upToIdx) {
     });
     
     if (semTC > 0) {
-      // Official formula: SGPA rounded to 2 decimal places per semester
-      let semSGPA = round2(semTW / semTC);
+      // Official formula: SGPA TRUNCATED (floor) to 2 decimal places per semester
+      let semSGPA = trunc2(semTW / semTC);
       cgpaNumerator += semSGPA * semTC;
       cgpaDenominator += semTC;
     }
   });
 
-  // CGPA = Σ(SGPA_i × Credits_i) / Σ(Credits_i), rounded to 2 decimal places
-  return cgpaDenominator > 0 ? round2(cgpaNumerator / cgpaDenominator) : 0;
+  // CGPA = Σ(SGPA_i × Credits_i) / Σ(Credits_i), truncated to 2 decimal places
+  return cgpaDenominator > 0 ? trunc2(cgpaNumerator / cgpaDenominator) : 0;
 }
 
 function generateInsights(data) {
@@ -262,16 +263,16 @@ export default function Analytics() {
       });
       
       if (semTC > 0) {
-        // Official formula: SGPA rounded to 2 decimal places per semester
-        let semSGPA = round2(semTW / semTC);
+        // Official formula: SGPA TRUNCATED (floor) to 2 decimal places per semester
+        let semSGPA = trunc2(semTW / semTC);
         cgpaNumerator += semSGPA * semTC;
         cgpaDenominator += semTC;
       }
     });
     
-    // CGPA = Σ(SGPA_i × Credits_i) / Σ(Credits_i), rounded to 2 decimal places
-    setWhatIfCGPA(cgpaDenominator > 0 ? round2(cgpaNumerator / cgpaDenominator).toFixed(2) : "0.00");
-    setWhatIfSGPA(sgpa_tc > 0 ? round2(sgpa_tw / sgpa_tc).toFixed(2) : "0.00");
+    // CGPA = Σ(SGPA_i × Credits_i) / Σ(Credits_i), truncated to 2 decimal places
+    setWhatIfCGPA(cgpaDenominator > 0 ? trunc2(cgpaNumerator / cgpaDenominator).toFixed(2) : "0.00");
+    setWhatIfSGPA(sgpa_tc > 0 ? trunc2(sgpa_tw / sgpa_tc).toFixed(2) : "0.00");
   }, [whatIfGrades, studentData]);
 
   if (loading || !studentData)

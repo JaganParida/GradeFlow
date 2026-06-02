@@ -28,9 +28,10 @@ const GRADE_POINTS = {
 };
 const NON_PASSING_GRADES = ["F", "M", "S", "R"];
 
-// Round to 2 decimal places (matches official university rounding)
-function round2(x) {
-  return Math.round(x * 100) / 100;
+// Truncate to 2 decimal places — official university formula uses floor, NOT round
+// Example: 93/18 = 5.1666... → 5.16 (correct), Math.round gives 5.17 (wrong)
+function trunc2(x) {
+  return Math.floor(x * 100) / 100;
 }
 
 // SGPA: ALL grades contribute (F=2, R=0, S=0, M=0 per official grade table).
@@ -56,8 +57,8 @@ function calcSGPA(subjects, semester) {
       totalCredits += s.credit;
     }
   });
-  // Official formula: round to 2 decimal places
-  return totalCredits > 0 ? round2(totalWeighted / totalCredits) : 0;
+  // Official formula: truncate to 2 decimal places (floor)
+  return totalCredits > 0 ? trunc2(totalWeighted / totalCredits) : 0;
 }
 
 // Flexible column reader — handles any casing/spacing
@@ -118,17 +119,17 @@ async function generateRankingForSemester(semester) {
         });
 
       if (semC > 0) {
-        // Official: SGPA rounded to 2 decimal places per semester
-        let semSGPA = round2(semW / semC);
+        // Official: SGPA truncated (floor) to 2 decimal places per semester
+        let semSGPA = trunc2(semW / semC);
         cgpaNumerator += semSGPA * semC;
         cgpaDenominator += semC;
       }
     });
 
-    // CGPA = Σ(SGPA_i × Credits_i) / Σ(Credits_i), rounded to 2 decimal places
+    // CGPA = Σ(SGPA_i × Credits_i) / Σ(Credits_i), truncated to 2 decimal places
     const cgpa =
       cgpaDenominator > 0
-        ? round2(cgpaNumerator / cgpaDenominator)
+        ? trunc2(cgpaNumerator / cgpaDenominator)
         : 0;
 
     // Live-calculate SGPA for this semester from raw subjects (don't use stale stored r.sgpa)
