@@ -322,9 +322,8 @@ export default function Testimonials() {
 
         {/* Feedback List */}
         <div style={{ 
-          display: "grid", 
-          gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))", 
-          gap: 24, 
+          columnWidth: "320px", 
+          columnGap: "24px", 
           width: "100%" 
         }}>
           {isLoading ? (
@@ -361,6 +360,8 @@ export default function Testimonials() {
                   id={`feedback-${fb._id}`}
                   key={fb._id}
                   style={{
+                    breakInside: "avoid",
+                    marginBottom: "24px",
                     position: "relative",
                     overflow: "hidden",
                     width: "100%",
