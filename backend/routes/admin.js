@@ -25,14 +25,15 @@ const GRADE_POINTS = {
   M: 0,
   S: 0,
 };
-const NON_PASSING_GRADES = ["F", "M", "S"];
+const NON_PASSING_GRADES = ["F", "M", "S", "R"];
 
-// All grades contribute to SGPA calculation
+// SGPA: ALL grades contribute (F=2, R=0, S=0, M=0 per official grade table).
+// Only exception: Sem 5 R-grade 6-credit project is fully excluded.
 function calcSGPA(subjects, semester) {
   let totalWeighted = 0,
     totalCredits = 0;
   subjects.forEach((s) => {
-    // Exception: Semester 5, "R" grade, "Project" type (or type including project), 6 credits
+    // Exception: Semester 5, "R" grade, "Project" type, 6 credits → fully skip
     if (
       semester === 5 &&
       s.grade === "R" &&
@@ -40,14 +41,10 @@ function calcSGPA(subjects, semester) {
       s.type &&
       s.type.toLowerCase().includes("proj")
     ) {
-      // Grade point = 0, credit count = 0 (completely skip)
       return;
     }
 
-    if (["F", "R", "M", "S"].includes(s.grade)) {
-      return;
-    }
-
+    // All other grades (including F=2, R=0, S=0, M=0) are included
     if (s.credit && GRADE_POINTS[s.grade] !== undefined) {
       totalWeighted += s.credit * GRADE_POINTS[s.grade];
       totalCredits += s.credit;
@@ -98,6 +95,7 @@ async function generateRankingForSemester(semester) {
         .filter((r) => r.semester === sem)
         .forEach((ar) => {
           ar.subjects.forEach((s) => {
+            // Exception: Sem 5 R-grade 6-credit project → fully skip
             if (
               Number(ar.semester) === 5 &&
               s.grade === "R" &&
@@ -106,9 +104,7 @@ async function generateRankingForSemester(semester) {
             ) {
               return;
             }
-            if (["F", "R", "M", "S"].includes(s.grade)) {
-              return;
-            }
+            // All other grades (F=2, R=0, S=0, M=0) are included per official formula
             if (s.credit && GRADE_POINTS[s.grade] !== undefined) {
               semW += s.credit * GRADE_POINTS[s.grade];
               semC += s.credit;
@@ -489,6 +485,7 @@ router.post(
         });
 
         for (const [sem, record] of recordsToSave.entries()) {
+          // Exclude only the special Sem5 R-project for all credit/SGPA calculations
           const validSubjectsForCalc = record.subjects.filter((s) => {
             if (
               Number(record.semester) === 5 &&
@@ -506,6 +503,7 @@ router.post(
             (a, s) => a + (s.credit || 0),
             0,
           );
+          // Credits cleared = only passing grades (not F/R/M/S)
           const creditsCleared = validSubjectsForCalc
             .filter((s) => !NON_PASSING_GRADES.includes(s.grade))
             .reduce((a, s) => a + (s.credit || 0), 0);

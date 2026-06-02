@@ -32,12 +32,11 @@ async function regenerate() {
           let semW = 0, semC = 0;
           allResults.filter(r => r.semester === sem).forEach(ar => {
             ar.subjects.forEach((s) => {
+              // Exception: Sem 5 R-grade 6-credit project → fully skip
               if (Number(ar.semester) === 5 && s.grade === 'R' && (s.credit === 6 || (s.subName && s.subName.toLowerCase().includes('project')))) {
                 return;
               }
-              if (s.grade === 'M' || s.grade === 'S') {
-                return;
-              }
+              // All other grades (F=2, R=0, S=0, M=0) are included per official formula
               if (s.credit && GRADE_POINTS[s.grade] !== undefined) {
                 semW += s.credit * GRADE_POINTS[s.grade];
                 semC += s.credit;

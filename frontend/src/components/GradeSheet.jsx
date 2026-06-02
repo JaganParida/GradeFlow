@@ -51,12 +51,20 @@ const GRADE_COLOR = {
   M: "#dc2626",
 };
 
-// Mirrors backend calcSGPA exactly
-function calcSGPA(subjects) {
+// Mirrors backend calcSGPA exactly — ALL grades included (F=2, R=0, S=0, M=0)
+function calcSGPA(subjects, semester) {
   let totalWeighted = 0,
     totalCredits = 0;
   subjects.forEach((s) => {
-    if (['F', 'R', 'M', 'S'].includes(s.grade)) return;
+    // Exception: Sem 5 R-grade 6-credit project is fully excluded
+    if (
+      semester === 5 &&
+      s.grade === 'R' &&
+      s.credit === 6 &&
+      s.type &&
+      s.type.toLowerCase().includes('proj')
+    ) return;
+    // All other grades (including F=2, R=0, S=0, M=0) are included
     if (s.credit && GRADE_POINTS[s.grade] !== undefined) {
       totalWeighted += s.credit * GRADE_POINTS[s.grade];
       totalCredits += s.credit;
@@ -107,7 +115,7 @@ export default function GradeSheet({ result, studentData, highlightedSubject }) 
   const creditsCleared = validSubjectsForCalc
     .filter((s) => PASSING_GRADES.includes(s.grade))
     .reduce((a, s) => a + (s.credit || 0), 0);
-  const sgpa = calcSGPA(validSubjectsForCalc);
+  const sgpa = calcSGPA(validSubjectsForCalc, result.semester);
   const hasFailed = subjects.some((s) => FAIL_GRADES.includes(s.grade));
 
   // Calculate CGPA up to current semester
@@ -117,6 +125,8 @@ export default function GradeSheet({ result, studentData, highlightedSubject }) 
   const pastResults = allResults.filter(r => r.semester <= result.semester);
 
   pastResults.forEach(r => {
+    // Calculate SGPA for this semester then add weighted contribution
+    let semTW = 0, semTC = 0;
     const validSubs = (r.subjects || []).filter((s) => {
       if (
         Number(r.semester) === 5 &&
@@ -130,12 +140,18 @@ export default function GradeSheet({ result, studentData, highlightedSubject }) 
     });
 
     validSubs.forEach((s) => {
-      if (['F', 'R', 'M', 'S'].includes(s.grade)) return;
+      // All grades (F=2, R=0, S=0, M=0) contribute per official formula
       if (s.credit && GRADE_POINTS[s.grade] !== undefined) {
-        totalTW += s.credit * GRADE_POINTS[s.grade];
-        totalTC += s.credit;
+        semTW += s.credit * GRADE_POINTS[s.grade];
+        semTC += s.credit;
       }
     });
+
+    if (semTC > 0) {
+      const semSGPA = Math.floor((semTW / semTC) * 100 + 0.0001) / 100;
+      totalTW += semSGPA * semTC;
+      totalTC += semTC;
+    }
   });
 
   const cgpaUpToNow = totalTC > 0 ? Math.floor((totalTW / totalTC) * 100 + 0.0001) / 100 : 0;
@@ -508,9 +524,9 @@ export default function GradeSheet({ result, studentData, highlightedSubject }) 
                 gap: 6
               }}
             >
-              <AlertTriangle size={14} /> Subjects with grade <strong>R / S / M / F</strong> are not
-              included in SGPA calculation and credits are not cleared for those
-              subjects.
+              <AlertTriangle size={14} /> Subjects with grade <strong>R / S / M / F</strong> are
+              included in SGPA with their grade points (F=2, R=0, S=0, M=0).
+              Credits are not cleared for failed subjects.
             </div>
           )}
         </div>

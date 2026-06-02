@@ -26,12 +26,11 @@ function calcCGPA(results) {
     let semTC = 0;
 
     r.subjects.forEach((s) => {
+      // Exception: Sem 5 R-grade 6-credit project is fully excluded
       if (Number(r.semester) === 5 && s.grade === 'R' && (Number(s.credit) === 6 && (s.type && s.type.toLowerCase().includes('proj')))) {
-        return; // Ignore Sem 5 R grade projects
+        return;
       }
-      if (['F', 'R', 'M', 'S'].includes(s.grade)) {
-        return; // Excluded from SGPA/CGPA denominator
-      }
+      // All other grades (F=2, R=0, S=0, M=0) contribute per official formula
       if (s.credit && GRADE_POINTS[s.grade] !== undefined) {
         semTW += s.credit * GRADE_POINTS[s.grade];
         semTC += s.credit;
@@ -119,9 +118,7 @@ router.get("/:regNo", async (req, res) => {
       if (Number(latestResult.semester) === 5 && s.grade === 'R' && (Number(s.credit) === 6 && (s.type && s.type.toLowerCase().includes('proj')))) {
         return; 
       }
-      if (['F', 'R', 'M', 'S'].includes(s.grade)) {
-        return; 
-      }
+      // All grades (F=2, R=0, S=0, M=0) are included per official formula
       if (s.credit && GRADE_POINTS[s.grade] !== undefined) {
         semTW += s.credit * GRADE_POINTS[s.grade];
         semTC += s.credit;
@@ -153,8 +150,8 @@ router.get("/:regNo", async (req, res) => {
       latestSemester: latestResult.semester,
       totalCredits: results.reduce((a, r) => {
         return a + r.subjects.reduce((sum, s) => {
+          // Only exclude the Sem5 R-project special case
           if (Number(r.semester) === 5 && s.grade === 'R' && (Number(s.credit) === 6 && (s.type && s.type.toLowerCase().includes('proj')))) return sum;
-          if (['F', 'R', 'M', 'S'].includes(s.grade)) return sum;
           return sum + (s.credit || 0);
         }, 0);
       }, 0),

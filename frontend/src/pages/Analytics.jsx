@@ -52,14 +52,14 @@ function calcCGPAUpTo(results, upToIdx) {
   let cgpaNumerator = 0;
   let cgpaDenominator = 0;
 
-  // We need to calculate SGPA per semester and then weighted average
-  // Since results is an array of semesters, we can process each up to upToIdx
+  // Calculate SGPA per semester, then weighted-average for CGPA
   results.slice(0, upToIdx + 1).forEach((r) => {
     let semTW = 0;
     let semTC = 0;
     r.subjects.forEach((s) => {
+      // Exception: Sem 5 R-grade 6-credit project is fully excluded
       if (Number(r.semester) === 5 && s.grade === 'R' && (Number(s.credit) === 6 && (s.type && s.type.toLowerCase().includes('proj')))) return;
-      if (['F', 'R', 'M', 'S'].includes(s.grade)) return;
+      // All other grades (F=2, R=0, S=0, M=0) contribute per official formula
       if (s.credit && GRADE_POINTS[s.grade] !== undefined) {
         semTW += s.credit * GRADE_POINTS[s.grade];
         semTC += s.credit;
@@ -216,14 +216,12 @@ export default function Analytics() {
             ? whatIfGrades[s.subCode]
             : s.grade;
             
+        // Exception: Sem 5 R-grade 6-credit project is fully excluded
         if (Number(r.semester) === 5 && grade === 'R' && (Number(s.credit) === 6 && (s.type && s.type.toLowerCase().includes('proj')))) {
           return;
         }
-        
-        if (['F', 'R', 'M', 'S'].includes(grade)) {
-          return;
-        }
 
+        // All other grades (F=2, R=0, S=0, M=0) contribute per official formula
         if (s.credit && GRADE_POINTS[grade] !== undefined) {
           semTW += s.credit * GRADE_POINTS[grade];
           semTC += s.credit;
