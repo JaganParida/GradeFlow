@@ -207,27 +207,55 @@ export default function Testimonials() {
               backdropFilter: "blur(12px)", flexWrap: "wrap"
             }}
           >
-            <div style={{ textAlign: "center" }}>
-              <h2 style={{ fontSize: "clamp(48px, 8vw, 64px)", fontWeight: 800, margin: 0, background: "linear-gradient(135deg, #fff, #a0a0a0)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", lineHeight: 1 }}>
-                {averageRating}
-              </h2>
-              <p style={{ margin: "4px 0 0", color: "var(--secondary)", fontSize: 14, fontWeight: 600, letterSpacing: "1px", textTransform: "uppercase" }}>out of 5</p>
-            </div>
-            
-            <div style={{ display: "flex", flexDirection: "column", gap: 10, alignItems: "center" }}>
-              <div style={{ display: "flex", gap: 8 }}>
-                {[1, 2, 3, 4, 5].map(star => (
-                  <Star 
-                    key={star} 
-                    size={28} 
-                    fill={Math.round(averageRating) >= star ? "#f59e0b" : "transparent"} 
-                    color={Math.round(averageRating) >= star ? "#f59e0b" : "rgba(255,255,255,0.1)"} 
-                  />
-                ))}
+            <div style={{ display: "flex", alignItems: "center", gap: 40, flexWrap: "wrap", justifyContent: "center" }}>
+              <div style={{ textAlign: "center" }}>
+                <h2 style={{ fontSize: "clamp(48px, 8vw, 64px)", fontWeight: 800, margin: 0, background: "linear-gradient(135deg, #fff, #a0a0a0)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", lineHeight: 1 }}>
+                  {averageRating}
+                </h2>
+                <p style={{ margin: "4px 0 0", color: "var(--secondary)", fontSize: 14, fontWeight: 600, letterSpacing: "1px", textTransform: "uppercase" }}>out of 5</p>
               </div>
-              <p style={{ margin: 0, color: "rgba(255,255,255,0.5)", fontSize: 15, fontWeight: 500 }}>
-                Based on <span style={{ color: "#fff", fontWeight: 700 }}>{totalReviews}</span> student review{totalReviews !== 1 ? 's' : ''}
-              </p>
+              
+              <div style={{ display: "flex", flexDirection: "column", gap: 10, alignItems: "center" }}>
+                <div style={{ display: "flex", gap: 8 }}>
+                  {[1, 2, 3, 4, 5].map(star => (
+                    <Star 
+                      key={star} 
+                      size={28} 
+                      fill={Math.round(averageRating) >= star ? "#f59e0b" : "transparent"} 
+                      color={Math.round(averageRating) >= star ? "#f59e0b" : "rgba(255,255,255,0.1)"} 
+                    />
+                  ))}
+                </div>
+                <p style={{ margin: 0, color: "rgba(255,255,255,0.5)", fontSize: 15, fontWeight: 500 }}>
+                  Based on <span style={{ color: "#fff", fontWeight: 700 }}>{totalReviews}</span> student review{totalReviews !== 1 ? 's' : ''}
+                </p>
+              </div>
+            </div>
+
+            {/* Rating Breakdown Bars */}
+            <div style={{ display: "flex", flexDirection: "column", gap: 8, flex: "1 1 200px", maxWidth: 320, minWidth: 260 }}>
+              {[5, 4, 3, 2, 1].map(star => {
+                const count = feedbacks.filter(fb => Math.round(fb.rating) === star).length;
+                const percentage = totalReviews > 0 ? (count / totalReviews) * 100 : 0;
+                return (
+                  <div key={star} style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 4, width: 28, fontSize: 14, color: "var(--secondary)", fontWeight: 600 }}>
+                      {star} <Star size={12} fill="currentColor" color="currentColor" />
+                    </div>
+                    <div style={{ flex: 1, height: 8, background: "rgba(255,255,255,0.06)", borderRadius: 4, overflow: "hidden" }}>
+                      <motion.div
+                        initial={{ width: 0 }}
+                        animate={{ width: `${percentage}%` }}
+                        transition={{ duration: 0.8, delay: 0.2, ease: "easeOut" }}
+                        style={{ height: "100%", background: "#f59e0b", borderRadius: 4 }}
+                      />
+                    </div>
+                    <div style={{ width: 28, fontSize: 13, color: "var(--secondary)", textAlign: "right", fontWeight: 500 }}>
+                      {count}
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           </motion.div>
         )}
