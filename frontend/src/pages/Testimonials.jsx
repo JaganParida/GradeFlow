@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { Star, MessageSquare, GraduationCap, Quote } from "lucide-react";
+import { Star, MessageSquare, GraduationCap, Quote, Heart } from "lucide-react";
 import { useSearchParams } from "react-router-dom";
 import axios from "axios";
 import { useApp } from "../context/AppContext";
@@ -18,6 +18,9 @@ export default function Testimonials() {
   const [comment, setComment] = useState("");
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [likedFeedbacks, setLikedFeedbacks] = useState(() => {
+    return JSON.parse(localStorage.getItem("likedFeedbacks") || "[]");
+  });
   const { API } = useApp();
 
   useEffect(() => {
@@ -72,6 +75,25 @@ export default function Testimonials() {
       alert("Failed to submit feedback. Please try again.");
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  const handleLike = async (id) => {
+    if (likedFeedbacks.includes(id)) return;
+    
+    // Optimistic update
+    const updatedLiked = [...likedFeedbacks, id];
+    setLikedFeedbacks(updatedLiked);
+    localStorage.setItem("likedFeedbacks", JSON.stringify(updatedLiked));
+
+    setFeedbacks(feedbacks.map(fb => 
+      fb._id === id ? { ...fb, likes: (fb.likes || 0) + 1 } : fb
+    ));
+
+    try {
+      await axios.post(`${API}/feedback/${id}/like`);
+    } catch (err) {
+      console.error("Failed to like feedback:", err);
     }
   };
 
@@ -161,14 +183,17 @@ export default function Testimonials() {
 
         {/* Inline Feedback Form */}
         <div style={{
-          background: "#212121",
-          border: "1px solid rgba(255,255,255,0.08)",
-          borderRadius: 20,
-          padding: "24px 20px",
-          marginBottom: 40,
+          background: "linear-gradient(145deg, rgba(30,30,30,0.4), rgba(20,20,20,0.8))",
+          border: "1px solid rgba(255,255,255,0.06)",
+          borderRadius: 24,
+          padding: "32px 28px",
+          marginBottom: 48,
+          boxShadow: "0 12px 40px rgba(0,0,0,0.2)",
+          backdropFilter: "blur(12px)",
+          WebkitBackdropFilter: "blur(12px)"
         }}>
-          <h3 style={{ fontSize: 18, fontWeight: 700, marginBottom: 20, display: "flex", alignItems: "center", gap: 10 }}>
-            <Star size={18} color="#f59e0b" fill="#f59e0b" /> Leave your review
+          <h3 style={{ fontSize: 20, fontWeight: 800, marginBottom: 24, display: "flex", alignItems: "center", gap: 10, color: "#fff" }}>
+            <Star size={20} color="#f59e0b" fill="#f59e0b" /> Leave your review
           </h3>
           <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: 16 }}>
             <div style={{ display: "flex", gap: 8, marginBottom: 4 }}>
@@ -267,7 +292,7 @@ export default function Testimonials() {
         </div>
 
         {/* Feedback List */}
-        <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: 24, alignItems: "center" }}>
           {isLoading ? (
             <div style={{ textAlign: "center", padding: "60px 20px", color: "var(--secondary)", background: "#212121", borderRadius: 20, border: "1px solid rgba(255,255,255,0.05)" }}>
               <p>Loading feedbacks...</p>
@@ -280,6 +305,7 @@ export default function Testimonials() {
           ) : (
             feedbacks.map((fb, index) => {
               const isHighlighted = fb._id === highlightedId;
+              const hasLiked = likedFeedbacks.includes(fb._id);
               
               // Generate a consistent gradient based on the first letter of the name
               const charCode = fb.name.charCodeAt(0) || 0;
@@ -303,10 +329,13 @@ export default function Testimonials() {
                   style={{
                     position: "relative",
                     overflow: "hidden",
+                    width: "100%",
+                    maxWidth: 650,
+                    margin: "0 auto",
                     background: isHighlighted ? "linear-gradient(145deg, rgba(62,166,255,0.1), rgba(20,20,20,0.8))" : "linear-gradient(145deg, rgba(35,35,35,0.6), rgba(20,20,20,0.9))",
                     border: isHighlighted ? "1px solid rgba(62,166,255,0.3)" : "1px solid rgba(255,255,255,0.04)",
                     borderRadius: 24,
-                    padding: "28px 24px",
+                    padding: "32px 28px",
                     boxShadow: isHighlighted ? "0 12px 40px rgba(62,166,255,0.15)" : "0 8px 32px rgba(0,0,0,0.3)",
                     backdropFilter: "blur(12px)",
                     WebkitBackdropFilter: "blur(12px)",
@@ -348,6 +377,25 @@ export default function Testimonials() {
                   <p style={{ position: "relative", zIndex: 1, margin: 0, fontSize: 15, lineHeight: 1.7, color: "rgba(255,255,255,0.85)", fontStyle: "italic", whiteSpace: "pre-wrap" }}>
                     "{fb.comment}"
                   </p>
+                  <div style={{ position: "relative", zIndex: 1, marginTop: 16, paddingTop: 16, borderTop: "1px solid rgba(255,255,255,0.06)", display: "flex", justifyContent: "flex-end" }}>
+                    <button
+                      onClick={() => handleLike(fb._id)}
+                      disabled={hasLiked}
+                      style={{
+                        display: "flex", alignItems: "center", gap: 6,
+                        background: hasLiked ? "rgba(239, 68, 68, 0.15)" : "rgba(255,255,255,0.03)",
+                        border: hasLiked ? "1px solid rgba(239, 68, 68, 0.3)" : "1px solid rgba(255,255,255,0.08)",
+                        padding: "6px 12px", borderRadius: 20,
+                        color: hasLiked ? "#ef4444" : "var(--secondary)",
+                        cursor: hasLiked ? "default" : "pointer",
+                        fontSize: 13, fontWeight: 600,
+                        transition: "all 0.2s ease"
+                      }}
+                    >
+                      <Heart size={16} fill={hasLiked ? "#ef4444" : "transparent"} color={hasLiked ? "#ef4444" : "currentColor"} />
+                      <span>{fb.likes || 0}</span>
+                    </button>
+                  </div>
                 </motion.div>
               );
             })

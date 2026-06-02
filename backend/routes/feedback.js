@@ -37,4 +37,22 @@ router.post("/", async (req, res) => {
   }
 });
 
+// POST /api/feedback/:id/like - Increment likes on a feedback
+router.post("/:id/like", async (req, res) => {
+  try {
+    const feedback = await Feedback.findById(req.params.id);
+    if (!feedback) {
+      return res.status(404).json({ message: "Feedback not found" });
+    }
+    
+    feedback.likes = (feedback.likes || 0) + 1;
+    await feedback.save();
+    
+    res.json(feedback);
+  } catch (error) {
+    console.error("Error liking feedback:", error);
+    res.status(500).json({ message: "Server Error liking feedback" });
+  }
+});
+
 module.exports = router;

@@ -21,6 +21,10 @@ const feedbackSchema = new mongoose.Schema({
     required: true,
     trim: true,
   },
+  likes: {
+    type: Number,
+    default: 0,
+  },
   createdAt: {
     type: Date,
     default: Date.now,
