@@ -7,59 +7,19 @@ const SemesterResult = require("../models/SemesterResult");
 const InternalMark = require("../models/InternalMark");
 const Ranking = require("../models/Ranking");
 const { clearStudentCache } = require("./student");
+const {
+  GRADE_POINTS,
+  assignCompetitionRanks,
+  calculateCGPA,
+  calculateSemesterMetrics,
+  calculateSGPA,
+  sortByScore,
+} = require("../utils/gradeCalculations");
 
 const upload = multer({
   storage: multer.memoryStorage(),
   limits: { fileSize: 10 * 1024 * 1024 },
 });
-
-// SGPA logic based on custom grade points mapping
-const GRADE_POINTS = {
-  O: 10,
-  E: 9,
-  A: 8,
-  B: 7,
-  C: 6,
-  D: 5,
-  F: 2,
-  R: 0,
-  M: 0,
-  S: 0,
-};
-const NON_PASSING_GRADES = ["F", "M", "S", "R"];
-
-// Truncate to 2 decimal places — official university formula uses floor, NOT round
-// Example: 93/18 = 5.1666... → 5.16 (correct), Math.round gives 5.17 (wrong)
-function trunc2(x) {
-  return Math.floor(x * 100) / 100;
-}
-
-// SGPA: ALL grades contribute (F=2, R=0, S=0, M=0 per official grade table).
-// Only exception: Sem 5 R-grade 6-credit project is fully excluded.
-function calcSGPA(subjects, semester) {
-  let totalWeighted = 0,
-    totalCredits = 0;
-  subjects.forEach((s) => {
-    // Exception: Semester 5, "R" grade, "Project" type, 6 credits → fully skip
-    if (
-      semester === 5 &&
-      s.grade === "R" &&
-      s.credit === 6 &&
-      s.type &&
-      s.type.toLowerCase().includes("proj")
-    ) {
-      return;
-    }
-
-    // All other grades (including F=2, R=0, S=0, M=0) are included
-    if (s.credit && GRADE_POINTS[s.grade] !== undefined) {
-      totalWeighted += s.credit * GRADE_POINTS[s.grade];
-      totalCredits += s.credit;
-    }
-  });
-  // Official formula: truncate to 2 decimal places (floor)
-  return totalCredits > 0 ? trunc2(totalWeighted / totalCredits) : 0;
-}
 
 // Flexible column reader — handles any casing/spacing
 function col(row, ...keys) {
@@ -89,51 +49,8 @@ async function generateRankingForSemester(semester) {
     const allResults = await SemesterResult.find({ regNo: r.regNo }).sort({
       semester: 1,
     });
-    let cgpaNumerator = 0,
-      cgpaDenominator = 0;
-
-    // Group subjects by semester — live-calculate SGPA for each semester
-    const sems = [...new Set(allResults.map((r) => r.semester))];
-    sems.forEach((sem) => {
-      let semW = 0,
-        semC = 0;
-      allResults
-        .filter((r) => r.semester === sem)
-        .forEach((ar) => {
-          ar.subjects.forEach((s) => {
-            // Exception: Sem 5 R-grade 6-credit project → fully skip
-            if (
-              Number(ar.semester) === 5 &&
-              s.grade === "R" &&
-              (s.credit === 6 ||
-                (s.subName && s.subName.toLowerCase().includes("project")))
-            ) {
-              return;
-            }
-            // All other grades (F=2, R=0, S=0, M=0) are included per official formula
-            if (s.credit && GRADE_POINTS[s.grade] !== undefined) {
-              semW += s.credit * GRADE_POINTS[s.grade];
-              semC += s.credit;
-            }
-          });
-        });
-
-      if (semC > 0) {
-        // Official: SGPA truncated (floor) to 2 decimal places per semester
-        let semSGPA = trunc2(semW / semC);
-        cgpaNumerator += semSGPA * semC;
-        cgpaDenominator += semC;
-      }
-    });
-
-    // CGPA = Σ(SGPA_i × Credits_i) / Σ(Credits_i), truncated to 2 decimal places
-    const cgpa =
-      cgpaDenominator > 0
-        ? trunc2(cgpaNumerator / cgpaDenominator)
-        : 0;
-
-    // Live-calculate SGPA for this semester from raw subjects (don't use stale stored r.sgpa)
-    const liveSGPA = calcSGPA(r.subjects, Number(semester));
+    const cgpa = calculateCGPA(allResults, Number(semester));
+    const liveSGPA = calculateSGPA(r.subjects, Number(semester));
 
     studentData.push({
       regNo: r.regNo,
@@ -146,24 +63,16 @@ async function generateRankingForSemester(semester) {
     });
   }
 
-  // Calculate CGPA Rank
-  studentData.sort((a, b) => b.cgpa - a.cgpa);
-  let cgpaRank = 1;
-  studentData.forEach((s, i) => {
-    if (i > 0 && s.cgpa < studentData[i - 1].cgpa) cgpaRank++;
-    s.cgpaRank = cgpaRank;
-  });
+  sortByScore(studentData, "cgpa", "sgpa");
+  assignCompetitionRanks(studentData, "cgpa", "cgpaRank");
 
-  // Calculate SGPA Rank
-  studentData.sort((a, b) => b.sgpa - a.sgpa);
-  let sgpaRank = 1;
-  studentData.forEach((s, i) => {
-    if (i > 0 && s.sgpa < studentData[i - 1].sgpa) sgpaRank++;
-    s.universityRank = sgpaRank; // keep for backward compat
-    s.sgpaRank = sgpaRank;
+  sortByScore(studentData, "sgpa", "cgpa");
+  assignCompetitionRanks(studentData, "sgpa", "sgpaRank");
+  studentData.forEach((s) => {
+    s.universityRank = s.sgpaRank; // keep for backward compat
     s.totalStudents = studentData.length;
     s.percentile = parseFloat(
-      ((1 - (sgpaRank - 1) / studentData.length) * 100).toFixed(1),
+      ((1 - (s.sgpaRank - 1) / studentData.length) * 100).toFixed(1),
     );
   });
 
@@ -173,11 +82,9 @@ async function generateRankingForSemester(semester) {
     byBranch[s.branch].push(s);
   });
   Object.values(byBranch).forEach((group) => {
-    group.sort((a, b) => b.sgpa - a.sgpa);
-    let dr = 1;
-    group.forEach((s, i) => {
-      if (i > 0 && s.sgpa < group[i - 1].sgpa) dr = i + 1;
-      s.deptRank = dr;
+    sortByScore(group, "sgpa", "cgpa");
+    assignCompetitionRanks(group, "sgpa", "deptRank");
+    group.forEach((s) => {
       s.deptStudents = group.length;
     });
   });
@@ -497,29 +404,8 @@ router.post(
         });
 
         for (const [sem, record] of recordsToSave.entries()) {
-          // Exclude only the special Sem5 R-project for all credit/SGPA calculations
-          const validSubjectsForCalc = record.subjects.filter((s) => {
-            if (
-              Number(record.semester) === 5 &&
-              s.grade === "R" &&
-              s.credit === 6 &&
-              s.type &&
-              s.type.toLowerCase().includes("proj")
-            ) {
-              return false;
-            }
-            return true;
-          });
-
-          const totalCredits = validSubjectsForCalc.reduce(
-            (a, s) => a + (s.credit || 0),
-            0,
-          );
-          // Credits cleared = only passing grades (not F/R/M/S)
-          const creditsCleared = validSubjectsForCalc
-            .filter((s) => !NON_PASSING_GRADES.includes(s.grade))
-            .reduce((a, s) => a + (s.credit || 0), 0);
-          const sgpa = calcSGPA(validSubjectsForCalc, record.semester);
+          const { totalCredits, creditsCleared, sgpa } =
+            calculateSemesterMetrics(record.subjects, record.semester);
 
           bulkOps.push({
             updateOne: {

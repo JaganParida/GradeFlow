@@ -10,6 +10,7 @@ import { motion } from "framer-motion";
 import jsPDF from "jspdf";
 import html2canvas from "html2canvas";
 import { User, TrendingUp, Star, Target, CheckCircle, Trophy, Award, AlertTriangle, FileText, FileEdit, Calendar, Printer, Share2, DownloadCloud, Loader2, ChevronDown, ChevronUp, Search, Layout, Calculator } from "lucide-react";
+import { calculateSGPA as calcSGPAFromSubjects } from "../utils/gradeCalculations";
 
 const GRADE_COLORS = {
   O: "#f59e0b",
@@ -20,33 +21,6 @@ const GRADE_COLORS = {
   D: "#6b7280",
   F: "#ef4444",
 };
-
-const GRADE_POINTS = { O: 10, E: 9, A: 8, B: 7, C: 6, D: 5, F: 2, R: 0, M: 0, S: 0 };
-
-// Truncate to 2 decimal places — official university formula uses floor, NOT round
-// Example: 93/18 = 5.1666... → 5.16 (correct), Math.round gives 5.17 (wrong)
-function trunc2(x) {
-  return Math.floor(x * 100) / 100;
-}
-
-// Live-calculate SGPA from subjects — mirrors backend & GradeSheet exactly
-function calcSGPAFromSubjects(subjects, semester) {
-  let totalWeighted = 0, totalCredits = 0;
-  (subjects || []).forEach((s) => {
-    if (
-      Number(semester) === 5 &&
-      s.grade === 'R' &&
-      Number(s.credit) === 6 &&
-      s.type && s.type.toLowerCase().includes('proj')
-    ) return;
-    if (s.credit && GRADE_POINTS[s.grade] !== undefined) {
-      totalWeighted += s.credit * GRADE_POINTS[s.grade];
-      totalCredits += s.credit;
-    }
-  });
-  // Official formula: truncate to 2 decimal places (floor)
-  return totalCredits > 0 ? trunc2(totalWeighted / totalCredits) : 0;
-}
 
 const MARK_PLACEHOLDER = "-";
 

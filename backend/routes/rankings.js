@@ -1,6 +1,7 @@
 const express = require("express");
 const router = express.Router();
 const Ranking = require("../models/Ranking");
+const { sortByScore } = require("../utils/gradeCalculations");
 
 function getRegNoQueryForBranch(branch) {
   const b = branch.toUpperCase();
@@ -35,6 +36,7 @@ router.get("/top", async (req, res) => {
     const { semester, branch, search, limit = 50, sortBy = "sgpa" } = req.query;
     const query = {};
     const andClauses = [];
+    const maxRank = Math.max(1, Number(limit) || 50);
 
     if (semester) query.semester = Number(semester);
     
@@ -61,22 +63,33 @@ router.get("/top", async (req, res) => {
 
     if (andClauses.length > 0) query.$and = andClauses;
     
-    const sortConfig = sortBy === "cgpa" ? { cgpa: -1, sgpa: -1 } : { sgpa: -1, cgpa: -1 };
-    
     let rankings = await Ranking.find(query)
-      .sort(sortConfig)
       .lean();
-      
+
     if (!semester) {
-      const seen = new Set();
-      rankings = rankings.filter(r => {
-        if (seen.has(r.regNo)) return false;
-        seen.add(r.regNo);
-        return true;
+      const latestByRegNo = new Map();
+      rankings.forEach((ranking) => {
+        const existing = latestByRegNo.get(ranking.regNo);
+        if (!existing || Number(ranking.semester) > Number(existing.semester)) {
+          latestByRegNo.set(ranking.regNo, ranking);
+        }
       });
+      rankings = Array.from(latestByRegNo.values());
     }
-    
-    res.json(rankings.slice(0, Number(limit)));
+
+    if (sortBy === "cgpa") {
+      sortByScore(rankings, "cgpa", "sgpa");
+    } else {
+      sortByScore(rankings, "sgpa", "cgpa");
+    }
+
+    const rankKey = sortBy === "cgpa" ? "cgpaRank" : "sgpaRank";
+    const bounded = rankings.filter((ranking) => {
+      const rank = Number(ranking[rankKey] || ranking.universityRank);
+      return Number.isFinite(rank) && rank <= maxRank;
+    });
+
+    res.json(bounded);
   } catch (err) {
     res.status(500).json({ message: err.message });
   }

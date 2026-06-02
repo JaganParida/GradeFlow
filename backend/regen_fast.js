@@ -1,17 +1,13 @@
 const mongoose = require("mongoose");
 const SemesterResult = require("./models/SemesterResult");
 const Ranking = require("./models/Ranking");
+const {
+  assignCompetitionRanks,
+  calculateCGPA,
+  calculateSGPA,
+  sortByScore,
+} = require("./utils/gradeCalculations");
 require("dotenv").config();
-
-const GRADE_POINTS = {
-  O: 10, E: 9, A: 8, B: 7, C: 6, D: 5, R: 0, F: 2, M: 0, S: 0,
-};
-
-// Truncate to 2 decimal places — official university formula uses floor, NOT round
-// Example: 93/18 = 5.1666... → 5.16 (correct), Math.round gives 5.17 (wrong)
-function trunc2(x) {
-  return Math.floor(x * 100) / 100;
-}
 
 async function regenerate() {
   try {
@@ -50,54 +46,8 @@ async function regenerate() {
       for (const r of semResults) {
         const studentAllResults = byRegNo[r.regNo] || [];
         
-        // Calculate CGPA using all semesters up to and including current
-        let cgpaNumerator = 0, cgpaDenominator = 0;
-        
-        studentAllResults
-          .filter(sr => sr.semester <= semester)
-          .forEach(sr => {
-            let semW = 0, semC = 0;
-            
-            (sr.subjects || []).forEach(s => {
-              // Exception: Sem 5 R-grade 6-credit project → fully skip
-              if (
-                Number(sr.semester) === 5 &&
-                s.grade === 'R' &&
-                (s.credit === 6 || (s.subName && s.subName.toLowerCase().includes('project')))
-              ) return;
-              
-              if (s.credit && GRADE_POINTS[s.grade] !== undefined) {
-                semW += s.credit * GRADE_POINTS[s.grade];
-                semC += s.credit;
-              }
-            });
-            
-            if (semC > 0) {
-              // Official formula: SGPA TRUNCATED (floor) to 2 decimal places per semester
-              const semSGPA = trunc2(semW / semC);
-              cgpaNumerator += semSGPA * semC;
-              cgpaDenominator += semC;
-            }
-          });
-        
-        // CGPA = Σ(SGPA_i × Credits_i) / Σ(Credits_i), truncated to 2 decimal places
-        const cgpa = cgpaDenominator > 0 ? trunc2(cgpaNumerator / cgpaDenominator) : 0;
-        
-        // Live-calculate SGPA for THIS semester
-        let liveTW = 0, liveTC = 0;
-        (r.subjects || []).forEach(s => {
-          if (
-            Number(r.semester) === 5 &&
-            s.grade === 'R' &&
-            (s.credit === 6 || (s.subName && s.subName.toLowerCase().includes('project')))
-          ) return;
-          
-          if (s.credit && GRADE_POINTS[s.grade] !== undefined) {
-            liveTW += s.credit * GRADE_POINTS[s.grade];
-            liveTC += s.credit;
-          }
-        });
-        const liveSGPA = liveTC > 0 ? trunc2(liveTW / liveTC) : 0;
+        const cgpa = calculateCGPA(studentAllResults, semester);
+        const liveSGPA = calculateSGPA(r.subjects, r.semester);
         
         studentData.push({
           regNo: r.regNo,
@@ -110,23 +60,15 @@ async function regenerate() {
         });
       }
       
-      // Calculate CGPA Rank (Dense ranking)
-      studentData.sort((a, b) => b.cgpa - a.cgpa);
-      let cgpaRank = 1;
-      studentData.forEach((s, i) => {
-        if (i > 0 && s.cgpa < studentData[i - 1].cgpa) cgpaRank++;
-        s.cgpaRank = cgpaRank;
-      });
+      sortByScore(studentData, "cgpa", "sgpa");
+      assignCompetitionRanks(studentData, "cgpa", "cgpaRank");
       
-      // Calculate SGPA Rank (Dense ranking)
-      studentData.sort((a, b) => b.sgpa - a.sgpa);
-      let sgpaRank = 1;
-      studentData.forEach((s, i) => {
-        if (i > 0 && s.sgpa < studentData[i - 1].sgpa) sgpaRank++;
-        s.universityRank = sgpaRank;
-        s.sgpaRank = sgpaRank;
+      sortByScore(studentData, "sgpa", "cgpa");
+      assignCompetitionRanks(studentData, "sgpa", "sgpaRank");
+      studentData.forEach((s) => {
+        s.universityRank = s.sgpaRank;
         s.totalStudents = studentData.length;
-        s.percentile = parseFloat(((1 - (sgpaRank - 1) / studentData.length) * 100).toFixed(1));
+        s.percentile = parseFloat(((1 - (s.sgpaRank - 1) / studentData.length) * 100).toFixed(1));
       });
       
       // Dept/branch rank
@@ -136,11 +78,9 @@ async function regenerate() {
         byBranch[s.branch].push(s);
       });
       Object.values(byBranch).forEach(group => {
-        group.sort((a, b) => b.sgpa - a.sgpa);
-        let dr = 1;
-        group.forEach((s, i) => {
-          if (i > 0 && s.sgpa < group[i - 1].sgpa) dr = i + 1;
-          s.deptRank = dr;
+        sortByScore(group, "sgpa", "cgpa");
+        assignCompetitionRanks(group, "sgpa", "deptRank");
+        group.forEach((s) => {
           s.deptStudents = group.length;
         });
       });

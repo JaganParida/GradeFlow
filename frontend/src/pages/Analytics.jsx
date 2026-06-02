@@ -19,36 +19,16 @@ import {
 import { Spinner } from "../components/LoadingSpinner";
 import { motion, animate } from "framer-motion";
 import { TrendingUp, TrendingDown, Star, Trophy, CheckCircle, AlertTriangle, Target, Medal, Award, BarChart2, PieChart, Briefcase, GraduationCap, Check, X, ArrowLeft, Building2, FileText } from "lucide-react";
+import {
+  GRADE_POINTS,
+  calculateCGPA,
+  calculateSGPA as calcSGPA,
+  isSem5RepeatProject,
+  round2,
+  trunc2,
+} from "../utils/gradeCalculations";
 
-const GRADE_POINTS = { O: 10, E: 9, A: 8, B: 7, C: 6, D: 5, F: 2, R: 0, M: 0, S: 0 };
 const GRADE_ORDER = ["O", "E", "A", "B", "C", "D", "F"];
-
-// Truncate to 2 decimal places — official university formula uses floor, NOT round
-// Example: 93/18 = 5.1666... → 5.16 (correct), Math.round gives 5.17 (wrong)
-function trunc2(x) {
-  return Math.floor(x * 100) / 100;
-}
-
-// Live-calculate SGPA from a semester's subjects (mirrors backend & GradeSheet exactly)
-function calcSGPA(subjects, semester) {
-  let totalWeighted = 0, totalCredits = 0;
-  (subjects || []).forEach((s) => {
-    // Exception: Sem 5 R-grade 6-credit project is fully excluded
-    if (
-      Number(semester) === 5 &&
-      s.grade === 'R' &&
-      Number(s.credit) === 6 &&
-      s.type && s.type.toLowerCase().includes('proj')
-    ) return;
-    // All other grades (F=2, R=0, S=0, M=0) contribute per official formula
-    if (s.credit && GRADE_POINTS[s.grade] !== undefined) {
-      totalWeighted += s.credit * GRADE_POINTS[s.grade];
-      totalCredits += s.credit;
-    }
-  });
-  // Official formula: truncate to 2 decimal places (floor)
-  return totalCredits > 0 ? trunc2(totalWeighted / totalCredits) : 0;
-}
 
 function AnimatedNumber({ value }) {
   const nodeRef = useRef();
@@ -76,33 +56,7 @@ function AnimatedNumber({ value }) {
 }
 
 function calcCGPAUpTo(results, upToIdx) {
-  let cgpaNumerator = 0;
-  let cgpaDenominator = 0;
-
-  // Calculate SGPA per semester, then weighted-average for CGPA
-  results.slice(0, upToIdx + 1).forEach((r) => {
-    let semTW = 0;
-    let semTC = 0;
-    r.subjects.forEach((s) => {
-      // Exception: Sem 5 R-grade 6-credit project is fully excluded
-      if (Number(r.semester) === 5 && s.grade === 'R' && (Number(s.credit) === 6 && (s.type && s.type.toLowerCase().includes('proj')))) return;
-      // All other grades (F=2, R=0, S=0, M=0) contribute per official formula
-      if (s.credit && GRADE_POINTS[s.grade] !== undefined) {
-        semTW += s.credit * GRADE_POINTS[s.grade];
-        semTC += s.credit;
-      }
-    });
-    
-    if (semTC > 0) {
-      // Official formula: SGPA TRUNCATED (floor) to 2 decimal places per semester
-      let semSGPA = trunc2(semTW / semTC);
-      cgpaNumerator += semSGPA * semTC;
-      cgpaDenominator += semTC;
-    }
-  });
-
-  // CGPA = Σ(SGPA_i × Credits_i) / Σ(Credits_i), truncated to 2 decimal places
-  return cgpaDenominator > 0 ? trunc2(cgpaNumerator / cgpaDenominator) : 0;
+  return calculateCGPA(results.slice(0, upToIdx + 1));
 }
 
 function generateInsights(data) {
@@ -246,8 +200,7 @@ export default function Analytics() {
             ? whatIfGrades[s.subCode]
             : s.grade;
             
-        // Exception: Sem 5 R-grade 6-credit project is fully excluded
-        if (Number(r.semester) === 5 && grade === 'R' && (Number(s.credit) === 6 && (s.type && s.type.toLowerCase().includes('proj')))) {
+        if (isSem5RepeatProject(s, r.semester, grade)) {
           return;
         }
 
@@ -270,8 +223,8 @@ export default function Analytics() {
       }
     });
     
-    // CGPA = Σ(SGPA_i × Credits_i) / Σ(Credits_i), truncated to 2 decimal places
-    setWhatIfCGPA(cgpaDenominator > 0 ? trunc2(cgpaNumerator / cgpaDenominator).toFixed(2) : "0.00");
+    // Final CGPA is rounded after the SGPA-weighted semester average.
+    setWhatIfCGPA(cgpaDenominator > 0 ? round2(cgpaNumerator / cgpaDenominator).toFixed(2) : "0.00");
     setWhatIfSGPA(sgpa_tc > 0 ? trunc2(sgpa_tw / sgpa_tc).toFixed(2) : "0.00");
   }, [whatIfGrades, studentData]);
 

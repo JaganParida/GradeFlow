@@ -3,59 +3,11 @@ const router = express.Router();
 const SemesterResult = require("../models/SemesterResult");
 const InternalMark = require("../models/InternalMark");
 const Ranking = require("../models/Ranking");
-
-const GRADE_POINTS = {
-  O: 10,
-  E: 9,
-  A: 8,
-  B: 7,
-  C: 6,
-  D: 5,
-  F: 2,
-  R: 0,
-  M: 0,
-  S: 0,
-};
-
-// Truncate to 2 decimal places — official university formula uses floor, NOT round
-// Example: 93/18 = 5.1666... → 5.16 (correct), Math.round would give 5.17 (wrong)
-function trunc2(x) {
-  return Math.floor(x * 100) / 100;
-}
-
-function calcCGPA(results) {
-  let cgpaNumerator = 0;
-  let cgpaDenominator = 0;
-
-  results.forEach((r) => {
-    let semTW = 0;
-    let semTC = 0;
-
-    r.subjects.forEach((s) => {
-      // Exception: Sem 5 R-grade 6-credit project is fully excluded
-      if (Number(r.semester) === 5 && s.grade === 'R' && (Number(s.credit) === 6 && (s.type && s.type.toLowerCase().includes('proj')))) {
-        return;
-      }
-      // All other grades (F=2, R=0, S=0, M=0) contribute per official formula
-      if (s.credit && GRADE_POINTS[s.grade] !== undefined) {
-        semTW += s.credit * GRADE_POINTS[s.grade];
-        semTC += s.credit;
-      }
-    });
-
-    if (semTC > 0) {
-      // Official formula: SGPA per semester TRUNCATED (floor) to 2 decimal places
-      const semSGPA = trunc2(semTW / semTC);
-      cgpaNumerator += semSGPA * semTC;
-      cgpaDenominator += semTC;
-    }
-  });
-
-  // CGPA = Σ(SGPA_i × Credits_i) / Σ(Credits_i), truncated to 2 decimal places
-  return cgpaDenominator > 0
-    ? trunc2(cgpaNumerator / cgpaDenominator)
-    : 0;
-}
+const {
+  calculateBacklogs,
+  calculateCGPA,
+  calculateSemesterMetrics,
+} = require("../utils/gradeCalculations");
 
 function calcAcademicHealth(cgpa, sgpa, backlogs, results) {
   let score = 0;
@@ -109,41 +61,14 @@ router.get("/:regNo", async (req, res) => {
     if (!results.length)
       return res.status(404).json({ message: "Student not found" });
 
-    const cgpa = calcCGPA(results);
-    const backlogs = results.flatMap((r) =>
-      r.subjects
-        .filter((s) => {
-          if (Number(r.semester) === 5 && s.grade === 'R' && (Number(s.credit) === 6 && (s.type && s.type.toLowerCase().includes('proj')))) {
-            return false;
-          }
-          return ["F", "M", "S", "R"].includes(s.grade);
-        })
-        .map((s) => ({
-          subName: s.subName,
-          subCode: s.subCode,
-          credit: s.credit,
-          grade: s.grade,
-          semester: r.semester,
-        }))
-    );
+    const cgpa = calculateCGPA(results);
+    const backlogs = calculateBacklogs(results);
     const latestResult = results[results.length - 1];
-    
-    let liveLatestSgpa = 0;
-    let semTW = 0;
-    let semTC = 0;
-    latestResult.subjects.forEach((s) => {
-      if (Number(latestResult.semester) === 5 && s.grade === 'R' && (Number(s.credit) === 6 && (s.type && s.type.toLowerCase().includes('proj')))) {
-        return; 
-      }
-      // All grades (F=2, R=0, S=0, M=0) are included per official formula
-      if (s.credit && GRADE_POINTS[s.grade] !== undefined) {
-        semTW += s.credit * GRADE_POINTS[s.grade];
-        semTC += s.credit;
-      }
-    });
-    if (semTC > 0) {
-      liveLatestSgpa = trunc2(semTW / semTC);
-    }
+    const latestMetrics = calculateSemesterMetrics(
+      latestResult.subjects,
+      latestResult.semester,
+    );
+    const liveLatestSgpa = latestMetrics.sgpa;
 
     const healthScore = calcAcademicHealth(
       cgpa,
@@ -165,20 +90,16 @@ router.get("/:regNo", async (req, res) => {
       cgpa,
       latestSgpa: liveLatestSgpa,
       latestSemester: latestResult.semester,
-      totalCredits: results.reduce((a, r) => {
-        return a + r.subjects.reduce((sum, s) => {
-          // Only exclude the Sem5 R-project special case
-          if (Number(r.semester) === 5 && s.grade === 'R' && (Number(s.credit) === 6 && (s.type && s.type.toLowerCase().includes('proj')))) return sum;
-          return sum + (s.credit || 0);
-        }, 0);
-      }, 0),
-      creditsCleared: results.reduce((a, r) => {
-        return a + r.subjects.reduce((sum, s) => {
-          if (Number(r.semester) === 5 && s.grade === 'R' && (Number(s.credit) === 6 && (s.type && s.type.toLowerCase().includes('proj')))) return sum;
-          if (["F", "M", "S", "R"].includes(s.grade)) return sum;
-          return sum + (s.credit || 0);
-        }, 0);
-      }, 0),
+      totalCredits: results.reduce(
+        (sum, r) =>
+          sum + calculateSemesterMetrics(r.subjects, r.semester).totalCredits,
+        0,
+      ),
+      creditsCleared: results.reduce(
+        (sum, r) =>
+          sum + calculateSemesterMetrics(r.subjects, r.semester).creditsCleared,
+        0,
+      ),
       academicHealthScore: healthScore,
       backlogs: backlogs, // Now contains subName, subCode, credit, grade, semester
       results,

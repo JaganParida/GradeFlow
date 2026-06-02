@@ -2,6 +2,11 @@ import { useRef, useState, useEffect } from "react";
 import jsPDF from "jspdf";
 import html2canvas from "html2canvas";
 import { Download, Image as ImageIcon, Printer, GraduationCap, AlertTriangle, ZoomIn, ZoomOut } from "lucide-react";
+import {
+  FAIL_GRADES,
+  calculateCGPA,
+  calculateSemesterMetrics,
+} from "../utils/gradeCalculations";
 
 function getDynamicBranch(regNo, fallbackBranch) {
   if (!regNo) return fallbackBranch;
@@ -23,20 +28,6 @@ function getDynamicBranch(regNo, fallbackBranch) {
   return fallbackBranch || "—";
 }
 
-const GRADE_POINTS = {
-  O: 10,
-  E: 9,
-  A: 8,
-  B: 7,
-  C: 6,
-  D: 5,
-  F: 2,
-  R: 0,
-  S: 0,
-  M: 0,
-};
-const PASSING_GRADES = ["O", "E", "A", "B", "C", "D"];
-const FAIL_GRADES = ["F", "R", "S", "M"];
 const GRADE_LABEL = { F: "Fail", R: "Repeat", S: "Suppl.", M: "Malpractice" };
 const GRADE_COLOR = {
   O: "#15803d",
@@ -50,34 +41,6 @@ const GRADE_COLOR = {
   S: "#ea580c",
   M: "#dc2626",
 };
-
-// Truncate to 2 decimal places — official university formula uses floor, NOT round
-// Example: 93/18 = 5.1666... → 5.16 (correct), Math.round gives 5.17 (wrong)
-function trunc2(x) {
-  return Math.floor(x * 100) / 100;
-}
-
-// Mirrors backend calcSGPA exactly — ALL grades included (F=2, R=0, S=0, M=0)
-function calcSGPA(subjects, semester) {
-  let totalWeighted = 0,
-    totalCredits = 0;
-  subjects.forEach((s) => {
-    // Exception: Sem 5 R-grade 6-credit project is fully excluded
-    if (
-      semester === 5 &&
-      s.grade === 'R' &&
-      s.credit === 6 &&
-      s.type &&
-      s.type.toLowerCase().includes('proj')
-    ) return;
-    // All other grades (including F=2, R=0, S=0, M=0) are included
-    if (s.credit && GRADE_POINTS[s.grade] !== undefined) {
-      totalWeighted += s.credit * GRADE_POINTS[s.grade];
-      totalCredits += s.credit;
-    }
-  });
-  return totalCredits > 0 ? trunc2(totalWeighted / totalCredits) : 0;
-}
 
 export default function GradeSheet({ result, studentData, highlightedSubject }) {
   const sheetRef = useRef();
@@ -102,65 +65,14 @@ export default function GradeSheet({ result, studentData, highlightedSubject }) 
 
   const subjects = result.subjects || [];
 
-  // Exclude Sem 5, R grade, 6-credit projects from calculations
-  const validSubjectsForCalc = subjects.filter((s) => {
-    if (
-      Number(result.semester) === 5 &&
-      s.grade === "R" &&
-      s.credit === 6 &&
-      (s.type && s.type.toLowerCase().includes("proj"))
-    ) {
-      return false;
-    }
-    return true;
-  });
-
-  const totalCredits = validSubjectsForCalc.reduce((a, s) => a + (s.credit || 0), 0);
-  const creditsCleared = validSubjectsForCalc
-    .filter((s) => PASSING_GRADES.includes(s.grade))
-    .reduce((a, s) => a + (s.credit || 0), 0);
-  const sgpa = calcSGPA(validSubjectsForCalc, result.semester);
+  const { totalCredits, creditsCleared, sgpa } = calculateSemesterMetrics(
+    subjects,
+    result.semester,
+  );
   const hasFailed = subjects.some((s) => FAIL_GRADES.includes(s.grade));
 
-  // Calculate CGPA up to current semester
-  let totalTW = 0;
-  let totalTC = 0;
   const allResults = studentData?.results || [];
-  const pastResults = allResults.filter(r => r.semester <= result.semester);
-
-  pastResults.forEach(r => {
-    // Calculate SGPA for this semester then add weighted contribution
-    let semTW = 0, semTC = 0;
-    const validSubs = (r.subjects || []).filter((s) => {
-      if (
-        Number(r.semester) === 5 &&
-        s.grade === "R" &&
-        s.credit === 6 &&
-        (s.type && s.type.toLowerCase().includes("proj"))
-      ) {
-        return false;
-      }
-      return true;
-    });
-
-    validSubs.forEach((s) => {
-      // All grades (F=2, R=0, S=0, M=0) contribute per official formula
-      if (s.credit && GRADE_POINTS[s.grade] !== undefined) {
-        semTW += s.credit * GRADE_POINTS[s.grade];
-        semTC += s.credit;
-      }
-    });
-
-    if (semTC > 0) {
-      // Official formula: SGPA TRUNCATED (floor) to 2 decimal places per semester
-      const semSGPA = trunc2(semTW / semTC);
-      totalTW += semSGPA * semTC;
-      totalTC += semTC;
-    }
-  });
-
-  // CGPA = Σ(SGPA_i × Credits_i) / Σ(Credits_i), truncated to 2 decimal places
-  const cgpaUpToNow = totalTC > 0 ? trunc2(totalTW / totalTC) : 0;
+  const cgpaUpToNow = calculateCGPA(allResults, result.semester);
 
   const today = new Date().toLocaleDateString("en-IN", {
     day: "2-digit",

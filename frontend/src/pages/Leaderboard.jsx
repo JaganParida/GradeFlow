@@ -12,7 +12,7 @@ export default function Leaderboard() {
   const [rankings, setRankings] = useState([]);
   const [loading, setLoading] = useState(true);
   const [meta, setMeta] = useState({ semesters: [], branches: [] });
-  const [showCount, setShowCount] = useState(50);
+  const [showCount, setShowCount] = useState(10);
   const [highlightRegNo, setHighlightRegNo] = useState("");
   const [searchInput, setSearchInput] = useState("");
   const [filters, setFilters] = useState({
@@ -79,7 +79,7 @@ export default function Leaderboard() {
       if (f.branch) params.append("branch", f.branch);
       if (f.search) params.append("search", f.search);
       if (f.sortBy) params.append("sortBy", f.sortBy);
-      params.append("limit", "1000"); // Fetch all students so we can filter by rank up to 50
+      params.append("limit", "50");
       
       const { data } = await axios.get(`${API}/rankings/top?${params}`);
       setRankings(data);
@@ -90,9 +90,10 @@ export default function Leaderboard() {
     }
   }
 
-  function handleFilter(key, val) {
+  function handleFilter(key, val, nextShowCount = 10) {
     const f = { ...filters, [key]: val };
     setFilters(f);
+    setShowCount(nextShowCount);
     fetchRankings(f);
   }
 
@@ -130,7 +131,7 @@ export default function Leaderboard() {
           onClick={() => {
             const f = { ...filters, sortBy: "sgpa" };
             setFilters(f);
-            setShowCount(50);
+            setShowCount(10);
             fetchRankings(f);
           }}
         >
@@ -147,7 +148,7 @@ export default function Leaderboard() {
           onClick={() => {
             const f = { ...filters, sortBy: "cgpa", semester: "" }; // Retain branch filter, only clear semester
             setFilters(f);
-            setShowCount(50);
+            setShowCount(10);
             fetchRankings(f);
           }}
         >
@@ -193,7 +194,7 @@ export default function Leaderboard() {
           style={{ flex: 1, minWidth: 200, display: "flex", gap: 8 }}
           onSubmit={(e) => {
             e.preventDefault();
-            handleFilter("search", searchInput);
+            handleFilter("search", searchInput, searchInput.trim() ? 50 : 10);
           }}
         >
           <div style={{ position: "relative", flex: 1 }}>
@@ -542,7 +543,7 @@ export default function Leaderboard() {
                   </motion.div>
                 )}
                 
-                {rankings.length > 10 && (
+                {rest40.length > 0 && (
                   <div style={{ textAlign: "center", marginTop: 24 }}>
                     <button 
                       className="btn btn-ghost" 
