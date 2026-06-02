@@ -13,12 +13,26 @@ app.use(express.json());
 
 // ─── Rate Limiting Strategy ────────────────────────────────────────────────
 //
-// We do NOT apply global rate limiting to student routes because:
-//   1. College campuses share a single public IP — so a 500/min limit
-//      would block the entire college after a few active students.
-//   2. Student data is served from the in-memory cache (15-min TTL),
-//      so cached lookups are near-zero cost on the server.
+// We do NOT apply strict global rate limiting to student routes because:
+//   1. College campuses share a single public IP.
+//   2. Student data is served from the in-memory cache.
+// However, to protect the free-tier Render server from completely crashing 
+// under extreme DDOS or simultaneous load (e.g. 500+ users instantly), 
+// we apply a generous global limit.
 //
+const globalLimiter = rateLimit({
+  windowMs: 1 * 60 * 1000, // 1 minute
+  max: 600, // 600 requests per minute per IP
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: {
+    message: "Server is experiencing high traffic. Please try again in a minute.",
+  },
+});
+
+// Apply global limit to all routes
+app.use(globalLimiter);
+
 // We ONLY apply a strict rate limit to the admin /auth/login endpoint
 // to block brute-force password attacks (10 attempts per 15 minutes).
 //

@@ -5,12 +5,11 @@ import { Spinner, SkeletonGrid } from "../components/LoadingSpinner";
 import GradeSheet from "../components/GradeSheet";
 import BasketDashboard from "../components/BasketDashboard";
 import TargetPredictor from "../components/TargetPredictor";
-import CompanyEligibility from "../components/CompanyEligibility";
 import axios from "axios";
 import { motion } from "framer-motion";
 import jsPDF from "jspdf";
 import html2canvas from "html2canvas";
-import { User, TrendingUp, Star, Target, CheckCircle, Trophy, Award, AlertTriangle, FileText, FileEdit, Calendar, Printer, Share2, DownloadCloud, Loader2, ChevronDown, ChevronUp, Search, Layout, Calculator, BriefcaseBusiness } from "lucide-react";
+import { User, TrendingUp, Star, Target, CheckCircle, Trophy, Award, AlertTriangle, FileText, FileEdit, Calendar, Printer, Share2, DownloadCloud, Loader2, ChevronDown, ChevronUp, Search, Layout, Calculator } from "lucide-react";
 import { calculateSGPA as calcSGPAFromSubjects } from "../utils/gradeCalculations";
 
 const GRADE_COLORS = {
@@ -757,7 +756,6 @@ export default function Dashboard() {
           ["result", "Result", <FileText size={14} key="result" />],
           ["internal", "Internal Marks", <FileEdit size={14} key="int" />],
           ["history", "Semester History", <Calendar size={14} key="hist" />],
-          ["placements", "Placements", <BriefcaseBusiness size={14} key="place" />],
           ["baskets", "Degree Progress", <Layout size={14} key="basket" />],
           ["predictor", "Target Predictor", <Calculator size={14} key="pred" />],
         ].map(([t, l, icon]) => (
@@ -1014,7 +1012,6 @@ export default function Dashboard() {
           )}
 
           {tab === "baskets" && <BasketDashboard results={studentData.results} />}
-          {tab === "placements" && <CompanyEligibility branch={dynamicBranch} cgpa={cgpa} />}
           {tab === "predictor" && <TargetPredictor />}
         </motion.div>
       )}
