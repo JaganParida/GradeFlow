@@ -28,6 +28,14 @@ function isMarkAvailable(value) {
   return value !== undefined && value !== null && value !== "" && !Number.isNaN(Number(value));
 }
 
+function hasPositiveMarkValue(value) {
+  if (value === undefined || value === null) return false;
+  const text = String(value).trim();
+  if (text === "" || text === MARK_PLACEHOLDER) return false;
+  const num = Number(text);
+  return Number.isFinite(num) && num > 0;
+}
+
 function formatMark(value) {
   const num = Number(value);
   if (!Number.isFinite(num)) return MARK_PLACEHOLDER;
@@ -134,10 +142,7 @@ function hasSubjectInternalScore(subject, semester) {
     'midSemObtained', 'presentationObtained', 'assignmentObtained', 'learningRecordObtained', 'internalPracticalObtained', 'projectInternalObtained', 'totalScore'
   ];
   
-  return marksKeys.some(key => {
-    const val = subject[key];
-    return val !== undefined && val !== null && String(val).trim() !== "";
-  });
+  return marksKeys.some((key) => hasPositiveMarkValue(subject[key]));
 }
 
 function getSortedInternalSubjects(internalMarks) {

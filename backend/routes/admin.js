@@ -580,13 +580,21 @@ router.post(
         value !== "" &&
         !Number.isNaN(Number(value));
 
+      const hasPositiveMarkValue = (value) => {
+        if (value === undefined || value === null) return false;
+        const text = String(value).trim();
+        if (text === "" || text === "-") return false;
+        const num = Number(text);
+        return Number.isFinite(num) && num > 0;
+      };
+
       const hasInternalScore = (subject) =>
         Object.entries(subject).some(
           ([key, value]) =>
             (key.endsWith("Obtained") ||
               key.endsWith("RoundOff") ||
               key === "totalScore") &&
-            hasNumericValue(value),
+            hasPositiveMarkValue(value),
         );
 
       const hasComponentScore = (subject) =>
