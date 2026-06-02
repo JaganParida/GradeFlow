@@ -164,44 +164,60 @@ export default function Leaderboard() {
         </p>
       </div>
 
-      {/* Tabs */}
-      <div className="leaderboard-tabs" style={{ display: "flex", gap: 12, marginBottom: 24 }}>
-        <button 
-          className="leaderboard-tab"
-          style={{ 
-            padding: "8px 16px", borderRadius: 8, fontWeight: 700, cursor: "pointer", transition: "all 0.2s", 
-            background: isSGPA ? 'rgba(62,166,255,0.1)' : 'transparent', 
-            border: isSGPA ? '1px solid rgba(62,166,255,0.2)' : '1px solid var(--border)',
-            color: isSGPA ? 'var(--accent)' : 'var(--secondary)',
-            display: "flex", alignItems: "center", gap: 6
-          }}
-          onClick={() => {
-            const f = { ...filters, sortBy: "sgpa" };
-            setFilters(f);
-            setShowCount(10);
-            fetchRankings(f);
-          }}
-        >
-          <Trophy size={16} /> SGPA Ranking
-        </button>
-        <button 
-          className="leaderboard-tab"
-          style={{ 
-            padding: "8px 16px", borderRadius: 8, fontWeight: 700, cursor: "pointer", transition: "all 0.2s", 
-            background: !isSGPA ? 'rgba(168,85,247,0.1)' : 'transparent', 
-            border: !isSGPA ? '1px solid rgba(168,85,247,0.2)' : '1px solid var(--border)',
-            color: !isSGPA ? '#a855f7' : 'var(--secondary)',
-            display: "flex", alignItems: "center", gap: 6
-          }}
-          onClick={() => {
-            const f = { ...filters, sortBy: "cgpa", semester: "" }; // Retain branch filter, only clear semester
-            setFilters(f);
-            setShowCount(10);
-            fetchRankings(f);
-          }}
-        >
-          <Star size={16} /> CGPA Ranking
-        </button>
+      {/* Tabs — YouTube pill style */}
+      <div style={{ display: "flex", marginBottom: 24 }}>
+        <div style={{ display: "inline-flex", gap: 2, background: "#212121", padding: "4px", borderRadius: 24, border: "1px solid rgba(255,255,255,0.08)" }}>
+          <button
+            className="leaderboard-tab"
+            style={{
+              padding: "8px 20px",
+              borderRadius: 20,
+              fontWeight: 700,
+              cursor: "pointer",
+              transition: "all 0.2s",
+              background: isSGPA ? '#3f3f3f' : 'transparent',
+              border: 'none',
+              color: isSGPA ? '#f1f1f1' : '#aaaaaa',
+              display: "flex", alignItems: "center", gap: 7,
+              fontSize: 14,
+              letterSpacing: "0.01em",
+              boxShadow: isSGPA ? '0 1px 4px rgba(0,0,0,0.4)' : 'none',
+            }}
+            onClick={() => {
+              const f = { ...filters, sortBy: "sgpa" };
+              setFilters(f);
+              setShowCount(10);
+              fetchRankings(f);
+            }}
+          >
+            <Trophy size={16} /> SGPA Ranking
+          </button>
+          <button
+            className="leaderboard-tab"
+            style={{
+              padding: "8px 20px",
+              borderRadius: 20,
+              fontWeight: 700,
+              cursor: "pointer",
+              transition: "all 0.2s",
+              background: !isSGPA ? '#3f3f3f' : 'transparent',
+              border: 'none',
+              color: !isSGPA ? '#f1f1f1' : '#aaaaaa',
+              display: "flex", alignItems: "center", gap: 7,
+              fontSize: 14,
+              letterSpacing: "0.01em",
+              boxShadow: !isSGPA ? '0 1px 4px rgba(0,0,0,0.4)' : 'none',
+            }}
+            onClick={() => {
+              const f = { ...filters, sortBy: "cgpa", semester: "" };
+              setFilters(f);
+              setShowCount(10);
+              fetchRankings(f);
+            }}
+          >
+            <Star size={16} /> CGPA Ranking
+          </button>
+        </div>
       </div>
 
       {/* Filters */}

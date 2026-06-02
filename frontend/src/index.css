@@ -4,33 +4,46 @@
 
 /* ── Design Tokens ─────────────────────────────────────────── */
 :root {
-  --bg: #0a0a0f;
-  --surface: #12121a;
-  --card: #1a1a26;
-  --card-hover: #1f1f30;
-  --border: rgba(255, 255, 255, 0.07);
-  --border-strong: rgba(255, 255, 255, 0.12);
-  --accent: #4f9cf9;
-  --accent-hover: #6aadff;
-  --accent-glow: rgba(79, 156, 249, 0.25);
+  /* ── Backgrounds (YouTube dark palette) */
+  --bg: #0f0f0f;
+  --surface: #181818;
+  --card: #212121;
+  --card-hover: #2a2a2a;
+  --border: rgba(255, 255, 255, 0.08);
+  --border-strong: rgba(255, 255, 255, 0.15);
+
+  /* ── Accent: White instead of blue — YouTube style */
+  --accent: #ffffff;
+  --accent-hover: #e5e5e5;
+  --accent-glow: rgba(255, 255, 255, 0.08);
+
+  /* ── Semantic colors */
   --success: #22c55e;
-  --success-bg: rgba(34, 197, 94, 0.1);
+  --success-bg: rgba(34, 197, 94, 0.12);
   --warning: #f59e0b;
-  --warning-bg: rgba(245, 158, 11, 0.1);
+  --warning-bg: rgba(245, 158, 11, 0.12);
   --danger: #ef4444;
-  --danger-bg: rgba(239, 68, 68, 0.1);
+  --danger-bg: rgba(239, 68, 68, 0.12);
   --purple: #a855f7;
-  --purple-bg: rgba(168, 85, 247, 0.1);
-  --text: #f0f0ff;
-  --text-secondary: #9898b8;
-  --text-muted: #55556a;
-  --secondary: #9898b8;
-  --muted: #55556a;
-  --radius: 14px;
-  --radius-sm: 10px;
+  --purple-bg: rgba(168, 85, 247, 0.12);
+
+  /* ── Typography */
+  --text: #f1f1f1;
+  --text-secondary: #aaaaaa;
+  --text-muted: #717171;
+  --secondary: #aaaaaa;
+  --muted: #717171;
+
+  /* ── Radius */
+  --radius: 12px;
+  --radius-sm: 8px;
   --radius-xs: 6px;
-  --shadow: 0 4px 24px rgba(0, 0, 0, 0.5);
-  --shadow-lg: 0 8px 40px rgba(0, 0, 0, 0.6);
+
+  /* ── Shadow */
+  --shadow: 0 2px 12px rgba(0, 0, 0, 0.5);
+  --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.7);
+
+  /* ── Layout */
   --page-padding: 32px;
   --page-padding-mobile: 16px;
 }
@@ -56,11 +69,7 @@ body {
   font-family: "DM Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
     "Helvetica Neue", Arial, sans-serif;
   background-color: var(--bg);
-  background-image:
-    radial-gradient(ellipse 80% 50% at 50% -10%, rgba(79, 156, 249, 0.12) 0%, transparent 70%),
-    radial-gradient(ellipse 50% 40% at 95% 60%, rgba(168, 85, 247, 0.08) 0%, transparent 60%),
-    radial-gradient(ellipse 40% 30% at 5% 90%, rgba(34, 197, 94, 0.04) 0%, transparent 50%);
-  background-attachment: fixed;
+  background-image: none;
   color: var(--text);
   min-height: 100dvh;
   line-height: 1.65;
@@ -191,14 +200,17 @@ h1, h2, h3, h4, h5, h6 {
   transform: scale(0.96);
 }
 
+/* YouTube-style primary button: white bg, dark text */
 .btn-primary {
-  background: linear-gradient(135deg, var(--accent) 0%, #3b82f6 100%);
-  color: #fff;
-  box-shadow: 0 4px 14px rgba(79, 156, 249, 0.3);
+  background: #ffffff;
+  color: #0f0f0f;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+  font-weight: 700;
 }
 
 .btn-primary:hover {
-  box-shadow: 0 6px 20px rgba(79, 156, 249, 0.45);
+  background: #e5e5e5;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.5);
   transform: translateY(-1px);
 }
 
@@ -224,14 +236,14 @@ h1, h2, h3, h4, h5, h6 {
   border-color: rgba(239, 68, 68, 0.4);
 }
 
-/* ── Tabs ──────────────────────────────────────────────────── */
+/* ── Tabs (YouTube pill style) ─────────────────────────────── */
 .tabs {
   display: inline-flex;
-  gap: 4px;
-  background: var(--surface);
-  padding: 5px;
-  border-radius: var(--radius);
-  border: 1px solid var(--border);
+  gap: 2px;
+  background: #212121;
+  padding: 4px;
+  border-radius: 24px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
   max-width: 100%;
   overflow-x: auto;
   scrollbar-width: none;
@@ -244,28 +256,29 @@ h1, h2, h3, h4, h5, h6 {
   align-items: center;
   justify-content: center;
   gap: 7px;
-  padding: 8px 16px;
-  border-radius: var(--radius-sm);
+  padding: 8px 18px;
+  border-radius: 20px;
   background: transparent;
   border: none;
-  color: var(--text-secondary);
+  color: #aaaaaa;
   font-family: "DM Sans", sans-serif;
   font-size: 14px;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.2s cubic-bezier(0.25, 1, 0.5, 1);
   white-space: nowrap;
+  letter-spacing: 0.01em;
 }
 
 .tab-btn.active {
-  background: var(--card);
-  color: var(--text);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  background: #3f3f3f;
+  color: #f1f1f1;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
 }
 
 .tab-btn:hover:not(.active) {
-  color: var(--text);
-  background: rgba(255, 255, 255, 0.04);
+  color: #f1f1f1;
+  background: rgba(255, 255, 255, 0.07);
 }
 
 /* ── Badges ────────────────────────────────────────────────── */
@@ -284,7 +297,7 @@ h1, h2, h3, h4, h5, h6 {
 .badge-success { background: var(--success-bg); color: var(--success); }
 .badge-warning { background: var(--warning-bg); color: var(--warning); }
 .badge-danger  { background: var(--danger-bg);  color: var(--danger);  }
-.badge-accent  { background: rgba(79, 156, 249, 0.12); color: var(--accent); }
+.badge-accent  { background: rgba(255, 255, 255, 0.1); color: var(--text); border: 1px solid rgba(255,255,255,0.15); }
 .badge-purple  { background: var(--purple-bg);  color: var(--purple);  }
 
 /* ── Form Elements ─────────────────────────────────────────── */
@@ -314,9 +327,9 @@ textarea {
 input:focus,
 select:focus,
 textarea:focus {
-  border-color: var(--accent);
-  background: rgba(79, 156, 249, 0.04);
-  box-shadow: 0 0 0 3px rgba(79, 156, 249, 0.15);
+  border-color: rgba(255, 255, 255, 0.4);
+  background: rgba(255, 255, 255, 0.04);
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.08);
 }
 
 input::placeholder,
