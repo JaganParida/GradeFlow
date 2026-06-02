@@ -199,63 +199,33 @@ export default function Testimonials() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             style={{
-              display: "flex", alignItems: "center", justifyContent: "center", gap: 40,
-              background: "linear-gradient(145deg, rgba(30,30,30,0.6), rgba(15,15,15,0.9))",
-              border: "1px solid rgba(255,255,255,0.06)",
-              borderRadius: 24, padding: "32px", marginBottom: 48,
-              boxShadow: "0 12px 40px rgba(0,0,0,0.2)",
-              backdropFilter: "blur(12px)", flexWrap: "wrap"
+              display: "flex", alignItems: "center", justifyContent: "center",
+              marginBottom: 48,
             }}
           >
-            <div style={{ display: "flex", alignItems: "center", gap: 40, flexWrap: "wrap", justifyContent: "center" }}>
-              <div style={{ textAlign: "center" }}>
-                <h2 style={{ fontSize: "clamp(48px, 8vw, 64px)", fontWeight: 800, margin: 0, background: "linear-gradient(135deg, #fff, #a0a0a0)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", lineHeight: 1 }}>
-                  {averageRating}
-                </h2>
-                <p style={{ margin: "4px 0 0", color: "var(--secondary)", fontSize: 14, fontWeight: 600, letterSpacing: "1px", textTransform: "uppercase" }}>out of 5</p>
+            <div style={{
+              background: "#ffffff",
+              borderRadius: 100,
+              padding: "16px 32px",
+              display: "flex", alignItems: "center", gap: 20,
+              boxShadow: "0 8px 30px rgba(0,0,0,0.15), inset 0 1px 0 rgba(255,255,255,1)",
+            }}>
+              <span style={{ fontSize: 36, fontWeight: 900, color: "#111827", lineHeight: 1, letterSpacing: "-1px" }}>
+                {averageRating}
+              </span>
+              <div style={{ display: "flex", gap: 6 }}>
+                {[1, 2, 3, 4, 5].map(starIndex => {
+                  const fillPercentage = Math.max(0, Math.min(100, (parseFloat(averageRating) - starIndex + 1) * 100));
+                  return (
+                    <div key={starIndex} style={{ position: "relative", width: 32, height: 32 }}>
+                      <Star size={32} color="#e5e7eb" fill="#e5e7eb" style={{ position: "absolute", top: 0, left: 0 }} />
+                      <div style={{ position: "absolute", top: 0, left: 0, width: `${fillPercentage}%`, overflow: "hidden", height: "100%" }}>
+                        <Star size={32} color="#facc15" fill="#facc15" />
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
-              
-              <div style={{ display: "flex", flexDirection: "column", gap: 10, alignItems: "center" }}>
-                <div style={{ display: "flex", gap: 8 }}>
-                  {[1, 2, 3, 4, 5].map(star => (
-                    <Star 
-                      key={star} 
-                      size={28} 
-                      fill={Math.round(averageRating) >= star ? "#f59e0b" : "transparent"} 
-                      color={Math.round(averageRating) >= star ? "#f59e0b" : "rgba(255,255,255,0.1)"} 
-                    />
-                  ))}
-                </div>
-                <p style={{ margin: 0, color: "rgba(255,255,255,0.5)", fontSize: 15, fontWeight: 500 }}>
-                  Based on <span style={{ color: "#fff", fontWeight: 700 }}>{totalReviews}</span> student review{totalReviews !== 1 ? 's' : ''}
-                </p>
-              </div>
-            </div>
-
-            {/* Rating Breakdown Bars */}
-            <div style={{ display: "flex", flexDirection: "column", gap: 8, flex: "1 1 200px", maxWidth: 320, minWidth: 260 }}>
-              {[5, 4, 3, 2, 1].map(star => {
-                const count = feedbacks.filter(fb => Math.round(fb.rating) === star).length;
-                const percentage = totalReviews > 0 ? (count / totalReviews) * 100 : 0;
-                return (
-                  <div key={star} style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: 4, width: 28, fontSize: 14, color: "var(--secondary)", fontWeight: 600 }}>
-                      {star} <Star size={12} fill="currentColor" color="currentColor" />
-                    </div>
-                    <div style={{ flex: 1, height: 8, background: "rgba(255,255,255,0.06)", borderRadius: 4, overflow: "hidden" }}>
-                      <motion.div
-                        initial={{ width: 0 }}
-                        animate={{ width: `${percentage}%` }}
-                        transition={{ duration: 0.8, delay: 0.2, ease: "easeOut" }}
-                        style={{ height: "100%", background: "#f59e0b", borderRadius: 4 }}
-                      />
-                    </div>
-                    <div style={{ width: 28, fontSize: 13, color: "var(--secondary)", textAlign: "right", fontWeight: 500 }}>
-                      {count}
-                    </div>
-                  </div>
-                );
-              })}
             </div>
           </motion.div>
         )}
