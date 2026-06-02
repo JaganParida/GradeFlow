@@ -292,13 +292,18 @@ export default function Testimonials() {
         </div>
 
         {/* Feedback List */}
-        <div style={{ display: "flex", flexDirection: "column", gap: 24, alignItems: "center" }}>
+        <div style={{ 
+          display: "grid", 
+          gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))", 
+          gap: 24, 
+          width: "100%" 
+        }}>
           {isLoading ? (
             <div style={{ textAlign: "center", padding: "60px 20px", color: "var(--secondary)", background: "#212121", borderRadius: 20, border: "1px solid rgba(255,255,255,0.05)" }}>
               <p>Loading feedbacks...</p>
             </div>
           ) : feedbacks.length === 0 ? (
-            <div style={{ textAlign: "center", padding: "60px 20px", color: "var(--secondary)", background: "#212121", borderRadius: 20, border: "1px solid rgba(255,255,255,0.05)" }}>
+            <div style={{ gridColumn: "1 / -1", textAlign: "center", padding: "60px 20px", color: "var(--secondary)", background: "#212121", borderRadius: 20, border: "1px solid rgba(255,255,255,0.05)" }}>
               <Quote size={40} style={{ opacity: 0.2, marginBottom: 16, margin: "0 auto" }} />
               <p>No feedback yet. Be the first to share your experience!</p>
             </div>
@@ -330,8 +335,8 @@ export default function Testimonials() {
                     position: "relative",
                     overflow: "hidden",
                     width: "100%",
-                    maxWidth: 650,
-                    margin: "0 auto",
+                    display: "flex",
+                    flexDirection: "column",
                     background: isHighlighted ? "linear-gradient(145deg, rgba(62,166,255,0.1), rgba(20,20,20,0.8))" : "linear-gradient(145deg, rgba(35,35,35,0.6), rgba(20,20,20,0.9))",
                     border: isHighlighted ? "1px solid rgba(62,166,255,0.3)" : "1px solid rgba(255,255,255,0.04)",
                     borderRadius: 24,
@@ -374,7 +379,7 @@ export default function Testimonials() {
                       <div style={{ fontSize: 12, color: "rgba(255,255,255,0.3)", fontWeight: 500 }}>{formatDate(fb.createdAt)}</div>
                     </div>
                   </div>
-                  <p style={{ position: "relative", zIndex: 1, margin: 0, fontSize: 15, lineHeight: 1.7, color: "rgba(255,255,255,0.85)", fontStyle: "italic", whiteSpace: "pre-wrap" }}>
+                  <p style={{ flex: 1, position: "relative", zIndex: 1, margin: 0, fontSize: 15, lineHeight: 1.7, color: "rgba(255,255,255,0.85)", fontStyle: "italic", whiteSpace: "pre-wrap" }}>
                     "{fb.comment}"
                   </p>
                   <div style={{ position: "relative", zIndex: 1, marginTop: 16, paddingTop: 16, borderTop: "1px solid rgba(255,255,255,0.06)", display: "flex", justifyContent: "flex-end" }}>
