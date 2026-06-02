@@ -206,56 +206,77 @@ export default function Navbar() {
             }
             .mobile-bottom-nav {
               position: fixed;
-              left: 12px;
-              right: 12px;
-              bottom: calc(10px + env(safe-area-inset-bottom));
+              left: 50%;
+              transform: translateX(-50%);
+              width: calc(100% - 32px);
+              max-width: 400px;
+              bottom: calc(16px + env(safe-area-inset-bottom));
               z-index: 1200;
               display: grid;
               grid-template-columns: repeat(5, minmax(0, 1fr));
-              gap: 6px;
-              padding: 8px;
-              border: 1px solid rgba(255,255,255,0.08);
-              border-radius: 20px;
-              background: rgba(22,22,22,0.86);
-              backdrop-filter: blur(18px);
-              -webkit-backdrop-filter: blur(18px);
-              box-shadow: 0 18px 50px rgba(0,0,0,0.55), inset 0 1px 0 rgba(255,255,255,0.04);
+              gap: 4px;
+              padding: 8px 12px;
+              border: 1px solid rgba(255,255,255,0.1);
+              border-radius: 30px;
+              background: rgba(15,15,15,0.75);
+              backdrop-filter: blur(24px);
+              -webkit-backdrop-filter: blur(24px);
+              box-shadow: 0 20px 40px rgba(0,0,0,0.6), inset 0 1px 1px rgba(255,255,255,0.15);
             }
             .mobile-bottom-nav-item {
               position: relative;
               display: flex;
+              flex-direction: column;
               align-items: center;
               justify-content: center;
               min-width: 0;
               min-height: 48px;
               border: 0;
-              border-radius: 15px;
+              border-radius: 18px;
               background: transparent;
-              color: var(--secondary);
+              color: rgba(255,255,255,0.4);
               text-decoration: none;
               cursor: pointer;
-              transition: color 0.22s ease, background 0.22s ease, transform 0.22s ease;
+              transition: all 0.3s cubic-bezier(0.25, 1, 0.5, 1);
               -webkit-tap-highlight-color: transparent;
             }
             .mobile-bottom-nav-item svg {
-              width: 21px;
-              height: 21px;
-              transition: transform 0.22s ease;
+              width: 22px;
+              height: 22px;
+              transition: all 0.3s cubic-bezier(0.25, 1, 0.5, 1);
             }
             .mobile-bottom-nav-item:hover,
-            .mobile-bottom-nav-item:focus-visible,
-            .mobile-bottom-nav-item.is-active {
-              color: var(--text);
-              background: rgba(62,166,255,0.11);
+            .mobile-bottom-nav-item:focus-visible {
+              color: rgba(255,255,255,0.8);
               outline: none;
             }
-            .mobile-bottom-nav-item:active {
-              transform: translateY(1px) scale(0.98);
+            .mobile-bottom-nav-item.is-active {
+              color: var(--accent);
             }
-            .mobile-bottom-nav-item:hover svg,
-            .mobile-bottom-nav-item:focus-visible svg,
+            .mobile-bottom-nav-item:active {
+              transform: scale(0.92);
+            }
             .mobile-bottom-nav-item.is-active svg {
-              transform: translateY(-1px);
+              transform: translateY(-2px);
+              filter: drop-shadow(0 4px 6px rgba(62,166,255,0.4));
+            }
+            /* Glowing dot for active state */
+            .mobile-bottom-nav-item::after {
+              content: '';
+              position: absolute;
+              bottom: 4px;
+              width: 4px;
+              height: 4px;
+              border-radius: 50%;
+              background: var(--accent);
+              opacity: 0;
+              transform: scale(0);
+              transition: all 0.3s cubic-bezier(0.25, 1, 0.5, 1);
+              box-shadow: 0 0 8px var(--accent);
+            }
+            .mobile-bottom-nav-item.is-active::after {
+              opacity: 1;
+              transform: scale(1);
             }
             .mobile-nav-hint {
               position: absolute;

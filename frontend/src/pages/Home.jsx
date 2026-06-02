@@ -127,10 +127,10 @@ export default function Home() {
       }}
     >
       {/* ── Background Orbs ── */}
-      <div style={{ position:"absolute", inset:0, pointerEvents:"none", overflow:"hidden" }}>
-        <div style={{ position:"absolute", width:600, height:600, borderRadius:"50%", background:"radial-gradient(circle, rgba(62,166,255,0.07) 0%, transparent 70%)", top:"-10%", left:"10%"}} />
-        <div style={{ position:"absolute", width:400, height:400, borderRadius:"50%", background:"radial-gradient(circle, rgba(168,85,247,0.05) 0%, transparent 70%)", bottom:"10%", right:"5%"}} />
-        <div style={{ position:"absolute", width:300, height:300, borderRadius:"50%", background:"radial-gradient(circle, rgba(34,197,94,0.04) 0%, transparent 70%)", bottom:"30%", left:"5%"}} />
+      <div style={{ position:"absolute", inset:0, pointerEvents:"none", overflow:"hidden", zIndex: 0 }}>
+        <div style={{ position:"absolute", width:"min(150vw, 600px)", height:"min(150vw, 600px)", borderRadius:"50%", background:"radial-gradient(circle, rgba(62,166,255,0.08) 0%, transparent 70%)", top:"-10%", left:"-10%"}} />
+        <div style={{ position:"absolute", width:"min(100vw, 400px)", height:"min(100vw, 400px)", borderRadius:"50%", background:"radial-gradient(circle, rgba(168,85,247,0.06) 0%, transparent 70%)", bottom:"10%", right:"-5%"}} />
+        <div style={{ position:"absolute", width:"min(80vw, 300px)", height:"min(80vw, 300px)", borderRadius:"50%", background:"radial-gradient(circle, rgba(34,197,94,0.05) 0%, transparent 70%)", bottom:"30%", left:"-5%"}} />
       </div>
 
       {/* ════════════════════════════════════════════
@@ -202,7 +202,7 @@ export default function Home() {
           <div
             className="home-search-wrap"
             style={{
-            display: "flex", gap: 10,
+            display: "flex", gap: 12,
             maxWidth: 640, width: "100%",
             margin: "0 auto",
             flexWrap: "wrap",
@@ -210,15 +210,17 @@ export default function Home() {
             <input
               value={regNo}
               onChange={(e) => setRegNo(e.target.value)}
-              placeholder="Enter Registration No. (e.g. 230301120170)"
+              placeholder="Registration No. (e.g. 230301120170)"
               style={{
-                flex: "1 1 280px", fontSize: 15,
-                padding: "15px 22px", borderRadius: 14,
-                background: "rgba(255,255,255,0.04)",
-                border: "1.5px solid rgba(255,255,255,0.08)",
-                boxShadow: "inset 0 2px 4px rgba(0,0,0,0.2)",
+                flex: "1 1 240px", fontSize: 16,
+                padding: "16px 24px", borderRadius: 20,
+                background: "rgba(255,255,255,0.03)",
+                border: "1px solid rgba(255,255,255,0.08)",
+                boxShadow: "0 4px 30px rgba(0, 0, 0, 0.1), inset 0 1px 0 rgba(255,255,255,0.05)",
+                backdropFilter: "blur(12px)",
+                WebkitBackdropFilter: "blur(12px)",
                 color: "var(--text)", outline: "none",
-                transition: "border-color 0.2s",
+                transition: "all 0.3s cubic-bezier(0.25, 1, 0.5, 1)",
               }}
               onFocus={(e) => e.target.style.borderColor = "var(--accent)"}
               onBlur={(e) => e.target.style.borderColor = "rgba(255,255,255,0.08)"}
@@ -226,19 +228,19 @@ export default function Home() {
             />
             <motion.button
               whileHover={loading ? {} : { scale: 1.03 }}
-              whileTap={loading ? {} : { scale: 0.97 }}
+              whileTap={loading ? {} : { scale: 0.96 }}
               type="submit"
               disabled={loading}
               style={{
                 flex: "0 0 auto",
                 background: loading ? "rgba(255,255,255,0.08)" : "linear-gradient(135deg, #3ea6ff, #3b82f6)",
-                border: "none", padding: "15px 30px", borderRadius: 14,
+                border: "none", padding: "16px 32px", borderRadius: 20,
                 color: loading ? "rgba(255,255,255,0.4)" : "#fff",
-                fontWeight: 700, fontSize: 15,
+                fontWeight: 700, fontSize: 16,
                 cursor: loading ? "not-allowed" : "pointer",
-                display: "flex", alignItems: "center", gap: 8,
-                boxShadow: loading ? "none" : "0 4px 20px rgba(62,166,255,0.35)",
-                transition: "all 0.2s", whiteSpace: "nowrap",
+                display: "flex", alignItems: "center", justifyContent: "center", gap: 10,
+                boxShadow: loading ? "none" : "0 8px 24px rgba(62,166,255,0.4)",
+                transition: "all 0.3s cubic-bezier(0.25, 1, 0.5, 1)", whiteSpace: "nowrap",
               }}
             >
               {loading ? (
@@ -326,7 +328,7 @@ export default function Home() {
           {/* Two formula cards */}
           <div style={{
             display: "grid",
-            gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
+            gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 260px), 1fr))",
             gap: 16,
           }}>
             {/* SGPA Card */}
