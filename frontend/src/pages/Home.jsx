@@ -288,17 +288,21 @@ export default function Home() {
               key={i}
               initial={{ opacity:0, y:8 }}
               animate={{ opacity:1, y:0 }}
-              transition={{ delay: 0.15 + i * 0.05 }}
+              whileHover={{ scale: 1.05, backgroundColor: `${f.color}15`, borderColor: `${f.color}50`, color: "#ffffff" }}
+              whileTap={{ scale: 0.95 }}
+              transition={{ duration: 0.2 }}
               style={{
-                display: "flex", alignItems: "center", gap: 7,
-                padding: "7px 14px",
+                display: "flex", alignItems: "center", gap: 8,
+                padding: "8px 16px",
                 background: "#212121",
                 border: "1px solid rgba(255,255,255,0.08)",
-                borderRadius: 20, fontSize: 13, color: "var(--secondary)",
+                borderRadius: 24, fontSize: 13, color: "var(--secondary)",
+                cursor: "pointer",
+                boxShadow: "0 2px 10px rgba(0,0,0,0.2)",
               }}
             >
               <span style={{ color: f.color }}>{f.icon}</span>
-              {f.label}
+              <span style={{ fontWeight: 500 }}>{f.label}</span>
             </motion.div>
           ))}
         </div>
@@ -360,8 +364,8 @@ export default function Home() {
                 <span style={{ color:"var(--text)", fontSize:"clamp(12px, 2.5vw, 15px)", fontWeight:600, whiteSpace:"nowrap" }}>
                   SGPA =
                   <Fraction
-                    num="Σ (Credit × Grade Points)"
-                    den="Σ Total Credits in Semester"
+                    num="Σ(Credit × Grade Points)"
+                    den="Σ Total Credits"
                   />
                 </span>
               </div>
@@ -413,8 +417,8 @@ export default function Home() {
                 <span style={{ color:"var(--text)", fontSize:"clamp(11px, 2.2vw, 14px)", fontWeight:600, whiteSpace:"nowrap" }}>
                   CGPA =
                   <Fraction
-                    num="Σ (SGPA of Semester × Credits of Semester)"
-                    den="Σ Total Credits Across All Semesters"
+                    num="Σ(Sem SGPA × Sem Credits)"
+                    den="Σ Total Credits"
                   />
                 </span>
               </div>
@@ -514,84 +518,64 @@ export default function Home() {
                 style={{ overflow:"hidden" }}
               >
 
-                {/* Column headers — hidden on mobile */}
-                <div className="gs-header" style={{
-                  display: "grid",
-                  gridTemplateColumns: "64px 1fr 130px 80px 100px",
-                  gap: 8,
-                  padding: "0 12px 12px",
-                  borderBottom: "1px solid rgba(255,255,255,0.06)",
-                  marginBottom: 10,
-                }}>
-                  {["Grade", "Qualification", "Range", "Points", "Counted?"].map(h => (
-                    <span key={h} style={{
-                      fontSize:10, fontWeight:700, color:"var(--secondary)",
-                      textTransform:"uppercase", letterSpacing:"0.8px",
-                    }}>{h}</span>
-                  ))}
-                </div>
+                <div style={{ overflowX: "auto", paddingBottom: "12px", margin: "0 -4px", padding: "0 4px" }}>
+                  <div style={{ minWidth: 550 }}>
+                    {/* Column headers */}
+                    <div className="gs-header" style={{
+                      display: "grid",
+                      gridTemplateColumns: "64px 1fr 130px 80px 100px",
+                      gap: 8,
+                      padding: "0 12px 12px",
+                      borderBottom: "1px solid rgba(255,255,255,0.06)",
+                      marginBottom: 10,
+                    }}>
+                      {["Grade", "Qualification", "Range", "Points", "Counted?"].map(h => (
+                        <span key={h} style={{
+                          fontSize:10, fontWeight:700, color:"var(--secondary)",
+                          textTransform:"uppercase", letterSpacing:"0.8px",
+                        }}>{h}</span>
+                      ))}
+                    </div>
 
-                {/* Grade Rows */}
-                <div style={{ display:"flex", flexDirection:"column", gap:6 }}>
-                  {GRADE_SCALE.map((row, i) => (
-                    <motion.div
-                      key={row.grade}
-                      initial={{ opacity:0, x:-10 }}
-                      animate={{ opacity:1, x:0 }}
-                      transition={{ delay: i * 0.04 }}
-                      className="gs-row"
-                      style={{
-                        borderRadius: 12,
-                        background: row.bg,
-                        border: `1px solid ${row.color}20`,
-                        overflow: "hidden",
-                      }}
-                    >
-                      {/* Desktop row */}
-                      <div className="gs-row-desktop" style={{
-                        display: "grid",
-                        gridTemplateColumns: "64px 1fr 130px 80px 100px",
-                        gap: 8, padding: "13px 12px",
-                        alignItems: "center",
-                      }}>
-                        <div style={{
-                          width:38, height:38, borderRadius:10,
-                          background: row.color + "25",
-                          border: `1.5px solid ${row.color}50`,
-                          display:"flex", alignItems:"center", justifyContent:"center",
-                          fontWeight:800, fontSize:16, color:row.color,
-                          fontFamily:"'Space Mono', monospace",
-                        }}>{row.grade}</div>
-                        <span style={{ fontWeight:600, fontSize:14, color:"var(--text)" }}>{row.qual}</span>
-                        <span style={{ fontSize:13, color:"var(--secondary)", fontFamily:"'Space Mono', monospace" }}>{row.range}</span>
-                        <span style={{ fontWeight:800, fontSize:20, color: row.pts >= 5 ? row.color : row.pts === 2 ? "#ef4444" : "var(--secondary)", fontFamily:"'Space Mono', monospace" }}>{row.pts}</span>
-                        <div><span style={S.pill(row.counted)}>{row.counted ? "Yes" : "No"}</span></div>
-                      </div>
-
-                      {/* Mobile card (stacked) */}
-                      <div className="gs-row-mobile" style={{ display:"none", padding:"14px 14px", gap:0 }}>
-                        <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:10 }}>
-                          <div style={{ display:"flex", alignItems:"center", gap:12 }}>
+                    {/* Grade Rows */}
+                    <div style={{ display:"flex", flexDirection:"column", gap:6 }}>
+                      {GRADE_SCALE.map((row, i) => (
+                        <motion.div
+                          key={row.grade}
+                          initial={{ opacity:0, x:-10 }}
+                          animate={{ opacity:1, x:0 }}
+                          transition={{ delay: i * 0.04 }}
+                          className="gs-row"
+                          style={{
+                            borderRadius: 12,
+                            background: row.bg,
+                            border: `1px solid ${row.color}20`,
+                            overflow: "hidden",
+                          }}
+                        >
+                          <div className="gs-row-desktop" style={{
+                            display: "grid",
+                            gridTemplateColumns: "64px 1fr 130px 80px 100px",
+                            gap: 8, padding: "13px 12px",
+                            alignItems: "center",
+                          }}>
                             <div style={{
-                              width:40, height:40, borderRadius:10,
-                              background: row.color + "25", border:`1.5px solid ${row.color}50`,
+                              width:38, height:38, borderRadius:10,
+                              background: row.color + "25",
+                              border: `1.5px solid ${row.color}50`,
                               display:"flex", alignItems:"center", justifyContent:"center",
-                              fontWeight:800, fontSize:18, color:row.color,
-                              fontFamily:"'Space Mono', monospace", flexShrink:0,
+                              fontWeight:800, fontSize:16, color:row.color,
+                              fontFamily:"'Space Mono', monospace",
                             }}>{row.grade}</div>
-                            <div>
-                              <div style={{ fontWeight:700, fontSize:14, color:"var(--text)" }}>{row.qual}</div>
-                              <div style={{ fontSize:12, color:"var(--secondary)", fontFamily:"'Space Mono', monospace", marginTop:1 }}>{row.range}</div>
-                            </div>
+                            <span style={{ fontWeight:600, fontSize:14, color:"var(--text)" }}>{row.qual}</span>
+                            <span style={{ fontSize:13, color:"var(--secondary)", fontFamily:"'Space Mono', monospace" }}>{row.range}</span>
+                            <span style={{ fontWeight:800, fontSize:20, color: row.pts >= 5 ? row.color : row.pts === 2 ? "#ef4444" : "var(--secondary)", fontFamily:"'Space Mono', monospace" }}>{row.pts}</span>
+                            <div><span style={S.pill(row.counted)}>{row.counted ? "Yes" : "No"}</span></div>
                           </div>
-                          <div style={{ display:"flex", alignItems:"center", gap:10, flexShrink:0 }}>
-                            <span style={{ fontWeight:800, fontSize:22, color: row.pts >= 5 ? row.color : row.pts === 2 ? "#ef4444" : "var(--secondary)", fontFamily:"'Space Mono', monospace" }}>{row.pts}</span>
-                            <span style={S.pill(row.counted)}>{row.counted ? "Yes" : "No"}</span>
-                          </div>
-                        </div>
-                      </div>
-                    </motion.div>
-                  ))}
+                        </motion.div>
+                      ))}
+                    </div>
+                  </div>
                 </div>
 
                 {/* Legend */}
@@ -617,17 +601,6 @@ export default function Home() {
 
       {/* ── Responsive CSS ── */}
       <style>{`
-        /* Default: show desktop layout */
-        .gs-row-desktop { display: grid; }
-        .gs-row-mobile  { display: none !important; }
-        .gs-header      { display: grid; }
-
-        @media (max-width: 620px) {
-          .gs-header      { display: none !important; }
-          .gs-row-desktop { display: none !important; }
-          .gs-row-mobile  { display: block !important; }
-        }
-
         /* Search bar: stack on mobile */
         @media (max-width: 560px) {
           .home-search-wrap { flex-direction: column !important; }
