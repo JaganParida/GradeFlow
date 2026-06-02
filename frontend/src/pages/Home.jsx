@@ -359,9 +359,9 @@ export default function Home() {
                 background: "rgba(0,0,0,0.3)", borderRadius: 12,
                 padding: "18px 12px", textAlign: "center",
                 fontFamily: "'Space Mono', monospace",
-                marginBottom: 16, overflowX: "auto",
+                marginBottom: 16,
               }}>
-                <span style={{ color:"var(--text)", fontSize:"clamp(12px, 2.5vw, 15px)", fontWeight:600, whiteSpace:"nowrap" }}>
+                <span style={{ color:"var(--text)", fontSize:"clamp(10px, 3.5vw, 15px)", fontWeight:600, whiteSpace:"nowrap" }}>
                   SGPA =
                   <Fraction
                     num="Σ(Credit × Grade Points)"
@@ -412,9 +412,9 @@ export default function Home() {
                 background: "rgba(0,0,0,0.3)", borderRadius: 12,
                 padding: "18px 12px", textAlign: "center",
                 fontFamily: "'Space Mono', monospace",
-                marginBottom: 16, overflowX: "auto",
+                marginBottom: 16,
               }}>
-                <span style={{ color:"var(--text)", fontSize:"clamp(11px, 2.2vw, 14px)", fontWeight:600, whiteSpace:"nowrap" }}>
+                <span style={{ color:"var(--text)", fontSize:"clamp(10px, 3.5vw, 14px)", fontWeight:600, whiteSpace:"nowrap" }}>
                   CGPA =
                   <Fraction
                     num="Σ(Sem SGPA × Sem Credits)"
