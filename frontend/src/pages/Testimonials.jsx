@@ -42,6 +42,23 @@ export default function Testimonials() {
     try {
       const res = await axios.get(`${API}/feedback`);
       setFeedbacks(res.data);
+      
+      // Self-healing: if local storage says liked but server says 0, the API call previously failed.
+      // Remove it from local storage so the user can try again.
+      const localLiked = JSON.parse(localStorage.getItem("likedFeedbacks") || "[]");
+      let modified = false;
+      const validLiked = localLiked.filter(id => {
+        const fb = res.data.find(f => f._id === id);
+        if (fb && (fb.likes === 0 || fb.likes === undefined)) {
+          modified = true;
+          return false;
+        }
+        return true;
+      });
+      if (modified) {
+        setLikedFeedbacks(validLiked);
+        localStorage.setItem("likedFeedbacks", JSON.stringify(validLiked));
+      }
     } catch (err) {
       console.error("Failed to load feedbacks:", err);
     } finally {
@@ -94,6 +111,14 @@ export default function Testimonials() {
       await axios.post(`${API}/feedback/${id}/like`);
     } catch (err) {
       console.error("Failed to like feedback:", err);
+      // Revert optimistic update on failure
+      const revertedLiked = likedFeedbacks.filter(likedId => likedId !== id);
+      setLikedFeedbacks(revertedLiked);
+      localStorage.setItem("likedFeedbacks", JSON.stringify(revertedLiked));
+      setFeedbacks(feedbacks.map(fb => 
+        fb._id === id ? { ...fb, likes: Math.max((fb.likes || 1) - 1, 0) } : fb
+      ));
+      alert("Failed to register like. Please ensure the backend is running and try again.");
     }
   };
 
