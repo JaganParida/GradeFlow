@@ -74,7 +74,10 @@ function getInternalAssessments(subject, semester) {
     label,
     obtained,
     max,
-    secondary: firstAvailableMark(roundOff, isMarkAvailable(obtained) ? Math.round(Number(obtained)) : null),
+    secondary: firstAvailableMark(
+      isMarkAvailable(roundOff) ? Math.round(Number(roundOff)) : null,
+      isMarkAvailable(obtained) ? Math.round(Number(obtained)) : null
+    ),
     secondaryLabel: "RND",
   });
 
@@ -205,6 +208,13 @@ export default function Dashboard() {
   const [expandedBacklog, setExpandedBacklog] = useState(null);
   const [highlightedSubject, setHighlightedSubject] = useState(null);
   const [isBacklogsListExpanded, setIsBacklogsListExpanded] = useState(false);
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 1024);
+
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth < 1024);
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
 
   const downloadFullTranscript = async () => {
     setIsDownloadingBatch(true);
@@ -793,57 +803,108 @@ export default function Dashboard() {
                   </button>
                 </div>
 
-                <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-                  {internalSubjects.map((s, i) => {
-                    const isSem1 = Number(internalMarks.semester) === 1;
-                    const assessments = getInternalAssessments(s, internalMarks.semester);
-                    const total = getSubjectTotal(s, internalMarks.semester, assessments);
-                    return (
-                      <motion.div key={i} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.04 }}
-                        style={{ background: "#212121", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 12, overflow: "hidden" }}
-                      >
-                        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "14px 18px", borderBottom: "1px solid rgba(255,255,255,0.06)", gap: 12, flexWrap: "wrap" }}>
-                          <div style={{ display: "flex", alignItems: "center", gap: 12, minWidth: 0, flex: 1 }}>
-                            <div style={{ width: 32, height: 32, borderRadius: 8, background: "rgba(255,255,255,0.06)", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "Space Mono", fontSize: 12, fontWeight: 700, color: "#aaaaaa", flexShrink: 0 }}>{i + 1}</div>
-                            <div style={{ minWidth: 0 }}>
-                              <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 4, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{s.subName}</div>
-                              <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-                                <span style={{ fontSize: 10, color: "#aaaaaa", background: "rgba(255,255,255,0.06)", padding: "2px 7px", borderRadius: 5, border: "1px solid rgba(255,255,255,0.08)", fontFamily: "Space Mono" }}>{s.subCode}</span>
-                                {s.type && <span style={{ fontSize: 10, color: "#a855f7", background: "rgba(168,85,247,0.12)", padding: "2px 7px", borderRadius: 5 }}>{s.type}</span>}
-                              </div>
-                            </div>
-                          </div>
-                          <div style={{ textAlign: "right", flexShrink: 0 }}>
-                            <div style={{ fontSize: 10, color: "#aaaaaa", textTransform: "uppercase", letterSpacing: "0.8px", fontWeight: 700, marginBottom: 4 }}>Total</div>
-                            {total.hasAny ? (
-                              <span style={{ display: "inline-block", border: "1px solid rgba(34,197,94,0.35)", background: "rgba(34,197,94,0.1)", padding: "4px 12px", borderRadius: 20, fontFamily: "Space Mono", fontWeight: 800, fontSize: 14, color: "var(--success)", whiteSpace: "nowrap" }}>
-                                {formatMark(total.score)}{isMarkAvailable(total.max) && <span style={{ color: "rgba(34,197,94,0.55)", fontSize: 11 }}>/{formatMark(total.max)}</span>}
-                              </span>
-                            ) : <span style={{ color: "#717171", fontSize: 13 }}>—</span>}
-                          </div>
-                        </div>
-
-                        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(140px, 1fr))", gap: 1, background: "rgba(255,255,255,0.04)" }}>
-                          {assessments.map((assessment, ci) => (
-                            <div key={ci} style={{ background: "#212121", padding: "12px 16px" }}>
-                              <div style={{ fontSize: 10, color: "#717171", textTransform: "uppercase", letterSpacing: "0.7px", fontWeight: 700, marginBottom: 8 }}>{assessment.label}</div>
-                              <div style={{ display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap" }}>
-                                <div>
-                                  <div style={{ fontSize: 9, color: "#717171", fontWeight: 700, marginBottom: 2, textTransform: "uppercase" }}>Obtained</div>
-                                  <MarkValue value={assessment.obtained} max={assessment.max} color="#f1f1f1" showMax={false} />
-                                </div>
-                                <div>
-                                  <div style={{ fontSize: 9, color: "#717171", fontWeight: 700, marginBottom: 2, textTransform: "uppercase" }}>{isSem1 ? "Max" : "Round Off"}</div>
-                                  <MarkValue value={assessment.secondary} max={assessment.max} color="#a855f7" showMax={false} />
-                                </div>
-                              </div>
-                            </div>
+                {internalSubjects.length > 0 && !isMobile ? (
+                  <div style={{ overflowX: "auto" }}>
+                    <table style={{ width: "100%", borderCollapse: "collapse", background: "#212121", borderRadius: 12, overflow: "hidden", textAlign: "left" }}>
+                      <thead>
+                        <tr style={{ background: "rgba(255,255,255,0.06)", borderBottom: "1px solid rgba(255,255,255,0.08)" }}>
+                          <th style={{ padding: "14px 16px", fontSize: 12, color: "#aaaaaa", fontWeight: 600 }}>Subject</th>
+                          {getInternalAssessments(internalSubjects[0], internalMarks.semester).map((a, i) => (
+                             <th key={i} style={{ padding: "14px 16px", textAlign: "center", fontSize: 12, color: "#aaaaaa", fontWeight: 600 }}>{a.label}</th>
                           ))}
-                        </div>
-                      </motion.div>
-                    );
-                  })}
-                </div>
+                          <th style={{ padding: "14px 16px", textAlign: "right", fontSize: 12, color: "#aaaaaa", fontWeight: 600 }}>Total</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {internalSubjects.map((s, i) => {
+                          const isSem1 = Number(internalMarks.semester) === 1;
+                          const assessments = getInternalAssessments(s, internalMarks.semester);
+                          const total = getSubjectTotal(s, internalMarks.semester, assessments);
+                          return (
+                            <tr key={i} style={{ borderBottom: "1px solid rgba(255,255,255,0.04)" }}>
+                              <td style={{ padding: "14px 16px", borderRight: "1px solid rgba(255,255,255,0.02)" }}>
+                                 <div style={{ fontWeight: 700, fontSize: 13, color: "#fff", marginBottom: 4 }}>{s.subName}</div>
+                                 <div style={{ display: "flex", gap: 6 }}>
+                                   <span style={{ fontSize: 10, color: "#aaaaaa", background: "rgba(255,255,255,0.06)", padding: "2px 6px", borderRadius: 4, fontFamily: "Space Mono" }}>{s.subCode}</span>
+                                   {s.type && <span style={{ fontSize: 10, color: "#a855f7", background: "rgba(168,85,247,0.12)", padding: "2px 6px", borderRadius: 4 }}>{s.type}</span>}
+                                 </div>
+                              </td>
+                              {assessments.map((a, ci) => (
+                                <td key={ci} style={{ padding: "14px 16px", textAlign: "center", borderRight: "1px solid rgba(255,255,255,0.02)" }}>
+                                   <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 4 }}>
+                                     <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                                       <span style={{ fontSize: 10, color: "#717171", fontWeight: 600 }}>O: <MarkValue value={a.obtained} max={a.max} color="#f1f1f1" showMax={false} /></span>
+                                       <span style={{ fontSize: 10, color: "#717171", fontWeight: 600 }}>{isSem1 ? "M:" : "R:"} <MarkValue value={a.secondary} max={a.max} color="#a855f7" showMax={false} /></span>
+                                     </div>
+                                   </div>
+                                </td>
+                              ))}
+                              <td style={{ padding: "14px 16px", textAlign: "right" }}>
+                                {total.hasAny ? (
+                                  <span style={{ display: "inline-block", background: "rgba(34,197,94,0.1)", border: "1px solid rgba(34,197,94,0.35)", padding: "4px 10px", borderRadius: 12, fontFamily: "Space Mono", fontWeight: 700, fontSize: 13, color: "var(--success)", whiteSpace: "nowrap" }}>
+                                    {formatMark(total.score)}{isMarkAvailable(total.max) && <span style={{ color: "rgba(34,197,94,0.55)", fontSize: 11 }}>/{formatMark(total.max)}</span>}
+                                  </span>
+                                ) : <span style={{ color: "#717171" }}>—</span>}
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                ) : (
+                  <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                    {internalSubjects.map((s, i) => {
+                      const isSem1 = Number(internalMarks.semester) === 1;
+                      const assessments = getInternalAssessments(s, internalMarks.semester);
+                      const total = getSubjectTotal(s, internalMarks.semester, assessments);
+                      return (
+                        <motion.div key={i} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.04 }}
+                          style={{ background: "#212121", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 12, overflow: "hidden" }}
+                        >
+                          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "14px 18px", borderBottom: "1px solid rgba(255,255,255,0.06)", gap: 12, flexWrap: "wrap" }}>
+                            <div style={{ display: "flex", alignItems: "center", gap: 12, minWidth: 0, flex: 1 }}>
+                              <div style={{ width: 32, height: 32, borderRadius: 8, background: "rgba(255,255,255,0.06)", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "Space Mono", fontSize: 12, fontWeight: 700, color: "#aaaaaa", flexShrink: 0 }}>{i + 1}</div>
+                              <div style={{ minWidth: 0 }}>
+                                <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 4, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{s.subName}</div>
+                                <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                                  <span style={{ fontSize: 10, color: "#aaaaaa", background: "rgba(255,255,255,0.06)", padding: "2px 7px", borderRadius: 5, border: "1px solid rgba(255,255,255,0.08)", fontFamily: "Space Mono" }}>{s.subCode}</span>
+                                  {s.type && <span style={{ fontSize: 10, color: "#a855f7", background: "rgba(168,85,247,0.12)", padding: "2px 7px", borderRadius: 5 }}>{s.type}</span>}
+                                </div>
+                              </div>
+                            </div>
+                            <div style={{ textAlign: "right", flexShrink: 0 }}>
+                              <div style={{ fontSize: 10, color: "#aaaaaa", textTransform: "uppercase", letterSpacing: "0.8px", fontWeight: 700, marginBottom: 4 }}>Total</div>
+                              {total.hasAny ? (
+                                <span style={{ display: "inline-block", border: "1px solid rgba(34,197,94,0.35)", background: "rgba(34,197,94,0.1)", padding: "4px 12px", borderRadius: 20, fontFamily: "Space Mono", fontWeight: 800, fontSize: 14, color: "var(--success)", whiteSpace: "nowrap" }}>
+                                  {formatMark(total.score)}{isMarkAvailable(total.max) && <span style={{ color: "rgba(34,197,94,0.55)", fontSize: 11 }}>/{formatMark(total.max)}</span>}
+                                </span>
+                              ) : <span style={{ color: "#717171", fontSize: 13 }}>—</span>}
+                            </div>
+                          </div>
+  
+                          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(140px, 1fr))", gap: 1, background: "rgba(255,255,255,0.04)" }}>
+                            {assessments.map((assessment, ci) => (
+                              <div key={ci} style={{ background: "#212121", padding: "12px 16px" }}>
+                                <div style={{ fontSize: 10, color: "#717171", textTransform: "uppercase", letterSpacing: "0.7px", fontWeight: 700, marginBottom: 8 }}>{assessment.label}</div>
+                                <div style={{ display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap" }}>
+                                  <div>
+                                    <div style={{ fontSize: 9, color: "#717171", fontWeight: 700, marginBottom: 2, textTransform: "uppercase" }}>Obtained</div>
+                                    <MarkValue value={assessment.obtained} max={assessment.max} color="#f1f1f1" showMax={false} />
+                                  </div>
+                                  <div>
+                                    <div style={{ fontSize: 9, color: "#717171", fontWeight: 700, marginBottom: 2, textTransform: "uppercase" }}>{isSem1 ? "Max" : "Round Off"}</div>
+                                    <MarkValue value={assessment.secondary} max={assessment.max} color="#a855f7" showMax={false} />
+                                  </div>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </motion.div>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
             ) : (
               <div style={{ textAlign: "center", padding: "48px 24px", background: "#212121", borderRadius: 12, border: "1px solid rgba(255,255,255,0.08)" }}>
