@@ -65,12 +65,15 @@ export function AppProvider({ children }) {
     ? { headers: { Authorization: `Bearer ${adminToken}` } }
     : {};
 
-  // ─── Student Fetch with Exponential Backoff ────────────────────
-  // Automatically retries on 429 (Too Many Requests) with exponential waits:
-  // 1s → 2s → 4s → 8s before giving up, so high traffic is handled transparently.
+  // ─── Student Fetch with Silent Exponential Backoff ────────────────
+  // On 429 / 502 / 503 the request is retried silently behind a spinner
+  // (1s → 2s → 4s → 8s). Users just see the loading state — no scary error.
   const fetchStudent = async (regNo, retries = 4, backoffMs = 1000) => {
-    setLoading(true);
-    setError("");
+    // Only set loading on first call (not during a silent retry)
+    if (backoffMs === 1000) {
+      setLoading(true);
+      setError("");
+    }
     try {
       const res = await axios.get(`${API_BASE}/student/${regNo}`);
 
@@ -80,29 +83,24 @@ export function AppProvider({ children }) {
       setLoading(false);
       return true;
     } catch (err) {
-      if (err.response?.status === 429 && retries > 0) {
-        // Server is under heavy load — wait and retry transparently
-        const waitSec = Math.round(backoffMs / 1000);
-        setError(`High traffic detected. Retrying automatically in ${waitSec}s…`);
+      const status = err.response?.status;
+
+      // Transient server errors — retry silently (spinner stays, no error shown)
+      const isTransient = status === 429 || status === 502 || status === 503;
+      if (isTransient && retries > 0) {
         await new Promise((resolve) => setTimeout(resolve, backoffMs));
         return fetchStudent(regNo, retries - 1, backoffMs * 2);
       }
 
-      if (err.response?.status === 503 || err.response?.status === 502) {
-        if (retries > 0) {
-          setError(`Server is restarting. Retrying in ${Math.round(backoffMs / 1000)}s…`);
-          await new Promise((resolve) => setTimeout(resolve, backoffMs));
-          return fetchStudent(regNo, retries - 1, backoffMs * 2);
-        }
-        setError("Server is temporarily unavailable. Please try again in a moment.");
-      } else if (err.response?.status === 404) {
-        setError("Student not found. Please check your Registration Number.");
-      } else if (!err.response) {
-        setError("Network error — please check your internet connection.");
-      } else {
-        setError(err.response?.data?.message || "Failed to fetch student data.");
-      }
+      // After all retries exhausted or non-transient error — show message
+      let msg = "Something went wrong. Please try again.";
+      if (status === 404)      msg = "Student not found. Please check your Registration Number.";
+      else if (status === 429) msg = "Server is very busy right now. Please try again in a few seconds.";
+      else if (status === 502 || status === 503) msg = "Server is restarting. Please try again in a moment.";
+      else if (!err.response)  msg = "Network error — please check your internet connection.";
+      else if (err.response?.data?.message) msg = err.response.data.message;
 
+      setError(msg);
       setStudentData(null);
       setLoading(false);
       return false;
