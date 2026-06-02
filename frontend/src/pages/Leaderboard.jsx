@@ -3,7 +3,7 @@ import { useLocation } from "react-router-dom";
 import axios from "axios";
 import { useApp } from "../context/AppContext";
 import { Spinner } from "../components/LoadingSpinner";
-import { motion } from "framer-motion";
+import { AnimatePresence, motion } from "framer-motion";
 import { Trophy, Search, Calendar, Medal, Star, Target } from "lucide-react";
 
 export default function Leaderboard() {
@@ -286,17 +286,27 @@ export default function Leaderboard() {
               const isHighlighted = highlightRegNo === r.regNo;
               const isDeveloper = r.regNo === "230301120327";
 
+              const isExpandableRow = r.displayRank > 10;
+
               return (
                 <motion.tr
+                  layout
                   id={`row-${r.regNo}`}
                   key={`${r.regNo}-${r.displayRank}-${isSGPA ? "sgpa" : "cgpa"}`}
-                  initial={{ opacity: 0, y: 8 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.18, delay: Math.min(i * 0.015, 0.2) }}
+                  initial={isExpandableRow ? { opacity: 0, y: -10, scaleY: 0.96 } : { opacity: 0, y: 8 }}
+                  animate={{ opacity: 1, y: 0, scaleY: 1 }}
+                  exit={{ opacity: 0, y: -8, scaleY: 0.96 }}
+                  transition={{
+                    duration: isExpandableRow ? 0.28 : 0.18,
+                    ease: [0.22, 1, 0.36, 1],
+                    delay: showCount === 50 ? Math.min(i * 0.008, 0.18) : 0,
+                  }}
                   style={{
                     backgroundColor: isHighlighted ? "rgba(168,85,247,0.25)" : "transparent",
                     boxShadow: isHighlighted ? "inset 0 0 0 2px rgba(168,85,247,0.5)" : "none",
-                    transition: "background-color 0.5s ease"
+                    transition: "background-color 0.5s ease",
+                    transformOrigin: "top",
+                    whiteSpace: "nowrap"
                   }}
                 >
                   <td>
@@ -307,9 +317,9 @@ export default function Leaderboard() {
                       {medalColor && <Medal size={20} color={medalColor} />}
                     </div>
                   </td>
-                  <td style={{ fontWeight: 700, color: nameColor, minWidth: 0 }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", minWidth: 0 }}>
-                      <span style={{ overflowWrap: "anywhere" }}>{r.studentName}</span>
+                  <td style={{ fontWeight: 700, color: nameColor, whiteSpace: "nowrap" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "nowrap", whiteSpace: "nowrap" }}>
+                      <span style={{ whiteSpace: "nowrap" }}>{r.studentName}</span>
                       {isDeveloper && (
                         <span style={{
                           background: "rgba(168,85,247,0.15)",
@@ -332,13 +342,13 @@ export default function Leaderboard() {
                       fontFamily: "Space Mono",
                       fontSize: 12,
                       color: "var(--secondary)",
-                      overflowWrap: "anywhere",
+                      whiteSpace: "nowrap",
                     }}
                   >
                     {r.regNo}
                   </td>
                   <td>
-                    <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
+                    <div style={{ display: "flex", gap: 4, flexWrap: "nowrap", whiteSpace: "nowrap" }}>
                       {getBadges(r).map((b, bi) => (
                         <span
                           key={bi}
@@ -364,7 +374,8 @@ export default function Leaderboard() {
                       color: scoreColor,
                       background: "rgba(62,166,255,0.02)",
                       borderLeft: "1px solid rgba(62,166,255,0.1)",
-                      borderRight: "1px solid rgba(62,166,255,0.1)"
+                      borderRight: "1px solid rgba(62,166,255,0.1)",
+                      whiteSpace: "nowrap"
                     }}
                   >
                     {isSGPA ? r.sgpa?.toFixed(2) : r.cgpa?.toFixed(2)}
@@ -375,15 +386,20 @@ export default function Leaderboard() {
 
             return (
               <>
-                <div className="table-wrap" style={{ marginBottom: 0 }}>
-                  <table style={{ margin: 0, tableLayout: "fixed", width: "100%" }}>
+                <motion.div
+                  layout
+                  className="table-wrap"
+                  transition={{ duration: 0.36, ease: [0.22, 1, 0.36, 1] }}
+                  style={{ marginBottom: 0, overflowX: "auto", overflowY: "hidden" }}
+                >
+                  <table style={{ margin: 0, tableLayout: "auto", width: "100%", minWidth: 980 }}>
                     {colGroup}
                     <thead>
                       <tr>
-                        <th>Rank</th>
-                        <th>Student</th>
-                        <th>Reg. No</th>
-                        <th>Badges</th>
+                        <th style={{ whiteSpace: "nowrap" }}>Rank</th>
+                        <th style={{ whiteSpace: "nowrap" }}>Student</th>
+                        <th style={{ whiteSpace: "nowrap" }}>Reg. No</th>
+                        <th style={{ whiteSpace: "nowrap" }}>Badges</th>
                         {isSGPA && (
                           <th style={{ borderBottom: "2px solid var(--accent)", color: "var(--accent)" }}>SGPA</th>
                         )}
@@ -406,10 +422,12 @@ export default function Leaderboard() {
                           </td>
                         </tr>
                       )}
-                      {visibleRankings.map(renderRankingRow)}
+                      <AnimatePresence initial={false}>
+                        {visibleRankings.map(renderRankingRow)}
+                      </AnimatePresence>
                     </tbody>
                   </table>
-                </div>
+                </motion.div>
                 
                 {hasMoreRankings && (
                   <div style={{ textAlign: "center", marginTop: 24 }}>
