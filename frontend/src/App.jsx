@@ -6,8 +6,10 @@ import Home from "./pages/Home";
 import Dashboard from "./pages/Dashboard";
 import Analytics from "./pages/Analytics";
 import Leaderboard from "./pages/Leaderboard";
+import Testimonials from "./pages/Testimonials";
 import AdminLogin from "./pages/AdminLogin";
 import AdminDashboard from "./pages/AdminDashboard";
+import FeedbackModal from "./components/FeedbackModal";
 import { useApp } from "./context/AppContext";
 import { AlertTriangle, X } from "lucide-react";
 
@@ -44,6 +46,7 @@ export default function App() {
   return (
     <>
       <Navbar />
+      <FeedbackModal />
       
       {/* Global Rate Limit Alert */}
       {rateLimitError && (
@@ -91,6 +94,7 @@ export default function App() {
         <Route path="/dashboard/:regNo" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
         <Route path="/analytics/:regNo" element={<ProtectedRoute><Analytics /></ProtectedRoute>} />
         <Route path="/leaderboard" element={<ProtectedRoute><Leaderboard /></ProtectedRoute>} />
+        <Route path="/testimonials" element={<Testimonials />} />
         <Route path="/admin" element={<AdminLogin />} />
         <Route path="/admin/dashboard" element={<AdminDashboard />} />
       </Routes>

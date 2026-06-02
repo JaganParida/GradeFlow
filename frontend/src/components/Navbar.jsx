@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useApp } from "../context/AppContext";
 import { motion, AnimatePresence } from "framer-motion";
-import { GraduationCap, LayoutDashboard, BarChart2, Trophy, MoreHorizontal, X, ShieldAlert, LogOut, Search } from "lucide-react";
+import { GraduationCap, LayoutDashboard, BarChart2, Trophy, MoreHorizontal, X, ShieldAlert, LogOut, Search, MessageSquare } from "lucide-react";
 
 export default function Navbar() {
   const [scrolled, setScrolled] = useState(false);
@@ -38,6 +38,7 @@ export default function Navbar() {
     { to: currentRegNo ? `/dashboard/${currentRegNo}` : "#", label: "Dashboard", icon: <LayoutDashboard size={16} />, reqAuth: true },
     { to: currentRegNo ? `/analytics/${currentRegNo}` : "#", label: "Analytics", icon: <BarChart2 size={16} />, reqAuth: true },
     { to: "/leaderboard", label: "Leaderboard", icon: <Trophy size={16} />, reqAuth: true },
+    { to: "/testimonials", label: "Testimonials", icon: <MessageSquare size={16} />, reqAuth: false },
   ];
 
   const moreLinks = [
@@ -49,6 +50,7 @@ export default function Navbar() {
     if (l.label === "Dashboard") return location.pathname.startsWith("/dashboard");
     if (l.label === "Analytics") return location.pathname.startsWith("/analytics");
     if (l.label === "Leaderboard") return location.pathname === "/leaderboard";
+    if (l.label === "Testimonials") return location.pathname === "/testimonials";
     if (l.label === "Admin") return location.pathname.startsWith("/admin");
     return location.pathname === l.to;
   };
