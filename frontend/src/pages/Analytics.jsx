@@ -1,6 +1,7 @@
 import { useEffect, useState, useMemo, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useApp } from "../context/AppContext";
+import CompanyEligibility from "../components/CompanyEligibility";
 import {
   LineChart,
   Line,
@@ -18,7 +19,7 @@ import {
 } from "recharts";
 import { Spinner } from "../components/LoadingSpinner";
 import { motion, animate } from "framer-motion";
-import { TrendingUp, TrendingDown, Star, Trophy, CheckCircle, AlertTriangle, Target, Medal, Award, BarChart2, PieChart, Briefcase, GraduationCap, Check, X, ArrowLeft, Building2, FileText } from "lucide-react";
+import { TrendingUp, TrendingDown, Star, Trophy, CheckCircle, AlertTriangle, Target, Medal, Award, BarChart2, PieChart, Briefcase, GraduationCap, Check, ArrowLeft } from "lucide-react";
 import {
   GRADE_POINTS,
   calculateCGPA,
@@ -129,6 +130,26 @@ function generateInsights(data) {
       type: "success",
     });
   return insights;
+}
+
+function getDynamicBranch(regNo, fallbackBranch) {
+  if (!regNo) return fallbackBranch;
+  const r = String(regNo).trim();
+
+  if (r === "230301180026") return "CSE";
+  if (["230301120110", "230301120186", "230301120371", "230301120481"].includes(r)) return "ECE";
+  if (r === "230301231033") return "AERO";
+
+  if (r.startsWith("230301110") || r.startsWith("230301111")) return "CIVIL";
+  if (r.startsWith("230301120") || r.startsWith("230301121")) return "CSE";
+  if (r.startsWith("230301130") || r.startsWith("230301131") || r.startsWith("230301132")) return "ECE";
+  if (r.startsWith("230301150") || r.startsWith("230301151")) return "EEE";
+  if (r.startsWith("230301160") || r.startsWith("230301161")) return "ME";
+  if (r.startsWith("230301180")) return "BIO";
+  if (r.startsWith("230301190") || r.startsWith("230301191")) return "MI";
+  if (r.startsWith("230301230")) return "AERO";
+
+  return fallbackBranch || "-";
 }
 
 export default function Analytics() {
@@ -287,24 +308,7 @@ export default function Analytics() {
       (GRADE_POINTS[s.grade] || 0) < (GRADE_POINTS[a?.grade] || 0) ? s : a,
     graded[0],
   );
-
-  // Placement readiness
-  const placementScore = Math.round(
-    Math.min((cgpa / 10) * 40, 40) +
-      (backlogs.length === 0 ? 30 : Math.max(0, 30 - backlogs.length * 10)) +
-      (latestSgpa >= 8.5 ? 20 : latestSgpa >= 7.5 ? 15 : 10) +
-      10,
-  );
-
-  const companies = [
-    { name: "TCS", cgpaReq: 6.0, noBacklog: false },
-    { name: "Infosys", cgpaReq: 6.5, noBacklog: false },
-    { name: "Wipro", cgpaReq: 6.5, noBacklog: false },
-    { name: "Accenture", cgpaReq: 7.0, noBacklog: true },
-    { name: "Amazon", cgpaReq: 7.5, noBacklog: true },
-    { name: "Microsoft", cgpaReq: 8.0, noBacklog: true },
-    { name: "Google", cgpaReq: 8.5, noBacklog: true },
-  ];
+  const dynamicBranch = getDynamicBranch(regNo, branch);
 
   const insights = generateInsights(studentData);
 
@@ -924,194 +928,9 @@ export default function Analytics() {
       )}
 
       {tab === "placement" && (
-        <div>
-          <div className="grid-2" style={{ marginBottom: 24 }}>
-            <motion.div
-              whileHover={{ y: -2 }}
-              className="card"
-              style={{
-                borderColor:
-                  placementScore >= 75
-                    ? "rgba(34,197,94,0.4)"
-                    : "rgba(245,158,11,0.4)",
-              }}
-            >
-              <p
-                style={{
-                  fontSize: 12,
-                  color: "var(--secondary)",
-                  marginBottom: 8,
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 6
-                }}
-              >
-                <Briefcase size={14} /> PLACEMENT READINESS
-              </p>
-              <p
-                style={{
-                  fontFamily: "Space Mono",
-                  fontSize: 48,
-                  fontWeight: 800,
-                  color:
-                    placementScore >= 75 ? "var(--success)" : "var(--warning)",
-                }}
-              >
-                {placementScore}
-                <span style={{ fontSize: 20 }}>/100</span>
-              </p>
-              <p
-                style={{
-                  fontWeight: 600,
-                  color:
-                    placementScore >= 75 ? "var(--success)" : "var(--warning)",
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 6,
-                  marginTop: 4
-                }}
-              >
-                {placementScore >= 75
-                  ? <><CheckCircle size={14} /> Ready for Placements</>
-                  : <><AlertTriangle size={14} /> Needs Improvement</>}
-              </p>
-              <div className="progress-bar-bg" style={{ marginTop: 12 }}>
-                <motion.div
-                  initial={{ width: 0 }}
-                  animate={{ width: `${placementScore}%` }}
-                  transition={{ duration: 1 }}
-                  className="progress-bar-fill"
-                  style={{
-                    background:
-                      placementScore >= 75
-                        ? "var(--success)"
-                        : "var(--warning)",
-                  }}
-                />
-              </div>
-            </motion.div>
-            <motion.div whileHover={{ y: -2 }} className="card">
-              <p
-                style={{
-                  fontSize: 12,
-                  color: "var(--secondary)",
-                  marginBottom: 12,
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 6
-                }}
-              >
-                <FileText size={14} /> ELIGIBILITY FACTORS
-              </p>
-              {[
-                { label: "CGPA Score", val: `${cgpa} / 10`, ok: cgpa >= 6.5 },
-                {
-                  label: "No Active Backlogs",
-                  val:
-                    backlogs.length === 0
-                      ? "Yes"
-                      : `${backlogs.length} pending`,
-                  ok: backlogs.length === 0,
-                },
-                {
-                  label: "SGPA Performance",
-                  val: latestSgpa?.toFixed(2),
-                  ok: latestSgpa >= 7,
-                },
-              ].map((f) => (
-                <div
-                  key={f.label}
-                  style={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    alignItems: "center",
-                    padding: "8px 0",
-                    borderBottom: "1px solid var(--border)",
-                  }}
-                >
-                  <span style={{ fontSize: 14 }}>{f.label}</span>
-                  <div
-                    style={{ display: "flex", gap: 8, alignItems: "center" }}
-                  >
-                    <span style={{ fontFamily: "Space Mono", fontSize: 13 }}>
-                      {f.val}
-                    </span>
-                    <span
-                      style={{
-                        color: f.ok ? "var(--success)" : "var(--danger)",
-                        fontSize: 16,
-                      }}
-                    >
-                      {f.ok ? <Check size={16} /> : <X size={16} />}
-                    </span>
-                  </div>
-                </div>
-              ))}
-            </motion.div>
-          </div>
-
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="card">
-            <h3 style={{ fontWeight: 700, marginBottom: 16, display: "flex", alignItems: "center", gap: 8 }}>
-              <Building2 size={18} /> Company Eligibility
-            </h3>
-            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-              {companies.map((co, i) => {
-                const eligible =
-                  cgpa >= co.cgpaReq &&
-                  (!co.noBacklog || backlogs.length === 0);
-                return (
-                  <motion.div
-                    initial={{ opacity: 0, x: -10 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: i * 0.05 }}
-                    key={co.name}
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      flexWrap: "wrap",
-                      gap: 14,
-                      padding: "12px 16px",
-                      background: eligible
-                        ? "rgba(34,197,94,0.06)"
-                        : "rgba(239,68,68,0.06)",
-                      border: `1px solid ${eligible ? "rgba(34,197,94,0.2)" : "rgba(239,68,68,0.15)"}`,
-                      borderRadius: 10,
-                    }}
-                  >
-                    <span style={{ fontSize: 20 }}>
-                      <Building2 color={eligible ? "var(--success)" : "var(--danger)"} size={20} />
-                    </span>
-                    <span style={{ flex: 1, fontWeight: 600, fontSize: 15 }}>
-                      {co.name}
-                    </span>
-                    <span style={{ fontSize: 12, color: "var(--secondary)" }}>
-                      CGPA ≥ {co.cgpaReq}
-                      {co.noBacklog ? " · No Backlog" : ""}
-                    </span>
-                    <span
-                      style={{
-                        fontWeight: 700,
-                        fontSize: 13,
-                        color: eligible ? "var(--success)" : "var(--danger)",
-                        background: eligible
-                          ? "rgba(34,197,94,0.15)"
-                          : "rgba(239,68,68,0.15)",
-                        padding: "3px 10px",
-                        borderRadius: 6,
-                        display: "flex",
-                        alignItems: "center",
-                        gap: 4
-                      }}
-                    >
-                      {eligible ? <><Check size={14}/> Eligible</> : <><X size={14}/> Not Eligible</>}
-                    </span>
-                  </motion.div>
-                );
-              })}
-            </div>
-          </motion.div>
-        </div>
+        <CompanyEligibility branch={dynamicBranch} cgpa={cgpa} />
       )}
+
       </motion.div>
     </motion.div>
   );
