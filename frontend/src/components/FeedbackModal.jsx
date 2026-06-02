@@ -2,6 +2,8 @@ import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, Star, MessageSquare } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import axios from "axios";
+import { useApp } from "../context/AppContext";
 
 export default function FeedbackModal() {
   const [show, setShow] = useState(false);
@@ -10,7 +12,9 @@ export default function FeedbackModal() {
   const [name, setName] = useState("");
   const [regNo, setRegNo] = useState("");
   const [comment, setComment] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const navigate = useNavigate();
+  const { API } = useApp();
 
   useEffect(() => {
     // Check if user has already seen or submitted feedback
@@ -27,29 +31,31 @@ export default function FeedbackModal() {
     localStorage.setItem("hasSeenFeedback", "true");
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     if (!name || !comment || rating === 0) return;
+    setIsSubmitting(true);
 
-    // Save feedback to localStorage
-    const newFeedback = {
-      id: Date.now().toString(),
-      name,
-      regNo,
-      rating,
-      comment,
-      date: new Date().toISOString(),
-    };
+    try {
+      const res = await axios.post(`${API}/feedback`, {
+        name,
+        regNo,
+        rating,
+        comment,
+      });
 
-    const existingFeedbacks = JSON.parse(localStorage.getItem("gradeflow_feedbacks") || "[]");
-    localStorage.setItem("gradeflow_feedbacks", JSON.stringify([newFeedback, ...existingFeedbacks]));
+      // Mark as seen
+      localStorage.setItem("hasSeenFeedback", "true");
+      setShow(false);
 
-    // Mark as seen
-    localStorage.setItem("hasSeenFeedback", "true");
-    setShow(false);
-
-    // Redirect to testimonials with highlight query
-    navigate(`/testimonials?highlight=${newFeedback.id}`);
+      // Redirect to testimonials with highlight query
+      navigate(`/testimonials?highlight=${res.data._id}`);
+    } catch (err) {
+      console.error("Failed to submit feedback", err);
+      alert("Failed to submit feedback. Please try again.");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -226,17 +232,17 @@ export default function FeedbackModal() {
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
                 type="submit"
-                disabled={rating === 0}
+                disabled={rating === 0 || isSubmitting}
                 style={{
                   width: "100%", padding: "14px", borderRadius: 12,
-                  background: rating === 0 ? "rgba(255,255,255,0.1)" : "linear-gradient(135deg, #3ea6ff, #3b82f6)",
-                  border: "none", color: rating === 0 ? "rgba(255,255,255,0.4)" : "#fff",
-                  fontSize: 15, fontWeight: 700, cursor: rating === 0 ? "not-allowed" : "pointer",
+                  background: rating === 0 || isSubmitting ? "rgba(255,255,255,0.1)" : "linear-gradient(135deg, #3ea6ff, #3b82f6)",
+                  border: "none", color: rating === 0 || isSubmitting ? "rgba(255,255,255,0.4)" : "#fff",
+                  fontSize: 15, fontWeight: 700, cursor: rating === 0 || isSubmitting ? "not-allowed" : "pointer",
                   marginTop: 8, transition: "all 0.2s",
-                  boxShadow: rating === 0 ? "none" : "0 8px 24px rgba(62,166,255,0.3)"
+                  boxShadow: rating === 0 || isSubmitting ? "none" : "0 8px 24px rgba(62,166,255,0.3)"
                 }}
               >
-                Submit Feedback
+                {isSubmitting ? "Submitting..." : "Submit Feedback"}
               </motion.button>
             </form>
           </motion.div>

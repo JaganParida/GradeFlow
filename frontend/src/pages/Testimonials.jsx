@@ -2,6 +2,8 @@ import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Star, MessageSquare, GraduationCap, Quote } from "lucide-react";
 import { useSearchParams } from "react-router-dom";
+import axios from "axios";
+import { useApp } from "../context/AppContext";
 
 export default function Testimonials() {
   const [feedbacks, setFeedbacks] = useState([]);
@@ -14,6 +16,9 @@ export default function Testimonials() {
   const [name, setName] = useState("");
   const [regNo, setRegNo] = useState("");
   const [comment, setComment] = useState("");
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const { API } = useApp();
 
   useEffect(() => {
     loadFeedbacks();
@@ -29,36 +34,45 @@ export default function Testimonials() {
     }
   }, [highlightedId]);
 
-  const loadFeedbacks = () => {
-    const data = JSON.parse(localStorage.getItem("gradeflow_feedbacks") || "[]");
-    setFeedbacks(data);
+  const loadFeedbacks = async () => {
+    setIsLoading(true);
+    try {
+      const res = await axios.get(`${API}/feedback`);
+      setFeedbacks(res.data);
+    } catch (err) {
+      console.error("Failed to load feedbacks:", err);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     if (!name || !comment || rating === 0) return;
+    setIsSubmitting(true);
 
-    const newFeedback = {
-      id: Date.now().toString(),
-      name,
-      regNo,
-      rating,
-      comment,
-      date: new Date().toISOString(),
-    };
+    try {
+      const res = await axios.post(`${API}/feedback`, {
+        name, regNo, rating, comment
+      });
 
-    const updatedFeedbacks = [newFeedback, ...feedbacks];
-    localStorage.setItem("gradeflow_feedbacks", JSON.stringify(updatedFeedbacks));
-    setFeedbacks(updatedFeedbacks);
-    
-    // Clear form
-    setRating(0);
-    setName("");
-    setRegNo("");
-    setComment("");
-    
-    // Also mark global modal as seen if they submit here
-    localStorage.setItem("hasSeenFeedback", "true");
+      const updatedFeedbacks = [res.data, ...feedbacks];
+      setFeedbacks(updatedFeedbacks);
+      
+      // Clear form
+      setRating(0);
+      setName("");
+      setRegNo("");
+      setComment("");
+      
+      // Also mark global modal as seen if they submit here
+      localStorage.setItem("hasSeenFeedback", "true");
+    } catch (err) {
+      console.error("Failed to submit feedback:", err);
+      alert("Failed to submit feedback. Please try again.");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const formatDate = (dateString) => {
@@ -192,17 +206,17 @@ export default function Testimonials() {
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
                 type="submit"
-                disabled={rating === 0}
+                disabled={rating === 0 || isSubmitting}
                 style={{
                   padding: "12px 24px", borderRadius: 12,
-                  background: rating === 0 ? "rgba(255,255,255,0.1)" : "linear-gradient(135deg, #3ea6ff, #3b82f6)",
-                  border: "none", color: rating === 0 ? "rgba(255,255,255,0.4)" : "#fff",
-                  fontSize: 14, fontWeight: 700, cursor: rating === 0 ? "not-allowed" : "pointer",
+                  background: rating === 0 || isSubmitting ? "rgba(255,255,255,0.1)" : "linear-gradient(135deg, #3ea6ff, #3b82f6)",
+                  border: "none", color: rating === 0 || isSubmitting ? "rgba(255,255,255,0.4)" : "#fff",
+                  fontSize: 14, fontWeight: 700, cursor: rating === 0 || isSubmitting ? "not-allowed" : "pointer",
                   transition: "all 0.2s",
-                  boxShadow: rating === 0 ? "none" : "0 4px 12px rgba(62,166,255,0.3)"
+                  boxShadow: rating === 0 || isSubmitting ? "none" : "0 4px 12px rgba(62,166,255,0.3)"
                 }}
               >
-                Post Review
+                {isSubmitting ? "Posting..." : "Post Review"}
               </motion.button>
             </div>
           </form>
@@ -210,21 +224,25 @@ export default function Testimonials() {
 
         {/* Feedback List */}
         <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-          {feedbacks.length === 0 ? (
+          {isLoading ? (
+            <div style={{ textAlign: "center", padding: "60px 20px", color: "var(--secondary)", background: "#212121", borderRadius: 20, border: "1px solid rgba(255,255,255,0.05)" }}>
+              <p>Loading feedbacks...</p>
+            </div>
+          ) : feedbacks.length === 0 ? (
             <div style={{ textAlign: "center", padding: "60px 20px", color: "var(--secondary)", background: "#212121", borderRadius: 20, border: "1px solid rgba(255,255,255,0.05)" }}>
               <Quote size={40} style={{ opacity: 0.2, marginBottom: 16, margin: "0 auto" }} />
               <p>No feedback yet. Be the first to share your experience!</p>
             </div>
           ) : (
             feedbacks.map((fb, index) => {
-              const isHighlighted = fb.id === highlightedId;
+              const isHighlighted = fb._id === highlightedId;
               return (
                 <motion.div
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: index * 0.05 }}
-                  id={`feedback-${fb.id}`}
-                  key={fb.id}
+                  id={`feedback-${fb._id}`}
+                  key={fb._id}
                   style={{
                     background: isHighlighted ? "rgba(62,166,255,0.06)" : "#212121",
                     border: isHighlighted ? "1px solid rgba(62,166,255,0.4)" : "1px solid rgba(255,255,255,0.08)",
@@ -259,7 +277,7 @@ export default function Testimonials() {
                           <Star key={star} size={14} fill={fb.rating >= star ? "#f59e0b" : "transparent"} color={fb.rating >= star ? "#f59e0b" : "rgba(255,255,255,0.1)"} />
                         ))}
                       </div>
-                      <div style={{ fontSize: 11, color: "var(--muted)" }}>{formatDate(fb.date)}</div>
+                      <div style={{ fontSize: 11, color: "var(--muted)" }}>{formatDate(fb.createdAt)}</div>
                     </div>
                   </div>
                   <p style={{ margin: 0, fontSize: 14, lineHeight: 1.6, color: "var(--secondary)", whiteSpace: "pre-wrap" }}>

@@ -51,6 +51,7 @@ app.use("/api/auth", adminBruteForceLimit, require("./routes/auth"));
 app.use("/api/student", require("./routes/student"));
 app.use("/api/admin", require("./routes/admin"));
 app.use("/api/rankings", require("./routes/rankings"));
+app.use("/api/feedback", require("./routes/feedback"));
 
 app.get("/api/health", (req, res) =>
   res.json({ status: "ok", name: "GradeFlow API" }),
