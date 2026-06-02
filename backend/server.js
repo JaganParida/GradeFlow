@@ -10,7 +10,18 @@ const app = express();
 app.set("trust proxy", 1);
 app.use(cors({ origin: "*" }));
 app.use(express.json());
-app.use(rateLimit({ windowMs: 15 * 60 * 1000, max: 500 }));
+
+const limiter = rateLimit({
+  windowMs: 1 * 60 * 1000, // 1 minute
+  max: 500, // Limit each IP to 500 requests per windowMs
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: {
+    message: "Server is experiencing high traffic. Retrying...",
+    status: 429
+  }
+});
+app.use(limiter);
 
 // Routes
 app.use("/api/auth", require("./routes/auth"));
@@ -23,10 +34,8 @@ app.get("/api/health", (req, res) =>
 );
 
 const http = require("http");
-const { initSocket } = require("./queueManager");
 
 const server = http.createServer(app);
-initSocket(server);
 
 // Seed admin on first run
 async function seedAdmin() {

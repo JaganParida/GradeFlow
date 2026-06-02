@@ -37,13 +37,14 @@ function calcSGPA(subjects, semester) {
       semester === 5 &&
       s.grade === "R" &&
       s.credit === 6 &&
-      (s.type && s.type.toLowerCase().includes("proj"))
+      s.type &&
+      s.type.toLowerCase().includes("proj")
     ) {
       // Grade point = 0, credit count = 0 (completely skip)
       return;
     }
 
-    if (['F', 'R', 'M', 'S'].includes(s.grade)) {
+    if (["F", "R", "M", "S"].includes(s.grade)) {
       return;
     }
 
@@ -87,26 +88,34 @@ async function generateRankingForSemester(semester) {
     });
     let cgpaNumerator = 0,
       cgpaDenominator = 0;
-    
+
     // Group subjects by semester to calculate SGPA per semester
-    const sems = [...new Set(allResults.map(r => r.semester))];
-    sems.forEach(sem => {
-      let semW = 0, semC = 0;
-      allResults.filter(r => r.semester === sem).forEach(ar => {
-        ar.subjects.forEach((s) => {
-          if (Number(ar.semester) === 5 && s.grade === 'R' && (s.credit === 6 || (s.subName && s.subName.toLowerCase().includes('project')))) {
-            return;
-          }
-          if (['F', 'R', 'M', 'S'].includes(s.grade)) {
-            return;
-          }
-          if (s.credit && GRADE_POINTS[s.grade] !== undefined) {
-            semW += s.credit * GRADE_POINTS[s.grade];
-            semC += s.credit;
-          }
+    const sems = [...new Set(allResults.map((r) => r.semester))];
+    sems.forEach((sem) => {
+      let semW = 0,
+        semC = 0;
+      allResults
+        .filter((r) => r.semester === sem)
+        .forEach((ar) => {
+          ar.subjects.forEach((s) => {
+            if (
+              Number(ar.semester) === 5 &&
+              s.grade === "R" &&
+              (s.credit === 6 ||
+                (s.subName && s.subName.toLowerCase().includes("project")))
+            ) {
+              return;
+            }
+            if (["F", "R", "M", "S"].includes(s.grade)) {
+              return;
+            }
+            if (s.credit && GRADE_POINTS[s.grade] !== undefined) {
+              semW += s.credit * GRADE_POINTS[s.grade];
+              semC += s.credit;
+            }
+          });
         });
-      });
-      
+
       if (semC > 0) {
         let semSGPA = Math.floor((semW / semC) * 100 + 0.0001) / 100;
         cgpaNumerator += semSGPA * semC;
@@ -114,7 +123,10 @@ async function generateRankingForSemester(semester) {
       }
     });
 
-    const cgpa = cgpaDenominator > 0 ? Math.floor((cgpaNumerator / cgpaDenominator) * 100 + 0.0001) / 100 : 0;
+    const cgpa =
+      cgpaDenominator > 0
+        ? Math.floor((cgpaNumerator / cgpaDenominator) * 100 + 0.0001) / 100
+        : 0;
     studentData.push({
       regNo: r.regNo,
       studentName: r.studentName,
@@ -197,22 +209,38 @@ router.post(
       function detectBranch(regNo) {
         if (!regNo) return "";
         const r = String(regNo).trim();
-        
+
         // Exact Matches (Exceptions)
         if (r === "230301180026") return "CSE";
-        if (["230301120110", "230301120186", "230301120371", "230301120481"].includes(r)) return "ECE";
+        if (
+          [
+            "230301120110",
+            "230301120186",
+            "230301120371",
+            "230301120481",
+          ].includes(r)
+        )
+          return "ECE";
         if (r === "230301231033") return "AERO";
 
         // Prefixes
-        if (r.startsWith("230301110") || r.startsWith("230301111")) return "CIVIL";
-        if (r.startsWith("230301120") || r.startsWith("230301121")) return "CSE";
-        if (r.startsWith("230301130") || r.startsWith("230301131") || r.startsWith("230301132")) return "ECE";
-        if (r.startsWith("230301150") || r.startsWith("230301151")) return "EEE";
+        if (r.startsWith("230301110") || r.startsWith("230301111"))
+          return "CIVIL";
+        if (r.startsWith("230301120") || r.startsWith("230301121"))
+          return "CSE";
+        if (
+          r.startsWith("230301130") ||
+          r.startsWith("230301131") ||
+          r.startsWith("230301132")
+        )
+          return "ECE";
+        if (r.startsWith("230301150") || r.startsWith("230301151"))
+          return "EEE";
         if (r.startsWith("230301160") || r.startsWith("230301161")) return "ME";
         if (r.startsWith("230301180")) return "BIO";
         if (r.startsWith("230301190") || r.startsWith("230301191")) return "MI";
         if (r.startsWith("230301230")) return "AERO";
-        
+
         return "";
       }
 
@@ -223,13 +251,36 @@ router.post(
 
         rows.forEach((row, idx) => {
           const regNo = String(
-            col(row, "Reg_No", "RegNo", "reg_no", "Reg No", "Registration No", "regno") || "",
+            col(
+              row,
+              "Reg_No",
+              "RegNo",
+              "reg_no",
+              "Reg No",
+              "Registration No",
+              "regno",
+            ) || "",
           ).trim();
-          const name = String(col(row, "Name", "StudentName", "Student Name", "student_name") || "").trim();
-          const subCode = String(col(row, "Subject_Code", "SubCode", "Sub Code", "subject_code", "Code") || "").trim();
-          const subName = String(col(row, "Subject_Name", "SubName", "Subject", "subject_name") || "").trim();
+          const name = String(
+            col(row, "Name", "StudentName", "Student Name", "student_name") ||
+              "",
+          ).trim();
+          const subCode = String(
+            col(
+              row,
+              "Subject_Code",
+              "SubCode",
+              "Sub Code",
+              "subject_code",
+              "Code",
+            ) || "",
+          ).trim();
+          const subName = String(
+            col(row, "Subject_Name", "SubName", "Subject", "subject_name") ||
+              "",
+          ).trim();
           const type = String(col(row, "Type", "type") || "").trim();
-          
+
           function parseCredit(val) {
             if (!val && val !== 0) return 0;
             return val
@@ -237,23 +288,45 @@ router.post(
               .split("+")
               .reduce((a, c) => a + parseFloat(c || 0), 0);
           }
-          
-          const credit = parseCredit(col(row, "Credits", "Credit", "credits", "credit") || 0);
-          const grade = String(col(row, "New Grade", "NewGrade", "Grade", "grade") || "").trim().toUpperCase();
-          const slNo = col(row, "Sl No", "SlNo", "Sl_No", "sl_no", "S.No", "SNo", "SI No") || idx + 1;
 
-          const semRaw = formSemester || col(row, "Semester", "semester", "Sem", "sem");
+          const credit = parseCredit(
+            col(row, "Credits", "Credit", "credits", "credit") || 0,
+          );
+          const grade = String(
+            col(row, "New Grade", "NewGrade", "Grade", "grade") || "",
+          )
+            .trim()
+            .toUpperCase();
+          const slNo =
+            col(
+              row,
+              "Sl No",
+              "SlNo",
+              "Sl_No",
+              "sl_no",
+              "S.No",
+              "SNo",
+              "SI No",
+            ) || idx + 1;
+
+          const semRaw =
+            formSemester || col(row, "Semester", "semester", "Sem", "sem");
           let semester = Number(semRaw);
           const batch = String(formBatch || col(row, "Batch", "batch") || "");
-          
+
           let branch = detectBranch(regNo);
           if (!branch) {
-             branch = String(col(row, "Branch", "branch") || sheetName || "").trim();
+            branch = String(
+              col(row, "Branch", "branch") || sheetName || "",
+            ).trim();
           }
           const program = String(formProgram || "").trim();
-          const session = String(formSession || col(row, "Session", "session") || "");
+          const session = String(
+            formSession || col(row, "Session", "session") || "",
+          );
 
-          const isEodOrRecheck = uploadType === "eod" || uploadType === "rechecking";
+          const isEodOrRecheck =
+            uploadType === "eod" || uploadType === "rechecking";
 
           if (!regNo) {
             console.warn(`Row ${idx + 2}: skipped — missing RegNo`);
@@ -261,7 +334,10 @@ router.post(
           }
 
           if (!isEodOrRecheck && (!semester || isNaN(semester))) {
-            console.warn(`Row ${idx + 2}: skipped — missing Semester for regular upload`, { regNo });
+            console.warn(
+              `Row ${idx + 2}: skipped — missing Semester for regular upload`,
+              { regNo },
+            );
             return;
           }
 
@@ -270,11 +346,14 @@ router.post(
           }
 
           if (!grade || !(grade in GRADE_POINTS)) {
-            console.warn(`Row ${idx + 2}: invalid grade "${grade}" for ${regNo}`);
+            console.warn(
+              `Row ${idx + 2}: invalid grade "${grade}" for ${regNo}`,
+            );
             return;
           }
 
-          const key = (isEodOrRecheck && !semester) ? regNo : `${regNo}_${semester}`;
+          const key =
+            isEodOrRecheck && !semester ? regNo : `${regNo}_${semester}`;
           if (!grouped[key]) {
             grouped[key] = {
               regNo,
@@ -288,16 +367,16 @@ router.post(
             };
           }
 
-        grouped[key].subjects.push({
-          slNo: Number(slNo),
-          subCode,
-          subName,
-          type,
-          credit,
-          grade,
-          gradePoint: GRADE_POINTS[grade],
-          resultType: uploadType,
-        });
+          grouped[key].subjects.push({
+            slNo: Number(slNo),
+            subCode,
+            subName,
+            type,
+            credit,
+            grade,
+            gradePoint: GRADE_POINTS[grade],
+            resultType: uploadType,
+          });
         });
       });
 
@@ -312,37 +391,49 @@ router.post(
       let count = 0;
       const affectedSemesters = new Set();
       const bulkOps = [];
-      const isEodOrRecheck = uploadType === "eod" || uploadType === "rechecking";
+      const isEodOrRecheck =
+        uploadType === "eod" || uploadType === "rechecking";
       let allExistingRecordsByRegNo = {};
 
       // ALWAYS fetch all existing records to allow smart merging and prevent downgrading
-      const allRegNos = Array.from(new Set(keys.map(k => grouped[k].regNo)));
-      const allExistingRecords = await SemesterResult.find({ regNo: { $in: allRegNos } });
-      allExistingRecords.forEach(r => {
-        if (!allExistingRecordsByRegNo[r.regNo]) allExistingRecordsByRegNo[r.regNo] = [];
+      const allRegNos = Array.from(new Set(keys.map((k) => grouped[k].regNo)));
+      const allExistingRecords = await SemesterResult.find({
+        regNo: { $in: allRegNos },
+      });
+      allExistingRecords.forEach((r) => {
+        if (!allExistingRecordsByRegNo[r.regNo])
+          allExistingRecordsByRegNo[r.regNo] = [];
         allExistingRecordsByRegNo[r.regNo].push(r);
       });
 
       for (const key of keys) {
         const data = grouped[key];
         const existingRecords = allExistingRecordsByRegNo[data.regNo] || [];
-        const recordsToSave = new Map(); 
+        const recordsToSave = new Map();
 
-        data.subjects.forEach(newSub => {
+        data.subjects.forEach((newSub) => {
           let targetSem = data.semester;
-          
+
           if (!targetSem && isEodOrRecheck) {
-            const rec = existingRecords.find(r => r.subjects && r.subjects.some(s => s.subCode === newSub.subCode));
+            const rec = existingRecords.find(
+              (r) =>
+                r.subjects &&
+                r.subjects.some((s) => s.subCode === newSub.subCode),
+            );
             if (rec) targetSem = rec.semester;
           }
 
           if (!targetSem) {
-            console.warn(`Could not determine semester for subject ${newSub.subCode} for ${data.regNo}`);
+            console.warn(
+              `Could not determine semester for subject ${newSub.subCode} for ${data.regNo}`,
+            );
             return;
           }
 
-          let record = recordsToSave.get(targetSem) || existingRecords.find(r => r.semester === targetSem);
-          
+          let record =
+            recordsToSave.get(targetSem) ||
+            existingRecords.find((r) => r.semester === targetSem);
+
           if (!record) {
             record = {
               regNo: data.regNo,
@@ -352,7 +443,7 @@ router.post(
               program: data.program,
               semester: targetSem,
               session: data.session,
-              subjects: []
+              subjects: [],
             };
           } else {
             record = { ...(record.toObject ? record.toObject() : record) };
@@ -362,44 +453,59 @@ router.post(
             if (data.studentName) record.studentName = data.studentName;
           }
 
-          const existingSub = record.subjects.find(s => s.subCode === newSub.subCode);
+          const existingSub = record.subjects.find(
+            (s) => s.subCode === newSub.subCode,
+          );
           if (existingSub) {
-            const oldGp = GRADE_POINTS[existingSub.grade] !== undefined ? GRADE_POINTS[existingSub.grade] : -1;
-            const newGp = GRADE_POINTS[newSub.grade] !== undefined ? GRADE_POINTS[newSub.grade] : -1;
-            
+            const oldGp =
+              GRADE_POINTS[existingSub.grade] !== undefined
+                ? GRADE_POINTS[existingSub.grade]
+                : -1;
+            const newGp =
+              GRADE_POINTS[newSub.grade] !== undefined
+                ? GRADE_POINTS[newSub.grade]
+                : -1;
+
             // Upgrade if grade is better
             if (newGp > oldGp) {
               existingSub.grade = newSub.grade;
               existingSub.gradePoint = newSub.gradePoint;
               if (isEodOrRecheck) existingSub.resultType = newSub.resultType;
             }
-            
+
             // Always heal missing metadata if the new file has it
-            if (!existingSub.credit && newSub.credit) existingSub.credit = newSub.credit;
-            if (!existingSub.subName && newSub.subName) existingSub.subName = newSub.subName;
-            if (!existingSub.type && newSub.type) existingSub.type = newSub.type;
+            if (!existingSub.credit && newSub.credit)
+              existingSub.credit = newSub.credit;
+            if (!existingSub.subName && newSub.subName)
+              existingSub.subName = newSub.subName;
+            if (!existingSub.type && newSub.type)
+              existingSub.type = newSub.type;
           } else {
             record.subjects.push(newSub);
           }
-          
+
           recordsToSave.set(targetSem, record);
           affectedSemesters.add(targetSem);
         });
 
         for (const [sem, record] of recordsToSave.entries()) {
-          const validSubjectsForCalc = record.subjects.filter(s => {
+          const validSubjectsForCalc = record.subjects.filter((s) => {
             if (
               Number(record.semester) === 5 &&
-              s.grade === 'R' &&
+              s.grade === "R" &&
               s.credit === 6 &&
-              (s.type && s.type.toLowerCase().includes('proj'))
+              s.type &&
+              s.type.toLowerCase().includes("proj")
             ) {
               return false;
             }
             return true;
           });
 
-          const totalCredits = validSubjectsForCalc.reduce((a, s) => a + (s.credit || 0), 0);
+          const totalCredits = validSubjectsForCalc.reduce(
+            (a, s) => a + (s.credit || 0),
+            0,
+          );
           const creditsCleared = validSubjectsForCalc
             .filter((s) => !NON_PASSING_GRADES.includes(s.grade))
             .reduce((a, s) => a + (s.credit || 0), 0);
@@ -408,14 +514,16 @@ router.post(
           bulkOps.push({
             updateOne: {
               filter: { regNo: data.regNo, semester: sem },
-              update: { $set: { ...record, totalCredits, creditsCleared, sgpa } },
-              upsert: true
-            }
+              update: {
+                $set: { ...record, totalCredits, creditsCleared, sgpa },
+              },
+              upsert: true,
+            },
           });
           count++;
         }
       }
-      
+
       if (bulkOps.length > 0) {
         await SemesterResult.bulkWrite(bulkOps);
       }
@@ -426,7 +534,7 @@ router.post(
       }
 
       res.json({
-✅ Successfully uploaded ${count} student semester record(s) and auto-updated rankings!`,
+        message: `✅ Successfully uploaded ${count} student semester record(s) and auto-updated rankings!`,
       });
     } catch (err) {
       console.error("Upload error:", err);
@@ -449,10 +557,17 @@ router.post(
       const wb = XLSX.read(req.file.buffer, { type: "buffer" });
       const uploadSemester = Number(formSemester);
       const isSem1Upload = uploadSemester === 1;
-      
+
       let colMap = {};
 
-      const sem1Assessments = new Set(["classTest1", "classTest2", "classTest3", "classTest4", "assignment", "total"]);
+      const sem1Assessments = new Set([
+        "classTest1",
+        "classTest2",
+        "classTest3",
+        "classTest4",
+        "assignment",
+        "total",
+      ]);
       const regularAssessments = new Set([
         "midSem",
         "presentation",
@@ -470,27 +585,66 @@ router.post(
           .replace(/[\s\-_.:]+/g, "");
 
       const detectAssessment = (value) => {
-        const val = String(value || "").trim().toUpperCase();
+        const val = String(value || "")
+          .trim()
+          .toUpperCase();
         const compactVal = compactHeader(value);
         if (!compactVal) return null;
 
-        if (compactVal.includes("MIDSEMESTER") || compactVal.includes("MIDSEM")) return "midSem";
-        if (compactVal.includes("CLASSTESTIV") || compactVal.includes("CLASSTEST4") || compactVal.includes("CTIV") || compactVal.includes("CT4")) return "classTest4";
-        if (compactVal.includes("CLASSTESTIII") || compactVal.includes("CLASSTEST3") || compactVal.includes("CTIII") || compactVal.includes("CT3")) return "classTest3";
-        if (compactVal.includes("CLASSTESTII") || compactVal.includes("CLASSTEST2") || compactVal.includes("CTII") || compactVal.includes("CT2")) return "classTest2";
-        if (compactVal.includes("CLASSTESTI") || compactVal.includes("CLASSTEST1") || compactVal.includes("CTI") || compactVal.includes("CT1")) return "classTest1";
+        if (compactVal.includes("MIDSEMESTER") || compactVal.includes("MIDSEM"))
+          return "midSem";
+        if (
+          compactVal.includes("CLASSTESTIV") ||
+          compactVal.includes("CLASSTEST4") ||
+          compactVal.includes("CTIV") ||
+          compactVal.includes("CT4")
+        )
+          return "classTest4";
+        if (
+          compactVal.includes("CLASSTESTIII") ||
+          compactVal.includes("CLASSTEST3") ||
+          compactVal.includes("CTIII") ||
+          compactVal.includes("CT3")
+        )
+          return "classTest3";
+        if (
+          compactVal.includes("CLASSTESTII") ||
+          compactVal.includes("CLASSTEST2") ||
+          compactVal.includes("CTII") ||
+          compactVal.includes("CT2")
+        )
+          return "classTest2";
+        if (
+          compactVal.includes("CLASSTESTI") ||
+          compactVal.includes("CLASSTEST1") ||
+          compactVal.includes("CTI") ||
+          compactVal.includes("CT1")
+        )
+          return "classTest1";
         if (compactVal.includes("PRESENTATION")) return "presentation";
         if (compactVal.includes("ASSIGNMENT")) return "assignment";
         if (compactVal.includes("LEARNINGRECORD")) return "learningRecord";
-        if (compactVal.includes("INTERNALPRACTICAL") || compactVal.includes("INTERNALPRAC")) return "internalPractical";
+        if (
+          compactVal.includes("INTERNALPRACTICAL") ||
+          compactVal.includes("INTERNALPRAC")
+        )
+          return "internalPractical";
         if (compactVal.includes("PROJECTINTERNAL")) return "projectInternal";
-        if (compactVal === "TOTAL" || compactVal.includes("TOTALSCORE") || val.includes("TOTAL:")) return "total";
+        if (
+          compactVal === "TOTAL" ||
+          compactVal.includes("TOTALSCORE") ||
+          val.includes("TOTAL:")
+        )
+          return "total";
 
         return null;
       };
 
       const isAllowedAssessment = (assessment) =>
-        assessment && (isSem1Upload ? sem1Assessments.has(assessment) : regularAssessments.has(assessment));
+        assessment &&
+        (isSem1Upload
+          ? sem1Assessments.has(assessment)
+          : regularAssessments.has(assessment));
 
       const isMetricHeader = (value) => {
         const cleanVal = compactHeader(value);
@@ -503,7 +657,9 @@ router.post(
       };
 
       const isSubjectNoise = (value) => {
-        const val = String(value || "").trim().toLowerCase();
+        const val = String(value || "")
+          .trim()
+          .toLowerCase();
         const compactVal = compactHeader(val);
         return (
           !val ||
@@ -525,15 +681,19 @@ router.post(
         !Number.isNaN(Number(value));
 
       const hasInternalScore = (subject) =>
-        Object.entries(subject).some(([key, value]) =>
-          (key.endsWith("Obtained") || key.endsWith("RoundOff") || key === "totalScore") &&
-          hasNumericValue(value)
+        Object.entries(subject).some(
+          ([key, value]) =>
+            (key.endsWith("Obtained") ||
+              key.endsWith("RoundOff") ||
+              key === "totalScore") &&
+            hasNumericValue(value),
         );
 
       const hasComponentScore = (subject) =>
-        Object.entries(subject).some(([key, value]) =>
-          (key.endsWith("Obtained") || key.endsWith("RoundOff")) &&
-          hasNumericValue(value)
+        Object.entries(subject).some(
+          ([key, value]) =>
+            (key.endsWith("Obtained") || key.endsWith("RoundOff")) &&
+            hasNumericValue(value),
         );
 
       const normalizeInternalSubject = (subject) => {
@@ -553,7 +713,10 @@ router.post(
             .filter(hasNumericValue)
             .reduce((sum, value) => sum + Number(value), 0);
 
-          if (!hasNumericValue(subject.totalMax) || Number(subject.totalMax) < totalScore) {
+          if (
+            !hasNumericValue(subject.totalMax) ||
+            Number(subject.totalMax) < totalScore
+          ) {
             if (componentMax >= totalScore) {
               subject.totalMax = componentMax;
             } else if (totalScore <= 50) {
@@ -575,21 +738,31 @@ router.post(
         let headerRowIdx = -1;
         for (let r = 0; r < Math.min(15, rows.length); r++) {
           const rowStr = rows[r].join("").toLowerCase();
-          if (rowStr.includes("student") && (rowStr.includes("rollno") || rowStr.includes("regno"))) {
+          if (
+            rowStr.includes("student") &&
+            (rowStr.includes("rollno") || rowStr.includes("regno"))
+          ) {
             headerRowIdx = r;
             break;
           }
         }
-        
+
         try {
-          require("fs").writeFileSync(require("path").join(__dirname, "../../rows_debug.json"), JSON.stringify({headerRowIdx, rows: rows.slice(0, 10)}, null, 2));
-        } catch(e) {}
-        
+          require("fs").writeFileSync(
+            require("path").join(__dirname, "../../rows_debug.json"),
+            JSON.stringify({ headerRowIdx, rows: rows.slice(0, 10) }, null, 2),
+          );
+        } catch (e) {}
+
         // If we can't find a clear header row, default to row 6 (index 5) or 7 (index 6) based on common format
         if (headerRowIdx === -1) headerRowIdx = 6;
 
         let maxCol = 0;
-        for (let r = Math.max(0, headerRowIdx - 3); r <= headerRowIdx + 2; r++) {
+        for (
+          let r = Math.max(0, headerRowIdx - 3);
+          r <= headerRowIdx + 2;
+          r++
+        ) {
           if (rows[r] && rows[r].length > maxCol) maxCol = rows[r].length;
         }
 
@@ -602,9 +775,13 @@ router.post(
           // Check for Subject (can be above or exactly on headerRowIdx)
           let foundSubject = null;
           for (let r = Math.max(0, headerRowIdx - 3); r <= headerRowIdx; r++) {
-            const val = String(rows[r] && rows[r][c] ? rows[r][c] : "").trim().toLowerCase();
+            const val = String(rows[r] && rows[r][c] ? rows[r][c] : "")
+              .trim()
+              .toLowerCase();
             if (val) {
-              const subMatch = val.match(/-\s*\((.*?)\)\s*\((pp|pr|tut)/i) || val.match(/\((.*?)\)\s*\((pp|pr|tut)/i);
+              const subMatch =
+                val.match(/-\s*\((.*?)\)\s*\((pp|pr|tut)/i) ||
+                val.match(/\((.*?)\)\s*\((pp|pr|tut)/i);
               if (subMatch) {
                 foundSubject = {
                   subCode: subMatch[1].toUpperCase(),
@@ -628,7 +805,11 @@ router.post(
 
           // Check for Assessment
           let foundAss = null;
-          for (let r = Math.max(0, headerRowIdx - 3); r <= headerRowIdx + 2; r++) {
+          for (
+            let r = Math.max(0, headerRowIdx - 3);
+            r <= headerRowIdx + 2;
+            r++
+          ) {
             const detected = detectAssessment(rows[r] && rows[r][c]);
             if (isAllowedAssessment(detected)) foundAss = detected;
           }
@@ -641,12 +822,19 @@ router.post(
 
           // Check for Metric
           let foundMetric = null;
-          for (let r = Math.max(0, headerRowIdx - 3); r <= headerRowIdx + 2; r++) {
+          for (
+            let r = Math.max(0, headerRowIdx - 3);
+            r <= headerRowIdx + 2;
+            r++
+          ) {
             const rawText = String(rows[r] && rows[r][c] ? rows[r][c] : "");
             const cleanVal = compactHeader(rawText);
             if (cleanVal.includes("ROUND")) {
               foundMetric = "roundOff";
-            } else if (cleanVal.includes("OBTAINED") || cleanVal.includes("OBT")) {
+            } else if (
+              cleanVal.includes("OBTAINED") ||
+              cleanVal.includes("OBT")
+            ) {
               if (!isSem1Upload && assessmentMetrics["obtained"]) {
                 // If we already found the main obtained column for this assessment,
                 // this second "obtained" is actually the round off column due to split headers.
@@ -656,7 +844,10 @@ router.post(
               }
             } else if (cleanVal.includes("MAX")) {
               foundMetric = "max";
-            } else if (currentAssessment === "total" && cleanVal.includes("TOTALSCORE")) {
+            } else if (
+              currentAssessment === "total" &&
+              cleanVal.includes("TOTALSCORE")
+            ) {
               foundMetric = "obtained";
             }
           }
@@ -666,12 +857,17 @@ router.post(
             colMap[c] = {
               subject: currentSubject,
               assessment: currentAssessment,
-              metric: foundMetric
+              metric: foundMetric,
             };
           } else if (currentSubject && !currentAssessment && foundMetric) {
-            if (foundMetric === "obtained" && assessmentMetrics["obtained"]) foundMetric = "roundOff";
+            if (foundMetric === "obtained" && assessmentMetrics["obtained"])
+              foundMetric = "roundOff";
             assessmentMetrics[foundMetric] = true;
-            colMap[c] = { subject: currentSubject, assessment: "total", metric: foundMetric };
+            colMap[c] = {
+              subject: currentSubject,
+              assessment: "total",
+              metric: foundMetric,
+            };
           }
         }
 
@@ -679,28 +875,34 @@ router.post(
         for (let r = headerRowIdx + 1; r < rows.length; r++) {
           const row = rows[r];
           if (!row || row.length === 0) continue;
-          
+
           let regNo = "";
           let name = "";
-          
+
           // The rollno is usually in the first few columns
           for (let c = 0; c < Math.min(5, row.length); c++) {
             const val = String(row[c] || "").trim();
             // A typical rollno like 230301120327
             if (val && !isNaN(val) && val.length > 5 && !regNo) {
               regNo = val;
-            } else if (val && isNaN(val) && val.length > 3 && !val.toLowerCase().includes("sr") && !name) {
+            } else if (
+              val &&
+              isNaN(val) &&
+              val.length > 3 &&
+              !val.toLowerCase().includes("sr") &&
+              !name
+            ) {
               name = val;
             }
           }
 
           if (!regNo) continue;
-          
+
           const semester = Number(formSemester);
           const branch = String(sheetName || "").trim();
           const program = String(formProgram || "").trim();
           const session = String(formSession || "").trim();
-          
+
           const key = `${regNo}_${semester}`;
           if (!grouped[key]) {
             grouped[key] = {
@@ -710,15 +912,21 @@ router.post(
               program,
               session,
               semester,
-              subjectsObj: {}
+              subjectsObj: {},
             };
           }
 
           for (const c in colMap) {
             const map = colMap[c];
             const rawVal = row[c];
-            if (rawVal === undefined || rawVal === null || String(rawVal).trim() === "" || String(rawVal).trim() === "-") continue;
-            
+            if (
+              rawVal === undefined ||
+              rawVal === null ||
+              String(rawVal).trim() === "" ||
+              String(rawVal).trim() === "-"
+            )
+              continue;
+
             const val = Number(rawVal);
             if (isNaN(val)) continue;
 
@@ -739,22 +947,33 @@ router.post(
             } else {
               fieldName = `${map.assessment}${map.metric.charAt(0).toUpperCase() + map.metric.slice(1)}`;
             }
-              
+
             if (grouped[key].subjectsObj[subjKey][fieldName] === undefined) {
               grouped[key].subjectsObj[subjKey][fieldName] = val;
             }
           }
         }
-        
-        console.log(`Parsed ${Object.keys(colMap).length} valid columns in colMap.`);
+
+        console.log(
+          `Parsed ${Object.keys(colMap).length} valid columns in colMap.`,
+        );
         const sampleStudent = grouped[Object.keys(grouped)[0]];
-        console.log(`Sample student subjectsObj keys:`, sampleStudent ? Object.keys(sampleStudent.subjectsObj) : "None");
+        console.log(
+          `Sample student subjectsObj keys:`,
+          sampleStudent ? Object.keys(sampleStudent.subjectsObj) : "None",
+        );
       });
 
       try {
-        require("fs").writeFileSync(require("path").join(__dirname, "../../grouped_debug.json"), JSON.stringify(grouped, null, 2));
-        require("fs").writeFileSync(require("path").join(__dirname, "../../colmap_debug.json"), JSON.stringify(colMap, null, 2));
-      } catch(e) {}
+        require("fs").writeFileSync(
+          require("path").join(__dirname, "../../grouped_debug.json"),
+          JSON.stringify(grouped, null, 2),
+        );
+        require("fs").writeFileSync(
+          require("path").join(__dirname, "../../colmap_debug.json"),
+          JSON.stringify(colMap, null, 2),
+        );
+      } catch (e) {}
 
       let count = 0;
       for (const key of Object.keys(grouped)) {
@@ -762,7 +981,11 @@ router.post(
         student.subjects = Object.values(student.subjectsObj)
           .map(normalizeInternalSubject)
           .map((subject, index) => ({ subject, index }))
-          .sort((a, b) => Number(hasInternalScore(b.subject)) - Number(hasInternalScore(a.subject)) || a.index - b.index)
+          .sort(
+            (a, b) =>
+              Number(hasInternalScore(b.subject)) -
+                Number(hasInternalScore(a.subject)) || a.index - b.index,
+          )
           .map(({ subject }) => subject);
         delete student.subjectsObj;
 
@@ -774,7 +997,7 @@ router.post(
         count++;
       }
       res.json({
-✅ Uploaded internal marks for ${count} student(s)`,
+        message: `✅ Uploaded internal marks for ${count} student(s)`,
       });
     } catch (err) {
       res.status(500).json({ message: err.message });
@@ -821,4 +1044,3 @@ router.get("/stats", protect, async (req, res) => {
 });
 
 module.exports = router;
-

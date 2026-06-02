@@ -1,63 +1,27 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useApp } from "../context/AppContext";
-import { motion } from "framer-motion";
-import { GraduationCap, ArrowRight, AlertTriangle, BarChart2, Trophy, TrendingUp, Target, Sparkles, FileText, Activity, Clock, Star, Sigma, Loader2, X } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+import { GraduationCap, ArrowRight, AlertTriangle, BarChart2, Trophy, TrendingUp, Target, Sparkles, FileText } from "lucide-react";
 
 export default function Home() {
   const [regNo, setRegNo] = useState("");
-  const { fetchStudent, loading, error, stats, cooldownExpiry, queuePosition, isAdmitted, setIsAdmitted, joinQueue, leaveQueue } = useApp();
+  const { fetchStudent, loading, error } = useApp();
   const navigate = useNavigate();
-  const [cooldownRemaining, setCooldownRemaining] = useState(0);
-  const [queuedRegNo, setQueuedRegNo] = useState("");
-
-  useEffect(() => {
-    const checkCooldown = () => {
-      const now = Date.now();
-      if (cooldownExpiry && cooldownExpiry > now) {
-        setCooldownRemaining(Math.ceil((cooldownExpiry - now) / 1000));
-      } else {
-        setCooldownRemaining(0);
-      }
-    };
-    checkCooldown();
-    const interval = setInterval(checkCooldown, 1000);
-    return () => clearInterval(interval);
-  }, [cooldownExpiry]);
-
-  // Auto-admit effect
-  useEffect(() => {
-    if (isAdmitted && queuedRegNo) {
-      const searchId = queuedRegNo;
-      setQueuedRegNo(""); // Clear queue to prevent duplicate searches
-      
-      const doSearch = async () => {
-        const data = await fetchStudent(searchId);
-        if (data) navigate(`/dashboard/${searchId}`);
-      };
-      doSearch();
-    }
-  }, [isAdmitted, queuedRegNo, fetchStudent, navigate]);
 
   async function handleSearch(e) {
     e.preventDefault();
-    if (loading || cooldownRemaining > 0 || queuePosition) return;
+    if (loading) return;
     if (!regNo.trim()) return;
     
     const searchRegNo = regNo.trim();
-    setQueuedRegNo(searchRegNo);
-    await joinQueue(searchRegNo);
-    // The auto-admit effect handles the rest!
+    const success = await fetchStudent(searchRegNo);
+    if (success) {
+      navigate(`/dashboard/${searchRegNo}`);
+    }
   }
 
-  const formatTime = (seconds) => {
-    const m = Math.floor(seconds / 60);
-    const s = seconds % 60;
-    return `${m}:${s.toString().padStart(2, "0")}`;
-  };
-
-  const isServerBusy = stats && stats.activeRequests >= stats.maxRequests;
-  const isSearchDisabled = loading || cooldownRemaining > 0 || queuePosition;
+  const isSearchDisabled = loading;
 
   const features = [
     { label: "SGPA & CGPA", icon: <BarChart2 size={14} /> },
@@ -66,19 +30,6 @@ export default function Home() {
     { label: "Backlogs", icon: <Target size={14} /> },
     { label: "AI Insights", icon: <Sparkles size={14} /> },
     { label: "Grade Sheet", icon: <FileText size={14} /> },
-  ];
-
-  const gradeTableData = [
-    { grade: "O", range: "90 & above", points: "10", interpretation: "Outstanding", counted: "Yes", color: "#f59e0b" },
-    { grade: "E", range: "80 - 89", points: "9", interpretation: "Excellent", counted: "Yes", color: "#22c55e" },
-    { grade: "A", range: "70 - 79", points: "8", interpretation: "Very Good", counted: "Yes", color: "#3ea6ff" },
-    { grade: "B", range: "60 - 69", points: "7", interpretation: "Good", counted: "Yes", color: "#a855f7" },
-    { grade: "C", range: "50 - 59", points: "6", interpretation: "Fair (Average)", counted: "Yes", color: "#f97316" },
-    { grade: "D", range: "40 - 49", points: "5", interpretation: "Pass (Theory Only)", counted: "Yes", color: "#9ca3af" },
-    { grade: "F", range: "Below 40", points: "2", interpretation: "Failed", counted: "Yes", color: "#ef4444" },
-    { grade: "R", range: "Non-Clearance", points: "0", interpretation: "Repeat", counted: "Yes", color: "#f43f5e" },
-    { grade: "M", range: "—", points: "0", interpretation: "Malpractice", counted: "No", color: "#64748b" },
-    { grade: "S", range: "—", points: "0", interpretation: "Absent", counted: "No", color: "#64748b" },
   ];
 
   return (
@@ -135,52 +86,6 @@ export default function Home() {
           alignItems: "center",
         }}
       >
-        {/* Live Server Stats Badge */}
-        {stats && (
-          <motion.div
-            initial={{ y: -20, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-            style={{
-              display: "flex",
-              flexDirection: "row",
-              flexWrap: "nowrap",
-              gap: 12,
-              background: "rgba(20,20,20,0.8)",
-              backdropFilter: "blur(12px)",
-              border: "1px solid rgba(255,255,255,0.1)",
-              padding: "8px 16px",
-              borderRadius: 30,
-              fontSize: "clamp(11px, 3.5vw, 13px)",
-              fontWeight: 500,
-              marginBottom: 32,
-              boxShadow: "0 4px 20px rgba(0,0,0,0.2)",
-              justifyContent: "center",
-              alignItems: "center",
-              whiteSpace: "nowrap",
-              width: "max-content",
-            }}
-          >
-            <div style={{ display: "flex", alignItems: "center", gap: 6, color: "var(--text)", whiteSpace: "nowrap" }}>
-              <div style={{ width: 8, height: 8, borderRadius: "50%", background: "#22c55e", boxShadow: "0 0 10px #22c55e", flexShrink: 0 }} />
-              {stats.activeUsers} {stats.activeUsers === 1 ? "User" : "Users"} Online
-            </div>
-            <div style={{ width: 1, height: 14, background: "rgba(255,255,255,0.15)", flexShrink: 0 }} />
-            <div style={{ display: "flex", alignItems: "center", gap: 6, color: isServerBusy ? "var(--warning)" : "var(--accent)", whiteSpace: "nowrap" }}>
-              <Activity size={14} style={{ flexShrink: 0 }} />
-              {stats.activeRequests} / {stats.maxRequests} Active Sessions
-            </div>
-            {stats.queueLength > 0 && (
-              <>
-                <div style={{ width: 1, height: 14, background: "rgba(255,255,255,0.15)", flexShrink: 0 }} />
-                <div style={{ display: "flex", alignItems: "center", gap: 6, color: "var(--danger)", whiteSpace: "nowrap" }}>
-                  <Loader2 className="spinner" size={14} style={{ flexShrink: 0 }} />
-                  {stats.queueLength} Waiting
-                </div>
-              </>
-            )}
-          </motion.div>
-        )}
-
         {/* Logo */}
         <div style={{ marginBottom: 24 }}>
           <motion.div
@@ -255,325 +160,127 @@ export default function Home() {
         </p>
 
         {/* Search */}
-        {!queuePosition ? (
-          <form onSubmit={handleSearch} style={{ width: "100%" }}>
-            <div className="search-bar-container">
-              <input
-                className="search-bar-input"
-                value={regNo}
-                onChange={(e) => setRegNo(e.target.value)}
-                placeholder="Registration No. (e.g. 230301120170)"
-                style={{ 
-                  
-                  fontSize: 16, 
-                  padding: "16px 24px", 
-                  borderRadius: 16, 
-                  background: "rgba(30, 30, 30, 0.4)",
-                  border: "1px solid rgba(255, 255, 255, 0.08)",
-                  boxShadow: "inset 0 2px 4px rgba(0,0,0,0.2)",
-                  color: "var(--text)"
-                }}
-                disabled={isSearchDisabled}
-              />
-              <motion.button
-                whileHover={!isSearchDisabled ? { scale: 1.02, boxShadow: "0 8px 20px rgba(62,166,255,0.4)" } : {}}
-                whileTap={!isSearchDisabled ? { scale: 0.98 } : {}}
-                className="btn btn-primary search-bar-btn"
-                type="submit"
-                disabled={isSearchDisabled}
-                style={{ 
-                  
-                  whiteSpace: "nowrap", 
-                  padding: "16px 32px", 
-                  display: "flex", 
-                  alignItems: "center", 
-                  justifyContent: "center", 
-                  gap: 8, 
-                  borderRadius: 16, 
-                  fontSize: 16,
-                  fontWeight: 600,
-                  background: cooldownRemaining > 0 ? "var(--border)" : "linear-gradient(135deg, var(--accent), #3b82f6)",
-                  color: cooldownRemaining > 0 ? "var(--secondary)" : "#fff",
-                  border: "none",
-                  cursor: isSearchDisabled ? "not-allowed" : "pointer",
-                  opacity: isSearchDisabled ? 0.8 : 1,
-                  boxShadow: cooldownRemaining > 0 ? "none" : "0 4px 15px rgba(62,166,255,0.2)"
-                }}
-              >
-                {cooldownRemaining > 0 ? (
-                  <>
-                    <Clock size={16} /> Wait {formatTime(cooldownRemaining)}
-                  </>
-                ) : loading ? (
-                  "Searching..."
-                ) : (
-                  <>
-                    Search <ArrowRight size={18} />
-                  </>
-                )}
-              </motion.button>
-            </div>
-          </form>
-        ) : (
-          <motion.div
-            initial={{ opacity: 0, y: 10, scale: 0.95 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            style={{
-              maxWidth: 500,
-              margin: "0 auto",
-              padding: "20px",
-              background: "rgba(62,166,255,0.05)",
-              border: "1px solid rgba(62,166,255,0.2)",
-              borderRadius: 16,
-              display: "flex",
-              flexDirection: "column",
-              alignItems: "center",
-              gap: 12,
-            }}
-          >
-            <div style={{ display: "flex", alignItems: "center", gap: 12, color: "var(--accent)", fontWeight: 600, fontSize: 18 }}>
-              <Loader2 className="spinner" size={24} />
-              Waiting in Queue
-            </div>
-            <p style={{ color: "var(--secondary)", fontSize: 14, margin: 0 }}>
-              The server is currently at maximum capacity. You are in line to enter.
-            </p>
-            <div style={{
-              background: "rgba(0,0,0,0.3)",
-              padding: "12px 24px",
-              borderRadius: 12,
-              display: "inline-block",
-              marginTop: 8,
-              border: "1px solid rgba(255,255,255,0.1)"
-            }}>
-              Your Position: <strong style={{ color: "#fff", fontSize: 24, marginLeft: 8 }}>#{queuePosition}</strong>
-            </div>
-            
-            <button 
-              type="button"
-              className="btn btn-ghost" 
-              onClick={() => {
-                leaveQueue();
-                setQueuedRegNo("");
+        <form onSubmit={handleSearch} style={{ width: "100%" }}>
+          <div className="search-bar-container">
+            <input
+              className="search-bar-input"
+              value={regNo}
+              onChange={(e) => setRegNo(e.target.value)}
+              placeholder="Registration No. (e.g. 230301120170)"
+              style={{ 
+                flex: 1, 
+                fontSize: 16, 
+                padding: "16px 24px", 
+                borderRadius: 16, 
+                background: "rgba(30, 30, 30, 0.4)",
+                border: "1px solid rgba(255, 255, 255, 0.08)",
+                boxShadow: "inset 0 2px 4px rgba(0,0,0,0.2)",
+                color: "var(--text)",
+                outline: "none",
+                transition: "all 0.2s"
               }}
-              style={{ marginTop: 8, color: "var(--danger)", fontSize: 13, display: "flex", alignItems: "center", gap: 6 }}
+              onFocus={(e) => e.target.style.border = "1px solid var(--accent)"}
+              onBlur={(e) => e.target.style.border = "1px solid rgba(255, 255, 255, 0.08)"}
+              disabled={isSearchDisabled}
+            />
+            <motion.button
+              whileHover={isSearchDisabled ? {} : { scale: 1.02 }}
+              whileTap={isSearchDisabled ? {} : { scale: 0.98 }}
+              type="submit"
+              disabled={isSearchDisabled}
+              style={{
+                background: isSearchDisabled ? "rgba(255,255,255,0.1)" : "linear-gradient(135deg, var(--accent), #3b82f6)",
+                border: "none",
+                padding: "16px 32px",
+                borderRadius: 16,
+                color: isSearchDisabled ? "rgba(255,255,255,0.3)" : "#fff",
+                fontWeight: 700,
+                fontSize: 16,
+                cursor: isSearchDisabled ? "not-allowed" : "pointer",
+                display: "flex",
+                alignItems: "center",
+                gap: 8,
+                transition: "all 0.2s",
+                boxShadow: isSearchDisabled ? "none" : "0 4px 15px rgba(62,166,255,0.3)",
+              }}
             >
-              <X size={14} /> Leave Queue
-            </button>
-          </motion.div>
-        )}
-        {error && (
-            <p style={{ color: "var(--danger)", marginTop: 12, fontSize: 14, display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}>
-              <AlertTriangle size={16} /> {error}
-            </p>
-          )}
+              {loading ? (
+                <>
+                  <motion.div animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 1, ease: "linear" }}>
+                    <div style={{ width: 18, height: 18, border: "2px solid rgba(255,255,255,0.3)", borderTopColor: "#fff", borderRadius: "50%" }} />
+                  </motion.div>
+                  Searching...
+                </>
+              ) : (
+                <>
+                  Search <ArrowRight size={18} />
+                </>
+              )}
+            </motion.button>
+          </div>
+        </form>
 
-        {/* Feature pills */}
-        <div
-          style={{
-            display: "flex",
-            gap: 8,
-            justifyContent: "center",
-            flexWrap: "wrap",
-            marginTop: 48,
-          }}
-        >
-          {features.map((f, i) => (
-            <motion.span
-              key={f.label}
+        <AnimatePresence>
+          {error && (
+            <motion.div
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9 }}
+              style={{
+                marginTop: 24,
+                padding: "16px 20px",
+                background: "rgba(239, 68, 68, 0.1)",
+                border: "1px solid rgba(239, 68, 68, 0.2)",
+                borderRadius: 12,
+                color: "var(--danger)",
+                display: "flex",
+                alignItems: "center",
+                gap: 12,
+                fontSize: 14,
+                maxWidth: 400,
+                margin: "24px auto 0",
+              }}
+            >
+              <AlertTriangle size={18} style={{ flexShrink: 0 }} />
+              <div style={{ textAlign: "left", lineHeight: 1.4 }}>{error}</div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+        
+        {/* Features Chips */}
+        <div style={{ 
+          display: "flex", 
+          flexWrap: "wrap", 
+          gap: 12, 
+          justifyContent: "center", 
+          marginTop: 60,
+          maxWidth: 600,
+          margin: "60px auto 0"
+        }}>
+          {features.map((feature, i) => (
+            <motion.div
+              key={i}
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.2 + i * 0.05 }}
-              whileHover={{ y: -2, background: "rgba(255,255,255,0.05)" }}
               style={{
-                background: "var(--card)",
-                border: "1px solid var(--border)",
-                borderRadius: 20,
-                padding: "6px 14px",
-                fontSize: 13,
-                color: "var(--secondary)",
                 display: "flex",
                 alignItems: "center",
-                gap: 6,
-                cursor: "default"
+                gap: 8,
+                padding: "8px 16px",
+                background: "rgba(255,255,255,0.03)",
+                border: "1px solid rgba(255,255,255,0.05)",
+                borderRadius: 20,
+                fontSize: 13,
+                color: "var(--secondary)",
               }}
             >
-              {f.icon} {f.label}
-            </motion.span>
+              <span style={{ color: "var(--accent)" }}>{feature.icon}</span>
+              {feature.label}
+            </motion.div>
           ))}
         </div>
       </motion.div>
-
-      <div
-        style={{
-          width: "100%",
-          maxWidth: 1000,
-          margin: "80px auto 0",
-          display: "flex",
-          flexDirection: "column",
-          gap: 40,
-          position: "relative",
-          zIndex: 1,
-        }}
-      >
-        {/* Grade Interpretation System */}
-        <motion.div
-          initial={{ y: 30, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          transition={{ delay: 0.4 }}
-          className="card"
-          style={{ padding: 32, background: "rgba(20,20,20,0.4)", backdropFilter: "blur(20px)" }}
-        >
-          <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 24 }}>
-            <div style={{ background: "rgba(168,85,247,0.1)", padding: 10, borderRadius: 12 }}>
-              <Star color="#a855f7" size={20} />
-            </div>
-            <div>
-              <h3 style={{ fontSize: 20, fontWeight: 700 }}>Grading Scale</h3>
-              <p style={{ color: "var(--secondary)", fontSize: 13 }}>Standard university grade point mapping</p>
-            </div>
-          </div>
-
-          <div>
-            <div>
-              <div className="responsive-table-header">
-                <span>Grade</span>
-                <span>Qualification</span>
-                <span>Range</span>
-                <span>Points</span>
-                <span style={{ textAlign: "right" }}>Counted?</span>
-              </div>
-
-              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-            {gradeTableData.map((row, i) => (
-              <motion.div
-                key={row.grade}
-                initial={{ opacity: 0, x: -10 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: 0.5 + i * 0.05 }}
-                whileHover={{ scale: 1.02, background: "rgba(255,255,255,0.03)" }}
-                className="responsive-table-row"
-              >
-                <div className="responsive-table-cell">
-                  <span className="mobile-label">Grade</span>
-                  <div style={{ width: 28, height: 28, borderRadius: 8, background: `${row.color}15`, color: row.color, display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700, fontSize: 14 }}>
-                    {row.grade}
-                  </div>
-                </div>
-                
-                <div className="responsive-table-cell" style={{ fontSize: 13, color: "var(--text)", fontWeight: 500 }}>
-                  <span className="mobile-label">Qualification</span>
-                  <span>{row.interpretation}</span>
-                </div>
-
-                <div className="responsive-table-cell" style={{ fontSize: 12, color: "var(--secondary)", fontFamily: "Space Mono, monospace" }}>
-                  <span className="mobile-label">Range</span>
-                  <span>{row.range}</span>
-                </div>
-
-                <div className="responsive-table-cell" style={{ fontSize: 14, fontWeight: 700, color: row.color }}>
-                  <span className="mobile-label">Points</span>
-                  <span>{row.points}</span>
-                </div>
-                
-                <div className="responsive-table-cell" style={{ textAlign: "right" }}>
-                  <span className="mobile-label" style={{ textAlign: "left" }}>Counted?</span>
-                  <span style={{ padding: "4px 8px", borderRadius: 6, fontSize: 11, fontWeight: 600, background: row.counted === "Yes" ? "rgba(34, 197, 94, 0.1)" : "rgba(239, 68, 68, 0.1)", color: row.counted === "Yes" ? "#22c55e" : "#ef4444" }}>
-                    {row.counted}
-                  </span>
-                </div>
-              </motion.div>
-            ))}
-          </div>
-            </div>
-          </div>
-        </motion.div>
-
-        {/* Core Algorithms */}
-        <motion.div
-          initial={{ y: 30, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          transition={{ delay: 0.5 }}
-          className="card"
-          style={{ padding: 32, background: "rgba(20,20,20,0.4)", backdropFilter: "blur(20px)", display: "flex", flexDirection: "column" }}
-        >
-          <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 24 }}>
-            <div style={{ background: "rgba(62,166,255,0.1)", padding: 10, borderRadius: 12 }}>
-              <Sigma color="#3ea6ff" size={20} />
-            </div>
-            <div>
-              <h3 style={{ fontSize: 20, fontWeight: 700 }}>Core Algorithms</h3>
-              <p style={{ color: "var(--secondary)", fontSize: 13 }}>The mathematical logic behind calculations</p>
-            </div>
-          </div>
-
-          <div style={{ display: "flex", flexDirection: "column", gap: 32 }}>
-            {/* SGPA Formula */}
-            <div style={{ background: "rgba(255,255,255,0.02)", padding: 24, borderRadius: 16, border: "1px solid rgba(255,255,255,0.05)" }}>
-              <h4 style={{ fontSize: 18, fontWeight: 700, color: "var(--text)", marginBottom: 12, display: "flex", alignItems: "center", gap: 8 }}>
-                1. SGPA (Semester Grade Point Average) Formula
-              </h4>
-              <p style={{ fontSize: 14, color: "var(--secondary)", lineHeight: 1.6, marginBottom: 20 }}>
-                The SGPA measures your academic performance for a single semester. It is the ratio of your total earned Credit Points to the total Course Credits registered.
-              </p>
-              
-              <div className="math-formula-container">
-                <div className="math-formula-text" style={{ color: "#a855f7" }}>
-                  <span>SGPA =</span>
-                  <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 8 }}>
-                    <span style={{ borderBottom: "1px solid #a855f7", paddingBottom: 4 }}>Σ(Cᵢ × Gᵢ)</span>
-                    <span>ΣCᵢ</span>
-                  </div>
-                </div>
-              </div>
-
-              <div style={{ fontSize: 14, color: "var(--secondary)" }}>
-                <p style={{ fontWeight: 700, color: "var(--text)", marginBottom: 12 }}>Where:</p>
-                <ul style={{ display: "flex", flexDirection: "column", gap: 10, paddingLeft: 20 }}>
-                  <li><strong style={{ color: "var(--text)" }}>Cᵢ</strong> = The number of credits assigned to the i-th subject.</li>
-                  <li><strong style={{ color: "var(--text)" }}>Gᵢ</strong> = The grade point secured in the i-th subject (e.g., O = 10, E = 9, F = 2, R = 0).</li>
-                  <li><strong style={{ color: "var(--text)" }}>n</strong> = The total number of subjects registered in that semester.</li>
-                </ul>
-              </div>
-            </div>
-
-            {/* CGPA Formula */}
-            <div style={{ background: "rgba(255,255,255,0.02)", padding: 24, borderRadius: 16, border: "1px solid rgba(255,255,255,0.05)" }}>
-              <h4 style={{ fontSize: 18, fontWeight: 700, color: "var(--text)", marginBottom: 12, display: "flex", alignItems: "center", gap: 8 }}>
-                2. CGPA (Cumulative Grade Point Average) Formula
-              </h4>
-              <p style={{ fontSize: 14, color: "var(--secondary)", lineHeight: 1.6, marginBottom: 20 }}>
-                The CGPA measures your cumulative academic performance across all semesters completed so far. It is a weighted average of your SGPAs based on the total credits assigned to each individual semester.
-              </p>
-              
-              <div className="math-formula-container">
-                <div className="math-formula-text" style={{ color: "#3ea6ff" }}>
-                  <span>CGPA =</span>
-                  <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 8 }}>
-                    <span style={{ borderBottom: "1px solid #3ea6ff", paddingBottom: 4 }}>Σ(SGPAⱼ × Crⱼ)</span>
-                    <span>ΣCrⱼ</span>
-                  </div>
-                </div>
-              </div>
-
-              <div style={{ fontSize: 14, color: "var(--secondary)" }}>
-                <p style={{ fontWeight: 700, color: "var(--text)", marginBottom: 12 }}>Where:</p>
-                <ul style={{ display: "flex", flexDirection: "column", gap: 10, paddingLeft: 20 }}>
-                  <li><strong style={{ color: "var(--text)" }}>SGPAⱼ</strong> = The final SGPA scored in the j-th semester.</li>
-                  <li><strong style={{ color: "var(--text)" }}>Crⱼ</strong> = The total number of registered credits assigned to that specific j-th semester.</li>
-                  <li><strong style={{ color: "var(--text)" }}>m</strong> = The total number of semesters completed up to the current date.</li>
-                </ul>
-              </div>
-            </div>
-          </div>
-          
-          <div style={{ marginTop: 24, padding: 16, borderRadius: 12, background: "rgba(62,166,255,0.05)", border: "1px dashed rgba(62,166,255,0.3)" }}>
-            <p style={{ fontSize: 12, color: "var(--secondary)", lineHeight: 1.6 }}>
-              <span style={{ color: "#3ea6ff", fontWeight: 700 }}>Note:</span> Special rules apply: M (Malpractice) and S (Absent) credits are entirely excluded. A 6-credit Semester 5 Project with an R grade is ignored. Backlogs dynamically update affected SGPAs!
-            </p>
-          </div>
-        </motion.div>
-      </div>
     </motion.div>
   );
 }

@@ -60,12 +60,35 @@ function calcAcademicHealth(cgpa, sgpa, backlogs, results) {
   return Math.round(Math.min(score, 100));
 }
 
-const { checkQueue } = require("../queueManager");
+// In-Memory Cache (15 minutes expiry)
+const studentCache = new Map();
+const CACHE_TTL_MS = 15 * 60 * 1000;
+
+function setCache(regNo, data) {
+  studentCache.set(regNo, { data, expiry: Date.now() + CACHE_TTL_MS });
+}
+
+function getCache(regNo) {
+  const cached = studentCache.get(regNo);
+  if (!cached) return null;
+  if (Date.now() > cached.expiry) {
+    studentCache.delete(regNo);
+    return null;
+  }
+  return cached.data;
+}
 
 // GET student full profile
-router.get("/:regNo", checkQueue, async (req, res) => {
+router.get("/:regNo", async (req, res) => {
   try {
     const { regNo } = req.params;
+    
+    // Check Cache First! (Zero CPU load, instant response)
+    const cachedData = getCache(regNo);
+    if (cachedData) {
+      return res.json(cachedData);
+    }
+
     const results = await SemesterResult.find({ regNo }).sort({ semester: 1 });
     if (!results.length)
       return res.status(404).json({ message: "Student not found" });
@@ -120,7 +143,7 @@ router.get("/:regNo", checkQueue, async (req, res) => {
       semester: latestResult.semester,
     });
 
-    res.json({
+    const responseData = {
       regNo,
       studentName: latestResult.studentName,
       branch: latestResult.branch,
@@ -146,7 +169,10 @@ router.get("/:regNo", checkQueue, async (req, res) => {
       backlogs: backlogs, // Now contains subName, subCode, credit, grade, semester
       results,
       ranking: ranking || null,
-    });
+    };
+
+    setCache(regNo, responseData);
+    res.json(responseData);
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
