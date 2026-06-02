@@ -1,9 +1,9 @@
-import { useEffect, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useLocation } from "react-router-dom";
 import axios from "axios";
 import { useApp } from "../context/AppContext";
 import { Spinner } from "../components/LoadingSpinner";
-import { AnimatePresence, motion } from "framer-motion";
+import { motion } from "framer-motion";
 import { Trophy, Search, Calendar, Medal, Star, Target } from "lucide-react";
 
 export default function Leaderboard() {
@@ -13,6 +13,10 @@ export default function Leaderboard() {
   const [loading, setLoading] = useState(true);
   const [meta, setMeta] = useState({ semesters: [], branches: [] });
   const [showCount, setShowCount] = useState(10);
+  const tableShellRef = useRef(null);
+  const tableInnerRef = useRef(null);
+  const previousTableHeightRef = useRef(0);
+  const [tableHeight, setTableHeight] = useState("auto");
   const [highlightRegNo, setHighlightRegNo] = useState("");
   const [searchInput, setSearchInput] = useState("");
   const [filters, setFilters] = useState({
@@ -64,6 +68,42 @@ export default function Leaderboard() {
       }, 500);
     }
   }, [rankings, highlightRegNo]);
+
+  useLayoutEffect(() => {
+    const shell = tableShellRef.current;
+    const inner = tableInnerRef.current;
+    if (!shell || !inner || loading || rankings.length === 0) return undefined;
+
+    const previousHeight = previousTableHeightRef.current;
+    const nextHeight = inner.getBoundingClientRect().height;
+    previousTableHeightRef.current = nextHeight;
+
+    if (!previousHeight || Math.abs(previousHeight - nextHeight) < 1) {
+      setTableHeight("auto");
+      return undefined;
+    }
+
+    setTableHeight(previousHeight);
+    const frame = window.requestAnimationFrame(() => {
+      setTableHeight(nextHeight);
+    });
+    const timeout = window.setTimeout(() => {
+      setTableHeight("auto");
+    }, 540);
+
+    return () => {
+      window.cancelAnimationFrame(frame);
+      window.clearTimeout(timeout);
+    };
+  }, [
+    showCount,
+    rankings,
+    loading,
+    filters.sortBy,
+    filters.search,
+    filters.semester,
+    filters.branch,
+  ]);
 
   async function fetchRankings(f = filters) {
     if (f.sortBy === "sgpa" && !f.semester) {
@@ -270,7 +310,7 @@ export default function Leaderboard() {
               </colgroup>
             );
 
-            const renderRankingRow = (r, i) => {
+            const renderRankingRow = (r) => {
               const isGold = r.displayRank === 1;
               const isSilver = r.displayRank === 2;
               const isBronze = r.displayRank === 3;
@@ -286,26 +326,14 @@ export default function Leaderboard() {
               const isHighlighted = highlightRegNo === r.regNo;
               const isDeveloper = r.regNo === "230301120327";
 
-              const isExpandableRow = r.displayRank > 10;
-
               return (
-                <motion.tr
-                  layout
+                <tr
                   id={`row-${r.regNo}`}
                   key={`${r.regNo}-${r.displayRank}-${isSGPA ? "sgpa" : "cgpa"}`}
-                  initial={isExpandableRow ? { opacity: 0, y: -10, scaleY: 0.96 } : { opacity: 0, y: 8 }}
-                  animate={{ opacity: 1, y: 0, scaleY: 1 }}
-                  exit={{ opacity: 0, y: -8, scaleY: 0.96 }}
-                  transition={{
-                    duration: isExpandableRow ? 0.28 : 0.18,
-                    ease: [0.22, 1, 0.36, 1],
-                    delay: showCount === 50 ? Math.min(i * 0.008, 0.18) : 0,
-                  }}
                   style={{
                     backgroundColor: isHighlighted ? "rgba(168,85,247,0.25)" : "transparent",
                     boxShadow: isHighlighted ? "inset 0 0 0 2px rgba(168,85,247,0.5)" : "none",
                     transition: "background-color 0.5s ease",
-                    transformOrigin: "top",
                     whiteSpace: "nowrap"
                   }}
                 >
@@ -380,19 +408,26 @@ export default function Leaderboard() {
                   >
                     {isSGPA ? r.sgpa?.toFixed(2) : r.cgpa?.toFixed(2)}
                   </td>
-                </motion.tr>
+                </tr>
               );
             };
 
             return (
               <>
-                <motion.div
-                  layout
+                <div
+                  ref={tableShellRef}
                   className="table-wrap"
-                  transition={{ duration: 0.36, ease: [0.22, 1, 0.36, 1] }}
-                  style={{ marginBottom: 0, overflowX: "auto", overflowY: "hidden" }}
+                  style={{
+                    marginBottom: 0,
+                    height: tableHeight,
+                    overflowX: "auto",
+                    overflowY: "hidden",
+                    transition: "height 0.48s cubic-bezier(0.16, 1, 0.3, 1)",
+                    willChange: tableHeight === "auto" ? "auto" : "height",
+                    contain: "layout paint",
+                  }}
                 >
-                  <table style={{ margin: 0, tableLayout: "auto", width: "100%", minWidth: 980 }}>
+                  <table ref={tableInnerRef} style={{ margin: 0, tableLayout: "auto", width: "100%", minWidth: 980 }}>
                     {colGroup}
                     <thead>
                       <tr>
@@ -422,19 +457,22 @@ export default function Leaderboard() {
                           </td>
                         </tr>
                       )}
-                      <AnimatePresence initial={false}>
-                        {visibleRankings.map(renderRankingRow)}
-                      </AnimatePresence>
+                      {visibleRankings.map(renderRankingRow)}
                     </tbody>
                   </table>
-                </motion.div>
+                </div>
                 
                 {hasMoreRankings && (
                   <div style={{ textAlign: "center", marginTop: 24 }}>
                     <button 
                       className="btn btn-ghost" 
-                      onClick={() => setShowCount(showCount === 10 ? 50 : 10)}
-                      style={{ border: "1px solid var(--border)", padding: "10px 24px" }}
+                      aria-expanded={showCount === 50}
+                      onClick={() => setShowCount((current) => current === 10 ? 50 : 10)}
+                      style={{
+                        border: "1px solid var(--border)",
+                        padding: "10px 24px",
+                        transition: "background-color 0.2s ease, border-color 0.2s ease, transform 0.2s ease",
+                      }}
                     >
                       {showCount === 10 ? "Show up to Rank 50" : "Show Top 10 Only"}
                     </button>
