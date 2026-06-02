@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { Star, MessageSquare, GraduationCap, Quote, Heart } from "lucide-react";
+import { Star, MessageSquare, GraduationCap, Quote, Heart, Github, Linkedin, Instagram } from "lucide-react";
 import { useSearchParams } from "react-router-dom";
 import axios from "axios";
 import { useApp } from "../context/AppContext";
@@ -208,6 +208,55 @@ export default function Testimonials() {
             </div>
           </motion.div>
         )}
+
+        {/* Developer Social Links (Top) */}
+        <div style={{ display: "flex", justifyContent: "center", alignItems: "center", gap: 16, marginBottom: 48, flexWrap: "wrap" }}>
+          <span style={{ color: "var(--secondary)", fontSize: 14, fontWeight: 500 }}>
+            Developed by <span style={{ color: "var(--text)", fontWeight: 700 }}>Jagan Parida</span>:
+          </span>
+          <div style={{ display: "flex", gap: 12 }}>
+            {[
+              { icon: <Github size={18} />, url: "https://github.com/JaganParida", color: "#fff", label: "GitHub" },
+              { icon: <Linkedin size={18} />, url: "https://www.linkedin.com/in/jagan-parida04", color: "#3b82f6", label: "LinkedIn" },
+              { icon: <Instagram size={18} />, url: "https://instagram.com/imjagaan", color: "#ec4899", label: "Instagram" },
+            ].map((link, idx) => (
+              <motion.a
+                key={idx}
+                href={link.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                whileHover={{ y: -2, scale: 1.1 }}
+                whileTap={{ scale: 0.95 }}
+                style={{
+                  width: 36,
+                  height: 36,
+                  borderRadius: "50%",
+                  background: "rgba(255,255,255,0.03)",
+                  border: "1px solid rgba(255,255,255,0.08)",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  color: "var(--secondary)",
+                  transition: "all 0.3s ease",
+                  textDecoration: "none",
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.color = link.color;
+                  e.currentTarget.style.background = `${link.color}15`;
+                  e.currentTarget.style.borderColor = `${link.color}40`;
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.color = "var(--secondary)";
+                  e.currentTarget.style.background = "rgba(255,255,255,0.03)";
+                  e.currentTarget.style.borderColor = "rgba(255,255,255,0.08)";
+                }}
+                aria-label={link.label}
+              >
+                {link.icon}
+              </motion.a>
+            ))}
+          </div>
+        </div>
 
         {/* Inline Feedback Form */}
         <div style={{
@@ -437,6 +486,74 @@ export default function Testimonials() {
           )}
         </div>
       </div>
+
+      {/* ════════════════════════════════════════════
+          FOOTER SECTION
+      ════════════════════════════════════════════ */}
+      <motion.footer
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.5 }}
+        style={{
+          width: "100%",
+          maxWidth: 900,
+          margin: "0 auto",
+          marginTop: "auto",
+          padding: "32px 24px",
+          borderTop: "1px solid rgba(255,255,255,0.06)",
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          gap: 16,
+          zIndex: 1,
+        }}
+      >
+        <p style={{ color: "var(--secondary)", fontSize: 14, fontWeight: 500 }}>
+          Developed with <span style={{ color: "#ef4444" }}>♥</span> by <span style={{ color: "var(--text)", fontWeight: 700 }}>Jagan Parida</span>
+        </p>
+        <div style={{ display: "flex", gap: 20 }}>
+          {[
+            { icon: <Github size={20} />, url: "https://github.com/JaganParida", color: "#fff", label: "GitHub" },
+            { icon: <Linkedin size={20} />, url: "https://www.linkedin.com/in/jagan-parida04", color: "#3b82f6", label: "LinkedIn" },
+            { icon: <Instagram size={20} />, url: "https://instagram.com/imjagaan", color: "#ec4899", label: "Instagram" },
+          ].map((link, idx) => (
+            <motion.a
+              key={idx}
+              href={link.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              whileHover={{ y: -3, scale: 1.1 }}
+              whileTap={{ scale: 0.95 }}
+              style={{
+                width: 44,
+                height: 44,
+                borderRadius: "50%",
+                background: "rgba(255,255,255,0.03)",
+                border: "1px solid rgba(255,255,255,0.08)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                color: "var(--secondary)",
+                transition: "all 0.3s ease",
+                textDecoration: "none",
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.color = link.color;
+                e.currentTarget.style.background = `${link.color}15`;
+                e.currentTarget.style.borderColor = `${link.color}40`;
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.color = "var(--secondary)";
+                e.currentTarget.style.background = "rgba(255,255,255,0.03)";
+                e.currentTarget.style.borderColor = "rgba(255,255,255,0.08)";
+              }}
+              aria-label={link.label}
+            >
+              {link.icon}
+            </motion.a>
+          ))}
+        </div>
+      </motion.footer>
     </motion.div>
   );
 }
