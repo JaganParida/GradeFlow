@@ -829,16 +829,27 @@ export default function Dashboard() {
                                    {s.type && <span style={{ fontSize: 10, color: "#a855f7", background: "rgba(168,85,247,0.12)", padding: "2px 6px", borderRadius: 4 }}>{s.type}</span>}
                                  </div>
                               </td>
-                              {assessments.map((a, ci) => (
-                                <td key={ci} style={{ padding: "14px 16px", textAlign: "center", borderRight: "1px solid rgba(255,255,255,0.02)" }}>
-                                   <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 4 }}>
-                                     <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                                       <span style={{ fontSize: 10, color: "#717171", fontWeight: 600 }}>O: <MarkValue value={a.obtained} max={a.max} color="#f1f1f1" showMax={false} /></span>
-                                       <span style={{ fontSize: 10, color: "#717171", fontWeight: 600 }}>{isSem1 ? "M:" : "R:"} <MarkValue value={a.secondary} max={a.max} color="#a855f7" showMax={false} /></span>
-                                     </div>
-                                   </div>
-                                </td>
-                              ))}
+                              {assessments.map((a, ci) => {
+                                const hasData = isMarkAvailable(a.obtained) || isMarkAvailable(a.secondary);
+                                return (
+                                  <td key={ci} style={{ padding: "14px 16px", textAlign: "center", borderRight: "1px solid rgba(255,255,255,0.02)", verticalAlign: "middle" }}>
+                                    {hasData ? (
+                                      <div style={{ display: "flex", gap: 16, justifyContent: "center" }}>
+                                        <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
+                                          <span style={{ fontSize: 9, color: "#717171", fontWeight: 700, textTransform: "uppercase", marginBottom: 4, letterSpacing: "0.5px" }}>Obtained</span>
+                                          <MarkValue value={a.obtained} max={a.max} color="#f1f1f1" showMax={false} />
+                                        </div>
+                                        <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
+                                          <span style={{ fontSize: 9, color: "#717171", fontWeight: 700, textTransform: "uppercase", marginBottom: 4, letterSpacing: "0.5px" }}>{isSem1 ? "Max" : "Roundoff"}</span>
+                                          <MarkValue value={a.secondary} max={a.max} color="#a855f7" showMax={false} />
+                                        </div>
+                                      </div>
+                                    ) : (
+                                      <span style={{ color: "#555", fontSize: 14, fontWeight: 700 }}>—</span>
+                                    )}
+                                  </td>
+                                );
+                              })}
                               <td style={{ padding: "14px 16px", textAlign: "right" }}>
                                 {total.hasAny ? (
                                   <span style={{ display: "inline-block", background: "rgba(34,197,94,0.1)", border: "1px solid rgba(34,197,94,0.35)", padding: "4px 10px", borderRadius: 12, fontFamily: "Space Mono", fontWeight: 700, fontSize: 13, color: "var(--success)", whiteSpace: "nowrap" }}>
