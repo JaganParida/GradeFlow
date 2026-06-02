@@ -144,10 +144,11 @@ function assignCompetitionRanks(records, scoreKey, rankKey) {
 
   records.forEach((record, index) => {
     const score = Number(record[scoreKey]) || 0;
+
     if (index === 0) {
       currentRank = 1;
     } else if (score < previousScore) {
-      currentRank = index + 1;
+      currentRank++;
     }
 
     record[rankKey] = currentRank;
