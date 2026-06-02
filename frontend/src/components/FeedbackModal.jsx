@@ -87,10 +87,12 @@ export default function FeedbackModal() {
               position: "relative",
               width: "100%",
               maxWidth: 480,
+              maxHeight: "90vh",
+              overflowY: "auto",
               background: "#181818",
               border: "1px solid rgba(255,255,255,0.08)",
               borderRadius: 24,
-              padding: "32px 24px",
+              padding: "24px 20px",
               boxShadow: "0 24px 48px rgba(0,0,0,0.4)",
               zIndex: 1,
             }}
@@ -121,13 +123,13 @@ export default function FeedbackModal() {
 
             <div style={{ textAlign: "center", marginBottom: 24 }}>
               <div style={{
-                width: 56, height: 56, borderRadius: 16,
+                width: 48, height: 48, borderRadius: 14,
                 background: "linear-gradient(135deg, rgba(62,166,255,0.15), rgba(168,85,247,0.15))",
                 display: "flex", alignItems: "center", justifyContent: "center",
-                margin: "0 auto 16px",
+                margin: "0 auto 12px",
                 border: "1px solid rgba(255,255,255,0.08)",
               }}>
-                <MessageSquare size={28} color="#3ea6ff" />
+                <MessageSquare size={24} color="#3ea6ff" />
               </div>
               <h2 style={{ fontSize: 24, fontWeight: 800, marginBottom: 8, color: "#f1f1f1" }}>We Value Your Experience!</h2>
               <p style={{ color: "var(--secondary)", fontSize: 14, lineHeight: 1.5 }}>
@@ -135,7 +137,7 @@ export default function FeedbackModal() {
               </p>
             </div>
 
-            <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+            <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: 12 }}>
               {/* Star Rating */}
               <div style={{ display: "flex", justifyContent: "center", gap: 8, marginBottom: 8 }}>
                 {[1, 2, 3, 4, 5].map((star) => (
@@ -208,12 +210,12 @@ export default function FeedbackModal() {
                   value={comment}
                   onChange={(e) => setComment(e.target.value)}
                   placeholder="What do you think about GradeFlow?"
-                  rows={4}
+                  rows={3}
                   style={{
                     width: "100%", padding: "12px 16px", borderRadius: 12,
                     background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.08)",
                     color: "#fff", fontSize: 14, outline: "none", transition: "border-color 0.2s",
-                    resize: "vertical", minHeight: 100, fontFamily: "inherit"
+                    resize: "vertical", minHeight: 80, fontFamily: "inherit"
                   }}
                   onFocus={(e) => e.target.style.borderColor = "var(--accent)"}
                   onBlur={(e) => e.target.style.borderColor = "rgba(255,255,255,0.08)"}

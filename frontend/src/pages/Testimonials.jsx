@@ -106,8 +106,8 @@ export default function Testimonials() {
           background: "#212121",
           border: "1px solid rgba(255,255,255,0.08)",
           borderRadius: 20,
-          padding: "32px",
-          marginBottom: 48,
+          padding: "24px 20px",
+          marginBottom: 40,
         }}>
           <h3 style={{ fontSize: 18, fontWeight: 700, marginBottom: 20, display: "flex", alignItems: "center", gap: 10 }}>
             <Star size={18} color="#f59e0b" fill="#f59e0b" /> Leave your review
@@ -141,7 +141,7 @@ export default function Testimonials() {
               ))}
             </div>
 
-            <div style={{ display: "flex", gap: 16, flexWrap: "wrap" }}>
+            <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
               <input
                 type="text"
                 required
@@ -176,12 +176,12 @@ export default function Testimonials() {
               value={comment}
               onChange={(e) => setComment(e.target.value)}
               placeholder="Tell us about your experience..."
-              rows={3}
+              rows={2}
               style={{
                 width: "100%", padding: "12px 16px", borderRadius: 12,
                 background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.08)",
                 color: "#fff", fontSize: 14, outline: "none", transition: "border-color 0.2s",
-                resize: "vertical", fontFamily: "inherit"
+                resize: "vertical", minHeight: 80, fontFamily: "inherit"
               }}
               onFocus={(e) => e.target.style.borderColor = "var(--accent)"}
               onBlur={(e) => e.target.style.borderColor = "rgba(255,255,255,0.08)"}
@@ -229,7 +229,7 @@ export default function Testimonials() {
                     background: isHighlighted ? "rgba(62,166,255,0.06)" : "#212121",
                     border: isHighlighted ? "1px solid rgba(62,166,255,0.4)" : "1px solid rgba(255,255,255,0.08)",
                     borderRadius: 16,
-                    padding: "24px",
+                    padding: "20px 20px",
                     boxShadow: isHighlighted ? "0 0 20px rgba(62,166,255,0.15)" : "none",
                     transition: "all 0.3s ease",
                   }}

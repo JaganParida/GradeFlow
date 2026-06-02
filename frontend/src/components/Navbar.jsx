@@ -216,7 +216,7 @@ export default function Navbar() {
               bottom: calc(16px + env(safe-area-inset-bottom));
               z-index: 1200;
               display: grid;
-              grid-template-columns: repeat(5, minmax(0, 1fr));
+              grid-template-columns: repeat(6, minmax(0, 1fr));
               gap: 4px;
               padding: 8px 12px;
               border: 1px solid rgba(255,255,255,0.1);
