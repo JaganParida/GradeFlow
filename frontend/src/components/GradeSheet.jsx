@@ -51,6 +51,11 @@ const GRADE_COLOR = {
   M: "#dc2626",
 };
 
+// Round to 2 decimal places (matches official university rounding)
+function round2(x) {
+  return Math.round(x * 100) / 100;
+}
+
 // Mirrors backend calcSGPA exactly — ALL grades included (F=2, R=0, S=0, M=0)
 function calcSGPA(subjects, semester) {
   let totalWeighted = 0,
@@ -70,9 +75,7 @@ function calcSGPA(subjects, semester) {
       totalCredits += s.credit;
     }
   });
-  return totalCredits > 0
-    ? Math.floor((totalWeighted / totalCredits) * 100 + 0.0001) / 100
-    : 0;
+  return totalCredits > 0 ? round2(totalWeighted / totalCredits) : 0;
 }
 
 export default function GradeSheet({ result, studentData, highlightedSubject }) {
@@ -148,13 +151,15 @@ export default function GradeSheet({ result, studentData, highlightedSubject }) 
     });
 
     if (semTC > 0) {
-      const semSGPA = Math.floor((semTW / semTC) * 100 + 0.0001) / 100;
+      // Official formula: SGPA rounded to 2 decimal places
+      const semSGPA = round2(semTW / semTC);
       totalTW += semSGPA * semTC;
       totalTC += semTC;
     }
   });
 
-  const cgpaUpToNow = totalTC > 0 ? Math.floor((totalTW / totalTC) * 100 + 0.0001) / 100 : 0;
+  // CGPA = Σ(SGPA_i × Credits_i) / Σ(Credits_i), rounded to 2 decimal places
+  const cgpaUpToNow = totalTC > 0 ? round2(totalTW / totalTC) : 0;
 
   const today = new Date().toLocaleDateString("en-IN", {
     day: "2-digit",

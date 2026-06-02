@@ -17,6 +17,11 @@ const GRADE_POINTS = {
   S: 0,
 };
 
+// Round to 2 decimal places (matches official university rounding)
+function round2(x) {
+  return Math.round(x * 100) / 100;
+}
+
 function calcCGPA(results) {
   let cgpaNumerator = 0;
   let cgpaDenominator = 0;
@@ -38,14 +43,16 @@ function calcCGPA(results) {
     });
 
     if (semTC > 0) {
-      const semSGPA = Math.floor((semTW / semTC) * 100 + 0.0001) / 100;
+      // Official formula: SGPA per semester rounded to 2 decimal places
+      const semSGPA = round2(semTW / semTC);
       cgpaNumerator += semSGPA * semTC;
       cgpaDenominator += semTC;
     }
   });
 
+  // CGPA = Σ(SGPA_i × Credits_i) / Σ(Credits_i), rounded to 2 decimal places
   return cgpaDenominator > 0
-    ? Math.floor((cgpaNumerator / cgpaDenominator) * 100 + 0.0001) / 100
+    ? round2(cgpaNumerator / cgpaDenominator)
     : 0;
 }
 
@@ -59,9 +66,9 @@ function calcAcademicHealth(cgpa, sgpa, backlogs, results) {
   return Math.round(Math.min(score, 100));
 }
 
-// In-Memory Cache (15 minutes expiry)
+// In-Memory Cache — short TTL so stale data expires quickly
 const studentCache = new Map();
-const CACHE_TTL_MS = 15 * 60 * 1000;
+const CACHE_TTL_MS = 2 * 60 * 1000; // 2 minutes (was 15)
 
 function setCache(regNo, data) {
   studentCache.set(regNo, { data, expiry: Date.now() + CACHE_TTL_MS });
@@ -75,6 +82,15 @@ function getCache(regNo) {
     return null;
   }
   return cached.data;
+}
+
+// Exported so admin routes can invalidate cache immediately after upload
+function clearStudentCache(regNo) {
+  if (regNo) {
+    studentCache.delete(regNo);
+  } else {
+    studentCache.clear(); // clear all
+  }
 }
 
 // GET student full profile
@@ -125,7 +141,7 @@ router.get("/:regNo", async (req, res) => {
       }
     });
     if (semTC > 0) {
-      liveLatestSgpa = Math.floor((semTW / semTC) * 100 + 0.0001) / 100;
+      liveLatestSgpa = round2(semTW / semTC);
     }
 
     const healthScore = calcAcademicHealth(
@@ -219,3 +235,4 @@ router.get("/:regNo/internal/:sem", async (req, res) => {
 });
 
 module.exports = router;
+module.exports.clearStudentCache = clearStudentCache;

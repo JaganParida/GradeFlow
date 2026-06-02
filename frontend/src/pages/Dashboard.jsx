@@ -23,6 +23,11 @@ const GRADE_COLORS = {
 
 const GRADE_POINTS = { O: 10, E: 9, A: 8, B: 7, C: 6, D: 5, F: 2, R: 0, M: 0, S: 0 };
 
+// Round to 2 decimal places (matches official university rounding)
+function round2(x) {
+  return Math.round(x * 100) / 100;
+}
+
 // Live-calculate SGPA from subjects — mirrors backend & GradeSheet exactly
 function calcSGPAFromSubjects(subjects, semester) {
   let totalWeighted = 0, totalCredits = 0;
@@ -38,9 +43,8 @@ function calcSGPAFromSubjects(subjects, semester) {
       totalCredits += s.credit;
     }
   });
-  return totalCredits > 0
-    ? Math.floor((totalWeighted / totalCredits) * 100 + 0.0001) / 100
-    : 0;
+  // Official formula: round to 2 decimal places
+  return totalCredits > 0 ? round2(totalWeighted / totalCredits) : 0;
 }
 
 const MARK_PLACEHOLDER = "-";

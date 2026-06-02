@@ -7,6 +7,11 @@ const GRADE_POINTS = {
   O: 10, E: 9, A: 8, B: 7, C: 6, D: 5, R: 0, F: 2, M: 0, S: 0,
 };
 
+// Round to 2 decimal places (matches official university rounding)
+function round2(x) {
+  return Math.round(x * 100) / 100;
+}
+
 async function regenerate() {
   try {
     await mongoose.connect(process.env.MONGO_URI);
@@ -45,20 +50,37 @@ async function regenerate() {
           });
           
           if (semC > 0) {
-            let semSGPA = Math.floor((semW / semC) * 100 + 0.0001) / 100;
+            // Official formula: SGPA rounded to 2 decimal places per semester
+            let semSGPA = round2(semW / semC);
             cgpaNumerator += semSGPA * semC;
             cgpaDenominator += semC;
           }
         });
         
-        const cgpa = cgpaDenominator > 0 ? Math.floor((cgpaNumerator / cgpaDenominator) * 100 + 0.0001) / 100 : 0;
+        // CGPA = Σ(SGPA_i × Credits_i) / Σ(Credits_i), rounded to 2 decimal places
+        const cgpa = cgpaDenominator > 0 ? round2(cgpaNumerator / cgpaDenominator) : 0;
+        
+        // Live-calculate SGPA for this semester
+        let liveSGPA = 0;
+        let liveTW = 0, liveTC = 0;
+        r.subjects.forEach((s) => {
+          if (Number(r.semester) === 5 && s.grade === 'R' && (s.credit === 6 || (s.subName && s.subName.toLowerCase().includes('project')))) {
+            return;
+          }
+          if (s.credit && GRADE_POINTS[s.grade] !== undefined) {
+            liveTW += s.credit * GRADE_POINTS[s.grade];
+            liveTC += s.credit;
+          }
+        });
+        liveSGPA = liveTC > 0 ? round2(liveTW / liveTC) : 0;
+        
         studentData.push({
           regNo: r.regNo,
           studentName: r.studentName,
           branch: r.branch,
           batch: r.batch,
           semester: Number(semester),
-          sgpa: r.sgpa,
+          sgpa: liveSGPA,  // live-calculated, matches GradeSheet
           cgpa,
         });
       }

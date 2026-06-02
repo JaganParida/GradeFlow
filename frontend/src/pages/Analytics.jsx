@@ -23,6 +23,11 @@ import { TrendingUp, TrendingDown, Star, Trophy, CheckCircle, AlertTriangle, Tar
 const GRADE_POINTS = { O: 10, E: 9, A: 8, B: 7, C: 6, D: 5, F: 2, R: 0, M: 0, S: 0 };
 const GRADE_ORDER = ["O", "E", "A", "B", "C", "D", "F"];
 
+// Round to 2 decimal places (matches official university rounding)
+function round2(x) {
+  return Math.round(x * 100) / 100;
+}
+
 // Live-calculate SGPA from a semester's subjects (mirrors backend & GradeSheet exactly)
 function calcSGPA(subjects, semester) {
   let totalWeighted = 0, totalCredits = 0;
@@ -40,9 +45,8 @@ function calcSGPA(subjects, semester) {
       totalCredits += s.credit;
     }
   });
-  return totalCredits > 0
-    ? Math.floor((totalWeighted / totalCredits) * 100 + 0.0001) / 100
-    : 0;
+  // Official formula: round to 2 decimal places
+  return totalCredits > 0 ? round2(totalWeighted / totalCredits) : 0;
 }
 
 function AnimatedNumber({ value }) {
@@ -89,13 +93,15 @@ function calcCGPAUpTo(results, upToIdx) {
     });
     
     if (semTC > 0) {
-      let semSGPA = Math.floor((semTW / semTC) * 100 + 0.0001) / 100;
+      // Official formula: SGPA rounded to 2 decimal places per semester
+      let semSGPA = round2(semTW / semTC);
       cgpaNumerator += semSGPA * semTC;
       cgpaDenominator += semTC;
     }
   });
 
-  return cgpaDenominator > 0 ? Math.floor((cgpaNumerator / cgpaDenominator) * 100 + 0.0001) / 100 : 0;
+  // CGPA = Σ(SGPA_i × Credits_i) / Σ(Credits_i), rounded to 2 decimal places
+  return cgpaDenominator > 0 ? round2(cgpaNumerator / cgpaDenominator) : 0;
 }
 
 function generateInsights(data) {
@@ -256,14 +262,16 @@ export default function Analytics() {
       });
       
       if (semTC > 0) {
-        let semSGPA = Math.floor((semTW / semTC) * 100 + 0.0001) / 100;
+        // Official formula: SGPA rounded to 2 decimal places per semester
+        let semSGPA = round2(semTW / semTC);
         cgpaNumerator += semSGPA * semTC;
         cgpaDenominator += semTC;
       }
     });
-
-    setWhatIfCGPA(cgpaDenominator > 0 ? (Math.floor((cgpaNumerator / cgpaDenominator) * 100 + 0.0001) / 100).toFixed(2) : 0);
-    setWhatIfSGPA(sgpa_tc > 0 ? (Math.floor((sgpa_tw / sgpa_tc) * 100 + 0.0001) / 100).toFixed(2) : 0);
+    
+    // CGPA = Σ(SGPA_i × Credits_i) / Σ(Credits_i), rounded to 2 decimal places
+    setWhatIfCGPA(cgpaDenominator > 0 ? round2(cgpaNumerator / cgpaDenominator).toFixed(2) : "0.00");
+    setWhatIfSGPA(sgpa_tc > 0 ? round2(sgpa_tw / sgpa_tc).toFixed(2) : "0.00");
   }, [whatIfGrades, studentData]);
 
   if (loading || !studentData)

@@ -6,6 +6,7 @@ const { protect } = require("../middleware/auth");
 const SemesterResult = require("../models/SemesterResult");
 const InternalMark = require("../models/InternalMark");
 const Ranking = require("../models/Ranking");
+const { clearStudentCache } = require("./student");
 
 const upload = multer({
   storage: multer.memoryStorage(),
@@ -26,6 +27,11 @@ const GRADE_POINTS = {
   S: 0,
 };
 const NON_PASSING_GRADES = ["F", "M", "S", "R"];
+
+// Round to 2 decimal places (matches official university rounding)
+function round2(x) {
+  return Math.round(x * 100) / 100;
+}
 
 // SGPA: ALL grades contribute (F=2, R=0, S=0, M=0 per official grade table).
 // Only exception: Sem 5 R-grade 6-credit project is fully excluded.
@@ -50,9 +56,8 @@ function calcSGPA(subjects, semester) {
       totalCredits += s.credit;
     }
   });
-  return totalCredits > 0
-    ? Math.floor((totalWeighted / totalCredits) * 100 + 0.0001) / 100
-    : 0;
+  // Official formula: round to 2 decimal places
+  return totalCredits > 0 ? round2(totalWeighted / totalCredits) : 0;
 }
 
 // Flexible column reader — handles any casing/spacing
@@ -113,15 +118,17 @@ async function generateRankingForSemester(semester) {
         });
 
       if (semC > 0) {
-        let semSGPA = Math.floor((semW / semC) * 100 + 0.0001) / 100;
+        // Official: SGPA rounded to 2 decimal places per semester
+        let semSGPA = round2(semW / semC);
         cgpaNumerator += semSGPA * semC;
         cgpaDenominator += semC;
       }
     });
 
+    // CGPA = Σ(SGPA_i × Credits_i) / Σ(Credits_i), rounded to 2 decimal places
     const cgpa =
       cgpaDenominator > 0
-        ? Math.floor((cgpaNumerator / cgpaDenominator) * 100 + 0.0001) / 100
+        ? round2(cgpaNumerator / cgpaDenominator)
         : 0;
 
     // Live-calculate SGPA for this semester from raw subjects (don't use stale stored r.sgpa)
@@ -534,6 +541,10 @@ router.post(
       for (const sem of affectedSemesters) {
         await generateRankingForSemester(sem);
       }
+
+      // CRITICAL: Invalidate cache for all uploaded students so Dashboard/Analytics
+      // immediately reflect the new data instead of serving stale cached responses
+      allRegNos.forEach((rn) => clearStudentCache(rn));
 
       res.json({
         message: `✅ Successfully uploaded ${count} student semester record(s) and auto-updated rankings!`,
