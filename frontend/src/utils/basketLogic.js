@@ -24,6 +24,9 @@ export const isMatch = (sub, syllabusSub) => {
   if (sub.subCode && syllabusSub.subCode && sub.subCode.toLowerCase() === syllabusSub.subCode.toLowerCase()) return true;
   if (!sub.subName || !syllabusSub.subName) return false;
   
+  if (norm1 === "competitivecoding" && norm2.includes("datastructures")) return false;
+  if (norm2 === "competitivecoding" && norm1.includes("datastructures")) return false;
+
   return norm1.includes(norm2) || norm2.includes(norm1);
 };
 
