@@ -407,7 +407,7 @@ export default function Analytics() {
                 <ResponsiveContainer width="100%" height={window.innerWidth < 768 ? 180 : 260}>
                   <LineChart data={chartData}>
                     <CartesianGrid strokeDasharray="3 3" stroke="#2a2a2a" />
-                    <XAxis dataKey="sem" tick={{ fill: "#aaa", fontSize: 12 }} />
+                    <XAxis dataKey="sem" tick={{ fill: "#aaa", fontSize: 12 }} interval={0} />
                     <YAxis domain={[0, 10]} tick={{ fill: "#aaa", fontSize: 12 }} />
                     <Tooltip
                       contentStyle={{
