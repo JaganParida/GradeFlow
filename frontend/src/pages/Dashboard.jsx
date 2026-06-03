@@ -803,67 +803,7 @@ export default function Dashboard() {
                   </button>
                 </div>
 
-                {internalSubjects.length > 0 && !isMobile ? (
-                  <div style={{ overflowX: "auto" }}>
-                    <table style={{ width: "100%", borderCollapse: "collapse", background: "#212121", borderRadius: 12, overflow: "hidden", textAlign: "left" }}>
-                      <thead>
-                        <tr style={{ background: "rgba(255,255,255,0.06)", borderBottom: "1px solid rgba(255,255,255,0.08)" }}>
-                          <th style={{ padding: "14px 16px", fontSize: 12, color: "#aaaaaa", fontWeight: 600 }}>Subject</th>
-                          {getInternalAssessments(internalSubjects[0], internalMarks.semester).map((a, i) => (
-                             <th key={i} style={{ padding: "14px 16px", textAlign: "center", fontSize: 12, color: "#aaaaaa", fontWeight: 600 }}>{a.label}</th>
-                          ))}
-                          <th style={{ padding: "14px 16px", textAlign: "right", fontSize: 12, color: "#aaaaaa", fontWeight: 600 }}>Total</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {internalSubjects.map((s, i) => {
-                          const isSem1 = Number(internalMarks.semester) === 1;
-                          const assessments = getInternalAssessments(s, internalMarks.semester);
-                          const total = getSubjectTotal(s, internalMarks.semester, assessments);
-                          return (
-                            <tr key={i} style={{ borderBottom: "1px solid rgba(255,255,255,0.04)" }}>
-                              <td style={{ padding: "14px 16px", borderRight: "1px solid rgba(255,255,255,0.02)" }}>
-                                 <div style={{ fontWeight: 700, fontSize: 13, color: "#fff", marginBottom: 4 }}>{s.subName}</div>
-                                 <div style={{ display: "flex", gap: 6 }}>
-                                   <span style={{ fontSize: 10, color: "#aaaaaa", background: "rgba(255,255,255,0.06)", padding: "2px 6px", borderRadius: 4, fontFamily: "Space Mono" }}>{s.subCode}</span>
-                                   {s.type && <span style={{ fontSize: 10, color: "#a855f7", background: "rgba(168,85,247,0.12)", padding: "2px 6px", borderRadius: 4 }}>{s.type}</span>}
-                                 </div>
-                              </td>
-                              {assessments.map((a, ci) => {
-                                const hasData = isMarkAvailable(a.obtained) || isMarkAvailable(a.secondary);
-                                return (
-                                  <td key={ci} style={{ padding: "14px 16px", textAlign: "center", borderRight: "1px solid rgba(255,255,255,0.02)", verticalAlign: "middle" }}>
-                                    {hasData ? (
-                                      <div style={{ display: "flex", gap: 16, justifyContent: "center" }}>
-                                        <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
-                                          <span style={{ fontSize: 9, color: "#717171", fontWeight: 700, textTransform: "uppercase", marginBottom: 4, letterSpacing: "0.5px" }}>Obtained</span>
-                                          <MarkValue value={a.obtained} max={a.max} color="#f1f1f1" showMax={true} />
-                                        </div>
-                                        <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
-                                          <span style={{ fontSize: 9, color: "#717171", fontWeight: 700, textTransform: "uppercase", marginBottom: 4, letterSpacing: "0.5px" }}>{isSem1 ? "Max" : "Roundoff"}</span>
-                                          <MarkValue value={a.secondary} max={a.max} color="#a855f7" showMax={true} />
-                                        </div>
-                                      </div>
-                                    ) : (
-                                      <span style={{ color: "#555", fontSize: 14, fontWeight: 700 }}>—</span>
-                                    )}
-                                  </td>
-                                );
-                              })}
-                              <td style={{ padding: "14px 16px", textAlign: "right" }}>
-                                {total.hasAny ? (
-                                  <span style={{ display: "inline-block", background: "rgba(34,197,94,0.1)", border: "1px solid rgba(34,197,94,0.35)", padding: "4px 10px", borderRadius: 12, fontFamily: "Space Mono", fontWeight: 700, fontSize: 13, color: "var(--success)", whiteSpace: "nowrap" }}>
-                                    {formatMark(total.score)}{isMarkAvailable(total.max) && <span style={{ color: "rgba(34,197,94,0.55)", fontSize: 11 }}>/{formatMark(total.max)}</span>}
-                                  </span>
-                                ) : <span style={{ color: "#717171" }}>—</span>}
-                              </td>
-                            </tr>
-                          );
-                        })}
-                      </tbody>
-                    </table>
-                  </div>
-                ) : (
+                {internalSubjects.length > 0 && (
                   <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
                     {internalSubjects.map((s, i) => {
                       const isSem1 = Number(internalMarks.semester) === 1;
