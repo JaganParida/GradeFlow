@@ -837,11 +837,11 @@ export default function Dashboard() {
                                       <div style={{ display: "flex", gap: 16, justifyContent: "center" }}>
                                         <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
                                           <span style={{ fontSize: 9, color: "#717171", fontWeight: 700, textTransform: "uppercase", marginBottom: 4, letterSpacing: "0.5px" }}>Obtained</span>
-                                          <MarkValue value={a.obtained} max={a.max} color="#f1f1f1" showMax={false} />
+                                          <MarkValue value={a.obtained} max={a.max} color="#f1f1f1" showMax={true} />
                                         </div>
                                         <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
                                           <span style={{ fontSize: 9, color: "#717171", fontWeight: 700, textTransform: "uppercase", marginBottom: 4, letterSpacing: "0.5px" }}>{isSem1 ? "Max" : "Roundoff"}</span>
-                                          <MarkValue value={a.secondary} max={a.max} color="#a855f7" showMax={false} />
+                                          <MarkValue value={a.secondary} max={a.max} color="#a855f7" showMax={true} />
                                         </div>
                                       </div>
                                     ) : (
@@ -901,11 +901,11 @@ export default function Dashboard() {
                                 <div style={{ display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap" }}>
                                   <div>
                                     <div style={{ fontSize: 9, color: "#717171", fontWeight: 700, marginBottom: 2, textTransform: "uppercase" }}>Obtained</div>
-                                    <MarkValue value={assessment.obtained} max={assessment.max} color="#f1f1f1" showMax={false} />
+                                    <MarkValue value={assessment.obtained} max={assessment.max} color="#f1f1f1" showMax={true} />
                                   </div>
                                   <div>
                                     <div style={{ fontSize: 9, color: "#717171", fontWeight: 700, marginBottom: 2, textTransform: "uppercase" }}>{isSem1 ? "Max" : "Round Off"}</div>
-                                    <MarkValue value={assessment.secondary} max={assessment.max} color="#a855f7" showMax={false} />
+                                    <MarkValue value={assessment.secondary} max={assessment.max} color="#a855f7" showMax={true} />
                                   </div>
                                 </div>
                               </div>
