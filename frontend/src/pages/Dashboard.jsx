@@ -999,19 +999,21 @@ export default function Dashboard() {
 
           {tab === "baskets" && (
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-              <div style={{ overflow: "hidden", width: "100%", position: "relative", height: 24, marginBottom: 16 }}>
+              <div style={{ overflow: "hidden", width: "100%", padding: "4px 0", marginBottom: 16 }}>
                 <motion.div
-                  initial={{ x: "100vw" }}
-                  animate={{ x: "-100%" }}
-                  transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
-                  style={{ position: "absolute", whiteSpace: "nowrap", display: "flex", alignItems: "center", height: "100%" }}
+                  initial={{ x: 0 }}
+                  animate={{ x: "-50%" }}
+                  transition={{ duration: 25, repeat: Infinity, ease: "linear" }}
+                  style={{ display: "flex", whiteSpace: "nowrap", width: "max-content" }}
                 >
-                  <span style={{ fontSize: 13, color: "var(--secondary)" }}>
-                    The basket tracker data follows the official CUTM 2025-26 syllabus for B.Tech CSE (it is properly correct for CSE now).{" "}
-                    <a href="https://cutm.ac.in/wp-content/uploads/syllabus/soet/btech/2025/CSE%20Syllabus-2025-26.pdf" target="_blank" rel="noopener noreferrer" style={{ color: "#3ea6ff", textDecoration: "underline", fontWeight: 600 }}>
-                      View Official Syllabus PDF
-                    </a>
-                  </span>
+                  {[1, 2].map((i) => (
+                    <span key={i} style={{ fontSize: 14.5, color: "var(--text)", paddingRight: 50 }}>
+                      The basket tracker data follows the official CUTM 2025-26 syllabus for B.Tech CSE (it is properly correct for CSE now).{" "}
+                      <a href="https://cutm.ac.in/wp-content/uploads/syllabus/soet/btech/2025/CSE%20Syllabus-2025-26.pdf" target="_blank" rel="noopener noreferrer" style={{ color: "#3ea6ff", textDecoration: "underline", fontWeight: 700 }}>
+                        View Official Syllabus PDF
+                      </a>
+                    </span>
+                  ))}
                 </motion.div>
               </div>
               <BasketDashboard results={studentData.results} />
