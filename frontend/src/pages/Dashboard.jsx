@@ -805,10 +805,10 @@ export default function Dashboard() {
 
                 {internalSubjects.length > 0 && (!isMobile ? (
                   <div style={{ width: "100%", overflowX: "auto", borderRadius: 12, border: "1px solid rgba(255,255,255,0.08)", marginBottom: 12 }}>
-                    <table style={{ width: "100%", borderCollapse: "collapse", background: "#212121", textAlign: "left", minWidth: 800 }}>
+                    <table style={{ width: "100%", borderCollapse: "collapse", background: "#212121", textAlign: "left" }}>
                       <thead>
                         <tr style={{ background: "rgba(255,255,255,0.06)", borderBottom: "1px solid rgba(255,255,255,0.08)" }}>
-                          <th style={{ padding: "14px 16px", fontSize: 12, color: "#aaaaaa", fontWeight: 600, whiteSpace: "nowrap" }}>Subject</th>
+                          <th style={{ padding: "14px 16px", fontSize: 12, color: "#aaaaaa", fontWeight: 600 }}>Subject</th>
                           {getInternalAssessments(internalSubjects[0], internalMarks.semester).map((a, i) => (
                              <th key={i} style={{ padding: "14px 16px", textAlign: "center", fontSize: 12, color: "#aaaaaa", fontWeight: 600, whiteSpace: "nowrap" }}>{a.label}</th>
                           ))}
@@ -822,7 +822,7 @@ export default function Dashboard() {
                           const total = getSubjectTotal(s, internalMarks.semester, assessments);
                           return (
                             <tr key={i} style={{ borderBottom: "1px solid rgba(255,255,255,0.04)" }}>
-                              <td style={{ padding: "14px 16px", borderRight: "1px solid rgba(255,255,255,0.02)", whiteSpace: "nowrap" }}>
+                              <td style={{ padding: "14px 16px", borderRight: "1px solid rgba(255,255,255,0.02)" }}>
                                  <div style={{ fontWeight: 700, fontSize: 13, color: "#fff", marginBottom: 4 }}>{s.subName}</div>
                                  <div style={{ display: "flex", gap: 6 }}>
                                    <span style={{ fontSize: 10, color: "#aaaaaa", background: "rgba(255,255,255,0.06)", padding: "2px 6px", borderRadius: 4, fontFamily: "Space Mono" }}>{s.subCode}</span>
