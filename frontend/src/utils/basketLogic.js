@@ -629,7 +629,7 @@ export const BASKET_5_SKILL_COURSES = [
   },
   {
     "subCode": "CUTM3168",
-    "subName": "Competitive Coding",
+    "subName": "COMPETITIVE CODING",
     "credits": 4
   }
 ];
