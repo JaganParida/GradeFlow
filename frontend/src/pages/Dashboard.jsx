@@ -9,7 +9,7 @@ import axios from "axios";
 import { motion } from "framer-motion";
 import jsPDF from "jspdf";
 import html2canvas from "html2canvas";
-import { User, TrendingUp, Star, Target, CheckCircle, Trophy, Award, AlertTriangle, FileText, FileEdit, Calendar, Printer, Share2, DownloadCloud, Loader2, ChevronDown, ChevronUp, Search, Layout, Calculator } from "lucide-react";
+import { User, TrendingUp, Star, Target, CheckCircle, Trophy, Award, AlertTriangle, FileText, FileEdit, Calendar, Printer, Share2, DownloadCloud, Loader2, ChevronDown, ChevronUp, Search, Layout, Calculator, Info, MessageCircle } from "lucide-react";
 import { calculateSGPA as calcSGPAFromSubjects } from "../utils/gradeCalculations";
 
 const GRADE_COLORS = {
@@ -598,6 +598,27 @@ export default function Dashboard() {
               })}
             </motion.div>
           )}
+
+          <div style={{ marginTop: 16, padding: "12px 16px", background: "rgba(255,165,0,0.08)", border: "1px solid rgba(255,165,0,0.2)", borderRadius: 8 }}>
+            <p style={{ fontSize: 13, color: "var(--warning)", display: "flex", alignItems: "flex-start", gap: 8, margin: 0, lineHeight: 1.5 }}>
+              <Info size={16} style={{ flexShrink: 0, marginTop: 2 }} />
+              <span>
+                <strong>Disclaimer:</strong> If you think your backlog is cleared but this website shows this backlog, then it might happen because of missing excel data of your EOD/rechecking result. If you have this excel sheet, please contact the developer to get it updated.
+              </span>
+            </p>
+            <div style={{ marginTop: 12, display: "flex", justifyContent: "flex-end" }}>
+              <a 
+                href="https://wa.me/919124540575?text=Hi%2C%20I%20have%20the%20excel%20sheet%20for%20this"
+                target="_blank" 
+                rel="noopener noreferrer"
+                style={{ display: "inline-flex", alignItems: "center", gap: 6, background: "#25D366", color: "#fff", padding: "8px 16px", borderRadius: 20, fontSize: 13, fontWeight: 700, textDecoration: "none", transition: "transform 0.2s" }}
+                onMouseOver={(e) => e.currentTarget.style.transform = "scale(1.05)"}
+                onMouseOut={(e) => e.currentTarget.style.transform = "scale(1)"}
+              >
+                <MessageCircle size={16} /> Contact via WhatsApp
+              </a>
+            </div>
+          </div>
         </motion.div>
       ) : (
         <motion.div
