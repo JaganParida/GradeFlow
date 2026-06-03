@@ -240,6 +240,40 @@ export default function BasketDashboard({ results }) {
 
   return (
     <div style={{ padding: "20px 0", display: "flex", flexDirection: "column", gap: 24 }}>
+      <style>
+        {`
+          @keyframes scroll-left {
+            0% { transform: translateX(0%); }
+            100% { transform: translateX(-100%); }
+          }
+          .marquee-wrapper {
+            overflow: hidden;
+            background: rgba(62, 166, 255, 0.08);
+            border: 1px solid rgba(62, 166, 255, 0.2);
+            border-radius: 12px;
+            padding: 10px 0;
+            display: flex;
+            align-items: center;
+            width: 100%;
+          }
+          .marquee-text {
+            white-space: nowrap;
+            color: var(--accent, #3ea6ff);
+            font-size: 13px;
+            font-weight: 700;
+            padding-left: 100%;
+            animation: scroll-left 20s linear infinite;
+            display: inline-block;
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+          }
+        `}
+      </style>
+      <div className="marquee-wrapper">
+        <span className="marquee-text">
+          This basket data of basket tracker in best are followed by CUTM B.Tech CSE syllabus 2025 only (only for CSE)
+        </span>
+      </div>
       
       {/* Overview Cards */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: 16 }}>
