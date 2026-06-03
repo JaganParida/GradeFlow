@@ -95,6 +95,11 @@ export function categorizeBaskets(results) {
       baskets.B5.credits += earnedCredits;
       return;
     }
+    if (ADDITIONAL_BASKET_5_SUBJECTS.some(bs => isMatch(s, bs))) {
+      baskets.B5.subjects.push(subjectData);
+      baskets.B5.credits += earnedCredits;
+      return;
+    }
     if (BASKET_5_SKILL_COURSES.some(bs => isMatch(s, bs))) {
       baskets.B5.subjects.push(subjectData);
       baskets.B5.credits += earnedCredits;
@@ -209,7 +214,10 @@ export const BASKET_4_SYLLABUS = [
 export const COMMON_BASKET_5_SYLLABUS = [
   { subCode: "CUTM1577", subName: "MINOR PROJECT II", credits: 2 },
   { subCode: "CUTM1905", subName: "INTERNSHIP", credits: 2 },
-  { subCode: "CUTM1906", subName: "MINOR PROJECT", credits: 2 },
+  { subCode: "CUTM1906", subName: "MINOR PROJECT", credits: 2 }
+];
+
+export const ADDITIONAL_BASKET_5_SUBJECTS = [
   { subCode: "CUTM1046", subName: "ELECTRONIC DEVICES AND SYSTEMS", credits: 3 },
   { subCode: "CUTM1057", subName: "BASIC ELECTRICAL ENGINEERING", credits: 2 }
 ];
