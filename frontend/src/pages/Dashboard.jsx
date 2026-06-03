@@ -478,15 +478,21 @@ export default function Dashboard() {
           </span>
           <span className="sub">Cumulative</span>
         </motion.div>
-        <motion.div whileHover={{ y: -4 }} className="stat-card">
+        <motion.div whileHover={{ y: -4 }} className="stat-card" style={{ position: "relative", overflow: "hidden" }}>
           <span className="label">Credits Cleared</span>
-          <span className="value">
-            {studentData.creditsCleared}
-            <span style={{ fontSize: 16, color: "var(--secondary)" }}>
-              /160
+          <div style={{ display: "flex", alignItems: "baseline", gap: 4 }}>
+            <span className="value">{studentData.creditsCleared}</span>
+            <span style={{ fontSize: 16, color: "var(--secondary)", fontWeight: 600 }}>
+              / {studentData.totalCredits}
             </span>
-          </span>
-          <span className="sub">Up to Sem {studentData.latestSemester}</span>
+          </div>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: 4 }}>
+            <span className="sub" style={{ margin: 0 }}>Up to Sem {studentData.latestSemester}</span>
+            <span style={{ fontSize: 11, background: "rgba(255,255,255,0.06)", padding: "2px 6px", borderRadius: 4, color: "#aaaaaa", fontWeight: 600 }}>Goal: 160</span>
+          </div>
+          <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, height: 3, background: "rgba(255,255,255,0.05)" }}>
+            <div style={{ height: "100%", width: `${Math.min((studentData.creditsCleared / 160) * 100, 100)}%`, background: "var(--accent)" }} />
+          </div>
         </motion.div>
         <motion.div whileHover={{ y: -4 }} className="stat-card">
           <span className="label">Academic Health</span>

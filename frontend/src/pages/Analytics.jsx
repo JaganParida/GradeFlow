@@ -375,15 +375,21 @@ export default function Analytics() {
               <span className="value">{latestSgpa?.toFixed(2)}</span>
               <span className="sub">Sem {latestSemester}</span>
             </motion.div>
-            <motion.div whileHover={{ y: -4 }} className="stat-card">
+            <motion.div whileHover={{ y: -4 }} className="stat-card" style={{ position: "relative", overflow: "hidden" }}>
               <span className="label">Credits Cleared</span>
-              <span className="value">
-                {creditsCleared}
-                <span style={{ fontSize: 16, color: "var(--secondary)" }}>
-                  /160
+              <div style={{ display: "flex", alignItems: "baseline", gap: 4 }}>
+                <span className="value">{creditsCleared}</span>
+                <span style={{ fontSize: 16, color: "var(--secondary)", fontWeight: 600 }}>
+                  / {totalCredits}
                 </span>
-              </span>
-              <span className="sub">Up to Sem {latestSemester}</span>
+              </div>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: 4 }}>
+                <span className="sub" style={{ margin: 0 }}>Up to Sem {latestSemester}</span>
+                <span style={{ fontSize: 11, background: "rgba(255,255,255,0.06)", padding: "2px 6px", borderRadius: 4, color: "#aaaaaa", fontWeight: 600 }}>Goal: 160</span>
+              </div>
+              <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, height: 3, background: "rgba(255,255,255,0.05)" }}>
+                <div style={{ height: "100%", width: `${Math.min((creditsCleared / 160) * 100, 100)}%`, background: "var(--accent)" }} />
+              </div>
             </motion.div>
             <motion.div whileHover={{ y: -4 }} className="stat-card">
               <span className="label">Backlogs</span>
