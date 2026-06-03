@@ -626,6 +626,11 @@ export const BASKET_5_SKILL_COURSES = [
     "subCode": "CUTM3134",
     "subName": "GIS and Remote Sensing",
     "credits": 4
+  },
+  {
+    "subCode": "CUTM3168",
+    "subName": "Competitive Coding",
+    "credits": 4
   }
 ];
 
