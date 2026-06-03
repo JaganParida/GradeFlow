@@ -480,8 +480,13 @@ export default function Dashboard() {
         </motion.div>
         <motion.div whileHover={{ y: -4 }} className="stat-card">
           <span className="label">Credits Cleared</span>
-          <span className="value">{studentData.creditsCleared}</span>
-          <span className="sub">of 160</span>
+          <span className="value">
+            {studentData.creditsCleared}
+            <span style={{ fontSize: 16, color: "var(--secondary)" }}>
+              /160
+            </span>
+          </span>
+          <span className="sub">Up to Sem {studentData.latestSemester}</span>
         </motion.div>
         <motion.div whileHover={{ y: -4 }} className="stat-card">
           <span className="label">Academic Health</span>
@@ -971,7 +976,26 @@ export default function Dashboard() {
             </div>
           )}
 
-          {tab === "baskets" && <BasketDashboard results={studentData.results} />}
+          {tab === "baskets" && (
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+              <div style={{ overflow: "hidden", width: "100%", position: "relative", height: 24, marginBottom: 16 }}>
+                <motion.div
+                  initial={{ x: "100vw" }}
+                  animate={{ x: "-100%" }}
+                  transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
+                  style={{ position: "absolute", whiteSpace: "nowrap", display: "flex", alignItems: "center", height: "100%" }}
+                >
+                  <span style={{ fontSize: 13, color: "var(--secondary)" }}>
+                    The basket tracker data follows the official CUTM 2025-26 syllabus for B.Tech CSE (it is properly correct for CSE now).{" "}
+                    <a href="https://cutm.ac.in/wp-content/uploads/syllabus/soet/btech/2025/CSE%20Syllabus-2025-26.pdf" target="_blank" rel="noopener noreferrer" style={{ color: "#3ea6ff", textDecoration: "underline", fontWeight: 600 }}>
+                      View Official Syllabus PDF
+                    </a>
+                  </span>
+                </motion.div>
+              </div>
+              <BasketDashboard results={studentData.results} />
+            </motion.div>
+          )}
           {tab === "predictor" && <TargetPredictor />}
         </motion.div>
       )}

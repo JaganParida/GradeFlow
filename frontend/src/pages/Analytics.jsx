@@ -376,9 +376,14 @@ export default function Analytics() {
               <span className="sub">Sem {latestSemester}</span>
             </motion.div>
             <motion.div whileHover={{ y: -4 }} className="stat-card">
-              <span className="label">Credits Done</span>
-              <span className="value">{creditsCleared}</span>
-              <span className="sub">of 160</span>
+              <span className="label">Credits Cleared</span>
+              <span className="value">
+                {creditsCleared}
+                <span style={{ fontSize: 16, color: "var(--secondary)" }}>
+                  /160
+                </span>
+              </span>
+              <span className="sub">Up to Sem {latestSemester}</span>
             </motion.div>
             <motion.div whileHover={{ y: -4 }} className="stat-card">
               <span className="label">Backlogs</span>
