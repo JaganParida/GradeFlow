@@ -21,7 +21,6 @@ const upload = multer({
   limits: { fileSize: 10 * 1024 * 1024 },
 });
 
-// Flexible column reader — handles any casing/spacing
 function col(row, ...keys) {
   for (const k of keys) {
     if (row[k] !== undefined && row[k] !== null && row[k] !== "") return row[k];
@@ -44,44 +43,58 @@ async function generateRankingForSemester(semester) {
   const results = await SemesterResult.find({ semester: Number(semester) });
   if (!results.length) return;
 
-  const batches = [...new Set(results.map(r => r.batch || ""))];
+  const batches = [...new Set(results.map((r) => r.batch || ""))];
   for (const batch of batches) {
-    const batchResults = results.filter(r => (r.batch || "") === batch);
+    const batchResults = results.filter((r) => (r.batch || "") === batch);
     const studentData = [];
     for (const r of batchResults) {
-      const allResults = await SemesterResult.find({ regNo: r.regNo }).sort({ semester: 1 });
+      const allResults = await SemesterResult.find({ regNo: r.regNo }).sort({
+        semester: 1,
+      });
       const cgpa = calculateCGPA(allResults, Number(semester));
       const liveSGPA = calculateSGPA(r.subjects, Number(semester));
       studentData.push({
-        regNo: r.regNo, studentName: r.studentName, branch: r.branch,
-        batch: r.batch, semester: Number(semester), sgpa: liveSGPA, cgpa,
+        regNo: r.regNo,
+        studentName: r.studentName,
+        branch: r.branch,
+        batch: r.batch,
+        semester: Number(semester),
+        sgpa: liveSGPA,
+        cgpa,
       });
     }
-    
+
     sortByScore(studentData, "cgpa", "sgpa");
     assignCompetitionRanks(studentData, "cgpa", "cgpaRank");
     sortByScore(studentData, "sgpa", "cgpa");
     assignCompetitionRanks(studentData, "sgpa", "sgpaRank");
-    
+
     studentData.forEach((s) => {
-      s.universityRank = s.sgpaRank; s.totalStudents = studentData.length;
-      s.percentile = parseFloat(((1 - (s.sgpaRank - 1) / studentData.length) * 100).toFixed(1));
+      s.universityRank = s.sgpaRank;
+      s.totalStudents = studentData.length;
+      s.percentile = parseFloat(
+        ((1 - (s.sgpaRank - 1) / studentData.length) * 100).toFixed(1),
+      );
     });
-    
+
     const byBranch = {};
-    studentData.forEach(s => {
+    studentData.forEach((s) => {
       if (!byBranch[s.branch]) byBranch[s.branch] = [];
       byBranch[s.branch].push(s);
     });
-    Object.values(byBranch).forEach(group => {
+    Object.values(byBranch).forEach((group) => {
       sortByScore(group, "sgpa", "cgpa");
       assignCompetitionRanks(group, "sgpa", "deptRank");
-      group.forEach(s => s.deptStudents = group.length);
+      group.forEach((s) => (s.deptStudents = group.length));
     });
-    
+
     if (studentData.length > 0) {
-      const bulkOps = studentData.map(s => ({
-        updateOne: { filter: { regNo: s.regNo, semester: Number(semester) }, update: { $set: s }, upsert: true }
+      const bulkOps = studentData.map((s) => ({
+        updateOne: {
+          filter: { regNo: s.regNo, semester: Number(semester) },
+          update: { $set: s },
+          upsert: true,
+        },
       }));
       await Ranking.bulkWrite(bulkOps);
     }
@@ -944,7 +957,10 @@ router.post("/rankings/regenerate-all", protect, async (req, res) => {
 router.post("/cache/clear", protect, async (req, res) => {
   try {
     clearStudentCache(); // clears all cached entries
-    res.json({ message: "✅ Student cache cleared. All future requests will fetch fresh data." });
+    res.json({
+      message:
+        "✅ Student cache cleared. All future requests will fetch fresh data.",
+    });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }

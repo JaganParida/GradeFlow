@@ -13,14 +13,14 @@ async function regenerate() {
   try {
     await mongoose.connect(process.env.MONGO_URI);
     console.log("Connected to DB");
-    
+
     const semesters = await SemesterResult.distinct("semester");
     console.log("Semesters found:", semesters);
-    
+
     for (const semester of semesters) {
       console.log(`Generating rankings for semester ${semester}...`);
       const results = await SemesterResult.find({ semester: Number(semester) });
-      
+
       const studentData = [];
       for (const r of results) {
         const allResults = await SemesterResult.find({ regNo: r.regNo }).sort({
@@ -28,14 +28,14 @@ async function regenerate() {
         });
         const cgpa = calculateCGPA(allResults, Number(semester));
         const liveSGPA = calculateSGPA(r.subjects, r.semester);
-        
+
         studentData.push({
           regNo: r.regNo,
           studentName: r.studentName,
           branch: r.branch,
           batch: r.batch,
           semester: Number(semester),
-          sgpa: liveSGPA,  // live-calculated, matches GradeSheet
+          sgpa: liveSGPA,
           cgpa,
         });
       }
