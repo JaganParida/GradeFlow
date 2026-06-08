@@ -34,6 +34,9 @@ const globalLimiter = rateLimit({
 // Apply global limit to all routes
 app.use(globalLimiter);
 
+// We ONLY apply a strict rate limit to the admin /auth/login endpoint
+// to block brute-force password attacks (10 attempts per 15 minutes).
+//
 const adminBruteForceLimit = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
   max: 10, // 10 login attempts per IP per 15 min
