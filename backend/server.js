@@ -16,8 +16,8 @@ app.use(express.json());
 // We do NOT apply strict global rate limiting to student routes because:
 //   1. College campuses share a single public IP.
 //   2. Student data is served from the in-memory cache.
-// However, to protect the free-tier Render server from completely crashing 
-// under extreme DDOS or simultaneous load (e.g. 500+ users instantly), 
+// However, to protect the free-tier Render server from completely crashing
+// under extreme DDOS or simultaneous load (e.g. 500+ users instantly),
 // we apply a generous global limit.
 //
 const globalLimiter = rateLimit({
@@ -26,19 +26,17 @@ const globalLimiter = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
   message: {
-    message: "Server is experiencing high traffic. Please try again in a minute.",
+    message:
+      "Server is experiencing high traffic. Please try again in a minute.",
   },
 });
 
 // Apply global limit to all routes
 app.use(globalLimiter);
 
-// We ONLY apply a strict rate limit to the admin /auth/login endpoint
-// to block brute-force password attacks (10 attempts per 15 minutes).
-//
 const adminBruteForceLimit = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 10,                   // 10 login attempts per IP per 15 min
+  max: 10, // 10 login attempts per IP per 15 min
   standardHeaders: true,
   legacyHeaders: false,
   message: {
