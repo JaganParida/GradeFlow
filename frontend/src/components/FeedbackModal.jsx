@@ -17,7 +17,6 @@ export default function FeedbackModal() {
   const { API } = useApp();
 
   useEffect(() => {
-    // Check if user has already seen or submitted feedback
     const hasSeen = localStorage.getItem("hasSeenFeedback");
     if (!hasSeen) {
       const timer = setTimeout(() => setShow(true), 1500);
@@ -50,7 +49,6 @@ export default function FeedbackModal() {
       localStorage.setItem("hasSeenFeedback", "true");
       setShow(false);
 
-      // Redirect to testimonials with highlight query
       navigate(`/testimonials?highlight=${res.data._id}`);
     } catch (err) {
       console.error("Failed to submit feedback", err);
@@ -88,7 +86,6 @@ export default function FeedbackModal() {
             }}
           />
 
-          {/* Modal Card */}
           <motion.div
             initial={{ opacity: 0, scale: 0.95, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
