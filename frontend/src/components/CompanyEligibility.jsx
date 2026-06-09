@@ -114,7 +114,7 @@ function normalizeBranch(branch) {
   return key;
 }
 
-export default function CompanyEligibility({ branch, cgpa, regNo, initialTenth, initialTwelfth }) {
+export default function CompanyEligibility({ branch, cgpa, regNo, initialTenth, initialTwelfth, onUpdate }) {
   const branchKey = normalizeBranch(branch);
   const numericCgpa = Number(cgpa) || 0;
   
@@ -127,8 +127,8 @@ export default function CompanyEligibility({ branch, cgpa, regNo, initialTenth, 
     if (!regNo) return;
     setIsSaving(true);
     try {
-      const API_URL = import.meta.env.VITE_API_URL || "";
-      const response = await fetch(`${API_URL}/api/student/${regNo}/education`, {
+      const API_URL = import.meta.env.VITE_API_URL || "/api";
+      const response = await fetch(`${API_URL}/student/${regNo}/education`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ 
@@ -138,6 +138,7 @@ export default function CompanyEligibility({ branch, cgpa, regNo, initialTenth, 
       });
       if (response.ok) {
         setSaveMessage("Saved!");
+        if (onUpdate) onUpdate();
         setTimeout(() => setSaveMessage(""), 3000);
       } else {
         setSaveMessage("Failed");
@@ -213,7 +214,7 @@ export default function CompanyEligibility({ branch, cgpa, regNo, initialTenth, 
           </div>
           <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: '12px' }}>
             {saveMessage && <span style={{ fontSize: '12px', color: saveMessage === 'Saved!' ? 'var(--success)' : 'var(--danger)' }}>{saveMessage}</span>}
-            <button onClick={handleSave} disabled={isSaving} style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '6px 12px', background: 'var(--accent)', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '13px', fontWeight: 600 }}>
+            <button className="btn btn-primary" onClick={handleSave} disabled={isSaving} style={{ padding: '6px 16px', fontSize: '13px' }}>
               <Save size={14} /> {isSaving ? "Saving..." : "Save"}
             </button>
           </div>

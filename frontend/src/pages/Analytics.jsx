@@ -405,6 +405,20 @@ export default function Analytics() {
                 {backlogs.length ? "Active" : "All Clear"}
               </span>
             </motion.div>
+            {studentData.tenthPercentage && (
+              <motion.div whileHover={{ y: -4 }} className="stat-card">
+                <span className="label">10th Score</span>
+                <span className="value" style={{ color: "var(--text)" }}>{studentData.tenthPercentage}%</span>
+                <span className="sub">Board Exam</span>
+              </motion.div>
+            )}
+            {studentData.twelfthPercentage && (
+              <motion.div whileHover={{ y: -4 }} className="stat-card">
+                <span className="label">12th Score</span>
+                <span className="value" style={{ color: "var(--text)" }}>{studentData.twelfthPercentage}%</span>
+                <span className="sub">Board Exam</span>
+              </motion.div>
+            )}
           </div>
 
           {/* Charts Grid */}
@@ -945,6 +959,7 @@ export default function Analytics() {
           regNo={regNo}
           initialTenth={studentData.tenthPercentage}
           initialTwelfth={studentData.twelfthPercentage}
+          onUpdate={() => fetchStudent(regNo)}
         />
       )}
 
