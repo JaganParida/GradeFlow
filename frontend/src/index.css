@@ -1001,6 +1001,15 @@ table tbody tr:last-child td {
   box-shadow: 0 0 0 3px rgba(79, 156, 249, 0.15);
 }
 
+input[type=number].no-spin-button::-webkit-inner-spin-button, 
+input[type=number].no-spin-button::-webkit-outer-spin-button { 
+  -webkit-appearance: none; 
+  margin: 0; 
+}
+input[type=number].no-spin-button { 
+  -moz-appearance: textfield; 
+}
+
 /* ============================================================
    RESPONSIVE
    ============================================================ */

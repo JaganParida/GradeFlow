@@ -205,10 +205,10 @@ export default function CompanyEligibility({ branch, cgpa, regNo }) {
             <h3>Check Full Eligibility (Local)</h3>
           </div>
           <div className="calc-disclaimer">
-            <Info size={14} />
-            <p style={{ margin: 0 }}>
-              Enter your 10th and 12th percentage to see exactly which companies you qualify for. This data is calculated strictly on your device and is <strong>NOT</strong> stored in the database.
-            </p>
+            <div style={{ flexShrink: 0, marginTop: '2px' }}><Info size={14} /></div>
+            <div style={{ margin: 0, lineHeight: 1.5 }}>
+              Enter your 10th and 12th percentage to see exactly which companies you qualify for. This data is calculated strictly on your device and is NOT stored in the database.
+            </div>
           </div>
           <div className="calc-inputs">
             <div className="input-group">
@@ -218,6 +218,8 @@ export default function CompanyEligibility({ branch, cgpa, regNo }) {
                 placeholder="e.g. 85.5" 
                 value={localTenth}
                 onChange={(e) => setLocalTenth(e.target.value)}
+                onWheel={(e) => e.target.blur()}
+                className="no-spin-button"
               />
             </div>
             <div className="input-group">
@@ -227,6 +229,8 @@ export default function CompanyEligibility({ branch, cgpa, regNo }) {
                 placeholder="e.g. 80.0" 
                 value={localTwelfth}
                 onChange={(e) => setLocalTwelfth(e.target.value)}
+                onWheel={(e) => e.target.blur()}
+                className="no-spin-button"
               />
             </div>
           </div>
