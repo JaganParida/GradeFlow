@@ -939,7 +939,13 @@ export default function Analytics() {
       )}
 
       {tab === "placement" && (
-        <CompanyEligibility branch={dynamicBranch} cgpa={cgpa} />
+        <CompanyEligibility 
+          branch={dynamicBranch} 
+          cgpa={cgpa} 
+          regNo={regNo}
+          initialTenth={studentData.tenthPercentage}
+          initialTwelfth={studentData.twelfthPercentage}
+        />
       )}
 
       </motion.div>
