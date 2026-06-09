@@ -10,18 +10,21 @@ export const BASKET_TARGETS = {
 // Returns { b1: [], b2: [], b3: [], b4: [], b5: [] }
 
 export const isMatch = (sub, syllabusSub) => {
+  if (sub.subCode && syllabusSub.subCode && sub.subCode.toLowerCase() === syllabusSub.subCode.toLowerCase()) return true;
+
   const norm1 = (sub.subName || "").toLowerCase().replace(/and/g, '').replace(/[^a-z0-9]/g, '');
   const norm2 = (syllabusSub.subName || "").toLowerCase().replace(/and/g, '').replace(/[^a-z0-9]/g, '');
 
-  const isMinorProject = norm1.includes("minorproject") || norm2.includes("minorproject");
+  const isMinor1 = norm1.includes("minorproject");
+  const isMinor2 = norm2.includes("minorproject");
   
-  if (isMinorProject) {
+  if (isMinor1 || isMinor2) {
+     if (isMinor1 !== isMinor2) return false;
      const hasII_1 = norm1.includes("ii") || norm1.includes("2");
      const hasII_2 = norm2.includes("ii") || norm2.includes("2");
      if (hasII_1 !== hasII_2) return false; // Force distinction between I and II
   }
 
-  if (sub.subCode && syllabusSub.subCode && sub.subCode.toLowerCase() === syllabusSub.subCode.toLowerCase()) return true;
   if (!sub.subName || !syllabusSub.subName) return false;
   
   if (norm1 === "competitivecoding" && norm2.includes("datastructures")) return false;
