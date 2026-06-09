@@ -55,9 +55,6 @@ export function categorizeBaskets(results) {
       }
       
       let key = sub.subCode;
-      if (sub.subName && sub.subName.toLowerCase().includes("minor project")) {
-         key = `${sub.subCode}_${sub.subName.toLowerCase().trim()}`;
-      }
       allSubjectsMap.set(key, { ...sub, semester: sem.semester });
     });
   });
