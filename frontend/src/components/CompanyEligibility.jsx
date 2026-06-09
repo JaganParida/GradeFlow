@@ -200,30 +200,46 @@ export default function CompanyEligibility({ branch, cgpa, regNo, initialTenth, 
           </p>
         </div>
         
-        <div className="placement-education-inputs" style={{ background: 'var(--surface)', padding: '16px', borderRadius: '12px', flex: '1 1 300px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
-          <h4 style={{ margin: 0, fontSize: '14px', color: 'var(--text)' }}>10th & 12th Percentages</h4>
-          <div style={{ display: 'flex', gap: '12px' }}>
-            <div style={{ flex: 1 }}>
-              <label style={{ display: 'block', fontSize: '12px', color: 'var(--secondary)', marginBottom: '4px' }}>10th %</label>
-              <input type="number" step="0.1" value={tenth} onChange={(e) => setTenth(e.target.value)} placeholder="e.g. 85.5" style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--text)' }} />
+        {(!initialTenth && !initialTwelfth) && (
+          <div className="placement-education-inputs" style={{ background: 'var(--surface)', padding: '16px', borderRadius: '12px', flex: '1 1 300px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            <h4 style={{ margin: 0, fontSize: '14px', color: 'var(--text)' }}>10th & 12th Percentages</h4>
+            <div style={{ display: 'flex', gap: '12px' }}>
+              <div style={{ flex: 1 }}>
+                <label style={{ display: 'block', fontSize: '12px', color: 'var(--secondary)', marginBottom: '4px' }}>10th %</label>
+                <input type="number" step="0.1" value={tenth} onChange={(e) => setTenth(e.target.value)} placeholder="e.g. 85.5" style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--text)' }} />
+              </div>
+              <div style={{ flex: 1 }}>
+                <label style={{ display: 'block', fontSize: '12px', color: 'var(--secondary)', marginBottom: '4px' }}>12th %</label>
+                <input type="number" step="0.1" value={twelfth} onChange={(e) => setTwelfth(e.target.value)} placeholder="e.g. 80.0" style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--text)' }} />
+              </div>
             </div>
-            <div style={{ flex: 1 }}>
-              <label style={{ display: 'block', fontSize: '12px', color: 'var(--secondary)', marginBottom: '4px' }}>12th %</label>
-              <input type="number" step="0.1" value={twelfth} onChange={(e) => setTwelfth(e.target.value)} placeholder="e.g. 80.0" style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--text)' }} />
+            <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: '12px' }}>
+              {saveMessage && <span style={{ fontSize: '12px', color: saveMessage === 'Saved!' ? 'var(--success)' : 'var(--danger)' }}>{saveMessage}</span>}
+              <button className="btn btn-primary" onClick={handleSave} disabled={isSaving} style={{ padding: '6px 16px', fontSize: '13px' }}>
+                <Save size={14} /> {isSaving ? "Saving..." : "Save"}
+              </button>
             </div>
           </div>
-          <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: '12px' }}>
-            {saveMessage && <span style={{ fontSize: '12px', color: saveMessage === 'Saved!' ? 'var(--success)' : 'var(--danger)' }}>{saveMessage}</span>}
-            <button className="btn btn-primary" onClick={handleSave} disabled={isSaving} style={{ padding: '6px 16px', fontSize: '13px' }}>
-              <Save size={14} /> {isSaving ? "Saving..." : "Save"}
-            </button>
-          </div>
-        </div>
+        )}
 
-        <div className="placement-score-card">
-          <span>Your CGPA</span>
-          <strong>{numericCgpa.toFixed(2)}</strong>
-          <small>{eligibleCount} of {companies.length} eligible</small>
+        <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', flex: '1 1 300px' }}>
+          {initialTenth && (
+            <div className="placement-score-card" style={{ minWidth: '100px', flex: 1, justifyItems: 'center' }}>
+              <span>10th %</span>
+              <strong>{initialTenth}</strong>
+            </div>
+          )}
+          {initialTwelfth && (
+            <div className="placement-score-card" style={{ minWidth: '100px', flex: 1, justifyItems: 'center' }}>
+              <span>12th %</span>
+              <strong>{initialTwelfth}</strong>
+            </div>
+          )}
+          <div className="placement-score-card" style={{ minWidth: '160px', flex: 1, justifyItems: 'center' }}>
+            <span>Your CGPA</span>
+            <strong>{numericCgpa.toFixed(2)}</strong>
+            <small>{eligibleCount} of {companies.length} eligible</small>
+          </div>
         </div>
       </div>
 
