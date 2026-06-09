@@ -1,5 +1,6 @@
-import { CheckCircle, GraduationCap, Info, Target, XCircle } from "lucide-react";
+import { CheckCircle, GraduationCap, Info, Target, XCircle, Calculator } from "lucide-react";
 import { motion } from "framer-motion";
+import { useState } from "react";
 
 const COMPANY_DATA = {
   CSE: [
@@ -133,8 +134,19 @@ export default function CompanyEligibility({ branch, cgpa, regNo }) {
   const branchKey = normalizeBranch(branch);
   const numericCgpa = Number(cgpa) || 0;
 
+  const [localTenth, setLocalTenth] = useState("");
+  const [localTwelfth, setLocalTwelfth] = useState("");
+
+  const userTenth = localTenth ? parseFloat(localTenth) : null;
+  const userTwelfth = localTwelfth ? parseFloat(localTwelfth) : null;
+
   const companies = (COMPANY_DATA[branchKey] || []).map(([name, reqTenthStr, reqTwelfthStr, btech, cgpaReq]) => {
+    const reqTenth = parseFloat(reqTenthStr);
+    const reqTwelfth = parseFloat(reqTwelfthStr);
+
     let eligible = numericCgpa >= cgpaReq;
+    if (userTenth !== null && userTenth < reqTenth) eligible = false;
+    if (userTwelfth !== null && userTwelfth < reqTwelfth) eligible = false;
 
     return {
       name,
@@ -144,6 +156,8 @@ export default function CompanyEligibility({ branch, cgpa, regNo }) {
       cgpaReq,
       eligible,
       gap: Math.max(cgpaReq - numericCgpa, 0),
+      tenthGap: userTenth !== null && userTenth < reqTenth,
+      twelfthGap: userTwelfth !== null && userTwelfth < reqTwelfth,
     };
   });
   const eligibleCount = companies.filter((company) => company.eligible).length;
@@ -162,22 +176,55 @@ export default function CompanyEligibility({ branch, cgpa, regNo }) {
 
   return (
     <section className="placement-eligibility">
-      <div className="placement-hero" style={{ display: 'flex', flexWrap: 'wrap', gap: '20px', alignItems: 'flex-start' }}>
-        <div style={{ flex: '1 1 300px' }}>
-          <p className="placement-eyebrow">
-            <Target size={14} /> Branch filtered companies
-          </p>
-          <h2>Placement Eligibility</h2>
-          <p>
-            Showing companies for <strong>{branchKey}</strong>. Eligibility badge is calculated from your current CGPA.
-          </p>
+      <div className="placement-hero" style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '20px', alignItems: 'flex-start' }}>
+          <div style={{ flex: '1 1 300px' }}>
+            <p className="placement-eyebrow">
+              <Target size={14} /> Branch filtered companies
+            </p>
+            <h2>Placement Eligibility</h2>
+            <p>
+              Showing companies for <strong>{branchKey}</strong>. Eligibility badge is calculated from your current CGPA, and your 10th/12th percentages if provided below.
+            </p>
+          </div>
+          
+          <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', flex: '1 1 300px' }}>
+            <div className="placement-score-card" style={{ minWidth: '160px', flex: 1, justifyItems: 'center' }}>
+              <span>Your CGPA</span>
+              <strong>{numericCgpa.toFixed(2)}</strong>
+              <small>{eligibleCount} of {companies.length} eligible</small>
+            </div>
+          </div>
         </div>
-        
-        <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', flex: '1 1 300px' }}>
-          <div className="placement-score-card" style={{ minWidth: '160px', flex: 1, justifyItems: 'center' }}>
-            <span>Your CGPA</span>
-            <strong>{numericCgpa.toFixed(2)}</strong>
-            <small>{eligibleCount} of {companies.length} eligible</small>
+
+        <div className="placement-calculator-box">
+          <div className="calc-header">
+            <Calculator size={18} />
+            <h3>Check Full Eligibility (Local)</h3>
+          </div>
+          <p className="calc-disclaimer">
+            <Info size={14} />
+            Enter your 10th and 12th percentage to see exactly which companies you qualify for. This data is calculated strictly on your device and is <strong>NOT</strong> stored in the database.
+          </p>
+          <div className="calc-inputs">
+            <div className="input-group">
+              <label>10th Percentage (%)</label>
+              <input 
+                type="number" 
+                placeholder="e.g. 85.5" 
+                value={localTenth}
+                onChange={(e) => setLocalTenth(e.target.value)}
+              />
+            </div>
+            <div className="input-group">
+              <label>12th Percentage (%)</label>
+              <input 
+                type="number" 
+                placeholder="e.g. 80.0" 
+                value={localTwelfth}
+                onChange={(e) => setLocalTwelfth(e.target.value)}
+              />
+            </div>
           </div>
         </div>
       </div>
@@ -242,9 +289,11 @@ export default function CompanyEligibility({ branch, cgpa, regNo }) {
               </div>
             </div>
 
-            {!company.eligible && company.gap > 0 && (
+            {!company.eligible && (
               <div className="placement-gap" style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
-                <span>Need {company.gap.toFixed(2)} more CGPA.</span>
+                {company.gap > 0 && <span>Need {company.gap.toFixed(2)} more CGPA.</span>}
+                {company.tenthGap && <span>10th % is below requirement.</span>}
+                {company.twelfthGap && <span>12th % is below requirement.</span>}
               </div>
             )}
           </motion.article>
