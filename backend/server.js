@@ -39,7 +39,7 @@ app.use(globalLimiter);
 //
 const adminBruteForceLimit = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 10, // 10 login attempts per IP per 15 min
+  max: 10,
   standardHeaders: true,
   legacyHeaders: false,
   message: {
@@ -61,7 +61,6 @@ app.get("/api/health", (req, res) =>
 const http = require("http");
 const server = http.createServer(app);
 
-// Seed admin on first run
 async function seedAdmin() {
   const Admin = require("./models/Admin");
   const exists = await Admin.findOne({ email: process.env.ADMIN_EMAIL });
