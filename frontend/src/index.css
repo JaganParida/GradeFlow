@@ -885,6 +885,10 @@ table tbody tr:last-child td {
   transition: width 0.8s cubic-bezier(0.25, 1, 0.5, 1);
 }
 
+.placement-company-card.locked .placement-progress-track > div {
+  background: linear-gradient(90deg, var(--warning), #d97706);
+}
+
 .placement-gap { color: var(--warning); font-size: 13px; font-weight: 700; }
 
 .placement-note,
