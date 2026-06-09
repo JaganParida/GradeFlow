@@ -3,7 +3,6 @@ import { motion } from "framer-motion";
 import { useState } from "react";
 
 const COMPANY_DATA = {
-const COMPANY_DATA = {
   CSE: [
     ["TCS", "60%", "60%", "6.0 CGPA / 60%", 6.0, "Service Based"],
     ["Infosys", "60%", "60%", "6.0 CGPA", 6.0, "Service Based"],
