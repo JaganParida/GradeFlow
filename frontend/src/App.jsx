@@ -31,11 +31,11 @@ export default function App() {
         if (error.response && error.response.status === 429) {
           setRateLimitError(
             error.response.data?.message ||
-            "The server is experiencing high traffic. Please wait a moment and try again."
+              "The server is experiencing high traffic. Please wait a moment and try again.",
           );
         }
         return Promise.reject(error);
-      }
+      },
     );
 
     return () => {
@@ -47,31 +47,34 @@ export default function App() {
     <>
       <Navbar />
       <FeedbackModal />
-      
-      {/* Global Rate Limit Alert */}
+
       {rateLimitError && (
-        <div style={{
-          position: "fixed",
-          top: 80,
-          left: "50%",
-          transform: "translateX(-50%)",
-          zIndex: 9999,
-          background: "rgba(239, 68, 68, 0.95)",
-          border: "1px solid #ef4444",
-          color: "#fff",
-          padding: "12px 24px",
-          borderRadius: 8,
-          display: "flex",
-          alignItems: "center",
-          gap: 12,
-          boxShadow: "0 8px 32px rgba(239, 68, 68, 0.3)",
-          backdropFilter: "blur(8px)",
-          maxWidth: "90vw",
-          animation: "slideDown 0.3s ease-out"
-        }}>
+        <div
+          style={{
+            position: "fixed",
+            top: 80,
+            left: "50%",
+            transform: "translateX(-50%)",
+            zIndex: 9999,
+            background: "rgba(239, 68, 68, 0.95)",
+            border: "1px solid #ef4444",
+            color: "#fff",
+            padding: "12px 24px",
+            borderRadius: 8,
+            display: "flex",
+            alignItems: "center",
+            gap: 12,
+            boxShadow: "0 8px 32px rgba(239, 68, 68, 0.3)",
+            backdropFilter: "blur(8px)",
+            maxWidth: "90vw",
+            animation: "slideDown 0.3s ease-out",
+          }}
+        >
           <AlertTriangle size={20} />
-          <span style={{ fontSize: 14, fontWeight: 500 }}>{rateLimitError}</span>
-          <button 
+          <span style={{ fontSize: 14, fontWeight: 500 }}>
+            {rateLimitError}
+          </span>
+          <button
             onClick={() => setRateLimitError(null)}
             style={{
               background: "transparent",
@@ -81,7 +84,7 @@ export default function App() {
               display: "flex",
               padding: 4,
               marginLeft: 8,
-              opacity: 0.8
+              opacity: 0.8,
             }}
           >
             <X size={16} />
@@ -91,9 +94,30 @@ export default function App() {
 
       <Routes>
         <Route path="/" element={<Home />} />
-        <Route path="/dashboard/:regNo" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
-        <Route path="/analytics/:regNo" element={<ProtectedRoute><Analytics /></ProtectedRoute>} />
-        <Route path="/leaderboard" element={<ProtectedRoute><Leaderboard /></ProtectedRoute>} />
+        <Route
+          path="/dashboard/:regNo"
+          element={
+            <ProtectedRoute>
+              <Dashboard />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/analytics/:regNo"
+          element={
+            <ProtectedRoute>
+              <Analytics />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/leaderboard"
+          element={
+            <ProtectedRoute>
+              <Leaderboard />
+            </ProtectedRoute>
+          }
+        />
         <Route path="/testimonials" element={<Testimonials />} />
         <Route path="/admin" element={<AdminLogin />} />
         <Route path="/admin/dashboard" element={<AdminDashboard />} />
