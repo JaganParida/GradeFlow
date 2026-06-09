@@ -889,6 +889,19 @@ table tbody tr:last-child td {
   background: linear-gradient(90deg, var(--warning), #d97706);
 }
 
+.placement-company-category {
+  display: inline-block;
+  padding: 4px 8px;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--text-secondary);
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 12px;
+}
+
 .placement-gap { color: var(--warning); font-size: 13px; font-weight: 700; }
 
 .placement-note,

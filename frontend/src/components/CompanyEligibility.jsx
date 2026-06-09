@@ -3,117 +3,118 @@ import { motion } from "framer-motion";
 import { useState } from "react";
 
 const COMPANY_DATA = {
+const COMPANY_DATA = {
   CSE: [
-    ["TCS", "60%", "60%", "6.0 CGPA / 60%", 6.0],
-    ["Infosys", "60%", "60%", "6.0 CGPA", 6.0],
-    ["Wipro", "60%", "60%", "6.0 CGPA", 6.0],
-    ["Cognizant", "60%", "60%", "6.0 CGPA", 6.0],
-    ["Accenture", "65%", "65%", "6.5 CGPA", 6.5],
-    ["IBM", "65%", "65%", "6.5 CGPA", 6.5],
-    ["Amazon", "70%", "70%", "7.0 CGPA", 7.0],
-    ["Microsoft", "70%", "70%", "7.0 CGPA", 7.0],
-    ["Oracle", "70%", "70%", "7.0 CGPA", 7.0],
-    ["Capgemini", "60%", "60%", "6.0 CGPA", 6.0],
-    ["HCLTech", "60%", "60%", "6.0 CGPA", 6.0],
-    ["Tech Mahindra", "60%", "60%", "6.0 CGPA", 6.0],
+    ["TCS", "60%", "60%", "6.0 CGPA / 60%", 6.0, "Service Based"],
+    ["Infosys", "60%", "60%", "6.0 CGPA", 6.0, "Service Based"],
+    ["Wipro", "60%", "60%", "6.0 CGPA", 6.0, "Service Based"],
+    ["Cognizant", "60%", "60%", "6.0 CGPA", 6.0, "Service Based"],
+    ["Accenture", "65%", "65%", "6.5 CGPA", 6.5, "Service Based"],
+    ["IBM", "65%", "65%", "6.5 CGPA", 6.5, "Product & Service"],
+    ["Amazon", "70%", "70%", "7.0 CGPA", 7.0, "Product Based"],
+    ["Microsoft", "70%", "70%", "7.0 CGPA", 7.0, "Product Based"],
+    ["Razorpay", "70%", "70%", "7.0 CGPA", 7.0, "Startup"],
+    ["Capgemini", "60%", "60%", "6.0 CGPA", 6.0, "Service Based"],
+    ["HCLTech", "60%", "60%", "6.0 CGPA", 6.0, "Service Based"],
+    ["Tech Mahindra", "60%", "60%", "6.0 CGPA", 6.0, "Service Based"],
   ],
   CIVIL: [
-    ["Larsen & Toubro (L&T)", "60%", "60%", "6.75 CGPA", 6.75],
-    ["Tata Projects", "60%", "60%", "6.0 CGPA", 6.0],
-    ["Shapoorji Pallonji", "60%", "60%", "6.0 CGPA", 6.0],
-    ["Afcons Infrastructure", "60%", "60%", "6.0 CGPA", 6.0],
-    ["Hindustan Construction Co. (HCC)", "60%", "60%", "6.0 CGPA", 6.0],
-    ["JSW Steel (Civil)", "60%", "60%", "6.0 CGPA", 6.0],
-    ["GMR Group", "60%", "60%", "6.0 CGPA", 6.0],
-    ["Reliance Infrastructure", "60%", "60%", "6.0 CGPA", 6.0],
-    ["Coal India Limited", "60%", "60%", "60%", 6.0],
-    ["RITES Ltd", "60%", "60%", "60%", 6.0],
-    ["KEC International", "60%", "60%", "6.0 CGPA", 6.0],
-    ["PNC Infratech", "60%", "60%", "6.0 CGPA", 6.0],
+    ["Larsen & Toubro (L&T)", "60%", "60%", "6.75 CGPA", 6.75, "Core"],
+    ["Tata Projects", "60%", "60%", "6.0 CGPA", 6.0, "Core"],
+    ["Shapoorji Pallonji", "60%", "60%", "6.0 CGPA", 6.0, "Core"],
+    ["Afcons Infrastructure", "60%", "60%", "6.0 CGPA", 6.0, "Core"],
+    ["Hindustan Construction Co. (HCC)", "60%", "60%", "6.0 CGPA", 6.0, "Core"],
+    ["JSW Steel (Civil)", "60%", "60%", "6.0 CGPA", 6.0, "Core"],
+    ["GMR Group", "60%", "60%", "6.0 CGPA", 6.0, "Core"],
+    ["Reliance Infrastructure", "60%", "60%", "6.0 CGPA", 6.0, "Core"],
+    ["Coal India Limited", "60%", "60%", "60%", 6.0, "PSU"],
+    ["RITES Ltd", "60%", "60%", "60%", 6.0, "PSU"],
+    ["KEC International", "60%", "60%", "6.0 CGPA", 6.0, "Core"],
+    ["Infra.Market", "60%", "60%", "6.0 CGPA", 6.0, "Startup"],
   ],
   ME: [
-    ["Larsen & Toubro (L&T)", "60%", "60%", "6.75 CGPA", 6.75],
-    ["Tata Motors", "60%", "60%", "6.0 CGPA", 6.0],
-    ["Mahindra & Mahindra", "60%", "60%", "6.0 CGPA", 6.0],
-    ["Maruti Suzuki", "65%", "65%", "6.5 CGPA", 6.5],
-    ["Bajaj Auto", "65%", "65%", "6.5 CGPA", 6.5],
-    ["Bosch", "70%", "70%", "7.0 CGPA", 7.0],
-    ["Ashok Leyland", "60%", "60%", "6.0 CGPA", 6.0],
-    ["Godrej & Boyce", "60%", "60%", "6.0 CGPA", 6.0],
-    ["Thermax", "60%", "60%", "6.0 CGPA", 6.0],
-    ["Coal India Limited", "60%", "60%", "60%", 6.0],
-    ["Tata Technologies", "60%", "60%", "6.0 CGPA", 6.0],
-    ["L&T Technology Services", "60%", "60%", "6.0 CGPA", 6.0],
+    ["Larsen & Toubro (L&T)", "60%", "60%", "6.75 CGPA", 6.75, "Core"],
+    ["Tata Motors", "60%", "60%", "6.0 CGPA", 6.0, "Core"],
+    ["Mahindra & Mahindra", "60%", "60%", "6.0 CGPA", 6.0, "Core"],
+    ["Maruti Suzuki", "65%", "65%", "6.5 CGPA", 6.5, "Core"],
+    ["Bajaj Auto", "65%", "65%", "6.5 CGPA", 6.5, "Core"],
+    ["Bosch", "70%", "70%", "7.0 CGPA", 7.0, "Product Based"],
+    ["Ashok Leyland", "60%", "60%", "6.0 CGPA", 6.0, "Core"],
+    ["Godrej & Boyce", "60%", "60%", "6.0 CGPA", 6.0, "Core"],
+    ["Ather Energy", "65%", "65%", "6.5 CGPA", 6.5, "Startup"],
+    ["Coal India Limited", "60%", "60%", "60%", 6.0, "PSU"],
+    ["Tata Technologies", "60%", "60%", "6.0 CGPA", 6.0, "Service Based"],
+    ["L&T Technology Services", "60%", "60%", "6.0 CGPA", 6.0, "Service Based"],
   ],
   ECE: [
-    ["Texas Instruments", "70%", "70%", "7.0 CGPA", 7.0],
-    ["Intel", "70%", "70%", "7.0 CGPA", 7.0],
-    ["Qualcomm", "75%", "75%", "7.5 CGPA", 7.5],
-    ["Cisco", "70%", "70%", "7.0 CGPA", 7.0],
-    ["Samsung R&D", "70%", "70%", "7.0 CGPA", 7.0],
-    ["TCS (Embedded/IT)", "60%", "60%", "6.0 CGPA / 60%", 6.0],
-    ["Ericsson", "60%", "60%", "6.0 CGPA", 6.0],
-    ["Nokia", "60%", "60%", "6.0 CGPA", 6.0],
-    ["NXP Semiconductors", "70%", "70%", "7.0 CGPA", 7.0],
-    ["Bharat Electronics Ltd (BEL)", "60%", "60%", "60%", 6.0],
-    ["L&T Technology Services", "60%", "60%", "6.0 CGPA", 6.0],
-    ["Tata Elxsi", "60%", "60%", "6.0 CGPA", 6.0],
+    ["Texas Instruments", "70%", "70%", "7.0 CGPA", 7.0, "Product Based"],
+    ["Intel", "70%", "70%", "7.0 CGPA", 7.0, "Product Based"],
+    ["Qualcomm", "75%", "75%", "7.5 CGPA", 7.5, "Product Based"],
+    ["Cisco", "70%", "70%", "7.0 CGPA", 7.0, "Product Based"],
+    ["Samsung R&D", "70%", "70%", "7.0 CGPA", 7.0, "Product Based"],
+    ["TCS (Embedded/IT)", "60%", "60%", "6.0 CGPA / 60%", 6.0, "Service Based"],
+    ["Ericsson", "60%", "60%", "6.0 CGPA", 6.0, "Product Based"],
+    ["boAt", "60%", "60%", "6.0 CGPA", 6.0, "Startup"],
+    ["NXP Semiconductors", "70%", "70%", "7.0 CGPA", 7.0, "Product Based"],
+    ["Bharat Electronics Ltd (BEL)", "60%", "60%", "60%", 6.0, "PSU"],
+    ["L&T Technology Services", "60%", "60%", "6.0 CGPA", 6.0, "Service Based"],
+    ["Tata Elxsi", "60%", "60%", "6.0 CGPA", 6.0, "Service Based"],
   ],
   EEE: [
-    ["Siemens", "60%", "60%", "6.0 CGPA", 6.0],
-    ["Schneider Electric", "60%", "60%", "6.0 CGPA", 6.0],
-    ["ABB India", "60%", "60%", "6.0 CGPA", 6.0],
-    ["General Electric (GE)", "65%", "65%", "6.5 CGPA", 6.5],
-    ["Crompton Greaves", "60%", "60%", "6.0 CGPA", 6.0],
-    ["Havells India", "60%", "60%", "6.0 CGPA", 6.0],
-    ["Tata Power", "60%", "60%", "6.0 CGPA", 6.0],
-    ["Adani Power", "60%", "60%", "6.0 CGPA", 6.0],
-    ["NTPC", "65%", "65%", "65%", 6.5],
-    ["Coal India Limited", "60%", "60%", "60%", 6.0],
-    ["Tata Elxsi", "60%", "60%", "6.0 CGPA", 6.0],
-    ["Reliance Jio", "60%", "60%", "6.0 CGPA", 6.0],
+    ["Siemens", "60%", "60%", "6.0 CGPA", 6.0, "Product Based"],
+    ["Schneider Electric", "60%", "60%", "6.0 CGPA", 6.0, "Product Based"],
+    ["ABB India", "60%", "60%", "6.0 CGPA", 6.0, "Product Based"],
+    ["General Electric (GE)", "65%", "65%", "6.5 CGPA", 6.5, "Product Based"],
+    ["Exponent Energy", "60%", "60%", "6.0 CGPA", 6.0, "Startup"],
+    ["Havells India", "60%", "60%", "6.0 CGPA", 6.0, "Core"],
+    ["Tata Power", "60%", "60%", "6.0 CGPA", 6.0, "Core"],
+    ["Adani Power", "60%", "60%", "6.0 CGPA", 6.0, "Core"],
+    ["NTPC", "65%", "65%", "65%", 6.5, "PSU"],
+    ["Coal India Limited", "60%", "60%", "60%", 6.0, "PSU"],
+    ["Tata Elxsi", "60%", "60%", "6.0 CGPA", 6.0, "Service Based"],
+    ["Reliance Jio", "60%", "60%", "6.0 CGPA", 6.0, "Product Based"],
   ],
   BIO: [
-    ["Biocon", "60%", "60%", "6.0 CGPA", 6.0],
-    ["Dr. Reddy's Laboratories", "60%", "60%", "6.0 CGPA", 6.0],
-    ["Serum Institute of India", "60%", "60%", "6.0 CGPA", 6.0],
-    ["Bharat Biotech", "60%", "60%", "6.0 CGPA", 6.0],
-    ["Cipla", "60%", "60%", "6.0 CGPA", 6.0],
-    ["Sun Pharma", "60%", "60%", "6.0 CGPA", 6.0],
-    ["Novozymes", "65%", "65%", "6.5 CGPA", 6.5],
-    ["GlaxoSmithKline (GSK)", "60%", "60%", "6.0 CGPA", 6.0],
-    ["Thermo Fisher Scientific", "65%", "65%", "6.5 CGPA", 6.5],
-    ["Zydus Lifesciences", "60%", "60%", "6.0 CGPA", 6.0],
-    ["Syngene International", "60%", "60%", "6.0 CGPA", 6.0],
-    ["Lupin", "60%", "60%", "6.0 CGPA", 6.0],
+    ["Biocon", "60%", "60%", "6.0 CGPA", 6.0, "Product Based"],
+    ["Dr. Reddy's Laboratories", "60%", "60%", "6.0 CGPA", 6.0, "Product Based"],
+    ["Serum Institute of India", "60%", "60%", "6.0 CGPA", 6.0, "Product Based"],
+    ["Bharat Biotech", "60%", "60%", "6.0 CGPA", 6.0, "Product Based"],
+    ["Cipla", "60%", "60%", "6.0 CGPA", 6.0, "Product Based"],
+    ["Sun Pharma", "60%", "60%", "6.0 CGPA", 6.0, "Product Based"],
+    ["Novozymes", "65%", "65%", "6.5 CGPA", 6.5, "Product Based"],
+    ["GlaxoSmithKline (GSK)", "60%", "60%", "6.0 CGPA", 6.0, "Product Based"],
+    ["Thermo Fisher Scientific", "65%", "65%", "6.5 CGPA", 6.5, "Product Based"],
+    ["String Bio", "60%", "60%", "6.0 CGPA", 6.0, "Startup"],
+    ["Syngene International", "60%", "60%", "6.0 CGPA", 6.0, "Service Based"],
+    ["Lupin", "60%", "60%", "6.0 CGPA", 6.0, "Product Based"],
   ],
   MI: [
-    ["Coal India Limited", "60%", "60%", "60%", 6.0],
-    ["Vedanta Resources", "60%", "60%", "6.0 CGPA", 6.0],
-    ["Hindustan Zinc", "60%", "60%", "6.0 CGPA", 6.0],
-    ["Tata Steel (Mining)", "65%", "65%", "6.5 CGPA", 6.5],
-    ["NMDC", "60%", "60%", "6.0 CGPA", 6.0],
-    ["Rio Tinto (India)", "65%", "65%", "6.5 CGPA", 6.5],
-    ["JSW Steel (Mining)", "60%", "60%", "6.0 CGPA", 6.0],
-    ["Adani Enterprises (Mining)", "60%", "60%", "6.0 CGPA", 6.0],
-    ["Essel Mining & Industries", "60%", "60%", "6.0 CGPA", 6.0],
-    ["Hindalco Industries", "60%", "60%", "6.0 CGPA", 6.0],
-    ["Ambuja Cements", "60%", "60%", "6.0 CGPA", 6.0],
-    ["Thriveni Earthmovers", "60%", "60%", "6.0 CGPA", 6.0],
+    ["Coal India Limited", "60%", "60%", "60%", 6.0, "PSU"],
+    ["Vedanta Resources", "60%", "60%", "6.0 CGPA", 6.0, "Core"],
+    ["Hindustan Zinc", "60%", "60%", "6.0 CGPA", 6.0, "Core"],
+    ["Tata Steel (Mining)", "65%", "65%", "6.5 CGPA", 6.5, "Core"],
+    ["NMDC", "60%", "60%", "6.0 CGPA", 6.0, "PSU"],
+    ["Rio Tinto (India)", "65%", "65%", "6.5 CGPA", 6.5, "Core"],
+    ["JSW Steel (Mining)", "60%", "60%", "6.0 CGPA", 6.0, "Core"],
+    ["Adani Enterprises (Mining)", "60%", "60%", "6.0 CGPA", 6.0, "Core"],
+    ["Essel Mining & Industries", "60%", "60%", "6.0 CGPA", 6.0, "Core"],
+    ["Hindalco Industries", "60%", "60%", "6.0 CGPA", 6.0, "Core"],
+    ["Ambuja Cements", "60%", "60%", "6.0 CGPA", 6.0, "Core"],
+    ["Thriveni Earthmovers", "60%", "60%", "6.0 CGPA", 6.0, "Core"],
   ],
   AERO: [
-    ["Hindustan Aeronautics (HAL)", "65%", "65%", "6.5 CGPA", 6.5],
-    ["ISRO", "65%", "65%", "6.5 CGPA / 65%", 6.5],
-    ["DRDO", "60%", "60%", "6.0 CGPA", 6.0],
-    ["Boeing India", "70%", "70%", "7.0 CGPA", 7.0],
-    ["Airbus India", "70%", "70%", "7.0 CGPA", 7.0],
-    ["GE Aerospace", "70%", "70%", "7.0 CGPA", 7.0],
-    ["Rolls-Royce India", "70%", "70%", "7.0 CGPA", 7.0],
-    ["Tata Advanced Systems", "60%", "60%", "6.0 CGPA", 6.0],
-    ["Mahindra Aerospace", "60%", "60%", "6.0 CGPA", 6.0],
-    ["Collins Aerospace", "65%", "65%", "6.5 CGPA", 6.5],
-    ["Quest Global", "60%", "60%", "6.0 CGPA", 6.0],
-    ["L&T Technology Services", "60%", "60%", "6.0 CGPA", 6.0],
+    ["Hindustan Aeronautics (HAL)", "65%", "65%", "6.5 CGPA", 6.5, "PSU"],
+    ["ISRO", "65%", "65%", "6.5 CGPA / 65%", 6.5, "PSU"],
+    ["DRDO", "60%", "60%", "6.0 CGPA", 6.0, "PSU"],
+    ["Boeing India", "70%", "70%", "7.0 CGPA", 7.0, "Product Based"],
+    ["Airbus India", "70%", "70%", "7.0 CGPA", 7.0, "Product Based"],
+    ["GE Aerospace", "70%", "70%", "7.0 CGPA", 7.0, "Product Based"],
+    ["Rolls-Royce India", "70%", "70%", "7.0 CGPA", 7.0, "Product Based"],
+    ["Tata Advanced Systems", "60%", "60%", "6.0 CGPA", 6.0, "Core"],
+    ["Agnikul Cosmos", "65%", "65%", "6.5 CGPA", 6.5, "Startup"],
+    ["Collins Aerospace", "65%", "65%", "6.5 CGPA", 6.5, "Product Based"],
+    ["Quest Global", "60%", "60%", "6.0 CGPA", 6.0, "Service Based"],
+    ["L&T Technology Services", "60%", "60%", "6.0 CGPA", 6.0, "Service Based"],
   ],
 };
 
@@ -140,7 +141,7 @@ export default function CompanyEligibility({ branch, cgpa, regNo }) {
   const userTenth = localTenth ? parseFloat(localTenth) : null;
   const userTwelfth = localTwelfth ? parseFloat(localTwelfth) : null;
 
-  const companies = (COMPANY_DATA[branchKey] || []).map(([name, reqTenthStr, reqTwelfthStr, btech, cgpaReq]) => {
+  const companies = (COMPANY_DATA[branchKey] || []).map(([name, reqTenthStr, reqTwelfthStr, btech, cgpaReq, category]) => {
     const reqTenth = parseFloat(reqTenthStr);
     const reqTwelfth = parseFloat(reqTwelfthStr);
 
@@ -154,6 +155,7 @@ export default function CompanyEligibility({ branch, cgpa, regNo }) {
       twelfth: reqTwelfthStr,
       btech,
       cgpaReq,
+      category: category || "Unknown",
       eligible,
       gap: Math.max(cgpaReq - numericCgpa, 0),
       tenthGap: userTenth !== null && userTenth < reqTenth,
@@ -202,10 +204,12 @@ export default function CompanyEligibility({ branch, cgpa, regNo }) {
             <Calculator size={18} />
             <h3>Check Full Eligibility (Local)</h3>
           </div>
-          <p className="calc-disclaimer">
+          <div className="calc-disclaimer">
             <Info size={14} />
-            Enter your 10th and 12th percentage to see exactly which companies you qualify for. This data is calculated strictly on your device and is <strong>NOT</strong> stored in the database.
-          </p>
+            <p style={{ margin: 0 }}>
+              Enter your 10th and 12th percentage to see exactly which companies you qualify for. This data is calculated strictly on your device and is <strong>NOT</strong> stored in the database.
+            </p>
+          </div>
           <div className="calc-inputs">
             <div className="input-group">
               <label>10th Percentage (%)</label>
@@ -253,7 +257,7 @@ export default function CompanyEligibility({ branch, cgpa, regNo }) {
             transition={{ delay: index * 0.03 }}
             className={`placement-company-card ${company.eligible ? "eligible" : "locked"}`}
           >
-            <div className="placement-company-head">
+            <div className="placement-company-head" style={{ marginBottom: company.category ? '8px' : '0' }}>
               <div>
                 <span className="placement-company-index">{String(index + 1).padStart(2, "0")}</span>
                 <h3>{company.name}</h3>
@@ -263,6 +267,12 @@ export default function CompanyEligibility({ branch, cgpa, regNo }) {
                 {company.eligible ? "Eligible" : "Not Yet"}
               </span>
             </div>
+
+            {company.category && (
+              <div className="placement-company-category">
+                {company.category}
+              </div>
+            )}
 
             <div className="placement-requirements">
               <div>
