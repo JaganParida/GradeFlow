@@ -23,11 +23,11 @@ export default function TargetPredictor() {
 
   return (
     <div style={{ padding: "20px 0" }}>
-      <div style={{ background: "var(--card-bg)", border: "1px solid var(--border-color)", borderRadius: 16, overflow: "hidden" }}>
+      <div style={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: 16, overflow: "hidden" }}>
         
         {/* Header */}
-        <div style={{ background: "rgba(62,166,255,0.05)", padding: 20, borderBottom: "1px solid var(--border-color)" }}>
-          <h3 style={{ fontSize: 18, fontWeight: 700, color: "var(--text-main)", display: "flex", alignItems: "center", gap: 10 }}>
+        <div style={{ background: "rgba(62,166,255,0.05)", padding: 20, borderBottom: "1px solid var(--border)" }}>
+          <h3 style={{ fontSize: 18, fontWeight: 700, color: "var(--text)", display: "flex", alignItems: "center", gap: 10 }}>
             <Calculator size={20} color="var(--accent)" />
             End-Sem Target Predictor
           </h3>
@@ -56,8 +56,8 @@ export default function TargetPredictor() {
                     flex: "1 1 120px",
                     padding: "12px 16px",
                     background: subjectType === type.id ? "var(--accent)" : "transparent",
-                    color: subjectType === type.id ? "#fff" : "var(--text-main)",
-                    border: `1px solid ${subjectType === type.id ? "var(--accent)" : "var(--border-color)"}`,
+                    color: subjectType === type.id ? "var(--bg)" : "var(--text)",
+                    border: `1px solid ${subjectType === type.id ? "var(--accent)" : "var(--border)"}`,
                     borderRadius: 10,
                     fontWeight: 600,
                     cursor: "pointer",
@@ -83,10 +83,10 @@ export default function TargetPredictor() {
                 width: "100%",
                 maxWidth: 400,
                 padding: "14px 16px",
-                background: "var(--bg-main)",
-                border: `1px solid ${internalMarks !== "" && !isValidInternal ? "var(--danger)" : "var(--border-color)"}`,
+                background: "var(--bg)",
+                border: `1px solid ${internalMarks !== "" && !isValidInternal ? "var(--danger)" : "var(--border)"}`,
                 borderRadius: 10,
-                color: "var(--text-main)",
+                color: "var(--text)",
                 fontSize: 16,
                 fontWeight: 600,
                 outline: "none"
@@ -104,7 +104,7 @@ export default function TargetPredictor() {
         {/* Predictions */}
         {isValidInternal && (
           <div style={{ padding: "0 24px 24px" }}>
-            <h4 style={{ fontSize: 14, fontWeight: 600, color: "var(--text-main)", marginBottom: 16 }}>Required External Marks (out of {maxExternal})</h4>
+            <h4 style={{ fontSize: 14, fontWeight: 600, color: "var(--text)", marginBottom: 16 }}>Required External Marks (out of {maxExternal})</h4>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: 12 }}>
               {GRADES.map((g, i) => {
                 const required = g.min - currentInternal;
@@ -112,7 +112,7 @@ export default function TargetPredictor() {
                 const isGuaranteed = required <= 0;
                 
                 let statusColor = "var(--secondary)";
-                let statusBg = "var(--bg-main)";
+                let statusBg = "var(--bg)";
                 
                 if (isGuaranteed) {
                   statusColor = "var(--success)";
@@ -160,7 +160,7 @@ export default function TargetPredictor() {
                       </span>
                     ) : (
                       <div style={{ textAlign: "center" }}>
-                        <span style={{ fontSize: 20, fontWeight: 800, color: "var(--text-main)" }}>{required}</span>
+                        <span style={{ fontSize: 20, fontWeight: 800, color: "var(--text)" }}>{required}</span>
                         <span style={{ fontSize: 12, color: "var(--secondary)", marginLeft: 4 }}>/ {maxExternal}</span>
                       </div>
                     )}
