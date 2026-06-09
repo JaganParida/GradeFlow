@@ -13,6 +13,8 @@ const COMPANY_DATA = {
     ["Microsoft", "70%", "70%", "7.0 CGPA", 7.0],
     ["Oracle", "70%", "70%", "7.0 CGPA", 7.0],
     ["Capgemini", "60%", "60%", "6.0 CGPA", 6.0],
+    ["HCLTech", "60%", "60%", "6.0 CGPA", 6.0],
+    ["Tech Mahindra", "60%", "60%", "6.0 CGPA", 6.0],
   ],
   CIVIL: [
     ["Larsen & Toubro (L&T)", "60%", "60%", "6.75 CGPA", 6.75],
@@ -25,6 +27,8 @@ const COMPANY_DATA = {
     ["Reliance Infrastructure", "60%", "60%", "6.0 CGPA", 6.0],
     ["Coal India Limited", "60%", "60%", "60%", 6.0],
     ["RITES Ltd", "60%", "60%", "60%", 6.0],
+    ["KEC International", "60%", "60%", "6.0 CGPA", 6.0],
+    ["PNC Infratech", "60%", "60%", "6.0 CGPA", 6.0],
   ],
   ME: [
     ["Larsen & Toubro (L&T)", "60%", "60%", "6.75 CGPA", 6.75],
@@ -37,6 +41,8 @@ const COMPANY_DATA = {
     ["Godrej & Boyce", "60%", "60%", "6.0 CGPA", 6.0],
     ["Thermax", "60%", "60%", "6.0 CGPA", 6.0],
     ["Coal India Limited", "60%", "60%", "60%", 6.0],
+    ["Tata Technologies", "60%", "60%", "6.0 CGPA", 6.0],
+    ["L&T Technology Services", "60%", "60%", "6.0 CGPA", 6.0],
   ],
   ECE: [
     ["Texas Instruments", "70%", "70%", "7.0 CGPA", 7.0],
@@ -49,6 +55,8 @@ const COMPANY_DATA = {
     ["Nokia", "60%", "60%", "6.0 CGPA", 6.0],
     ["NXP Semiconductors", "70%", "70%", "7.0 CGPA", 7.0],
     ["Bharat Electronics Ltd (BEL)", "60%", "60%", "60%", 6.0],
+    ["L&T Technology Services", "60%", "60%", "6.0 CGPA", 6.0],
+    ["Tata Elxsi", "60%", "60%", "6.0 CGPA", 6.0],
   ],
   EEE: [
     ["Siemens", "60%", "60%", "6.0 CGPA", 6.0],
@@ -61,6 +69,8 @@ const COMPANY_DATA = {
     ["Adani Power", "60%", "60%", "6.0 CGPA", 6.0],
     ["NTPC", "65%", "65%", "65%", 6.5],
     ["Coal India Limited", "60%", "60%", "60%", 6.0],
+    ["Tata Elxsi", "60%", "60%", "6.0 CGPA", 6.0],
+    ["Reliance Jio", "60%", "60%", "6.0 CGPA", 6.0],
   ],
   BIO: [
     ["Biocon", "60%", "60%", "6.0 CGPA", 6.0],
@@ -73,6 +83,8 @@ const COMPANY_DATA = {
     ["GlaxoSmithKline (GSK)", "60%", "60%", "6.0 CGPA", 6.0],
     ["Thermo Fisher Scientific", "65%", "65%", "6.5 CGPA", 6.5],
     ["Zydus Lifesciences", "60%", "60%", "6.0 CGPA", 6.0],
+    ["Syngene International", "60%", "60%", "6.0 CGPA", 6.0],
+    ["Lupin", "60%", "60%", "6.0 CGPA", 6.0],
   ],
   MI: [
     ["Coal India Limited", "60%", "60%", "60%", 6.0],
@@ -85,6 +97,8 @@ const COMPANY_DATA = {
     ["Adani Enterprises (Mining)", "60%", "60%", "6.0 CGPA", 6.0],
     ["Essel Mining & Industries", "60%", "60%", "6.0 CGPA", 6.0],
     ["Hindalco Industries", "60%", "60%", "6.0 CGPA", 6.0],
+    ["Ambuja Cements", "60%", "60%", "6.0 CGPA", 6.0],
+    ["Thriveni Earthmovers", "60%", "60%", "6.0 CGPA", 6.0],
   ],
   AERO: [
     ["Hindustan Aeronautics (HAL)", "65%", "65%", "6.5 CGPA", 6.5],
@@ -97,6 +111,8 @@ const COMPANY_DATA = {
     ["Tata Advanced Systems", "60%", "60%", "6.0 CGPA", 6.0],
     ["Mahindra Aerospace", "60%", "60%", "6.0 CGPA", 6.0],
     ["Collins Aerospace", "65%", "65%", "6.5 CGPA", 6.5],
+    ["Quest Global", "60%", "60%", "6.0 CGPA", 6.0],
+    ["L&T Technology Services", "60%", "60%", "6.0 CGPA", 6.0],
   ],
 };
 
