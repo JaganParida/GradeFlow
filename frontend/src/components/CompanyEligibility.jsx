@@ -122,6 +122,8 @@ export default function CompanyEligibility({ branch, cgpa, regNo }) {
 
     return {
       name,
+      tenth: reqTenthStr,
+      twelfth: reqTwelfthStr,
       btech,
       cgpaReq,
       eligible,
@@ -200,6 +202,14 @@ export default function CompanyEligibility({ branch, cgpa, regNo }) {
             </div>
 
             <div className="placement-requirements">
+              <div>
+                <span>10th</span>
+                <strong>{company.tenth}</strong>
+              </div>
+              <div>
+                <span>12th</span>
+                <strong>{company.twelfth}</strong>
+              </div>
               <div>
                 <span>B.Tech</span>
                 <strong>{company.btech}</strong>
