@@ -107,31 +107,10 @@ router.get("/:regNo", async (req, res) => {
       backlogs: backlogs, // Now contains subName, subCode, credit, grade, semester
       results,
       ranking: ranking || null,
-      tenthPercentage: studentProfile ? studentProfile.tenthPercentage : null,
-      twelfthPercentage: studentProfile ? studentProfile.twelfthPercentage : null,
     };
 
     setCache(regNo, responseData);
     res.json(responseData);
-  } catch (err) {
-    res.status(500).json({ message: err.message });
-  }
-});
-
-// POST update student education details
-router.post("/:regNo/education", async (req, res) => {
-  try {
-    const { regNo } = req.params;
-    const { tenthPercentage, twelfthPercentage } = req.body;
-
-    await Student.findOneAndUpdate(
-      { regNo },
-      { tenthPercentage, twelfthPercentage },
-      { upsert: true, new: true }
-    );
-
-    clearStudentCache(regNo);
-    res.json({ message: "Education details updated successfully" });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }

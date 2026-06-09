@@ -1,6 +1,5 @@
-import { CheckCircle, GraduationCap, Info, Target, XCircle, Save } from "lucide-react";
+import { CheckCircle, GraduationCap, Info, Target, XCircle } from "lucide-react";
 import { motion } from "framer-motion";
-import { useState } from "react";
 
 const COMPANY_DATA = {
   CSE: [
@@ -114,63 +113,19 @@ function normalizeBranch(branch) {
   return key;
 }
 
-export default function CompanyEligibility({ branch, cgpa, regNo, initialTenth, initialTwelfth, onUpdate }) {
+export default function CompanyEligibility({ branch, cgpa, regNo }) {
   const branchKey = normalizeBranch(branch);
   const numericCgpa = Number(cgpa) || 0;
-  
-  const [tenth, setTenth] = useState(initialTenth || "");
-  const [twelfth, setTwelfth] = useState(initialTwelfth || "");
-  const [isSaving, setIsSaving] = useState(false);
-  const [saveMessage, setSaveMessage] = useState("");
-
-  const handleSave = async () => {
-    if (!regNo) return;
-    setIsSaving(true);
-    try {
-      const API_URL = import.meta.env.VITE_API_URL || "/api";
-      const response = await fetch(`${API_URL}/student/${regNo}/education`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ 
-          tenthPercentage: tenth ? parseFloat(tenth) : null, 
-          twelfthPercentage: twelfth ? parseFloat(twelfth) : null 
-        }),
-      });
-      if (response.ok) {
-        setSaveMessage("Saved!");
-        if (onUpdate) onUpdate();
-        setTimeout(() => setSaveMessage(""), 3000);
-      } else {
-        setSaveMessage("Failed");
-      }
-    } catch (err) {
-      setSaveMessage("Error");
-    } finally {
-      setIsSaving(false);
-    }
-  };
-
-  const userTenth = tenth ? parseFloat(tenth) : null;
-  const userTwelfth = twelfth ? parseFloat(twelfth) : null;
 
   const companies = (COMPANY_DATA[branchKey] || []).map(([name, reqTenthStr, reqTwelfthStr, btech, cgpaReq]) => {
-    const reqTenth = parseFloat(reqTenthStr);
-    const reqTwelfth = parseFloat(reqTwelfthStr);
-
     let eligible = numericCgpa >= cgpaReq;
-    if (userTenth !== null && userTenth < reqTenth) eligible = false;
-    if (userTwelfth !== null && userTwelfth < reqTwelfth) eligible = false;
 
     return {
       name,
-      tenth: reqTenthStr,
-      twelfth: reqTwelfthStr,
       btech,
       cgpaReq,
       eligible,
       gap: Math.max(cgpaReq - numericCgpa, 0),
-      tenthGap: userTenth !== null && userTenth < reqTenth,
-      twelfthGap: userTwelfth !== null && userTwelfth < reqTwelfth,
     };
   });
   const eligibleCount = companies.filter((company) => company.eligible).length;
@@ -196,45 +151,11 @@ export default function CompanyEligibility({ branch, cgpa, regNo, initialTenth, 
           </p>
           <h2>Placement Eligibility</h2>
           <p>
-            Showing companies for <strong>{branchKey}</strong>. Eligibility badge is calculated from CGPA and your 10th/12th percentages (if provided).
+            Showing companies for <strong>{branchKey}</strong>. Eligibility badge is calculated from your current CGPA.
           </p>
         </div>
         
-        {(!initialTenth && !initialTwelfth) && (
-          <div className="placement-education-inputs" style={{ background: 'var(--surface)', padding: '16px', borderRadius: '12px', flex: '1 1 300px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
-            <h4 style={{ margin: 0, fontSize: '14px', color: 'var(--text)' }}>10th & 12th Percentages</h4>
-            <div style={{ display: 'flex', gap: '12px' }}>
-              <div style={{ flex: 1 }}>
-                <label style={{ display: 'block', fontSize: '12px', color: 'var(--secondary)', marginBottom: '4px' }}>10th %</label>
-                <input type="number" step="0.1" value={tenth} onChange={(e) => setTenth(e.target.value)} placeholder="e.g. 85.5" style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--text)' }} />
-              </div>
-              <div style={{ flex: 1 }}>
-                <label style={{ display: 'block', fontSize: '12px', color: 'var(--secondary)', marginBottom: '4px' }}>12th %</label>
-                <input type="number" step="0.1" value={twelfth} onChange={(e) => setTwelfth(e.target.value)} placeholder="e.g. 80.0" style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--text)' }} />
-              </div>
-            </div>
-            <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: '12px' }}>
-              {saveMessage && <span style={{ fontSize: '12px', color: saveMessage === 'Saved!' ? 'var(--success)' : 'var(--danger)' }}>{saveMessage}</span>}
-              <button className="btn btn-primary" onClick={handleSave} disabled={isSaving} style={{ padding: '6px 16px', fontSize: '13px' }}>
-                <Save size={14} /> {isSaving ? "Saving..." : "Save"}
-              </button>
-            </div>
-          </div>
-        )}
-
         <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', flex: '1 1 300px' }}>
-          {initialTenth && (
-            <div className="placement-score-card" style={{ minWidth: '100px', flex: 1, justifyItems: 'center' }}>
-              <span>10th %</span>
-              <strong>{initialTenth}</strong>
-            </div>
-          )}
-          {initialTwelfth && (
-            <div className="placement-score-card" style={{ minWidth: '100px', flex: 1, justifyItems: 'center' }}>
-              <span>12th %</span>
-              <strong>{initialTwelfth}</strong>
-            </div>
-          )}
           <div className="placement-score-card" style={{ minWidth: '160px', flex: 1, justifyItems: 'center' }}>
             <span>Your CGPA</span>
             <strong>{numericCgpa.toFixed(2)}</strong>
@@ -280,14 +201,6 @@ export default function CompanyEligibility({ branch, cgpa, regNo, initialTenth, 
 
             <div className="placement-requirements">
               <div>
-                <span>10th</span>
-                <strong>{company.tenth}</strong>
-              </div>
-              <div>
-                <span>12th</span>
-                <strong>{company.twelfth}</strong>
-              </div>
-              <div>
                 <span>B.Tech</span>
                 <strong>{company.btech}</strong>
               </div>
@@ -303,11 +216,9 @@ export default function CompanyEligibility({ branch, cgpa, regNo, initialTenth, 
               </div>
             </div>
 
-            {!company.eligible && (
+            {!company.eligible && company.gap > 0 && (
               <div className="placement-gap" style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
-                {company.gap > 0 && <span>Need {company.gap.toFixed(2)} more CGPA.</span>}
-                {company.tenthGap && <span>10th % is below requirement.</span>}
-                {company.twelfthGap && <span>12th % is below requirement.</span>}
+                <span>Need {company.gap.toFixed(2)} more CGPA.</span>
               </div>
             )}
           </motion.article>

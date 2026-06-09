@@ -939,9 +939,6 @@ export default function Analytics() {
           branch={dynamicBranch} 
           cgpa={cgpa} 
           regNo={regNo}
-          initialTenth={studentData.tenthPercentage}
-          initialTwelfth={studentData.twelfthPercentage}
-          onUpdate={() => fetchStudent(regNo)}
         />
       )}
 
