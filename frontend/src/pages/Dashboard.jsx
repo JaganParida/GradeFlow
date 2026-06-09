@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useApp } from "../context/AppContext";
-import { Spinner, SkeletonGrid } from "../components/LoadingSpinner";
+import { Spinner, DashboardSkeleton, ReportCardSkeleton } from "../components/LoadingSpinner";
 import GradeSheet from "../components/GradeSheet";
 import BasketDashboard from "../components/BasketDashboard";
 import TargetPredictor from "../components/TargetPredictor";
@@ -287,11 +287,7 @@ export default function Dashboard() {
   }
 
   if (loading)
-    return (
-      <div className="page">
-        <SkeletonGrid count={4} h={100} />
-      </div>
-    );
+    return <DashboardSkeleton />;
   if (error || !studentData)
     return (
       <div className="page" style={{ textAlign: "center", padding: 80 }}>
@@ -812,7 +808,7 @@ export default function Dashboard() {
       </div>
 
       {loadingSem ? (
-        <Spinner />
+        <ReportCardSkeleton />
       ) : (
         <motion.div
           key={tab}

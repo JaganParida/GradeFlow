@@ -2,7 +2,7 @@ import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useLocation } from "react-router-dom";
 import axios from "axios";
 import { useApp } from "../context/AppContext";
-import { Spinner } from "../components/LoadingSpinner";
+import { LeaderboardSkeleton } from "../components/LoadingSpinner";
 import { motion } from "framer-motion";
 import { Trophy, Search, Calendar, Medal, Star, Target } from "lucide-react";
 
@@ -291,7 +291,7 @@ export default function Leaderboard() {
           </p>
         </div>
       ) : loading ? (
-        <Spinner />
+        <LeaderboardSkeleton />
       ) : rankings.length === 0 ? (
         <div style={{ textAlign: "center", padding: 60 }}>
           {filters.search ? (

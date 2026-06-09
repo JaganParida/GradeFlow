@@ -17,7 +17,7 @@ import {
   PolarAngleAxis,
   PolarRadiusAxis,
 } from "recharts";
-import { Spinner } from "../components/LoadingSpinner";
+import { AnalyticsSkeleton } from "../components/LoadingSpinner";
 import { motion, animate } from "framer-motion";
 import { TrendingUp, TrendingDown, Star, Trophy, CheckCircle, AlertTriangle, Target, Medal, Award, BarChart2, PieChart, Briefcase, GraduationCap, Check, ArrowLeft } from "lucide-react";
 import {
@@ -250,11 +250,7 @@ export default function Analytics() {
   }, [whatIfGrades, studentData]);
 
   if (loading || !studentData)
-    return (
-      <div className="page">
-        <Spinner />
-      </div>
-    );
+    return <AnalyticsSkeleton />;
 
   const {
     results,

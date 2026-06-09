@@ -142,6 +142,31 @@ h1, h2, h3, h4, h5, h6 {
   pointer-events: none;
 }
 
+/* ── Skeletons ─────────────────────────────────────────────── */
+.skeleton {
+  background: rgba(255, 255, 255, 0.05);
+  position: relative;
+  overflow: hidden;
+}
+
+.skeleton::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.04), transparent);
+  animation: shimmer 1.5s infinite;
+}
+
+@keyframes shimmer {
+  100% {
+    transform: translateX(100%);
+  }
+}
+
 .stat-card:hover {
   transform: translateY(-3px);
   border-color: var(--border-strong);
@@ -933,7 +958,6 @@ table tbody tr:last-child td {
 
 @media (max-width: 420px) {
   .placement-company-card { padding: 14px; }
-  .placement-company-head { flex-direction: column; align-items: stretch; gap: 8px; }
-  .placement-status { width: 100%; justify-content: center; }
+  .placement-company-head { flex-direction: column; align-items: flex-start; gap: 8px; }
   .placement-requirements { grid-template-columns: 1fr; }
 }
