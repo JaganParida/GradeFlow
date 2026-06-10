@@ -91,7 +91,7 @@ export const generateBasketPDF = async (studentData) => {
             pageDoc.text("SUBJECT REGISTRATION AS PER CBCS CURRICULUM", 80, 32);
             
             pageDoc.setFontSize(9);
-            pageDoc.text(`SESSION   2020 - 2024`, 220, 32); // Hardcoded session for now as per image
+            pageDoc.text(`SESSION   2023 - 2027`, 220, 32); // Hardcoded session for now as per image
             
             pageDoc.text(`NAME OF STUDENT: ${studentData.studentName || ""}`, 14, 40);
             pageDoc.text(`REGISTRATION NO- ${studentData.regNo || ""}`, 148, 40, { align: "center" });
@@ -113,8 +113,8 @@ export const generateBasketPDF = async (studentData) => {
                     { content: `Semester-${roman[semB-1]}`, colSpan: 9, styles: { fillColor: [210, 230, 250], textColor: 0, halign: 'left', fontStyle: 'bold' } }
                 ],
                 [
-                    'Sl.\nNo', 'Subject Code', 'Subject', 'Basket\n1\n(Credit)', 'Basket 2\n(Credit)', 'Basket\n3\n(Credit)', 'Basket\n4\n(Credit)', 'Basket\n5\n(Credit)', 'Grand\nTotal\n(Credit)',
-                    'Sl.\nNo', 'Subject Code', 'Subject', 'Basket\n1\n(Credit)', 'Basket 2\n(Credit)', 'Basket\n3\n(Credit)', 'Basket\n4\n(Credit)', 'Basket\n5\n(Credit)', 'Grand\nTotal\n(Credit)'
+                    'Sl.\nNo', 'Subject Code', 'Subject', 'Basket 1\n(Credit)', 'Basket 2\n(Credit)', 'Basket 3\n(Credit)', 'Basket 4\n(Credit)', 'Basket 5\n(Credit)', 'Grand Total\n(Credit)',
+                    'Sl.\nNo', 'Subject Code', 'Subject', 'Basket 1\n(Credit)', 'Basket 2\n(Credit)', 'Basket 3\n(Credit)', 'Basket 4\n(Credit)', 'Basket 5\n(Credit)', 'Grand Total\n(Credit)'
                 ]
             ];
     
@@ -193,27 +193,27 @@ export const generateBasketPDF = async (studentData) => {
                 head: head,
                 body: rows,
                 theme: 'grid',
-                styles: { fontSize: 7, cellPadding: 1.5, lineColor: [0, 0, 0], lineWidth: 0.1, textColor: 0 },
+                styles: { fontSize: 7, cellPadding: 1.2, lineColor: [0, 0, 0], lineWidth: 0.1, textColor: 0 },
                 headStyles: { fillColor: [255, 255, 255], textColor: 0, fontStyle: 'bold', halign: 'center', lineWidth: 0.1, lineColor: [0,0,0] },
                 columnStyles: {
                     0: { cellWidth: 7, halign: 'center' },
                     1: { cellWidth: 18 },
-                    2: { cellWidth: 38 }, // roughly auto
-                    3: { cellWidth: 11, halign: 'center' },
-                    4: { cellWidth: 11, halign: 'center' },
-                    5: { cellWidth: 11, halign: 'center' },
-                    6: { cellWidth: 11, halign: 'center' },
-                    7: { cellWidth: 11, halign: 'center' },
-                    8: { cellWidth: 11, halign: 'center' },
+                    2: { cellWidth: 35 }, // roughly auto
+                    3: { cellWidth: 12, halign: 'center' },
+                    4: { cellWidth: 12, halign: 'center' },
+                    5: { cellWidth: 12, halign: 'center' },
+                    6: { cellWidth: 12, halign: 'center' },
+                    7: { cellWidth: 12, halign: 'center' },
+                    8: { cellWidth: 12, halign: 'center' },
                     9: { cellWidth: 7, halign: 'center' },
                     10: { cellWidth: 18 },
-                    11: { cellWidth: 38 },
-                    12: { cellWidth: 11, halign: 'center' },
-                    13: { cellWidth: 11, halign: 'center' },
-                    14: { cellWidth: 11, halign: 'center' },
-                    15: { cellWidth: 11, halign: 'center' },
-                    16: { cellWidth: 11, halign: 'center' },
-                    17: { cellWidth: 11, halign: 'center' }
+                    11: { cellWidth: 35 },
+                    12: { cellWidth: 12, halign: 'center' },
+                    13: { cellWidth: 12, halign: 'center' },
+                    14: { cellWidth: 12, halign: 'center' },
+                    15: { cellWidth: 12, halign: 'center' },
+                    16: { cellWidth: 12, halign: 'center' },
+                    17: { cellWidth: 12, halign: 'center' }
                 },
                 margin: { left: 14, right: 14 }
             });
