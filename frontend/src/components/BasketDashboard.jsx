@@ -788,7 +788,7 @@ export default function BasketDashboard({ results, studentData }) {
         >
           Curriculum Baskets
         </h3>
-        {studentData && (
+        {studentData && (!studentData.branch || studentData.branch.toUpperCase() === "CSE") && (
           <button
             className="btn btn-primary"
             onClick={async () => {
