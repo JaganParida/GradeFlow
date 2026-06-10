@@ -320,16 +320,21 @@ export default function Leaderboard() {
               return (bScore || 0) - (aScore || 0);
             });
 
+            let currentRank = 1;
+            let previousScore = null;
+
             const processedRankings = sortedRankings.map((r, index, arr) => {
               let displayRank;
               
               if (filters.branch && !filters.search) {
-                const rScore = isSGPA ? r.sgpa : r.cgpa;
-                const firstIndex = arr.findIndex(item => {
-                  const itemScore = isSGPA ? item.sgpa : item.cgpa;
-                  return itemScore === rScore;
-                });
-                displayRank = firstIndex + 1;
+                const rScore = isSGPA ? (r.sgpa || 0) : (r.cgpa || 0);
+                if (index === 0) {
+                  currentRank = 1;
+                } else if (rScore < previousScore) {
+                  currentRank++;
+                }
+                previousScore = rScore;
+                displayRank = currentRank;
               } else {
                 const rankFromDB = !isSGPA ? r.cgpaRank : (r.sgpaRank || r.universityRank);
                 displayRank = Number(rankFromDB);
