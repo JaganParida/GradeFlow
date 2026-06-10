@@ -77,29 +77,29 @@ export const generateBasketPDF = async (studentData) => {
     
         const drawPageHeader = (pageDoc) => {
             if (logoBase64) {
-                pageDoc.addImage(logoBase64, "JPEG", 8, 8, 25, 25);
+                pageDoc.addImage(logoBase64, "JPEG", 8, 5, 20, 20);
             }
             
             pageDoc.setFontSize(11);
             pageDoc.setFont("helvetica", "bold");
-            pageDoc.text("CENTURION UNIVERSITY OF TECHNOLOGY & MANAGEMENT", 148, 14, { align: "center" });
+            pageDoc.text("CENTURION UNIVERSITY OF TECHNOLOGY & MANAGEMENT", 148, 10, { align: "center" });
             
             pageDoc.setFontSize(10);
-            pageDoc.text("SCHOOL OF ENGINEERING & TECHNOLOGY", 148, 19, { align: "center" });
-            pageDoc.text("BHUBANESWAR CAMPUS", 148, 24, { align: "center" });
+            pageDoc.text("SCHOOL OF ENGINEERING & TECHNOLOGY", 148, 15, { align: "center" });
+            pageDoc.text("BHUBANESWAR CAMPUS", 148, 20, { align: "center" });
             
-            pageDoc.text("SUBJECT REGISTRATION AS PER CBCS CURRICULUM", 80, 32);
+            pageDoc.text("SUBJECT REGISTRATION AS PER CBCS CURRICULUM", 80, 26);
             
             pageDoc.setFontSize(9);
-            pageDoc.text(`SESSION   2023 - 2027`, 230, 32); // Hardcoded session for now as per image
+            pageDoc.text(`SESSION   2023 - 2027`, 230, 26); // Hardcoded session for now as per image
             
-            pageDoc.text(`NAME OF STUDENT: ${studentData.studentName || ""}`, 8, 40);
-            pageDoc.text(`REGISTRATION NO- ${studentData.regNo || ""}`, 148, 40, { align: "center" });
-            pageDoc.text(`BRANCH: ${studentData.branch || "CSE"}`, 289, 40, { align: "right" });
+            pageDoc.text(`NAME OF STUDENT: ${studentData.studentName || ""}`, 8, 33);
+            pageDoc.text(`REGISTRATION NO- ${studentData.regNo || ""}`, 148, 33, { align: "center" });
+            pageDoc.text(`BRANCH: ${studentData.branch || "CSE"}`, 289, 33, { align: "right" });
             
             // Light blue background behind student details
             pageDoc.setFillColor(210, 230, 250);
-            pageDoc.rect(8, 42, 281, 6, "F");
+            pageDoc.rect(8, 35, 281, 5, "F");
         };
     
         let cumTotalsObj = { b1: 0, b2: 0, b3: 0, b4: 0, b5: 0, gt: 0 };
@@ -193,12 +193,12 @@ export const generateBasketPDF = async (studentData) => {
                 head: head,
                 body: rows,
                 theme: 'grid',
-                styles: { fontSize: 7, cellPadding: 1, lineColor: [0, 0, 0], lineWidth: 0.1, textColor: 0 },
+                styles: { fontSize: 7, cellPadding: 0.8, lineColor: [0, 0, 0], lineWidth: 0.1, textColor: 0 },
                 headStyles: { fillColor: [255, 255, 255], textColor: 0, fontStyle: 'bold', halign: 'center', lineWidth: 0.1, lineColor: [0,0,0] },
                 columnStyles: {
                     0: { cellWidth: 6, halign: 'center' },
-                    1: { cellWidth: 14 },
-                    2: { cellWidth: 54 }, // roughly auto
+                    1: { cellWidth: 16 },
+                    2: { cellWidth: 52 }, // roughly auto
                     3: { cellWidth: 11, halign: 'center' },
                     4: { cellWidth: 11, halign: 'center' },
                     5: { cellWidth: 11, halign: 'center' },
@@ -206,8 +206,8 @@ export const generateBasketPDF = async (studentData) => {
                     7: { cellWidth: 11, halign: 'center' },
                     8: { cellWidth: 11, halign: 'center' },
                     9: { cellWidth: 6, halign: 'center' },
-                    10: { cellWidth: 14 },
-                    11: { cellWidth: 54 },
+                    10: { cellWidth: 16 },
+                    11: { cellWidth: 52 },
                     12: { cellWidth: 11, halign: 'center' },
                     13: { cellWidth: 11, halign: 'center' },
                     14: { cellWidth: 11, halign: 'center' },
@@ -215,19 +215,19 @@ export const generateBasketPDF = async (studentData) => {
                     16: { cellWidth: 11, halign: 'center' },
                     17: { cellWidth: 11, halign: 'center' }
                 },
-                margin: { left: 8, right: 8 }
+                margin: { left: 8, right: 8, bottom: 8, top: 8 }
             });
         };
     
         // PAGE 1
         drawPageHeader(doc);
-        buildTable(1, 2, 48, "1st Year Total Credits");
+        buildTable(1, 2, 41, "1st Year Total Credits");
         buildTable(3, 4, doc.lastAutoTable.finalY + 5, "1st & 2nd Year Total Credits");
         
         // PAGE 2
         doc.addPage();
         drawPageHeader(doc);
-        buildTable(5, 6, 48, "1st, 2nd & 3rd year Total Credits");
+        buildTable(5, 6, 41, "1st, 2nd & 3rd year Total Credits");
         buildTable(7, 8, doc.lastAutoTable.finalY + 5, "1st, 2nd, 3rd & 4th year Total Credits");
         
         doc.save(`${studentData.studentName}_Credit_Grade_Sheet.pdf`);
