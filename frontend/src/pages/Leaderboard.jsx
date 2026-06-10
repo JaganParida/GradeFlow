@@ -314,17 +314,30 @@ export default function Leaderboard() {
       ) : (
         <div>
           {(() => {
-            const processedRankings = rankings.map((r) => {
-              const rankFromDB = !isSGPA ? r.cgpaRank : (r.sgpaRank || r.universityRank);
-              return { ...r, displayRank: Number(rankFromDB) };
+            const sortedRankings = [...rankings].sort((a, b) => {
+              const aScore = isSGPA ? a.sgpa : a.cgpa;
+              const bScore = isSGPA ? b.sgpa : b.cgpa;
+              return (bScore || 0) - (aScore || 0);
+            });
+
+            const processedRankings = sortedRankings.map((r, index, arr) => {
+              let displayRank;
+              
+              if (filters.branch && !filters.search) {
+                const rScore = isSGPA ? r.sgpa : r.cgpa;
+                const firstIndex = arr.findIndex(item => {
+                  const itemScore = isSGPA ? item.sgpa : item.cgpa;
+                  return itemScore === rScore;
+                });
+                displayRank = firstIndex + 1;
+              } else {
+                const rankFromDB = !isSGPA ? r.cgpaRank : (r.sgpaRank || r.universityRank);
+                displayRank = Number(rankFromDB);
+              }
+              
+              return { ...r, displayRank };
             })
-              .filter((r) => Number.isFinite(r.displayRank) && r.displayRank >= 1 && r.displayRank <= 50)
-              .sort((a, b) => {
-                if (a.displayRank !== b.displayRank) return a.displayRank - b.displayRank;
-                const aScore = isSGPA ? a.sgpa : a.cgpa;
-                const bScore = isSGPA ? b.sgpa : b.cgpa;
-                return (bScore || 0) - (aScore || 0);
-              });
+              .filter((r) => Number.isFinite(r.displayRank) && r.displayRank >= 1 && r.displayRank <= 50);
             const visibleRankings = processedRankings.filter((r) => r.displayRank <= showCount);
             const hasMoreRankings = processedRankings.some((r) => r.displayRank > 10);
 
