@@ -374,8 +374,13 @@ export default function Leaderboard() {
               
               return { ...r, displayRank };
             })
-              .filter((r) => Number.isFinite(r.displayRank) && r.displayRank >= 1 && r.displayRank <= (filters.section ? 200 : 50));
-            const visibleRankings = processedRankings.filter((r) => r.displayRank <= showCount);
+              .filter((r) => {
+                if (filters.search) return true;
+                return Number.isFinite(r.displayRank) && r.displayRank >= 1 && r.displayRank <= (filters.section ? 200 : 50);
+              });
+            const visibleRankings = filters.search
+              ? processedRankings.slice(0, showCount)
+              : processedRankings.filter((r) => r.displayRank <= showCount);
             
             const totalStudents = processedRankings.length;
             const isSection = !!filters.section;
