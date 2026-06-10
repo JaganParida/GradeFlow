@@ -231,33 +231,8 @@ export const ADDITIONAL_BASKET_5_SUBJECTS = [
 
 export const BASKET_5_SKILL_COURSES = [
   {
-    "subCode": "CUTM3029",
-    "subName": "Apparel Production & Marketing",
-    "credits": 4
-  },
-  {
-    "subCode": "CUTM3030",
-    "subName": "Line Stitching Supervising",
-    "credits": 4
-  },
-  {
-    "subCode": "CUTM3031",
-    "subName": "Apparel Production",
-    "credits": 4
-  },
-  {
     "subCode": "CUTM3032",
     "subName": "Light Motor Vehicle Driving",
-    "credits": 4
-  },
-  {
-    "subCode": "CUTM3033",
-    "subName": "Fork Lift Operation",
-    "credits": 4
-  },
-  {
-    "subCode": "CUTM3034",
-    "subName": "Heavy Vehicle Technology",
     "credits": 4
   },
   {
@@ -276,28 +251,13 @@ export const BASKET_5_SKILL_COURSES = [
     "credits": 4
   },
   {
+    "subCode": "CUTM3038",
+    "subName": "Robotics",
+    "credits": 4
+  },
+  {
     "subCode": "CUTM3039",
     "subName": "CNC Machinist",
-    "credits": 4
-  },
-  {
-    "subCode": "CUTM3040",
-    "subName": "CNC Programming (CAM)",
-    "credits": 4
-  },
-  {
-    "subCode": "CUTM3041",
-    "subName": "Design Supervising Wooden and Modular Furniture",
-    "credits": 4
-  },
-  {
-    "subCode": "CUTM3043",
-    "subName": "3D Modelling and Printing",
-    "credits": 4
-  },
-  {
-    "subCode": "CUTM3045",
-    "subName": "Precast Concrete Manufacturing",
     "credits": 4
   },
   {
@@ -321,11 +281,6 @@ export const BASKET_5_SKILL_COURSES = [
     "credits": 4
   },
   {
-    "subCode": "CUTM3051",
-    "subName": "Introduction to Nanotechnology",
-    "credits": 4
-  },
-  {
     "subCode": "CUTM3053",
     "subName": "Camera Operation",
     "credits": 4
@@ -341,53 +296,13 @@ export const BASKET_5_SKILL_COURSES = [
     "credits": 4
   },
   {
-    "subCode": "CUTM3056",
-    "subName": "Introduction to Blender and Unity tools",
-    "credits": 4
-  },
-  {
-    "subCode": "CUTM3057",
-    "subName": "Refraction Technology",
-    "credits": 4
-  },
-  {
     "subCode": "CUTM3058",
     "subName": "Emergency Medical Technology",
     "credits": 4
   },
   {
-    "subCode": "CUTM3059",
-    "subName": "Medical Lab Technology",
-    "credits": 4
-  },
-  {
     "subCode": "CUTM3060",
     "subName": "Operating Theatre Technology",
-    "credits": 4
-  },
-  {
-    "subCode": "CUTM3061",
-    "subName": "Radiology Technology",
-    "credits": 4
-  },
-  {
-    "subCode": "CUTM3062",
-    "subName": "Phlebotomy Technology",
-    "credits": 4
-  },
-  {
-    "subCode": "CUTM3063",
-    "subName": "First Aid Service",
-    "credits": 4
-  },
-  {
-    "subCode": "CUTM3064",
-    "subName": "General Duty Assistance Service",
-    "credits": 4
-  },
-  {
-    "subCode": "CUTM3065",
-    "subName": "X-ray Technology",
     "credits": 4
   },
   {
@@ -416,11 +331,6 @@ export const BASKET_5_SKILL_COURSES = [
     "credits": 4
   },
   {
-    "subCode": "CUTM3073",
-    "subName": "Solar PV Installation",
-    "credits": 4
-  },
-  {
     "subCode": "CUTM3074",
     "subName": "Solar Lighting Technology",
     "credits": 4
@@ -431,43 +341,8 @@ export const BASKET_5_SKILL_COURSES = [
     "credits": 4
   },
   {
-    "subCode": "CUTM3077",
-    "subName": "Solar PV Driven Equipment Assembly",
-    "credits": 4
-  },
-  {
     "subCode": "CUTM3078",
     "subName": "Solar Thermal Engineering",
-    "credits": 4
-  },
-  {
-    "subCode": "CUTM3079",
-    "subName": "Introduction to Quantum Computing",
-    "credits": 4
-  },
-  {
-    "subCode": "CUTM3081",
-    "subName": "Organic Farming",
-    "credits": 4
-  },
-  {
-    "subCode": "CUTM3082",
-    "subName": "Mushroom Grower",
-    "credits": 4
-  },
-  {
-    "subCode": "CUTM3083",
-    "subName": "Hydroponics Technology",
-    "credits": 4
-  },
-  {
-    "subCode": "CUTM3084",
-    "subName": "Poultry Farming",
-    "credits": 4
-  },
-  {
-    "subCode": "CUTM3085",
-    "subName": "Dairy Farming",
     "credits": 4
   },
   {
@@ -477,7 +352,7 @@ export const BASKET_5_SKILL_COURSES = [
   },
   {
     "subCode": "CUTM3087",
-    "subName": "Transformer Manufacturing, Repairing and Maintenance",
+    "subName": "Transformer Manufacturing, Repairing and Ma",
     "credits": 4
   },
   {
@@ -491,98 +366,23 @@ export const BASKET_5_SKILL_COURSES = [
     "credits": 4
   },
   {
-    "subCode": "CUTM3091",
-    "subName": "Refrigeration and Air Conditioning",
-    "credits": 4
-  },
-  {
-    "subCode": "CUTM3092",
-    "subName": "Super Critical Co2 Plant Operation",
-    "credits": 4
-  },
-  {
     "subCode": "CUTM3095",
     "subName": "Business Plan Preparation",
     "credits": 4
   },
   {
-    "subCode": "CUTM3098",
-    "subName": "Composite Fabrication Practice",
-    "credits": 4
-  },
-  {
-    "subCode": "CUTM3100",
-    "subName": "Farm Appliances Operation",
-    "credits": 4
-  },
-  {
     "subCode": "CUTM3102",
-    "subName": "Solid Waste Management",
-    "credits": 4
-  },
-  {
-    "subCode": "CUTM3103",
-    "subName": "Bio Fertilisers Preparation",
-    "credits": 4
-  },
-  {
-    "subCode": "CUTM3104",
-    "subName": "PCB Designing & Fabrication",
-    "credits": 4
-  },
-  {
-    "subCode": "CUTM3105",
-    "subName": "Introduction to Block Chain Technology",
-    "credits": 4
-  },
-  {
-    "subCode": "CUTM3106",
-    "subName": "Introduction to Nutraceuticals",
-    "credits": 4
-  },
-  {
-    "subCode": "CUTM3108",
-    "subName": "Introduction to Computational Biology",
-    "credits": 4
-  },
-  {
-    "subCode": "CUTM3109",
-    "subName": "Product Life Cycle Management through Gate process",
+    "subName": "Solid Waste management",
     "credits": 4
   },
   {
     "subCode": "CUTM3110",
-    "subName": "New Material Development with Biovia",
-    "credits": 4
-  },
-  {
-    "subCode": "CUTM3111",
-    "subName": "Spectral Image Processing Using Python",
-    "credits": 4
-  },
-  {
-    "subCode": "CUTM3112",
-    "subName": "Satellite Data Processing",
-    "credits": 4
-  },
-  {
-    "subCode": "CUTM3113",
-    "subName": "Working with Graphene and carbon fibre",
-    "credits": 4
-  },
-  {
-    "subCode": "CUTM3114",
-    "subName": "Adobe Tools and Illustrations",
+    "subName": "New material development with Biovia",
     "credits": 4
   },
   {
     "subCode": "CUTM3115",
     "subName": "Digital Painting",
-    "credits": 4
-  },
-  {
-    "subCode": "CUTM3120",
-    "subName": "Computer Installation and Maintenance",
     "credits": 4
   },
   {
@@ -597,7 +397,7 @@ export const BASKET_5_SKILL_COURSES = [
   },
   {
     "subCode": "CUTM3123",
-    "subName": "Opthalmic Lens and Spectacle Manufacturing Techniques",
+    "subName": "Ophthalmic Lens and spectacle manufacturing Techniques",
     "credits": 4
   },
   {
@@ -611,43 +411,138 @@ export const BASKET_5_SKILL_COURSES = [
     "credits": 4
   },
   {
-    "subCode": "CUTM3126",
-    "subName": "Polyhouse Automation",
+    "subCode": "CUTM3132",
+    "subName": "Concrete paver Manufacturing",
     "credits": 4
   },
   {
-    "subCode": "CUTM3127",
-    "subName": "Development of Processor (Shakti)",
+    "subCode": "CUTM3135",
+    "subName": "3D Modelling and Printing",
     "credits": 4
   },
   {
-    "subCode": "CUTM3128",
-    "subName": "Spectroscopy",
+    "subCode": "CUTM3143",
+    "subName": "Agrivoltaic Technology",
     "credits": 4
   },
   {
-    "subCode": "CUTM3129",
-    "subName": "Extraction Technologies",
+    "subCode": "CUTM3144",
+    "subName": "Simulation based radiation Physics",
     "credits": 4
   },
   {
-    "subCode": "CUTM3130",
-    "subName": "Gamified DIY Kits Using Lasers",
+    "subCode": "CUTM3145",
+    "subName": "Introduction to Apiculture",
     "credits": 4
   },
   {
-    "subCode": "CUTM3131",
-    "subName": "VR Assets Development",
+    "subCode": "CUTM3146",
+    "subName": "Aquarium fish Keeping",
     "credits": 4
   },
   {
-    "subCode": "CUTM3134",
-    "subName": "GIS and Remote Sensing",
+    "subCode": "CUTM3147",
+    "subName": "Badminton",
+    "credits": 4
+  },
+  {
+    "subCode": "CUTM3148",
+    "subName": "Art of officiating in sports",
+    "credits": 4
+  },
+  {
+    "subCode": "CUTM3149",
+    "subName": "Basic analytical chemistry",
+    "credits": 4
+  },
+  {
+    "subCode": "CUTM3150",
+    "subName": "Green synthesis",
+    "credits": 4
+  },
+  {
+    "subCode": "CUTM3152",
+    "subName": "Cactus and Succulent Grafting and Propagation",
+    "credits": 4
+  },
+  {
+    "subCode": "CUTM3160",
+    "subName": "Big data analytics",
     "credits": 4
   },
   {
     "subCode": "CUTM3168",
-    "subName": "COMPETITIVE CODING",
+    "subName": "Competitive Coding",
+    "credits": 4
+  },
+  {
+    "subCode": "CUTM3169",
+    "subName": "Open Source Contribution",
+    "credits": 4
+  },
+  {
+    "subCode": "CUTM3171",
+    "subName": "WebXR Developer",
+    "credits": 4
+  },
+  {
+    "subCode": "CUTM3177",
+    "subName": "AR/VR & Metaverse",
+    "credits": 4
+  },
+  {
+    "subCode": "CUTM3179",
+    "subName": "Cloud Computing and its application",
+    "credits": 4
+  },
+  {
+    "subCode": "CUTM3184",
+    "subName": "Design of Electronic Control Unit for 3-Wheeler",
+    "credits": 4
+  },
+  {
+    "subCode": "CUTM3188",
+    "subName": "EV Battery manufacturing",
+    "credits": 4
+  },
+  {
+    "subCode": "CUTM3190",
+    "subName": "Food adultration Analysis",
+    "credits": 4
+  },
+  {
+    "subCode": "CUTM3193",
+    "subName": "IC design using EDA tools",
+    "credits": 4
+  },
+  {
+    "subCode": "CUTM3194",
+    "subName": "IIOT",
+    "credits": 4
+  },
+  {
+    "subCode": "CUTM3195",
+    "subName": "Insulin Pump Design & Testing",
+    "credits": 4
+  },
+  {
+    "subCode": "CUTM3197",
+    "subName": "Lily-Lotus propagation",
+    "credits": 4
+  },
+  {
+    "subCode": "CUTM3201",
+    "subName": "Teachings of Upanishad",
+    "credits": 4
+  },
+  {
+    "subCode": "CUTM3204",
+    "subName": "Patient Care and Safety",
+    "credits": 4
+  },
+  {
+    "subCode": "CUTM3205",
+    "subName": "Laboratory Management",
     "credits": 4
   }
 ];
