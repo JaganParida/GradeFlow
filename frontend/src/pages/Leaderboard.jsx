@@ -148,7 +148,7 @@ export default function Leaderboard() {
     } else if (key === "search" && val.trim() !== "") {
       count = 50;
     } else if (f.section) {
-      count = 200;
+      count = 50;
     }
     
     setFilters(f);
@@ -378,7 +378,34 @@ export default function Leaderboard() {
             })
               .filter((r) => Number.isFinite(r.displayRank) && r.displayRank >= 1 && r.displayRank <= (filters.section ? 200 : 50));
             const visibleRankings = processedRankings.filter((r) => r.displayRank <= showCount);
-            const hasMoreRankings = processedRankings.some((r) => r.displayRank > 10);
+            
+            const totalStudents = processedRankings.length;
+            const isSection = !!filters.section;
+            
+            let buttonVisible = false;
+            let buttonText = "";
+            let nextCount = 10;
+            
+            if (isSection) {
+              buttonVisible = totalStudents > 50;
+              if (showCount <= 50) {
+                const remaining = totalStudents - visibleRankings.length;
+                buttonText = remaining > 0 ? `Show remaining ${remaining} students` : "Show all students";
+                nextCount = 200;
+              } else {
+                buttonText = "Show Top 50 Only";
+                nextCount = 50;
+              }
+            } else {
+              buttonVisible = processedRankings.some((r) => r.displayRank > 10);
+              if (showCount <= 10) {
+                buttonText = "Show up to Rank 50";
+                nextCount = 50;
+              } else {
+                buttonText = "Show Top 10 Only";
+                nextCount = 10;
+              }
+            }
 
             const colGroup = (
               <colgroup>
@@ -631,19 +658,19 @@ export default function Leaderboard() {
                   )}
                 </div>
                 
-                {hasMoreRankings && (
+                {buttonVisible && (
                   <div style={{ textAlign: "center", marginTop: 24 }}>
                     <button 
                       className="btn btn-ghost" 
-                      aria-expanded={showCount >= 50}
-                      onClick={() => setShowCount((current) => current === 10 ? (filters.section ? 200 : 50) : 10)}
+                      aria-expanded={showCount > (isSection ? 50 : 10)}
+                      onClick={() => setShowCount(nextCount)}
                       style={{
                         border: "1px solid var(--border)",
                         padding: "10px 24px",
                         transition: "background-color 0.2s ease, border-color 0.2s ease, transform 0.2s ease",
                       }}
                     >
-                      {showCount === 10 ? `Show up to Rank ${filters.section ? "All" : 50}` : "Show Top 10 Only"}
+                      {buttonText}
                     </button>
                   </div>
                 )}
