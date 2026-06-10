@@ -329,9 +329,13 @@ export default function Leaderboard() {
           {filters.search ? (
             <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
               <div style={{ marginBottom: 16, display: "flex", justifyContent: "center" }}><Target size={48} color="var(--accent)" /></div>
-              <h3 style={{ fontSize: 20, fontWeight: 800, marginBottom: 8 }}>Not in the Top {showCount} Yet</h3>
+              <h3 style={{ fontSize: 20, fontWeight: 800, marginBottom: 8 }}>
+                {filters.section ? "Student Not Found in this Section" : `Not in the Top ${showCount} Yet`}
+              </h3>
               <p style={{ color: "var(--secondary)", fontSize: 15, maxWidth: 400, margin: "0 auto", lineHeight: 1.6 }}>
-                Every expert was once a beginner. Keep pushing forward—consistent effort and dedication will get you there. You've got this! 🚀
+                {filters.section 
+                  ? "Please make sure you are searching within your correct section." 
+                  : "Every expert was once a beginner. Keep pushing forward—consistent effort and dedication will get you there. You've got this! 🚀"}
               </p>
             </motion.div>
           ) : (
@@ -375,7 +379,9 @@ export default function Leaderboard() {
               return { ...r, displayRank };
             })
               .filter((r) => {
-                if (filters.search) return true;
+                if (filters.search) {
+                  return r.displayRank <= (filters.section ? 200 : 50);
+                }
                 return Number.isFinite(r.displayRank) && r.displayRank >= 1 && r.displayRank <= (filters.section ? 200 : 50);
               });
             const visibleRankings = filters.search
@@ -634,9 +640,13 @@ export default function Leaderboard() {
                           <td colSpan="5" style={{ textAlign: "center", padding: "60px 20px" }}>
                             <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
                               <div style={{ marginBottom: 16, display: "flex", justifyContent: "center" }}><Target size={48} color="var(--accent)" /></div>
-                              <h3 style={{ fontSize: 20, fontWeight: 800, marginBottom: 8 }}>Not in the Top {showCount} Yet</h3>
+                              <h3 style={{ fontSize: 20, fontWeight: 800, marginBottom: 8 }}>
+                                {filters.section ? "Student Not Found in this Section" : `Not in the Top ${showCount} Yet`}
+                              </h3>
                               <p style={{ color: "var(--secondary)", fontSize: 15, maxWidth: 400, margin: "0 auto", lineHeight: 1.6 }}>
-                                Every expert was once a beginner. Keep pushing forward—consistent effort and dedication will get you there. You've got this! 🚀
+                                {filters.section 
+                                  ? "Please make sure you are searching within your correct section." 
+                                  : "Every expert was once a beginner. Keep pushing forward—consistent effort and dedication will get you there. You've got this! 🚀"}
                               </p>
                             </motion.div>
                           </td>
@@ -651,9 +661,13 @@ export default function Leaderboard() {
                   {visibleRankings.length === 0 && filters.search ? (
                     <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="leaderboard-mobile-empty">
                       <div style={{ marginBottom: 16, display: "flex", justifyContent: "center" }}><Target size={48} color="var(--accent)" /></div>
-                      <h3 style={{ fontSize: 20, fontWeight: 800, marginBottom: 8 }}>Not in the Top {showCount} Yet</h3>
+                      <h3 style={{ fontSize: 20, fontWeight: 800, marginBottom: 8 }}>
+                        {filters.section ? "Student Not Found in this Section" : `Not in the Top ${showCount} Yet`}
+                      </h3>
                       <p style={{ color: "var(--secondary)", fontSize: 15, maxWidth: 400, margin: "0 auto", lineHeight: 1.6 }}>
-                        Every expert was once a beginner. Keep pushing forwardâ€”consistent effort and dedication will get you there. You've got this! ðŸš€
+                        {filters.section 
+                          ? "Please make sure you are searching within your correct section." 
+                          : "Every expert was once a beginner. Keep pushing forward—consistent effort and dedication will get you there. You've got this! 🚀"}
                       </p>
                     </motion.div>
                   ) : (
