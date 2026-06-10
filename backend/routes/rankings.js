@@ -74,9 +74,9 @@ router.get("/top", async (req, res) => {
     }
 
     if (sortBy === "cgpa") {
-      query.cgpa = { $gt: 0 };
+      if (!section) query.cgpa = { $gt: 0 };
     } else {
-      query.sgpa = { $gt: 0 };
+      if (!section) query.sgpa = { $gt: 0 };
     }
 
     if (andClauses.length > 0) query.$and = andClauses;
