@@ -20,6 +20,24 @@ function getRegNoQueryForBranch(branch) {
       $or: [
         { regNo: /^23030113[012]/ },
         { regNo: { $in: ["230301120110", "230301120186", "230301120371", "230301120481"] } }
+
+function getRegNoQueryForBranch(branch) {
+  const b = branch.toUpperCase();
+  if (b === "CSE") {
+    return {
+      $and: [
+        { $or: [{ regNo: /^23030112[01]/ }, { regNo: "230301180026" }] },
+        { regNo: { $nin: ["230301120110", "230301120186", "230301120371", "230301120481"] } }
+      ]
+    };
+  }
+  if (b === "CIVIL") return { regNo: /^23030111[01]/ };
+  if (b === "ME") return { regNo: /^23030116[01]/ };
+  if (b === "ECE") {
+    return {
+      $or: [
+        { regNo: /^23030113[012]/ },
+        { regNo: { $in: ["230301120110", "230301120186", "230301120371", "230301120481"] } }
       ]
     };
   }
@@ -30,10 +48,28 @@ function getRegNoQueryForBranch(branch) {
   return null;
 }
 
+function getSectionFromRegNo(regNo) {
+  if (regNo === "230301180026") return "I";
+  
+  if (regNo.startsWith("230301120")) {
+     const num = parseInt(regNo.slice(-3), 10);
+     if (num >= 1 && num <= 60) return "A";
+     if (num >= 61 && num <= 120) return "B";
+     if (num >= 121 && num <= 180) return "C";
+     if (num >= 181 && num <= 240) return "D";
+     if (num >= 241 && num <= 300) return "E";
+     if (num >= 301 && num <= 360) return "F";
+     if (num >= 361 && num <= 420) return "G";
+     if (num >= 421 && num <= 480) return "H";
+     if (num >= 481 && num <= 549) return "I";
+  }
+  return "J";
+}
+
 // Top 50 rankers
 router.get("/top", async (req, res) => {
   try {
-    const { semester, branch, search, limit = 50, sortBy = "sgpa" } = req.query;
+    const { semester, branch, search, limit = 50, sortBy = "sgpa", section } = req.query;
     const query = {};
     const andClauses = [];
     const maxRank = Math.max(1, Number(limit) || 50);
@@ -65,6 +101,10 @@ router.get("/top", async (req, res) => {
     
     let rankings = await Ranking.find(query)
       .lean();
+
+    if (branch === "CSE" && section) {
+      rankings = rankings.filter(r => getSectionFromRegNo(r.regNo) === section);
+    }
 
     if (!semester) {
       const latestByRegNo = new Map();

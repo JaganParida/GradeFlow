@@ -22,6 +22,7 @@ export default function Leaderboard() {
   const [filters, setFilters] = useState({
     semester: "",
     branch: "",
+    section: "",
     search: "",
     sortBy: "sgpa",
   });
@@ -125,7 +126,8 @@ export default function Leaderboard() {
       if (f.branch) params.append("branch", f.branch);
       if (f.search) params.append("search", f.search);
       if (f.sortBy) params.append("sortBy", f.sortBy);
-      params.append("limit", "50");
+      if (f.section && f.branch === "CSE") params.append("section", f.section);
+      params.append("limit", f.section ? "60" : "50");
       
       const { data } = await axios.get(`${API}/rankings/top?${params}`);
       setRankings(data);
@@ -136,10 +138,21 @@ export default function Leaderboard() {
     }
   }
 
-  function handleFilter(key, val, nextShowCount = 10) {
+  function handleFilter(key, val, nextShowCount = null) {
     const f = { ...filters, [key]: val };
+    if (key === "branch" && val !== "CSE") f.section = "";
+    
+    let count = 10;
+    if (nextShowCount !== null) {
+      count = nextShowCount;
+    } else if (key === "search" && val.trim() !== "") {
+      count = 50;
+    } else if (f.section) {
+      count = 60;
+    }
+    
     setFilters(f);
-    setShowCount(nextShowCount);
+    setShowCount(count);
     fetchRankings(f);
   }
 
@@ -256,6 +269,27 @@ export default function Leaderboard() {
             ))}
           </select>
         )}
+        
+        {isSGPA && filters.branch === "CSE" && (
+          <select
+            className="leaderboard-filter-select"
+            value={filters.section}
+            onChange={(e) => handleFilter("section", e.target.value)}
+            style={{ width: 150, flexShrink: 0 }}
+          >
+            <option value="">All Sections</option>
+            <option value="A">Section A</option>
+            <option value="B">Section B</option>
+            <option value="C">Section C</option>
+            <option value="D">Section D</option>
+            <option value="E">Section E</option>
+            <option value="F">Section F</option>
+            <option value="G">Section G</option>
+            <option value="H">Section H</option>
+            <option value="I">Section I</option>
+            <option value="J">Section J</option>
+          </select>
+        )}
 
         <form 
           className="leaderboard-search-form"
@@ -342,7 +376,7 @@ export default function Leaderboard() {
               
               return { ...r, displayRank };
             })
-              .filter((r) => Number.isFinite(r.displayRank) && r.displayRank >= 1 && r.displayRank <= 50);
+              .filter((r) => Number.isFinite(r.displayRank) && r.displayRank >= 1 && r.displayRank <= (filters.section ? 60 : 50));
             const visibleRankings = processedRankings.filter((r) => r.displayRank <= showCount);
             const hasMoreRankings = processedRankings.some((r) => r.displayRank > 10);
 
@@ -601,15 +635,15 @@ export default function Leaderboard() {
                   <div style={{ textAlign: "center", marginTop: 24 }}>
                     <button 
                       className="btn btn-ghost" 
-                      aria-expanded={showCount === 50}
-                      onClick={() => setShowCount((current) => current === 10 ? 50 : 10)}
+                      aria-expanded={showCount >= 50}
+                      onClick={() => setShowCount((current) => current === 10 ? (filters.section ? 60 : 50) : 10)}
                       style={{
                         border: "1px solid var(--border)",
                         padding: "10px 24px",
                         transition: "background-color 0.2s ease, border-color 0.2s ease, transform 0.2s ease",
                       }}
                     >
-                      {showCount === 10 ? "Show up to Rank 50" : "Show Top 10 Only"}
+                      {showCount === 10 ? `Show up to Rank ${filters.section ? 60 : 50}` : "Show Top 10 Only"}
                     </button>
                   </div>
                 )}
