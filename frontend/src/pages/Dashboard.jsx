@@ -978,7 +978,7 @@ export default function Dashboard() {
                   ))}
                 </motion.div>
               </div>
-              <BasketDashboard results={studentData.results} />
+              <BasketDashboard results={studentData.results} studentData={studentData} />
             </motion.div>
           )}
           {tab === "predictor" && <TargetPredictor />}

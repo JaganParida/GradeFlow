@@ -22,8 +22,10 @@ import {
   ChevronDown,
   ChevronUp,
   Folder,
+  DownloadCloud,
 } from "lucide-react";
 import { motion } from "framer-motion";
+import { generateBasketPDF } from "../utils/pdfGenerator";
 
 const BASKET_ICONS = {
   B1: <Hexagon size={24} color="var(--accent)" />,
@@ -43,8 +45,9 @@ const BASKET_NAMES = {
   EX: "Additional Subjects",
 };
 
-export default function BasketDashboard({ results }) {
+export default function BasketDashboard({ results, studentData }) {
   const [expandedBasket, setExpandedBasket] = React.useState(null);
+  const [isGeneratingPDF, setIsGeneratingPDF] = React.useState(false);
   const [expandedDomain, setExpandedDomain] = React.useState(null);
 
   const baskets = useMemo(() => categorizeBaskets(results), [results]);
@@ -774,16 +777,33 @@ export default function BasketDashboard({ results }) {
       </div>
 
       {/* Baskets Grid */}
-      <h3
-        style={{
-          fontSize: 18,
-          fontWeight: 700,
-          color: "var(--text-main)",
-          marginTop: 10,
-        }}
-      >
-        Curriculum Baskets
-      </h3>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 10 }}>
+        <h3
+          style={{
+            fontSize: 18,
+            fontWeight: 700,
+            color: "var(--text-main)",
+            margin: 0,
+          }}
+        >
+          Curriculum Baskets
+        </h3>
+        {studentData && (
+          <button
+            className="btn btn-primary"
+            onClick={async () => {
+              setIsGeneratingPDF(true);
+              await generateBasketPDF(studentData);
+              setIsGeneratingPDF(false);
+            }}
+            disabled={isGeneratingPDF}
+            style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, padding: "8px 16px" }}
+          >
+            <DownloadCloud size={16} />
+            {isGeneratingPDF ? "Generating..." : "Generate Credit Sheet PDF"}
+          </button>
+        )}
+      </div>
       <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: 16 }}>
         {Object.entries(baskets)
           .filter(([key]) => key !== "EX")
