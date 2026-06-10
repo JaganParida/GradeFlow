@@ -211,7 +211,7 @@ export default function AdminLogin() {
                 }}
               >
                 <AlertTriangle size={16} /> {error}
-              </motion.p>
+              </motion.div>
             )}
 
             <motion.button
