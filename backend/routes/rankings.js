@@ -64,7 +64,8 @@ router.get("/top", async (req, res) => {
       else query.branch = branch; // fallback
     }
 
-    if (search) {
+    const isGlobalSearch = search && !branch;
+    if (isGlobalSearch) {
       andClauses.push({
         $or: [
           { studentName: { $regex: search, $options: "i" } },
@@ -105,20 +106,38 @@ router.get("/top", async (req, res) => {
       sortByScore(rankings, "sgpa", "cgpa");
     }
 
-    let bounded;
-    if (branch || search) {
+    if (branch) {
       const scoreKey = sortBy === "cgpa" ? "cgpa" : "sgpa";
       let currentRank = 1;
       let previousScore = null;
-      bounded = [];
       for (const r of rankings) {
         const score = Number(r[scoreKey]) || 0;
         if (previousScore !== null && score < previousScore) {
           currentRank++;
         }
-        if (currentRank > maxRank) break;
-        bounded.push(r);
+        r.dynamicRank = currentRank;
         previousScore = score;
+      }
+    }
+
+    if (search && branch) {
+      const s = search.toLowerCase();
+      rankings = rankings.filter(r => {
+        const nameMatch = r.studentName && r.studentName.toLowerCase().includes(s);
+        const regMatch = r.regNo && r.regNo.toLowerCase().includes(s);
+        return nameMatch || regMatch;
+      });
+    }
+
+    let bounded = [];
+    if (branch || search) {
+      if (branch && !search) {
+        for (const r of rankings) {
+          if (r.dynamicRank > maxRank) break;
+          bounded.push(r);
+        }
+      } else if (search) {
+        bounded = rankings.slice(0, maxRank);
       }
     } else {
       const rankKey = sortBy === "cgpa" ? "cgpaRank" : "sgpaRank";

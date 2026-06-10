@@ -252,21 +252,19 @@ export default function Leaderboard() {
           </select>
         )}
         
-        {isSGPA && (
-          <select
-            className="leaderboard-filter-select"
-            value={filters.branch}
-            onChange={(e) => handleFilter("branch", e.target.value)}
-            style={{ width: 150, flexShrink: 0 }}
-          >
-            <option value="">All Branches</option>
-            {meta.branches.map((b) => (
-              <option key={b} value={b}>
-                {b}
-              </option>
-            ))}
-          </select>
-        )}
+        <select
+          className="leaderboard-filter-select"
+          value={filters.branch}
+          onChange={(e) => handleFilter("branch", e.target.value)}
+          style={{ width: 150, flexShrink: 0 }}
+        >
+          <option value="">All Branches</option>
+          {meta.branches.map((b) => (
+            <option key={b} value={b}>
+              {b}
+            </option>
+          ))}
+        </select>
         
         {filters.branch === "CSE" && (
           <select
@@ -315,15 +313,6 @@ export default function Leaderboard() {
         </form>
       </div>
 
-      {filters.search && (filters.branch || filters.section) && (
-        <motion.div initial={{ opacity: 0, y: -5 }} animate={{ opacity: 1, y: 0 }} style={{ marginBottom: 24, padding: "12px 16px", backgroundColor: "rgba(62,166,255,0.08)", border: "1px solid rgba(62,166,255,0.2)", borderRadius: 8, display: "flex", alignItems: "center", gap: 10 }}>
-          <Star size={18} color="#3ea6ff" style={{ flexShrink: 0 }} />
-          <p style={{ color: "var(--text-secondary)", fontSize: 13.5, margin: 0, lineHeight: 1.4 }}>
-            <strong style={{ color: "#3ea6ff" }}>Disclaimer:</strong> Ranks displayed during a Branch or Section search represent the student's <strong>University-wide Global Rank</strong>.
-          </p>
-        </motion.div>
-      )}
-
       {!filters.semester && isSGPA ? (
         <div style={{ textAlign: "center", padding: 60 }}>
           <div style={{ marginBottom: 16, display: "flex", justifyContent: "center" }}><Calendar size={48} color="var(--secondary)" /></div>
@@ -371,15 +360,8 @@ export default function Leaderboard() {
             const processedRankings = sortedRankings.map((r, index, arr) => {
               let displayRank;
               
-              if (filters.branch && !filters.search) {
-                const rScore = isSGPA ? (r.sgpa || 0) : (r.cgpa || 0);
-                if (index === 0) {
-                  currentRank = 1;
-                } else if (rScore < previousScore) {
-                  currentRank++;
-                }
-                previousScore = rScore;
-                displayRank = currentRank;
+              if (filters.branch) {
+                displayRank = r.dynamicRank;
               } else {
                 const rankFromDB = !isSGPA ? r.cgpaRank : (r.sgpaRank || r.universityRank);
                 displayRank = Number(rankFromDB);
@@ -428,9 +410,10 @@ export default function Leaderboard() {
             const colGroup = (
               <colgroup>
                 <col style={{ width: "12%" }} />
-                <col style={{ width: "35%" }} />
+                <col style={{ width: "30%" }} />
                 <col style={{ width: "15%" }} />
-                <col style={{ width: "23%" }} />
+                <col style={{ width: "18%" }} />
+                {filters.branch && <col style={{ width: "10%" }} />}
                 <col style={{ width: "15%" }} />
               </colgroup>
             );
@@ -520,6 +503,21 @@ export default function Leaderboard() {
                       ))}
                     </div>
                   </td>
+                  {filters.branch && (
+                    <td style={{ textAlign: "center", whiteSpace: "nowrap" }}>
+                      <span style={{ 
+                        backgroundColor: "rgba(255,255,255,0.05)", 
+                        padding: "4px 8px", 
+                        borderRadius: 4, 
+                        fontSize: 13, 
+                        color: "var(--text-secondary)", 
+                        fontWeight: 600,
+                        fontFamily: "Space Mono"
+                      }}>
+                        #{isSGPA ? r.sgpaRank : r.cgpaRank}
+                      </span>
+                    </td>
+                  )}
                   <td
                     style={{
                       fontFamily: "Space Mono",
@@ -528,7 +526,8 @@ export default function Leaderboard() {
                       background: "rgba(62,166,255,0.02)",
                       borderLeft: "1px solid rgba(62,166,255,0.1)",
                       borderRight: "1px solid rgba(62,166,255,0.1)",
-                      whiteSpace: "nowrap"
+                      whiteSpace: "nowrap",
+                      textAlign: "right"
                     }}
                   >
                     {isSGPA ? r.sgpa?.toFixed(2) : r.cgpa?.toFixed(2)}
@@ -565,9 +564,16 @@ export default function Leaderboard() {
                   }}
                 >
                   <div className="leaderboard-mobile-top">
-                    <div className="leaderboard-mobile-rank" style={{ color: rankColor }}>
-                      <span>#{r.displayRank}</span>
-                      {medalColor && <Medal size={18} color={medalColor} />}
+                    <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-start" }}>
+                      <div className="leaderboard-mobile-rank" style={{ color: rankColor }}>
+                        <span>#{r.displayRank}</span>
+                        {medalColor && <Medal size={18} color={medalColor} />}
+                      </div>
+                      {filters.branch && (
+                        <div style={{ fontSize: 11, color: "var(--text-secondary)", marginTop: 4, fontWeight: 600, fontFamily: "Space Mono" }}>
+                          Global #{isSGPA ? r.sgpaRank : r.cgpaRank}
+                        </div>
+                      )}
                     </div>
                     <div className="leaderboard-mobile-score" style={{ color: scoreColor }}>
                       <span>{isSGPA ? "SGPA" : "CGPA"}</span>
@@ -635,6 +641,7 @@ export default function Leaderboard() {
                         <th style={{ whiteSpace: "nowrap" }}>Student</th>
                         <th style={{ whiteSpace: "nowrap" }}>Reg. No</th>
                         <th style={{ whiteSpace: "nowrap" }}>Badges</th>
+                        {filters.branch && <th style={{ whiteSpace: "nowrap", textAlign: "center" }}>Global Rank</th>}
                         {isSGPA && (
                           <th style={{ borderBottom: "2px solid var(--accent)", color: "var(--accent)" }}>SGPA</th>
                         )}
@@ -646,7 +653,7 @@ export default function Leaderboard() {
                     <tbody>
                       {visibleRankings.length === 0 && filters.search && (
                         <tr>
-                          <td colSpan="5" style={{ textAlign: "center", padding: "60px 20px" }}>
+                          <td colSpan={filters.branch ? 6 : 5} style={{ textAlign: "center", padding: "60px 20px" }}>
                             <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
                               <div style={{ marginBottom: 16, display: "flex", justifyContent: "center" }}><Target size={48} color="var(--accent)" /></div>
                               <h3 style={{ fontSize: 20, fontWeight: 800, marginBottom: 8 }}>
