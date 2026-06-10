@@ -147,8 +147,6 @@ export default function Leaderboard() {
       count = nextShowCount;
     } else if (key === "search" && val.trim() !== "") {
       count = 50;
-    } else if (f.section) {
-      count = 50;
     }
     
     setFilters(f);
@@ -387,14 +385,14 @@ export default function Leaderboard() {
             let nextCount = 10;
             
             if (isSection) {
-              buttonVisible = totalStudents > 50;
-              if (showCount <= 50) {
+              buttonVisible = totalStudents > 10;
+              if (showCount <= 10) {
                 const remaining = totalStudents - visibleRankings.length;
                 buttonText = remaining > 0 ? `Show remaining ${remaining} students` : "Show all students";
                 nextCount = 200;
               } else {
-                buttonText = "Show Top 50 Only";
-                nextCount = 50;
+                buttonText = "Show Top 10 Only";
+                nextCount = 10;
               }
             } else {
               buttonVisible = processedRankings.some((r) => r.displayRank > 10);
@@ -662,7 +660,7 @@ export default function Leaderboard() {
                   <div style={{ textAlign: "center", marginTop: 24 }}>
                     <button 
                       className="btn btn-ghost" 
-                      aria-expanded={showCount > (isSection ? 50 : 10)}
+                      aria-expanded={showCount > 10}
                       onClick={() => setShowCount(nextCount)}
                       style={{
                         border: "1px solid var(--border)",
