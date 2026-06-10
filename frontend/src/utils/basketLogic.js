@@ -554,6 +554,66 @@ export const BASKET_5_SKILL_COURSES = [
     "subCode": "CUTM3205",
     "subName": "Laboratory Management",
     "credits": 4
+  },
+  {
+    "subCode": "CUTM3061",
+    "subName": "Radiology Technology",
+    "credits": 4
+  },
+  {
+    "subCode": "CUTM3079",
+    "subName": "Introduction to Quantum Computing",
+    "credits": 4
+  },
+  {
+    "subCode": "CUTM3221",
+    "subName": "Transformer Manufacturing and Testing",
+    "credits": 4
+  },
+  {
+    "subCode": "CUTM3223",
+    "subName": "Paper Recycling Operation and Management",
+    "credits": 4
+  },
+  {
+    "subCode": "CUTM3224",
+    "subName": "Reverse Engineering for Additive Manufacturing",
+    "credits": 4
+  },
+  {
+    "subCode": "CUTM3225",
+    "subName": "CNC Turning and Milling Programmer",
+    "credits": 4
+  },
+  {
+    "subCode": "CUTM3228",
+    "subName": "Aquaponics Cultivator",
+    "credits": 4
+  },
+  {
+    "subCode": "CUTM3230",
+    "subName": "Topiary Garden Artist",
+    "credits": 4
+  },
+  {
+    "subCode": "CUTM3231",
+    "subName": "Seaweed Grower and Processor",
+    "credits": 4
+  },
+  {
+    "subCode": "CUTM3232",
+    "subName": "Centurion Logic Controller",
+    "credits": 4
+  },
+  {
+    "subCode": "CUTM3244",
+    "subName": "Applied Digital Forensics",
+    "credits": 4
+  },
+  {
+    "subCode": "CUTM3245",
+    "subName": "Radio Controlled Plane Modelling",
+    "credits": 4
   }
 ];
 
