@@ -127,7 +127,7 @@ export default function Leaderboard() {
       if (f.search) params.append("search", f.search);
       if (f.sortBy) params.append("sortBy", f.sortBy);
       if (f.section && f.branch === "CSE") params.append("section", f.section);
-      params.append("limit", f.section ? "60" : "50");
+      params.append("limit", f.section ? "200" : "50");
       
       const { data } = await axios.get(`${API}/rankings/top?${params}`);
       setRankings(data);
@@ -148,7 +148,7 @@ export default function Leaderboard() {
     } else if (key === "search" && val.trim() !== "") {
       count = 50;
     } else if (f.section) {
-      count = 60;
+      count = 200;
     }
     
     setFilters(f);
@@ -270,7 +270,7 @@ export default function Leaderboard() {
           </select>
         )}
         
-        {isSGPA && filters.branch === "CSE" && (
+        {filters.branch === "CSE" && (
           <select
             className="leaderboard-filter-select"
             value={filters.section}
@@ -376,7 +376,7 @@ export default function Leaderboard() {
               
               return { ...r, displayRank };
             })
-              .filter((r) => Number.isFinite(r.displayRank) && r.displayRank >= 1 && r.displayRank <= (filters.section ? 60 : 50));
+              .filter((r) => Number.isFinite(r.displayRank) && r.displayRank >= 1 && r.displayRank <= (filters.section ? 200 : 50));
             const visibleRankings = processedRankings.filter((r) => r.displayRank <= showCount);
             const hasMoreRankings = processedRankings.some((r) => r.displayRank > 10);
 
@@ -636,14 +636,14 @@ export default function Leaderboard() {
                     <button 
                       className="btn btn-ghost" 
                       aria-expanded={showCount >= 50}
-                      onClick={() => setShowCount((current) => current === 10 ? (filters.section ? 60 : 50) : 10)}
+                      onClick={() => setShowCount((current) => current === 10 ? (filters.section ? 200 : 50) : 10)}
                       style={{
                         border: "1px solid var(--border)",
                         padding: "10px 24px",
                         transition: "background-color 0.2s ease, border-color 0.2s ease, transform 0.2s ease",
                       }}
                     >
-                      {showCount === 10 ? `Show up to Rank ${filters.section ? 60 : 50}` : "Show Top 10 Only"}
+                      {showCount === 10 ? `Show up to Rank ${filters.section ? "All" : 50}` : "Show Top 10 Only"}
                     </button>
                   </div>
                 )}
