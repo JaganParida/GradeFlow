@@ -286,6 +286,11 @@ export const BASKET_5_SKILL_COURSES = [
     "credits": 4
   },
   {
+    "subCode": "CUTM3051",
+    "subName": "INTRODUCTION TO NANOTECHNOLOGY",
+    "credits": 4
+  },
+  {
     "subCode": "CUTM3053",
     "subName": "Camera Operation",
     "credits": 4
