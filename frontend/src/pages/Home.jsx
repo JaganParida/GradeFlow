@@ -173,9 +173,9 @@ export default function Home() {
           <div style={{
             display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6,
             background: "rgba(62,166,255,0.1)", border: "1px solid rgba(62,166,255,0.2)",
-            borderRadius: 16, padding: "6px 16px",
-            fontSize: 12, color: "var(--accent)", fontWeight: 600, letterSpacing: "0.3px",
-            textAlign: "center", lineHeight: 1.4
+            borderRadius: 999, padding: "5px 14px",
+            fontSize: "clamp(9px, 3vw, 12px)", color: "var(--accent)", fontWeight: 600, letterSpacing: "0.3px",
+            whiteSpace: "nowrap"
           }}>
             <span style={{ flexShrink: 0 }}>✦</span>
             <span>Centurion University · Academic Analytics</span>
