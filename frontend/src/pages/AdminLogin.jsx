@@ -65,38 +65,40 @@ export default function AdminLogin() {
       <div style={{ width: "100%", maxWidth: 400, position: "relative", zIndex: 1 }}>
         <div style={{ textAlign: "center", marginBottom: 32 }}>
           <motion.div
-            whileHover={{ scale: 1.05 }}
+            animate={{ boxShadow: ["0 8px 32px rgba(124,58,237,0.3)", "0 8px 40px rgba(124,58,237,0.5)", "0 8px 32px rgba(124,58,237,0.3)"] }}
+            transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
             style={{
               width: 72,
               height: 72,
-              background: "linear-gradient(135deg, var(--accent), #7c3aed)",
+              background: "linear-gradient(135deg, #ffffff18, #7c3aed)",
               borderRadius: 20,
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
               margin: "0 auto 20px",
-              boxShadow: "0 8px 32px rgba(124, 58, 237, 0.4)",
+              border: "1px solid rgba(255,255,255,0.12)",
             }}
           >
-            <Lock color="#fff" size={36} />
+            <Lock color="#fff" size={32} />
           </motion.div>
-          <h1 style={{ fontSize: 28, fontWeight: 800, letterSpacing: -0.5 }}>Admin Portal</h1>
-          <p style={{ color: "var(--secondary)", fontSize: 15, marginTop: 6 }}>
-            Secure GradeFlow Administration
+          <p style={{ fontSize: 11, fontWeight: 800, color: "var(--text-muted)", letterSpacing: "1.5px", textTransform: "uppercase", marginBottom: 8 }}>GradeFlow</p>
+          <h1 style={{ fontSize: 28, fontWeight: 800, letterSpacing: -0.5, marginBottom: 6 }}>Admin Portal</h1>
+          <p style={{ color: "var(--text-muted)", fontSize: 14 }}>
+            Restricted access — authorized personnel only
           </p>
         </div>
 
         <motion.div 
-          className="card"
           initial={{ y: 20, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
           transition={{ delay: 0.1 }}
           style={{ 
             padding: 32, 
-            background: "rgba(20,20,20,0.6)", 
-            backdropFilter: "blur(24px)",
+            background: "rgba(20,20,20,0.75)", 
+            backdropFilter: "blur(28px)",
+            WebkitBackdropFilter: "blur(28px)",
             border: "1px solid rgba(255,255,255,0.08)",
-            boxShadow: "0 24px 48px rgba(0,0,0,0.4), inset 0 1px 1px rgba(255,255,255,0.1)",
+            boxShadow: "0 24px 64px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.06)",
             borderRadius: 24
           }}
         >
@@ -105,12 +107,12 @@ export default function AdminLogin() {
               <label
                 style={{
                   display: "block",
-                  fontSize: 13,
-                  color: "var(--secondary)",
+                  fontSize: 11,
+                  color: "var(--text-muted)",
                   marginBottom: 8,
-                  fontWeight: 600,
+                  fontWeight: 800,
                   textTransform: "uppercase",
-                  letterSpacing: 0.5
+                  letterSpacing: 1
                 }}
               >
                 Email Address
@@ -122,8 +124,9 @@ export default function AdminLogin() {
                 placeholder="admin@gradeflow.com"
                 required
                 style={{
-                  background: "rgba(0,0,0,0.3)",
-                  border: "1px solid rgba(255,255,255,0.1)",
+                  width: "100%",
+                  background: "rgba(0,0,0,0.35)",
+                  border: "1px solid rgba(255,255,255,0.09)",
                   padding: "14px 16px",
                   fontSize: 15,
                   borderRadius: 12,
@@ -136,12 +139,12 @@ export default function AdminLogin() {
               <label
                 style={{
                   display: "block",
-                  fontSize: 13,
-                  color: "var(--secondary)",
+                  fontSize: 11,
+                  color: "var(--text-muted)",
                   marginBottom: 8,
-                  fontWeight: 600,
+                  fontWeight: 800,
                   textTransform: "uppercase",
-                  letterSpacing: 0.5
+                  letterSpacing: 1
                 }}
               >
                 Password
@@ -154,8 +157,9 @@ export default function AdminLogin() {
                   placeholder="••••••••"
                   required
                   style={{
-                    background: "rgba(0,0,0,0.3)",
-                    border: "1px solid rgba(255,255,255,0.1)",
+                    width: "100%",
+                    background: "rgba(0,0,0,0.35)",
+                    border: "1px solid rgba(255,255,255,0.09)",
                     padding: "14px 16px",
                     paddingRight: 48,
                     fontSize: 15,
@@ -174,7 +178,7 @@ export default function AdminLogin() {
                     transform: "translateY(-50%)",
                     background: "none",
                     border: "none",
-                    color: "var(--secondary)",
+                    color: "var(--text-muted)",
                     cursor: "pointer",
                     padding: 4,
                     display: "flex",
@@ -188,12 +192,14 @@ export default function AdminLogin() {
             </div>
 
             {error && (
-              <motion.p
+              <motion.div
                 initial={{ opacity: 0, y: -10 }}
                 animate={{ opacity: 1, y: 0 }}
                 style={{
-                  color: "#ef4444",
-                  background: "rgba(239, 68, 68, 0.1)",
+                  color: "var(--danger)",
+                  background: "rgba(239, 68, 68, 0.08)",
+                  border: "1px solid rgba(239,68,68,0.2)",
+                  borderLeft: "3px solid var(--danger)",
                   padding: "10px 14px",
                   borderRadius: 10,
                   fontSize: 13,

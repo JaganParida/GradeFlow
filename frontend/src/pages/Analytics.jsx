@@ -317,17 +317,20 @@ export default function Analytics() {
 
   return (
     <motion.div initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} className="page">
-      <div style={{ marginBottom: 28 }}>
+      <div style={{ marginBottom: 32 }}>
         <button
           className="btn btn-ghost"
           onClick={() => navigate(`/dashboard/${regNo}`)}
-          style={{ marginBottom: 12, display: "flex", alignItems: "center", gap: 6 }}
+          style={{ marginBottom: 16, display: "flex", alignItems: "center", gap: 6, fontSize: 13, padding: "7px 14px" }}
         >
-          <ArrowLeft size={16} /> Dashboard
+          <ArrowLeft size={15} /> Dashboard
         </button>
-        <h1 style={{ fontSize: 26, fontWeight: 800 }}>Academic Analytics</h1>
-        <p style={{ color: "var(--secondary)" }}>
-          {studentName} · {branch} · Batch {batch}
+        <p style={{ color: "var(--text-muted)", fontSize: 11, fontWeight: 800, marginBottom: 8, textTransform: "uppercase", letterSpacing: "1px", display: "flex", alignItems: "center", gap: 6 }}>
+          <BarChart2 size={12} /> Academic Analytics
+        </p>
+        <h1 style={{ fontSize: 28, fontWeight: 800, letterSpacing: "-0.5px", marginBottom: 6 }}>Performance Overview</h1>
+        <p style={{ color: "var(--text-secondary)", fontSize: 14 }}>
+          {studentName} &nbsp;&middot;&nbsp; {dynamicBranch} &nbsp;&middot;&nbsp; Batch {batch}
         </p>
       </div>
 

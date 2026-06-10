@@ -350,7 +350,7 @@ export default function Dashboard() {
   return (
     <motion.div initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} className="page">
       {/* Header */}
-      <div style={{ marginBottom: 32 }}>
+      <div style={{ marginBottom: 36 }}>
         <div
           style={{
             display: "flex",
@@ -358,48 +358,56 @@ export default function Dashboard() {
             alignItems: "flex-start",
             flexWrap: "wrap",
             gap: 16,
+            paddingBottom: 24,
+            borderBottom: "1px solid var(--border)"
           }}
         >
           <div>
             <p
               style={{
-                color: "var(--secondary)",
-                fontSize: 13,
-                marginBottom: 4,
+                color: "var(--text-muted)",
+                fontSize: 11,
+                fontWeight: 800,
+                marginBottom: 8,
                 display: "flex",
                 alignItems: "center",
-                gap: 6
+                gap: 6,
+                textTransform: "uppercase",
+                letterSpacing: "1px"
               }}
             >
-              <User size={14} /> Student Dashboard
+              <User size={12} /> Student Dashboard
             </p>
-            <h1 style={{ fontSize: 28, fontWeight: 800 }}>{studentName}</h1>
-            <p style={{ color: "var(--secondary)", marginTop: 4 }}>
-              {regNo} · {dynamicBranch} · Batch {batch}
-            </p>
+            <h1 style={{ fontSize: 30, fontWeight: 800, letterSpacing: "-0.5px", marginBottom: 6 }}>{studentName}</h1>
+            <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+              <span style={{ background: "rgba(255,255,255,0.05)", border: "1px solid var(--border-strong)", padding: "3px 10px", borderRadius: 6, fontSize: 12, fontFamily: "Space Mono", color: "var(--text-muted)" }}>{regNo}</span>
+              <span style={{ color: "var(--border-strong)" }}>·</span>
+              <span style={{ background: "rgba(255,255,255,0.05)", border: "1px solid var(--border-strong)", padding: "3px 10px", borderRadius: 6, fontSize: 12, fontWeight: 700, color: "var(--text-secondary)" }}>{dynamicBranch}</span>
+              <span style={{ color: "var(--border-strong)" }}>·</span>
+              <span style={{ fontSize: 13, color: "var(--text-muted)" }}>Batch {batch}</span>
+            </div>
           </div>
-          <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
+          <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
             <motion.button
               whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
-              className="btn"
+              whileTap={{ scale: 0.97 }}
+              className="btn btn-ghost"
               onClick={downloadFullTranscript}
               disabled={isDownloadingBatch}
-              style={{ display: "flex", alignItems: "center", gap: 6, background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)", color: "#fff" }}
             >
               {isDownloadingBatch ? (
                 <motion.div animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 1, ease: "linear" }} style={{ display: "flex" }}>
-                  <Loader2 size={16} />
+                  <Loader2 size={15} />
                 </motion.div>
               ) : (
-                <DownloadCloud size={16} />
+                <DownloadCloud size={15} />
               )}
-              {isDownloadingBatch ? "Exporting..." : "Full Transcript"}
+              {isDownloadingBatch ? "Exporting..." : "Transcript"}
             </motion.button>
             <motion.button
               whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
-              className="btn"
+              whileTap={{ scale: 0.97 }}
+              className="btn btn-ghost"
               onClick={() => {
                 if (navigator.share) {
                   navigator.share({
@@ -411,44 +419,41 @@ export default function Dashboard() {
                   alert("Link copied to clipboard!");
                 }
               }}
-              style={{ display: "flex", alignItems: "center", gap: 6, background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)", color: "#fff" }}
             >
-              <Share2 size={16} /> Share
+              <Share2 size={15} /> Share
             </motion.button>
             <motion.button
               whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
+              whileTap={{ scale: 0.97 }}
               className="btn btn-primary"
               onClick={() => navigate("/analytics/" + regNo)}
-              style={{ display: "flex", alignItems: "center", gap: 6 }}
             >
-              <TrendingUp size={16} /> View Analytics
+              <TrendingUp size={15} /> Analytics
             </motion.button>
           </div>
         </div>
 
         {/* Badges */}
         {badges.length > 0 && (
-          <div
-            style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 16 }}
-          >
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 16 }}>
             {badges.map((b, i) => (
               <motion.span
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ delay: i * 0.1 }}
+                initial={{ opacity: 0, scale: 0.9, y: 4 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                transition={{ delay: i * 0.08 }}
                 key={i}
                 style={{
-                  background: b.color + "18",
+                  background: b.color + "14",
                   color: b.color,
-                  border: `1px solid ${b.color}44`,
-                  padding: "4px 12px",
-                  borderRadius: 20,
-                  fontSize: 12,
+                  border: `1px solid ${b.color}33`,
+                  padding: "5px 12px",
+                  borderRadius: 999,
+                  fontSize: 11,
                   fontWeight: 700,
                   display: "flex",
                   alignItems: "center",
-                  gap: 6
+                  gap: 5,
+                  letterSpacing: "0.3px",
                 }}
               >
                 {b.icon} {b.label}
@@ -459,7 +464,7 @@ export default function Dashboard() {
       </div>
 
       {/* Stats */}
-      <div className="grid-4" style={{ marginBottom: 32 }}>
+      <div className="grid-4" style={{ marginBottom: 28 }}>
         <motion.div whileHover={{ y: -4 }} className="stat-card">
           <span className="label">Latest SGPA</span>
           <span className="value" style={{ color: "var(--accent)" }}>
@@ -472,33 +477,36 @@ export default function Dashboard() {
           <span className="value" style={{ color: "#a855f7" }}>
             {cgpa?.toFixed(2)}
           </span>
-          <span className="sub">Cumulative</span>
+          <span className="sub">Cumulative GPA</span>
         </motion.div>
         <motion.div whileHover={{ y: -4 }} className="stat-card" style={{ position: "relative", overflow: "hidden" }}>
           <span className="label">Credits Cleared</span>
           <div style={{ display: "flex", alignItems: "baseline", gap: 4 }}>
             <span className="value">{studentData.creditsCleared}</span>
-            <span style={{ fontSize: 16, color: "var(--secondary)", fontWeight: 600 }}>
+            <span style={{ fontSize: 16, color: "var(--text-muted)", fontWeight: 600 }}>
               / {studentData.totalCredits}
             </span>
           </div>
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: 4 }}>
             <span className="sub" style={{ margin: 0 }}>Up to Sem {studentData.latestSemester}</span>
-            <span style={{ fontSize: 11, background: "rgba(255,255,255,0.06)", padding: "2px 6px", borderRadius: 4, color: "#aaaaaa", fontWeight: 600 }}>Goal: 160</span>
+            <span style={{ fontSize: 10, background: "rgba(255,255,255,0.05)", padding: "2px 7px", borderRadius: 4, color: "var(--text-muted)", fontWeight: 700, border: "1px solid var(--border)" }}>Goal: 160</span>
           </div>
-          <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, height: 3, background: "rgba(255,255,255,0.05)" }}>
-            <div style={{ height: "100%", width: `${Math.min((studentData.creditsCleared / 160) * 100, 100)}%`, background: "var(--accent)" }} />
+          <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, height: 3, background: "rgba(255,255,255,0.04)" }}>
+            <motion.div
+              initial={{ width: 0 }}
+              animate={{ width: `${Math.min((studentData.creditsCleared / 160) * 100, 100)}%` }}
+              transition={{ duration: 1.2, ease: "easeOut" }}
+              style={{ height: "100%", background: "linear-gradient(90deg, var(--accent), rgba(255,255,255,0.4))" }}
+            />
           </div>
         </motion.div>
         <motion.div whileHover={{ y: -4 }} className="stat-card">
           <span className="label">Academic Health</span>
           <span className="value" style={{ color: healthColor }}>
             {academicHealthScore}
-            <span style={{ fontSize: 16, color: "var(--secondary)" }}>
-              /100
-            </span>
+            <span style={{ fontSize: 16, color: "var(--text-muted)" }}>/100</span>
           </span>
-          <span className="sub" style={{ color: healthColor }}>
+          <span className="sub" style={{ color: healthColor, fontWeight: 700 }}>
             {healthLabel}
           </span>
         </motion.div>
@@ -511,12 +519,11 @@ export default function Dashboard() {
           animate={{ opacity: 1 }}
           style={{
             background: "rgba(239,68,68,0.05)",
-            border: "1px solid rgba(239,68,68,0.2)",
-            borderLeft: "4px solid var(--danger)",
-            borderRadius: 8,
-            padding: "12px 16px",
+            border: "1px solid rgba(239,68,68,0.18)",
+            borderLeft: "3px solid var(--danger)",
+            borderRadius: "var(--radius-sm)",
+            padding: "14px 18px",
             marginBottom: 24,
-            boxShadow: "0 2px 8px rgba(0,0,0,0.05)",
           }}
         >
           <div
@@ -631,153 +638,102 @@ export default function Dashboard() {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           style={{
-            background: "rgba(34,197,94,0.08)",
-            border: "1px solid rgba(34,197,94,0.3)",
-            borderRadius: "var(--radius)",
-            padding: "16px 20px",
+            background: "rgba(34,197,94,0.06)",
+            border: "1px solid rgba(34,197,94,0.2)",
+            borderLeft: "3px solid var(--success)",
+            borderRadius: "var(--radius-sm)",
+            padding: "14px 18px",
             marginBottom: 24,
           }}
         >
-          <p style={{ color: "var(--success)", fontWeight: 700, display: "flex", alignItems: "center", gap: 8 }}>
-            <CheckCircle size={18} /> ALL CLEAR — No Active Backlogs
+          <p style={{ color: "var(--success)", fontWeight: 700, display: "flex", alignItems: "center", gap: 8, fontSize: 14 }}>
+            <CheckCircle size={17} /> ALL CLEAR — No Active Backlogs
           </p>
         </motion.div>
       )}
 
-      {/* Ranking */}
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        className="card"
-        style={{
-          marginBottom: 24,
-          display: "flex",
-          gap: 32,
-          flexWrap: "wrap",
-          opacity: semesterRanking ? 1 : 0.6,
-        }}
-      >
-        {(() => {
-          const cgpaRankNum = semesterRanking ? (semesterRanking.cgpaRank || semesterRanking.universityRank) : null;
-          const sgpaRankNum = semesterRanking ? (semesterRanking.sgpaRank || semesterRanking.universityRank) : null;
-          const isCgpaTop50 = cgpaRankNum && cgpaRankNum <= 50;
-          const isSgpaTop50 = sgpaRankNum && sgpaRankNum <= 50;
-
-          return (
-            <>
-              <motion.div 
-                whileHover={isCgpaTop50 ? { scale: 1.05 } : {}} 
-                whileTap={isCgpaTop50 ? { scale: 0.95 } : {}}
-                onClick={() => isCgpaTop50 && navigate(`/leaderboard?highlight=${regNo}&tab=cgpa`)}
-                style={{ cursor: isCgpaTop50 ? "pointer" : "default" }}
-                title={semesterRanking && !isCgpaTop50 ? "Rank must be 50 or better to view on Leaderboard" : ""}
-              >
-                <p style={{ color: "var(--secondary)", fontSize: 12 }}>
-                  CGPA RANK
-                </p>
-                <p
-                  style={{
-                    fontFamily: "Space Mono",
-                    fontSize: 24,
-                    fontWeight: 700,
-                    color: semesterRanking ? "var(--accent)" : "var(--muted)",
-                  }}
-                >
-                  {semesterRanking ? `#${cgpaRankNum}` : "—"}
-                </p>
-                <p style={{ fontSize: 12, color: "var(--secondary)", display: "flex", alignItems: "center", gap: 4 }}>
-                  {semesterRanking ? `of ${semesterRanking.totalStudents}` : "Not Generated"}
-                </p>
-              </motion.div>
-              <motion.div
-                whileHover={isSgpaTop50 ? { scale: 1.05 } : {}} 
-                whileTap={isSgpaTop50 ? { scale: 0.95 } : {}}
-                onClick={() => isSgpaTop50 && navigate(`/leaderboard?highlight=${regNo}&tab=sgpa`)}
-                style={{ cursor: isSgpaTop50 ? "pointer" : "default" }}
-                title={semesterRanking && !isSgpaTop50 ? "Rank must be 50 or better to view on Leaderboard" : ""}
-              >
-                <p style={{ color: "var(--secondary)", fontSize: 12 }}>SGPA RANK</p>
-                <p
-                  style={{
-                    fontFamily: "Space Mono",
-                    fontSize: 24,
-                    fontWeight: 700,
-                    color: semesterRanking ? "#a855f7" : "var(--muted)",
-                  }}
-                >
-                  {semesterRanking ? `#${sgpaRankNum}` : "—"}
-                </p>
-                <p style={{ fontSize: 12, color: "var(--secondary)", display: "flex", alignItems: "center", gap: 4 }}>
-                  {semesterRanking ? `of ${semesterRanking.totalStudents}` : "Not Generated"}
-                </p>
-              </motion.div>
-              <motion.div
-                whileHover={{ scale: 1.05 }} 
-                whileTap={{ scale: 0.95 }}
-                onClick={() => navigate(`/leaderboard?highlight=${regNo}&branch=${branch}&tab=sgpa`)}
-                style={{ cursor: "pointer" }}
-                title="View Branch Leaderboard"
-              >
-                <p style={{ color: "var(--secondary)", fontSize: 12 }}>BRANCH RANK</p>
-                <p
-                  style={{
-                    fontFamily: "Space Mono",
-                    fontSize: 24,
-                    fontWeight: 700,
-                    color: semesterRanking ? "#22c55e" : "var(--muted)",
-                  }}
-                >
-                  {semesterRanking && semesterRanking.deptRank ? `#${semesterRanking.deptRank}` : "—"}
-                </p>
-                <p style={{ fontSize: 12, color: "var(--secondary)", display: "flex", alignItems: "center", gap: 4 }}>
-                  {semesterRanking && semesterRanking.deptStudents ? `of ${semesterRanking.deptStudents}` : "Not Generated"}
-                </p>
-              </motion.div>
-            </>
-          );
-        })()}
-        <div>
-          <p style={{ color: "var(--secondary)", fontSize: 12 }}>
-            PERCENTILE
-          </p>
-          <p
-            style={{
-              fontFamily: "Space Mono",
-              fontSize: 24,
-              fontWeight: 700,
-              color: semesterRanking ? "var(--success)" : "var(--muted)",
-            }}
+      {/* Ranking Strip */}
+      {(() => {
+        const cgpaRankNum = semesterRanking ? (semesterRanking.cgpaRank || semesterRanking.universityRank) : null;
+        const sgpaRankNum = semesterRanking ? (semesterRanking.sgpaRank || semesterRanking.universityRank) : null;
+        const isCgpaTop50 = cgpaRankNum && cgpaRankNum <= 50;
+        const isSgpaTop50 = sgpaRankNum && sgpaRankNum <= 50;
+        return (
+          <motion.div
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="rank-strip"
+            style={{ marginBottom: 24, opacity: semesterRanking ? 1 : 0.55 }}
           >
-            {semesterRanking ? `${semesterRanking.percentile}%` : "—"}
-          </p>
-          <p style={{ fontSize: 12, color: "var(--secondary)" }}>
-            {semesterRanking ? `Top ${(100 - semesterRanking.percentile).toFixed(1)}%` : "Not Generated"}
-          </p>
-        </div>
-      </motion.div>
+            <div
+              className="rank-strip-item"
+              onClick={() => isCgpaTop50 && navigate(`/leaderboard?highlight=${regNo}&tab=cgpa`)}
+              style={{ cursor: isCgpaTop50 ? "pointer" : "default" }}
+              title={semesterRanking && !isCgpaTop50 ? "Rank must be ≤50 to view on Leaderboard" : ""}
+            >
+              <div className="rank-strip-label">CGPA Rank</div>
+              <div className="rank-strip-value" style={{ color: semesterRanking ? "var(--accent)" : "var(--text-muted)" }}>
+                {semesterRanking ? `#${cgpaRankNum}` : "—"}
+              </div>
+              <div className="rank-strip-sub">{semesterRanking ? `of ${semesterRanking.totalStudents} students` : "Not Generated"}</div>
+            </div>
+            <div
+              className="rank-strip-item"
+              onClick={() => isSgpaTop50 && navigate(`/leaderboard?highlight=${regNo}&tab=sgpa`)}
+              style={{ cursor: isSgpaTop50 ? "pointer" : "default" }}
+              title={semesterRanking && !isSgpaTop50 ? "Rank must be ≤50 to view on Leaderboard" : ""}
+            >
+              <div className="rank-strip-label">SGPA Rank</div>
+              <div className="rank-strip-value" style={{ color: semesterRanking ? "#a855f7" : "var(--text-muted)" }}>
+                {semesterRanking ? `#${sgpaRankNum}` : "—"}
+              </div>
+              <div className="rank-strip-sub">{semesterRanking ? `of ${semesterRanking.totalStudents} students` : "Not Generated"}</div>
+            </div>
+            <div
+              className="rank-strip-item"
+              onClick={() => navigate(`/leaderboard?highlight=${regNo}&branch=${branch}&tab=sgpa`)}
+              style={{ cursor: "pointer" }}
+              title="View Branch Leaderboard"
+            >
+              <div className="rank-strip-label">Branch Rank</div>
+              <div className="rank-strip-value" style={{ color: semesterRanking ? "#22c55e" : "var(--text-muted)" }}>
+                {semesterRanking && semesterRanking.deptRank ? `#${semesterRanking.deptRank}` : "—"}
+              </div>
+              <div className="rank-strip-sub">{semesterRanking && semesterRanking.deptStudents ? `of ${semesterRanking.deptStudents}` : "Not Generated"}</div>
+            </div>
+            <div className="rank-strip-item">
+              <div className="rank-strip-label">Percentile</div>
+              <div className="rank-strip-value" style={{ color: semesterRanking ? "var(--success)" : "var(--text-muted)" }}>
+                {semesterRanking ? `${semesterRanking.percentile}%` : "—"}
+              </div>
+              <div className="rank-strip-sub">{semesterRanking ? `Top ${(100 - semesterRanking.percentile).toFixed(1)}%` : "Not Generated"}</div>
+            </div>
+          </motion.div>
+        );
+      })()}
 
-      {/* Semester Selector — YouTube pill style */}
+      {/* Semester Selector */}
       <div style={{ marginBottom: 20 }}>
-        <div style={{ display: "inline-flex", gap: 2, background: "#212121", padding: "4px", borderRadius: 24, border: "1px solid rgba(255,255,255,0.08)", flexWrap: "wrap", maxWidth: "100%" }}>
+        <div style={{ display: "inline-flex", gap: 3, background: "rgba(255,255,255,0.03)", padding: "5px", borderRadius: 999, border: "1px solid var(--border)", flexWrap: "wrap", maxWidth: "100%" }}>
           {results.map((r) => (
             <motion.button
-              whileTap={{ scale: 0.95 }}
+              whileTap={{ scale: 0.93 }}
               key={r.semester}
               onClick={() => {
                 setSelectedSem(r.semester);
                 loadSemester(r.semester);
               }}
               style={{
-                padding: "7px 16px",
-                borderRadius: 20,
+                padding: "7px 18px",
+                borderRadius: 999,
                 border: "none",
-                background: selectedSem === r.semester ? "#3f3f3f" : "transparent",
-                color: selectedSem === r.semester ? "#f1f1f1" : "#aaaaaa",
+                background: selectedSem === r.semester ? "#2a2a2a" : "transparent",
+                color: selectedSem === r.semester ? "#f1f1f1" : "var(--text-muted)",
                 cursor: "pointer",
                 fontSize: 13,
                 fontWeight: 600,
                 transition: "all 0.2s",
-                boxShadow: selectedSem === r.semester ? "0 1px 4px rgba(0,0,0,0.4)" : "none",
+                boxShadow: selectedSem === r.semester ? "0 1px 6px rgba(0,0,0,0.5), inset 0 1px rgba(255,255,255,0.06)" : "none",
                 whiteSpace: "nowrap",
               }}
             >

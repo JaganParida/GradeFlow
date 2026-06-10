@@ -176,20 +176,15 @@ export default function Testimonials() {
     >
       <div style={{ width: "100%", maxWidth: 800 }}>
         {/* Header Section */}
-        <div style={{ textAlign: "center", marginBottom: 48 }}>
-          <div style={{
-            width: 64, height: 64, borderRadius: 18,
-            background: "linear-gradient(135deg, rgba(62,166,255,0.1), rgba(168,85,247,0.1))",
-            display: "flex", alignItems: "center", justifyContent: "center",
-            margin: "0 auto 20px", border: "1px solid rgba(255,255,255,0.05)"
-          }}>
-            <MessageSquare size={32} color="#3ea6ff" />
-          </div>
-          <h1 style={{ fontSize: "clamp(28px, 5vw, 42px)", fontWeight: 800, marginBottom: 12, letterSpacing: "-0.5px" }}>
-            Student <span style={{ color: "var(--accent)" }}>Testimonials</span>
+        <div style={{ textAlign: "center", marginBottom: 52 }}>
+          <p style={{ fontSize: 11, fontWeight: 800, color: "var(--text-muted)", letterSpacing: "1.5px", textTransform: "uppercase", marginBottom: 16, display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}>
+            <GraduationCap size={12} /> Student Voice
+          </p>
+          <h1 style={{ fontSize: "clamp(28px, 5vw, 42px)", fontWeight: 800, marginBottom: 14, letterSpacing: "-0.5px" }}>
+            Student Testimonials
           </h1>
-          <p style={{ color: "var(--secondary)", fontSize: "clamp(14px, 2vw, 16px)", maxWidth: 500, margin: "0 auto" }}>
-            Read what other students are saying about their GradeFlow experience. We value every piece of feedback!
+          <p style={{ color: "var(--text-secondary)", fontSize: "clamp(14px, 2vw, 16px)", maxWidth: 500, margin: "0 auto", lineHeight: 1.65 }}>
+            Read what students are saying about their GradeFlow experience. Every piece of feedback matters.
           </p>
         </div>
 
@@ -199,34 +194,33 @@ export default function Testimonials() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             style={{
-              display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 16,
+              display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 14,
               marginBottom: 48,
             }}
           >
             <div style={{
-              background: "linear-gradient(145deg, rgba(30,30,30,0.8), rgba(15,15,15,0.95))",
-              borderRadius: 100,
-              padding: "16px 32px",
-              display: "flex", alignItems: "center", gap: 20,
-              boxShadow: "0 8px 30px rgba(0,0,0,0.2)",
+              background: "linear-gradient(145deg, rgba(28,28,28,0.9), rgba(18,18,18,0.98))",
+              borderRadius: 999,
+              padding: "14px 28px",
+              display: "flex", alignItems: "center", gap: 18,
+              boxShadow: "0 8px 32px rgba(0,0,0,0.4), inset 0 1px rgba(255,255,255,0.06)",
               border: "1px solid rgba(255,255,255,0.08)"
             }}>
-              <span style={{ fontSize: 36, fontWeight: 900, color: "#ffffff", lineHeight: 1, letterSpacing: "-1px" }}>
+              <span style={{ fontFamily: "Space Mono, monospace", fontSize: 34, fontWeight: 900, color: "#ffffff", lineHeight: 1, letterSpacing: "-1px" }}>
                 {averageRating}
               </span>
-              <div style={{ display: "flex", gap: 6 }}>
+              <div style={{ width: 1, height: 32, background: "var(--border)" }} />
+              <div style={{ display: "flex", gap: 5 }}>
                 {[1, 2, 3, 4, 5].map(starIndex => {
                   const fillPercentage = Math.max(0, Math.min(100, (parseFloat(averageRating) - starIndex + 1) * 100));
                   return (
-                    <div key={starIndex} style={{ position: "relative", width: 32, height: 32 }}>
-                      {/* Background empty star */}
-                      <div style={{ position: "absolute", top: 0, left: 0, width: 32, height: 32 }}>
-                        <Star size={32} color="rgba(255,255,255,0.15)" fill="rgba(255,255,255,0.15)" />
+                    <div key={starIndex} style={{ position: "relative", width: 28, height: 28 }}>
+                      <div style={{ position: "absolute", top: 0, left: 0 }}>
+                        <Star size={28} color="rgba(255,255,255,0.1)" fill="rgba(255,255,255,0.1)" />
                       </div>
-                      {/* Foreground filled star (cropped perfectly) */}
                       <div style={{ position: "absolute", top: 0, left: 0, width: `${fillPercentage}%`, overflow: "hidden", height: "100%" }}>
-                        <div style={{ width: 32, height: 32 }}>
-                          <Star size={32} color="#facc15" fill="#facc15" />
+                        <div style={{ width: 28, height: 28 }}>
+                          <Star size={28} color="#facc15" fill="#facc15" />
                         </div>
                       </div>
                     </div>
@@ -234,8 +228,8 @@ export default function Testimonials() {
                 })}
               </div>
             </div>
-            <p style={{ margin: 0, color: "rgba(255,255,255,0.6)", fontSize: 15, fontWeight: 500, letterSpacing: "0.5px" }}>
-              Based on <span style={{ color: "#fff", fontWeight: 700 }}>{totalReviews}</span> student review{totalReviews !== 1 ? 's' : ''}
+            <p style={{ margin: 0, color: "var(--text-muted)", fontSize: 13, fontWeight: 600, letterSpacing: "0.3px" }}>
+              Based on <span style={{ color: "var(--text)", fontWeight: 700 }}>{totalReviews}</span> student review{totalReviews !== 1 ? 's' : ''}
             </p>
           </motion.div>
         )}

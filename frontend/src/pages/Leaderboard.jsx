@@ -167,34 +167,34 @@ export default function Leaderboard() {
 
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="page">
-      <div style={{ marginBottom: 28 }}>
-        <p style={{ color: "var(--secondary)", fontSize: 13, marginBottom: 4, display: "flex", alignItems: "center", gap: 6 }}>
-          <Trophy size={14} /> University Rankings
+      <div style={{ marginBottom: 32, paddingBottom: 24, borderBottom: "1px solid var(--border)" }}>
+        <p style={{ color: "var(--text-muted)", fontSize: 11, fontWeight: 800, marginBottom: 8, textTransform: "uppercase", letterSpacing: "1px", display: "flex", alignItems: "center", gap: 6 }}>
+          <Trophy size={12} /> University Rankings
         </p>
-        <h1 style={{ fontSize: 28, fontWeight: 800 }}>Leaderboard</h1>
-        <p style={{ color: "var(--secondary)", marginTop: 4 }}>
-          Top performing students ranked by {filters.sortBy.toUpperCase()}
+        <h1 style={{ fontSize: 30, fontWeight: 800, letterSpacing: "-0.5px", marginBottom: 6 }}>Leaderboard</h1>
+        <p style={{ color: "var(--text-secondary)", fontSize: 14 }}>
+          Top students ranked by {filters.sortBy.toUpperCase()}
         </p>
       </div>
 
-      {/* Tabs — YouTube pill style */}
+      {/* Tabs */}
       <div style={{ display: "flex", marginBottom: 24 }}>
-        <div style={{ display: "inline-flex", gap: 2, background: "#212121", padding: "4px", borderRadius: 24, border: "1px solid rgba(255,255,255,0.08)" }}>
+        <div style={{ display: "inline-flex", gap: 3, background: "rgba(255,255,255,0.03)", padding: "5px", borderRadius: 999, border: "1px solid var(--border)" }}>
           <button
             className="leaderboard-tab"
             style={{
-              padding: "8px 20px",
-              borderRadius: 20,
+              padding: "8px 22px",
+              borderRadius: 999,
               fontWeight: 700,
               cursor: "pointer",
-              transition: "all 0.2s",
-              background: isSGPA ? '#3f3f3f' : 'transparent',
+              transition: "all 0.22s",
+              background: isSGPA ? '#2a2a2a' : 'transparent',
               border: 'none',
-              color: isSGPA ? '#f1f1f1' : '#aaaaaa',
+              color: isSGPA ? '#f1f1f1' : 'var(--text-muted)',
               display: "flex", alignItems: "center", gap: 7,
               fontSize: 14,
               letterSpacing: "0.01em",
-              boxShadow: isSGPA ? '0 1px 4px rgba(0,0,0,0.4)' : 'none',
+              boxShadow: isSGPA ? '0 1px 6px rgba(0,0,0,0.5), inset 0 1px rgba(255,255,255,0.06)' : 'none',
             }}
             onClick={() => {
               const f = { ...filters, sortBy: "sgpa" };
@@ -203,23 +203,23 @@ export default function Leaderboard() {
               fetchRankings(f);
             }}
           >
-            <Trophy size={16} /> SGPA Ranking
+            <Trophy size={15} /> SGPA Ranking
           </button>
           <button
             className="leaderboard-tab"
             style={{
-              padding: "8px 20px",
-              borderRadius: 20,
+              padding: "8px 22px",
+              borderRadius: 999,
               fontWeight: 700,
               cursor: "pointer",
-              transition: "all 0.2s",
-              background: !isSGPA ? '#3f3f3f' : 'transparent',
+              transition: "all 0.22s",
+              background: !isSGPA ? '#2a2a2a' : 'transparent',
               border: 'none',
-              color: !isSGPA ? '#f1f1f1' : '#aaaaaa',
+              color: !isSGPA ? '#f1f1f1' : 'var(--text-muted)',
               display: "flex", alignItems: "center", gap: 7,
               fontSize: 14,
               letterSpacing: "0.01em",
-              boxShadow: !isSGPA ? '0 1px 4px rgba(0,0,0,0.4)' : 'none',
+              boxShadow: !isSGPA ? '0 1px 6px rgba(0,0,0,0.5), inset 0 1px rgba(255,255,255,0.06)' : 'none',
             }}
             onClick={() => {
               const f = { ...filters, sortBy: "cgpa", semester: "" };
@@ -228,7 +228,7 @@ export default function Leaderboard() {
               fetchRankings(f);
             }}
           >
-            <Star size={16} /> CGPA Ranking
+            <Star size={15} /> CGPA Ranking
           </button>
         </div>
       </div>

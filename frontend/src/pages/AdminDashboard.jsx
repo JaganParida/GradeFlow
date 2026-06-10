@@ -432,20 +432,22 @@ export default function AdminDashboard() {
           display: "flex",
           justifyContent: "space-between",
           alignItems: "flex-start",
-          marginBottom: 28,
+          marginBottom: 32,
+          paddingBottom: 24,
+          borderBottom: "1px solid var(--border)",
           flexWrap: "wrap",
           gap: 12,
         }}
       >
         <div>
-          <p style={{ color: "var(--secondary)", fontSize: 13, display: "flex", alignItems: "center", gap: 6 }}>
-            <Settings size={14} /> Administration
+          <p style={{ color: "var(--text-muted)", fontSize: 11, fontWeight: 800, marginBottom: 8, display: "flex", alignItems: "center", gap: 6, textTransform: "uppercase", letterSpacing: "1px" }}>
+            <Settings size={12} /> Administration
           </p>
-          <h1 style={{ fontSize: 26, fontWeight: 800 }}>Admin Dashboard</h1>
+          <h1 style={{ fontSize: 28, fontWeight: 800, letterSpacing: "-0.5px" }}>Admin Dashboard</h1>
         </div>
         <motion.button
           whileHover={{ scale: 1.02 }}
-          whileTap={{ scale: 0.98 }}
+          whileTap={{ scale: 0.97 }}
           className="btn btn-danger"
           onClick={() => {
             adminLogout();
@@ -453,7 +455,7 @@ export default function AdminDashboard() {
           }}
           style={{ display: "flex", alignItems: "center", gap: 6 }}
         >
-          <LogOut size={16} /> Logout
+          <LogOut size={15} /> Logout
         </motion.button>
       </div>
 

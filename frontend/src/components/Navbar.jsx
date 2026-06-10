@@ -81,10 +81,12 @@ export default function Navbar() {
           left: 0,
           right: 0,
           zIndex: 1000,
-          background: scrolled ? "rgba(15,15,15,0.95)" : "rgba(15,15,15,0.7)",
-          backdropFilter: "blur(12px)",
-          borderBottom: `1px solid ${scrolled ? "var(--border)" : "transparent"}`,
-          transition: "all 0.3s",
+          background: scrolled ? "rgba(12,12,12,0.97)" : "rgba(15,15,15,0.75)",
+          backdropFilter: "blur(20px)",
+          WebkitBackdropFilter: "blur(20px)",
+          borderBottom: `1px solid ${scrolled ? "rgba(255,255,255,0.08)" : "transparent"}`,
+          transition: "all 0.3s ease",
+          boxShadow: scrolled ? "0 1px 24px rgba(0,0,0,0.6)" : "none",
         }}
       >
         <div
@@ -104,28 +106,28 @@ export default function Navbar() {
               textDecoration: "none",
               display: "flex",
               alignItems: "center",
-              gap: 8,
+              gap: 10,
             }}
           >
             <div
               style={{
-                width: 32,
-                height: 32,
-                background: "linear-gradient(135deg, #3ea6ff, #7c3aed)",
+                width: 30,
+                height: 30,
+                background: "#fff",
                 borderRadius: 8,
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
-                boxShadow: "0 0 12px rgba(62,166,255,0.28), 0 2px 6px rgba(0,0,0,0.4)",
+                boxShadow: "0 0 16px rgba(255,255,255,0.12), 0 2px 6px rgba(0,0,0,0.5)",
               }}
             >
-              <GraduationCap color="#fff" size={20} />
+              <GraduationCap color="#0f0f0f" size={18} />
             </div>
             <span
               style={{
                 fontFamily: "Space Mono, monospace",
                 fontWeight: 700,
-                fontSize: 18,
+                fontSize: 17,
                 color: "var(--text)",
                 letterSpacing: "-0.5px"
               }}
@@ -136,42 +138,44 @@ export default function Navbar() {
 
           {/* Desktop links */}
           <div
-            style={{ display: "flex", gap: 4, alignItems: "center" }}
+            style={{ display: "flex", gap: 2, alignItems: "center" }}
             className="desktop-nav"
           >
-            {links.map((l) => (
-              <Link
-                key={l.label}
-                to={l.to}
-                onClick={(e) => handleLinkClick(e, l)}
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 6,
-                  padding: "6px 14px",
-                  borderRadius: 6,
-                  textDecoration: "none",
-                  fontSize: 14,
-                  fontWeight: 600,
-                  color:
-                    location.pathname === l.to
-                      ? "var(--text)"
-                      : "var(--secondary)",
-                  background:
-                    location.pathname === l.to ? "var(--card)" : "transparent",
-                  transition: "all 0.2s",
-                }}
-              >
-                {l.icon}
-                {l.label}
-              </Link>
-            ))}
+            {links.map((l) => {
+              const isActive = isActiveLink(l);
+              return (
+                <Link
+                  key={l.label}
+                  to={l.to}
+                  onClick={(e) => handleLinkClick(e, l)}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 6,
+                    padding: "6px 14px",
+                    borderRadius: 8,
+                    textDecoration: "none",
+                    fontSize: 14,
+                    fontWeight: isActive ? 700 : 500,
+                    color: isActive ? "var(--text)" : "var(--text-muted)",
+                    background: isActive ? "rgba(255,255,255,0.07)" : "transparent",
+                    border: isActive ? "1px solid rgba(255,255,255,0.1)" : "1px solid transparent",
+                    transition: "all 0.2s ease",
+                  }}
+                  onMouseEnter={(e) => { if (!isActive) { e.currentTarget.style.color = "var(--text-secondary)"; e.currentTarget.style.background = "rgba(255,255,255,0.04)"; } }}
+                  onMouseLeave={(e) => { if (!isActive) { e.currentTarget.style.color = "var(--text-muted)"; e.currentTarget.style.background = "transparent"; } }}
+                >
+                  {l.icon}
+                  {l.label}
+                </Link>
+              );
+            })}
             <Link
               to={adminToken ? "/admin/dashboard" : "/admin"}
               className="btn btn-ghost"
               style={{ marginLeft: 8, padding: "6px 14px", fontSize: 13, gap: 6 }}
             >
-              <ShieldAlert size={16} /> Admin
+              <ShieldAlert size={15} /> Admin
             </Link>
             {hasActiveSession && (
               <button
