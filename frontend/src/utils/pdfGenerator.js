@@ -24,7 +24,7 @@ export const getSubjectBasket = (s) => {
       if (domain.subjects.some(bs => isMatch(s, bs))) return "B5";
     }
     const name = (s.subName || "").toLowerCase();
-    if (name.includes("internship") || name.includes("project") || name.includes("skill")) return "B5";
+    if (name.includes("internship") || name.includes("project") || name.includes("skill") || name.includes("block chain")) return "B5";
     return "EX";
 };
 
@@ -59,6 +59,7 @@ export const generateBasketPDF = async (studentData) => {
         
         // Group subjects by semester
         const semSubjects = { 1: [], 2: [], 3: [], 4: [], 5: [], 6: [], 7: [], 8: [] };
+        const addedSubCodes = new Set();
         
         if (studentData && studentData.results) {
             studentData.results.forEach(semData => {
@@ -69,7 +70,11 @@ export const generateBasketPDF = async (studentData) => {
                         targetSem = 6;
                     }
                     if (targetSem >= 1 && targetSem <= 8) {
-                       semSubjects[targetSem].push(sub);
+                       const code = sub.subCode || sub.subName;
+                       if (!addedSubCodes.has(code)) {
+                           semSubjects[targetSem].push(sub);
+                           addedSubCodes.add(code);
+                       }
                     }
                 });
             });
