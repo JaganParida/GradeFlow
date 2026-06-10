@@ -169,15 +169,17 @@ export default function Home() {
         }}
       >
         {/* Badge */}
-        <div style={{ marginBottom: 20 }}>
-          <span style={{
-            display: "inline-flex", alignItems: "center", gap: 6,
+        <div style={{ marginBottom: 20, padding: "0 10px" }}>
+          <div style={{
+            display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6,
             background: "rgba(62,166,255,0.1)", border: "1px solid rgba(62,166,255,0.2)",
-            borderRadius: 20, padding: "5px 14px",
+            borderRadius: 16, padding: "6px 16px",
             fontSize: 12, color: "var(--accent)", fontWeight: 600, letterSpacing: "0.3px",
+            textAlign: "center", lineHeight: 1.4
           }}>
-            ✦ Centurion University · Academic Analytics
-          </span>
+            <span style={{ flexShrink: 0 }}>✦</span>
+            <span>Centurion University · Academic Analytics</span>
+          </div>
         </div>
 
         {/* Headline */}
