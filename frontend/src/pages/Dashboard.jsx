@@ -714,7 +714,7 @@ export default function Dashboard() {
 
       {/* Semester Selector */}
       <div style={{ marginBottom: 20 }}>
-        <div style={{ display: "inline-flex", gap: 3, background: "rgba(255,255,255,0.03)", padding: "5px", borderRadius: 999, border: "1px solid var(--border)", flexWrap: "wrap", maxWidth: "100%" }}>
+        <div style={{ display: "inline-flex", gap: 3, background: "rgba(255,255,255,0.03)", padding: "5px", borderRadius: 16, border: "1px solid var(--border)", flexWrap: "wrap", maxWidth: "100%" }}>
           {results.map((r) => (
             <motion.button
               whileTap={{ scale: 0.93 }}
