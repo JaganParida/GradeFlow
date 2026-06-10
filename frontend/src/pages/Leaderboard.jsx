@@ -315,6 +315,15 @@ export default function Leaderboard() {
         </form>
       </div>
 
+      {filters.search && (filters.branch || filters.section) && (
+        <motion.div initial={{ opacity: 0, y: -5 }} animate={{ opacity: 1, y: 0 }} style={{ marginBottom: 24, padding: "12px 16px", backgroundColor: "rgba(62,166,255,0.08)", border: "1px solid rgba(62,166,255,0.2)", borderRadius: 8, display: "flex", alignItems: "center", gap: 10 }}>
+          <Star size={18} color="#3ea6ff" style={{ flexShrink: 0 }} />
+          <p style={{ color: "var(--text-secondary)", fontSize: 13.5, margin: 0, lineHeight: 1.4 }}>
+            <strong style={{ color: "#3ea6ff" }}>Disclaimer:</strong> Ranks displayed during a Branch or Section search represent the student's <strong>University-wide Global Rank</strong>.
+          </p>
+        </motion.div>
+      )}
+
       {!filters.semester && isSGPA ? (
         <div style={{ textAlign: "center", padding: 60 }}>
           <div style={{ marginBottom: 16, display: "flex", justifyContent: "center" }}><Calendar size={48} color="var(--secondary)" /></div>
