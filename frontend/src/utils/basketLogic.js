@@ -30,6 +30,13 @@ export const isMatch = (sub, syllabusSub) => {
   if (norm1 === "competitivecoding" && norm2.includes("datastructures")) return false;
   if (norm2 === "competitivecoding" && norm1.includes("datastructures")) return false;
 
+  const code1 = (sub.subCode || "").replace(/[^a-zA-Z0-9]/g, "").toLowerCase();
+  const code2 = (syllabusSub.subCode || "").replace(/[^a-zA-Z0-9]/g, "").toLowerCase();
+  
+  if (code1 && code2 && !code1.includes(code2) && !code2.includes(code1)) {
+    if (norm1 !== norm2) return false;
+  }
+
   return norm1.includes(norm2) || norm2.includes(norm1);
 };
 
