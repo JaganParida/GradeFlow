@@ -83,11 +83,28 @@ router.get("/top", async (req, res) => {
       sortByScore(rankings, "sgpa", "cgpa");
     }
 
-    const rankKey = sortBy === "cgpa" ? "cgpaRank" : "sgpaRank";
-    const bounded = rankings.filter((ranking) => {
-      const rank = Number(ranking[rankKey] || ranking.universityRank);
-      return Number.isFinite(rank) && rank <= maxRank;
-    });
+    let bounded;
+    if (branch || search) {
+      const scoreKey = sortBy === "cgpa" ? "cgpa" : "sgpa";
+      let currentRank = 1;
+      let previousScore = null;
+      bounded = [];
+      for (const r of rankings) {
+        const score = Number(r[scoreKey]) || 0;
+        if (previousScore !== null && score < previousScore) {
+          currentRank++;
+        }
+        if (currentRank > maxRank) break;
+        bounded.push(r);
+        previousScore = score;
+      }
+    } else {
+      const rankKey = sortBy === "cgpa" ? "cgpaRank" : "sgpaRank";
+      bounded = rankings.filter((ranking) => {
+        const rank = Number(ranking[rankKey] || ranking.universityRank);
+        return Number.isFinite(rank) && rank <= maxRank;
+      });
+    }
 
     res.json(bounded);
   } catch (err) {
