@@ -1299,7 +1299,24 @@ input[type=number].no-spin-button {
     grid-template-columns: 1fr;
   }
 
-  .rank-strip-item { padding: 16px; }
+  .rank-strip { 
+    display: grid; 
+    grid-template-columns: 1fr 1fr; 
+  }
+  .rank-strip-item { 
+    padding: 16px; 
+    border-bottom: 1px solid var(--border);
+  }
+  .rank-strip-item:not(:last-child)::after {
+    display: none;
+  }
+  .rank-strip-item:nth-child(odd) {
+    border-right: 1px solid var(--border);
+  }
+  .rank-strip-item:nth-last-child(1),
+  .rank-strip-item:nth-last-child(2) {
+    border-bottom: none;
+  }
   .rank-strip-value { font-size: 22px; }
 }
 
