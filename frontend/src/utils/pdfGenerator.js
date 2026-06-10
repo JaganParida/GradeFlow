@@ -1,5 +1,5 @@
 import jsPDF from "jspdf";
-import "jspdf-autotable";
+import autoTable from "jspdf-autotable";
 import {
   BASKET_1_SYLLABUS,
   BASKET_2_SYLLABUS,
@@ -52,7 +52,7 @@ export const generateBasketPDF = async (studentData) => {
         
         let logoBase64 = null;
         try {
-            logoBase64 = await getBase64ImageFromURL("https://cnv-resources.s3.ap-south-1.amazonaws.com/images/cutm_text.jpg");
+            logoBase64 = await getBase64ImageFromURL("/cutm_text.jpg");
         } catch (e) {
             console.warn("Could not load logo image");
         }
@@ -188,7 +188,7 @@ export const generateBasketPDF = async (studentData) => {
                 cumTotalsObj.b1, cumTotalsObj.b2, cumTotalsObj.b3, cumTotalsObj.b4, cumTotalsObj.b5, cumTotalsObj.gt
             ]);
     
-            doc.autoTable({
+            autoTable(doc, {
                 startY: startY,
                 head: head,
                 body: rows,
