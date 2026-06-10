@@ -20,24 +20,6 @@ function getRegNoQueryForBranch(branch) {
       $or: [
         { regNo: /^23030113[012]/ },
         { regNo: { $in: ["230301120110", "230301120186", "230301120371", "230301120481"] } }
-
-function getRegNoQueryForBranch(branch) {
-  const b = branch.toUpperCase();
-  if (b === "CSE") {
-    return {
-      $and: [
-        { $or: [{ regNo: /^23030112[01]/ }, { regNo: "230301180026" }] },
-        { regNo: { $nin: ["230301120110", "230301120186", "230301120371", "230301120481"] } }
-      ]
-    };
-  }
-  if (b === "CIVIL") return { regNo: /^23030111[01]/ };
-  if (b === "ME") return { regNo: /^23030116[01]/ };
-  if (b === "ECE") {
-    return {
-      $or: [
-        { regNo: /^23030113[012]/ },
-        { regNo: { $in: ["230301120110", "230301120186", "230301120371", "230301120481"] } }
       ]
     };
   }
