@@ -57,7 +57,7 @@ export function categorizeBaskets(results) {
          return; // Ignore this specific dropped R grade
       }
       
-      let key = sub.subCode;
+      let key = sub.subCode || sub.subName || Math.random().toString();
       allSubjectsMap.set(key, { ...sub, semester: sem.semester });
     });
   });
