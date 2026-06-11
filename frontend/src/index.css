@@ -1336,7 +1336,7 @@ input[type=number].no-spin-button {
   .grid-2, .grid-3, .grid-4 { grid-template-columns: 1fr; gap: 10px; }
   .stat-card .value { font-size: 28px; }
 
-  .leaderboard-tab { flex: 1; padding: 8px 4px !important; font-size: 12px !important; justify-content: center; white-space: nowrap; }
+  .leaderboard-tab { flex: 1; padding: 10px 8px !important; font-size: 13px !important; justify-content: center; white-space: nowrap; }
   .leaderboard-filters { gap: 10px !important; }
   .leaderboard-filter-select { width: 100% !important; flex-basis: 100%; }
   .leaderboard-search-form { flex-direction: column; gap: 10px !important; }
