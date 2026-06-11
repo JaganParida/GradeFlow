@@ -883,8 +883,10 @@ export default function Dashboard() {
                             </div>
                           </div>
   
-                          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(140px, 1fr))", gap: 1, background: "rgba(255,255,255,0.04)" }}>
-                            {assessments.map((assessment, ci) => (
+                          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: 1, background: "rgba(255,255,255,0.04)" }}>
+                            {assessments
+                              .filter(assessment => isMarkAvailable(assessment.obtained) || isMarkAvailable(assessment.secondary))
+                              .map((assessment, ci) => (
                               <div key={ci} style={{ background: "#212121", padding: "12px 16px" }}>
                                 <div style={{ fontSize: 10, color: "#717171", textTransform: "uppercase", letterSpacing: "0.7px", fontWeight: 700, marginBottom: 8 }}>{assessment.label}</div>
                                 <div style={{ display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap" }}>
