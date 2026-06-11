@@ -229,7 +229,302 @@ export const ADDITIONAL_BASKET_5_SUBJECTS = [
   { subCode: "CUTM1057", subName: "BASIC ELECTRICAL ENGINEERING", credits: 2 }
 ];
 
-export const BASKET_5_SKILL_COURSES = [
+export const BASKET_5_SKILL_COURSES = [  {
+    "subCode": "CUTM3029",
+    "subName": "Apparel Production & Marketing",
+    "credits": 4
+  },
+  {
+    "subCode": "CUTM3030",
+    "subName": "Line Stitching Supervising",
+    "credits": 4
+  },
+  {
+    "subCode": "CUTM3031",
+    "subName": "Apparel Production",
+    "credits": 4
+  },
+  {
+    "subCode": "CUTM3033",
+    "subName": "Fork Lift Operation",
+    "credits": 4
+  },
+  {
+    "subCode": "CUTM3034",
+    "subName": "Heavy Vehicle Technology",
+    "credits": 4
+  },
+  {
+    "subCode": "CUTM3040",
+    "subName": "CNC Programming (CAM)",
+    "credits": 4
+  },
+  {
+    "subCode": "CUTM3041",
+    "subName": "Design Supervising Wooden and Modular Furniture",
+    "credits": 4
+  },
+  {
+    "subCode": "CUTM3043",
+    "subName": "3D Modelling and Printing",
+    "credits": 4
+  },
+  {
+    "subCode": "CUTM3045",
+    "subName": "Precast Concrete Manufacturing",
+    "credits": 4
+  },
+  {
+    "subCode": "CUTM3050",
+    "subName": "Plant Drug Research Using Biovia",
+    "credits": 4
+  },
+  {
+    "subCode": "CUTM3052",
+    "subName": "Drone Piloting",
+    "credits": 4
+  },
+  {
+    "subCode": "CUTM3057",
+    "subName": "Refraction Technology",
+    "credits": 4
+  },
+  {
+    "subCode": "CUTM3059",
+    "subName": "Medical Lab Technology",
+    "credits": 4
+  },
+  {
+    "subCode": "CUTM3062",
+    "subName": "Phlebotomy Technology",
+    "credits": 4
+  },
+  {
+    "subCode": "CUTM3063",
+    "subName": "First Aid Service",
+    "credits": 4
+  },
+  {
+    "subCode": "CUTM3064",
+    "subName": "General Duty Assistance Service",
+    "credits": 4
+  },
+  {
+    "subCode": "CUTM3065",
+    "subName": "X- ray Technology",
+    "credits": 4
+  },
+  {
+    "subCode": "CUTM3073",
+    "subName": "Solar PV Installation",
+    "credits": 4
+  },
+  {
+    "subCode": "CUTM3077",
+    "subName": "Solar PV Driven Equipment O/M & Assembly",
+    "credits": 4
+  },
+  {
+    "subCode": "CUTM3081",
+    "subName": "Organic Farming",
+    "credits": 4
+  },
+  {
+    "subCode": "CUTM3082",
+    "subName": "Mushroom Grower",
+    "credits": 4
+  },
+  {
+    "subCode": "CUTM3083",
+    "subName": "Hydroponics Technology",
+    "credits": 4
+  },
+  {
+    "subCode": "CUTM3084",
+    "subName": "Poultry Farming",
+    "credits": 4
+  },
+  {
+    "subCode": "CUTM3085",
+    "subName": "Dairy Farming",
+    "credits": 4
+  },
+  {
+    "subCode": "CUTM3091",
+    "subName": "Refrigeration and Air Conditioning",
+    "credits": 4
+  },
+  {
+    "subCode": "CUTM3092",
+    "subName": "Super Critical Co2 Plant Operation",
+    "credits": 4
+  },
+  {
+    "subCode": "CUTM3093",
+    "subName": "Paddy Seed Production",
+    "credits": 4
+  },
+  {
+    "subCode": "CUTM3094",
+    "subName": "Paddy Processing and Marketing",
+    "credits": 4
+  },
+  {
+    "subCode": "CUTM3097",
+    "subName": "Fruit Processing with Dryers",
+    "credits": 4
+  },
+  {
+    "subCode": "CUTM3098",
+    "subName": "Composite Fabrication Practice",
+    "credits": 4
+  },
+  {
+    "subCode": "CUTM3100",
+    "subName": "Farm Appliances Operation",
+    "credits": 4
+  },
+  {
+    "subCode": "CUTM3103",
+    "subName": "Bio-Fertilisers Preparation",
+    "credits": 4
+  },
+  {
+    "subCode": "CUTM3104",
+    "subName": "PCB Designing & Fabrication",
+    "credits": 4
+  },
+  {
+    "subCode": "CUTM3106",
+    "subName": "Introduction to Nutraceuticals",
+    "credits": 4
+  },
+  {
+    "subCode": "CUTM3107",
+    "subName": "Introduction to NPL",
+    "credits": 4
+  },
+  {
+    "subCode": "CUTM3108",
+    "subName": "Introduction to Computational Biology",
+    "credits": 4
+  },
+  {
+    "subCode": "CUTM3109",
+    "subName": "Product Life Cycle Management Through Gate process",
+    "credits": 4
+  },
+  {
+    "subCode": "CUTM3111",
+    "subName": "Spectral Image Processing Using Python",
+    "credits": 4
+  },
+  {
+    "subCode": "CUTM3112",
+    "subName": "Satellite Data Processing",
+    "credits": 4
+  },
+  {
+    "subCode": "CUTM3113",
+    "subName": "Working with Graphene and Carbon Fibre",
+    "credits": 4
+  },
+  {
+    "subCode": "CUTM3114",
+    "subName": "Adobe Tools and Illustrations",
+    "credits": 4
+  },
+  {
+    "subCode": "CUTM3120",
+    "subName": "Computer Installation and Maintenance",
+    "credits": 4
+  },
+  {
+    "subCode": "CUTM3126",
+    "subName": "Polyhouse Automation",
+    "credits": 4
+  },
+  {
+    "subCode": "CUTM3127",
+    "subName": "Development of Processor (Shakti)",
+    "credits": 4
+  },
+  {
+    "subCode": "CUTM3128",
+    "subName": "Spectroscopy for Analysis of Natural and Synthetic Compounds",
+    "credits": 4
+  },
+  {
+    "subCode": "CUTM3129",
+    "subName": "Extraction Technologies",
+    "credits": 4
+  },
+  {
+    "subCode": "CUTM3130",
+    "subName": "Gamified DIY Kits Using Lasers",
+    "credits": 4
+  },
+  {
+    "subCode": "CUTM3131",
+    "subName": "VR Assets Development",
+    "credits": 4
+  },
+  {
+    "subCode": "CUTM3134",
+    "subName": "GIS and Remote Sensing: Application Development",
+    "credits": 4
+  },
+  {
+    "subCode": "CUTM3142",
+    "subName": "Brew Master",
+    "credits": 4
+  },
+  {
+    "subCode": "CUTM3151",
+    "subName": "Coffee and Cocoa Cultivation",
+    "credits": 4
+  },
+  {
+    "subCode": "CUTM3153",
+    "subName": "Mushroom Spawn Production",
+    "credits": 4
+  },
+  {
+    "subCode": "CUTM3154",
+    "subName": "Microbial Biopesticide",
+    "credits": 4
+  },
+  {
+    "subCode": "CUTM3156",
+    "subName": "Nursery Management",
+    "credits": 4
+  },
+  {
+    "subCode": "CUTM3157",
+    "subName": "Hybrid Seed Production of Vegetables",
+    "credits": 4
+  },
+  {
+    "subCode": "CUTM3158",
+    "subName": "Commercial Entomology",
+    "credits": 4
+  },
+  {
+    "subCode": "CUTM3159",
+    "subName": "Fish Histopathology",
+    "credits": 4
+  },
+  {
+    "subCode": "CUTM3161",
+    "subName": "Home Health Care Aid",
+    "credits": 4
+  },
+  {
+    "subCode": "CUTM3162",
+    "subName": "Diabetes Educator",
+    "credits": 4
+  },
+
   {
     "subCode": "CUTM3056",
     "subName": "INTRODUCTION TO BLENDER AND UNITY TOOLS",
