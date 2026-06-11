@@ -42,6 +42,12 @@ export default function Leaderboard() {
       .then((r) => {
         setMeta(r.data);
         let f = { ...filters };
+        
+        const initBranch = params.get("branch");
+        if (initBranch) {
+          f.branch = initBranch;
+        }
+
         if (initTab === "cgpa") {
           f.sortBy = "cgpa";
           f.semester = "";
