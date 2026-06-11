@@ -479,7 +479,7 @@ export default function AdminDashboard() {
             <motion.div 
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: i * 0.05 }}
+              transition={{ duration: 0.3, ease: "easeOut" }}
               whileHover={{ y: -4 }}
               className="stat-card" 
               key={s.label}

@@ -620,7 +620,7 @@ export default function Analytics() {
                 <motion.div
                   initial={{ opacity: 0, x: -10 }}
                   animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: i * 0.1, duration: 0.3, ease: "easeOut" }}
+                  transition={{ duration: 0.3, ease: "easeOut" }}
                   key={i}
                   style={{
                     display: "flex",

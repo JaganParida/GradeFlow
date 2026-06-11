@@ -467,7 +467,7 @@ export default function Dashboard() {
               <motion.span
                 initial={{ opacity: 0, scale: 0.9, y: 4 }}
                 animate={{ opacity: 1, scale: 1, y: 0 }}
-                transition={{ delay: i * 0.08, duration: 0.3, ease: "easeOut" }}
+                transition={{ duration: 0.3, ease: "easeOut" }}
                 key={i}
                 style={{
                   background: b.color + "14",
@@ -923,7 +923,7 @@ export default function Dashboard() {
                       const assessments = getInternalAssessments(s, internalMarks.semester);
                       const total = getSubjectTotal(s, internalMarks.semester, assessments);
                       return (
-                        <motion.div key={i} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.04, duration: 0.3, ease: "easeOut" }}
+                        <motion.div key={i} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3, ease: "easeOut" }}
                           style={{ background: "#212121", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 12, overflow: "hidden" }}
                         >
                           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "14px 18px", borderBottom: "1px solid rgba(255,255,255,0.06)", gap: 12, flexWrap: "wrap" }}>
@@ -995,7 +995,7 @@ export default function Dashboard() {
                       key={r.semester}
                       initial={{ opacity: 0, y: 8 }}
                       animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: i * 0.05, duration: 0.3, ease: "easeOut" }}
+                      transition={{ duration: 0.3, ease: "easeOut" }}
                       onClick={() => { setSelectedSem(r.semester); loadSemester(r.semester); setTab("result"); }}
                       style={{ background: "#212121", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 12, padding: "16px 18px", cursor: "pointer", display: "flex", alignItems: "center", gap: 16, flexWrap: "wrap" }}
                       whileHover={{ borderColor: "rgba(255,255,255,0.18)", backgroundColor: "#2a2a2a" }}
