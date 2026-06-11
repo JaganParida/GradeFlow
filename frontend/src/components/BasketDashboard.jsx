@@ -777,7 +777,16 @@ export default function BasketDashboard({ results, studentData }) {
       </div>
 
       {/* Baskets Grid */}
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 10, flexWrap: "wrap", gap: 12 }}>
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          marginTop: 10,
+          flexWrap: "wrap",
+          gap: 12,
+        }}
+      >
         <h3
           style={{
             fontSize: 18,
@@ -797,10 +806,21 @@ export default function BasketDashboard({ results, studentData }) {
               setIsGeneratingPDF(false);
             }}
             disabled={isGeneratingPDF}
-            style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, padding: "8px 16px", whiteSpace: "nowrap" }}
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 8,
+              fontSize: 13,
+              padding: "8px 16px",
+              whiteSpace: "nowrap",
+            }}
           >
             <DownloadCloud size={16} style={{ flexShrink: 0 }} />
-            <span>{isGeneratingPDF ? "Generating..." : "Generate Credit Sheet PDF"}</span>
+            <span>
+              {isGeneratingPDF
+                ? "Generating..."
+                : "Generate Credit Track Sheet PDF"}
+            </span>
           </button>
         )}
       </div>
