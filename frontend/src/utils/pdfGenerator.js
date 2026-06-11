@@ -193,11 +193,21 @@ export const generateBasketPDF = async (studentData) => {
             cumTotalsObj.b5 += totA.b5 + totB.b5;
             cumTotalsObj.gt += totA.gt + totB.gt;
     
-            rows.push([
-                "", "", "", "", "", "", "", "", "", // Left side blank
-                { content: cumLabel, colSpan: 3, styles: { fontStyle: 'bold' } },
-                cumTotalsObj.b1, cumTotalsObj.b2, cumTotalsObj.b3, cumTotalsObj.b4, cumTotalsObj.b5, cumTotalsObj.gt
-            ]);
+            const isYearEmpty = subsA.length === 0 && subsB.length === 0;
+
+            if (isYearEmpty) {
+                rows.push([
+                    "", "", "", "", "", "", "", "", "", // Left side blank
+                    { content: cumLabel, colSpan: 3, styles: { fontStyle: 'bold' } },
+                    0, 0, 0, 0, 0, 0
+                ]);
+            } else {
+                rows.push([
+                    "", "", "", "", "", "", "", "", "", // Left side blank
+                    { content: cumLabel, colSpan: 3, styles: { fontStyle: 'bold' } },
+                    cumTotalsObj.b1, cumTotalsObj.b2, cumTotalsObj.b3, cumTotalsObj.b4, cumTotalsObj.b5, cumTotalsObj.gt
+                ]);
+            }
     
             autoTable(doc, {
                 startY: startY,
@@ -230,35 +240,16 @@ export const generateBasketPDF = async (studentData) => {
             });
         };
     
-        let maxYear = 1;
-        if (semSubjects[3].length > 0 || semSubjects[4].length > 0) maxYear = 2;
-        if (semSubjects[5].length > 0 || semSubjects[6].length > 0) maxYear = 3;
-        if (semSubjects[7].length > 0 || semSubjects[8].length > 0) maxYear = 4;
-
-        const getCumLabel = (year) => {
-            const effectiveYear = Math.min(year, maxYear);
-            if (effectiveYear === 1) return "1st Year Total Credits";
-            if (effectiveYear === 2) return "1st & 2nd Year Total Credits";
-            if (effectiveYear === 3) return "1st, 2nd & 3rd year Total Credits";
-            return "1st, 2nd, 3rd & 4th year Total Credits";
-        };
-
         // PAGE 1
         drawPageHeader(doc);
-        buildTable(1, 2, 41, getCumLabel(1));
-        if (maxYear >= 2) {
-            buildTable(3, 4, doc.lastAutoTable.finalY + 5, getCumLabel(2));
-        }
+        buildTable(1, 2, 41, "1st Year Total Credits");
+        buildTable(3, 4, doc.lastAutoTable.finalY + 5, "1st & 2nd Year Total Credits");
         
         // PAGE 2
-        if (maxYear >= 3) {
-            doc.addPage();
-            drawPageHeader(doc);
-            buildTable(5, 6, 41, getCumLabel(3));
-            if (maxYear >= 4) {
-                buildTable(7, 8, doc.lastAutoTable.finalY + 5, getCumLabel(4));
-            }
-        }
+        doc.addPage();
+        drawPageHeader(doc);
+        buildTable(5, 6, 41, "1st, 2nd & 3rd year Total Credits");
+        buildTable(7, 8, doc.lastAutoTable.finalY + 5, "1st, 2nd, 3rd & 4th year Total Credits");
         
         doc.save(`${studentData.studentName}_Credit_Grade_Sheet.pdf`);
     } catch (e) {
