@@ -70,7 +70,6 @@
 html {
   scroll-behavior: smooth;
   -webkit-text-size-adjust: 100%;
-  overscroll-behavior-y: none;
 }
 
 html, body, #root {
@@ -88,8 +87,6 @@ body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   overflow-x: hidden;
-  -webkit-overflow-scrolling: touch;
-  overscroll-behavior-y: none;
 }
 
 /* ── Scrollbar ─────────────────────────────────────────────── */
