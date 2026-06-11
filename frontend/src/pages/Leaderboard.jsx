@@ -47,11 +47,15 @@ export default function Leaderboard() {
         if (initBranch) {
           f.branch = initBranch;
         }
+        
+        const initSection = params.get("section");
+        if (initSection) {
+          f.section = initSection;
+        }
 
         if (initTab === "cgpa") {
           f.sortBy = "cgpa";
           f.semester = "";
-          f.branch = "";
         } else if (r.data.semesters?.length > 0) {
           f.semester = Math.max(...r.data.semesters).toString();
         }

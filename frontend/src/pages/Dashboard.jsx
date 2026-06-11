@@ -196,6 +196,26 @@ function getDynamicBranch(regNo, fallbackBranch) {
   return fallbackBranch || "—";
 }
 
+function getSectionFromRegNo(regNo) {
+  if (!regNo) return "J";
+  const r = String(regNo).trim();
+  if (r === "230301180026") return "I";
+  
+  if (r.startsWith("230301120")) {
+     const num = parseInt(r.slice(-3), 10);
+     if (num >= 1 && num <= 60) return "A";
+     if (num >= 61 && num <= 120) return "B";
+     if (num >= 121 && num <= 180) return "C";
+     if (num >= 181 && num <= 240) return "D";
+     if (num >= 241 && num <= 300) return "E";
+     if (num >= 301 && num <= 360) return "F";
+     if (num >= 361 && num <= 420) return "G";
+     if (num >= 421 && num <= 480) return "H";
+     if (num >= 481 && num <= 549) return "I";
+  }
+  return "J";
+}
+
 export default function Dashboard() {
   const { regNo } = useParams();
   const { studentData, fetchStudent, loading, error, API } = useApp();
@@ -384,6 +404,12 @@ export default function Dashboard() {
               <span style={{ background: "rgba(255,255,255,0.05)", border: "1px solid var(--border-strong)", padding: "3px 10px", borderRadius: 6, fontSize: 12, fontFamily: "Space Mono", color: "var(--text-muted)" }}>{regNo}</span>
               <span style={{ color: "var(--border-strong)" }}>·</span>
               <span style={{ background: "rgba(255,255,255,0.05)", border: "1px solid var(--border-strong)", padding: "3px 10px", borderRadius: 6, fontSize: 12, fontWeight: 700, color: "var(--text-secondary)" }}>{dynamicBranch}</span>
+              {dynamicBranch === "CSE" && (
+                <>
+                  <span style={{ color: "var(--border-strong)" }}>·</span>
+                  <span style={{ background: "rgba(255,255,255,0.05)", border: "1px solid var(--border-strong)", padding: "3px 10px", borderRadius: 6, fontSize: 12, fontWeight: 700, color: "var(--text-secondary)" }}>Section {getSectionFromRegNo(regNo)}</span>
+                </>
+              )}
               <span style={{ color: "var(--border-strong)" }}>·</span>
               <span style={{ fontSize: 13, color: "var(--text-muted)" }}>Batch {batch}</span>
             </div>
@@ -659,6 +685,7 @@ export default function Dashboard() {
         const sgpaRankNum = semesterRanking ? (semesterRanking.sgpaRank || semesterRanking.universityRank) : null;
         const isCgpaTop50 = cgpaRankNum && cgpaRankNum <= 50;
         const isSgpaTop50 = sgpaRankNum && sgpaRankNum <= 50;
+        const section = getSectionFromRegNo(regNo);
         return (
           <motion.div
             initial={{ opacity: 0, y: 8 }}
@@ -672,7 +699,7 @@ export default function Dashboard() {
               style={{ cursor: isCgpaTop50 ? "pointer" : "default" }}
               title={semesterRanking && !isCgpaTop50 ? "Rank must be ≤50 to view on Leaderboard" : ""}
             >
-              <div className="rank-strip-label">CGPA Rank</div>
+              <div className="rank-strip-label">Univ CGPA Rank</div>
               <div className="rank-strip-value" style={{ color: semesterRanking ? "var(--accent)" : "var(--text-muted)" }}>
                 {semesterRanking ? `#${cgpaRankNum}` : "—"}
               </div>
@@ -684,24 +711,69 @@ export default function Dashboard() {
               style={{ cursor: isSgpaTop50 ? "pointer" : "default" }}
               title={semesterRanking && !isSgpaTop50 ? "Rank must be ≤50 to view on Leaderboard" : ""}
             >
-              <div className="rank-strip-label">SGPA Rank</div>
+              <div className="rank-strip-label">Univ SGPA Rank</div>
               <div className="rank-strip-value" style={{ color: semesterRanking ? "#a855f7" : "var(--text-muted)" }}>
                 {semesterRanking ? `#${sgpaRankNum}` : "—"}
               </div>
               <div className="rank-strip-sub">{semesterRanking ? `of ${semesterRanking.totalStudents} students` : "Not Generated"}</div>
             </div>
+            
+            <div
+              className="rank-strip-item"
+              onClick={() => navigate(`/leaderboard?highlight=${regNo}&branch=${branch}&tab=cgpa`)}
+              style={{ cursor: "pointer" }}
+              title="View Branch CGPA Leaderboard"
+            >
+              <div className="rank-strip-label">Branch CGPA</div>
+              <div className="rank-strip-value" style={{ color: semesterRanking ? "#3ea6ff" : "var(--text-muted)", fontSize: 20 }}>
+                View
+              </div>
+              <div className="rank-strip-sub">On Leaderboard</div>
+            </div>
+
             <div
               className="rank-strip-item"
               onClick={() => navigate(`/leaderboard?highlight=${regNo}&branch=${branch}&tab=sgpa`)}
               style={{ cursor: "pointer" }}
-              title="View Branch Leaderboard"
+              title="View Branch SGPA Leaderboard"
             >
-              <div className="rank-strip-label">Branch Rank</div>
+              <div className="rank-strip-label">Branch SGPA Rank</div>
               <div className="rank-strip-value" style={{ color: semesterRanking ? "#22c55e" : "var(--text-muted)" }}>
                 {semesterRanking && semesterRanking.deptRank ? `#${semesterRanking.deptRank}` : "—"}
               </div>
               <div className="rank-strip-sub">{semesterRanking && semesterRanking.deptStudents ? `of ${semesterRanking.deptStudents}` : "Not Generated"}</div>
             </div>
+
+            {dynamicBranch === "CSE" && (
+              <>
+                <div
+                  className="rank-strip-item"
+                  onClick={() => navigate(`/leaderboard?highlight=${regNo}&branch=${branch}&section=${section}&tab=cgpa`)}
+                  style={{ cursor: "pointer" }}
+                  title="View Section CGPA Leaderboard"
+                >
+                  <div className="rank-strip-label">Section CGPA</div>
+                  <div className="rank-strip-value" style={{ color: semesterRanking ? "#f59e0b" : "var(--text-muted)", fontSize: 20 }}>
+                    View
+                  </div>
+                  <div className="rank-strip-sub">On Leaderboard</div>
+                </div>
+
+                <div
+                  className="rank-strip-item"
+                  onClick={() => navigate(`/leaderboard?highlight=${regNo}&branch=${branch}&section=${section}&tab=sgpa`)}
+                  style={{ cursor: "pointer" }}
+                  title="View Section SGPA Leaderboard"
+                >
+                  <div className="rank-strip-label">Section SGPA</div>
+                  <div className="rank-strip-value" style={{ color: semesterRanking ? "#f97316" : "var(--text-muted)", fontSize: 20 }}>
+                    View
+                  </div>
+                  <div className="rank-strip-sub">On Leaderboard</div>
+                </div>
+              </>
+            )}
+
             <div className="rank-strip-item">
               <div className="rank-strip-label">Percentile</div>
               <div className="rank-strip-value" style={{ color: semesterRanking ? "var(--success)" : "var(--text-muted)" }}>
