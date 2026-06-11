@@ -246,13 +246,19 @@ export const generateBasketPDF = async (studentData) => {
         // PAGE 1
         drawPageHeader(doc);
         buildTable(1, 2, 41, getCumLabel(1));
-        buildTable(3, 4, doc.lastAutoTable.finalY + 5, getCumLabel(2));
+        if (maxYear >= 2) {
+            buildTable(3, 4, doc.lastAutoTable.finalY + 5, getCumLabel(2));
+        }
         
         // PAGE 2
-        doc.addPage();
-        drawPageHeader(doc);
-        buildTable(5, 6, 41, getCumLabel(3));
-        buildTable(7, 8, doc.lastAutoTable.finalY + 5, getCumLabel(4));
+        if (maxYear >= 3) {
+            doc.addPage();
+            drawPageHeader(doc);
+            buildTable(5, 6, 41, getCumLabel(3));
+            if (maxYear >= 4) {
+                buildTable(7, 8, doc.lastAutoTable.finalY + 5, getCumLabel(4));
+            }
+        }
         
         doc.save(`${studentData.studentName}_Credit_Grade_Sheet.pdf`);
     } catch (e) {
