@@ -1344,6 +1344,19 @@ input[type=number].no-spin-button {
 
   .placement-summary-grid { grid-template-columns: 1fr; }
   .placement-requirements { grid-template-columns: 1fr 1fr; }
+
+  .tabs {
+    flex-wrap: wrap;
+    width: 100%;
+    gap: 4px;
+    justify-content: center;
+  }
+  .tab-btn {
+    flex: 1 1 30%;
+    padding: 6px 4px;
+    font-size: 12px;
+    justify-content: center;
+  }
 }
 
 @media (max-width: 420px) {
