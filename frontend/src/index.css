@@ -749,32 +749,21 @@ table tbody tr:last-child td {
 
 /* ── Rank Highlight Strip ───────────────────────────────────── */
 .rank-strip {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0;
-  background: var(--card);
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1px;
+  background: var(--border);
   border: 1px solid var(--border);
   border-radius: var(--radius);
   overflow: hidden;
 }
 
 .rank-strip-item {
-  flex: 1;
-  min-width: 100px;
   padding: 20px 24px;
   position: relative;
   cursor: pointer;
+  background: var(--card);
   transition: background 0.2s ease;
-}
-
-.rank-strip-item:not(:last-child)::after {
-  content: '';
-  position: absolute;
-  right: 0;
-  top: 20%;
-  height: 60%;
-  width: 1px;
-  background: var(--border);
 }
 
 .rank-strip-item:hover {
@@ -1299,23 +1288,8 @@ input[type=number].no-spin-button {
     grid-template-columns: 1fr;
   }
 
-  .rank-strip { 
-    display: grid; 
-    grid-template-columns: 1fr 1fr; 
-  }
   .rank-strip-item { 
     padding: 16px; 
-    border-bottom: 1px solid var(--border);
-  }
-  .rank-strip-item:not(:last-child)::after {
-    display: none;
-  }
-  .rank-strip-item:nth-child(odd) {
-    border-right: 1px solid var(--border);
-  }
-  .rank-strip-item:nth-last-child(1),
-  .rank-strip-item:nth-last-child(2) {
-    border-bottom: none;
   }
   .rank-strip-value { font-size: 22px; }
 }

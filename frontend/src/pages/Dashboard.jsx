@@ -781,6 +781,10 @@ export default function Dashboard() {
               </div>
               <div className="rank-strip-sub">{semesterRanking ? `Top ${(100 - semesterRanking.percentile).toFixed(1)}%` : "Not Generated"}</div>
             </div>
+
+            <div className="rank-strip-item empty-cell" style={{ cursor: "default" }}>
+              {/* Empty space filler to maintain the 2-column grid */}
+            </div>
           </motion.div>
         );
       })()}
