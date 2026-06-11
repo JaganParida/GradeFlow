@@ -724,7 +724,7 @@ export default function Dashboard() {
               style={{ cursor: "pointer" }}
               title="View Branch CGPA Leaderboard"
             >
-              <div className="rank-strip-label">Branch CGPA</div>
+              <div className="rank-strip-label">Branch CGPA Rank</div>
               <div className="rank-strip-value" style={{ color: semesterRanking ? "#3ea6ff" : "var(--text-muted)" }}>
                 {semesterRanking && semesterRanking.deptCgpaRank ? `#${semesterRanking.deptCgpaRank}` : "—"}
               </div>
@@ -752,7 +752,7 @@ export default function Dashboard() {
                   style={{ cursor: "pointer" }}
                   title="View Section CGPA Leaderboard"
                 >
-                  <div className="rank-strip-label">Section CGPA</div>
+                  <div className="rank-strip-label">Section CGPA Rank</div>
                   <div className="rank-strip-value" style={{ color: semesterRanking ? "#f59e0b" : "var(--text-muted)" }}>
                     {semesterRanking && semesterRanking.sectionCgpaRank ? `#${semesterRanking.sectionCgpaRank}` : "—"}
                   </div>
@@ -765,7 +765,7 @@ export default function Dashboard() {
                   style={{ cursor: "pointer" }}
                   title="View Section SGPA Leaderboard"
                 >
-                  <div className="rank-strip-label">Section SGPA</div>
+                  <div className="rank-strip-label">Section SGPA Rank</div>
                   <div className="rank-strip-value" style={{ color: semesterRanking ? "#f97316" : "var(--text-muted)" }}>
                     {semesterRanking && semesterRanking.sectionSgpaRank ? `#${semesterRanking.sectionSgpaRank}` : "—"}
                   </div>
