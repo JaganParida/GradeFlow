@@ -316,7 +316,7 @@ export default function Analytics() {
   };
 
   return (
-    <motion.div initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} className="page">
+    <motion.div initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, ease: "easeOut" }} className="page">
       <div style={{ marginBottom: 32 }}>
         <button
           className="btn btn-ghost"
@@ -620,7 +620,7 @@ export default function Analytics() {
                 <motion.div
                   initial={{ opacity: 0, x: -10 }}
                   animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: i * 0.1 }}
+                  transition={{ delay: i * 0.1, duration: 0.3, ease: "easeOut" }}
                   key={i}
                   style={{
                     display: "flex",

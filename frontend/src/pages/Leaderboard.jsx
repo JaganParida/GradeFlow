@@ -174,7 +174,7 @@ export default function Leaderboard() {
   const isSGPA = filters.sortBy === "sgpa";
 
   return (
-    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="page">
+    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.4, ease: "easeOut" }} className="page">
       <div style={{ marginBottom: 32, paddingBottom: 24, borderBottom: "1px solid var(--border)" }}>
         <p style={{ color: "var(--text-muted)", fontSize: 11, fontWeight: 800, marginBottom: 8, textTransform: "uppercase", letterSpacing: "1px", display: "flex", alignItems: "center", gap: 6 }}>
           <Trophy size={12} /> University Rankings
@@ -335,7 +335,7 @@ export default function Leaderboard() {
       ) : rankings.length === 0 ? (
         <div style={{ textAlign: "center", padding: 60 }}>
           {filters.search ? (
-            <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
+            <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3, ease: "easeOut" }}>
               <div style={{ marginBottom: 16, display: "flex", justifyContent: "center" }}><Target size={48} color="var(--accent)" /></div>
               <h3 style={{ fontSize: 20, fontWeight: 800, marginBottom: 8 }}>
                 {filters.section ? "Student Not Found in this Section" : `Not in the Top ${showCount} Yet`}
@@ -664,7 +664,7 @@ export default function Leaderboard() {
                       {visibleRankings.length === 0 && filters.search && (
                         <tr>
                           <td colSpan={filters.branch ? 6 : 5} style={{ textAlign: "center", padding: "60px 20px" }}>
-                            <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
+                            <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3, ease: "easeOut" }}>
                               <div style={{ marginBottom: 16, display: "flex", justifyContent: "center" }}><Target size={48} color="var(--accent)" /></div>
                               <h3 style={{ fontSize: 20, fontWeight: 800, marginBottom: 8 }}>
                                 {filters.section ? "Student Not Found in this Section" : `Not in the Top ${showCount} Yet`}
@@ -685,7 +685,7 @@ export default function Leaderboard() {
 
                 <div className="leaderboard-mobile-list">
                   {visibleRankings.length === 0 && filters.search ? (
-                    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="leaderboard-mobile-empty">
+                    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3, ease: "easeOut" }} className="leaderboard-mobile-empty">
                       <div style={{ marginBottom: 16, display: "flex", justifyContent: "center" }}><Target size={48} color="var(--accent)" /></div>
                       <h3 style={{ fontSize: 20, fontWeight: 800, marginBottom: 8 }}>
                         {filters.section ? "Student Not Found in this Section" : `Not in the Top ${showCount} Yet`}
