@@ -192,8 +192,8 @@ export default function Testimonials() {
         {/* Rating Summary Section */}
         {feedbacks.length > 0 && !isLoading && (
           <motion.div 
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
             style={{
               display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 14,
               marginBottom: 48,
@@ -429,8 +429,8 @@ export default function Testimonials() {
 
               return (
                 <motion.div
-                  initial={{ opacity: 0, y: 15 }}
-                  animate={{ opacity: 1, y: 0 }}
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
                   transition={{ duration: 0.4, ease: "easeOut" }}
                   id={`feedback-${fb._id}`}
                   key={fb._id}

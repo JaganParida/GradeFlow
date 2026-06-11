@@ -290,8 +290,8 @@ export default function Home() {
           HERO SECTION
       ════════════════════════════════════════════ */}
       <motion.section
-        initial={{ y: 24, opacity: 0 }}
-        animate={{ y: 0, opacity: 1 }}
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
         transition={{ duration: 0.5 }}
         style={{
           width: "100%",
@@ -462,8 +462,8 @@ export default function Home() {
         <AnimatePresence>
           {error && (
             <motion.div
-              initial={{ opacity: 0, y: -10 }}
-              animate={{ opacity: 1, y: 0 }}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               style={{
                 marginTop: 20,
@@ -501,8 +501,8 @@ export default function Home() {
           {FEATURES.map((f, i) => (
             <motion.div
               key={i}
-              initial={{ opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
               whileHover={{
                 scale: 1.05,
                 backgroundColor: `${f.color}15`,
@@ -536,8 +536,8 @@ export default function Home() {
           FORMULA SECTION
       ════════════════════════════════════════════ */}
       <motion.section
-        initial={{ opacity: 0, y: 30 }}
-        animate={{ opacity: 1, y: 0 }}
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
         transition={{ delay: 0.3 }}
         style={{
           ...S.section,
@@ -892,8 +892,8 @@ export default function Home() {
           GRADE SCALE TABLE
       ════════════════════════════════════════════ */}
       <motion.section
-        initial={{ opacity: 0, y: 30 }}
-        animate={{ opacity: 1, y: 0 }}
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
         transition={{ delay: 0.4 }}
         style={{
           ...S.section,
