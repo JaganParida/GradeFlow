@@ -1339,3 +1339,54 @@ input[type=number].no-spin-button {
   .placement-company-head { flex-direction: column; align-items: flex-start; gap: 8px; }
   .placement-requirements { grid-template-columns: 1fr; }
 }
+
+/* ── GradeSheet Toolbar ───────────────────────────────────── */
+.gradesheet-toolbar {
+  display: flex;
+  gap: 16px;
+  margin: 0 auto 24px auto;
+  background: var(--surface);
+  padding: 12px 16px;
+  border-radius: 16px;
+  border: 1px solid var(--border);
+  align-items: center;
+  justify-content: space-between;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+  width: 100%;
+  max-width: 820px;
+}
+
+.gradesheet-toolbar-btns {
+  display: flex;
+  gap: 8px;
+  flex-wrap: nowrap;
+}
+
+.gradesheet-toolbar-zoom {
+  display: flex;
+  align-items: center;
+  background: var(--bg);
+  border-radius: 10px;
+  padding: 4px;
+  border: 1px solid var(--border);
+}
+
+@media (max-width: 600px) {
+  .gradesheet-toolbar {
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 12px;
+  }
+  .gradesheet-toolbar-btns {
+    width: 100%;
+  }
+  .gradesheet-toolbar-btns button {
+    flex: 1;
+    justify-content: center;
+    padding: 8px 4px !important;
+  }
+  .gradesheet-toolbar-zoom {
+    width: 100%;
+    justify-content: space-between;
+  }
+}

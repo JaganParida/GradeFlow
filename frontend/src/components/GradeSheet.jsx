@@ -172,35 +172,20 @@ export default function GradeSheet({ result, studentData, highlightedSubject }) 
   return (
     <div style={{ width: "100%", maxWidth: "100%", minWidth: 0, overflow: "hidden" }}>
       {/* ── Action Buttons ── */}
-      <div
-        data-html2canvas-ignore="true"
-        style={{
-          display: "flex",
-          gap: 16,
-          marginBottom: 24,
-          flexWrap: "wrap",
-          background: "var(--surface)",
-          padding: "12px 16px",
-          borderRadius: 16,
-          border: "1px solid var(--border)",
-          alignItems: "center",
-          justifyContent: "center", // Changed to center so it naturally wraps
-          boxShadow: "0 4px 20px rgba(0,0,0,0.2)"
-        }}
-      >
-        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+      <div data-html2canvas-ignore="true" className="gradesheet-toolbar">
+        <div className="gradesheet-toolbar-btns">
           <button className="btn btn-primary" onClick={downloadPDF} style={{ borderRadius: 8, padding: "8px 16px" }}>
-            <Download size={16} /> <span className="desktop-only">Download</span>
+            <Download size={16} /> <span>Download</span>
           </button>
           <button className="btn btn-ghost" onClick={saveImage} style={{ borderRadius: 8, padding: "8px 16px", background: "rgba(255,255,255,0.03)" }}>
-            <ImageIcon size={16} /> <span className="desktop-only">Image</span>
+            <ImageIcon size={16} /> <span>Image</span>
           </button>
           <button className="btn btn-ghost" onClick={printSheet} style={{ borderRadius: 8, padding: "8px 16px", background: "rgba(255,255,255,0.03)" }}>
-            <Printer size={16} /> <span className="desktop-only">Print</span>
+            <Printer size={16} /> <span>Print</span>
           </button>
         </div>
 
-        <div style={{ display: "flex", alignItems: "center", background: "var(--bg)", borderRadius: 10, padding: "4px", border: "1px solid var(--border)" }}>
+        <div className="gradesheet-toolbar-zoom">
           <button className="btn btn-ghost" onClick={() => setZoomLevel(prev => Math.max(prev - 0.1, 0.3))} style={{ padding: "6px 10px", border: "none", color: "var(--secondary)", borderRadius: 6 }}>
             <ZoomOut size={16} />
           </button>
