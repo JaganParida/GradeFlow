@@ -669,11 +669,6 @@ export const BASKET_1_SYLLABUS = [
     "credits": 3
   },
   {
-    "subCode": "CUTM1674",
-    "subName": "Environmental Science",
-    "credits": 4
-  },
-  {
     "subCode": "CUTM1010",
     "subName": "ENVIRONMENTAL STUDIES",
     "credits": 2
@@ -710,6 +705,11 @@ export const BASKET_2_SYLLABUS = [
     "subCode": "CUTM1016",
     "subName": "Job Readiness",
     "credits": 6
+  },
+  {
+    "subCode": "CUTM1674",
+    "subName": "Environmental Science",
+    "credits": 4
   }
 ];
 
