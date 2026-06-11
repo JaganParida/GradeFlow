@@ -62,6 +62,7 @@ export const generateBasketPDF = async (studentData) => {
         const addedSubCodes = new Set();
         
         if (studentData && studentData.results) {
+            const isCSE = !studentData.branch || studentData.branch.toUpperCase() === "CSE";
             studentData.results.forEach(semData => {
                 semData.subjects.forEach(sub => {
                     let targetSem = Number(semData.semester);
@@ -69,6 +70,11 @@ export const generateBasketPDF = async (studentData) => {
                     if (targetSem === 5 && Number(sub.credit) === 6 && (sub.subName || "").toLowerCase().includes("project")) {
                         targetSem = 6;
                     }
+                    
+                    if (!isCSE && targetSem > 2) {
+                        return;
+                    }
+
                     if (targetSem >= 1 && targetSem <= 8) {
                        const code = sub.subCode || sub.subName;
                        if (!addedSubCodes.has(code)) {
