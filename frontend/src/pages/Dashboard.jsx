@@ -987,6 +987,11 @@ export default function Dashboard() {
                       </p>
                       <p style={{ fontSize: 13, color: "var(--text-secondary)", marginTop: 8, lineHeight: 1.5, margin: "8px 0 0 0" }}>
                         Due to the unavailability of the complete syllabus structure for the <strong>{dynamicBranch}</strong> branch, this tracker can currently only guarantee accurate degree progress tracking for 1st-year subjects. Tracking for subsequent years may be incomplete.
+                        {!isSyllabusNoticeExpanded && (
+                          <span style={{ color: "var(--warning)", opacity: 0.8, cursor: "pointer", marginLeft: 6, fontWeight: 500, textDecoration: "underline" }}>
+                            Read more to contact
+                          </span>
+                        )}
                       </p>
                     </div>
                     {isSyllabusNoticeExpanded ? <ChevronUp size={18} color="var(--warning)" style={{ flexShrink: 0, marginTop: 4 }} /> : <ChevronDown size={18} color="var(--warning)" style={{ flexShrink: 0, marginTop: 4 }} />}
