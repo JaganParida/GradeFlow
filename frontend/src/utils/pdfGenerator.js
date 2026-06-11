@@ -67,7 +67,8 @@ export const generateBasketPDF = async (studentData) => {
                 semData.subjects.forEach(sub => {
                     let targetSem = Number(semData.semester);
                     // Rule: sem 5 project which have 6 credit it is only add in sem 6
-                    if (targetSem === 5 && Number(sub.credit) === 6 && (sub.subName || "").toLowerCase().includes("project")) {
+                    const isProject = (sub.subName || "").toLowerCase().includes("project") || (sub.type && sub.type.toLowerCase() === "project");
+                    if (targetSem === 5 && Number(sub.credit) === 6 && isProject) {
                         targetSem = 6;
                     }
                     
