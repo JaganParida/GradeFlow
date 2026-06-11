@@ -187,7 +187,7 @@ export default function Leaderboard() {
 
       {/* Tabs */}
       <div style={{ display: "flex", marginBottom: 24 }}>
-        <div style={{ display: "inline-flex", gap: 3, background: "rgba(255,255,255,0.03)", padding: "5px", borderRadius: 16, border: "1px solid var(--border)", flexWrap: "wrap", maxWidth: "100%" }}>
+        <div style={{ display: "inline-flex", gap: 3, background: "rgba(255,255,255,0.03)", padding: "5px", borderRadius: 16, border: "1px solid var(--border)", flexWrap: "nowrap", maxWidth: "100%" }}>
           <button
             className="leaderboard-tab"
             style={{
