@@ -230,16 +230,29 @@ export const generateBasketPDF = async (studentData) => {
             });
         };
     
+        let maxYear = 1;
+        if (semSubjects[3].length > 0 || semSubjects[4].length > 0) maxYear = 2;
+        if (semSubjects[5].length > 0 || semSubjects[6].length > 0) maxYear = 3;
+        if (semSubjects[7].length > 0 || semSubjects[8].length > 0) maxYear = 4;
+
+        const getCumLabel = (year) => {
+            const effectiveYear = Math.min(year, maxYear);
+            if (effectiveYear === 1) return "1st Year Total Credits";
+            if (effectiveYear === 2) return "1st & 2nd Year Total Credits";
+            if (effectiveYear === 3) return "1st, 2nd & 3rd year Total Credits";
+            return "1st, 2nd, 3rd & 4th year Total Credits";
+        };
+
         // PAGE 1
         drawPageHeader(doc);
-        buildTable(1, 2, 41, "1st Year Total Credits");
-        buildTable(3, 4, doc.lastAutoTable.finalY + 5, "1st & 2nd Year Total Credits");
+        buildTable(1, 2, 41, getCumLabel(1));
+        buildTable(3, 4, doc.lastAutoTable.finalY + 5, getCumLabel(2));
         
         // PAGE 2
         doc.addPage();
         drawPageHeader(doc);
-        buildTable(5, 6, 41, "1st, 2nd & 3rd year Total Credits");
-        buildTable(7, 8, doc.lastAutoTable.finalY + 5, "1st, 2nd, 3rd & 4th year Total Credits");
+        buildTable(5, 6, 41, getCumLabel(3));
+        buildTable(7, 8, doc.lastAutoTable.finalY + 5, getCumLabel(4));
         
         doc.save(`${studentData.studentName}_Credit_Grade_Sheet.pdf`);
     } catch (e) {
