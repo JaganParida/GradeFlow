@@ -725,10 +725,10 @@ export default function Dashboard() {
               title="View Branch CGPA Leaderboard"
             >
               <div className="rank-strip-label">Branch CGPA</div>
-              <div className="rank-strip-value" style={{ color: semesterRanking ? "#3ea6ff" : "var(--text-muted)", fontSize: 20 }}>
-                View
+              <div className="rank-strip-value" style={{ color: semesterRanking ? "#3ea6ff" : "var(--text-muted)" }}>
+                {semesterRanking && semesterRanking.deptCgpaRank ? `#${semesterRanking.deptCgpaRank}` : "—"}
               </div>
-              <div className="rank-strip-sub">On Leaderboard</div>
+              <div className="rank-strip-sub">{semesterRanking && semesterRanking.deptStudents ? `of ${semesterRanking.deptStudents}` : "Not Generated"}</div>
             </div>
 
             <div
@@ -753,10 +753,10 @@ export default function Dashboard() {
                   title="View Section CGPA Leaderboard"
                 >
                   <div className="rank-strip-label">Section CGPA</div>
-                  <div className="rank-strip-value" style={{ color: semesterRanking ? "#f59e0b" : "var(--text-muted)", fontSize: 20 }}>
-                    View
+                  <div className="rank-strip-value" style={{ color: semesterRanking ? "#f59e0b" : "var(--text-muted)" }}>
+                    {semesterRanking && semesterRanking.sectionCgpaRank ? `#${semesterRanking.sectionCgpaRank}` : "—"}
                   </div>
-                  <div className="rank-strip-sub">On Leaderboard</div>
+                  <div className="rank-strip-sub">{semesterRanking && semesterRanking.sectionStudents ? `of ${semesterRanking.sectionStudents}` : "Not Generated"}</div>
                 </div>
 
                 <div
@@ -766,10 +766,10 @@ export default function Dashboard() {
                   title="View Section SGPA Leaderboard"
                 >
                   <div className="rank-strip-label">Section SGPA</div>
-                  <div className="rank-strip-value" style={{ color: semesterRanking ? "#f97316" : "var(--text-muted)", fontSize: 20 }}>
-                    View
+                  <div className="rank-strip-value" style={{ color: semesterRanking ? "#f97316" : "var(--text-muted)" }}>
+                    {semesterRanking && semesterRanking.sectionSgpaRank ? `#${semesterRanking.sectionSgpaRank}` : "—"}
                   </div>
-                  <div className="rank-strip-sub">On Leaderboard</div>
+                  <div className="rank-strip-sub">{semesterRanking && semesterRanking.sectionStudents ? `of ${semesterRanking.sectionStudents}` : "Not Generated"}</div>
                 </div>
               </>
             )}

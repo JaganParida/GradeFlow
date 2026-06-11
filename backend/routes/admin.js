@@ -38,6 +38,26 @@ function col(row, ...keys) {
   return undefined;
 }
 
+function getSectionFromRegNo(regNo) {
+  if (!regNo) return "J";
+  const r = String(regNo).trim();
+  if (r === "230301180026") return "I";
+  
+  if (r.startsWith("230301120")) {
+     const num = parseInt(r.slice(-3), 10);
+     if (num >= 1 && num <= 60) return "A";
+     if (num >= 61 && num <= 120) return "B";
+     if (num >= 121 && num <= 180) return "C";
+     if (num >= 181 && num <= 240) return "D";
+     if (num >= 241 && num <= 300) return "E";
+     if (num >= 301 && num <= 360) return "F";
+     if (num >= 361 && num <= 420) return "G";
+     if (num >= 421 && num <= 480) return "H";
+     if (num >= 481 && num <= 549) return "I";
+  }
+  return "J";
+}
+
 // Helper to generate rankings for a specific semester
 async function generateRankingForSemester(semester) {
   const results = await SemesterResult.find({ semester: Number(semester) });
@@ -78,14 +98,36 @@ async function generateRankingForSemester(semester) {
     });
 
     const byBranch = {};
+    const bySection = {};
     studentData.forEach((s) => {
       if (!byBranch[s.branch]) byBranch[s.branch] = [];
       byBranch[s.branch].push(s);
+
+      if (s.branch === "CSE") {
+        const sec = getSectionFromRegNo(s.regNo);
+        if (!bySection[sec]) bySection[sec] = [];
+        bySection[sec].push(s);
+      }
     });
+
     Object.values(byBranch).forEach((group) => {
       sortByScore(group, "sgpa", "cgpa");
       assignCompetitionRanks(group, "sgpa", "deptRank");
+      
+      sortByScore(group, "cgpa", "sgpa");
+      assignCompetitionRanks(group, "cgpa", "deptCgpaRank");
+
       group.forEach((s) => (s.deptStudents = group.length));
+    });
+
+    Object.values(bySection).forEach((group) => {
+      sortByScore(group, "sgpa", "cgpa");
+      assignCompetitionRanks(group, "sgpa", "sectionSgpaRank");
+
+      sortByScore(group, "cgpa", "sgpa");
+      assignCompetitionRanks(group, "cgpa", "sectionCgpaRank");
+
+      group.forEach((s) => (s.sectionStudents = group.length));
     });
 
     if (studentData.length > 0) {
