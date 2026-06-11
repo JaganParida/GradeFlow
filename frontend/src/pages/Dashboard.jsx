@@ -789,55 +789,43 @@ export default function Dashboard() {
         );
       })()}
 
-      {/* Semester Selector */}
-      <div style={{ marginBottom: 20 }}>
-        <div style={{ display: "inline-flex", gap: 3, background: "rgba(255,255,255,0.03)", padding: "5px", borderRadius: 16, border: "1px solid var(--border)", flexWrap: "wrap", maxWidth: "100%" }}>
+      {/* Navigation Controls */}
+      <div className="dashboard-nav-controls">
+        {/* Semester Selector */}
+        <div className="tabs">
           {results.map((r) => (
-            <motion.button
-              whileTap={{ scale: 0.93 }}
+            <button
               key={r.semester}
+              className={`tab-btn ${selectedSem === r.semester ? "active" : ""}`}
               onClick={() => {
                 setSelectedSem(r.semester);
                 loadSemester(r.semester);
               }}
-              style={{
-                padding: "7px 18px",
-                borderRadius: 999,
-                border: "none",
-                background: selectedSem === r.semester ? "#2a2a2a" : "transparent",
-                color: selectedSem === r.semester ? "#f1f1f1" : "var(--text-muted)",
-                cursor: "pointer",
-                fontSize: 13,
-                fontWeight: 600,
-                transition: "all 0.2s",
-                boxShadow: selectedSem === r.semester ? "0 1px 6px rgba(0,0,0,0.5), inset 0 1px rgba(255,255,255,0.06)" : "none",
-                whiteSpace: "nowrap",
-              }}
             >
               Sem {r.semester}
-            </motion.button>
+            </button>
           ))}
         </div>
-      </div>
 
-      {/* Tabs */}
-      <div className="tabs" style={{ marginBottom: 24 }}>
-        {[
-          ["result", "Result", <FileText size={14} key="result" />],
-          ["internal", "Internal Marks", <FileEdit size={14} key="int" />],
-          ["history", "Semester History", <Calendar size={14} key="hist" />],
-          ["baskets", "Degree Progress", <Layout size={14} key="basket" />],
-          ["predictor", "Target Predictor", <Calculator size={14} key="pred" />],
-        ].map(([t, l, icon]) => (
-          <button
-            key={t}
-            className={`tab-btn ${tab === t ? "active" : ""}`}
-            onClick={() => setTab(t)}
-            style={{ display: "flex", alignItems: "center", gap: 6 }}
-          >
-            {icon} {l}
-          </button>
-        ))}
+        {/* Tabs */}
+        <div className="tabs">
+          {[
+            ["result", "Result", <FileText size={14} key="result" />],
+            ["internal", "Internal Marks", <FileEdit size={14} key="int" />],
+            ["history", "Semester History", <Calendar size={14} key="hist" />],
+            ["baskets", "Degree Progress", <Layout size={14} key="basket" />],
+            ["predictor", "Target Predictor", <Calculator size={14} key="pred" />],
+          ].map(([t, l, icon]) => (
+            <button
+              key={t}
+              className={`tab-btn ${tab === t ? "active" : ""}`}
+              onClick={() => setTab(t)}
+              style={{ display: "flex", alignItems: "center", gap: 6 }}
+            >
+              {icon} {l}
+            </button>
+          ))}
+        </div>
       </div>
 
       {loadingSem ? (
