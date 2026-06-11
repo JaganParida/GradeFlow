@@ -231,6 +231,11 @@ export const ADDITIONAL_BASKET_5_SUBJECTS = [
 
 export const BASKET_5_SKILL_COURSES = [
   {
+    "subCode": "CUTM3056",
+    "subName": "INTRODUCTION TO BLENDER AND UNITY TOOLS",
+    "credits": 4
+  },
+  {
     "subCode": "CUTM3105",
     "subName": "Introduction to Block Chain Technology",
     "credits": 4
