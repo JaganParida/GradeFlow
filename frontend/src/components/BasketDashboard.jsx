@@ -41,7 +41,7 @@ const BASKET_NAMES = {
   B2: "Humanities & Management",
   B3: "Smart Stack",
   B4: "Core Engineering",
-  B5: "Domain, Skills & Projects",
+  B5: "Domain, Skill, Internships, Minor Projects, NPTEL(if you done), Non- Departmental subjects",
   EX: "Additional Subjects",
 };
 
