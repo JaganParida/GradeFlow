@@ -182,9 +182,14 @@ export const generateBasketPDF = async (studentData) => {
                 rows.push(row);
             }
     
+            const isYearEmpty = subsA.length === 0 && subsB.length === 0;
+
+            const tA = subsA.length === 0 ? ["", "", "", "", "", ""] : [totA.b1, totA.b2, totA.b3, totA.b4, totA.b5, totA.gt];
+            const tB = subsB.length === 0 ? ["", "", "", "", "", ""] : [totB.b1, totB.b2, totB.b3, totB.b4, totB.b5, totB.gt];
+
             rows.push([
-                "", "", { content: "Total", styles: { fontStyle: 'bold' } }, totA.b1, totA.b2, totA.b3, totA.b4, totA.b5, totA.gt,
-                "", "", { content: "Total", styles: { fontStyle: 'bold' } }, totB.b1, totB.b2, totB.b3, totB.b4, totB.b5, totB.gt
+                "", "", { content: "Total", styles: { fontStyle: 'bold' } }, ...tA,
+                "", "", { content: "Total", styles: { fontStyle: 'bold' } }, ...tB
             ]);
     
             cumTotalsObj.b1 += totA.b1 + totB.b1;
@@ -193,14 +198,12 @@ export const generateBasketPDF = async (studentData) => {
             cumTotalsObj.b4 += totA.b4 + totB.b4;
             cumTotalsObj.b5 += totA.b5 + totB.b5;
             cumTotalsObj.gt += totA.gt + totB.gt;
-    
-            const isYearEmpty = subsA.length === 0 && subsB.length === 0;
 
             if (isYearEmpty) {
                 rows.push([
                     "", "", "", "", "", "", "", "", "", // Left side blank
                     { content: cumLabel, colSpan: 3, styles: { fontStyle: 'bold' } },
-                    0, 0, 0, 0, 0, 0
+                    "", "", "", "", "", ""
                 ]);
             } else {
                 rows.push([
