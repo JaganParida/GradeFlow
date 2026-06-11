@@ -335,7 +335,7 @@ h1, h2, h3, h4, h5, h6 {
 
 /* ── Tabs (Premium Pill Style) ─────────────────────────────── */
 .tabs {
-  display: flex;
+  display: inline-flex;
   flex-wrap: wrap;
   gap: 4px;
   background: rgba(255,255,255,0.03);
