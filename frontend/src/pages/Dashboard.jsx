@@ -997,7 +997,7 @@ export default function Dashboard() {
                 <h3 style={{ fontSize: 16, fontWeight: 700, marginBottom: 2 }}>Semester History</h3>
                 <p style={{ color: "#aaaaaa", fontSize: 13 }}>Click any semester to view its result</p>
               </div>
-              <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+              <div className="history-cards-grid">
                 {results.map((r, i) => {
                   const liveSGPA = typeof r.sgpa === 'number' ? r.sgpa : calcSGPAFromSubjects(r.subjects, r.semester);
                   const sgpaColor = liveSGPA >= 9 ? "var(--success)" : liveSGPA >= 7 ? "#f1f1f1" : "var(--warning)";

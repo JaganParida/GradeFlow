@@ -1588,7 +1588,7 @@ input[type="number"].no-spin-button {
     justify-content: center;
   }
   .tab-btn {
-    flex: 1 1 auto;
+    flex: 0 0 calc(50% - 3px);
     padding: 10px 12px;
     font-size: 13px;
     justify-content: center;
@@ -1680,5 +1680,25 @@ input[type="number"].no-spin-button {
   .gradesheet-toolbar-zoom {
     width: 100%;
     justify-content: space-between;
+  }
+}
+
+
+/* ── Semester History Grid ───────────────────────────────────── */
+.history-cards-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 12px;
+}
+
+@media (min-width: 768px) {
+  .history-cards-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (min-width: 1024px) {
+  .history-cards-grid {
+    grid-template-columns: repeat(3, 1fr);
   }
 }
