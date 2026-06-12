@@ -491,7 +491,7 @@ export default function Dashboard() {
       </div>
 
       {/* Stats */}
-      <div className="grid-4" style={{ order: isMobile ? 3 : 2, marginBottom: 28, width: "100%" }}>
+      <div className="grid-4" style={{ marginBottom: 28 }}>
         <motion.div whileHover={{ y: -4 }} className="stat-card">
           <span className="label">Latest SGPA</span>
           <span className="value" style={{ color: "var(--accent)" }}>
@@ -788,8 +788,6 @@ export default function Dashboard() {
           </motion.div>
         );
       })()}
-      </div>
-
 
       {/* Navigation Controls */}
       <div className="dashboard-nav-controls">
@@ -1102,8 +1100,6 @@ export default function Dashboard() {
           {tab === "predictor" && <TargetPredictor />}
         </motion.div>
       )}
-      </div>
-
 
       {/* Hidden container for Batch PDF Export */}
       <div style={{ position: "fixed", top: 0, left: "200vw", zIndex: -9999, pointerEvents: "none" }}>
@@ -1116,5 +1112,3 @@ export default function Dashboard() {
     </motion.div>
   );
 }
-      </div>
-
