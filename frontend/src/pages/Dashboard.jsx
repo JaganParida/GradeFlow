@@ -801,7 +801,7 @@ export default function Dashboard() {
       })()}
 
       {/* Navigation Controls */}
-      <div className="dashboard-nav-controls">
+      <div className="dashboard-nav-controls" ref={tabsRef}>
         {/* Semester Selector */}
         <div className="tabs">
           {results.map((r) => (
@@ -1134,10 +1134,10 @@ export default function Dashboard() {
           }}
           style={{
             position: 'fixed',
-            bottom: 80,
+            bottom: 'calc(90px + env(safe-area-inset-bottom))',
             left: '50%',
             transform: 'translateX(-50%)',
-            zIndex: 99,
+            zIndex: 1100,
             background: 'var(--accent)',
             color: '#fff',
             border: 'none',
