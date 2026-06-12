@@ -4,7 +4,7 @@ import axios from "axios";
 import { useApp } from "../context/AppContext";
 import { Spinner } from "../components/LoadingSpinner";
 import { motion, AnimatePresence } from "framer-motion";
-import { Upload, Trash2, Settings, Users, FileText, FileEdit, Trophy, AlertTriangle, CheckCircle, FileSpreadsheet, LogOut, Database, CloudUpload } from "lucide-react";
+import { Upload, Trash2, Settings, Users, FileText, FileEdit, Trophy, AlertTriangle, CheckCircle, FileSpreadsheet, LogOut, Database, CloudUpload, MessageSquare, Edit2, X } from "lucide-react";
 
 function UploadCard({
   title,
@@ -337,6 +337,117 @@ function DeleteRecordCard({ authHeaders, API, onSuccess }) {
   );
 }
 
+function FeedbackManager({ authHeaders, API }) {
+  const [feedbacks, setFeedbacks] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [editingId, setEditingId] = useState(null);
+  const [editForm, setEditForm] = useState({});
+  const [msg, setMsg] = useState("");
+  const [err, setErr] = useState("");
+
+  useEffect(() => {
+    fetchFeedbacks();
+  }, []);
+
+  async function fetchFeedbacks() {
+    try {
+      const { data } = await axios.get(`${API}/feedback`);
+      setFeedbacks(data);
+    } catch (e) {
+      setErr("Failed to load feedbacks");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function handleDelete(id) {
+    if (!window.confirm("Are you sure you want to delete this feedback?")) return;
+    try {
+      await axios.delete(`${API}/feedback/${id}`, authHeaders);
+      setMsg("Feedback deleted successfully");
+      fetchFeedbacks();
+      setTimeout(() => setMsg(""), 3000);
+    } catch (e) {
+      setErr(e.response?.data?.message || "Failed to delete");
+    }
+  }
+
+  function startEdit(fb) {
+    setEditingId(fb._id);
+    setEditForm({ name: fb.name, regNo: fb.regNo || "", rating: fb.rating, comment: fb.comment });
+  }
+
+  async function handleUpdate(e) {
+    e.preventDefault();
+    try {
+      await axios.put(`${API}/feedback/${editingId}`, editForm, authHeaders);
+      setMsg("Feedback updated successfully");
+      setEditingId(null);
+      fetchFeedbacks();
+      setTimeout(() => setMsg(""), 3000);
+    } catch (e) {
+      setErr(e.response?.data?.message || "Failed to update");
+    }
+  }
+
+  if (loading) return <div>Loading feedbacks...</div>;
+
+  return (
+    <div className="card">
+      <h3 style={{ fontWeight: 700, marginBottom: 16, display: "flex", alignItems: "center", gap: 8 }}>
+        <MessageSquare size={18} /> Manage Feedback
+      </h3>
+      
+      <AnimatePresence>
+        {err && <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} style={{ color: "var(--danger)", fontSize: 13, marginBottom: 10 }}>{err}</motion.p>}
+        {msg && <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} style={{ color: "var(--success)", fontSize: 13, marginBottom: 10 }}>{msg}</motion.p>}
+      </AnimatePresence>
+
+      <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+        {feedbacks.length === 0 ? (
+          <p style={{ color: "var(--secondary)", fontSize: 13 }}>No feedback found.</p>
+        ) : (
+          feedbacks.map(fb => (
+            <div key={fb._id} style={{ border: "1px solid var(--border)", borderRadius: 8, padding: 16, background: "var(--bg-secondary)" }}>
+              {editingId === fb._id ? (
+                <form onSubmit={handleUpdate} style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                  <input type="text" value={editForm.name} onChange={e => setEditForm({...editForm, name: e.target.value})} placeholder="Name" required />
+                  <input type="text" value={editForm.regNo} onChange={e => setEditForm({...editForm, regNo: e.target.value})} placeholder="Reg No" />
+                  <input type="number" min="1" max="5" value={editForm.rating} onChange={e => setEditForm({...editForm, rating: e.target.value})} placeholder="Rating (1-5)" required />
+                  <textarea value={editForm.comment} onChange={e => setEditForm({...editForm, comment: e.target.value})} placeholder="Comment" required style={{ minHeight: 80, padding: 10, borderRadius: 8, border: "1px solid var(--border)", background: "var(--bg-input)", color: "var(--text-primary)" }} />
+                  <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
+                    <button type="submit" className="btn btn-primary" style={{ padding: "8px 16px" }}>Save</button>
+                    <button type="button" className="btn" onClick={() => setEditingId(null)} style={{ padding: "8px 16px" }}>Cancel</button>
+                  </div>
+                </form>
+              ) : (
+                <>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 8 }}>
+                    <div>
+                      <strong style={{ fontSize: 15 }}>{fb.name}</strong>
+                      {fb.regNo && <span style={{ color: "var(--secondary)", fontSize: 12, marginLeft: 8 }}>({fb.regNo})</span>}
+                    </div>
+                    <div style={{ display: "flex", gap: 8 }}>
+                      <button onClick={() => startEdit(fb)} style={{ background: "transparent", border: "none", color: "var(--accent)", cursor: "pointer", display: "flex", alignItems: "center", gap: 4 }}><Edit2 size={14} /> Edit</button>
+                      <button onClick={() => handleDelete(fb._id)} style={{ background: "transparent", border: "none", color: "var(--danger)", cursor: "pointer", display: "flex", alignItems: "center", gap: 4 }}><Trash2 size={14} /> Delete</button>
+                    </div>
+                  </div>
+                  <div style={{ display: "flex", alignItems: "center", gap: 4, marginBottom: 8 }}>
+                    {Array.from({ length: 5 }).map((_, i) => (
+                      <span key={i} style={{ color: i < fb.rating ? "#f59e0b" : "var(--border)", fontSize: 14 }}>★</span>
+                    ))}
+                  </div>
+                  <p style={{ fontSize: 14, color: "var(--text-secondary)", lineHeight: 1.5 }}>{fb.comment}</p>
+                </>
+              )}
+            </div>
+          ))
+        )}
+      </div>
+    </div>
+  );
+}
+
 export default function AdminDashboard() {
   const { adminToken, adminLogout, authHeaders, API } = useApp();
   const navigate = useNavigate();
@@ -501,6 +612,7 @@ export default function AdminDashboard() {
           ["overview", "Upload Results", <CloudUpload size={14} key="ov" />],
           ["rankings", "Rankings", <Trophy size={14} key="ra" />],
           ["manage", "Manage Records", <Database size={14} key="ma" />],
+          ["feedback", "Feedback", <MessageSquare size={14} key="fb" />],
         ].map(([t, l, icon]) => (
           <button
             key={t}
@@ -792,6 +904,13 @@ export default function AdminDashboard() {
             API={API}
             onSuccess={fetchStats}
           />
+        </div>
+      )}
+
+      {/* Feedback Tab */}
+      {tab === "feedback" && (
+        <div style={{ maxWidth: 800 }}>
+          <FeedbackManager authHeaders={authHeaders} API={API} />
         </div>
       )}
 

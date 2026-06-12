@@ -55,4 +55,42 @@ router.post("/:id/like", async (req, res) => {
   }
 });
 
+// PUT /api/feedback/:id - Update a feedback
+router.put("/:id", async (req, res) => {
+  try {
+    const { name, regNo, rating, comment } = req.body;
+    const feedback = await Feedback.findById(req.params.id);
+    if (!feedback) {
+      return res.status(404).json({ message: "Feedback not found" });
+    }
+    
+    if (name) feedback.name = name;
+    if (regNo) feedback.regNo = regNo;
+    if (rating) feedback.rating = rating;
+    if (comment) feedback.comment = comment;
+    
+    const updatedFeedback = await feedback.save();
+    res.json(updatedFeedback);
+  } catch (error) {
+    console.error("Error updating feedback:", error);
+    res.status(500).json({ message: "Server Error updating feedback" });
+  }
+});
+
+// DELETE /api/feedback/:id - Delete a feedback
+router.delete("/:id", async (req, res) => {
+  try {
+    const feedback = await Feedback.findById(req.params.id);
+    if (!feedback) {
+      return res.status(404).json({ message: "Feedback not found" });
+    }
+    
+    await feedback.deleteOne();
+    res.json({ message: "Feedback deleted successfully" });
+  } catch (error) {
+    console.error("Error deleting feedback:", error);
+    res.status(500).json({ message: "Server Error deleting feedback" });
+  }
+});
+
 module.exports = router;
