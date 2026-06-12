@@ -1584,13 +1584,13 @@ input[type="number"].no-spin-button {
   .tabs {
     flex-wrap: wrap;
     width: 100%;
-    gap: 1px;
+    gap: 6px;
     justify-content: center;
   }
   .tab-btn {
-    flex: 1 1 30%;
-    padding: 6px 4px;
-    font-size: 12px;
+    flex: 1 1 auto;
+    padding: 10px 12px;
+    font-size: 13px;
     justify-content: center;
   }
 }
