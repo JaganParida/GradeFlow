@@ -1122,7 +1122,7 @@ export default function Dashboard() {
         ))}
       </div>
     
-            {/* Floating Quick Navigation Button */}
+                  {/* Floating Quick Navigation Button */}
       <AnimatePresence>
       {!tabsVisible && isMobile && !isNavSheetOpen && (
         <motion.button
@@ -1135,22 +1135,24 @@ export default function Dashboard() {
           style={{
             position: 'fixed',
             bottom: 'calc(90px + env(safe-area-inset-bottom))',
-            right: 24,
+            right: 20,
             zIndex: 1100,
-            background: 'var(--accent)',
-            color: '#0f0f0f',
-            border: 'none',
-            width: 56,
-            height: 56,
-            borderRadius: 28,
-            boxShadow: '0 8px 24px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.1)',
+            background: 'rgba(15,15,15,0.85)',
+            backdropFilter: 'blur(24px)',
+            WebkitBackdropFilter: 'blur(24px)',
+            color: 'rgba(255,255,255,0.9)',
+            border: '1px solid rgba(255,255,255,0.12)',
+            width: 48,
+            height: 48,
+            borderRadius: 24,
+            boxShadow: '0 8px 32px rgba(0,0,0,0.6)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
             cursor: 'pointer',
           }}
         >
-          <List size={24} />
+          <List size={20} />
         </motion.button>
       )}
       </AnimatePresence>
@@ -1175,53 +1177,90 @@ export default function Dashboard() {
               transition={{ type: "spring", stiffness: 320, damping: 32 }}
             >
               <div className="mobile-bottom-sheet-grabber" />
-              <div className="mobile-bottom-sheet-head">
-                <h3>Quick Navigation</h3>
+              <div className="mobile-bottom-sheet-head" style={{ marginBottom: 20 }}>
+                <h3>Navigation</h3>
                 <button type="button" className="mobile-bottom-sheet-close" onClick={() => setIsNavSheetOpen(false)}>
                   <X size={18} />
                 </button>
               </div>
               
-              <div style={{ marginTop: 16 }}>
-                <p style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 8, fontWeight: 800, letterSpacing: 1 }}>SEMESTER</p>
-                <div className="tabs" style={{ flexWrap: 'wrap', marginBottom: 24, gap: 6 }}>
-                  {results.map((r) => (
+              <div style={{ marginTop: 8 }}>
+                <p style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 12, fontWeight: 700, letterSpacing: 1, paddingLeft: 4 }}>SEMESTER</p>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8, marginBottom: 28 }}>
+                  {results.map((r) => {
+                    const isActive = selectedSem === r.semester;
+                    return (
                     <button
                       key={r.semester}
-                      className={`tab-btn ${selectedSem === r.semester ? "active" : ""}`}
                       onClick={() => {
                         setSelectedSem(r.semester);
                         loadSemester(r.semester);
                         setIsNavSheetOpen(false);
                       }}
-                      style={{ margin: 0 }}
+                      style={{
+                        padding: '12px 0',
+                        borderRadius: 14,
+                        border: isActive ? '1px solid var(--accent)' : '1px solid rgba(255,255,255,0.06)',
+                        background: isActive ? 'rgba(255,255,255,0.08)' : 'rgba(255,255,255,0.03)',
+                        color: isActive ? 'var(--accent)' : 'var(--text)',
+                        fontSize: 14,
+                        fontWeight: 700,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        cursor: 'pointer',
+                        transition: 'all 0.2s',
+                      }}
                     >
-                      Sem {r.semester}
+                      {r.semester}
                     </button>
-                  ))}
+                  )})}
                 </div>
 
-                <p style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 8, fontWeight: 800, letterSpacing: 1 }}>SECTIONS</p>
-                <div className="tabs" style={{ flexWrap: 'wrap', gap: 6 }}>
+                <p style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 12, fontWeight: 700, letterSpacing: 1, paddingLeft: 4 }}>VIEWS</p>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                   {[
-                    ["result", "Result", <FileText size={14} key="result" />],
-                    ["internal", "Internal Marks", <FileEdit size={14} key="int" />],
-                    ["history", "Semester History", <Calendar size={14} key="hist" />],
-                    ["baskets", "Degree Progress", <Layout size={14} key="basket" />],
-                    ["predictor", "Target Predictor", <Calculator size={14} key="pred" />],
-                  ].map(([t, l, icon]) => (
+                    ["result", "Result", <FileText size={18} key="result" />],
+                    ["internal", "Internal Marks", <FileEdit size={18} key="int" />],
+                    ["history", "Semester History", <Calendar size={18} key="hist" />],
+                    ["baskets", "Degree Progress", <Layout size={18} key="basket" />],
+                    ["predictor", "Target Predictor", <Calculator size={18} key="pred" />],
+                  ].map(([t, l, icon]) => {
+                    const isActive = tab === t;
+                    return (
                     <button
                       key={t}
-                      className={`tab-btn ${tab === t ? "active" : ""}`}
                       onClick={() => {
                         setTab(t);
                         setIsNavSheetOpen(false);
                       }}
-                      style={{ display: "flex", alignItems: "center", gap: 6, margin: 0 }}
+                      style={{ 
+                        width: '100%',
+                        display: 'flex', 
+                        alignItems: 'center', 
+                        gap: 14,
+                        padding: '16px',
+                        borderRadius: 16,
+                        border: isActive ? '1px solid rgba(255,255,255,0.15)' : '1px solid rgba(255,255,255,0.04)',
+                        background: isActive ? 'rgba(255,255,255,0.08)' : 'rgba(255,255,255,0.02)',
+                        color: isActive ? '#fff' : 'rgba(255,255,255,0.7)',
+                        fontSize: 15,
+                        fontWeight: isActive ? 700 : 500,
+                        cursor: 'pointer',
+                        transition: 'all 0.2s',
+                      }}
                     >
-                      {icon} {l}
+                      <div style={{ 
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        width: 36, height: 36, borderRadius: 10,
+                        background: isActive ? 'var(--accent)' : 'rgba(255,255,255,0.06)',
+                        color: isActive ? '#000' : 'var(--text)',
+                      }}>
+                        {icon}
+                      </div>
+                      {l}
                     </button>
-                  ))}
+                  )})}
                 </div>
               </div>
             </motion.div>

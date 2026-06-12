@@ -965,7 +965,7 @@ export default function Analytics() {
       )}
 
       </motion.div>
-            {/* Floating Quick Navigation Button */}
+                  {/* Floating Quick Navigation Button */}
       <AnimatePresence>
       {!tabsVisible && isMobile && !isNavSheetOpen && (
         <motion.button
@@ -978,22 +978,24 @@ export default function Analytics() {
           style={{
             position: 'fixed',
             bottom: 'calc(90px + env(safe-area-inset-bottom))',
-            right: 24,
+            right: 20,
             zIndex: 1100,
-            background: 'var(--accent)',
-            color: '#0f0f0f',
-            border: 'none',
-            width: 56,
-            height: 56,
-            borderRadius: 28,
-            boxShadow: '0 8px 24px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.1)',
+            background: 'rgba(15,15,15,0.85)',
+            backdropFilter: 'blur(24px)',
+            WebkitBackdropFilter: 'blur(24px)',
+            color: 'rgba(255,255,255,0.9)',
+            border: '1px solid rgba(255,255,255,0.12)',
+            width: 48,
+            height: 48,
+            borderRadius: 24,
+            boxShadow: '0 8px 32px rgba(0,0,0,0.6)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
             cursor: 'pointer',
           }}
         >
-          <List size={24} />
+          <List size={20} />
         </motion.button>
       )}
       </AnimatePresence>
@@ -1018,34 +1020,57 @@ export default function Analytics() {
               transition={{ type: "spring", stiffness: 320, damping: 32 }}
             >
               <div className="mobile-bottom-sheet-grabber" />
-              <div className="mobile-bottom-sheet-head">
-                <h3>Quick Navigation</h3>
+              <div className="mobile-bottom-sheet-head" style={{ marginBottom: 20 }}>
+                <h3>Navigation</h3>
                 <button type="button" className="mobile-bottom-sheet-close" onClick={() => setIsNavSheetOpen(false)}>
                   <X size={18} />
                 </button>
               </div>
               
-              <div style={{ marginTop: 16 }}>
-                <p style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 8, fontWeight: 800, letterSpacing: 1 }}>SECTIONS</p>
-                <div className="tabs" style={{ flexWrap: 'wrap', gap: 6 }}>
+              <div style={{ marginTop: 8 }}>
+                <p style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 12, fontWeight: 700, letterSpacing: 1, paddingLeft: 4 }}>ANALYTICS VIEWS</p>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                   {[
-                    ["overview", "Overview", <BarChart2 size={14} key="ov" />],
-                    ["predictor", "Predictor", <Target size={14} key="pr" />],
-                    ["whatif", "What-If", <PieChart size={14} key="wi" />],
-                    ["placement", "Placement", <Briefcase size={14} key="pl" />],
-                  ].map(([t, l, icon]) => (
+                    ["overview", "Overview", <BarChart2 size={18} key="ov" />],
+                    ["predictor", "Predictor", <Target size={18} key="pr" />],
+                    ["whatif", "What-If", <PieChart size={18} key="wi" />],
+                    ["placement", "Placement", <Briefcase size={18} key="pl" />],
+                  ].map(([t, l, icon]) => {
+                    const isActive = tab === t;
+                    return (
                     <button
                       key={t}
-                      className={`tab-btn ${tab === t ? "active" : ""}`}
                       onClick={() => {
                         setTab(t);
                         setIsNavSheetOpen(false);
                       }}
-                      style={{ display: "flex", alignItems: "center", gap: 6, margin: 0 }}
+                      style={{ 
+                        width: '100%',
+                        display: 'flex', 
+                        alignItems: 'center', 
+                        gap: 14,
+                        padding: '16px',
+                        borderRadius: 16,
+                        border: isActive ? '1px solid rgba(255,255,255,0.15)' : '1px solid rgba(255,255,255,0.04)',
+                        background: isActive ? 'rgba(255,255,255,0.08)' : 'rgba(255,255,255,0.02)',
+                        color: isActive ? '#fff' : 'rgba(255,255,255,0.7)',
+                        fontSize: 15,
+                        fontWeight: isActive ? 700 : 500,
+                        cursor: 'pointer',
+                        transition: 'all 0.2s',
+                      }}
                     >
-                      {icon} {l}
+                      <div style={{ 
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        width: 36, height: 36, borderRadius: 10,
+                        background: isActive ? 'var(--accent)' : 'rgba(255,255,255,0.06)',
+                        color: isActive ? '#000' : 'var(--text)',
+                      }}>
+                        {icon}
+                      </div>
+                      {l}
                     </button>
-                  ))}
+                  )})}
                 </div>
               </div>
             </motion.div>
