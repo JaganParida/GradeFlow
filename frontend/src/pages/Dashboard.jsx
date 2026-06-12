@@ -1177,7 +1177,7 @@ export default function Dashboard() {
               transition={{ type: "spring", stiffness: 320, damping: 32 }}
             >
               <div className="mobile-bottom-sheet-grabber" />
-              <div className="mobile-bottom-sheet-head" style={{ marginBottom: 20 }}>
+              <div className="mobile-bottom-sheet-head" style={{ marginBottom: 12 }}>
                 <h3>Navigation</h3>
                 <button type="button" className="mobile-bottom-sheet-close" onClick={() => setIsNavSheetOpen(false)}>
                   <X size={18} />
@@ -1186,7 +1186,7 @@ export default function Dashboard() {
               
               <div style={{ marginTop: 8 }}>
                 <p style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 12, fontWeight: 700, letterSpacing: 1, paddingLeft: 4 }}>SEMESTER</p>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8, marginBottom: 28 }}>
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 6, marginBottom: 16 }}>
                   {results.map((r) => {
                     const isActive = selectedSem === r.semester;
                     return (
@@ -1196,7 +1196,7 @@ export default function Dashboard() {
                         setSelectedSem(r.semester); loadSemester(r.semester); setIsNavSheetOpen(false); setTimeout(() => { if (tabsRef.current) { const y = tabsRef.current.getBoundingClientRect().top + window.scrollY - 80; window.scrollTo({ top: y, behavior: 'smooth' }); } }, 150);
                       }}
                       style={{
-                        padding: '12px 0',
+                        padding: '10px 0',
                         borderRadius: 14,
                         border: isActive ? '1px solid var(--accent)' : '1px solid rgba(255,255,255,0.06)',
                         background: isActive ? 'rgba(255,255,255,0.08)' : 'rgba(255,255,255,0.03)',
@@ -1216,7 +1216,7 @@ export default function Dashboard() {
                 </div>
 
                 <p style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 12, fontWeight: 700, letterSpacing: 1, paddingLeft: 4 }}>VIEWS</p>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
                   {[
                     ["result", "Result", <FileText size={18} key="result" />],
                     ["internal", "Internal Marks", <FileEdit size={18} key="int" />],
@@ -1235,9 +1235,9 @@ export default function Dashboard() {
                         width: '100%',
                         display: 'flex', 
                         alignItems: 'center', 
-                        gap: 14,
-                        padding: '16px',
-                        borderRadius: 16,
+                        gap: 12,
+                        padding: '10px 14px',
+                        borderRadius: 14,
                         border: isActive ? '1px solid rgba(255,255,255,0.15)' : '1px solid rgba(255,255,255,0.04)',
                         background: isActive ? 'rgba(255,255,255,0.08)' : 'rgba(255,255,255,0.02)',
                         color: isActive ? '#fff' : 'rgba(255,255,255,0.7)',
@@ -1249,7 +1249,7 @@ export default function Dashboard() {
                     >
                       <div style={{ 
                         display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        width: 36, height: 36, borderRadius: 10,
+                        width: 32, height: 32, borderRadius: 8,
                         background: isActive ? 'var(--accent)' : 'rgba(255,255,255,0.06)',
                         color: isActive ? '#000' : 'var(--text)',
                       }}>
