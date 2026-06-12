@@ -53,7 +53,10 @@ export default function Leaderboard() {
           f.section = initSection;
         }
 
-        if (initTab === "cgpa") {
+        const initSemester = params.get("semester");
+        if (initSemester) {
+          f.semester = initSemester;
+        } else if (initTab === "cgpa") {
           f.sortBy = "cgpa";
           f.semester = "";
         } else if (r.data.semesters?.length > 0) {

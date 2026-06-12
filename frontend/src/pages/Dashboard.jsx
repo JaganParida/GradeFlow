@@ -707,7 +707,7 @@ export default function Dashboard() {
           >
             <div
               className="rank-strip-item"
-              onClick={() => isCgpaTop50 && navigate(`/leaderboard?highlight=${regNo}&tab=cgpa`)}
+              onClick={() => isCgpaTop50 && navigate(`/leaderboard?highlight=${regNo}&tab=cgpa&semester=${selectedSem}`)}
               style={{ cursor: isCgpaTop50 ? "pointer" : "default" }}
               title={semesterRanking && !isCgpaTop50 ? "Rank must be ≤50 to view on Leaderboard" : ""}
             >
@@ -719,7 +719,7 @@ export default function Dashboard() {
             </div>
             <div
               className="rank-strip-item"
-              onClick={() => isSgpaTop50 && navigate(`/leaderboard?highlight=${regNo}&tab=sgpa`)}
+              onClick={() => isSgpaTop50 && navigate(`/leaderboard?highlight=${regNo}&tab=sgpa&semester=${selectedSem}`)}
               style={{ cursor: isSgpaTop50 ? "pointer" : "default" }}
               title={semesterRanking && !isSgpaTop50 ? "Rank must be ≤50 to view on Leaderboard" : ""}
             >
@@ -732,7 +732,7 @@ export default function Dashboard() {
             
             <div
               className="rank-strip-item"
-              onClick={() => navigate(`/leaderboard?highlight=${regNo}&branch=${branch}&tab=cgpa`)}
+              onClick={() => navigate(`/leaderboard?highlight=${regNo}&branch=${branch}&tab=cgpa&semester=${selectedSem}`)}
               style={{ cursor: "pointer" }}
               title="View Branch CGPA Leaderboard"
             >
@@ -745,7 +745,7 @@ export default function Dashboard() {
 
             <div
               className="rank-strip-item"
-              onClick={() => navigate(`/leaderboard?highlight=${regNo}&branch=${branch}&tab=sgpa`)}
+              onClick={() => navigate(`/leaderboard?highlight=${regNo}&branch=${branch}&tab=sgpa&semester=${selectedSem}`)}
               style={{ cursor: "pointer" }}
               title="View Branch SGPA Leaderboard"
             >
@@ -760,7 +760,7 @@ export default function Dashboard() {
               <>
                 <div
                   className="rank-strip-item"
-                  onClick={() => navigate(`/leaderboard?highlight=${regNo}&branch=${branch}&section=${section}&tab=cgpa`)}
+                  onClick={() => navigate(`/leaderboard?highlight=${regNo}&branch=${branch}&section=${section}&tab=cgpa&semester=${selectedSem}`)}
                   style={{ cursor: "pointer" }}
                   title="View Section CGPA Leaderboard"
                 >
@@ -773,7 +773,7 @@ export default function Dashboard() {
 
                 <div
                   className="rank-strip-item"
-                  onClick={() => navigate(`/leaderboard?highlight=${regNo}&branch=${branch}&section=${section}&tab=sgpa`)}
+                  onClick={() => navigate(`/leaderboard?highlight=${regNo}&branch=${branch}&section=${section}&tab=sgpa&semester=${selectedSem}`)}
                   style={{ cursor: "pointer" }}
                   title="View Section SGPA Leaderboard"
                 >
@@ -1169,7 +1169,7 @@ export default function Dashboard() {
             width: 48,
             height: 48,
             borderRadius: 24,
-            boxShadow: '0 8px 32px rgba(0,0,0,0.6)',
+            boxShadow: '0 4px 20px rgba(0,0,0,0.4)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
@@ -1198,7 +1198,7 @@ export default function Dashboard() {
               initial={{ y: "100%" }}
               animate={{ y: 0 }}
               exit={{ y: "100%" }}
-              transition={{ type: "spring", stiffness: 320, damping: 32 }}
+              transition={{ type: "tween", ease: [0.32, 0.72, 0, 1], duration: 0.3 }}
             >
               <div className="mobile-bottom-sheet-grabber" />
               <div className="mobile-bottom-sheet-head" style={{ marginBottom: 12 }}>

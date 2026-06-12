@@ -988,7 +988,7 @@ export default function Analytics() {
             width: 48,
             height: 48,
             borderRadius: 24,
-            boxShadow: '0 8px 32px rgba(0,0,0,0.6)',
+            boxShadow: '0 4px 20px rgba(0,0,0,0.4)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
@@ -1017,7 +1017,7 @@ export default function Analytics() {
               initial={{ y: "100%" }}
               animate={{ y: 0 }}
               exit={{ y: "100%" }}
-              transition={{ type: "spring", stiffness: 320, damping: 32 }}
+              transition={{ type: "tween", ease: [0.32, 0.72, 0, 1], duration: 0.3 }}
             >
               <div className="mobile-bottom-sheet-grabber" />
               <div className="mobile-bottom-sheet-head" style={{ marginBottom: 16 }}>
