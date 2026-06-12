@@ -490,305 +490,6 @@ export default function Dashboard() {
         )}
       </div>
 
-      {/* Stats */}
-      <div className="grid-4" style={{ marginBottom: 28 }}>
-        <motion.div whileHover={{ y: -4 }} className="stat-card">
-          <span className="label">Latest SGPA</span>
-          <span className="value" style={{ color: "var(--accent)" }}>
-            {latestSgpa?.toFixed(2)}
-          </span>
-          <span className="sub">Semester {studentData.latestSemester}</span>
-        </motion.div>
-        <motion.div whileHover={{ y: -4 }} className="stat-card">
-          <span className="label">CGPA</span>
-          <span className="value" style={{ color: "#a855f7" }}>
-            {cgpa?.toFixed(2)}
-          </span>
-          <span className="sub">Cumulative GPA</span>
-        </motion.div>
-        <motion.div whileHover={{ y: -4 }} className="stat-card" style={{ position: "relative", overflow: "hidden" }}>
-          <span className="label">Credits Cleared</span>
-          <div style={{ display: "flex", alignItems: "baseline", gap: 4 }}>
-            <span className="value">{studentData.creditsCleared}</span>
-            <span style={{ fontSize: 16, color: "var(--text-muted)", fontWeight: 600 }}>
-              / {studentData.totalCredits}
-            </span>
-          </div>
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: 4 }}>
-            <span className="sub" style={{ margin: 0 }}>Up to Sem {studentData.latestSemester}</span>
-            <span style={{ fontSize: 10, background: "rgba(255,255,255,0.05)", padding: "2px 7px", borderRadius: 4, color: "var(--text-muted)", fontWeight: 700, border: "1px solid var(--border)" }}>Goal: 160</span>
-          </div>
-          <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, height: 3, background: "rgba(255,255,255,0.04)" }}>
-            <motion.div
-              initial={{ width: 0 }}
-              animate={{ width: `${Math.min((studentData.creditsCleared / 160) * 100, 100)}%` }}
-              transition={{ duration: 1.2, ease: "easeOut" }}
-              style={{ height: "100%", background: "linear-gradient(90deg, var(--accent), rgba(255,255,255,0.4))" }}
-            />
-          </div>
-        </motion.div>
-        <motion.div whileHover={{ y: -4 }} className="stat-card">
-          <span className="label">Academic Health</span>
-          <span className="value" style={{ color: healthColor }}>
-            {academicHealthScore}
-            <span style={{ fontSize: 16, color: "var(--text-muted)" }}>/100</span>
-          </span>
-          <span className="sub" style={{ color: healthColor, fontWeight: 700 }}>
-            {healthLabel}
-          </span>
-        </motion.div>
-      </div>
-
-      {/* Backlogs */}
-      {backlogs.length > 0 ? (
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          style={{
-            background: "rgba(239,68,68,0.05)",
-            border: "1px solid rgba(239,68,68,0.18)",
-            borderLeft: "3px solid var(--danger)",
-            borderRadius: "var(--radius-sm)",
-            padding: "14px 18px",
-            marginBottom: 24,
-          }}
-        >
-          <div
-            onClick={() => setIsBacklogsListExpanded(!isBacklogsListExpanded)}
-            style={{ display: "flex", justifyContent: "space-between", alignItems: "center", cursor: "pointer" }}
-          >
-            <p
-              style={{ color: "var(--danger)", fontWeight: 600, margin: 0, display: "flex", alignItems: "center", gap: 8, fontSize: 14 }}
-            >
-              <AlertTriangle size={16} /> {backlogs.length} Active Backlogs Found
-            </p>
-            {isBacklogsListExpanded ? <ChevronUp size={18} color="var(--danger)" /> : <ChevronDown size={18} color="var(--danger)" />}
-          </div>
-          
-          {isBacklogsListExpanded && (
-            <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 16, overflow: "hidden" }}>
-              {backlogs.map((b, i) => {
-                const isExpanded = expandedBacklog === i;
-                return (
-                  <motion.div
-                    key={i}
-                    style={{
-                      background: "var(--bg)",
-                      border: "1px solid var(--border)",
-                      borderRadius: 8,
-                      overflow: "hidden",
-                    }}
-                  >
-                    {/* Header (Click to expand) */}
-                    <div
-                      onClick={(e) => { e.stopPropagation(); setExpandedBacklog(isExpanded ? null : i); }}
-                      style={{
-                        padding: "12px 16px",
-                        cursor: "pointer",
-                        display: "flex",
-                        justifyContent: "space-between",
-                        alignItems: "center",
-                        gap: 12,
-                      }}
-                    >
-                      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                        <span style={{ fontWeight: 600, color: "var(--text)", fontSize: 14 }}>{b.subName}</span>
-                      </div>
-                      <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                        <span style={{ background: "rgba(255,255,255,0.1)", color: "var(--secondary)", padding: "2px 8px", borderRadius: 4, fontSize: 11, fontWeight: 700 }}>Sem {b.semester}</span>
-                        {isExpanded ? <ChevronUp size={16} color="var(--secondary)" /> : <ChevronDown size={16} color="var(--secondary)" />}
-                      </div>
-                    </div>
-
-                    {/* Expanded Content */}
-                    {isExpanded && (
-                      <motion.div
-                        initial={{ height: 0, opacity: 0 }}
-                        animate={{ height: "auto", opacity: 1 }}
-                        style={{ padding: "0 16px 16px 16px" }}
-                      >
-                        <div style={{ display: "flex", gap: 8, marginBottom: 12 }}>
-                          <span style={{ background: "rgba(255,255,255,0.05)", color: "var(--secondary)", border: "1px solid var(--border)", padding: "4px 10px", borderRadius: 4, fontSize: 12, fontWeight: 700 }}>{b.subCode}</span>
-                          <span style={{ background: "rgba(255,255,255,0.05)", color: "var(--secondary)", border: "1px solid var(--border)", padding: "4px 10px", borderRadius: 4, fontSize: 12, fontWeight: 700 }}>{b.credit} Credits</span>
-                        </div>
-                        
-                        <button
-                          className="btn btn-primary"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setTab("result");
-                            setSelectedSem(b.semester);
-                            loadSemester(b.semester);
-                            setHighlightedSubject(b.subCode);
-                            setTimeout(() => setHighlightedSubject(null), 3500);
-                            window.scrollTo({ top: document.body.scrollHeight, behavior: "smooth" });
-                          }}
-                          style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 13, padding: "8px 16px" }}
-                        >
-                          <Search size={14} /> Find in Report Card
-                        </button>
-                      </motion.div>
-                    )}
-                  </motion.div>
-                );
-              })}
-              
-              <div style={{ marginTop: 16, padding: "12px 16px", background: "rgba(255,165,0,0.08)", border: "1px solid rgba(255,165,0,0.2)", borderRadius: 8 }}>
-                <p style={{ fontSize: 13, color: "var(--warning)", display: "flex", alignItems: "flex-start", gap: 8, margin: 0, lineHeight: 1.5 }}>
-                  <Info size={16} style={{ flexShrink: 0, marginTop: 2 }} />
-                  <span>
-                    <strong>Disclaimer:</strong> If you think your backlog is cleared but this website shows this backlog, then it might happen because of missing excel data of your EOD/rechecking result. If you have this excel sheet, please contact the developer to get it updated.
-                  </span>
-                </p>
-                <div style={{ marginTop: 12, display: "flex", justifyContent: "flex-end" }}>
-                  <a 
-                    href="https://wa.me/919124540575?text=Hi%2C%20I%20have%20the%20excel%20sheet%20for%20this"
-                    target="_blank" 
-                    rel="noopener noreferrer"
-                    style={{ display: "inline-flex", alignItems: "center", gap: 6, background: "#25D366", color: "#fff", padding: "8px 16px", borderRadius: 20, fontSize: 13, fontWeight: 700, textDecoration: "none", transition: "transform 0.2s" }}
-                    onMouseOver={(e) => e.currentTarget.style.transform = "scale(1.05)"}
-                    onMouseOut={(e) => e.currentTarget.style.transform = "scale(1)"}
-                  >
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
-                      <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.888-.788-1.487-1.761-1.66-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z" />
-                    </svg>
-                    Contact via WhatsApp
-                  </a>
-                </div>
-              </div>
-            </motion.div>
-          )}
-
-        </motion.div>
-      ) : (
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          style={{
-            background: "rgba(34,197,94,0.06)",
-            border: "1px solid rgba(34,197,94,0.2)",
-            borderLeft: "3px solid var(--success)",
-            borderRadius: "var(--radius-sm)",
-            padding: "14px 18px",
-            marginBottom: 24,
-          }}
-        >
-          <p style={{ color: "var(--success)", fontWeight: 700, display: "flex", alignItems: "center", gap: 8, fontSize: 14 }}>
-            <CheckCircle size={17} /> ALL CLEAR — No Active Backlogs
-          </p>
-        </motion.div>
-      )}
-
-      {/* Ranking Strip */}
-      {(() => {
-        const cgpaRankNum = semesterRanking ? (semesterRanking.cgpaRank || semesterRanking.universityRank) : null;
-        const sgpaRankNum = semesterRanking ? (semesterRanking.sgpaRank || semesterRanking.universityRank) : null;
-        const isCgpaTop50 = cgpaRankNum && cgpaRankNum <= 50;
-        const isSgpaTop50 = sgpaRankNum && sgpaRankNum <= 50;
-        const section = getSectionFromRegNo(regNo);
-        return (
-          <motion.div
-            initial={{ opacity: 0, y: 8 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="rank-strip"
-            style={{ marginBottom: 24, opacity: semesterRanking ? 1 : 0.55 }}
-          >
-            <div
-              className="rank-strip-item"
-              onClick={() => isCgpaTop50 && navigate(`/leaderboard?highlight=${regNo}&tab=cgpa`)}
-              style={{ cursor: isCgpaTop50 ? "pointer" : "default" }}
-              title={semesterRanking && !isCgpaTop50 ? "Rank must be ≤50 to view on Leaderboard" : ""}
-            >
-              <div className="rank-strip-label">Univ CGPA Rank</div>
-              <div className="rank-strip-value" style={{ color: semesterRanking ? "var(--accent)" : "var(--text-muted)" }}>
-                {semesterRanking ? `#${cgpaRankNum}` : "—"}
-              </div>
-              <div className="rank-strip-sub">{semesterRanking ? `of ${semesterRanking.totalStudents} students` : "Not Generated"}</div>
-            </div>
-            <div
-              className="rank-strip-item"
-              onClick={() => isSgpaTop50 && navigate(`/leaderboard?highlight=${regNo}&tab=sgpa`)}
-              style={{ cursor: isSgpaTop50 ? "pointer" : "default" }}
-              title={semesterRanking && !isSgpaTop50 ? "Rank must be ≤50 to view on Leaderboard" : ""}
-            >
-              <div className="rank-strip-label">Univ SGPA Rank</div>
-              <div className="rank-strip-value" style={{ color: semesterRanking ? "#a855f7" : "var(--text-muted)" }}>
-                {semesterRanking ? `#${sgpaRankNum}` : "—"}
-              </div>
-              <div className="rank-strip-sub">{semesterRanking ? `of ${semesterRanking.totalStudents} students` : "Not Generated"}</div>
-            </div>
-            
-            <div
-              className="rank-strip-item"
-              onClick={() => navigate(`/leaderboard?highlight=${regNo}&branch=${branch}&tab=cgpa`)}
-              style={{ cursor: "pointer" }}
-              title="View Branch CGPA Leaderboard"
-            >
-              <div className="rank-strip-label">Branch CGPA Rank</div>
-              <div className="rank-strip-value" style={{ color: semesterRanking ? "#3ea6ff" : "var(--text-muted)" }}>
-                {semesterRanking && semesterRanking.deptCgpaRank ? `#${semesterRanking.deptCgpaRank}` : "—"}
-              </div>
-              <div className="rank-strip-sub">{semesterRanking && semesterRanking.deptStudents ? `of ${semesterRanking.deptStudents}` : "Not Generated"}</div>
-            </div>
-
-            <div
-              className="rank-strip-item"
-              onClick={() => navigate(`/leaderboard?highlight=${regNo}&branch=${branch}&tab=sgpa`)}
-              style={{ cursor: "pointer" }}
-              title="View Branch SGPA Leaderboard"
-            >
-              <div className="rank-strip-label">Branch SGPA Rank</div>
-              <div className="rank-strip-value" style={{ color: semesterRanking ? "#22c55e" : "var(--text-muted)" }}>
-                {semesterRanking && semesterRanking.deptRank ? `#${semesterRanking.deptRank}` : "—"}
-              </div>
-              <div className="rank-strip-sub">{semesterRanking && semesterRanking.deptStudents ? `of ${semesterRanking.deptStudents}` : "Not Generated"}</div>
-            </div>
-
-            {dynamicBranch === "CSE" && (
-              <>
-                <div
-                  className="rank-strip-item"
-                  onClick={() => navigate(`/leaderboard?highlight=${regNo}&branch=${branch}&section=${section}&tab=cgpa`)}
-                  style={{ cursor: "pointer" }}
-                  title="View Section CGPA Leaderboard"
-                >
-                  <div className="rank-strip-label">Section CGPA Rank</div>
-                  <div className="rank-strip-value" style={{ color: semesterRanking ? "#f59e0b" : "var(--text-muted)" }}>
-                    {semesterRanking && semesterRanking.sectionCgpaRank ? `#${semesterRanking.sectionCgpaRank}` : "—"}
-                  </div>
-                  <div className="rank-strip-sub">{semesterRanking && semesterRanking.sectionStudents ? `of ${semesterRanking.sectionStudents}` : "Not Generated"}</div>
-                </div>
-
-                <div
-                  className="rank-strip-item"
-                  onClick={() => navigate(`/leaderboard?highlight=${regNo}&branch=${branch}&section=${section}&tab=sgpa`)}
-                  style={{ cursor: "pointer" }}
-                  title="View Section SGPA Leaderboard"
-                >
-                  <div className="rank-strip-label">Section SGPA Rank</div>
-                  <div className="rank-strip-value" style={{ color: semesterRanking ? "#f97316" : "var(--text-muted)" }}>
-                    {semesterRanking && semesterRanking.sectionSgpaRank ? `#${semesterRanking.sectionSgpaRank}` : "—"}
-                  </div>
-                  <div className="rank-strip-sub">{semesterRanking && semesterRanking.sectionStudents ? `of ${semesterRanking.sectionStudents}` : "Not Generated"}</div>
-                </div>
-              </>
-            )}
-
-            <div className="rank-strip-item">
-              <div className="rank-strip-label">Percentile</div>
-              <div className="rank-strip-value" style={{ color: semesterRanking ? "var(--success)" : "var(--text-muted)" }}>
-                {semesterRanking ? `${semesterRanking.percentile}%` : "—"}
-              </div>
-              <div className="rank-strip-sub">{semesterRanking ? `Top ${(100 - semesterRanking.percentile).toFixed(1)}%` : "Not Generated"}</div>
-            </div>
-
-            <div className="rank-strip-item empty-cell" style={{ cursor: "default" }}>
-              {/* Empty space filler to maintain the 2-column grid */}
-            </div>
-          </motion.div>
-        );
-      })()}
-
       {/* Navigation Controls */}
       <div className="dashboard-nav-controls">
         {/* Semester Selector */}
@@ -1100,6 +801,305 @@ export default function Dashboard() {
           {tab === "predictor" && <TargetPredictor />}
         </motion.div>
       )}
+
+      {/* Stats */}
+      <div className="grid-4" style={{ marginBottom: 28 }}>
+        <motion.div whileHover={{ y: -4 }} className="stat-card">
+          <span className="label">Latest SGPA</span>
+          <span className="value" style={{ color: "var(--accent)" }}>
+            {latestSgpa?.toFixed(2)}
+          </span>
+          <span className="sub">Semester {studentData.latestSemester}</span>
+        </motion.div>
+        <motion.div whileHover={{ y: -4 }} className="stat-card">
+          <span className="label">CGPA</span>
+          <span className="value" style={{ color: "#a855f7" }}>
+            {cgpa?.toFixed(2)}
+          </span>
+          <span className="sub">Cumulative GPA</span>
+        </motion.div>
+        <motion.div whileHover={{ y: -4 }} className="stat-card" style={{ position: "relative", overflow: "hidden" }}>
+          <span className="label">Credits Cleared</span>
+          <div style={{ display: "flex", alignItems: "baseline", gap: 4 }}>
+            <span className="value">{studentData.creditsCleared}</span>
+            <span style={{ fontSize: 16, color: "var(--text-muted)", fontWeight: 600 }}>
+              / {studentData.totalCredits}
+            </span>
+          </div>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: 4 }}>
+            <span className="sub" style={{ margin: 0 }}>Up to Sem {studentData.latestSemester}</span>
+            <span style={{ fontSize: 10, background: "rgba(255,255,255,0.05)", padding: "2px 7px", borderRadius: 4, color: "var(--text-muted)", fontWeight: 700, border: "1px solid var(--border)" }}>Goal: 160</span>
+          </div>
+          <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, height: 3, background: "rgba(255,255,255,0.04)" }}>
+            <motion.div
+              initial={{ width: 0 }}
+              animate={{ width: `${Math.min((studentData.creditsCleared / 160) * 100, 100)}%` }}
+              transition={{ duration: 1.2, ease: "easeOut" }}
+              style={{ height: "100%", background: "linear-gradient(90deg, var(--accent), rgba(255,255,255,0.4))" }}
+            />
+          </div>
+        </motion.div>
+        <motion.div whileHover={{ y: -4 }} className="stat-card">
+          <span className="label">Academic Health</span>
+          <span className="value" style={{ color: healthColor }}>
+            {academicHealthScore}
+            <span style={{ fontSize: 16, color: "var(--text-muted)" }}>/100</span>
+          </span>
+          <span className="sub" style={{ color: healthColor, fontWeight: 700 }}>
+            {healthLabel}
+          </span>
+        </motion.div>
+      </div>
+
+      {/* Backlogs */}
+      {backlogs.length > 0 ? (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          style={{
+            background: "rgba(239,68,68,0.05)",
+            border: "1px solid rgba(239,68,68,0.18)",
+            borderLeft: "3px solid var(--danger)",
+            borderRadius: "var(--radius-sm)",
+            padding: "14px 18px",
+            marginBottom: 24,
+          }}
+        >
+          <div
+            onClick={() => setIsBacklogsListExpanded(!isBacklogsListExpanded)}
+            style={{ display: "flex", justifyContent: "space-between", alignItems: "center", cursor: "pointer" }}
+          >
+            <p
+              style={{ color: "var(--danger)", fontWeight: 600, margin: 0, display: "flex", alignItems: "center", gap: 8, fontSize: 14 }}
+            >
+              <AlertTriangle size={16} /> {backlogs.length} Active Backlogs Found
+            </p>
+            {isBacklogsListExpanded ? <ChevronUp size={18} color="var(--danger)" /> : <ChevronDown size={18} color="var(--danger)" />}
+          </div>
+          
+          {isBacklogsListExpanded && (
+            <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 16, overflow: "hidden" }}>
+              {backlogs.map((b, i) => {
+                const isExpanded = expandedBacklog === i;
+                return (
+                  <motion.div
+                    key={i}
+                    style={{
+                      background: "var(--bg)",
+                      border: "1px solid var(--border)",
+                      borderRadius: 8,
+                      overflow: "hidden",
+                    }}
+                  >
+                    {/* Header (Click to expand) */}
+                    <div
+                      onClick={(e) => { e.stopPropagation(); setExpandedBacklog(isExpanded ? null : i); }}
+                      style={{
+                        padding: "12px 16px",
+                        cursor: "pointer",
+                        display: "flex",
+                        justifyContent: "space-between",
+                        alignItems: "center",
+                        gap: 12,
+                      }}
+                    >
+                      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                        <span style={{ fontWeight: 600, color: "var(--text)", fontSize: 14 }}>{b.subName}</span>
+                      </div>
+                      <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                        <span style={{ background: "rgba(255,255,255,0.1)", color: "var(--secondary)", padding: "2px 8px", borderRadius: 4, fontSize: 11, fontWeight: 700 }}>Sem {b.semester}</span>
+                        {isExpanded ? <ChevronUp size={16} color="var(--secondary)" /> : <ChevronDown size={16} color="var(--secondary)" />}
+                      </div>
+                    </div>
+
+                    {/* Expanded Content */}
+                    {isExpanded && (
+                      <motion.div
+                        initial={{ height: 0, opacity: 0 }}
+                        animate={{ height: "auto", opacity: 1 }}
+                        style={{ padding: "0 16px 16px 16px" }}
+                      >
+                        <div style={{ display: "flex", gap: 8, marginBottom: 12 }}>
+                          <span style={{ background: "rgba(255,255,255,0.05)", color: "var(--secondary)", border: "1px solid var(--border)", padding: "4px 10px", borderRadius: 4, fontSize: 12, fontWeight: 700 }}>{b.subCode}</span>
+                          <span style={{ background: "rgba(255,255,255,0.05)", color: "var(--secondary)", border: "1px solid var(--border)", padding: "4px 10px", borderRadius: 4, fontSize: 12, fontWeight: 700 }}>{b.credit} Credits</span>
+                        </div>
+                        
+                        <button
+                          className="btn btn-primary"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setTab("result");
+                            setSelectedSem(b.semester);
+                            loadSemester(b.semester);
+                            setHighlightedSubject(b.subCode);
+                            setTimeout(() => setHighlightedSubject(null), 3500);
+                            window.scrollTo({ top: document.body.scrollHeight, behavior: "smooth" });
+                          }}
+                          style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 13, padding: "8px 16px" }}
+                        >
+                          <Search size={14} /> Find in Report Card
+                        </button>
+                      </motion.div>
+                    )}
+                  </motion.div>
+                );
+              })}
+              
+              <div style={{ marginTop: 16, padding: "12px 16px", background: "rgba(255,165,0,0.08)", border: "1px solid rgba(255,165,0,0.2)", borderRadius: 8 }}>
+                <p style={{ fontSize: 13, color: "var(--warning)", display: "flex", alignItems: "flex-start", gap: 8, margin: 0, lineHeight: 1.5 }}>
+                  <Info size={16} style={{ flexShrink: 0, marginTop: 2 }} />
+                  <span>
+                    <strong>Disclaimer:</strong> If you think your backlog is cleared but this website shows this backlog, then it might happen because of missing excel data of your EOD/rechecking result. If you have this excel sheet, please contact the developer to get it updated.
+                  </span>
+                </p>
+                <div style={{ marginTop: 12, display: "flex", justifyContent: "flex-end" }}>
+                  <a 
+                    href="https://wa.me/919124540575?text=Hi%2C%20I%20have%20the%20excel%20sheet%20for%20this"
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    style={{ display: "inline-flex", alignItems: "center", gap: 6, background: "#25D366", color: "#fff", padding: "8px 16px", borderRadius: 20, fontSize: 13, fontWeight: 700, textDecoration: "none", transition: "transform 0.2s" }}
+                    onMouseOver={(e) => e.currentTarget.style.transform = "scale(1.05)"}
+                    onMouseOut={(e) => e.currentTarget.style.transform = "scale(1)"}
+                  >
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.888-.788-1.487-1.761-1.66-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z" />
+                    </svg>
+                    Contact via WhatsApp
+                  </a>
+                </div>
+              </div>
+            </motion.div>
+          )}
+
+        </motion.div>
+      ) : (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          style={{
+            background: "rgba(34,197,94,0.06)",
+            border: "1px solid rgba(34,197,94,0.2)",
+            borderLeft: "3px solid var(--success)",
+            borderRadius: "var(--radius-sm)",
+            padding: "14px 18px",
+            marginBottom: 24,
+          }}
+        >
+          <p style={{ color: "var(--success)", fontWeight: 700, display: "flex", alignItems: "center", gap: 8, fontSize: 14 }}>
+            <CheckCircle size={17} /> ALL CLEAR — No Active Backlogs
+          </p>
+        </motion.div>
+      )}
+
+      {/* Ranking Strip */}
+      {(() => {
+        const cgpaRankNum = semesterRanking ? (semesterRanking.cgpaRank || semesterRanking.universityRank) : null;
+        const sgpaRankNum = semesterRanking ? (semesterRanking.sgpaRank || semesterRanking.universityRank) : null;
+        const isCgpaTop50 = cgpaRankNum && cgpaRankNum <= 50;
+        const isSgpaTop50 = sgpaRankNum && sgpaRankNum <= 50;
+        const section = getSectionFromRegNo(regNo);
+        return (
+          <motion.div
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="rank-strip"
+            style={{ marginBottom: 24, opacity: semesterRanking ? 1 : 0.55 }}
+          >
+            <div
+              className="rank-strip-item"
+              onClick={() => isCgpaTop50 && navigate(`/leaderboard?highlight=${regNo}&tab=cgpa`)}
+              style={{ cursor: isCgpaTop50 ? "pointer" : "default" }}
+              title={semesterRanking && !isCgpaTop50 ? "Rank must be ≤50 to view on Leaderboard" : ""}
+            >
+              <div className="rank-strip-label">Univ CGPA Rank</div>
+              <div className="rank-strip-value" style={{ color: semesterRanking ? "var(--accent)" : "var(--text-muted)" }}>
+                {semesterRanking ? `#${cgpaRankNum}` : "—"}
+              </div>
+              <div className="rank-strip-sub">{semesterRanking ? `of ${semesterRanking.totalStudents} students` : "Not Generated"}</div>
+            </div>
+            <div
+              className="rank-strip-item"
+              onClick={() => isSgpaTop50 && navigate(`/leaderboard?highlight=${regNo}&tab=sgpa`)}
+              style={{ cursor: isSgpaTop50 ? "pointer" : "default" }}
+              title={semesterRanking && !isSgpaTop50 ? "Rank must be ≤50 to view on Leaderboard" : ""}
+            >
+              <div className="rank-strip-label">Univ SGPA Rank</div>
+              <div className="rank-strip-value" style={{ color: semesterRanking ? "#a855f7" : "var(--text-muted)" }}>
+                {semesterRanking ? `#${sgpaRankNum}` : "—"}
+              </div>
+              <div className="rank-strip-sub">{semesterRanking ? `of ${semesterRanking.totalStudents} students` : "Not Generated"}</div>
+            </div>
+            
+            <div
+              className="rank-strip-item"
+              onClick={() => navigate(`/leaderboard?highlight=${regNo}&branch=${branch}&tab=cgpa`)}
+              style={{ cursor: "pointer" }}
+              title="View Branch CGPA Leaderboard"
+            >
+              <div className="rank-strip-label">Branch CGPA Rank</div>
+              <div className="rank-strip-value" style={{ color: semesterRanking ? "#3ea6ff" : "var(--text-muted)" }}>
+                {semesterRanking && semesterRanking.deptCgpaRank ? `#${semesterRanking.deptCgpaRank}` : "—"}
+              </div>
+              <div className="rank-strip-sub">{semesterRanking && semesterRanking.deptStudents ? `of ${semesterRanking.deptStudents}` : "Not Generated"}</div>
+            </div>
+
+            <div
+              className="rank-strip-item"
+              onClick={() => navigate(`/leaderboard?highlight=${regNo}&branch=${branch}&tab=sgpa`)}
+              style={{ cursor: "pointer" }}
+              title="View Branch SGPA Leaderboard"
+            >
+              <div className="rank-strip-label">Branch SGPA Rank</div>
+              <div className="rank-strip-value" style={{ color: semesterRanking ? "#22c55e" : "var(--text-muted)" }}>
+                {semesterRanking && semesterRanking.deptRank ? `#${semesterRanking.deptRank}` : "—"}
+              </div>
+              <div className="rank-strip-sub">{semesterRanking && semesterRanking.deptStudents ? `of ${semesterRanking.deptStudents}` : "Not Generated"}</div>
+            </div>
+
+            {dynamicBranch === "CSE" && (
+              <>
+                <div
+                  className="rank-strip-item"
+                  onClick={() => navigate(`/leaderboard?highlight=${regNo}&branch=${branch}&section=${section}&tab=cgpa`)}
+                  style={{ cursor: "pointer" }}
+                  title="View Section CGPA Leaderboard"
+                >
+                  <div className="rank-strip-label">Section CGPA Rank</div>
+                  <div className="rank-strip-value" style={{ color: semesterRanking ? "#f59e0b" : "var(--text-muted)" }}>
+                    {semesterRanking && semesterRanking.sectionCgpaRank ? `#${semesterRanking.sectionCgpaRank}` : "—"}
+                  </div>
+                  <div className="rank-strip-sub">{semesterRanking && semesterRanking.sectionStudents ? `of ${semesterRanking.sectionStudents}` : "Not Generated"}</div>
+                </div>
+
+                <div
+                  className="rank-strip-item"
+                  onClick={() => navigate(`/leaderboard?highlight=${regNo}&branch=${branch}&section=${section}&tab=sgpa`)}
+                  style={{ cursor: "pointer" }}
+                  title="View Section SGPA Leaderboard"
+                >
+                  <div className="rank-strip-label">Section SGPA Rank</div>
+                  <div className="rank-strip-value" style={{ color: semesterRanking ? "#f97316" : "var(--text-muted)" }}>
+                    {semesterRanking && semesterRanking.sectionSgpaRank ? `#${semesterRanking.sectionSgpaRank}` : "—"}
+                  </div>
+                  <div className="rank-strip-sub">{semesterRanking && semesterRanking.sectionStudents ? `of ${semesterRanking.sectionStudents}` : "Not Generated"}</div>
+                </div>
+              </>
+            )}
+
+            <div className="rank-strip-item">
+              <div className="rank-strip-label">Percentile</div>
+              <div className="rank-strip-value" style={{ color: semesterRanking ? "var(--success)" : "var(--text-muted)" }}>
+                {semesterRanking ? `${semesterRanking.percentile}%` : "—"}
+              </div>
+              <div className="rank-strip-sub">{semesterRanking ? `Top ${(100 - semesterRanking.percentile).toFixed(1)}%` : "Not Generated"}</div>
+            </div>
+
+            <div className="rank-strip-item empty-cell" style={{ cursor: "default" }}>
+              {/* Empty space filler to maintain the 2-column grid */}
+            </div>
+          </motion.div>
+        );
+      })()}
 
       {/* Hidden container for Batch PDF Export */}
       <div style={{ position: "fixed", top: 0, left: "200vw", zIndex: -9999, pointerEvents: "none" }}>
