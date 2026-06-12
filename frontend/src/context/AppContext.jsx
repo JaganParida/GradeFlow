@@ -46,6 +46,8 @@ export function AppProvider({ children }) {
         const res = await axios.get(`${API_BASE}/auth/me`);
         if (res.data.success) {
           setAdminToken(true);
+        } else {
+          setAdminToken(false);
         }
       } catch (err) {
         setAdminToken(false);

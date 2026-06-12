@@ -39,15 +39,29 @@ router.post("/logout", (req, res) => {
   res.status(200).json({ success: true, message: "User logged out" });
 });
 
-router.get("/me", protect, async (req, res) => {
+router.get("/me", async (req, res) => {
   try {
-    const admin = await Admin.findById(req.admin.id).select("-password");
-    if (!admin) {
-      return res.status(401).json({ message: "Admin not found" });
+    let token;
+    if (req.cookies && req.cookies.jwt) {
+      token = req.cookies.jwt;
+    } else if (req.headers.authorization && req.headers.authorization.startsWith("Bearer")) {
+      token = req.headers.authorization.split(" ")[1];
     }
+
+    if (!token || token === "none") {
+      return res.json({ success: false, message: "Not logged in" });
+    }
+
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const admin = await Admin.findById(decoded.id).select("-password");
+    
+    if (!admin) {
+      return res.json({ success: false, message: "Admin not found" });
+    }
+    
     res.json({ success: true, admin });
   } catch (err) {
-    res.status(500).json({ message: "Server error" });
+    res.json({ success: false, message: "Token invalid or expired" });
   }
 });
 
