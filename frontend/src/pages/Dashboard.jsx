@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useApp } from "../context/AppContext";
 import { Spinner, DashboardSkeleton, ReportCardSkeleton } from "../components/LoadingSpinner";
@@ -230,6 +230,17 @@ export default function Dashboard() {
   const [isBacklogsListExpanded, setIsBacklogsListExpanded] = useState(false);
   const [isSyllabusNoticeExpanded, setIsSyllabusNoticeExpanded] = useState(false);
   const [isMobile, setIsMobile] = useState(window.innerWidth < 1024);
+  const tabsRef = useRef(null);
+  const [tabsVisible, setTabsVisible] = useState(true);
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      ([entry]) => setTabsVisible(entry.isIntersecting),
+      { threshold: 0 }
+    );
+    if (tabsRef.current) observer.observe(tabsRef.current);
+    return () => observer.disconnect();
+  }, []);
 
   useEffect(() => {
     const handleResize = () => setIsMobile(window.innerWidth < 1024);
