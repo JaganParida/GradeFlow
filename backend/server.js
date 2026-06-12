@@ -3,13 +3,35 @@ const express = require("express");
 const mongoose = require("mongoose");
 const cors = require("cors");
 const rateLimit = require("express-rate-limit");
+const helmet = require("helmet");
+const mongoSanitize = require("express-mongo-sanitize");
+const xss = require("xss-clean");
+const cookieParser = require("cookie-parser");
 
 const app = express();
 
 // Middleware
 app.set("trust proxy", 1);
-app.use(cors({ origin: "*" }));
+
+// Set security HTTP headers
+app.use(helmet());
+
+// Enable CORS with credentials support
+app.use(cors({ 
+  origin: function(origin, callback) {
+    callback(null, true);
+  },
+  credentials: true 
+}));
+
 app.use(express.json());
+app.use(cookieParser());
+
+// Sanitize data to prevent NoSQL Injection
+app.use(mongoSanitize());
+
+// Prevent XSS attacks
+app.use(xss());
 
 // ─── Rate Limiting Strategy ────────────────────────────────────────────────
 //

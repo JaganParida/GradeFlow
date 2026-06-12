@@ -3,6 +3,10 @@ import { useNavigate } from "react-router-dom";
 import axios from "axios";
 
 const API_BASE = import.meta.env.VITE_API_URL || "/api";
+
+// Set axios to send cookies with every request
+axios.defaults.withCredentials = true;
+
 const STUDENT_CACHE_KEY = "gf_student_data";
 // Bump this version whenever the CGPA/SGPA formula or data shape changes
 // to automatically invalidate stale cached student data in localStorage
@@ -31,20 +35,23 @@ export function AppProvider({ children }) {
   const [studentData, setStudentData] = useState(() => getCachedStudentData());
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const [adminToken, setAdminToken] = useState(
-    () => localStorage.getItem("gf_token") || "",
-  );
+  const [adminToken, setAdminToken] = useState(false);
 
   const navigate = useNavigate();
 
   useEffect(() => {
-    const handleStorageChange = (e) => {
-      if (e.key === "gf_token") {
-        setAdminToken(e.newValue || "");
+    // Check if user is logged in via cookie on app load
+    const checkAuth = async () => {
+      try {
+        const res = await axios.get(`${API_BASE}/auth/me`);
+        if (res.data.success) {
+          setAdminToken(true);
+        }
+      } catch (err) {
+        setAdminToken(false);
       }
     };
-    window.addEventListener("storage", handleStorageChange);
-    return () => window.removeEventListener("storage", handleStorageChange);
+    checkAuth();
   }, []);
 
   // ─── Admin Auth ────────────────────────────────────────────────
@@ -52,9 +59,8 @@ export function AppProvider({ children }) {
     setLoading(true);
     setError("");
     try {
-      const res = await axios.post(`${API_BASE}/auth/login`, { email, password });
-      localStorage.setItem("gf_token", res.data.token);
-      setAdminToken(res.data.token);
+      await axios.post(`${API_BASE}/auth/login`, { email, password });
+      setAdminToken(true);
       return true;
     } catch (err) {
       setError(err.response?.data?.message || "Login failed");
@@ -64,17 +70,19 @@ export function AppProvider({ children }) {
     }
   };
 
-  const adminLogout = () => {
-    localStorage.removeItem("gf_token");
-    setAdminToken("");
+  const adminLogout = async () => {
+    try {
+      await axios.post(`${API_BASE}/auth/logout`);
+    } catch (err) {
+      console.error("Logout error", err);
+    }
+    setAdminToken(false);
     navigate("/admin/login");
   };
 
   const logoutAdmin = adminLogout;
 
-  const authHeaders = adminToken
-    ? { headers: { Authorization: `Bearer ${adminToken}` } }
-    : {};
+  const authHeaders = {};
 
   // ─── Student Fetch with Silent Exponential Backoff ────────────────
   // On 429 / 502 / 503 the request is retried silently behind a spinner
