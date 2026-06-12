@@ -1193,9 +1193,7 @@ export default function Dashboard() {
                     <button
                       key={r.semester}
                       onClick={() => {
-                        setSelectedSem(r.semester);
-                        loadSemester(r.semester);
-                        setIsNavSheetOpen(false);
+                        setSelectedSem(r.semester); loadSemester(r.semester); setIsNavSheetOpen(false); setTimeout(() => { if (tabsRef.current) { const y = tabsRef.current.getBoundingClientRect().top + window.scrollY - 80; window.scrollTo({ top: y, behavior: 'smooth' }); } }, 150);
                       }}
                       style={{
                         padding: '12px 0',
@@ -1231,8 +1229,7 @@ export default function Dashboard() {
                     <button
                       key={t}
                       onClick={() => {
-                        setTab(t);
-                        setIsNavSheetOpen(false);
+                        setTab(t); setIsNavSheetOpen(false); setTimeout(() => { if (tabsRef.current) { const y = tabsRef.current.getBoundingClientRect().top + window.scrollY - 80; window.scrollTo({ top: y, behavior: 'smooth' }); } }, 150);
                       }}
                       style={{ 
                         width: '100%',
