@@ -1138,7 +1138,7 @@ export default function Dashboard() {
             right: 24,
             zIndex: 1100,
             background: 'var(--accent)',
-            color: '#fff',
+            color: '#0f0f0f',
             border: 'none',
             width: 56,
             height: 56,
