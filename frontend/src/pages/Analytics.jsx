@@ -63,8 +63,8 @@ function calcCGPAUpTo(results, upToIdx) {
 function generateInsights(data) {
   const insights = [];
   const { results, cgpa, latestSgpa, backlogs, ranking, branch } = data;
-  // Use live-calculated SGPAs for accuracy
-  const liveSGPAs = results.map(r => calcSGPA(r.subjects, r.semester));
+  // Use exact SGPA if available, otherwise calculate
+  const liveSGPAs = results.map(r => typeof r.sgpa === 'number' ? r.sgpa : calcSGPA(r.subjects, r.semester));
   if (results.length >= 2) {
     const prev = liveSGPAs[liveSGPAs.length - 2];
     const curr = liveSGPAs[liveSGPAs.length - 1];
@@ -266,10 +266,10 @@ export default function Analytics() {
     batch,
   } = studentData;
 
-  // Chart data — use live-calculated SGPA so it always matches the report card
+  // Chart data — use exact SGPA if available
   const chartData = results.map((r, i) => ({
     sem: `Sem ${r.semester}`,
-    SGPA: parseFloat(calcSGPA(r.subjects, r.semester).toFixed(2)),
+    SGPA: typeof r.sgpa === 'number' ? r.sgpa : parseFloat(calcSGPA(r.subjects, r.semester).toFixed(2)),
     CGPA: calcCGPAUpTo(results, i),
   }));
 

@@ -10,7 +10,7 @@ import { motion } from "framer-motion";
 import jsPDF from "jspdf";
 import html2canvas from "html2canvas";
 import { User, TrendingUp, Star, Target, CheckCircle, Trophy, Award, AlertTriangle, FileText, FileEdit, Calendar, Printer, Share2, DownloadCloud, Loader2, ChevronDown, ChevronUp, Search, Layout, Calculator, Info, MessageCircle } from "lucide-react";
-import { calculateSGPA as calcSGPAFromSubjects } from "../utils/gradeCalculations";
+import { calculateSGPA as calcSGPAFromSubjects, calculateSemesterMetrics } from "../utils/gradeCalculations";
 
 const GRADE_COLORS = {
   O: "#f59e0b",
@@ -987,9 +987,13 @@ export default function Dashboard() {
               </div>
               <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
                 {results.map((r, i) => {
-                  const liveSGPA = calcSGPAFromSubjects(r.subjects, r.semester);
+                  const liveSGPA = typeof r.sgpa === 'number' ? r.sgpa : calcSGPAFromSubjects(r.subjects, r.semester);
                   const sgpaColor = liveSGPA >= 9 ? "var(--success)" : liveSGPA >= 7 ? "#f1f1f1" : "var(--warning)";
-                  const isClear = r.creditsCleared === r.totalCredits;
+                  
+                  // Use calculateSemesterMetrics to ensure accurate live credits
+                  const { creditsCleared, totalCredits } = calculateSemesterMetrics(r.subjects, r.semester);
+                  const isClear = creditsCleared === totalCredits;
+                  
                   return (
                     <motion.div
                       key={r.semester}
@@ -1011,7 +1015,7 @@ export default function Dashboard() {
                           <span style={{ fontSize: 11, fontWeight: 700, padding: "2px 9px", borderRadius: 20, background: isClear ? "rgba(34,197,94,0.12)" : "rgba(239,68,68,0.12)", color: isClear ? "var(--success)" : "var(--danger)", border: `1px solid ${isClear ? "rgba(34,197,94,0.25)" : "rgba(239,68,68,0.25)"}` }}>{isClear ? "✓ Clear" : "✗ Backlog"}</span>
                         </div>
                         <div style={{ display: "flex", gap: 16, flexWrap: "wrap" }}>
-                          <span style={{ fontSize: 12, color: "#aaaaaa" }}>Credits: <strong style={{ color: "#f1f1f1" }}>{r.creditsCleared}/{r.totalCredits}</strong></span>
+                          <span style={{ fontSize: 12, color: "#aaaaaa" }}>Credits: <strong style={{ color: "#f1f1f1" }}>{creditsCleared}/{totalCredits}</strong></span>
                           {r.session && <span style={{ fontSize: 12, color: "#aaaaaa" }}>{r.session}</span>}
                         </div>
                       </div>

@@ -65,10 +65,11 @@ export default function GradeSheet({ result, studentData, highlightedSubject }) 
 
   const subjects = result.subjects || [];
 
-  const { totalCredits, creditsCleared, sgpa } = calculateSemesterMetrics(
+  const { totalCredits, creditsCleared, sgpa: calculatedSgpa } = calculateSemesterMetrics(
     subjects,
     result.semester,
   );
+  const sgpa = typeof result.sgpa === 'number' ? result.sgpa : calculatedSgpa;
   const hasFailed = subjects.some((s) => FAIL_GRADES.includes(s.grade));
 
   const allResults = studentData?.results || [];

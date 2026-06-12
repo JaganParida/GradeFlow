@@ -92,10 +92,11 @@ function calculateCGPA(results = [], upToSemester = null) {
     .filter((result) => Number(result.semester) <= maxSemester)
     .sort((a, b) => Number(a.semester) - Number(b.semester))
     .forEach((result) => {
-      const { sgpa, totalCredits } = calculateSemesterMetrics(
+      const { sgpa: calculatedSgpa, totalCredits } = calculateSemesterMetrics(
         result.subjects,
         result.semester,
       );
+      const sgpa = typeof result.sgpa === 'number' ? result.sgpa : calculatedSgpa;
 
       if (totalCredits > 0) {
         numerator += sgpa * totalCredits;
