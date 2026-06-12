@@ -73,10 +73,6 @@ export const generateBasketPDF = async (studentData) => {
                         targetSem = 6;
                     }
                     
-                    if (!isCSE && targetSem <= 2) {
-                        return;
-                    }
-
                     if (targetSem >= 1 && targetSem <= 8) {
                        const code = sub.subCode || sub.subName;
                        if (!addedSubCodes.has(code)) {
@@ -139,6 +135,9 @@ export const generateBasketPDF = async (studentData) => {
             let totA = { b1: 0, b2: 0, b3: 0, b4: 0, b5: 0, gt: 0 };
             let totB = { b1: 0, b2: 0, b3: 0, b4: 0, b5: 0, gt: 0 };
     
+            const showCreditA = isCSE || semA <= 2;
+            const showCreditB = isCSE || semB <= 2;
+
             for (let i = 0; i < maxRows; i++) {
                 const row = [];
                 // Left
@@ -147,19 +146,19 @@ export const generateBasketPDF = async (studentData) => {
                     const basket = getSubjectBasket(s);
                     const cr = Number(s.credit) || 0;
                     row.push(i + 1, s.subCode || "", s.subName || "", 
-                        isCSE && basket === "B1" ? cr : "", 
-                        isCSE && basket === "B2" ? cr : "", 
-                        isCSE && basket === "B3" ? cr : "", 
-                        isCSE && basket === "B4" ? cr : "", 
-                        isCSE && (basket === "B5" || basket === "EX") ? cr : "", 
-                        isCSE ? cr : "");
+                        showCreditA && basket === "B1" ? cr : "", 
+                        showCreditA && basket === "B2" ? cr : "", 
+                        showCreditA && basket === "B3" ? cr : "", 
+                        showCreditA && basket === "B4" ? cr : "", 
+                        showCreditA && (basket === "B5" || basket === "EX") ? cr : "", 
+                        showCreditA ? cr : "");
                     
-                    if (isCSE && basket === "B1") totA.b1 += cr;
-                    else if (isCSE && basket === "B2") totA.b2 += cr;
-                    else if (isCSE && basket === "B3") totA.b3 += cr;
-                    else if (isCSE && basket === "B4") totA.b4 += cr;
-                    else if (isCSE && (basket === "B5" || basket === "EX")) totA.b5 += cr;
-                    if (isCSE) totA.gt += cr;
+                    if (showCreditA && basket === "B1") totA.b1 += cr;
+                    else if (showCreditA && basket === "B2") totA.b2 += cr;
+                    else if (showCreditA && basket === "B3") totA.b3 += cr;
+                    else if (showCreditA && basket === "B4") totA.b4 += cr;
+                    else if (showCreditA && (basket === "B5" || basket === "EX")) totA.b5 += cr;
+                    if (showCreditA) totA.gt += cr;
                 } else {
                     row.push(i + 1, "", "", "", "", "", "", "", "");
                 }
@@ -170,19 +169,19 @@ export const generateBasketPDF = async (studentData) => {
                     const basket = getSubjectBasket(s);
                     const cr = Number(s.credit) || 0;
                     row.push(i + 1, s.subCode || "", s.subName || "", 
-                        isCSE && basket === "B1" ? cr : "", 
-                        isCSE && basket === "B2" ? cr : "", 
-                        isCSE && basket === "B3" ? cr : "", 
-                        isCSE && basket === "B4" ? cr : "", 
-                        isCSE && (basket === "B5" || basket === "EX") ? cr : "", 
-                        isCSE ? cr : "");
+                        showCreditB && basket === "B1" ? cr : "", 
+                        showCreditB && basket === "B2" ? cr : "", 
+                        showCreditB && basket === "B3" ? cr : "", 
+                        showCreditB && basket === "B4" ? cr : "", 
+                        showCreditB && (basket === "B5" || basket === "EX") ? cr : "", 
+                        showCreditB ? cr : "");
                     
-                    if (isCSE && basket === "B1") totB.b1 += cr;
-                    else if (isCSE && basket === "B2") totB.b2 += cr;
-                    else if (isCSE && basket === "B3") totB.b3 += cr;
-                    else if (isCSE && basket === "B4") totB.b4 += cr;
-                    else if (isCSE && (basket === "B5" || basket === "EX")) totB.b5 += cr;
-                    if (isCSE) totB.gt += cr;
+                    if (showCreditB && basket === "B1") totB.b1 += cr;
+                    else if (showCreditB && basket === "B2") totB.b2 += cr;
+                    else if (showCreditB && basket === "B3") totB.b3 += cr;
+                    else if (showCreditB && basket === "B4") totB.b4 += cr;
+                    else if (showCreditB && (basket === "B5" || basket === "EX")) totB.b5 += cr;
+                    if (showCreditB) totB.gt += cr;
                 } else {
                     row.push(i + 1, "", "", "", "", "", "", "", "");
                 }
@@ -191,27 +190,36 @@ export const generateBasketPDF = async (studentData) => {
     
             const isYearEmpty = subsA.length === 0 && subsB.length === 0;
 
-            const tA = (subsA.length === 0 || !isCSE) ? ["", "", "", "", "", ""] : [totA.b1, totA.b2, totA.b3, totA.b4, totA.b5, totA.gt];
-            const tB = (subsB.length === 0 || !isCSE) ? ["", "", "", "", "", ""] : [totB.b1, totB.b2, totB.b3, totB.b4, totB.b5, totB.gt];
+            const tA = (subsA.length === 0 || !showCreditA) ? ["", "", "", "", "", ""] : [totA.b1, totA.b2, totA.b3, totA.b4, totA.b5, totA.gt];
+            const tB = (subsB.length === 0 || !showCreditB) ? ["", "", "", "", "", ""] : [totB.b1, totB.b2, totB.b3, totB.b4, totB.b5, totB.gt];
 
             rows.push([
-                "", "", { content: !isCSE ? "" : "Total", styles: { fontStyle: 'bold' } }, ...tA,
-                "", "", { content: !isCSE ? "" : "Total", styles: { fontStyle: 'bold' } }, ...tB
+                "", "", { content: !showCreditA ? "" : "Total", styles: { fontStyle: 'bold' } }, ...tA,
+                "", "", { content: !showCreditB ? "" : "Total", styles: { fontStyle: 'bold' } }, ...tB
             ]);
     
-            if (isCSE) {
-                cumTotalsObj.b1 += totA.b1 + totB.b1;
-                cumTotalsObj.b2 += totA.b2 + totB.b2;
-                cumTotalsObj.b3 += totA.b3 + totB.b3;
-                cumTotalsObj.b4 += totA.b4 + totB.b4;
-                cumTotalsObj.b5 += totA.b5 + totB.b5;
-                cumTotalsObj.gt += totA.gt + totB.gt;
+            if (showCreditA) {
+                cumTotalsObj.b1 += totA.b1;
+                cumTotalsObj.b2 += totA.b2;
+                cumTotalsObj.b3 += totA.b3;
+                cumTotalsObj.b4 += totA.b4;
+                cumTotalsObj.b5 += totA.b5;
+                cumTotalsObj.gt += totA.gt;
+            }
+            if (showCreditB) {
+                cumTotalsObj.b1 += totB.b1;
+                cumTotalsObj.b2 += totB.b2;
+                cumTotalsObj.b3 += totB.b3;
+                cumTotalsObj.b4 += totB.b4;
+                cumTotalsObj.b5 += totB.b5;
+                cumTotalsObj.gt += totB.gt;
             }
 
-            if (isYearEmpty || !isCSE) {
+            const showCum = isCSE || (semA <= 2 && semB <= 2);
+            if (isYearEmpty || !showCum) {
                 rows.push([
                     "", "", "", "", "", "", "", "", "", // Left side blank
-                    { content: !isCSE ? "" : cumLabel, colSpan: 3, styles: { fontStyle: 'bold' } },
+                    { content: !showCum ? "" : cumLabel, colSpan: 3, styles: { fontStyle: 'bold' } },
                     "", "", "", "", "", ""
                 ]);
             } else {
