@@ -64,7 +64,7 @@ export function categorizeBaskets(results) {
          return; // Ignore this specific dropped R grade
       }
       
-      let key = sub.subCode || sub.subName || Math.random().toString();
+      let key = String(sub.subCode || sub.subName || Math.random().toString()).trim().toUpperCase();
       allSubjectsMap.set(key, { ...sub, semester: sem.semester });
     });
   });
@@ -1640,5 +1640,6 @@ export function inferStudentDomainTrack(studentSubjects, allDomains) {
 
   return bestTrack;
 }
+
 
 

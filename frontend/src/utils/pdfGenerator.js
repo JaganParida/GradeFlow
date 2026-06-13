@@ -74,7 +74,7 @@ export const generateBasketPDF = async (studentData) => {
                     }
                     
                     if (targetSem >= 1 && targetSem <= 8) {
-                       const code = sub.subCode || sub.subName;
+                       const code = String(sub.subCode || sub.subName).trim().toUpperCase();
                        if (!addedSubCodes.has(code)) {
                            semSubjects[targetSem].push(sub);
                            addedSubCodes.add(code);
@@ -278,3 +278,4 @@ export const generateBasketPDF = async (studentData) => {
         alert("Failed to generate PDF. Check console for details.");
     }
 };
+

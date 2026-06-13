@@ -61,7 +61,8 @@ export default function BasketDashboard({ results, studentData }) {
     baskets.B2.credits +
     baskets.B3.credits +
     baskets.B4.credits +
-    baskets.B5.credits;
+    baskets.B5.credits +
+    baskets.EX.credits;
   const targetTotal = 160;
 
   const honoursCredits = Math.max(0, baskets.B5.credits - baskets.B5.target);
@@ -982,3 +983,4 @@ export default function BasketDashboard({ results, studentData }) {
     </div>
   );
 }
+
