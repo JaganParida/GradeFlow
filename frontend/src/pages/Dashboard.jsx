@@ -1003,8 +1003,8 @@ export default function Dashboard() {
                   const sgpaColor = liveSGPA >= 9 ? "var(--success)" : liveSGPA >= 7 ? "#f1f1f1" : "var(--warning)";
                   
                   // Use calculateSemesterMetrics to ensure accurate live credits
-                  const { creditsCleared, totalCredits } = calculateSemesterMetrics(r.subjects, r.semester);
-                  const isClear = creditsCleared === totalCredits;
+                  const { creditsCleared, displayTotalCredits } = calculateSemesterMetrics(r.subjects, r.semester);
+                  const isClear = creditsCleared === displayTotalCredits;
                   
                   return (
                     <motion.div
@@ -1056,7 +1056,7 @@ export default function Dashboard() {
                         </span>
                         
                         <span style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, fontWeight: 600, padding: "4px 10px", borderRadius: 8, background: "rgba(255,255,255,0.04)", color: "var(--text-secondary)", border: "1px solid rgba(255,255,255,0.04)" }}>
-                          Credits: <strong style={{ color: "var(--text)", fontWeight: 700 }}>{creditsCleared}/{totalCredits}</strong>
+                          Credits: <strong style={{ color: "var(--text)", fontWeight: 700 }}>{creditsCleared}/{displayTotalCredits}</strong>
                         </span>
                       </div>
                     </motion.div>

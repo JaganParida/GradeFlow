@@ -49,12 +49,18 @@ function isSem5RepeatProject(subject = {}, semester) {
 function calculateSemesterMetrics(subjects = [], semester) {
   let totalWeighted = 0;
   let totalCredits = 0;
+  let displayTotalCredits = 0;
   let creditsCleared = 0;
 
   (subjects || []).forEach((subject) => {
+    const credit = Number(subject.credit) || 0;
+    
+    if (credit > 0) {
+      displayTotalCredits += credit;
+    }
+
     if (isSem5RepeatProject(subject, semester)) return;
 
-    const credit = Number(subject.credit) || 0;
     const grade = normalizeGrade(subject.grade);
     const gradePoint = getGradePoint(grade);
 
@@ -71,6 +77,7 @@ function calculateSemesterMetrics(subjects = [], semester) {
   return {
     totalWeighted,
     totalCredits,
+    displayTotalCredits,
     creditsCleared,
     sgpa: totalCredits > 0 ? trunc2(totalWeighted / totalCredits) : 0,
   };

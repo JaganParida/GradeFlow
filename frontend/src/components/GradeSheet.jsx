@@ -65,7 +65,7 @@ export default function GradeSheet({ result, studentData, highlightedSubject }) 
 
   const subjects = result.subjects || [];
 
-  const { totalCredits, creditsCleared, sgpa: calculatedSgpa } = calculateSemesterMetrics(
+  const { totalCredits, displayTotalCredits, creditsCleared, sgpa: calculatedSgpa } = calculateSemesterMetrics(
     subjects,
     result.semester,
   );
@@ -403,7 +403,7 @@ export default function GradeSheet({ result, studentData, highlightedSubject }) 
               marginBottom: 10,
             }}
           >
-            <span>Total Credits : {totalCredits}</span>
+            <span>Total Credits : {displayTotalCredits ?? totalCredits}</span>
             <span>Credits Cleared : {creditsCleared}</span>
             <span>SGPA : {sgpa.toFixed(2)}</span>
             {studentData?.cgpa !== undefined && (

@@ -95,7 +95,7 @@ router.get("/:regNo", async (req, res) => {
       latestSemester: latestResult.semester,
       totalCredits: results.reduce(
         (sum, r) =>
-          sum + calculateSemesterMetrics(r.subjects, r.semester).totalCredits,
+          sum + calculateSemesterMetrics(r.subjects, r.semester).displayTotalCredits,
         0,
       ),
       creditsCleared: results.reduce(
