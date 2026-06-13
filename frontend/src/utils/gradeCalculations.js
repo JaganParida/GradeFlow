@@ -113,5 +113,5 @@ export function calculateCGPA(results = [], upToSemester = null) {
       }
     });
 
-  return denominator > 0 ? round2(numerator / denominator) : 0;
+  return denominator > 0 ? trunc2(numerator / denominator) : 0;
 }
