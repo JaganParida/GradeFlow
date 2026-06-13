@@ -56,11 +56,11 @@ export function calculateSemesterMetrics(subjects = [], semester) {
   (subjects || []).forEach((subject) => {
     const credit = Number(subject.credit) || 0;
     
+    if (isSem5Project(subject, semester)) return;
+
     if (credit > 0) {
       displayTotalCredits += credit;
     }
-
-    if (isSem5Project(subject, semester)) return;
 
     const grade = normalizeGrade(subject.grade);
     const gradePoint = getGradePoint(grade);
