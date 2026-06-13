@@ -118,7 +118,7 @@ function calculateBacklogs(results = []) {
   return (results || []).flatMap((result) =>
     (result.subjects || [])
       .filter((subject) => {
-        if (isSem5RepeatProject(subject, result.semester)) return false;
+        if (isSem5Project(subject, result.semester)) return false;
         return NON_PASSING_GRADES.includes(normalizeGrade(subject.grade));
       })
       .map((subject) => ({
@@ -174,9 +174,10 @@ module.exports = {
   calculateSemesterMetrics,
   calculateSGPA,
   getGradePoint,
-  isSem5RepeatProject,
+  isSem5Project,
   normalizeGrade,
   round2,
   sortByScore,
   trunc2,
 };
+
