@@ -36,15 +36,14 @@ export function getGradePoint(grade) {
   return GRADE_POINTS[normalizeGrade(grade)];
 }
 
-export function isSem5RepeatProject(subject = {}, semester, gradeOverride) {
+export function isSem5Project(subject = {}, semester) {
   const credit = Number(subject.credit);
-  const grade = normalizeGrade(gradeOverride ?? subject.grade);
   const text = `${subject.type || ""} ${subject.subName || ""}`.toLowerCase();
 
   return (
     Number(semester) === 5 &&
-    grade === "R" &&
-    (credit === 6 || text.includes("proj") || text.includes("project"))
+    credit === 6 &&
+    (text.includes("proj") || text.includes("project"))
   );
 }
 
@@ -61,7 +60,7 @@ export function calculateSemesterMetrics(subjects = [], semester) {
       displayTotalCredits += credit;
     }
 
-    if (isSem5RepeatProject(subject, semester)) return;
+    if (isSem5Project(subject, semester)) return;
 
     const grade = normalizeGrade(subject.grade);
     const gradePoint = getGradePoint(grade);
