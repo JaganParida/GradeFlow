@@ -206,9 +206,7 @@ export default function AdminLogin() {
                   marginBottom: 20,
                   display: "flex",
                   alignItems: "center",
-                  gap: 8,
-                  border: "1px solid rgba(239, 68, 68, 0.2)"
-                }}
+                  gap: 8 }}
               >
                 <AlertTriangle size={16} /> {error}
               </motion.div>
@@ -241,3 +239,4 @@ export default function AdminLogin() {
     </motion.div>
   );
 }
+
