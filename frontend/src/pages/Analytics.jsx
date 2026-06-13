@@ -24,7 +24,7 @@ import {
   GRADE_POINTS,
   calculateCGPA,
   calculateSGPA as calcSGPA,
-  isSem5RepeatProject,
+  isSem5Project,
   round2,
   trunc2,
 } from "../utils/gradeCalculations";
@@ -240,7 +240,7 @@ export default function Analytics() {
             ? whatIfGrades[s.subCode]
             : s.grade;
             
-        if (isSem5RepeatProject(s, r.semester, grade)) {
+        if (isSem5Project(s, r.semester, grade)) {
           return;
         }
 
