@@ -60,7 +60,7 @@ export function categorizeBaskets(results) {
     sem.subjects.forEach(sub => {
       // Always overwrite with the latest occurrence of the subject (for backlogs)
       // Except if it's the specific "Ignore Sem 5 Project" rule
-      if (Number(sem.semester) === 5 && (Number(sub.credit) === 6 && (sub.subName && sub.subName.toLowerCase().includes('project')))) {
+      if (Number(sem.semester) === 5 && sub.grade === 'R' && (Number(sub.credit) === 6 || (sub.subName && sub.subName.toLowerCase().includes('project')))) {
          return; // Ignore this specific dropped R grade
       }
       
@@ -1640,7 +1640,6 @@ export function inferStudentDomainTrack(studentSubjects, allDomains) {
 
   return bestTrack;
 }
-
 
 
 
