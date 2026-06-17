@@ -35,14 +35,14 @@ function getGradePoint(grade) {
   return GRADE_POINTS[normalizeGrade(grade)];
 }
 
-function isSem5RepeatProject(subject = {}, semester) {
+function isSem5ProjectException(subject = {}, semester) {
   const credit = Number(subject.credit);
   const text = `${subject.type || ""} ${subject.subName || ""}`.toLowerCase();
 
   return (
     Number(semester) === 5 &&
-    normalizeGrade(subject.grade) === "R" &&
-    (credit === 6 || text.includes("proj") || text.includes("project"))
+    credit === 6 &&
+    (text.includes("proj") || text.includes("project"))
   );
 }
 
@@ -52,7 +52,7 @@ function calculateSemesterMetrics(subjects = [], semester) {
   let creditsCleared = 0;
 
   (subjects || []).forEach((subject) => {
-    if (isSem5RepeatProject(subject, semester)) return;
+    if (isSem5ProjectException(subject, semester)) return;
 
     const credit = Number(subject.credit) || 0;
     const grade = normalizeGrade(subject.grade);
@@ -111,7 +111,7 @@ function calculateBacklogs(results = []) {
   return (results || []).flatMap((result) =>
     (result.subjects || [])
       .filter((subject) => {
-        if (isSem5RepeatProject(subject, result.semester)) return false;
+        if (isSem5ProjectException(subject, result.semester)) return false;
         return NON_PASSING_GRADES.includes(normalizeGrade(subject.grade));
       })
       .map((subject) => ({
@@ -167,7 +167,7 @@ module.exports = {
   calculateSemesterMetrics,
   calculateSGPA,
   getGradePoint,
-  isSem5RepeatProject,
+  isSem5ProjectException,
   normalizeGrade,
   round2,
   sortByScore,

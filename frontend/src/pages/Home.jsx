@@ -153,7 +153,7 @@ const GRADE_SCALE = [
     pts: 0,
     color: "#6b7280",
     bg: "rgba(107,114,128,0.07)",
-    counted: false,
+    counted: true,
   },
   {
     grade: "S",
@@ -162,7 +162,7 @@ const GRADE_SCALE = [
     pts: 0,
     color: "#6b7280",
     bg: "rgba(107,114,128,0.07)",
-    counted: false,
+    counted: true,
   },
 ];
 
