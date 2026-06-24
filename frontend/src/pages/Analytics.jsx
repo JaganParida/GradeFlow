@@ -309,9 +309,10 @@ export default function Analytics() {
   // Radar Chart Data calculated above
 
   // Subject analysis
-  const latestSubjects = results[results.length - 1]?.subjects || [];
+  const latestResult = results[results.length - 1];
+  const latestSubjects = latestResult?.subjects || [];
   const graded = latestSubjects.filter(
-    (s) => s.grade && s.grade !== "F" && GRADE_POINTS[s.grade],
+    (s) => s.grade && s.grade !== "F" && GRADE_POINTS[s.grade] && !isSem5ProjectException(s, latestResult?.semester),
   );
   const best = graded.reduce(
     (a, s) =>

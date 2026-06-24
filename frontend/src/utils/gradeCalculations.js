@@ -39,12 +39,17 @@ export function getGradePoint(grade) {
 export function isSem5ProjectException(subject = {}, semester) {
   const credit = Number(subject.credit);
   const text = `${subject.type || ""} ${subject.subName || ""}`.toLowerCase();
+  const grade = normalizeGrade(subject.grade);
 
-  return (
-    Number(semester) === 5 &&
-    credit === 6 &&
-    (text.includes("proj") || text.includes("project"))
-  );
+  const isProject = text.includes("proj") || text.includes("project");
+
+  if (Number(semester) === 5 && isProject) {
+    if (credit === 6) return true;
+    if (credit === 8) return true;
+    if (credit === 4 && grade === "R") return true;
+  }
+
+  return false;
 }
 
 export function calculateSemesterMetrics(subjects = [], semester) {
