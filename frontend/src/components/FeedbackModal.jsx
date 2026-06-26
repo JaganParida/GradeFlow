@@ -72,7 +72,7 @@ export default function FeedbackModal() {
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            padding: 20,
+            padding: 16,
           }}
         >
           {/* Backdrop */}
@@ -98,12 +98,12 @@ export default function FeedbackModal() {
               position: "relative",
               width: "100%",
               maxWidth: step === 1 ? 400 : 480,
-              maxHeight: "90vh",
+              maxHeight: "100%",
               overflowY: "auto",
               background: "#121212",
               border: "1px solid rgba(255,255,255,0.1)",
               borderRadius: 24,
-              padding: "24px 20px",
+              padding: "20px 16px",
               boxShadow: "0 32px 64px rgba(0,0,0,0.5)",
               zIndex: 1,
             }}
@@ -250,7 +250,7 @@ export default function FeedbackModal() {
                   exit={{ opacity: 0, x: -20 }}
                   transition={{ duration: 0.2 }}
                 >
-                  <div style={{ textAlign: "center", marginBottom: 16 }}>
+                  <div style={{ textAlign: "center", marginBottom: 12 }}>
                     <div
                       style={{
                         width: 44,
@@ -264,13 +264,13 @@ export default function FeedbackModal() {
                         border: "1px solid rgba(255,255,255,0.08)",
                       }}
                     >
-                      <MessageSquare size={22} color="#3ea6ff" />
+                      <MessageSquare size={20} color="#3ea6ff" />
                     </div>
                     <h2
                       style={{
-                        fontSize: 24,
+                        fontSize: 22,
                         fontWeight: 800,
-                        marginBottom: 8,
+                        marginBottom: 4,
                         color: "#fff",
                       }}
                     >
@@ -279,17 +279,17 @@ export default function FeedbackModal() {
                     <p
                       style={{
                         color: "var(--secondary, #a1a1aa)",
-                        fontSize: 14,
-                        lineHeight: 1.5,
+                        fontSize: 13,
+                        lineHeight: 1.4,
                       }}
                     >
                       Your feedback helps us improve GradeFlow. Please take a moment to share your thoughts.
                     </p>
                   </div>
 
-                  <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                  <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: 10 }}>
                     {/* Star Rating */}
-                    <div style={{ display: "flex", justifyContent: "center", gap: 8, marginBottom: 8 }}>
+                    <div style={{ display: "flex", justifyContent: "center", gap: 4, marginBottom: 4 }}>
                       {[1, 2, 3, 4, 5].map((star) => (
                         <button
                           key={star}
@@ -308,7 +308,7 @@ export default function FeedbackModal() {
                           onMouseUp={(e) => (e.currentTarget.style.transform = "scale(1)")}
                         >
                           <Star
-                            size={28}
+                            size={24}
                             fill={(hoverRating || rating) >= star ? "#f59e0b" : "transparent"}
                             color={(hoverRating || rating) >= star ? "#f59e0b" : "rgba(255,255,255,0.2)"}
                             style={{ transition: "all 0.2s ease" }}
@@ -317,8 +317,8 @@ export default function FeedbackModal() {
                       ))}
                     </div>
 
-                    <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
-                      <div style={{ flex: "1 1 200px" }}>
+                    <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                      <div style={{ flex: "1 1 180px" }}>
                         <label
                           style={{
                             display: "block",
@@ -340,8 +340,8 @@ export default function FeedbackModal() {
                           placeholder="John Doe"
                           style={{
                             width: "100%",
-                            padding: "12px 14px",
-                            borderRadius: 12,
+                            padding: "10px 12px",
+                            borderRadius: 10,
                             background: "rgba(255,255,255,0.03)",
                             border: "1px solid rgba(255,255,255,0.1)",
                             color: "#fff",
@@ -359,7 +359,7 @@ export default function FeedbackModal() {
                           }}
                         />
                       </div>
-                      <div style={{ flex: "1 1 150px" }}>
+                      <div style={{ flex: "1 1 120px" }}>
                         <label
                           style={{
                             display: "block",
@@ -381,8 +381,8 @@ export default function FeedbackModal() {
                           placeholder="230..."
                           style={{
                             width: "100%",
-                            padding: "12px 14px",
-                            borderRadius: 12,
+                            padding: "10px 12px",
+                            borderRadius: 10,
                             background: "rgba(255,255,255,0.03)",
                             border: "1px solid rgba(255,255,255,0.1)",
                             color: "#fff",
@@ -424,8 +424,8 @@ export default function FeedbackModal() {
                         rows={3}
                         style={{
                           width: "100%",
-                          padding: "12px 14px",
-                          borderRadius: 12,
+                          padding: "10px 12px",
+                          borderRadius: 10,
                           background: "rgba(255,255,255,0.03)",
                           border: "1px solid rgba(255,255,255,0.1)",
                           color: "#fff",
@@ -433,7 +433,7 @@ export default function FeedbackModal() {
                           outline: "none",
                           transition: "all 0.2s",
                           resize: "vertical",
-                          minHeight: 80,
+                          minHeight: 60,
                           fontFamily: "inherit",
                         }}
                         onFocus={(e) => {
@@ -454,18 +454,18 @@ export default function FeedbackModal() {
                       disabled={rating === 0 || isSubmitting}
                       style={{
                         width: "100%",
-                        padding: "14px",
-                        borderRadius: 12,
+                        padding: "12px",
+                        borderRadius: 10,
                         background:
                           rating === 0 || isSubmitting
                             ? "rgba(255,255,255,0.05)"
                             : "linear-gradient(135deg, #3ea6ff, #3b82f6)",
                         border: "none",
                         color: rating === 0 || isSubmitting ? "rgba(255,255,255,0.3)" : "#fff",
-                        fontSize: 16,
+                        fontSize: 15,
                         fontWeight: 700,
                         cursor: rating === 0 || isSubmitting ? "not-allowed" : "pointer",
-                        marginTop: 4,
+                        marginTop: 0,
                         transition: "all 0.2s",
                         boxShadow:
                           rating === 0 || isSubmitting ? "none" : "0 8px 24px rgba(62,166,255,0.3)",
@@ -481,10 +481,10 @@ export default function FeedbackModal() {
                         background: "transparent",
                         border: "none",
                         color: "var(--secondary, #a1a1aa)",
-                        fontSize: 14,
+                        fontSize: 13,
                         cursor: "pointer",
                         textDecoration: "underline",
-                        marginTop: -4,
+                        marginTop: -2,
                       }}
                     >
                       Back
