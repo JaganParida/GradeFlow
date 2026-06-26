@@ -83,7 +83,7 @@ export default function BasketDashboard({ results, studentData }) {
         className="basket-subject-row"
         style={{
           display: "grid",
-          gridTemplateColumns: "3fr 1fr 1fr 1fr",
+          gridTemplateColumns: showType ? "3fr 1fr 1fr 1fr 1.5fr" : "3fr 1fr 1fr 1fr",
           padding: "16px 24px",
           alignItems: "center",
           borderBottom: "1px solid var(--border-color)",
@@ -185,6 +185,22 @@ export default function BasketDashboard({ results, studentData }) {
           <span className="mobile-label">Credits</span>
           <span>{isPending ? sub.credits : sub.earnedCredits}</span>
         </div>
+
+        {showType && (
+          <div
+            className="mobile-flex-row"
+            style={{
+              textAlign: "right",
+              fontSize: 14,
+              color: "var(--secondary)",
+              fontWeight: 600,
+              opacity: isPending ? 0.6 : 1,
+            }}
+          >
+            <span className="mobile-label">Course Type</span>
+            <span>{sub.type || "—"}</span>
+          </div>
+        )}
       </div>
     );
   };
@@ -244,7 +260,7 @@ export default function BasketDashboard({ results, studentData }) {
             className="basket-grid-header"
             style={{
               display: "grid",
-              gridTemplateColumns: "3fr 1fr 1fr 1fr",
+              gridTemplateColumns: "3fr 1fr 1fr 1fr 1.5fr",
               padding: "16px 24px",
               borderBottom: "1px solid var(--border-color)",
               borderTop: "1px solid var(--border-color)",
@@ -259,15 +275,17 @@ export default function BasketDashboard({ results, studentData }) {
             <div style={{ textAlign: "center" }}>Sem</div>
             <div style={{ textAlign: "center" }}>Status</div>
             <div style={{ textAlign: "right" }}>Credits</div>
+            <div style={{ textAlign: "right" }}>Course Type<br/>T+P+PJ</div>
           </div>
           {syllabusList.map((syllabusSub, idx) => {
             // Find if student has taken this subject
             const takenSub = data.subjects.find((s) => isMatch(s, syllabusSub));
-            if (takenSub) return renderSubjectRow(takenSub, idx, false);
+            if (takenSub) return renderSubjectRow({ ...takenSub, type: takenSub.type || syllabusSub.type }, idx, false, true);
             return renderSubjectRow(
-              { subName: syllabusSub.subName, credits: syllabusSub.credits },
+              syllabusSub,
               idx,
               true,
+              true
             );
           })}
           {/* Render extra subjects the student took in this basket not in static list */}
@@ -277,7 +295,7 @@ export default function BasketDashboard({ results, studentData }) {
                 !syllabusList.some((syllabusSub) => isMatch(s, syllabusSub)),
             )
             .map((extraSub, idx) => {
-              return renderSubjectRow(extraSub, "extra-" + idx, false);
+              return renderSubjectRow(extraSub, "extra-" + idx, false, true);
             })}
         </div>
       );
@@ -299,7 +317,7 @@ export default function BasketDashboard({ results, studentData }) {
             className="basket-grid-header"
             style={{
               display: "grid",
-              gridTemplateColumns: "3fr 1fr 1fr 1fr",
+              gridTemplateColumns: "3fr 1fr 1fr 1fr 1.5fr",
               padding: "16px 24px",
               borderBottom: "1px solid var(--border-color)",
               borderTop: "1px solid var(--border-color)",
@@ -314,18 +332,21 @@ export default function BasketDashboard({ results, studentData }) {
             <div style={{ textAlign: "center" }}>Sem</div>
             <div style={{ textAlign: "center" }}>Status</div>
             <div style={{ textAlign: "right" }}>Credits</div>
+            <div style={{ textAlign: "right" }}>Course Type<br/>T+P+PJ</div>
           </div>
           {BASKET_4_SYLLABUS.map((syllabusSub, idx) => {
             const takenSub = data.subjects.find((s) => isMatch(s, syllabusSub));
-            if (takenSub) return renderSubjectRow(takenSub, idx, false);
+            if (takenSub) return renderSubjectRow({ ...takenSub, type: takenSub.type || syllabusSub.type }, idx, false, true);
             return renderSubjectRow(
               {
                 subName: syllabusSub.subName,
                 subCode: syllabusSub.subCode,
                 credits: syllabusSub.credits,
+                type: syllabusSub.type,
               },
               idx,
               true,
+              true
             );
           })}
           {b4ExtraSubjects.length > 0 && (
@@ -352,7 +373,7 @@ export default function BasketDashboard({ results, studentData }) {
                   className="basket-grid-header"
                   style={{
                     display: "grid",
-                    gridTemplateColumns: "3fr 1fr 1fr 1fr",
+                    gridTemplateColumns: "3fr 1fr 1fr 1fr 1.5fr",
                     padding: "16px 24px",
                     borderBottom: "1px solid var(--border-color)",
                     fontSize: 12,
@@ -366,9 +387,10 @@ export default function BasketDashboard({ results, studentData }) {
                   <div style={{ textAlign: "center" }}>Sem</div>
                   <div style={{ textAlign: "center" }}>Status</div>
                   <div style={{ textAlign: "right" }}>Credits</div>
+                  <div style={{ textAlign: "right" }}>Course Type<br/>T+P+PJ</div>
                 </div>
                 {b4ExtraSubjects.map((sub, idx) =>
-                  renderSubjectRow(sub, "extra-" + idx, false),
+                  renderSubjectRow(sub, "extra-" + idx, false, true),
                 )}
               </div>
             </div>
