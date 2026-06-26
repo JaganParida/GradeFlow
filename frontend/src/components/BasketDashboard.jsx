@@ -197,7 +197,10 @@ export default function BasketDashboard({ results, studentData }) {
               opacity: isPending ? 0.6 : 1,
             }}
           >
-            <span className="mobile-label">Course Type</span>
+            <span className="mobile-label" style={{ textAlign: "left", lineHeight: "1.2" }}>
+              Course Type
+              <span style={{ display: "block", fontSize: "9px", opacity: 0.8, fontWeight: 500, marginTop: "2px" }}>T+P+PJ</span>
+            </span>
             <span>{sub.type || "—"}</span>
           </div>
         )}
