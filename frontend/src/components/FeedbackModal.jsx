@@ -21,7 +21,6 @@ export default function FeedbackModal() {
     // Show only if there is NO active session (meaning user hasn't searched a reg.no)
     // and remove the one-time localStorage restriction as per user request.
     if (!hasActiveSession) {
-    if (!hasActiveSession) {
       const timer = setTimeout(() => setShow(true), 500);
       return () => clearTimeout(timer);
     } else {
