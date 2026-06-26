@@ -221,7 +221,9 @@ export const BASKET_4_SYLLABUS = [
 export const COMMON_BASKET_5_SYLLABUS = [
   { subCode: "CUTM1577", subName: "MINOR PROJECT II", credits: 2 },
   { subCode: "CUTM1905", subName: "INTERNSHIP", credits: 2 },
-  { subCode: "CUTM1906", subName: "MINOR PROJECT", credits: 2 }
+  { subCode: "CUTM1906", subName: "MINOR PROJECT", credits: 2 },
+  { subCode: "CUTM1578", subName: "SUMMER INTERNSHIP I", credits: 2 },
+  { subCode: "CUTM2598", subName: "MINOR PROJECT III", credits: 2 }
 ];
 
 export const ADDITIONAL_BASKET_5_SUBJECTS = [
