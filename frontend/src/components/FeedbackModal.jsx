@@ -177,15 +177,15 @@ export default function FeedbackModal() {
                     Enjoying GradeFlow?
                   </h2>
                   <p
-                    style={{
-                      color: "var(--secondary, #a1a1aa)",
-                      fontSize: 15,
-                      lineHeight: 1.6,
-                      marginBottom: 24,
-                    }}
-                  >
-                    Support us by starring our repository on GitHub, or share your thoughts to help us improve!
-                  </p>
+                      style={{
+                        color: "var(--secondary, #a1a1aa)",
+                        fontSize: 15,
+                        lineHeight: 1.6,
+                        marginBottom: 24,
+                      }}
+                    >
+                      If GradeFlow has been helpful to you, consider dropping a star on GitHub, or share your thoughts to help me improve it!
+                    </p>
 
                   <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
                     <a
