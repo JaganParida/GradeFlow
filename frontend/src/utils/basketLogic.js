@@ -999,7 +999,7 @@ export const BASKET_1_SYLLABUS = [
     "subCode": "CUTM1010",
     "subName": "ENVIRONMENTAL STUDIES",
     "credits": 2,
-    "type": "2+0+0"
+    "type": "0+0+2"
   }
 ];
 
@@ -1044,7 +1044,7 @@ export const BASKET_2_SYLLABUS = [
     "subCode": "CUTM1674",
     "subName": "Environmental Science",
     "credits": 4,
-    "type": "3+0+1"
+    "type": "3-0-1"
   }
 ];
 
