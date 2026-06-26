@@ -280,7 +280,7 @@ export default function BasketDashboard({ results, studentData }) {
           {syllabusList.map((syllabusSub, idx) => {
             // Find if student has taken this subject
             const takenSub = data.subjects.find((s) => isMatch(s, syllabusSub));
-            if (takenSub) return renderSubjectRow({ ...takenSub, type: takenSub.type || syllabusSub.type }, idx, false, true);
+            if (takenSub) return renderSubjectRow({ ...takenSub, type: syllabusSub.type || takenSub.type }, idx, false, true);
             return renderSubjectRow(
               syllabusSub,
               idx,
@@ -336,7 +336,7 @@ export default function BasketDashboard({ results, studentData }) {
           </div>
           {BASKET_4_SYLLABUS.map((syllabusSub, idx) => {
             const takenSub = data.subjects.find((s) => isMatch(s, syllabusSub));
-            if (takenSub) return renderSubjectRow({ ...takenSub, type: takenSub.type || syllabusSub.type }, idx, false, true);
+            if (takenSub) return renderSubjectRow({ ...takenSub, type: syllabusSub.type || takenSub.type }, idx, false, true);
             return renderSubjectRow(
               {
                 subName: syllabusSub.subName,

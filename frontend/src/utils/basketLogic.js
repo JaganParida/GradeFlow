@@ -1008,37 +1008,37 @@ export const BASKET_2_SYLLABUS = [
     "subCode": "CUTM1011",
     "subName": "Optimisation Techniques",
     "credits": 2,
-    "type": "0+2+0"
+    "type": "0-2-0"
   },
   {
     "subCode": "CUTM1012",
     "subName": "Engineering Economics and Costing",
     "credits": 3,
-    "type": "2+0+1"
+    "type": "2-0-1"
   },
   {
     "subCode": "CUTM1013",
     "subName": "Project Management",
     "credits": 3,
-    "type": "2+0+1"
+    "type": "2-0-1"
   },
   {
     "subCode": "CUTM1014",
     "subName": "Gender, Human Rights and Ethics",
     "credits": 3,
-    "type": "1.5+0+1.5"
+    "type": "1.5-0-1.5"
   },
   {
     "subCode": "CUTM1015",
     "subName": "Climate Change, Sustainability and Organisation",
     "credits": 3,
-    "type": "1.5+0+1.5"
+    "type": "1.5-0-1.5"
   },
   {
     "subCode": "CUTM1016",
     "subName": "Job Readiness",
     "credits": 6,
-    "type": "0+6+0"
+    "type": "0-6-0"
   },
   {
     "subCode": "CUTM1674",
@@ -1053,43 +1053,43 @@ export const BASKET_3_SYLLABUS = [
     "subCode": "CUTM1017",
     "subName": "Industrial IOT and Automation",
     "credits": 6,
-    "type": "3+2+1"
+    "type": "3-2-1"
   },
   {
     "subCode": "CUTM1018",
     "subName": "Data Analysis and Visualisation using Python",
     "credits": 4,
-    "type": "0+1+3"
+    "type": "0-1-3"
   },
   {
     "subCode": "CUTM1019",
     "subName": "Machine Learning using Python",
     "credits": 4,
-    "type": "1+2+1"
+    "type": "1-2-1"
   },
   {
     "subCode": "CUTM1020",
     "subName": "Robotic automation with ROS and C++",
     "credits": 4,
-    "type": "1+2+1"
+    "type": "1-2-1"
   },
   {
     "subCode": "CUTM1021",
     "subName": "Basics of Design Thinking",
     "credits": 2,
-    "type": "0+0+2"
+    "type": "0-0-2"
   },
   {
     "subCode": "CUTM1022",
     "subName": "System Integration with DYMOLA",
     "credits": 2,
-    "type": "0+0+2"
+    "type": "0-0-2"
   },
   {
     "subCode": "CUTM1023",
     "subName": "Smart Engineering Project (G2M)",
     "credits": 3,
-    "type": "0+0+3"
+    "type": "0-0-3"
   }
 ];
 
