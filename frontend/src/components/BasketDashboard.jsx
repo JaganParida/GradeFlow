@@ -68,7 +68,7 @@ export default function BasketDashboard({ results, studentData }) {
   const honoursTarget = 20;
   const isHonoursEligible = honoursCredits >= honoursTarget;
 
-  const renderSubjectRow = (sub, idx, isPending = false) => {
+  const renderSubjectRow = (sub, idx, isPending = false, showType = false) => {
     const isBacklog =
       !isPending && ["F", "R", "M", "S", "I"].includes(sub.grade);
     const isPassed = !isPending && !isBacklog;

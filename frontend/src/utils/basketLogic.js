@@ -145,77 +145,92 @@ export const BASKET_4_SYLLABUS = [
   {
     "subCode": "CUCS1001",
     "subName": "Programming in C",
-    "credits": 6
+    "credits": 6,
+    "type": "2+4+0"
   },
   {
     "subCode": "CUCS1002",
     "subName": "Data Structures with Competitive Coding",
-    "credits": 6
+    "credits": 6,
+    "type": "2+4+0"
   },
   {
     "subCode": "CUCS1003",
     "subName": "Design and Analysis of Algorithms",
-    "credits": 6
+    "credits": 6,
+    "type": "2+4+0"
   },
   {
     "subCode": "CUCS1004",
     "subName": "Java Programming",
-    "credits": 6
+    "credits": 6,
+    "type": "2+2+2"
   },
   {
     "subCode": "CUCS1005",
     "subName": "Relational and Distributed Databases",
-    "credits": 4
+    "credits": 4,
+    "type": "2+2+0"
   },
   {
     "subCode": "CUCS1006",
     "subName": "Network and Protocols for IoT",
-    "credits": 3
+    "credits": 3,
+    "type": "1+2+0"
   },
   {
     "subCode": "CUCS1007",
     "subName": "Information Security (CISCO)",
-    "credits": 3
+    "credits": 3,
+    "type": "1+1+1"
   },
   {
     "subCode": "CUCS1008",
     "subName": "Theory of Computation and Compiler Design",
-    "credits": 4
+    "credits": 4,
+    "type": "2+2+0"
   },
   {
     "subCode": "CUCS1009",
     "subName": "System Administrator (RedHat)",
-    "credits": 3
+    "credits": 3,
+    "type": "2+1+0"
   },
   {
     "subCode": "CUCS1010",
     "subName": "Cloud Practitioner (AWS)",
-    "credits": 2
+    "credits": 2,
+    "type": "1+1+0"
   },
   {
     "subCode": "CUCS1011",
     "subName": "Software Engineering and Testing",
-    "credits": 3
+    "credits": 3,
+    "type": "1+2+0"
   },
   {
     "subCode": "CUCS1012",
     "subName": "Customer Experience Design and Programming",
-    "credits": 4
+    "credits": 4,
+    "type": "1+2+1"
   },
   {
     "subCode": "CUCS1013",
     "subName": "Android Development with Kotlin",
-    "credits": 6
+    "credits": 6,
+    "type": "1+3+2"
   },
   {
     "subCode": "CUCS1014",
     "subName": "Prompt Engineering using ChatGPT",
-    "credits": 2
+    "credits": 2,
+    "type": "1+1+0"
   },
   {
     "subCode": "CUCS1015",
     "subName": "Cloud Fundamentals (Azure)",
-    "credits": 2
+    "credits": 2,
+    "type": "1+1+0"
   }
 ];
 export const COMMON_BASKET_5_SYLLABUS = [
@@ -923,57 +938,68 @@ export const BASKET_1_SYLLABUS = [
   {
     "subCode": "CUTM1001",
     "subName": "Differential Equations and Linear Algebra",
-    "credits": 3
+    "credits": 3,
+    "type": "2+0+1"
   },
   {
     "subCode": "CUTM1002",
     "subName": "Laplace & Fourier Transforms",
-    "credits": 3
+    "credits": 3,
+    "type": "2+0+1"
   },
   {
     "subCode": "CUTM1003",
     "subName": "Complex Analysis & Numerical Methods",
-    "credits": 3
+    "credits": 3,
+    "type": "2+0+1"
   },
   {
     "subCode": "CUTM1004",
     "subName": "Discrete Mathematics",
-    "credits": 3
+    "credits": 3,
+    "type": "2+0+1"
   },
   {
     "subCode": "CUTM1005",
     "subName": "Probability & Statistics",
-    "credits": 3
+    "credits": 3,
+    "type": "2+0+1"
   },
   {
     "subCode": "CUTM1925",
     "subName": "Calculus",
-    "credits": 3
+    "credits": 3,
+    "type": "2+0+1"
   },
   {
     "subCode": "CUTM1006",
     "subName": "Mechanics for Engineers",
-    "credits": 3
+    "credits": 3,
+    "type": "2+1+0"
   },
   {
     "subCode": "CUTM1007",
     "subName": "Optics and Optical Fibres",
-    "credits": 3
+    "credits": 3,
+    "type": "2+1+0"
   },
   {
     "subCode": "CUTM1008",
     "subName": "Applied Analytical Chemistry",
-    "credits": 3
+    "credits": 3,
+    "type": "2+1+0"
   },
   {
     "subCode": "CUTM1009",
     "subName": "Applied Engineering Materials",
-    "credits": 3
+    "credits": 3,
+    "type": "2+0+1"
   },
   {
     "subCode": "CUTM1010",
     "subName": "ENVIRONMENTAL STUDIES",
-    "credits": 2
+    "credits": 2,
+    "type": "2+0+0"
   }
 ];
 
@@ -981,37 +1007,44 @@ export const BASKET_2_SYLLABUS = [
   {
     "subCode": "CUTM1011",
     "subName": "Optimisation Techniques",
-    "credits": 2
+    "credits": 2,
+    "type": "0-2-0"
   },
   {
     "subCode": "CUTM1012",
     "subName": "Engineering Economics and Costing",
-    "credits": 3
+    "credits": 3,
+    "type": "2-0-1"
   },
   {
     "subCode": "CUTM1013",
     "subName": "Project Management",
-    "credits": 3
+    "credits": 3,
+    "type": "2-0-1"
   },
   {
     "subCode": "CUTM1014",
     "subName": "Gender, Human Rights and Ethics",
-    "credits": 3
+    "credits": 3,
+    "type": "1.5-0-1.5"
   },
   {
     "subCode": "CUTM1015",
     "subName": "Climate Change, Sustainability and Organisation",
-    "credits": 3
+    "credits": 3,
+    "type": "1.5-0-1.5"
   },
   {
     "subCode": "CUTM1016",
     "subName": "Job Readiness",
-    "credits": 6
+    "credits": 6,
+    "type": "0-6-0"
   },
   {
     "subCode": "CUTM1674",
     "subName": "Environmental Science",
-    "credits": 4
+    "credits": 4,
+    "type": "3+0+1"
   }
 ];
 
@@ -1019,37 +1052,44 @@ export const BASKET_3_SYLLABUS = [
   {
     "subCode": "CUTM1017",
     "subName": "Industrial IOT and Automation",
-    "credits": 6
+    "credits": 6,
+    "type": "3-2-1"
   },
   {
     "subCode": "CUTM1018",
     "subName": "Data Analysis and Visualisation using Python",
-    "credits": 4
+    "credits": 4,
+    "type": "0-1-3"
   },
   {
     "subCode": "CUTM1019",
     "subName": "Machine Learning using Python",
-    "credits": 4
+    "credits": 4,
+    "type": "1-2-1"
   },
   {
     "subCode": "CUTM1020",
     "subName": "Robotic automation with ROS and C++",
-    "credits": 4
+    "credits": 4,
+    "type": "1-2-1"
   },
   {
     "subCode": "CUTM1021",
     "subName": "Basics of Design Thinking",
-    "credits": 2
+    "credits": 2,
+    "type": "0-0-2"
   },
   {
     "subCode": "CUTM1022",
     "subName": "System Integration with DYMOLA",
-    "credits": 2
+    "credits": 2,
+    "type": "0-0-2"
   },
   {
     "subCode": "CUTM1023",
     "subName": "Smart Engineering Project (G2M)",
-    "credits": 3
+    "credits": 3,
+    "type": "0-0-3"
   }
 ];
 
