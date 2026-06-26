@@ -3,6 +3,11 @@ const router = express.Router();
 const Ranking = require("../models/Ranking");
 const { sortByScore } = require("../utils/gradeCalculations");
 
+// Escape special regex characters to prevent ReDoS attacks
+function escapeRegex(str) {
+  return str.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
 function getRegNoQueryForBranch(branch) {
   const b = branch.toUpperCase();
   if (b === "CSE") {
@@ -66,10 +71,11 @@ router.get("/top", async (req, res) => {
 
     const isGlobalSearch = search && !branch;
     if (isGlobalSearch) {
+      const escaped = escapeRegex(search);
       andClauses.push({
         $or: [
-          { studentName: { $regex: search, $options: "i" } },
-          { regNo: { $regex: search, $options: "i" } },
+          { studentName: { $regex: escaped, $options: "i" } },
+          { regNo: { $regex: escaped, $options: "i" } },
         ]
       });
     }
@@ -149,7 +155,8 @@ router.get("/top", async (req, res) => {
 
     res.json(bounded);
   } catch (err) {
-    res.status(500).json({ message: err.message });
+    console.error("Rankings top error:", err.message);
+    res.status(500).json({ message: "Server error" });
   }
 });
 
@@ -160,7 +167,8 @@ router.get("/meta", async (req, res) => {
     const branches = ["CSE", "CIVIL", "ME", "ECE", "EEE", "BIO", "MI", "AERO"];
     res.json({ semesters: semesters.sort(), branches });
   } catch (err) {
-    res.status(500).json({ message: err.message });
+    console.error("Rankings meta error:", err.message);
+    res.status(500).json({ message: "Server error" });
   }
 });
 

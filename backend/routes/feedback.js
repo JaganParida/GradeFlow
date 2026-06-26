@@ -1,6 +1,7 @@
 const express = require("express");
 const router = express.Router();
 const Feedback = require("../models/Feedback");
+const { protect } = require("../middleware/auth");
 
 // GET /api/feedback - Retrieve all feedbacks (sorted newest first)
 router.get("/", async (req, res) => {
@@ -55,8 +56,8 @@ router.post("/:id/like", async (req, res) => {
   }
 });
 
-// PUT /api/feedback/:id - Update a feedback
-router.put("/:id", async (req, res) => {
+// PUT /api/feedback/:id - Update a feedback (admin only)
+router.put("/:id", protect, async (req, res) => {
   try {
     const { name, regNo, rating, comment } = req.body;
     const feedback = await Feedback.findById(req.params.id);
@@ -77,8 +78,8 @@ router.put("/:id", async (req, res) => {
   }
 });
 
-// DELETE /api/feedback/:id - Delete a feedback
-router.delete("/:id", async (req, res) => {
+// DELETE /api/feedback/:id - Delete a feedback (admin only)
+router.delete("/:id", protect, async (req, res) => {
   try {
     const feedback = await Feedback.findById(req.params.id);
     if (!feedback) {

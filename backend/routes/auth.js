@@ -27,7 +27,8 @@ router.post("/login", async (req, res) => {
     res.cookie("jwt", token, options);
     res.json({ success: true, email: admin.email });
   } catch (err) {
-    res.status(500).json({ message: err.message });
+    console.error("Auth login error:", err.message);
+    res.status(500).json({ message: "Server error" });
   }
 });
 

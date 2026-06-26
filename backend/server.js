@@ -16,12 +16,23 @@ app.set("trust proxy", 1);
 // Set security HTTP headers
 app.use(helmet());
 
-// Enable CORS with credentials support
-app.use(cors({ 
-  origin: function(origin, callback) {
-    callback(null, true);
+// Enable CORS with credentials support — whitelist allowed origins
+const ALLOWED_ORIGINS = [
+  "http://localhost:5173",
+  "http://localhost:3000",
+  process.env.FRONTEND_URL, // Set in .env for production (e.g. https://your-app.vercel.app)
+].filter(Boolean);
+
+app.use(cors({
+  origin: function (origin, callback) {
+    // Allow requests with no origin (mobile apps, curl, server-to-server)
+    if (!origin || ALLOWED_ORIGINS.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error("Not allowed by CORS"));
+    }
   },
-  credentials: true 
+  credentials: true,
 }));
 
 app.use(express.json());
@@ -44,7 +55,7 @@ app.use(xss());
 //
 const globalLimiter = rateLimit({
   windowMs: 1 * 60 * 1000, // 1 minute
-  max: 600, // 600 requests per minute per IP
+  max: 200, // 200 requests per minute per IP
   standardHeaders: true,
   legacyHeaders: false,
   message: {

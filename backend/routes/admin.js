@@ -480,7 +480,7 @@ router.post(
       });
     } catch (err) {
       console.error("Upload error:", err);
-      res.status(500).json({ message: err.message });
+      res.status(500).json({ message: "Server error during upload" });
     }
   },
 );
@@ -697,12 +697,7 @@ router.post(
           }
         }
 
-        try {
-          require("fs").writeFileSync(
-            require("path").join(__dirname, "../../rows_debug.json"),
-            JSON.stringify({ headerRowIdx, rows: rows.slice(0, 10) }, null, 2),
-          );
-        } catch (e) {}
+        // Debug logging removed for security — student data should not be written to disk
 
         // If we can't find a clear header row, default to row 6 (index 5) or 7 (index 6) based on common format
         if (headerRowIdx === -1) headerRowIdx = 6;
@@ -914,16 +909,7 @@ router.post(
         );
       });
 
-      try {
-        require("fs").writeFileSync(
-          require("path").join(__dirname, "../../grouped_debug.json"),
-          JSON.stringify(grouped, null, 2),
-        );
-        require("fs").writeFileSync(
-          require("path").join(__dirname, "../../colmap_debug.json"),
-          JSON.stringify(colMap, null, 2),
-        );
-      } catch (e) {}
+      // Debug logging removed for security — student data should not be written to disk
 
       let count = 0;
       for (const key of Object.keys(grouped)) {
@@ -950,7 +936,8 @@ router.post(
         message: `✅ Uploaded internal marks for ${count} student(s)`,
       });
     } catch (err) {
-      res.status(500).json({ message: err.message });
+      console.error("Internal marks upload error:", err);
+      res.status(500).json({ message: "Server error during internal marks upload" });
     }
   },
 );
@@ -970,7 +957,8 @@ router.post("/rankings/generate", protect, async (req, res) => {
       message: `✅ Rankings generated successfully for Semester ${semester}`,
     });
   } catch (err) {
-    res.status(500).json({ message: err.message });
+    console.error("Rankings generation error:", err);
+    res.status(500).json({ message: "Server error" });
   }
 });
 
@@ -991,7 +979,8 @@ router.post("/rankings/regenerate-all", protect, async (req, res) => {
       message: `✅ All rankings regenerated for ${semesters.length} semester(s): ${semesters.join(", ")}. Cache cleared.`,
     });
   } catch (err) {
-    res.status(500).json({ message: err.message });
+    console.error("Rankings regeneration error:", err);
+    res.status(500).json({ message: "Server error" });
   }
 });
 
@@ -1004,7 +993,8 @@ router.post("/cache/clear", protect, async (req, res) => {
         "✅ Student cache cleared. All future requests will fetch fresh data.",
     });
   } catch (err) {
-    res.status(500).json({ message: err.message });
+    console.error("Cache clear error:", err);
+    res.status(500).json({ message: "Server error" });
   }
 });
 
@@ -1023,7 +1013,8 @@ router.get("/stats", protect, async (req, res) => {
       totalRankings,
     });
   } catch (err) {
-    res.status(500).json({ message: err.message });
+    console.error("Stats error:", err);
+    res.status(500).json({ message: "Server error" });
   }
 });
 
