@@ -94,7 +94,7 @@ app.get("/api/health", (req, res) =>
 const http = require("http");
 const server = http.createServer(app);
 
-// Seed admin on first run
+// Seed or update admin on first run
 async function seedAdmin() {
   const Admin = require("./models/Admin");
   const exists = await Admin.findOne({ email: process.env.ADMIN_EMAIL });
@@ -104,6 +104,11 @@ async function seedAdmin() {
       password: process.env.ADMIN_PASSWORD,
     });
     console.log("✅ Admin seeded:", process.env.ADMIN_EMAIL);
+  } else {
+    // Ensure the password stays in sync with the .env file
+    exists.password = process.env.ADMIN_PASSWORD;
+    await exists.save();
+    console.log("✅ Admin credentials synced with .env");
   }
 }
 
