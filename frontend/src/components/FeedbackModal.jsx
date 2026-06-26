@@ -21,7 +21,8 @@ export default function FeedbackModal() {
     // Show only if there is NO active session (meaning user hasn't searched a reg.no)
     // and remove the one-time localStorage restriction as per user request.
     if (!hasActiveSession) {
-      const timer = setTimeout(() => setShow(true), 2000);
+    if (!hasActiveSession) {
+      const timer = setTimeout(() => setShow(true), 500);
       return () => clearTimeout(timer);
     } else {
       setShow(false);
@@ -103,7 +104,7 @@ export default function FeedbackModal() {
               background: "#121212",
               border: "1px solid rgba(255,255,255,0.1)",
               borderRadius: 24,
-              padding: "32px 24px",
+              padding: "24px 20px",
               boxShadow: "0 32px 64px rgba(0,0,0,0.5)",
               zIndex: 1,
             }}
@@ -157,7 +158,7 @@ export default function FeedbackModal() {
                       display: "flex",
                       alignItems: "center",
                       justifyContent: "center",
-                      margin: "0 auto 20px",
+                      margin: "0 auto 16px",
                       border: "1px solid rgba(255,255,255,0.08)",
                       boxShadow: "0 8px 16px rgba(0,0,0,0.2)",
                     }}
@@ -180,7 +181,7 @@ export default function FeedbackModal() {
                       color: "var(--secondary, #a1a1aa)",
                       fontSize: 15,
                       lineHeight: 1.6,
-                      marginBottom: 32,
+                      marginBottom: 24,
                     }}
                   >
                     Support us by starring our repository on GitHub, or share your thoughts to help us improve!
@@ -250,21 +251,21 @@ export default function FeedbackModal() {
                   exit={{ opacity: 0, x: -20 }}
                   transition={{ duration: 0.2 }}
                 >
-                  <div style={{ textAlign: "center", marginBottom: 24 }}>
+                  <div style={{ textAlign: "center", marginBottom: 16 }}>
                     <div
                       style={{
-                        width: 48,
-                        height: 48,
+                        width: 44,
+                        height: 44,
                         borderRadius: 14,
                         background: "linear-gradient(135deg, rgba(62,166,255,0.15), rgba(168,85,247,0.15))",
                         display: "flex",
                         alignItems: "center",
                         justifyContent: "center",
-                        margin: "0 auto 12px",
+                        margin: "0 auto 8px",
                         border: "1px solid rgba(255,255,255,0.08)",
                       }}
                     >
-                      <MessageSquare size={24} color="#3ea6ff" />
+                      <MessageSquare size={22} color="#3ea6ff" />
                     </div>
                     <h2
                       style={{
@@ -287,7 +288,7 @@ export default function FeedbackModal() {
                     </p>
                   </div>
 
-                  <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+                  <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: 12 }}>
                     {/* Star Rating */}
                     <div style={{ display: "flex", justifyContent: "center", gap: 8, marginBottom: 8 }}>
                       {[1, 2, 3, 4, 5].map((star) => (
@@ -308,7 +309,7 @@ export default function FeedbackModal() {
                           onMouseUp={(e) => (e.currentTarget.style.transform = "scale(1)")}
                         >
                           <Star
-                            size={32}
+                            size={28}
                             fill={(hoverRating || rating) >= star ? "#f59e0b" : "transparent"}
                             color={(hoverRating || rating) >= star ? "#f59e0b" : "rgba(255,255,255,0.2)"}
                             style={{ transition: "all 0.2s ease" }}
@@ -325,7 +326,7 @@ export default function FeedbackModal() {
                             fontSize: 12,
                             fontWeight: 600,
                             color: "var(--secondary, #a1a1aa)",
-                            marginBottom: 8,
+                            marginBottom: 6,
                             textTransform: "uppercase",
                             letterSpacing: "0.5px",
                           }}
@@ -340,7 +341,7 @@ export default function FeedbackModal() {
                           placeholder="John Doe"
                           style={{
                             width: "100%",
-                            padding: "14px 16px",
+                            padding: "12px 14px",
                             borderRadius: 12,
                             background: "rgba(255,255,255,0.03)",
                             border: "1px solid rgba(255,255,255,0.1)",
@@ -366,7 +367,7 @@ export default function FeedbackModal() {
                             fontSize: 12,
                             fontWeight: 600,
                             color: "var(--secondary, #a1a1aa)",
-                            marginBottom: 8,
+                            marginBottom: 6,
                             textTransform: "uppercase",
                             letterSpacing: "0.5px",
                           }}
@@ -381,7 +382,7 @@ export default function FeedbackModal() {
                           placeholder="230..."
                           style={{
                             width: "100%",
-                            padding: "14px 16px",
+                            padding: "12px 14px",
                             borderRadius: 12,
                             background: "rgba(255,255,255,0.03)",
                             border: "1px solid rgba(255,255,255,0.1)",
@@ -409,7 +410,7 @@ export default function FeedbackModal() {
                           fontSize: 12,
                           fontWeight: 600,
                           color: "var(--secondary, #a1a1aa)",
-                          marginBottom: 8,
+                          marginBottom: 6,
                           textTransform: "uppercase",
                           letterSpacing: "0.5px",
                         }}
@@ -424,7 +425,7 @@ export default function FeedbackModal() {
                         rows={3}
                         style={{
                           width: "100%",
-                          padding: "14px 16px",
+                          padding: "12px 14px",
                           borderRadius: 12,
                           background: "rgba(255,255,255,0.03)",
                           border: "1px solid rgba(255,255,255,0.1)",
@@ -433,7 +434,7 @@ export default function FeedbackModal() {
                           outline: "none",
                           transition: "all 0.2s",
                           resize: "vertical",
-                          minHeight: 100,
+                          minHeight: 80,
                           fontFamily: "inherit",
                         }}
                         onFocus={(e) => {
@@ -454,7 +455,7 @@ export default function FeedbackModal() {
                       disabled={rating === 0 || isSubmitting}
                       style={{
                         width: "100%",
-                        padding: "16px",
+                        padding: "14px",
                         borderRadius: 12,
                         background:
                           rating === 0 || isSubmitting
