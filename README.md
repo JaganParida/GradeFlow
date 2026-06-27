@@ -7,11 +7,12 @@
 ## ✨ Features
 
 ### 👨‍🎓 For Students
-* **Advanced Analytics Dashboard:** Beautiful, interactive graphs displaying semester-by-semester SGPA and CGPA trends.
-* **Grade Predictor & What-If Analysis:** Intelligent mathematical tools allowing students to simulate future semester grades to see how they impact their final CGPA.
-* **Placement Readiness:** Instant evaluation of academic standing against standard campus placement criteria.
-* **Official Grade Sheets:** One-click PDF generation of formatted, printable grade sheets with embedded university branding and tamper-proof layouts.
-* **University Leaderboards:** Real-time branch-wise and batch-wise academic rankings.
+* **Advanced Analytics Dashboard:** Experience a premium, interactive interface that dynamically visualizes your entire academic journey, displaying semester-by-semester SGPA and CGPA trends with beautiful, responsive charts.
+* **Categorized Credit Baskets & Domain Tracker:** Intelligently categorizes completed subjects into distinct professional buckets (Foundation in Sciences, Humanities & Management, Smart Stack, Core Engineering, and Domain Skills). It automatically infers your specialization track and tracks your progress in internships, minor projects, and NPTEL certifications.
+* **Placement Eligibility Engine:** A robust, branch-specific tool that instantly cross-references your current CGPA against real-world recruitment criteria of top-tier product and service-based companies (e.g., Microsoft, Amazon, L&T, TCS), giving you a clear picture of your placement readiness.
+* **Grade Predictor & What-If Analysis:** Powerful target-prediction algorithms that allow you to simulate future semester performances. Understand exactly what SGPA you need to achieve your ultimate CGPA goals, enabling strategic academic planning.
+* **University Leaderboards:** Real-time, transparent academic rankings. See where you stand not just within your specific branch, but across your entire batch through beautifully crafted, gamified leaderboards.
+* **Official Grade Sheets (PDF Generation):** Seamless, one-click generation of formatted, print-ready grade sheets featuring embedded university branding, meticulously aligned data grids, and tamper-proof layouts.
 
 ### 👨‍💻 For Administrators
 * **Bulk Excel Uploads:** Effortlessly publish thousands of student results instantly using standard CSV/Excel formats.
