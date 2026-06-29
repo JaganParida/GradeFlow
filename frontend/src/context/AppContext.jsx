@@ -24,7 +24,11 @@ const getCachedStudentData = () => {
     }
     return JSON.parse(localStorage.getItem(STUDENT_CACHE_KEY)) || null;
   } catch {
-    localStorage.removeItem(STUDENT_CACHE_KEY);
+    try {
+      localStorage.removeItem(STUDENT_CACHE_KEY);
+    } catch (e) {
+      // Ignore if localStorage is completely disabled
+    }
     return null;
   }
 };
@@ -141,8 +145,12 @@ export function AppProvider({ children }) {
   };
 
   const clearStudentData = () => {
-    localStorage.removeItem(STUDENT_CACHE_KEY);
-    localStorage.removeItem("last_regNo");
+    try {
+      localStorage.removeItem(STUDENT_CACHE_KEY);
+      localStorage.removeItem("last_regNo");
+    } catch (err) {
+      console.warn("Could not remove from localStorage", err);
+    }
     setStudentData(null);
     setError("");
   };
