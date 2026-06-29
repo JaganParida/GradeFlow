@@ -7,6 +7,15 @@ npm-debug.log
 yarn-error.log
 .vercel/
 
+node_modules/
+.env
+dist/
+build/
+.DS_Store
+npm-debug.log
+yarn-error.log
+.vercel/
+
 # Debug files (prevent student data leak)
 *_debug.json
 debug_*.json
@@ -14,10 +23,3 @@ debug_*.json
 debug_*.txt
 
 # Dev and util scripts
-backend/check_rank.js
-backend/check_student_2.js
-backend/fix_credits.js
-backend/regen_fast.js
-backend/test_f.js
-backend/update_batch.js
-check_recent_uploads.js
