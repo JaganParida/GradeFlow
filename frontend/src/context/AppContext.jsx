@@ -98,8 +98,12 @@ export function AppProvider({ children }) {
     try {
       const res = await axios.get(`${API_BASE}/student/${regNo}`);
 
-      localStorage.setItem(STUDENT_CACHE_KEY, JSON.stringify(res.data));
-      localStorage.setItem("last_regNo", regNo);
+      try {
+        localStorage.setItem(STUDENT_CACHE_KEY, JSON.stringify(res.data));
+        localStorage.setItem("last_regNo", regNo);
+      } catch (storageErr) {
+        console.warn("Could not save to localStorage (quota exceeded or disabled):", storageErr);
+      }
       setStudentData(res.data);
       setLoading(false);
       return true;
