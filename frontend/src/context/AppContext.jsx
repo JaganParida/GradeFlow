@@ -102,7 +102,15 @@ export function AppProvider({ children }) {
         localStorage.setItem(STUDENT_CACHE_KEY, JSON.stringify(res.data));
         localStorage.setItem("last_regNo", regNo);
       } catch (storageErr) {
-        console.warn("Could not save to localStorage (quota exceeded or disabled):", storageErr);
+        console.warn("Could not save to localStorage. Attempting to clear space...", storageErr);
+        try {
+          localStorage.clear(); // Clear all domain storage to free up max space
+          localStorage.setItem(CACHE_VERSION_KEY, CACHE_VERSION); // Restore version
+          localStorage.setItem(STUDENT_CACHE_KEY, JSON.stringify(res.data));
+          localStorage.setItem("last_regNo", regNo);
+        } catch (retryErr) {
+          console.error("Local storage still unavailable after clearing.", retryErr);
+        }
       }
       setStudentData(res.data);
       setLoading(false);
