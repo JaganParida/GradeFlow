@@ -264,7 +264,7 @@ export default function Analytics() {
     });
     
     // Final CGPA is rounded after the SGPA-weighted semester average.
-    setWhatIfCGPA(cgpaDenominator > 0 ? round2(cgpaNumerator / cgpaDenominator).toFixed(2) : "0.00");
+    setWhatIfCGPA(cgpaDenominator > 0 ? trunc2(cgpaNumerator / cgpaDenominator).toFixed(2) : "0.00");
     setWhatIfSGPA(sgpa_tc > 0 ? trunc2(sgpa_tw / sgpa_tc).toFixed(2) : "0.00");
   }, [whatIfGrades, studentData]);
 
