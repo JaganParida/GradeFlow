@@ -9,7 +9,7 @@ import axios from "axios";
 import { motion, AnimatePresence } from "framer-motion";
 import jsPDF from "jspdf";
 import html2canvas from "html2canvas";
-import { User, TrendingUp, Star, Target, CheckCircle, Trophy, Award, AlertTriangle, FileText, FileEdit, Calendar, Printer, Share2, DownloadCloud, Loader2, ChevronDown, ChevronUp, Search, Layout, Calculator, Info, MessageCircle, X, List } from "lucide-react";
+import { User, TrendingUp, Star, Target, CheckCircle, Trophy, Award, AlertTriangle, FileText, FileEdit, Calendar, Printer, Share2, DownloadCloud, Loader2, ChevronDown, ChevronUp, Search, Layout, Calculator, Info, MessageCircle, X, List, Crown } from "lucide-react";
 import { calculateSGPA as calcSGPAFromSubjects, calculateSemesterMetrics } from "../utils/gradeCalculations";
 
 const GRADE_COLORS = {
@@ -364,6 +364,7 @@ export default function Dashboard() {
           : "Needs Improvement";
 
   const badges = [
+    cgpa > 9.0 && { label: "9+ CGPA Elite", color: "#f43f5e", icon: <Crown size={14} /> },
     latestSgpa >= 9.0 && { label: "Academic Excellence", color: "#f59e0b", icon: <Star size={14} /> },
     cgpa >= 8.5 && { label: "Consistent Performer", color: "#3ea6ff", icon: <Target size={14} /> },
     backlogs.length === 0 && {

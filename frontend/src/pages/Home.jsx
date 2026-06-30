@@ -18,6 +18,10 @@ import {
   Info,
   ChevronDown,
   Activity,
+  Crown,
+  CheckCircle,
+  Award,
+  Medal,
 } from "lucide-react";
 
 /* ─── Social Icons ─────────────────────────────────────────────── */
@@ -202,6 +206,63 @@ const ACADEMIC_HEALTH_SCALE = [
   },
 ];
 
+const BADGES_SCALE = [
+  {
+    factor: "9+ CGPA Elite",
+    desc: "Outstanding Academic Record",
+    formula: "CGPA > 9.0",
+    maxPts: "Crown",
+    color: "#f43f5e",
+    bg: "rgba(244,63,94,0.12)",
+    icon: <Crown size={16} />
+  },
+  {
+    factor: "Academic Excellence",
+    desc: "Stellar Semester Performance",
+    formula: "Latest SGPA ≥ 9.0",
+    maxPts: "Star",
+    color: "#f59e0b",
+    bg: "rgba(245,158,11,0.12)",
+    icon: <Star size={16} />
+  },
+  {
+    factor: "Consistent Performer",
+    desc: "Maintained High CGPA",
+    formula: "CGPA ≥ 8.5",
+    maxPts: "Target",
+    color: "#3ea6ff",
+    bg: "rgba(62,166,255,0.12)",
+    icon: <Target size={16} />
+  },
+  {
+    factor: "No Backlog Champion",
+    desc: "Cleared All Subjects",
+    formula: "Active Backlogs = 0",
+    maxPts: "Check",
+    color: "#22c55e",
+    bg: "rgba(34,197,94,0.12)",
+    icon: <CheckCircle size={16} />
+  },
+  {
+    factor: "Top Ranker",
+    desc: "University Top 10",
+    formula: "Rank ≤ 10",
+    maxPts: "Trophy",
+    color: "#a855f7",
+    bg: "rgba(168,85,247,0.12)",
+    icon: <Trophy size={16} />
+  },
+  {
+    factor: "Perfect SGPA",
+    desc: "Flawless Semester",
+    formula: "Latest SGPA = 10",
+    maxPts: "Award",
+    color: "#f97316",
+    bg: "rgba(249,115,22,0.12)",
+    icon: <Award size={16} />
+  }
+];
+
 const FEATURES = [
   { label: "SGPA & CGPA", icon: <BarChart2 size={14} />, color: "#3ea6ff" },
   {
@@ -295,6 +356,7 @@ export default function Home() {
   const [regNo, setRegNo] = useState("");
   const [showGradeTable, setShowGradeTable] = useState(true);
   const [showHealthTable, setShowHealthTable] = useState(true);
+  const [showBadgeTable, setShowBadgeTable] = useState(true);
   const { fetchStudent, loading, error } = useApp();
   const navigate = useNavigate();
 
@@ -1680,6 +1742,333 @@ export default function Home() {
                   >
                     <strong style={{ color: "var(--text)" }}>Total Score</strong> —
                     The Academic Health score is the sum of all components, capped at a maximum of 100 points, and rounded to the nearest whole number.
+                  </p>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
+      </motion.section>
+
+      {/* ════════════════════════════════════════════
+          BADGES & ACHIEVEMENTS TABLE
+      ════════════════════════════════════════════ */}
+      <motion.section
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 0.5 }}
+        style={{
+          ...S.section,
+          marginBottom: 80,
+          position: "relative",
+          zIndex: 1,
+        }}
+      >
+        <div style={S.sectionCard}>
+          {/* Header with toggle */}
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              flexWrap: "wrap",
+              gap: 12,
+              marginBottom: showBadgeTable ? 28 : 0,
+            }}
+          >
+            <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+              <div style={S.iconBox("#f43f5e")}>
+                <Medal size={20} color="#f43f5e" />
+              </div>
+              <div>
+                <h2
+                  style={{
+                    fontSize: "clamp(18px, 3vw, 22px)",
+                    fontWeight: 800,
+                    marginBottom: 2,
+                  }}
+                >
+                  Badges & Achievements
+                </h2>
+                <p style={{ color: "var(--secondary)", fontSize: 13 }}>
+                  Criteria for unlocking profile badges
+                </p>
+              </div>
+            </div>
+            <button
+              onClick={() => setShowBadgeTable((v) => !v)}
+              style={{
+                background: "#212121",
+                border: "1px solid rgba(255,255,255,0.08)",
+                borderRadius: 10,
+                padding: "8px 14px",
+                color: "var(--secondary)",
+                cursor: "pointer",
+                display: "flex",
+                alignItems: "center",
+                gap: 6,
+                fontSize: 13,
+                transition: "all 0.2s",
+              }}
+            >
+              {showBadgeTable ? "Collapse" : "Show Table"}
+              <motion.span
+                animate={{ rotate: showBadgeTable ? 180 : 0 }}
+                transition={{ duration: 0.2 }}
+              >
+                <ChevronDown size={15} />
+              </motion.span>
+            </button>
+          </div>
+
+          <AnimatePresence initial={false}>
+            {showBadgeTable && (
+              <motion.div
+                key="table"
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: "auto" }}
+                exit={{ opacity: 0, height: 0 }}
+                style={{ overflow: "hidden" }}
+              >
+                {/* Column headers — hidden on mobile */}
+                <div
+                  className="ah-header"
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: "180px 1fr 180px 80px",
+                    gap: 8,
+                    padding: "0 12px 12px",
+                    borderBottom: "1px solid rgba(255,255,255,0.06)",
+                    marginBottom: 10,
+                  }}
+                >
+                  {[
+                    "Badge Name",
+                    "Description",
+                    "Criteria",
+                    "Icon",
+                  ].map((h) => (
+                    <span
+                      key={h}
+                      style={{
+                        fontSize: 10,
+                        fontWeight: 700,
+                        color: "var(--secondary)",
+                        textTransform: "uppercase",
+                        letterSpacing: "0.8px",
+                      }}
+                    >
+                      {h}
+                    </span>
+                  ))}
+                </div>
+
+                {/* Rows */}
+                <div
+                  style={{ display: "flex", flexDirection: "column", gap: 6 }}
+                >
+                  {BADGES_SCALE.map((row, i) => (
+                    <motion.div
+                      key={row.factor}
+                      initial={{ opacity: 0, x: -10 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ duration: 0.3, ease: "easeOut" }}
+                      className="gs-row"
+                      style={{
+                        borderRadius: 12,
+                        background: row.bg,
+                        border: `1px solid ${row.color}20`,
+                        overflow: "hidden",
+                      }}
+                    >
+                      {/* Desktop row */}
+                      <div
+                        className="ah-row-desktop"
+                        style={{
+                          display: "grid",
+                          gridTemplateColumns: "180px 1fr 180px 80px",
+                          gap: 8,
+                          padding: "13px 12px",
+                          alignItems: "center",
+                        }}
+                      >
+                        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                          <span style={{ color: row.color, display: "flex", alignItems: "center" }}>
+                            {row.icon}
+                          </span>
+                          <span
+                            style={{
+                              fontWeight: 800,
+                              fontSize: 14,
+                              color: row.color,
+                            }}
+                          >
+                            {row.factor}
+                          </span>
+                        </div>
+                        <span
+                          style={{
+                            fontWeight: 600,
+                            fontSize: 14,
+                            color: "var(--text)",
+                          }}
+                        >
+                          {row.desc}
+                        </span>
+                        <span
+                          style={{
+                            fontSize: 13,
+                            color: "var(--secondary)",
+                            fontFamily: "'Space Mono', monospace",
+                          }}
+                        >
+                          {row.formula}
+                        </span>
+                        <span
+                          style={{
+                            fontWeight: 800,
+                            fontSize: 13,
+                            color: row.color,
+                          }}
+                        >
+                          {row.maxPts}
+                        </span>
+                      </div>
+
+                      {/* Mobile card (stacked) */}
+                      <div
+                        className="ah-row-mobile"
+                        style={{
+                          display: "none",
+                          padding: "16px 20px",
+                          flexDirection: "column",
+                          gap: 14,
+                        }}
+                      >
+                        <div
+                          style={{
+                            display: "flex",
+                            justifyContent: "space-between",
+                            alignItems: "center",
+                          }}
+                        >
+                          <span
+                            style={{
+                              fontSize: 11,
+                              fontWeight: 800,
+                              color: "var(--secondary)",
+                              textTransform: "uppercase",
+                              letterSpacing: "0.5px",
+                            }}
+                          >
+                            Badge Name
+                          </span>
+                          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                            <span style={{ color: row.color, display: "flex", alignItems: "center" }}>
+                              {row.icon}
+                            </span>
+                            <span
+                              style={{
+                                fontWeight: 800,
+                                fontSize: 16,
+                                color: row.color,
+                              }}
+                            >
+                              {row.factor}
+                            </span>
+                          </div>
+                        </div>
+
+                        <div
+                          style={{
+                            display: "flex",
+                            justifyContent: "space-between",
+                            alignItems: "center",
+                          }}
+                        >
+                          <span
+                            style={{
+                              fontSize: 11,
+                              fontWeight: 800,
+                              color: "var(--secondary)",
+                              textTransform: "uppercase",
+                              letterSpacing: "0.5px",
+                            }}
+                          >
+                            Description
+                          </span>
+                          <span
+                            style={{
+                              fontWeight: 600,
+                              fontSize: 14,
+                              color: "var(--text)",
+                              textAlign: "right",
+                            }}
+                          >
+                            {row.desc}
+                          </span>
+                        </div>
+
+                        <div
+                          style={{
+                            display: "flex",
+                            justifyContent: "space-between",
+                            alignItems: "center",
+                          }}
+                        >
+                          <span
+                            style={{
+                              fontSize: 11,
+                              fontWeight: 800,
+                              color: "var(--secondary)",
+                              textTransform: "uppercase",
+                              letterSpacing: "0.5px",
+                            }}
+                          >
+                            Criteria
+                          </span>
+                          <span
+                            style={{
+                              fontSize: 13,
+                              color: "var(--secondary)",
+                              fontFamily: "'Space Mono', monospace",
+                            }}
+                          >
+                            {row.formula}
+                          </span>
+                        </div>
+                      </div>
+                    </motion.div>
+                  ))}
+                </div>
+
+                {/* Legend */}
+                <div
+                  style={{
+                    marginTop: 20,
+                    padding: "14px 18px",
+                    background: "rgba(244,63,94,0.05)",
+                    border: "1px solid rgba(244,63,94,0.12)",
+                    borderRadius: 12,
+                    display: "flex",
+                    alignItems: "flex-start",
+                    gap: 12,
+                  }}
+                >
+                  <Medal
+                    size={16}
+                    color="#f43f5e"
+                    style={{ flexShrink: 0, marginTop: 2 }}
+                  />
+                  <p
+                    style={{
+                      fontSize: 13,
+                      color: "var(--secondary)",
+                      lineHeight: 1.6,
+                    }}
+                  >
+                    <strong style={{ color: "var(--text)" }}>Profile Badges</strong> —
+                    Badges highlight your academic milestones. They appear on your dashboard when criteria are met. Strive for excellence to collect them all!
                   </p>
                 </div>
               </motion.div>
