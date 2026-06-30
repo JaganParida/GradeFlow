@@ -17,6 +17,7 @@ import {
   Calculator,
   Info,
   ChevronDown,
+  Activity,
 } from "lucide-react";
 
 /* ─── Social Icons ─────────────────────────────────────────────── */
@@ -166,6 +167,41 @@ const GRADE_SCALE = [
   },
 ];
 
+const ACADEMIC_HEALTH_SCALE = [
+  {
+    factor: "CGPA",
+    desc: "Cumulative Grade Point Average",
+    formula: "CGPA × 5",
+    maxPts: "50",
+    color: "#a855f7",
+    bg: "rgba(168,85,247,0.12)",
+  },
+  {
+    factor: "Latest SGPA",
+    desc: "Semester Grade Point Average",
+    formula: "SGPA × 2",
+    maxPts: "20",
+    color: "#3ea6ff",
+    bg: "rgba(62,166,255,0.12)",
+  },
+  {
+    factor: "Backlogs",
+    desc: "Active Uncleared Subjects",
+    formula: "20 - (Count × 5)",
+    maxPts: "20",
+    color: "#ef4444",
+    bg: "rgba(239,68,68,0.12)",
+  },
+  {
+    factor: "Participation",
+    desc: "Attempted at least 1 subject",
+    formula: "Flat 10 pts",
+    maxPts: "10",
+    color: "#22c55e",
+    bg: "rgba(34,197,94,0.12)",
+  },
+];
+
 const FEATURES = [
   { label: "SGPA & CGPA", icon: <BarChart2 size={14} />, color: "#3ea6ff" },
   {
@@ -258,6 +294,7 @@ const S = {
 export default function Home() {
   const [regNo, setRegNo] = useState("");
   const [showGradeTable, setShowGradeTable] = useState(true);
+  const [showHealthTable, setShowHealthTable] = useState(true);
   const { fetchStudent, loading, error } = useApp();
   const navigate = useNavigate();
 
@@ -1303,6 +1340,354 @@ export default function Home() {
         </div>
       </motion.section>
 
+      {/* ════════════════════════════════════════════
+          ACADEMIC HEALTH TABLE
+      ════════════════════════════════════════════ */}
+      <motion.section
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 0.5 }}
+        style={{
+          ...S.section,
+          marginBottom: 80,
+          position: "relative",
+          zIndex: 1,
+        }}
+      >
+        <div style={S.sectionCard}>
+          {/* Header with toggle */}
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              flexWrap: "wrap",
+              gap: 12,
+              marginBottom: showHealthTable ? 28 : 0,
+            }}
+          >
+            <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+              <div style={S.iconBox("#a855f7")}>
+                <Activity size={20} color="#a855f7" />
+              </div>
+              <div>
+                <h2
+                  style={{
+                    fontSize: "clamp(18px, 3vw, 22px)",
+                    fontWeight: 800,
+                    marginBottom: 2,
+                  }}
+                >
+                  Academic Health
+                </h2>
+                <p style={{ color: "var(--secondary)", fontSize: 13 }}>
+                  Score calculation out of 100
+                </p>
+              </div>
+            </div>
+            <button
+              onClick={() => setShowHealthTable((v) => !v)}
+              style={{
+                background: "#212121",
+                border: "1px solid rgba(255,255,255,0.08)",
+                borderRadius: 10,
+                padding: "8px 14px",
+                color: "var(--secondary)",
+                cursor: "pointer",
+                display: "flex",
+                alignItems: "center",
+                gap: 6,
+                fontSize: 13,
+                transition: "all 0.2s",
+              }}
+            >
+              {showHealthTable ? "Collapse" : "Show Table"}
+              <motion.span
+                animate={{ rotate: showHealthTable ? 180 : 0 }}
+                transition={{ duration: 0.2 }}
+              >
+                <ChevronDown size={15} />
+              </motion.span>
+            </button>
+          </div>
+
+          <AnimatePresence initial={false}>
+            {showHealthTable && (
+              <motion.div
+                key="table"
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: "auto" }}
+                exit={{ opacity: 0, height: 0 }}
+                style={{ overflow: "hidden" }}
+              >
+                {/* Column headers — hidden on mobile */}
+                <div
+                  className="ah-header"
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: "150px 1fr 180px 80px",
+                    gap: 8,
+                    padding: "0 12px 12px",
+                    borderBottom: "1px solid rgba(255,255,255,0.06)",
+                    marginBottom: 10,
+                  }}
+                >
+                  {[
+                    "Factor",
+                    "Description",
+                    "Formula",
+                    "Max Points",
+                  ].map((h) => (
+                    <span
+                      key={h}
+                      style={{
+                        fontSize: 10,
+                        fontWeight: 700,
+                        color: "var(--secondary)",
+                        textTransform: "uppercase",
+                        letterSpacing: "0.8px",
+                      }}
+                    >
+                      {h}
+                    </span>
+                  ))}
+                </div>
+
+                {/* Rows */}
+                <div
+                  style={{ display: "flex", flexDirection: "column", gap: 6 }}
+                >
+                  {ACADEMIC_HEALTH_SCALE.map((row, i) => (
+                    <motion.div
+                      key={row.factor}
+                      initial={{ opacity: 0, x: -10 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ duration: 0.3, ease: "easeOut" }}
+                      className="gs-row"
+                      style={{
+                        borderRadius: 12,
+                        background: row.bg,
+                        border: `1px solid ${row.color}20`,
+                        overflow: "hidden",
+                      }}
+                    >
+                      {/* Desktop row */}
+                      <div
+                        className="ah-row-desktop"
+                        style={{
+                          display: "grid",
+                          gridTemplateColumns: "150px 1fr 180px 80px",
+                          gap: 8,
+                          padding: "13px 12px",
+                          alignItems: "center",
+                        }}
+                      >
+                        <span
+                          style={{
+                            fontWeight: 800,
+                            fontSize: 14,
+                            color: row.color,
+                          }}
+                        >
+                          {row.factor}
+                        </span>
+                        <span
+                          style={{
+                            fontWeight: 600,
+                            fontSize: 14,
+                            color: "var(--text)",
+                          }}
+                        >
+                          {row.desc}
+                        </span>
+                        <span
+                          style={{
+                            fontSize: 13,
+                            color: "var(--secondary)",
+                            fontFamily: "'Space Mono', monospace",
+                          }}
+                        >
+                          {row.formula}
+                        </span>
+                        <span
+                          style={{
+                            fontWeight: 800,
+                            fontSize: 20,
+                            color: row.color,
+                            fontFamily: "'Space Mono', monospace",
+                          }}
+                        >
+                          {row.maxPts}
+                        </span>
+                      </div>
+
+                      {/* Mobile card (stacked) */}
+                      <div
+                        className="ah-row-mobile"
+                        style={{
+                          display: "none",
+                          padding: "16px 20px",
+                          flexDirection: "column",
+                          gap: 14,
+                        }}
+                      >
+                        <div
+                          style={{
+                            display: "flex",
+                            justifyContent: "space-between",
+                            alignItems: "center",
+                          }}
+                        >
+                          <span
+                            style={{
+                              fontSize: 11,
+                              fontWeight: 800,
+                              color: "var(--secondary)",
+                              textTransform: "uppercase",
+                              letterSpacing: "0.5px",
+                            }}
+                          >
+                            Factor
+                          </span>
+                          <span
+                            style={{
+                              fontWeight: 800,
+                              fontSize: 16,
+                              color: row.color,
+                            }}
+                          >
+                            {row.factor}
+                          </span>
+                        </div>
+
+                        <div
+                          style={{
+                            display: "flex",
+                            justifyContent: "space-between",
+                            alignItems: "center",
+                          }}
+                        >
+                          <span
+                            style={{
+                              fontSize: 11,
+                              fontWeight: 800,
+                              color: "var(--secondary)",
+                              textTransform: "uppercase",
+                              letterSpacing: "0.5px",
+                            }}
+                          >
+                            Description
+                          </span>
+                          <span
+                            style={{
+                              fontWeight: 600,
+                              fontSize: 14,
+                              color: "var(--text)",
+                              textAlign: "right",
+                            }}
+                          >
+                            {row.desc}
+                          </span>
+                        </div>
+
+                        <div
+                          style={{
+                            display: "flex",
+                            justifyContent: "space-between",
+                            alignItems: "center",
+                          }}
+                        >
+                          <span
+                            style={{
+                              fontSize: 11,
+                              fontWeight: 800,
+                              color: "var(--secondary)",
+                              textTransform: "uppercase",
+                              letterSpacing: "0.5px",
+                            }}
+                          >
+                            Formula
+                          </span>
+                          <span
+                            style={{
+                              fontSize: 13,
+                              color: "var(--secondary)",
+                              fontFamily: "'Space Mono', monospace",
+                            }}
+                          >
+                            {row.formula}
+                          </span>
+                        </div>
+
+                        <div
+                          style={{
+                            display: "flex",
+                            justifyContent: "space-between",
+                            alignItems: "center",
+                          }}
+                        >
+                          <span
+                            style={{
+                              fontSize: 11,
+                              fontWeight: 800,
+                              color: "var(--secondary)",
+                              textTransform: "uppercase",
+                              letterSpacing: "0.5px",
+                            }}
+                          >
+                            Max Points
+                          </span>
+                          <span
+                            style={{
+                              fontWeight: 800,
+                              fontSize: 16,
+                              color: row.color,
+                              fontFamily: "'Space Mono', monospace",
+                            }}
+                          >
+                            {row.maxPts}
+                          </span>
+                        </div>
+                      </div>
+                    </motion.div>
+                  ))}
+                </div>
+
+                {/* Legend */}
+                <div
+                  style={{
+                    marginTop: 20,
+                    padding: "14px 18px",
+                    background: "rgba(168,85,247,0.05)",
+                    border: "1px solid rgba(168,85,247,0.12)",
+                    borderRadius: 12,
+                    display: "flex",
+                    alignItems: "flex-start",
+                    gap: 12,
+                  }}
+                >
+                  <Activity
+                    size={16}
+                    color="#a855f7"
+                    style={{ flexShrink: 0, marginTop: 2 }}
+                  />
+                  <p
+                    style={{
+                      fontSize: 13,
+                      color: "var(--secondary)",
+                      lineHeight: 1.6,
+                    }}
+                  >
+                    <strong style={{ color: "var(--text)" }}>Total Score</strong> —
+                    The Academic Health score is the sum of all components, capped at a maximum of 100 points, and rounded to the nearest whole number.
+                  </p>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
+      </motion.section>
+
       {/* ── Responsive CSS ── */}
       <style>{`
         /* Hide scrollbar for overflow containers */
@@ -1310,14 +1695,14 @@ export default function Home() {
         .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; overflow-x: auto; }
 
         /* Default: show desktop layout */
-        .gs-row-desktop { display: grid; }
-        .gs-row-mobile  { display: none !important; }
-        .gs-header      { display: grid; }
+        .gs-row-desktop, .ah-row-desktop { display: grid; }
+        .gs-row-mobile, .ah-row-mobile  { display: none !important; }
+        .gs-header, .ah-header      { display: grid; }
 
         @media (max-width: 620px) {
-          .gs-header      { display: none !important; }
-          .gs-row-desktop { display: none !important; }
-          .gs-row-mobile  { display: flex !important; }
+          .gs-header, .ah-header      { display: none !important; }
+          .gs-row-desktop, .ah-row-desktop { display: none !important; }
+          .gs-row-mobile, .ah-row-mobile  { display: flex !important; }
         }
 
         /* Search bar: stack on mobile */
