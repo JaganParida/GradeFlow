@@ -31,7 +31,7 @@ export default function Navbar() {
   const pathParts = location.pathname.split("/");
   const currentRegNo = studentData?.regNo 
     || ((pathParts[1] === "dashboard" || pathParts[1] === "analytics") ? pathParts[2] : null)
-    || localStorage.getItem("last_regNo");
+    || sessionStorage.getItem("last_regNo");
 
   const links = [
     { to: "/", label: "Home", icon: <GraduationCap size={16} />, reqAuth: false },
