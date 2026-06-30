@@ -553,7 +553,7 @@ export default function Dashboard() {
       </div>
 
       {/* Backlogs */}
-      {backlogs.length > 0 ? (
+      {backlogs.length > 0 && (
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
@@ -672,23 +672,6 @@ export default function Dashboard() {
             </motion.div>
           )}
 
-        </motion.div>
-      ) : (
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          style={{
-            background: "rgba(34,197,94,0.06)",
-            border: "1px solid rgba(34,197,94,0.2)",
-            borderLeft: "3px solid var(--success)",
-            borderRadius: "var(--radius-sm)",
-            padding: "14px 18px",
-            marginBottom: 24,
-          }}
-        >
-          <p style={{ color: "var(--success)", fontWeight: 700, display: "flex", alignItems: "center", gap: 8, fontSize: 14 }}>
-            <CheckCircle size={17} /> ALL CLEAR — No Active Backlogs
-          </p>
         </motion.div>
       )}
 
