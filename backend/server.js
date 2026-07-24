@@ -87,51 +87,15 @@ app.use("/api/admin", require("./routes/admin"));
 app.use("/api/rankings", require("./routes/rankings"));
 app.use("/api/feedback", require("./routes/feedback"));
 
-// ─── Health Check & Keep-Alive Endpoint ──────────────────────────────────────
-app.get("/api/health", async (req, res) => {
-  try {
-    const dbState = mongoose.connection.readyState;
-    // 1 = connected
-    if (dbState === 1) {
-      // Ping MongoDB to keep connection active and prevent idle timeout
-      await mongoose.connection.db.command({ ping: 1 });
-    }
-    res.json({
-      status: "ok",
-      name: "GradeFlow API",
-      dbStatus: dbState === 1 ? "connected" : "disconnected",
-      timestamp: new Date().toISOString(),
-    });
-  } catch (error) {
-    res.status(500).json({
-      status: "error",
-      name: "GradeFlow API",
-      message: error.message,
-    });
-  }
+// ─── Health Check Endpoint ──────────────────────────────────────
+app.get("/api/health", (req, res) => {
+  res.json({
+    status: "ok",
+    name: "GradeFlow API",
+    dbStatus: mongoose.connection.readyState === 1 ? "connected" : "disconnected",
+    timestamp: new Date().toISOString(),
+  });
 });
-
-// Self-Ping Keep-Alive function (Automated backup pinging)
-function startKeepAlive() {
-  const serverUrl = process.env.SERVER_URL || process.env.RENDER_EXTERNAL_URL;
-  if (!serverUrl) return;
-
-  const pingInterval = 10 * 60 * 1000; // Ping every 10 minutes
-  setInterval(() => {
-    try {
-      const targetUrl = `${serverUrl.replace(/\/$/, "")}/api/health`;
-      const protocol = targetUrl.startsWith("https") ? require("https") : require("http");
-      
-      protocol.get(targetUrl, (res) => {
-        console.log(`[Keep-Alive Ping] Status: ${res.statusCode} at ${new Date().toLocaleTimeString()}`);
-      }).on("error", (err) => {
-        console.error("[Keep-Alive Ping Error]:", err.message);
-      });
-    } catch (e) {
-      console.error("[Keep-Alive Exec Error]:", e.message);
-    }
-  }, pingInterval);
-}
 
 const http = require("http");
 const server = http.createServer(app);
@@ -161,7 +125,6 @@ mongoose
     await seedAdmin();
     server.listen(process.env.PORT || 5000, () => {
       console.log(`🚀 Server running on port ${process.env.PORT || 5000}`);
-      startKeepAlive();
     });
   })
   .catch((err) => {
