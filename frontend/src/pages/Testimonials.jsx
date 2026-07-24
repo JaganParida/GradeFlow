@@ -235,6 +235,80 @@ export default function Testimonials() {
           </motion.div>
         )}
 
+        {/* Star on GitHub CTA Card */}
+        <motion.div
+          initial={{ opacity: 0, y: 15 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4 }}
+          style={{
+            background: "linear-gradient(135deg, rgba(255,255,255,0.04), rgba(255,255,255,0.01))",
+            border: "1px solid rgba(255,255,255,0.08)",
+            borderRadius: 24,
+            padding: "24px 28px",
+            marginBottom: 36,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            gap: 20,
+            flexWrap: "wrap",
+            boxShadow: "0 12px 32px rgba(0,0,0,0.25)",
+            backdropFilter: "blur(12px)",
+            WebkitBackdropFilter: "blur(12px)",
+          }}
+        >
+          <div style={{ display: "flex", alignItems: "center", gap: 16, flex: "1 1 280px" }}>
+            <div
+              style={{
+                width: 48,
+                height: 48,
+                borderRadius: 16,
+                background: "linear-gradient(135deg, rgba(245,158,11,0.2), rgba(234,179,8,0.1))",
+                border: "1px solid rgba(245,158,11,0.3)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                flexShrink: 0,
+                boxShadow: "0 4px 16px rgba(245,158,11,0.15)",
+              }}
+            >
+              <Star size={24} color="#f59e0b" fill="#f59e0b" />
+            </div>
+            <div>
+              <h4 style={{ margin: 0, fontSize: 17, fontWeight: 800, color: "#fff", letterSpacing: "-0.3px" }}>
+                Enjoying GradeFlow?
+              </h4>
+              <p style={{ margin: "4px 0 0", fontSize: 13, color: "var(--text-secondary, #a1a1aa)", lineHeight: 1.5 }}>
+                Support the project by dropping a star on GitHub! Every star keeps us motivated.
+              </p>
+            </div>
+          </div>
+
+          <motion.a
+            href="https://github.com/JaganParida/GradeFlow"
+            target="_blank"
+            rel="noopener noreferrer"
+            whileHover={{ scale: 1.04, translateY: -2 }}
+            whileTap={{ scale: 0.96 }}
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 10,
+              padding: "12px 22px",
+              borderRadius: 14,
+              background: "#ffffff",
+              color: "#000000",
+              fontWeight: 700,
+              fontSize: 14,
+              textDecoration: "none",
+              boxShadow: "0 4px 16px rgba(255,255,255,0.15)",
+              transition: "all 0.2s ease",
+            }}
+          >
+            <GithubIcon size={18} />
+            <span>Star on GitHub</span>
+          </motion.a>
+        </motion.div>
+
         {/* Developer Social Links (Top) */}
         <div style={{ display: "flex", justifyContent: "center", alignItems: "center", gap: 16, marginBottom: 48, flexWrap: "wrap" }}>
           <span style={{ color: "var(--secondary)", fontSize: 14, fontWeight: 500 }}>

@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, Star, MessageSquare } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import axios from "axios";
 import { useApp } from "../context/AppContext";
 
@@ -15,22 +15,31 @@ export default function FeedbackModal() {
   const [comment, setComment] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const navigate = useNavigate();
-  const { API, hasActiveSession } = useApp();
+  const location = useLocation();
+  const { API } = useApp();
 
   useEffect(() => {
-    // Show only if there is NO active session (meaning user hasn't searched a reg.no)
-    // and remove the one-time localStorage restriction as per user request.
-    if (!hasActiveSession) {
-      const timer = setTimeout(() => setShow(true), 500);
+    // Check if user has already seen the popup (persisted in localStorage)
+    const hasBeenShown = localStorage.getItem("gf_github_modal_shown");
+    const isHome = location.pathname === "/";
+    const isAdmin = location.pathname.startsWith("/admin");
+
+    // Only show ONCE when user navigates to any section other than Home (Dashboard, Analytics, Leaderboard, Testimonials)
+    if (!isHome && !isAdmin && !hasBeenShown) {
+      const timer = setTimeout(() => {
+        setShow(true);
+        // Permanently record that popup was shown so it NEVER shows on refresh or future navigations
+        localStorage.setItem("gf_github_modal_shown", "true");
+      }, 500);
       return () => clearTimeout(timer);
     } else {
       setShow(false);
     }
-  }, [hasActiveSession]);
+  }, [location.pathname]);
 
   const handleClose = () => {
     setShow(false);
-    // We optionally reset step so next time it opens fresh
+    localStorage.setItem("gf_github_modal_shown", "true");
     setTimeout(() => setStep(1), 300);
   };
 
@@ -51,6 +60,7 @@ export default function FeedbackModal() {
       });
 
       setShow(false);
+      localStorage.setItem("gf_github_modal_shown", "true");
       setTimeout(() => setStep(1), 300);
       navigate(`/testimonials?highlight=${res.data._id}`);
     } catch (err) {
