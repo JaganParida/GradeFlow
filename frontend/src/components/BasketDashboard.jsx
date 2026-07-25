@@ -24,8 +24,10 @@ import {
   Folder,
   DownloadCloud,
 } from "lucide-react";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { generateBasketPDF } from "../utils/pdfGenerator";
+import { generateBasketExcel } from "../utils/excelGenerator";
+import { generateBasketWord } from "../utils/wordGenerator";
 
 const BASKET_ICONS = {
   B1: <Hexagon size={24} color="var(--accent)" />,
@@ -49,6 +51,18 @@ export default function BasketDashboard({ results, studentData }) {
   const [expandedBasket, setExpandedBasket] = React.useState(null);
   const [isGeneratingPDF, setIsGeneratingPDF] = React.useState(false);
   const [expandedDomain, setExpandedDomain] = React.useState(null);
+  const [showDownloadMenu, setShowDownloadMenu] = React.useState(false);
+  const downloadMenuRef = React.useRef(null);
+
+  React.useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (downloadMenuRef.current && !downloadMenuRef.current.contains(event.target)) {
+        setShowDownloadMenu(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   const baskets = useMemo(() => categorizeBaskets(results), [results]);
   const inferredDomain = useMemo(
@@ -823,30 +837,124 @@ export default function BasketDashboard({ results, studentData }) {
           Curriculum Baskets
         </h3>
         {studentData && (
-          <button
-            className="btn btn-primary"
-            onClick={async () => {
-              setIsGeneratingPDF(true);
-              await generateBasketPDF(studentData);
-              setIsGeneratingPDF(false);
-            }}
-            disabled={isGeneratingPDF}
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 8,
-              fontSize: 13,
-              padding: "8px 16px",
-              whiteSpace: "nowrap",
-            }}
-          >
-            <DownloadCloud size={16} style={{ flexShrink: 0 }} />
-            <span>
-              {isGeneratingPDF
-                ? "Generating..."
-                : "Generate Credit Track Sheet PDF"}
-            </span>
-          </button>
+          <div style={{ position: "relative" }} ref={downloadMenuRef}>
+            <button
+              className="btn btn-primary"
+              onClick={() => setShowDownloadMenu(!showDownloadMenu)}
+              disabled={isGeneratingPDF}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 8,
+                fontSize: 13,
+                padding: "8px 16px",
+                whiteSpace: "nowrap",
+              }}
+            >
+              <DownloadCloud size={16} style={{ flexShrink: 0 }} />
+              <span>
+                {isGeneratingPDF
+                  ? "Generating..."
+                  : "Generate Credit Track Sheet"}
+              </span>
+              <ChevronDown size={14} style={{ marginLeft: 4 }} />
+            </button>
+            
+            <AnimatePresence>
+              {showDownloadMenu && (
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: 10 }}
+                  style={{
+                    position: "absolute",
+                    top: "100%",
+                    right: 0,
+                    marginTop: 8,
+                    background: "var(--card-bg)",
+                    border: "1px solid var(--border-color)",
+                    borderRadius: 12,
+                    boxShadow: "0 10px 25px rgba(0,0,0,0.5)",
+                    overflow: "hidden",
+                    zIndex: 50,
+                    minWidth: 160,
+                  }}
+                >
+                  <button
+                    onClick={async () => {
+                      setShowDownloadMenu(false);
+                      setIsGeneratingPDF(true);
+                      await generateBasketPDF(studentData);
+                      setIsGeneratingPDF(false);
+                    }}
+                    style={{
+                      display: "block",
+                      width: "100%",
+                      textAlign: "left",
+                      padding: "12px 16px",
+                      background: "transparent",
+                      border: "none",
+                      color: "var(--text-main)",
+                      fontSize: 13,
+                      cursor: "pointer",
+                      borderBottom: "1px solid var(--border-color)",
+                    }}
+                    onMouseOver={(e) => (e.currentTarget.style.background = "rgba(255,255,255,0.05)")}
+                    onMouseOut={(e) => (e.currentTarget.style.background = "transparent")}
+                  >
+                    Download PDF
+                  </button>
+                  <button
+                    onClick={async () => {
+                      setShowDownloadMenu(false);
+                      setIsGeneratingPDF(true);
+                      await generateBasketExcel(studentData);
+                      setIsGeneratingPDF(false);
+                    }}
+                    style={{
+                      display: "block",
+                      width: "100%",
+                      textAlign: "left",
+                      padding: "12px 16px",
+                      background: "transparent",
+                      border: "none",
+                      color: "var(--text-main)",
+                      fontSize: 13,
+                      cursor: "pointer",
+                      borderBottom: "1px solid var(--border-color)",
+                    }}
+                    onMouseOver={(e) => (e.currentTarget.style.background = "rgba(255,255,255,0.05)")}
+                    onMouseOut={(e) => (e.currentTarget.style.background = "transparent")}
+                  >
+                    Download Excel
+                  </button>
+                  <button
+                    onClick={async () => {
+                      setShowDownloadMenu(false);
+                      setIsGeneratingPDF(true);
+                      await generateBasketWord(studentData);
+                      setIsGeneratingPDF(false);
+                    }}
+                    style={{
+                      display: "block",
+                      width: "100%",
+                      textAlign: "left",
+                      padding: "12px 16px",
+                      background: "transparent",
+                      border: "none",
+                      color: "var(--text-main)",
+                      fontSize: 13,
+                      cursor: "pointer",
+                    }}
+                    onMouseOver={(e) => (e.currentTarget.style.background = "rgba(255,255,255,0.05)")}
+                    onMouseOut={(e) => (e.currentTarget.style.background = "transparent")}
+                  >
+                    Download Word
+                  </button>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
         )}
       </div>
       <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: 16 }}>
