@@ -51,30 +51,45 @@ export const generateBasketWord = async (studentData) => {
         const headerCells = [];
         if (logoImage) {
             headerCells.push(new TableCell({
-                width: { size: 15, type: WidthType.PERCENTAGE },
+                width: { size: 20, type: WidthType.PERCENTAGE },
                 borders: { top: { style: BorderStyle.NONE }, bottom: { style: BorderStyle.NONE }, left: { style: BorderStyle.NONE }, right: { style: BorderStyle.NONE } },
                 children: [
                     new Paragraph({
                         children: [
                             new ImageRun({
                                 data: logoImage,
-                                transformation: { width: 120, height: 100 },
+                                transformation: { width: 100, height: 80 },
                                 type: "jpg"
                             })
                         ]
                     })
                 ]
             }));
+        } else {
+            headerCells.push(new TableCell({
+                width: { size: 20, type: WidthType.PERCENTAGE },
+                borders: { top: { style: BorderStyle.NONE }, bottom: { style: BorderStyle.NONE }, left: { style: BorderStyle.NONE }, right: { style: BorderStyle.NONE } },
+                children: [new Paragraph({ text: "" })]
+            }));
         }
 
         headerCells.push(new TableCell({
-            width: { size: logoImage ? 85 : 100, type: WidthType.PERCENTAGE },
+            width: { size: 60, type: WidthType.PERCENTAGE },
             borders: { top: { style: BorderStyle.NONE }, bottom: { style: BorderStyle.NONE }, left: { style: BorderStyle.NONE }, right: { style: BorderStyle.NONE } },
             children: [
-                new Paragraph({ alignment: AlignmentType.CENTER, children: [new TextRun({ text: "CENTURION UNIVERSITY OF TECHNOLOGY & MANAGEMENT", bold: true, size: 20, font: "Arial" })] }),
-                new Paragraph({ alignment: AlignmentType.CENTER, children: [new TextRun({ text: "SCHOOL OF ENGINEERING & TECHNOLOGY", bold: true, size: 18, font: "Arial" })] }),
-                new Paragraph({ alignment: AlignmentType.CENTER, children: [new TextRun({ text: "BHUBANESWAR CAMPUS", bold: true, size: 18, font: "Arial" })] }),
-                new Paragraph({ alignment: AlignmentType.CENTER, children: [new TextRun({ text: "SUBJECT REGISTRATION AS PER CBCS CURRICULUM", bold: true, size: 18, font: "Arial" })] })
+                new Paragraph({ alignment: AlignmentType.CENTER, children: [new TextRun({ text: "CENTURION UNIVERSITY OF TECHNOLOGY & MANAGEMENT", bold: true, size: 22, font: "Arial" })] }),
+                new Paragraph({ alignment: AlignmentType.CENTER, children: [new TextRun({ text: "SCHOOL OF ENGINEERING & TECHNOLOGY", bold: true, size: 20, font: "Arial" })] }),
+                new Paragraph({ alignment: AlignmentType.CENTER, children: [new TextRun({ text: "BHUBANESWAR CAMPUS", bold: true, size: 20, font: "Arial" })] }),
+                new Paragraph({ alignment: AlignmentType.CENTER, children: [new TextRun({ text: "SUBJECT REGISTRATION AS PER CBCS CURRICULUM", bold: true, size: 20, font: "Arial" })] })
+            ]
+        }));
+        
+        headerCells.push(new TableCell({
+            width: { size: 20, type: WidthType.PERCENTAGE },
+            borders: { top: { style: BorderStyle.NONE }, bottom: { style: BorderStyle.NONE }, left: { style: BorderStyle.NONE }, right: { style: BorderStyle.NONE } },
+            verticalAlign: "bottom",
+            children: [
+                new Paragraph({ alignment: AlignmentType.RIGHT, children: [new TextRun({ text: "SESSION 2023 - 2027", bold: true, size: 18, font: "Arial" })] })
             ]
         }));
 
@@ -84,7 +99,7 @@ export const generateBasketWord = async (studentData) => {
             borders: { top: { style: BorderStyle.NONE }, bottom: { style: BorderStyle.NONE }, left: { style: BorderStyle.NONE }, right: { style: BorderStyle.NONE }, insideHorizontal: { style: BorderStyle.NONE }, insideVertical: { style: BorderStyle.NONE } }
         }));
         
-        children.push(new Paragraph({ text: "", spacing: { after: 100 } }));
+        children.push(new Paragraph({ text: "", spacing: { after: 150 } }));
 
         // Student Details Row
         children.push(new Table({
@@ -93,19 +108,19 @@ export const generateBasketWord = async (studentData) => {
                 new TableRow({
                     children: [
                         new TableCell({
-                            shading: { type: ShadingType.CLEAR, color: "auto", fill: "D9E1F2" },
+                            width: { size: 33, type: WidthType.PERCENTAGE },
                             borders: { top: { style: BorderStyle.NONE }, bottom: { style: BorderStyle.NONE }, left: { style: BorderStyle.NONE }, right: { style: BorderStyle.NONE } },
-                            children: [new Paragraph({ children: [new TextRun({ text: `NAME OF STUDENT: ${studentData.studentName ? studentData.studentName.toUpperCase() : ""}`, bold: true, size: 16, font: "Arial" })] })],
+                            children: [new Paragraph({ alignment: AlignmentType.LEFT, children: [new TextRun({ text: `NAME OF STUDENT: ${studentData.studentName ? studentData.studentName.toUpperCase() : ""}`, bold: true, size: 18, font: "Arial" })] })],
                         }),
                         new TableCell({
-                            shading: { type: ShadingType.CLEAR, color: "auto", fill: "D9E1F2" },
+                            width: { size: 34, type: WidthType.PERCENTAGE },
                             borders: { top: { style: BorderStyle.NONE }, bottom: { style: BorderStyle.NONE }, left: { style: BorderStyle.NONE }, right: { style: BorderStyle.NONE } },
-                            children: [new Paragraph({ alignment: AlignmentType.CENTER, children: [new TextRun({ text: `REGISTRATION NO- ${studentData.regNo || ""}`, bold: true, size: 16, font: "Arial" })] })],
+                            children: [new Paragraph({ alignment: AlignmentType.CENTER, children: [new TextRun({ text: `REGISTRATION NO- ${studentData.regNo || ""}`, bold: true, size: 18, font: "Arial" })] })],
                         }),
                         new TableCell({
-                            shading: { type: ShadingType.CLEAR, color: "auto", fill: "D9E1F2" },
+                            width: { size: 33, type: WidthType.PERCENTAGE },
                             borders: { top: { style: BorderStyle.NONE }, bottom: { style: BorderStyle.NONE }, left: { style: BorderStyle.NONE }, right: { style: BorderStyle.NONE } },
-                            children: [new Paragraph({ alignment: AlignmentType.RIGHT, children: [new TextRun({ text: `BRANCH: ${studentData.branch || "CSE"}`, bold: true, size: 16, font: "Arial" })] })],
+                            children: [new Paragraph({ alignment: AlignmentType.RIGHT, children: [new TextRun({ text: `BRANCH: ${studentData.branch || "CSE"}`, bold: true, size: 18, font: "Arial" })] })],
                         })
                     ]
                 })
@@ -117,7 +132,10 @@ export const generateBasketWord = async (studentData) => {
         let cumTotalsObj = { b1: 0, b2: 0, b3: 0, b4: 0, b5: 0, gt: 0 };
         const roman = ["I", "II", "III", "IV", "V", "VI", "VII", "VIII"];
 
-        const createCell = (text, isHeader = false, colSpan = 1, isBlue = false, align = AlignmentType.CENTER) => {
+        const w = [ 2, 7, 21, 3, 3, 3, 3, 3, 5 ]; // percentages for one semester side
+        const cellWidths = [...w, ...w];
+
+        const createCell = (text, isHeader = false, colSpan = 1, isBlue = false, align = AlignmentType.CENTER, widthPct = null) => {
             const cellOpts = {
                 children: [new Paragraph({ alignment: align, children: [new TextRun({ text: text !== undefined && text !== null ? text.toString() : "", bold: isHeader, size: 14, font: "Arial" })] })],
                 verticalAlign: "center",
@@ -130,6 +148,9 @@ export const generateBasketWord = async (studentData) => {
             };
             if (colSpan > 1) {
                 cellOpts.columnSpan = colSpan;
+            }
+            if (widthPct) {
+                cellOpts.width = { size: widthPct, type: WidthType.PERCENTAGE };
             }
             if (isBlue) {
                 cellOpts.shading = { type: ShadingType.CLEAR, color: "auto", fill: "D9E1F2" };
@@ -144,8 +165,8 @@ export const generateBasketWord = async (studentData) => {
             tableRows.push(
                 new TableRow({
                     children: [
-                        createCell(`Semester-${roman[semA-1]}`, true, 9, true, AlignmentType.LEFT),
-                        createCell(`Semester-${roman[semB-1]}`, true, 9, true, AlignmentType.LEFT)
+                        createCell(`Semester-${roman[semA-1]}`, true, 9, true, AlignmentType.LEFT, 50),
+                        createCell(`Semester-${roman[semB-1]}`, true, 9, true, AlignmentType.LEFT, 50)
                     ]
                 })
             );
@@ -154,10 +175,25 @@ export const generateBasketWord = async (studentData) => {
             tableRows.push(
                 new TableRow({
                     children: [
-                        createCell('Sl.\nNo', true, 1, false), createCell('Subject\nCode', true, 1, false), createCell('Subject', true, 1, false),
-                        createCell('Basket\n1', true, 1, false), createCell('Basket\n2', true, 1, false), createCell('Basket\n3', true, 1, false), createCell('Basket\n4', true, 1, false), createCell('Basket\n5', true, 1, false), createCell('Total', true, 1, false),
-                        createCell('Sl.\nNo', true, 1, false), createCell('Subject\nCode', true, 1, false), createCell('Subject', true, 1, false),
-                        createCell('Basket\n1', true, 1, false), createCell('Basket\n2', true, 1, false), createCell('Basket\n3', true, 1, false), createCell('Basket\n4', true, 1, false), createCell('Basket\n5', true, 1, false), createCell('Total', true, 1, false)
+                        createCell('Sl.\nNo', true, 1, false, AlignmentType.CENTER, cellWidths[0]), 
+                        createCell('Subject\nCode', true, 1, false, AlignmentType.CENTER, cellWidths[1]), 
+                        createCell('Subject', true, 1, false, AlignmentType.CENTER, cellWidths[2]),
+                        createCell('Basket\n1', true, 1, false, AlignmentType.CENTER, cellWidths[3]), 
+                        createCell('Basket\n2', true, 1, false, AlignmentType.CENTER, cellWidths[4]), 
+                        createCell('Basket\n3', true, 1, false, AlignmentType.CENTER, cellWidths[5]), 
+                        createCell('Basket\n4', true, 1, false, AlignmentType.CENTER, cellWidths[6]), 
+                        createCell('Basket\n5', true, 1, false, AlignmentType.CENTER, cellWidths[7]), 
+                        createCell('Total', true, 1, false, AlignmentType.CENTER, cellWidths[8]),
+                        
+                        createCell('Sl.\nNo', true, 1, false, AlignmentType.CENTER, cellWidths[9]), 
+                        createCell('Subject\nCode', true, 1, false, AlignmentType.CENTER, cellWidths[10]), 
+                        createCell('Subject', true, 1, false, AlignmentType.CENTER, cellWidths[11]),
+                        createCell('Basket\n1', true, 1, false, AlignmentType.CENTER, cellWidths[12]), 
+                        createCell('Basket\n2', true, 1, false, AlignmentType.CENTER, cellWidths[13]), 
+                        createCell('Basket\n3', true, 1, false, AlignmentType.CENTER, cellWidths[14]), 
+                        createCell('Basket\n4', true, 1, false, AlignmentType.CENTER, cellWidths[15]), 
+                        createCell('Basket\n5', true, 1, false, AlignmentType.CENTER, cellWidths[16]), 
+                        createCell('Total', true, 1, false, AlignmentType.CENTER, cellWidths[17])
                     ]
                 })
             );
