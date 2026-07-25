@@ -76,7 +76,25 @@ export const generateBasketExcel = async (studentData) => {
             }
         };
 
+        let logoId = null;
+        try {
+            const response = await fetch("/cutm_text.jpg");
+            const arrayBuffer = await response.arrayBuffer();
+            logoId = workbook.addImage({
+                buffer: arrayBuffer,
+                extension: 'jpeg',
+            });
+        } catch (e) {
+            console.warn("Could not load logo image for Excel", e);
+        }
+
         // Header Section
+        if (logoId !== null) {
+            sheet.addImage(logoId, {
+                tl: { col: 0, row: 0 },
+                ext: { width: 70, height: 70 }
+            });
+        }
         mergeAndStyle(1, 1, 18, "CENTURION UNIVERSITY OF TECHNOLOGY & MANAGEMENT", fontTitle, alignCenter);
         mergeAndStyle(2, 1, 18, "SCHOOL OF ENGINEERING & TECHNOLOGY", fontSubTitle, alignCenter);
         mergeAndStyle(3, 1, 18, "BHUBANESWAR CAMPUS", fontSubTitle, alignCenter);
