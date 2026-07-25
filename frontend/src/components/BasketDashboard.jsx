@@ -871,7 +871,7 @@ export default function BasketDashboard({ results, studentData }) {
                     top: "100%",
                     right: 0,
                     marginTop: 8,
-                    background: "var(--card-bg)",
+                    backgroundColor: "#1f2937",
                     border: "1px solid var(--border-color)",
                     borderRadius: 12,
                     boxShadow: "0 10px 25px rgba(0,0,0,0.5)",
