@@ -1,4 +1,4 @@
-import { Document, Packer, Paragraph, TextRun, Table, TableRow, TableCell, WidthType, AlignmentType, HeadingLevel } from "docx";
+import { Document, Packer, Paragraph, TextRun, Table, TableRow, TableCell, WidthType, AlignmentType, PageOrientation, ShadingType, ImageRun, BorderStyle, TableLayoutType } from "docx";
 import { saveAs } from "file-saver";
 import { getSubjectBasket } from "./pdfGenerator";
 
@@ -17,7 +17,6 @@ export const generateBasketWord = async (studentData) => {
                     if (targetSem === 5 && Number(sub.credit) === 6 && isProject) {
                         targetSem = 6;
                     }
-                    
                     if (targetSem >= 1 && targetSem <= 8) {
                        const code = sub.subCode || sub.subName;
                        if (!addedSubCodes.has(code)) {
@@ -29,84 +28,123 @@ export const generateBasketWord = async (studentData) => {
             });
         }
         
+        let logoImage = null;
+        try {
+            const res = await fetch("/cutm_text.jpg");
+            const arrayBuffer = await res.arrayBuffer();
+            logoImage = arrayBuffer;
+        } catch(e) {
+            console.warn("Could not load logo for Word.");
+        }
+
         const children = [];
 
-        children.push(
-            new Paragraph({
-                alignment: AlignmentType.CENTER,
+        // Header Table for Logo and Text
+        const headerCells = [];
+        if (logoImage) {
+            headerCells.push(new TableCell({
+                width: { size: 15, type: WidthType.PERCENTAGE },
+                borders: { top: { style: BorderStyle.NONE }, bottom: { style: BorderStyle.NONE }, left: { style: BorderStyle.NONE }, right: { style: BorderStyle.NONE } },
                 children: [
-                    new TextRun({ text: "CENTURION UNIVERSITY OF TECHNOLOGY & MANAGEMENT", bold: true, size: 24 }),
-                ],
-            }),
-            new Paragraph({
-                alignment: AlignmentType.CENTER,
-                children: [
-                    new TextRun({ text: "SCHOOL OF ENGINEERING & TECHNOLOGY", size: 20 }),
-                ],
-            }),
-            new Paragraph({
-                alignment: AlignmentType.CENTER,
-                children: [
-                    new TextRun({ text: "BHUBANESWAR CAMPUS", size: 20 }),
-                ],
-            }),
-            new Paragraph({
-                alignment: AlignmentType.CENTER,
-                children: [
-                    new TextRun({ text: "SUBJECT REGISTRATION AS PER CBCS CURRICULUM", bold: true, size: 20 }),
-                ],
-                spacing: { after: 200 }
-            }),
-            new Paragraph({
-                children: [
-                    new TextRun({ text: `NAME OF STUDENT: ${studentData.studentName || ""}\t\tREGISTRATION NO- ${studentData.regNo || ""}\t\tBRANCH: ${studentData.branch || "CSE"}`, bold: true, size: 18 }),
-                ],
-                spacing: { after: 200 }
-            })
-        );
+                    new Paragraph({
+                        children: [
+                            new ImageRun({
+                                data: logoImage,
+                                transformation: { width: 120, height: 100 }
+                            })
+                        ]
+                    })
+                ]
+            }));
+        }
+
+        headerCells.push(new TableCell({
+            width: { size: logoImage ? 85 : 100, type: WidthType.PERCENTAGE },
+            borders: { top: { style: BorderStyle.NONE }, bottom: { style: BorderStyle.NONE }, left: { style: BorderStyle.NONE }, right: { style: BorderStyle.NONE } },
+            children: [
+                new Paragraph({ alignment: AlignmentType.CENTER, children: [new TextRun({ text: "CENTURION UNIVERSITY OF TECHNOLOGY & MANAGEMENT", bold: true, size: 24, font: "Arial" })] }),
+                new Paragraph({ alignment: AlignmentType.CENTER, children: [new TextRun({ text: "SCHOOL OF ENGINEERING & TECHNOLOGY", bold: true, size: 20, font: "Arial" })] }),
+                new Paragraph({ alignment: AlignmentType.CENTER, children: [new TextRun({ text: "BHUBANESWAR CAMPUS", bold: true, size: 20, font: "Arial" })] }),
+                new Paragraph({ alignment: AlignmentType.CENTER, children: [new TextRun({ text: "SUBJECT REGISTRATION AS PER CBCS CURRICULUM", bold: true, size: 20, font: "Arial" })] })
+            ]
+        }));
+
+        children.push(new Table({
+            rows: [new TableRow({ children: headerCells })],
+            width: { size: 100, type: WidthType.PERCENTAGE },
+            borders: { top: { style: BorderStyle.NONE }, bottom: { style: BorderStyle.NONE }, left: { style: BorderStyle.NONE }, right: { style: BorderStyle.NONE }, insideHorizontal: { style: BorderStyle.NONE }, insideVertical: { style: BorderStyle.NONE } }
+        }));
         
+        children.push(new Paragraph({ text: "", spacing: { after: 100 } }));
+
+        // Student Details Row
+        children.push(new Table({
+            width: { size: 100, type: WidthType.PERCENTAGE },
+            rows: [
+                new TableRow({
+                    children: [
+                        new TableCell({
+                            shading: { type: ShadingType.CLEAR, color: "auto", fill: "D9E1F2" },
+                            children: [new Paragraph({ children: [new TextRun({ text: `NAME OF STUDENT: ${studentData.studentName ? studentData.studentName.toUpperCase() : ""}`, bold: true, size: 18, font: "Arial" })] })],
+                        }),
+                        new TableCell({
+                            shading: { type: ShadingType.CLEAR, color: "auto", fill: "D9E1F2" },
+                            children: [new Paragraph({ alignment: AlignmentType.CENTER, children: [new TextRun({ text: `REGISTRATION NO- ${studentData.regNo || ""}`, bold: true, size: 18, font: "Arial" })] })],
+                        }),
+                        new TableCell({
+                            shading: { type: ShadingType.CLEAR, color: "auto", fill: "D9E1F2" },
+                            children: [new Paragraph({ alignment: AlignmentType.RIGHT, children: [new TextRun({ text: `BRANCH: ${studentData.branch || "CSE"}`, bold: true, size: 18, font: "Arial" })] })],
+                        })
+                    ]
+                })
+            ]
+        }));
+        
+        children.push(new Paragraph({ text: "", spacing: { after: 150 } }));
+
         let cumTotalsObj = { b1: 0, b2: 0, b3: 0, b4: 0, b5: 0, gt: 0 };
         const roman = ["I", "II", "III", "IV", "V", "VI", "VII", "VIII"];
 
-        const createCell = (text, isHeader = false) => {
-            return new TableCell({
-                children: [new Paragraph({ children: [new TextRun({ text: text !== undefined && text !== null ? text.toString() : "", bold: isHeader, size: 14 })] })],
-                width: { size: isHeader ? 15 : 10, type: WidthType.PERCENTAGE }
-            });
+        const createCell = (text, isHeader = false, colSpan = 1, isBlue = false, align = AlignmentType.CENTER) => {
+            const cellOpts = {
+                columnSpan: colSpan,
+                children: [new Paragraph({ alignment: align, children: [new TextRun({ text: text !== undefined && text !== null ? text.toString() : "", bold: isHeader, size: 14, font: "Arial" })] })],
+                verticalAlign: "center"
+            };
+            if (isBlue) {
+                cellOpts.shading = { type: ShadingType.CLEAR, color: "auto", fill: "D9E1F2" };
+            }
+            return new TableCell(cellOpts);
         };
 
         const buildTable = (semA, semB, cumLabel) => {
             const tableRows = [];
 
+            // Semester Header
             tableRows.push(
                 new TableRow({
                     children: [
-                        new TableCell({
-                            children: [new Paragraph({ children: [new TextRun({ text: `Semester-${roman[semA-1]}`, bold: true })] })],
-                            columnSpan: 9
-                        }),
-                        new TableCell({
-                            children: [new Paragraph({ children: [new TextRun({ text: `Semester-${roman[semB-1]}`, bold: true })] })],
-                            columnSpan: 9
-                        })
+                        createCell(`Semester-${roman[semA-1]}`, true, 9, true, AlignmentType.LEFT),
+                        createCell(`Semester-${roman[semB-1]}`, true, 9, true, AlignmentType.LEFT)
                     ]
                 })
             );
 
+            // Columns Header
             tableRows.push(
                 new TableRow({
                     children: [
-                        createCell('Sl. No', true), createCell('Subject Code', true), createCell('Subject', true),
-                        createCell('B1', true), createCell('B2', true), createCell('B3', true), createCell('B4', true), createCell('B5', true), createCell('Total', true),
-                        createCell('Sl. No', true), createCell('Subject Code', true), createCell('Subject', true),
-                        createCell('B1', true), createCell('B2', true), createCell('B3', true), createCell('B4', true), createCell('B5', true), createCell('Total', true)
+                        createCell('Sl.\nNo', true, 1, false), createCell('Subject\nCode', true, 1, false), createCell('Subject', true, 1, false),
+                        createCell('Basket\n1\n(Credit)', true, 1, false), createCell('Basket\n2\n(Credit)', true, 1, false), createCell('Basket\n3\n(Credit)', true, 1, false), createCell('Basket\n4\n(Credit)', true, 1, false), createCell('Basket\n5\n(Credit)', true, 1, false), createCell('Grand\nTotal\n(Credit)', true, 1, false),
+                        createCell('Sl.\nNo', true, 1, false), createCell('Subject\nCode', true, 1, false), createCell('Subject', true, 1, false),
+                        createCell('Basket\n1\n(Credit)', true, 1, false), createCell('Basket\n2\n(Credit)', true, 1, false), createCell('Basket\n3\n(Credit)', true, 1, false), createCell('Basket\n4\n(Credit)', true, 1, false), createCell('Basket\n5\n(Credit)', true, 1, false), createCell('Grand\nTotal\n(Credit)', true, 1, false)
                     ]
                 })
             );
 
             const subsA = semSubjects[semA];
             const subsB = semSubjects[semB];
-            const maxRows = Math.max(subsA.length, subsB.length, 10);
+            const maxRows = 10; 
     
             let totA = { b1: 0, b2: 0, b3: 0, b4: 0, b5: 0, gt: 0 };
             let totB = { b1: 0, b2: 0, b3: 0, b4: 0, b5: 0, gt: 0 };
@@ -122,7 +160,7 @@ export const generateBasketWord = async (studentData) => {
                     const basket = getSubjectBasket(s);
                     const cr = Number(s.credit) || 0;
                     
-                    rowCells.push(createCell(i + 1), createCell(s.subCode), createCell(s.subName),
+                    rowCells.push(createCell(i + 1), createCell(s.subCode, false, 1, false, AlignmentType.LEFT), createCell(s.subName, false, 1, false, AlignmentType.LEFT),
                         createCell(showCreditA && basket === "B1" ? cr : ""), 
                         createCell(showCreditA && basket === "B2" ? cr : ""), 
                         createCell(showCreditA && basket === "B3" ? cr : ""), 
@@ -137,7 +175,8 @@ export const generateBasketWord = async (studentData) => {
                     else if (showCreditA && (basket === "B5" || basket === "EX")) totA.b5 += cr;
                     if (showCreditA) totA.gt += cr;
                 } else {
-                    for(let c = 0; c < 9; c++) rowCells.push(createCell(""));
+                    rowCells.push(createCell(i + 1));
+                    for(let c = 0; c < 8; c++) rowCells.push(createCell(""));
                 }
                 
                 // Right
@@ -146,7 +185,7 @@ export const generateBasketWord = async (studentData) => {
                     const basket = getSubjectBasket(s);
                     const cr = Number(s.credit) || 0;
 
-                    rowCells.push(createCell(i + 1), createCell(s.subCode), createCell(s.subName),
+                    rowCells.push(createCell(i + 1), createCell(s.subCode, false, 1, false, AlignmentType.LEFT), createCell(s.subName, false, 1, false, AlignmentType.LEFT),
                         createCell(showCreditB && basket === "B1" ? cr : ""), 
                         createCell(showCreditB && basket === "B2" ? cr : ""), 
                         createCell(showCreditB && basket === "B3" ? cr : ""), 
@@ -161,7 +200,8 @@ export const generateBasketWord = async (studentData) => {
                     else if (showCreditB && (basket === "B5" || basket === "EX")) totB.b5 += cr;
                     if (showCreditB) totB.gt += cr;
                 } else {
-                    for(let c = 0; c < 9; c++) rowCells.push(createCell(""));
+                    rowCells.push(createCell(i + 1));
+                    for(let c = 0; c < 8; c++) rowCells.push(createCell(""));
                 }
                 tableRows.push(new TableRow({ children: rowCells }));
             }
@@ -174,10 +214,10 @@ export const generateBasketWord = async (studentData) => {
             tableRows.push(
                 new TableRow({
                     children: [
-                        createCell(""), createCell(""), createCell(!showCreditA ? "" : "Total", true),
-                        createCell(tA[0]), createCell(tA[1]), createCell(tA[2]), createCell(tA[3]), createCell(tA[4]), createCell(tA[5]),
-                        createCell(""), createCell(""), createCell(!showCreditB ? "" : "Total", true),
-                        createCell(tB[0]), createCell(tB[1]), createCell(tB[2]), createCell(tB[3]), createCell(tB[4]), createCell(tB[5])
+                        createCell(!showCreditA ? "" : "Total", true, 3, false, AlignmentType.LEFT),
+                        createCell(tA[0], true), createCell(tA[1], true), createCell(tA[2], true), createCell(tA[3], true), createCell(tA[4], true), createCell(tA[5], true),
+                        createCell(!showCreditB ? "" : "Total", true, 3, false, AlignmentType.LEFT),
+                        createCell(tB[0], true), createCell(tB[1], true), createCell(tB[2], true), createCell(tB[3], true), createCell(tB[4], true), createCell(tB[5], true)
                     ]
                 })
             );
@@ -204,8 +244,9 @@ export const generateBasketWord = async (studentData) => {
                 tableRows.push(
                     new TableRow({
                         children: [
-                            createCell(""), createCell(""), createCell(""), createCell(""), createCell(""), createCell(""), createCell(""), createCell(""), createCell(""),
-                            createCell(!showCum ? "" : cumLabel, true), createCell(""), createCell(""), createCell(""), createCell(""), createCell(""), createCell(""), createCell(""), createCell("")
+                            createCell("", false, 9), // Left side blank
+                            createCell(!showCum ? "" : cumLabel, true, 3), 
+                            createCell(""), createCell(""), createCell(""), createCell(""), createCell(""), createCell("")
                         ]
                     })
                 );
@@ -213,20 +254,28 @@ export const generateBasketWord = async (studentData) => {
                 tableRows.push(
                     new TableRow({
                         children: [
-                            createCell(""), createCell(""), createCell(""), createCell(""), createCell(""), createCell(""), createCell(""), createCell(""), createCell(""),
-                            createCell(cumLabel, true), createCell(""), createCell(""), 
-                            createCell(cumTotalsObj.b1), createCell(cumTotalsObj.b2), createCell(cumTotalsObj.b3), createCell(cumTotalsObj.b4), createCell(cumTotalsObj.b5), createCell(cumTotalsObj.gt)
+                            createCell("", false, 9), // Left side blank
+                            createCell(cumLabel, true, 3), 
+                            createCell(cumTotalsObj.b1, true), createCell(cumTotalsObj.b2, true), createCell(cumTotalsObj.b3, true), createCell(cumTotalsObj.b4, true), createCell(cumTotalsObj.b5, true), createCell(cumTotalsObj.gt, true)
                         ]
                     })
                 );
             }
             
+            // Add column widths for 18 columns mimicking Excel structure
+            const colWidths = [
+                3, 10, 31, 7, 7, 7, 7, 7, 7,
+                3, 10, 31, 7, 7, 7, 7, 7, 7
+            ].map(w => w * 100);
+
             children.push(
                 new Table({
                     rows: tableRows,
-                    width: { size: 100, type: WidthType.PERCENTAGE }
+                    width: { size: 100, type: WidthType.PERCENTAGE },
+                    columnWidths: colWidths,
+                    layout: TableLayoutType.FIXED
                 }),
-                new Paragraph({ text: "", spacing: { after: 400 } })
+                new Paragraph({ text: "", spacing: { after: 200 } })
             );
         };
 
@@ -240,7 +289,16 @@ export const generateBasketWord = async (studentData) => {
 
         const doc = new Document({
             sections: [{
-                properties: {},
+                properties: {
+                    page: {
+                        size: {
+                            orientation: PageOrientation.LANDSCAPE
+                        },
+                        margin: {
+                            top: 500, right: 500, bottom: 500, left: 500
+                        }
+                    }
+                },
                 children: children
             }]
         });
