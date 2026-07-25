@@ -35,8 +35,8 @@ export const generateBasketExcel = async (studentData) => {
         });
         
         // Define standard styles
-        const fontTitle = { name: "Arial", bold: true, size: 14 };
-        const fontSubTitle = { name: "Arial", bold: true, size: 12 };
+        const fontTitle = { name: "Arial", bold: true, size: 12 };
+        const fontSubTitle = { name: "Arial", bold: true, size: 11 };
         const fontBold = { name: "Arial", bold: true, size: 9 };
         const fontNormal = { name: "Arial", size: 9 };
         const alignCenter = { vertical: "middle", horizontal: "center", wrapText: true };
@@ -48,15 +48,15 @@ export const generateBasketExcel = async (studentData) => {
             bottom: { style: "thin" },
             right: { style: "thin" }
         };
-        // Light blue background matching the PDF
+        // Light blue background matching the teacher's template
         const bgBlue = { type: "pattern", pattern: "solid", fgColor: { argb: "FFD9E1F2" } };
         
         // Column widths
-        // Left side: A:4, B:14, C:38, D:7, E:7, F:7, G:7, H:7, I:7 (total 99)
-        // Right side: J:4, K:14, L:38, M:7, N:7, O:7, P:7, Q:7, R:7 (total 99)
+        // Left side: A:4, B:14, C:35, D:7, E:7, F:7, G:7, H:7, I:7
+        // Right side: J:4, K:14, L:35, M:7, N:7, O:7, P:7, Q:7, R:7
         const colWidths = [
-            4, 14, 38, 7, 7, 7, 7, 7, 7,
-            4, 14, 38, 7, 7, 7, 7, 7, 7
+            4, 14, 35, 7, 7, 7, 7, 7, 7,
+            4, 14, 35, 7, 7, 7, 7, 7, 7
         ];
         colWidths.forEach((w, i) => { sheet.getColumn(i + 1).width = w; });
         
@@ -76,6 +76,7 @@ export const generateBasketExcel = async (studentData) => {
             }
         };
 
+        // Logo Logic
         let logoId = null;
         try {
             const response = await fetch("/cutm_text.jpg");
@@ -88,22 +89,32 @@ export const generateBasketExcel = async (studentData) => {
             console.warn("Could not load logo image for Excel", e);
         }
 
-        // Header Section
         if (logoId !== null) {
+            // Placing logo covering top left area (A1:B4) without overlapping the text
             sheet.addImage(logoId, {
                 tl: { col: 0, row: 0 },
-                ext: { width: 70, height: 70 }
+                ext: { width: 90, height: 75 } // slightly wider to fit correctly
             });
         }
-        mergeAndStyle(1, 1, 18, "CENTURION UNIVERSITY OF TECHNOLOGY & MANAGEMENT", fontTitle, alignCenter);
-        mergeAndStyle(2, 1, 18, "SCHOOL OF ENGINEERING & TECHNOLOGY", fontSubTitle, alignCenter);
-        mergeAndStyle(3, 1, 18, "BHUBANESWAR CAMPUS", fontSubTitle, alignCenter);
-        mergeAndStyle(4, 1, 18, "SUBJECT REGISTRATION AS PER CBCS CURRICULUM", fontSubTitle, alignCenter);
+
+        // Header Section (Start text from column C to avoid logo overlap)
+        mergeAndStyle(1, 3, 18, "CENTURION UNIVERSITY OF TECHNOLOGY & MANAGEMENT", fontTitle, alignCenter);
+        mergeAndStyle(2, 3, 18, "SCHOOL OF ENGINEERING & TECHNOLOGY", fontSubTitle, alignCenter);
+        mergeAndStyle(3, 3, 18, "BHUBANESWAR CAMPUS", fontSubTitle, alignCenter);
+        
+        mergeAndStyle(4, 3, 12, "SUBJECT REGISTRATION AS PER CBCS CURRICULUM", fontSubTitle, alignCenter);
+        mergeAndStyle(4, 13, 18, "SESSION  2023 - 2027", fontSubTitle, alignCenter); // You can make session dynamic if needed
         
         sheet.getRow(6).height = 18;
-        mergeAndStyle(6, 1, 6, `NAME OF STUDENT: ${studentData.studentName ? studentData.studentName.toUpperCase() : ""}`, fontBold, alignLeft, bgBlue);
-        mergeAndStyle(6, 7, 12, `REGISTRATION NO- ${studentData.regNo || ""}`, fontBold, alignCenter, bgBlue);
-        mergeAndStyle(6, 13, 18, `BRANCH: ${studentData.branch || "CSE"}`, fontBold, alignRight, bgBlue);
+        mergeAndStyle(6, 1, 6, `NAME OF STUDENT: ${studentData.studentName ? studentData.studentName.toUpperCase() : ""}`, fontBold, alignLeft);
+        mergeAndStyle(6, 7, 12, `REGISTRATION NO- ${studentData.regNo || ""}`, fontBold, alignCenter);
+        mergeAndStyle(6, 13, 18, `BRANCH: ${studentData.branch || "CSE"}`, fontBold, alignRight);
+        
+        // Blank blue separator row (Row 7)
+        sheet.getRow(7).height = 10;
+        for (let i = 1; i <= 18; i++) {
+            sheet.getCell(7, i).fill = bgBlue;
+        }
         
         let currentRow = 8;
         const roman = ["I", "II", "III", "IV", "V", "VI", "VII", "VIII"];
@@ -113,6 +124,7 @@ export const generateBasketExcel = async (studentData) => {
 
         const buildYearBlock = (semA, semB, cumLabel) => {
             // Add Sem Header
+            sheet.getRow(currentRow).height = 20;
             mergeAndStyle(currentRow, 1, 9, `Semester-${roman[semA-1]}`, fontBold, alignLeft, bgBlue, borderThin);
             mergeAndStyle(currentRow, 10, 18, `Semester-${roman[semB-1]}`, fontBold, alignLeft, bgBlue, borderThin);
             currentRow++;
@@ -150,7 +162,9 @@ export const generateBasketExcel = async (studentData) => {
             let totB = { b1: 0, b2: 0, b3: 0, b4: 0, b5: 0, gt: 0 };
 
             for (let i = 0; i < maxRows; i++) {
-                sheet.getRow(currentRow).height = 15;
+                // Remove fixed row height so text wrapping automatically expands row
+                sheet.getRow(currentRow).height = undefined; 
+                
                 for (let c = 1; c <= 18; c++) {
                     const cell = sheet.getCell(currentRow, c);
                     cell.border = borderThin;
@@ -282,15 +296,17 @@ export const generateBasketExcel = async (studentData) => {
                 prevCumRow = currentRow;
                 currentRow++;
             }
-            currentRow++; // Extra space between year blocks
+            
+            // Add a blue separator between years (like Row 21 in Image 2)
+            sheet.getRow(currentRow).height = 10;
+            for (let i = 1; i <= 18; i++) {
+                sheet.getCell(currentRow, i).fill = bgBlue;
+            }
+            currentRow++;
         };
 
         buildYearBlock(1, 2, "1st Year Total Credits");
         buildYearBlock(3, 4, "1st & 2nd Year Total Credits");
-        
-        // Add page break logic if possible, exceljs supports page breaks but we can just use spacing
-        currentRow++;
-        
         buildYearBlock(5, 6, "1st, 2nd & 3rd year Total Credits");
         buildYearBlock(7, 8, "1st, 2nd, 3rd & 4th year Total Credits");
         
