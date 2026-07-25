@@ -71,10 +71,10 @@ export const generateBasketWord = async (studentData) => {
             width: { size: logoImage ? 85 : 100, type: WidthType.PERCENTAGE },
             borders: { top: { style: BorderStyle.NONE }, bottom: { style: BorderStyle.NONE }, left: { style: BorderStyle.NONE }, right: { style: BorderStyle.NONE } },
             children: [
-                new Paragraph({ alignment: AlignmentType.CENTER, children: [new TextRun({ text: "CENTURION UNIVERSITY OF TECHNOLOGY & MANAGEMENT", bold: true, size: 24, font: "Arial" })] }),
-                new Paragraph({ alignment: AlignmentType.CENTER, children: [new TextRun({ text: "SCHOOL OF ENGINEERING & TECHNOLOGY", bold: true, size: 20, font: "Arial" })] }),
-                new Paragraph({ alignment: AlignmentType.CENTER, children: [new TextRun({ text: "BHUBANESWAR CAMPUS", bold: true, size: 20, font: "Arial" })] }),
-                new Paragraph({ alignment: AlignmentType.CENTER, children: [new TextRun({ text: "SUBJECT REGISTRATION AS PER CBCS CURRICULUM", bold: true, size: 20, font: "Arial" })] })
+                new Paragraph({ alignment: AlignmentType.CENTER, children: [new TextRun({ text: "CENTURION UNIVERSITY OF TECHNOLOGY & MANAGEMENT", bold: true, size: 20, font: "Arial" })] }),
+                new Paragraph({ alignment: AlignmentType.CENTER, children: [new TextRun({ text: "SCHOOL OF ENGINEERING & TECHNOLOGY", bold: true, size: 18, font: "Arial" })] }),
+                new Paragraph({ alignment: AlignmentType.CENTER, children: [new TextRun({ text: "BHUBANESWAR CAMPUS", bold: true, size: 18, font: "Arial" })] }),
+                new Paragraph({ alignment: AlignmentType.CENTER, children: [new TextRun({ text: "SUBJECT REGISTRATION AS PER CBCS CURRICULUM", bold: true, size: 18, font: "Arial" })] })
             ]
         }));
 
@@ -94,15 +94,18 @@ export const generateBasketWord = async (studentData) => {
                     children: [
                         new TableCell({
                             shading: { type: ShadingType.CLEAR, color: "auto", fill: "D9E1F2" },
-                            children: [new Paragraph({ children: [new TextRun({ text: `NAME OF STUDENT: ${studentData.studentName ? studentData.studentName.toUpperCase() : ""}`, bold: true, size: 18, font: "Arial" })] })],
+                            borders: { top: { style: BorderStyle.NONE }, bottom: { style: BorderStyle.NONE }, left: { style: BorderStyle.NONE }, right: { style: BorderStyle.NONE } },
+                            children: [new Paragraph({ children: [new TextRun({ text: `NAME OF STUDENT: ${studentData.studentName ? studentData.studentName.toUpperCase() : ""}`, bold: true, size: 16, font: "Arial" })] })],
                         }),
                         new TableCell({
                             shading: { type: ShadingType.CLEAR, color: "auto", fill: "D9E1F2" },
-                            children: [new Paragraph({ alignment: AlignmentType.CENTER, children: [new TextRun({ text: `REGISTRATION NO- ${studentData.regNo || ""}`, bold: true, size: 18, font: "Arial" })] })],
+                            borders: { top: { style: BorderStyle.NONE }, bottom: { style: BorderStyle.NONE }, left: { style: BorderStyle.NONE }, right: { style: BorderStyle.NONE } },
+                            children: [new Paragraph({ alignment: AlignmentType.CENTER, children: [new TextRun({ text: `REGISTRATION NO- ${studentData.regNo || ""}`, bold: true, size: 16, font: "Arial" })] })],
                         }),
                         new TableCell({
                             shading: { type: ShadingType.CLEAR, color: "auto", fill: "D9E1F2" },
-                            children: [new Paragraph({ alignment: AlignmentType.RIGHT, children: [new TextRun({ text: `BRANCH: ${studentData.branch || "CSE"}`, bold: true, size: 18, font: "Arial" })] })],
+                            borders: { top: { style: BorderStyle.NONE }, bottom: { style: BorderStyle.NONE }, left: { style: BorderStyle.NONE }, right: { style: BorderStyle.NONE } },
+                            children: [new Paragraph({ alignment: AlignmentType.RIGHT, children: [new TextRun({ text: `BRANCH: ${studentData.branch || "CSE"}`, bold: true, size: 16, font: "Arial" })] })],
                         })
                     ]
                 })
@@ -117,7 +120,13 @@ export const generateBasketWord = async (studentData) => {
         const createCell = (text, isHeader = false, colSpan = 1, isBlue = false, align = AlignmentType.CENTER) => {
             const cellOpts = {
                 children: [new Paragraph({ alignment: align, children: [new TextRun({ text: text !== undefined && text !== null ? text.toString() : "", bold: isHeader, size: 14, font: "Arial" })] })],
-                verticalAlign: "center"
+                verticalAlign: "center",
+                borders: { 
+                    top: { style: BorderStyle.SINGLE, size: 1, color: "000000" },
+                    bottom: { style: BorderStyle.SINGLE, size: 1, color: "000000" },
+                    left: { style: BorderStyle.SINGLE, size: 1, color: "000000" },
+                    right: { style: BorderStyle.SINGLE, size: 1, color: "000000" } 
+                }
             };
             if (colSpan > 1) {
                 cellOpts.columnSpan = colSpan;
