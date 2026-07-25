@@ -237,7 +237,7 @@ export const generateBasketExcel = async (studentData) => {
             }
             
             mergeAndStyle(currentRow, 1, 3, "Total", fontBold, alignLeft, null, borderThin);
-            if (showCreditA) {
+            if (showCreditA && subsA.length > 0) {
                 sheet.getCell(currentRow, 4).value = { formula: `SUM(D${startDataRow}:D${endDataRow})`, result: totA.b1 };
                 sheet.getCell(currentRow, 5).value = { formula: `SUM(E${startDataRow}:E${endDataRow})`, result: totA.b2 };
                 sheet.getCell(currentRow, 6).value = { formula: `SUM(F${startDataRow}:F${endDataRow})`, result: totA.b3 };
@@ -247,7 +247,7 @@ export const generateBasketExcel = async (studentData) => {
             }
             
             mergeAndStyle(currentRow, 10, 12, "Total", fontBold, alignLeft, null, borderThin);
-            if (showCreditB) {
+            if (showCreditB && subsB.length > 0) {
                 sheet.getCell(currentRow, 13).value = { formula: `SUM(M${startDataRow}:M${endDataRow})`, result: totB.b1 };
                 sheet.getCell(currentRow, 14).value = { formula: `SUM(N${startDataRow}:N${endDataRow})`, result: totB.b2 };
                 sheet.getCell(currentRow, 15).value = { formula: `SUM(O${startDataRow}:O${endDataRow})`, result: totB.b3 };
@@ -268,40 +268,52 @@ export const generateBasketExcel = async (studentData) => {
             }
             
             const showCum = isCSE || (semA <= 2 && semB <= 2);
+            const isYearEmpty = subsA.length === 0 && subsB.length === 0;
+
             if (showCum) {
                 mergeAndStyle(currentRow, 10, 12, cumLabel, fontBold, alignCenter, null, borderThin);
                 
-                cumTotalsObj.b1 += (totA.b1 + totB.b1);
-                cumTotalsObj.b2 += (totA.b2 + totB.b2);
-                cumTotalsObj.b3 += (totA.b3 + totB.b3);
-                cumTotalsObj.b4 += (totA.b4 + totB.b4);
-                cumTotalsObj.b5 += (totA.b5 + totB.b5);
-                cumTotalsObj.gt += (totA.gt + totB.gt);
+                if (!isYearEmpty) {
+                    cumTotalsObj.b1 += (totA.b1 + totB.b1);
+                    cumTotalsObj.b2 += (totA.b2 + totB.b2);
+                    cumTotalsObj.b3 += (totA.b3 + totB.b3);
+                    cumTotalsObj.b4 += (totA.b4 + totB.b4);
+                    cumTotalsObj.b5 += (totA.b5 + totB.b5);
+                    cumTotalsObj.gt += (totA.gt + totB.gt);
 
-                const getCumFormula = (colLeft, colRight) => {
-                    const parts = [];
-                    parts.push(`${colRight}${totalRow}`); // Sem B total
-                    parts.push(`${colLeft}${totalRow}`);  // Sem A total
-                    if (prevCumRow) parts.push(`${colRight}${prevCumRow}`); // Prev Cum total
-                    return `SUM(${parts.join(",")})`;
-                };
-                
-                sheet.getCell(currentRow, 13).value = { formula: getCumFormula("D", "M"), result: cumTotalsObj.b1 };
-                sheet.getCell(currentRow, 14).value = { formula: getCumFormula("E", "N"), result: cumTotalsObj.b2 };
-                sheet.getCell(currentRow, 15).value = { formula: getCumFormula("F", "O"), result: cumTotalsObj.b3 };
-                sheet.getCell(currentRow, 16).value = { formula: getCumFormula("G", "P"), result: cumTotalsObj.b4 };
-                sheet.getCell(currentRow, 17).value = { formula: getCumFormula("H", "Q"), result: cumTotalsObj.b5 };
-                sheet.getCell(currentRow, 18).value = { formula: `SUM(M${currentRow}:Q${currentRow})`, result: cumTotalsObj.gt };
+                    const getCumFormula = (colLeft, colRight) => {
+                        const parts = [];
+                        parts.push(`${colRight}${totalRow}`); // Sem B total
+                        parts.push(`${colLeft}${totalRow}`);  // Sem A total
+                        if (prevCumRow) parts.push(`${colRight}${prevCumRow}`); // Prev Cum total
+                        return `SUM(${parts.join(",")})`;
+                    };
+                    
+                    sheet.getCell(currentRow, 13).value = { formula: getCumFormula("D", "M"), result: cumTotalsObj.b1 };
+                    sheet.getCell(currentRow, 14).value = { formula: getCumFormula("E", "N"), result: cumTotalsObj.b2 };
+                    sheet.getCell(currentRow, 15).value = { formula: getCumFormula("F", "O"), result: cumTotalsObj.b3 };
+                    sheet.getCell(currentRow, 16).value = { formula: getCumFormula("G", "P"), result: cumTotalsObj.b4 };
+                    sheet.getCell(currentRow, 17).value = { formula: getCumFormula("H", "Q"), result: cumTotalsObj.b5 };
+                    sheet.getCell(currentRow, 18).value = { formula: `SUM(M${currentRow}:Q${currentRow})`, result: cumTotalsObj.gt };
+                }
                 
                 prevCumRow = currentRow;
                 currentRow++;
             }
             
+            // Add a white gap row
+            sheet.getRow(currentRow).height = 10;
+            currentRow++;
+
             // Add a blue separator between years (like Row 21 in Image 2)
             sheet.getRow(currentRow).height = 10;
             for (let i = 1; i <= 18; i++) {
                 sheet.getCell(currentRow, i).fill = bgBlue;
             }
+            currentRow++;
+            
+            // Add another white gap row to make the spacing perfect
+            sheet.getRow(currentRow).height = 10;
             currentRow++;
         };
 
