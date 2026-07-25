@@ -1,4 +1,4 @@
-import { Document, Packer, Paragraph, TextRun, Table, TableRow, TableCell, WidthType, AlignmentType, PageOrientation, ShadingType, ImageRun, BorderStyle, TableLayoutType } from "docx";
+import { Document, Packer, Paragraph, TextRun, Table, TableRow, TableCell, WidthType, AlignmentType, PageOrientation, ShadingType, ImageRun, BorderStyle } from "docx";
 import { saveAs } from "file-saver";
 import { getSubjectBasket } from "./pdfGenerator";
 
@@ -31,10 +31,18 @@ export const generateBasketWord = async (studentData) => {
         let logoImage = null;
         try {
             const res = await fetch("/cutm_text.jpg");
-            const arrayBuffer = await res.arrayBuffer();
-            logoImage = arrayBuffer;
+            if (res.ok) {
+                const contentType = res.headers.get("content-type");
+                if (contentType && contentType.includes("image")) {
+                    logoImage = await res.arrayBuffer();
+                } else {
+                    console.warn("Logo URL did not return an image. Type:", contentType);
+                }
+            } else {
+                console.warn("Failed to fetch logo. Status:", res.status);
+            }
         } catch(e) {
-            console.warn("Could not load logo for Word.");
+            console.warn("Could not load logo for Word.", e);
         }
 
         const children = [];
@@ -50,7 +58,8 @@ export const generateBasketWord = async (studentData) => {
                         children: [
                             new ImageRun({
                                 data: logoImage,
-                                transformation: { width: 120, height: 100 }
+                                transformation: { width: 120, height: 100 },
+                                type: "jpg"
                             })
                         ]
                     })
@@ -107,10 +116,12 @@ export const generateBasketWord = async (studentData) => {
 
         const createCell = (text, isHeader = false, colSpan = 1, isBlue = false, align = AlignmentType.CENTER) => {
             const cellOpts = {
-                columnSpan: colSpan,
                 children: [new Paragraph({ alignment: align, children: [new TextRun({ text: text !== undefined && text !== null ? text.toString() : "", bold: isHeader, size: 14, font: "Arial" })] })],
                 verticalAlign: "center"
             };
+            if (colSpan > 1) {
+                cellOpts.columnSpan = colSpan;
+            }
             if (isBlue) {
                 cellOpts.shading = { type: ShadingType.CLEAR, color: "auto", fill: "D9E1F2" };
             }
@@ -135,9 +146,9 @@ export const generateBasketWord = async (studentData) => {
                 new TableRow({
                     children: [
                         createCell('Sl.\nNo', true, 1, false), createCell('Subject\nCode', true, 1, false), createCell('Subject', true, 1, false),
-                        createCell('Basket\n1\n(Credit)', true, 1, false), createCell('Basket\n2\n(Credit)', true, 1, false), createCell('Basket\n3\n(Credit)', true, 1, false), createCell('Basket\n4\n(Credit)', true, 1, false), createCell('Basket\n5\n(Credit)', true, 1, false), createCell('Grand\nTotal\n(Credit)', true, 1, false),
+                        createCell('Basket\n1', true, 1, false), createCell('Basket\n2', true, 1, false), createCell('Basket\n3', true, 1, false), createCell('Basket\n4', true, 1, false), createCell('Basket\n5', true, 1, false), createCell('Total', true, 1, false),
                         createCell('Sl.\nNo', true, 1, false), createCell('Subject\nCode', true, 1, false), createCell('Subject', true, 1, false),
-                        createCell('Basket\n1\n(Credit)', true, 1, false), createCell('Basket\n2\n(Credit)', true, 1, false), createCell('Basket\n3\n(Credit)', true, 1, false), createCell('Basket\n4\n(Credit)', true, 1, false), createCell('Basket\n5\n(Credit)', true, 1, false), createCell('Grand\nTotal\n(Credit)', true, 1, false)
+                        createCell('Basket\n1', true, 1, false), createCell('Basket\n2', true, 1, false), createCell('Basket\n3', true, 1, false), createCell('Basket\n4', true, 1, false), createCell('Basket\n5', true, 1, false), createCell('Total', true, 1, false)
                     ]
                 })
             );
@@ -222,7 +233,7 @@ export const generateBasketWord = async (studentData) => {
                 })
             );
     
-            if (showCreditA) {
+            if (showCreditA && subsA.length > 0) {
                 cumTotalsObj.b1 += totA.b1;
                 cumTotalsObj.b2 += totA.b2;
                 cumTotalsObj.b3 += totA.b3;
@@ -230,7 +241,7 @@ export const generateBasketWord = async (studentData) => {
                 cumTotalsObj.b5 += totA.b5;
                 cumTotalsObj.gt += totA.gt;
             }
-            if (showCreditB) {
+            if (showCreditB && subsB.length > 0) {
                 cumTotalsObj.b1 += totB.b1;
                 cumTotalsObj.b2 += totB.b2;
                 cumTotalsObj.b3 += totB.b3;
@@ -244,7 +255,7 @@ export const generateBasketWord = async (studentData) => {
                 tableRows.push(
                     new TableRow({
                         children: [
-                            createCell("", false, 9), // Left side blank
+                            createCell("", false, 9), 
                             createCell(!showCum ? "" : cumLabel, true, 3), 
                             createCell(""), createCell(""), createCell(""), createCell(""), createCell(""), createCell("")
                         ]
@@ -254,26 +265,18 @@ export const generateBasketWord = async (studentData) => {
                 tableRows.push(
                     new TableRow({
                         children: [
-                            createCell("", false, 9), // Left side blank
+                            createCell("", false, 9),
                             createCell(cumLabel, true, 3), 
                             createCell(cumTotalsObj.b1, true), createCell(cumTotalsObj.b2, true), createCell(cumTotalsObj.b3, true), createCell(cumTotalsObj.b4, true), createCell(cumTotalsObj.b5, true), createCell(cumTotalsObj.gt, true)
                         ]
                     })
                 );
             }
-            
-            // Add column widths for 18 columns mimicking Excel structure
-            const colWidths = [
-                3, 10, 31, 7, 7, 7, 7, 7, 7,
-                3, 10, 31, 7, 7, 7, 7, 7, 7
-            ].map(w => w * 100);
 
             children.push(
                 new Table({
                     rows: tableRows,
-                    width: { size: 100, type: WidthType.PERCENTAGE },
-                    columnWidths: colWidths,
-                    layout: TableLayoutType.FIXED
+                    width: { size: 100, type: WidthType.PERCENTAGE }
                 }),
                 new Paragraph({ text: "", spacing: { after: 200 } })
             );
