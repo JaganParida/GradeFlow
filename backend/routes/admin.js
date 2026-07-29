@@ -1069,13 +1069,24 @@ router.get("/student/details/:regNo", protect, async (req, res) => {
       return res.status(404).json({ message: "No data present related to this student" });
     }
 
-    const latest = results[results.length - 1];
+    // Compute live SGPA and CGPA up to each semester so dropdown & details display accurate CGPA
+    const enrichedResults = results.map((r) => {
+      const liveSGPA = calculateSGPA(r.subjects, r.semester);
+      const liveCGPA = calculateCGPA(results, r.semester);
+      return {
+        ...r,
+        sgpa: liveSGPA,
+        cgpa: liveCGPA,
+      };
+    });
+
+    const latest = enrichedResults[enrichedResults.length - 1];
     res.json({
       regNo,
       studentName: latest.studentName,
       branch: latest.branch,
       batch: latest.batch,
-      semesters: results,
+      semesters: enrichedResults,
     });
   } catch (err) {
     console.error("Fetch student details error:", err);

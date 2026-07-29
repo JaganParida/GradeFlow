@@ -592,7 +592,7 @@ function ManualGradeUpdateCard({ authHeaders, API, onSuccess }) {
                   <option value="">-- Choose Semester --</option>
                   {studentDetails.semesters?.map((sem) => (
                     <option key={sem.semester} value={sem.semester}>
-                      Semester {sem.semester} (SGPA: {sem.sgpa || 0}, CGPA: {sem.cgpa || 0})
+                      Semester {sem.semester} (SGPA: {sem.sgpa !== undefined ? sem.sgpa : 0}, CGPA: {sem.cgpa !== undefined ? sem.cgpa : 0})
                     </option>
                   ))}
                 </select>
