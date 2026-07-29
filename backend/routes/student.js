@@ -79,7 +79,12 @@ router.get("/:regNo", validateRegNo, async (req, res) => {
       latestResult.subjects,
       latestResult.semester,
     );
-    const liveLatestSgpa = typeof latestResult.sgpa === 'number' ? latestResult.sgpa : latestMetrics.sgpa;
+    const liveLatestSgpa =
+      latestResult.subjects && latestResult.subjects.length > 0
+        ? latestMetrics.sgpa
+        : typeof latestResult.sgpa === "number"
+          ? latestResult.sgpa
+          : latestMetrics.sgpa;
 
     const healthScore = calcAcademicHealth(
       cgpa,

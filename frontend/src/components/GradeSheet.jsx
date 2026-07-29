@@ -69,7 +69,12 @@ export default function GradeSheet({ result, studentData, highlightedSubject }) 
     subjects,
     result.semester,
   );
-  const sgpa = typeof result.sgpa === 'number' ? result.sgpa : calculatedSgpa;
+  const sgpa =
+    subjects && subjects.length > 0
+      ? calculatedSgpa
+      : typeof result.sgpa === "number"
+        ? result.sgpa
+        : calculatedSgpa;
   const hasFailed = subjects.some((s) => FAIL_GRADES.includes(s.grade));
 
   const allResults = studentData?.results || [];

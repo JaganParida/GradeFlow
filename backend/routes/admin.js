@@ -59,29 +59,66 @@ function getSectionFromRegNo(regNo) {
 }
 
 // Helper to generate rankings for a specific semester
-async function generateRankingForSemester(semester) {
-  const results = await SemesterResult.find({ semester: Number(semester) });
-  if (!results.length) return;
+async function generateRankingForSemester(semester, preloadedAllResults = null) {
+  const semNum = Number(semester);
+  const allResults = preloadedAllResults || (await SemesterResult.find({}).lean());
+  const semResults = allResults.filter((r) => Number(r.semester) === semNum);
+  if (!semResults.length) return;
 
-  const batches = [...new Set(results.map((r) => r.batch || ""))];
+  const resultsByRegNo = new Map();
+  for (const r of allResults) {
+    const regNo = String(r.regNo || "").trim();
+    if (!regNo) continue;
+    if (!resultsByRegNo.has(regNo)) {
+      resultsByRegNo.set(regNo, []);
+    }
+    resultsByRegNo.get(regNo).push(r);
+  }
+
+  for (const list of resultsByRegNo.values()) {
+    list.sort((a, b) => Number(a.semester) - Number(b.semester));
+  }
+
+  const batches = [...new Set(semResults.map((r) => r.batch || ""))];
   for (const batch of batches) {
-    const batchResults = results.filter((r) => (r.batch || "") === batch);
+    const batchResults = semResults.filter((r) => (r.batch || "") === batch);
     const studentData = [];
+    const semBulkOps = [];
+
     for (const r of batchResults) {
-      const allResults = await SemesterResult.find({ regNo: r.regNo }).sort({
-        semester: 1,
-      });
-      const cgpa = calculateCGPA(allResults, Number(semester));
-      const liveSGPA = calculateSGPA(r.subjects, Number(semester));
+      const regNo = String(r.regNo || "").trim();
+      const studentAllResults = resultsByRegNo.get(regNo) || [];
+      const liveSGPA = calculateSGPA(r.subjects, semNum);
+      const cgpa = calculateCGPA(studentAllResults, semNum);
+      const { totalCredits, creditsCleared } = calculateSemesterMetrics(r.subjects, semNum);
+
       studentData.push({
         regNo: r.regNo,
         studentName: r.studentName,
         branch: r.branch,
         batch: r.batch,
-        semester: Number(semester),
+        semester: semNum,
         sgpa: liveSGPA,
         cgpa,
       });
+
+      semBulkOps.push({
+        updateOne: {
+          filter: { regNo: r.regNo, semester: semNum },
+          update: {
+            $set: {
+              sgpa: liveSGPA,
+              cgpa: cgpa,
+              totalCredits,
+              creditsCleared,
+            },
+          },
+        },
+      });
+    }
+
+    if (semBulkOps.length > 0) {
+      await SemesterResult.bulkWrite(semBulkOps);
     }
 
     sortByScore(studentData, "cgpa", "sgpa");
@@ -133,7 +170,7 @@ async function generateRankingForSemester(semester) {
     if (studentData.length > 0) {
       const bulkOps = studentData.map((s) => ({
         updateOne: {
-          filter: { regNo: s.regNo, semester: Number(semester) },
+          filter: { regNo: s.regNo, semester: semNum },
           update: { $set: s },
           upsert: true,
         },
@@ -965,13 +1002,18 @@ router.post("/rankings/generate", protect, async (req, res) => {
 // Regenerate ALL rankings for ALL semesters (recalculates SGPA & CGPA live)
 router.post("/rankings/regenerate-all", protect, async (req, res) => {
   try {
-    const semesters = await SemesterResult.distinct("semester");
-    if (!semesters.length)
+    const allSemesterResults = await SemesterResult.find({}).lean();
+    if (!allSemesterResults.length)
       return res.status(404).json({ message: "No semester results found" });
 
-    semesters.sort((a, b) => a - b);
+    const semesters = [
+      ...new Set(allSemesterResults.map((r) => Number(r.semester))),
+    ]
+      .filter((s) => !isNaN(s) && s > 0)
+      .sort((a, b) => a - b);
+
     for (const sem of semesters) {
-      await generateRankingForSemester(sem);
+      await generateRankingForSemester(sem, allSemesterResults);
     }
     // Clear ALL in-memory student cache so fresh data is served immediately
     clearStudentCache();
@@ -1018,5 +1060,4 @@ router.get("/stats", protect, async (req, res) => {
   }
 });
 
-router.generateRankingForSemester = generateRankingForSemester;
 module.exports = router;

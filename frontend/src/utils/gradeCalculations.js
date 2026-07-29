@@ -102,7 +102,12 @@ export function calculateCGPA(results = [], upToSemester = null) {
         result.subjects,
         result.semester,
       );
-      const sgpa = typeof result.sgpa === 'number' ? result.sgpa : calculatedSgpa;
+      const sgpa =
+        result.subjects && result.subjects.length > 0
+          ? calculatedSgpa
+          : typeof result.sgpa === "number"
+            ? result.sgpa
+            : calculatedSgpa;
 
       if (totalCredits > 0) {
         numerator += sgpa * totalCredits;
