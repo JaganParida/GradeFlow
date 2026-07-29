@@ -1026,17 +1026,133 @@ router.post("/rankings/regenerate-all", protect, async (req, res) => {
   }
 });
 
-// Clear ALL in-memory student cache (force fresh data for all students)
-router.post("/cache/clear", protect, async (req, res) => {
+// Search/List registered students for dropdown/autocomplete
+router.get("/students/search", protect, async (req, res) => {
   try {
-    clearStudentCache(); // clears all cached entries
+    const q = String(req.query.q || "").trim();
+    let query = {};
+    if (q) {
+      const reg = new RegExp(q, "i");
+      query = { $or: [{ regNo: reg }, { studentName: reg }] };
+    }
+    const results = await SemesterResult.find(query, "regNo studentName branch batch semester")
+      .lean();
+
+    const studentMap = new Map();
+    results.forEach((r) => {
+      if (!studentMap.has(r.regNo)) {
+        studentMap.set(r.regNo, {
+          regNo: r.regNo,
+          studentName: r.studentName,
+          branch: r.branch,
+          batch: r.batch,
+        });
+      }
+    });
+
+    const students = Array.from(studentMap.values()).slice(0, 100);
+    res.json(students);
+  } catch (err) {
+    console.error("Student search error:", err);
+    res.status(500).json({ message: "Server error searching students" });
+  }
+});
+
+// Get full semester & subject details for a specific student
+router.get("/student/details/:regNo", protect, async (req, res) => {
+  try {
+    const regNo = String(req.params.regNo || "").trim();
+    if (!regNo) return res.status(400).json({ message: "Registration number required" });
+
+    const results = await SemesterResult.find({ regNo }).sort({ semester: 1 }).lean();
+    if (!results || !results.length) {
+      return res.status(404).json({ message: "No data present related to this student" });
+    }
+
+    const latest = results[results.length - 1];
     res.json({
-      message:
-        "✅ Student cache cleared. All future requests will fetch fresh data.",
+      regNo,
+      studentName: latest.studentName,
+      branch: latest.branch,
+      batch: latest.batch,
+      semesters: results,
     });
   } catch (err) {
-    console.error("Cache clear error:", err);
-    res.status(500).json({ message: "Server error" });
+    console.error("Fetch student details error:", err);
+    res.status(500).json({ message: "Server error fetching student details" });
+  }
+});
+
+// Update individual grade for a student's subject manually
+router.post("/student/update-grade", protect, async (req, res) => {
+  try {
+    const { regNo, semester, subCode, newGrade } = req.body;
+
+    const trimmedRegNo = String(regNo || "").trim();
+    const semNum = Number(semester);
+    const trimmedSubCode = String(subCode || "").trim().toLowerCase();
+    const normalizedGrade = normalizeGrade(newGrade);
+
+    if (!trimmedRegNo || !semNum || !trimmedSubCode || !normalizedGrade) {
+      return res.status(400).json({ message: "Registration Number, Semester, Subject, and New Grade are required" });
+    }
+
+    const semResult = await SemesterResult.findOne({
+      regNo: trimmedRegNo,
+      semester: semNum,
+    });
+
+    if (!semResult) {
+      return res.status(404).json({ message: "No data present related to this student for this semester" });
+    }
+
+    const subjectIndex = (semResult.subjects || []).findIndex(
+      (s) =>
+        String(s.subCode || "").trim().toLowerCase() === trimmedSubCode ||
+        String(s.subName || "").trim().toLowerCase() === trimmedSubCode
+    );
+
+    if (subjectIndex === -1) {
+      return res.status(404).json({ message: `Subject ${subCode} not found for this student in Semester ${semNum}` });
+    }
+
+    const oldGrade = semResult.subjects[subjectIndex].grade;
+    semResult.subjects[subjectIndex].grade = normalizedGrade;
+
+    // Recalculate semester metrics
+    const { totalCredits, creditsCleared, sgpa } = calculateSemesterMetrics(
+      semResult.subjects,
+      semNum
+    );
+    semResult.totalCredits = totalCredits;
+    semResult.creditsCleared = creditsCleared;
+    semResult.sgpa = sgpa;
+
+    // Recalculate CGPA using all results of this student
+    const allResults = await SemesterResult.find({ regNo: trimmedRegNo }).sort({ semester: 1 });
+    const updatedAllResults = allResults.map((r) =>
+      Number(r.semester) === semNum ? semResult : r
+    );
+    semResult.cgpa = calculateCGPA(updatedAllResults);
+
+    await semResult.save();
+
+    // Automatically regenerate rankings for this semester
+    await generateRankingForSemester(semNum);
+
+    // Invalidate cache for this student
+    clearStudentCache(trimmedRegNo);
+
+    res.json({
+      message: `✅ Grade for ${semResult.subjects[subjectIndex].subName} (${semResult.subjects[subjectIndex].subCode}) updated from ${oldGrade} to ${normalizedGrade} for ${semResult.studentName} (${trimmedRegNo}). Rankings & reports updated!`,
+      studentName: semResult.studentName,
+      sgpa: semResult.sgpa,
+      cgpa: semResult.cgpa,
+      subjects: semResult.subjects,
+    });
+  } catch (err) {
+    console.error("Manual grade update error:", err);
+    res.status(500).json({ message: "Server error updating grade" });
   }
 });
 

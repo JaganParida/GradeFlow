@@ -337,6 +337,400 @@ function DeleteRecordCard({ authHeaders, API, onSuccess }) {
   );
 }
 
+function ManualGradeUpdateCard({ authHeaders, API, onSuccess }) {
+  const [searchQuery, setSearchQuery] = useState("");
+  const [studentSuggestions, setStudentSuggestions] = useState([]);
+  const [selectedRegNo, setSelectedRegNo] = useState("");
+  const [studentDetails, setStudentDetails] = useState(null);
+
+  const [selectedSem, setSelectedSem] = useState("");
+  const [selectedSubjectCode, setSelectedSubjectCode] = useState("");
+  const [subjectSearch, setSubjectSearch] = useState("");
+  const [newGrade, setNewGrade] = useState("O");
+
+  const [loadingStudent, setLoadingStudent] = useState(false);
+  const [updatingGrade, setUpdatingGrade] = useState(false);
+  const [msg, setMsg] = useState("");
+  const [err, setErr] = useState("");
+
+  // Search students for dropdown
+  useEffect(() => {
+    if (!searchQuery.trim()) {
+      setStudentSuggestions([]);
+      return;
+    }
+    const timer = setTimeout(async () => {
+      try {
+        const { data } = await axios.get(
+          `${API}/admin/students/search?q=${encodeURIComponent(searchQuery)}`,
+          authHeaders
+        );
+        setStudentSuggestions(data || []);
+      } catch (e) {
+        console.error(e);
+      }
+    }, 250);
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
+
+  // Fetch student details by Reg No
+  async function fetchStudent(regNoToFetch) {
+    const targetRegNo = regNoToFetch || selectedRegNo || searchQuery;
+    if (!targetRegNo || !targetRegNo.trim()) {
+      setErr("Please enter or select a Registration Number.");
+      return;
+    }
+
+    setLoadingStudent(true);
+    setErr("");
+    setMsg("");
+    setStudentDetails(null);
+    setSelectedSem("");
+    setSelectedSubjectCode("");
+
+    try {
+      const { data } = await axios.get(
+        `${API}/admin/student/details/${encodeURIComponent(targetRegNo.trim())}`,
+        authHeaders
+      );
+      setStudentDetails(data);
+      setSelectedRegNo(data.regNo);
+      setSearchQuery(data.regNo);
+      setStudentSuggestions([]);
+
+      if (data.semesters && data.semesters.length > 0) {
+        const latestSem = data.semesters[data.semesters.length - 1].semester;
+        setSelectedSem(String(latestSem));
+      }
+    } catch (e) {
+      setErr(e.response?.data?.message || "No data present related to this student");
+    } finally {
+      setLoadingStudent(false);
+    }
+  }
+
+  const currentSemRecord = studentDetails?.semesters?.find(
+    (s) => String(s.semester) === String(selectedSem)
+  );
+
+  const availableSubjects = currentSemRecord?.subjects || [];
+  const filteredSubjects = availableSubjects.filter((s) => {
+    if (!subjectSearch.trim()) return true;
+    const term = subjectSearch.toLowerCase();
+    return (
+      (s.subCode || "").toLowerCase().includes(term) ||
+      (s.subName || "").toLowerCase().includes(term)
+    );
+  });
+
+  async function handleUpdateGrade(e) {
+    e.preventDefault();
+    if (!studentDetails || !selectedRegNo) {
+      setErr("Please select a valid student first.");
+      return;
+    }
+    if (!selectedSem) {
+      setErr("Please select a semester.");
+      return;
+    }
+    if (!selectedSubjectCode) {
+      setErr("Please select a subject to update.");
+      return;
+    }
+    if (!newGrade) {
+      setErr("Please select a new grade.");
+      return;
+    }
+
+    setUpdatingGrade(true);
+    setErr("");
+    setMsg("");
+
+    try {
+      const { data } = await axios.post(
+        `${API}/admin/student/update-grade`,
+        {
+          regNo: selectedRegNo,
+          semester: Number(selectedSem),
+          subCode: selectedSubjectCode,
+          newGrade: newGrade,
+        },
+        authHeaders
+      );
+
+      setMsg(data.message);
+      await fetchStudent(selectedRegNo);
+      if (onSuccess) onSuccess();
+    } catch (e) {
+      setErr(e.response?.data?.message || "Failed to update grade");
+    } finally {
+      setUpdatingGrade(false);
+    }
+  }
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="card"
+      style={{ border: "1px solid rgba(16,185,129,0.35)", gridColumn: "1 / -1" }}
+    >
+      <h3 style={{ fontWeight: 700, marginBottom: 4, display: "flex", alignItems: "center", gap: 8 }}>
+        <FileEdit size={18} color="#10b981" /> Manual Student Grade Update
+      </h3>
+      <p style={{ color: "var(--secondary)", fontSize: 13, marginBottom: 16 }}>
+        Select or search for a student by Registration Number or Name. Choose their subject and select the new grade.
+        Recalculates SGPA, CGPA, Rankings, and instantly syncs the entire website!
+      </p>
+
+      <form onSubmit={handleUpdateGrade}>
+        <div style={{ marginBottom: 16, position: "relative" }}>
+          <label style={{ display: "block", fontSize: 12, fontWeight: 600, color: "var(--secondary)", marginBottom: 6 }}>
+            1. Search / Enter Registration Number or Name *
+          </label>
+          <div style={{ display: "flex", gap: 8 }}>
+            <div style={{ flex: 1, position: "relative" }}>
+              <input
+                type="text"
+                className="input-field"
+                placeholder="e.g. 230301120327 or JAGAN PARIDA"
+                value={searchQuery}
+                onChange={(e) => {
+                  setSearchQuery(e.target.value);
+                  setSelectedRegNo(e.target.value);
+                }}
+                style={{ width: "100%" }}
+              />
+              {studentSuggestions.length > 0 && (
+                <ul
+                  style={{
+                    position: "absolute",
+                    top: "100%",
+                    left: 0,
+                    right: 0,
+                    zIndex: 50,
+                    background: "var(--card-bg, #1f2937)",
+                    border: "1px solid var(--border-color, rgba(255,255,255,0.1))",
+                    borderRadius: 8,
+                    maxHeight: 180,
+                    overflowY: "auto",
+                    boxShadow: "0 10px 25px rgba(0,0,0,0.5)",
+                    listStyle: "none",
+                    padding: 0,
+                    margin: "4px 0 0 0",
+                  }}
+                >
+                  {studentSuggestions.map((s) => (
+                    <li
+                      key={s.regNo}
+                      onClick={() => fetchStudent(s.regNo)}
+                      style={{
+                        padding: "8px 12px",
+                        cursor: "pointer",
+                        fontSize: 13,
+                        borderBottom: "1px solid rgba(255,255,255,0.05)",
+                      }}
+                      onMouseEnter={(e) => (e.currentTarget.style.background = "rgba(16,185,129,0.15)")}
+                      onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
+                    >
+                      <strong style={{ color: "#10b981" }}>{s.regNo}</strong> - {s.studentName} ({s.branch || "CSE"})
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+            <button
+              type="button"
+              className="btn btn-secondary"
+              onClick={() => fetchStudent(searchQuery)}
+              disabled={loadingStudent}
+              style={{ padding: "8px 16px", whiteSpace: "nowrap" }}
+            >
+              {loadingStudent ? "Searching..." : "Fetch Student"}
+            </button>
+          </div>
+        </div>
+
+        {studentDetails && (
+          <div
+            style={{
+              background: "rgba(16,185,129,0.08)",
+              border: "1px solid rgba(16,185,129,0.25)",
+              borderRadius: 8,
+              padding: 12,
+              marginBottom: 16,
+              fontSize: 13,
+            }}
+          >
+            <div style={{ fontWeight: 700, fontSize: 14, color: "#10b981", marginBottom: 4 }}>
+              👤 {studentDetails.studentName} ({studentDetails.regNo})
+            </div>
+            <div style={{ display: "flex", gap: 16, color: "var(--secondary)", fontSize: 12, flexWrap: "wrap" }}>
+              <span>Branch: <strong>{studentDetails.branch}</strong></span>
+              <span>Batch: <strong>{studentDetails.batch}</strong></span>
+              <span>Total Semesters Uploaded: <strong>{studentDetails.semesters?.length || 0}</strong></span>
+            </div>
+          </div>
+        )}
+
+        {studentDetails && (
+          <>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: 12, marginBottom: 16 }}>
+              <div>
+                <label style={{ display: "block", fontSize: 12, fontWeight: 600, color: "var(--secondary)", marginBottom: 6 }}>
+                  2. Select Semester *
+                </label>
+                <select
+                  className="input-field"
+                  value={selectedSem}
+                  onChange={(e) => {
+                    setSelectedSem(e.target.value);
+                    setSelectedSubjectCode("");
+                  }}
+                  style={{ width: "100%" }}
+                >
+                  <option value="">-- Choose Semester --</option>
+                  {studentDetails.semesters?.map((sem) => (
+                    <option key={sem.semester} value={sem.semester}>
+                      Semester {sem.semester} (SGPA: {sem.sgpa || 0}, CGPA: {sem.cgpa || 0})
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label style={{ display: "block", fontSize: 12, fontWeight: 600, color: "var(--secondary)", marginBottom: 6 }}>
+                  3. Select Subject (Dropdown) *
+                </label>
+                <select
+                  className="input-field"
+                  value={selectedSubjectCode}
+                  onChange={(e) => setSelectedSubjectCode(e.target.value)}
+                  disabled={!selectedSem}
+                  style={{ width: "100%" }}
+                >
+                  <option value="">-- Choose Subject --</option>
+                  {filteredSubjects.map((sub) => (
+                    <option key={sub.subCode || sub.subName} value={sub.subCode || sub.subName}>
+                      {sub.subCode} - {sub.subName} (Grade: {sub.grade}, Cr: {sub.credit})
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            {availableSubjects.length > 3 && (
+              <div style={{ marginBottom: 16 }}>
+                <input
+                  type="text"
+                  className="input-field"
+                  placeholder="🔍 Type to filter subject dropdown by code or name..."
+                  value={subjectSearch}
+                  onChange={(e) => setSubjectSearch(e.target.value)}
+                  style={{ width: "100%", fontSize: 12 }}
+                />
+              </div>
+            )}
+
+            {selectedSubjectCode && (
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 12, alignItems: "end", marginBottom: 16 }}>
+                <div>
+                  <label style={{ display: "block", fontSize: 12, fontWeight: 600, color: "var(--secondary)", marginBottom: 6 }}>
+                    4. Select New Grade *
+                  </label>
+                  <select
+                    className="input-field"
+                    value={newGrade}
+                    onChange={(e) => setNewGrade(e.target.value)}
+                    style={{ width: "100%" }}
+                  >
+                    <option value="O">O (10 Grade Points - Outstanding)</option>
+                    <option value="E">E (9 Grade Points - Excellent)</option>
+                    <option value="A">A (8 Grade Points - Very Good)</option>
+                    <option value="B">B (7 Grade Points - Good)</option>
+                    <option value="C">C (6 Grade Points - Fair)</option>
+                    <option value="D">D (5 Grade Points - Pass)</option>
+                    <option value="F">F (2 Grade Points - Fail)</option>
+                    <option value="R">R (0 Grade Points - Repeat / Backlog)</option>
+                    <option value="M">M (0 Grade Points - Absent)</option>
+                    <option value="S">S (0 Grade Points - Satisfactory/0)</option>
+                  </select>
+                </div>
+
+                <div>
+                  <button
+                    type="submit"
+                    className="btn"
+                    disabled={updatingGrade}
+                    style={{
+                      width: "100%",
+                      background: "#10b981",
+                      color: "#fff",
+                      fontWeight: 600,
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      gap: 8,
+                    }}
+                  >
+                    <CheckCircle size={16} />
+                    {updatingGrade ? "Updating & Recalculating..." : "Update Grade & Sync Web System"}
+                  </button>
+                </div>
+              </div>
+            )}
+          </>
+        )}
+
+        <AnimatePresence>
+          {err && (
+            <motion.p
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: "auto" }}
+              exit={{ opacity: 0, height: 0 }}
+              style={{
+                color: "var(--danger)",
+                fontSize: 13,
+                marginTop: 8,
+                display: "flex",
+                alignItems: "center",
+                gap: 6,
+                background: "rgba(239,68,68,0.1)",
+                padding: "8px 12px",
+                borderRadius: 6,
+                border: "1px solid rgba(239,68,68,0.2)",
+              }}
+            >
+              <AlertTriangle size={14} /> {err}
+            </motion.p>
+          )}
+          {msg && (
+            <motion.p
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: "auto" }}
+              exit={{ opacity: 0, height: 0 }}
+              style={{
+                color: "var(--success)",
+                fontSize: 13,
+                marginTop: 8,
+                display: "flex",
+                alignItems: "center",
+                gap: 6,
+                background: "rgba(16,185,129,0.1)",
+                padding: "8px 12px",
+                borderRadius: 6,
+                border: "1px solid rgba(16,185,129,0.2)",
+              }}
+            >
+              <CheckCircle size={14} /> {msg}
+            </motion.p>
+          )}
+        </AnimatePresence>
+      </form>
+    </motion.div>
+  );
+}
+
 function FeedbackManager({ authHeaders, API }) {
   const [feedbacks, setFeedbacks] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -899,6 +1293,11 @@ export default function AdminDashboard() {
             gap: 20,
           }}
         >
+          <ManualGradeUpdateCard
+            authHeaders={authHeaders}
+            API={API}
+            onSuccess={fetchStats}
+          />
           <DeleteRecordCard
             authHeaders={authHeaders}
             API={API}
