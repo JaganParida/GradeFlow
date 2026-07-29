@@ -101,10 +101,9 @@ function calculateCGPA(results = [], upToSemester = null) {
         result.subjects,
         result.semester,
       );
-      const sgpa = typeof result.sgpa === 'number' ? result.sgpa : calculatedSgpa;
 
       if (totalCredits > 0) {
-        numerator += sgpa * totalCredits;
+        numerator += calculatedSgpa * totalCredits;
         denominator += totalCredits;
       }
     });
@@ -154,7 +153,7 @@ function assignCompetitionRanks(records, scoreKey, rankKey) {
     if (index === 0) {
       currentRank = 1;
     } else if (score < previousScore) {
-      currentRank++;
+      currentRank = index + 1;
     }
 
     record[rankKey] = currentRank;

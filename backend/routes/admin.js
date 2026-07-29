@@ -1018,4 +1018,5 @@ router.get("/stats", protect, async (req, res) => {
   }
 });
 
+router.generateRankingForSemester = generateRankingForSemester;
 module.exports = router;
