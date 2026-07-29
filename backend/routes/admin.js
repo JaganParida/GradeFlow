@@ -1026,16 +1026,18 @@ router.post("/rankings/regenerate-all", protect, async (req, res) => {
   }
 });
 
-// Search/List registered students for dropdown/autocomplete
+// Search/List registered students for dropdown/autocomplete (Super Fast & Light)
 router.get("/students/search", protect, async (req, res) => {
   try {
     const q = String(req.query.q || "").trim();
-    let query = {};
-    if (q) {
-      const reg = new RegExp(q, "i");
-      query = { $or: [{ regNo: reg }, { studentName: reg }] };
+    if (!q || q.length < 2) {
+      return res.json([]);
     }
-    const results = await SemesterResult.find(query, "regNo studentName branch batch semester")
+    const reg = new RegExp(q, "i");
+    const query = { $or: [{ regNo: reg }, { studentName: reg }] };
+
+    const results = await SemesterResult.find(query, "regNo studentName branch batch")
+      .limit(100)
       .lean();
 
     const studentMap = new Map();
@@ -1050,7 +1052,7 @@ router.get("/students/search", protect, async (req, res) => {
       }
     });
 
-    const students = Array.from(studentMap.values()).slice(0, 100);
+    const students = Array.from(studentMap.values()).slice(0, 30);
     res.json(students);
   } catch (err) {
     console.error("Student search error:", err);
