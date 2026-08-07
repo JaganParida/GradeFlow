@@ -1,10 +1,10 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, Fragment } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import { useApp } from "../context/AppContext";
 import { Spinner } from "../components/LoadingSpinner";
 import { motion, AnimatePresence } from "framer-motion";
-import { Upload, Trash2, Settings, Users, FileText, FileEdit, Trophy, AlertTriangle, CheckCircle, FileSpreadsheet, LogOut, Database, CloudUpload, MessageSquare, Edit2, X } from "lucide-react";
+import { Upload, Trash2, Settings, Users, FileText, FileEdit, Trophy, AlertTriangle, CheckCircle, FileSpreadsheet, LogOut, Database, CloudUpload, MessageSquare, Edit2, X, ChevronDown, ChevronUp, BookOpen, Search, Filter } from "lucide-react";
 
 function UploadCard({
   title,
@@ -842,6 +842,279 @@ function FeedbackManager({ authHeaders, API }) {
   );
 }
 
+function BacklogTrackerCard({ authHeaders, API }) {
+  const [loading, setLoading] = useState(false);
+  const [data, setData] = useState({ totalStudentsWithBacklogs: 0, totalBacklogsCount: 0, students: [] });
+  const [batch, setBatch] = useState("");
+  const [branch, setBranch] = useState("");
+  const [semester, setSemester] = useState("");
+  const [search, setSearch] = useState("");
+  const [expandedRegNo, setExpandedRegNo] = useState(null);
+
+  useEffect(() => {
+    fetchBacklogs();
+  }, [batch, branch, semester]);
+
+  async function fetchBacklogs(searchQuery = search) {
+    setLoading(true);
+    try {
+      const params = new URLSearchParams();
+      if (batch) params.append("batch", batch);
+      if (branch) params.append("branch", branch);
+      if (semester) params.append("semester", semester);
+      if (searchQuery) params.append("search", searchQuery);
+      params.append("limit", "100");
+
+      const res = await axios.get(`${API}/admin/backlogs?${params}`, authHeaders);
+      setData(res.data || { totalStudentsWithBacklogs: 0, totalBacklogsCount: 0, students: [] });
+    } catch (e) {
+      console.error("Backlog fetch error:", e);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  function handleSearchSubmit(e) {
+    e.preventDefault();
+    fetchBacklogs(search);
+  }
+
+  return (
+    <div style={{ width: "100%" }}>
+      {/* Header Summary Cards */}
+      <div className="grid-2" style={{ marginBottom: 20, gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: 16 }}>
+        <div className="stat-card" style={{ borderLeft: "4px solid #ef4444" }}>
+          <span className="label" style={{ display: "flex", alignItems: "center", gap: 6 }}>
+            <AlertTriangle size={16} color="#ef4444" /> Students With Backlogs
+          </span>
+          <span className="value" style={{ color: "#ef4444" }}>
+            {data.totalStudentsWithBacklogs?.toLocaleString()} Students
+          </span>
+        </div>
+
+        <div className="stat-card" style={{ borderLeft: "4px solid #f59e0b" }}>
+          <span className="label" style={{ display: "flex", alignItems: "center", gap: 6 }}>
+            <BookOpen size={16} color="#f59e0b" /> Total Backlog Subjects
+          </span>
+          <span className="value" style={{ color: "#f59e0b" }}>
+            {data.totalBacklogsCount?.toLocaleString()} Backlogs
+          </span>
+        </div>
+      </div>
+
+      {/* Filter Toolbar */}
+      <div className="card" style={{ marginBottom: 20, padding: 16 }}>
+        <form onSubmit={handleSearchSubmit} style={{ display: "flex", gap: 12, flexWrap: "wrap", alignItems: "center" }}>
+          <div style={{ flex: 1, minWidth: 200, position: "relative" }}>
+            <input
+              type="text"
+              placeholder="Search Reg No or Name..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="input-field"
+              style={{ width: "100%", paddingLeft: 32 }}
+            />
+            <Search size={14} style={{ position: "absolute", left: 10, top: 12, color: "var(--text-muted)" }} />
+          </div>
+
+          <select
+            value={batch}
+            onChange={(e) => setBatch(e.target.value)}
+            className="input-field"
+            style={{ width: 140 }}
+          >
+            <option value="">All Batches</option>
+            <option value="2024">2024 Batch</option>
+            <option value="2023">2023 Batch</option>
+            <option value="2022">2022 Batch</option>
+            <option value="2021">2021 Batch</option>
+            <option value="2020">2020 Batch</option>
+          </select>
+
+          <select
+            value={branch}
+            onChange={(e) => setBranch(e.target.value)}
+            className="input-field"
+            style={{ width: 140 }}
+          >
+            <option value="">All Branches</option>
+            <option value="CSE">CSE</option>
+            <option value="CIVIL">CIVIL</option>
+            <option value="ECE">ECE</option>
+            <option value="EEE">EEE</option>
+            <option value="ME">ME</option>
+            <option value="BIO">BIO</option>
+            <option value="MI">MI</option>
+            <option value="AERO">AERO</option>
+          </select>
+
+          <select
+            value={semester}
+            onChange={(e) => setSemester(e.target.value)}
+            className="input-field"
+            style={{ width: 140 }}
+          >
+            <option value="">All Semesters</option>
+            <option value="1">Sem 1</option>
+            <option value="2">Sem 2</option>
+            <option value="3">Sem 3</option>
+            <option value="4">Sem 4</option>
+            <option value="5">Sem 5</option>
+            <option value="6">Sem 6</option>
+            <option value="7">Sem 7</option>
+            <option value="8">Sem 8</option>
+          </select>
+
+          <button type="submit" className="btn-primary" style={{ padding: "8px 16px" }}>
+            Search
+          </button>
+        </form>
+      </div>
+
+      {/* Backlog Leaderboard Table */}
+      <div className="card" style={{ padding: 18 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16, flexWrap: "wrap", gap: 8 }}>
+          <h3 style={{ fontSize: 16, fontWeight: 700, margin: 0, display: "flex", alignItems: "center", gap: 8 }}>
+            <AlertTriangle size={18} color="#ef4444" /> Backlog Achievers Leaderboard (Highest Backlogs First)
+          </h3>
+          <span style={{ fontSize: 12, color: "var(--text-muted)" }}>
+            {loading ? "Loading..." : `Showing Top ${data.students?.length || 0} Students`}
+          </span>
+        </div>
+
+        {loading ? (
+          <div style={{ padding: 40, textAlign: "center" }}>
+            <Spinner />
+          </div>
+        ) : !data.students || data.students.length === 0 ? (
+          <div style={{ padding: 40, textAlign: "center", color: "var(--text-muted)" }}>
+            <CheckCircle size={32} color="#10b981" style={{ marginBottom: 8 }} />
+            <p>No active backlog records found for this filter!</p>
+          </div>
+        ) : (
+          <div style={{ overflowX: "auto" }}>
+            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
+              <thead>
+                <tr style={{ borderBottom: "1px solid var(--border)", textAlign: "left" }}>
+                  <th style={{ padding: "10px 12px", color: "var(--text-muted)", width: 50 }}>#</th>
+                  <th style={{ padding: "10px 12px", color: "var(--text-muted)" }}>Registration No & Student Name</th>
+                  <th style={{ padding: "10px 12px", color: "var(--text-muted)" }}>Branch / Batch</th>
+                  <th style={{ padding: "10px 12px", color: "var(--text-muted)" }}>Total Backlogs</th>
+                  <th style={{ padding: "10px 12px", color: "var(--text-muted)" }}>Semester Breakdown</th>
+                  <th style={{ padding: "10px 12px", color: "var(--text-muted)", textAlign: "right" }}>Backlog Details</th>
+                </tr>
+              </thead>
+              <tbody>
+                {data.students.map((st, idx) => {
+                  const isExpanded = expandedRegNo === st.regNo;
+                  return (
+                    <Fragment key={st.regNo}>
+                      <tr style={{ borderBottom: "1px solid rgba(255,255,255,0.04)" }}>
+                        <td style={{ padding: "12px", fontWeight: 800, color: idx < 3 ? "#ef4444" : "var(--text-muted)" }}>
+                          #{idx + 1}
+                        </td>
+                        <td style={{ padding: "12px" }}>
+                          <div style={{ fontWeight: 700, color: "#fff" }}>{st.studentName}</div>
+                          <div style={{ fontSize: 11, color: "var(--text-muted)", fontFamily: "monospace" }}>{st.regNo}</div>
+                        </td>
+                        <td style={{ padding: "12px" }}>
+                          <span className="badge" style={{ background: "rgba(255,255,255,0.06)", marginRight: 6 }}>
+                            {st.branch || "N/A"}
+                          </span>
+                          <span className="badge" style={{ background: "rgba(59, 130, 246, 0.15)", color: "#60a5fa" }}>
+                            Batch {st.batch}
+                          </span>
+                        </td>
+                        <td style={{ padding: "12px" }}>
+                          <span
+                            style={{
+                              background: "rgba(239, 68, 68, 0.15)",
+                              color: "#f87171",
+                              padding: "4px 10px",
+                              borderRadius: 12,
+                              fontWeight: 800,
+                              border: "1px solid rgba(239, 68, 68, 0.3)",
+                            }}
+                          >
+                            ⚠️ {st.totalBacklogs} Backlog{st.totalBacklogs > 1 ? "s" : ""}
+                          </span>
+                        </td>
+                        <td style={{ padding: "12px" }}>
+                          <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                            {Object.entries(st.semBreakdown || {}).map(([semNum, count]) => (
+                              <span
+                                key={semNum}
+                                style={{
+                                  background: "rgba(245, 158, 11, 0.15)",
+                                  color: "#fbbf24",
+                                  padding: "2px 8px",
+                                  borderRadius: 6,
+                                  fontSize: 11,
+                                  border: "1px solid rgba(245, 158, 11, 0.3)",
+                                }}
+                              >
+                                Sem {semNum}: <strong>{count}</strong>
+                              </span>
+                            ))}
+                          </div>
+                        </td>
+                        <td style={{ padding: "12px", textAlign: "right" }}>
+                          <button
+                            onClick={() => setExpandedRegNo(isExpanded ? null : st.regNo)}
+                            className="btn-secondary"
+                            style={{ padding: "4px 10px", fontSize: 11, display: "inline-flex", alignItems: "center", gap: 4 }}
+                          >
+                            {isExpanded ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
+                            {isExpanded ? "Hide Details" : "View Subjects"}
+                          </button>
+                        </td>
+                      </tr>
+
+                      {/* Expanded Backlog Subject Details Drawer */}
+                      {isExpanded && (
+                        <tr style={{ background: "rgba(0,0,0,0.25)" }}>
+                          <td colSpan={6} style={{ padding: "14px 20px", borderBottom: "1px solid var(--border)" }}>
+                            <div style={{ fontWeight: 700, fontSize: 12, color: "#f87171", marginBottom: 8, display: "flex", alignItems: "center", gap: 6 }}>
+                              <BookOpen size={14} /> Backlog Subjects for {st.studentName} ({st.regNo}):
+                            </div>
+                            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))", gap: 10 }}>
+                              {st.backlogSubjects?.map((sub, sIdx) => (
+                                <div
+                                  key={sIdx}
+                                  style={{
+                                    background: "rgba(255, 255, 255, 0.03)",
+                                    border: "1px solid rgba(239, 68, 68, 0.2)",
+                                    borderRadius: 8,
+                                    padding: 10,
+                                    fontSize: 12,
+                                  }}
+                                >
+                                  <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
+                                    <span style={{ fontWeight: 700, color: "#60a5fa" }}>Sem {sub.semester}</span>
+                                    <span style={{ fontWeight: 800, color: "#ef4444" }}>Grade: {sub.grade}</span>
+                                  </div>
+                                  <div style={{ fontWeight: 600, color: "#fff", marginBottom: 2 }}>{sub.subName}</div>
+                                  <div style={{ fontSize: 11, color: "var(--text-muted)", fontFamily: "monospace" }}>
+                                    Code: {sub.subCode} &middot; Credits: {sub.credit}
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </td>
+                        </tr>
+                      )}
+                    </Fragment>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 export default function AdminDashboard() {
   const { adminToken, adminLogout, authHeaders, API } = useApp();
   const navigate = useNavigate();
@@ -1168,6 +1441,7 @@ export default function AdminDashboard() {
         {[
           ["overview", "Upload Results", <CloudUpload size={14} key="ov" />],
           ["rankings", "Rankings", <Trophy size={14} key="ra" />],
+          ["backlogs", "Backlog Tracker", <AlertTriangle size={14} key="bk" />],
           ["manage", "Manage Records", <Database size={14} key="ma" />],
           ["feedback", "Feedback", <MessageSquare size={14} key="fb" />],
         ].map(([t, l, icon]) => (
@@ -1474,6 +1748,11 @@ export default function AdminDashboard() {
         <div style={{ maxWidth: 800 }}>
           <FeedbackManager authHeaders={authHeaders} API={API} />
         </div>
+      )}
+
+      {/* Backlog Tracker Tab */}
+      {tab === "backlogs" && (
+        <BacklogTrackerCard authHeaders={authHeaders} API={API} />
       )}
 
       {/* Excel Format Guide */}

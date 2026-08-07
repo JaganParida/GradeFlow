@@ -1198,6 +1198,97 @@ router.post("/student/update-grade", protect, async (req, res) => {
   }
 });
 
+// Get backlog students breakdown & leaderboard for admin
+router.get("/backlogs", protect, async (req, res) => {
+  try {
+    const { batch, branch, semester, search, limit = 100 } = req.query;
+    const semResults = await SemesterResult.find({}).lean();
+
+    const FAILED_GRADES = new Set(["F", "R", "M", "S"]);
+    const studentBacklogMap = new Map();
+
+    semResults.forEach((r) => {
+      if (!r.regNo || !r.subjects || !r.subjects.length) return;
+
+      const regNo = String(r.regNo).trim();
+      let b = String(r.batch || "").trim();
+      if (!b && /^\d{2}/.test(regNo)) {
+        b = `20${regNo.slice(0, 2)}`;
+      }
+
+      // Find subjects with failed grades or gradePoint 0
+      const backlogs = r.subjects.filter((sub) => {
+        const g = String(sub.grade || "").toUpperCase().trim();
+        return FAILED_GRADES.has(g) || sub.gradePoint === 0;
+      });
+
+      if (!backlogs.length) return;
+
+      if (!studentBacklogMap.has(regNo)) {
+        studentBacklogMap.set(regNo, {
+          regNo,
+          studentName: r.studentName || "N/A",
+          branch: r.branch || "",
+          batch: b,
+          totalBacklogs: 0,
+          semBreakdown: {},
+          backlogSubjects: [],
+        });
+      }
+
+      const entry = studentBacklogMap.get(regNo);
+      if (r.studentName && entry.studentName === "N/A") entry.studentName = r.studentName;
+      if (r.branch) entry.branch = r.branch;
+
+      entry.totalBacklogs += backlogs.length;
+      entry.semBreakdown[r.semester] = (entry.semBreakdown[r.semester] || 0) + backlogs.length;
+
+      backlogs.forEach((sub) => {
+        entry.backlogSubjects.push({
+          semester: r.semester,
+          subCode: sub.subCode,
+          subName: sub.subName,
+          credit: sub.credit,
+          grade: sub.grade,
+        });
+      });
+    });
+
+    let studentList = Array.from(studentBacklogMap.values());
+
+    if (batch) {
+      studentList = studentList.filter((s) => s.batch === batch);
+    }
+    if (branch) {
+      studentList = studentList.filter((s) => s.branch === branch);
+    }
+    if (semester) {
+      const semNum = Number(semester);
+      studentList = studentList.filter((s) => (s.semBreakdown[semNum] || 0) > 0);
+    }
+    if (search) {
+      const q = String(search).toLowerCase().trim();
+      studentList = studentList.filter(
+        (s) =>
+          s.regNo.toLowerCase().includes(q) ||
+          s.studentName.toLowerCase().includes(q)
+      );
+    }
+
+    studentList.sort((a, b) => b.totalBacklogs - a.totalBacklogs);
+    const boundedList = studentList.slice(0, Number(limit) || 100);
+
+    res.json({
+      totalStudentsWithBacklogs: studentList.length,
+      totalBacklogsCount: studentList.reduce((acc, s) => acc + s.totalBacklogs, 0),
+      students: boundedList,
+    });
+  } catch (err) {
+    console.error("Fetch backlogs error:", err);
+    res.status(500).json({ message: "Server error fetching backlogs" });
+  }
+});
+
 router.get("/stats", protect, async (req, res) => {
   try {
     const [totalResults, totalInternal, totalRankings] = await Promise.all([
