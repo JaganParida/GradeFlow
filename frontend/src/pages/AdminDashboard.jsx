@@ -1061,16 +1061,12 @@ function BacklogTrackerCard({ authHeaders, API }) {
         </div>
       </div>
 
-      {/* Filter Toggle Button & Collapsible Panel */}
-      <div style={{ marginBottom: 20 }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
-          <button
-            onClick={() => setShowFilterPanel(!showFilterPanel)}
-            className="btn-secondary"
-            style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 12, padding: "8px 16px" }}
-          >
-            <Filter size={14} /> Filter Backlogs {(batch || branch || section || semester || search) ? "(Active Filters)" : ""}
-          </button>
+      {/* Permanent Leaderboard-Style Filter Bar */}
+      <div className="card" style={{ padding: "16px 20px", marginBottom: 20 }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12, flexWrap: "wrap", gap: 10 }}>
+          <span style={{ fontSize: 13, fontWeight: 700, color: "var(--text-secondary)", display: "flex", alignItems: "center", gap: 6 }}>
+            <Filter size={15} color="var(--accent)" /> Backlog Filters & Search
+          </span>
           {(batch || branch || section || semester || search) && (
             <button
               onClick={() => {
@@ -1081,108 +1077,116 @@ function BacklogTrackerCard({ authHeaders, API }) {
                 setSearch("");
                 setPage(1);
               }}
-              style={{ background: "transparent", border: "none", color: "var(--accent)", cursor: "pointer", fontSize: 12, fontWeight: 700 }}
+              style={{ background: "transparent", border: "none", color: "#ef4444", cursor: "pointer", fontSize: 12, fontWeight: 700, display: "flex", alignItems: "center", gap: 4 }}
             >
-              Reset Filters
+              ✕ Reset All Filters
             </button>
           )}
         </div>
 
-        {showFilterPanel && (
-          <motion.div
-            initial={{ opacity: 0, y: -6 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="card"
-            style={{ padding: 16 }}
+        <form onSubmit={handleSearchSubmit} style={{ display: "flex", gap: 12, flexWrap: "wrap", alignItems: "center" }}>
+          {/* Search Input */}
+          <div style={{ flex: "1 1 240px", position: "relative", minWidth: 200 }}>
+            <input
+              type="text"
+              placeholder="Search Reg No or Student Name..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="input-field"
+              style={{ width: "100%", paddingLeft: 34, height: 38, fontSize: 13 }}
+            />
+            <Search size={15} style={{ position: "absolute", left: 11, top: 11, color: "var(--text-muted)" }} />
+          </div>
+
+          {/* Batch Dropdown */}
+          <select
+            value={batch}
+            onChange={(e) => {
+              setBatch(e.target.value);
+              setPage(1);
+            }}
+            className="input-field"
+            style={{ width: 140, height: 38, fontSize: 13 }}
           >
-            <form onSubmit={handleSearchSubmit} style={{ display: "flex", gap: 12, flexWrap: "wrap", alignItems: "center" }}>
-              <div style={{ flex: 1, minWidth: 220, position: "relative" }}>
-                <input
-                  type="text"
-                  placeholder="Search Reg No or Student Name..."
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  className="input-field"
-                  style={{ width: "100%", paddingLeft: 32 }}
-                />
-                <Search size={14} style={{ position: "absolute", left: 10, top: 12, color: "var(--text-muted)" }} />
-              </div>
+            <option value="">All Batches</option>
+            <option value="2024">Batch 2024</option>
+            <option value="2023">Batch 2023</option>
+            <option value="2022">Batch 2022</option>
+            <option value="2021">Batch 2021</option>
+            <option value="2020">Batch 2020</option>
+          </select>
 
-              <select
-                value={batch}
-                onChange={(e) => setBatch(e.target.value)}
-                className="input-field"
-                style={{ width: 140 }}
-              >
-                <option value="">All Batches</option>
-                <option value="2024">2024 Batch</option>
-                <option value="2023">2023 Batch</option>
-                <option value="2022">2022 Batch</option>
-                <option value="2021">2021 Batch</option>
-                <option value="2020">2020 Batch</option>
-              </select>
+          {/* Branch Dropdown */}
+          <select
+            value={branch}
+            onChange={(e) => {
+              setBranch(e.target.value);
+              setPage(1);
+            }}
+            className="input-field"
+            style={{ width: 140, height: 38, fontSize: 13 }}
+          >
+            <option value="">All Branches</option>
+            <option value="CSE">CSE</option>
+            <option value="ECE">ECE</option>
+            <option value="ME">ME</option>
+            <option value="CIVIL">CIVIL</option>
+            <option value="EEE">EEE</option>
+            <option value="AERO">AERO</option>
+            <option value="BIO">BIO</option>
+            <option value="MI">MI</option>
+          </select>
 
-              <select
-                value={branch}
-                onChange={(e) => setBranch(e.target.value)}
-                className="input-field"
-                style={{ width: 140 }}
-              >
-                <option value="">All Branches</option>
-                <option value="CSE">CSE</option>
-                <option value="CIVIL">CIVIL</option>
-                <option value="ECE">ECE</option>
-                <option value="EEE">EEE</option>
-                <option value="ME">ME</option>
-                <option value="BIO">BIO</option>
-                <option value="MI">MI</option>
-                <option value="AERO">AERO</option>
-              </select>
+          {/* Section Dropdown */}
+          <select
+            value={section}
+            onChange={(e) => {
+              setSection(e.target.value);
+              setPage(1);
+            }}
+            className="input-field"
+            style={{ width: 140, height: 38, fontSize: 13 }}
+          >
+            <option value="">All Sections</option>
+            <option value="Sec A">Section A</option>
+            <option value="Sec B">Section B</option>
+            <option value="Sec C">Section C</option>
+            <option value="Sec D">Section D</option>
+            <option value="Sec E">Section E</option>
+            <option value="Sec F">Section F</option>
+            <option value="Sec G">Section G</option>
+            <option value="Sec H">Section H</option>
+            <option value="Sec I">Section I</option>
+            <option value="Sec J">Section J</option>
+            <option value="Sec K">Section K</option>
+            <option value="Sec L">Section L</option>
+          </select>
 
-              <select
-                value={section}
-                onChange={(e) => setSection(e.target.value)}
-                className="input-field"
-                style={{ width: 130 }}
-              >
-                <option value="">All Sections</option>
-                <option value="Sec A">Sec A</option>
-                <option value="Sec B">Sec B</option>
-                <option value="Sec C">Sec C</option>
-                <option value="Sec D">Sec D</option>
-                <option value="Sec E">Sec E</option>
-                <option value="Sec F">Sec F</option>
-                <option value="Sec G">Sec G</option>
-                <option value="Sec H">Sec H</option>
-                <option value="Sec I">Sec I</option>
-                <option value="Sec J">Sec J</option>
-                <option value="Sec K">Sec K</option>
-                <option value="Sec L">Sec L</option>
-              </select>
+          {/* Semester Dropdown */}
+          <select
+            value={semester}
+            onChange={(e) => {
+              setSemester(e.target.value);
+              setPage(1);
+            }}
+            className="input-field"
+            style={{ width: 140, height: 38, fontSize: 13 }}
+          >
+            <option value="">All Semesters</option>
+            <option value="1">Semester 1</option>
+            <option value="2">Semester 2</option>
+            <option value="3">Semester 3</option>
+            <option value="4">Semester 4</option>
+            <option value="5">Semester 5</option>
+            <option value="6">Semester 6</option>
+            <option value="7">Semester 7</option>
+            <option value="8">Semester 8</option>
+          </select>
 
-              <select
-                value={semester}
-                onChange={(e) => setSemester(e.target.value)}
-                className="input-field"
-                style={{ width: 140 }}
-              >
-                <option value="">All Semesters</option>
-                <option value="1">Sem 1</option>
-                <option value="2">Sem 2</option>
-                <option value="3">Sem 3</option>
-                <option value="4">Sem 4</option>
-                <option value="5">Sem 5</option>
-                <option value="6">Sem 6</option>
-                <option value="7">Sem 7</option>
-                <option value="8">Sem 8</option>
-              </select>
-
-              <button type="submit" className="btn-primary" style={{ padding: "8px 18px" }}>
-                Search
-              </button>
-            </form>
-          </motion.div>
-        )}
+          <button type="submit" className="btn-primary" style={{ height: 38, padding: "0 20px", fontSize: 13 }}>
+            Search
+          </button>
+        </form>
       </div>
 
       {/* Backlog Leaderboard Table */}

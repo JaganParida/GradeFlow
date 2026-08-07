@@ -1348,7 +1348,11 @@ router.get("/backlogs", protect, async (req, res) => {
       studentList = studentList.filter((s) => s.branch === branch);
     }
     if (section) {
-      studentList = studentList.filter((s) => s.section === section);
+      const cleanSec = String(section).replace(/^Sec\s*/i, "").trim().toUpperCase();
+      studentList = studentList.filter((s) => {
+        const sSec = String(s.section || "").replace(/^Sec\s*/i, "").trim().toUpperCase();
+        return sSec === cleanSec;
+      });
     }
     if (semester) {
       const semNum = Number(semester);
