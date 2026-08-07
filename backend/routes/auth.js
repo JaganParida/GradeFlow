@@ -14,14 +14,16 @@ router.post("/login", async (req, res) => {
     const token = jwt.sign(
       { id: admin._id, email: admin.email },
       process.env.JWT_SECRET,
-      { expiresIn: "1d" }, // Shorter expiration for security
+      { expiresIn: "1d" },
     );
     
+    const isProd = process.env.NODE_ENV === "production";
     const options = {
       expires: new Date(Date.now() + 24 * 60 * 60 * 1000), // 1 day
-      httpOnly: true, // Prevents XSS attacks (token cannot be accessed via JS)
-      secure: process.env.NODE_ENV === "production", // HTTPS in production
-      sameSite: process.env.NODE_ENV === "production" ? "none" : "lax" // Support cross-domain if production
+      httpOnly: true, // Prevents XSS attacks
+      secure: isProd, // HTTPS required in production
+      sameSite: isProd ? "none" : "lax", // Cross-site cookie support
+      path: "/",
     };
     
     res.cookie("jwt", token, options);
@@ -33,10 +35,16 @@ router.post("/login", async (req, res) => {
 });
 
 router.post("/logout", (req, res) => {
-  res.cookie("jwt", "none", {
-    expires: new Date(Date.now() + 10 * 1000),
+  const isProd = process.env.NODE_ENV === "production";
+  const options = {
+    expires: new Date(0), // Instantly expire in 1970
     httpOnly: true,
-  });
+    secure: isProd,
+    sameSite: isProd ? "none" : "lax",
+    path: "/",
+  };
+  res.cookie("jwt", "", options);
+  res.clearCookie("jwt", options);
   res.status(200).json({ success: true, message: "User logged out" });
 });
 
@@ -49,7 +57,7 @@ router.get("/me", async (req, res) => {
       token = req.headers.authorization.split(" ")[1];
     }
 
-    if (!token || token === "none") {
+    if (!token || token === "none" || token === "") {
       return res.json({ success: false, message: "Not logged in" });
     }
 
