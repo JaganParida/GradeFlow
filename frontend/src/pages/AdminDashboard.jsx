@@ -850,6 +850,7 @@ function BacklogTrackerCard({ authHeaders, API }) {
   const [semester, setSemester] = useState("");
   const [search, setSearch] = useState("");
   const [expandedRegNo, setExpandedRegNo] = useState(null);
+  const [showFilterPanel, setShowFilterPanel] = useState(false);
 
   useEffect(() => {
     fetchBacklogs();
@@ -902,73 +903,105 @@ function BacklogTrackerCard({ authHeaders, API }) {
         </div>
       </div>
 
-      {/* Filter Toolbar */}
-      <div className="card" style={{ marginBottom: 20, padding: 16 }}>
-        <form onSubmit={handleSearchSubmit} style={{ display: "flex", gap: 12, flexWrap: "wrap", alignItems: "center" }}>
-          <div style={{ flex: 1, minWidth: 200, position: "relative" }}>
-            <input
-              type="text"
-              placeholder="Search Reg No or Name..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="input-field"
-              style={{ width: "100%", paddingLeft: 32 }}
-            />
-            <Search size={14} style={{ position: "absolute", left: 10, top: 12, color: "var(--text-muted)" }} />
-          </div>
-
-          <select
-            value={batch}
-            onChange={(e) => setBatch(e.target.value)}
-            className="input-field"
-            style={{ width: 140 }}
+      {/* Filter Toggle Button & Collapsible Panel */}
+      <div style={{ marginBottom: 20 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
+          <button
+            onClick={() => setShowFilterPanel(!showFilterPanel)}
+            className="btn-secondary"
+            style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 12, padding: "8px 16px" }}
           >
-            <option value="">All Batches</option>
-            <option value="2024">2024 Batch</option>
-            <option value="2023">2023 Batch</option>
-            <option value="2022">2022 Batch</option>
-            <option value="2021">2021 Batch</option>
-            <option value="2020">2020 Batch</option>
-          </select>
-
-          <select
-            value={branch}
-            onChange={(e) => setBranch(e.target.value)}
-            className="input-field"
-            style={{ width: 140 }}
-          >
-            <option value="">All Branches</option>
-            <option value="CSE">CSE</option>
-            <option value="CIVIL">CIVIL</option>
-            <option value="ECE">ECE</option>
-            <option value="EEE">EEE</option>
-            <option value="ME">ME</option>
-            <option value="BIO">BIO</option>
-            <option value="MI">MI</option>
-            <option value="AERO">AERO</option>
-          </select>
-
-          <select
-            value={semester}
-            onChange={(e) => setSemester(e.target.value)}
-            className="input-field"
-            style={{ width: 140 }}
-          >
-            <option value="">All Semesters</option>
-            <option value="1">Sem 1</option>
-            <option value="2">Sem 2</option>
-            <option value="3">Sem 3</option>
-            <option value="4">Sem 4</option>
-            <option value="5">Sem 5</option>
-            <option value="6">Sem 6</option>
-            <option value="7">Sem 7</option>
-            <option value="8">Sem 8</option>
-          </select>
-
-          <button type="submit" className="btn-primary" style={{ padding: "8px 16px" }}>
-            Search
+            <Filter size={14} /> Filter Backlogs {(batch || branch || semester || search) ? "(Active Filters)" : ""}
           </button>
-        </form>
+          {(batch || branch || semester || search) && (
+            <button
+              onClick={() => {
+                setBatch("");
+                setBranch("");
+                setSemester("");
+                setSearch("");
+              }}
+              style={{ background: "transparent", border: "none", color: "var(--accent)", cursor: "pointer", fontSize: 12, fontWeight: 700 }}
+            >
+              Reset Filters
+            </button>
+          )}
+        </div>
+
+        {showFilterPanel && (
+          <motion.div
+            initial={{ opacity: 0, y: -6 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="card"
+            style={{ padding: 16 }}
+          >
+            <form onSubmit={handleSearchSubmit} style={{ display: "flex", gap: 12, flexWrap: "wrap", alignItems: "center" }}>
+              <div style={{ flex: 1, minWidth: 220, position: "relative" }}>
+                <input
+                  type="text"
+                  placeholder="Search Reg No or Student Name..."
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  className="input-field"
+                  style={{ width: "100%", paddingLeft: 32 }}
+                />
+                <Search size={14} style={{ position: "absolute", left: 10, top: 12, color: "var(--text-muted)" }} />
+              </div>
+
+              <select
+                value={batch}
+                onChange={(e) => setBatch(e.target.value)}
+                className="input-field"
+                style={{ width: 140 }}
+              >
+                <option value="">All Batches</option>
+                <option value="2024">2024 Batch</option>
+                <option value="2023">2023 Batch</option>
+                <option value="2022">2022 Batch</option>
+                <option value="2021">2021 Batch</option>
+                <option value="2020">2020 Batch</option>
+              </select>
+
+              <select
+                value={branch}
+                onChange={(e) => setBranch(e.target.value)}
+                className="input-field"
+                style={{ width: 140 }}
+              >
+                <option value="">All Branches</option>
+                <option value="CSE">CSE</option>
+                <option value="CIVIL">CIVIL</option>
+                <option value="ECE">ECE</option>
+                <option value="EEE">EEE</option>
+                <option value="ME">ME</option>
+                <option value="BIO">BIO</option>
+                <option value="MI">MI</option>
+                <option value="AERO">AERO</option>
+              </select>
+
+              <select
+                value={semester}
+                onChange={(e) => setSemester(e.target.value)}
+                className="input-field"
+                style={{ width: 140 }}
+              >
+                <option value="">All Semesters</option>
+                <option value="1">Sem 1</option>
+                <option value="2">Sem 2</option>
+                <option value="3">Sem 3</option>
+                <option value="4">Sem 4</option>
+                <option value="5">Sem 5</option>
+                <option value="6">Sem 6</option>
+                <option value="7">Sem 7</option>
+                <option value="8">Sem 8</option>
+              </select>
+
+              <button type="submit" className="btn-primary" style={{ padding: "8px 18px" }}>
+                Search
+              </button>
+            </form>
+          </motion.div>
+        )}
       </div>
 
       {/* Backlog Leaderboard Table */}
@@ -993,15 +1026,15 @@ function BacklogTrackerCard({ authHeaders, API }) {
           </div>
         ) : (
           <div style={{ overflowX: "auto" }}>
-            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
+            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13, minWidth: 650 }}>
               <thead>
                 <tr style={{ borderBottom: "1px solid var(--border)", textAlign: "left" }}>
-                  <th style={{ padding: "10px 12px", color: "var(--text-muted)", width: 50 }}>#</th>
-                  <th style={{ padding: "10px 12px", color: "var(--text-muted)" }}>Registration No & Student Name</th>
-                  <th style={{ padding: "10px 12px", color: "var(--text-muted)" }}>Branch / Batch</th>
-                  <th style={{ padding: "10px 12px", color: "var(--text-muted)" }}>Total Backlogs</th>
-                  <th style={{ padding: "10px 12px", color: "var(--text-muted)" }}>Semester Breakdown</th>
-                  <th style={{ padding: "10px 12px", color: "var(--text-muted)", textAlign: "right" }}>Backlog Details</th>
+                  <th style={{ padding: "10px 12px", color: "var(--text-muted)", width: 50, whiteSpace: "nowrap" }}>#</th>
+                  <th style={{ padding: "10px 12px", color: "var(--text-muted)", whiteSpace: "nowrap" }}>Registration No & Student Name</th>
+                  <th style={{ padding: "10px 12px", color: "var(--text-muted)", whiteSpace: "nowrap" }}>Branch / Batch</th>
+                  <th style={{ padding: "10px 12px", color: "var(--text-muted)", whiteSpace: "nowrap" }}>Total Backlogs</th>
+                  <th style={{ padding: "10px 12px", color: "var(--text-muted)", whiteSpace: "nowrap" }}>Semester Breakdown</th>
+                  <th style={{ padding: "10px 12px", color: "var(--text-muted)", textAlign: "right", whiteSpace: "nowrap" }}>Backlog Details</th>
                 </tr>
               </thead>
               <tbody>
@@ -1131,6 +1164,7 @@ export default function AdminDashboard() {
   const [tab, setTab] = useState("overview");
 
   const [selectedBatchFilter, setSelectedBatchFilter] = useState("all");
+  const [showBatchPills, setShowBatchPills] = useState(false);
 
   useEffect(() => {
     if (!adminToken) {
@@ -1242,47 +1276,73 @@ export default function AdminDashboard() {
       {/* Batch Filter Pills & Stats */}
       {stats && (
         <div style={{ marginBottom: 28 }}>
-          {/* Batch Selector Pills */}
+          {/* Batch Selector Collapsible Filter Bar */}
           {stats.batchBreakdown && stats.batchBreakdown.length > 0 && (
-            <div style={{ marginBottom: 16, display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
-              <span style={{ fontSize: 13, fontWeight: 700, color: "var(--text-muted)", marginRight: 4 }}>
-                Filter Stats:
-              </span>
-              <button
-                onClick={() => setSelectedBatchFilter("all")}
-                style={{
-                  padding: "6px 14px",
-                  borderRadius: 20,
-                  fontSize: 12,
-                  fontWeight: 700,
-                  cursor: "pointer",
-                  border: selectedBatchFilter === "all" ? "1px solid var(--accent)" : "1px solid var(--border)",
-                  background: selectedBatchFilter === "all" ? "rgba(59, 130, 246, 0.2)" : "rgba(255,255,255,0.04)",
-                  color: selectedBatchFilter === "all" ? "#60a5fa" : "var(--text-secondary)",
-                  transition: "all 0.2s",
-                }}
-              >
-                All Batches ({stats.totalStudents?.toLocaleString()})
-              </button>
-              {stats.batchBreakdown.map((b) => (
+            <div style={{ marginBottom: 16 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10, flexWrap: "wrap", gap: 8 }}>
                 <button
-                  key={b.batch}
-                  onClick={() => setSelectedBatchFilter(b.batch)}
-                  style={{
-                    padding: "6px 14px",
-                    borderRadius: 20,
-                    fontSize: 12,
-                    fontWeight: 700,
-                    cursor: "pointer",
-                    border: selectedBatchFilter === b.batch ? "1px solid var(--accent)" : "1px solid var(--border)",
-                    background: selectedBatchFilter === b.batch ? "rgba(59, 130, 246, 0.2)" : "rgba(255,255,255,0.04)",
-                    color: selectedBatchFilter === b.batch ? "#60a5fa" : "var(--text-secondary)",
-                    transition: "all 0.2s",
-                  }}
+                  onClick={() => setShowBatchPills(!showBatchPills)}
+                  className="btn-secondary"
+                  style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 12, padding: "8px 16px" }}
                 >
-                  Batch {b.batch} ({b.totalStudents} Reg / {b.totalRankedStudents} Active)
+                  <Filter size={14} /> Filter Stats by Batch {selectedBatchFilter !== "all" ? `(Active: Batch ${selectedBatchFilter})` : ""}
                 </button>
-              ))}
+                {selectedBatchFilter !== "all" && (
+                  <button
+                    onClick={() => setSelectedBatchFilter("all")}
+                    style={{ background: "transparent", border: "none", color: "var(--accent)", cursor: "pointer", fontSize: 12, fontWeight: 700 }}
+                  >
+                    Show All Batches
+                  </button>
+                )}
+              </div>
+
+              {showBatchPills && (
+                <motion.div
+                  initial={{ opacity: 0, y: -6 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="card"
+                  style={{ padding: 14, display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}
+                >
+                  <button
+                    onClick={() => setSelectedBatchFilter("all")}
+                    style={{
+                      padding: "6px 14px",
+                      borderRadius: 20,
+                      fontSize: 12,
+                      fontWeight: 700,
+                      cursor: "pointer",
+                      whiteSpace: "nowrap",
+                      border: selectedBatchFilter === "all" ? "1px solid var(--accent)" : "1px solid var(--border)",
+                      background: selectedBatchFilter === "all" ? "rgba(59, 130, 246, 0.2)" : "rgba(255,255,255,0.04)",
+                      color: selectedBatchFilter === "all" ? "#60a5fa" : "var(--text-secondary)",
+                      transition: "all 0.2s",
+                    }}
+                  >
+                    All Batches ({stats.totalStudents?.toLocaleString()})
+                  </button>
+                  {stats.batchBreakdown.map((b) => (
+                    <button
+                      key={b.batch}
+                      onClick={() => setSelectedBatchFilter(b.batch)}
+                      style={{
+                        padding: "6px 14px",
+                        borderRadius: 20,
+                        fontSize: 12,
+                        fontWeight: 700,
+                        cursor: "pointer",
+                        whiteSpace: "nowrap",
+                        border: selectedBatchFilter === b.batch ? "1px solid var(--accent)" : "1px solid var(--border)",
+                        background: selectedBatchFilter === b.batch ? "rgba(59, 130, 246, 0.2)" : "rgba(255,255,255,0.04)",
+                        color: selectedBatchFilter === b.batch ? "#60a5fa" : "var(--text-secondary)",
+                        transition: "all 0.2s",
+                      }}
+                    >
+                      Batch {b.batch} ({b.totalStudents} Reg / {b.totalRankedStudents} Active)
+                    </button>
+                  ))}
+                </motion.div>
+              )}
             </div>
           )}
 
@@ -1363,53 +1423,56 @@ export default function AdminDashboard() {
                 </span>
               </div>
               <div style={{ overflowX: "auto" }}>
-                <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
+                <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12, minWidth: 720 }}>
                   <thead>
                     <tr style={{ borderBottom: "1px solid var(--border)", textAlign: "left" }}>
-                      <th style={{ padding: "8px 10px", color: "var(--text-muted)" }}>Batch Year</th>
-                      <th style={{ padding: "8px 10px", color: "var(--text-muted)" }}>Total Registered Students</th>
-                      <th style={{ padding: "8px 10px", color: "var(--text-muted)" }}>Active Ranked Students</th>
-                      <th style={{ padding: "8px 10px", color: "var(--text-muted)" }}>Semester-Wise Student Count</th>
-                      <th style={{ padding: "8px 10px", color: "var(--text-muted)" }}>Uploaded Results</th>
-                      <th style={{ padding: "8px 10px", color: "var(--text-muted)" }}>Internal Marks</th>
+                      <th style={{ padding: "10px 12px", color: "var(--text-muted)", whiteSpace: "nowrap" }}>Batch Year</th>
+                      <th style={{ padding: "10px 12px", color: "var(--text-muted)", whiteSpace: "nowrap" }}>Total Registered Students</th>
+                      <th style={{ padding: "10px 12px", color: "var(--text-muted)", whiteSpace: "nowrap" }}>Active Ranked Students</th>
+                      <th style={{ padding: "10px 12px", color: "var(--text-muted)", whiteSpace: "nowrap" }}>Semester-Wise Student Count</th>
+                      <th style={{ padding: "10px 12px", color: "var(--text-muted)", whiteSpace: "nowrap" }}>Uploaded Results</th>
+                      <th style={{ padding: "10px 12px", color: "var(--text-muted)", whiteSpace: "nowrap" }}>Internal Marks</th>
                     </tr>
                   </thead>
                   <tbody>
                     {stats.batchBreakdown.map((b) => (
                       <tr key={b.batch} style={{ borderBottom: "1px solid rgba(255,255,255,0.04)" }}>
-                        <td style={{ padding: "10px", fontWeight: 700 }}>
+                        <td style={{ padding: "12px 10px", fontWeight: 700, whiteSpace: "nowrap" }}>
                           <span
                             style={{
                               background: "rgba(59, 130, 246, 0.15)",
                               color: "#60a5fa",
-                              padding: "3px 10px",
+                              padding: "4px 10px",
                               borderRadius: 12,
                               fontSize: 11,
                               border: "1px solid rgba(59, 130, 246, 0.3)",
+                              display: "inline-block",
+                              whiteSpace: "nowrap",
                             }}
                           >
                             Batch {b.batch}
                           </span>
                         </td>
-                        <td style={{ padding: "10px", fontWeight: 700, color: "var(--text-primary)" }}>
+                        <td style={{ padding: "12px 10px", fontWeight: 700, color: "var(--text-primary)", whiteSpace: "nowrap" }}>
                           {b.totalStudents?.toLocaleString()}
                         </td>
-                        <td style={{ padding: "10px", fontWeight: 700, color: "#3ea6ff" }}>
+                        <td style={{ padding: "12px 10px", fontWeight: 700, color: "#3ea6ff", whiteSpace: "nowrap" }}>
                           🏆 {b.totalRankedStudents?.toLocaleString()} Active
                         </td>
-                        <td style={{ padding: "10px" }}>
-                          <div style={{ display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center" }}>
+                        <td style={{ padding: "12px 10px" }}>
+                          <div style={{ display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center", minWidth: 260 }}>
                             {b.semBreakdown && b.semBreakdown.length > 0 ? (
                               b.semBreakdown.map((sb) => (
                                 <span
                                   key={sb.semester}
                                   style={{
                                     background: "rgba(255, 255, 255, 0.05)",
-                                    padding: "2px 8px",
+                                    padding: "3px 8px",
                                     borderRadius: 6,
                                     fontSize: 11,
                                     border: "1px solid rgba(255, 255, 255, 0.08)",
                                     color: "var(--text-secondary)",
+                                    whiteSpace: "nowrap",
                                   }}
                                 >
                                   Sem {sb.semester}: <strong style={{ color: "#fff" }}>{sb.studentCount}</strong>
@@ -1420,10 +1483,10 @@ export default function AdminDashboard() {
                             )}
                           </div>
                         </td>
-                        <td style={{ padding: "10px", color: "var(--text-secondary)" }}>
+                        <td style={{ padding: "12px 10px", color: "var(--text-secondary)", whiteSpace: "nowrap" }}>
                           {b.totalResults?.toLocaleString()}
                         </td>
-                        <td style={{ padding: "10px", color: "var(--text-secondary)" }}>
+                        <td style={{ padding: "12px 10px", color: "var(--text-secondary)", whiteSpace: "nowrap" }}>
                           {b.totalInternal?.toLocaleString()}
                         </td>
                       </tr>
