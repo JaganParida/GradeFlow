@@ -738,14 +738,22 @@ function FeedbackManager({ authHeaders, API }) {
   const [editForm, setEditForm] = useState({});
   const [msg, setMsg] = useState("");
   const [err, setErr] = useState("");
+  const feedbackCacheRef = useRef(null);
 
   useEffect(() => {
     fetchFeedbacks();
   }, []);
 
-  async function fetchFeedbacks() {
+  async function fetchFeedbacks(forceRefresh = false) {
+    if (!forceRefresh && feedbackCacheRef.current) {
+      setFeedbacks(feedbackCacheRef.current);
+      setLoading(false);
+      return;
+    }
+    setLoading(true);
     try {
       const { data } = await axios.get(`${API}/feedback`);
+      feedbackCacheRef.current = data;
       setFeedbacks(data);
     } catch (e) {
       setErr("Failed to load feedbacks");
@@ -855,21 +863,31 @@ function BacklogTrackerCard({ authHeaders, API }) {
   const [expandedRegNo, setExpandedRegNo] = useState(null);
   const [showFilterPanel, setShowFilterPanel] = useState(false);
 
+  const backlogCacheRef = useRef(new Map());
+
   useEffect(() => {
     setPage(1);
     fetchBacklogs(1);
   }, [batch, branch, section, semester, limit]);
 
-  async function fetchBacklogs(targetPage = page, searchQuery = search, overrideFilters = null) {
+  async function fetchBacklogs(targetPage = page, searchQuery = search, overrideFilters = null, forceRefresh = false) {
+    const activeBatch = overrideFilters ? overrideFilters.batch : batch;
+    const activeBranch = overrideFilters ? overrideFilters.branch : branch;
+    const activeSection = overrideFilters ? overrideFilters.section : section;
+    const activeSemester = overrideFilters ? overrideFilters.semester : semester;
+    const activeSearch = searchQuery !== undefined ? searchQuery : (overrideFilters ? overrideFilters.search : search);
+    const activePage = targetPage || 1;
+
+    const cacheKey = `${activePage}_${activeBatch}_${activeBranch}_${activeSection}_${activeSemester}_${activeSearch}_${limit}`;
+
+    if (!forceRefresh && backlogCacheRef.current.has(cacheKey)) {
+      setData(backlogCacheRef.current.get(cacheKey));
+      setLoading(false);
+      return;
+    }
+
     setLoading(true);
     try {
-      const activeBatch = overrideFilters ? overrideFilters.batch : batch;
-      const activeBranch = overrideFilters ? overrideFilters.branch : branch;
-      const activeSection = overrideFilters ? overrideFilters.section : section;
-      const activeSemester = overrideFilters ? overrideFilters.semester : semester;
-      const activeSearch = searchQuery !== undefined ? searchQuery : (overrideFilters ? overrideFilters.search : search);
-      const activePage = targetPage || 1;
-
       const params = new URLSearchParams();
       if (activeBatch) params.append("batch", activeBatch);
       if (activeBranch) params.append("branch", activeBranch);
@@ -880,7 +898,9 @@ function BacklogTrackerCard({ authHeaders, API }) {
       params.append("limit", limit);
 
       const res = await axios.get(`${API}/admin/backlogs?${params}`, authHeaders);
-      setData(res.data || { totalStudentsWithBacklogs: 0, totalBacklogsCount: 0, students: [], totalPages: 1, page: 1 });
+      const resData = res.data || { totalStudentsWithBacklogs: 0, totalBacklogsCount: 0, students: [], totalPages: 1, page: 1 };
+      backlogCacheRef.current.set(cacheKey, resData);
+      setData(resData);
     } catch (e) {
       console.error("Backlog fetch error:", e);
     } finally {
@@ -1934,12 +1954,7 @@ export default function AdminDashboard() {
         ))}
       </div>
 
-      <motion.div
-        key={tab}
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.2 }}
-      >
+      <div>
       <div style={{ display: tab === "overview" ? "block" : "none" }}>
         {/* Upload Tab */}
         <div
@@ -2303,7 +2318,7 @@ export default function AdminDashboard() {
           </div>
         </div>
       </motion.div>
-      </motion.div>
-    </motion.div>
-  );
+    </div>
+  </motion.div>
+);
 }
