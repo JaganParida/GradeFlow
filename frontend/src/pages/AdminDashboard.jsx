@@ -96,7 +96,7 @@ function UploadCard({
           marginBottom: 16,
         }}
       >
-        <span style={{ fontSize: 20 }}>{icon}</span>
+        <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 36, height: 36, borderRadius: 8, background: "rgba(59, 130, 246, 0.1)", color: "var(--accent)" }}>{icon}</span>
         <h3 style={{ fontWeight: 700, fontSize: 16 }}>{title}</h3>
       </div>
 
@@ -1272,11 +1272,13 @@ function BacklogTrackerCard({ authHeaders, API }) {
                               borderRadius: 12,
                               fontWeight: 800,
                               border: "1px solid rgba(239, 68, 68, 0.3)",
-                              display: "inline-block",
+                              display: "inline-flex",
+                              alignItems: "center",
+                              gap: 4,
                               whiteSpace: "nowrap",
                             }}
                           >
-                            ⚠️ {st.totalBacklogs} Backlog{st.totalBacklogs > 1 ? "s" : ""}
+                            <AlertTriangle size={13} color="#ef4444" /> {st.totalBacklogs} Backlog{st.totalBacklogs > 1 ? "s" : ""}
                           </span>
                         </td>
                         <td style={{ padding: "12px" }}>
@@ -1718,7 +1720,9 @@ export default function AdminDashboard() {
                           {b.totalStudents?.toLocaleString()}
                         </td>
                         <td style={{ padding: "12px 10px", fontWeight: 700, color: "#3ea6ff", whiteSpace: "nowrap" }}>
-                          🏆 {b.totalRankedStudents?.toLocaleString()} Active
+                          <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
+                            <Trophy size={13} color="#f59e0b" /> {b.totalRankedStudents?.toLocaleString()} Active
+                          </span>
                         </td>
                         <td style={{ padding: "12px 10px" }}>
                           <div style={{ display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center", minWidth: 260 }}>
@@ -1764,27 +1768,27 @@ export default function AdminDashboard() {
               <HelpCircle size={16} color="var(--accent)" /> Admin System Guide: Active vs. Registered Students & Auto-Sync
             </h4>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: 14 }}>
-              <div style={{ background: "rgba(59, 130, 246, 0.06)", border: "1px solid rgba(59, 130, 246, 0.2)", borderRadius: 10, padding: 12 }}>
-                <div style={{ fontWeight: 700, color: "#60a5fa", marginBottom: 4, fontSize: 13, display: "flex", alignItems: "center", gap: 6 }}>
-                  🏆 Active Ranked Students (Leaderboard)
+              <div style={{ background: "rgba(59, 130, 246, 0.06)", border: "1px solid rgba(59, 130, 246, 0.2)", borderRadius: 10, padding: 14 }}>
+                <div style={{ fontWeight: 700, color: "#60a5fa", marginBottom: 6, fontSize: 13, display: "flex", alignItems: "center", gap: 6 }}>
+                  <Trophy size={15} color="#60a5fa" /> Active Ranked Students (Leaderboard)
                 </div>
                 <p style={{ fontSize: 12, color: "var(--text-secondary)", lineHeight: 1.5, margin: 0 }}>
-                  Students who have official semester results uploaded. They have calculated SGPA/CGPA and appear on University & Branch Leaderboards.
+                  Students who have official semester results uploaded. They have calculated SGPA/CGPA and appear on University &amp; Branch Leaderboards.
                 </p>
               </div>
 
-              <div style={{ background: "rgba(245, 158, 11, 0.06)", border: "1px solid rgba(245, 158, 11, 0.2)", borderRadius: 10, padding: 12 }}>
-                <div style={{ fontWeight: 700, color: "#fbbf24", marginBottom: 4, fontSize: 13, display: "flex", alignItems: "center", gap: 6 }}>
-                  ℹ️ Registered / Inactive Students
+              <div style={{ background: "rgba(245, 158, 11, 0.06)", border: "1px solid rgba(245, 158, 11, 0.2)", borderRadius: 10, padding: 14 }}>
+                <div style={{ fontWeight: 700, color: "#fbbf24", marginBottom: 6, fontSize: 13, display: "flex", alignItems: "center", gap: 6 }}>
+                  <Info size={15} color="#fbbf24" /> Registered / Inactive Students
                 </div>
                 <p style={{ fontSize: 12, color: "var(--text-secondary)", lineHeight: 1.5, margin: 0 }}>
                   Students stored in DB (e.g. from internal marks or roll list) without semester exam results yet. Once their semester results are uploaded, they automatically become <strong>Active</strong>!
                 </p>
               </div>
 
-              <div style={{ background: "rgba(16, 185, 129, 0.06)", border: "1px solid rgba(16, 185, 129, 0.2)", borderRadius: 10, padding: 12 }}>
-                <div style={{ fontWeight: 700, color: "#34d399", marginBottom: 4, fontSize: 13, display: "flex", alignItems: "center", gap: 6 }}>
-                  ⚡ Live Excel Auto-Update
+              <div style={{ background: "rgba(16, 185, 129, 0.06)", border: "1px solid rgba(16, 185, 129, 0.2)", borderRadius: 10, padding: 14 }}>
+                <div style={{ fontWeight: 700, color: "#34d399", marginBottom: 6, fontSize: 13, display: "flex", alignItems: "center", gap: 6 }}>
+                  <CheckCircle size={15} color="#34d399" /> Live Excel Auto-Update
                 </div>
                 <p style={{ fontSize: 12, color: "var(--text-secondary)", lineHeight: 1.5, margin: 0 }}>
                   Whenever you upload any Excel file (Results, Internal Marks, or Backlogs), all batch stats, semester breakdowns, leaderboards, and backlog lists update automatically!
