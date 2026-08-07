@@ -1225,13 +1225,25 @@ router.get("/stats", protect, async (req, res) => {
           batch: b,
           studentsSet: new Set(),
           rankedStudentsSet: new Set(),
+          semMap: new Map(),
           totalResults: 0,
           totalInternal: 0,
           totalRankings: 0,
         });
       }
       const entry = batchMap.get(b);
-      if (r.regNo) entry.studentsSet.add(r.regNo);
+      if (r.regNo) {
+        entry.studentsSet.add(r.regNo);
+        if (r.semester) {
+          const semNum = Number(r.semester);
+          if (!isNaN(semNum) && semNum > 0) {
+            if (!entry.semMap.has(semNum)) {
+              entry.semMap.set(semNum, new Set());
+            }
+            entry.semMap.get(semNum).add(r.regNo);
+          }
+        }
+      }
       entry.totalResults++;
     });
 
@@ -1247,6 +1259,7 @@ router.get("/stats", protect, async (req, res) => {
           batch: b,
           studentsSet: new Set(),
           rankedStudentsSet: new Set(),
+          semMap: new Map(),
           totalResults: 0,
           totalInternal: 0,
           totalRankings: 0,
@@ -1269,6 +1282,7 @@ router.get("/stats", protect, async (req, res) => {
           batch: b,
           studentsSet: new Set(),
           rankedStudentsSet: new Set(),
+          semMap: new Map(),
           totalResults: 0,
           totalInternal: 0,
           totalRankings: 0,
@@ -1283,14 +1297,21 @@ router.get("/stats", protect, async (req, res) => {
     });
 
     const batchBreakdown = Array.from(batchMap.values())
-      .map((item) => ({
-        batch: item.batch,
-        totalStudents: item.studentsSet.size,
-        totalRankedStudents: item.rankedStudentsSet.size,
-        totalResults: item.totalResults,
-        totalInternal: item.totalInternal,
-        totalRankings: item.totalRankings,
-      }))
+      .map((item) => {
+        const semBreakdown = Array.from(item.semMap.entries())
+          .map(([sem, set]) => ({ semester: sem, studentCount: set.size }))
+          .sort((a, b) => a.semester - b.semester);
+
+        return {
+          batch: item.batch,
+          totalStudents: item.studentsSet.size,
+          totalRankedStudents: item.rankedStudentsSet.size,
+          totalResults: item.totalResults,
+          totalInternal: item.totalInternal,
+          totalRankings: item.totalRankings,
+          semBreakdown,
+        };
+      })
       .sort((a, b) => {
         if (a.batch === "Other") return 1;
         if (b.batch === "Other") return -1;

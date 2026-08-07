@@ -1095,7 +1095,8 @@ export default function AdminDashboard() {
                     <tr style={{ borderBottom: "1px solid var(--border)", textAlign: "left" }}>
                       <th style={{ padding: "8px 10px", color: "var(--text-muted)" }}>Batch Year</th>
                       <th style={{ padding: "8px 10px", color: "var(--text-muted)" }}>Total Registered Students</th>
-                      <th style={{ padding: "8px 10px", color: "var(--text-muted)" }}>Active Ranked Students (Leaderboard)</th>
+                      <th style={{ padding: "8px 10px", color: "var(--text-muted)" }}>Active Ranked Students</th>
+                      <th style={{ padding: "8px 10px", color: "var(--text-muted)" }}>Semester-Wise Student Count</th>
                       <th style={{ padding: "8px 10px", color: "var(--text-muted)" }}>Uploaded Results</th>
                       <th style={{ padding: "8px 10px", color: "var(--text-muted)" }}>Internal Marks</th>
                     </tr>
@@ -1121,7 +1122,30 @@ export default function AdminDashboard() {
                           {b.totalStudents?.toLocaleString()}
                         </td>
                         <td style={{ padding: "10px", fontWeight: 700, color: "#3ea6ff" }}>
-                          🏆 {b.totalRankedStudents?.toLocaleString()} Active Ranked
+                          🏆 {b.totalRankedStudents?.toLocaleString()} Active
+                        </td>
+                        <td style={{ padding: "10px" }}>
+                          <div style={{ display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center" }}>
+                            {b.semBreakdown && b.semBreakdown.length > 0 ? (
+                              b.semBreakdown.map((sb) => (
+                                <span
+                                  key={sb.semester}
+                                  style={{
+                                    background: "rgba(255, 255, 255, 0.05)",
+                                    padding: "2px 8px",
+                                    borderRadius: 6,
+                                    fontSize: 11,
+                                    border: "1px solid rgba(255, 255, 255, 0.08)",
+                                    color: "var(--text-secondary)",
+                                  }}
+                                >
+                                  Sem {sb.semester}: <strong style={{ color: "#fff" }}>{sb.studentCount}</strong>
+                                </span>
+                              ))
+                            ) : (
+                              <span style={{ color: "var(--text-muted)", fontSize: 11 }}>—</span>
+                            )}
+                          </div>
                         </td>
                         <td style={{ padding: "10px", color: "var(--text-secondary)" }}>
                           {b.totalResults?.toLocaleString()}
