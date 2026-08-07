@@ -103,11 +103,13 @@ export default function AdminLogin() {
       style={{
         minHeight: "100vh",
         display: "flex",
+        flexDirection: "column",
         background: "#0a0c10",
         color: "#f3f4f6",
         fontFamily: "'Inter', system-ui, sans-serif",
-        overflow: "hidden",
+        overflowX: "hidden",
         position: "relative",
+        paddingTop: 84, // Clear fixed top Navbar height
       }}
     >
       {/* Subtle Grid Backdrop Lines */}
@@ -128,8 +130,8 @@ export default function AdminLogin() {
         style={{
           width: "100%",
           display: "grid",
-          gridTemplateColumns: "repeat(auto-fit, minmax(380px, 1fr))",
-          minHeight: "100vh",
+          gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))",
+          minHeight: "calc(100vh - 84px)",
           position: "relative",
           zIndex: 1,
         }}
@@ -137,7 +139,7 @@ export default function AdminLogin() {
         {/* LEFT SPLIT: PROFESSIONAL BRANDING & TECHNICAL SUMMARY */}
         <div
           style={{
-            padding: "56px 64px",
+            padding: "40px 48px",
             display: "flex",
             flexDirection: "column",
             justifyContent: "space-between",
