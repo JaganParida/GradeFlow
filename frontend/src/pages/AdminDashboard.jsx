@@ -1116,11 +1116,12 @@ function BacklogTrackerCard({ authHeaders, API }) {
                 <tbody>
                   {data.students.map((st, idx) => {
                     const isExpanded = expandedRegNo === st.regNo;
+                    const globalRankIndex = (data.page - 1) * limit + idx + 1;
                     return (
                       <Fragment key={st.regNo}>
                         <tr style={{ borderBottom: "1px solid rgba(255,255,255,0.04)" }}>
-                          <td style={{ padding: "12px", fontWeight: 800, color: idx < 3 ? "#ef4444" : "var(--text-muted)", whiteSpace: "nowrap" }}>
-                            #{idx + 1}
+                          <td style={{ padding: "12px", fontWeight: 800, color: globalRankIndex <= 3 ? "#ef4444" : "var(--text-muted)", whiteSpace: "nowrap" }}>
+                            #{globalRankIndex}
                           </td>
                           <td style={{ padding: "12px", whiteSpace: "nowrap" }}>
                             <div style={{ fontWeight: 700, color: "#fff" }}>{st.studentName}</div>
@@ -1248,6 +1249,7 @@ function BacklogTrackerCard({ authHeaders, API }) {
             <div className="admin-mobile-card-list">
               {data.students.map((st, idx) => {
                 const isExpanded = expandedRegNo === st.regNo;
+                const globalRankIndex = (data.page - 1) * limit + idx + 1;
                 return (
                   <div
                     key={st.regNo}
@@ -1265,8 +1267,8 @@ function BacklogTrackerCard({ authHeaders, API }) {
                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 10 }}>
                       <div>
                         <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 2 }}>
-                          <span style={{ fontWeight: 800, fontSize: 14, color: idx < 3 ? "#ef4444" : "#60a5fa" }}>
-                            #{idx + 1}
+                          <span style={{ fontWeight: 800, fontSize: 14, color: globalRankIndex <= 3 ? "#ef4444" : "#60a5fa" }}>
+                            #{globalRankIndex}
                           </span>
                           <span style={{ fontWeight: 700, fontSize: 14, color: "#fff" }}>{st.studentName}</span>
                         </div>
@@ -1422,17 +1424,6 @@ function BacklogTrackerCard({ authHeaders, API }) {
               >
                 Next
               </button>
-
-              <select
-                value={limit}
-                onChange={(e) => setLimit(Number(e.target.value))}
-                className="input-field"
-                style={{ width: 110, padding: "4px 8px", fontSize: 12 }}
-              >
-                <option value={50}>50 / page</option>
-                <option value={100}>100 / page</option>
-                <option value={200}>200 / page</option>
-              </select>
             </div>
           </div>
         )}
