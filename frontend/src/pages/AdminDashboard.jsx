@@ -1098,149 +1098,291 @@ function BacklogTrackerCard({ authHeaders, API }) {
             <p>No active backlog records found for this filter!</p>
           </div>
         ) : (
-          <div style={{ overflowX: "auto" }}>
-            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13, minWidth: 1050 }}>
-              <thead>
-                <tr style={{ borderBottom: "1px solid var(--border)", textAlign: "left" }}>
-                  <th style={{ padding: "10px 12px", color: "var(--text-muted)", width: 50, whiteSpace: "nowrap" }}>#</th>
-                  <th style={{ padding: "10px 12px", color: "var(--text-muted)", whiteSpace: "nowrap" }}>Registration No & Student Name</th>
-                  <th style={{ padding: "10px 12px", color: "var(--text-muted)", whiteSpace: "nowrap" }}>Branch / Batch / Section</th>
-                  <th style={{ padding: "10px 12px", color: "var(--text-muted)", whiteSpace: "nowrap" }}>Leaderboard Rank & CGPA</th>
-                  <th style={{ padding: "10px 12px", color: "var(--text-muted)", whiteSpace: "nowrap" }}>Total Backlogs</th>
-                  <th style={{ padding: "10px 12px", color: "var(--text-muted)", whiteSpace: "nowrap" }}>Semester Breakdown</th>
-                  <th style={{ padding: "10px 12px", color: "var(--text-muted)", textAlign: "right", whiteSpace: "nowrap" }}>Backlog Details</th>
-                </tr>
-              </thead>
-              <tbody>
-                {data.students.map((st, idx) => {
-                  const isExpanded = expandedRegNo === st.regNo;
-                  return (
-                    <Fragment key={st.regNo}>
-                      <tr style={{ borderBottom: "1px solid rgba(255,255,255,0.04)" }}>
-                        <td style={{ padding: "12px", fontWeight: 800, color: idx < 3 ? "#ef4444" : "var(--text-muted)", whiteSpace: "nowrap" }}>
-                          #{idx + 1}
-                        </td>
-                        <td style={{ padding: "12px", whiteSpace: "nowrap" }}>
-                          <div style={{ fontWeight: 700, color: "#fff" }}>{st.studentName}</div>
-                          <div style={{ fontSize: 11, color: "var(--text-muted)", fontFamily: "monospace" }}>{st.regNo}</div>
-                        </td>
-                        <td style={{ padding: "12px", whiteSpace: "nowrap" }}>
-                          <div style={{ display: "inline-flex", gap: 6, alignItems: "center" }}>
-                            <span className="badge" style={{ background: "rgba(255,255,255,0.06)", whiteSpace: "nowrap" }}>
-                              {st.branch || "N/A"}
-                            </span>
-                            <span className="badge" style={{ background: "rgba(59, 130, 246, 0.15)", color: "#60a5fa", whiteSpace: "nowrap" }}>
-                              Batch {st.batch}
-                            </span>
-                            <span className="badge" style={{ background: "rgba(16, 185, 129, 0.15)", color: "#34d399", whiteSpace: "nowrap" }}>
-                              {st.section || "Sec A"}
-                            </span>
-                          </div>
-                        </td>
-                        <td style={{ padding: "12px", whiteSpace: "nowrap" }}>
-                          {st.rankInfo ? (
-                            <div>
-                              <div style={{ fontWeight: 700, color: "#3ea6ff", fontSize: 12, display: "flex", alignItems: "center", gap: 4 }}>
-                                <Trophy size={13} color="#f59e0b" /> Uni #{st.rankInfo.universityRank || "N/A"} &middot; Branch #{st.rankInfo.departmentRank || "N/A"}
-                              </div>
-                              <div style={{ fontSize: 11, color: "var(--text-secondary)", marginTop: 2 }}>
-                                CGPA: <strong style={{ color: "#fff" }}>{st.rankInfo.cgpa ? st.rankInfo.cgpa.toFixed(2) : "0.00"}</strong>
-                              </div>
-                            </div>
-                          ) : (
-                            <span style={{ fontSize: 11, color: "var(--text-muted)" }}>Unranked</span>
-                          )}
-                        </td>
-                        <td style={{ padding: "12px", whiteSpace: "nowrap" }}>
-                          <span
-                            style={{
-                              background: "rgba(239, 68, 68, 0.15)",
-                              color: "#f87171",
-                              padding: "4px 10px",
-                              borderRadius: 12,
-                              fontWeight: 800,
-                              border: "1px solid rgba(239, 68, 68, 0.3)",
-                              display: "inline-flex",
-                              alignItems: "center",
-                              gap: 4,
-                              whiteSpace: "nowrap",
-                            }}
-                          >
-                            <AlertTriangle size={13} color="#ef4444" /> {st.totalBacklogs} Backlog{st.totalBacklogs > 1 ? "s" : ""}
-                          </span>
-                        </td>
-                        <td style={{ padding: "12px" }}>
-                          <div style={{ display: "flex", gap: 6, flexWrap: "wrap", minWidth: 320 }}>
-                            {Object.entries(st.semBreakdown || {}).map(([semNum, count]) => (
-                              <span
-                                key={semNum}
-                                style={{
-                                  background: "rgba(245, 158, 11, 0.15)",
-                                  color: "#fbbf24",
-                                  padding: "3px 8px",
-                                  borderRadius: 6,
-                                  fontSize: 11,
-                                  border: "1px solid rgba(245, 158, 11, 0.3)",
-                                  whiteSpace: "nowrap",
-                                  display: "inline-block",
-                                }}
-                              >
-                                Sem {semNum}: <strong>{count}</strong>
+          <>
+            {/* Desktop Table View */}
+            <div className="admin-desktop-table" style={{ overflowX: "auto" }}>
+              <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13, minWidth: 1050 }}>
+                <thead>
+                  <tr style={{ borderBottom: "1px solid var(--border)", textAlign: "left" }}>
+                    <th style={{ padding: "10px 12px", color: "var(--text-muted)", width: 50, whiteSpace: "nowrap" }}>#</th>
+                    <th style={{ padding: "10px 12px", color: "var(--text-muted)", whiteSpace: "nowrap" }}>Registration No & Student Name</th>
+                    <th style={{ padding: "10px 12px", color: "var(--text-muted)", whiteSpace: "nowrap" }}>Branch / Batch / Section</th>
+                    <th style={{ padding: "10px 12px", color: "var(--text-muted)", whiteSpace: "nowrap" }}>Leaderboard Rank & CGPA</th>
+                    <th style={{ padding: "10px 12px", color: "var(--text-muted)", whiteSpace: "nowrap" }}>Total Backlogs</th>
+                    <th style={{ padding: "10px 12px", color: "var(--text-muted)", whiteSpace: "nowrap" }}>Semester Breakdown</th>
+                    <th style={{ padding: "10px 12px", color: "var(--text-muted)", textAlign: "right", whiteSpace: "nowrap" }}>Backlog Details</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {data.students.map((st, idx) => {
+                    const isExpanded = expandedRegNo === st.regNo;
+                    return (
+                      <Fragment key={st.regNo}>
+                        <tr style={{ borderBottom: "1px solid rgba(255,255,255,0.04)" }}>
+                          <td style={{ padding: "12px", fontWeight: 800, color: idx < 3 ? "#ef4444" : "var(--text-muted)", whiteSpace: "nowrap" }}>
+                            #{idx + 1}
+                          </td>
+                          <td style={{ padding: "12px", whiteSpace: "nowrap" }}>
+                            <div style={{ fontWeight: 700, color: "#fff" }}>{st.studentName}</div>
+                            <div style={{ fontSize: 11, color: "var(--text-muted)", fontFamily: "monospace" }}>{st.regNo}</div>
+                          </td>
+                          <td style={{ padding: "12px", whiteSpace: "nowrap" }}>
+                            <div style={{ display: "inline-flex", gap: 6, alignItems: "center" }}>
+                              <span className="badge" style={{ background: "rgba(255,255,255,0.06)", whiteSpace: "nowrap" }}>
+                                {st.branch || "N/A"}
                               </span>
-                            ))}
-                          </div>
-                        </td>
-                        <td style={{ padding: "12px", textAlign: "right", whiteSpace: "nowrap" }}>
-                          <button
-                            onClick={() => setExpandedRegNo(isExpanded ? null : st.regNo)}
-                            className="btn-secondary"
-                            style={{ padding: "4px 10px", fontSize: 11, display: "inline-flex", alignItems: "center", gap: 4, whiteSpace: "nowrap" }}
-                          >
-                            {isExpanded ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
-                            {isExpanded ? "Hide Details" : "View Subjects"}
-                          </button>
-                        </td>
-                      </tr>
-
-                      {/* Expanded Backlog Subject Details Drawer */}
-                      {isExpanded && (
-                        <tr style={{ background: "rgba(0,0,0,0.25)" }}>
-                          <td colSpan={7} style={{ padding: "14px 20px", borderBottom: "1px solid var(--border)" }}>
-                            <div style={{ fontWeight: 700, fontSize: 12, color: "#f87171", marginBottom: 8, display: "flex", alignItems: "center", gap: 6 }}>
-                              <BookOpen size={14} /> Backlog Subjects for {st.studentName} ({st.regNo}):
+                              <span className="badge" style={{ background: "rgba(59, 130, 246, 0.15)", color: "#60a5fa", whiteSpace: "nowrap" }}>
+                                Batch {st.batch}
+                              </span>
+                              <span className="badge" style={{ background: "rgba(16, 185, 129, 0.15)", color: "#34d399", whiteSpace: "nowrap" }}>
+                                {st.section || "Sec A"}
+                              </span>
                             </div>
-                            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))", gap: 10 }}>
-                              {st.backlogSubjects?.map((sub, sIdx) => (
-                                <div
-                                  key={sIdx}
+                          </td>
+                          <td style={{ padding: "12px", whiteSpace: "nowrap" }}>
+                            {st.rankInfo ? (
+                              <div>
+                                <div style={{ fontWeight: 700, color: "#3ea6ff", fontSize: 12, display: "flex", alignItems: "center", gap: 4 }}>
+                                  <Trophy size={13} color="#f59e0b" /> Uni #{st.rankInfo.universityRank || "N/A"} &middot; Branch #{st.rankInfo.departmentRank || "N/A"}
+                                </div>
+                                <div style={{ fontSize: 11, color: "var(--text-secondary)", marginTop: 2 }}>
+                                  CGPA: <strong style={{ color: "#fff" }}>{st.rankInfo.cgpa ? st.rankInfo.cgpa.toFixed(2) : "0.00"}</strong>
+                                </div>
+                              </div>
+                            ) : (
+                              <span style={{ fontSize: 11, color: "var(--text-muted)" }}>Unranked</span>
+                            )}
+                          </td>
+                          <td style={{ padding: "12px", whiteSpace: "nowrap" }}>
+                            <span
+                              style={{
+                                background: "rgba(239, 68, 68, 0.15)",
+                                color: "#f87171",
+                                padding: "4px 10px",
+                                borderRadius: 12,
+                                fontWeight: 800,
+                                border: "1px solid rgba(239, 68, 68, 0.3)",
+                                display: "inline-flex",
+                                alignItems: "center",
+                                gap: 4,
+                                whiteSpace: "nowrap",
+                              }}
+                            >
+                              <AlertTriangle size={13} color="#ef4444" /> {st.totalBacklogs} Backlog{st.totalBacklogs > 1 ? "s" : ""}
+                            </span>
+                          </td>
+                          <td style={{ padding: "12px" }}>
+                            <div style={{ display: "flex", gap: 6, flexWrap: "wrap", minWidth: 320 }}>
+                              {Object.entries(st.semBreakdown || {}).map(([semNum, count]) => (
+                                <span
+                                  key={semNum}
                                   style={{
-                                    background: "rgba(255, 255, 255, 0.03)",
-                                    border: "1px solid rgba(239, 68, 68, 0.2)",
-                                    borderRadius: 8,
-                                    padding: 10,
-                                    fontSize: 12,
+                                    background: "rgba(245, 158, 11, 0.15)",
+                                    color: "#fbbf24",
+                                    padding: "3px 8px",
+                                    borderRadius: 6,
+                                    fontSize: 11,
+                                    border: "1px solid rgba(245, 158, 11, 0.3)",
+                                    whiteSpace: "nowrap",
+                                    display: "inline-block",
                                   }}
                                 >
-                                  <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
-                                    <span style={{ fontWeight: 700, color: "#60a5fa" }}>Sem {sub.semester}</span>
-                                    <span style={{ fontWeight: 800, color: "#ef4444" }}>Grade: {sub.grade}</span>
-                                  </div>
-                                  <div style={{ fontWeight: 600, color: "#fff", marginBottom: 2 }}>{sub.subName}</div>
-                                  <div style={{ fontSize: 11, color: "var(--text-muted)", fontFamily: "monospace" }}>
-                                    Code: {sub.subCode} &middot; Credits: {sub.credit}
-                                  </div>
-                                </div>
+                                  Sem {semNum}: <strong>{count}</strong>
+                                </span>
                               ))}
                             </div>
                           </td>
+                          <td style={{ padding: "12px", textAlign: "right", whiteSpace: "nowrap" }}>
+                            <button
+                              onClick={() => setExpandedRegNo(isExpanded ? null : st.regNo)}
+                              className="btn-secondary"
+                              style={{ padding: "4px 10px", fontSize: 11, display: "inline-flex", alignItems: "center", gap: 4, whiteSpace: "nowrap" }}
+                            >
+                              {isExpanded ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
+                              {isExpanded ? "Hide Details" : "View Subjects"}
+                            </button>
+                          </td>
                         </tr>
-                      )}
-                    </Fragment>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
+
+                        {/* Expanded Backlog Subject Details Drawer */}
+                        {isExpanded && (
+                          <tr style={{ background: "rgba(0,0,0,0.25)" }}>
+                            <td colSpan={7} style={{ padding: "14px 20px", borderBottom: "1px solid var(--border)" }}>
+                              <div style={{ fontWeight: 700, fontSize: 12, color: "#f87171", marginBottom: 8, display: "flex", alignItems: "center", gap: 6 }}>
+                                <BookOpen size={14} /> Backlog Subjects for {st.studentName} ({st.regNo}):
+                              </div>
+                              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))", gap: 10 }}>
+                                {st.backlogSubjects?.map((sub, sIdx) => (
+                                  <div
+                                    key={sIdx}
+                                    style={{
+                                      background: "rgba(255, 255, 255, 0.03)",
+                                      border: "1px solid rgba(239, 68, 68, 0.2)",
+                                      borderRadius: 8,
+                                      padding: 10,
+                                      fontSize: 12,
+                                    }}
+                                  >
+                                    <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
+                                      <span style={{ fontWeight: 700, color: "#60a5fa" }}>Sem {sub.semester}</span>
+                                      <span style={{ fontWeight: 800, color: "#ef4444" }}>Grade: {sub.grade}</span>
+                                    </div>
+                                    <div style={{ fontWeight: 600, color: "#fff", marginBottom: 2 }}>{sub.subName}</div>
+                                    <div style={{ fontSize: 11, color: "var(--text-muted)", fontFamily: "monospace" }}>
+                                      Code: {sub.subCode} &middot; Credits: {sub.credit}
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            </td>
+                          </tr>
+                        )}
+                      </Fragment>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Mobile Responsive Cards View */}
+            <div className="admin-mobile-card-list">
+              {data.students.map((st, idx) => {
+                const isExpanded = expandedRegNo === st.regNo;
+                return (
+                  <div
+                    key={st.regNo}
+                    style={{
+                      background: "rgba(17, 24, 39, 0.6)",
+                      border: "1px solid rgba(255, 255, 255, 0.08)",
+                      borderRadius: 10,
+                      padding: 14,
+                      display: "flex",
+                      flexDirection: "column",
+                      gap: 10,
+                    }}
+                  >
+                    {/* Top Header: Rank & Student Name & Total Backlogs */}
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 10 }}>
+                      <div>
+                        <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 2 }}>
+                          <span style={{ fontWeight: 800, fontSize: 14, color: idx < 3 ? "#ef4444" : "#60a5fa" }}>
+                            #{idx + 1}
+                          </span>
+                          <span style={{ fontWeight: 700, fontSize: 14, color: "#fff" }}>{st.studentName}</span>
+                        </div>
+                        <div style={{ fontSize: 11, color: "var(--text-muted)", fontFamily: "monospace" }}>{st.regNo}</div>
+                      </div>
+                      <span
+                        style={{
+                          background: "rgba(239, 68, 68, 0.15)",
+                          color: "#f87171",
+                          padding: "4px 8px",
+                          borderRadius: 8,
+                          fontWeight: 800,
+                          fontSize: 11,
+                          border: "1px solid rgba(239, 68, 68, 0.3)",
+                          display: "inline-flex",
+                          alignItems: "center",
+                          gap: 4,
+                          flexShrink: 0,
+                        }}
+                      >
+                        <AlertTriangle size={12} color="#ef4444" /> {st.totalBacklogs} Backlog{st.totalBacklogs > 1 ? "s" : ""}
+                      </span>
+                    </div>
+
+                    {/* Badges: Branch, Batch, Section */}
+                    <div style={{ display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center" }}>
+                      <span className="badge" style={{ background: "rgba(255,255,255,0.06)", fontSize: 11 }}>
+                        {st.branch || "N/A"}
+                      </span>
+                      <span className="badge" style={{ background: "rgba(59, 130, 246, 0.15)", color: "#60a5fa", fontSize: 11 }}>
+                        Batch {st.batch}
+                      </span>
+                      <span className="badge" style={{ background: "rgba(16, 185, 129, 0.15)", color: "#34d399", fontSize: 11 }}>
+                        {st.section || "Sec A"}
+                      </span>
+                    </div>
+
+                    {/* Rank & CGPA Info */}
+                    {st.rankInfo && (
+                      <div style={{ background: "rgba(0, 0, 0, 0.25)", padding: "8px 10px", borderRadius: 6, display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: 11 }}>
+                        <span style={{ color: "#3ea6ff", fontWeight: 700, display: "flex", alignItems: "center", gap: 4 }}>
+                          <Trophy size={12} color="#f59e0b" /> Uni #{st.rankInfo.universityRank || "N/A"} &middot; Dept #{st.rankInfo.departmentRank || "N/A"}
+                        </span>
+                        <span style={{ color: "var(--text-secondary)" }}>
+                          CGPA: <strong style={{ color: "#fff" }}>{st.rankInfo.cgpa ? st.rankInfo.cgpa.toFixed(2) : "0.00"}</strong>
+                        </span>
+                      </div>
+                    )}
+
+                    {/* Semester Breakdown Pills */}
+                    <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                      {Object.entries(st.semBreakdown || {}).map(([semNum, count]) => (
+                        <span
+                          key={semNum}
+                          style={{
+                            background: "rgba(245, 158, 11, 0.15)",
+                            color: "#fbbf24",
+                            padding: "3px 8px",
+                            borderRadius: 6,
+                            fontSize: 11,
+                            border: "1px solid rgba(245, 158, 11, 0.3)",
+                          }}
+                        >
+                          Sem {semNum}: <strong>{count}</strong>
+                        </span>
+                      ))}
+                    </div>
+
+                    {/* View Details Toggle Button */}
+                    <button
+                      onClick={() => setExpandedRegNo(isExpanded ? null : st.regNo)}
+                      className="btn-secondary"
+                      style={{ width: "100%", justifyContent: "center", padding: "7px 10px", fontSize: 11, display: "inline-flex", alignItems: "center", gap: 4, marginTop: 2 }}
+                    >
+                      {isExpanded ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
+                      {isExpanded ? "Hide Details" : "View Backlog Subjects"}
+                    </button>
+
+                    {/* Expanded Backlog Subject Details Drawer for Mobile */}
+                    {isExpanded && (
+                      <div style={{ marginTop: 6, paddingTop: 10, borderTop: "1px solid rgba(255,255,255,0.06)" }}>
+                        <div style={{ fontWeight: 700, fontSize: 11, color: "#f87171", marginBottom: 8, display: "flex", alignItems: "center", gap: 6 }}>
+                          <BookOpen size={13} /> Backlog Subjects:
+                        </div>
+                        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                          {st.backlogSubjects?.map((sub, sIdx) => (
+                            <div
+                              key={sIdx}
+                              style={{
+                                background: "rgba(255, 255, 255, 0.03)",
+                                border: "1px solid rgba(239, 68, 68, 0.2)",
+                                borderRadius: 6,
+                                padding: 8,
+                                fontSize: 11,
+                              }}
+                            >
+                              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 3 }}>
+                                <span style={{ fontWeight: 700, color: "#60a5fa" }}>Sem {sub.semester}</span>
+                                <span style={{ fontWeight: 800, color: "#ef4444", background: "rgba(239, 68, 68, 0.15)", padding: "1px 6px", borderRadius: 4 }}>
+                                  Grade: {sub.grade}
+                                </span>
+                              </div>
+                              <div style={{ color: "#e5e7eb", fontWeight: 600, marginBottom: 2 }}>{sub.subName}</div>
+                              <div style={{ color: "var(--text-muted)", fontSize: 10 }}>
+                                Code: {sub.subCode} &middot; Credits: {sub.credit}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </>
         )}
 
         {/* Pagination Controls */}
@@ -1572,7 +1714,8 @@ export default function AdminDashboard() {
                   Shows Registered vs Active Ranked Students on Leaderboard
                 </span>
               </div>
-              <div style={{ overflowX: "auto" }}>
+              {/* Desktop Table View */}
+              <div className="admin-desktop-table" style={{ overflowX: "auto" }}>
                 <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12, minWidth: 720 }}>
                   <thead>
                     <tr style={{ borderBottom: "1px solid var(--border)", textAlign: "left" }}>
@@ -1645,6 +1788,80 @@ export default function AdminDashboard() {
                     ))}
                   </tbody>
                 </table>
+              </div>
+
+              {/* Mobile Responsive Cards View */}
+              <div className="admin-mobile-card-list">
+                {stats.batchBreakdown.map((b) => (
+                  <div
+                    key={b.batch}
+                    style={{
+                      background: "rgba(17, 24, 39, 0.6)",
+                      border: "1px solid rgba(255, 255, 255, 0.08)",
+                      borderRadius: 10,
+                      padding: 14,
+                      display: "flex",
+                      flexDirection: "column",
+                      gap: 8,
+                    }}
+                  >
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                      <span
+                        style={{
+                          background: "rgba(59, 130, 246, 0.15)",
+                          color: "#60a5fa",
+                          padding: "4px 10px",
+                          borderRadius: 12,
+                          fontSize: 12,
+                          fontWeight: 800,
+                          border: "1px solid rgba(59, 130, 246, 0.3)",
+                        }}
+                      >
+                        Batch {b.batch}
+                      </span>
+                      <span style={{ color: "#3ea6ff", fontWeight: 700, fontSize: 12, display: "flex", alignItems: "center", gap: 4 }}>
+                        <Trophy size={13} color="#f59e0b" /> {b.totalRankedStudents?.toLocaleString()} Active
+                      </span>
+                    </div>
+
+                    <div style={{ fontSize: 12, color: "var(--text-secondary)", display: "flex", justifyContent: "space-between" }}>
+                      <span>Registered Students:</span>
+                      <strong style={{ color: "#fff" }}>{b.totalStudents?.toLocaleString()}</strong>
+                    </div>
+
+                    <div style={{ fontSize: 12, color: "var(--text-secondary)", display: "flex", justifyContent: "space-between" }}>
+                      <span>Uploaded Results / Internal:</span>
+                      <strong style={{ color: "#fff" }}>
+                        {b.totalResults?.toLocaleString()} / {b.totalInternal?.toLocaleString()}
+                      </strong>
+                    </div>
+
+                    <div style={{ marginTop: 4 }}>
+                      <div style={{ fontSize: 11, color: "var(--text-muted)", marginBottom: 4 }}>Semester breakdown:</div>
+                      <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                        {b.semBreakdown && b.semBreakdown.length > 0 ? (
+                          b.semBreakdown.map((sb) => (
+                            <span
+                              key={sb.semester}
+                              style={{
+                                background: "rgba(255, 255, 255, 0.05)",
+                                padding: "3px 8px",
+                                borderRadius: 6,
+                                fontSize: 11,
+                                border: "1px solid rgba(255, 255, 255, 0.08)",
+                                color: "var(--text-secondary)",
+                              }}
+                            >
+                              Sem {sb.semester}: <strong style={{ color: "#fff" }}>{sb.studentCount}</strong>
+                            </span>
+                          ))
+                        ) : (
+                          <span style={{ color: "var(--text-muted)", fontSize: 11 }}>—</span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ))}
               </div>
             </div>
           )}

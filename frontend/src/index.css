@@ -1682,3 +1682,22 @@ input[type="number"].no-spin-button {
     justify-content: space-between;
   }
 }
+
+/* ── Admin Dashboard Responsive Mobile Cards vs Desktop Tables ── */
+.admin-desktop-table {
+  display: block;
+}
+.admin-mobile-card-list {
+  display: none;
+}
+
+@media (max-width: 768px) {
+  .admin-desktop-table {
+    display: none !important;
+  }
+  .admin-mobile-card-list {
+    display: flex !important;
+    flex-direction: column;
+    gap: 12px;
+  }
+}
