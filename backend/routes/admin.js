@@ -1254,7 +1254,7 @@ router.get("/backlogs", protect, async (req, res) => {
     const { batch, branch, section, semester, search, page = 1, limit = 50 } = req.query;
 
     const [semResults, rankings] = await Promise.all([
-      SemesterResult.find({}).lean(),
+      SemesterResult.find({}).sort({ semester: 1 }).lean(),
       Ranking.find({}).lean(),
     ]);
 
