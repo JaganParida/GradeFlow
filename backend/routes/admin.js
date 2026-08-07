@@ -14,6 +14,7 @@ const {
   calculateSemesterMetrics,
   calculateSGPA,
   sortByScore,
+  calculateBacklogs,
 } = require("../utils/gradeCalculations");
 
 const upload = multer({
@@ -1279,63 +1280,56 @@ router.get("/backlogs", protect, async (req, res) => {
 
     const VALID_BRANCHES = new Set(["CSE", "ECE", "ME", "CIVIL", "EEE", "BIO", "MI", "AERO"]);
 
+    // Group all semester results by regNo to run central backlog evaluation
+    const studentResultsMap = new Map();
     semResults.forEach((r) => {
       if (!r.regNo || !r.subjects || !r.subjects.length) return;
-
       const regNo = String(r.regNo).trim();
-      let b = String(r.batch || "").trim();
+      if (!studentResultsMap.has(regNo)) {
+        studentResultsMap.set(regNo, []);
+      }
+      studentResultsMap.get(regNo).push(r);
+    });
+
+    const studentBacklogMap = new Map();
+
+    studentResultsMap.forEach((userResults, regNo) => {
+      // Calculate backlogs using central gradeCalculations utility (identical to Student Dashboard)
+      const backlogs = calculateBacklogs(userResults);
+      if (!backlogs || !backlogs.length) return;
+
+      const latestResult = userResults[userResults.length - 1] || userResults[0];
+      let b = String(latestResult.batch || "").trim();
       if (!b && /^\d{2}/.test(regNo)) {
         b = `20${regNo.slice(0, 2)}`;
       }
 
-      // Detect clean branch
       let br = detectBranch(regNo);
-      if ((br === "OTHER" || br === "UNKNOWN") && r.branch && VALID_BRANCHES.has(String(r.branch).trim().toUpperCase())) {
-        br = String(r.branch).trim().toUpperCase();
+      if ((br === "OTHER" || br === "UNKNOWN") && latestResult.branch && VALID_BRANCHES.has(String(latestResult.branch).trim().toUpperCase())) {
+        br = String(latestResult.branch).trim().toUpperCase();
       }
 
-      // Detect clean section
       let rawSec = getSectionFromRegNo(regNo);
       if (rawSec && !rawSec.startsWith("Sec")) rawSec = `Sec ${rawSec}`;
 
-      // Find subjects with failed grades or gradePoint 0
-      const backlogs = r.subjects.filter((sub) => {
-        const g = String(sub.grade || "").toUpperCase().trim();
-        return FAILED_GRADES.has(g) || sub.gradePoint === 0;
+      const rkInfo = studentRankingMap.get(regNo) || null;
+
+      const semBreakdown = {};
+      backlogs.forEach((sub) => {
+        const sNum = sub.semester || 1;
+        semBreakdown[sNum] = (semBreakdown[sNum] || 0) + 1;
       });
 
-      if (!backlogs.length) return;
-
-      if (!studentBacklogMap.has(regNo)) {
-        const rkInfo = studentRankingMap.get(regNo) || null;
-        studentBacklogMap.set(regNo, {
-          regNo,
-          studentName: r.studentName || "N/A",
-          branch: br,
-          batch: b,
-          section: rawSec,
-          totalBacklogs: 0,
-          semBreakdown: {},
-          backlogSubjects: [],
-          rankInfo: rkInfo,
-        });
-      }
-
-      const entry = studentBacklogMap.get(regNo);
-      if (r.studentName && entry.studentName === "N/A") entry.studentName = r.studentName;
-      if (br && br !== "OTHER" && br !== "UNKNOWN") entry.branch = br;
-
-      entry.totalBacklogs += backlogs.length;
-      entry.semBreakdown[r.semester] = (entry.semBreakdown[r.semester] || 0) + backlogs.length;
-
-      backlogs.forEach((sub) => {
-        entry.backlogSubjects.push({
-          semester: r.semester,
-          subCode: sub.subCode,
-          subName: sub.subName,
-          credit: sub.credit,
-          grade: sub.grade,
-        });
+      studentBacklogMap.set(regNo, {
+        regNo,
+        studentName: latestResult.studentName || "N/A",
+        branch: br,
+        batch: b,
+        section: rawSec,
+        totalBacklogs: backlogs.length,
+        semBreakdown,
+        backlogSubjects: backlogs,
+        rankInfo: rkInfo,
       });
     });
 
