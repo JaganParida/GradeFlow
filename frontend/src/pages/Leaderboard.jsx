@@ -123,9 +123,18 @@ export default function Leaderboard() {
     filters.branch,
   ]);
 
+  const leaderboardCacheRef = useRef(new Map());
+
   async function fetchRankings(f = filters) {
     if (f.sortBy === "sgpa" && !f.semester) {
       setRankings([]);
+      setLoading(false);
+      return;
+    }
+
+    const cacheKey = JSON.stringify(f);
+    if (leaderboardCacheRef.current.has(cacheKey)) {
+      setRankings(leaderboardCacheRef.current.get(cacheKey));
       setLoading(false);
       return;
     }
@@ -142,6 +151,7 @@ export default function Leaderboard() {
       params.append("limit", f.section ? "200" : "50");
       
       const { data } = await axios.get(`${API}/rankings/top?${params}`);
+      leaderboardCacheRef.current.set(cacheKey, data);
       setRankings(data);
     } catch {
       setRankings([]);

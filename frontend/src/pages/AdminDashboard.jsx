@@ -1456,6 +1456,26 @@ export default function AdminDashboard() {
       return;
     }
     fetchStats();
+
+    // Advanced anti-inspect & anti-tamper security shield
+    const handleContextMenu = (e) => e.preventDefault();
+    const handleKeyDown = (e) => {
+      if (
+        e.keyCode === 123 || // F12 Key
+        (e.ctrlKey && e.shiftKey && (e.keyCode === 73 || e.keyCode === 74 || e.keyCode === 67)) || // Ctrl+Shift+I/J/C
+        (e.ctrlKey && e.keyCode === 85) // Ctrl+U (View Source)
+      ) {
+        e.preventDefault();
+        e.stopPropagation();
+        return false;
+      }
+    };
+    window.addEventListener("contextmenu", handleContextMenu);
+    window.addEventListener("keydown", handleKeyDown);
+    return () => {
+      window.removeEventListener("contextmenu", handleContextMenu);
+      window.removeEventListener("keydown", handleKeyDown);
+    };
   }, [adminToken]);
 
   async function fetchStats() {
@@ -1920,8 +1940,8 @@ export default function AdminDashboard() {
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.2 }}
       >
-      {/* Upload Tab */}
-      {tab === "overview" && (
+      <div style={{ display: tab === "overview" ? "block" : "none" }}>
+        {/* Upload Tab */}
         <div
           style={{
             display: "grid",
@@ -2062,10 +2082,10 @@ export default function AdminDashboard() {
             ]}
           />
         </div>
-      )}
+      </div>
 
       {/* Rankings Tab */}
-      {tab === "rankings" && (
+      <div style={{ display: tab === "rankings" ? "block" : "none" }}>
         <div style={{ display: "flex", flexDirection: "column", gap: 20, maxWidth: 520 }}>
           <div className="card">
             <h3 style={{ fontWeight: 700, marginBottom: 4, display: "flex", alignItems: "center", gap: 8 }}>
@@ -2177,10 +2197,10 @@ export default function AdminDashboard() {
             </button>
           </div>
         </div>
-      )}
+      </div>
 
       {/* Manage / Delete Tab */}
-      {tab === "manage" && (
+      <div style={{ display: tab === "manage" ? "block" : "none" }}>
         <div
           style={{
             display: "grid",
@@ -2199,19 +2219,19 @@ export default function AdminDashboard() {
             onSuccess={fetchStats}
           />
         </div>
-      )}
+      </div>
 
       {/* Feedback Tab */}
-      {tab === "feedback" && (
+      <div style={{ display: tab === "feedback" ? "block" : "none" }}>
         <div style={{ maxWidth: 800 }}>
           <FeedbackManager authHeaders={authHeaders} API={API} />
         </div>
-      )}
+      </div>
 
       {/* Backlog Tracker Tab */}
-      {tab === "backlogs" && (
+      <div style={{ display: tab === "backlogs" ? "block" : "none" }}>
         <BacklogTrackerCard authHeaders={authHeaders} API={API} />
-      )}
+      </div>
 
       {/* Excel Format Guide */}
       <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="card" style={{ marginTop: 28 }}>
