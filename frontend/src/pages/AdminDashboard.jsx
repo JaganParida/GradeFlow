@@ -1397,9 +1397,8 @@ export default function AdminDashboard() {
           whileHover={{ scale: 1.02 }}
           whileTap={{ scale: 0.97 }}
           className="btn btn-danger"
-          onClick={() => {
-            adminLogout();
-            navigate("/admin");
+          onClick={async () => {
+            await adminLogout();
           }}
           style={{ display: "flex", alignItems: "center", gap: 6 }}
         >

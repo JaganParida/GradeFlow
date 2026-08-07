@@ -81,9 +81,10 @@ export function AppProvider({ children }) {
       await axios.post(`${API_BASE}/auth/logout`);
     } catch (err) {
       console.error("Logout error", err);
+    } finally {
+      setAdminToken(false);
+      navigate("/admin");
     }
-    setAdminToken(false);
-    navigate("/admin/login");
   };
 
   const logoutAdmin = adminLogout;

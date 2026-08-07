@@ -120,6 +120,7 @@ export default function App() {
         />
         <Route path="/testimonials" element={<Testimonials />} />
         <Route path="/admin" element={<AdminLogin />} />
+        <Route path="/admin/login" element={<AdminLogin />} />
         <Route path="/admin/dashboard" element={<AdminDashboard />} />
       </Routes>
     </>
