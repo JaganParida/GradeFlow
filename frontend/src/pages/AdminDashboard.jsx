@@ -4,7 +4,7 @@ import axios from "axios";
 import { useApp } from "../context/AppContext";
 import { Spinner } from "../components/LoadingSpinner";
 import { motion, AnimatePresence } from "framer-motion";
-import { Upload, Trash2, Settings, Users, FileText, FileEdit, Trophy, AlertTriangle, CheckCircle, FileSpreadsheet, LogOut, Database, CloudUpload, MessageSquare, Edit2, X, ChevronDown, ChevronUp, BookOpen, Search, Filter } from "lucide-react";
+import { Upload, Trash2, Settings, Users, FileText, FileEdit, Trophy, AlertTriangle, CheckCircle, FileSpreadsheet, LogOut, Database, CloudUpload, MessageSquare, Edit2, X, ChevronDown, ChevronUp, BookOpen, Search, Filter, HelpCircle, Info } from "lucide-react";
 
 function UploadCard({
   title,
@@ -903,6 +903,14 @@ function BacklogTrackerCard({ authHeaders, API }) {
         </div>
       </div>
 
+      {/* Real-time Backlog Sync Banner */}
+      <div style={{ background: "rgba(59, 130, 246, 0.08)", border: "1px solid rgba(59, 130, 246, 0.2)", borderRadius: 10, padding: "12px 16px", marginBottom: 20, fontSize: 12, color: "var(--text-secondary)", display: "flex", alignItems: "center", gap: 10 }}>
+        <Info size={18} color="#60a5fa" style={{ flexShrink: 0 }} />
+        <div>
+          <strong style={{ color: "#fff" }}>Automatic Live Backlog Sync:</strong> When you upload new Backlog or Rechecking Excel sheets, cleared backlogs are automatically updated and active backlog counts/lists update here in real time!
+        </div>
+      </div>
+
       {/* Filter Toggle Button & Collapsible Panel */}
       <div style={{ marginBottom: 20 }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
@@ -1496,6 +1504,41 @@ export default function AdminDashboard() {
               </div>
             </div>
           )}
+
+          {/* Active vs Inactive Students & System Sync Guide */}
+          <div className="card" style={{ padding: 20, marginTop: 20 }}>
+            <h4 style={{ fontSize: 14, fontWeight: 700, marginBottom: 14, display: "flex", alignItems: "center", gap: 8, margin: "0 0 14px 0" }}>
+              <HelpCircle size={16} color="var(--accent)" /> Admin System Guide: Active vs. Registered Students & Auto-Sync
+            </h4>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: 14 }}>
+              <div style={{ background: "rgba(59, 130, 246, 0.06)", border: "1px solid rgba(59, 130, 246, 0.2)", borderRadius: 10, padding: 12 }}>
+                <div style={{ fontWeight: 700, color: "#60a5fa", marginBottom: 4, fontSize: 13, display: "flex", alignItems: "center", gap: 6 }}>
+                  🏆 Active Ranked Students (Leaderboard)
+                </div>
+                <p style={{ fontSize: 12, color: "var(--text-secondary)", lineHeight: 1.5, margin: 0 }}>
+                  Students who have official semester results uploaded. They have calculated SGPA/CGPA and appear on University & Branch Leaderboards.
+                </p>
+              </div>
+
+              <div style={{ background: "rgba(245, 158, 11, 0.06)", border: "1px solid rgba(245, 158, 11, 0.2)", borderRadius: 10, padding: 12 }}>
+                <div style={{ fontWeight: 700, color: "#fbbf24", marginBottom: 4, fontSize: 13, display: "flex", alignItems: "center", gap: 6 }}>
+                  ℹ️ Registered / Inactive Students
+                </div>
+                <p style={{ fontSize: 12, color: "var(--text-secondary)", lineHeight: 1.5, margin: 0 }}>
+                  Students stored in DB (e.g. from internal marks or roll list) without semester exam results yet. Once their semester results are uploaded, they automatically become <strong>Active</strong>!
+                </p>
+              </div>
+
+              <div style={{ background: "rgba(16, 185, 129, 0.06)", border: "1px solid rgba(16, 185, 129, 0.2)", borderRadius: 10, padding: 12 }}>
+                <div style={{ fontWeight: 700, color: "#34d399", marginBottom: 4, fontSize: 13, display: "flex", alignItems: "center", gap: 6 }}>
+                  ⚡ Live Excel Auto-Update
+                </div>
+                <p style={{ fontSize: 12, color: "var(--text-secondary)", lineHeight: 1.5, margin: 0 }}>
+                  Whenever you upload any Excel file (Results, Internal Marks, or Backlogs), all batch stats, semester breakdowns, leaderboards, and backlog lists update automatically!
+                </p>
+              </div>
+            </div>
+          </div>
         </div>
       )}
 
