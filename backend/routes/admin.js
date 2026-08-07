@@ -1275,9 +1275,6 @@ router.get("/backlogs", protect, async (req, res) => {
       }
     });
 
-    const FAILED_GRADES = new Set(["F", "R", "M", "S"]);
-    const studentBacklogMap = new Map();
-
     const VALID_BRANCHES = new Set(["CSE", "ECE", "ME", "CIVIL", "EEE", "BIO", "MI", "AERO"]);
 
     // Group all semester results by regNo to run central backlog evaluation
