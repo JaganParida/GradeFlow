@@ -1206,11 +1206,103 @@ router.get("/stats", protect, async (req, res) => {
       Ranking.countDocuments(),
     ]);
     const uniqueStudents = await SemesterResult.distinct("regNo");
+
+    const semResults = await SemesterResult.find({}, "regNo batch semester").lean();
+    const rankings = await Ranking.find({}, "regNo batch semester").lean();
+    const internalMarks = await InternalMark.find({}, "regNo batch semester").lean();
+
+    const batchMap = new Map();
+
+    semResults.forEach((r) => {
+      let b = String(r.batch || "").trim();
+      if (!b && r.regNo && /^\d{2}/.test(r.regNo)) {
+        b = `20${r.regNo.slice(0, 2)}`;
+      }
+      if (!b) b = "Other";
+
+      if (!batchMap.has(b)) {
+        batchMap.set(b, {
+          batch: b,
+          studentsSet: new Set(),
+          rankedStudentsSet: new Set(),
+          totalResults: 0,
+          totalInternal: 0,
+          totalRankings: 0,
+        });
+      }
+      const entry = batchMap.get(b);
+      if (r.regNo) entry.studentsSet.add(r.regNo);
+      entry.totalResults++;
+    });
+
+    internalMarks.forEach((m) => {
+      let b = String(m.batch || "").trim();
+      if (!b && m.regNo && /^\d{2}/.test(m.regNo)) {
+        b = `20${m.regNo.slice(0, 2)}`;
+      }
+      if (!b) b = "Other";
+
+      if (!batchMap.has(b)) {
+        batchMap.set(b, {
+          batch: b,
+          studentsSet: new Set(),
+          rankedStudentsSet: new Set(),
+          totalResults: 0,
+          totalInternal: 0,
+          totalRankings: 0,
+        });
+      }
+      const entry = batchMap.get(b);
+      if (m.regNo) entry.studentsSet.add(m.regNo);
+      entry.totalInternal++;
+    });
+
+    rankings.forEach((rk) => {
+      let b = String(rk.batch || "").trim();
+      if (!b && rk.regNo && /^\d{2}/.test(rk.regNo)) {
+        b = `20${rk.regNo.slice(0, 2)}`;
+      }
+      if (!b) b = "Other";
+
+      if (!batchMap.has(b)) {
+        batchMap.set(b, {
+          batch: b,
+          studentsSet: new Set(),
+          rankedStudentsSet: new Set(),
+          totalResults: 0,
+          totalInternal: 0,
+          totalRankings: 0,
+        });
+      }
+      const entry = batchMap.get(b);
+      if (rk.regNo) {
+        entry.studentsSet.add(rk.regNo);
+        entry.rankedStudentsSet.add(rk.regNo);
+      }
+      entry.totalRankings++;
+    });
+
+    const batchBreakdown = Array.from(batchMap.values())
+      .map((item) => ({
+        batch: item.batch,
+        totalStudents: item.studentsSet.size,
+        totalRankedStudents: item.rankedStudentsSet.size,
+        totalResults: item.totalResults,
+        totalInternal: item.totalInternal,
+        totalRankings: item.totalRankings,
+      }))
+      .sort((a, b) => {
+        if (a.batch === "Other") return 1;
+        if (b.batch === "Other") return -1;
+        return Number(b.batch) - Number(a.batch);
+      });
+
     res.json({
       totalStudents: uniqueStudents.length,
       totalResults,
       totalInternal,
       totalRankings,
+      batchBreakdown,
     });
   } catch (err) {
     console.error("Stats error:", err);

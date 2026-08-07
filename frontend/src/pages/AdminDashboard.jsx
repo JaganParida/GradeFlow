@@ -857,6 +857,8 @@ export default function AdminDashboard() {
   const [clearCacheLoading, setClearCacheLoading] = useState(false);
   const [tab, setTab] = useState("overview");
 
+  const [selectedBatchFilter, setSelectedBatchFilter] = useState("all");
+
   useEffect(() => {
     if (!adminToken) {
       navigate("/admin");
@@ -964,39 +966,176 @@ export default function AdminDashboard() {
         </motion.button>
       </div>
 
-      {/* Stats */}
+      {/* Batch Filter Pills & Stats */}
       {stats && (
-        <div className="grid-4" style={{ marginBottom: 28 }}>
-          {[
-            { label: "Students", value: stats.totalStudents, icon: <Users size={16} /> },
-            {
-              label: "Semester Results",
-              value: stats.totalResults,
-              icon: <FileText size={16} />,
-            },
-            {
-              label: "Internal Records",
-              value: stats.totalInternal,
-              icon: <FileEdit size={16} />,
-            },
-            { label: "Rankings", value: stats.totalRankings, icon: <Trophy size={16} /> },
-          ].map((s, i) => (
-            <motion.div 
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.3, ease: "easeOut" }}
-              whileHover={{ y: -4 }}
-              className="stat-card" 
-              key={s.label}
-            >
-              <span className="label" style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                {s.icon} {s.label}
+        <div style={{ marginBottom: 28 }}>
+          {/* Batch Selector Pills */}
+          {stats.batchBreakdown && stats.batchBreakdown.length > 0 && (
+            <div style={{ marginBottom: 16, display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+              <span style={{ fontSize: 13, fontWeight: 700, color: "var(--text-muted)", marginRight: 4 }}>
+                Filter Stats:
               </span>
-              <span className="value" style={{ color: "var(--accent)" }}>
-                {s.value?.toLocaleString()}
-              </span>
-            </motion.div>
-          ))}
+              <button
+                onClick={() => setSelectedBatchFilter("all")}
+                style={{
+                  padding: "6px 14px",
+                  borderRadius: 20,
+                  fontSize: 12,
+                  fontWeight: 700,
+                  cursor: "pointer",
+                  border: selectedBatchFilter === "all" ? "1px solid var(--accent)" : "1px solid var(--border)",
+                  background: selectedBatchFilter === "all" ? "rgba(59, 130, 246, 0.2)" : "rgba(255,255,255,0.04)",
+                  color: selectedBatchFilter === "all" ? "#60a5fa" : "var(--text-secondary)",
+                  transition: "all 0.2s",
+                }}
+              >
+                All Batches ({stats.totalStudents?.toLocaleString()})
+              </button>
+              {stats.batchBreakdown.map((b) => (
+                <button
+                  key={b.batch}
+                  onClick={() => setSelectedBatchFilter(b.batch)}
+                  style={{
+                    padding: "6px 14px",
+                    borderRadius: 20,
+                    fontSize: 12,
+                    fontWeight: 700,
+                    cursor: "pointer",
+                    border: selectedBatchFilter === b.batch ? "1px solid var(--accent)" : "1px solid var(--border)",
+                    background: selectedBatchFilter === b.batch ? "rgba(59, 130, 246, 0.2)" : "rgba(255,255,255,0.04)",
+                    color: selectedBatchFilter === b.batch ? "#60a5fa" : "var(--text-secondary)",
+                    transition: "all 0.2s",
+                  }}
+                >
+                  Batch {b.batch} ({b.totalStudents} Reg / {b.totalRankedStudents} Active)
+                </button>
+              ))}
+            </div>
+          )}
+
+          {/* Cards */}
+          {(() => {
+            const activeBatch = stats.batchBreakdown?.find((b) => b.batch === selectedBatchFilter);
+            const isFiltered = selectedBatchFilter !== "all" && activeBatch;
+
+            const displayStudents = isFiltered
+              ? `${activeBatch.totalStudents} (${activeBatch.totalRankedStudents} Active)`
+              : stats.totalStudents?.toLocaleString();
+
+            const displayResults = isFiltered
+              ? activeBatch.totalResults?.toLocaleString()
+              : stats.totalResults?.toLocaleString();
+
+            const displayInternal = isFiltered
+              ? activeBatch.totalInternal?.toLocaleString()
+              : stats.totalInternal?.toLocaleString();
+
+            const displayRankings = isFiltered
+              ? activeBatch.totalRankings?.toLocaleString()
+              : stats.totalRankings?.toLocaleString();
+
+            return (
+              <div className="grid-4" style={{ marginBottom: 20 }}>
+                {[
+                  {
+                    label: isFiltered ? `Students (Batch ${selectedBatchFilter})` : "Total Registered Students",
+                    value: displayStudents,
+                    icon: <Users size={16} />,
+                  },
+                  {
+                    label: isFiltered ? `Results (Batch ${selectedBatchFilter})` : "Semester Results",
+                    value: displayResults,
+                    icon: <FileText size={16} />,
+                  },
+                  {
+                    label: isFiltered ? `Internal Records (Batch ${selectedBatchFilter})` : "Internal Records",
+                    value: displayInternal,
+                    icon: <FileEdit size={16} />,
+                  },
+                  {
+                    label: isFiltered ? `Rankings (Batch ${selectedBatchFilter})` : "Generated Rankings",
+                    value: displayRankings,
+                    icon: <Trophy size={16} />,
+                  },
+                ].map((s) => (
+                  <motion.div
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.3, ease: "easeOut" }}
+                    whileHover={{ y: -4 }}
+                    className="stat-card"
+                    key={s.label}
+                  >
+                    <span className="label" style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                      {s.icon} {s.label}
+                    </span>
+                    <span className="value" style={{ color: "var(--accent)", fontSize: isFiltered ? 18 : 22 }}>
+                      {s.value}
+                    </span>
+                  </motion.div>
+                ))}
+              </div>
+            );
+          })()}
+
+          {/* Batch-wise Breakdown Table Card */}
+          {stats.batchBreakdown && stats.batchBreakdown.length > 0 && (
+            <div className="card" style={{ padding: 18, marginTop: 12 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
+                <h4 style={{ fontSize: 14, fontWeight: 700, display: "flex", alignItems: "center", gap: 8, margin: 0 }}>
+                  <Users size={16} color="var(--accent)" /> Batch-Wise Active Student & Ranking Breakdown
+                </h4>
+                <span style={{ fontSize: 11, color: "var(--text-muted)" }}>
+                  Shows Registered vs Active Ranked Students on Leaderboard
+                </span>
+              </div>
+              <div style={{ overflowX: "auto" }}>
+                <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
+                  <thead>
+                    <tr style={{ borderBottom: "1px solid var(--border)", textAlign: "left" }}>
+                      <th style={{ padding: "8px 10px", color: "var(--text-muted)" }}>Batch Year</th>
+                      <th style={{ padding: "8px 10px", color: "var(--text-muted)" }}>Total Registered Students</th>
+                      <th style={{ padding: "8px 10px", color: "var(--text-muted)" }}>Active Ranked Students (Leaderboard)</th>
+                      <th style={{ padding: "8px 10px", color: "var(--text-muted)" }}>Uploaded Results</th>
+                      <th style={{ padding: "8px 10px", color: "var(--text-muted)" }}>Internal Marks</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {stats.batchBreakdown.map((b) => (
+                      <tr key={b.batch} style={{ borderBottom: "1px solid rgba(255,255,255,0.04)" }}>
+                        <td style={{ padding: "10px", fontWeight: 700 }}>
+                          <span
+                            style={{
+                              background: "rgba(59, 130, 246, 0.15)",
+                              color: "#60a5fa",
+                              padding: "3px 10px",
+                              borderRadius: 12,
+                              fontSize: 11,
+                              border: "1px solid rgba(59, 130, 246, 0.3)",
+                            }}
+                          >
+                            Batch {b.batch}
+                          </span>
+                        </td>
+                        <td style={{ padding: "10px", fontWeight: 700, color: "var(--text-primary)" }}>
+                          {b.totalStudents?.toLocaleString()}
+                        </td>
+                        <td style={{ padding: "10px", fontWeight: 700, color: "#3ea6ff" }}>
+                          🏆 {b.totalRankedStudents?.toLocaleString()} Active Ranked
+                        </td>
+                        <td style={{ padding: "10px", color: "var(--text-secondary)" }}>
+                          {b.totalResults?.toLocaleString()}
+                        </td>
+                        <td style={{ padding: "10px", color: "var(--text-secondary)" }}>
+                          {b.totalInternal?.toLocaleString()}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
         </div>
       )}
 
