@@ -1048,6 +1048,10 @@ router.post(
         );
         count++;
       }
+
+      // Invalidate cache for uploaded students so internal marks display live immediately
+      Object.keys(grouped).forEach((k) => clearStudentCache(grouped[k].regNo));
+
       res.json({
         message: `✅ Uploaded internal marks for ${count} student(s)`,
       });
