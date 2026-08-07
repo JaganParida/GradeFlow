@@ -11,7 +11,7 @@ export default function Leaderboard() {
   const location = useLocation();
   const [rankings, setRankings] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [meta, setMeta] = useState({ semesters: [], branches: [] });
+  const [meta, setMeta] = useState({ semesters: [], branches: [], batches: [] });
   const [showCount, setShowCount] = useState(10);
   const tableShellRef = useRef(null);
   const tableInnerRef = useRef(null);
@@ -23,6 +23,7 @@ export default function Leaderboard() {
     semester: "",
     branch: "",
     section: "",
+    batch: "",
     search: "",
     sortBy: "sgpa",
   });
@@ -134,6 +135,7 @@ export default function Leaderboard() {
       const params = new URLSearchParams();
       if (f.semester) params.append("semester", f.semester);
       if (f.branch) params.append("branch", f.branch);
+      if (f.batch) params.append("batch", f.batch);
       if (f.search) params.append("search", f.search);
       if (f.sortBy) params.append("sortBy", f.sortBy);
       if (f.section && f.branch === "CSE") params.append("section", f.section);
@@ -257,6 +259,22 @@ export default function Leaderboard() {
             {meta.semesters.map((s) => (
               <option key={s} value={s}>
                 Semester {s}
+              </option>
+            ))}
+          </select>
+        )}
+
+        {meta.batches && meta.batches.length > 0 && (
+          <select
+            className="leaderboard-filter-select"
+            value={filters.batch}
+            onChange={(e) => handleFilter("batch", e.target.value)}
+            style={{ width: 140, flexShrink: 0 }}
+          >
+            <option value="">All Batches</option>
+            {meta.batches.map((b) => (
+              <option key={b} value={b}>
+                Batch {b}
               </option>
             ))}
           </select>

@@ -43,7 +43,7 @@ function getSectionFromRegNo(regNo) {
   const r = String(regNo).trim();
   if (r === "230301180026") return "I";
   
-  if (r.startsWith("230301120")) {
+  if (/^\d{2}0301120/.test(r)) {
      const num = parseInt(r.slice(-3), 10);
      if (num >= 1 && num <= 60) return "A";
      if (num >= 61 && num <= 120) return "B";
@@ -56,6 +56,15 @@ function getSectionFromRegNo(regNo) {
      if (num >= 481 && num <= 549) return "I";
   }
   return "J";
+}
+
+function detectBatch(regNo) {
+  if (!regNo) return "";
+  const r = String(regNo).trim();
+  if (/^\d{2}/.test(r)) {
+    return `20${r.slice(0, 2)}`;
+  }
+  return "";
 }
 
 // Helper to generate rankings for a specific semester
@@ -217,19 +226,31 @@ router.post(
           return "ECE";
         if (r === "230301231033") return "AERO";
 
-        // Prefixes
-        if (r.startsWith("230301110") || r.startsWith("230301111"))
+        // Dynamic Suffix Matching (works for any batch YY)
+        const suffix = r.length >= 9 ? r.slice(2) : r;
+
+        if (suffix.startsWith("0301110") || suffix.startsWith("0301111"))
           return "CIVIL";
-        if (r.startsWith("230301120") || r.startsWith("230301121"))
+        if (suffix.startsWith("0301120") || suffix.startsWith("0301121"))
           return "CSE";
         if (
-          r.startsWith("230301130") ||
-          r.startsWith("230301131") ||
-          r.startsWith("230301132")
+          suffix.startsWith("0301130") ||
+          suffix.startsWith("0301131") ||
+          suffix.startsWith("0301132")
         )
           return "ECE";
-        if (r.startsWith("230301150") || r.startsWith("230301151"))
+        if (suffix.startsWith("0301150") || suffix.startsWith("0301151"))
           return "EEE";
+        if (suffix.startsWith("0301160") || suffix.startsWith("0301161")) return "ME";
+        if (suffix.startsWith("0301180")) return "BIO";
+        if (suffix.startsWith("0301190") || suffix.startsWith("0301191")) return "MI";
+        if (suffix.startsWith("0301230")) return "AERO";
+
+        // Fallbacks
+        if (r.startsWith("230301110") || r.startsWith("230301111")) return "CIVIL";
+        if (r.startsWith("230301120") || r.startsWith("230301121")) return "CSE";
+        if (r.startsWith("230301130") || r.startsWith("230301131") || r.startsWith("230301132")) return "ECE";
+        if (r.startsWith("230301150") || r.startsWith("230301151")) return "EEE";
         if (r.startsWith("230301160") || r.startsWith("230301161")) return "ME";
         if (r.startsWith("230301180")) return "BIO";
         if (r.startsWith("230301190") || r.startsWith("230301191")) return "MI";
@@ -306,7 +327,10 @@ router.post(
           const semRaw =
             formSemester || col(row, "Semester", "semester", "Sem", "sem");
           let semester = Number(semRaw);
-          const batch = String(formBatch || col(row, "Batch", "batch") || "");
+          let batch = detectBatch(regNo);
+          if (!batch) {
+            batch = String(formBatch || col(row, "Batch", "batch") || "");
+          }
 
           let branch = detectBranch(regNo);
           if (!branch) {
@@ -884,6 +908,10 @@ router.post(
           const branch = String(sheetName || "").trim();
           const program = String(formProgram || "").trim();
           const session = String(formSession || "").trim();
+          let batch = detectBatch(regNo);
+          if (!batch) {
+            batch = String(formBatch || col(row, "Batch", "batch") || "");
+          }
 
           const key = `${regNo}_${semester}`;
           if (!grouped[key]) {
@@ -891,6 +919,7 @@ router.post(
               regNo,
               studentName: name,
               branch,
+              batch,
               program,
               session,
               semester,

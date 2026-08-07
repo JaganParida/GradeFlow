@@ -13,32 +13,32 @@ function getRegNoQueryForBranch(branch) {
   if (b === "CSE") {
     return {
       $and: [
-        { $or: [{ regNo: /^23030112[01]/ }, { regNo: "230301180026" }] },
+        { $or: [{ regNo: /^\d{2}030112[01]/ }, { regNo: "230301180026" }] },
         { regNo: { $nin: ["230301120110", "230301120186", "230301120371", "230301120481"] } }
       ]
     };
   }
-  if (b === "CIVIL") return { regNo: /^23030111[01]/ };
-  if (b === "ME") return { regNo: /^23030116[01]/ };
+  if (b === "CIVIL") return { regNo: /^\d{2}030111[01]/ };
+  if (b === "ME") return { regNo: /^\d{2}030116[01]/ };
   if (b === "ECE") {
     return {
       $or: [
-        { regNo: /^23030113[012]/ },
+        { regNo: /^\d{2}030113[012]/ },
         { regNo: { $in: ["230301120110", "230301120186", "230301120371", "230301120481"] } }
       ]
     };
   }
-  if (b === "EEE") return { regNo: /^23030115[01]/ };
-  if (b === "BIO") return { regNo: { $regex: /^230301180/, $ne: "230301180026" } };
-  if (b === "MI") return { regNo: /^23030119[01]/ };
-  if (b === "AERO") return { $or: [{ regNo: /^230301230/ }, { regNo: "230301231033" }] };
+  if (b === "EEE") return { regNo: /^\d{2}030115[01]/ };
+  if (b === "BIO") return { regNo: { $regex: /^\d{2}0301180/, $ne: "230301180026" } };
+  if (b === "MI") return { regNo: /^\d{2}030119[01]/ };
+  if (b === "AERO") return { $or: [{ regNo: /^\d{2}0301230/ }, { regNo: "230301231033" }] };
   return null;
 }
 
 function getSectionFromRegNo(regNo) {
   if (regNo === "230301180026") return "I";
   
-  if (regNo.startsWith("230301120")) {
+  if (/^\d{2}0301120/.test(regNo)) {
      const num = parseInt(regNo.slice(-3), 10);
      if (num >= 1 && num <= 60) return "A";
      if (num >= 61 && num <= 120) return "B";
@@ -56,12 +56,13 @@ function getSectionFromRegNo(regNo) {
 // Top 50 rankers
 router.get("/top", async (req, res) => {
   try {
-    const { semester, branch, search, limit = 50, sortBy = "sgpa", section } = req.query;
+    const { semester, branch, search, limit = 50, sortBy = "sgpa", section, batch } = req.query;
     const query = {};
     const andClauses = [];
     const maxRank = Math.max(1, Number(limit) || 50);
 
     if (semester) query.semester = Number(semester);
+    if (batch) query.batch = batch;
     
     if (branch) {
       const bq = getRegNoQueryForBranch(branch);
@@ -164,8 +165,13 @@ router.get("/top", async (req, res) => {
 router.get("/meta", async (req, res) => {
   try {
     const semesters = await Ranking.distinct("semester", { sgpa: { $gt: 0 } });
+    const batches = await Ranking.distinct("batch", { batch: { $ne: null } });
     const branches = ["CSE", "CIVIL", "ME", "ECE", "EEE", "BIO", "MI", "AERO"];
-    res.json({ semesters: semesters.sort(), branches });
+    res.json({
+      semesters: semesters.sort((a, b) => Number(a) - Number(b)),
+      batches: batches.filter(Boolean).sort(),
+      branches
+    });
   } catch (err) {
     console.error("Rankings meta error:", err.message);
     res.status(500).json({ message: "Server error" });
