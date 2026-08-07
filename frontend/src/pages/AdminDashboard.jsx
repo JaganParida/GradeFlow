@@ -883,25 +883,126 @@ function BacklogTrackerCard({ authHeaders, API }) {
   return (
     <div style={{ width: "100%" }}>
       {/* Header Summary Cards */}
-      <div className="grid-2" style={{ marginBottom: 20, gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: 16 }}>
-        <div className="stat-card" style={{ borderLeft: "4px solid #ef4444" }}>
-          <span className="label" style={{ display: "flex", alignItems: "center", gap: 6 }}>
-            <AlertTriangle size={16} color="#ef4444" /> Students With Backlogs
-          </span>
-          <span className="value" style={{ color: "#ef4444" }}>
-            {data.totalStudentsWithBacklogs?.toLocaleString()} Students
-          </span>
-        </div>
+      {(() => {
+        const filterLabels = [];
+        if (batch) filterLabels.push(`Batch ${batch}`);
+        if (branch) filterLabels.push(`Branch ${branch}`);
+        if (semester) filterLabels.push(`Sem ${semester}`);
+        if (search) filterLabels.push(`"${search}"`);
 
-        <div className="stat-card" style={{ borderLeft: "4px solid #f59e0b" }}>
-          <span className="label" style={{ display: "flex", alignItems: "center", gap: 6 }}>
-            <BookOpen size={16} color="#f59e0b" /> Total Backlog Subjects
-          </span>
-          <span className="value" style={{ color: "#f59e0b" }}>
-            {data.totalBacklogsCount?.toLocaleString()} Backlogs
-          </span>
+        const filterSuffix = filterLabels.length > 0 ? ` (${filterLabels.join(" · ")})` : "";
+
+        return (
+          <div className="grid-2" style={{ marginBottom: 20, gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: 16 }}>
+            <div className="stat-card" style={{ borderLeft: "4px solid #ef4444" }}>
+              <span className="label" style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                <AlertTriangle size={16} color="#ef4444" /> Students With Backlogs{filterSuffix}
+              </span>
+              <span className="value" style={{ color: "#ef4444" }}>
+                {data.totalStudentsWithBacklogs?.toLocaleString()} Students
+              </span>
+            </div>
+
+            <div className="stat-card" style={{ borderLeft: "4px solid #f59e0b" }}>
+              <span className="label" style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                <BookOpen size={16} color="#f59e0b" /> Total Backlog Subjects{filterSuffix}
+              </span>
+              <span className="value" style={{ color: "#f59e0b" }}>
+                {data.totalBacklogsCount?.toLocaleString()} Backlogs
+              </span>
+            </div>
+          </div>
+        );
+      })()}
+
+      {/* Branch & Semester Breakdown Quick Filters */}
+      {((data.branchBreakdown && data.branchBreakdown.length > 0) || (data.semBreakdownSummary && data.semBreakdownSummary.length > 0)) && (
+        <div className="card" style={{ padding: 14, marginBottom: 20, display: "flex", flexDirection: "column", gap: 10 }}>
+          {/* Branch Pills */}
+          {data.branchBreakdown && data.branchBreakdown.length > 0 && (
+            <div style={{ display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center" }}>
+              <span style={{ fontSize: 11, fontWeight: 700, color: "var(--text-muted)", marginRight: 4, textTransform: "uppercase" }}>
+                Branch-Wise:
+              </span>
+              <button
+                onClick={() => setBranch("")}
+                style={{
+                  padding: "3px 10px",
+                  borderRadius: 12,
+                  fontSize: 11,
+                  fontWeight: 700,
+                  cursor: "pointer",
+                  border: !branch ? "1px solid var(--accent)" : "1px solid var(--border)",
+                  background: !branch ? "rgba(59, 130, 246, 0.2)" : "rgba(255,255,255,0.04)",
+                  color: !branch ? "#60a5fa" : "var(--text-secondary)",
+                }}
+              >
+                All Branches
+              </button>
+              {data.branchBreakdown.map((br) => (
+                <button
+                  key={br.branch}
+                  onClick={() => setBranch(branch === br.branch ? "" : br.branch)}
+                  style={{
+                    padding: "3px 10px",
+                    borderRadius: 12,
+                    fontSize: 11,
+                    fontWeight: 700,
+                    cursor: "pointer",
+                    border: branch === br.branch ? "1px solid var(--accent)" : "1px solid var(--border)",
+                    background: branch === br.branch ? "rgba(59, 130, 246, 0.2)" : "rgba(255,255,255,0.04)",
+                    color: branch === br.branch ? "#60a5fa" : "var(--text-secondary)",
+                  }}
+                >
+                  {br.branch} ({br.studentCount} Std / {br.backlogCount} Bklg)
+                </button>
+              ))}
+            </div>
+          )}
+
+          {/* Semester Pills */}
+          {data.semBreakdownSummary && data.semBreakdownSummary.length > 0 && (
+            <div style={{ display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center" }}>
+              <span style={{ fontSize: 11, fontWeight: 700, color: "var(--text-muted)", marginRight: 4, textTransform: "uppercase" }}>
+                Semester-Wise:
+              </span>
+              <button
+                onClick={() => setSemester("")}
+                style={{
+                  padding: "3px 10px",
+                  borderRadius: 12,
+                  fontSize: 11,
+                  fontWeight: 700,
+                  cursor: "pointer",
+                  border: !semester ? "1px solid #f59e0b" : "1px solid var(--border)",
+                  background: !semester ? "rgba(245, 158, 11, 0.2)" : "rgba(255,255,255,0.04)",
+                  color: !semester ? "#fbbf24" : "var(--text-secondary)",
+                }}
+              >
+                All Semesters
+              </button>
+              {data.semBreakdownSummary.map((sm) => (
+                <button
+                  key={sm.semester}
+                  onClick={() => setSemester(semester === String(sm.semester) ? "" : String(sm.semester))}
+                  style={{
+                    padding: "3px 10px",
+                    borderRadius: 12,
+                    fontSize: 11,
+                    fontWeight: 700,
+                    cursor: "pointer",
+                    border: semester === String(sm.semester) ? "1px solid #f59e0b" : "1px solid var(--border)",
+                    background: semester === String(sm.semester) ? "rgba(245, 158, 11, 0.2)" : "rgba(255,255,255,0.04)",
+                    color: semester === String(sm.semester) ? "#fbbf24" : "var(--text-secondary)",
+                  }}
+                >
+                  Sem {sm.semester} ({sm.studentCount} Std / {sm.backlogCount} Bklg)
+                </button>
+              ))}
+            </div>
+          )}
         </div>
-      </div>
+      )}
 
       {/* Real-time Backlog Sync Banner */}
       <div style={{ background: "rgba(59, 130, 246, 0.08)", border: "1px solid rgba(59, 130, 246, 0.2)", borderRadius: 10, padding: "12px 16px", marginBottom: 20, fontSize: 12, color: "var(--text-secondary)", display: "flex", alignItems: "center", gap: 10 }}>

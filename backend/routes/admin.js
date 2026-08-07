@@ -1278,9 +1278,37 @@ router.get("/backlogs", protect, async (req, res) => {
     studentList.sort((a, b) => b.totalBacklogs - a.totalBacklogs);
     const boundedList = studentList.slice(0, Number(limit) || 100);
 
+    const branchMap = new Map();
+    const semMap = new Map();
+
+    studentList.forEach((s) => {
+      const br = s.branch || "Other";
+      if (!branchMap.has(br)) {
+        branchMap.set(br, { branch: br, studentCount: 0, backlogCount: 0 });
+      }
+      const brEntry = branchMap.get(br);
+      brEntry.studentCount++;
+      brEntry.backlogCount += s.totalBacklogs;
+
+      Object.entries(s.semBreakdown || {}).forEach(([semNum, count]) => {
+        const sNum = Number(semNum);
+        if (!semMap.has(sNum)) {
+          semMap.set(sNum, { semester: sNum, studentCount: 0, backlogCount: 0 });
+        }
+        const semEntry = semMap.get(sNum);
+        semEntry.studentCount++;
+        semEntry.backlogCount += count;
+      });
+    });
+
+    const branchBreakdown = Array.from(branchMap.values()).sort((a, b) => b.backlogCount - a.backlogCount);
+    const semBreakdownSummary = Array.from(semMap.values()).sort((a, b) => a.semester - b.semester);
+
     res.json({
       totalStudentsWithBacklogs: studentList.length,
       totalBacklogsCount: studentList.reduce((acc, s) => acc + s.totalBacklogs, 0),
+      branchBreakdown,
+      semBreakdownSummary,
       students: boundedList,
     });
   } catch (err) {
