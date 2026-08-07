@@ -94,7 +94,19 @@ export function AppProvider({ children }) {
   // ─── Student Fetch with Silent Exponential Backoff ────────────────
   // On 429 / 502 / 503 the request is retried silently behind a spinner
   // (1s → 2s → 4s → 8s). Users just see the loading state — no scary error.
-  const fetchStudent = async (regNo, retries = 4, backoffMs = 1000) => {
+  const fetchStudent = async (regNo, retries = 4, backoffMs = 1000, forceRefresh = false) => {
+    // Reuse existing in-memory/sessionStorage student data instantly to prevent tab switch loading spinners
+    if (!forceRefresh && studentData && studentData.regNo === regNo) {
+      setLoading(false);
+      return true;
+    }
+    const cached = getCachedStudentData();
+    if (!forceRefresh && cached && cached.regNo === regNo) {
+      setStudentData(cached);
+      setLoading(false);
+      return true;
+    }
+
     // Only set loading on first call (not during a silent retry)
     if (backoffMs === 1000) {
       setLoading(true);
