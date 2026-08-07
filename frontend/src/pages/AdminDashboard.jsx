@@ -922,9 +922,51 @@ function BacklogTrackerCard({ authHeaders, API }) {
         );
       })()}
 
-      {/* Branch & Semester Breakdown Quick Filters */}
-      {((data.branchBreakdown && data.branchBreakdown.length > 0) || (data.semBreakdownSummary && data.semBreakdownSummary.length > 0)) && (
+      {/* Batch, Branch & Semester Breakdown Quick Filters */}
+      {((data.batchBreakdownSummary && data.batchBreakdownSummary.length > 0) || (data.branchBreakdown && data.branchBreakdown.length > 0) || (data.semBreakdownSummary && data.semBreakdownSummary.length > 0)) && (
         <div className="card" style={{ padding: 14, marginBottom: 20, display: "flex", flexDirection: "column", gap: 10 }}>
+          {/* Batch Pills */}
+          {data.batchBreakdownSummary && data.batchBreakdownSummary.length > 0 && (
+            <div style={{ display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center" }}>
+              <span style={{ fontSize: 11, fontWeight: 700, color: "var(--text-muted)", marginRight: 4, textTransform: "uppercase" }}>
+                Batch-Wise:
+              </span>
+              <button
+                onClick={() => setBatch("")}
+                style={{
+                  padding: "3px 10px",
+                  borderRadius: 12,
+                  fontSize: 11,
+                  fontWeight: 700,
+                  cursor: "pointer",
+                  border: !batch ? "1px solid #10b981" : "1px solid var(--border)",
+                  background: !batch ? "rgba(16, 185, 129, 0.2)" : "rgba(255,255,255,0.04)",
+                  color: !batch ? "#34d399" : "var(--text-secondary)",
+                }}
+              >
+                All Batches
+              </button>
+              {data.batchBreakdownSummary.map((bt) => (
+                <button
+                  key={bt.batch}
+                  onClick={() => setBatch(batch === bt.batch ? "" : bt.batch)}
+                  style={{
+                    padding: "3px 10px",
+                    borderRadius: 12,
+                    fontSize: 11,
+                    fontWeight: 700,
+                    cursor: "pointer",
+                    border: batch === bt.batch ? "1px solid #10b981" : "1px solid var(--border)",
+                    background: batch === bt.batch ? "rgba(16, 185, 129, 0.2)" : "rgba(255,255,255,0.04)",
+                    color: batch === bt.batch ? "#34d399" : "var(--text-secondary)",
+                  }}
+                >
+                  Batch {bt.batch} ({bt.studentCount} Std / {bt.backlogCount} Bklg)
+                </button>
+              ))}
+            </div>
+          )}
+
           {/* Branch Pills */}
           {data.branchBreakdown && data.branchBreakdown.length > 0 && (
             <div style={{ display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center" }}>

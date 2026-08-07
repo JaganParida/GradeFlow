@@ -1368,10 +1368,19 @@ router.get("/backlogs", protect, async (req, res) => {
     const totalStudentsWithBacklogs = studentList.length;
     const totalBacklogsCount = studentList.reduce((acc, s) => acc + s.totalBacklogs, 0);
 
+    const batchMap = new Map();
     const branchMap = new Map();
     const semMap = new Map();
 
     studentList.forEach((s) => {
+      const bt = s.batch || "Other";
+      if (!batchMap.has(bt)) {
+        batchMap.set(bt, { batch: bt, studentCount: 0, backlogCount: 0 });
+      }
+      const btEntry = batchMap.get(bt);
+      btEntry.studentCount++;
+      btEntry.backlogCount += s.totalBacklogs;
+
       const br = s.branch || "Other";
       if (!branchMap.has(br)) {
         branchMap.set(br, { branch: br, studentCount: 0, backlogCount: 0 });
@@ -1391,6 +1400,7 @@ router.get("/backlogs", protect, async (req, res) => {
       });
     });
 
+    const batchBreakdownSummary = Array.from(batchMap.values()).sort((a, b) => b.batch.localeCompare(a.batch));
     const branchBreakdown = Array.from(branchMap.values()).sort((a, b) => b.backlogCount - a.backlogCount);
     const semBreakdownSummary = Array.from(semMap.values()).sort((a, b) => a.semester - b.semester);
 
@@ -1407,6 +1417,7 @@ router.get("/backlogs", protect, async (req, res) => {
       page: pageNum,
       limit: limitNum,
       totalPages,
+      batchBreakdownSummary,
       branchBreakdown,
       semBreakdownSummary,
       students: paginatedStudents,
