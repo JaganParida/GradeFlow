@@ -1201,8 +1201,29 @@ router.post("/student/update-grade", protect, async (req, res) => {
 // Get backlog students breakdown & leaderboard for admin
 router.get("/backlogs", protect, async (req, res) => {
   try {
-    const { batch, branch, semester, search, limit = 100 } = req.query;
-    const semResults = await SemesterResult.find({}).lean();
+    const { batch, branch, section, semester, search, page = 1, limit = 50 } = req.query;
+
+    const [semResults, rankings] = await Promise.all([
+      SemesterResult.find({}).lean(),
+      Ranking.find({}).lean(),
+    ]);
+
+    // Map rankings by regNo to get latest CGPA and Ranks
+    const studentRankingMap = new Map();
+    rankings.forEach((rk) => {
+      if (!rk.regNo) return;
+      const regNo = String(rk.regNo).trim();
+      const existing = studentRankingMap.get(regNo);
+      if (!existing || rk.semester > existing.semester) {
+        studentRankingMap.set(regNo, {
+          cgpa: rk.cgpa || 0,
+          universityRank: rk.universityRank || null,
+          departmentRank: rk.departmentRank || null,
+          sectionRank: rk.sectionRank || null,
+          semester: rk.semester,
+        });
+      }
+    });
 
     const FAILED_GRADES = new Set(["F", "R", "M", "S"]);
     const studentBacklogMap = new Map();
@@ -1225,6 +1246,7 @@ router.get("/backlogs", protect, async (req, res) => {
       if (!backlogs.length) return;
 
       if (!studentBacklogMap.has(regNo)) {
+        const rkInfo = studentRankingMap.get(regNo) || null;
         studentBacklogMap.set(regNo, {
           regNo,
           studentName: r.studentName || "N/A",
@@ -1234,6 +1256,7 @@ router.get("/backlogs", protect, async (req, res) => {
           totalBacklogs: 0,
           semBreakdown: {},
           backlogSubjects: [],
+          rankInfo: rkInfo,
         });
       }
 
@@ -1263,6 +1286,9 @@ router.get("/backlogs", protect, async (req, res) => {
     if (branch) {
       studentList = studentList.filter((s) => s.branch === branch);
     }
+    if (section) {
+      studentList = studentList.filter((s) => s.section === section);
+    }
     if (semester) {
       const semNum = Number(semester);
       studentList = studentList.filter((s) => (s.semBreakdown[semNum] || 0) > 0);
@@ -1277,7 +1303,9 @@ router.get("/backlogs", protect, async (req, res) => {
     }
 
     studentList.sort((a, b) => b.totalBacklogs - a.totalBacklogs);
-    const boundedList = studentList.slice(0, Number(limit) || 100);
+
+    const totalStudentsWithBacklogs = studentList.length;
+    const totalBacklogsCount = studentList.reduce((acc, s) => acc + s.totalBacklogs, 0);
 
     const branchMap = new Map();
     const semMap = new Map();
@@ -1305,12 +1333,22 @@ router.get("/backlogs", protect, async (req, res) => {
     const branchBreakdown = Array.from(branchMap.values()).sort((a, b) => b.backlogCount - a.backlogCount);
     const semBreakdownSummary = Array.from(semMap.values()).sort((a, b) => a.semester - b.semester);
 
+    const pageNum = Math.max(1, Number(page) || 1);
+    const limitNum = Math.max(1, Number(limit) || 50);
+    const totalPages = Math.ceil(totalStudentsWithBacklogs / limitNum) || 1;
+
+    const startIndex = (pageNum - 1) * limitNum;
+    const paginatedStudents = studentList.slice(startIndex, startIndex + limitNum);
+
     res.json({
-      totalStudentsWithBacklogs: studentList.length,
-      totalBacklogsCount: studentList.reduce((acc, s) => acc + s.totalBacklogs, 0),
+      totalStudentsWithBacklogs,
+      totalBacklogsCount,
+      page: pageNum,
+      limit: limitNum,
+      totalPages,
       branchBreakdown,
       semBreakdownSummary,
-      students: boundedList,
+      students: paginatedStudents,
     });
   } catch (err) {
     console.error("Fetch backlogs error:", err);

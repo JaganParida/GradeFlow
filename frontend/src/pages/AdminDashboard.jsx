@@ -844,30 +844,36 @@ function FeedbackManager({ authHeaders, API }) {
 
 function BacklogTrackerCard({ authHeaders, API }) {
   const [loading, setLoading] = useState(false);
-  const [data, setData] = useState({ totalStudentsWithBacklogs: 0, totalBacklogsCount: 0, students: [] });
+  const [data, setData] = useState({ totalStudentsWithBacklogs: 0, totalBacklogsCount: 0, students: [], totalPages: 1, page: 1 });
   const [batch, setBatch] = useState("");
   const [branch, setBranch] = useState("");
+  const [section, setSection] = useState("");
   const [semester, setSemester] = useState("");
   const [search, setSearch] = useState("");
+  const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(50);
   const [expandedRegNo, setExpandedRegNo] = useState(null);
   const [showFilterPanel, setShowFilterPanel] = useState(false);
 
   useEffect(() => {
-    fetchBacklogs();
-  }, [batch, branch, semester]);
+    setPage(1);
+    fetchBacklogs(1);
+  }, [batch, branch, section, semester, limit]);
 
-  async function fetchBacklogs(searchQuery = search) {
+  async function fetchBacklogs(targetPage = page, searchQuery = search) {
     setLoading(true);
     try {
       const params = new URLSearchParams();
       if (batch) params.append("batch", batch);
       if (branch) params.append("branch", branch);
+      if (section) params.append("section", section);
       if (semester) params.append("semester", semester);
       if (searchQuery) params.append("search", searchQuery);
-      params.append("limit", "100");
+      params.append("page", targetPage);
+      params.append("limit", limit);
 
       const res = await axios.get(`${API}/admin/backlogs?${params}`, authHeaders);
-      setData(res.data || { totalStudentsWithBacklogs: 0, totalBacklogsCount: 0, students: [] });
+      setData(res.data || { totalStudentsWithBacklogs: 0, totalBacklogsCount: 0, students: [], totalPages: 1, page: 1 });
     } catch (e) {
       console.error("Backlog fetch error:", e);
     } finally {
@@ -877,7 +883,8 @@ function BacklogTrackerCard({ authHeaders, API }) {
 
   function handleSearchSubmit(e) {
     e.preventDefault();
-    fetchBacklogs(search);
+    setPage(1);
+    fetchBacklogs(1, search);
   }
 
   return (
@@ -1020,15 +1027,17 @@ function BacklogTrackerCard({ authHeaders, API }) {
             className="btn-secondary"
             style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 12, padding: "8px 16px" }}
           >
-            <Filter size={14} /> Filter Backlogs {(batch || branch || semester || search) ? "(Active Filters)" : ""}
+            <Filter size={14} /> Filter Backlogs {(batch || branch || section || semester || search) ? "(Active Filters)" : ""}
           </button>
-          {(batch || branch || semester || search) && (
+          {(batch || branch || section || semester || search) && (
             <button
               onClick={() => {
                 setBatch("");
                 setBranch("");
+                setSection("");
                 setSemester("");
                 setSearch("");
+                setPage(1);
               }}
               style={{ background: "transparent", border: "none", color: "var(--accent)", cursor: "pointer", fontSize: 12, fontWeight: 700 }}
             >
@@ -1089,6 +1098,27 @@ function BacklogTrackerCard({ authHeaders, API }) {
               </select>
 
               <select
+                value={section}
+                onChange={(e) => setSection(e.target.value)}
+                className="input-field"
+                style={{ width: 130 }}
+              >
+                <option value="">All Sections</option>
+                <option value="Sec A">Sec A</option>
+                <option value="Sec B">Sec B</option>
+                <option value="Sec C">Sec C</option>
+                <option value="Sec D">Sec D</option>
+                <option value="Sec E">Sec E</option>
+                <option value="Sec F">Sec F</option>
+                <option value="Sec G">Sec G</option>
+                <option value="Sec H">Sec H</option>
+                <option value="Sec I">Sec I</option>
+                <option value="Sec J">Sec J</option>
+                <option value="Sec K">Sec K</option>
+                <option value="Sec L">Sec L</option>
+              </select>
+
+              <select
                 value={semester}
                 onChange={(e) => setSemester(e.target.value)}
                 className="input-field"
@@ -1135,12 +1165,13 @@ function BacklogTrackerCard({ authHeaders, API }) {
           </div>
         ) : (
           <div style={{ overflowX: "auto" }}>
-            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13, minWidth: 950 }}>
+            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13, minWidth: 1050 }}>
               <thead>
                 <tr style={{ borderBottom: "1px solid var(--border)", textAlign: "left" }}>
                   <th style={{ padding: "10px 12px", color: "var(--text-muted)", width: 50, whiteSpace: "nowrap" }}>#</th>
                   <th style={{ padding: "10px 12px", color: "var(--text-muted)", whiteSpace: "nowrap" }}>Registration No & Student Name</th>
                   <th style={{ padding: "10px 12px", color: "var(--text-muted)", whiteSpace: "nowrap" }}>Branch / Batch / Section</th>
+                  <th style={{ padding: "10px 12px", color: "var(--text-muted)", whiteSpace: "nowrap" }}>Leaderboard Rank & CGPA</th>
                   <th style={{ padding: "10px 12px", color: "var(--text-muted)", whiteSpace: "nowrap" }}>Total Backlogs</th>
                   <th style={{ padding: "10px 12px", color: "var(--text-muted)", whiteSpace: "nowrap" }}>Semester Breakdown</th>
                   <th style={{ padding: "10px 12px", color: "var(--text-muted)", textAlign: "right", whiteSpace: "nowrap" }}>Backlog Details</th>
@@ -1171,6 +1202,20 @@ function BacklogTrackerCard({ authHeaders, API }) {
                               {st.section || "Sec A"}
                             </span>
                           </div>
+                        </td>
+                        <td style={{ padding: "12px", whiteSpace: "nowrap" }}>
+                          {st.rankInfo ? (
+                            <div>
+                              <div style={{ fontWeight: 700, color: "#3ea6ff", fontSize: 12, display: "flex", alignItems: "center", gap: 4 }}>
+                                <Trophy size={13} color="#f59e0b" /> Uni #{st.rankInfo.universityRank || "N/A"} &middot; Branch #{st.rankInfo.departmentRank || "N/A"}
+                              </div>
+                              <div style={{ fontSize: 11, color: "var(--text-secondary)", marginTop: 2 }}>
+                                CGPA: <strong style={{ color: "#fff" }}>{st.rankInfo.cgpa ? st.rankInfo.cgpa.toFixed(2) : "0.00"}</strong>
+                              </div>
+                            </div>
+                          ) : (
+                            <span style={{ fontSize: 11, color: "var(--text-muted)" }}>Unranked</span>
+                          )}
                         </td>
                         <td style={{ padding: "12px", whiteSpace: "nowrap" }}>
                           <span
@@ -1224,7 +1269,7 @@ function BacklogTrackerCard({ authHeaders, API }) {
                       {/* Expanded Backlog Subject Details Drawer */}
                       {isExpanded && (
                         <tr style={{ background: "rgba(0,0,0,0.25)" }}>
-                          <td colSpan={6} style={{ padding: "14px 20px", borderBottom: "1px solid var(--border)" }}>
+                          <td colSpan={7} style={{ padding: "14px 20px", borderBottom: "1px solid var(--border)" }}>
                             <div style={{ fontWeight: 700, fontSize: 12, color: "#f87171", marginBottom: 8, display: "flex", alignItems: "center", gap: 6 }}>
                               <BookOpen size={14} /> Backlog Subjects for {st.studentName} ({st.regNo}):
                             </div>
@@ -1259,6 +1304,58 @@ function BacklogTrackerCard({ authHeaders, API }) {
                 })}
               </tbody>
             </table>
+          </div>
+        )}
+
+        {/* Pagination Controls */}
+        {data.totalPages > 0 && (
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 16, paddingTop: 12, borderTop: "1px solid var(--border)", flexWrap: "wrap", gap: 10 }}>
+            <div style={{ fontSize: 12, color: "var(--text-muted)" }}>
+              Page <strong>{data.page}</strong> of <strong>{data.totalPages}</strong> ({data.totalStudentsWithBacklogs?.toLocaleString()} Total Students With Backlogs)
+            </div>
+
+            <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+              <button
+                onClick={() => {
+                  const prev = Math.max(1, page - 1);
+                  setPage(prev);
+                  fetchBacklogs(prev);
+                }}
+                disabled={page <= 1 || loading}
+                className="btn-secondary"
+                style={{ padding: "6px 14px", fontSize: 12, opacity: page <= 1 ? 0.5 : 1, cursor: page <= 1 ? "not-allowed" : "pointer" }}
+              >
+                Previous
+              </button>
+
+              <span style={{ fontSize: 12, fontWeight: 700, color: "var(--text-primary)" }}>
+                {page} / {data.totalPages}
+              </span>
+
+              <button
+                onClick={() => {
+                  const next = Math.min(data.totalPages, page + 1);
+                  setPage(next);
+                  fetchBacklogs(next);
+                }}
+                disabled={page >= data.totalPages || loading}
+                className="btn-secondary"
+                style={{ padding: "6px 14px", fontSize: 12, opacity: page >= data.totalPages ? 0.5 : 1, cursor: page >= data.totalPages ? "not-allowed" : "pointer" }}
+              >
+                Next
+              </button>
+
+              <select
+                value={limit}
+                onChange={(e) => setLimit(Number(e.target.value))}
+                className="input-field"
+                style={{ width: 110, padding: "4px 8px", fontSize: 12 }}
+              >
+                <option value={50}>50 / page</option>
+                <option value={100}>100 / page</option>
+                <option value={200}>200 / page</option>
+              </select>
+            </div>
           </div>
         )}
       </div>
