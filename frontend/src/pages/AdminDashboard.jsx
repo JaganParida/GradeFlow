@@ -1140,7 +1140,7 @@ function BacklogTrackerCard({ authHeaders, API }) {
                 <tr style={{ borderBottom: "1px solid var(--border)", textAlign: "left" }}>
                   <th style={{ padding: "10px 12px", color: "var(--text-muted)", width: 50, whiteSpace: "nowrap" }}>#</th>
                   <th style={{ padding: "10px 12px", color: "var(--text-muted)", whiteSpace: "nowrap" }}>Registration No & Student Name</th>
-                  <th style={{ padding: "10px 12px", color: "var(--text-muted)", whiteSpace: "nowrap" }}>Branch / Batch</th>
+                  <th style={{ padding: "10px 12px", color: "var(--text-muted)", whiteSpace: "nowrap" }}>Branch / Batch / Section</th>
                   <th style={{ padding: "10px 12px", color: "var(--text-muted)", whiteSpace: "nowrap" }}>Total Backlogs</th>
                   <th style={{ padding: "10px 12px", color: "var(--text-muted)", whiteSpace: "nowrap" }}>Semester Breakdown</th>
                   <th style={{ padding: "10px 12px", color: "var(--text-muted)", textAlign: "right", whiteSpace: "nowrap" }}>Backlog Details</th>
@@ -1166,6 +1166,9 @@ function BacklogTrackerCard({ authHeaders, API }) {
                             </span>
                             <span className="badge" style={{ background: "rgba(59, 130, 246, 0.15)", color: "#60a5fa", whiteSpace: "nowrap" }}>
                               Batch {st.batch}
+                            </span>
+                            <span className="badge" style={{ background: "rgba(16, 185, 129, 0.15)", color: "#34d399", whiteSpace: "nowrap" }}>
+                              {st.section || "Sec A"}
                             </span>
                           </div>
                         </td>

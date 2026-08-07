@@ -1230,6 +1230,7 @@ router.get("/backlogs", protect, async (req, res) => {
           studentName: r.studentName || "N/A",
           branch: r.branch || "",
           batch: b,
+          section: r.section || getSectionFromRegNo(regNo),
           totalBacklogs: 0,
           semBreakdown: {},
           backlogSubjects: [],
