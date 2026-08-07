@@ -860,16 +860,23 @@ function BacklogTrackerCard({ authHeaders, API }) {
     fetchBacklogs(1);
   }, [batch, branch, section, semester, limit]);
 
-  async function fetchBacklogs(targetPage = page, searchQuery = search) {
+  async function fetchBacklogs(targetPage = page, searchQuery = search, overrideFilters = null) {
     setLoading(true);
     try {
+      const activeBatch = overrideFilters ? overrideFilters.batch : batch;
+      const activeBranch = overrideFilters ? overrideFilters.branch : branch;
+      const activeSection = overrideFilters ? overrideFilters.section : section;
+      const activeSemester = overrideFilters ? overrideFilters.semester : semester;
+      const activeSearch = searchQuery !== undefined ? searchQuery : (overrideFilters ? overrideFilters.search : search);
+      const activePage = targetPage || 1;
+
       const params = new URLSearchParams();
-      if (batch) params.append("batch", batch);
-      if (branch) params.append("branch", branch);
-      if (section) params.append("section", section);
-      if (semester) params.append("semester", semester);
-      if (searchQuery) params.append("search", searchQuery);
-      params.append("page", targetPage);
+      if (activeBatch) params.append("batch", activeBatch);
+      if (activeBranch) params.append("branch", activeBranch);
+      if (activeSection) params.append("section", activeSection);
+      if (activeSemester) params.append("semester", activeSemester);
+      if (activeSearch) params.append("search", activeSearch);
+      params.append("page", activePage);
       params.append("limit", limit);
 
       const res = await axios.get(`${API}/admin/backlogs?${params}`, authHeaders);
@@ -879,6 +886,16 @@ function BacklogTrackerCard({ authHeaders, API }) {
     } finally {
       setLoading(false);
     }
+  }
+
+  function handleResetFilters() {
+    setBatch("");
+    setBranch("");
+    setSection("");
+    setSemester("");
+    setSearch("");
+    setPage(1);
+    fetchBacklogs(1, "", { batch: "", branch: "", section: "", semester: "", search: "" });
   }
 
   function handleSearchSubmit(e) {
@@ -940,14 +957,7 @@ function BacklogTrackerCard({ authHeaders, API }) {
           </span>
           {(batch || branch || section || semester || search) && (
             <button
-              onClick={() => {
-                setBatch("");
-                setBranch("");
-                setSection("");
-                setSemester("");
-                setSearch("");
-                setPage(1);
-              }}
+              onClick={handleResetFilters}
               style={{ background: "transparent", border: "none", color: "#ef4444", cursor: "pointer", fontSize: 12, fontWeight: 700, display: "flex", alignItems: "center", gap: 4 }}
             >
               ✕ Reset All Filters
@@ -962,7 +972,14 @@ function BacklogTrackerCard({ authHeaders, API }) {
               type="text"
               placeholder="Search Reg No or Student Name..."
               value={search}
-              onChange={(e) => setSearch(e.target.value)}
+              onChange={(e) => {
+                const val = e.target.value;
+                setSearch(val);
+                if (!val.trim()) {
+                  setPage(1);
+                  fetchBacklogs(1, "", { search: "" });
+                }
+              }}
               className="input-field"
               style={{ width: "100%", paddingLeft: 34, height: 38, fontSize: 13 }}
             />
