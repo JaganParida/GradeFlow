@@ -67,6 +67,55 @@ function detectBatch(regNo) {
   return "";
 }
 
+function detectBranch(regNo) {
+  if (!regNo) return "UNKNOWN";
+  const r = String(regNo).trim();
+
+  if (r === "230301180026") return "CSE";
+  if (
+    [
+      "230301120110",
+      "230301120186",
+      "230301120371",
+      "230301120481",
+    ].includes(r)
+  )
+    return "ECE";
+  if (r === "230301231033") return "AERO";
+
+  const suffix = r.length >= 9 ? r.slice(2) : r;
+
+  if (suffix.startsWith("0301110") || suffix.startsWith("0301111")) return "CIVIL";
+  if (suffix.startsWith("0301120") || suffix.startsWith("0301121")) return "CSE";
+  if (
+    suffix.startsWith("0301130") ||
+    suffix.startsWith("0301131") ||
+    suffix.startsWith("0301132")
+  )
+    return "ECE";
+  if (suffix.startsWith("0301150") || suffix.startsWith("0301151")) return "EEE";
+  if (suffix.startsWith("0301160") || suffix.startsWith("0301161")) return "ME";
+  if (suffix.startsWith("0301180")) return "BIO";
+  if (suffix.startsWith("0301190") || suffix.startsWith("0301191")) return "MI";
+  if (suffix.startsWith("0301230")) return "AERO";
+
+  if (r.startsWith("230301110") || r.startsWith("230301111")) return "CIVIL";
+  if (r.startsWith("230301120") || r.startsWith("230301121")) return "CSE";
+  if (
+    r.startsWith("230301130") ||
+    r.startsWith("230301131") ||
+    r.startsWith("230301132")
+  )
+    return "ECE";
+  if (r.startsWith("230301150") || r.startsWith("230301151")) return "EEE";
+  if (r.startsWith("230301160") || r.startsWith("230301161")) return "ME";
+  if (r.startsWith("230301180")) return "BIO";
+  if (r.startsWith("230301190") || r.startsWith("230301191")) return "MI";
+  if (r.startsWith("230301230")) return "AERO";
+
+  return "OTHER";
+}
+
 // Helper to generate rankings for a specific semester
 async function generateRankingForSemester(semester, preloadedAllResults = null) {
   const semNum = Number(semester);
@@ -1217,9 +1266,9 @@ router.get("/backlogs", protect, async (req, res) => {
       if (!existing || rk.semester > existing.semester) {
         studentRankingMap.set(regNo, {
           cgpa: rk.cgpa || 0,
-          universityRank: rk.universityRank || null,
-          departmentRank: rk.departmentRank || null,
-          sectionRank: rk.sectionRank || null,
+          universityRank: rk.universityRank || rk.cgpaRank || null,
+          departmentRank: rk.deptCgpaRank || rk.deptRank || rk.departmentRank || null,
+          sectionRank: rk.sectionCgpaRank || rk.sectionSgpaRank || null,
           semester: rk.semester,
         });
       }
@@ -1227,6 +1276,8 @@ router.get("/backlogs", protect, async (req, res) => {
 
     const FAILED_GRADES = new Set(["F", "R", "M", "S"]);
     const studentBacklogMap = new Map();
+
+    const VALID_BRANCHES = new Set(["CSE", "ECE", "ME", "CIVIL", "EEE", "BIO", "MI", "AERO"]);
 
     semResults.forEach((r) => {
       if (!r.regNo || !r.subjects || !r.subjects.length) return;
@@ -1236,6 +1287,16 @@ router.get("/backlogs", protect, async (req, res) => {
       if (!b && /^\d{2}/.test(regNo)) {
         b = `20${regNo.slice(0, 2)}`;
       }
+
+      // Detect clean branch
+      let br = detectBranch(regNo);
+      if ((br === "OTHER" || br === "UNKNOWN") && r.branch && VALID_BRANCHES.has(String(r.branch).trim().toUpperCase())) {
+        br = String(r.branch).trim().toUpperCase();
+      }
+
+      // Detect clean section
+      let rawSec = getSectionFromRegNo(regNo);
+      if (rawSec && !rawSec.startsWith("Sec")) rawSec = `Sec ${rawSec}`;
 
       // Find subjects with failed grades or gradePoint 0
       const backlogs = r.subjects.filter((sub) => {
@@ -1250,9 +1311,9 @@ router.get("/backlogs", protect, async (req, res) => {
         studentBacklogMap.set(regNo, {
           regNo,
           studentName: r.studentName || "N/A",
-          branch: r.branch || "",
+          branch: br,
           batch: b,
-          section: r.section || getSectionFromRegNo(regNo),
+          section: rawSec,
           totalBacklogs: 0,
           semBreakdown: {},
           backlogSubjects: [],
@@ -1262,7 +1323,7 @@ router.get("/backlogs", protect, async (req, res) => {
 
       const entry = studentBacklogMap.get(regNo);
       if (r.studentName && entry.studentName === "N/A") entry.studentName = r.studentName;
-      if (r.branch) entry.branch = r.branch;
+      if (br && br !== "OTHER" && br !== "UNKNOWN") entry.branch = br;
 
       entry.totalBacklogs += backlogs.length;
       entry.semBreakdown[r.semester] = (entry.semBreakdown[r.semester] || 0) + backlogs.length;
