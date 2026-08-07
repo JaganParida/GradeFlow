@@ -1034,7 +1034,7 @@ function BacklogTrackerCard({ authHeaders, API }) {
           </div>
         ) : (
           <div style={{ overflowX: "auto" }}>
-            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13, minWidth: 650 }}>
+            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13, minWidth: 950 }}>
               <thead>
                 <tr style={{ borderBottom: "1px solid var(--border)", textAlign: "left" }}>
                   <th style={{ padding: "10px 12px", color: "var(--text-muted)", width: 50, whiteSpace: "nowrap" }}>#</th>
@@ -1051,22 +1051,24 @@ function BacklogTrackerCard({ authHeaders, API }) {
                   return (
                     <Fragment key={st.regNo}>
                       <tr style={{ borderBottom: "1px solid rgba(255,255,255,0.04)" }}>
-                        <td style={{ padding: "12px", fontWeight: 800, color: idx < 3 ? "#ef4444" : "var(--text-muted)" }}>
+                        <td style={{ padding: "12px", fontWeight: 800, color: idx < 3 ? "#ef4444" : "var(--text-muted)", whiteSpace: "nowrap" }}>
                           #{idx + 1}
                         </td>
-                        <td style={{ padding: "12px" }}>
+                        <td style={{ padding: "12px", whiteSpace: "nowrap" }}>
                           <div style={{ fontWeight: 700, color: "#fff" }}>{st.studentName}</div>
                           <div style={{ fontSize: 11, color: "var(--text-muted)", fontFamily: "monospace" }}>{st.regNo}</div>
                         </td>
-                        <td style={{ padding: "12px" }}>
-                          <span className="badge" style={{ background: "rgba(255,255,255,0.06)", marginRight: 6 }}>
-                            {st.branch || "N/A"}
-                          </span>
-                          <span className="badge" style={{ background: "rgba(59, 130, 246, 0.15)", color: "#60a5fa" }}>
-                            Batch {st.batch}
-                          </span>
+                        <td style={{ padding: "12px", whiteSpace: "nowrap" }}>
+                          <div style={{ display: "inline-flex", gap: 6, alignItems: "center" }}>
+                            <span className="badge" style={{ background: "rgba(255,255,255,0.06)", whiteSpace: "nowrap" }}>
+                              {st.branch || "N/A"}
+                            </span>
+                            <span className="badge" style={{ background: "rgba(59, 130, 246, 0.15)", color: "#60a5fa", whiteSpace: "nowrap" }}>
+                              Batch {st.batch}
+                            </span>
+                          </div>
                         </td>
-                        <td style={{ padding: "12px" }}>
+                        <td style={{ padding: "12px", whiteSpace: "nowrap" }}>
                           <span
                             style={{
                               background: "rgba(239, 68, 68, 0.15)",
@@ -1075,23 +1077,27 @@ function BacklogTrackerCard({ authHeaders, API }) {
                               borderRadius: 12,
                               fontWeight: 800,
                               border: "1px solid rgba(239, 68, 68, 0.3)",
+                              display: "inline-block",
+                              whiteSpace: "nowrap",
                             }}
                           >
                             ⚠️ {st.totalBacklogs} Backlog{st.totalBacklogs > 1 ? "s" : ""}
                           </span>
                         </td>
                         <td style={{ padding: "12px" }}>
-                          <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                          <div style={{ display: "flex", gap: 6, flexWrap: "wrap", minWidth: 320 }}>
                             {Object.entries(st.semBreakdown || {}).map(([semNum, count]) => (
                               <span
                                 key={semNum}
                                 style={{
                                   background: "rgba(245, 158, 11, 0.15)",
                                   color: "#fbbf24",
-                                  padding: "2px 8px",
+                                  padding: "3px 8px",
                                   borderRadius: 6,
                                   fontSize: 11,
                                   border: "1px solid rgba(245, 158, 11, 0.3)",
+                                  whiteSpace: "nowrap",
+                                  display: "inline-block",
                                 }}
                               >
                                 Sem {semNum}: <strong>{count}</strong>
@@ -1099,11 +1105,11 @@ function BacklogTrackerCard({ authHeaders, API }) {
                             ))}
                           </div>
                         </td>
-                        <td style={{ padding: "12px", textAlign: "right" }}>
+                        <td style={{ padding: "12px", textAlign: "right", whiteSpace: "nowrap" }}>
                           <button
                             onClick={() => setExpandedRegNo(isExpanded ? null : st.regNo)}
                             className="btn-secondary"
-                            style={{ padding: "4px 10px", fontSize: 11, display: "inline-flex", alignItems: "center", gap: 4 }}
+                            style={{ padding: "4px 10px", fontSize: 11, display: "inline-flex", alignItems: "center", gap: 4, whiteSpace: "nowrap" }}
                           >
                             {isExpanded ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
                             {isExpanded ? "Hide Details" : "View Subjects"}
