@@ -889,13 +889,13 @@ function BacklogTrackerCard({ authHeaders, API }) {
 
     try {
       // Send email via Backend API to properly track status in database
-      const res = await API.post(
-        "/admin/backlogs/send-email",
+      const res = await axios.post(
+        `${API}/admin/backlogs/send-email`,
         {
           regNo: selectedStudentForEmail.regNo,
           customEmail: customEmailInput,
         },
-        { timeout: 30000 }
+        { timeout: 30000, headers: authHeaders }
       );
 
       const resData = res.data;
