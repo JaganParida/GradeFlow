@@ -9,6 +9,7 @@
  * Why Vercel? → Avoids Render free-tier sleep delay, IP blocking, and request timeouts.
  */
 
+const path = require("path");
 require("dotenv").config();
 const nodemailer = require("nodemailer");
 const axios = require("axios");
@@ -122,9 +123,9 @@ module.exports = async function handler(req, res) {
     const html = generateBacklogEmailHtml(emailPayload);
     const text = generateBacklogEmailText(emailPayload);
 
-    const subject = `GradeFlow | Backlog Academic Notification – ${backlogs.length} Pending Subject${backlogs.length === 1 ? "" : "s"}`;
+    const subject = `GradeFlow Academic Record Notice – Reg. No. ${cleanRegNo}`;
 
-    // ── 8. Send Email with Anti-Spam Headers & Text Fallback ──
+    // ── 8. Send Email with Anti-Spam Headers, Text Fallback & CID Images ──
     const info = await transporter.sendMail({
       from: `"GradeFlow Academic System" <${emailUser}>`,
       replyTo: emailUser,
@@ -137,6 +138,18 @@ module.exports = async function handler(req, res) {
         "X-Entity-Ref-ID": cleanRegNo,
         "X-Auto-Response-Suppress": "OOF, AutoReply",
       },
+      attachments: [
+        {
+          filename: "logo.png",
+          path: path.join(__dirname, "assets/logo.png"),
+          cid: "gradeflow-logo",
+        },
+        {
+          filename: "whatsapp.png",
+          path: path.join(__dirname, "assets/whatsapp.png"),
+          cid: "whatsapp-icon",
+        },
+      ],
     });
 
     return res.status(200).json({

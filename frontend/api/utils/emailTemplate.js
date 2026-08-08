@@ -3,10 +3,10 @@
  * 
  * - 100% Email Client Compatible (Gmail, Outlook, Yahoo, Apple Mail)
  * - Zero Emojis (Avoids Gmail Automated Spam Classification)
+ * - CID Inline Attachments for 3D Graduation Cap Logo & WhatsApp PNG Icon
  * - Pure HTML Table Layout (Eliminates text overlapping and flexbox bugs)
- * - PNG Logo & WhatsApp Icon Integration
  * - GradeFlow Live Portal Link Integration
- * - Includes Plain-Text Fallback Generator for Primary Inbox Placement
+ * - Plain-Text Fallback Generator for Primary Inbox Placement
  */
 
 function generateBacklogEmailHtml({
@@ -28,8 +28,8 @@ function generateBacklogEmailHtml({
   const backlogsText = numBacklogs === 1 ? "1 pending backlog" : `${numBacklogs} pending backlogs`;
 
   const baseUrl = String(frontendUrl || "https://grade-flow-navy.vercel.app").replace(/\/$/, "");
-  const logoUrl = `${baseUrl}/logo.png`;
-  const waIconUrl = `${baseUrl}/whatsapp.png`;
+  const logoUrl = "cid:gradeflow-logo";
+  const waIconUrl = "cid:whatsapp-icon";
   const studentPortalUrl = `${baseUrl}/dashboard/${cleanRegNo}`;
 
   // Group backlogs by semester
@@ -59,7 +59,7 @@ function generateBacklogEmailHtml({
   const waCleanPhone = String(developerWhatsapp || "").replace(/[^0-9]/g, "");
   const waUrl = `https://wa.me/${waCleanPhone}?text=${encodeURIComponent(waRawMessage)}`;
 
-  // Semester tables using pure HTML table structures (No flexbox overlap)
+  // Semester tables using pure HTML table structures
   const semesterTablesHtml = sortedSemesters
     .map((sem) => {
       const subs = semGrouped[sem];
@@ -98,7 +98,7 @@ function generateBacklogEmailHtml({
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>GradeFlow | Backlog Academic Notification</title>
+  <title>GradeFlow | Academic Notice</title>
 </head>
 <body style="margin: 0; padding: 0; background-color: #f1f5f9; font-family: 'Segoe UI', Arial, sans-serif; -webkit-font-smoothing: antialiased; color: #334155;">
   <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background-color: #f1f5f9; padding: 24px 10px;">
@@ -106,7 +106,7 @@ function generateBacklogEmailHtml({
       <td align="center">
         <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="max-width: 600px; background-color: #ffffff; border-radius: 12px; overflow: hidden; border: 1px solid #cbd5e1; box-shadow: 0 4px 16px rgba(0,0,0,0.06);">
           
-          <!-- Header Banner with Official GradeFlow Logo -->
+          <!-- Header Banner with Official 3D Graduation Cap Logo -->
           <tr>
             <td style="background-color: #0f172a; padding: 24px 28px; text-align: center;">
               <table role="presentation" cellspacing="0" cellpadding="0" border="0" style="margin: 0 auto;">
@@ -131,7 +131,7 @@ function generateBacklogEmailHtml({
               
               <p style="margin-bottom: 20px;">This is an official academic notification from GradeFlow regarding your current academic progress and pending backlogs.</p>
 
-              <!-- Academic Summary Table (Strict Table Alignment to avoid overlap) -->
+              <!-- Academic Summary Table -->
               <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; margin-bottom: 20px; padding: 14px 16px;">
                 <tr>
                   <td style="padding-bottom: 10px; border-bottom: 1px solid #e2e8f0; font-weight: 700; font-size: 14px; color: #0f172a;">Academic Summary</td>
@@ -204,20 +204,24 @@ function generateBacklogEmailHtml({
               </div>
 
               <!-- Backlog Quick Summary -->
-              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background-color: #fffbeb; border: 1px solid #fde68a; border-radius: 8px; margin-bottom: 20px; padding: 14px 16px;">
-                <tr>
-                  <td style="font-weight: 700; font-size: 13px; color: #78350f; padding-bottom: 6px;">Backlog Quick Summary</td>
-                </tr>
-                <tr>
-                  <td style="font-size: 12px; color: #92400e; line-height: 1.6;">
-                    &bull; <strong>Total Pending Backlogs:</strong> ${numBacklogs}<br>
-                    &bull; <strong>Semesters With Backlogs:</strong> ${sortedSemesters.length}<br>
-                    <span style="display: block; margin-top: 4px; font-weight: 600; color: #78350f;">
-                      ${semesterSummaryLines.join(" | ")}
-                    </span>
-                  </td>
-                </tr>
-              </table>
+              ${
+                sortedSemesters.length > 0
+                  ? `<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background-color: #fffbeb; border: 1px solid #fde68a; border-radius: 8px; margin-bottom: 20px; padding: 14px 16px;">
+                      <tr>
+                        <td style="font-weight: 700; font-size: 13px; color: #78350f; padding-bottom: 6px;">Backlog Quick Summary</td>
+                      </tr>
+                      <tr>
+                        <td style="font-size: 12px; color: #92400e; line-height: 1.6;">
+                          &bull; <strong>Total Pending Backlogs:</strong> ${numBacklogs}<br>
+                          &bull; <strong>Semesters With Backlogs:</strong> ${sortedSemesters.length}<br>
+                          <span style="display: block; margin-top: 4px; font-weight: 600; color: #78350f;">
+                            ${semesterSummaryLines.join(" | ")}
+                          </span>
+                        </td>
+                      </tr>
+                    </table>`
+                  : ""
+              }
 
               <!-- Academic Progress Advice -->
               <div style="background-color: #f8fafc; border-left: 4px solid #0f172a; padding: 14px 16px; margin-bottom: 20px; font-size: 13px; color: #334155; line-height: 1.5;">
@@ -332,7 +336,7 @@ STATUS ALERT:
 You currently have ${numBacklogs} pending backlog(s).
 
 PENDING SUBJECTS:
-${subjectsListText}
+${subjectsListText || "  - No active backlogs recorded."}
 
 PORTAL LINK:
 View your live results and complete semester history at:
