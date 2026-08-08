@@ -55,6 +55,9 @@ async function sendBacklogEmailNotification({
   remainingSemesters,
   latestSemester,
   backlogSubjects,
+  batch = "N/A",
+  branch = "N/A",
+  section = "N/A",
 }) {
   const transporter = createTransporter();
 
@@ -73,6 +76,9 @@ async function sendBacklogEmailNotification({
     remainingSemesters,
     latestSemester,
     backlogSubjects,
+    batch,
+    branch,
+    section,
     developerWhatsapp: process.env.DEVELOPER_WHATSAPP || "919124540575",
     frontendUrl: process.env.FRONTEND_URL || "https://grade-flow-navy.vercel.app",
   };
