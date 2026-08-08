@@ -4,6 +4,7 @@ import axios from "axios";
 import { useApp } from "../context/AppContext";
 import { Spinner } from "../components/LoadingSpinner";
 import { motion, AnimatePresence } from "framer-motion";
+import { formatDistanceToNow } from "date-fns";
 import { Upload, Trash2, Settings, Users, FileText, FileEdit, Trophy, AlertTriangle, CheckCircle, FileSpreadsheet, LogOut, Database, CloudUpload, MessageSquare, Edit2, X, ChevronDown, ChevronUp, BookOpen, Search, Filter, HelpCircle, Info, Mail, Send, Check, Loader2 } from "lucide-react";
 
 function UploadCard({
@@ -887,33 +888,55 @@ function BacklogTrackerCard({ authHeaders, API }) {
     setEmailErrorMsg("");
 
     try {
-      // Send email via Vercel Serverless Function (frontend/api/send-backlog-email.js)
-      // This avoids Render free-tier sleep delay, IP blocking, and request timeouts.
-      // The serverless function fetches fresh student data from Render backend API internally.
-      const res = await axios.post(
-        "/api/send-backlog-email",
+      // Send email via Backend API to properly track status in database
+      const res = await API.post(
+        "/admin/backlogs/send-email",
         {
           regNo: selectedStudentForEmail.regNo,
           customEmail: customEmailInput,
         },
-        { timeout: 20000 }
+        { timeout: 30000 }
       );
 
       const resData = res.data;
       setEmailSuccessMsg(resData.message || `Backlog notification email sent successfully to ${customEmailInput}`);
-      setEmailStatusMap((prev) => ({
+      
+      // Optimistically update the UI to show the email was just sent
+      setData((prev) => ({
         ...prev,
-        [selectedStudentForEmail.regNo]: {
-          sent: true,
-          sentAt: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
-          email: customEmailInput,
-        },
+        students: prev.students.map((st) => {
+          if (st.regNo === selectedStudentForEmail.regNo) {
+            return {
+              ...st,
+              lastEmailStatus: 'SUCCESS',
+              lastEmailSentAt: new Date().toISOString(),
+              lastEmailError: null
+            };
+          }
+          return st;
+        })
       }));
     } catch (err) {
       console.error("Email send error:", err);
       setEmailErrorMsg(
-        err.response?.data?.message || "Failed to send email. Please check Vercel environment variables and try again."
+        err.response?.data?.message || "Failed to send email. Check configuration."
       );
+      
+      // Optimistically update the UI to show the failure
+      setData((prev) => ({
+        ...prev,
+        students: prev.students.map((st) => {
+          if (st.regNo === selectedStudentForEmail.regNo) {
+            return {
+              ...st,
+              lastEmailStatus: 'FAILED',
+              lastEmailSentAt: new Date().toISOString(),
+              lastEmailError: err.response?.data?.message || "Failed to send email"
+            };
+          }
+          return st;
+        })
+      }));
     } finally {
       setSendingEmail(false);
     }
@@ -1245,6 +1268,23 @@ function BacklogTrackerCard({ authHeaders, API }) {
                             >
                               <AlertTriangle size={13} color="#ef4444" /> {st.totalBacklogs} Backlog{st.totalBacklogs > 1 ? "s" : ""}
                             </span>
+                            
+                            {/* Email Status Indicator */}
+                            {st.lastEmailSentAt && (
+                              <div style={{ marginTop: 6, fontSize: 10, display: 'flex', alignItems: 'center', gap: 4 }}>
+                                {st.lastEmailStatus === 'SUCCESS' ? (
+                                  <>
+                                    <CheckCircle size={10} color="#10b981" />
+                                    <span style={{ color: "#10b981", fontWeight: 600 }}>Sent {formatDistanceToNow(new Date(st.lastEmailSentAt), { addSuffix: true })}</span>
+                                  </>
+                                ) : (
+                                  <>
+                                    <AlertTriangle size={10} color="#ef4444" />
+                                    <span style={{ color: "#ef4444", fontWeight: 600 }}>Failed {formatDistanceToNow(new Date(st.lastEmailSentAt), { addSuffix: true })}</span>
+                                  </>
+                                )}
+                              </div>
+                            )}
                           </td>
                           <td style={{ padding: "12px" }}>
                             <div style={{ display: "flex", gap: 6, flexWrap: "wrap", minWidth: 320 }}>
@@ -1447,6 +1487,22 @@ function BacklogTrackerCard({ authHeaders, API }) {
                         </span>
                       ))}
                     </div>
+                    
+                    {/* Email Status Indicator (Mobile) */}
+                    {st.lastEmailSentAt && (
+                      <div style={{ background: "rgba(0, 0, 0, 0.25)", padding: "8px 10px", borderRadius: 6, display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: 11, marginBottom: 8 }}>
+                        <span style={{ color: "var(--text-secondary)" }}>Email Status:</span>
+                        {st.lastEmailStatus === 'SUCCESS' ? (
+                          <span style={{ color: "#10b981", fontWeight: 700, display: "flex", alignItems: "center", gap: 4 }}>
+                            <CheckCircle size={12} /> Sent {formatDistanceToNow(new Date(st.lastEmailSentAt), { addSuffix: true })}
+                          </span>
+                        ) : (
+                          <span style={{ color: "#ef4444", fontWeight: 700, display: "flex", alignItems: "center", gap: 4 }} title={st.lastEmailError}>
+                            <AlertTriangle size={12} /> Failed {formatDistanceToNow(new Date(st.lastEmailSentAt), { addSuffix: true })}
+                          </span>
+                        )}
+                      </div>
+                    )}
 
                     {/* Action Buttons for Mobile */}
                     <div style={{ display: "flex", gap: 6, marginTop: 4 }}>

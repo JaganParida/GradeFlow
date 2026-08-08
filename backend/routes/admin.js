@@ -7,6 +7,7 @@ const { sendBacklogEmailNotification } = require("../utils/emailService");
 const SemesterResult = require("../models/SemesterResult");
 const InternalMark = require("../models/InternalMark");
 const Ranking = require("../models/Ranking");
+const Student = require("../models/Student");
 const { clearStudentCache } = require("./student");
 const {
   GRADE_POINTS,
@@ -1258,10 +1259,16 @@ router.get("/backlogs", protect, async (req, res) => {
   try {
     const { batch, branch, section, semester, search, page = 1, limit = 50 } = req.query;
 
-    const [semResults, rankings] = await Promise.all([
+    const [semResults, rankings, studentsTracking] = await Promise.all([
       SemesterResult.find({}).sort({ semester: 1 }).lean(),
       Ranking.find({}).lean(),
+      Student.find({}).lean()
     ]);
+
+    const studentTrackingMap = new Map();
+    studentsTracking.forEach((st) => {
+      studentTrackingMap.set(st.regNo, st);
+    });
 
     // Map rankings by regNo to get latest CGPA and Ranks
     const studentRankingMap = new Map();
@@ -1314,7 +1321,9 @@ router.get("/backlogs", protect, async (req, res) => {
       let rawSec = getSectionFromRegNo(regNo);
       if (rawSec && !rawSec.startsWith("Sec")) rawSec = `Sec ${rawSec}`;
 
+      const latestResult = userResults[userResults.length - 1];
       const rkInfo = studentRankingMap.get(regNo) || null;
+      const trackingInfo = studentTrackingMap.get(regNo) || {};
 
       const semBreakdown = {};
       backlogs.forEach((sub) => {
@@ -1325,13 +1334,16 @@ router.get("/backlogs", protect, async (req, res) => {
       studentBacklogMap.set(regNo, {
         regNo,
         studentName: latestResult.studentName || "N/A",
-        branch: br,
-        batch: b,
-        section: rawSec,
+        batch: latestResult.batch || "N/A",
+        branch: latestResult.branch || "N/A",
+        section: latestResult.section || "N/A",
         totalBacklogs: backlogs.length,
+        backlogs: backlogs,
         semBreakdown,
-        backlogSubjects: backlogs,
         rankInfo: rkInfo,
+        lastEmailSentAt: trackingInfo.lastEmailSentAt || null,
+        lastEmailStatus: trackingInfo.lastEmailStatus || null,
+        lastEmailError: trackingInfo.lastEmailError || null
       });
     });
 
@@ -1474,6 +1486,18 @@ router.post("/backlogs/send-email", protect, async (req, res) => {
       backlogSubjects,
     });
 
+    // Update Email Status to SUCCESS
+    const sentDate = new Date();
+    await Student.findOneAndUpdate(
+      { regNo: cleanRegNo },
+      {
+        lastEmailSentAt: sentDate,
+        lastEmailStatus: 'SUCCESS',
+        lastEmailError: null
+      },
+      { upsert: true }
+    );
+
     res.json({
       success: true,
       message: `Backlog notification email successfully sent to ${recipientEmail}`,
@@ -1483,10 +1507,26 @@ router.post("/backlogs/send-email", protect, async (req, res) => {
       totalBacklogs: backlogSubjects.length,
       cgpa,
       messageId: result.messageId,
-      sentAt: new Date().toISOString(),
+      sentAt: sentDate.toISOString(),
+      lastEmailStatus: 'SUCCESS'
     });
   } catch (err) {
     console.error("Backlog email send error:", err);
+    
+    // Attempt to update Email Status to FAILED
+    const cleanRegNo = String(req.body.regNo || req.body.registrationNumber || req.body.studentId || "").trim();
+    if (cleanRegNo) {
+      await Student.findOneAndUpdate(
+        { regNo: cleanRegNo },
+        {
+          lastEmailSentAt: new Date(),
+          lastEmailStatus: 'FAILED',
+          lastEmailError: err.message || 'Unknown error occurred'
+        },
+        { upsert: true }
+      ).catch(dbErr => console.error("Failed to update email log:", dbErr));
+    }
+
     res.status(500).json({
       message: err.message || "Failed to send backlog notification email",
     });
