@@ -36,71 +36,96 @@ function isBatchExpired(batchStr, referenceYear = new Date().getFullYear()) {
  */
 async function purgeExpiredBatches() {
   const currentYear = new Date().getFullYear();
-  try {
-    // Distinct batches present in SemesterResult and Ranking
-    const resultBatches = await SemesterResult.distinct("batch");
-    const rankingBatches = await Ranking.distinct("batch");
-    const internalBatches = await InternalMark.distinct("batch");
+  const maxExpiredBatchYear = currentYear - 6; // e.g. in 2026, 2026 - 6 = 2020. Batches <= 2020 are expired
 
-    const allBatches = [
-      ...new Set([...resultBatches, ...rankingBatches, ...internalBatches]),
+  try {
+    const expiredBatches = [];
+    const expiredPrefixes = [];
+
+    for (let y = 2000; y <= maxExpiredBatchYear; y++) {
+      const bStr = String(y);
+      expiredBatches.push(bStr);
+      expiredPrefixes.push(bStr.slice(-2));
+    }
+
+    const regNoRegex = new RegExp(`^(${expiredPrefixes.join("|")})`);
+
+    // Query filter matching regNo prefix OR batch string
+    const queryFilter = {
+      $or: [
+        { regNo: regNoRegex },
+        { batch: { $in: expiredBatches } }
+      ]
+    };
+
+    // Find affected RegNos
+    const affectedResults = await SemesterResult.find(queryFilter, "regNo batch").lean();
+    const affectedRankings = await Ranking.find(queryFilter, "regNo batch").lean();
+    const affectedInternals = await InternalMark.find(queryFilter, "regNo batch").lean();
+
+    const affectedRegNos = [
+      ...new Set([
+        ...affectedResults.map((r) => r.regNo),
+        ...affectedRankings.map((r) => r.regNo),
+        ...affectedInternals.map((r) => r.regNo),
+      ]),
     ].filter(Boolean);
 
-    const expiredBatches = allBatches.filter((b) => isBatchExpired(b, currentYear));
-
-    if (!expiredBatches.length) {
-      console.log(`[Batch Lifecycle] No expired batches found for year ${currentYear}.`);
+    if (!affectedRegNos.length && !affectedResults.length && !affectedRankings.length && !affectedInternals.length) {
+      console.log(`[Batch Lifecycle] No expired batch records found for year ${currentYear}.`);
       return { purgedCount: 0, expiredBatches: [] };
     }
 
-    console.log(`[Batch Lifecycle] Found ${expiredBatches.length} expired batch(es) to purge: ${expiredBatches.join(", ")}`);
+    console.log(`[Batch Lifecycle] Found ${affectedRegNos.length} unique expired student(s) to purge across database.`);
 
-    const purgeSummary = [];
+    // Perform bulk deleteMany
+    const delRes = await SemesterResult.deleteMany(queryFilter);
+    const delRank = await Ranking.deleteMany(queryFilter);
+    const delInt = await InternalMark.deleteMany(queryFilter);
+    let delStudCount = 0;
+    if (affectedRegNos.length > 0) {
+      const delStud = await Student.deleteMany({ regNo: { $in: affectedRegNos } });
+      delStudCount = delStud.deletedCount || 0;
+    }
 
-    for (const batch of expiredBatches) {
-      // Find all affected regNos for this batch
-      const affectedResults = await SemesterResult.find({ batch }, "regNo").lean();
-      const affectedRegNos = [...new Set(affectedResults.map((r) => r.regNo))];
+    const totalRecordsDeleted =
+      (delRes.deletedCount || 0) +
+      (delRank.deletedCount || 0) +
+      (delInt.deletedCount || 0);
 
-      // Perform bulk deletions
-      const deletedResults = await SemesterResult.deleteMany({ batch });
-      const deletedRankings = await Ranking.deleteMany({ batch });
-      const deletedInternals = await InternalMark.deleteMany({ batch });
-
-      let deletedStudentsCount = 0;
-      if (affectedRegNos.length > 0) {
-        const delStudentsRes = await Student.deleteMany({ regNo: { $in: affectedRegNos } });
-        deletedStudentsCount = delStudentsRes.deletedCount || 0;
+    // Group logs by batch for Audit Log
+    const byBatch = {};
+    affectedResults.concat(affectedRankings).concat(affectedInternals).forEach((r) => {
+      let b = r.batch;
+      if (!b && r.regNo && /^\d{2}/.test(r.regNo)) {
+        b = `20${r.regNo.slice(0, 2)}`;
       }
+      if (!b) b = "Expired";
+      if (!byBatch[b]) byBatch[b] = [];
+      byBatch[b].push(r.regNo);
+    });
 
-      const totalRecordsDeleted =
-        (deletedResults.deletedCount || 0) +
-        (deletedRankings.deletedCount || 0) +
-        (deletedInternals.deletedCount || 0);
+    const purgedBatchesList = Object.keys(byBatch);
 
-      // Create Audit Log
+    for (const [batch, regNos] of Object.entries(byBatch)) {
+      const uniqueRegs = [...new Set(regNos)];
       await BatchPurgeLog.create({
         batch,
         purgedAt: new Date(),
-        recordsDeleted: totalRecordsDeleted,
-        studentsAffected: affectedRegNos.length,
-        sampleRegNos: affectedRegNos.slice(0, 20),
+        recordsDeleted: regNos.length,
+        studentsAffected: uniqueRegs.length,
+        sampleRegNos: uniqueRegs.slice(0, 20),
         triggerReason: `5-Year Batch Retention Limit Reached (Batch ${batch} expired in ${currentYear})`,
       });
-
-      purgeSummary.push({
-        batch,
-        recordsDeleted: totalRecordsDeleted,
-        studentsAffected: affectedRegNos.length,
-      });
-
-      console.log(`[Batch Lifecycle] Purged Batch ${batch}: ${totalRecordsDeleted} records deleted for ${affectedRegNos.length} students.`);
     }
 
+    console.log(`[Batch Lifecycle] Purged ${purgedBatchesList.length} expired batch(es): ${totalRecordsDeleted} records deleted.`);
+
     return {
-      purgedCount: expiredBatches.length,
-      expiredBatches,
-      summary: purgeSummary,
+      purgedCount: purgedBatchesList.length,
+      expiredBatches: purgedBatchesList,
+      totalRecordsDeleted,
+      studentsAffected: affectedRegNos.length,
     };
   } catch (err) {
     console.error("[Batch Lifecycle] Error during expired batch purge:", err);
