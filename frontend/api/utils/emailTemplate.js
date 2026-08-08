@@ -79,7 +79,7 @@ function generateBacklogEmailHtml({
 <body style="font-family: Arial, sans-serif; background-color: #ffffff; color: #333333; line-height: 1.6; margin: 0; padding: 20px;">
 
   <div style="margin-bottom: 24px;">
-    <h2 style="margin: 0; font-size: 20px; font-weight: bold; color: #333333;">GRADEFlow</h2>
+    <h2 style="margin: 0; font-size: 20px; font-weight: bold;"><span style="color: #333333;">GRADE</span><span style="color: #2563eb;">Flow</span></h2>
     <p style="margin: 0; font-size: 14px; color: #666666;">Academic Progress & Result Management System</p>
   </div>
 
