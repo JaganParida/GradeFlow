@@ -7,6 +7,27 @@ import { motion, AnimatePresence } from "framer-motion";
 import { formatDistanceToNow } from "date-fns";
 import { Upload, Trash2, Settings, Users, FileText, FileEdit, Trophy, AlertTriangle, CheckCircle, FileSpreadsheet, LogOut, Database, CloudUpload, MessageSquare, Edit2, X, ChevronDown, ChevronUp, BookOpen, Search, Filter, HelpCircle, Info, Mail, Send, Check, Loader2 } from "lucide-react";
 
+function getDynamicSessionOptions(bStr, semVal, yStr) {
+  const bYear = bStr && !isNaN(parseInt(bStr, 10)) ? parseInt(bStr, 10) : null;
+  const yVal = yStr && !isNaN(parseInt(yStr, 10)) ? parseInt(yStr, 10) : null;
+  const startY = bYear ? bYear : (yVal ? yVal - 1 : null);
+
+  if (!startY) {
+    const sessions = [];
+    for (let y = 2018; y <= 2030; y++) {
+      sessions.push(`${y}-${String(y + 1).slice(-2)}`);
+    }
+    return sessions;
+  }
+
+  const sessions = [];
+  for (let offset = 0; offset <= 5; offset++) {
+    const y1 = startY + offset;
+    sessions.push(`${y1}-${String(y1 + 1).slice(-2)}`);
+  }
+  return sessions;
+}
+
 function UploadCard({
   title,
   icon,
@@ -31,6 +52,32 @@ function UploadCard({
   const [msg, setMsg] = useState("");
   const [err, setErr] = useState("");
   const inputRef = useRef();
+
+  useEffect(() => {
+    const hasSessionField = extraFields?.some(f => f.key === "session");
+    if (!hasSessionField) return;
+
+    const bYear = extra.batch && !isNaN(parseInt(extra.batch, 10)) ? parseInt(extra.batch, 10) : null;
+    const semNum = extra.semester && !isNaN(parseInt(extra.semester, 10)) ? parseInt(extra.semester, 10) : null;
+    const yVal = extra.year && !isNaN(parseInt(extra.year, 10)) ? parseInt(extra.year, 10) : null;
+
+    let targetSession = extra.session;
+
+    if (bYear && semNum && semNum >= 1) {
+      const yearOffset = Math.floor((semNum - 1) / 2);
+      const calcYear = bYear + yearOffset;
+      targetSession = `${calcYear}-${String(calcYear + 1).slice(-2)}`;
+    } else if (bYear || yVal) {
+      const validSessions = getDynamicSessionOptions(extra.batch, extra.semester, extra.year);
+      if (!targetSession || !validSessions.includes(targetSession)) {
+        targetSession = validSessions[0];
+      }
+    }
+
+    if (targetSession && targetSession !== extra.session) {
+      setExtra((prev) => ({ ...prev, session: targetSession }));
+    }
+  }, [extra.batch, extra.semester, extra.year]);
 
   async function handleUpload() {
     if (!file) {
@@ -101,41 +148,47 @@ function UploadCard({
         <h3 style={{ fontWeight: 700, fontSize: 16 }}>{title}</h3>
       </div>
 
-      {extraFields?.filter(f => !f.hidden).map((f) => (
-        <div key={f.key} style={{ marginBottom: 12 }}>
-          <label
-            style={{
-              display: "block",
-              fontSize: 12,
-              color: "var(--secondary)",
-              marginBottom: 4,
-            }}
-          >
-            {f.label}
-          </label>
-          {f.type === "select" ? (
-            <select
-              value={extra[f.key] || ""}
-              onChange={(e) => setExtra({ ...extra, [f.key]: e.target.value })}
-              style={{ width: "100%", padding: "10px", borderRadius: "8px", border: "1px solid var(--border)", background: "var(--bg-input)", color: "var(--text-primary)" }}
+      {extraFields?.filter(f => !f.hidden).map((f) => {
+        const currentOptions = f.key === "session"
+          ? getDynamicSessionOptions(extra.batch, extra.semester, extra.year)
+          : f.options;
+
+        return (
+          <div key={f.key} style={{ marginBottom: 12 }}>
+            <label
+              style={{
+                display: "block",
+                fontSize: 12,
+                color: "var(--secondary)",
+                marginBottom: 4,
+              }}
             >
-              <option value="" disabled style={{ background: "#1a1a1a", color: "#fff" }}>Select {f.label.replace(" *", "")}</option>
-              {f.options?.map(opt => (
-                <option key={opt.value || opt} value={opt.value || opt} style={{ background: "#1a1a1a", color: "#fff" }}>
-                  {opt.label || opt}
-                </option>
-              ))}
-            </select>
-          ) : (
-            <input
-              type={f.type || "text"}
-              placeholder={f.placeholder}
-              value={extra[f.key] || ""}
-              onChange={(e) => setExtra({ ...extra, [f.key]: e.target.value })}
-            />
-          )}
-        </div>
-      ))}
+              {f.label}
+            </label>
+            {f.type === "select" ? (
+              <select
+                value={extra[f.key] || ""}
+                onChange={(e) => setExtra({ ...extra, [f.key]: e.target.value })}
+                style={{ width: "100%", padding: "10px", borderRadius: "8px", border: "1px solid var(--border)", background: "var(--bg-input)", color: "var(--text-primary)" }}
+              >
+                <option value="" disabled style={{ background: "#1a1a1a", color: "#fff" }}>Select {f.label.replace(" *", "")}</option>
+                {currentOptions?.map(opt => (
+                  <option key={opt.value || opt} value={opt.value || opt} style={{ background: "#1a1a1a", color: "#fff" }}>
+                    {opt.label || opt}
+                  </option>
+                ))}
+              </select>
+            ) : (
+              <input
+                type={f.type || "text"}
+                placeholder={f.placeholder}
+                value={extra[f.key] || ""}
+                onChange={(e) => setExtra({ ...extra, [f.key]: e.target.value })}
+              />
+            )}
+          </div>
+        );
+      })}
 
       <motion.div
         whileHover={{ scale: 1.01 }}
@@ -2354,7 +2407,19 @@ export default function AdminDashboard() {
                 key: "year",
                 label: "Year",
                 type: "select",
-                options: ["2023", "2024", "2025", "2026", "2027", "2028"]
+                options: ["2018", "2019", "2020", "2021", "2022", "2023", "2024", "2025", "2026", "2027", "2028", "2029", "2030"]
+              },
+              {
+                key: "batch",
+                label: "Batch",
+                type: "select",
+                options: ["2018", "2019", "2020", "2021", "2022", "2023", "2024", "2025", "2026", "2027", "2028", "2029", "2030"]
+              },
+              {
+                key: "session",
+                label: "Session",
+                type: "select",
+                options: ["2023-24", "2024-25", "2025-26", "2026-27", "2027-28"]
               },
               {
                 key: "phase",
@@ -2392,10 +2457,22 @@ export default function AdminDashboard() {
                 options: [1, 2, 3, 4, 5, 6, 7, 8]
               },
               {
+                key: "batch",
+                label: "Batch",
+                type: "select",
+                options: ["2018", "2019", "2020", "2021", "2022", "2023", "2024", "2025", "2026", "2027", "2028", "2029", "2030"]
+              },
+              {
                 key: "program",
                 label: "Program",
                 type: "select",
                 options: ["B.Tech", "M.Tech", "BCA", "MCA", "BBA", "MBA", "B.Sc", "M.Sc", "Diploma"]
+              },
+              {
+                key: "session",
+                label: "Session",
+                type: "select",
+                options: ["2023-24", "2024-25", "2025-26", "2026-27", "2027-28"]
               },
               {
                 key: "uploadType",
@@ -2419,6 +2496,12 @@ export default function AdminDashboard() {
                 label: "Semester *",
                 type: "select",
                 options: [1, 2, 3, 4, 5, 6, 7, 8]
+              },
+              {
+                key: "batch",
+                label: "Batch",
+                type: "select",
+                options: ["2018", "2019", "2020", "2021", "2022", "2023", "2024", "2025", "2026", "2027", "2028", "2029", "2030"]
               },
               {
                 key: "program",
