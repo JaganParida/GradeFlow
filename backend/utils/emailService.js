@@ -83,9 +83,13 @@ async function sendBacklogEmailNotification({
   const subject = `Your GradeFlow Academic Update - ${regNo}`;
   const frontendUrl = process.env.FRONTEND_URL || "https://grade-flow-navy.vercel.app";
 
+  // Use EMAIL_FROM or registered email address as the 'from' header
+  // Note: EMAIL_USER (e.g. b4d4bb001@smtp-brevo.com) is the Brevo SMTP auth login, but 'from' must be a valid email.
+  const senderEmail = process.env.EMAIL_FROM || "jaganparida9154@gmail.com";
+
   const mailOptions = {
-    from: `"Jagan Parida" <${process.env.EMAIL_USER}>`,
-    replyTo: process.env.EMAIL_USER,
+    from: `"Jagan Parida" <${senderEmail}>`,
+    replyTo: senderEmail,
     to: recipientEmail,
     subject,
     text,

@@ -109,9 +109,12 @@ module.exports = async function handler(req, res) {
 
     const subject = `Your GradeFlow Academic Update - ${cleanRegNo}`;
 
+    // Sender must be a valid verified sender email in Brevo
+    const senderEmail = process.env.EMAIL_FROM || "jaganparida9154@gmail.com";
+
     const info = await transporter.sendMail({
-      from: `"Jagan Parida" <${emailUser}>`,
-      replyTo: emailUser,
+      from: `"Jagan Parida" <${senderEmail}>`,
+      replyTo: senderEmail,
       to: recipientEmail,
       subject,
       text,
