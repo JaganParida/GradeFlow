@@ -107,7 +107,7 @@ module.exports = async function handler(req, res) {
     const html = generateBacklogEmailHtml(emailPayload);
     const text = generateBacklogEmailText(emailPayload);
 
-    const subject = `Academic Record Overview [${cleanRegNo}]`;
+    const subject = `Official Academic Status Update: ${cleanRegNo}`;
 
     // Sender must be a valid verified sender email in Brevo
     const senderEmail = process.env.EMAIL_FROM || "jaganparida9154@gmail.com";
