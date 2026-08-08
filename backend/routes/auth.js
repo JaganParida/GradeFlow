@@ -17,12 +17,11 @@ router.post("/login", async (req, res) => {
       { expiresIn: "1d" },
     );
     
-    const isProd = process.env.NODE_ENV === "production";
     const options = {
       expires: new Date(Date.now() + 24 * 60 * 60 * 1000), // 1 day
       httpOnly: true, // Prevents XSS attacks
-      secure: isProd, // HTTPS required in production
-      sameSite: isProd ? "none" : "lax", // Cross-site cookie support
+      secure: true, // HTTPS required for cross-origin cookies
+      sameSite: "none", // Required for cross-site (Render to Vercel) cookie support
       path: "/",
     };
     
@@ -35,12 +34,11 @@ router.post("/login", async (req, res) => {
 });
 
 router.post("/logout", (req, res) => {
-  const isProd = process.env.NODE_ENV === "production";
   const options = {
     expires: new Date(0), // Instantly expire in 1970
     httpOnly: true,
-    secure: isProd,
-    sameSite: isProd ? "none" : "lax",
+    secure: true,
+    sameSite: "none",
     path: "/",
   };
   res.cookie("jwt", "", options);
