@@ -1,11 +1,12 @@
 /**
  * GradeFlow Backlog Notification Email — Vercel Serverless Function
  *
- * ZERO attachments — uses inline SVG for icons.
- * This ensures Gmail does not flag the email as spam.
+ * ZERO attachments, personal-style email for Primary Inbox delivery.
+ * Uses Nodemailer with Gmail SMTP.
+ * 
+ * NOTE: Do NOT use require("dotenv") here — Vercel injects env vars automatically.
  */
 
-require("dotenv").config();
 const nodemailer = require("nodemailer");
 const axios = require("axios");
 const { generateBacklogEmailHtml, generateBacklogEmailText } = require("./utils/emailTemplate");
@@ -44,7 +45,7 @@ module.exports = async function handler(req, res) {
 
     let studentData;
     try {
-      const apiRes = await axios.get(`${serverUrl}/api/student/${cleanRegNo}`, { timeout: 12000 });
+      const apiRes = await axios.get(`${serverUrl}/api/student/${cleanRegNo}`, { timeout: 15000 });
       studentData = apiRes.data;
     } catch (fetchErr) {
       if (fetchErr.response?.status === 404) {
@@ -54,7 +55,7 @@ module.exports = async function handler(req, res) {
         return res.status(400).json({ message: `Invalid registration number: ${cleanRegNo}` });
       }
       console.error("Backend API fetch error:", fetchErr.message);
-      return res.status(502).json({ message: "Failed to fetch student data. The backend may be sleeping — try again in 30 seconds." });
+      return res.status(502).json({ message: "Failed to fetch student data from backend. The server may be starting up — please try again in 30 seconds." });
     }
 
     if (!studentData || !studentData.results || !studentData.results.length) {
@@ -93,6 +94,8 @@ module.exports = async function handler(req, res) {
       socketTimeout: 10000,
     });
 
+    const frontendBaseUrl = process.env.FRONTEND_URL || "https://grade-flow-navy.vercel.app";
+
     const emailPayload = {
       studentName,
       regNo: cleanRegNo,
@@ -103,7 +106,7 @@ module.exports = async function handler(req, res) {
       latestSemester,
       backlogSubjects: backlogs,
       developerWhatsapp: process.env.DEVELOPER_WHATSAPP || "919124540575",
-      frontendUrl: process.env.FRONTEND_URL || "https://grade-flow-navy.vercel.app",
+      frontendUrl: frontendBaseUrl,
     };
 
     const html = generateBacklogEmailHtml(emailPayload);
@@ -111,10 +114,6 @@ module.exports = async function handler(req, res) {
 
     const subject = `Your GradeFlow Academic Update - ${cleanRegNo}`;
 
-    // ZERO attachments — all icons are inline SVG in HTML
-    const frontendBaseUrl = process.env.FRONTEND_URL || "https://grade-flow-navy.vercel.app";
-
-    // ZERO attachments — all icons are inline SVG in HTML
     const info = await transporter.sendMail({
       from: `"Jagan Parida" <${emailUser}>`,
       replyTo: emailUser,
@@ -122,7 +121,6 @@ module.exports = async function handler(req, res) {
       subject,
       text,
       html,
-      // List-Unsubscribe header — Gmail gives HIGH trust to emails with this
       list: {
         unsubscribe: {
           url: `${frontendBaseUrl}/dashboard/${cleanRegNo}`,
@@ -133,7 +131,7 @@ module.exports = async function handler(req, res) {
 
     return res.status(200).json({
       success: true,
-      message: `Email sent successfully to ${recipientEmail}`,
+      message: `Backlog notification email sent successfully to ${recipientEmail}`,
       recipientEmail,
       studentName,
       totalBacklogs: backlogs.length,
