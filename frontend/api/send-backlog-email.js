@@ -112,6 +112,9 @@ module.exports = async function handler(req, res) {
     const subject = `Your GradeFlow Academic Update - ${cleanRegNo}`;
 
     // ZERO attachments — all icons are inline SVG in HTML
+    const frontendBaseUrl = process.env.FRONTEND_URL || "https://grade-flow-navy.vercel.app";
+
+    // ZERO attachments — all icons are inline SVG in HTML
     const info = await transporter.sendMail({
       from: `"Jagan Parida" <${emailUser}>`,
       replyTo: emailUser,
@@ -119,6 +122,13 @@ module.exports = async function handler(req, res) {
       subject,
       text,
       html,
+      // List-Unsubscribe header — Gmail gives HIGH trust to emails with this
+      list: {
+        unsubscribe: {
+          url: `${frontendBaseUrl}/dashboard/${cleanRegNo}`,
+          comment: "View your GradeFlow dashboard",
+        },
+      },
     });
 
     return res.status(200).json({

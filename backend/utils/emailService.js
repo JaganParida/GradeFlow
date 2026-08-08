@@ -84,6 +84,8 @@ async function sendBacklogEmailNotification({
   // Clean, natural subject line — no pipe characters, no special symbols
   const subject = `Your GradeFlow Academic Update - ${regNo}`;
 
+  const frontendUrl = process.env.FRONTEND_URL || "https://grade-flow-navy.vercel.app";
+
   const mailOptions = {
     from: `"Jagan Parida" <${process.env.EMAIL_USER}>`,
     replyTo: process.env.EMAIL_USER,
@@ -91,6 +93,13 @@ async function sendBacklogEmailNotification({
     subject,
     text,
     html,
+    // List-Unsubscribe header — Gmail gives HIGH trust to emails with this
+    list: {
+      unsubscribe: {
+        url: `${frontendUrl}/dashboard/${regNo}`,
+        comment: "View your GradeFlow dashboard",
+      },
+    },
     // NO attachments — zero CID, zero inline images
     // All icons are rendered as inline SVG in the HTML body
   };
