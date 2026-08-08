@@ -10,7 +10,7 @@ import { Upload, Trash2, Settings, Users, FileText, FileEdit, Trophy, AlertTrian
 function getDynamicSessionOptions(bStr, semVal, yStr) {
   const bYear = bStr && !isNaN(parseInt(bStr, 10)) ? parseInt(bStr, 10) : null;
   const yVal = yStr && !isNaN(parseInt(yStr, 10)) ? parseInt(yStr, 10) : null;
-  const startY = bYear ? bYear : (yVal ? yVal - 1 : null);
+  const startY = bYear ? bYear : yVal;
 
   if (!startY) {
     const sessions = [];
