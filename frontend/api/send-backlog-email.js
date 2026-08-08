@@ -1,15 +1,10 @@
 /**
  * GradeFlow Backlog Notification Email — Vercel Serverless Function
  *
- * This function runs on Vercel's infrastructure (NOT on Render).
- * It reads EMAIL_USER, EMAIL_PASS etc. from Vercel Environment Variables.
- * It fetches student academic data from the Render Backend API.
- * It sends the email via Nodemailer directly from Vercel.
- *
- * Why Vercel? → Avoids Render free-tier sleep delay, IP blocking, and request timeouts.
+ * Runs on Vercel infrastructure for high-speed delivery.
+ * Reads EMAIL_USER, EMAIL_PASS etc. from Vercel Environment Variables.
  */
 
-const path = require("path");
 require("dotenv").config();
 const nodemailer = require("nodemailer");
 const axios = require("axios");
@@ -48,7 +43,6 @@ module.exports = async function handler(req, res) {
     }
 
     // ── 3. Fetch Fresh Student Data from Render Backend API ──
-    // Never trust frontend-provided academic data — always fetch from DB
     const serverUrl = process.env.SERVER_URL || "https://gradeflow-api.onrender.com";
 
     let studentData;
@@ -123,33 +117,16 @@ module.exports = async function handler(req, res) {
     const html = generateBacklogEmailHtml(emailPayload);
     const text = generateBacklogEmailText(emailPayload);
 
-    const subject = `GradeFlow Academic Record Notice – Reg. No. ${cleanRegNo}`;
+    const subject = `Academic Status Notice: ${cleanRegNo}`;
 
-    // ── 8. Send Email with Anti-Spam Headers, Text Fallback & CID Images ──
+    // ── 8. Send Email (Optimized for Primary Inbox Delivery) ──
     const info = await transporter.sendMail({
-      from: `"GradeFlow Academic System" <${emailUser}>`,
+      from: `"Jagan Parida (GradeFlow)" <${emailUser}>`,
       replyTo: emailUser,
       to: recipientEmail,
       subject,
       text,
       html,
-      headers: {
-        "X-Mailer": "GradeFlow Academic System v1.0",
-        "X-Entity-Ref-ID": cleanRegNo,
-        "X-Auto-Response-Suppress": "OOF, AutoReply",
-      },
-      attachments: [
-        {
-          filename: "logo.png",
-          path: path.join(__dirname, "assets/logo.png"),
-          cid: "gradeflow-logo",
-        },
-        {
-          filename: "whatsapp.png",
-          path: path.join(__dirname, "assets/whatsapp.png"),
-          cid: "whatsapp-icon",
-        },
-      ],
     });
 
     return res.status(200).json({
@@ -164,7 +141,6 @@ module.exports = async function handler(req, res) {
   } catch (err) {
     console.error("Vercel email handler error:", err);
 
-    // Handle specific SMTP errors
     if (err.code === "EAUTH") {
       return res.status(500).json({ message: "SMTP authentication failed. Please verify EMAIL_USER and EMAIL_PASS in Vercel Environment Variables." });
     }

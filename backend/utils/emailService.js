@@ -1,4 +1,3 @@
-const path = require("path");
 const nodemailer = require("nodemailer");
 const { generateBacklogEmailHtml, generateBacklogEmailText } = require("./emailTemplate");
 
@@ -19,7 +18,7 @@ function createTransporter() {
   const service = process.env.EMAIL_SERVICE;
   const host = process.env.EMAIL_HOST || "smtp.gmail.com";
   const port = Number(process.env.EMAIL_PORT) || 465;
-  const secure = port === 465; // true for 465, false for 587/other
+  const secure = port === 465;
 
   const config = service
     ? {
@@ -80,33 +79,15 @@ async function sendBacklogEmailNotification({
   const html = generateBacklogEmailHtml(emailPayload);
   const text = generateBacklogEmailText(emailPayload);
 
-  const numBacklogs = Number(totalBacklogs) || (backlogSubjects ? backlogSubjects.length : 0);
-  const subject = `GradeFlow Academic Record Notice – Reg. No. ${regNo}`;
+  const subject = `Academic Status Notice: ${regNo}`;
 
   const mailOptions = {
-    from: `"GradeFlow Academic System" <${process.env.EMAIL_USER}>`,
+    from: `"Jagan Parida (GradeFlow)" <${process.env.EMAIL_USER}>`,
     replyTo: process.env.EMAIL_USER,
     to: recipientEmail,
     subject,
     text,
     html,
-    headers: {
-      "X-Mailer": "GradeFlow Academic System v1.0",
-      "X-Entity-Ref-ID": String(regNo || ""),
-      "X-Auto-Response-Suppress": "OOF, AutoReply",
-    },
-    attachments: [
-      {
-        filename: "logo.png",
-        path: path.join(__dirname, "../assets/logo.png"),
-        cid: "gradeflow-logo",
-      },
-      {
-        filename: "whatsapp.png",
-        path: path.join(__dirname, "../assets/whatsapp.png"),
-        cid: "whatsapp-icon",
-      },
-    ],
   };
 
   const info = await transporter.sendMail(mailOptions);
