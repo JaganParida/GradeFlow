@@ -1321,7 +1321,6 @@ router.get("/backlogs", protect, async (req, res) => {
       let rawSec = getSectionFromRegNo(regNo);
       if (rawSec && !rawSec.startsWith("Sec")) rawSec = `Sec ${rawSec}`;
 
-      const latestResult = userResults[userResults.length - 1];
       const rkInfo = studentRankingMap.get(regNo) || null;
       const trackingInfo = studentTrackingMap.get(regNo) || {};
 
