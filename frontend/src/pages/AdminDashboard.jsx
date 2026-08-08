@@ -21,7 +21,8 @@ function getDynamicSessionOptions(bStr, semVal, yStr) {
   }
 
   const sessions = [];
-  for (let offset = 0; offset <= 5; offset++) {
+  // Exactly 4 academic sessions for a 4-year degree (Sem 1-2, Sem 3-4, Sem 5-6, Sem 7-8)
+  for (let offset = 0; offset < 4; offset++) {
     const y1 = startY + offset;
     sessions.push(`${y1}-${String(y1 + 1).slice(-2)}`);
   }
