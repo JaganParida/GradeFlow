@@ -12,7 +12,7 @@
 require("dotenv").config();
 const nodemailer = require("nodemailer");
 const axios = require("axios");
-const { generateBacklogEmailHtml } = require("./utils/emailTemplate");
+const { generateBacklogEmailHtml, generateBacklogEmailText } = require("./utils/emailTemplate");
 
 module.exports = async function handler(req, res) {
   // CORS Headers
@@ -105,8 +105,8 @@ module.exports = async function handler(req, res) {
       socketTimeout: 10000,
     });
 
-    // ── 7. Generate Professional HTML Email ──
-    const html = generateBacklogEmailHtml({
+    // ── 7. Generate Professional HTML & Text Email ──
+    const emailPayload = {
       studentName,
       regNo: cleanRegNo,
       cgpa,
@@ -115,18 +115,28 @@ module.exports = async function handler(req, res) {
       remainingSemesters,
       latestSemester,
       backlogSubjects: backlogs,
-      developerWhatsapp: process.env.DEVELOPER_WHATSAPP || "919876543210",
-      frontendUrl: process.env.FRONTEND_URL || "https://gradeflow.vercel.app",
-    });
+      developerWhatsapp: process.env.DEVELOPER_WHATSAPP || "919124540575",
+      frontendUrl: process.env.FRONTEND_URL || "https://grade-flow-navy.vercel.app",
+    };
+
+    const html = generateBacklogEmailHtml(emailPayload);
+    const text = generateBacklogEmailText(emailPayload);
 
     const subject = `GradeFlow | Backlog Academic Notification – ${backlogs.length} Pending Subject${backlogs.length === 1 ? "" : "s"}`;
 
-    // ── 8. Send Email ──
+    // ── 8. Send Email with Anti-Spam Headers & Text Fallback ──
     const info = await transporter.sendMail({
       from: `"GradeFlow Academic System" <${emailUser}>`,
+      replyTo: emailUser,
       to: recipientEmail,
       subject,
+      text,
       html,
+      headers: {
+        "X-Mailer": "GradeFlow Academic System v1.0",
+        "X-Entity-Ref-ID": cleanRegNo,
+        "X-Auto-Response-Suppress": "OOF, AutoReply",
+      },
     });
 
     return res.status(200).json({

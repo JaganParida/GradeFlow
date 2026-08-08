@@ -1,5 +1,5 @@
 const nodemailer = require("nodemailer");
-const { generateBacklogEmailHtml } = require("./emailTemplate");
+const { generateBacklogEmailHtml, generateBacklogEmailText } = require("./emailTemplate");
 
 /**
  * Creates a Nodemailer transporter with connection timeout configuration
@@ -63,7 +63,7 @@ async function sendBacklogEmailNotification({
     throw new Error(`Invalid recipient email address: "${to}"`);
   }
 
-  const html = generateBacklogEmailHtml({
+  const emailPayload = {
     studentName,
     regNo,
     cgpa,
@@ -72,18 +72,28 @@ async function sendBacklogEmailNotification({
     remainingSemesters,
     latestSemester,
     backlogSubjects,
-    developerWhatsapp: process.env.DEVELOPER_WHATSAPP || "919876543210",
-    frontendUrl: process.env.FRONTEND_URL || "https://gradeflow.vercel.app",
-  });
+    developerWhatsapp: process.env.DEVELOPER_WHATSAPP || "919124540575",
+    frontendUrl: process.env.FRONTEND_URL || "https://grade-flow-navy.vercel.app",
+  };
+
+  const html = generateBacklogEmailHtml(emailPayload);
+  const text = generateBacklogEmailText(emailPayload);
 
   const numBacklogs = Number(totalBacklogs) || (backlogSubjects ? backlogSubjects.length : 0);
   const subject = `GradeFlow | Backlog Academic Notification – ${numBacklogs} Pending Subject${numBacklogs === 1 ? "" : "s"}`;
 
   const mailOptions = {
     from: `"GradeFlow Academic System" <${process.env.EMAIL_USER}>`,
+    replyTo: process.env.EMAIL_USER,
     to: recipientEmail,
     subject,
+    text,
     html,
+    headers: {
+      "X-Mailer": "GradeFlow Academic System v1.0",
+      "X-Entity-Ref-ID": String(regNo || ""),
+      "X-Auto-Response-Suppress": "OOF, AutoReply",
+    },
   };
 
   const info = await transporter.sendMail(mailOptions);

@@ -1,5 +1,12 @@
 /**
- * GradeFlow Professional Backlog Notification Email Generator (Vercel Serverless Function)
+ * GradeFlow High-Deliverability Professional Backlog Notification Email Generator
+ * 
+ * - 100% Email Client Compatible (Gmail, Outlook, Yahoo, Apple Mail)
+ * - Zero Emojis (Avoids Gmail Automated Spam Classification)
+ * - Pure HTML Table Layout (Eliminates text overlapping and flexbox bugs)
+ * - PNG Logo & WhatsApp Icon Integration
+ * - GradeFlow Live Portal Link Integration
+ * - Includes Plain-Text Fallback Generator for Primary Inbox Placement
  */
 
 function generateBacklogEmailHtml({
@@ -11,14 +18,19 @@ function generateBacklogEmailHtml({
   remainingSemesters,
   latestSemester,
   backlogSubjects = [],
-  developerWhatsapp = "919876543210",
-  frontendUrl = "https://gradeflow.vercel.app",
+  developerWhatsapp = "919124540575",
+  frontendUrl = "https://grade-flow-navy.vercel.app",
 }) {
   const cleanRegNo = String(regNo || "").trim();
   const cleanName = String(studentName || "Student").trim();
   const formattedCgpa = typeof cgpa === "number" ? cgpa.toFixed(2) : cgpa || "0.00";
   const numBacklogs = Number(totalBacklogs) || backlogSubjects.length || 0;
   const backlogsText = numBacklogs === 1 ? "1 pending backlog" : `${numBacklogs} pending backlogs`;
+
+  const baseUrl = String(frontendUrl || "https://grade-flow-navy.vercel.app").replace(/\/$/, "");
+  const logoUrl = `${baseUrl}/logo.png`;
+  const waIconUrl = `${baseUrl}/whatsapp.png`;
+  const studentPortalUrl = `${baseUrl}/dashboard/${cleanRegNo}`;
 
   // Group backlogs by semester
   const semGrouped = {};
@@ -32,12 +44,10 @@ function generateBacklogEmailHtml({
     .map(Number)
     .sort((a, b) => a - b);
 
-  // Generate semester breakdown text for summary
   const semesterSummaryLines = sortedSemesters.map(
     (sem) => `Semester ${sem}: ${semGrouped[sem].length} ${semGrouped[sem].length === 1 ? "Backlog" : "Backlogs"}`
   );
 
-  // Dynamic progress message based on remaining semesters
   let progressMessage = "";
   if (remainingSemesters <= 1) {
     progressMessage = `You are currently in <strong>Semester ${latestSemester}</strong>, with <strong>${remainingSemesters === 1 ? "1 semester" : "no semesters"} remaining</strong>. This is a critical stage of your academic journey. We strongly encourage you to clear your pending subjects as soon as possible so that your academic record can be updated successfully before graduation.`;
@@ -45,12 +55,11 @@ function generateBacklogEmailHtml({
     progressMessage = `You currently have <strong>${remainingSemesters} semesters remaining</strong>. Use this time wisely to clear your pending subjects and keep your academic progress on track.`;
   }
 
-  // Pre-filled WhatsApp message
   const waRawMessage = `Hello GradeFlow Developer, I am ${cleanName} with Registration Number ${cleanRegNo}. My backlog/result information needs to be updated. Please help me verify my academic record.`;
   const waCleanPhone = String(developerWhatsapp || "").replace(/[^0-9]/g, "");
   const waUrl = `https://wa.me/${waCleanPhone}?text=${encodeURIComponent(waRawMessage)}`;
 
-  // Generate semester tables HTML
+  // Semester tables using pure HTML table structures (No flexbox overlap)
   const semesterTablesHtml = sortedSemesters
     .map((sem) => {
       const subs = semGrouped[sem];
@@ -58,33 +67,29 @@ function generateBacklogEmailHtml({
         .map(
           (s) => `
           <tr style="border-bottom: 1px solid #e2e8f0;">
-            <td style="padding: 10px 14px; font-family: monospace; font-size: 13px; color: #475569; font-weight: 600;">${s.subCode || "N/A"}</td>
+            <td style="padding: 10px 14px; font-family: monospace, Courier, sans-serif; font-size: 13px; color: #475569; font-weight: 600;">${s.subCode || "N/A"}</td>
             <td style="padding: 10px 14px; font-size: 13px; color: #1e293b; font-weight: 500;">${s.subName || "Subject"}</td>
             <td style="padding: 10px 14px; font-size: 12px; text-align: right;">
-              <span style="background-color: #fee2e2; color: #dc2626; padding: 4px 10px; border-radius: 9999px; font-weight: 700; display: inline-block;">Pending (${s.grade || "F"})</span>
+              <span style="background-color: #fee2e2; color: #dc2626; padding: 3px 8px; border-radius: 4px; font-weight: 700; font-size: 11px; display: inline-block;">Pending (${s.grade || "F"})</span>
             </td>
           </tr>`
         )
         .join("");
 
       return `
-        <div style="margin-bottom: 20px;">
-          <div style="background-color: #f1f5f9; padding: 8px 14px; border-left: 4px solid #ef4444; border-radius: 4px; font-weight: 700; color: #0f172a; font-size: 14px; margin-bottom: 8px;">
-            Semester ${sem}
-          </div>
-          <table style="width: 100%; border-collapse: collapse; background-color: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden;">
-            <thead>
-              <tr style="background-color: #f8fafc; text-align: left; border-bottom: 1px solid #e2e8f0;">
-                <th style="padding: 10px 14px; font-size: 12px; color: #64748b; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;">Subject Code</th>
-                <th style="padding: 10px 14px; font-size: 12px; color: #64748b; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;">Subject Name</th>
-                <th style="padding: 10px 14px; font-size: 12px; color: #64748b; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; text-align: right;">Status</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${rows}
-            </tbody>
-          </table>
-        </div>`;
+        <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="margin-bottom: 18px; border: 1px solid #e2e8f0; border-radius: 6px; overflow: hidden; background-color: #ffffff;">
+          <tr>
+            <td colspan="3" style="background-color: #f1f5f9; padding: 8px 14px; border-left: 4px solid #ef4444; font-weight: 700; color: #0f172a; font-size: 13px;">
+              Semester ${sem}
+            </td>
+          </tr>
+          <tr style="background-color: #f8fafc; border-bottom: 1px solid #e2e8f0;">
+            <td style="padding: 8px 14px; font-size: 11px; color: #64748b; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;">Subject Code</td>
+            <td style="padding: 8px 14px; font-size: 11px; color: #64748b; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;">Subject Name</td>
+            <td style="padding: 8px 14px; font-size: 11px; color: #64748b; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; text-align: right;">Status</td>
+          </tr>
+          ${rows}
+        </table>`;
     })
     .join("");
 
@@ -95,141 +100,164 @@ function generateBacklogEmailHtml({
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>GradeFlow | Backlog Academic Notification</title>
 </head>
-<body style="margin: 0; padding: 0; background-color: #f4f6f9; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; -webkit-font-smoothing: antialiased;">
-  <table role="presentation" style="width: 100%; border-collapse: collapse; background-color: #f4f6f9; padding: 30px 10px;">
+<body style="margin: 0; padding: 0; background-color: #f1f5f9; font-family: 'Segoe UI', Arial, sans-serif; -webkit-font-smoothing: antialiased; color: #334155;">
+  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background-color: #f1f5f9; padding: 24px 10px;">
     <tr>
       <td align="center">
-        <table role="presentation" style="max-width: 620px; width: 100%; border-collapse: collapse; background-color: #ffffff; border-radius: 16px; overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.08); border: 1px solid #e2e8f0;">
+        <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="max-width: 600px; background-color: #ffffff; border-radius: 12px; overflow: hidden; border: 1px solid #cbd5e1; box-shadow: 0 4px 16px rgba(0,0,0,0.06);">
           
-          <!-- Header Banner with GradeFlow Logo -->
+          <!-- Header Banner with Official GradeFlow Logo -->
           <tr>
-            <td style="background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%); padding: 32px 28px; text-align: center;">
-              <table role="presentation" style="margin: 0 auto;">
+            <td style="background-color: #0f172a; padding: 24px 28px; text-align: center;">
+              <table role="presentation" cellspacing="0" cellpadding="0" border="0" style="margin: 0 auto;">
                 <tr>
                   <td style="vertical-align: middle; padding-right: 12px;">
-                    <!-- Logo Icon Badge -->
-                    <div style="width: 44px; height: 44px; background-color: #ffffff; border-radius: 12px; display: inline-block; text-align: center; line-height: 44px; box-shadow: 0 4px 12px rgba(0,0,0,0.2);">
-                      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#0f172a" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: middle; margin-top: -2px;">
-                        <path d="M22 10v6M2 10l10-5 10 5-10 5z"></path>
-                        <path d="M6 12v5c3 3 9 3 12 0v-5"></path>
-                      </svg>
-                    </div>
+                    <img src="${logoUrl}" width="38" height="38" alt="GradeFlow Logo" style="display: block; border: 0; outline: none;" />
                   </td>
                   <td style="vertical-align: middle; text-align: left;">
-                    <span style="font-family: 'Courier New', Courier, monospace; font-weight: 800; font-size: 24px; color: #ffffff; letter-spacing: -0.5px; display: block;">GradeFlow</span>
-                    <span style="font-size: 11px; color: #94a3b8; letter-spacing: 0.5px; text-transform: uppercase; font-weight: 600;">Academic Analytics Portal</span>
+                    <span style="font-family: 'Segoe UI', Arial, sans-serif; font-weight: 800; font-size: 22px; color: #ffffff; letter-spacing: -0.5px; display: block; line-height: 1.1;">GradeFlow</span>
+                    <span style="font-size: 10px; color: #94a3b8; letter-spacing: 1px; text-transform: uppercase; font-weight: 700; display: block; margin-top: 3px;">Academic Analytics Portal</span>
                   </td>
                 </tr>
               </table>
             </td>
           </tr>
 
-          <!-- Main Content -->
+          <!-- Main Content Body -->
           <tr>
-            <td style="padding: 32px 28px; color: #334155; font-size: 15px; line-height: 1.6;">
+            <td style="padding: 28px; font-size: 14px; line-height: 1.6; color: #334155;">
 
-              <p style="margin-top: 0; font-size: 16px; color: #0f172a; font-weight: 600;">Dear ${cleanName},</p>
+              <p style="margin-top: 0; font-size: 15px; color: #0f172a; font-weight: 700;">Dear ${cleanName},</p>
               
-              <p style="margin-bottom: 24px;">This is an official academic notification from GradeFlow regarding your current academic progress and pending backlogs.</p>
+              <p style="margin-bottom: 20px;">This is an official academic notification from GradeFlow regarding your current academic progress and pending backlogs.</p>
 
-              <!-- Academic Summary Card -->
-              <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px; margin-bottom: 24px;">
-                <div style="font-weight: 700; font-size: 15px; color: #0f172a; margin-bottom: 14px; border-bottom: 2px solid #e2e8f0; padding-bottom: 8px; display: flex; align-items: center; justify-content: space-between;">
-                  <span>📋 Academic Summary</span>
-                  <span style="font-size: 11px; color: #64748b; font-weight: 600; text-transform: uppercase;">Official Record</span>
-                </div>
-                
-                <table style="width: 100%; border-collapse: collapse; font-size: 14px;">
-                  <tr>
-                    <td style="padding: 6px 0; color: #64748b; font-weight: 500; width: 48%;">Student Name</td>
-                    <td style="padding: 6px 0; color: #0f172a; font-weight: 700; text-align: right;">${cleanName}</td>
-                  </tr>
-                  <tr>
-                    <td style="padding: 6px 0; color: #64748b; font-weight: 500;">Registration No.</td>
-                    <td style="padding: 6px 0; color: #0f172a; font-weight: 700; font-family: monospace; text-align: right;">${cleanRegNo}</td>
-                  </tr>
-                  <tr>
-                    <td style="padding: 6px 0; color: #64748b; font-weight: 500;">Current CGPA</td>
-                    <td style="padding: 6px 0; color: #2563eb; font-weight: 800; font-size: 15px; text-align: right;">${formattedCgpa}</td>
-                  </tr>
-                  <tr>
-                    <td style="padding: 6px 0; color: #64748b; font-weight: 500;">Total Backlogs</td>
-                    <td style="padding: 6px 0; color: #dc2626; font-weight: 800; text-align: right;">${numBacklogs}</td>
-                  </tr>
-                  <tr>
-                    <td style="padding: 6px 0; color: #64748b; font-weight: 500;">Completed Semesters</td>
-                    <td style="padding: 6px 0; color: #0f172a; font-weight: 700; text-align: right;">${completedSemesters}</td>
-                  </tr>
-                  <tr>
-                    <td style="padding: 6px 0; color: #64748b; font-weight: 500;">Remaining Semesters</td>
-                    <td style="padding: 6px 0; color: #0f172a; font-weight: 700; text-align: right;">${remainingSemesters}</td>
-                  </tr>
-                </table>
-              </div>
+              <!-- Academic Summary Table (Strict Table Alignment to avoid overlap) -->
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; margin-bottom: 20px; padding: 14px 16px;">
+                <tr>
+                  <td style="padding-bottom: 10px; border-bottom: 1px solid #e2e8f0; font-weight: 700; font-size: 14px; color: #0f172a;">Academic Summary</td>
+                  <td align="right" style="padding-bottom: 10px; border-bottom: 1px solid #e2e8f0; font-size: 11px; color: #64748b; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;">Official Record</td>
+                </tr>
+                <tr>
+                  <td colspan="2" style="padding-top: 10px;">
+                    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="font-size: 13px;">
+                      <tr>
+                        <td style="padding: 4px 0; color: #64748b; font-weight: 500;">Student Name</td>
+                        <td align="right" style="padding: 4px 0; color: #0f172a; font-weight: 700;">${cleanName}</td>
+                      </tr>
+                      <tr>
+                        <td style="padding: 4px 0; color: #64748b; font-weight: 500;">Registration No.</td>
+                        <td align="right" style="padding: 4px 0; color: #0f172a; font-weight: 700; font-family: monospace;">${cleanRegNo}</td>
+                      </tr>
+                      <tr>
+                        <td style="padding: 4px 0; color: #64748b; font-weight: 500;">Current CGPA</td>
+                        <td align="right" style="padding: 4px 0; color: #2563eb; font-weight: 800;">${formattedCgpa}</td>
+                      </tr>
+                      <tr>
+                        <td style="padding: 4px 0; color: #64748b; font-weight: 500;">Total Backlogs</td>
+                        <td align="right" style="padding: 4px 0; color: #dc2626; font-weight: 800;">${numBacklogs}</td>
+                      </tr>
+                      <tr>
+                        <td style="padding: 4px 0; color: #64748b; font-weight: 500;">Completed Semesters</td>
+                        <td align="right" style="padding: 4px 0; color: #0f172a; font-weight: 700;">${completedSemesters}</td>
+                      </tr>
+                      <tr>
+                        <td style="padding: 4px 0; color: #64748b; font-weight: 500;">Remaining Semesters</td>
+                        <td align="right" style="padding: 4px 0; color: #0f172a; font-weight: 700;">${remainingSemesters}</td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+              </table>
 
               <!-- Total Backlog Highlight Box -->
-              <div style="background-color: #fef2f2; border: 1.5px solid #fecaca; border-radius: 12px; padding: 18px 20px; text-align: center; margin-bottom: 28px;">
-                <div style="color: #991b1b; font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px;">⚠️ Backlog Status Alert</div>
-                <div style="color: #dc2626; font-size: 20px; font-weight: 800;">
-                  You currently have <span style="text-decoration: underline;">${backlogsText}</span>.
-                </div>
-              </div>
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background-color: #fef2f2; border: 1px solid #fecaca; border-radius: 8px; margin-bottom: 22px;">
+                <tr>
+                  <td style="padding: 14px 18px; text-align: center;">
+                    <div style="color: #991b1b; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 2px;">Backlog Status Alert</div>
+                    <div style="color: #dc2626; font-size: 17px; font-weight: 800;">
+                      You currently have <u>${backlogsText}</u>.
+                    </div>
+                  </td>
+                </tr>
+              </table>
+
+              <!-- Direct Website Search / Portal Callout -->
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background-color: #f0f9ff; border: 1px solid #bae6fd; border-radius: 8px; margin-bottom: 22px;">
+                <tr>
+                  <td style="padding: 16px; text-align: center;">
+                    <div style="font-size: 13px; color: #0369a1; margin-bottom: 10px; font-weight: 600;">
+                      Keep track of your complete semester history, internal marks, and live rank updates on GradeFlow:
+                    </div>
+                    <a href="${studentPortalUrl}" target="_blank" style="display: inline-block; background-color: #0284c7; color: #ffffff; font-weight: 700; font-size: 13px; text-decoration: none; padding: 9px 18px; border-radius: 6px;">
+                      View Live Results on GradeFlow Portal &rarr;
+                    </a>
+                  </td>
+                </tr>
+              </table>
 
               <!-- Semester-Wise Backlog Details -->
-              <div style="margin-bottom: 24px;">
-                <div style="font-weight: 700; font-size: 16px; color: #0f172a; margin-bottom: 14px;">
-                  📚 Semester-Wise Backlog Breakdown
+              <div style="margin-bottom: 20px;">
+                <div style="font-weight: 700; font-size: 15px; color: #0f172a; margin-bottom: 12px; border-bottom: 2px solid #0f172a; padding-bottom: 4px; display: inline-block;">
+                  Semester-Wise Backlog Breakdown
                 </div>
                 ${semesterTablesHtml}
               </div>
 
-              <!-- Backlog Summary Box -->
-              <div style="background-color: #fffbeb; border: 1px solid #fde68a; border-radius: 10px; padding: 16px; margin-bottom: 24px; font-size: 13px; color: #92400e;">
-                <div style="font-weight: 700; font-size: 14px; margin-bottom: 6px; color: #78350f;">📌 Backlog Quick Summary</div>
-                <div style="margin-bottom: 4px;">• <strong>Total Pending Backlogs:</strong> ${numBacklogs}</div>
-                <div style="margin-bottom: 6px;">• <strong>Semesters With Backlogs:</strong> ${sortedSemesters.length}</div>
-                <div style="padding-left: 12px; border-left: 2px solid #f59e0b; color: #78350f; font-weight: 500; margin-top: 6px;">
-                  ${semesterSummaryLines.join(" | ")}
-                </div>
-              </div>
+              <!-- Backlog Quick Summary -->
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background-color: #fffbeb; border: 1px solid #fde68a; border-radius: 8px; margin-bottom: 20px; padding: 14px 16px;">
+                <tr>
+                  <td style="font-weight: 700; font-size: 13px; color: #78350f; padding-bottom: 6px;">Backlog Quick Summary</td>
+                </tr>
+                <tr>
+                  <td style="font-size: 12px; color: #92400e; line-height: 1.6;">
+                    &bull; <strong>Total Pending Backlogs:</strong> ${numBacklogs}<br>
+                    &bull; <strong>Semesters With Backlogs:</strong> ${sortedSemesters.length}<br>
+                    <span style="display: block; margin-top: 4px; font-weight: 600; color: #78350f;">
+                      ${semesterSummaryLines.join(" | ")}
+                    </span>
+                  </td>
+                </tr>
+              </table>
 
               <!-- Academic Progress Advice -->
-              <div style="background-color: #f0f9ff; border: 1px solid #bae6fd; border-radius: 10px; padding: 16px; margin-bottom: 24px; font-size: 14px; color: #0369a1; line-height: 1.6;">
-                <div style="font-weight: 700; font-size: 14px; margin-bottom: 4px; color: #075985;">🎓 Academic Progress Advice</div>
+              <div style="background-color: #f8fafc; border-left: 4px solid #0f172a; padding: 14px 16px; margin-bottom: 20px; font-size: 13px; color: #334155; line-height: 1.5;">
+                <div style="font-weight: 700; font-size: 13px; color: #0f172a; margin-bottom: 4px;">Academic Progress Advice</div>
                 ${progressMessage}
               </div>
 
-              <!-- Important Action Message -->
-              <div style="border: 1px solid #e2e8f0; border-radius: 10px; padding: 16px; margin-bottom: 28px; background-color: #ffffff;">
-                <div style="font-weight: 700; font-size: 14px; color: #dc2626; margin-bottom: 6px;">⚠️ Important Note</div>
-                <p style="margin: 0; font-size: 13px; color: #475569; line-height: 1.5;">
+              <!-- Important Action Note -->
+              <div style="border: 1px solid #e2e8f0; border-radius: 8px; padding: 14px 16px; margin-bottom: 24px; background-color: #ffffff;">
+                <div style="font-weight: 700; font-size: 13px; color: #dc2626; margin-bottom: 4px;">Important Note</div>
+                <p style="margin: 0; font-size: 12px; color: #475569; line-height: 1.5;">
                   Please do not ignore this notification. If you have already cleared any of the subjects listed above but your result has not yet been updated on GradeFlow, please contact the developer/GradeFlow support team so that your academic record can be reviewed and updated.
                 </p>
               </div>
 
-              <!-- Developer Contact / WhatsApp Button Section -->
-              <div style="text-align: center; background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 24px 20px; margin-bottom: 28px;">
-                <div style="font-weight: 700; font-size: 15px; color: #0f172a; margin-bottom: 6px;">Need to update your result?</div>
-                <p style="font-size: 13px; color: #64748b; margin-top: 0; margin-bottom: 18px; max-width: 440px; margin-left: auto; margin-right: auto;">
-                  If you have already cleared a backlog but it is still showing as pending on GradeFlow, please contact the developer/support team with your Registration Number and relevant result details.
-                </p>
-                
-                <a href="${waUrl}" target="_blank" style="display: inline-block; background-color: #25D366; color: #ffffff; font-weight: 700; font-size: 14px; text-decoration: none; padding: 12px 24px; border-radius: 30px; box-shadow: 0 4px 14px rgba(37, 211, 102, 0.35);">
-                  <table role="presentation" style="margin: 0 auto; display: inline-table;">
-                    <tr>
-                      <td style="vertical-align: middle; padding-right: 8px;">
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="#ffffff" style="vertical-align: middle;">
-                          <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.893 11.892-1.99-.001-3.951-.5-5.688-1.448l-6.305 1.654zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884-.001 2.225.651 3.891 1.746 5.634l-1.099 4.019 4.142-1.087z"/>
-                        </svg>
-                      </td>
-                      <td style="vertical-align: middle;">Contact Developer on WhatsApp</td>
-                    </tr>
-                  </table>
-                </a>
-              </div>
+              <!-- Developer Contact / WhatsApp PNG Button Section -->
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; margin-bottom: 24px; text-align: center;">
+                <tr>
+                  <td style="padding: 20px 16px;">
+                    <div style="font-weight: 700; font-size: 14px; color: #0f172a; margin-bottom: 4px;">Need to update your result?</div>
+                    <p style="font-size: 12px; color: #64748b; margin-top: 0; margin-bottom: 14px;">
+                      If you have already cleared a backlog but it is still showing as pending on GradeFlow, contact the support team with your Registration Number.
+                    </p>
+                    
+                    <a href="${waUrl}" target="_blank" style="display: inline-block; background-color: #25D366; color: #ffffff; font-weight: 700; font-size: 13px; text-decoration: none; padding: 11px 22px; border-radius: 25px;">
+                      <table role="presentation" cellspacing="0" cellpadding="0" border="0" style="margin: 0 auto;">
+                        <tr>
+                          <td style="vertical-align: middle; padding-right: 8px;">
+                            <img src="${waIconUrl}" width="18" height="18" alt="WhatsApp" style="display: block; border: 0; outline: none;" />
+                          </td>
+                          <td style="vertical-align: middle; color: #ffffff; font-weight: 700;">Contact Developer on WhatsApp</td>
+                        </tr>
+                      </table>
+                    </a>
+                  </td>
+                </tr>
+              </table>
 
               <!-- Motivational Quote -->
-              <div style="text-align: center; font-style: italic; font-size: 13px; color: #64748b; border-top: 1px solid #e2e8f0; padding-top: 20px; margin-bottom: 20px;">
+              <div style="text-align: center; font-style: italic; font-size: 12px; color: #64748b; border-top: 1px solid #e2e8f0; padding-top: 16px;">
                 "Your backlog is not your final result. Clear it, learn from it, and keep moving forward."
               </div>
 
@@ -238,11 +266,11 @@ function generateBacklogEmailHtml({
 
           <!-- Footer -->
           <tr>
-            <td style="background-color: #f8fafc; padding: 24px 28px; text-align: center; border-top: 1px solid #e2e8f0; font-size: 12px; color: #94a3b8; line-height: 1.5;">
-              <div style="font-weight: 700; color: #64748b; font-size: 13px; margin-bottom: 4px;">Regards,<br><span style="color: #0f172a;">GradeFlow Team</span></div>
-              <div style="margin-bottom: 12px; color: #64748b; font-size: 11px;">Academic Progress & Result Management System</div>
-              <div style="font-size: 11px; color: #94a3b8; max-width: 480px; margin: 0 auto;">
-                This is an automated academic notification generated by GradeFlow.<br>Please do not reply directly to this email.
+            <td style="background-color: #f8fafc; padding: 20px 24px; text-align: center; border-top: 1px solid #cbd5e1; font-size: 11px; color: #64748b; line-height: 1.5;">
+              <div style="font-weight: 700; color: #0f172a; font-size: 12px; margin-bottom: 2px;">Regards, GradeFlow Team</div>
+              <div style="margin-bottom: 8px; color: #64748b; font-size: 11px;">Academic Progress & Result Management System</div>
+              <div style="font-size: 10px; color: #94a3b8; max-width: 440px; margin: 0 auto;">
+                This is an official automated academic notification generated by GradeFlow.<br>Please do not reply directly to this email.
               </div>
             </td>
           </tr>
@@ -255,6 +283,76 @@ function generateBacklogEmailHtml({
 </html>`;
 }
 
+/**
+ * Generates Plain-Text Fallback Version for High Inbox Deliverability (Anti-Spam)
+ */
+function generateBacklogEmailText({
+  studentName,
+  regNo,
+  cgpa,
+  totalBacklogs,
+  completedSemesters,
+  remainingSemesters,
+  latestSemester,
+  backlogSubjects = [],
+  developerWhatsapp = "919124540575",
+  frontendUrl = "https://grade-flow-navy.vercel.app",
+}) {
+  const cleanRegNo = String(regNo || "").trim();
+  const cleanName = String(studentName || "Student").trim();
+  const formattedCgpa = typeof cgpa === "number" ? cgpa.toFixed(2) : cgpa || "0.00";
+  const numBacklogs = Number(totalBacklogs) || backlogSubjects.length || 0;
+  const baseUrl = String(frontendUrl || "https://grade-flow-navy.vercel.app").replace(/\/$/, "");
+  const studentPortalUrl = `${baseUrl}/dashboard/${cleanRegNo}`;
+
+  const waRawMessage = `Hello GradeFlow Developer, I am ${cleanName} with Registration Number ${cleanRegNo}. My backlog/result information needs to be updated. Please help me verify my academic record.`;
+  const waCleanPhone = String(developerWhatsapp || "").replace(/[^0-9]/g, "");
+  const waUrl = `https://wa.me/${waCleanPhone}?text=${encodeURIComponent(waRawMessage)}`;
+
+  let subjectsListText = "";
+  backlogSubjects.forEach((s) => {
+    subjectsListText += `  - Sem ${s.semester || 1}: ${s.subCode || "N/A"} - ${s.subName || "Subject"} (Grade: ${s.grade || "F"})\n`;
+  });
+
+  return `GRADEFLOW ACADEMIC NOTIFICATION
+
+Dear ${cleanName},
+
+This is an official academic notification from GradeFlow regarding your current academic progress and pending backlogs.
+
+ACADEMIC SUMMARY:
+- Student Name: ${cleanName}
+- Registration Number: ${cleanRegNo}
+- Current CGPA: ${formattedCgpa}
+- Total Pending Backlogs: ${numBacklogs}
+- Completed Semesters: ${completedSemesters}
+- Remaining Semesters: ${remainingSemesters}
+
+STATUS ALERT:
+You currently have ${numBacklogs} pending backlog(s).
+
+PENDING SUBJECTS:
+${subjectsListText}
+
+PORTAL LINK:
+View your live results and complete semester history at:
+${studentPortalUrl}
+
+IMPORTANT NOTE:
+Please do not ignore this notification. If you have already cleared any of the subjects listed above but your result has not yet been updated on GradeFlow, please contact the developer/GradeFlow support team so that your academic record can be reviewed and updated.
+
+WHATSAPP SUPPORT:
+Contact Developer on WhatsApp: ${waUrl}
+
+"Your backlog is not your final result. Clear it, learn from it, and keep moving forward."
+
+Regards,
+GradeFlow Academic Team
+${baseUrl}
+`;
+}
+
 module.exports = {
   generateBacklogEmailHtml,
+  generateBacklogEmailText,
 };
