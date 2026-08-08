@@ -8,6 +8,7 @@ const {
   calculateBacklogs,
   calculateCGPA,
   calculateSemesterMetrics,
+  getSectionFromRegNo,
 } = require("../utils/gradeCalculations");
 
 function calcAcademicHealth(cgpa, sgpa, backlogs, results) {
@@ -105,7 +106,7 @@ router.get("/:regNo", validateRegNo, async (req, res) => {
       studentName: latestResult.studentName,
       branch: studentProfile?.branch || latestResult.branch,
       batch: studentProfile?.batch || latestResult.batch,
-      section: studentProfile?.section || "",
+      section: studentProfile?.section || getSectionFromRegNo(regNo),
       cgpa,
       latestSgpa: liveLatestSgpa,
       latestSemester: latestResult.semester,

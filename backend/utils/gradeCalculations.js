@@ -167,6 +167,26 @@ function assignCompetitionRanks(records, scoreKey, rankKey) {
   });
 }
 
+function getSectionFromRegNo(regNo) {
+  if (!regNo) return "J";
+  const r = String(regNo).trim();
+  if (r === "230301180026") return "I";
+  
+  if (/^\d{2}0301120/.test(r)) {
+     const num = parseInt(r.slice(-3), 10);
+     if (num >= 1 && num <= 60) return "A";
+     if (num >= 61 && num <= 120) return "B";
+     if (num >= 121 && num <= 180) return "C";
+     if (num >= 181 && num <= 240) return "D";
+     if (num >= 241 && num <= 300) return "E";
+     if (num >= 301 && num <= 360) return "F";
+     if (num >= 361 && num <= 420) return "G";
+     if (num >= 421 && num <= 480) return "H";
+     if (num >= 481 && num <= 549) return "I";
+  }
+  return "J";
+}
+
 module.exports = {
   GRADE_POINTS,
   NON_PASSING_GRADES,
@@ -177,6 +197,7 @@ module.exports = {
   calculateSemesterMetrics,
   calculateSGPA,
   getGradePoint,
+  getSectionFromRegNo,
   isSem5ProjectException,
   normalizeGrade,
   round2,

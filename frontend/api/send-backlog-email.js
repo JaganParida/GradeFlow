@@ -94,22 +94,29 @@ module.exports = async function handler(req, res) {
     const batch = studentData.batch || (results[0] && results[0].batch) || `20${cleanRegNo.slice(0, 2)}`;
     const branch = studentData.branch || (results[0] && results[0].branch) || "N/A";
     
-    // Simple section extraction if not in studentData
-    let section = studentData.section || (results[0] && results[0].section) || "";
-    if (!section && cleanRegNo.length >= 12) {
-      const secCode = cleanRegNo.slice(7, 9); // usually '01', '02' etc.
-      if (secCode === "01") section = "Sec A";
-      else if (secCode === "02") section = "Sec B";
-      else if (secCode === "03") section = "Sec C";
-      else if (secCode === "04") section = "Sec D";
-      else if (secCode === "05") section = "Sec E";
-      else if (secCode === "06") section = "Sec F";
-      else if (secCode === "07") section = "Sec G";
-      else if (secCode === "08") section = "Sec H";
-      else if (secCode === "09") section = "Sec I";
-      else if (secCode === "10") section = "Sec J";
-      else section = "N/A";
+    // Complete Section extraction matching the backend logic
+    function getSectionFromRegNo(regNo) {
+      if (!regNo) return "J";
+      const r = String(regNo).trim();
+      if (r === "230301180026") return "I";
+      if (/^\d{2}0301120/.test(r)) {
+         const num = parseInt(r.slice(-3), 10);
+         if (num >= 1 && num <= 60) return "A";
+         if (num >= 61 && num <= 120) return "B";
+         if (num >= 121 && num <= 180) return "C";
+         if (num >= 181 && num <= 240) return "D";
+         if (num >= 241 && num <= 300) return "E";
+         if (num >= 301 && num <= 360) return "F";
+         if (num >= 361 && num <= 420) return "G";
+         if (num >= 421 && num <= 480) return "H";
+         if (num >= 481 && num <= 549) return "I";
+      }
+      return "J";
     }
+
+    let rawSec = studentData.section || (results[0] && results[0].section) || getSectionFromRegNo(cleanRegNo);
+    let section = rawSec;
+    if (section && !section.startsWith("Sec")) section = `Sec ${section}`;
     if (!section) section = "N/A";
 
     const emailPayload = {
