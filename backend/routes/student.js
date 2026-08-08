@@ -103,8 +103,9 @@ router.get("/:regNo", validateRegNo, async (req, res) => {
     const responseData = {
       regNo,
       studentName: latestResult.studentName,
-      branch: latestResult.branch,
-      batch: latestResult.batch,
+      branch: studentProfile?.branch || latestResult.branch,
+      batch: studentProfile?.batch || latestResult.batch,
+      section: studentProfile?.section || "",
       cgpa,
       latestSgpa: liveLatestSgpa,
       latestSemester: latestResult.semester,
