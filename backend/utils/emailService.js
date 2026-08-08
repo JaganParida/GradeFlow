@@ -1,10 +1,8 @@
-const path = require("path");
 const nodemailer = require("nodemailer");
 const { generateBacklogEmailHtml, generateBacklogEmailText } = require("./emailTemplate");
 
 /**
- * Creates a Nodemailer transporter with connection timeout configuration
- * suitable for Vercel serverless functions and standard Node.js servers.
+ * Creates a Nodemailer transporter
  */
 function createTransporter() {
   const emailUser = process.env.EMAIL_USER;
@@ -12,7 +10,7 @@ function createTransporter() {
 
   if (!emailUser || !emailPass) {
     throw new Error(
-      "Email service is not configured on the server. Please set EMAIL_USER and EMAIL_PASS environment variables."
+      "Email service is not configured. Set EMAIL_USER and EMAIL_PASS environment variables."
     );
   }
 
@@ -43,7 +41,10 @@ function createTransporter() {
 }
 
 /**
- * Sends a personalized Backlog Notification Email to a student
+ * Sends a personalized Backlog Notification Email to a student.
+ * 
+ * ZERO attachments — uses inline SVG for icons.
+ * This ensures Gmail does not flag the email as spam.
  */
 async function sendBacklogEmailNotification({
   to,
@@ -80,7 +81,8 @@ async function sendBacklogEmailNotification({
   const html = generateBacklogEmailHtml(emailPayload);
   const text = generateBacklogEmailText(emailPayload);
 
-  const subject = `GradeFlow Academic Update - Reg. No. ${regNo}`;
+  // Clean, natural subject line — no pipe characters, no special symbols
+  const subject = `Your GradeFlow Academic Update - ${regNo}`;
 
   const mailOptions = {
     from: `"Jagan Parida" <${process.env.EMAIL_USER}>`,
@@ -89,22 +91,8 @@ async function sendBacklogEmailNotification({
     subject,
     text,
     html,
-    attachments: [
-      {
-        filename: "logo.png",
-        path: path.join(__dirname, "../assets/logo.png"),
-        cid: "gradeflow-logo",
-        contentType: "image/png",
-        contentDisposition: "inline",
-      },
-      {
-        filename: "whatsapp.png",
-        path: path.join(__dirname, "../assets/whatsapp.png"),
-        cid: "whatsapp-icon",
-        contentType: "image/png",
-        contentDisposition: "inline",
-      },
-    ],
+    // NO attachments — zero CID, zero inline images
+    // All icons are rendered as inline SVG in the HTML body
   };
 
   const info = await transporter.sendMail(mailOptions);
