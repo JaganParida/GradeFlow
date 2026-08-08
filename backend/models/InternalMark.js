@@ -3,6 +3,7 @@ const mongoose = require("mongoose");
 const internalMarkSchema = new mongoose.Schema(
   {
     regNo: { type: String, required: true, index: true },
+    batch: { type: String, index: true },
     studentName: String,
     branch: String,
     program: String,

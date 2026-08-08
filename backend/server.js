@@ -118,11 +118,25 @@ async function seedAdmin() {
   }
 }
 
+const { purgeExpiredBatches } = require("./utils/batchLifecycle");
+
 mongoose
   .connect(process.env.MONGO_URI)
   .then(async () => {
     console.log("✅ MongoDB connected");
     await seedAdmin();
+
+    // ─── 5-Year Batch Data Retention Sweep ───────────────────────────
+    try {
+      await purgeExpiredBatches();
+    } catch (e) {
+      console.error("Initial batch purge sweep failed:", e);
+    }
+    // Schedule daily purge sweep (every 24 hours)
+    setInterval(() => {
+      purgeExpiredBatches().catch((e) => console.error("Scheduled batch purge sweep failed:", e));
+    }, 24 * 60 * 60 * 1000);
+
     server.listen(process.env.PORT || 5000, () => {
       console.log(`🚀 Server running on port ${process.env.PORT || 5000}`);
     });

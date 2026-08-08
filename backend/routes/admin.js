@@ -8,6 +8,8 @@ const SemesterResult = require("../models/SemesterResult");
 const InternalMark = require("../models/InternalMark");
 const Ranking = require("../models/Ranking");
 const Student = require("../models/Student");
+const BatchPurgeLog = require("../models/BatchPurgeLog");
+const { isBatchExpired, purgeExpiredBatches } = require("../utils/batchLifecycle");
 const { clearStudentCache } = require("./student");
 const {
   GRADE_POINTS,
@@ -260,6 +262,7 @@ router.post(
 
       const grouped = {};
       let totalParsedRows = 0;
+      let skippedExpiredRowsCount = 0;
 
       function detectBranch(regNo) {
         if (!regNo) return "";
@@ -382,6 +385,12 @@ router.post(
           let batch = detectBatch(regNo);
           if (!batch) {
             batch = String(formBatch || col(row, "Batch", "batch") || "");
+          }
+
+          if (isBatchExpired(batch)) {
+            console.warn(`Row ${idx + 2}: skipped — Batch ${batch} has exceeded the 5-year retention limit`);
+            skippedExpiredRowsCount++;
+            return;
           }
 
           let branch = detectBranch(regNo);
@@ -963,6 +972,11 @@ router.post(
           let batch = detectBatch(regNo);
           if (!batch) {
             batch = String(formBatch || col(row, "Batch", "batch") || "");
+          }
+
+          if (isBatchExpired(batch)) {
+            console.warn(`Row: skipped internal mark — Batch ${batch} has exceeded the 5-year retention limit`);
+            continue;
           }
 
           const key = `${regNo}_${semester}`;
@@ -1707,6 +1721,32 @@ router.get("/stats", protect, async (req, res) => {
   } catch (err) {
     console.error("Stats error:", err);
     res.status(500).json({ message: "Server error" });
+  }
+});
+
+// Fetch recent 5-Year Batch Data Retention Purge Audit Logs
+router.get("/purge-logs", protect, async (req, res) => {
+  try {
+    const logs = await BatchPurgeLog.find({}).sort({ purgedAt: -1 }).limit(20).lean();
+    res.json(logs);
+  } catch (err) {
+    console.error("Purge logs fetch error:", err);
+    res.status(500).json({ message: "Server error fetching purge logs" });
+  }
+});
+
+// Manual trigger for Expired Batch Purge (> 5 Years Old)
+router.post("/purge-expired", protect, async (req, res) => {
+  try {
+    const result = await purgeExpiredBatches();
+    clearStudentCache();
+    res.json({
+      message: `✅ Batch purge complete. ${result.purgedCount} expired batch(es) purged.`,
+      result,
+    });
+  } catch (err) {
+    console.error("Manual purge error:", err);
+    res.status(500).json({ message: "Server error executing batch purge" });
   }
 });
 

@@ -1861,6 +1861,7 @@ export default function AdminDashboard() {
 
   const [selectedBatchFilter, setSelectedBatchFilter] = useState("all");
   const [showBatchPills, setShowBatchPills] = useState(false);
+  const [purgeLogs, setPurgeLogs] = useState([]);
 
   useEffect(() => {
     if (!adminToken) {
@@ -1868,6 +1869,7 @@ export default function AdminDashboard() {
       return;
     }
     fetchStats();
+    fetchPurgeLogs();
 
     // Advanced anti-inspect & anti-tamper security shield
     const handleContextMenu = (e) => e.preventDefault();
@@ -1894,6 +1896,13 @@ export default function AdminDashboard() {
     try {
       const { data } = await axios.get(`${API}/admin/stats`, authHeaders);
       setStats(data);
+    } catch {}
+  }
+
+  async function fetchPurgeLogs() {
+    try {
+      const { data } = await axios.get(`${API}/admin/purge-logs`, authHeaders);
+      setPurgeLogs(data || []);
     } catch {}
   }
 
@@ -2348,6 +2357,33 @@ export default function AdminDashboard() {
 
       <div>
       <div style={{ display: tab === "overview" ? "block" : "none" }}>
+        {/* 5-Year Batch Data Lifecycle Audit Logs */}
+        {purgeLogs && purgeLogs.length > 0 && (
+          <div className="card" style={{ marginBottom: 20, border: "1px solid rgba(239, 68, 68, 0.3)", background: "rgba(239, 68, 68, 0.05)", padding: 16 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+              <h4 style={{ margin: 0, fontSize: 14, fontWeight: 700, color: "#f87171", display: "flex", alignItems: "center", gap: 6 }}>
+                <AlertTriangle size={16} color="#ef4444" /> 5-Year Batch Data Retention Audit Notifications
+              </h4>
+              <span style={{ fontSize: 11, color: "var(--text-muted)" }}>Auto-Purged Expired Batches (&gt; 5 Years Old)</span>
+            </div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+              {purgeLogs.map((log) => (
+                <div key={log._id || log.batch} style={{ background: "rgba(0,0,0,0.25)", padding: "10px 14px", borderRadius: 8, fontSize: 12, display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 8 }}>
+                  <div>
+                    <strong style={{ color: "#f87171" }}>Batch {log.batch} Auto-Purged:</strong> {log.studentsAffected} student(s) &middot; {log.recordsDeleted} total record(s) removed.
+                    <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 2 }}>
+                      Reason: {log.triggerReason} &middot; Affected RegNos: {log.sampleRegNos?.slice(0, 5).join(", ")}{log.sampleRegNos?.length > 5 ? "..." : ""}
+                    </div>
+                  </div>
+                  <span style={{ fontSize: 11, color: "var(--text-secondary)", whiteSpace: "nowrap" }}>
+                    {formatDistanceToNow(new Date(log.purgedAt), { addSuffix: true })}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
         {/* Upload Tab */}
         <div
           style={{
