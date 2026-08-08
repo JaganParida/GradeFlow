@@ -1468,6 +1468,22 @@ router.post("/backlogs/send-email", protect, async (req, res) => {
     const completedSemesters = latestSemester;
     const remainingSemesters = Math.max(0, 8 - latestSemester);
 
+    // Calculate Batch, Branch, and Section for the email
+    let batch = String(latestResult.batch || "").trim();
+    if (!batch && /^\d{2}/.test(cleanRegNo)) {
+      batch = `20${cleanRegNo.slice(0, 2)}`;
+    }
+
+    const VALID_BRANCHES = new Set(["CSE", "ECE", "ME", "CIVIL", "EEE", "BIO", "MI", "AERO"]);
+    let branch = detectBranch(cleanRegNo);
+    if ((branch === "OTHER" || branch === "UNKNOWN") && latestResult.branch && VALID_BRANCHES.has(String(latestResult.branch).trim().toUpperCase())) {
+      branch = String(latestResult.branch).trim().toUpperCase();
+    }
+
+    let section = getSectionFromRegNo(cleanRegNo);
+    if (section && !section.startsWith("Sec")) section = `Sec ${section}`;
+    if (!section) section = "N/A";
+
     // Dynamic email address generation: {regNo}@centurionuniv.edu.in
     const defaultEmail = `${cleanRegNo}@centurionuniv.edu.in`.toLowerCase();
     const recipientEmail = (customEmail || email || defaultEmail).trim().toLowerCase();
@@ -1483,6 +1499,9 @@ router.post("/backlogs/send-email", protect, async (req, res) => {
       remainingSemesters,
       latestSemester,
       backlogSubjects,
+      batch,
+      branch,
+      section,
     });
 
     // Update Email Status to SUCCESS

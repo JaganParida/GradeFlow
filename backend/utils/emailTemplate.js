@@ -7,6 +7,9 @@ function generateBacklogEmailHtml({
   remainingSemesters,
   latestSemester,
   backlogSubjects = [],
+  batch = "N/A",
+  branch = "N/A",
+  section = "N/A",
   developerWhatsapp = "919124540575",
   frontendUrl = "https://gradeflow.in"
 }) {
@@ -95,6 +98,18 @@ function generateBacklogEmailHtml({
     <tr>
       <td style="border: 1px solid #e0e0e0; padding: 12px; font-weight: bold; background-color: #f9f9f9;">Registration No.:</td>
       <td style="border: 1px solid #e0e0e0; padding: 12px;">${cleanRegNo}</td>
+    </tr>
+    <tr>
+      <td style="border: 1px solid #e0e0e0; padding: 12px; font-weight: bold; background-color: #f9f9f9;">Batch:</td>
+      <td style="border: 1px solid #e0e0e0; padding: 12px;">${batch}</td>
+    </tr>
+    <tr>
+      <td style="border: 1px solid #e0e0e0; padding: 12px; font-weight: bold; background-color: #f9f9f9;">Branch:</td>
+      <td style="border: 1px solid #e0e0e0; padding: 12px;">${branch}</td>
+    </tr>
+    <tr>
+      <td style="border: 1px solid #e0e0e0; padding: 12px; font-weight: bold; background-color: #f9f9f9;">Section:</td>
+      <td style="border: 1px solid #e0e0e0; padding: 12px;">${section}</td>
     </tr>
     <tr>
       <td style="border: 1px solid #e0e0e0; padding: 12px; font-weight: bold; background-color: #f9f9f9;">Current CGPA:</td>

@@ -91,6 +91,27 @@ module.exports = async function handler(req, res) {
 
     const frontendBaseUrl = process.env.FRONTEND_URL || "https://grade-flow-navy.vercel.app";
 
+    const batch = studentData.batch || (results[0] && results[0].batch) || `20${cleanRegNo.slice(0, 2)}`;
+    const branch = studentData.branch || (results[0] && results[0].branch) || "N/A";
+    
+    // Simple section extraction if not in studentData
+    let section = studentData.section || (results[0] && results[0].section) || "";
+    if (!section && cleanRegNo.length >= 12) {
+      const secCode = cleanRegNo.slice(7, 9); // usually '01', '02' etc.
+      if (secCode === "01") section = "Sec A";
+      else if (secCode === "02") section = "Sec B";
+      else if (secCode === "03") section = "Sec C";
+      else if (secCode === "04") section = "Sec D";
+      else if (secCode === "05") section = "Sec E";
+      else if (secCode === "06") section = "Sec F";
+      else if (secCode === "07") section = "Sec G";
+      else if (secCode === "08") section = "Sec H";
+      else if (secCode === "09") section = "Sec I";
+      else if (secCode === "10") section = "Sec J";
+      else section = "N/A";
+    }
+    if (!section) section = "N/A";
+
     const emailPayload = {
       studentName,
       regNo: cleanRegNo,
@@ -100,6 +121,9 @@ module.exports = async function handler(req, res) {
       remainingSemesters,
       latestSemester,
       backlogSubjects: backlogs,
+      batch,
+      branch,
+      section,
       developerWhatsapp: process.env.DEVELOPER_WHATSAPP || "919124540575",
       frontendUrl: frontendBaseUrl,
     };
