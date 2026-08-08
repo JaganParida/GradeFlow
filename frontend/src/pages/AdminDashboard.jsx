@@ -1377,7 +1377,7 @@ function BacklogTrackerCard({ authHeaders, API }) {
                                 <BookOpen size={14} /> Backlog Subjects for {st.studentName} ({st.regNo}):
                               </div>
                               <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))", gap: 10 }}>
-                                {st.backlogSubjects?.map((sub, sIdx) => (
+                                {st.backlogs?.map((sub, sIdx) => (
                                   <div
                                     key={sIdx}
                                     style={{
