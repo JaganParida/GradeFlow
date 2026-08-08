@@ -67,9 +67,7 @@ module.exports = async function handler(req, res) {
     const backlogs = studentData.backlogs || [];
     const results = studentData.results || [];
 
-    if (!backlogs.length) {
-      return res.status(400).json({ message: `Student ${cleanRegNo} (${studentName}) has 0 active backlogs. No email sent.` });
-    }
+    // Allow sending academic record updates for all students (0 backlogs show positive confirmation message)
 
     const semesters = results.map((r) => Number(r.semester) || 1);
     const latestSemester = semesters.length ? Math.max(...semesters) : 1;
