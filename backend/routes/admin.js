@@ -1333,9 +1333,9 @@ router.get("/backlogs", protect, async (req, res) => {
       studentBacklogMap.set(regNo, {
         regNo,
         studentName: latestResult.studentName || "N/A",
-        batch: latestResult.batch || "N/A",
-        branch: latestResult.branch || "N/A",
-        section: latestResult.section || "N/A",
+        batch: b || "N/A",
+        branch: br || "N/A",
+        section: rawSec || "N/A",
         totalBacklogs: backlogs.length,
         backlogs: backlogs,
         semBreakdown,
