@@ -4,7 +4,7 @@ import axios from "axios";
 import { useApp } from "../context/AppContext";
 import { Spinner } from "../components/LoadingSpinner";
 import { motion, AnimatePresence } from "framer-motion";
-import { Upload, Trash2, Settings, Users, FileText, FileEdit, Trophy, AlertTriangle, CheckCircle, FileSpreadsheet, LogOut, Database, CloudUpload, MessageSquare, Edit2, X, ChevronDown, ChevronUp, BookOpen, Search, Filter, HelpCircle, Info } from "lucide-react";
+import { Upload, Trash2, Settings, Users, FileText, FileEdit, Trophy, AlertTriangle, CheckCircle, FileSpreadsheet, LogOut, Database, CloudUpload, MessageSquare, Edit2, X, ChevronDown, ChevronUp, BookOpen, Search, Filter, HelpCircle, Info, Mail, Send, Check, Loader2 } from "lucide-react";
 
 function UploadCard({
   title,
@@ -862,8 +862,62 @@ function BacklogTrackerCard({ authHeaders, API }) {
   const [limit, setLimit] = useState(50);
   const [expandedRegNo, setExpandedRegNo] = useState(null);
   const [showFilterPanel, setShowFilterPanel] = useState(false);
+  const [selectedStudentForEmail, setSelectedStudentForEmail] = useState(null);
+  const [customEmailInput, setCustomEmailInput] = useState("");
+  const [sendingEmail, setSendingEmail] = useState(false);
+  const [emailSuccessMsg, setEmailSuccessMsg] = useState("");
+  const [emailErrorMsg, setEmailErrorMsg] = useState("");
+  const [emailStatusMap, setEmailStatusMap] = useState({});
 
   const backlogCacheRef = useRef(new Map());
+
+  function handleOpenEmailModal(st) {
+    setSelectedStudentForEmail(st);
+    setCustomEmailInput(`${st.regNo}@centurionuniv.edu.in`.toLowerCase());
+    setEmailSuccessMsg("");
+    setEmailErrorMsg("");
+  }
+
+  async function handleConfirmSendEmail(e) {
+    e.preventDefault();
+    if (!selectedStudentForEmail || sendingEmail) return;
+
+    setSendingEmail(true);
+    setEmailSuccessMsg("");
+    setEmailErrorMsg("");
+
+    try {
+      // Send email via Vercel Serverless Function (frontend/api/send-backlog-email.js)
+      // This avoids Render free-tier sleep delay, IP blocking, and request timeouts.
+      // The serverless function fetches fresh student data from Render backend API internally.
+      const res = await axios.post(
+        "/api/send-backlog-email",
+        {
+          regNo: selectedStudentForEmail.regNo,
+          customEmail: customEmailInput,
+        },
+        { timeout: 20000 }
+      );
+
+      const resData = res.data;
+      setEmailSuccessMsg(resData.message || `Backlog notification email sent successfully to ${customEmailInput}`);
+      setEmailStatusMap((prev) => ({
+        ...prev,
+        [selectedStudentForEmail.regNo]: {
+          sent: true,
+          sentAt: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+          email: customEmailInput,
+        },
+      }));
+    } catch (err) {
+      console.error("Email send error:", err);
+      setEmailErrorMsg(
+        err.response?.data?.message || "Failed to send email. Please check Vercel environment variables and try again."
+      );
+    } finally {
+      setSendingEmail(false);
+    }
+  }
 
   useEffect(() => {
     setPage(1);
@@ -1214,14 +1268,51 @@ function BacklogTrackerCard({ authHeaders, API }) {
                             </div>
                           </td>
                           <td style={{ padding: "12px", textAlign: "right", whiteSpace: "nowrap" }}>
-                            <button
-                              onClick={() => setExpandedRegNo(isExpanded ? null : st.regNo)}
-                              className="btn-secondary"
-                              style={{ padding: "4px 10px", fontSize: 11, display: "inline-flex", alignItems: "center", gap: 4, whiteSpace: "nowrap" }}
-                            >
-                              {isExpanded ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
-                              {isExpanded ? "Hide Details" : "View Subjects"}
-                            </button>
+                            <div style={{ display: "inline-flex", gap: 6, alignItems: "center" }}>
+                              {emailStatusMap[st.regNo]?.sent ? (
+                                <span
+                                  style={{
+                                    fontSize: 11,
+                                    padding: "4px 8px",
+                                    borderRadius: 6,
+                                    background: "rgba(16, 185, 129, 0.15)",
+                                    color: "#34d399",
+                                    border: "1px solid rgba(16, 185, 129, 0.3)",
+                                    fontWeight: 700,
+                                    display: "inline-flex",
+                                    alignItems: "center",
+                                    gap: 4,
+                                  }}
+                                  title={`Sent at ${emailStatusMap[st.regNo].sentAt} to ${emailStatusMap[st.regNo].email}`}
+                                >
+                                  <Check size={12} /> Email Sent
+                                </span>
+                              ) : (
+                                <button
+                                  onClick={() => handleOpenEmailModal(st)}
+                                  className="btn-primary"
+                                  style={{
+                                    padding: "4px 10px",
+                                    fontSize: 11,
+                                    display: "inline-flex",
+                                    alignItems: "center",
+                                    gap: 4,
+                                    whiteSpace: "nowrap",
+                                    background: "linear-gradient(135deg, #3ea6ff, #2563eb)",
+                                  }}
+                                >
+                                  <Mail size={12} /> Send Email
+                                </button>
+                              )}
+                              <button
+                                onClick={() => setExpandedRegNo(isExpanded ? null : st.regNo)}
+                                className="btn-secondary"
+                                style={{ padding: "4px 10px", fontSize: 11, display: "inline-flex", alignItems: "center", gap: 4, whiteSpace: "nowrap" }}
+                              >
+                                {isExpanded ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
+                                {isExpanded ? "Hide Details" : "View Subjects"}
+                              </button>
+                            </div>
                           </td>
                         </tr>
 
@@ -1357,15 +1448,54 @@ function BacklogTrackerCard({ authHeaders, API }) {
                       ))}
                     </div>
 
-                    {/* View Details Toggle Button */}
-                    <button
-                      onClick={() => setExpandedRegNo(isExpanded ? null : st.regNo)}
-                      className="btn-secondary"
-                      style={{ width: "100%", justifyContent: "center", padding: "7px 10px", fontSize: 11, display: "inline-flex", alignItems: "center", gap: 4, marginTop: 2 }}
-                    >
-                      {isExpanded ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
-                      {isExpanded ? "Hide Details" : "View Backlog Subjects"}
-                    </button>
+                    {/* Action Buttons for Mobile */}
+                    <div style={{ display: "flex", gap: 6, marginTop: 4 }}>
+                      {emailStatusMap[st.regNo]?.sent ? (
+                        <div
+                          style={{
+                            flex: 1,
+                            padding: "7px 10px",
+                            fontSize: 11,
+                            borderRadius: 8,
+                            background: "rgba(16, 185, 129, 0.15)",
+                            color: "#34d399",
+                            border: "1px solid rgba(16, 185, 129, 0.3)",
+                            fontWeight: 700,
+                            display: "inline-flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            gap: 4,
+                          }}
+                        >
+                          <Check size={12} /> Email Sent
+                        </div>
+                      ) : (
+                        <button
+                          onClick={() => handleOpenEmailModal(st)}
+                          className="btn-primary"
+                          style={{
+                            flex: 1,
+                            padding: "7px 10px",
+                            fontSize: 11,
+                            display: "inline-flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            gap: 4,
+                            background: "linear-gradient(135deg, #3ea6ff, #2563eb)",
+                          }}
+                        >
+                          <Mail size={12} /> Send Email
+                        </button>
+                      )}
+                      <button
+                        onClick={() => setExpandedRegNo(isExpanded ? null : st.regNo)}
+                        className="btn-secondary"
+                        style={{ flex: 1, justifyContent: "center", padding: "7px 10px", fontSize: 11, display: "inline-flex", alignItems: "center", gap: 4 }}
+                      >
+                        {isExpanded ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
+                        {isExpanded ? "Hide" : "Subjects"}
+                      </button>
+                    </div>
 
                     {/* Expanded Backlog Subject Details Drawer for Mobile */}
                     {isExpanded && (
@@ -1444,6 +1574,145 @@ function BacklogTrackerCard({ authHeaders, API }) {
               >
                 Next
               </button>
+            </div>
+          </div>
+        )}
+
+        {/* Send Backlog Email Confirmation Modal */}
+        {selectedStudentForEmail && (
+          <div
+            style={{
+              position: "fixed",
+              inset: 0,
+              background: "rgba(0,0,0,0.75)",
+              backdropFilter: "blur(8px)",
+              WebkitBackdropFilter: "blur(8px)",
+              zIndex: 9999,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              padding: 16,
+            }}
+            onClick={() => !sendingEmail && setSelectedStudentForEmail(null)}
+          >
+            <div
+              style={{
+                background: "#18181b",
+                border: "1px solid rgba(255,255,255,0.12)",
+                borderRadius: 20,
+                padding: "24px 28px",
+                maxWidth: 520,
+                width: "100%",
+                boxShadow: "0 24px 70px rgba(0,0,0,0.85)",
+              }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+                <h3 style={{ fontSize: 18, fontWeight: 800, color: "#fff", display: "flex", alignItems: "center", gap: 8, margin: 0 }}>
+                  <Mail color="#3ea6ff" size={20} /> Send Backlog Notification Email
+                </h3>
+                <button
+                  type="button"
+                  onClick={() => !sendingEmail && setSelectedStudentForEmail(null)}
+                  style={{ background: "transparent", border: "none", color: "var(--text-muted)", cursor: "pointer", display: "flex", alignItems: "center" }}
+                >
+                  <X size={20} />
+                </button>
+              </div>
+
+              <div style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 12, padding: 16, marginBottom: 18, fontSize: 13 }}>
+                <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>
+                  <span style={{ color: "var(--text-muted)" }}>Student Name:</span>
+                  <strong style={{ color: "#fff" }}>{selectedStudentForEmail.studentName}</strong>
+                </div>
+                <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>
+                  <span style={{ color: "var(--text-muted)" }}>Registration No:</span>
+                  <strong style={{ color: "#3ea6ff", fontFamily: "monospace" }}>{selectedStudentForEmail.regNo}</strong>
+                </div>
+                <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>
+                  <span style={{ color: "var(--text-muted)" }}>Total Backlogs:</span>
+                  <strong style={{ color: "#ef4444" }}>{selectedStudentForEmail.totalBacklogs} Subject(s)</strong>
+                </div>
+                <div style={{ display: "flex", justifyContent: "space-between" }}>
+                  <span style={{ color: "var(--text-muted)" }}>Current CGPA:</span>
+                  <strong style={{ color: "#10b981" }}>{selectedStudentForEmail.rankInfo?.cgpa ? selectedStudentForEmail.rankInfo.cgpa.toFixed(2) : "N/A"}</strong>
+                </div>
+              </div>
+
+              <form onSubmit={handleConfirmSendEmail}>
+                <div style={{ marginBottom: 20 }}>
+                  <label style={{ display: "block", fontSize: 12, fontWeight: 700, color: "var(--text-secondary)", marginBottom: 6 }}>
+                    Recipient Email Address (Auto-generated using Reg No)
+                  </label>
+                  <input
+                    type="email"
+                    required
+                    className="input-field"
+                    value={customEmailInput}
+                    onChange={(e) => setCustomEmailInput(e.target.value)}
+                    placeholder="e.g. 230301120327@centurionuniv.edu.in"
+                    style={{ width: "100%", fontSize: 13, padding: "10px 14px", height: 42, background: "rgba(0,0,0,0.3)", border: "1px solid rgba(255,255,255,0.12)", color: "#fff", borderRadius: 8 }}
+                    disabled={sendingEmail}
+                  />
+                  <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 5 }}>
+                    Target official university email: <code style={{ color: "#60a5fa" }}>{selectedStudentForEmail.regNo}@centurionuniv.edu.in</code>
+                  </div>
+                </div>
+
+                {emailErrorMsg && (
+                  <div style={{ padding: "10px 14px", background: "rgba(239,68,68,0.12)", border: "1px solid rgba(239,68,68,0.3)", borderRadius: 8, color: "#f87171", fontSize: 13, marginBottom: 16, display: "flex", alignItems: "center", gap: 8 }}>
+                    <AlertTriangle size={16} style={{ flexShrink: 0 }} />
+                    <span>{emailErrorMsg}</span>
+                  </div>
+                )}
+
+                {emailSuccessMsg && (
+                  <div style={{ padding: "10px 14px", background: "rgba(16,185,129,0.12)", border: "1px solid rgba(16,185,129,0.3)", borderRadius: 8, color: "#34d399", fontSize: 13, marginBottom: 16, display: "flex", alignItems: "center", gap: 8 }}>
+                    <CheckCircle size={16} style={{ flexShrink: 0 }} />
+                    <span>{emailSuccessMsg}</span>
+                  </div>
+                )}
+
+                <div style={{ display: "flex", gap: 12, justifyContent: "flex-end" }}>
+                  <button
+                    type="button"
+                    className="btn-secondary"
+                    onClick={() => setSelectedStudentForEmail(null)}
+                    disabled={sendingEmail}
+                    style={{ padding: "9px 16px", fontSize: 13 }}
+                  >
+                    {emailSuccessMsg ? "Close" : "Cancel"}
+                  </button>
+                  {!emailSuccessMsg && (
+                    <button
+                      type="submit"
+                      className="btn-primary"
+                      disabled={sendingEmail}
+                      style={{
+                        padding: "9px 20px",
+                        fontSize: 13,
+                        fontWeight: 700,
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: 8,
+                        background: "linear-gradient(135deg, #3ea6ff, #2563eb)",
+                        opacity: sendingEmail ? 0.7 : 1,
+                        cursor: sendingEmail ? "not-allowed" : "pointer",
+                      }}
+                    >
+                      {sendingEmail ? (
+                        <>
+                          <Spinner size={15} /> Sending Notification...
+                        </>
+                      ) : (
+                        <>
+                          <Send size={15} /> Confirm & Send Email
+                        </>
+                      )}
+                    </button>
+                  )}
+                </div>
+              </form>
             </div>
           </div>
         )}

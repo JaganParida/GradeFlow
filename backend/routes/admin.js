@@ -3,6 +3,7 @@ const router = express.Router();
 const multer = require("multer");
 const XLSX = require("xlsx");
 const { protect } = require("../middleware/auth");
+const { sendBacklogEmailNotification } = require("../utils/emailService");
 const SemesterResult = require("../models/SemesterResult");
 const InternalMark = require("../models/InternalMark");
 const Ranking = require("../models/Ranking");
@@ -1424,6 +1425,71 @@ router.get("/backlogs", protect, async (req, res) => {
   } catch (err) {
     console.error("Fetch backlogs error:", err);
     res.status(500).json({ message: "Server error fetching backlogs" });
+  }
+});
+
+// Send backlog notification email to student
+router.post("/backlogs/send-email", protect, async (req, res) => {
+  try {
+    const { regNo, registrationNumber, studentId, customEmail, email } = req.body;
+    const cleanRegNo = String(regNo || registrationNumber || studentId || "").trim();
+
+    if (!cleanRegNo) {
+      return res.status(400).json({ message: "Registration number is required" });
+    }
+
+    // Retrieve student results from DB
+    const results = await SemesterResult.find({ regNo: cleanRegNo }).sort({ semester: 1 }).lean();
+    if (!results || !results.length) {
+      return res.status(404).json({ message: `No student records found for registration number "${cleanRegNo}"` });
+    }
+
+    // Calculate backlogs, CGPA, and metrics
+    const backlogSubjects = calculateBacklogs(results);
+    if (!backlogSubjects || !backlogSubjects.length) {
+      return res.status(400).json({ message: `Student (${cleanRegNo}) currently has 0 active backlogs!` });
+    }
+
+    const cgpa = calculateCGPA(results);
+    const latestResult = results[results.length - 1];
+    const studentName = latestResult.studentName || "Student";
+    const latestSemester = Math.max(...results.map((r) => Number(r.semester) || 1));
+    const completedSemesters = latestSemester;
+    const remainingSemesters = Math.max(0, 8 - latestSemester);
+
+    // Dynamic email address generation: {regNo}@centurionuniv.edu.in
+    const defaultEmail = `${cleanRegNo}@centurionuniv.edu.in`.toLowerCase();
+    const recipientEmail = (customEmail || email || defaultEmail).trim().toLowerCase();
+
+    // Send email using Nodemailer utility
+    const result = await sendBacklogEmailNotification({
+      to: recipientEmail,
+      studentName,
+      regNo: cleanRegNo,
+      cgpa,
+      totalBacklogs: backlogSubjects.length,
+      completedSemesters,
+      remainingSemesters,
+      latestSemester,
+      backlogSubjects,
+    });
+
+    res.json({
+      success: true,
+      message: `Backlog notification email successfully sent to ${recipientEmail}`,
+      studentName,
+      regNo: cleanRegNo,
+      recipientEmail,
+      totalBacklogs: backlogSubjects.length,
+      cgpa,
+      messageId: result.messageId,
+      sentAt: new Date().toISOString(),
+    });
+  } catch (err) {
+    console.error("Backlog email send error:", err);
+    res.status(500).json({
+      message: err.message || "Failed to send backlog notification email",
+    });
   }
 });
 

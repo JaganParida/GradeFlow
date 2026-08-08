@@ -1,6 +1,10 @@
 {
   "rewrites": [
     {
+      "source": "/api/send-backlog-email",
+      "destination": "/api/send-backlog-email.js"
+    },
+    {
       "source": "/(.*)",
       "destination": "/index.html"
     }
