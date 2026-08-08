@@ -95,7 +95,7 @@ function generateBacklogEmailHtml({
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>GradeFlow Academic Update</title>
+  <title>GradeFlow Academic Record Overview</title>
 </head>
 <body style="margin:0;padding:0;background-color:#f1f5f9;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:#334155;">
   <table width="100%" cellspacing="0" cellpadding="0" border="0" style="background-color:#f1f5f9;padding:16px 8px;">
@@ -267,7 +267,7 @@ function generateBacklogEmailText({
     subjectsListText += `  - Sem ${s.semester || 1}: ${s.subCode || "N/A"} - ${s.subName || "Subject"} (Grade: ${s.grade || "F"})\n`;
   });
 
-  return `GradeFlow Academic Update
+  return `GradeFlow Academic Record Overview
 
 Hello ${cleanName},
 

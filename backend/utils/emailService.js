@@ -80,7 +80,7 @@ async function sendBacklogEmailNotification({
   const html = generateBacklogEmailHtml(emailPayload);
   const text = generateBacklogEmailText(emailPayload);
 
-  const subject = `Your GradeFlow Academic Update - ${regNo}`;
+  const subject = `Academic Record Overview [${regNo}]`;
   const frontendUrl = process.env.FRONTEND_URL || "https://grade-flow-navy.vercel.app";
 
   // Use EMAIL_FROM or registered email address as the 'from' header
