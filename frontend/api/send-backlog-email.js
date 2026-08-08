@@ -5,6 +5,7 @@
  * Reads EMAIL_USER, EMAIL_PASS etc. from Vercel Environment Variables.
  */
 
+const path = require("path");
 require("dotenv").config();
 const nodemailer = require("nodemailer");
 const axios = require("axios");
@@ -117,16 +118,32 @@ module.exports = async function handler(req, res) {
     const html = generateBacklogEmailHtml(emailPayload);
     const text = generateBacklogEmailText(emailPayload);
 
-    const subject = `Academic Status Notice: ${cleanRegNo}`;
+    const subject = `GradeFlow Academic Update - Reg. No. ${cleanRegNo}`;
 
-    // ── 8. Send Email (Optimized for Primary Inbox Delivery) ──
+    // ── 8. Send Email (Optimized for Primary Inbox Delivery & CID Images) ──
     const info = await transporter.sendMail({
-      from: `"Jagan Parida (GradeFlow)" <${emailUser}>`,
+      from: `"Jagan Parida" <${emailUser}>`,
       replyTo: emailUser,
       to: recipientEmail,
       subject,
       text,
       html,
+      attachments: [
+        {
+          filename: "logo.png",
+          path: path.join(__dirname, "assets/logo.png"),
+          cid: "gradeflow-logo",
+          contentType: "image/png",
+          contentDisposition: "inline",
+        },
+        {
+          filename: "whatsapp.png",
+          path: path.join(__dirname, "assets/whatsapp.png"),
+          cid: "whatsapp-icon",
+          contentType: "image/png",
+          contentDisposition: "inline",
+        },
+      ],
     });
 
     return res.status(200).json({
