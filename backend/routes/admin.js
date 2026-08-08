@@ -1551,6 +1551,32 @@ router.post("/backlogs/send-email", protect, async (req, res) => {
   }
 });
 
+// Update email status from frontend
+router.post("/backlogs/email-status", protect, async (req, res) => {
+  try {
+    const { regNo, status, error } = req.body;
+    const cleanRegNo = String(regNo || "").trim();
+    if (!cleanRegNo) {
+      return res.status(400).json({ message: "Registration number required" });
+    }
+
+    await Student.findOneAndUpdate(
+      { regNo: cleanRegNo },
+      {
+        lastEmailSentAt: new Date(),
+        lastEmailStatus: status === "SUCCESS" ? "SUCCESS" : "FAILED",
+        lastEmailError: error || null
+      },
+      { upsert: true }
+    );
+
+    res.json({ success: true, message: "Email status updated" });
+  } catch (err) {
+    console.error("Failed to update email status:", err);
+    res.status(500).json({ message: "Failed to update email status" });
+  }
+});
+
 router.get("/stats", protect, async (req, res) => {
   try {
     const [totalResults, totalInternal, totalRankings] = await Promise.all([

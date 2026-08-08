@@ -888,18 +888,24 @@ function BacklogTrackerCard({ authHeaders, API }) {
     setEmailErrorMsg("");
 
     try {
-      // Send email via Backend API to properly track status in database
+      // Render free tier blocks outbound SMTP, so we MUST send via Vercel Serverless Function
       const res = await axios.post(
-        `${API}/admin/backlogs/send-email`,
+        "/api/send-backlog-email",
         {
           regNo: selectedStudentForEmail.regNo,
           customEmail: customEmailInput,
         },
-        { timeout: 30000, headers: authHeaders }
+        { timeout: 30000 }
       );
 
       const resData = res.data;
       setEmailSuccessMsg(resData.message || `Backlog notification email sent successfully to ${customEmailInput}`);
+      
+      // Update backend DB with SUCCESS status silently
+      axios.post(`${API}/admin/backlogs/email-status`, {
+        regNo: selectedStudentForEmail.regNo,
+        status: "SUCCESS"
+      }, { headers: authHeaders }).catch(e => console.error(e));
       
       // Optimistically update the UI to show the email was just sent
       setData((prev) => ({
@@ -922,6 +928,13 @@ function BacklogTrackerCard({ authHeaders, API }) {
         err.response?.data?.message || "Failed to send email. Check configuration."
       );
       
+      // Update backend DB with FAILED status silently
+      axios.post(`${API}/admin/backlogs/email-status`, {
+        regNo: selectedStudentForEmail.regNo,
+        status: "FAILED",
+        error: err.response?.data?.message || err.message
+      }, { headers: authHeaders }).catch(e => console.error(e));
+
       // Optimistically update the UI to show the failure
       setData((prev) => ({
         ...prev,
