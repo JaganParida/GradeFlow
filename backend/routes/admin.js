@@ -1750,4 +1750,26 @@ router.post("/purge-expired", protect, async (req, res) => {
   }
 });
 
+// Delete a specific Purge Audit Log notification
+router.delete("/purge-logs/:id", protect, async (req, res) => {
+  try {
+    await BatchPurgeLog.findByIdAndDelete(req.params.id);
+    res.json({ message: "Notification deleted" });
+  } catch (err) {
+    console.error("Delete purge log error:", err);
+    res.status(500).json({ message: "Server error deleting purge log" });
+  }
+});
+
+// Dismiss / Delete ALL Purge Audit Log notifications
+router.delete("/purge-logs", protect, async (req, res) => {
+  try {
+    await BatchPurgeLog.deleteMany({});
+    res.json({ message: "All notifications cleared" });
+  } catch (err) {
+    console.error("Delete all purge logs error:", err);
+    res.status(500).json({ message: "Server error clearing purge logs" });
+  }
+});
+
 module.exports = router;

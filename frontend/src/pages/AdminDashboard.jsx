@@ -1906,6 +1906,24 @@ export default function AdminDashboard() {
     } catch {}
   }
 
+  async function dismissPurgeLog(id) {
+    try {
+      await axios.delete(`${API}/admin/purge-logs/${id}`, authHeaders);
+      setPurgeLogs((prev) => prev.filter((item) => item._id !== id));
+    } catch (e) {
+      console.error("Failed to dismiss notification", e);
+    }
+  }
+
+  async function dismissAllPurgeLogs() {
+    try {
+      await axios.delete(`${API}/admin/purge-logs`, authHeaders);
+      setPurgeLogs([]);
+    } catch (e) {
+      console.error("Failed to dismiss all notifications", e);
+    }
+  }
+
   async function generateRankings() {
     if (!rankSem) {
       setRankErr("Enter semester");
@@ -2360,24 +2378,66 @@ export default function AdminDashboard() {
         {/* 5-Year Batch Data Lifecycle Audit Logs */}
         {purgeLogs && purgeLogs.length > 0 && (
           <div className="card" style={{ marginBottom: 20, border: "1px solid rgba(239, 68, 68, 0.3)", background: "rgba(239, 68, 68, 0.05)", padding: 16 }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12, flexWrap: "wrap", gap: 8 }}>
               <h4 style={{ margin: 0, fontSize: 14, fontWeight: 700, color: "#f87171", display: "flex", alignItems: "center", gap: 6 }}>
                 <AlertTriangle size={16} color="#ef4444" /> 5-Year Batch Data Retention Audit Notifications
               </h4>
-              <span style={{ fontSize: 11, color: "var(--text-muted)" }}>Auto-Purged Expired Batches (&gt; 5 Years Old)</span>
+              <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                <span style={{ fontSize: 11, color: "var(--text-muted)" }}>Auto-Purged Expired Batches (&gt; 5 Years Old)</span>
+                <button
+                  onClick={dismissAllPurgeLogs}
+                  style={{
+                    background: "rgba(239, 68, 68, 0.2)",
+                    border: "1px solid rgba(239, 68, 68, 0.4)",
+                    color: "#f87171",
+                    padding: "3px 8px",
+                    borderRadius: 4,
+                    fontSize: 11,
+                    cursor: "pointer",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 4
+                  }}
+                  title="Clear all notifications"
+                >
+                  <Trash2 size={12} /> Clear All
+                </button>
+              </div>
             </div>
             <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
               {purgeLogs.map((log) => (
-                <div key={log._id || log.batch} style={{ background: "rgba(0,0,0,0.25)", padding: "10px 14px", borderRadius: 8, fontSize: 12, display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 8 }}>
-                  <div>
+                <div key={log._id || log.batch} style={{ background: "rgba(0,0,0,0.25)", padding: "10px 14px", borderRadius: 8, fontSize: 12, display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 8, position: "relative" }}>
+                  <div style={{ flex: 1, paddingRight: 24 }}>
                     <strong style={{ color: "#f87171" }}>Batch {log.batch} Auto-Purged:</strong> {log.studentsAffected} student(s) &middot; {log.recordsDeleted} total record(s) removed.
                     <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 2 }}>
                       Reason: {log.triggerReason} &middot; Affected RegNos: {log.sampleRegNos?.slice(0, 5).join(", ")}{log.sampleRegNos?.length > 5 ? "..." : ""}
                     </div>
                   </div>
-                  <span style={{ fontSize: 11, color: "var(--text-secondary)", whiteSpace: "nowrap" }}>
-                    {formatDistanceToNow(new Date(log.purgedAt), { addSuffix: true })}
-                  </span>
+                  <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                    <span style={{ fontSize: 11, color: "var(--text-secondary)", whiteSpace: "nowrap" }}>
+                      {formatDistanceToNow(new Date(log.purgedAt), { addSuffix: true })}
+                    </span>
+                    <button
+                      onClick={() => dismissPurgeLog(log._id)}
+                      style={{
+                        background: "rgba(255, 255, 255, 0.08)",
+                        border: "none",
+                        color: "var(--text-secondary)",
+                        cursor: "pointer",
+                        padding: 4,
+                        borderRadius: "50%",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        transition: "all 0.2s ease"
+                      }}
+                      onMouseOver={(e) => { e.currentTarget.style.color = "#ef4444"; e.currentTarget.style.background = "rgba(239, 68, 68, 0.2)"; }}
+                      onMouseOut={(e) => { e.currentTarget.style.color = "var(--text-secondary)"; e.currentTarget.style.background = "rgba(255, 255, 255, 0.08)"; }}
+                      title="Dismiss notification"
+                    >
+                      <X size={14} />
+                    </button>
+                  </div>
                 </div>
               ))}
             </div>
