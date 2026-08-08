@@ -1573,7 +1573,7 @@ function BacklogTrackerCard({ authHeaders, API }) {
                           <BookOpen size={13} /> Backlog Subjects:
                         </div>
                         <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                          {st.backlogSubjects?.map((sub, sIdx) => (
+                          {st.backlogs?.map((sub, sIdx) => (
                             <div
                               key={sIdx}
                               style={{
