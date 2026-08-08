@@ -3,46 +3,68 @@ function generateBacklogEmailHtml({
   regNo,
   cgpa,
   totalBacklogs,
+  completedSemesters,
+  remainingSemesters,
+  latestSemester,
   backlogSubjects = [],
+  developerWhatsapp = "919124540575",
   frontendUrl = "https://gradeflow.in"
 }) {
   const cleanRegNo = String(regNo || "").trim();
   const cleanName = String(studentName || "Student").trim();
   const formattedCgpa = typeof cgpa === "number" ? cgpa.toFixed(2) : cgpa || "0.00";
   const numBacklogs = Number(totalBacklogs) || backlogSubjects.length || 0;
-  const studentPortalUrl = `https://gradeflow.in/dashboard/${cleanRegNo}`;
+  const baseUrl = String(frontendUrl || "https://gradeflow.in").replace(/\/$/, "");
+  const studentPortalUrl = `${baseUrl}/dashboard/${cleanRegNo}`;
 
-  let subjectsHtml = "";
-  if (backlogSubjects && backlogSubjects.length > 0) {
-    subjectsHtml = `
-      <br>
-      <p style="color: #333333; font-size: 14px; margin-bottom: 8px;">Pending Subjects:</p>
-      <table style="width: 100%; max-width: 600px; border-collapse: collapse; border: 1px solid #e0e0e0; font-family: Arial, sans-serif; font-size: 14px; margin-bottom: 20px;">
-        <thead>
-          <tr>
-            <th style="border: 1px solid #e0e0e0; padding: 10px; background-color: #f9f9f9; text-align: left; color: #333333;">Sem</th>
-            <th style="border: 1px solid #e0e0e0; padding: 10px; background-color: #f9f9f9; text-align: left; color: #333333;">Code</th>
-            <th style="border: 1px solid #e0e0e0; padding: 10px; background-color: #f9f9f9; text-align: left; color: #333333;">Subject</th>
-            <th style="border: 1px solid #e0e0e0; padding: 10px; background-color: #f9f9f9; text-align: left; color: #333333;">Grade</th>
-          </tr>
-        </thead>
-        <tbody>
-          ${backlogSubjects.map(sub => `
+  // WhatsApp Link
+  const waRawMessage = `Hello GradeFlow Developer, I am ${cleanName} with Registration Number ${cleanRegNo}. My backlog/result information needs to be updated. Please help me verify my academic record.`;
+  const waCleanPhone = String(developerWhatsapp || "").replace(/[^0-9]/g, "");
+  const waUrl = `https://wa.me/${waCleanPhone}?text=${encodeURIComponent(waRawMessage)}`;
+
+  // Group Backlogs by Semester
+  const semMap = {};
+  backlogSubjects.forEach(sub => {
+    const sem = sub.semester || 1;
+    if (!semMap[sem]) semMap[sem] = [];
+    semMap[sem].push(sub);
+  });
+  const sortedSemesters = Object.keys(semMap).sort((a, b) => Number(a) - Number(b));
+
+  let semesterTablesHtml = "";
+  if (sortedSemesters.length > 0) {
+    sortedSemesters.forEach(sem => {
+      semesterTablesHtml += `
+        <p style="font-weight: bold; margin-bottom: 5px; color: #333333; font-size: 14px;">Semester ${sem}</p>
+        <table style="width: 100%; max-width: 600px; border-collapse: collapse; border: 1px solid #e0e0e0; font-family: Arial, sans-serif; font-size: 14px; margin-bottom: 20px;">
+          <thead>
             <tr>
-              <td style="border: 1px solid #e0e0e0; padding: 10px; color: #333333;">${sub.semester || 1}</td>
-              <td style="border: 1px solid #e0e0e0; padding: 10px; color: #333333;">${sub.subCode || 'N/A'}</td>
-              <td style="border: 1px solid #e0e0e0; padding: 10px; color: #333333;">${sub.subName || 'Unknown'}</td>
-              <td style="border: 1px solid #e0e0e0; padding: 10px; color: #d32f2f;">${sub.grade || 'F'}</td>
+              <th style="border: 1px solid #e0e0e0; padding: 10px; background-color: #f9f9f9; text-align: left; color: #333333; width: 25%;">Subject Code</th>
+              <th style="border: 1px solid #e0e0e0; padding: 10px; background-color: #f9f9f9; text-align: left; color: #333333; width: 55%;">Subject Name</th>
+              <th style="border: 1px solid #e0e0e0; padding: 10px; background-color: #f9f9f9; text-align: left; color: #333333; width: 20%;">Status</th>
             </tr>
-          `).join('')}
-        </tbody>
-      </table>
-    `;
+          </thead>
+          <tbody>
+            ${semMap[sem].map(sub => `
+              <tr>
+                <td style="border: 1px solid #e0e0e0; padding: 10px; color: #333333;">${sub.subCode || 'N/A'}</td>
+                <td style="border: 1px solid #e0e0e0; padding: 10px; color: #333333;">${sub.subName || 'Unknown'}</td>
+                <td style="border: 1px solid #e0e0e0; padding: 10px; color: #d32f2f;">Pending</td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      `;
+    });
   }
 
-  const statusMessage = numBacklogs > 0 
-    ? `<p style="color: #d32f2f; font-size: 14px; font-weight: bold; margin-bottom: 20px;">You currently have ${numBacklogs} active backlog(s).</p>` 
-    : `<p style="color: #333333; font-size: 14px; margin-bottom: 20px;">You have no active backlogs.</p>`;
+  // Dynamic Academic Message
+  let progressMessage = "";
+  if (remainingSemesters <= 1) {
+    progressMessage = `You are currently in Semester ${latestSemester}, with ${remainingSemesters} semester remaining.<br>This is an important stage of your academic journey. We strongly encourage you to clear your pending subjects as soon as possible so that your academic record can be updated successfully before graduation.`;
+  } else {
+    progressMessage = `You currently have ${remainingSemesters} semesters remaining. Use this time wisely to clear your pending subjects and keep your academic progress on track.`;
+  }
 
   return `
 <!DOCTYPE html>
@@ -52,16 +74,26 @@ function generateBacklogEmailHtml({
   <title>Official Academic Status Update</title>
 </head>
 <body style="font-family: Arial, sans-serif; background-color: #ffffff; color: #333333; line-height: 1.6; margin: 0; padding: 20px;">
-  
+
+  <div style="margin-bottom: 24px;">
+    <h2 style="margin: 0; font-size: 20px; font-weight: bold; color: #333333;">GRADEFlow</h2>
+    <p style="margin: 0; font-size: 14px; color: #666666;">Academic Progress & Result Management System</p>
+  </div>
+
   <p style="margin-bottom: 16px;">Dear ${cleanName},</p>
   
-  <p style="margin-bottom: 20px;">
-    This is an automated academic record overview from the GradeFlow system regarding your current status.
+  <p style="margin-bottom: 24px;">
+    This is an academic notification from GradeFlow regarding your current academic progress and pending backlogs.
   </p>
 
-  <table style="width: 100%; max-width: 600px; border-collapse: collapse; border: 1px solid #e0e0e0; margin-bottom: 20px;">
+  <h3 style="font-size: 16px; font-weight: bold; margin-bottom: 10px; color: #333333;">Academic Summary</h3>
+  <table style="width: 100%; max-width: 600px; border-collapse: collapse; border: 1px solid #e0e0e0; margin-bottom: 24px; font-size: 14px;">
     <tr>
-      <td style="border: 1px solid #e0e0e0; padding: 12px; font-weight: bold; width: 40%; background-color: #f9f9f9;">Registration Number:</td>
+      <td style="border: 1px solid #e0e0e0; padding: 12px; font-weight: bold; width: 40%; background-color: #f9f9f9;">Student Name:</td>
+      <td style="border: 1px solid #e0e0e0; padding: 12px;">${cleanName}</td>
+    </tr>
+    <tr>
+      <td style="border: 1px solid #e0e0e0; padding: 12px; font-weight: bold; background-color: #f9f9f9;">Registration No.:</td>
       <td style="border: 1px solid #e0e0e0; padding: 12px;">${cleanRegNo}</td>
     </tr>
     <tr>
@@ -69,23 +101,89 @@ function generateBacklogEmailHtml({
       <td style="border: 1px solid #e0e0e0; padding: 12px;">${formattedCgpa}</td>
     </tr>
     <tr>
-      <td style="border: 1px solid #e0e0e0; padding: 12px; font-weight: bold; background-color: #f9f9f9;">Active Backlogs:</td>
-      <td style="border: 1px solid #e0e0e0; padding: 12px;">${numBacklogs} subject(s)</td>
+      <td style="border: 1px solid #e0e0e0; padding: 12px; font-weight: bold; background-color: #f9f9f9;">Total Backlogs:</td>
+      <td style="border: 1px solid #e0e0e0; padding: 12px;">${numBacklogs}</td>
+    </tr>
+    <tr>
+      <td style="border: 1px solid #e0e0e0; padding: 12px; font-weight: bold; background-color: #f9f9f9;">Completed Semesters:</td>
+      <td style="border: 1px solid #e0e0e0; padding: 12px;">${completedSemesters}</td>
+    </tr>
+    <tr>
+      <td style="border: 1px solid #e0e0e0; padding: 12px; font-weight: bold; background-color: #f9f9f9;">Remaining Semesters:</td>
+      <td style="border: 1px solid #e0e0e0; padding: 12px;">${remainingSemesters}</td>
     </tr>
   </table>
 
-  ${statusMessage}
-
-  ${subjectsHtml}
-
-  <p style="margin-bottom: 10px;">
-    You can view your full semester results and rankings on the student portal:<br>
-    <a href="${studentPortalUrl}" style="color: #1a73e8; text-decoration: underline;">View Academic Record</a>
+  ${numBacklogs > 0 ? `
+  <p style="font-size: 16px; font-weight: bold; color: #d32f2f; margin-bottom: 24px;">
+    You currently have ${numBacklogs} pending backlog${numBacklogs > 1 ? 's' : ''}.
   </p>
 
-  <p style="margin-bottom: 20px;">
-    If you believe there is an error in this record, please reply to this email or contact the university administration.
+  <h3 style="font-size: 16px; font-weight: bold; margin-bottom: 10px; color: #333333;">Semester-Wise Backlog Details</h3>
+  ${semesterTablesHtml}
+
+  <h3 style="font-size: 16px; font-weight: bold; margin-bottom: 10px; color: #333333;">Backlog Summary</h3>
+  <table style="width: 100%; max-width: 600px; border-collapse: collapse; border: 1px solid #e0e0e0; margin-bottom: 24px; font-size: 14px;">
+    <tr>
+      <td style="border: 1px solid #e0e0e0; padding: 10px; width: 60%; background-color: #f9f9f9; color: #333333;">Total Pending Backlogs:</td>
+      <td style="border: 1px solid #e0e0e0; padding: 10px; font-weight: bold;">${numBacklogs}</td>
+    </tr>
+    <tr>
+      <td style="border: 1px solid #e0e0e0; padding: 10px; background-color: #f9f9f9; color: #333333;">Semesters With Backlogs:</td>
+      <td style="border: 1px solid #e0e0e0; padding: 10px; font-weight: bold;">${sortedSemesters.length}</td>
+    </tr>
+    ${sortedSemesters.map(sem => `
+      <tr>
+        <td style="border: 1px solid #e0e0e0; padding: 10px; background-color: #ffffff; color: #666666; padding-left: 20px;">Semester ${sem}:</td>
+        <td style="border: 1px solid #e0e0e0; padding: 10px;">${semMap[sem].length} Backlog${semMap[sem].length > 1 ? 's' : ''}</td>
+      </tr>
+    `).join('')}
+  </table>
+  ` : `
+  <p style="font-size: 16px; font-weight: bold; color: #1a73e8; margin-bottom: 24px;">
+    You have no active backlogs.
   </p>
+  `}
+
+  <p style="margin-bottom: 24px; font-size: 14px;">
+    ${progressMessage}
+  </p>
+
+  <div style="margin-bottom: 24px;">
+    <h3 style="font-size: 16px; font-weight: bold; margin-bottom: 10px; color: #d32f2f;">Important</h3>
+    <p style="margin-bottom: 10px; font-size: 14px;">Please do not ignore this notification.</p>
+    <p style="margin-bottom: 0; font-size: 14px;">
+      If you have already cleared any of the subjects listed above but your result has not yet been updated on GradeFlow, please contact the developer/GradeFlow support team so that your academic record can be reviewed and updated.
+    </p>
+  </div>
+
+  <div style="margin-bottom: 32px;">
+    <h3 style="font-size: 16px; font-weight: bold; margin-bottom: 10px; color: #333333;">Need to update your result?</h3>
+    <p style="margin-bottom: 16px; font-size: 14px;">
+      If you have already cleared a backlog but it is still showing as pending on GradeFlow, please contact the developer/support team with your Registration Number and relevant result details.
+    </p>
+    <a href="${waUrl}" style="display: inline-block; padding: 12px 20px; background-color: #25D366; color: #ffffff; font-weight: bold; font-size: 14px; text-decoration: none; border-radius: 4px;">
+      Contact Developer on WhatsApp
+    </a>
+  </div>
+
+  <div style="border-top: 1px solid #e0e0e0; padding-top: 20px; margin-bottom: 24px;">
+    <p style="margin: 0; font-size: 14px; font-style: italic; color: #555555; text-align: center;">
+      ${numBacklogs > 0 
+        ? '"Your backlog is not your final result. Clear it, learn from it, and keep moving forward."'
+        : '"Every cleared subject is one step closer to your goal. Stay consistent, stay focused, and keep moving forward."'}
+    </p>
+  </div>
+
+  <div style="font-size: 13px; color: #777777;">
+    <p style="margin: 0 0 5px 0;">Regards,</p>
+    <p style="margin: 0 0 15px 0; font-weight: bold;">GradeFlow Team</p>
+    <p style="margin: 0 0 5px 0;">Academic Progress & Result Management System</p>
+    <p style="margin: 0;">
+      This is an automated academic notification generated by GradeFlow.<br>
+      Please do not reply directly to this email.
+    </p>
+  </div>
 
 </body>
 </html>
@@ -107,18 +205,30 @@ function generateBacklogEmailText(payload) {
 
 Dear ${cleanName},
 
-This is an automated academic record overview from the GradeFlow system regarding your current status.
+This is an automated academic notification from GradeFlow regarding your current academic progress and pending backlogs.
 
-Registration Number: ${cleanRegNo}
-Current CGPA: ${formattedCgpa}
-Active Backlogs: ${numBacklogs} subject(s)
+Academic Summary
+----------------
+Student Name       : ${cleanName}
+Registration No.   : ${cleanRegNo}
+Current CGPA       : ${formattedCgpa}
+Total Backlogs     : ${numBacklogs}
+Completed Semesters: ${payload.completedSemesters || 0}
+Remaining Semesters: ${payload.remainingSemesters || 0}
 
-${numBacklogs > 0 ? "Pending Subjects:\n" + subjectsListText : "You have no active backlogs."}
+${numBacklogs > 0 ? `You currently have ${numBacklogs} pending backlog(s).\n\nPending Subjects:\n${subjectsListText}` : "You have no active backlogs."}
 
-You can view your full semester results and rankings on the student portal:
-https://gradeflow.in/dashboard/${cleanRegNo}
+Important
+---------
+Please do not ignore this notification.
+If you have already cleared any of the subjects listed above but your result has not yet been updated on GradeFlow, please contact the developer/GradeFlow support team.
 
-If you believe there is an error in this record, please reply to this email or contact the university administration.
+Need to update your result?
+Contact Developer on WhatsApp: https://wa.me/919124540575
+
+Regards,
+GradeFlow Team
+Academic Progress & Result Management System
 `;
 }
 
