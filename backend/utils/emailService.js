@@ -2,7 +2,8 @@ const nodemailer = require("nodemailer");
 const { generateBacklogEmailHtml, generateBacklogEmailText } = require("./emailTemplate");
 
 /**
- * Creates a Nodemailer transporter
+ * Creates a Nodemailer transporter.
+ * Supports Brevo (smtp-relay.brevo.com:587) and Gmail.
  */
 function createTransporter() {
   const emailUser = process.env.EMAIL_USER;
@@ -14,10 +15,11 @@ function createTransporter() {
     );
   }
 
-  const service = process.env.EMAIL_SERVICE;
-  const host = process.env.EMAIL_HOST || "smtp.gmail.com";
-  const port = Number(process.env.EMAIL_PORT) || 465;
+  // If EMAIL_HOST is provided (e.g. Brevo: smtp-relay.brevo.com), use host & port configuration
+  const host = process.env.EMAIL_HOST || (process.env.EMAIL_SERVICE ? null : "smtp-relay.brevo.com");
+  const port = Number(process.env.EMAIL_PORT) || 587;
   const secure = port === 465;
+  const service = host ? null : process.env.EMAIL_SERVICE || "gmail";
 
   const config = service
     ? {
@@ -30,7 +32,7 @@ function createTransporter() {
     : {
         host,
         port,
-        secure,
+        secure, // false for 587 (STARTTLS), true for 465
         auth: { user: emailUser, pass: emailPass },
         connectionTimeout: 10000,
         greetingTimeout: 5000,
@@ -42,9 +44,6 @@ function createTransporter() {
 
 /**
  * Sends a personalized Backlog Notification Email to a student.
- * 
- * ZERO attachments — uses inline SVG for icons.
- * This ensures Gmail does not flag the email as spam.
  */
 async function sendBacklogEmailNotification({
   to,
@@ -81,9 +80,7 @@ async function sendBacklogEmailNotification({
   const html = generateBacklogEmailHtml(emailPayload);
   const text = generateBacklogEmailText(emailPayload);
 
-  // Clean, natural subject line — no pipe characters, no special symbols
   const subject = `Your GradeFlow Academic Update - ${regNo}`;
-
   const frontendUrl = process.env.FRONTEND_URL || "https://grade-flow-navy.vercel.app";
 
   const mailOptions = {
@@ -93,15 +90,12 @@ async function sendBacklogEmailNotification({
     subject,
     text,
     html,
-    // List-Unsubscribe header — Gmail gives HIGH trust to emails with this
     list: {
       unsubscribe: {
         url: `${frontendUrl}/dashboard/${regNo}`,
         comment: "View your GradeFlow dashboard",
       },
     },
-    // NO attachments — zero CID, zero inline images
-    // All icons are rendered as inline SVG in the HTML body
   };
 
   const info = await transporter.sendMail(mailOptions);

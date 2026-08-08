@@ -1,10 +1,7 @@
 /**
  * GradeFlow Backlog Notification Email — Vercel Serverless Function
  *
- * ZERO attachments, personal-style email for Primary Inbox delivery.
- * Uses Nodemailer with Gmail SMTP.
- * 
- * NOTE: Do NOT use require("dotenv") here — Vercel injects env vars automatically.
+ * Supports Brevo SMTP (smtp-relay.brevo.com:587) and Gmail.
  */
 
 const nodemailer = require("nodemailer");
@@ -67,8 +64,6 @@ module.exports = async function handler(req, res) {
     const backlogs = studentData.backlogs || [];
     const results = studentData.results || [];
 
-    // Allow sending academic record updates for all students (0 backlogs show positive confirmation message)
-
     const semesters = results.map((r) => Number(r.semester) || 1);
     const latestSemester = semesters.length ? Math.max(...semesters) : 1;
     const completedSemesters = latestSemester;
@@ -77,13 +72,15 @@ module.exports = async function handler(req, res) {
     const defaultEmail = `${cleanRegNo}@centurionuniv.edu.in`.toLowerCase();
     const recipientEmail = String(customEmail || email || defaultEmail).trim().toLowerCase();
 
-    const service = process.env.EMAIL_SERVICE;
-    const host = process.env.EMAIL_HOST || "smtp.gmail.com";
-    const port = Number(process.env.EMAIL_PORT) || 465;
+    // Prioritize EMAIL_HOST (Brevo: smtp-relay.brevo.com:587)
+    const host = process.env.EMAIL_HOST || (process.env.EMAIL_SERVICE ? null : "smtp-relay.brevo.com");
+    const port = Number(process.env.EMAIL_PORT) || 587;
+    const secure = port === 465;
+    const service = host ? null : process.env.EMAIL_SERVICE || "gmail";
 
     const transportConfig = service
       ? { service, auth: { user: emailUser, pass: emailPass } }
-      : { host, port, secure: port === 465, auth: { user: emailUser, pass: emailPass } };
+      : { host, port, secure, auth: { user: emailUser, pass: emailPass } };
 
     const transporter = nodemailer.createTransport({
       ...transportConfig,
