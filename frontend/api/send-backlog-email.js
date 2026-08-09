@@ -144,18 +144,12 @@ module.exports = async function handler(req, res) {
     const senderEmail = process.env.EMAIL_FROM || "jaganparida9154@gmail.com";
 
     const info = await transporter.sendMail({
-      from: `"Jagan Parida" <${senderEmail}>`,
+      from: `"GradeFlow - Academic Updates" <${senderEmail}>`,
       replyTo: senderEmail,
       to: recipientEmail,
       subject,
       text,
       html,
-      list: {
-        unsubscribe: {
-          url: `${frontendBaseUrl}/dashboard/${cleanRegNo}`,
-          comment: "View your GradeFlow dashboard",
-        },
-      },
     });
 
     return res.status(200).json({

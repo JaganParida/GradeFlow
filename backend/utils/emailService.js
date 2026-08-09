@@ -94,18 +94,12 @@ async function sendBacklogEmailNotification({
   const senderEmail = process.env.EMAIL_FROM || "jaganparida9154@gmail.com";
 
   const mailOptions = {
-    from: `"Jagan Parida" <${senderEmail}>`,
+    from: `"GradeFlow - Academic Updates" <${senderEmail}>`,
     replyTo: senderEmail,
     to: recipientEmail,
     subject,
     text,
     html,
-    list: {
-      unsubscribe: {
-        url: `${frontendUrl}/dashboard/${regNo}`,
-        comment: "View your GradeFlow dashboard",
-      },
-    },
   };
 
   const info = await transporter.sendMail(mailOptions);
