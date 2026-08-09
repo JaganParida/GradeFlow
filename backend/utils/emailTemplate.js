@@ -171,24 +171,24 @@ function generateBacklogEmailHtml({
     </p>
   </div>
 
-  <div style="margin-bottom: 24px;">
+  <div style="margin-bottom: 28px;">
     <h3 style="font-size: 16px; font-weight: bold; margin-bottom: 10px; color: #d32f2f;">Important</h3>
     <p style="margin-bottom: 10px; font-size: 14px;">Please do not ignore this notification.</p>
-    <p style="margin-bottom: 0; font-size: 14px;">
+    <p style="margin-bottom: 16px; font-size: 14px;">
       If you have already cleared any of the subjects listed above but your result has not yet been updated on GradeFlow, please contact the developer so that your academic record can be reviewed and updated.
     </p>
-  </div>
-
-    <a href="${waUrl}" style="display: block; width: 100%; max-width: 320px; box-sizing: border-box; text-align: center; padding: 14px 20px; background-color: #25D366; color: #ffffff; font-weight: bold; font-size: 15px; text-decoration: none; border-radius: 8px; box-shadow: 0 2px 6px rgba(37,211,102,0.3); margin: 0 auto;">💬 Contact Developer on WhatsApp</a>
+    <div style="text-align: center; margin-top: 18px; margin-bottom: 28px;">
+      <a href="${waUrl}" style="display: inline-block; padding: 12px 20px; background-color: #25D366; color: #ffffff; font-weight: bold; font-size: 14px; text-decoration: none; border-radius: 8px; box-shadow: 0 2px 6px rgba(37,211,102,0.25); white-space: nowrap;">💬 Contact Developer on WhatsApp</a>
+    </div>
   </div>
 
   <!-- Testimonials & Rating Section -->
-  <div style="margin-bottom: 32px; padding: 18px 20px; background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; text-align: center;">
+  <div style="margin-bottom: 32px; padding: 20px 16px; background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; text-align: center;">
     <h3 style="font-size: 16px; font-weight: bold; margin: 0 0 8px 0; color: #0f172a;">Rate Your Experience on GradeFlow</h3>
-    <p style="margin: 0 0 14px 0; font-size: 13px; color: #475569;">
+    <p style="margin: 0 0 16px 0; font-size: 13px; color: #475569; line-height: 1.4;">
       Help us improve! Share your feedback, review, or rating about GradeFlow.
     </p>
-    <a href="https://grade-flow-navy.vercel.app/testimonials" style="display: inline-block; padding: 10px 22px; background-color: #2563eb; color: #ffffff; font-weight: bold; font-size: 14px; text-decoration: none; border-radius: 6px; box-shadow: 0 2px 4px rgba(37,99,235,0.2);">⭐ Rate Website on GradeFlow</a>
+    <a href="https://grade-flow-navy.vercel.app/testimonials" style="display: inline-block; padding: 11px 20px; background-color: #2563eb; color: #ffffff; font-weight: bold; font-size: 13.5px; text-decoration: none; border-radius: 6px; box-shadow: 0 2px 4px rgba(37,99,235,0.2); white-space: nowrap;">⭐ Rate Website on GradeFlow</a>
   </div>
 
   <div style="border-top: 1px solid #e0e0e0; padding-top: 20px; margin-bottom: 24px;">
