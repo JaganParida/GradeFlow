@@ -19,6 +19,8 @@ const {
   calculateSGPA,
   sortByScore,
   calculateBacklogs,
+  getGradePoint,
+  normalizeGrade,
 } = require("../utils/gradeCalculations");
 
 const upload = multer({
@@ -1202,10 +1204,10 @@ router.post("/student/update-grade", protect, async (req, res) => {
 
     const trimmedRegNo = String(regNo || "").trim();
     const semNum = Number(semester);
-    const trimmedSubCode = String(subCode || "").trim().toLowerCase();
+    const rawSubCode = String(subCode || "").trim();
     const normalizedGrade = normalizeGrade(newGrade);
 
-    if (!trimmedRegNo || !semNum || !trimmedSubCode || !normalizedGrade) {
+    if (!trimmedRegNo || !semNum || !rawSubCode || !normalizedGrade) {
       return res.status(400).json({ message: "Registration Number, Semester, Subject, and New Grade are required" });
     }
 
@@ -1215,56 +1217,81 @@ router.post("/student/update-grade", protect, async (req, res) => {
     });
 
     if (!semResult) {
-      return res.status(404).json({ message: "No data present related to this student for this semester" });
+      return res.status(404).json({ message: `No academic records found for student ${trimmedRegNo} in Semester ${semNum}` });
     }
+
+    // Flexible subject matching (exact, normalized alphanumeric, or by _id)
+    const normalizeSub = (str) => String(str || "").toLowerCase().replace(/[^a-z0-9]/g, "");
+    const targetNorm = normalizeSub(rawSubCode);
 
     const subjectIndex = (semResult.subjects || []).findIndex(
       (s) =>
-        String(s.subCode || "").trim().toLowerCase() === trimmedSubCode ||
-        String(s.subName || "").trim().toLowerCase() === trimmedSubCode
+        String(s.subCode || "").trim().toLowerCase() === rawSubCode.toLowerCase() ||
+        String(s.subName || "").trim().toLowerCase() === rawSubCode.toLowerCase() ||
+        (s._id && String(s._id) === rawSubCode) ||
+        (targetNorm && normalizeSub(s.subCode) === targetNorm) ||
+        (targetNorm && normalizeSub(s.subName) === targetNorm) ||
+        (targetNorm && targetNorm.length >= 3 && (normalizeSub(s.subCode).includes(targetNorm) || targetNorm.includes(normalizeSub(s.subCode))))
     );
 
     if (subjectIndex === -1) {
-      return res.status(404).json({ message: `Subject ${subCode} not found for this student in Semester ${semNum}` });
+      return res.status(404).json({ message: `Subject "${rawSubCode}" not found for this student in Semester ${semNum}` });
     }
 
-    const oldGrade = semResult.subjects[subjectIndex].grade;
-    semResult.subjects[subjectIndex].grade = normalizedGrade;
+    const targetSubject = semResult.subjects[subjectIndex];
+    const oldGrade = targetSubject.grade;
 
-    // Recalculate semester metrics
-    const { totalCredits, creditsCleared, sgpa } = calculateSemesterMetrics(
-      semResult.subjects,
-      semNum
-    );
-    semResult.totalCredits = totalCredits;
-    semResult.creditsCleared = creditsCleared;
-    semResult.sgpa = sgpa;
+    // Update grade and gradePoint on target subject
+    targetSubject.grade = normalizedGrade;
+    const newGp = getGradePoint(normalizedGrade);
+    if (newGp !== undefined) {
+      targetSubject.gradePoint = newGp;
+    }
+    semResult.markModified("subjects");
 
-    // Recalculate CGPA using all results of this student
-    const allResults = await SemesterResult.find({ regNo: trimmedRegNo }).sort({ semester: 1 });
-    const updatedAllResults = allResults.map((r) =>
-      Number(r.semester) === semNum ? semResult : r
-    );
-    semResult.cgpa = calculateCGPA(updatedAllResults);
-
+    // Save target semester result first
     await semResult.save();
 
-    // Automatically regenerate rankings for this semester
-    await generateRankingForSemester(semNum);
+    // Cascading Recalculation: Fetch ALL semester records for this student
+    const allStudentResults = await SemesterResult.find({ regNo: trimmedRegNo }).sort({ semester: 1 });
 
-    // Invalidate cache for this student
-    clearStudentCache(trimmedRegNo);
+    // Recalculate SGPA, CGPA, totalCredits, and creditsCleared sequentially for ALL semesters of this student
+    for (const r of allStudentResults) {
+      const semNumber = Number(r.semester);
+      const metrics = calculateSemesterMetrics(r.subjects, semNumber);
+      r.totalCredits = metrics.totalCredits;
+      r.creditsCleared = metrics.creditsCleared;
+      r.sgpa = metrics.sgpa;
+      r.cgpa = calculateCGPA(allStudentResults, semNumber);
+      r.markModified("subjects");
+      await r.save();
+    }
+
+    // Automatically regenerate rankings for ALL semesters where this student has uploaded records
+    const affectedSemesters = [...new Set(allStudentResults.map((r) => Number(r.semester)))];
+    for (const sem of affectedSemesters) {
+      await generateRankingForSemester(sem);
+    }
+
+    // Clear in-memory student cache globally so all endpoints (backlogs, leaderboards, profiles, stats) update instantly
+    clearStudentCache();
+
+    // Fetch updated target result for final JSON response
+    const updatedTargetSem = allStudentResults.find((r) => Number(r.semester) === semNum) || semResult;
 
     res.json({
-      message: `✅ Grade for ${semResult.subjects[subjectIndex].subName} (${semResult.subjects[subjectIndex].subCode}) updated from ${oldGrade} to ${normalizedGrade} for ${semResult.studentName} (${trimmedRegNo}). Rankings & reports updated!`,
+      success: true,
+      message: `✅ Grade for "${targetSubject.subName}" (${targetSubject.subCode}) updated from ${oldGrade} to ${normalizedGrade} for ${semResult.studentName} (${trimmedRegNo})! SGPA, CGPA, Backlogs, Rankings & Website synchronized!`,
       studentName: semResult.studentName,
-      sgpa: semResult.sgpa,
-      cgpa: semResult.cgpa,
-      subjects: semResult.subjects,
+      regNo: trimmedRegNo,
+      semester: semNum,
+      sgpa: updatedTargetSem.sgpa,
+      cgpa: updatedTargetSem.cgpa,
+      subjects: updatedTargetSem.subjects,
     });
   } catch (err) {
     console.error("Manual grade update error:", err);
-    res.status(500).json({ message: "Server error updating grade" });
+    res.status(500).json({ message: err.message || "Server error updating grade" });
   }
 });
 
