@@ -941,14 +941,24 @@ function SectionToppersCard({ authHeaders, API }) {
     let errMessage = "";
 
     try {
-      // 1. Try Vercel Serverless Function first
+      // 1. Try Vercel Serverless Function first with direct payload
       const res = await axios.post(
         "/api/send-topper-email",
         {
           regNo: selectedStudentForEmail.regNo,
+          studentName: selectedStudentForEmail.studentName,
+          cgpa: selectedStudentForEmail.cgpa,
+          sgpa: selectedStudentForEmail.sgpa,
+          sectionCgpaRank: selectedStudentForEmail.sectionCgpaRank,
+          sectionSgpaRank: selectedStudentForEmail.sectionSgpaRank,
+          universityRank: selectedStudentForEmail.universityRank,
+          semester: selectedStudentForEmail.semester,
+          batch: selectedStudentForEmail.batch,
+          branch: selectedStudentForEmail.branch,
+          section: selectedStudentForEmail.section,
           customEmail: customEmailInput,
         },
-        { headers: authHeaders?.headers, timeout: 20000 }
+        { timeout: 30000 }
       );
       resData = res.data;
       success = true;
@@ -962,7 +972,7 @@ function SectionToppersCard({ authHeaders, API }) {
             regNo: selectedStudentForEmail.regNo,
             customEmail: customEmailInput,
           },
-          { headers: authHeaders?.headers, timeout: 20000 }
+          { headers: authHeaders?.headers, timeout: 30000 }
         );
         resData = res.data;
         success = true;
@@ -1001,6 +1011,13 @@ function SectionToppersCard({ authHeaders, API }) {
       }));
     } else {
       setEmailErrorMsg(errMessage || "Failed to send congratulatory email");
+      
+      // Update topper email tracking failure in backend DB
+      axios.post(
+        `${API}/admin/section-toppers/topper-email-status`,
+        { regNo: selectedStudentForEmail.regNo, status: "FAILED", errorMsg: errMessage },
+        authHeaders
+      ).catch(err => console.warn("Topper status sync error:", err));
     }
   }
 
