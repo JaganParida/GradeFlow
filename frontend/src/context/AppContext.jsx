@@ -10,7 +10,7 @@ axios.defaults.withCredentials = true;
 const STUDENT_CACHE_KEY = "gf_student_data";
 // Bump this version whenever the CGPA/SGPA formula or data shape changes
 // to automatically invalidate stale cached student data in sessionStorage
-const CACHE_VERSION = "v7";
+const CACHE_VERSION = "v8";
 const CACHE_VERSION_KEY = "gf_cache_version";
 
 const getCachedStudentData = () => {

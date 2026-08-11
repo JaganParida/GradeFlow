@@ -126,13 +126,12 @@ export default function Leaderboard() {
   const leaderboardCacheRef = useRef(new Map());
 
   async function fetchRankings(f = filters) {
-    if (f.sortBy === "sgpa" && !f.semester) {
-      setRankings([]);
-      setLoading(false);
-      return;
+    let targetFilter = { ...f };
+    if (targetFilter.sortBy === "sgpa" && !targetFilter.semester) {
+      targetFilter.semester = meta.semesters?.length > 0 ? Math.max(...meta.semesters).toString() : "6";
     }
 
-    const cacheKey = JSON.stringify(f);
+    const cacheKey = JSON.stringify(targetFilter);
     if (leaderboardCacheRef.current.has(cacheKey)) {
       setRankings(leaderboardCacheRef.current.get(cacheKey));
       setLoading(false);
@@ -142,13 +141,13 @@ export default function Leaderboard() {
     setLoading(true);
     try {
       const params = new URLSearchParams();
-      if (f.semester) params.append("semester", f.semester);
-      if (f.branch) params.append("branch", f.branch);
-      if (f.batch) params.append("batch", f.batch);
-      if (f.search) params.append("search", f.search);
-      if (f.sortBy) params.append("sortBy", f.sortBy);
-      if (f.section && f.branch === "CSE") params.append("section", f.section);
-      params.append("limit", f.section ? "200" : "50");
+      if (targetFilter.semester) params.append("semester", targetFilter.semester);
+      if (targetFilter.branch) params.append("branch", targetFilter.branch);
+      if (targetFilter.batch) params.append("batch", targetFilter.batch);
+      if (targetFilter.search) params.append("search", targetFilter.search);
+      if (targetFilter.sortBy) params.append("sortBy", targetFilter.sortBy);
+      if (targetFilter.section && targetFilter.branch === "CSE") params.append("section", targetFilter.section);
+      params.append("limit", targetFilter.section ? "200" : "50");
       
       const { data } = await axios.get(`${API}/rankings/top?${params}`);
       leaderboardCacheRef.current.set(cacheKey, data);
