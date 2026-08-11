@@ -110,6 +110,66 @@ async function sendBacklogEmailNotification({
   };
 }
 
+/**
+ * Sends a personalized Congratulatory Topper Email to a student.
+ */
+async function sendTopperEmailNotification({
+  to,
+  studentName,
+  regNo,
+  cgpa,
+  sgpa,
+  sectionCgpaRank,
+  sectionSgpaRank,
+  universityRank,
+  semester,
+  batch = "N/A",
+  branch = "N/A",
+  section = "N/A",
+}) {
+  const { generateTopperEmailHtml, generateTopperEmailText } = require("./topperEmailTemplate");
+  const transporter = createTransporter();
+
+  const recipientEmail = String(to || "").trim().toLowerCase();
+
+  if (!recipientEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(recipientEmail)) {
+    throw new Error(`Invalid recipient email address: "${to}"`);
+  }
+
+  const emailPayload = {
+    studentName,
+    regNo,
+    cgpa,
+    sgpa,
+    sectionCgpaRank,
+    sectionSgpaRank,
+    universityRank,
+    semester,
+    batch,
+    branch,
+    section,
+    developerWhatsapp: process.env.DEVELOPER_WHATSAPP || "919124540575",
+    frontendUrl: process.env.FRONTEND_URL || "https://grade-flow-navy.vercel.app",
+  };
+
+  const html = generateTopperEmailHtml(emailPayload);
+  const text = generateTopperEmailText(emailPayload);
+
+  const subject = `Academic Excellence Recognition: ${studentName} (${regNo})`;
+  const senderEmail = process.env.EMAIL_FROM || "jaganparida9154@gmail.com";
+
+  const mailOptions = {
+    from: `"GradeFlow - Academic Updates" <${senderEmail}>`,
+    replyTo: senderEmail,
+    to: recipientEmail,
+    subject,
+    text,
+    html,
+  };
+
+  return transporter.sendMail(mailOptions);
+}
+
 module.exports = {
   createTransporter,
   sendBacklogEmailNotification,

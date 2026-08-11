@@ -905,6 +905,490 @@ function FeedbackManager({ authHeaders, API }) {
   );
 }
 
+function SectionToppersCard({ authHeaders, API }) {
+  const [loading, setLoading] = useState(false);
+  const [data, setData] = useState({ totalToppers: 0, students: [] });
+  const [batch, setBatch] = useState("2023");
+  const [branch, setBranch] = useState("CSE");
+  const [section, setSection] = useState("Sec A");
+  const [semester, setSemester] = useState("");
+  const [search, setSearch] = useState("");
+  const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(50);
+  const [selectedStudentForEmail, setSelectedStudentForEmail] = useState(null);
+  const [customEmailInput, setCustomEmailInput] = useState("");
+  const [sendingEmail, setSendingEmail] = useState(false);
+  const [emailSuccessMsg, setEmailSuccessMsg] = useState("");
+  const [emailErrorMsg, setEmailErrorMsg] = useState("");
+
+  const toppersCacheRef = useRef(new Map());
+
+  function handleOpenEmailModal(st) {
+    setSelectedStudentForEmail(st);
+    setCustomEmailInput(`${st.regNo}@centurionuniv.edu.in`.toLowerCase());
+    setEmailSuccessMsg("");
+    setEmailErrorMsg("");
+  }
+
+  async function handleConfirmSendEmail(e) {
+    e.preventDefault();
+    if (!selectedStudentForEmail || sendingEmail) return;
+
+    setSendingEmail(true);
+    setEmailSuccessMsg("");
+    setEmailErrorMsg("");
+
+    let success = false;
+    let resData = null;
+    let errMessage = "";
+
+    try {
+      // 1. Try Vercel Serverless Function first
+      const res = await axios.post(
+        "/api/send-topper-email",
+        {
+          regNo: selectedStudentForEmail.regNo,
+          customEmail: customEmailInput,
+        },
+        { headers: authHeaders?.headers, timeout: 20000 }
+      );
+      resData = res.data;
+      success = true;
+    } catch (vercelErr) {
+      console.warn("Vercel serverless email failed, attempting Render backend fallback...", vercelErr);
+      try {
+        // 2. Fallback to Render backend route
+        const res = await axios.post(
+          `${API}/admin/section-toppers/send-email`,
+          {
+            regNo: selectedStudentForEmail.regNo,
+            customEmail: customEmailInput,
+          },
+          { headers: authHeaders?.headers, timeout: 20000 }
+        );
+        resData = res.data;
+        success = true;
+      } catch (backendErr) {
+        console.error("Both Vercel and Render backend email attempts failed:", backendErr);
+        errMessage = backendErr.response?.data?.message || vercelErr.response?.data?.message || "Failed to send email. Check SMTP setup.";
+      }
+    }
+
+    setSendingEmail(false);
+
+    if (success && resData) {
+      setEmailSuccessMsg(resData.message || `Congratulatory email sent successfully to ${customEmailInput}`);
+      // Also update local student state status
+      setData((prev) => ({
+        ...prev,
+        students: prev.students.map((st) => {
+          if (st.regNo === selectedStudentForEmail.regNo) {
+            return {
+              ...st,
+              lastEmailStatus: 'SUCCESS',
+              lastEmailSentAt: new Date().toISOString(),
+              lastEmailError: null
+            };
+          }
+          return st;
+        })
+      }));
+    } else {
+      setEmailErrorMsg(errMessage || "Failed to send congratulatory email");
+    }
+  }
+
+  async function fetchSectionToppers(targetPage = page, forceRefetch = false, overrideFilters = {}) {
+    const activeBatch = overrideFilters.batch !== undefined ? overrideFilters.batch : batch;
+    const activeBranch = overrideFilters.branch !== undefined ? overrideFilters.branch : branch;
+    const activeSection = overrideFilters.section !== undefined ? overrideFilters.section : section;
+    const activeSemester = overrideFilters.semester !== undefined ? overrideFilters.semester : semester;
+    const activeSearch = overrideFilters.search !== undefined ? overrideFilters.search : search;
+
+    const cacheKey = JSON.stringify({
+      page: targetPage,
+      limit,
+      batch: activeBatch,
+      branch: activeBranch,
+      section: activeSection,
+      semester: activeSemester,
+      search: activeSearch,
+    });
+
+    if (!forceRefetch && toppersCacheRef.current.has(cacheKey)) {
+      setData(toppersCacheRef.current.get(cacheKey));
+      setLoading(false);
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const params = new URLSearchParams();
+      params.append("page", targetPage);
+      params.append("limit", limit);
+      if (activeBatch) params.append("batch", activeBatch);
+      if (activeBranch) params.append("branch", activeBranch);
+      if (activeSection) params.append("section", activeSection);
+      if (activeSemester) params.append("semester", activeSemester);
+      if (activeSearch) params.append("search", activeSearch);
+
+      const res = await axios.get(`${API}/admin/section-toppers?${params}`, authHeaders);
+      const resData = res.data || { totalToppers: 0, students: [] };
+      toppersCacheRef.current.set(cacheKey, resData);
+      setData(resData);
+    } catch (e) {
+      console.error(e);
+      setData({ totalToppers: 0, students: [] });
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  useEffect(() => {
+    fetchSectionToppers(1, true);
+  }, []);
+
+  function handleFilterChange(field, val) {
+    let newBatch = batch;
+    let newBranch = branch;
+    let newSection = section;
+    let newSemester = semester;
+    let newSearch = search;
+
+    if (field === "batch") { setBatch(val); newBatch = val; }
+    if (field === "branch") { setBranch(val); newBranch = val; }
+    if (field === "section") { setSection(val); newSection = val; }
+    if (field === "semester") { setSemester(val); newSemester = val; }
+    if (field === "search") { setSearch(val); newSearch = val; }
+
+    setPage(1);
+    fetchSectionToppers(1, false, {
+      batch: newBatch,
+      branch: newBranch,
+      section: newSection,
+      semester: newSemester,
+      search: newSearch,
+    });
+  }
+
+  function handleResetFilters() {
+    setBatch("2023");
+    setBranch("CSE");
+    setSection("Sec A");
+    setSemester("");
+    setSearch("");
+    setPage(1);
+    fetchSectionToppers(1, false, { batch: "2023", branch: "CSE", section: "Sec A", semester: "", search: "" });
+  }
+
+  return (
+    <div className="card" style={{ padding: 24, marginBottom: 32 }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20, flexWrap: "wrap", gap: 12 }}>
+        <div>
+          <h3 style={{ fontSize: 18, fontWeight: 800, color: "#fff", display: "flex", alignItems: "center", gap: 10, margin: 0 }}>
+            <Trophy size={20} color="#f59e0b" /> Section Toppers & Rank Holders (Send Congratulatory Email)
+          </h3>
+          <p style={{ fontSize: 13, color: "var(--text-secondary)", margin: "4px 0 0 0" }}>
+            View Top Rankers per section/branch and send clean, professional congratulatory emails directly to their inbox.
+          </p>
+        </div>
+      </div>
+
+      {/* Filter Bar */}
+      <div className="card" style={{ padding: "16px 20px", marginBottom: 20, background: "rgba(255,255,255,0.02)" }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12, flexWrap: "wrap", gap: 10 }}>
+          <span style={{ fontSize: 13, fontWeight: 700, color: "var(--text-secondary)", display: "flex", alignItems: "center", gap: 6 }}>
+            <Filter size={15} color="#f59e0b" /> Section Filters & Search
+          </span>
+          {(batch !== "2023" || branch !== "CSE" || section !== "Sec A" || semester || search) && (
+            <button
+              onClick={handleResetFilters}
+              style={{ background: "transparent", border: "none", color: "#ef4444", cursor: "pointer", fontSize: 12, fontWeight: 700, display: "flex", alignItems: "center", gap: 4 }}
+            >
+              ✕ Reset Filters
+            </button>
+          )}
+        </div>
+
+        <div style={{ display: "flex", gap: 12, flexWrap: "wrap", alignItems: "center" }}>
+          {/* Search */}
+          <div style={{ flex: "1 1 220px", position: "relative", minWidth: 180 }}>
+            <input
+              type="text"
+              placeholder="Search Reg No or Name..."
+              value={search}
+              onChange={(e) => handleFilterChange("search", e.target.value)}
+              className="input-field"
+              style={{ width: "100%", paddingLeft: 34, height: 38, fontSize: 13 }}
+            />
+            <Search size={15} style={{ position: "absolute", left: 11, top: 11, color: "var(--text-muted)" }} />
+          </div>
+
+          {/* Batch */}
+          <select
+            value={batch}
+            onChange={(e) => handleFilterChange("batch", e.target.value)}
+            className="input-field"
+            style={{ width: 130, height: 38, fontSize: 13 }}
+          >
+            <option value="">All Batches</option>
+            <option value="2024">Batch 2024</option>
+            <option value="2023">Batch 2023</option>
+            <option value="2022">Batch 2022</option>
+            <option value="2021">Batch 2021</option>
+          </select>
+
+          {/* Branch */}
+          <select
+            value={branch}
+            onChange={(e) => handleFilterChange("branch", e.target.value)}
+            className="input-field"
+            style={{ width: 130, height: 38, fontSize: 13 }}
+          >
+            <option value="">All Branches</option>
+            <option value="CSE">CSE</option>
+            <option value="ECE">ECE</option>
+            <option value="ME">ME</option>
+            <option value="CIVIL">CIVIL</option>
+            <option value="EEE">EEE</option>
+            <option value="BIO">BIO</option>
+            <option value="MI">MI</option>
+            <option value="AERO">AERO</option>
+          </select>
+
+          {/* Section */}
+          {branch === "CSE" && (
+            <select
+              value={section}
+              onChange={(e) => handleFilterChange("section", e.target.value)}
+              className="input-field"
+              style={{ width: 130, height: 38, fontSize: 13 }}
+            >
+              <option value="">All Sections</option>
+              {["Sec A", "Sec B", "Sec C", "Sec D", "Sec E", "Sec F", "Sec G", "Sec H", "Sec I"].map((sec) => (
+                <option key={sec} value={sec}>{sec}</option>
+              ))}
+            </select>
+          )}
+
+          {/* Semester */}
+          <select
+            value={semester}
+            onChange={(e) => handleFilterChange("semester", e.target.value)}
+            className="input-field"
+            style={{ width: 130, height: 38, fontSize: 13 }}
+          >
+            <option value="">All Semesters</option>
+            {[1, 2, 3, 4, 5, 6, 7, 8].map((s) => (
+              <option key={s} value={s}>Semester {s}</option>
+            ))}
+          </select>
+        </div>
+      </div>
+
+      {/* Results Header */}
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
+        <span style={{ fontSize: 13, color: "var(--text-secondary)", fontWeight: 600 }}>
+          {loading ? "Loading toppers..." : `Total Section Toppers: ${data.totalToppers || 0}`}
+        </span>
+      </div>
+
+      {/* Table */}
+      {loading ? (
+        <div style={{ padding: 40, textAlign: "center" }}><Spinner /></div>
+      ) : !data.students || data.students.length === 0 ? (
+        <div style={{ padding: 30, textAlign: "center", color: "var(--text-muted)", fontSize: 14 }}>
+          No toppers found matching selected filters.
+        </div>
+      ) : (
+        <div className="table-wrapper" style={{ overflowX: "auto" }}>
+          <table className="data-table" style={{ width: "100%", fontSize: 13 }}>
+            <thead>
+              <tr>
+                <th style={{ textAlign: "center", width: 50 }}>#</th>
+                <th>Student Name</th>
+                <th>Registration No</th>
+                <th style={{ textAlign: "center" }}>Section</th>
+                <th style={{ textAlign: "center" }}>Batch &bull; Branch</th>
+                <th style={{ textAlign: "center" }}>Sem</th>
+                <th style={{ textAlign: "center" }}>CGPA</th>
+                <th style={{ textAlign: "center" }}>SGPA</th>
+                <th style={{ textAlign: "center" }}>Sec Rank</th>
+                <th style={{ textAlign: "center" }}>Univ Rank</th>
+                <th style={{ textAlign: "center" }}>Email Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              {data.students.map((st, idx) => {
+                const isSent = st.lastEmailStatus === "SUCCESS";
+                return (
+                  <tr key={`${st.regNo}-${st.semester || idx}`}>
+                    <td style={{ textAlign: "center", fontWeight: 700, color: "var(--text-secondary)" }}>{idx + 1}</td>
+                    <td style={{ fontWeight: 700, color: "#fff" }}>{st.studentName}</td>
+                    <td style={{ fontFamily: "monospace", color: "#60a5fa" }}>{st.regNo}</td>
+                    <td style={{ textAlign: "center" }}>
+                      <span style={{ background: "rgba(59, 130, 246, 0.15)", color: "#60a5fa", padding: "2px 8px", borderRadius: 4, fontSize: 11, fontWeight: 700 }}>
+                        Sec {st.section}
+                      </span>
+                    </td>
+                    <td style={{ textAlign: "center", color: "var(--text-secondary)", fontSize: 12 }}>{st.batch} &bull; {st.branch}</td>
+                    <td style={{ textAlign: "center" }}>Sem {st.semester}</td>
+                    <td style={{ textAlign: "center", fontWeight: 700, color: "#10b981" }}>{st.cgpa ? Number(st.cgpa).toFixed(2) : "0.00"}</td>
+                    <td style={{ textAlign: "center", color: "#3b82f6", fontWeight: 600 }}>{st.sgpa ? Number(st.sgpa).toFixed(2) : "0.00"}</td>
+                    <td style={{ textAlign: "center", fontWeight: 700, color: "#f59e0b" }}>
+                      #{st.sectionCgpaRank || st.sectionSgpaRank || 1}
+                    </td>
+                    <td style={{ textAlign: "center", fontWeight: 700, color: "#a855f7" }}>
+                      #{st.universityRank || "N/A"}
+                    </td>
+                    <td style={{ textAlign: "center" }}>
+                      <button
+                        onClick={() => handleOpenEmailModal(st)}
+                        className="btn-primary"
+                        style={{
+                          padding: "6px 12px",
+                          fontSize: 12,
+                          fontWeight: 700,
+                          background: isSent ? "rgba(16, 185, 129, 0.15)" : "linear-gradient(135deg, #10b981, #059669)",
+                          color: isSent ? "#10b981" : "#ffffff",
+                          border: isSent ? "1px solid rgba(16, 185, 129, 0.3)" : "none",
+                          borderRadius: 6,
+                          cursor: "pointer",
+                          display: "inline-flex",
+                          alignItems: "center",
+                          gap: 5,
+                        }}
+                      >
+                        {isSent ? <><Check size={13} /> Resend Email</> : <><Send size={13} /> Send Email</>}
+                      </button>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {/* Send Congratulatory Topper Email Confirmation Modal */}
+      {selectedStudentForEmail && (
+        <div
+          style={{
+            position: "fixed",
+            inset: 0,
+            background: "rgba(0,0,0,0.75)",
+            backdropFilter: "blur(8px)",
+            WebkitBackdropFilter: "blur(8px)",
+            zIndex: 9999,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            padding: 16,
+          }}
+          onClick={() => !sendingEmail && setSelectedStudentForEmail(null)}
+        >
+          <div
+            style={{
+              background: "#18181b",
+              border: "1px solid rgba(255,255,255,0.12)",
+              borderRadius: 20,
+              padding: "24px 28px",
+              maxWidth: 520,
+              width: "100%",
+              boxShadow: "0 24px 70px rgba(0,0,0,0.85)",
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+              <h3 style={{ fontSize: 18, fontWeight: 800, color: "#fff", display: "flex", alignItems: "center", gap: 8, margin: 0 }}>
+                <Trophy color="#f59e0b" size={20} /> Send Congratulatory Topper Email
+              </h3>
+              <button
+                type="button"
+                onClick={() => !sendingEmail && setSelectedStudentForEmail(null)}
+                style={{ background: "transparent", border: "none", color: "var(--text-muted)", cursor: "pointer", display: "flex", alignItems: "center" }}
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            <div style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 12, padding: 16, marginBottom: 18, fontSize: 13 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>
+                <span style={{ color: "var(--text-muted)" }}>Student Name:</span>
+                <strong style={{ color: "#fff" }}>{selectedStudentForEmail.studentName}</strong>
+              </div>
+              <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>
+                <span style={{ color: "var(--text-muted)" }}>Registration No:</span>
+                <span style={{ fontFamily: "monospace", color: "#60a5fa" }}>{selectedStudentForEmail.regNo}</span>
+              </div>
+              <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>
+                <span style={{ color: "var(--text-muted)" }}>Section & Branch:</span>
+                <span style={{ color: "#fff" }}>Section {selectedStudentForEmail.section} ({selectedStudentForEmail.branch})</span>
+              </div>
+              <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>
+                <span style={{ color: "var(--text-muted)" }}>SGPA / CGPA:</span>
+                <span style={{ color: "#10b981", fontWeight: 700 }}>
+                  SGPA: {selectedStudentForEmail.sgpa ? Number(selectedStudentForEmail.sgpa).toFixed(2) : "0.00"} | CGPA: {selectedStudentForEmail.cgpa ? Number(selectedStudentForEmail.cgpa).toFixed(2) : "0.00"}
+                </span>
+              </div>
+              <div style={{ display: "flex", justifyContent: "space-between" }}>
+                <span style={{ color: "var(--text-muted)" }}>Section Rank:</span>
+                <span style={{ color: "#f59e0b", fontWeight: 700 }}>
+                  #{selectedStudentForEmail.sectionCgpaRank || selectedStudentForEmail.sectionSgpaRank || 1}
+                </span>
+              </div>
+            </div>
+
+            <form onSubmit={handleConfirmSendEmail}>
+              <div style={{ marginBottom: 18 }}>
+                <label style={{ display: "block", fontSize: 12, fontWeight: 700, color: "var(--text-secondary)", marginBottom: 6 }}>
+                  Target Recipient Email Address:
+                </label>
+                <input
+                  type="email"
+                  required
+                  value={customEmailInput}
+                  onChange={(e) => setCustomEmailInput(e.target.value)}
+                  className="input-field"
+                  style={{ width: "100%", height: 38, fontSize: 13, fontFamily: "monospace" }}
+                  placeholder="e.g. student@centurionuniv.edu.in"
+                />
+              </div>
+
+              {emailSuccessMsg && (
+                <div style={{ background: "rgba(16, 185, 129, 0.15)", border: "1px solid rgba(16, 185, 129, 0.3)", borderRadius: 8, padding: 12, marginBottom: 16, color: "#34d399", fontSize: 13, display: "flex", alignItems: "center", gap: 8 }}>
+                  <CheckCircle size={16} /> {emailSuccessMsg}
+                </div>
+              )}
+
+              {emailErrorMsg && (
+                <div style={{ background: "rgba(239, 68, 68, 0.15)", border: "1px solid rgba(239, 68, 68, 0.3)", borderRadius: 8, padding: 12, marginBottom: 16, color: "#f87171", fontSize: 13, display: "flex", alignItems: "center", gap: 8 }}>
+                  <AlertTriangle size={16} /> {emailErrorMsg}
+                </div>
+              )}
+
+              <div style={{ display: "flex", justifyContent: "flex-end", gap: 10 }}>
+                {emailSuccessMsg ? (
+                  <button type="button" onClick={() => setSelectedStudentForEmail(null)} className="btn-primary" style={{ padding: "8px 20px", fontSize: 13, background: "#10b981", color: "#ffffff", border: "none", borderRadius: 6, fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", gap: 6 }}>
+                    ✓ Done / Close
+                  </button>
+                ) : (
+                  <>
+                    <button type="button" onClick={() => setSelectedStudentForEmail(null)} className="btn-secondary" style={{ padding: "8px 16px", fontSize: 13 }} disabled={sendingEmail}>Cancel</button>
+                    <button type="submit" disabled={sendingEmail} className="btn-primary" style={{ padding: "8px 18px", fontSize: 13, background: "linear-gradient(135deg, #10b981, #059669)", display: "flex", alignItems: "center", gap: 6, opacity: sendingEmail ? 0.7 : 1 }}>
+                      {sendingEmail ? <><Loader2 size={14} className="spin" /> Sending...</> : <><Send size={14} /> Send Congratulatory Email</>}
+                    </button>
+                  </>
+                )}
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function BacklogTrackerCard({ authHeaders, API }) {
   const [loading, setLoading] = useState(false);
   const [data, setData] = useState({ totalStudentsWithBacklogs: 0, totalBacklogsCount: 0, students: [], totalPages: 1, page: 1 });
@@ -2357,6 +2841,7 @@ export default function AdminDashboard() {
       <div className="tabs" style={{ marginBottom: 24 }}>
         {[
           ["overview", "Upload Results", <CloudUpload size={14} key="ov" />],
+          ["toppers", "Section Toppers", <Trophy size={14} key="st" />],
           ["rankings", "Rankings", <Trophy size={14} key="ra" />],
           ["backlogs", "Backlog Tracker", <AlertTriangle size={14} key="bk" />],
           ["manage", "Manage Records", <Database size={14} key="ma" />],
@@ -2374,6 +2859,9 @@ export default function AdminDashboard() {
       </div>
 
       <div>
+      <div style={{ display: tab === "toppers" ? "block" : "none" }}>
+        <SectionToppersCard authHeaders={authHeaders} API={API} />
+      </div>
       <div style={{ display: tab === "overview" ? "block" : "none" }}>
         {/* 5-Year Batch Data Lifecycle Audit Logs */}
         {purgeLogs && purgeLogs.length > 0 && (

@@ -5,6 +5,10 @@
       "destination": "/api/send-backlog-email.js"
     },
     {
+      "source": "/api/send-topper-email",
+      "destination": "/api/send-topper-email.js"
+    },
+    {
       "source": "/(.*)",
       "destination": "/index.html"
     }

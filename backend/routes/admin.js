@@ -1788,7 +1788,7 @@ router.delete("/purge-logs/:id", protect, async (req, res) => {
   }
 });
 
-// Dismiss / Delete ALL Purge Audit Log notifications
+// Delete all Purge Audit Log notifications
 router.delete("/purge-logs", protect, async (req, res) => {
   try {
     await BatchPurgeLog.deleteMany({});
@@ -1799,4 +1799,181 @@ router.delete("/purge-logs", protect, async (req, res) => {
   }
 });
 
+// Get section toppers (Top rankers per section/branch) - Queries pre-calculated rankings
+router.get("/section-toppers", protect, async (req, res) => {
+  try {
+    const { batch = "2023", branch = "CSE", section = "Sec A", semester, search, limit = 50 } = req.query;
+
+    const [allRankings, studentsTracking] = await Promise.all([
+      Ranking.find({}).lean(),
+      Student.find({}).lean()
+    ]);
+
+    const studentTrackingMap = new Map();
+    studentsTracking.forEach((st) => {
+      studentTrackingMap.set(st.regNo, st);
+    });
+
+    let filteredRankings = allRankings;
+
+    if (semester) {
+      const semNum = Number(semester);
+      filteredRankings = filteredRankings.filter((rk) => Number(rk.semester) === semNum);
+    } else {
+      const latestMap = new Map();
+      filteredRankings.forEach((rk) => {
+        if (!rk.regNo) return;
+        const regNo = String(rk.regNo).trim();
+        const existing = latestMap.get(regNo);
+        if (!existing || Number(rk.semester) > Number(existing.semester)) {
+          latestMap.set(regNo, rk);
+        }
+      });
+      filteredRankings = Array.from(latestMap.values());
+    }
+
+    let validStudents = [];
+
+    filteredRankings.forEach((rk) => {
+      const regNo = String(rk.regNo || "").trim();
+      if (!regNo) return;
+
+      const cgpa = Number(rk.cgpa) || 0;
+      const sgpa = Number(rk.sgpa) || 0;
+      if (cgpa <= 0) return;
+
+      let b = String(rk.batch || "").trim();
+      if (!b && /^\d{2}/.test(regNo)) {
+        b = `20${regNo.slice(0, 2)}`;
+      }
+
+      let br = detectBranch(regNo);
+      if (rk.branch) br = String(rk.branch).trim().toUpperCase();
+
+      let sec = getSectionFromRegNo(regNo);
+      if (sec && !sec.startsWith("Sec")) sec = `Sec ${sec}`;
+      if (!sec) sec = "N/A";
+
+      const tracking = studentTrackingMap.get(regNo) || {};
+
+      validStudents.push({
+        regNo,
+        studentName: rk.studentName || "Student",
+        batch: b,
+        branch: br,
+        section: sec.replace(/^Sec\s*/i, ""),
+        fullSection: sec,
+        semester: rk.semester,
+        cgpa,
+        sgpa,
+        sectionCgpaRank: rk.sectionCgpaRank || null,
+        sectionSgpaRank: rk.sectionSgpaRank || null,
+        deptCgpaRank: rk.deptCgpaRank || null,
+        deptRank: rk.deptRank || null,
+        universityRank: rk.universityRank || rk.cgpaRank || null,
+        lastEmailSentAt: tracking.lastEmailSentAt ? tracking.lastEmailSentAt.toISOString() : null,
+        lastEmailStatus: tracking.lastEmailStatus || null,
+        lastEmailError: tracking.lastEmailError || null,
+      });
+    });
+
+    if (batch) {
+      validStudents = validStudents.filter((s) => s.batch === batch);
+    }
+    if (branch) {
+      validStudents = validStudents.filter((s) => s.branch === branch);
+    }
+    if (section) {
+      const cleanSec = String(section).replace(/^Sec\s*/i, "").trim().toUpperCase();
+      validStudents = validStudents.filter((s) => {
+        const sSec = String(s.section || "").replace(/^Sec\s*/i, "").trim().toUpperCase();
+        return sSec === cleanSec;
+      });
+    }
+
+    if (search) {
+      const q = String(search).toLowerCase().trim();
+      validStudents = validStudents.filter(
+        (s) =>
+          s.regNo.toLowerCase().includes(q) ||
+          s.studentName.toLowerCase().includes(q)
+      );
+    }
+
+    validStudents.sort((a, b) => b.cgpa - a.cgpa || b.sgpa - a.sgpa);
+
+    const totalToppers = validStudents.length;
+
+    res.json({
+      totalToppers,
+      students: validStudents.slice(0, Number(limit) || 50),
+    });
+  } catch (err) {
+    console.error("Fetch section toppers error:", err);
+    res.status(500).json({ message: "Server error fetching section toppers" });
+  }
+});
+
+// Send congratulatory topper email to student (Backend fallback)
+router.post("/section-toppers/send-email", protect, async (req, res) => {
+  try {
+    const { regNo, customEmail } = req.body;
+    const cleanRegNo = String(regNo || "").trim();
+
+    if (!cleanRegNo) {
+      return res.status(400).json({ message: "Registration number is required" });
+    }
+
+    const { sendTopperEmailNotification } = require("../utils/emailService");
+    const rankings = await Ranking.find({ regNo: cleanRegNo }).sort({ semester: -1 }).lean();
+    if (!rankings || !rankings.length) {
+      return res.status(404).json({ message: `No ranking records found for student "${cleanRegNo}"` });
+    }
+
+    const rk = rankings[0];
+    const studentName = rk.studentName || "Student";
+    const cgpa = rk.cgpa || 0;
+    const sgpa = rk.sgpa || 0;
+    const semester = rk.semester || 1;
+    const batch = rk.batch || (`20${cleanRegNo.slice(0, 2)}`);
+    const branch = rk.branch || "CSE";
+    let section = getSectionFromRegNo(cleanRegNo);
+    if (section && !section.startsWith("Sec")) section = `Sec ${section}`;
+
+    const sectionCgpaRank = rk.sectionCgpaRank || rk.sectionSgpaRank || 1;
+    const sectionSgpaRank = rk.sectionSgpaRank || 1;
+    const universityRank = rk.universityRank || rk.cgpaRank || null;
+
+    const recipientEmail = customEmail ? String(customEmail).trim().toLowerCase() : `${cleanRegNo}@centurionuniv.edu.in`.toLowerCase();
+
+    if (!recipientEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(recipientEmail)) {
+      return res.status(400).json({ message: `Invalid recipient email address: "${recipientEmail}"` });
+    }
+
+    await sendTopperEmailNotification({
+      to: recipientEmail,
+      studentName,
+      regNo: cleanRegNo,
+      cgpa,
+      sgpa,
+      sectionCgpaRank,
+      sectionSgpaRank,
+      universityRank,
+      semester,
+      batch,
+      branch,
+      section: section.replace(/^Sec\s*/i, ""),
+    });
+
+    res.json({
+      success: true,
+      message: `Congratulatory email sent successfully to ${recipientEmail}`,
+    });
+  } catch (err) {
+    console.error("Send section topper email error:", err);
+    res.status(500).json({ message: err.message || "Failed to send email" });
+  }
+});
+
 module.exports = router;
+
