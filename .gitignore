@@ -23,3 +23,4 @@ debug_*.json
 debug_*.txt
 
 # Dev and util scripts
+scratch/
