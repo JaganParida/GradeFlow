@@ -3,6 +3,8 @@ const router = express.Router();
 const Feedback = require("../models/Feedback");
 const { protect } = require("../middleware/auth");
 
+const { validateFeedbackInput } = require("../middleware/validation");
+
 // GET /api/feedback - Retrieve all feedbacks (sorted newest first)
 router.get("/", async (req, res) => {
   try {
@@ -14,8 +16,8 @@ router.get("/", async (req, res) => {
   }
 });
 
-// POST /api/feedback - Submit new feedback
-router.post("/", async (req, res) => {
+// POST /api/feedback - Submit new feedback with strict schema validation
+router.post("/", validateFeedbackInput, async (req, res) => {
   try {
     const { name, regNo, rating, comment } = req.body;
 

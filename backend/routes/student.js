@@ -21,15 +21,8 @@ function calcAcademicHealth(cgpa, sgpa, backlogs, results) {
   return Math.round(Math.min(score, 100));
 }
 
-// Middleware to validate regNo format (prevent malformed queries)
-const validateRegNo = (req, res, next) => {
-  const { regNo } = req.params;
-  // Allow alphanumeric registration numbers between 5 and 20 characters
-  if (!regNo || !/^[a-zA-Z0-9]{5,20}$/.test(regNo)) {
-    return res.status(400).json({ message: "Invalid registration number format" });
-  }
-  next();
-};
+const { validateRegNoParam } = require("../middleware/validation");
+const validateRegNo = validateRegNoParam;
 
 // In-Memory Cache — short TTL so stale data expires quickly
 const studentCache = new Map();

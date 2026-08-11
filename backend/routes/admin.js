@@ -23,10 +23,9 @@ const {
   normalizeGrade,
 } = require("../utils/gradeCalculations");
 
-const upload = multer({
-  storage: multer.memoryStorage(),
-  limits: { fileSize: 10 * 1024 * 1024 },
-});
+const { uploadStorage, validateFileBuffer } = require("../middleware/uploadSafety");
+const { validateEmailRequest } = require("../middleware/validation");
+const upload = uploadStorage;
 
 function col(row, ...keys) {
   for (const k of keys) {
@@ -250,6 +249,7 @@ router.post(
   "/upload/results",
   protect,
   upload.single("file"),
+  validateFileBuffer,
   async (req, res) => {
     try {
       if (!req.file)
@@ -614,6 +614,7 @@ router.post(
   "/upload/internal",
   protect,
   upload.single("file"),
+  validateFileBuffer,
   async (req, res) => {
     try {
       const formSemester = req.body.semester;

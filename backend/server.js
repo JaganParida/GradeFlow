@@ -45,47 +45,15 @@ app.use(mongoSanitize());
 app.use(xss());
 
 // ─── Rate Limiting Strategy ────────────────────────────────────────────────
-//
-// We do NOT apply strict global rate limiting to student routes because:
-//   1. College campuses share a single public IP.
-//   2. Student data is served from the in-memory cache.
-// However, to protect the free-tier Render server from completely crashing
-// under extreme DDOS or simultaneous load (e.g. 500+ users instantly),
-// we apply a generous global limit.
-//
-const globalLimiter = rateLimit({
-  windowMs: 1 * 60 * 1000, // 1 minute
-  max: 200, // 200 requests per minute per IP
-  standardHeaders: true,
-  legacyHeaders: false,
-  message: {
-    message:
-      "Server is experiencing high traffic. Please try again in a minute.",
-  },
-});
+const { authLimiter, publicLimiter, adminLimiter } = require("./middleware/rateLimiters");
+const errorHandler = require("./middleware/errorHandler");
 
-// Apply global limit to all routes
-app.use(globalLimiter);
-
-// We ONLY apply a strict rate limit to the admin /auth/login endpoint
-// to block brute-force password attacks (10 attempts per 15 minutes).
-//
-const adminBruteForceLimit = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 10, // 10 login attempts per IP per 15 min
-  standardHeaders: true,
-  legacyHeaders: false,
-  message: {
-    message: "Too many login attempts. Please wait 15 minutes and try again.",
-  },
-});
-
-// Routes
-app.use("/api/auth", adminBruteForceLimit, require("./routes/auth"));
-app.use("/api/student", require("./routes/student"));
-app.use("/api/admin", require("./routes/admin"));
-app.use("/api/rankings", require("./routes/rankings"));
-app.use("/api/feedback", require("./routes/feedback"));
+// Routes with Endpoint-Specific Configurable Rate Limiters
+app.use("/api/auth", authLimiter, require("./routes/auth"));
+app.use("/api/student", publicLimiter, require("./routes/student"));
+app.use("/api/admin", adminLimiter, require("./routes/admin"));
+app.use("/api/rankings", publicLimiter, require("./routes/rankings"));
+app.use("/api/feedback", publicLimiter, require("./routes/feedback"));
 
 // ─── Health Check Endpoint ──────────────────────────────────────
 app.get("/api/health", (req, res) => {
@@ -96,6 +64,9 @@ app.get("/api/health", (req, res) => {
     timestamp: new Date().toISOString(),
   });
 });
+
+// Centralized Error Handling Middleware (Prevents info leakage)
+app.use(errorHandler);
 
 const http = require("http");
 const server = http.createServer(app);
