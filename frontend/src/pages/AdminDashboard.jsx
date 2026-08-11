@@ -1197,7 +1197,8 @@ function SectionToppersCard({ authHeaders, API }) {
                 <th style={{ textAlign: "center" }}>SGPA</th>
                 <th style={{ textAlign: "center" }}>Sec Rank</th>
                 <th style={{ textAlign: "center" }}>Univ Rank</th>
-                <th style={{ textAlign: "center" }}>Email Action</th>
+                <th style={{ textAlign: "center" }}>Email Status</th>
+                <th style={{ textAlign: "center" }}>Action</th>
               </tr>
             </thead>
             <tbody>
@@ -1222,6 +1223,19 @@ function SectionToppersCard({ authHeaders, API }) {
                     </td>
                     <td style={{ textAlign: "center", fontWeight: 700, color: "#a855f7" }}>
                       #{st.universityRank || "N/A"}
+                    </td>
+                    <td style={{ textAlign: "center", whiteSpace: "nowrap" }}>
+                      {st.lastTopperEmailStatus === "SUCCESS" && st.lastTopperEmailSentAt ? (
+                        <span style={{ color: "#10b981", fontSize: 11, fontWeight: 600, display: "inline-flex", alignItems: "center", gap: 4 }}>
+                          <CheckCircle size={12} color="#10b981" /> Sent {formatDistanceToNow(new Date(st.lastTopperEmailSentAt), { addSuffix: true })}
+                        </span>
+                      ) : st.lastTopperEmailStatus === "FAILED" && st.lastTopperEmailSentAt ? (
+                        <span style={{ color: "#ef4444", fontSize: 11, fontWeight: 600, display: "inline-flex", alignItems: "center", gap: 4 }}>
+                          <AlertTriangle size={12} color="#ef4444" /> Failed {formatDistanceToNow(new Date(st.lastTopperEmailSentAt), { addSuffix: true })}
+                        </span>
+                      ) : (
+                        <span style={{ color: "var(--text-muted)", fontSize: 11 }}>Not Sent Yet</span>
+                      )}
                     </td>
                     <td style={{ textAlign: "center" }}>
                       <button
