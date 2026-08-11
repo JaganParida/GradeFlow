@@ -1902,8 +1902,23 @@ router.get("/section-toppers", protect, async (req, res) => {
 
     validStudents.sort((a, b) => b.cgpa - a.cgpa || b.sgpa - a.sgpa);
 
-    // Strictly limit to Top 10 rankers per section/branch
-    const top10Toppers = validStudents.slice(0, Number(limit) || 10);
+    // Ensure section rank is set and filter all students holding Section Rank <= 10
+    let currentRank = 1;
+    let prevCgpa = null;
+    validStudents.forEach((s, idx) => {
+      if (idx === 0) {
+        currentRank = 1;
+      } else if (s.cgpa < prevCgpa) {
+        currentRank = idx + 1;
+      }
+      if (!s.sectionCgpaRank) {
+        s.sectionCgpaRank = currentRank;
+      }
+      prevCgpa = s.cgpa;
+    });
+
+    // Include all students holding Section Rank 1 through Rank 10 (including ties and rank 10 holders)
+    const top10Toppers = validStudents.filter((s) => Number(s.sectionCgpaRank) <= 10);
 
     res.json({
       totalToppers: top10Toppers.length,
