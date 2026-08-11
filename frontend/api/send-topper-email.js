@@ -143,6 +143,20 @@ module.exports = async function handler(req, res) {
       html,
     });
 
+    // Fire & forget status update to backend tracking
+    try {
+      await fetch(`${backendUrl}/api/admin/section-toppers/topper-email-status`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": req.headers.authorization || ""
+        },
+        body: JSON.stringify({ regNo: cleanRegNo, status: "SUCCESS" })
+      });
+    } catch (e) {
+      console.warn("Failed to sync topper email status to backend:", e);
+    }
+
     return res.status(200).json({
       success: true,
       message: `Congratulatory email sent successfully to ${recipientEmail}`,

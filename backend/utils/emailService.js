@@ -173,4 +173,5 @@ async function sendTopperEmailNotification({
 module.exports = {
   createTransporter,
   sendBacklogEmailNotification,
+  sendTopperEmailNotification,
 };

@@ -1799,10 +1799,10 @@ router.delete("/purge-logs", protect, async (req, res) => {
   }
 });
 
-// Get section toppers (Top rankers per section/branch) - Queries pre-calculated rankings
+// Get section toppers (Top 10 rankers per section/branch) - Queries pre-calculated rankings
 router.get("/section-toppers", protect, async (req, res) => {
   try {
-    const { batch = "2023", branch = "CSE", section = "Sec A", semester, search, limit = 50 } = req.query;
+    const { batch = "2023", branch = "CSE", section = "Sec A", semester, search, limit = 10 } = req.query;
 
     const [allRankings, studentsTracking] = await Promise.all([
       Ranking.find({}).lean(),
@@ -1871,9 +1871,9 @@ router.get("/section-toppers", protect, async (req, res) => {
         deptCgpaRank: rk.deptCgpaRank || null,
         deptRank: rk.deptRank || null,
         universityRank: rk.universityRank || rk.cgpaRank || null,
-        lastEmailSentAt: tracking.lastEmailSentAt ? tracking.lastEmailSentAt.toISOString() : null,
-        lastEmailStatus: tracking.lastEmailStatus || null,
-        lastEmailError: tracking.lastEmailError || null,
+        lastTopperEmailSentAt: tracking.lastTopperEmailSentAt ? tracking.lastTopperEmailSentAt.toISOString() : null,
+        lastTopperEmailStatus: tracking.lastTopperEmailStatus || null,
+        lastTopperEmailError: tracking.lastTopperEmailError || null,
       });
     });
 
@@ -1902,15 +1902,42 @@ router.get("/section-toppers", protect, async (req, res) => {
 
     validStudents.sort((a, b) => b.cgpa - a.cgpa || b.sgpa - a.sgpa);
 
-    const totalToppers = validStudents.length;
+    // Strictly limit to Top 10 rankers per section/branch
+    const top10Toppers = validStudents.slice(0, Number(limit) || 10);
 
     res.json({
-      totalToppers,
-      students: validStudents.slice(0, Number(limit) || 50),
+      totalToppers: top10Toppers.length,
+      students: top10Toppers,
     });
   } catch (err) {
     console.error("Fetch section toppers error:", err);
     res.status(500).json({ message: "Server error fetching section toppers" });
+  }
+});
+
+// Update topper email status in Student model
+router.post("/section-toppers/topper-email-status", protect, async (req, res) => {
+  try {
+    const { regNo, status, errorMsg } = req.body;
+    const cleanRegNo = String(regNo || "").trim();
+    if (!cleanRegNo) return res.status(400).json({ message: "RegNo is required" });
+
+    const update = {
+      lastTopperEmailSentAt: new Date(),
+      lastTopperEmailStatus: status || "SUCCESS",
+      lastTopperEmailError: errorMsg || null,
+    };
+
+    await Student.findOneAndUpdate(
+      { regNo: cleanRegNo },
+      { $set: update },
+      { upsert: true, new: true }
+    );
+
+    res.json({ message: "Topper email status updated successfully" });
+  } catch (err) {
+    console.error("Update topper email status error:", err);
+    res.status(500).json({ message: "Server error updating topper email status" });
   }
 });
 
@@ -1964,6 +1991,19 @@ router.post("/section-toppers/send-email", protect, async (req, res) => {
       branch,
       section: section.replace(/^Sec\s*/i, ""),
     });
+
+    // Update tracking in Student collection
+    await Student.findOneAndUpdate(
+      { regNo: cleanRegNo },
+      {
+        $set: {
+          lastTopperEmailSentAt: new Date(),
+          lastTopperEmailStatus: "SUCCESS",
+          lastTopperEmailError: null,
+        },
+      },
+      { upsert: true }
+    );
 
     res.json({
       success: true,

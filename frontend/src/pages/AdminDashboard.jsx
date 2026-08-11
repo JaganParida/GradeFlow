@@ -911,10 +911,8 @@ function SectionToppersCard({ authHeaders, API }) {
   const [batch, setBatch] = useState("2023");
   const [branch, setBranch] = useState("CSE");
   const [section, setSection] = useState("Sec A");
-  const [semester, setSemester] = useState("");
   const [search, setSearch] = useState("");
-  const [page, setPage] = useState(1);
-  const [limit, setLimit] = useState(50);
+  const [limit] = useState(10);
   const [selectedStudentForEmail, setSelectedStudentForEmail] = useState(null);
   const [customEmailInput, setCustomEmailInput] = useState("");
   const [sendingEmail, setSendingEmail] = useState(false);
@@ -978,16 +976,24 @@ function SectionToppersCard({ authHeaders, API }) {
 
     if (success && resData) {
       setEmailSuccessMsg(resData.message || `Congratulatory email sent successfully to ${customEmailInput}`);
-      // Also update local student state status
+      
+      // Update topper email tracking status in backend DB
+      axios.post(
+        `${API}/admin/section-toppers/topper-email-status`,
+        { regNo: selectedStudentForEmail.regNo, status: "SUCCESS" },
+        authHeaders
+      ).catch(err => console.warn("Topper status sync error:", err));
+
+      // Update local student state status
       setData((prev) => ({
         ...prev,
         students: prev.students.map((st) => {
           if (st.regNo === selectedStudentForEmail.regNo) {
             return {
               ...st,
-              lastEmailStatus: 'SUCCESS',
-              lastEmailSentAt: new Date().toISOString(),
-              lastEmailError: null
+              lastTopperEmailStatus: 'SUCCESS',
+              lastTopperEmailSentAt: new Date().toISOString(),
+              lastTopperEmailError: null
             };
           }
           return st;
@@ -998,20 +1004,17 @@ function SectionToppersCard({ authHeaders, API }) {
     }
   }
 
-  async function fetchSectionToppers(targetPage = page, forceRefetch = false, overrideFilters = {}) {
+  async function fetchSectionToppers(forceRefetch = false, overrideFilters = {}) {
     const activeBatch = overrideFilters.batch !== undefined ? overrideFilters.batch : batch;
     const activeBranch = overrideFilters.branch !== undefined ? overrideFilters.branch : branch;
     const activeSection = overrideFilters.section !== undefined ? overrideFilters.section : section;
-    const activeSemester = overrideFilters.semester !== undefined ? overrideFilters.semester : semester;
     const activeSearch = overrideFilters.search !== undefined ? overrideFilters.search : search;
 
     const cacheKey = JSON.stringify({
-      page: targetPage,
-      limit,
+      limit: 10,
       batch: activeBatch,
       branch: activeBranch,
       section: activeSection,
-      semester: activeSemester,
       search: activeSearch,
     });
 
@@ -1024,12 +1027,10 @@ function SectionToppersCard({ authHeaders, API }) {
     setLoading(true);
     try {
       const params = new URLSearchParams();
-      params.append("page", targetPage);
-      params.append("limit", limit);
+      params.append("limit", "10");
       if (activeBatch) params.append("batch", activeBatch);
       if (activeBranch) params.append("branch", activeBranch);
       if (activeSection) params.append("section", activeSection);
-      if (activeSemester) params.append("semester", activeSemester);
       if (activeSearch) params.append("search", activeSearch);
 
       const res = await axios.get(`${API}/admin/section-toppers?${params}`, authHeaders);
@@ -1045,28 +1046,24 @@ function SectionToppersCard({ authHeaders, API }) {
   }
 
   useEffect(() => {
-    fetchSectionToppers(1, true);
+    fetchSectionToppers(true);
   }, []);
 
   function handleFilterChange(field, val) {
     let newBatch = batch;
     let newBranch = branch;
     let newSection = section;
-    let newSemester = semester;
     let newSearch = search;
 
     if (field === "batch") { setBatch(val); newBatch = val; }
     if (field === "branch") { setBranch(val); newBranch = val; }
     if (field === "section") { setSection(val); newSection = val; }
-    if (field === "semester") { setSemester(val); newSemester = val; }
     if (field === "search") { setSearch(val); newSearch = val; }
 
-    setPage(1);
-    fetchSectionToppers(1, false, {
+    fetchSectionToppers(false, {
       batch: newBatch,
       branch: newBranch,
       section: newSection,
-      semester: newSemester,
       search: newSearch,
     });
   }
@@ -1075,10 +1072,8 @@ function SectionToppersCard({ authHeaders, API }) {
     setBatch("2023");
     setBranch("CSE");
     setSection("Sec A");
-    setSemester("");
     setSearch("");
-    setPage(1);
-    fetchSectionToppers(1, false, { batch: "2023", branch: "CSE", section: "Sec A", semester: "", search: "" });
+    fetchSectionToppers(false, { batch: "2023", branch: "CSE", section: "Sec A", search: "" });
   }
 
   return (
@@ -1086,10 +1081,10 @@ function SectionToppersCard({ authHeaders, API }) {
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20, flexWrap: "wrap", gap: 12 }}>
         <div>
           <h3 style={{ fontSize: 18, fontWeight: 800, color: "#fff", display: "flex", alignItems: "center", gap: 10, margin: 0 }}>
-            <Trophy size={20} color="#f59e0b" /> Section Toppers & Rank Holders (Send Congratulatory Email)
+            <Trophy size={20} color="#f59e0b" /> Section Toppers (Top 10 Rankers)
           </h3>
           <p style={{ fontSize: 13, color: "var(--text-secondary)", margin: "4px 0 0 0" }}>
-            View Top Rankers per section/branch and send clean, professional congratulatory emails directly to their inbox.
+            View Top 10 CGPA rankers per section and send clean, professional congratulatory emails.
           </p>
         </div>
       </div>
@@ -1100,7 +1095,7 @@ function SectionToppersCard({ authHeaders, API }) {
           <span style={{ fontSize: 13, fontWeight: 700, color: "var(--text-secondary)", display: "flex", alignItems: "center", gap: 6 }}>
             <Filter size={15} color="#f59e0b" /> Section Filters & Search
           </span>
-          {(batch !== "2023" || branch !== "CSE" || section !== "Sec A" || semester || search) && (
+          {(batch !== "2023" || branch !== "CSE" || section !== "Sec A" || search) && (
             <button
               onClick={handleResetFilters}
               style={{ background: "transparent", border: "none", color: "#ef4444", cursor: "pointer", fontSize: 12, fontWeight: 700, display: "flex", alignItems: "center", gap: 4 }}
@@ -1170,26 +1165,13 @@ function SectionToppersCard({ authHeaders, API }) {
               ))}
             </select>
           )}
-
-          {/* Semester */}
-          <select
-            value={semester}
-            onChange={(e) => handleFilterChange("semester", e.target.value)}
-            className="input-field"
-            style={{ width: 130, height: 38, fontSize: 13 }}
-          >
-            <option value="">All Semesters</option>
-            {[1, 2, 3, 4, 5, 6, 7, 8].map((s) => (
-              <option key={s} value={s}>Semester {s}</option>
-            ))}
-          </select>
         </div>
       </div>
 
       {/* Results Header */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
         <span style={{ fontSize: 13, color: "var(--text-secondary)", fontWeight: 600 }}>
-          {loading ? "Loading toppers..." : `Total Section Toppers: ${data.totalToppers || 0}`}
+          {loading ? "Loading toppers..." : `Showing Top ${data.students?.length || 0} Section Rankers`}
         </span>
       </div>
 
@@ -1220,7 +1202,7 @@ function SectionToppersCard({ authHeaders, API }) {
             </thead>
             <tbody>
               {data.students.map((st, idx) => {
-                const isSent = st.lastEmailStatus === "SUCCESS";
+                const isSent = st.lastTopperEmailStatus === "SUCCESS";
                 return (
                   <tr key={`${st.regNo}-${st.semester || idx}`}>
                     <td style={{ textAlign: "center", fontWeight: 700, color: "var(--text-secondary)" }}>{idx + 1}</td>
@@ -1236,7 +1218,7 @@ function SectionToppersCard({ authHeaders, API }) {
                     <td style={{ textAlign: "center", fontWeight: 700, color: "#10b981" }}>{st.cgpa ? Number(st.cgpa).toFixed(2) : "0.00"}</td>
                     <td style={{ textAlign: "center", color: "#3b82f6", fontWeight: 600 }}>{st.sgpa ? Number(st.sgpa).toFixed(2) : "0.00"}</td>
                     <td style={{ textAlign: "center", fontWeight: 700, color: "#f59e0b" }}>
-                      #{st.sectionCgpaRank || st.sectionSgpaRank || 1}
+                      #{st.sectionCgpaRank || st.sectionSgpaRank || (idx + 1)}
                     </td>
                     <td style={{ textAlign: "center", fontWeight: 700, color: "#a855f7" }}>
                       #{st.universityRank || "N/A"}
