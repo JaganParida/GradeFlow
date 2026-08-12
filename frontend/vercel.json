@@ -9,6 +9,66 @@
       "destination": "/api/send-topper-email.js"
     },
     {
+      "source": "/api/health",
+      "destination": "/api/health.js"
+    },
+    {
+      "source": "/api/student/:regNo/semester/:sem",
+      "destination": "/api/student.js?regNo=:regNo&action=semester&sem=:sem"
+    },
+    {
+      "source": "/api/student/:regNo/ranking/:sem",
+      "destination": "/api/student.js?regNo=:regNo&action=ranking&sem=:sem"
+    },
+    {
+      "source": "/api/student/:regNo/internal/:sem",
+      "destination": "/api/student.js?regNo=:regNo&action=internal&sem=:sem"
+    },
+    {
+      "source": "/api/student/:regNo",
+      "destination": "/api/student.js?regNo=:regNo"
+    },
+    {
+      "source": "/api/rankings/top",
+      "destination": "/api/rankings.js?action=top"
+    },
+    {
+      "source": "/api/rankings/meta",
+      "destination": "/api/rankings.js?action=meta"
+    },
+    {
+      "source": "/api/rankings",
+      "destination": "/api/rankings.js"
+    },
+    {
+      "source": "/api/auth/login",
+      "destination": "/api/auth.js?action=login"
+    },
+    {
+      "source": "/api/auth/logout",
+      "destination": "/api/auth.js?action=logout"
+    },
+    {
+      "source": "/api/auth/me",
+      "destination": "/api/auth.js?action=me"
+    },
+    {
+      "source": "/api/feedback/:id/like",
+      "destination": "/api/feedback.js?id=:id&action=like"
+    },
+    {
+      "source": "/api/feedback/:id",
+      "destination": "/api/feedback.js?id=:id"
+    },
+    {
+      "source": "/api/feedback",
+      "destination": "/api/feedback.js"
+    },
+    {
+      "source": "/api/(.*)",
+      "destination": "https://gradeflow-api.onrender.com/api/$1"
+    },
+    {
       "source": "/(.*)",
       "destination": "/index.html"
     }
