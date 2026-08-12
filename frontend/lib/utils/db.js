@@ -1,11 +1,5 @@
 const mongoose = require("mongoose");
 
-const MONGO_URI = process.env.MONGO_URI;
-
-if (!MONGO_URI) {
-  throw new Error("Please define the MONGO_URI environment variable in Vercel Dashboard");
-}
-
 let cached = global.mongoose;
 if (!cached) {
   cached = global.mongoose = { conn: null, promise: null };
@@ -16,6 +10,11 @@ async function connectToDatabase() {
     return cached.conn;
   }
 
+  const MONGO_URI = process.env.MONGO_URI;
+  if (!MONGO_URI) {
+    throw new Error("Please define the MONGO_URI environment variable in Vercel Dashboard");
+  }
+
   if (!cached.promise) {
     const opts = {
       bufferCommands: false,
@@ -23,8 +22,8 @@ async function connectToDatabase() {
       serverSelectionTimeoutMS: 5000,
       socketTimeoutMS: 45000,
     };
-    cached.promise = mongoose.connect(MONGO_URI, opts).then((mongoose) => {
-      return mongoose;
+    cached.promise = mongoose.connect(MONGO_URI, opts).then((mongooseInstance) => {
+      return mongooseInstance;
     });
   }
 
