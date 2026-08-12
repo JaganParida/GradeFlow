@@ -30,7 +30,7 @@ const semesterResultSchema = new mongoose.Schema(
     sgpa: Number,
     uploadedAt: { type: Date, default: Date.now },
   },
-  { timestamps: true },
+  { timestamps: true }
 );
 
 semesterResultSchema.index({ regNo: 1, semester: 1 }, { unique: true });

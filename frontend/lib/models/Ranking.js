@@ -21,7 +21,7 @@ const rankingSchema = new mongoose.Schema(
     sectionCgpaRank: Number,
     sectionStudents: Number,
   },
-  { timestamps: true },
+  { timestamps: true }
 );
 
 rankingSchema.index({ semester: 1, branch: 1 });

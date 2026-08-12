@@ -19,12 +19,10 @@ function generateBacklogEmailHtml({
   const numBacklogs = Number(totalBacklogs) || backlogSubjects.length || 0;
   const baseUrl = String(frontendUrl || "https://grade-flow-navy.vercel.app/").replace(/\/$/, "");
 
-  // WhatsApp Link
   const waRawMessage = `Hello GradeFlow Developer, I am ${cleanName} with Registration Number ${cleanRegNo}. My backlog/result information needs to be updated. Please help me verify my academic record.`;
   const waCleanPhone = String(developerWhatsapp || "").replace(/[^0-9]/g, "");
   const waUrl = `https://wa.me/${waCleanPhone}?text=${encodeURIComponent(waRawMessage)}`;
 
-  // Group Backlogs by Semester
   const semMap = {};
   backlogSubjects.forEach(sub => {
     const sem = sub.semester || 1;
@@ -60,7 +58,6 @@ function generateBacklogEmailHtml({
     });
   }
 
-  // Dynamic Academic Message
   let progressMessage = "";
   if (remainingSemesters <= 1) {
     progressMessage = `You are currently in Semester ${latestSemester}, with ${remainingSemesters} semester remaining.<br>This is an important stage of your academic journey. We strongly encourage you to clear your pending subjects as soon as possible so that your academic record can be updated successfully before graduation.`;
@@ -163,7 +160,6 @@ function generateBacklogEmailHtml({
     ${progressMessage}
   </p>
 
-  <!-- Website Link Box -->
   <div style="margin-bottom: 24px; padding: 14px 18px; background-color: #f0f7ff; border: 1px solid #cce3ff; border-radius: 6px;">
     <p style="margin: 0; font-size: 14px; color: #1e3a8a;">
       <strong>For more details & complete performance breakdown, reach out to our website:</strong><br>
@@ -182,7 +178,6 @@ function generateBacklogEmailHtml({
     </div>
   </div>
 
-  <!-- Testimonials & Rating Section -->
   <div style="margin-bottom: 32px; padding: 20px 16px; background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; text-align: center;">
     <h3 style="font-size: 16px; font-weight: bold; margin: 0 0 8px 0; color: #0f172a;">Rate Your Experience on GradeFlow</h3>
     <p style="margin: 0 0 16px 0; font-size: 13px; color: #475569; line-height: 1.4;">

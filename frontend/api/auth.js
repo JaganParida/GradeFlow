@@ -1,5 +1,5 @@
-const connectToDatabase = require("./utils/db");
-const Admin = require("./models/Admin");
+const connectToDatabase = require("../lib/utils/db");
+const Admin = require("../lib/models/Admin");
 const jwt = require("jsonwebtoken");
 
 const CORS_HEADERS = {
@@ -28,7 +28,6 @@ module.exports = async function handler(req, res) {
     const action = req.query.action;
     const cookies = parseCookies(req.headers.cookie);
 
-    // POST /api/auth?action=login
     if (action === "login" && req.method === "POST") {
       const { email, password } = req.body || {};
       const admin = await Admin.findOne({ email });
@@ -52,7 +51,6 @@ module.exports = async function handler(req, res) {
       return res.json({ success: true, email: admin.email });
     }
 
-    // POST /api/auth?action=logout
     if (action === "logout" && req.method === "POST") {
       const cookieOptions = [
         `jwt=`,
@@ -66,7 +64,6 @@ module.exports = async function handler(req, res) {
       return res.status(200).json({ success: true, message: "User logged out" });
     }
 
-    // GET /api/auth?action=me
     if (action === "me" && req.method === "GET") {
       let token = cookies.jwt;
       if (!token && req.headers.authorization && req.headers.authorization.startsWith("Bearer")) {

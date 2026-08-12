@@ -1,14 +1,14 @@
-const connectToDatabase = require("./utils/db");
-const SemesterResult = require("./models/SemesterResult");
-const InternalMark = require("./models/InternalMark");
-const Ranking = require("./models/Ranking");
-const Student = require("./models/Student");
+const connectToDatabase = require("../lib/utils/db");
+const SemesterResult = require("../lib/models/SemesterResult");
+const InternalMark = require("../lib/models/InternalMark");
+const Ranking = require("../lib/models/Ranking");
+const Student = require("../lib/models/Student");
 const {
   calculateBacklogs,
   calculateCGPA,
   calculateSemesterMetrics,
   getSectionFromRegNo,
-} = require("./utils/gradeCalculations");
+} = require("../lib/utils/gradeCalculations");
 
 function calcAcademicHealth(cgpa, sgpa, backlogs, results) {
   let score = 0;

@@ -1,4 +1,4 @@
-const connectToDatabase = require("./utils/db");
+const connectToDatabase = require("../lib/utils/db");
 
 module.exports = async function handler(req, res) {
   res.setHeader("Access-Control-Allow-Origin", "*");

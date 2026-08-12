@@ -1,5 +1,5 @@
 const nodemailer = require("nodemailer");
-const { generateTopperEmailHtml, generateTopperEmailText } = require("./utils/topperEmailTemplate.js");
+const { generateTopperEmailHtml, generateTopperEmailText } = require("../lib/utils/topperEmailTemplate.js");
 
 function createTransporter() {
   const emailUser = process.env.EMAIL_USER;

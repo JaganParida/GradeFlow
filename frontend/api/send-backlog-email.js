@@ -6,7 +6,7 @@
 
 const nodemailer = require("nodemailer");
 const axios = require("axios");
-const { generateBacklogEmailHtml, generateBacklogEmailText } = require("./utils/emailTemplate");
+const { generateBacklogEmailHtml, generateBacklogEmailText } = require("../lib/utils/emailTemplate");
 
 module.exports = async function handler(req, res) {
   // CORS Headers

@@ -1,6 +1,6 @@
-const connectToDatabase = require("./utils/db");
-const Ranking = require("./models/Ranking");
-const { sortByScore } = require("./utils/gradeCalculations");
+const connectToDatabase = require("../lib/utils/db");
+const Ranking = require("../lib/models/Ranking");
+const { sortByScore } = require("../lib/utils/gradeCalculations");
 
 function escapeRegex(str) {
   return str.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
@@ -67,7 +67,6 @@ module.exports = async function handler(req, res) {
 
     const action = req.query.action;
 
-    // /api/rankings?action=meta
     if (action === "meta") {
       const semesters = await Ranking.distinct("semester", { sgpa: { $gt: 0 } });
       const batches = await Ranking.distinct("batch", { batch: { $ne: null } });
@@ -79,7 +78,6 @@ module.exports = async function handler(req, res) {
       });
     }
 
-    // /api/rankings?action=top (default)
     const { semester, branch, search, limit = 50, sortBy = "sgpa", section, batch } = req.query;
     const query = {};
     const andClauses = [];

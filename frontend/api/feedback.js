@@ -1,5 +1,5 @@
-const connectToDatabase = require("./utils/db");
-const Feedback = require("./models/Feedback");
+const connectToDatabase = require("../lib/utils/db");
+const Feedback = require("../lib/models/Feedback");
 const jwt = require("jsonwebtoken");
 
 const CORS_HEADERS = {
@@ -41,13 +41,11 @@ module.exports = async function handler(req, res) {
     await connectToDatabase();
     const feedbackId = req.query.id;
 
-    // GET /api/feedback - list all feedbacks
     if (req.method === "GET" && !feedbackId) {
       const feedbacks = await Feedback.find().sort({ createdAt: -1 });
       return res.json(feedbacks);
     }
 
-    // POST /api/feedback - submit new feedback
     if (req.method === "POST" && !feedbackId) {
       const { name, regNo, rating, comment } = req.body || {};
       if (!name || typeof name !== "string" || name.trim().length < 1 || name.trim().length > 100) {
@@ -70,7 +68,6 @@ module.exports = async function handler(req, res) {
       return res.status(201).json(savedFeedback);
     }
 
-    // POST /api/feedback?id=xxx&action=like - like a feedback
     if (req.method === "POST" && feedbackId && req.query.action === "like") {
       const feedback = await Feedback.findById(feedbackId);
       if (!feedback) return res.status(404).json({ message: "Feedback not found" });
@@ -79,7 +76,6 @@ module.exports = async function handler(req, res) {
       return res.json(feedback);
     }
 
-    // PUT /api/feedback?id=xxx - update feedback (admin only)
     if (req.method === "PUT" && feedbackId) {
       if (!verifyAdmin(req)) return res.status(401).json({ message: "Not authorized" });
       const feedback = await Feedback.findById(feedbackId);
@@ -93,7 +89,6 @@ module.exports = async function handler(req, res) {
       return res.json(updatedFeedback);
     }
 
-    // DELETE /api/feedback?id=xxx - delete feedback (admin only)
     if (req.method === "DELETE" && feedbackId) {
       if (!verifyAdmin(req)) return res.status(401).json({ message: "Not authorized" });
       const feedback = await Feedback.findById(feedbackId);

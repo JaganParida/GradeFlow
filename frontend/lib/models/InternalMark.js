@@ -49,7 +49,7 @@ const internalMarkSchema = new mongoose.Schema(
       },
     ],
   },
-  { timestamps: true },
+  { timestamps: true }
 );
 
 internalMarkSchema.index({ regNo: 1, semester: 1 }, { unique: true });
