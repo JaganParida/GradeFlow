@@ -1,6 +1,6 @@
-const connectToDatabase = require("../lib/utils/db");
-const Ranking = require("../lib/models/Ranking");
-const { sortByScore } = require("../lib/utils/gradeCalculations");
+const connectToDatabase = require("./_lib/db");
+const Ranking = require("./_lib/models/Ranking");
+const { sortByScore } = require("./_lib/gradeCalculations");
 
 function escapeRegex(str) {
   return str.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
@@ -178,6 +178,6 @@ module.exports = async function handler(req, res) {
     return res.json(bounded);
   } catch (err) {
     console.error("Vercel Serverless Rankings Error:", err);
-    return res.status(500).json({ message: "Server error fetching rankings" });
+    return res.status(500).json({ message: err.message || "Server error fetching rankings", error: err.toString() });
   }
 };

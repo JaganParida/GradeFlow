@@ -1,5 +1,5 @@
-const connectToDatabase = require("../lib/utils/db");
-const Feedback = require("../lib/models/Feedback");
+const connectToDatabase = require("./_lib/db");
+const Feedback = require("./_lib/models/Feedback");
 const jwt = require("jsonwebtoken");
 
 const CORS_HEADERS = {
@@ -100,6 +100,6 @@ module.exports = async function handler(req, res) {
     return res.status(404).json({ message: "Route not found" });
   } catch (err) {
     console.error("Vercel Serverless Feedback Error:", err);
-    return res.status(500).json({ message: "Server error" });
+    return res.status(500).json({ message: err.message || "Server error", error: err.toString() });
   }
 };

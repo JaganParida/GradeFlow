@@ -1,5 +1,5 @@
-const connectToDatabase = require("../lib/utils/db");
-const Admin = require("../lib/models/Admin");
+const connectToDatabase = require("./_lib/db");
+const Admin = require("./_lib/models/Admin");
 const jwt = require("jsonwebtoken");
 
 const CORS_HEADERS = {
@@ -87,6 +87,6 @@ module.exports = async function handler(req, res) {
     return res.status(404).json({ message: "Auth action not found" });
   } catch (err) {
     console.error("Vercel Serverless Auth Error:", err);
-    return res.status(500).json({ message: "Server error" });
+    return res.status(500).json({ message: err.message || "Server error", error: err.toString() });
   }
 };

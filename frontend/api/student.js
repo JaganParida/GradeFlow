@@ -1,14 +1,14 @@
-const connectToDatabase = require("../lib/utils/db");
-const SemesterResult = require("../lib/models/SemesterResult");
-const InternalMark = require("../lib/models/InternalMark");
-const Ranking = require("../lib/models/Ranking");
-const Student = require("../lib/models/Student");
+const connectToDatabase = require("./_lib/db");
+const SemesterResult = require("./_lib/models/SemesterResult");
+const InternalMark = require("./_lib/models/InternalMark");
+const Ranking = require("./_lib/models/Ranking");
+const Student = require("./_lib/models/Student");
 const {
   calculateBacklogs,
   calculateCGPA,
   calculateSemesterMetrics,
   getSectionFromRegNo,
-} = require("../lib/utils/gradeCalculations");
+} = require("./_lib/gradeCalculations");
 
 function calcAcademicHealth(cgpa, sgpa, backlogs, results) {
   let score = 0;
@@ -118,6 +118,6 @@ module.exports = async function handler(req, res) {
     return res.json(responseData);
   } catch (err) {
     console.error("Vercel Serverless Student Error:", err);
-    return res.status(500).json({ message: "Server error fetching student profile" });
+    return res.status(500).json({ message: err.message || "Server error fetching student profile", error: err.toString() });
   }
 };

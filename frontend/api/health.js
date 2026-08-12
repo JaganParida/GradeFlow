@@ -1,4 +1,4 @@
-const connectToDatabase = require("../lib/utils/db");
+const connectToDatabase = require("./_lib/db");
 
 module.exports = async function handler(req, res) {
   res.setHeader("Access-Control-Allow-Origin", "*");
@@ -14,6 +14,6 @@ module.exports = async function handler(req, res) {
       timestamp: new Date().toISOString(),
     });
   } catch (error) {
-    return res.status(500).json({ status: "error", message: error.message });
+    return res.status(500).json({ status: "error", message: error.message, error: error.toString() });
   }
 };

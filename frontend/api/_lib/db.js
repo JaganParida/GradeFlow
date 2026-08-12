@@ -12,7 +12,7 @@ async function connectToDatabase() {
 
   const MONGO_URI = process.env.MONGO_URI;
   if (!MONGO_URI) {
-    throw new Error("Please define the MONGO_URI environment variable in Vercel Dashboard");
+    throw new Error("MONGO_URI environment variable is missing on Vercel.");
   }
 
   if (!cached.promise) {
