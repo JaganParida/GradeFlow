@@ -1,5 +1,5 @@
 const nodemailer = require("nodemailer");
-const { generateTopperEmailHtml, generateTopperEmailText } = require("../lib/utils/topperEmailTemplate.js");
+const { generateTopperEmailHtml, generateTopperEmailText } = require("./_lib/topperEmailTemplate.js");
 
 function createTransporter() {
   const emailUser = process.env.EMAIL_USER;
@@ -16,18 +16,23 @@ function createTransporter() {
 
   const config = service
     ? { service, auth: { user: emailUser, pass: emailPass } }
-    : { host, port, secure, auth: { user: emailUser, pass: emailPass } };
+    : {
+        host,
+        port,
+        secure,
+        auth: { user: emailUser, pass: emailPass },
+        tls: { rejectUnauthorized: false },
+      };
 
   return nodemailer.createTransport({
     ...config,
-    connectionTimeout: 10000,
-    greetingTimeout: 5000,
-    socketTimeout: 10000,
+    connectionTimeout: 15000,
+    greetingTimeout: 10000,
+    socketTimeout: 20000,
   });
 }
 
 module.exports = async function handler(req, res) {
-  // CORS Headers
   res.setHeader("Access-Control-Allow-Credentials", true);
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("Access-Control-Allow-Methods", "POST,OPTIONS");
@@ -61,19 +66,13 @@ module.exports = async function handler(req, res) {
     } = req.body || {};
 
     const cleanRegNo = String(regNo || "").trim();
-
     if (!cleanRegNo) {
-      return res.status(400).json({ message: "Registration number is required" });
+      return res.status(400).json({ message: "Registration number is required." });
     }
 
-    const defaultEmail = `${cleanRegNo}@centurionuniv.edu.in`.toLowerCase();
-    const recipientEmail = String(customEmail || defaultEmail).trim().toLowerCase();
+    const recipientEmail = customEmail || `${cleanRegNo}@centurionuniv.edu.in`;
 
-    if (!recipientEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(recipientEmail)) {
-      return res.status(400).json({ message: `Invalid recipient email address: "${recipientEmail}"` });
-    }
-
-    const frontendBaseUrl = process.env.FRONTEND_URL || "https://grade-flow-navy.vercel.app";
+    const transporter = createTransporter();
 
     const emailPayload = {
       studentName,
@@ -86,45 +85,37 @@ module.exports = async function handler(req, res) {
       semester,
       batch,
       branch,
-      section: String(section).replace(/^Sec\s*/i, ""),
+      section,
       developerWhatsapp: process.env.DEVELOPER_WHATSAPP || "919124540575",
-      frontendUrl: frontendBaseUrl,
+      frontendUrl: process.env.FRONTEND_URL || "https://grade-flow-navy.vercel.app",
     };
 
     const html = generateTopperEmailHtml(emailPayload);
     const text = generateTopperEmailText(emailPayload);
-    const subject = `Academic Excellence Recognition: ${studentName} (${cleanRegNo})`;
+
     const senderEmail = process.env.EMAIL_FROM || "jaganparida9154@gmail.com";
 
-    const transporter = createTransporter();
-    const info = await transporter.sendMail({
+    const mailOptions = {
       from: `"GradeFlow - Academic Updates" <${senderEmail}>`,
       replyTo: senderEmail,
       to: recipientEmail,
-      subject,
+      subject: `Academic Excellence Recognition: ${studentName} (${cleanRegNo})`,
       text,
       html,
-    });
+    };
+
+    const info = await transporter.sendMail(mailOptions);
 
     return res.status(200).json({
-      success: true,
-      message: `Congratulatory email sent successfully to ${recipientEmail}`,
-      recipientEmail,
+      message: `🎉 Congratulatory topper email sent successfully to ${recipientEmail}!`,
       messageId: info.messageId,
-      sentAt: new Date().toISOString(),
+      recipient: recipientEmail,
     });
-  } catch (error) {
-    console.error("Vercel send-topper-email error:", error);
-    if (error.code === "EAUTH") {
-      return res.status(500).json({ message: "SMTP authentication failed. Verify EMAIL_USER and EMAIL_PASS." });
-    }
-    if (error.code === "ESOCKET" || error.code === "ECONNECTION") {
-      return res.status(500).json({ message: "SMTP connection failed. Check EMAIL_HOST configuration." });
-    }
-
+  } catch (err) {
+    console.error("Vercel Serverless Topper Email Error:", err);
     return res.status(500).json({
-      success: false,
-      message: error.message || "Internal server error sending congratulatory email",
+      message: err.message || "Failed to send congratulatory topper email.",
+      error: err.toString(),
     });
   }
 };
