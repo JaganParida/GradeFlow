@@ -1787,7 +1787,7 @@ function SectionToppersCard({ authHeaders, API }) {
             >
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
                 <h3 style={{ margin: 0, fontSize: 17, fontWeight: 800, color: "#0f172a" }}>
-                  Send Topper Certificate Email
+                  {selectedStudentForEmail.lastTopperEmailStatus === "SUCCESS" ? "Resend Topper Certificate Email" : "Send Topper Certificate Email"}
                 </h3>
                 <button
                   onClick={() => setSelectedStudentForEmail(null)}
@@ -1873,7 +1873,7 @@ function SectionToppersCard({ authHeaders, API }) {
                       gap: 6,
                     }}
                   >
-                    {sendingEmail ? <Spinner size={14} /> : <Send size={14} />} Send Email
+                    {sendingEmail ? <Spinner size={14} /> : <Send size={14} />} {selectedStudentForEmail.lastTopperEmailStatus === "SUCCESS" ? "Resend Email" : "Send Email"}
                   </button>
                 </div>
               </form>
@@ -2708,6 +2708,140 @@ function BacklogTrackerCard({ authHeaders, API }) {
           </div>
         </div>
       )}
+
+      {/* Backlog Notification Email Modal */}
+      <AnimatePresence>
+        {selectedStudentForEmail && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={() => setSelectedStudentForEmail(null)}
+            style={{
+              position: "fixed",
+              inset: 0,
+              background: "rgba(15, 23, 42, 0.4)",
+              backdropFilter: "blur(6px)",
+              zIndex: 10000,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              padding: 16,
+            }}
+          >
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              onClick={(e) => e.stopPropagation()}
+              style={{
+                background: "#ffffff",
+                borderRadius: 20,
+                padding: "26px 24px",
+                maxWidth: 440,
+                width: "100%",
+                boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.25)",
+                border: "1px solid #e2e8f0",
+              }}
+            >
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
+                <h3 style={{ margin: 0, fontSize: 17, fontWeight: 800, color: "#0f172a" }}>
+                  {selectedStudentForEmail.lastEmailStatus === "SUCCESS" ? "Resend Backlog Notification Email" : "Send Backlog Notification Email"}
+                </h3>
+                <button
+                  onClick={() => setSelectedStudentForEmail(null)}
+                  style={{ background: "none", border: "none", color: "#94a3b8", cursor: "pointer" }}
+                >
+                  <X size={18} />
+                </button>
+              </div>
+
+              <div style={{ background: "#fffafb", border: "1px solid #fee2e2", padding: "10px 14px", borderRadius: 10, marginBottom: 14, fontSize: 13 }}>
+                <div>Recipient: <strong>{selectedStudentForEmail.studentName}</strong></div>
+                <div style={{ color: "#dc2626", fontSize: 12, fontWeight: 700, marginTop: 2 }}>
+                  RegNo: {selectedStudentForEmail.regNo} · Backlogs: {selectedStudentForEmail.backlogCount || selectedStudentForEmail.backlogs?.length || 0} Subject(s)
+                </div>
+              </div>
+
+              <form onSubmit={handleConfirmSendEmail}>
+                <div style={{ marginBottom: 14 }}>
+                  <label style={{ display: "block", fontSize: 12, fontWeight: 700, color: "#475569", marginBottom: 5 }}>
+                    Student Email Address
+                  </label>
+                  <input
+                    type="email"
+                    value={customEmailInput}
+                    onChange={(e) => setCustomEmailInput(e.target.value)}
+                    required
+                    style={{
+                      width: "100%",
+                      padding: "9px 12px",
+                      borderRadius: 10,
+                      border: "1.5px solid #e2e8f0",
+                      background: "#ffffff",
+                      fontSize: 13,
+                      outline: "none",
+                      boxSizing: "border-box",
+                    }}
+                  />
+                </div>
+
+                {emailSuccessMsg && (
+                  <div style={{ color: "#065f46", background: "#ecfdf5", padding: "8px 12px", borderRadius: 8, fontSize: 12, marginBottom: 12 }}>
+                    {emailSuccessMsg}
+                  </div>
+                )}
+                {emailErrorMsg && (
+                  <div style={{ color: "#991b1b", background: "#fef2f2", padding: "8px 12px", borderRadius: 8, fontSize: 12, marginBottom: 12 }}>
+                    {emailErrorMsg}
+                  </div>
+                )}
+
+                <div style={{ display: "flex", gap: 10 }}>
+                  <button
+                    type="button"
+                    onClick={() => setSelectedStudentForEmail(null)}
+                    style={{
+                      flex: 1,
+                      padding: "10px",
+                      borderRadius: 10,
+                      background: "#f1f5f9",
+                      color: "#475569",
+                      border: "none",
+                      fontWeight: 600,
+                      fontSize: 13,
+                      cursor: "pointer",
+                    }}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={sendingEmail}
+                    style={{
+                      flex: 1,
+                      padding: "10px",
+                      borderRadius: 10,
+                      background: "#dc2626",
+                      color: "#ffffff",
+                      border: "none",
+                      fontWeight: 700,
+                      fontSize: 13,
+                      cursor: sendingEmail ? "not-allowed" : "pointer",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      gap: 6,
+                    }}
+                  >
+                    {sendingEmail ? <Spinner size={14} /> : <Mail size={14} />} {selectedStudentForEmail.lastEmailStatus === "SUCCESS" ? "Resend Email" : "Send Email"}
+                  </button>
+                </div>
+              </form>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
