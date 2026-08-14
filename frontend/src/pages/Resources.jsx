@@ -69,7 +69,7 @@ const GRADE_SCALE = [
   { grade: "A", qual: "Very Good", range: "70 – 79", pts: 8, bg: "#bfdbfe", color: "#1d4ed8", counted: true, desc: "Consistent and strong academic performance." },
   { grade: "B", qual: "Good", range: "60 – 69", pts: 7, bg: "#e9d5ff", color: "#7e22ce", counted: true, desc: "Above average understanding and clarity." },
   { grade: "C", qual: "Fair (Average)", range: "50 – 59", pts: 6, bg: "#fed7aa", color: "#c2410c", counted: true, desc: "Meets standard course clearance requirements." },
-  { grade: "D", qual: "Pass (Theory Only)", range: "40 – 49", pts: 5, bg: "#e2e8f0", color: "#475569", counted: true, desc: "Minimum passing grade for theory courses." },
+  { grade: "D", qual: "Pass (Theory)", range: "40 – 49", pts: 5, bg: "#e2e8f0", color: "#475569", counted: true, desc: "Minimum passing grade for theory courses." },
   { grade: "F", qual: "Failed", range: "Below 40", pts: 2, bg: "#fecaca", color: "#b91c1c", counted: true, desc: "Course not cleared; contributes 2 pts in GPA denominator." },
   { grade: "R", qual: "Repeat / Retake", range: "Non-Clearance", pts: 0, bg: "#fed7aa", color: "#c2410c", counted: true, desc: "Mandatory repeat course required." },
   { grade: "M", qual: "Malpractice", range: "—", pts: 0, bg: "#e2e8f0", color: "#475569", counted: true, desc: "Disciplinary hold; carries 0 pts in GPA." },
@@ -866,12 +866,12 @@ export default function Resources() {
                   </div>
                 </div>
 
-                {/* ── ROW 3: SPACIOUS 2-COLUMN / 1-COLUMN GRID ── */}
+                {/* ── ROW 3: SYMMETRICAL 2-COLUMN GRID (Grading Scale & Academic Health) ── */}
                 <div
                   style={{
                     display: "grid",
                     gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr",
-                    gap: isMobile ? 12 : 20,
+                    gap: isMobile ? 14 : 20,
                   }}
                   className="gf-row-split"
                 >
@@ -881,7 +881,7 @@ export default function Resources() {
                       background: "#ffffff",
                       border: "1px solid #e2e8f0",
                       borderRadius: isMobile ? 14 : 16,
-                      padding: isMobile ? "14px 12px" : "22px 24px",
+                      padding: isMobile ? "16px 14px" : "22px 24px",
                       boxShadow: "0 1px 3px rgba(0,0,0,0.03)",
                       display: "flex",
                       flexDirection: "column",
@@ -889,25 +889,25 @@ export default function Resources() {
                     }}
                   >
                     <div>
-                      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 4 }}>
-                        <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
-                          <span style={{ width: 26, height: 26, borderRadius: 6, background: "#fef3c7", color: "#d97706", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                            <Star size={15} />
+                      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 6 }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                          <span style={{ width: 28, height: 28, borderRadius: 8, background: "#fef3c7", color: "#d97706", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                            <Star size={16} />
                           </span>
-                          <h3 style={{ fontSize: isMobile ? 14.5 : 16, fontWeight: 800, color: "#0f172a", margin: 0 }}>Grading Scale</h3>
+                          <h3 style={{ fontSize: isMobile ? 15 : 16.5, fontWeight: 800, color: "#0f172a", margin: 0 }}>Grading Scale</h3>
                         </div>
                         <button
                           type="button"
                           onClick={() => setActiveTab("grading-scale")}
-                          style={{ background: "none", border: "none", color: "#2563eb", fontSize: 11.5, fontWeight: 700, cursor: "pointer", padding: 0 }}
+                          style={{ background: "none", border: "none", color: "#2563eb", fontSize: 12, fontWeight: 700, cursor: "pointer", padding: 0 }}
                         >
                           Full Scale →
                         </button>
                       </div>
-                      <p style={{ fontSize: isMobile ? 11 : 12, color: "#64748b", margin: "0 0 10px 0" }}>Standard university grade point mapping</p>
+                      <p style={{ fontSize: isMobile ? 11.5 : 12.5, color: "#64748b", margin: "0 0 12px 0" }}>Standard university grade point mapping</p>
 
                       {isMobile ? (
-                        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6 }}>
+                        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 7 }}>
                           {GRADE_SCALE.slice(0, 6).map((g, idx) => (
                             <div
                               key={idx}
@@ -915,10 +915,11 @@ export default function Resources() {
                                 display: "flex",
                                 alignItems: "center",
                                 justifyContent: "space-between",
-                                padding: "6px 8px",
+                                padding: "7px 9px",
                                 borderRadius: 8,
                                 background: "#f8fafc",
                                 border: "1px solid #edf2f7",
+                                gap: 6,
                               }}
                             >
                               <div style={{ display: "flex", alignItems: "center", gap: 6, minWidth: 0 }}>
@@ -943,7 +944,7 @@ export default function Resources() {
                                   {g.qual}
                                 </span>
                               </div>
-                              <span style={{ fontSize: 11, fontWeight: 800, color: g.color, fontFamily: "'Space Mono', monospace" }}>
+                              <span style={{ fontSize: 11, fontWeight: 800, color: g.color, fontFamily: "'Space Mono', monospace", flexShrink: 0 }}>
                                 {g.pts}p
                               </span>
                             </div>
@@ -963,14 +964,14 @@ export default function Resources() {
                             <tbody>
                               {GRADE_SCALE.slice(0, 6).map((g, idx) => (
                                 <tr key={idx} style={{ borderBottom: "1px solid #fafafa" }}>
-                                  <td style={{ padding: "6px 0" }}>
-                                    <span style={{ display: "inline-block", padding: "2px 8px", borderRadius: 4, background: g.bg, color: g.color, fontWeight: 800, fontSize: 11.5 }}>
+                                  <td style={{ padding: "7px 0" }}>
+                                    <span style={{ display: "inline-block", padding: "2px 8px", borderRadius: 5, background: g.bg, color: g.color, fontWeight: 800, fontSize: 11.5 }}>
                                       {g.grade}
                                     </span>
                                   </td>
-                                  <td style={{ padding: "6px 0", color: "#334155", fontWeight: 500 }}>{g.qual}</td>
-                                  <td style={{ textAlign: "center", padding: "6px 0", fontWeight: 800, color: "#0f172a" }}>{g.pts}</td>
-                                  <td style={{ textAlign: "center", padding: "6px 0", color: "#16a34a" }}>
+                                  <td style={{ padding: "7px 0", color: "#334155", fontWeight: 500 }}>{g.qual}</td>
+                                  <td style={{ textAlign: "center", padding: "7px 0", fontWeight: 800, color: "#0f172a" }}>{g.pts}</td>
+                                  <td style={{ textAlign: "center", padding: "7px 0", color: "#16a34a" }}>
                                     <Check size={13} color="#16a34a" style={{ display: "inline-block", verticalAlign: "middle" }} />
                                   </td>
                                 </tr>
@@ -981,7 +982,7 @@ export default function Resources() {
                       )}
                     </div>
 
-                    <div style={{ marginTop: 10, padding: "8px 10px", background: "#eff6ff", border: "1px solid #dbeafe", borderRadius: 8, fontSize: isMobile ? 11 : 11.5, color: "#1e40af", lineHeight: 1.35 }}>
+                    <div style={{ marginTop: 12, padding: "9px 12px", background: "#eff6ff", border: "1px solid #dbeafe", borderRadius: 8, fontSize: isMobile ? 11 : 12, color: "#1e40af", lineHeight: 1.4 }}>
                       <strong>Counted?</strong> — All grades contribute to total credits denominator.
                     </div>
                   </div>
@@ -992,7 +993,7 @@ export default function Resources() {
                       background: "#ffffff",
                       border: "1px solid #e2e8f0",
                       borderRadius: isMobile ? 14 : 16,
-                      padding: isMobile ? "14px 12px" : "22px 24px",
+                      padding: isMobile ? "16px 14px" : "22px 24px",
                       boxShadow: "0 1px 3px rgba(0,0,0,0.03)",
                       display: "flex",
                       flexDirection: "column",
@@ -1000,29 +1001,29 @@ export default function Resources() {
                     }}
                   >
                     <div>
-                      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 4 }}>
-                        <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
-                          <span style={{ width: 26, height: 26, borderRadius: 6, background: "#f5f3ff", color: "#8b5cf6", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                            <Activity size={15} />
+                      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 6 }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                          <span style={{ width: 28, height: 28, borderRadius: 8, background: "#f5f3ff", color: "#8b5cf6", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                            <Activity size={16} />
                           </span>
-                          <h3 style={{ fontSize: isMobile ? 14.5 : 16, fontWeight: 800, color: "#0f172a", margin: 0 }}>Academic Health</h3>
+                          <h3 style={{ fontSize: isMobile ? 15 : 16.5, fontWeight: 800, color: "#0f172a", margin: 0 }}>Academic Health</h3>
                         </div>
                         <button
                           type="button"
                           onClick={() => setActiveTab("academic-health")}
-                          style={{ background: "none", border: "none", color: "#8b5cf6", fontSize: 11.5, fontWeight: 700, cursor: "pointer", padding: 0 }}
+                          style={{ background: "none", border: "none", color: "#8b5cf6", fontSize: 12, fontWeight: 700, cursor: "pointer", padding: 0 }}
                         >
                           Live Health Meter →
                         </button>
                       </div>
-                      <p style={{ fontSize: isMobile ? 11 : 12, color: "#64748b", margin: "0 0 10px 0" }}>Score calculation out of 100</p>
+                      <p style={{ fontSize: isMobile ? 11.5 : 12.5, color: "#64748b", margin: "0 0 12px 0" }}>Score calculation out of 100</p>
 
-                      <div style={{ display: "flex", flexDirection: "column", gap: isMobile ? 6 : 8 }}>
+                      <div style={{ display: "flex", flexDirection: "column", gap: isMobile ? 7 : 9 }}>
                         {ACADEMIC_HEALTH_SCALE.map((item, idx) => (
                           <div
                             key={idx}
                             style={{
-                              padding: isMobile ? "7px 10px" : "9px 12px",
+                              padding: isMobile ? "8px 10px" : "10px 12px",
                               background: "#f8fafc",
                               borderRadius: 10,
                               border: "1px solid #edf2f7",
@@ -1052,7 +1053,7 @@ export default function Resources() {
                                 <div style={{ fontSize: isMobile ? 12 : 12.5, fontWeight: 800, color: "#0f172a", lineHeight: 1.2 }}>
                                   {item.factor}
                                 </div>
-                                <div style={{ fontSize: isMobile ? 10 : 10.5, color: "#64748b", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                                <div style={{ fontSize: isMobile ? 10 : 11, color: "#64748b", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
                                   {item.desc}
                                 </div>
                               </div>
@@ -1060,7 +1061,7 @@ export default function Resources() {
                             <div style={{ textAlign: "right", flexShrink: 0 }}>
                               <div
                                 style={{
-                                  fontSize: isMobile ? 11.5 : 12.5,
+                                  fontSize: isMobile ? 11 : 12,
                                   fontWeight: 800,
                                   color: item.color,
                                   background: `${item.color}12`,
@@ -1080,152 +1081,154 @@ export default function Resources() {
                       </div>
                     </div>
 
-                    <div style={{ marginTop: 10, padding: "8px 10px", background: "#f5f3ff", border: "1px solid #ede9fe", borderRadius: 8, fontSize: isMobile ? 11 : 11.5, color: "#6d28d9", lineHeight: 1.35 }}>
+                    <div style={{ marginTop: 12, padding: "9px 12px", background: "#f5f3ff", border: "1px solid #ede9fe", borderRadius: 8, fontSize: isMobile ? 11 : 12, color: "#6d28d9", lineHeight: 1.4 }}>
                       <strong>Total Score</strong> — Max 100 points, calculated and rounded to nearest whole number.
                     </div>
                   </div>
+                </div>
 
-                  {/* Card 3: Badges & Achievements Preview */}
-                  <div
-                    style={{
-                      background: "#ffffff",
-                      border: "1px solid #e2e8f0",
-                      borderRadius: isMobile ? 14 : 16,
-                      padding: isMobile ? "14px 12px" : "22px 24px",
-                      boxShadow: "0 1px 3px rgba(0,0,0,0.03)",
-                      display: "flex",
-                      flexDirection: "column",
-                      justifyContent: "space-between",
-                    }}
-                  >
-                    <div>
-                      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 4 }}>
-                        <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
-                          <span style={{ width: 26, height: 26, borderRadius: 6, background: "#fee2e2", color: "#ef4444", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                            <Medal size={15} />
-                          </span>
-                          <h3 style={{ fontSize: isMobile ? 14.5 : 16, fontWeight: 800, color: "#0f172a", margin: 0 }}>Badges &amp; Achievements</h3>
-                        </div>
-                        <button
-                          type="button"
-                          onClick={() => setActiveTab("badges-tab")}
-                          style={{ background: "none", border: "none", color: "#ef4444", fontSize: 11.5, fontWeight: 700, cursor: "pointer", padding: 0 }}
-                        >
-                          All Badges →
-                        </button>
-                      </div>
-                      <p style={{ fontSize: isMobile ? 11 : 12, color: "#64748b", margin: "0 0 10px 0" }}>Criteria for unlocking profile badges</p>
-
-                      <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: isMobile ? 6 : 8 }}>
-                        {BADGES_SCALE.slice(0, 4).map((b, idx) => (
-                          <div
-                            key={idx}
-                            style={{
-                              display: "flex",
-                              alignItems: "center",
-                              justifyContent: "space-between",
-                              gap: 8,
-                              padding: isMobile ? "7px 9px" : "8px 10px",
-                              borderRadius: 10,
-                              background: "#f8fafc",
-                              border: "1px solid #edf2f7",
-                            }}
-                          >
-                            <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
-                              <span style={{ width: 28, height: 28, borderRadius: 7, background: b.bg, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                                {b.icon}
-                              </span>
-                              <div style={{ minWidth: 0 }}>
-                                <div style={{ fontSize: isMobile ? 11.5 : 12, fontWeight: 800, color: "#0f172a", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-                                  {b.name}
-                                </div>
-                                <div style={{ fontSize: isMobile ? 10 : 10.5, fontWeight: 700, color: b.color, fontFamily: "'Space Mono', monospace" }}>
-                                  {b.criteria}
-                                </div>
-                              </div>
-                            </div>
-                          </div>
-                        ))}
+                {/* ── ROW 4: BADGES & ACHIEVEMENTS SHOWCASE ─────────────── */}
+                <div
+                  style={{
+                    background: "#ffffff",
+                    border: "1px solid #e2e8f0",
+                    borderRadius: isMobile ? 14 : 16,
+                    padding: isMobile ? "16px 14px" : "22px 24px",
+                    boxShadow: "0 1px 3px rgba(0,0,0,0.03)",
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: 12,
+                  }}
+                >
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                      <span style={{ width: 28, height: 28, borderRadius: 8, background: "#fee2e2", color: "#ef4444", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                        <Medal size={16} />
+                      </span>
+                      <div>
+                        <h3 style={{ fontSize: isMobile ? 15 : 16.5, fontWeight: 800, color: "#0f172a", margin: 0 }}>Badges &amp; Achievements</h3>
+                        <p style={{ fontSize: isMobile ? 11 : 12, color: "#64748b", margin: 0 }}>Criteria for unlocking profile badges</p>
                       </div>
                     </div>
+                    <button
+                      type="button"
+                      onClick={() => setActiveTab("badges-tab")}
+                      style={{ background: "none", border: "none", color: "#ef4444", fontSize: 12, fontWeight: 700, cursor: "pointer", padding: 0 }}
+                    >
+                      All Badges →
+                    </button>
+                  </div>
 
-                    <div style={{ marginTop: 10, padding: "8px 10px", background: "#fef2f2", border: "1px solid #fee2e2", borderRadius: 8, fontSize: isMobile ? 11 : 11.5, color: "#991b1b", lineHeight: 1.35 }}>
-                      <strong>Profile Badges</strong> — Badges appear automatically on your dashboard when unlocked!
+                  <div style={{ display: "grid", gridTemplateColumns: isMobile ? "repeat(2, minmax(0, 1fr))" : "repeat(4, minmax(0, 1fr))", gap: isMobile ? 8 : 12 }}>
+                    {BADGES_SCALE.slice(0, 4).map((b, idx) => (
+                      <div
+                        key={idx}
+                        style={{
+                          display: "flex",
+                          flexDirection: "column",
+                          justifyContent: "space-between",
+                          gap: 8,
+                          padding: isMobile ? "10px 10px" : "12px 14px",
+                          borderRadius: 10,
+                          background: "#f8fafc",
+                          border: "1px solid #edf2f7",
+                        }}
+                      >
+                        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 6 }}>
+                          <span style={{ width: 28, height: 28, borderRadius: 7, background: b.bg, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                            {b.icon}
+                          </span>
+                          <span style={{ fontSize: 9.5, fontWeight: 800, color: b.color, background: `${b.color}15`, padding: "2px 6px", borderRadius: 4, textTransform: "uppercase" }}>
+                            {b.tier}
+                          </span>
+                        </div>
+                        <div>
+                          <div style={{ fontSize: isMobile ? 11.5 : 12.5, fontWeight: 800, color: "#0f172a", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                            {b.name}
+                          </div>
+                          <div style={{ fontSize: isMobile ? 10 : 11, fontWeight: 700, color: b.color, fontFamily: "'Space Mono', monospace", marginTop: 2 }}>
+                            {b.criteria}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  <div style={{ padding: "9px 12px", background: "#fef2f2", border: "1px solid #fee2e2", borderRadius: 8, fontSize: isMobile ? 11 : 12, color: "#991b1b", lineHeight: 1.4 }}>
+                    <strong>Profile Badges</strong> — Badges appear automatically on your dashboard when unlocked!
+                  </div>
+                </div>
+
+                {/* ── ROW 5: EXAMPLE CALCULATION WALKTHROUGH ────────────── */}
+                <div
+                  style={{
+                    background: "#ffffff",
+                    border: "1px solid #e2e8f0",
+                    borderRadius: isMobile ? 14 : 16,
+                    padding: isMobile ? "16px 14px" : "22px 24px",
+                    boxShadow: "0 1px 3px rgba(0,0,0,0.03)",
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: 12,
+                  }}
+                >
+                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                    <span style={{ width: 28, height: 28, borderRadius: 8, background: "#ffedd5", color: "#f97316", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                      <BarChart2 size={16} />
+                    </span>
+                    <div>
+                      <h3 style={{ fontSize: isMobile ? 15 : 16.5, fontWeight: 800, color: "#0f172a", margin: 0 }}>Example Calculation Walkthrough</h3>
+                      <p style={{ fontSize: isMobile ? 11 : 12, color: "#64748b", margin: 0 }}>Understanding SGPA calculation with a sample 5-course semester</p>
                     </div>
                   </div>
 
-                  {/* Card 4: Example Calculation Preview */}
+                  <div style={{ overflowX: "auto" }}>
+                    <table style={{ width: "100%", borderCollapse: "collapse", fontSize: isMobile ? 11.5 : 12.5 }}>
+                      <thead>
+                        <tr style={{ color: "#94a3b8", fontWeight: 700, borderBottom: "1px solid #f1f5f9" }}>
+                          <th style={{ textAlign: "left", paddingBottom: 8 }}>SUBJECT</th>
+                          <th style={{ textAlign: "center", paddingBottom: 8 }}>CREDIT</th>
+                          <th style={{ textAlign: "center", paddingBottom: 8 }}>GRADE</th>
+                          <th style={{ textAlign: "right", paddingBottom: 8 }}>C × GP</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {EXAMPLE_CALC_ROWS.slice(0, 5).map((row, idx) => (
+                          <tr key={idx} style={{ borderBottom: "1px solid #f8fafc" }}>
+                            <td style={{ padding: "7px 0", color: "#334155", fontWeight: 500 }}>{row.course}</td>
+                            <td style={{ textAlign: "center", padding: "7px 0", color: "#64748b" }}>{row.credit}</td>
+                            <td style={{ textAlign: "center", padding: "7px 0", fontWeight: 700, color: "#2563eb" }}>{row.grade}</td>
+                            <td style={{ textAlign: "right", padding: "7px 0", fontWeight: 700, color: "#0f172a" }}>{row.total}</td>
+                          </tr>
+                        ))}
+                        <tr style={{ borderTop: "2px solid #e2e8f0", fontWeight: 800 }}>
+                          <td style={{ padding: "8px 0", color: "#0f172a" }}>Total</td>
+                          <td style={{ textAlign: "center", padding: "8px 0", color: "#0f172a" }}>18</td>
+                          <td style={{ textAlign: "center", padding: "8px 0", color: "#94a3b8" }}>—</td>
+                          <td style={{ textAlign: "right", padding: "8px 0", color: "#0f172a" }}>149</td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+
                   <div
                     style={{
-                      background: "#ffffff",
-                      border: "1px solid #e2e8f0",
-                      borderRadius: isMobile ? 14 : 16,
-                      padding: isMobile ? "14px 12px" : "22px 24px",
-                      boxShadow: "0 1px 3px rgba(0,0,0,0.03)",
+                      background: "#f0fdf4",
+                      border: "1px solid #bbf7d0",
+                      borderRadius: 8,
+                      padding: "8px 12px",
+                      textAlign: "center",
+                      color: "#15803d",
+                      fontSize: isMobile ? 12 : 13,
+                      fontWeight: 800,
                       display: "flex",
-                      flexDirection: "column",
-                      justifyContent: "space-between",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      gap: 6,
                     }}
                   >
-                    <div>
-                      <div style={{ display: "flex", alignItems: "center", gap: 7, marginBottom: 4 }}>
-                        <span style={{ width: 26, height: 26, borderRadius: 6, background: "#ffedd5", color: "#f97316", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                          <BarChart2 size={15} />
-                        </span>
-                        <h3 style={{ fontSize: isMobile ? 14.5 : 16, fontWeight: 800, color: "#0f172a", margin: 0 }}>Example Calculation</h3>
-                      </div>
-                      <p style={{ fontSize: isMobile ? 11 : 12, color: "#64748b", margin: "0 0 10px 0" }}>Understanding SGPA calculation with an example</p>
-
-                      <div style={{ overflowX: "auto" }}>
-                        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: isMobile ? 11.5 : 12 }}>
-                          <thead>
-                            <tr style={{ color: "#94a3b8", fontWeight: 700, borderBottom: "1px solid #f1f5f9" }}>
-                              <th style={{ textAlign: "left", paddingBottom: 6 }}>SUBJECT</th>
-                              <th style={{ textAlign: "center", paddingBottom: 6 }}>CREDIT</th>
-                              <th style={{ textAlign: "center", paddingBottom: 6 }}>GRADE</th>
-                              <th style={{ textAlign: "right", paddingBottom: 6 }}>C × GP</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {EXAMPLE_CALC_ROWS.slice(0, 4).map((row, idx) => (
-                              <tr key={idx} style={{ borderBottom: "1px solid #fafafa" }}>
-                                <td style={{ padding: "5px 0", color: "#334155", fontWeight: 500 }}>{row.course}</td>
-                                <td style={{ textAlign: "center", padding: "5px 0", color: "#64748b" }}>{row.credit}</td>
-                                <td style={{ textAlign: "center", padding: "5px 0", fontWeight: 700, color: "#2563eb" }}>{row.grade}</td>
-                                <td style={{ textAlign: "right", padding: "5px 0", fontWeight: 700, color: "#0f172a" }}>{row.total}</td>
-                              </tr>
-                            ))}
-                            <tr style={{ borderTop: "2px solid #e2e8f0", fontWeight: 800 }}>
-                              <td style={{ padding: "6px 0", color: "#0f172a" }}>Total</td>
-                              <td style={{ textAlign: "center", padding: "6px 0", color: "#0f172a" }}>18</td>
-                              <td style={{ textAlign: "center", padding: "6px 0", color: "#94a3b8" }}>—</td>
-                              <td style={{ textAlign: "right", padding: "6px 0", color: "#0f172a" }}>149</td>
-                            </tr>
-                          </tbody>
-                        </table>
-                      </div>
-                    </div>
-
-                    <div
-                      style={{
-                        marginTop: 10,
-                        background: "#f0fdf4",
-                        border: "1px solid #bbf7d0",
-                        borderRadius: 8,
-                        padding: "7px 10px",
-                        textAlign: "center",
-                        color: "#15803d",
-                        fontSize: isMobile ? 11.5 : 12,
-                        fontWeight: 800,
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        gap: 6,
-                      }}
-                    >
-                      <Check size={13} color="#15803d" />
-                      <span>SGPA = 149 / 18 = 8.28</span>
-                    </div>
+                    <Check size={14} color="#15803d" />
+                    <span>SGPA = Total Weighted Points (149) / Total Credits (18) = 8.28</span>
                   </div>
                 </div>
 
