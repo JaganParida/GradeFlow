@@ -40,9 +40,15 @@ import {
   Layers,
   ArrowRight,
   ChevronLeft,
-  ChevronRight,
-  Star
+  Star,
+  Copy,
+  Download,
+  CheckCheck,
+  SearchCode,
+  Eye,
+  FileCheck
 } from "lucide-react";
+import * as XLSX from "xlsx";
 
 function getDynamicSessionOptions(bStr, semVal, yStr) {
   const bYear = bStr && !isNaN(parseInt(bStr, 10)) ? parseInt(bStr, 10) : null;
@@ -248,45 +254,45 @@ function UploadCard({
                 {f.type === "select" ? (
                   <select
                     value={extra[f.key] || ""}
-                    onChange={(e) => setExtra({ ...extra, [f.key]: e.target.value })}
+                    onChange={(e) =>
+                      setExtra((prev) => ({ ...prev, [f.key]: e.target.value }))
+                    }
                     style={{
                       width: "100%",
-                      padding: "9px 12px",
-                      borderRadius: 10,
-                      border: "1.5px solid #e2e8f0",
-                      background: "#f8fafc",
-                      color: "#0f172a",
+                      padding: "8px 10px",
+                      borderRadius: 8,
+                      border: "1px solid #cbd5e1",
                       fontSize: 13,
-                      outline: "none",
-                      fontFamily: "'DM Sans', sans-serif",
+                      color: "#1e293b",
+                      background: "#ffffff",
                     }}
                   >
-                    <option value="" disabled>
-                      Select {f.label.replace(" *", "")}
-                    </option>
-                    {currentOptions?.map((opt) => (
-                      <option key={opt.value || opt} value={opt.value || opt}>
-                        {opt.label || opt}
-                      </option>
-                    ))}
+                    {currentOptions?.map((opt) => {
+                      const val = typeof opt === "object" ? opt.value : opt;
+                      const lbl = typeof opt === "object" ? opt.label : opt;
+                      return (
+                        <option key={val} value={val}>
+                          {lbl}
+                        </option>
+                      );
+                    })}
                   </select>
                 ) : (
                   <input
-                    type={f.type || "text"}
-                    placeholder={f.placeholder}
+                    type="text"
                     value={extra[f.key] || ""}
-                    onChange={(e) => setExtra({ ...extra, [f.key]: e.target.value })}
+                    onChange={(e) =>
+                      setExtra((prev) => ({ ...prev, [f.key]: e.target.value }))
+                    }
+                    placeholder={f.placeholder || ""}
                     style={{
                       width: "100%",
-                      padding: "9px 12px",
-                      borderRadius: 10,
-                      border: "1.5px solid #e2e8f0",
-                      background: "#f8fafc",
-                      color: "#0f172a",
+                      padding: "8px 10px",
+                      borderRadius: 8,
+                      border: "1px solid #cbd5e1",
                       fontSize: 13,
-                      outline: "none",
+                      color: "#1e293b",
                       boxSizing: "border-box",
-                      fontFamily: "'DM Sans', sans-serif",
                     }}
                   />
                 )}
@@ -294,158 +300,896 @@ function UploadCard({
             );
           })}
 
-        {/* Drag & Drop File Zone */}
-        <motion.div
-          whileHover={{ scale: 1.01 }}
-          style={{
-            border: `2px dashed ${file ? "#2563eb" : "#cbd5e1"}`,
-            borderRadius: 12,
-            padding: "16px 14px",
-            textAlign: "center",
-            marginBottom: 14,
-            cursor: "pointer",
-            background: file ? "#eff6ff" : "#f8fafc",
-            transition: "all 0.2s ease",
-          }}
-          onClick={() => inputRef.current?.click()}
-          onDragOver={(e) => e.preventDefault()}
-          onDrop={(e) => {
-            e.preventDefault();
-            setFile(e.dataTransfer.files[0]);
-          }}
-        >
+        {/* File Input */}
+        <div style={{ marginTop: 14 }}>
+          <label
+            style={{
+              display: "block",
+              fontSize: 11.5,
+              color: "#475569",
+              fontWeight: 700,
+              marginBottom: 5,
+              textTransform: "uppercase",
+              letterSpacing: "0.4px",
+            }}
+          >
+            Select Excel File (.xlsx, .xls, .csv)
+          </label>
           <input
             ref={inputRef}
             type="file"
-            accept=".xlsx,.xls"
-            style={{ display: "none" }}
+            accept=".xlsx,.xls,.csv"
             onChange={(e) => setFile(e.target.files[0])}
+            style={{
+              width: "100%",
+              padding: "7px",
+              border: "1px dashed #94a3b8",
+              borderRadius: 8,
+              fontSize: 12,
+              color: "#475569",
+              background: "#f8fafc",
+              boxSizing: "border-box",
+            }}
           />
-          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 6 }}>
-            {file ? (
-              <FileSpreadsheet size={26} color="#2563eb" />
-            ) : (
-              <CloudUpload size={26} color="#64748b" />
-            )}
-            <p
-              style={{
-                color: file ? "#2563eb" : "#475569",
-                fontSize: 12.5,
-                fontWeight: file ? 700 : 500,
-                margin: 0,
-              }}
-            >
-              {file ? file.name : "Click or drag Excel sheet here"}
-            </p>
-            <span style={{ fontSize: 11, color: "#94a3b8" }}>Supports .xlsx & .xls</span>
-          </div>
-        </motion.div>
+        </div>
 
-        {/* Error / Success Banners */}
-        <AnimatePresence>
-          {err && (
-            <motion.div
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: "auto" }}
-              exit={{ opacity: 0, height: 0 }}
+        {/* Progress Bar */}
+        {loading && (
+          <div style={{ marginTop: 14 }}>
+            <div
               style={{
-                color: "#991b1b",
-                background: "#fef2f2",
-                border: "1px solid #fecaca",
-                borderLeft: "3.5px solid #ef4444",
-                padding: "8px 12px",
-                borderRadius: 8,
-                fontSize: 12,
-                marginBottom: 12,
-                display: "flex",
-                alignItems: "center",
-                gap: 7,
+                width: "100%",
+                height: 6,
+                background: "#e2e8f0",
+                borderRadius: 99,
+                overflow: "hidden",
               }}
             >
-              <AlertTriangle size={14} color="#ef4444" style={{ flexShrink: 0 }} />
-              <span>{err}</span>
-            </motion.div>
-          )}
-          {msg && (
-            <motion.div
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: "auto" }}
-              exit={{ opacity: 0, height: 0 }}
+              <div
+                style={{
+                  width: `${progress}%`,
+                  height: "100%",
+                  background: "#2563eb",
+                  transition: "width 0.2s ease",
+                }}
+              />
+            </div>
+            <div
               style={{
-                color: "#065f46",
-                background: "#ecfdf5",
-                border: "1px solid #a7f3d0",
-                borderLeft: "3.5px solid #10b981",
-                padding: "8px 12px",
-                borderRadius: 8,
-                fontSize: 12,
-                marginBottom: 12,
-                display: "flex",
-                alignItems: "center",
-                gap: 7,
+                fontSize: 11,
+                color: "#64748b",
+                textAlign: "right",
+                marginTop: 4,
+                fontWeight: 600,
               }}
             >
-              <CheckCircle size={14} color="#10b981" style={{ flexShrink: 0 }} />
-              <span>{msg}</span>
-            </motion.div>
-          )}
-        </AnimatePresence>
+              {progress}%
+            </div>
+          </div>
+        )}
+
+        {/* Feedback Messages */}
+        {msg && (
+          <div
+            style={{
+              marginTop: 12,
+              padding: "9px 12px",
+              background: "#ecfdf5",
+              border: "1px solid #a7f3d0",
+              borderRadius: 8,
+              color: "#065f46",
+              fontSize: 12.5,
+              fontWeight: 600,
+              display: "flex",
+              alignItems: "center",
+              gap: 6,
+            }}
+          >
+            <CheckCircle size={15} color="#059669" />
+            <span>{msg}</span>
+          </div>
+        )}
+        {err && (
+          <div
+            style={{
+              marginTop: 12,
+              padding: "9px 12px",
+              background: "#fef2f2",
+              border: "1px solid #fecaca",
+              borderRadius: 8,
+              color: "#991b1b",
+              fontSize: 12.5,
+              fontWeight: 600,
+              display: "flex",
+              alignItems: "center",
+              gap: 6,
+            }}
+          >
+            <AlertTriangle size={15} color="#dc2626" />
+            <span>{err}</span>
+          </div>
+        )}
       </div>
 
-      {/* Upload Action Button */}
-      <div style={{ position: "relative" }}>
+      <button
+        onClick={handleUpload}
+        disabled={loading}
+        style={{
+          marginTop: 18,
+          width: "100%",
+          padding: "10px",
+          borderRadius: 9,
+          background: loading ? "#94a3b8" : "#2563eb",
+          color: "#ffffff",
+          border: "none",
+          fontSize: 13,
+          fontWeight: 700,
+          cursor: loading ? "not-allowed" : "pointer",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          gap: 6,
+          boxShadow: "0 2px 6px rgba(37, 99, 235, 0.2)",
+        }}
+      >
+        {loading ? (
+          <>
+            <Loader2 size={15} className="spin" />
+            <span>Uploading & Processing...</span>
+          </>
+        ) : (
+          <>
+            <Upload size={15} />
+            <span>Upload File</span>
+          </>
+        )}
+      </button>
+    </motion.div>
+  );
+}
+
+/* ════════════════════════════════════════════════════════════════
+   SPECIALIZED COMPONENT: MISSING & UNREGISTERED STUDENTS EXTRACTOR
+   ════════════════════════════════════════════════════════════════ */
+function MissingStudentsExtractorCard({ API, authHeaders, onSuccess }) {
+  const [extractType, setExtractType] = useState("results"); // "results" | "internal"
+  const [file, setFile] = useState(null);
+  const [batch, setBatch] = useState("2023");
+  const [semester, setSemester] = useState("6");
+  const [session, setSession] = useState("2023-24");
+  const [loading, setLoading] = useState(false);
+  const [progress, setProgress] = useState(0);
+  const [error, setError] = useState("");
+  const [resultData, setResultData] = useState(null);
+  const [filterSearch, setFilterSearch] = useState("");
+  const [copiedAll, setCopiedAll] = useState(false);
+  const [copiedId, setCopiedId] = useState(null);
+  const [importing, setImporting] = useState(false);
+  const [importSuccess, setImportSuccess] = useState("");
+  const [importError, setImportError] = useState("");
+  const fileInputRef = useRef(null);
+
+  useEffect(() => {
+    const validSessions = getDynamicSessionOptions(batch, semester, null);
+    if (validSessions.length && (!session || !validSessions.includes(session))) {
+      setSession(validSessions[0]);
+    }
+  }, [batch, semester]);
+
+  const handleExtract = async (e) => {
+    if (e) e.preventDefault();
+    if (!file) {
+      setError("Please select an Excel (.xlsx / .xls / .csv) file to extract from.");
+      return;
+    }
+
+    setLoading(true);
+    setProgress(0);
+    setError("");
+    setImportSuccess("");
+    setImportError("");
+    setResultData(null);
+
+    try {
+      const fd = new FormData();
+      fd.append("file", file);
+      fd.append("extractType", extractType);
+      fd.append("batch", batch);
+      fd.append("semester", semester);
+      fd.append("session", session);
+
+      const { data } = await axios.post(`${API}/admin/extract-missing`, fd, {
+        ...authHeaders,
+        headers: {
+          ...authHeaders.headers,
+          "Content-Type": "multipart/form-data",
+        },
+        onUploadProgress: (progressEvent) => {
+          if (progressEvent.total) {
+            const percent = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+            setProgress(Math.min(95, percent));
+          }
+        },
+      });
+
+      setProgress(100);
+      setResultData(data);
+      setLoading(false);
+    } catch (err) {
+      console.error("Extract error:", err);
+      setError(err.response?.data?.message || "Failed to extract missing students from Excel file.");
+      setLoading(false);
+    }
+  };
+
+  const handleExportExcel = () => {
+    if (!resultData?.missingStudents?.length) return;
+    const students = resultData.missingStudents;
+    let exportRows = [];
+
+    if (resultData.extractType === "results") {
+      students.forEach((s) => {
+        if (s.subjects && s.subjects.length) {
+          s.subjects.forEach((sub) => {
+            exportRows.push({
+              "Reg No": s.regNo,
+              "Student Name": s.studentName,
+              "Branch": s.branch,
+              "Batch": s.batch,
+              "Semester": s.semester,
+              "Session": s.session || "",
+              "SGPA": s.sgpa,
+              "Cleared Credits": s.creditsCleared,
+              "Total Credits": s.totalCredits,
+              "Subject Code": sub.subCode,
+              "Subject Name": sub.subName,
+              "Course Type": sub.type,
+              "Credit": sub.credit,
+              "Grade": sub.grade,
+              "Grade Point": sub.gradePoint,
+            });
+          });
+        } else {
+          exportRows.push({
+            "Reg No": s.regNo,
+            "Student Name": s.studentName,
+            "Branch": s.branch,
+            "Batch": s.batch,
+            "Semester": s.semester,
+            "Session": s.session || "",
+            "SGPA": s.sgpa,
+          });
+        }
+      });
+    } else {
+      students.forEach((s) => {
+        if (s.subjects && s.subjects.length) {
+          s.subjects.forEach((sub) => {
+            exportRows.push({
+              "Reg No": s.regNo,
+              "Student Name": s.studentName,
+              "Branch": s.branch,
+              "Batch": s.batch,
+              "Semester": s.semester,
+              "Session": s.session || "",
+              "Subject Code": sub.subCode,
+              "Subject Name": sub.subName,
+              "Course Type": sub.type,
+              "Total Score": sub.totalScore ?? "",
+              "Total Max": sub.totalMax ?? "",
+            });
+          });
+        } else {
+          exportRows.push({
+            "Reg No": s.regNo,
+            "Student Name": s.studentName,
+            "Branch": s.branch,
+            "Batch": s.batch,
+            "Semester": s.semester,
+          });
+        }
+      });
+    }
+
+    const ws = XLSX.utils.json_to_sheet(exportRows);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Missing_Students");
+    XLSX.writeFile(wb, `GradeFlow_Extracted_Missing_${resultData.extractType}_${Date.now()}.xlsx`);
+  };
+
+  const handleCopyAll = () => {
+    if (!resultData?.missingStudents?.length) return;
+    const regList = resultData.missingStudents.map((s) => s.regNo).join(", ");
+    navigator.clipboard.writeText(regList);
+    setCopiedAll(true);
+    setTimeout(() => setCopiedAll(false), 2500);
+  };
+
+  const handleCopySingle = (reg) => {
+    navigator.clipboard.writeText(reg);
+    setCopiedId(reg);
+    setTimeout(() => setCopiedId(null), 2000);
+  };
+
+  const handleImportToDb = async () => {
+    if (!resultData?.missingStudents?.length) return;
+    if (
+      !window.confirm(
+        `Are you sure you want to insert all ${resultData.missingStudents.length} missing student records directly into the database?`
+      )
+    ) {
+      return;
+    }
+
+    setImporting(true);
+    setImportSuccess("");
+    setImportError("");
+
+    try {
+      const { data } = await axios.post(
+        `${API}/admin/import-missing-extracted`,
+        {
+          extractType: resultData.extractType,
+          missingStudents: resultData.missingStudents,
+        },
+        authHeaders
+      );
+
+      setImportSuccess(data.message);
+      setImporting(false);
+      if (onSuccess) onSuccess();
+    } catch (err) {
+      console.error("Import error:", err);
+      setImportError(err.response?.data?.message || "Failed to import missing students.");
+      setImporting(false);
+    }
+  };
+
+  const filteredMissing = (resultData?.missingStudents || []).filter((s) => {
+    if (!filterSearch.trim()) return true;
+    const q = filterSearch.toLowerCase();
+    return (
+      (s.regNo && s.regNo.toLowerCase().includes(q)) ||
+      (s.studentName && s.studentName.toLowerCase().includes(q)) ||
+      (s.branch && s.branch.toLowerCase().includes(q))
+    );
+  });
+
+  const sessionOptions = getDynamicSessionOptions(batch, semester, null);
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 12 }}
+      animate={{ opacity: 1, y: 0 }}
+      style={{
+        background: "#ffffff",
+        border: "1.5px solid #e0e7ff",
+        borderRadius: 18,
+        padding: "24px 22px",
+        boxShadow: "0 4px 20px rgba(99, 102, 241, 0.05)",
+        marginTop: 4,
+        display: "flex",
+        flexDirection: "column",
+        gap: 20,
+      }}
+    >
+      {/* Container Header */}
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 12 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+          <div
+            style={{
+              width: 42,
+              height: 42,
+              borderRadius: 12,
+              background: "linear-gradient(135deg, #4f46e5 0%, #2563eb 100%)",
+              color: "#ffffff",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              boxShadow: "0 3px 10px rgba(79, 70, 229, 0.25)",
+            }}
+          >
+            <SearchCode size={22} />
+          </div>
+          <div>
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <h3 style={{ margin: 0, fontSize: 17, fontWeight: 800, color: "#0f172a", letterSpacing: "-0.3px" }}>
+                Missing & Unregistered Students Extractor
+              </h3>
+              <span
+                style={{
+                  fontSize: 10.5,
+                  fontWeight: 800,
+                  color: "#4338ca",
+                  background: "#e0e7ff",
+                  padding: "2px 8px",
+                  borderRadius: 6,
+                  textTransform: "uppercase",
+                  letterSpacing: "0.5px",
+                }}
+              >
+                Special Tool
+              </span>
+            </div>
+            <p style={{ margin: "4px 0 0 0", fontSize: 13, color: "#64748b", lineHeight: 1.4 }}>
+              Upload any university result or internal mark sheet to scan against GradeFlow. Extracts only students who are completely missing from the database.
+            </p>
+          </div>
+        </div>
+
+        {/* Mode Toggle Pills */}
+        <div
+          style={{
+            display: "inline-flex",
+            padding: 3,
+            background: "#f1f5f9",
+            borderRadius: 10,
+            border: "1px solid #e2e8f0",
+          }}
+        >
+          <button
+            type="button"
+            onClick={() => {
+              setExtractType("results");
+              setResultData(null);
+            }}
+            style={{
+              padding: "6px 14px",
+              borderRadius: 8,
+              border: "none",
+              background: extractType === "results" ? "#ffffff" : "transparent",
+              color: extractType === "results" ? "#2563eb" : "#64748b",
+              fontWeight: extractType === "results" ? 800 : 600,
+              fontSize: 12.5,
+              cursor: "pointer",
+              boxShadow: extractType === "results" ? "0 2px 6px rgba(0,0,0,0.06)" : "none",
+              transition: "all 0.15s ease",
+            }}
+          >
+            🎓 Semester Results
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setExtractType("internal");
+              setResultData(null);
+            }}
+            style={{
+              padding: "6px 14px",
+              borderRadius: 8,
+              border: "none",
+              background: extractType === "internal" ? "#ffffff" : "transparent",
+              color: extractType === "internal" ? "#2563eb" : "#64748b",
+              fontWeight: extractType === "internal" ? 800 : 600,
+              fontSize: 12.5,
+              cursor: "pointer",
+              boxShadow: extractType === "internal" ? "0 2px 6px rgba(0,0,0,0.06)" : "none",
+              transition: "all 0.15s ease",
+            }}
+          >
+            📝 Internal Marks
+          </button>
+        </div>
+      </div>
+
+      {/* Upload Controls Grid */}
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
+          gap: 14,
+          background: "#f8fafc",
+          border: "1px solid #e2e8f0",
+          borderRadius: 14,
+          padding: "16px 16px",
+        }}
+      >
+        {/* Batch Selector */}
+        <div>
+          <label style={{ display: "block", fontSize: 11, fontWeight: 700, color: "#475569", marginBottom: 5, textTransform: "uppercase" }}>
+            Batch Year
+          </label>
+          <select
+            value={batch}
+            onChange={(e) => setBatch(e.target.value)}
+            style={{ width: "100%", padding: "8px 10px", borderRadius: 8, border: "1px solid #cbd5e1", fontSize: 13, background: "#ffffff" }}
+          >
+            <option value="2021">Batch 2021</option>
+            <option value="2022">Batch 2022</option>
+            <option value="2023">Batch 2023</option>
+            <option value="2024">Batch 2024</option>
+            <option value="2025">Batch 2025</option>
+          </select>
+        </div>
+
+        {/* Semester Selector */}
+        <div>
+          <label style={{ display: "block", fontSize: 11, fontWeight: 700, color: "#475569", marginBottom: 5, textTransform: "uppercase" }}>
+            Semester
+          </label>
+          <select
+            value={semester}
+            onChange={(e) => setSemester(e.target.value)}
+            style={{ width: "100%", padding: "8px 10px", borderRadius: 8, border: "1px solid #cbd5e1", fontSize: 13, background: "#ffffff" }}
+          >
+            {[1, 2, 3, 4, 5, 6, 7, 8].map((s) => (
+              <option key={s} value={s}>
+                Semester {s}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        {/* Session Selector */}
+        <div>
+          <label style={{ display: "block", fontSize: 11, fontWeight: 700, color: "#475569", marginBottom: 5, textTransform: "uppercase" }}>
+            Academic Session
+          </label>
+          <select
+            value={session}
+            onChange={(e) => setSession(e.target.value)}
+            style={{ width: "100%", padding: "8px 10px", borderRadius: 8, border: "1px solid #cbd5e1", fontSize: 13, background: "#ffffff" }}
+          >
+            {sessionOptions.map((s) => (
+              <option key={s} value={s}>
+                {s}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        {/* File Input */}
+        <div>
+          <label style={{ display: "block", fontSize: 11, fontWeight: 700, color: "#475569", marginBottom: 5, textTransform: "uppercase" }}>
+            Excel File
+          </label>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".xlsx,.xls,.csv"
+            onChange={(e) => setFile(e.target.files[0])}
+            style={{ width: "100%", padding: "6px", border: "1px dashed #94a3b8", borderRadius: 8, fontSize: 12, background: "#ffffff", boxSizing: "border-box" }}
+          />
+        </div>
+      </div>
+
+      {/* Progress Bar */}
+      {loading && (
+        <div>
+          <div style={{ width: "100%", height: 6, background: "#e2e8f0", borderRadius: 99, overflow: "hidden" }}>
+            <div style={{ width: `${progress}%`, height: "100%", background: "#4f46e5", transition: "width 0.2s ease" }} />
+          </div>
+          <div style={{ fontSize: 11.5, color: "#6366f1", textAlign: "right", marginTop: 4, fontWeight: 700 }}>
+            Scanning Excel & cross-checking database records... {progress}%
+          </div>
+        </div>
+      )}
+
+      {/* Error Message */}
+      {error && (
+        <div style={{ padding: "10px 14px", background: "#fef2f2", border: "1px solid #fecaca", borderRadius: 10, color: "#b91c1c", fontSize: 13, display: "flex", alignItems: "center", gap: 8 }}>
+          <AlertTriangle size={16} />
+          <span>{error}</span>
+        </div>
+      )}
+
+      {/* Extract Trigger Button */}
+      <div>
         <button
-          onClick={handleUpload}
+          type="button"
+          onClick={handleExtract}
           disabled={loading}
           style={{
-            width: "100%",
-            padding: "11px 16px",
+            padding: "11px 22px",
             borderRadius: 10,
-            background: "#0f172a",
+            background: loading ? "#94a3b8" : "linear-gradient(135deg, #4f46e5 0%, #2563eb 100%)",
             color: "#ffffff",
             border: "none",
             fontSize: 13.5,
             fontWeight: 700,
             cursor: loading ? "not-allowed" : "pointer",
-            display: "flex",
+            display: "inline-flex",
             alignItems: "center",
-            justifyContent: "center",
             gap: 8,
-            overflow: "hidden",
-            position: "relative",
-            transition: "background 0.2s ease",
-            fontFamily: "'DM Sans', sans-serif",
+            boxShadow: "0 3px 12px rgba(79, 70, 229, 0.25)",
+            transition: "all 0.15s ease",
           }}
-          onMouseEnter={(e) => !loading && (e.currentTarget.style.background = "#1e293b")}
-          onMouseLeave={(e) => !loading && (e.currentTarget.style.background = "#0f172a")}
         >
-          <span style={{ position: "relative", zIndex: 2, display: "flex", alignItems: "center", gap: 7 }}>
-            {loading ? (
-              <>
-                <Spinner size={14} /> Uploading... {progress}%
-              </>
-            ) : (
-              <>
-                <Upload size={15} /> Upload Dataset
-              </>
-            )}
-          </span>
-          {loading && (
-            <motion.div
-              initial={{ width: 0 }}
-              animate={{ width: `${progress}%` }}
-              style={{
-                position: "absolute",
-                left: 0,
-                top: 0,
-                bottom: 0,
-                background: "#2563eb",
-                zIndex: 1,
-              }}
-            />
+          {loading ? (
+            <>
+              <Loader2 size={16} className="spin" />
+              <span>Scanning File...</span>
+            </>
+          ) : (
+            <>
+              <SearchCode size={16} />
+              <span>Extract Missing Students Only</span>
+            </>
           )}
         </button>
       </div>
+
+      {/* ── EXTRACTION RESULTS SECTION ── */}
+      {resultData && (
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          style={{
+            borderTop: "1.5px dashed #e2e8f0",
+            paddingTop: 18,
+            display: "flex",
+            flexDirection: "column",
+            gap: 16,
+          }}
+        >
+          {/* Summary Badges */}
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 12 }}>
+            <div style={{ background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: 12, padding: "12px 14px" }}>
+              <div style={{ fontSize: 11, fontWeight: 700, color: "#64748b", textTransform: "uppercase" }}>Total in Excel File</div>
+              <div style={{ fontSize: 22, fontWeight: 800, color: "#0f172a", marginTop: 2 }}>{resultData.totalInExcel}</div>
+            </div>
+
+            <div style={{ background: "#f0fdf4", border: "1px solid #bbf7d0", borderRadius: 12, padding: "12px 14px" }}>
+              <div style={{ fontSize: 11, fontWeight: 700, color: "#166534", textTransform: "uppercase" }}>Already in Database</div>
+              <div style={{ fontSize: 22, fontWeight: 800, color: "#15803d", marginTop: 2 }}>{resultData.existingInDbCount}</div>
+            </div>
+
+            <div
+              style={{
+                background: resultData.missingCount > 0 ? "#fef2f2" : "#f0fdf4",
+                border: resultData.missingCount > 0 ? "1px solid #fecaca" : "1px solid #bbf7d0",
+                borderRadius: 12,
+                padding: "12px 14px",
+              }}
+            >
+              <div
+                style={{
+                  fontSize: 11,
+                  fontWeight: 700,
+                  color: resultData.missingCount > 0 ? "#991b1b" : "#166534",
+                  textTransform: "uppercase",
+                }}
+              >
+                Missing from Database
+              </div>
+              <div
+                style={{
+                  fontSize: 22,
+                  fontWeight: 800,
+                  color: resultData.missingCount > 0 ? "#dc2626" : "#15803d",
+                  marginTop: 2,
+                }}
+              >
+                {resultData.missingCount}
+              </div>
+            </div>
+          </div>
+
+          {/* Import / Action Success Feedback */}
+          {importSuccess && (
+            <div style={{ padding: "10px 14px", background: "#ecfdf5", border: "1px solid #a7f3d0", borderRadius: 10, color: "#065f46", fontSize: 13, fontWeight: 600, display: "flex", alignItems: "center", gap: 8 }}>
+              <CheckCircle size={16} color="#059669" />
+              <span>{importSuccess}</span>
+            </div>
+          )}
+
+          {importError && (
+            <div style={{ padding: "10px 14px", background: "#fef2f2", border: "1px solid #fecaca", borderRadius: 10, color: "#991b1b", fontSize: 13, fontWeight: 600, display: "flex", alignItems: "center", gap: 8 }}>
+              <AlertTriangle size={16} color="#dc2626" />
+              <span>{importError}</span>
+            </div>
+          )}
+
+          {resultData.missingCount === 0 ? (
+            <div
+              style={{
+                padding: "24px 20px",
+                background: "#f0fdf4",
+                border: "1px solid #bbf7d0",
+                borderRadius: 14,
+                textAlign: "center",
+                color: "#166534",
+              }}
+            >
+              <CheckCircle size={28} color="#16a34a" style={{ margin: "0 auto 8px auto" }} />
+              <h4 style={{ margin: 0, fontSize: 15, fontWeight: 800 }}>All Students Already Exist in Database!</h4>
+              <p style={{ margin: "4px 0 0 0", fontSize: 12.5, color: "#15803d" }}>
+                Every registration number found in this uploaded Excel file is already saved in the database.
+              </p>
+            </div>
+          ) : (
+            <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+              {/* Action Toolbar */}
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 10 }}>
+                {/* Search / Filter */}
+                <div style={{ position: "relative", minWidth: 240, maxWidth: 360, flex: 1 }}>
+                  <Search size={14} style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", color: "#94a3b8" }} />
+                  <input
+                    type="text"
+                    value={filterSearch}
+                    onChange={(e) => setFilterSearch(e.target.value)}
+                    placeholder="Search missing students by name or reg no..."
+                    style={{
+                      width: "100%",
+                      padding: "8px 10px 8px 30px",
+                      borderRadius: 8,
+                      border: "1px solid #cbd5e1",
+                      fontSize: 12.5,
+                      boxSizing: "border-box",
+                    }}
+                  />
+                </div>
+
+                {/* Action Buttons */}
+                <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                  <button
+                    type="button"
+                    onClick={handleCopyAll}
+                    style={{
+                      padding: "8px 14px",
+                      borderRadius: 8,
+                      border: "1px solid #cbd5e1",
+                      background: "#ffffff",
+                      color: "#334155",
+                      fontSize: 12.5,
+                      fontWeight: 700,
+                      cursor: "pointer",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 6,
+                    }}
+                  >
+                    {copiedAll ? <CheckCheck size={14} color="#16a34a" /> : <Copy size={14} />}
+                    <span>{copiedAll ? "Copied All!" : "Copy Reg Numbers"}</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={handleExportExcel}
+                    style={{
+                      padding: "8px 14px",
+                      borderRadius: 8,
+                      border: "1px solid #cbd5e1",
+                      background: "#ffffff",
+                      color: "#059669",
+                      fontSize: 12.5,
+                      fontWeight: 700,
+                      cursor: "pointer",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 6,
+                    }}
+                  >
+                    <Download size={14} />
+                    <span>Download Clean Excel (.xlsx)</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={handleImportToDb}
+                    disabled={importing}
+                    style={{
+                      padding: "8px 16px",
+                      borderRadius: 8,
+                      border: "none",
+                      background: importing ? "#94a3b8" : "#16a34a",
+                      color: "#ffffff",
+                      fontSize: 12.5,
+                      fontWeight: 800,
+                      cursor: importing ? "not-allowed" : "pointer",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 6,
+                      boxShadow: "0 2px 8px rgba(22, 163, 74, 0.25)",
+                    }}
+                  >
+                    {importing ? <Loader2 size={14} className="spin" /> : <FileCheck size={14} />}
+                    <span>{importing ? "Importing..." : `Import ${resultData.missingStudents.length} Missing Students to DB`}</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Missing Students Table */}
+              <div
+                style={{
+                  border: "1px solid #e2e8f0",
+                  borderRadius: 12,
+                  overflow: "hidden",
+                  maxHeight: 380,
+                  overflowY: "auto",
+                }}
+              >
+                <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12.5, textAlign: "left" }}>
+                  <thead style={{ background: "#f8fafc", position: "sticky", top: 0, borderBottom: "1px solid #cbd5e1", zIndex: 1 }}>
+                    <tr>
+                      <th style={{ padding: "10px 12px", color: "#475569", fontWeight: 800 }}>#</th>
+                      <th style={{ padding: "10px 12px", color: "#475569", fontWeight: 800 }}>Registration No</th>
+                      <th style={{ padding: "10px 12px", color: "#475569", fontWeight: 800 }}>Student Name</th>
+                      <th style={{ padding: "10px 12px", color: "#475569", fontWeight: 800 }}>Branch</th>
+                      <th style={{ padding: "10px 12px", color: "#475569", fontWeight: 800 }}>Batch/Sem</th>
+                      {resultData.extractType === "results" && (
+                        <>
+                          <th style={{ padding: "10px 12px", color: "#475569", fontWeight: 800 }}>SGPA</th>
+                          <th style={{ padding: "10px 12px", color: "#475569", fontWeight: 800 }}>Credits</th>
+                        </>
+                      )}
+                      <th style={{ padding: "10px 12px", color: "#475569", fontWeight: 800 }}>Subjects</th>
+                      <th style={{ padding: "10px 12px", color: "#475569", fontWeight: 800 }}>Database Status</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filteredMissing.map((s, idx) => (
+                      <tr
+                        key={s.regNo}
+                        style={{
+                          borderBottom: "1px solid #f1f5f9",
+                          background: idx % 2 === 0 ? "#ffffff" : "#fcfdfe",
+                        }}
+                      >
+                        <td style={{ padding: "10px 12px", color: "#64748b" }}>{idx + 1}</td>
+                        <td style={{ padding: "10px 12px" }}>
+                          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                            <span style={{ fontFamily: "monospace", fontWeight: 700, color: "#0f172a" }}>{s.regNo}</span>
+                            <button
+                              type="button"
+                              onClick={() => handleCopySingle(s.regNo)}
+                              title="Copy Reg No"
+                              style={{
+                                background: "none",
+                                border: "none",
+                                padding: 2,
+                                cursor: "pointer",
+                                color: copiedId === s.regNo ? "#16a34a" : "#94a3b8",
+                              }}
+                            >
+                              {copiedId === s.regNo ? <Check size={12} /> : <Copy size={12} />}
+                            </button>
+                          </div>
+                        </td>
+                        <td style={{ padding: "10px 12px", fontWeight: 700, color: "#1e293b" }}>{s.studentName}</td>
+                        <td style={{ padding: "10px 12px" }}>
+                          <span style={{ background: "#f1f5f9", padding: "2px 6px", borderRadius: 4, fontWeight: 700, fontSize: 11, color: "#475569" }}>
+                            {s.branch || "CSE"}
+                          </span>
+                        </td>
+                        <td style={{ padding: "10px 12px", color: "#64748b" }}>
+                          {s.batch} • Sem {s.semester}
+                        </td>
+                        {resultData.extractType === "results" && (
+                          <>
+                            <td style={{ padding: "10px 12px", fontWeight: 800, color: s.sgpa >= 8.5 ? "#16a34a" : s.sgpa >= 7 ? "#2563eb" : "#d97706" }}>
+                              {s.sgpa || "N/A"}
+                            </td>
+                            <td style={{ padding: "10px 12px", color: "#64748b" }}>
+                              {s.creditsCleared}/{s.totalCredits} Cr
+                            </td>
+                          </>
+                        )}
+                        <td style={{ padding: "10px 12px", color: "#64748b" }}>{s.subjectsCount} subjects</td>
+                        <td style={{ padding: "10px 12px" }}>
+                          <span
+                            style={{
+                              background: "#fef2f2",
+                              color: "#b91c1c",
+                              border: "1px solid #fecaca",
+                              padding: "2px 7px",
+                              borderRadius: 5,
+                              fontSize: 11,
+                              fontWeight: 700,
+                            }}
+                          >
+                            ⚠️ Not in DB
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+        </motion.div>
+      )}
     </motion.div>
   );
 }
@@ -3437,6 +4181,13 @@ export default function AdminDashboard() {
                 ]}
               />
             </div>
+
+            {/* ── MISSING & UNREGISTERED STUDENTS EXTRACTOR (SPECIAL TOOL) ── */}
+            <MissingStudentsExtractorCard
+              API={API}
+              authHeaders={authHeaders}
+              onSuccess={fetchStats}
+            />
 
             {/* Recalculate Rankings Toolbar */}
             <div
