@@ -5,7 +5,17 @@ const { generateBacklogEmailHtml, generateBacklogEmailText } = require("./emailT
  * Creates a Nodemailer transporter.
  * Supports Brevo (smtp-relay.brevo.com:587) and Gmail.
  */
+let cachedTransporter = null;
+
+/**
+ * Creates and caches a high-performance pooled Nodemailer transporter.
+ * Supports Brevo (smtp-relay.brevo.com:587) and Gmail.
+ */
 function createTransporter() {
+  if (cachedTransporter) {
+    return cachedTransporter;
+  }
+
   const emailUser = process.env.EMAIL_USER;
   const emailPass = process.env.EMAIL_PASS;
 
@@ -21,9 +31,18 @@ function createTransporter() {
   const secure = port === 465;
   const service = host ? null : process.env.EMAIL_SERVICE || "gmail";
 
+  const poolConfig = {
+    pool: true,
+    maxConnections: 5,
+    maxMessages: 100,
+    rateDelta: 1000,
+    rateLimit: 10,
+  };
+
   const config = service
     ? {
         service,
+        ...poolConfig,
         auth: { user: emailUser, pass: emailPass },
         connectionTimeout: 10000,
         greetingTimeout: 5000,
@@ -33,13 +52,27 @@ function createTransporter() {
         host,
         port,
         secure, // false for 587 (STARTTLS), true for 465
+        ...poolConfig,
         auth: { user: emailUser, pass: emailPass },
         connectionTimeout: 10000,
         greetingTimeout: 5000,
         socketTimeout: 10000,
       };
 
-  return nodemailer.createTransport(config);
+  cachedTransporter = nodemailer.createTransport(config);
+  return cachedTransporter;
+}
+
+async function sendMailWithRetry(mailOptions) {
+  try {
+    const transporter = createTransporter();
+    return await transporter.sendMail(mailOptions);
+  } catch (err) {
+    console.warn("Retrying email dispatch after refreshing connection pool:", err.message);
+    cachedTransporter = null;
+    const freshTransporter = createTransporter();
+    return await freshTransporter.sendMail(mailOptions);
+  }
 }
 
 /**
@@ -59,8 +92,6 @@ async function sendBacklogEmailNotification({
   branch = "N/A",
   section = "N/A",
 }) {
-  const transporter = createTransporter();
-
   const recipientEmail = String(to || "").trim().toLowerCase();
 
   if (!recipientEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(recipientEmail)) {
@@ -87,10 +118,6 @@ async function sendBacklogEmailNotification({
   const text = generateBacklogEmailText(emailPayload);
 
   const subject = `Official Academic Status Update: ${regNo}`;
-  const frontendUrl = process.env.FRONTEND_URL || "https://grade-flow-navy.vercel.app";
-
-  // Use EMAIL_FROM or registered email address as the 'from' header
-  // Note: EMAIL_USER (e.g. b4d4bb001@smtp-brevo.com) is the Brevo SMTP auth login, but 'from' must be a valid email.
   const senderEmail = process.env.EMAIL_FROM || "jaganparida9154@gmail.com";
 
   const mailOptions = {
@@ -102,7 +129,7 @@ async function sendBacklogEmailNotification({
     html,
   };
 
-  const info = await transporter.sendMail(mailOptions);
+  const info = await sendMailWithRetry(mailOptions);
   return {
     success: true,
     messageId: info.messageId,
@@ -128,8 +155,6 @@ async function sendTopperEmailNotification({
   section = "N/A",
 }) {
   const { generateTopperEmailHtml, generateTopperEmailText } = require("./topperEmailTemplate");
-  const transporter = createTransporter();
-
   const recipientEmail = String(to || "").trim().toLowerCase();
 
   if (!recipientEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(recipientEmail)) {
@@ -167,7 +192,7 @@ async function sendTopperEmailNotification({
     html,
   };
 
-  return transporter.sendMail(mailOptions);
+  return sendMailWithRetry(mailOptions);
 }
 
 module.exports = {
