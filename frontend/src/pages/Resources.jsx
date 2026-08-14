@@ -410,170 +410,201 @@ export default function Resources() {
               top: 86,
               display: "flex",
               flexDirection: "column",
-              gap: 22,
+              gap: 16,
+              width: "100%",
+              boxSizing: "border-box",
             }}
           >
-            {/* Group 1: ACADEMIC TOOLS */}
-            <div>
-              <div
-                style={{
-                  fontSize: 11,
-                  fontWeight: 800,
-                  color: "#94a3b8",
-                  letterSpacing: "0.8px",
-                  textTransform: "uppercase",
-                  marginBottom: 10,
-                  paddingLeft: 8,
-                }}
-              >
-                Academic Tools
-              </div>
-
-              <div style={{ display: "flex", flexDirection: "column", gap: 3 }}>
-                {[
-                  { id: "all-overview", label: "How SGPA & CGPA\nAre Calculated", icon: <Calculator size={16} /> },
-                  { id: "grading-scale", label: "Grading Scale", icon: <Star size={16} /> },
-                  { id: "academic-health", label: "Academic Health", icon: <Activity size={16} /> },
-                  { id: "badges-tab", label: "Badges & Achievements", icon: <Medal size={16} /> },
-                ].map((tab) => (
-                  <button
-                    key={tab.id}
-                    onClick={() => setActiveTab(tab.id)}
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 10,
-                      padding: "10px 12px",
-                      borderRadius: 10,
-                      border: "none",
-                      background: activeTab === tab.id ? "#eff6ff" : "transparent",
-                      color: activeTab === tab.id ? "#2563eb" : "#475569",
-                      fontSize: 13,
-                      fontWeight: activeTab === tab.id ? 700 : 500,
-                      cursor: "pointer",
-                      textAlign: "left",
-                      whiteSpace: "pre-line",
-                      lineHeight: 1.35,
-                      transition: "all 0.15s ease",
-                    }}
-                    onMouseEnter={(e) => {
-                      if (activeTab !== tab.id) {
-                        e.currentTarget.style.background = "#f8fafc";
-                        e.currentTarget.style.color = "#0f172a";
-                      }
-                    }}
-                    onMouseLeave={(e) => {
-                      if (activeTab !== tab.id) {
-                        e.currentTarget.style.background = "transparent";
-                        e.currentTarget.style.color = "#475569";
-                      }
-                    }}
-                  >
-                    <span style={{ color: activeTab === tab.id ? "#2563eb" : "#94a3b8" }}>{tab.icon}</span>
-                    <span>{tab.label}</span>
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Group 2: QUICK ACTIONS */}
-            <div>
-              <div
-                style={{
-                  fontSize: 11,
-                  fontWeight: 800,
-                  color: "#94a3b8",
-                  letterSpacing: "0.8px",
-                  textTransform: "uppercase",
-                  marginBottom: 10,
-                  paddingLeft: 8,
-                }}
-              >
-                Quick Actions
-              </div>
-
-              <div style={{ display: "flex", flexDirection: "column", gap: 3 }}>
-                {[
-                  { id: "sgpa-calc", label: "SGPA Calculator", icon: <Calculator size={16} /> },
-                  { id: "cgpa-calc", label: "CGPA Calculator", icon: <BarChart2 size={16} /> },
-                  { id: "target-predictor", label: "Target GPA Predictor", icon: <Target size={16} /> },
-                  { id: "academic-report", label: "Academic Report", icon: <FileText size={16} /> },
-                ].map((tab) => (
-                  <button
-                    key={tab.id}
-                    onClick={() => setActiveTab(tab.id)}
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 10,
-                      padding: "9px 12px",
-                      borderRadius: 10,
-                      border: "none",
-                      background: activeTab === tab.id ? "#eff6ff" : "transparent",
-                      color: activeTab === tab.id ? "#2563eb" : "#475569",
-                      fontSize: 13,
-                      fontWeight: activeTab === tab.id ? 700 : 500,
-                      cursor: "pointer",
-                      textAlign: "left",
-                      transition: "all 0.15s ease",
-                    }}
-                    onMouseEnter={(e) => {
-                      if (activeTab !== tab.id) {
-                        e.currentTarget.style.background = "#f8fafc";
-                        e.currentTarget.style.color = "#0f172a";
-                      }
-                    }}
-                    onMouseLeave={(e) => {
-                      if (activeTab !== tab.id) {
-                        e.currentTarget.style.background = "transparent";
-                        e.currentTarget.style.color = "#475569";
-                      }
-                    }}
-                  >
-                    <span style={{ color: activeTab === tab.id ? "#2563eb" : "#94a3b8" }}>{tab.icon}</span>
-                    <span>{tab.label}</span>
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Group 3: OTHER */}
-            <div>
-              <div
-                style={{
-                  fontSize: 11,
-                  fontWeight: 800,
-                  color: "#94a3b8",
-                  letterSpacing: "0.8px",
-                  textTransform: "uppercase",
-                  marginBottom: 10,
-                  paddingLeft: 8,
-                }}
-              >
-                Other
-              </div>
-
-              <div style={{ display: "flex", flexDirection: "column", gap: 3 }}>
-                <button
-                  onClick={() => setActiveTab("help-faq")}
+            {/* Unified Left Sidebar Card Container */}
+            <div
+              style={{
+                background: "#ffffff",
+                border: "1px solid #f1f5f9",
+                borderRadius: 20,
+                padding: "20px 14px",
+                boxShadow: "0 4px 16px rgba(0,0,0,0.02)",
+                display: "flex",
+                flexDirection: "column",
+                gap: 18,
+                boxSizing: "border-box",
+                width: "100%",
+              }}
+            >
+              {/* Group 1: ACADEMIC TOOLS */}
+              <div>
+                <div
                   style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 10,
-                    padding: "9px 12px",
-                    borderRadius: 10,
-                    border: "none",
-                    background: activeTab === "help-faq" ? "#eff6ff" : "transparent",
-                    color: activeTab === "help-faq" ? "#2563eb" : "#475569",
-                    fontSize: 13,
-                    fontWeight: activeTab === "help-faq" ? 700 : 500,
-                    cursor: "pointer",
-                    textAlign: "left",
+                    fontSize: 10.5,
+                    fontWeight: 800,
+                    color: "#94a3b8",
+                    letterSpacing: "0.8px",
+                    textTransform: "uppercase",
+                    marginBottom: 8,
+                    paddingLeft: 8,
                   }}
                 >
-                  <HelpCircle size={16} color={activeTab === "help-faq" ? "#2563eb" : "#94a3b8"} />
-                  <span>Help &amp; FAQ</span>
-                </button>
+                  Academic Tools
+                </div>
+
+                <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+                  {[
+                    { id: "all-overview", label: "How SGPA & CGPA\nAre Calculated", icon: <Calculator size={16} /> },
+                    { id: "grading-scale", label: "Grading Scale", icon: <Star size={16} /> },
+                    { id: "academic-health", label: "Academic Health", icon: <Activity size={16} /> },
+                    { id: "badges-tab", label: "Badges & Achievements", icon: <Medal size={16} /> },
+                  ].map((tab) => (
+                    <button
+                      key={tab.id}
+                      onClick={() => setActiveTab(tab.id)}
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 10,
+                        padding: "9px 12px",
+                        borderRadius: 10,
+                        border: "none",
+                        background: activeTab === tab.id ? "#eff6ff" : "transparent",
+                        color: activeTab === tab.id ? "#2563eb" : "#475569",
+                        fontSize: 13,
+                        fontWeight: activeTab === tab.id ? 700 : 500,
+                        cursor: "pointer",
+                        textAlign: "left",
+                        whiteSpace: "pre-line",
+                        lineHeight: 1.35,
+                        transition: "all 0.15s ease",
+                      }}
+                      onMouseEnter={(e) => {
+                        if (activeTab !== tab.id) {
+                          e.currentTarget.style.background = "#f8fafc";
+                          e.currentTarget.style.color = "#0f172a";
+                        }
+                      }}
+                      onMouseLeave={(e) => {
+                        if (activeTab !== tab.id) {
+                          e.currentTarget.style.background = "transparent";
+                          e.currentTarget.style.color = "#475569";
+                        }
+                      }}
+                    >
+                      <span style={{ color: activeTab === tab.id ? "#2563eb" : "#94a3b8" }}>{tab.icon}</span>
+                      <span>{tab.label}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Group 2: QUICK ACTIONS */}
+              <div>
+                <div
+                  style={{
+                    fontSize: 10.5,
+                    fontWeight: 800,
+                    color: "#94a3b8",
+                    letterSpacing: "0.8px",
+                    textTransform: "uppercase",
+                    marginBottom: 8,
+                    paddingLeft: 8,
+                  }}
+                >
+                  Quick Actions
+                </div>
+
+                <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+                  {[
+                    { id: "sgpa-calc", label: "SGPA Calculator", icon: <Calculator size={16} /> },
+                    { id: "cgpa-calc", label: "CGPA Calculator", icon: <BarChart2 size={16} /> },
+                    { id: "target-predictor", label: "Target GPA Predictor", icon: <Target size={16} /> },
+                    { id: "academic-report", label: "Academic Report", icon: <FileText size={16} /> },
+                  ].map((tab) => (
+                    <button
+                      key={tab.id}
+                      onClick={() => setActiveTab(tab.id)}
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 10,
+                        padding: "8px 12px",
+                        borderRadius: 10,
+                        border: "none",
+                        background: activeTab === tab.id ? "#eff6ff" : "transparent",
+                        color: activeTab === tab.id ? "#2563eb" : "#475569",
+                        fontSize: 13,
+                        fontWeight: activeTab === tab.id ? 700 : 500,
+                        cursor: "pointer",
+                        textAlign: "left",
+                        transition: "all 0.15s ease",
+                      }}
+                      onMouseEnter={(e) => {
+                        if (activeTab !== tab.id) {
+                          e.currentTarget.style.background = "#f8fafc";
+                          e.currentTarget.style.color = "#0f172a";
+                        }
+                      }}
+                      onMouseLeave={(e) => {
+                        if (activeTab !== tab.id) {
+                          e.currentTarget.style.background = "transparent";
+                          e.currentTarget.style.color = "#475569";
+                        }
+                      }}
+                    >
+                      <span style={{ color: activeTab === tab.id ? "#2563eb" : "#94a3b8" }}>{tab.icon}</span>
+                      <span>{tab.label}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Group 3: OTHER */}
+              <div>
+                <div
+                  style={{
+                    fontSize: 10.5,
+                    fontWeight: 800,
+                    color: "#94a3b8",
+                    letterSpacing: "0.8px",
+                    textTransform: "uppercase",
+                    marginBottom: 8,
+                    paddingLeft: 8,
+                  }}
+                >
+                  Other
+                </div>
+
+                <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+                  <button
+                    onClick={() => setActiveTab("help-faq")}
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 10,
+                      padding: "8px 12px",
+                      borderRadius: 10,
+                      border: "none",
+                      background: activeTab === "help-faq" ? "#eff6ff" : "transparent",
+                      color: activeTab === "help-faq" ? "#2563eb" : "#475569",
+                      fontSize: 13,
+                      fontWeight: activeTab === "help-faq" ? 700 : 500,
+                      cursor: "pointer",
+                      textAlign: "left",
+                      transition: "all 0.15s ease",
+                    }}
+                    onMouseEnter={(e) => {
+                      if (activeTab !== "help-faq") {
+                        e.currentTarget.style.background = "#f8fafc";
+                        e.currentTarget.style.color = "#0f172a";
+                      }
+                    }}
+                    onMouseLeave={(e) => {
+                      if (activeTab !== "help-faq") {
+                        e.currentTarget.style.background = "transparent";
+                        e.currentTarget.style.color = "#475569";
+                      }
+                    }}
+                  >
+                    <HelpCircle size={16} color={activeTab === "help-faq" ? "#2563eb" : "#94a3b8"} />
+                    <span>Help &amp; FAQ</span>
+                  </button>
+                </div>
               </div>
             </div>
 
@@ -583,45 +614,45 @@ export default function Resources() {
                 background: "#f0f4ff",
                 border: "1px solid #dbeafe",
                 borderRadius: 18,
-                padding: "20px 16px",
+                padding: "18px 14px",
                 display: "flex",
                 flexDirection: "column",
                 alignItems: "center",
                 textAlign: "center",
-                gap: 12,
+                gap: 10,
               }}
             >
-              <span style={{ fontSize: 13.5, fontWeight: 800, color: "#1e3a8a" }}>Track. Analyze. Achieve.</span>
-              <p style={{ fontSize: 11.5, color: "#64748b", margin: 0, lineHeight: 1.4 }}>
+              <span style={{ fontSize: 13, fontWeight: 800, color: "#1e3a8a" }}>Track. Analyze. Achieve.</span>
+              <p style={{ fontSize: 11, color: "#64748b", margin: 0, lineHeight: 1.4 }}>
                 Make smarter academic decisions with GradeFlow.
               </p>
 
               <div
                 style={{
-                  width: 44,
-                  height: 44,
-                  borderRadius: 12,
+                  width: 40,
+                  height: 40,
+                  borderRadius: 10,
                   background: "#2563eb",
                   color: "#ffffff",
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
-                  boxShadow: "0 6px 14px rgba(37, 99, 235, 0.25)",
+                  boxShadow: "0 4px 12px rgba(37, 99, 235, 0.25)",
                 }}
               >
-                <GraduationCap size={24} />
+                <GraduationCap size={22} />
               </div>
 
               <button
                 onClick={() => navigate("/")}
                 style={{
                   width: "100%",
-                  padding: "9px",
+                  padding: "8px",
                   borderRadius: 8,
                   background: "#2563eb",
                   color: "#ffffff",
                   border: "none",
-                  fontSize: 12.5,
+                  fontSize: 12,
                   fontWeight: 700,
                   cursor: "pointer",
                   boxShadow: "0 2px 8px rgba(37, 99, 235, 0.25)",
