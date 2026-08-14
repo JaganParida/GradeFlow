@@ -285,7 +285,7 @@ export default function BasketDashboard({ results, studentData }) {
         className="basket-subject-row"
         style={{
           display: "grid",
-          gridTemplateColumns: showType ? "3.2fr 1fr 1.2fr 1fr 1.2fr" : "3.4fr 1fr 1.2fr 1fr",
+          gridTemplateColumns: showType ? "3fr 0.9fr 1.1fr 0.9fr 1.7fr" : "3.4fr 1fr 1.2fr 1fr",
           padding: "14px 20px",
           alignItems: "center",
           borderBottom: "1px solid #f1f5f9",
@@ -486,7 +486,7 @@ export default function BasketDashboard({ results, studentData }) {
             className="basket-grid-header"
             style={{
               display: "grid",
-              gridTemplateColumns: "3.2fr 1fr 1.2fr 1fr 1.2fr",
+              gridTemplateColumns: "3fr 0.9fr 1.1fr 0.9fr 1.7fr",
               padding: "12px 20px",
               background: "#f8fafc",
               borderBottom: "1px solid #cbd5e1",
@@ -501,7 +501,7 @@ export default function BasketDashboard({ results, studentData }) {
             <div style={{ textAlign: "center" }}>Semester</div>
             <div style={{ textAlign: "center" }}>Status</div>
             <div style={{ textAlign: "center" }}>Credits</div>
-            <div style={{ textAlign: "right" }}>Type</div>
+            <div style={{ textAlign: "right" }}>Course Type - T+P+PJ</div>
           </div>
           {syllabusList.map((syllabusSub, idx) => {
             const takenSub = data.subjects.find((s) => isMatch(s, syllabusSub));
@@ -525,7 +525,7 @@ export default function BasketDashboard({ results, studentData }) {
             className="basket-grid-header"
             style={{
               display: "grid",
-              gridTemplateColumns: "3.2fr 1fr 1.2fr 1fr 1.2fr",
+              gridTemplateColumns: "3fr 0.9fr 1.1fr 0.9fr 1.7fr",
               padding: "12px 20px",
               background: "#f8fafc",
               borderBottom: "1px solid #cbd5e1",
@@ -540,7 +540,7 @@ export default function BasketDashboard({ results, studentData }) {
             <div style={{ textAlign: "center" }}>Semester</div>
             <div style={{ textAlign: "center" }}>Status</div>
             <div style={{ textAlign: "center" }}>Credits</div>
-            <div style={{ textAlign: "right" }}>Type</div>
+            <div style={{ textAlign: "right" }}>Course Type - T+P+PJ</div>
           </div>
           {BASKET_4_SYLLABUS.map((syllabusSub, idx) => {
             const takenSub = data.subjects.find((s) => isMatch(s, syllabusSub));
