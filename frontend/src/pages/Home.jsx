@@ -544,17 +544,17 @@ export default function Home() {
             <h1
               className="gf-hero-title"
               style={{
-                fontSize: "clamp(32px, 4.4vw, 54px)",
+                fontSize: "clamp(28px, 3.8vw, 48px)",
                 fontWeight: 800,
-                lineHeight: 1.15,
+                lineHeight: 1.18,
                 color: "#0f172a",
-                letterSpacing: "-1.3px",
+                letterSpacing: "-1.1px",
                 margin: 0,
               }}
             >
-              Track Every Grade.
+              <span>Track Every <span style={{ color: "#2563eb" }}>Grade</span></span>
               <br />
-              Own Your <span style={{ color: "#2563eb" }}>Academic Future.</span>
+              <span>Own Your <span style={{ color: "#2563eb" }}>Academic Future</span></span>
             </h1>
 
             {/* Subtitle */}
