@@ -1304,6 +1304,73 @@ router.post("/student/update-grade", validateGradeUpdateInput, async (req, res) 
   }
 });
 
+// Delete individual semester result record
+router.delete("/results/:regNo/:semester", protect, async (req, res) => {
+  try {
+    const cleanRegNo = String(req.params.regNo || "").trim();
+    const semNum = Number(req.params.semester);
+
+    if (!cleanRegNo || isNaN(semNum)) {
+      return res.status(400).json({ message: "Registration number and semester number are required" });
+    }
+
+    const delRes = await SemesterResult.findOneAndDelete({
+      regNo: cleanRegNo,
+      semester: semNum,
+    });
+
+    if (!delRes) {
+      return res.status(404).json({
+        message: `No semester ${semNum} record found for student "${cleanRegNo}"`,
+      });
+    }
+
+    // Clean up corresponding ranking and internal marks for this semester
+    await Promise.all([
+      Ranking.findOneAndDelete({ regNo: cleanRegNo, semester: semNum }),
+      InternalMark.findOneAndDelete({ regNo: cleanRegNo, semester: semNum }),
+    ]);
+
+    // Fetch remaining semester results for cascading CGPA recalculation
+    const remainingResults = await SemesterResult.find({ regNo: cleanRegNo }).sort({ semester: 1 });
+
+    if (remainingResults.length > 0) {
+      for (const r of remainingResults) {
+        const sNum = Number(r.semester);
+        const metrics = calculateSemesterMetrics(r.subjects, sNum);
+        r.totalCredits = metrics.totalCredits;
+        r.creditsCleared = metrics.creditsCleared;
+        r.sgpa = metrics.sgpa;
+        r.cgpa = calculateCGPA(remainingResults, sNum);
+        r.markModified("subjects");
+        await r.save();
+      }
+      // Regenerate rankings for remaining semesters
+      const remainingSems = remainingResults.map((r) => Number(r.semester));
+      for (const s of remainingSems) {
+        await generateRankingForSemester(s);
+      }
+    } else {
+      // If student has no more semester results, remove from Student collection
+      await Student.findOneAndDelete({ regNo: cleanRegNo });
+    }
+
+    // Recompute competition rankings for the deleted semester so other students' ranks rebalance accurately
+    await generateRankingForSemester(semNum);
+
+    // Invalidate student cache globally
+    clearStudentCache();
+
+    res.json({
+      success: true,
+      message: `Semester ${semNum} record for student ${cleanRegNo} has been deleted successfully, and rankings have been recalculated.`,
+    });
+  } catch (err) {
+    console.error("Delete semester result error:", err);
+    res.status(500).json({ message: err.message || "Failed to delete semester record" });
+  }
+});
+
 // Get backlog students breakdown & leaderboard for admin
 router.get("/backlogs", validateAcademicFilters, async (req, res) => {
   try {
