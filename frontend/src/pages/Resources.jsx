@@ -1606,55 +1606,180 @@ export default function Resources() {
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -15 }}
                 transition={{ duration: 0.28, ease: "easeOut" }}
-                style={{ display: "flex", flexDirection: "column", gap: isMobile ? 18 : 24 }}
+                style={{ display: "flex", flexDirection: "column", gap: isMobile ? 14 : 24 }}
               >
-                <div style={{ background: "#ffffff", border: "1px solid #f1f5f9", borderRadius: 20, padding: isMobile ? "20px 16px" : "32px", boxShadow: "0 4px 16px rgba(0,0,0,0.02)" }}>
-                  <h2 style={{ fontSize: isMobile ? 20 : 24, fontWeight: 800, color: "#0f172a", margin: "0 0 6px 0" }}>
+                <div
+                  style={{
+                    background: "#ffffff",
+                    border: "1px solid #e2e8f0",
+                    borderRadius: isMobile ? 16 : 20,
+                    padding: isMobile ? "16px 14px" : "32px",
+                    boxShadow: "0 1px 3px rgba(0,0,0,0.03)",
+                  }}
+                >
+                  <h2 style={{ fontSize: isMobile ? 18 : 24, fontWeight: 800, color: "#0f172a", margin: "0 0 4px 0", letterSpacing: "-0.3px" }}>
                     Live Academic Health Meter
                   </h2>
-                  <p style={{ fontSize: 13.5, color: "#64748b", margin: "0 0 24px 0" }}>
+                  <p style={{ fontSize: isMobile ? 12 : 13.5, color: "#64748b", margin: "0 0 20px 0", lineHeight: 1.4 }}>
                     Adjust your metrics below to see your real-time computed health index (0 to 100 points).
                   </p>
 
-                  <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1.2fr 1fr", gap: isMobile ? 20 : 32, alignItems: "center" }}>
+                  <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1.2fr 1fr", gap: isMobile ? 18 : 32, alignItems: "center" }}>
                     {/* Sliders Input */}
-                    <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
-                      <div>
-                        <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6, flexWrap: "wrap", gap: 4 }}>
-                          <span style={{ fontSize: 13.5, fontWeight: 700, color: "#0f172a" }}>Cumulative CGPA: {healthCgpa}</span>
-                          <span style={{ fontSize: 11.5, color: "#8b5cf6", fontWeight: 700 }}>Weight: 50 pts (CGPA × 5)</span>
+                    <div style={{ display: "flex", flexDirection: "column", gap: isMobile ? 14 : 18 }}>
+                      {/* Slider 1: CGPA */}
+                      <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
+                          <div style={{ display: "flex", alignItems: "center", gap: 6, minWidth: 0 }}>
+                            <span style={{ fontSize: isMobile ? 12.5 : 13.5, fontWeight: 800, color: "#0f172a", whiteSpace: "nowrap" }}>
+                              Cumulative CGPA
+                            </span>
+                            <span
+                              style={{
+                                fontSize: isMobile ? 12 : 13,
+                                fontWeight: 800,
+                                color: "#8b5cf6",
+                                background: "#8b5cf615",
+                                border: "1px solid #8b5cf625",
+                                padding: "1px 7px",
+                                borderRadius: 6,
+                                fontFamily: "'Space Mono', monospace",
+                                minWidth: 32,
+                                textAlign: "center",
+                              }}
+                            >
+                              {Number(healthCgpa).toFixed(1)}
+                            </span>
+                          </div>
+                          <span
+                            style={{
+                              fontSize: isMobile ? 10.5 : 11.5,
+                              fontWeight: 700,
+                              color: "#8b5cf6",
+                              background: "#f5f3ff",
+                              border: "1px solid #ede9fe",
+                              padding: "2px 7px",
+                              borderRadius: 6,
+                              whiteSpace: "nowrap",
+                              flexShrink: 0,
+                            }}
+                          >
+                            Max 50 pts (CGPA × 5)
+                          </span>
                         </div>
                         <input
                           type="range"
                           min="0"
                           max="10"
-                          step="0.05"
+                          step="0.1"
                           value={healthCgpa}
                           onChange={(e) => setHealthCgpa(Number(e.target.value))}
-                          style={{ width: "100%", accentColor: "#8b5cf6", height: 6 }}
+                          style={{
+                            width: "100%",
+                            accentColor: "#8b5cf6",
+                            height: 6,
+                            cursor: "pointer",
+                            touchAction: "pan-x",
+                          }}
                         />
                       </div>
 
-                      <div>
-                        <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6, flexWrap: "wrap", gap: 4 }}>
-                          <span style={{ fontSize: 13.5, fontWeight: 700, color: "#0f172a" }}>Latest Semester SGPA: {healthSgpa}</span>
-                          <span style={{ fontSize: 11.5, color: "#2563eb", fontWeight: 700 }}>Weight: 20 pts (SGPA × 2)</span>
+                      {/* Slider 2: SGPA */}
+                      <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
+                          <div style={{ display: "flex", alignItems: "center", gap: 6, minWidth: 0 }}>
+                            <span style={{ fontSize: isMobile ? 12.5 : 13.5, fontWeight: 800, color: "#0f172a", whiteSpace: "nowrap" }}>
+                              Latest SGPA
+                            </span>
+                            <span
+                              style={{
+                                fontSize: isMobile ? 12 : 13,
+                                fontWeight: 800,
+                                color: "#2563eb",
+                                background: "#2563eb15",
+                                border: "1px solid #2563eb25",
+                                padding: "1px 7px",
+                                borderRadius: 6,
+                                fontFamily: "'Space Mono', monospace",
+                                minWidth: 32,
+                                textAlign: "center",
+                              }}
+                            >
+                              {Number(healthSgpa).toFixed(1)}
+                            </span>
+                          </div>
+                          <span
+                            style={{
+                              fontSize: isMobile ? 10.5 : 11.5,
+                              fontWeight: 700,
+                              color: "#2563eb",
+                              background: "#eff6ff",
+                              border: "1px solid #dbeafe",
+                              padding: "2px 7px",
+                              borderRadius: 6,
+                              whiteSpace: "nowrap",
+                              flexShrink: 0,
+                            }}
+                          >
+                            Max 20 pts (SGPA × 2)
+                          </span>
                         </div>
                         <input
                           type="range"
                           min="0"
                           max="10"
-                          step="0.05"
+                          step="0.1"
                           value={healthSgpa}
                           onChange={(e) => setHealthSgpa(Number(e.target.value))}
-                          style={{ width: "100%", accentColor: "#2563eb", height: 6 }}
+                          style={{
+                            width: "100%",
+                            accentColor: "#2563eb",
+                            height: 6,
+                            cursor: "pointer",
+                            touchAction: "pan-x",
+                          }}
                         />
                       </div>
 
-                      <div>
-                        <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6, flexWrap: "wrap", gap: 4 }}>
-                          <span style={{ fontSize: 13.5, fontWeight: 700, color: "#0f172a" }}>Active Backlogs: {healthBacklogs}</span>
-                          <span style={{ fontSize: 11.5, color: "#ef4444", fontWeight: 700 }}>Weight: 20 - (Count × 5)</span>
+                      {/* Slider 3: Backlogs */}
+                      <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
+                          <div style={{ display: "flex", alignItems: "center", gap: 6, minWidth: 0 }}>
+                            <span style={{ fontSize: isMobile ? 12.5 : 13.5, fontWeight: 800, color: "#0f172a", whiteSpace: "nowrap" }}>
+                              Active Backlogs
+                            </span>
+                            <span
+                              style={{
+                                fontSize: isMobile ? 12 : 13,
+                                fontWeight: 800,
+                                color: "#ef4444",
+                                background: "#ef444415",
+                                border: "1px solid #ef444425",
+                                padding: "1px 7px",
+                                borderRadius: 6,
+                                fontFamily: "'Space Mono', monospace",
+                                minWidth: 26,
+                                textAlign: "center",
+                              }}
+                            >
+                              {healthBacklogs}
+                            </span>
+                          </div>
+                          <span
+                            style={{
+                              fontSize: isMobile ? 10.5 : 11.5,
+                              fontWeight: 700,
+                              color: "#ef4444",
+                              background: "#fef2f2",
+                              border: "1px solid #fee2e2",
+                              padding: "2px 7px",
+                              borderRadius: 6,
+                              whiteSpace: "nowrap",
+                              flexShrink: 0,
+                            }}
+                          >
+                            20 - (Count × 5)
+                          </span>
                         </div>
                         <input
                           type="range"
@@ -1663,7 +1788,13 @@ export default function Resources() {
                           step="1"
                           value={healthBacklogs}
                           onChange={(e) => setHealthBacklogs(Number(e.target.value))}
-                          style={{ width: "100%", accentColor: "#ef4444", height: 6 }}
+                          style={{
+                            width: "100%",
+                            accentColor: "#ef4444",
+                            height: 6,
+                            cursor: "pointer",
+                            touchAction: "pan-x",
+                          }}
                         />
                       </div>
                     </div>
@@ -1672,8 +1803,8 @@ export default function Resources() {
                     <div
                       style={{
                         background: "linear-gradient(135deg, #f5f3ff 0%, #eff6ff 100%)",
-                        borderRadius: 20,
-                        padding: isMobile ? "24px 16px" : "32px",
+                        borderRadius: 16,
+                        padding: isMobile ? "20px 16px" : "32px",
                         display: "flex",
                         flexDirection: "column",
                         alignItems: "center",
@@ -1682,11 +1813,11 @@ export default function Resources() {
                         border: "1px solid #ddd6fe",
                       }}
                     >
-                      <div style={{ fontSize: 11.5, fontWeight: 800, color: "#6d28d9", textTransform: "uppercase", letterSpacing: "1px" }}>
+                      <div style={{ fontSize: 11, fontWeight: 800, color: "#6d28d9", textTransform: "uppercase", letterSpacing: "1px" }}>
                         Health Score
                       </div>
-                      <div style={{ fontSize: isMobile ? 44 : 54, fontWeight: 800, color: "#0f172a", lineHeight: 1.1, margin: "6px 0" }}>
-                        {calculateHealthScore()} <span style={{ fontSize: 18, color: "#94a3b8" }}>/100</span>
+                      <div style={{ fontSize: isMobile ? 42 : 54, fontWeight: 800, color: "#0f172a", lineHeight: 1.1, margin: "6px 0" }}>
+                        {calculateHealthScore()} <span style={{ fontSize: 16, color: "#94a3b8" }}>/100</span>
                       </div>
                       <div
                         style={{
