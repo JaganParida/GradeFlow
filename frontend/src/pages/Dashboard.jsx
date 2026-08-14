@@ -293,6 +293,7 @@ export default function Dashboard() {
   const [isBacklogsListExpanded, setIsBacklogsListExpanded] = useState(false);
   const [isMobile, setIsMobile] = useState(window.innerWidth < 1024);
   const [internalMarks, setInternalMarks] = useState(null);
+  const [isInternalLoading, setIsInternalLoading] = useState(false);
   const [internalPage, setInternalPage] = useState(1);
   const [semesterRanking, setSemesterRanking] = useState(null);
   const semCacheRef = useRef({});
@@ -378,6 +379,8 @@ export default function Dashboard() {
   }, [studentData]);
 
   const loadSemester = async (sem) => {
+    if (!sem) return;
+
     // 1. Immediately update with local semester result so there is zero UI delay, zero hanging, zero lag
     const local = studentData?.results?.find((r) => r.semester === sem);
     if (local) {
@@ -389,12 +392,15 @@ export default function Dashboard() {
       const { internal, ranking } = semCacheRef.current[sem];
       setInternalMarks(internal);
       setSemesterRanking(ranking);
+      setIsInternalLoading(false);
       return;
     }
 
     if (sem === studentData?.latestSemester && studentData?.ranking) {
       setSemesterRanking(studentData.ranking);
     }
+
+    setIsInternalLoading(true);
 
     try {
       const [semRes, imRes, rankRes] = await Promise.allSettled([
@@ -446,8 +452,19 @@ export default function Dashboard() {
       };
     } catch {
       // Fallbacks already in place
+    } finally {
+      setIsInternalLoading(false);
     }
   };
+
+  // Re-fetch or ensure internal marks are loaded if user switches to internal view
+  useEffect(() => {
+    if (tab === "internal" && selectedSem) {
+      if (!internalMarks && !semCacheRef.current[selectedSem]?.internal) {
+        loadSemester(selectedSem);
+      }
+    }
+  }, [tab, selectedSem]);
 
   if (loading) {
     return (
@@ -1904,67 +1921,114 @@ export default function Dashboard() {
           {/* ══════════════════════════════════════════════════════════
               DYNAMIC ACTIVE TAB VIEW
           ══════════════════════════════════════════════════════════ */}
-          {!semResult ? (
-            <ReportCardSkeleton />
-          ) : (
-            <AnimatePresence mode="wait">
-              <motion.div
-                key={tab}
-                initial={{ opacity: 0.95 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0.95 }}
-                transition={{ duration: 0.12 }}
-                style={{ width: "100%", minWidth: 0 }}
-              >
-                {/* Tab 1: Semester Result (GradeSheet) */}
-                {tab === "result" && (
-                  <div style={{ width: "100%", minWidth: 0 }}>
-                    <GradeSheet result={semResult} studentData={studentData} highlightedSubject={highlightedSubject} />
-                  </div>
-                )}
+          {(() => {
+            const currentResult =
+              semResult ||
+              studentData?.results?.find((r) => r.semester === selectedSem) ||
+              studentData?.results?.[studentData.results.length - 1];
 
-                {/* Tab 2: Internal Marks */}
-                {tab === "internal" && (
-                  <div
-                    style={{
-                      background: "#ffffff",
-                      border: "1px solid #cbd5e1",
-                      borderRadius: 16,
-                      padding: isMobile ? "14px 14px" : "24px 24px",
-                      boxShadow: "0 1px 3px rgba(0, 0, 0, 0.05), 0 4px 14px rgba(15, 23, 42, 0.03)",
-                    }}
-                  >
-                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: isMobile ? 12 : 20, flexWrap: "wrap", gap: 10 }}>
-                      <div>
-                        <h3 style={{ fontSize: isMobile ? 15 : 17, fontWeight: 800, color: "#0f172a", margin: "0 0 2px 0" }}>
-                          Internal Assessment Marks
-                        </h3>
-                        <p style={{ color: "#64748b", fontSize: isMobile ? 11.5 : 13, margin: 0 }}>
-                          Semester {internalMarks?.semester || selectedSem} · {internalSubjects.length} Subjects
-                        </p>
-                      </div>
-                      <button
-                        onClick={() => window.print()}
+            if (!currentResult && !studentData?.results?.length) {
+              return <ReportCardSkeleton />;
+            }
+
+            return (
+              <AnimatePresence mode="wait">
+                <motion.div
+                  key={tab}
+                  initial={{ opacity: 0.95 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0.95 }}
+                  transition={{ duration: 0.12 }}
+                  style={{ width: "100%", minWidth: 0 }}
+                >
+                  {/* Tab 1: Semester Result (GradeSheet) */}
+                  {tab === "result" && (
+                    <div style={{ width: "100%", minWidth: 0 }}>
+                      <GradeSheet
+                        result={currentResult}
+                        studentData={studentData}
+                        highlightedSubject={highlightedSubject}
+                      />
+                    </div>
+                  )}
+
+                  {/* Tab 2: Internal Marks */}
+                  {tab === "internal" && (
+                    <div
+                      style={{
+                        background: "#ffffff",
+                        border: "1px solid #cbd5e1",
+                        borderRadius: 16,
+                        padding: isMobile ? "14px 14px" : "24px 24px",
+                        boxShadow:
+                          "0 1px 3px rgba(0, 0, 0, 0.05), 0 4px 14px rgba(15, 23, 42, 0.03)",
+                      }}
+                    >
+                      <div
                         style={{
-                          display: "inline-flex",
+                          display: "flex",
                           alignItems: "center",
-                          gap: 5,
-                          padding: isMobile ? "6px 12px" : "8px 16px",
-                          borderRadius: 8,
-                          border: "1px solid #cbd5e1",
-                          background: "#ffffff",
-                          color: "#334155",
-                          fontSize: isMobile ? 12 : 13,
-                          fontWeight: 600,
-                          cursor: "pointer",
-                          fontFamily: "'DM Sans', sans-serif",
+                          justifyContent: "space-between",
+                          marginBottom: isMobile ? 12 : 20,
+                          flexWrap: "wrap",
+                          gap: 10,
                         }}
                       >
-                        <Printer size={14} /> Print
-                      </button>
-                    </div>
+                        <div>
+                          <h3
+                            style={{
+                              fontSize: isMobile ? 15 : 17,
+                              fontWeight: 800,
+                              color: "#0f172a",
+                              margin: "0 0 2px 0",
+                            }}
+                          >
+                            Internal Assessment Marks
+                          </h3>
+                          <p style={{ color: "#64748b", fontSize: isMobile ? 11.5 : 13, margin: 0 }}>
+                            Semester {internalMarks?.semester || selectedSem} ·{" "}
+                            {internalSubjects.length} Subjects
+                          </p>
+                        </div>
+                        <button
+                          onClick={() => window.print()}
+                          style={{
+                            display: "inline-flex",
+                            alignItems: "center",
+                            gap: 5,
+                            padding: isMobile ? "6px 12px" : "8px 16px",
+                            borderRadius: 8,
+                            border: "1px solid #cbd5e1",
+                            background: "#ffffff",
+                            color: "#334155",
+                            fontSize: isMobile ? 12 : 13,
+                            fontWeight: 600,
+                            cursor: "pointer",
+                            fontFamily: "'DM Sans', sans-serif",
+                          }}
+                        >
+                          <Printer size={14} /> Print
+                        </button>
+                      </div>
 
-                    {internalMarks && internalSubjects.length > 0 ? (
+                      {isInternalLoading ? (
+                        <div
+                          style={{
+                            display: "flex",
+                            flexDirection: "column",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            minHeight: 200,
+                            gap: 10,
+                            padding: 32,
+                          }}
+                        >
+                          <Loader2 size={28} className="animate-spin" color="#2563eb" />
+                          <span style={{ fontSize: 13, color: "#64748b", fontWeight: 600 }}>
+                            Loading internal assessment marks...
+                          </span>
+                        </div>
+                      ) : internalMarks && internalSubjects.length > 0 ? (
                       (() => {
                         const INTERNAL_PER_PAGE = 6;
                         const totalInternalPages = Math.ceil(internalSubjects.length / INTERNAL_PER_PAGE) || 1;
@@ -2636,8 +2700,9 @@ export default function Dashboard() {
                 {tab === "predictor" && <TargetPredictor />}
               </motion.div>
             </AnimatePresence>
-          )}
-        </main>
+          );
+        })()}
+      </main>
       </div>
 
       {/* Hidden container for Batch PDF Export */}
