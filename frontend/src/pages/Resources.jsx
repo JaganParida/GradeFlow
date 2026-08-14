@@ -390,10 +390,10 @@ export default function Resources() {
         style={{
           maxWidth: 1380,
           margin: "0 auto",
-          padding: isMobile ? "12px 14px 36px" : "28px 24px 70px",
+          padding: isMobile ? "12px 14px 36px" : "24px 24px 70px",
           display: "grid",
           gridTemplateColumns: isMobile ? "minmax(0, 1fr)" : "270px minmax(0, 1fr)",
-          gap: isMobile ? 12 : 32,
+          gap: isMobile ? 12 : 28,
           alignItems: "start",
           width: "100%",
           boxSizing: "border-box",
@@ -407,12 +407,14 @@ export default function Resources() {
           <aside
             style={{
               position: "sticky",
-              top: 86,
+              top: 80,
               display: "flex",
               flexDirection: "column",
               gap: 16,
               width: "100%",
               boxSizing: "border-box",
+              margin: 0,
+              padding: 0,
             }}
           >
             {/* Unified Left Sidebar Card Container */}
@@ -428,6 +430,7 @@ export default function Resources() {
                 gap: 18,
                 boxSizing: "border-box",
                 width: "100%",
+                margin: 0,
               }}
             >
               {/* Group 1: ACADEMIC TOOLS */}
@@ -675,10 +678,10 @@ export default function Resources() {
             {activeTab === "all-overview" && (
               <motion.div
                 key="all-overview"
-                initial={{ opacity: 0, y: 15 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -15 }}
-                transition={{ duration: 0.28, ease: "easeOut" }}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.18, ease: "easeOut" }}
                 style={{
                   background: "#ffffff",
                   border: "1px solid #f1f5f9",
@@ -1347,10 +1350,10 @@ export default function Resources() {
             {activeTab === "grading-scale" && (
               <motion.div
                 key="grading-scale"
-                initial={{ opacity: 0, y: 15 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -15 }}
-                transition={{ duration: 0.28, ease: "easeOut" }}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.18, ease: "easeOut" }}
                 style={{
                   background: "#ffffff",
                   border: "1px solid #f1f5f9",
@@ -1647,10 +1650,10 @@ export default function Resources() {
             {activeTab === "academic-health" && (
               <motion.div
                 key="academic-health"
-                initial={{ opacity: 0, y: 15 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -15 }}
-                transition={{ duration: 0.28, ease: "easeOut" }}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.18, ease: "easeOut" }}
                 style={{
                   background: "#ffffff",
                   border: "1px solid #f1f5f9",
@@ -1891,10 +1894,10 @@ export default function Resources() {
             {activeTab === "badges-tab" && (
               <motion.div
                 key="badges-tab"
-                initial={{ opacity: 0, y: 15 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -15 }}
-                transition={{ duration: 0.28, ease: "easeOut" }}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.18, ease: "easeOut" }}
                 style={{ background: "#ffffff", border: "1px solid #f1f5f9", borderRadius: 20, padding: isMobile ? "20px 14px" : "32px", boxShadow: "0 4px 16px rgba(0,0,0,0.02)" }}
               >
                 <h2 style={{ fontSize: isMobile ? 20 : 24, fontWeight: 800, color: "#0f172a", margin: "0 0 6px 0" }}>
@@ -1945,10 +1948,10 @@ export default function Resources() {
             {activeTab === "target-predictor" && (
               <motion.div
                 key="target-predictor"
-                initial={{ opacity: 0, y: 15 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -15 }}
-                transition={{ duration: 0.28, ease: "easeOut" }}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.18, ease: "easeOut" }}
                 style={{ background: "#ffffff", border: "1px solid #f1f5f9", borderRadius: 20, padding: isMobile ? "20px 16px" : "32px", boxShadow: "0 4px 16px rgba(0,0,0,0.02)" }}
               >
                 <h2 style={{ fontSize: isMobile ? 20 : 24, fontWeight: 800, color: "#0f172a", margin: "0 0 6px 0" }}>
@@ -2017,10 +2020,10 @@ export default function Resources() {
             {activeTab === "sgpa-calc" && (
               <motion.div
                 key="sgpa-calc"
-                initial={{ opacity: 0, y: 15 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -15 }}
-                transition={{ duration: 0.28, ease: "easeOut" }}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.18, ease: "easeOut" }}
                 style={{ background: "#ffffff", border: "1px solid #f1f5f9", borderRadius: 20, padding: isMobile ? "18px 14px" : "32px", boxShadow: "0 4px 16px rgba(0,0,0,0.02)" }}
               >
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: isMobile ? "flex-start" : "center", marginBottom: 20, flexDirection: isMobile ? "column" : "row", gap: 12 }}>
@@ -2120,10 +2123,10 @@ export default function Resources() {
             {activeTab === "cgpa-calc" && (
               <motion.div
                 key="cgpa-calc"
-                initial={{ opacity: 0, y: 15 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -15 }}
-                transition={{ duration: 0.28, ease: "easeOut" }}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.18, ease: "easeOut" }}
                 style={{ background: "#ffffff", border: "1px solid #f1f5f9", borderRadius: 20, padding: isMobile ? "18px 14px" : "32px", boxShadow: "0 4px 16px rgba(0,0,0,0.02)" }}
               >
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: isMobile ? "flex-start" : "center", marginBottom: 20, flexDirection: isMobile ? "column" : "row", gap: 12 }}>
@@ -2216,10 +2219,10 @@ export default function Resources() {
             {activeTab === "academic-report" && (
               <motion.div
                 key="academic-report"
-                initial={{ opacity: 0, y: 15 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -15 }}
-                transition={{ duration: 0.28, ease: "easeOut" }}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.18, ease: "easeOut" }}
                 style={{ background: "#ffffff", border: "1px solid #f1f5f9", borderRadius: 20, padding: isMobile ? "20px 16px" : "32px", boxShadow: "0 4px 16px rgba(0,0,0,0.02)" }}
               >
                 <h2 style={{ fontSize: isMobile ? 20 : 22, fontWeight: 800, color: "#0f172a", margin: "0 0 6px 0" }}>
@@ -2262,10 +2265,10 @@ export default function Resources() {
             {activeTab === "help-faq" && (
               <motion.div
                 key="help-faq"
-                initial={{ opacity: 0, y: 15 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -15 }}
-                transition={{ duration: 0.28, ease: "easeOut" }}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.18, ease: "easeOut" }}
                 style={{ background: "#ffffff", border: "1px solid #f1f5f9", borderRadius: 20, padding: isMobile ? "20px 14px" : "32px", boxShadow: "0 4px 16px rgba(0,0,0,0.02)" }}
               >
                 <h2 style={{ fontSize: isMobile ? 20 : 24, fontWeight: 800, color: "#0f172a", margin: "0 0 6px 0" }}>Frequently Asked Questions</h2>
