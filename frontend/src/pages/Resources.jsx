@@ -648,7 +648,18 @@ export default function Resources() {
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -15 }}
                 transition={{ duration: 0.28, ease: "easeOut" }}
-                style={{ display: "flex", flexDirection: "column", gap: isMobile ? 18 : 24 }}
+                style={{
+                  background: "#ffffff",
+                  border: "1px solid #f1f5f9",
+                  borderRadius: isMobile ? 16 : 20,
+                  padding: isMobile ? "20px 14px" : "32px",
+                  boxShadow: "0 4px 16px rgba(0,0,0,0.02)",
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: isMobile ? 18 : 24,
+                  width: "100%",
+                  boxSizing: "border-box",
+                }}
               >
                 {/* Header Title with Verified Blue Badge */}
                 <div style={{ display: "flex", flexDirection: "column", gap: 3, marginBottom: isMobile ? 2 : 6 }}>
@@ -1609,23 +1620,27 @@ export default function Resources() {
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -15 }}
                 transition={{ duration: 0.28, ease: "easeOut" }}
-                style={{ display: "flex", flexDirection: "column", gap: isMobile ? 14 : 24 }}
+                style={{
+                  background: "#ffffff",
+                  border: "1px solid #f1f5f9",
+                  borderRadius: isMobile ? 16 : 20,
+                  padding: isMobile ? "20px 14px" : "32px",
+                  boxShadow: "0 4px 16px rgba(0,0,0,0.02)",
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: isMobile ? 16 : 20,
+                  width: "100%",
+                  boxSizing: "border-box",
+                }}
               >
-                <div
-                  style={{
-                    background: "#ffffff",
-                    border: "1px solid #e2e8f0",
-                    borderRadius: isMobile ? 16 : 20,
-                    padding: isMobile ? "16px 14px" : "32px",
-                    boxShadow: "0 1px 3px rgba(0,0,0,0.03)",
-                  }}
-                >
+                <div>
                   <h2 style={{ fontSize: isMobile ? 18 : 24, fontWeight: 800, color: "#0f172a", margin: "0 0 4px 0", letterSpacing: "-0.3px" }}>
                     Live Academic Health Meter
                   </h2>
                   <p style={{ fontSize: isMobile ? 12 : 13.5, color: "#64748b", margin: "0 0 20px 0", lineHeight: 1.4 }}>
                     Adjust your metrics below to see your real-time computed health index (0 to 100 points).
                   </p>
+                </div>
 
                   <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1.2fr 1fr", gap: isMobile ? 18 : 32, alignItems: "center" }}>
                     {/* Sliders Input */}
@@ -1836,7 +1851,6 @@ export default function Resources() {
                       </div>
                     </div>
                   </div>
-                </div>
               </motion.div>
             )}
 
