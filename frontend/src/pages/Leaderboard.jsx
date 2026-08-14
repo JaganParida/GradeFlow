@@ -178,17 +178,6 @@ export default function Leaderboard() {
     fetchRankings(f);
   };
 
-  // Debounced Live Search (300ms) for responsive search experience
-  useEffect(() => {
-    const handler = setTimeout(() => {
-      if (searchInput !== filters.search) {
-        handleFilter("search", searchInput, searchInput.trim() ? 50 : 10);
-      }
-    }, 300);
-
-    return () => clearTimeout(handler);
-  }, [searchInput]);
-
   function handleFilter(key, val, nextShowCount = null) {
     const f = { ...filters, [key]: val };
     if (key === "branch" && val !== "CSE") f.section = "";
@@ -656,12 +645,7 @@ export default function Leaderboard() {
                   disabled={loading}
                   placeholder="Search name or reg no..."
                   value={searchInput}
-                  onChange={(e) => {
-                    setSearchInput(e.target.value);
-                    if (e.target.value.trim() === "") {
-                      handleFilter("search", "");
-                    }
-                  }}
+                  onChange={(e) => setSearchInput(e.target.value)}
                   style={{
                     width: "100%",
                     boxSizing: "border-box",
