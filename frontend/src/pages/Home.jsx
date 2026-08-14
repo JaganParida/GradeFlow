@@ -716,10 +716,8 @@ export default function Home() {
               </button>
 
               <button
-                onClick={() => {
-                  const el = document.getElementById("quick-actions-section");
-                  if (el) el.scrollIntoView({ behavior: "smooth" });
-                }}
+                type="button"
+                onClick={() => navigate("/resources")}
                 className="gf-btn-secondary"
                 style={{
                   display: "inline-flex",

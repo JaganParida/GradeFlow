@@ -86,7 +86,9 @@ export default function BasketDashboard({ results, studentData }) {
   const [isGenerating, setIsGenerating] = useState(false);
   const [generatingType, setGeneratingType] = useState("");
   const [showDownloadMenu, setShowDownloadMenu] = useState(false);
-  const [isMobile, setIsMobile] = useState(() => (typeof window !== "undefined" ? window.innerWidth < 768 : false));
+  const [isMobile, setIsMobile] = useState(() =>
+    typeof window !== "undefined" ? window.innerWidth < 768 : false,
+  );
   const downloadMenuRef = useRef(null);
 
   useEffect(() => {
@@ -97,7 +99,10 @@ export default function BasketDashboard({ results, studentData }) {
 
   useEffect(() => {
     const handleClickOutside = (event) => {
-      if (downloadMenuRef.current && !downloadMenuRef.current.contains(event.target)) {
+      if (
+        downloadMenuRef.current &&
+        !downloadMenuRef.current.contains(event.target)
+      ) {
         setShowDownloadMenu(false);
       }
     };
@@ -118,7 +123,9 @@ export default function BasketDashboard({ results, studentData }) {
     baskets.B4.credits +
     baskets.B5.credits;
   const targetTotal = 160;
-  const completionPercentage = Math.round(Math.min(100, (totalEarned / targetTotal) * 100));
+  const completionPercentage = Math.round(
+    Math.min(100, (totalEarned / targetTotal) * 100),
+  );
 
   const honoursCredits = Math.max(0, baskets.B5.credits - baskets.B5.target);
   const honoursTarget = 20;
@@ -126,7 +133,7 @@ export default function BasketDashboard({ results, studentData }) {
 
   const totalSubjectsCount = Object.values(baskets).reduce(
     (acc, curr) => acc + (curr.subjects ? curr.subjects.length : 0),
-    0
+    0,
   );
 
   const handleExport = async (type) => {
@@ -146,11 +153,16 @@ export default function BasketDashboard({ results, studentData }) {
   };
 
   const renderSubjectRow = (sub, idx, isPending = false, showType = false) => {
-    const isBacklog = !isPending && ["F", "R", "M", "S", "I"].includes(sub.grade);
+    const isBacklog =
+      !isPending && ["F", "R", "M", "S", "I"].includes(sub.grade);
     const isPassed = !isPending && !isBacklog;
     const gradeStyle = isPending
       ? { bg: "#f1f5f9", text: "#64748b", border: "#cbd5e1" }
-      : (GRADE_COLORS[sub.grade] || { bg: "#f8fafc", text: "#334155", border: "#e2e8f0" });
+      : GRADE_COLORS[sub.grade] || {
+          bg: "#f8fafc",
+          text: "#334155",
+          border: "#e2e8f0",
+        };
 
     if (isMobile) {
       return (
@@ -162,11 +174,22 @@ export default function BasketDashboard({ results, studentData }) {
             gap: 8,
             padding: "12px 14px",
             borderBottom: "1px solid #f1f5f9",
-            background: isBacklog ? "#fef2f2" : isPassed ? "#ffffff" : "#fafafa",
+            background: isBacklog
+              ? "#fef2f2"
+              : isPassed
+                ? "#ffffff"
+                : "#fafafa",
           }}
         >
           {/* Top Row: Subject Name + Grade / Status */}
-          <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 10 }}>
+          <div
+            style={{
+              display: "flex",
+              alignItems: "flex-start",
+              justifyContent: "space-between",
+              gap: 10,
+            }}
+          >
             <span
               style={{
                 fontSize: 13,
@@ -214,7 +237,15 @@ export default function BasketDashboard({ results, studentData }) {
           </div>
 
           {/* Bottom Row: Code, Sem, Credits, Type */}
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 6 }}>
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              flexWrap: "wrap",
+              gap: 6,
+            }}
+          >
             <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
               {sub.subCode && (
                 <span
@@ -285,7 +316,9 @@ export default function BasketDashboard({ results, studentData }) {
         className="basket-subject-row"
         style={{
           display: "grid",
-          gridTemplateColumns: showType ? "3fr 0.9fr 1.1fr 0.9fr 1.7fr" : "3.4fr 1fr 1.2fr 1fr",
+          gridTemplateColumns: showType
+            ? "3fr 0.9fr 1.1fr 0.9fr 1.7fr"
+            : "3.4fr 1fr 1.2fr 1fr",
           padding: "14px 20px",
           alignItems: "center",
           borderBottom: "1px solid #f1f5f9",
@@ -294,7 +327,15 @@ export default function BasketDashboard({ results, studentData }) {
         }}
       >
         {/* Subject Name & Code */}
-        <div style={{ display: "flex", flexDirection: "column", gap: 4, minWidth: 0, paddingRight: 12 }}>
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            gap: 4,
+            minWidth: 0,
+            paddingRight: 12,
+          }}
+        >
           <span
             style={{
               fontSize: 13,
@@ -464,9 +505,18 @@ export default function BasketDashboard({ results, studentData }) {
             <div style={{ textAlign: "center" }}>Credits</div>
           </div>
           {data.subjects.length > 0 ? (
-            data.subjects.map((sub, idx) => renderSubjectRow(sub, "ex-" + idx, false, false))
+            data.subjects.map((sub, idx) =>
+              renderSubjectRow(sub, "ex-" + idx, false, false),
+            )
           ) : (
-            <div style={{ padding: "32px 20px", textAlign: "center", color: "#64748b", fontSize: 13 }}>
+            <div
+              style={{
+                padding: "32px 20px",
+                textAlign: "center",
+                color: "#64748b",
+                fontSize: 13,
+              }}
+            >
               No additional elective subjects taken yet.
             </div>
           )}
@@ -501,16 +551,27 @@ export default function BasketDashboard({ results, studentData }) {
             <div style={{ textAlign: "center" }}>Semester</div>
             <div style={{ textAlign: "center" }}>Status</div>
             <div style={{ textAlign: "center" }}>Credits</div>
-            <div style={{ textAlign: "right" }}>Course Type - T+P+PJ</div>
+            <div style={{ textAlign: "right" }}>Course Type (T+P+PJ)</div>
           </div>
           {syllabusList.map((syllabusSub, idx) => {
             const takenSub = data.subjects.find((s) => isMatch(s, syllabusSub));
-            if (takenSub) return renderSubjectRow({ ...takenSub, type: syllabusSub.type || takenSub.type }, idx, false, true);
+            if (takenSub)
+              return renderSubjectRow(
+                { ...takenSub, type: syllabusSub.type || takenSub.type },
+                idx,
+                false,
+                true,
+              );
             return renderSubjectRow(syllabusSub, idx, true, true);
           })}
           {data.subjects
-            .filter((s) => !syllabusList.some((syllabusSub) => isMatch(s, syllabusSub)))
-            .map((extraSub, idx) => renderSubjectRow(extraSub, "extra-" + idx, false, true))}
+            .filter(
+              (s) =>
+                !syllabusList.some((syllabusSub) => isMatch(s, syllabusSub)),
+            )
+            .map((extraSub, idx) =>
+              renderSubjectRow(extraSub, "extra-" + idx, false, true),
+            )}
         </div>
       );
     }
@@ -544,7 +605,13 @@ export default function BasketDashboard({ results, studentData }) {
           </div>
           {BASKET_4_SYLLABUS.map((syllabusSub, idx) => {
             const takenSub = data.subjects.find((s) => isMatch(s, syllabusSub));
-            if (takenSub) return renderSubjectRow({ ...takenSub, type: syllabusSub.type || takenSub.type }, idx, false, true);
+            if (takenSub)
+              return renderSubjectRow(
+                { ...takenSub, type: syllabusSub.type || takenSub.type },
+                idx,
+                false,
+                true,
+              );
             return renderSubjectRow(
               {
                 subName: syllabusSub.subName,
@@ -554,16 +621,32 @@ export default function BasketDashboard({ results, studentData }) {
               },
               idx,
               true,
-              true
+              true,
             );
           })}
           {b4ExtraSubjects.length > 0 && (
             <div style={{ padding: "16px 20px" }}>
-              <div style={{ fontSize: 12, fontWeight: 700, color: "#334155", marginBottom: 10, textTransform: "uppercase" }}>
+              <div
+                style={{
+                  fontSize: 12,
+                  fontWeight: 700,
+                  color: "#334155",
+                  marginBottom: 10,
+                  textTransform: "uppercase",
+                }}
+              >
                 Additional B4 Core Electives
               </div>
-              <div style={{ border: "1px solid #cbd5e1", borderRadius: 10, overflow: "hidden" }}>
-                {b4ExtraSubjects.map((sub, idx) => renderSubjectRow(sub, "extra-" + idx, false, true))}
+              <div
+                style={{
+                  border: "1px solid #cbd5e1",
+                  borderRadius: 10,
+                  overflow: "hidden",
+                }}
+              >
+                {b4ExtraSubjects.map((sub, idx) =>
+                  renderSubjectRow(sub, "extra-" + idx, false, true),
+                )}
               </div>
             </div>
           )}
@@ -573,7 +656,9 @@ export default function BasketDashboard({ results, studentData }) {
 
     if (key === "B5") {
       const b5ExtraSubjects = data.subjects.filter((s) => {
-        const isInCommon = COMMON_BASKET_5_SYLLABUS.some((cs) => isMatch(s, cs));
+        const isInCommon = COMMON_BASKET_5_SYLLABUS.some((cs) =>
+          isMatch(s, cs),
+        );
         if (isInCommon) return false;
         const isSkill = BASKET_5_SKILL_COURSES.some((sc) => isMatch(s, sc));
         if (isSkill) return false;
@@ -586,13 +671,22 @@ export default function BasketDashboard({ results, studentData }) {
         : COMMON_BASKET_5_SYLLABUS;
 
       return (
-        <div style={{ display: "flex", flexDirection: "column", padding: "16px 20px", gap: 16 }}>
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            padding: "16px 20px",
+            gap: 16,
+          }}
+        >
           {/* Domain Track Banner */}
           <div
             style={{
               padding: "14px 16px",
               background: inferredDomain ? "#eff6ff" : "#f8fafc",
-              border: inferredDomain ? "1px solid #bfdbfe" : "1px solid #e2e8f0",
+              border: inferredDomain
+                ? "1px solid #bfdbfe"
+                : "1px solid #e2e8f0",
               borderRadius: 12,
               display: "flex",
               alignItems: "center",
@@ -617,16 +711,40 @@ export default function BasketDashboard({ results, studentData }) {
                 <Sparkles size={18} />
               </div>
               <div>
-                <div style={{ fontSize: 11, fontWeight: 700, color: "#64748b", textTransform: "uppercase" }}>
+                <div
+                  style={{
+                    fontSize: 11,
+                    fontWeight: 700,
+                    color: "#64748b",
+                    textTransform: "uppercase",
+                  }}
+                >
                   Specialization Track
                 </div>
-                <div style={{ fontSize: 14, fontWeight: 800, color: inferredDomain ? "#1d4ed8" : "#0f172a" }}>
-                  {inferredDomain ? inferredDomain.name : "General Domain Track"}
+                <div
+                  style={{
+                    fontSize: 14,
+                    fontWeight: 800,
+                    color: inferredDomain ? "#1d4ed8" : "#0f172a",
+                  }}
+                >
+                  {inferredDomain
+                    ? inferredDomain.name
+                    : "General Domain Track"}
                 </div>
               </div>
             </div>
             {inferredDomain && (
-              <span style={{ fontSize: 11.5, fontWeight: 700, color: "#2563eb", background: "#dbeafe", padding: "3px 10px", borderRadius: 20 }}>
+              <span
+                style={{
+                  fontSize: 11.5,
+                  fontWeight: 700,
+                  color: "#2563eb",
+                  background: "#dbeafe",
+                  padding: "3px 10px",
+                  borderRadius: 20,
+                }}
+              >
                 Auto-Detected Track
               </span>
             )}
@@ -640,11 +758,27 @@ export default function BasketDashboard({ results, studentData }) {
             if (takenSkillCourses.length === 0) return null;
             return (
               <div>
-                <div style={{ fontSize: 12, fontWeight: 700, color: "#334155", marginBottom: 8, textTransform: "uppercase" }}>
+                <div
+                  style={{
+                    fontSize: 12,
+                    fontWeight: 700,
+                    color: "#334155",
+                    marginBottom: 8,
+                    textTransform: "uppercase",
+                  }}
+                >
                   Skill & Certification Courses
                 </div>
-                <div style={{ border: "1px solid #cbd5e1", borderRadius: 10, overflow: "hidden" }}>
-                  {takenSkillCourses.map((sub, idx) => renderSubjectRow(sub, "skill-" + idx, false, false))}
+                <div
+                  style={{
+                    border: "1px solid #cbd5e1",
+                    borderRadius: 10,
+                    overflow: "hidden",
+                  }}
+                >
+                  {takenSkillCourses.map((sub, idx) =>
+                    renderSubjectRow(sub, "skill-" + idx, false, false),
+                  )}
                 </div>
               </div>
             );
@@ -652,10 +786,26 @@ export default function BasketDashboard({ results, studentData }) {
 
           {/* Main Domain Curriculum Table */}
           <div>
-            <div style={{ fontSize: 12, fontWeight: 700, color: "#334155", marginBottom: 8, textTransform: "uppercase" }}>
-              {inferredDomain ? "Domain Requirements & Common Courses" : "Standard Basket 5 Requirements"}
+            <div
+              style={{
+                fontSize: 12,
+                fontWeight: 700,
+                color: "#334155",
+                marginBottom: 8,
+                textTransform: "uppercase",
+              }}
+            >
+              {inferredDomain
+                ? "Domain Requirements & Common Courses"
+                : "Standard Basket 5 Requirements"}
             </div>
-            <div style={{ border: "1px solid #cbd5e1", borderRadius: 10, overflow: "hidden" }}>
+            <div
+              style={{
+                border: "1px solid #cbd5e1",
+                borderRadius: 10,
+                overflow: "hidden",
+              }}
+            >
               <div
                 className="basket-grid-header"
                 style={{
@@ -677,8 +827,11 @@ export default function BasketDashboard({ results, studentData }) {
                 <div style={{ textAlign: "center" }}>Credits</div>
               </div>
               {fullB5Syllabus.map((syllabusSub, idx) => {
-                const takenSub = data.subjects.find((s) => isMatch(s, syllabusSub));
-                if (takenSub) return renderSubjectRow(takenSub, idx, false, false);
+                const takenSub = data.subjects.find((s) =>
+                  isMatch(s, syllabusSub),
+                );
+                if (takenSub)
+                  return renderSubjectRow(takenSub, idx, false, false);
                 return renderSubjectRow(
                   {
                     subName: syllabusSub.subName,
@@ -687,7 +840,7 @@ export default function BasketDashboard({ results, studentData }) {
                   },
                   idx,
                   true,
-                  false
+                  false,
                 );
               })}
             </div>
@@ -696,11 +849,27 @@ export default function BasketDashboard({ results, studentData }) {
           {/* Extra B5 Electives */}
           {b5ExtraSubjects.length > 0 && (
             <div>
-              <div style={{ fontSize: 12, fontWeight: 700, color: "#334155", marginBottom: 8, textTransform: "uppercase" }}>
+              <div
+                style={{
+                  fontSize: 12,
+                  fontWeight: 700,
+                  color: "#334155",
+                  marginBottom: 8,
+                  textTransform: "uppercase",
+                }}
+              >
                 Additional Completed Basket 5 Subjects
               </div>
-              <div style={{ border: "1px solid #cbd5e1", borderRadius: 10, overflow: "hidden" }}>
-                {b5ExtraSubjects.map((sub, idx) => renderSubjectRow(sub, "extra-" + idx, false, false))}
+              <div
+                style={{
+                  border: "1px solid #cbd5e1",
+                  borderRadius: 10,
+                  overflow: "hidden",
+                }}
+              >
+                {b5ExtraSubjects.map((sub, idx) =>
+                  renderSubjectRow(sub, "extra-" + idx, false, false),
+                )}
               </div>
             </div>
           )}
@@ -709,8 +878,13 @@ export default function BasketDashboard({ results, studentData }) {
     }
   };
 
-  const studentBranch = String(studentData?.branch || "").trim().toUpperCase();
-  const isCSE = studentBranch === "CSE" || studentBranch.includes("COMPUTER") || studentBranch.includes("CSE");
+  const studentBranch = String(studentData?.branch || "")
+    .trim()
+    .toUpperCase();
+  const isCSE =
+    studentBranch === "CSE" ||
+    studentBranch.includes("COMPUTER") ||
+    studentBranch.includes("CSE");
   const [isBranchNoticeExpanded, setIsBranchNoticeExpanded] = useState(true);
 
   return (
@@ -736,12 +910,31 @@ export default function BasketDashboard({ results, studentData }) {
               userSelect: "none",
             }}
           >
-            <div style={{ display: "flex", alignItems: "center", gap: 8, color: "#d97706", fontWeight: 800, fontSize: 13.5 }}>
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 8,
+                color: "#d97706",
+                fontWeight: 800,
+                fontSize: 13.5,
+              }}
+            >
               <Info size={16} color="#d97706" />
               <span>Branch Syllabus Structure Notice</span>
             </div>
-            <div style={{ color: "#d97706", display: "flex", alignItems: "center" }}>
-              {isBranchNoticeExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+            <div
+              style={{
+                color: "#d97706",
+                display: "flex",
+                alignItems: "center",
+              }}
+            >
+              {isBranchNoticeExpanded ? (
+                <ChevronUp size={16} />
+              ) : (
+                <ChevronDown size={16} />
+              )}
             </div>
           </div>
 
@@ -752,14 +945,39 @@ export default function BasketDashboard({ results, studentData }) {
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -6 }}
                 transition={{ duration: 0.15 }}
-                style={{ marginTop: 12, display: "flex", flexDirection: "column", gap: 10 }}
+                style={{
+                  marginTop: 12,
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: 10,
+                }}
               >
-                <p style={{ margin: 0, fontSize: 12.5, color: "#92400e", lineHeight: 1.55 }}>
-                  Due to the unavailability of the complete syllabus structure for the <strong>{studentBranch || "selected"}</strong> branch, this tracker can currently only guarantee accurate degree progress tracking for 1st-year subjects. Tracking for subsequent years may be incomplete.
+                <p
+                  style={{
+                    margin: 0,
+                    fontSize: 12.5,
+                    color: "#92400e",
+                    lineHeight: 1.55,
+                  }}
+                >
+                  Due to the unavailability of the complete syllabus structure
+                  for the <strong>{studentBranch || "selected"}</strong> branch,
+                  this tracker can currently only guarantee accurate degree
+                  progress tracking for 1st-year subjects. Tracking for
+                  subsequent years may be incomplete.
                 </p>
 
-                <p style={{ margin: 0, fontSize: 12.5, color: "#92400e", lineHeight: 1.55 }}>
-                  You can still download the Credit Sheet PDF, but please note that only your 1st-year subjects will be auto-filled, while the rest will remain blank.
+                <p
+                  style={{
+                    margin: 0,
+                    fontSize: 12.5,
+                    color: "#92400e",
+                    lineHeight: 1.55,
+                  }}
+                >
+                  You can still download the Credit Sheet PDF, but please note
+                  that only your 1st-year subjects will be auto-filled, while
+                  the rest will remain blank.
                 </p>
 
                 <div
@@ -772,8 +990,17 @@ export default function BasketDashboard({ results, studentData }) {
                     marginTop: 4,
                   }}
                 >
-                  <p style={{ margin: 0, fontSize: 12.5, color: "#92400e", lineHeight: 1.55 }}>
-                    If you have the official syllabus structure for your branch in the correct format, please contact the developer to get it integrated!
+                  <p
+                    style={{
+                      margin: 0,
+                      fontSize: 12.5,
+                      color: "#92400e",
+                      lineHeight: 1.55,
+                    }}
+                  >
+                    If you have the official syllabus structure for your branch
+                    in the correct format, please contact the developer to get
+                    it integrated!
                   </p>
 
                   <a
@@ -822,7 +1049,8 @@ export default function BasketDashboard({ results, studentData }) {
             border: "1px solid #cbd5e1",
             borderRadius: 16,
             padding: "20px 24px",
-            boxShadow: "0 1px 3px rgba(0, 0, 0, 0.05), 0 4px 14px rgba(15, 23, 42, 0.03)",
+            boxShadow:
+              "0 1px 3px rgba(0, 0, 0, 0.05), 0 4px 14px rgba(15, 23, 42, 0.03)",
             display: "flex",
             alignItems: "center",
             gap: 20,
@@ -841,8 +1069,19 @@ export default function BasketDashboard({ results, studentData }) {
               flexShrink: 0,
             }}
           >
-            <svg width="76" height="76" style={{ position: "absolute", transform: "rotate(-90deg)" }}>
-              <circle cx="38" cy="38" r="33" fill="none" stroke="#e2e8f0" strokeWidth="6" />
+            <svg
+              width="76"
+              height="76"
+              style={{ position: "absolute", transform: "rotate(-90deg)" }}
+            >
+              <circle
+                cx="38"
+                cy="38"
+                r="33"
+                fill="none"
+                stroke="#e2e8f0"
+                strokeWidth="6"
+              />
               <circle
                 cx="38"
                 cy="38"
@@ -851,21 +1090,49 @@ export default function BasketDashboard({ results, studentData }) {
                 stroke="#2563eb"
                 strokeWidth="6"
                 strokeDasharray="207.3"
-                strokeDashoffset={207.3 - (207.3 * Math.min(1, totalEarned / targetTotal))}
+                strokeDashoffset={
+                  207.3 - 207.3 * Math.min(1, totalEarned / targetTotal)
+                }
                 strokeLinecap="round"
               />
             </svg>
-            <span style={{ fontSize: 16, fontWeight: 800, color: "#0f172a", fontFamily: "'Space Mono', monospace" }}>
+            <span
+              style={{
+                fontSize: 16,
+                fontWeight: 800,
+                color: "#0f172a",
+                fontFamily: "'Space Mono', monospace",
+              }}
+            >
               {completionPercentage}%
             </span>
           </div>
 
           <div>
-            <div style={{ fontSize: 12, fontWeight: 700, color: "#64748b", textTransform: "uppercase", letterSpacing: "0.5px", marginBottom: 2 }}>
+            <div
+              style={{
+                fontSize: 12,
+                fontWeight: 700,
+                color: "#64748b",
+                textTransform: "uppercase",
+                letterSpacing: "0.5px",
+                marginBottom: 2,
+              }}
+            >
               Degree Completion
             </div>
-            <div style={{ fontSize: 22, fontWeight: 800, color: "#0f172a", fontFamily: "'DM Sans', sans-serif" }}>
-              {totalEarned} <span style={{ fontSize: 14, color: "#64748b", fontWeight: 600 }}>/ {targetTotal} Credits</span>
+            <div
+              style={{
+                fontSize: 22,
+                fontWeight: 800,
+                color: "#0f172a",
+                fontFamily: "'DM Sans', sans-serif",
+              }}
+            >
+              {totalEarned}{" "}
+              <span style={{ fontSize: 14, color: "#64748b", fontWeight: 600 }}>
+                / {targetTotal} Credits
+              </span>
             </div>
             <div style={{ marginTop: 4 }}>
               <span
@@ -876,12 +1143,15 @@ export default function BasketDashboard({ results, studentData }) {
                   fontSize: 11,
                   fontWeight: 700,
                   color: totalEarned >= targetTotal ? "#15803d" : "#2563eb",
-                  background: totalEarned >= targetTotal ? "#dcfce7" : "#eff6ff",
+                  background:
+                    totalEarned >= targetTotal ? "#dcfce7" : "#eff6ff",
                   padding: "2px 8px",
                   borderRadius: 12,
                 }}
               >
-                {totalEarned >= targetTotal ? "Requirement Cleared" : `${targetTotal - totalEarned} Credits Remaining`}
+                {totalEarned >= targetTotal
+                  ? "Requirement Cleared"
+                  : `${targetTotal - totalEarned} Credits Remaining`}
               </span>
             </div>
           </div>
@@ -891,10 +1161,13 @@ export default function BasketDashboard({ results, studentData }) {
         <div
           style={{
             background: "#ffffff",
-            border: isHonoursEligible ? "1px solid #fde68a" : "1px solid #cbd5e1",
+            border: isHonoursEligible
+              ? "1px solid #fde68a"
+              : "1px solid #cbd5e1",
             borderRadius: 16,
             padding: "20px 24px",
-            boxShadow: "0 1px 3px rgba(0, 0, 0, 0.05), 0 4px 14px rgba(15, 23, 42, 0.03)",
+            boxShadow:
+              "0 1px 3px rgba(0, 0, 0, 0.05), 0 4px 14px rgba(15, 23, 42, 0.03)",
             display: "flex",
             alignItems: "center",
             gap: 20,
@@ -916,11 +1189,30 @@ export default function BasketDashboard({ results, studentData }) {
           </div>
 
           <div>
-            <div style={{ fontSize: 12, fontWeight: 700, color: "#64748b", textTransform: "uppercase", letterSpacing: "0.5px", marginBottom: 2 }}>
+            <div
+              style={{
+                fontSize: 12,
+                fontWeight: 700,
+                color: "#64748b",
+                textTransform: "uppercase",
+                letterSpacing: "0.5px",
+                marginBottom: 2,
+              }}
+            >
               B.Tech Honours Track
             </div>
-            <div style={{ fontSize: 22, fontWeight: 800, color: "#0f172a", fontFamily: "'DM Sans', sans-serif" }}>
-              {honoursCredits} <span style={{ fontSize: 14, color: "#64748b", fontWeight: 600 }}>/ {honoursTarget} Extra Cr</span>
+            <div
+              style={{
+                fontSize: 22,
+                fontWeight: 800,
+                color: "#0f172a",
+                fontFamily: "'DM Sans', sans-serif",
+              }}
+            >
+              {honoursCredits}{" "}
+              <span style={{ fontSize: 14, color: "#64748b", fontWeight: 600 }}>
+                / {honoursTarget} Extra Cr
+              </span>
             </div>
             <div style={{ marginTop: 4 }}>
               <span
@@ -955,7 +1247,8 @@ export default function BasketDashboard({ results, studentData }) {
             border: "1px solid #cbd5e1",
             borderRadius: 16,
             padding: "20px 24px",
-            boxShadow: "0 1px 3px rgba(0, 0, 0, 0.05), 0 4px 14px rgba(15, 23, 42, 0.03)",
+            boxShadow:
+              "0 1px 3px rgba(0, 0, 0, 0.05), 0 4px 14px rgba(15, 23, 42, 0.03)",
             display: "flex",
             alignItems: "center",
             gap: 20,
@@ -977,11 +1270,30 @@ export default function BasketDashboard({ results, studentData }) {
           </div>
 
           <div>
-            <div style={{ fontSize: 12, fontWeight: 700, color: "#64748b", textTransform: "uppercase", letterSpacing: "0.5px", marginBottom: 2 }}>
+            <div
+              style={{
+                fontSize: 12,
+                fontWeight: 700,
+                color: "#64748b",
+                textTransform: "uppercase",
+                letterSpacing: "0.5px",
+                marginBottom: 2,
+              }}
+            >
               Curriculum Breadth
             </div>
-            <div style={{ fontSize: 22, fontWeight: 800, color: "#0f172a", fontFamily: "'DM Sans', sans-serif" }}>
-              5 <span style={{ fontSize: 14, color: "#64748b", fontWeight: 600 }}>Active Baskets</span>
+            <div
+              style={{
+                fontSize: 22,
+                fontWeight: 800,
+                color: "#0f172a",
+                fontFamily: "'DM Sans', sans-serif",
+              }}
+            >
+              5{" "}
+              <span style={{ fontSize: 14, color: "#64748b", fontWeight: 600 }}>
+                Active Baskets
+              </span>
             </div>
             <div style={{ marginTop: 4 }}>
               <span
@@ -1016,11 +1328,19 @@ export default function BasketDashboard({ results, studentData }) {
         }}
       >
         <div>
-          <h3 style={{ fontSize: 17, fontWeight: 800, color: "#0f172a", margin: "0 0 2px 0" }}>
+          <h3
+            style={{
+              fontSize: 17,
+              fontWeight: 800,
+              color: "#0f172a",
+              margin: "0 0 2px 0",
+            }}
+          >
             Curriculum Basket Tracking
           </h3>
           <p style={{ fontSize: 12.5, color: "#64748b", margin: 0 }}>
-            Click any basket to view required subjects, completed courses, and pending credits
+            Click any basket to view required subjects, completed courses, and
+            pending credits
           </p>
         </div>
 
@@ -1047,7 +1367,9 @@ export default function BasketDashboard({ results, studentData }) {
             >
               <DownloadCloud size={16} color="#2563eb" />
               <span>
-                {isGenerating ? `Generating ${generatingType.toUpperCase()}...` : "Export Credit Track Sheet"}
+                {isGenerating
+                  ? `Generating ${generatingType.toUpperCase()}...`
+                  : "Export Credit Track Sheet"}
               </span>
               <ChevronDown size={14} color="#64748b" />
             </button>
@@ -1091,8 +1413,12 @@ export default function BasketDashboard({ results, studentData }) {
                       cursor: "pointer",
                       fontFamily: "'DM Sans', sans-serif",
                     }}
-                    onMouseOver={(e) => (e.currentTarget.style.background = "#f8fafc")}
-                    onMouseOut={(e) => (e.currentTarget.style.background = "#ffffff")}
+                    onMouseOver={(e) =>
+                      (e.currentTarget.style.background = "#f8fafc")
+                    }
+                    onMouseOut={(e) =>
+                      (e.currentTarget.style.background = "#ffffff")
+                    }
                   >
                     <FileText size={16} color="#ef4444" />
                     <span>Download PDF</span>
@@ -1116,8 +1442,12 @@ export default function BasketDashboard({ results, studentData }) {
                       cursor: "pointer",
                       fontFamily: "'DM Sans', sans-serif",
                     }}
-                    onMouseOver={(e) => (e.currentTarget.style.background = "#f8fafc")}
-                    onMouseOut={(e) => (e.currentTarget.style.background = "#ffffff")}
+                    onMouseOver={(e) =>
+                      (e.currentTarget.style.background = "#f8fafc")
+                    }
+                    onMouseOut={(e) =>
+                      (e.currentTarget.style.background = "#ffffff")
+                    }
                   >
                     <FileSpreadsheet size={16} color="#10b981" />
                     <span>Download Excel</span>
@@ -1140,8 +1470,12 @@ export default function BasketDashboard({ results, studentData }) {
                       cursor: "pointer",
                       fontFamily: "'DM Sans', sans-serif",
                     }}
-                    onMouseOver={(e) => (e.currentTarget.style.background = "#f8fafc")}
-                    onMouseOut={(e) => (e.currentTarget.style.background = "#ffffff")}
+                    onMouseOver={(e) =>
+                      (e.currentTarget.style.background = "#f8fafc")
+                    }
+                    onMouseOut={(e) =>
+                      (e.currentTarget.style.background = "#ffffff")
+                    }
                   >
                     <FileText size={16} color="#2563eb" />
                     <span>Download Word</span>
@@ -1167,7 +1501,9 @@ export default function BasketDashboard({ results, studentData }) {
                 key={key}
                 style={{
                   background: "#ffffff",
-                  border: isExpanded ? "1px solid #3b82f6" : "1px solid #cbd5e1",
+                  border: isExpanded
+                    ? "1px solid #3b82f6"
+                    : "1px solid #cbd5e1",
                   borderRadius: 16,
                   overflow: "hidden",
                   boxShadow: isExpanded
@@ -1190,7 +1526,15 @@ export default function BasketDashboard({ results, studentData }) {
                     gap: 10,
                   }}
                 >
-                  <div style={{ display: "flex", alignItems: "center", gap: isMobile ? 10 : 16, minWidth: 0, flex: 1 }}>
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: isMobile ? 10 : 16,
+                      minWidth: 0,
+                      flex: 1,
+                    }}
+                  >
                     <div
                       style={{
                         width: isMobile ? 36 : 44,
@@ -1204,11 +1548,20 @@ export default function BasketDashboard({ results, studentData }) {
                         flexShrink: 0,
                       }}
                     >
-                      {React.cloneElement(BASKET_ICONS[key], { size: isMobile ? 18 : 22 })}
+                      {React.cloneElement(BASKET_ICONS[key], {
+                        size: isMobile ? 18 : 22,
+                      })}
                     </div>
 
                     <div style={{ minWidth: 0, flex: 1 }}>
-                      <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+                      <div
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 6,
+                          flexWrap: "wrap",
+                        }}
+                      >
                         <h4
                           style={{
                             fontSize: isMobile ? 13.5 : 15,
@@ -1217,7 +1570,9 @@ export default function BasketDashboard({ results, studentData }) {
                             margin: 0,
                           }}
                         >
-                          {key.startsWith("B") ? `Basket ${key.replace("B", "")}: ` : ""}
+                          {key.startsWith("B")
+                            ? `Basket ${key.replace("B", "")}: `
+                            : ""}
                           {BASKET_NAMES[key]}
                         </h4>
                         {isComplete && (
@@ -1240,7 +1595,15 @@ export default function BasketDashboard({ results, studentData }) {
                       </div>
 
                       {/* Progress Bar & Label */}
-                      <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 4, flexWrap: "wrap" }}>
+                      <div
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 8,
+                          marginTop: 4,
+                          flexWrap: "wrap",
+                        }}
+                      >
                         <div
                           style={{
                             width: isMobile ? 90 : 140,
@@ -1259,7 +1622,14 @@ export default function BasketDashboard({ results, studentData }) {
                             }}
                           />
                         </div>
-                        <span style={{ fontSize: isMobile ? 11 : 12, fontWeight: 700, color: isComplete ? "#15803d" : "#2563eb", fontFamily: "'Space Mono', monospace" }}>
+                        <span
+                          style={{
+                            fontSize: isMobile ? 11 : 12,
+                            fontWeight: 700,
+                            color: isComplete ? "#15803d" : "#2563eb",
+                            fontFamily: "'Space Mono', monospace",
+                          }}
+                        >
                           {data.credits}/{data.target} Cr
                         </span>
                       </div>
@@ -1279,7 +1649,11 @@ export default function BasketDashboard({ results, studentData }) {
                       flexShrink: 0,
                     }}
                   >
-                    {isExpanded ? <ChevronUp size={isMobile ? 14 : 16} /> : <ChevronDown size={isMobile ? 14 : 16} />}
+                    {isExpanded ? (
+                      <ChevronUp size={isMobile ? 14 : 16} />
+                    ) : (
+                      <ChevronDown size={isMobile ? 14 : 16} />
+                    )}
                   </div>
                 </div>
 
