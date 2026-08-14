@@ -307,6 +307,7 @@ export default function Testimonials() {
         paddingBottom: isSmallMobile ? 32 : 64,
         overflowX: "hidden",
         width: "100%",
+        maxWidth: "100vw",
         boxSizing: "border-box",
       }}
     >
@@ -314,12 +315,13 @@ export default function Testimonials() {
         style={{
           maxWidth: 1320,
           margin: "0 auto",
-          padding: isSmallMobile ? "16px 12px" : isMobile ? "24px 18px" : "36px 32px",
+          padding: isSmallMobile ? "14px 12px" : isMobile ? "20px 16px" : "36px 32px",
           display: "flex",
           flexDirection: "column",
-          gap: isSmallMobile ? 18 : 32,
+          gap: isSmallMobile ? 16 : 28,
           boxSizing: "border-box",
           width: "100%",
+          overflowX: "hidden",
         }}
       >
         {/* ══════════════════════════════════════════════════════════
@@ -328,15 +330,16 @@ export default function Testimonials() {
         <section
           style={{
             display: "grid",
-            gridTemplateColumns: isMobile ? "1fr" : "1.2fr 0.8fr",
+            gridTemplateColumns: isMobile ? "minmax(0, 1fr)" : "1.2fr 0.8fr",
             gap: isMobile ? 16 : 36,
             alignItems: "center",
             width: "100%",
+            maxWidth: "100%",
             boxSizing: "border-box",
           }}
         >
           {/* Left Hero Content */}
-          <div style={{ display: "flex", flexDirection: "column", gap: isSmallMobile ? 10 : 16 }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: isSmallMobile ? 10 : 16, width: "100%", minWidth: 0, boxSizing: "border-box" }}>
             {/* Pill Badge */}
             <div
               style={{
@@ -392,9 +395,11 @@ export default function Testimonials() {
             <div
               style={{
                 display: "grid",
-                gridTemplateColumns: "repeat(3, 1fr)",
+                gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
                 gap: isSmallMobile ? 6 : 10,
                 marginTop: isSmallMobile ? 2 : 4,
+                width: "100%",
+                boxSizing: "border-box",
               }}
             >
               {/* Stat 1: Students */}
@@ -626,6 +631,7 @@ export default function Testimonials() {
                 msOverflowStyle: "none",
                 WebkitOverflowScrolling: "touch",
                 flex: 1,
+                minWidth: 0,
                 padding: "2px 0",
               }}
             >
@@ -841,9 +847,10 @@ export default function Testimonials() {
                 <div
                   style={{
                     display: "grid",
-                    gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr",
+                    gridTemplateColumns: isMobile ? "minmax(0, 1fr)" : "repeat(2, minmax(0, 1fr))",
                     gap: isSmallMobile ? 10 : 14,
                     width: "100%",
+                    maxWidth: "100%",
                     boxSizing: "border-box",
                   }}
                 >
@@ -877,8 +884,11 @@ export default function Testimonials() {
                           flexDirection: "column",
                           justifyContent: "space-between",
                           gap: 10,
+                          width: "100%",
+                          maxWidth: "100%",
                           boxSizing: "border-box",
                           wordBreak: "break-word",
+                          overflow: "hidden",
                         }}
                       >
                         {/* Top Row: User Avatar + Name + Stars */}
@@ -886,13 +896,15 @@ export default function Testimonials() {
                           <div
                             style={{
                               display: "flex",
-                              alignItems: "flex-start",
+                              alignItems: "center",
                               justifyContent: "space-between",
-                              gap: 8,
+                              gap: 6,
                               marginBottom: 8,
+                              width: "100%",
+                              boxSizing: "border-box",
                             }}
                           >
-                            <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
+                            <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0, flex: "1 1 auto" }}>
                               <div
                                 style={{
                                   width: isSmallMobile ? 32 : 36,
@@ -910,12 +922,13 @@ export default function Testimonials() {
                               >
                                 {firstLetter}
                               </div>
-                              <div style={{ minWidth: 0 }}>
+                              <div style={{ minWidth: 0, flex: 1 }}>
                                 <div
                                   style={{
                                     display: "flex",
                                     alignItems: "center",
                                     gap: 4,
+                                    minWidth: 0,
                                   }}
                                 >
                                   <h4
@@ -931,7 +944,7 @@ export default function Testimonials() {
                                   >
                                     {item.name}
                                   </h4>
-                                  <BadgeCheck size={13} color="#2563eb" fill="#dbeafe" />
+                                  <BadgeCheck size={13} color="#2563eb" fill="#dbeafe" style={{ flexShrink: 0 }} />
                                 </div>
                                 <div
                                   style={{
@@ -948,11 +961,11 @@ export default function Testimonials() {
                             </div>
 
                             {/* Stars Rating */}
-                            <div style={{ display: "flex", gap: 2, color: "#f59e0b", flexShrink: 0 }}>
+                            <div style={{ display: "flex", gap: 1.5, color: "#f59e0b", flexShrink: 0 }}>
                               {[...Array(Number(item.rating) || 5)].map((_, i) => (
                                 <Star
                                   key={i}
-                                  size={isSmallMobile ? 11 : 13}
+                                  size={isSmallMobile ? 11.5 : 13}
                                   fill="#f59e0b"
                                   color="#f59e0b"
                                 />
@@ -1002,6 +1015,9 @@ export default function Testimonials() {
                             paddingTop: 8,
                             borderTop: "1px solid #f1f5f9",
                             fontSize: isSmallMobile ? 10.5 : 11,
+                            width: "100%",
+                            boxSizing: "border-box",
+                            gap: 6,
                           }}
                         >
                           <span
@@ -1013,6 +1029,10 @@ export default function Testimonials() {
                               padding: "2px 7px",
                               borderRadius: 6,
                               fontSize: isSmallMobile ? 10 : 11,
+                              whiteSpace: "nowrap",
+                              overflow: "hidden",
+                              textOverflow: "ellipsis",
+                              maxWidth: "60%",
                             }}
                           >
                             {item.category || "Overall Experience"}
@@ -1033,6 +1053,7 @@ export default function Testimonials() {
                               fontWeight: 700,
                               cursor: isLiked ? "default" : "pointer",
                               transition: "all 0.15s ease",
+                              flexShrink: 0,
                             }}
                           >
                             <ThumbsUp
