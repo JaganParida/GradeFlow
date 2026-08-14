@@ -280,6 +280,19 @@ export default function Testimonials() {
     }
   };
 
+  const getPageNumbers = (curr, total) => {
+    if (total <= 5) {
+      return Array.from({ length: total }, (_, i) => i + 1);
+    }
+    if (curr <= 3) {
+      return [1, 2, 3, 4, "...", total];
+    }
+    if (curr >= total - 2) {
+      return [1, "...", total - 3, total - 2, total - 1, total];
+    }
+    return [1, "...", curr - 1, curr, curr + 1, "...", total];
+  };
+
   const getRatingLabel = (r) => {
     switch (r) {
       case 5:
@@ -1068,103 +1081,126 @@ export default function Testimonials() {
                   })}
                 </div>
 
-                {/* ── Pagination Controls ── */}
+                {/* ── Responsive Windowed Pagination Controls ── */}
                 {totalPages > 1 && (
                   <div
                     style={{
                       display: "flex",
                       alignItems: "center",
                       justifyContent: "space-between",
-                      flexWrap: "wrap",
-                      gap: 8,
+                      gap: 6,
                       padding: isSmallMobile ? "8px 10px" : "12px 16px",
                       background: "#ffffff",
                       border: "1px solid #e2e8f0",
-                      borderRadius: 12,
+                      borderRadius: 14,
                       boxShadow: "0 1px 2px rgba(0,0,0,0.02)",
+                      width: "100%",
+                      maxWidth: "100%",
+                      boxSizing: "border-box",
+                      overflow: "hidden",
                     }}
                   >
-                    <div
+                    {/* Prev Button */}
+                    <button
+                      onClick={() => handlePageChange(currentPage - 1)}
+                      disabled={currentPage === 1}
                       style={{
-                        fontSize: isSmallMobile ? 11 : 12,
-                        color: "#64748b",
-                        fontWeight: 600,
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: 3,
+                        padding: isSmallMobile ? "5px 8px" : "7px 12px",
+                        borderRadius: 8,
+                        border: "1px solid #e2e8f0",
+                        background: currentPage === 1 ? "#f8fafc" : "#ffffff",
+                        color: currentPage === 1 ? "#cbd5e1" : "#1e293b",
+                        fontSize: isSmallMobile ? 11.5 : 12.5,
+                        fontWeight: 700,
+                        cursor: currentPage === 1 ? "not-allowed" : "pointer",
+                        fontFamily: "'DM Sans', sans-serif",
+                        flexShrink: 0,
                       }}
                     >
-                      Page <strong style={{ color: "#0f172a" }}>{currentPage}</strong> of{" "}
-                      <strong style={{ color: "#0f172a" }}>{totalPages}</strong>
+                      <ChevronLeft size={13} /> <span>Prev</span>
+                    </button>
+
+                    {/* Windowed Page Number Pills */}
+                    <div
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        gap: isSmallMobile ? 3 : 5,
+                        minWidth: 0,
+                        flexWrap: "nowrap",
+                      }}
+                    >
+                      {getPageNumbers(currentPage, totalPages).map((p, idx) =>
+                        p === "..." ? (
+                          <span
+                            key={`dots-${idx}`}
+                            style={{
+                              color: "#94a3b8",
+                              padding: "0 1px",
+                              fontSize: isSmallMobile ? 11 : 13,
+                              fontWeight: 700,
+                              userSelect: "none",
+                              flexShrink: 0,
+                            }}
+                          >
+                            …
+                          </span>
+                        ) : (
+                          <button
+                            key={p}
+                            onClick={() => handlePageChange(p)}
+                            style={{
+                              width: isSmallMobile ? 26 : 30,
+                              height: isSmallMobile ? 26 : 30,
+                              borderRadius: 7,
+                              border:
+                                currentPage === p
+                                  ? "1px solid #2563eb"
+                                  : "1px solid #e2e8f0",
+                              background: currentPage === p ? "#2563eb" : "#ffffff",
+                              color: currentPage === p ? "#ffffff" : "#475569",
+                              fontSize: isSmallMobile ? 11 : 12,
+                              fontWeight: currentPage === p ? 800 : 600,
+                              cursor: "pointer",
+                              fontFamily: "'DM Sans', sans-serif",
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                              flexShrink: 0,
+                            }}
+                          >
+                            {p}
+                          </button>
+                        )
+                      )}
                     </div>
 
-                    <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
-                      {/* Prev Button */}
-                      <button
-                        onClick={() => handlePageChange(currentPage - 1)}
-                        disabled={currentPage === 1}
-                        style={{
-                          display: "inline-flex",
-                          alignItems: "center",
-                          gap: 2,
-                          padding: isSmallMobile ? "4px 8px" : "5px 10px",
-                          borderRadius: 8,
-                          border: "1px solid #e2e8f0",
-                          background: currentPage === 1 ? "#f8fafc" : "#ffffff",
-                          color: currentPage === 1 ? "#cbd5e1" : "#334155",
-                          fontSize: isSmallMobile ? 11 : 12,
-                          fontWeight: 700,
-                          cursor: currentPage === 1 ? "not-allowed" : "pointer",
-                          fontFamily: "'DM Sans', sans-serif",
-                        }}
-                      >
-                        <ChevronLeft size={13} /> Prev
-                      </button>
-
-                      {/* Numbered Buttons */}
-                      {Array.from({ length: totalPages }, (_, i) => i + 1).map((pageNum) => (
-                        <button
-                          key={pageNum}
-                          onClick={() => handlePageChange(pageNum)}
-                          style={{
-                            width: isSmallMobile ? 26 : 30,
-                            height: isSmallMobile ? 26 : 30,
-                            borderRadius: 7,
-                            border:
-                              currentPage === pageNum
-                                ? "1px solid #2563eb"
-                                : "1px solid #e2e8f0",
-                            background: currentPage === pageNum ? "#2563eb" : "#ffffff",
-                            color: currentPage === pageNum ? "#ffffff" : "#475569",
-                            fontSize: isSmallMobile ? 11 : 12,
-                            fontWeight: currentPage === pageNum ? 800 : 600,
-                            cursor: "pointer",
-                            fontFamily: "'DM Sans', sans-serif",
-                          }}
-                        >
-                          {pageNum}
-                        </button>
-                      ))}
-
-                      {/* Next Button */}
-                      <button
-                        onClick={() => handlePageChange(currentPage + 1)}
-                        disabled={currentPage === totalPages}
-                        style={{
-                          display: "inline-flex",
-                          alignItems: "center",
-                          gap: 2,
-                          padding: isSmallMobile ? "4px 8px" : "5px 10px",
-                          borderRadius: 8,
-                          border: "1px solid #e2e8f0",
-                          background: currentPage === totalPages ? "#f8fafc" : "#ffffff",
-                          color: currentPage === totalPages ? "#cbd5e1" : "#334155",
-                          fontSize: isSmallMobile ? 11 : 12,
-                          fontWeight: 700,
-                          cursor: currentPage === totalPages ? "not-allowed" : "pointer",
-                          fontFamily: "'DM Sans', sans-serif",
-                        }}
-                      >
-                        Next <ChevronRight size={13} />
-                      </button>
-                    </div>
+                    {/* Next Button */}
+                    <button
+                      onClick={() => handlePageChange(currentPage + 1)}
+                      disabled={currentPage === totalPages}
+                      style={{
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: 3,
+                        padding: isSmallMobile ? "5px 8px" : "7px 12px",
+                        borderRadius: 8,
+                        border: "1px solid #e2e8f0",
+                        background: currentPage === totalPages ? "#f8fafc" : "#ffffff",
+                        color: currentPage === totalPages ? "#cbd5e1" : "#1e293b",
+                        fontSize: isSmallMobile ? 11.5 : 12.5,
+                        fontWeight: 700,
+                        cursor: currentPage === totalPages ? "not-allowed" : "pointer",
+                        fontFamily: "'DM Sans', sans-serif",
+                        flexShrink: 0,
+                      }}
+                    >
+                      <span>Next</span> <ChevronRight size={13} />
+                    </button>
                   </div>
                 )}
               </>
