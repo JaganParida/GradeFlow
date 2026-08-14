@@ -569,18 +569,59 @@ export default function Dashboard() {
 
   const internalSubjects = getSortedInternalSubjects(internalMarks);
 
-  // SVG Achievement Badges
+  // SVG Achievement Badges (100% synchronized with Unlockable Academic Badges Scale)
+  const isTopRanker = Boolean(
+    ranking &&
+      ((ranking.universityRank && ranking.universityRank <= 10) ||
+        (ranking.sgpaRank && ranking.sgpaRank <= 10) ||
+        (ranking.cgpaRank && ranking.cgpaRank <= 10) ||
+        (ranking.sectionSgpaRank && ranking.sectionSgpaRank <= 10) ||
+        (ranking.sectionCgpaRank && ranking.sectionCgpaRank <= 10))
+  );
+
   const badges = [
-    cgpa >= 9 && { label: "9+ CGPA Elite", color: "#f59e0b", icon: <Crown size={13} /> },
-    cgpa >= 8 && cgpa < 9 && { label: "Academic Excellence", color: "#3b82f6", icon: <Sparkles size={13} /> },
-    backlogs.length === 0 && { label: "No Backlog Champion", color: "#16a34a", icon: <CheckCircle size={13} /> },
-    results.length >= 3 &&
-      results.every((r) => (typeof r.sgpa === "number" ? r.sgpa : calcSGPAFromSubjects(r.subjects, r.semester)) >= 8) && {
-        label: "Consistent Performer",
-        color: "#8b5cf6",
-        icon: <Trophy size={13} />,
-      },
-    latestSgpa === 10 && { label: "Perfect SGPA", color: "#ea580c", icon: <Award size={13} /> },
+    // 1. 9+ CGPA Elite (Legendary) - Criteria: CGPA >= 9.0
+    cgpa >= 9.0 && {
+      label: "9+ CGPA Elite",
+      color: "#dc2626",
+      icon: <Crown size={13} />,
+      tier: "Legendary",
+    },
+    // 2. Academic Excellence (Gold) - Criteria: Latest SGPA >= 9.0
+    latestSgpa >= 9.0 && {
+      label: "Academic Excellence",
+      color: "#d97706",
+      icon: <Star size={13} />,
+      tier: "Gold",
+    },
+    // 3. Consistent Performer (Silver) - Criteria: CGPA >= 8.5
+    cgpa >= 8.5 && {
+      label: "Consistent Performer",
+      color: "#2563eb",
+      icon: <Target size={13} />,
+      tier: "Silver",
+    },
+    // 4. No Backlog Champion (Gold) - Criteria: Active Backlogs = 0
+    backlogs.length === 0 && {
+      label: "No Backlog Champion",
+      color: "#16a34a",
+      icon: <CheckCircle size={13} />,
+      tier: "Gold",
+    },
+    // 5. Top Ranker (Diamond) - Criteria: Rank <= 10
+    isTopRanker && {
+      label: "Top Ranker",
+      color: "#7e22ce",
+      icon: <Trophy size={13} />,
+      tier: "Diamond",
+    },
+    // 6. Perfect SGPA (Mythic) - Criteria: Latest SGPA = 10
+    latestSgpa >= 10 && {
+      label: "Perfect SGPA",
+      color: "#ea580c",
+      icon: <Award size={13} />,
+      tier: "Mythic",
+    },
   ].filter(Boolean);
 
   const navMenuItems = [

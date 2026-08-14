@@ -84,7 +84,7 @@ const ACADEMIC_HEALTH_SCALE = [
 ];
 
 const BADGES_SCALE = [
-  { name: "9+ CGPA Elite", desc: "Outstanding Academic Record", criteria: "CGPA > 9.0", icon: <Crown size={18} color="#ef4444" />, bg: "#fee2e2", label: "Crown", color: "#dc2626", tier: "Legendary" },
+  { name: "9+ CGPA Elite", desc: "Outstanding Academic Record", criteria: "CGPA ≥ 9.0", icon: <Crown size={18} color="#ef4444" />, bg: "#fee2e2", label: "Crown", color: "#dc2626", tier: "Legendary" },
   { name: "Academic Excellence", desc: "Stellar Semester Performance", criteria: "Latest SGPA ≥ 9.0", icon: <Star size={18} color="#f59e0b" />, bg: "#fef3c7", label: "Star", color: "#d97706", tier: "Gold" },
   { name: "Consistent Performer", desc: "Maintained High CGPA", criteria: "CGPA ≥ 8.5", icon: <Target size={18} color="#2563eb" />, bg: "#dbeafe", label: "Target", color: "#1d4ed8", tier: "Silver" },
   { name: "No Backlog Champion", desc: "Cleared All Subjects", criteria: "Active Backlogs = 0", icon: <CheckCircle2 size={18} color="#10b981" />, bg: "#dcfce7", label: "Check", color: "#15803d", tier: "Gold" },
