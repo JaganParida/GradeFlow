@@ -2124,6 +2124,16 @@ router.post("/section-toppers/send-email", emailLimiter, validateEmailRequest, a
       { upsert: true }
     ).catch(() => {});
 
+    res.json({
+      success: true,
+      message: `Congratulatory email sent successfully to ${recipientEmail}`,
+    });
+  } catch (err) {
+    console.error("Send section topper email error:", err);
+    res.status(500).json({ message: err.message || "Failed to send email" });
+  }
+});
+
 // ─── UPLOAD SEMESTER RESULTS: ONLY MISSING / NEW STUDENTS ────────────
 router.post(
   "/upload-missing-results",
