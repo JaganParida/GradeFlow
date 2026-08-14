@@ -1229,34 +1229,112 @@ export default function Resources() {
                     </div>
                   </div>
 
-                  <div style={{ overflowX: "auto" }}>
-                    <table style={{ width: "100%", borderCollapse: "collapse", fontSize: isMobile ? 11.5 : 12.5 }}>
-                      <thead>
-                        <tr style={{ color: "#94a3b8", fontWeight: 700, borderBottom: "1px solid #f1f5f9" }}>
-                          <th style={{ textAlign: "left", paddingBottom: 8 }}>SUBJECT</th>
-                          <th style={{ textAlign: "center", paddingBottom: 8 }}>CREDIT</th>
-                          <th style={{ textAlign: "center", paddingBottom: 8 }}>GRADE</th>
-                          <th style={{ textAlign: "right", paddingBottom: 8 }}>C × GP</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {EXAMPLE_CALC_ROWS.slice(0, 5).map((row, idx) => (
-                          <tr key={idx} style={{ borderBottom: "1px solid #f8fafc" }}>
-                            <td style={{ padding: "7px 0", color: "#334155", fontWeight: 500 }}>{row.course}</td>
-                            <td style={{ textAlign: "center", padding: "7px 0", color: "#64748b" }}>{row.credit}</td>
-                            <td style={{ textAlign: "center", padding: "7px 0", fontWeight: 700, color: "#2563eb" }}>{row.grade}</td>
-                            <td style={{ textAlign: "right", padding: "7px 0", fontWeight: 700, color: "#0f172a" }}>{row.total}</td>
+                  {isMobile ? (
+                    <div style={{ display: "flex", flexDirection: "column", gap: 7, width: "100%", boxSizing: "border-box" }}>
+                      {EXAMPLE_CALC_ROWS.slice(0, 5).map((row, idx) => (
+                        <div
+                          key={idx}
+                          style={{
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "space-between",
+                            padding: "8px 10px",
+                            background: "#f8fafc",
+                            borderRadius: 8,
+                            border: "1px solid #f1f5f9",
+                            gap: 8,
+                            width: "100%",
+                            boxSizing: "border-box",
+                          }}
+                        >
+                          <div style={{ minWidth: 0, flex: 1 }}>
+                            <div style={{ fontSize: 12, fontWeight: 700, color: "#0f172a", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                              {row.course}
+                            </div>
+                            <div style={{ fontSize: 10.5, color: "#64748b", display: "flex", alignItems: "center", gap: 5, marginTop: 2 }}>
+                              <span>{row.credit} Credits</span>
+                              <span>•</span>
+                              <span>GP: {row.gp}</span>
+                            </div>
+                          </div>
+
+                          <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
+                            <span
+                              style={{
+                                fontSize: 11,
+                                fontWeight: 800,
+                                color: "#2563eb",
+                                background: "#eff6ff",
+                                border: "1px solid #dbeafe",
+                                padding: "2px 6px",
+                                borderRadius: 5,
+                              }}
+                            >
+                              {row.grade}
+                            </span>
+                            <div style={{ textAlign: "right", minWidth: 44 }}>
+                              <div style={{ fontSize: 12, fontWeight: 800, color: "#0f172a", fontFamily: "'Space Mono', monospace" }}>
+                                {row.total} pts
+                              </div>
+                              <div style={{ fontSize: 9.5, color: "#94a3b8" }}>{row.credit} × {row.gp}</div>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+
+                      {/* Total Summary Row */}
+                      <div
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "space-between",
+                          padding: "8px 10px",
+                          background: "#eff6ff",
+                          border: "1px solid #bfdbfe",
+                          borderRadius: 8,
+                          marginTop: 2,
+                          width: "100%",
+                          boxSizing: "border-box",
+                        }}
+                      >
+                        <span style={{ fontSize: 11.5, fontWeight: 800, color: "#1e40af" }}>Total (5 Courses)</span>
+                        <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 11.5, fontWeight: 800, color: "#1e40af" }}>
+                          <span>18 Credits</span>
+                          <span>•</span>
+                          <span style={{ fontFamily: "'Space Mono', monospace" }}>149 Points</span>
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    <div style={{ overflowX: "auto", width: "100%" }}>
+                      <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12.5, tableLayout: "fixed" }}>
+                        <thead>
+                          <tr style={{ color: "#94a3b8", fontWeight: 700, borderBottom: "1px solid #f1f5f9" }}>
+                            <th style={{ textAlign: "left", paddingBottom: 8, width: "45%" }}>SUBJECT</th>
+                            <th style={{ textAlign: "center", paddingBottom: 8, width: "18%" }}>CREDIT</th>
+                            <th style={{ textAlign: "center", paddingBottom: 8, width: "18%" }}>GRADE</th>
+                            <th style={{ textAlign: "right", paddingBottom: 8, width: "19%" }}>C × GP</th>
                           </tr>
-                        ))}
-                        <tr style={{ borderTop: "2px solid #e2e8f0", fontWeight: 800 }}>
-                          <td style={{ padding: "8px 0", color: "#0f172a" }}>Total</td>
-                          <td style={{ textAlign: "center", padding: "8px 0", color: "#0f172a" }}>18</td>
-                          <td style={{ textAlign: "center", padding: "8px 0", color: "#94a3b8" }}>—</td>
-                          <td style={{ textAlign: "right", padding: "8px 0", color: "#0f172a" }}>149</td>
-                        </tr>
-                      </tbody>
-                    </table>
-                  </div>
+                        </thead>
+                        <tbody>
+                          {EXAMPLE_CALC_ROWS.slice(0, 5).map((row, idx) => (
+                            <tr key={idx} style={{ borderBottom: "1px solid #f8fafc" }}>
+                              <td style={{ padding: "7px 0", color: "#334155", fontWeight: 500 }}>{row.course}</td>
+                              <td style={{ textAlign: "center", padding: "7px 0", color: "#64748b" }}>{row.credit}</td>
+                              <td style={{ textAlign: "center", padding: "7px 0", fontWeight: 700, color: "#2563eb" }}>{row.grade}</td>
+                              <td style={{ textAlign: "right", padding: "7px 0", fontWeight: 700, color: "#0f172a" }}>{row.total}</td>
+                            </tr>
+                          ))}
+                          <tr style={{ borderTop: "2px solid #e2e8f0", fontWeight: 800 }}>
+                            <td style={{ padding: "8px 0", color: "#0f172a" }}>Total</td>
+                            <td style={{ textAlign: "center", padding: "8px 0", color: "#0f172a" }}>18</td>
+                            <td style={{ textAlign: "center", padding: "8px 0", color: "#94a3b8" }}>—</td>
+                            <td style={{ textAlign: "right", padding: "8px 0", color: "#0f172a" }}>149</td>
+                          </tr>
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
 
                   <div
                     style={{
@@ -1266,16 +1344,17 @@ export default function Resources() {
                       padding: "8px 12px",
                       textAlign: "center",
                       color: "#15803d",
-                      fontSize: isMobile ? 12 : 13,
+                      fontSize: isMobile ? 11.5 : 13,
                       fontWeight: 800,
                       display: "flex",
                       alignItems: "center",
                       justifyContent: "center",
                       gap: 6,
+                      flexWrap: "wrap",
                     }}
                   >
-                    <Check size={14} color="#15803d" />
-                    <span>SGPA = Total Weighted Points (149) / Total Credits (18) = 8.28</span>
+                    <Check size={14} color="#15803d" style={{ flexShrink: 0 }} />
+                    <span>SGPA = Total Points (149) / Total Credits (18) = 8.28</span>
                   </div>
                 </div>
 
