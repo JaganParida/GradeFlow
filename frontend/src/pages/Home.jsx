@@ -3,7 +3,13 @@ import { useNavigate } from "react-router-dom";
 import { useApp } from "../context/AppContext";
 import { motion } from "framer-motion";
 import {
-  AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer
+  AreaChart,
+  Area,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
 } from "recharts";
 import {
   GraduationCap,
@@ -37,13 +43,31 @@ import {
 
 /* ─── Social SVG Icons ─────────────────────────────────────────── */
 const TwitterIcon = ({ size = 15 }) => (
-  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+  <svg
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
     <path d="M22 4s-.7 2.1-2 3.4c1.6 10-9.4 17.3-18 11.6 2.2.1 4.4-.6 6-2C3 15.5.5 9.6 3 5c2.2 2.6 5.6 4.1 9 4-.9-4.2 4-6.6 7-3.8 1.1 0 3-1.2 3-1.2z" />
   </svg>
 );
 
 const LinkedinIcon = ({ size = 15 }) => (
-  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+  <svg
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
     <path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z" />
     <rect x="2" y="9" width="4" height="12" />
     <circle cx="4" cy="4" r="2" />
@@ -51,7 +75,16 @@ const LinkedinIcon = ({ size = 15 }) => (
 );
 
 const InstagramIcon = ({ size = 15 }) => (
-  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+  <svg
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
     <rect x="2" y="2" width="20" height="20" rx="5" ry="5" />
     <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z" />
     <line x1="17.5" y1="6.5" x2="17.51" y2="6.5" />
@@ -59,7 +92,16 @@ const InstagramIcon = ({ size = 15 }) => (
 );
 
 const GithubIcon = ({ size = 15 }) => (
-  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+  <svg
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
     <path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22" />
   </svg>
 );
@@ -91,20 +133,86 @@ const DONUT_DATA = [
 ];
 
 const TOP_SUBJECTS_LIST = [
-  { name: "Data Structures", score: 9.2, color: "#2563eb", bg: "#eff6ff", icon: <Layers size={15} /> },
-  { name: "Database Systems", score: 8.8, color: "#10b981", bg: "#ecfdf5", icon: <FileText size={15} /> },
-  { name: "Operating Systems", score: 8.5, color: "#f59e0b", bg: "#fffbeb", icon: <Layers size={15} /> },
-  { name: "Computer Networks", score: 9.0, color: "#8b5cf6", bg: "#f5f3ff", icon: <Network size={15} /> },
-  { name: "Software Engineering", score: 8.3, color: "#f97316", bg: "#fff7ed", icon: <FileText size={15} /> },
+  {
+    name: "Data Structures",
+    score: 9.2,
+    color: "#2563eb",
+    bg: "#eff6ff",
+    icon: <Layers size={15} />,
+  },
+  {
+    name: "Database Systems",
+    score: 8.8,
+    color: "#10b981",
+    bg: "#ecfdf5",
+    icon: <FileText size={15} />,
+  },
+  {
+    name: "Operating Systems",
+    score: 8.5,
+    color: "#f59e0b",
+    bg: "#fffbeb",
+    icon: <Layers size={15} />,
+  },
+  {
+    name: "Computer Networks",
+    score: 9.0,
+    color: "#8b5cf6",
+    bg: "#f5f3ff",
+    icon: <Network size={15} />,
+  },
+  {
+    name: "Software Engineering",
+    score: 8.3,
+    color: "#f97316",
+    bg: "#fff7ed",
+    icon: <FileText size={15} />,
+  },
 ];
 
 const QUICK_ACTIONS_ITEMS = [
-  { label: "Calculate SGPA", icon: <Calculator size={20} color="#2563eb" />, bg: "#eff6ff", to: "/resources", hash: "" },
-  { label: "Calculate CGPA", icon: <BarChart2 size={20} color="#10b981" />, bg: "#ecfdf5", to: "/resources", hash: "" },
-  { label: "What-If Simulator", icon: <Sliders size={20} color="#8b5cf6" />, bg: "#f5f3ff", to: "/analytics", hash: "#whatif" },
-  { label: "GPA Predictor", icon: <Target size={20} color="#f59e0b" />, bg: "#fffbeb", to: "/analytics", hash: "#predictor" },
-  { label: "Placement Insights", icon: <Briefcase size={20} color="#06b6d4" />, bg: "#ecfeff", to: "/analytics", hash: "#placement" },
-  { label: "Compare Scores", icon: <GitCompare size={20} color="#ec4899" />, bg: "#fdf2f8", to: "/analytics", hash: "#trajectory" },
+  {
+    label: "Calculate SGPA",
+    icon: <Calculator size={20} color="#2563eb" />,
+    bg: "#eff6ff",
+    to: "/resources",
+    hash: "",
+  },
+  {
+    label: "Calculate CGPA",
+    icon: <BarChart2 size={20} color="#10b981" />,
+    bg: "#ecfdf5",
+    to: "/resources",
+    hash: "",
+  },
+  {
+    label: "What-If Simulator",
+    icon: <Sliders size={20} color="#8b5cf6" />,
+    bg: "#f5f3ff",
+    to: "/analytics",
+    hash: "#whatif",
+  },
+  {
+    label: "GPA Predictor",
+    icon: <Target size={20} color="#f59e0b" />,
+    bg: "#fffbeb",
+    to: "/analytics",
+    hash: "#predictor",
+  },
+  {
+    label: "Placement Insights",
+    icon: <Briefcase size={20} color="#06b6d4" />,
+    bg: "#ecfeff",
+    to: "/analytics",
+    hash: "#placement",
+  },
+  {
+    label: "Compare Scores",
+    icon: <GitCompare size={20} color="#ec4899" />,
+    bg: "#fdf2f8",
+    to: "/analytics",
+    hash: "#trajectory",
+  },
 ];
 
 const RECENT_ACTIVITIES = [
@@ -152,15 +260,33 @@ const RECENT_ACTIVITIES = [
 
 /* ─── SVG Donut Chart Component ────────────────────────────────── */
 function DonutChartComponent() {
-  const r = 36, cx = 48, cy = 48, stroke = 10;
+  const r = 36,
+    cx = 48,
+    cy = 48,
+    stroke = 10;
   const circumference = 2 * Math.PI * r;
   let offset = 0;
 
   return (
-    <div className="gf-donut-wrap" style={{ display: "flex", alignItems: "center", gap: 14 }}>
-      <div style={{ position: "relative", width: 96, height: 96, flexShrink: 0 }}>
-        <svg viewBox="0 0 96 96" style={{ width: "100%", height: "100%", transform: "rotate(-90deg)" }}>
-          <circle cx={cx} cy={cy} r={r} fill="none" stroke="#f1f5f9" strokeWidth={stroke} />
+    <div
+      className="gf-donut-wrap"
+      style={{ display: "flex", alignItems: "center", gap: 14 }}
+    >
+      <div
+        style={{ position: "relative", width: 96, height: 96, flexShrink: 0 }}
+      >
+        <svg
+          viewBox="0 0 96 96"
+          style={{ width: "100%", height: "100%", transform: "rotate(-90deg)" }}
+        >
+          <circle
+            cx={cx}
+            cy={cy}
+            r={r}
+            fill="none"
+            stroke="#f1f5f9"
+            strokeWidth={stroke}
+          />
           {DONUT_DATA.map((seg, i) => {
             const pct = seg.value / 100;
             const dash = pct * circumference;
@@ -170,7 +296,9 @@ function DonutChartComponent() {
             return (
               <circle
                 key={i}
-                cx={cx} cy={cy} r={r}
+                cx={cx}
+                cy={cy}
+                r={r}
                 fill="none"
                 stroke={seg.color}
                 strokeWidth={stroke}
@@ -193,21 +321,87 @@ function DonutChartComponent() {
             pointerEvents: "none",
           }}
         >
-          <span style={{ fontSize: 16, fontWeight: 800, color: "#0f172a", lineHeight: 1 }}>85%</span>
-          <span style={{ fontSize: 8.5, fontWeight: 600, color: "#94a3b8", marginTop: 2 }}>Avg Score</span>
+          <span
+            style={{
+              fontSize: 16,
+              fontWeight: 800,
+              color: "#0f172a",
+              lineHeight: 1,
+            }}
+          >
+            85%
+          </span>
+          <span
+            style={{
+              fontSize: 8.5,
+              fontWeight: 600,
+              color: "#94a3b8",
+              marginTop: 2,
+            }}
+          >
+            Avg Score
+          </span>
         </div>
       </div>
 
-      <div style={{ display: "flex", flexDirection: "column", gap: 5, flex: 1, minWidth: 0 }}>
+      <div
+        style={{
+          display: "flex",
+          flexDirection: "column",
+          gap: 5,
+          flex: 1,
+          minWidth: 0,
+        }}
+      >
         {DONUT_DATA.map((d, i) => (
-          <div key={i} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", fontSize: 11 }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 5, minWidth: 0 }}>
-              <span style={{ width: 6, height: 6, borderRadius: "50%", background: d.color, flexShrink: 0 }} />
-              <span style={{ color: "#64748b", fontWeight: 500, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+          <div
+            key={i}
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              fontSize: 11,
+            }}
+          >
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 5,
+                minWidth: 0,
+              }}
+            >
+              <span
+                style={{
+                  width: 6,
+                  height: 6,
+                  borderRadius: "50%",
+                  background: d.color,
+                  flexShrink: 0,
+                }}
+              />
+              <span
+                style={{
+                  color: "#64748b",
+                  fontWeight: 500,
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                  whiteSpace: "nowrap",
+                }}
+              >
                 {d.label}
               </span>
             </div>
-            <span style={{ fontWeight: 700, color: "#0f172a", marginLeft: 4, flexShrink: 0 }}>{d.value}%</span>
+            <span
+              style={{
+                fontWeight: 700,
+                color: "#0f172a",
+                marginLeft: 4,
+                flexShrink: 0,
+              }}
+            >
+              {d.value}%
+            </span>
           </div>
         ))}
       </div>
@@ -224,7 +418,8 @@ export default function Home() {
   const [emailSub, setEmailSub] = useState("");
   const [subscribed, setSubscribed] = useState(false);
 
-  const currentRegNo = studentData?.regNo || sessionStorage.getItem("last_regNo") || "";
+  const currentRegNo =
+    studentData?.regNo || sessionStorage.getItem("last_regNo") || "";
 
   const handleDashboardAction = () => {
     if (hasActiveSession && currentRegNo) {
@@ -332,8 +527,10 @@ export default function Home() {
                 margin: 0,
               }}
             >
-              Your Performance.<br />
-              Your Progress.<br />
+              Your Performance.
+              <br />
+              Your Progress.
+              <br />
               Your <span style={{ color: "#2563eb" }}>Success.</span>
             </h1>
 
@@ -348,11 +545,21 @@ export default function Home() {
                 margin: 0,
               }}
             >
-              GradeFlow helps you track your academic performance, analyze results, and achieve your goals with powerful insights.
+              GradeFlow helps you track your academic performance, analyze
+              results, and achieve your goals with powerful insights.
             </p>
 
             {/* Action Buttons */}
-            <div className="gf-hero-actions" style={{ display: "flex", alignItems: "center", gap: 12, marginTop: 4, flexWrap: "wrap" }}>
+            <div
+              className="gf-hero-actions"
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 12,
+                marginTop: 4,
+                flexWrap: "wrap",
+              }}
+            >
               <button
                 onClick={handleDashboardAction}
                 className="gf-btn-primary"
@@ -374,8 +581,12 @@ export default function Home() {
                   transition: "all 0.2s ease",
                   minHeight: 46,
                 }}
-                onMouseEnter={(e) => (e.currentTarget.style.background = "#1d4ed8")}
-                onMouseLeave={(e) => (e.currentTarget.style.background = "#2563eb")}
+                onMouseEnter={(e) =>
+                  (e.currentTarget.style.background = "#1d4ed8")
+                }
+                onMouseLeave={(e) =>
+                  (e.currentTarget.style.background = "#2563eb")
+                }
               >
                 Go to Dashboard <ArrowRight size={15} />
               </button>
@@ -435,12 +646,30 @@ export default function Home() {
               }}
             >
               {/* Overlapping Avatars */}
-              <div style={{ display: "flex", alignItems: "center", flexShrink: 0 }}>
+              <div
+                style={{ display: "flex", alignItems: "center", flexShrink: 0 }}
+              >
                 {[
-                  { bg: "linear-gradient(135deg, #3b82f6, #1d4ed8)", text: "J", name: "Jagan" },
-                  { bg: "linear-gradient(135deg, #10b981, #059669)", text: "A", name: "Ankit" },
-                  { bg: "linear-gradient(135deg, #f59e0b, #d97706)", text: "R", name: "Rohan" },
-                  { bg: "linear-gradient(135deg, #8b5cf6, #7c3aed)", text: "S", name: "Sneha" },
+                  {
+                    bg: "linear-gradient(135deg, #3b82f6, #1d4ed8)",
+                    text: "J",
+                    name: "Jagan",
+                  },
+                  {
+                    bg: "linear-gradient(135deg, #10b981, #059669)",
+                    text: "A",
+                    name: "Ankit",
+                  },
+                  {
+                    bg: "linear-gradient(135deg, #f59e0b, #d97706)",
+                    text: "R",
+                    name: "Rohan",
+                  },
+                  {
+                    bg: "linear-gradient(135deg, #8b5cf6, #7c3aed)",
+                    text: "S",
+                    name: "Sneha",
+                  },
                 ].map((u, idx) => (
                   <div
                     key={idx}
@@ -467,21 +696,38 @@ export default function Home() {
               </div>
 
               {/* Text & Rating Details */}
-              <div style={{ display: "flex", alignItems: "center", gap: 7, flexWrap: "wrap" }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 2.5 }}>
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 7,
+                  flexWrap: "wrap",
+                }}
+              >
+                <div
+                  style={{ display: "flex", alignItems: "center", gap: 2.5 }}
+                >
                   {[...Array(5)].map((_, i) => (
                     <Star key={i} size={11} fill="#f59e0b" color="#f59e0b" />
                   ))}
                 </div>
-                <span style={{ fontSize: 12, color: "#475569", fontWeight: 600 }}>
-                  <strong style={{ color: "#0f172a", fontWeight: 800 }}>10,000+</strong> students enrolled
+                <span
+                  style={{ fontSize: 12, color: "#475569", fontWeight: 600 }}
+                >
+                  <strong style={{ color: "#0f172a", fontWeight: 800 }}>
+                    1000+
+                  </strong>{" "}
+                  students used
                 </span>
               </div>
             </div>
           </motion.div>
 
           {/* Right Column: Dashboard Mockup Card */}
-          <div className="gf-mockup-wrapper" style={{ position: "relative", width: "100%", minWidth: 0 }}>
+          <div
+            className="gf-mockup-wrapper"
+            style={{ position: "relative", width: "100%", minWidth: 0 }}
+          >
             {/* Subtle glow behind card */}
             <div
               style={{
@@ -490,7 +736,8 @@ export default function Home() {
                 right: -20,
                 bottom: -20,
                 left: -20,
-                background: "radial-gradient(ellipse at center, rgba(37, 99, 235, 0.08) 0%, rgba(240, 244, 255, 0) 70%)",
+                background:
+                  "radial-gradient(ellipse at center, rgba(37, 99, 235, 0.08) 0%, rgba(240, 244, 255, 0) 70%)",
                 zIndex: 0,
                 pointerEvents: "none",
               }}
@@ -505,7 +752,8 @@ export default function Home() {
                 background: "#ffffff",
                 borderRadius: 20,
                 border: "1px solid rgba(226, 232, 240, 0.9)",
-                boxShadow: "0 20px 40px -10px rgba(15, 23, 42, 0.1), 0 0 0 1px rgba(255, 255, 255, 0.8)",
+                boxShadow:
+                  "0 20px 40px -10px rgba(15, 23, 42, 0.1), 0 0 0 1px rgba(255, 255, 255, 0.8)",
                 display: "grid",
                 gridTemplateColumns: "52px 1fr",
                 overflow: "hidden",
@@ -528,7 +776,14 @@ export default function Home() {
                   justifyContent: "space-between",
                 }}
               >
-                <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 16 }}>
+                <div
+                  style={{
+                    display: "flex",
+                    flexDirection: "column",
+                    alignItems: "center",
+                    gap: 16,
+                  }}
+                >
                   <div
                     style={{
                       width: 32,
@@ -544,11 +799,21 @@ export default function Home() {
                   >
                     <HomeIcon size={16} />
                   </div>
-                  <div style={{ color: "#94a3b8" }}><BarChart2 size={16} /></div>
-                  <div style={{ color: "#94a3b8" }}><Layers size={16} /></div>
-                  <div style={{ color: "#94a3b8" }}><Trophy size={16} /></div>
-                  <div style={{ color: "#94a3b8" }}><FileText size={16} /></div>
-                  <div style={{ color: "#94a3b8" }}><Settings size={16} /></div>
+                  <div style={{ color: "#94a3b8" }}>
+                    <BarChart2 size={16} />
+                  </div>
+                  <div style={{ color: "#94a3b8" }}>
+                    <Layers size={16} />
+                  </div>
+                  <div style={{ color: "#94a3b8" }}>
+                    <Trophy size={16} />
+                  </div>
+                  <div style={{ color: "#94a3b8" }}>
+                    <FileText size={16} />
+                  </div>
+                  <div style={{ color: "#94a3b8" }}>
+                    <Settings size={16} />
+                  </div>
                 </div>
 
                 {/* Avatar with Online Dot */}
@@ -567,7 +832,7 @@ export default function Home() {
                       justifyContent: "center",
                     }}
                   >
-                    JP
+                    S
                   </div>
                   <span
                     style={{
@@ -597,12 +862,35 @@ export default function Home() {
                 }}
               >
                 {/* Header inside Mockup */}
-                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 8 }}>
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    flexWrap: "wrap",
+                    gap: 8,
+                  }}
+                >
                   <div>
-                    <h3 style={{ fontSize: 16, fontWeight: 800, color: "#0f172a", margin: 0 }}>
-                      Welcome back, Jagan 👋
+                    <h3
+                      style={{
+                        fontSize: 16,
+                        fontWeight: 800,
+                        color: "#0f172a",
+                        margin: 0,
+                      }}
+                    >
+                      Welcome back, Student 👋
                     </h3>
-                    <p style={{ fontSize: 11.5, color: "#94a3b8", margin: "2px 0 0 0" }}>Here's your academic overview</p>
+                    <p
+                      style={{
+                        fontSize: 11.5,
+                        color: "#94a3b8",
+                        margin: "2px 0 0 0",
+                      }}
+                    >
+                      Here's your academic overview
+                    </p>
                   </div>
                   <div
                     style={{
@@ -632,55 +920,278 @@ export default function Home() {
                   }}
                 >
                   {/* CGPA */}
-                  <div style={{ background: "#ffffff", border: "1px solid #f1f5f9", borderRadius: 12, padding: "10px 10px" }}>
-                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
-                      <span style={{ fontSize: 10.5, fontWeight: 700, color: "#94a3b8" }}>CGPA</span>
-                      <div style={{ width: 22, height: 22, borderRadius: 6, background: "#eff6ff", color: "#2563eb", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                  <div
+                    style={{
+                      background: "#ffffff",
+                      border: "1px solid #f1f5f9",
+                      borderRadius: 12,
+                      padding: "10px 10px",
+                    }}
+                  >
+                    <div
+                      style={{
+                        display: "flex",
+                        justifyContent: "space-between",
+                        alignItems: "center",
+                        marginBottom: 4,
+                      }}
+                    >
+                      <span
+                        style={{
+                          fontSize: 10.5,
+                          fontWeight: 700,
+                          color: "#94a3b8",
+                        }}
+                      >
+                        CGPA
+                      </span>
+                      <div
+                        style={{
+                          width: 22,
+                          height: 22,
+                          borderRadius: 6,
+                          background: "#eff6ff",
+                          color: "#2563eb",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                        }}
+                      >
                         <GraduationCap size={12} />
                       </div>
                     </div>
-                    <div style={{ fontSize: 17, fontWeight: 800, color: "#0f172a" }}>
-                      8.72 <span style={{ fontSize: 11, fontWeight: 500, color: "#94a3b8" }}>/10</span>
+                    <div
+                      style={{
+                        fontSize: 17,
+                        fontWeight: 800,
+                        color: "#0f172a",
+                      }}
+                    >
+                      8.72{" "}
+                      <span
+                        style={{
+                          fontSize: 11,
+                          fontWeight: 500,
+                          color: "#94a3b8",
+                        }}
+                      >
+                        /10
+                      </span>
                     </div>
-                    <div style={{ fontSize: 9.5, color: "#16a34a", fontWeight: 600, marginTop: 2 }}>↑ 0.42</div>
+                    <div
+                      style={{
+                        fontSize: 9.5,
+                        color: "#16a34a",
+                        fontWeight: 600,
+                        marginTop: 2,
+                      }}
+                    >
+                      ↑ 0.42
+                    </div>
                   </div>
 
                   {/* SGPA */}
-                  <div style={{ background: "#ffffff", border: "1px solid #f1f5f9", borderRadius: 12, padding: "10px 10px" }}>
-                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
-                      <span style={{ fontSize: 10.5, fontWeight: 700, color: "#94a3b8" }}>SGPA</span>
-                      <div style={{ width: 22, height: 22, borderRadius: 6, background: "#ecfdf5", color: "#10b981", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                  <div
+                    style={{
+                      background: "#ffffff",
+                      border: "1px solid #f1f5f9",
+                      borderRadius: 12,
+                      padding: "10px 10px",
+                    }}
+                  >
+                    <div
+                      style={{
+                        display: "flex",
+                        justifyContent: "space-between",
+                        alignItems: "center",
+                        marginBottom: 4,
+                      }}
+                    >
+                      <span
+                        style={{
+                          fontSize: 10.5,
+                          fontWeight: 700,
+                          color: "#94a3b8",
+                        }}
+                      >
+                        SGPA
+                      </span>
+                      <div
+                        style={{
+                          width: 22,
+                          height: 22,
+                          borderRadius: 6,
+                          background: "#ecfdf5",
+                          color: "#10b981",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                        }}
+                      >
                         <TrendingUp size={12} />
                       </div>
                     </div>
-                    <div style={{ fontSize: 17, fontWeight: 800, color: "#0f172a" }}>
-                      9.10 <span style={{ fontSize: 11, fontWeight: 500, color: "#94a3b8" }}>/10</span>
+                    <div
+                      style={{
+                        fontSize: 17,
+                        fontWeight: 800,
+                        color: "#0f172a",
+                      }}
+                    >
+                      9.10{" "}
+                      <span
+                        style={{
+                          fontSize: 11,
+                          fontWeight: 500,
+                          color: "#94a3b8",
+                        }}
+                      >
+                        /10
+                      </span>
                     </div>
-                    <div style={{ fontSize: 9.5, color: "#16a34a", fontWeight: 600, marginTop: 2 }}>↑ 0.35</div>
+                    <div
+                      style={{
+                        fontSize: 9.5,
+                        color: "#16a34a",
+                        fontWeight: 600,
+                        marginTop: 2,
+                      }}
+                    >
+                      ↑ 0.35
+                    </div>
                   </div>
 
                   {/* Academic Health */}
-                  <div style={{ background: "#ffffff", border: "1px solid #f1f5f9", borderRadius: 12, padding: "10px 10px" }}>
-                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
-                      <span style={{ fontSize: 10.5, fontWeight: 700, color: "#94a3b8" }}>Health</span>
-                      <div style={{ width: 22, height: 22, borderRadius: 6, background: "#fffbeb", color: "#f59e0b", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                  <div
+                    style={{
+                      background: "#ffffff",
+                      border: "1px solid #f1f5f9",
+                      borderRadius: 12,
+                      padding: "10px 10px",
+                    }}
+                  >
+                    <div
+                      style={{
+                        display: "flex",
+                        justifyContent: "space-between",
+                        alignItems: "center",
+                        marginBottom: 4,
+                      }}
+                    >
+                      <span
+                        style={{
+                          fontSize: 10.5,
+                          fontWeight: 700,
+                          color: "#94a3b8",
+                        }}
+                      >
+                        Health
+                      </span>
+                      <div
+                        style={{
+                          width: 22,
+                          height: 22,
+                          borderRadius: 6,
+                          background: "#fffbeb",
+                          color: "#f59e0b",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                        }}
+                      >
                         <Activity size={12} />
                       </div>
                     </div>
-                    <div style={{ fontSize: 17, fontWeight: 800, color: "#0f172a" }}>96<span style={{ fontSize: 11, fontWeight: 500, color: "#94a3b8" }}>/100</span></div>
-                    <div style={{ fontSize: 9.5, color: "#16a34a", fontWeight: 600, marginTop: 2 }}>↑ 4 pts</div>
+                    <div
+                      style={{
+                        fontSize: 17,
+                        fontWeight: 800,
+                        color: "#0f172a",
+                      }}
+                    >
+                      96
+                      <span
+                        style={{
+                          fontSize: 11,
+                          fontWeight: 500,
+                          color: "#94a3b8",
+                        }}
+                      >
+                        /100
+                      </span>
+                    </div>
+                    <div
+                      style={{
+                        fontSize: 9.5,
+                        color: "#16a34a",
+                        fontWeight: 600,
+                        marginTop: 2,
+                      }}
+                    >
+                      ↑ 4 pts
+                    </div>
                   </div>
 
                   {/* University Rank */}
-                  <div style={{ background: "#ffffff", border: "1px solid #f1f5f9", borderRadius: 12, padding: "10px 10px" }}>
-                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
-                      <span style={{ fontSize: 10.5, fontWeight: 700, color: "#94a3b8" }}>Rank</span>
-                      <div style={{ width: 22, height: 22, borderRadius: 6, background: "#f5f3ff", color: "#8b5cf6", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                  <div
+                    style={{
+                      background: "#ffffff",
+                      border: "1px solid #f1f5f9",
+                      borderRadius: 12,
+                      padding: "10px 10px",
+                    }}
+                  >
+                    <div
+                      style={{
+                        display: "flex",
+                        justifyContent: "space-between",
+                        alignItems: "center",
+                        marginBottom: 4,
+                      }}
+                    >
+                      <span
+                        style={{
+                          fontSize: 10.5,
+                          fontWeight: 700,
+                          color: "#94a3b8",
+                        }}
+                      >
+                        Rank
+                      </span>
+                      <div
+                        style={{
+                          width: 22,
+                          height: 22,
+                          borderRadius: 6,
+                          background: "#f5f3ff",
+                          color: "#8b5cf6",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                        }}
+                      >
                         <Trophy size={12} />
                       </div>
                     </div>
-                    <div style={{ fontSize: 17, fontWeight: 800, color: "#0f172a" }}>#24</div>
-                    <div style={{ fontSize: 9.5, color: "#16a34a", fontWeight: 600, marginTop: 2 }}>↑ 12 pos</div>
+                    <div
+                      style={{
+                        fontSize: 17,
+                        fontWeight: 800,
+                        color: "#0f172a",
+                      }}
+                    >
+                      #24
+                    </div>
+                    <div
+                      style={{
+                        fontSize: 9.5,
+                        color: "#16a34a",
+                        fontWeight: 600,
+                        marginTop: 2,
+                      }}
+                    >
+                      ↑ 12 pos
+                    </div>
                   </div>
                 </div>
 
@@ -695,20 +1206,76 @@ export default function Home() {
                   }}
                 >
                   {/* SGPA Trend */}
-                  <div style={{ background: "#ffffff", border: "1px solid #f1f5f9", borderRadius: 12, padding: "12px 12px", position: "relative", minWidth: 0 }}>
-                    <div style={{ fontSize: 12, fontWeight: 800, color: "#0f172a", marginBottom: 6 }}>SGPA Trend</div>
-                    <div style={{ height: 115, position: "relative", width: "100%" }}>
+                  <div
+                    style={{
+                      background: "#ffffff",
+                      border: "1px solid #f1f5f9",
+                      borderRadius: 12,
+                      padding: "12px 12px",
+                      position: "relative",
+                      minWidth: 0,
+                    }}
+                  >
+                    <div
+                      style={{
+                        fontSize: 12,
+                        fontWeight: 800,
+                        color: "#0f172a",
+                        marginBottom: 6,
+                      }}
+                    >
+                      SGPA Trend
+                    </div>
+                    <div
+                      style={{
+                        height: 115,
+                        position: "relative",
+                        width: "100%",
+                      }}
+                    >
                       <ResponsiveContainer width="100%" height="100%">
-                        <AreaChart data={PREVIEW_TREND_DATA} margin={{ top: 8, right: 8, left: -28, bottom: 0 }}>
+                        <AreaChart
+                          data={PREVIEW_TREND_DATA}
+                          margin={{ top: 8, right: 8, left: -28, bottom: 0 }}
+                        >
                           <defs>
-                            <linearGradient id="previewAreaGrad" x1="0" y1="0" x2="0" y2="1">
-                              <stop offset="5%" stopColor="#2563eb" stopOpacity={0.25} />
-                              <stop offset="95%" stopColor="#2563eb" stopOpacity={0.0} />
+                            <linearGradient
+                              id="previewAreaGrad"
+                              x1="0"
+                              y1="0"
+                              x2="0"
+                              y2="1"
+                            >
+                              <stop
+                                offset="5%"
+                                stopColor="#2563eb"
+                                stopOpacity={0.25}
+                              />
+                              <stop
+                                offset="95%"
+                                stopColor="#2563eb"
+                                stopOpacity={0.0}
+                              />
                             </linearGradient>
                           </defs>
-                          <CartesianGrid strokeDasharray="2 2" stroke="#f1f5f9" vertical={false} />
-                          <XAxis dataKey="sem" tick={{ fontSize: 9, fill: "#94a3b8" }} axisLine={false} tickLine={false} />
-                          <YAxis domain={[0, 10]} ticks={[0, 5, 10]} tick={{ fontSize: 9, fill: "#94a3b8" }} axisLine={false} tickLine={false} />
+                          <CartesianGrid
+                            strokeDasharray="2 2"
+                            stroke="#f1f5f9"
+                            vertical={false}
+                          />
+                          <XAxis
+                            dataKey="sem"
+                            tick={{ fontSize: 9, fill: "#94a3b8" }}
+                            axisLine={false}
+                            tickLine={false}
+                          />
+                          <YAxis
+                            domain={[0, 10]}
+                            ticks={[0, 5, 10]}
+                            tick={{ fontSize: 9, fill: "#94a3b8" }}
+                            axisLine={false}
+                            tickLine={false}
+                          />
                           <Area
                             type="monotone"
                             dataKey="sgpa"
@@ -716,7 +1283,12 @@ export default function Home() {
                             strokeWidth={2.2}
                             fillOpacity={1}
                             fill="url(#previewAreaGrad)"
-                            dot={{ r: 3, fill: "#2563eb", stroke: "#ffffff", strokeWidth: 1.5 }}
+                            dot={{
+                              r: 3,
+                              fill: "#2563eb",
+                              stroke: "#ffffff",
+                              strokeWidth: 1.5,
+                            }}
                           />
                         </AreaChart>
                       </ResponsiveContainer>
@@ -736,15 +1308,42 @@ export default function Home() {
                           pointerEvents: "none",
                         }}
                       >
-                        <div style={{ fontSize: 10, fontWeight: 800, color: "#0f172a" }}>9.10</div>
-                        <div style={{ fontSize: 8, color: "#64748b" }}>Sem 6</div>
+                        <div
+                          style={{
+                            fontSize: 10,
+                            fontWeight: 800,
+                            color: "#0f172a",
+                          }}
+                        >
+                          9.10
+                        </div>
+                        <div style={{ fontSize: 8, color: "#64748b" }}>
+                          Sem 6
+                        </div>
                       </div>
                     </div>
                   </div>
 
                   {/* Donut Chart */}
-                  <div style={{ background: "#ffffff", border: "1px solid #f1f5f9", borderRadius: 12, padding: "12px 12px", minWidth: 0 }}>
-                    <div style={{ fontSize: 12, fontWeight: 800, color: "#0f172a", marginBottom: 6 }}>Subject Performance</div>
+                  <div
+                    style={{
+                      background: "#ffffff",
+                      border: "1px solid #f1f5f9",
+                      borderRadius: 12,
+                      padding: "12px 12px",
+                      minWidth: 0,
+                    }}
+                  >
+                    <div
+                      style={{
+                        fontSize: 12,
+                        fontWeight: 800,
+                        color: "#0f172a",
+                        marginBottom: 6,
+                      }}
+                    >
+                      Subject Performance
+                    </div>
                     <DonutChartComponent />
                   </div>
                 </div>
@@ -794,12 +1393,37 @@ export default function Home() {
               <GraduationCap size={22} />
             </div>
             <div>
-              <div style={{ fontSize: 12, fontWeight: 600, color: "#64748b" }}>CGPA</div>
-              <div style={{ fontSize: 24, fontWeight: 800, color: "#0f172a", lineHeight: 1.15, marginTop: 1 }}>
-                8.72 <span style={{ fontSize: 13, fontWeight: 500, color: "#94a3b8" }}>/10</span>
+              <div style={{ fontSize: 12, fontWeight: 600, color: "#64748b" }}>
+                CGPA
               </div>
-              <div style={{ fontSize: 11, fontWeight: 600, color: "#16a34a", marginTop: 2 }}>
-                ↑ 0.42 <span style={{ color: "#64748b", fontWeight: 400 }}>this semester</span>
+              <div
+                style={{
+                  fontSize: 24,
+                  fontWeight: 800,
+                  color: "#0f172a",
+                  lineHeight: 1.15,
+                  marginTop: 1,
+                }}
+              >
+                8.72{" "}
+                <span
+                  style={{ fontSize: 13, fontWeight: 500, color: "#94a3b8" }}
+                >
+                  /10
+                </span>
+              </div>
+              <div
+                style={{
+                  fontSize: 11,
+                  fontWeight: 600,
+                  color: "#16a34a",
+                  marginTop: 2,
+                }}
+              >
+                ↑ 0.42{" "}
+                <span style={{ color: "#64748b", fontWeight: 400 }}>
+                  this semester
+                </span>
               </div>
             </div>
           </div>
@@ -834,12 +1458,37 @@ export default function Home() {
               <TrendingUp size={22} />
             </div>
             <div>
-              <div style={{ fontSize: 12, fontWeight: 600, color: "#64748b" }}>SGPA</div>
-              <div style={{ fontSize: 24, fontWeight: 800, color: "#0f172a", lineHeight: 1.15, marginTop: 1 }}>
-                9.10 <span style={{ fontSize: 13, fontWeight: 500, color: "#94a3b8" }}>/10</span>
+              <div style={{ fontSize: 12, fontWeight: 600, color: "#64748b" }}>
+                SGPA
               </div>
-              <div style={{ fontSize: 11, fontWeight: 600, color: "#16a34a", marginTop: 2 }}>
-                ↑ 0.35 <span style={{ color: "#64748b", fontWeight: 400 }}>this semester</span>
+              <div
+                style={{
+                  fontSize: 24,
+                  fontWeight: 800,
+                  color: "#0f172a",
+                  lineHeight: 1.15,
+                  marginTop: 1,
+                }}
+              >
+                9.10{" "}
+                <span
+                  style={{ fontSize: 13, fontWeight: 500, color: "#94a3b8" }}
+                >
+                  /10
+                </span>
+              </div>
+              <div
+                style={{
+                  fontSize: 11,
+                  fontWeight: 600,
+                  color: "#16a34a",
+                  marginTop: 2,
+                }}
+              >
+                ↑ 0.35{" "}
+                <span style={{ color: "#64748b", fontWeight: 400 }}>
+                  this semester
+                </span>
               </div>
             </div>
           </div>
@@ -874,12 +1523,37 @@ export default function Home() {
               <Activity size={22} />
             </div>
             <div>
-              <div style={{ fontSize: 12, fontWeight: 600, color: "#64748b" }}>Academic Health</div>
-              <div style={{ fontSize: 24, fontWeight: 800, color: "#0f172a", lineHeight: 1.15, marginTop: 1 }}>
-                96 <span style={{ fontSize: 13, fontWeight: 500, color: "#94a3b8" }}>/100</span>
+              <div style={{ fontSize: 12, fontWeight: 600, color: "#64748b" }}>
+                Academic Health
               </div>
-              <div style={{ fontSize: 11, fontWeight: 600, color: "#16a34a", marginTop: 2 }}>
-                ↑ 4 pts <span style={{ color: "#64748b", fontWeight: 400 }}>Excellent</span>
+              <div
+                style={{
+                  fontSize: 24,
+                  fontWeight: 800,
+                  color: "#0f172a",
+                  lineHeight: 1.15,
+                  marginTop: 1,
+                }}
+              >
+                96{" "}
+                <span
+                  style={{ fontSize: 13, fontWeight: 500, color: "#94a3b8" }}
+                >
+                  /100
+                </span>
+              </div>
+              <div
+                style={{
+                  fontSize: 11,
+                  fontWeight: 600,
+                  color: "#16a34a",
+                  marginTop: 2,
+                }}
+              >
+                ↑ 4 pts{" "}
+                <span style={{ color: "#64748b", fontWeight: 400 }}>
+                  Excellent
+                </span>
               </div>
             </div>
           </div>
@@ -914,12 +1588,32 @@ export default function Home() {
               <Trophy size={22} />
             </div>
             <div>
-              <div style={{ fontSize: 12, fontWeight: 600, color: "#64748b" }}>University Rank</div>
-              <div style={{ fontSize: 24, fontWeight: 800, color: "#0f172a", lineHeight: 1.15, marginTop: 1 }}>
+              <div style={{ fontSize: 12, fontWeight: 600, color: "#64748b" }}>
+                University Rank
+              </div>
+              <div
+                style={{
+                  fontSize: 24,
+                  fontWeight: 800,
+                  color: "#0f172a",
+                  lineHeight: 1.15,
+                  marginTop: 1,
+                }}
+              >
                 #24
               </div>
-              <div style={{ fontSize: 11, fontWeight: 600, color: "#16a34a", marginTop: 2 }}>
-                ↑ 12 <span style={{ color: "#64748b", fontWeight: 400 }}>positions</span>
+              <div
+                style={{
+                  fontSize: 11,
+                  fontWeight: 600,
+                  color: "#16a34a",
+                  marginTop: 2,
+                }}
+              >
+                ↑ 12{" "}
+                <span style={{ color: "#64748b", fontWeight: 400 }}>
+                  positions
+                </span>
               </div>
             </div>
           </div>
@@ -951,8 +1645,24 @@ export default function Home() {
               minWidth: 0,
             }}
           >
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16, flexWrap: "wrap", gap: 8 }}>
-              <h3 style={{ fontSize: 16, fontWeight: 800, color: "#0f172a", margin: 0 }}>
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                marginBottom: 16,
+                flexWrap: "wrap",
+                gap: 8,
+              }}
+            >
+              <h3
+                style={{
+                  fontSize: 16,
+                  fontWeight: 800,
+                  color: "#0f172a",
+                  margin: 0,
+                }}
+              >
                 SGPA Across Semesters
               </h3>
               <div
@@ -973,20 +1683,61 @@ export default function Home() {
               </div>
             </div>
 
-            <div className="gf-main-chart-wrap" style={{ width: "100%", height: 230 }}>
+            <div
+              className="gf-main-chart-wrap"
+              style={{ width: "100%", height: 230 }}
+            >
               <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={MAIN_AREA_DATA} margin={{ top: 10, right: 10, left: -22, bottom: 0 }}>
+                <AreaChart
+                  data={MAIN_AREA_DATA}
+                  margin={{ top: 10, right: 10, left: -22, bottom: 0 }}
+                >
                   <defs>
-                    <linearGradient id="areaGradient" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.25} />
-                      <stop offset="95%" stopColor="#3b82f6" stopOpacity={0.0} />
+                    <linearGradient
+                      id="areaGradient"
+                      x1="0"
+                      y1="0"
+                      x2="0"
+                      y2="1"
+                    >
+                      <stop
+                        offset="5%"
+                        stopColor="#3b82f6"
+                        stopOpacity={0.25}
+                      />
+                      <stop
+                        offset="95%"
+                        stopColor="#3b82f6"
+                        stopOpacity={0.0}
+                      />
                     </linearGradient>
                   </defs>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
-                  <XAxis dataKey="sem" tick={{ fontSize: 10.5, fill: "#94a3b8" }} axisLine={false} tickLine={false} />
-                  <YAxis domain={[0, 10]} ticks={[0, 2.5, 5, 7.5, 10]} tick={{ fontSize: 10.5, fill: "#94a3b8" }} axisLine={false} tickLine={false} />
+                  <CartesianGrid
+                    strokeDasharray="3 3"
+                    stroke="#f1f5f9"
+                    vertical={false}
+                  />
+                  <XAxis
+                    dataKey="sem"
+                    tick={{ fontSize: 10.5, fill: "#94a3b8" }}
+                    axisLine={false}
+                    tickLine={false}
+                  />
+                  <YAxis
+                    domain={[0, 10]}
+                    ticks={[0, 2.5, 5, 7.5, 10]}
+                    tick={{ fontSize: 10.5, fill: "#94a3b8" }}
+                    axisLine={false}
+                    tickLine={false}
+                  />
                   <Tooltip
-                    contentStyle={{ background: "#ffffff", border: "1px solid #e2e8f0", borderRadius: 8, fontSize: 12, boxShadow: "0 4px 12px rgba(0,0,0,0.06)" }}
+                    contentStyle={{
+                      background: "#ffffff",
+                      border: "1px solid #e2e8f0",
+                      borderRadius: 8,
+                      fontSize: 12,
+                      boxShadow: "0 4px 12px rgba(0,0,0,0.06)",
+                    }}
                   />
                   <Area
                     type="monotone"
@@ -995,7 +1746,12 @@ export default function Home() {
                     strokeWidth={2.5}
                     fillOpacity={1}
                     fill="url(#areaGradient)"
-                    dot={{ r: 4, fill: "#2563eb", stroke: "#ffffff", strokeWidth: 2 }}
+                    dot={{
+                      r: 4,
+                      fill: "#2563eb",
+                      stroke: "#ffffff",
+                      strokeWidth: 2,
+                    }}
                     activeDot={{ r: 5 }}
                   />
                 </AreaChart>
@@ -1015,9 +1771,28 @@ export default function Home() {
               minWidth: 0,
             }}
           >
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
-              <h3 style={{ fontSize: 16, fontWeight: 800, color: "#0f172a", margin: 0 }}>
-                Top Subjects <span style={{ fontSize: 12, fontWeight: 500, color: "#94a3b8" }}>(Sem 6)</span>
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                marginBottom: 16,
+              }}
+            >
+              <h3
+                style={{
+                  fontSize: 16,
+                  fontWeight: 800,
+                  color: "#0f172a",
+                  margin: 0,
+                }}
+              >
+                Top Subjects{" "}
+                <span
+                  style={{ fontSize: 12, fontWeight: 500, color: "#94a3b8" }}
+                >
+                  (Sem 6)
+                </span>
               </h3>
               <button
                 onClick={() => navigate("/resources")}
@@ -1036,7 +1811,16 @@ export default function Home() {
 
             <div style={{ display: "flex", flexDirection: "column", gap: 13 }}>
               {TOP_SUBJECTS_LIST.map((sub, idx) => (
-                <div key={idx} style={{ display: "flex", alignItems: "center", gap: 10, width: "100%", minWidth: 0 }}>
+                <div
+                  key={idx}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 10,
+                    width: "100%",
+                    minWidth: 0,
+                  }}
+                >
                   <div
                     style={{
                       width: 32,
@@ -1067,7 +1851,16 @@ export default function Home() {
                   >
                     {sub.name}
                   </span>
-                  <div style={{ flex: 1, height: 6, background: "#f1f5f9", borderRadius: 99, overflow: "hidden", minWidth: 40 }}>
+                  <div
+                    style={{
+                      flex: 1,
+                      height: 6,
+                      background: "#f1f5f9",
+                      borderRadius: 99,
+                      overflow: "hidden",
+                      minWidth: 40,
+                    }}
+                  >
                     <div
                       style={{
                         width: `${(sub.score / 10) * 100}%`,
@@ -1077,8 +1870,26 @@ export default function Home() {
                       }}
                     />
                   </div>
-                  <span style={{ fontSize: 12.5, fontWeight: 800, color: "#0f172a", width: 44, textAlign: "right", flexShrink: 0 }}>
-                    {sub.score}<span style={{ fontSize: 10, fontWeight: 500, color: "#94a3b8" }}>/10</span>
+                  <span
+                    style={{
+                      fontSize: 12.5,
+                      fontWeight: 800,
+                      color: "#0f172a",
+                      width: 44,
+                      textAlign: "right",
+                      flexShrink: 0,
+                    }}
+                  >
+                    {sub.score}
+                    <span
+                      style={{
+                        fontSize: 10,
+                        fontWeight: 500,
+                        color: "#94a3b8",
+                      }}
+                    >
+                      /10
+                    </span>
                   </span>
                 </div>
               ))}
@@ -1109,7 +1920,14 @@ export default function Home() {
               boxShadow: "0 2px 12px rgba(0,0,0,0.02)",
             }}
           >
-            <h3 style={{ fontSize: 16, fontWeight: 800, color: "#0f172a", margin: "0 0 16px 0" }}>
+            <h3
+              style={{
+                fontSize: 16,
+                fontWeight: 800,
+                color: "#0f172a",
+                margin: "0 0 16px 0",
+              }}
+            >
               Quick Actions
             </h3>
 
@@ -1141,7 +1959,8 @@ export default function Home() {
                   }}
                   onMouseEnter={(e) => {
                     e.currentTarget.style.transform = "translateY(-2px)";
-                    e.currentTarget.style.boxShadow = "0 6px 16px rgba(0,0,0,0.04)";
+                    e.currentTarget.style.boxShadow =
+                      "0 6px 16px rgba(0,0,0,0.04)";
                     e.currentTarget.style.borderColor = "#e2e8f0";
                   }}
                   onMouseLeave={(e) => {
@@ -1163,7 +1982,15 @@ export default function Home() {
                   >
                     {act.icon}
                   </div>
-                  <span style={{ fontSize: 11.5, fontWeight: 700, color: "#334155", textAlign: "center", lineHeight: 1.25 }}>
+                  <span
+                    style={{
+                      fontSize: 11.5,
+                      fontWeight: 700,
+                      color: "#334155",
+                      textAlign: "center",
+                      lineHeight: 1.25,
+                    }}
+                  >
                     {act.label}
                   </span>
                 </div>
@@ -1182,8 +2009,22 @@ export default function Home() {
               boxShadow: "0 2px 12px rgba(0,0,0,0.02)",
             }}
           >
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
-              <h3 style={{ fontSize: 16, fontWeight: 800, color: "#0f172a", margin: 0 }}>
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                marginBottom: 16,
+              }}
+            >
+              <h3
+                style={{
+                  fontSize: 16,
+                  fontWeight: 800,
+                  color: "#0f172a",
+                  margin: 0,
+                }}
+              >
                 Recent Academic Activity
               </h3>
               <button
@@ -1210,11 +2051,21 @@ export default function Home() {
                     alignItems: "center",
                     justifyContent: "space-between",
                     padding: "8px 0",
-                    borderBottom: idx === RECENT_ACTIVITIES.length - 1 ? "none" : "1px solid #f8fafc",
+                    borderBottom:
+                      idx === RECENT_ACTIVITIES.length - 1
+                        ? "none"
+                        : "1px solid #f8fafc",
                     gap: 10,
                   }}
                 >
-                  <div style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0 }}>
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 10,
+                      minWidth: 0,
+                    }}
+                  >
                     <div
                       style={{
                         width: 32,
@@ -1231,10 +2082,28 @@ export default function Home() {
                       {item.icon}
                     </div>
                     <div style={{ minWidth: 0 }}>
-                      <div style={{ fontSize: 13, fontWeight: 700, color: "#0f172a", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                      <div
+                        style={{
+                          fontSize: 13,
+                          fontWeight: 700,
+                          color: "#0f172a",
+                          overflow: "hidden",
+                          textOverflow: "ellipsis",
+                          whiteSpace: "nowrap",
+                        }}
+                      >
                         {item.title}
                       </div>
-                      <div style={{ fontSize: 11.5, color: "#94a3b8", marginTop: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                      <div
+                        style={{
+                          fontSize: 11.5,
+                          color: "#94a3b8",
+                          marginTop: 1,
+                          overflow: "hidden",
+                          textOverflow: "ellipsis",
+                          whiteSpace: "nowrap",
+                        }}
+                      >
                         {item.desc}
                       </div>
                     </div>
@@ -1265,7 +2134,8 @@ export default function Home() {
         <section
           className="gf-cta-grid"
           style={{
-            background: "linear-gradient(135deg, #eef2ff 0%, #e0e7ff 45%, #dbeafe 100%)",
+            background:
+              "linear-gradient(135deg, #eef2ff 0%, #e0e7ff 45%, #dbeafe 100%)",
             borderRadius: 20,
             padding: "36px 40px",
             display: "grid",
@@ -1291,8 +2161,16 @@ export default function Home() {
             >
               Your academic success, our mission.
             </h2>
-            <p style={{ fontSize: 14.5, color: "#475569", margin: 0, lineHeight: 1.55 }}>
-              Make smarter decisions, track progress, and achieve excellence with GradeFlow.
+            <p
+              style={{
+                fontSize: 14.5,
+                color: "#475569",
+                margin: 0,
+                lineHeight: 1.55,
+              }}
+            >
+              Make smarter decisions, track progress, and achieve excellence
+              with GradeFlow.
             </p>
             <div style={{ marginTop: 6 }}>
               <button
@@ -1316,8 +2194,12 @@ export default function Home() {
                   transition: "background 0.2s",
                   minHeight: 46,
                 }}
-                onMouseEnter={(e) => (e.currentTarget.style.background = "#1e293b")}
-                onMouseLeave={(e) => (e.currentTarget.style.background = "#0f172a")}
+                onMouseEnter={(e) =>
+                  (e.currentTarget.style.background = "#1e293b")
+                }
+                onMouseLeave={(e) =>
+                  (e.currentTarget.style.background = "#0f172a")
+                }
               >
                 Get Started Now <ArrowRight size={14} />
               </button>
@@ -1325,7 +2207,14 @@ export default function Home() {
           </div>
 
           {/* Right Graphic Badge */}
-          <div style={{ display: "flex", justifyContent: "center", alignItems: "center", width: "100%" }}>
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "center",
+              alignItems: "center",
+              width: "100%",
+            }}
+          >
             <div
               style={{
                 display: "flex",
@@ -1359,13 +2248,26 @@ export default function Home() {
                 <GraduationCap size={28} />
               </div>
               <div style={{ display: "flex", flexDirection: "column", gap: 3 }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 5, color: "#16a34a", fontSize: 12, fontWeight: 700 }}>
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 5,
+                    color: "#16a34a",
+                    fontSize: 12,
+                    fontWeight: 700,
+                  }}
+                >
                   <CheckCircle2 size={14} /> Analytics Verified
                 </div>
-                <div style={{ fontSize: 16, fontWeight: 800, color: "#0f172a" }}>
+                <div
+                  style={{ fontSize: 16, fontWeight: 800, color: "#0f172a" }}
+                >
                   Centurion University
                 </div>
-                <div style={{ fontSize: 11.5, color: "#64748b" }}>Official Grading Algorithms</div>
+                <div style={{ fontSize: 11.5, color: "#64748b" }}>
+                  Official Grading Algorithms
+                </div>
               </div>
             </div>
           </div>
@@ -1399,17 +2301,69 @@ export default function Home() {
             }}
           >
             {/* Logo + Tagline */}
-            <div style={{ display: "flex", flexDirection: "column", gap: 6, maxWidth: 440 }}>
+            <div
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                gap: 6,
+                maxWidth: 440,
+              }}
+            >
               <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                <div style={{ display: "flex", alignItems: "flex-end", gap: 3, height: 20 }}>
-                  <div style={{ width: 4, height: 9, background: "#3b82f6", borderRadius: 2 }} />
-                  <div style={{ width: 4, height: 14, background: "#2563eb", borderRadius: 2 }} />
-                  <div style={{ width: 4, height: 20, background: "#1e3a8a", borderRadius: 2 }} />
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "flex-end",
+                    gap: 3,
+                    height: 20,
+                  }}
+                >
+                  <div
+                    style={{
+                      width: 4,
+                      height: 9,
+                      background: "#3b82f6",
+                      borderRadius: 2,
+                    }}
+                  />
+                  <div
+                    style={{
+                      width: 4,
+                      height: 14,
+                      background: "#2563eb",
+                      borderRadius: 2,
+                    }}
+                  />
+                  <div
+                    style={{
+                      width: 4,
+                      height: 20,
+                      background: "#1e3a8a",
+                      borderRadius: 2,
+                    }}
+                  />
                 </div>
-                <span style={{ fontSize: 19, fontWeight: 800, color: "#0f172a", letterSpacing: "-0.5px" }}>GradeFlow</span>
+                <span
+                  style={{
+                    fontSize: 19,
+                    fontWeight: 800,
+                    color: "#0f172a",
+                    letterSpacing: "-0.5px",
+                  }}
+                >
+                  GradeFlow
+                </span>
               </div>
-              <p style={{ fontSize: 13, color: "#64748b", margin: 0, lineHeight: 1.5 }}>
-                Institutional-grade academic analytics & GPA intelligence designed for university students.
+              <p
+                style={{
+                  fontSize: 13,
+                  color: "#64748b",
+                  margin: 0,
+                  lineHeight: 1.5,
+                }}
+              >
+                Institutional-grade academic analytics & GPA intelligence
+                designed for university students.
               </p>
             </div>
 
@@ -1455,50 +2409,194 @@ export default function Home() {
             }}
           >
             {/* Column 1: Product & Tools */}
-            <div className="gf-footer-col" style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+            <div
+              className="gf-footer-col"
+              style={{ display: "flex", flexDirection: "column", gap: 10 }}
+            >
               <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                <div style={{ width: 4, height: 12, background: "#2563eb", borderRadius: 2 }} />
-                <h4 style={{ fontSize: 13.5, fontWeight: 800, color: "#0f172a", margin: 0, textTransform: "uppercase", letterSpacing: "0.5px" }}>
+                <div
+                  style={{
+                    width: 4,
+                    height: 12,
+                    background: "#2563eb",
+                    borderRadius: 2,
+                  }}
+                />
+                <h4
+                  style={{
+                    fontSize: 13.5,
+                    fontWeight: 800,
+                    color: "#0f172a",
+                    margin: 0,
+                    textTransform: "uppercase",
+                    letterSpacing: "0.5px",
+                  }}
+                >
                   Product
                 </h4>
               </div>
-              <div className="gf-footer-link-list" style={{ display: "flex", flexDirection: "column", gap: 8, fontSize: 13, color: "#64748b" }}>
-                <span className="gf-footer-link" onClick={() => navigate("/dashboard")}>Student Dashboard</span>
-                <span className="gf-footer-link" onClick={() => navigate("/resources")}>SGPA / CGPA Calculators</span>
-                <span className="gf-footer-link" onClick={() => navigate("/leaderboard")}>University Rankings</span>
-                <span className="gf-footer-link" onClick={() => navigate("/analytics")}>Performance Analytics</span>
+              <div
+                className="gf-footer-link-list"
+                style={{
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: 8,
+                  fontSize: 13,
+                  color: "#64748b",
+                }}
+              >
+                <span
+                  className="gf-footer-link"
+                  onClick={() => navigate("/dashboard")}
+                >
+                  Student Dashboard
+                </span>
+                <span
+                  className="gf-footer-link"
+                  onClick={() => navigate("/resources")}
+                >
+                  SGPA / CGPA Calculators
+                </span>
+                <span
+                  className="gf-footer-link"
+                  onClick={() => navigate("/leaderboard")}
+                >
+                  University Rankings
+                </span>
+                <span
+                  className="gf-footer-link"
+                  onClick={() => navigate("/analytics")}
+                >
+                  Performance Analytics
+                </span>
               </div>
             </div>
 
             {/* Column 2: Resources */}
-            <div className="gf-footer-col" style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+            <div
+              className="gf-footer-col"
+              style={{ display: "flex", flexDirection: "column", gap: 10 }}
+            >
               <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                <div style={{ width: 4, height: 12, background: "#10b981", borderRadius: 2 }} />
-                <h4 style={{ fontSize: 13.5, fontWeight: 800, color: "#0f172a", margin: 0, textTransform: "uppercase", letterSpacing: "0.5px" }}>
+                <div
+                  style={{
+                    width: 4,
+                    height: 12,
+                    background: "#10b981",
+                    borderRadius: 2,
+                  }}
+                />
+                <h4
+                  style={{
+                    fontSize: 13.5,
+                    fontWeight: 800,
+                    color: "#0f172a",
+                    margin: 0,
+                    textTransform: "uppercase",
+                    letterSpacing: "0.5px",
+                  }}
+                >
                   Resources
                 </h4>
               </div>
-              <div className="gf-footer-link-list" style={{ display: "flex", flexDirection: "column", gap: 8, fontSize: 13, color: "#64748b" }}>
-                <span className="gf-footer-link" onClick={() => navigate("/resources")}>Grading Guidelines</span>
-                <span className="gf-footer-link" onClick={() => navigate("/resources")}>Credit System</span>
-                <span className="gf-footer-link" onClick={() => navigate("/resources")}>Placement Cutoffs</span>
-                <span className="gf-footer-link" onClick={() => navigate("/resources")}>Help & FAQ</span>
+              <div
+                className="gf-footer-link-list"
+                style={{
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: 8,
+                  fontSize: 13,
+                  color: "#64748b",
+                }}
+              >
+                <span
+                  className="gf-footer-link"
+                  onClick={() => navigate("/resources")}
+                >
+                  Grading Guidelines
+                </span>
+                <span
+                  className="gf-footer-link"
+                  onClick={() => navigate("/resources")}
+                >
+                  Credit System
+                </span>
+                <span
+                  className="gf-footer-link"
+                  onClick={() => navigate("/resources")}
+                >
+                  Placement Cutoffs
+                </span>
+                <span
+                  className="gf-footer-link"
+                  onClick={() => navigate("/resources")}
+                >
+                  Help & FAQ
+                </span>
               </div>
             </div>
 
             {/* Column 3: Company */}
-            <div className="gf-footer-col" style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+            <div
+              className="gf-footer-col"
+              style={{ display: "flex", flexDirection: "column", gap: 10 }}
+            >
               <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                <div style={{ width: 4, height: 12, background: "#8b5cf6", borderRadius: 2 }} />
-                <h4 style={{ fontSize: 13.5, fontWeight: 800, color: "#0f172a", margin: 0, textTransform: "uppercase", letterSpacing: "0.5px" }}>
+                <div
+                  style={{
+                    width: 4,
+                    height: 12,
+                    background: "#8b5cf6",
+                    borderRadius: 2,
+                  }}
+                />
+                <h4
+                  style={{
+                    fontSize: 13.5,
+                    fontWeight: 800,
+                    color: "#0f172a",
+                    margin: 0,
+                    textTransform: "uppercase",
+                    letterSpacing: "0.5px",
+                  }}
+                >
                   Developer
                 </h4>
               </div>
-              <div className="gf-footer-link-list" style={{ display: "flex", flexDirection: "column", gap: 8, fontSize: 13, color: "#64748b" }}>
-                <span className="gf-footer-link" onClick={() => navigate("/about-dev")}>About the Creator</span>
-                <span className="gf-footer-link" onClick={() => navigate("/testimonials")}>Student Reviews</span>
-                <span className="gf-footer-link" onClick={() => navigate("/testimonials")}>Submit Feedback</span>
-                <span className="gf-footer-link" onClick={() => navigate("/admin")}>Admin Console</span>
+              <div
+                className="gf-footer-link-list"
+                style={{
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: 8,
+                  fontSize: 13,
+                  color: "#64748b",
+                }}
+              >
+                <span
+                  className="gf-footer-link"
+                  onClick={() => navigate("/about-dev")}
+                >
+                  About the Creator
+                </span>
+                <span
+                  className="gf-footer-link"
+                  onClick={() => navigate("/testimonials")}
+                >
+                  Student Reviews
+                </span>
+                <span
+                  className="gf-footer-link"
+                  onClick={() => navigate("/testimonials")}
+                >
+                  Submit Feedback
+                </span>
+                <span
+                  className="gf-footer-link"
+                  onClick={() => navigate("/admin")}
+                >
+                  Admin Console
+                </span>
               </div>
             </div>
 
@@ -1531,16 +2629,33 @@ export default function Home() {
                 >
                   <Mail size={14} />
                 </div>
-                <h4 style={{ fontSize: 14, fontWeight: 800, color: "#0f172a", margin: 0 }}>
+                <h4
+                  style={{
+                    fontSize: 14,
+                    fontWeight: 800,
+                    color: "#0f172a",
+                    margin: 0,
+                  }}
+                >
                   Stay Connected
                 </h4>
               </div>
 
-              <p style={{ fontSize: 12.5, color: "#64748b", margin: 0, lineHeight: 1.45 }}>
+              <p
+                style={{
+                  fontSize: 12.5,
+                  color: "#64748b",
+                  margin: 0,
+                  lineHeight: 1.45,
+                }}
+              >
                 Get exam alerts, result updates & GPA calculation tips.
               </p>
 
-              <form onSubmit={handleSubscribe} style={{ position: "relative", width: "100%" }}>
+              <form
+                onSubmit={handleSubscribe}
+                style={{ position: "relative", width: "100%" }}
+              >
                 <input
                   type="email"
                   value={emailSub}
@@ -1582,10 +2697,23 @@ export default function Home() {
                   <ArrowRight size={14} />
                 </button>
               </form>
-              {subscribed && <span style={{ fontSize: 11.5, color: "#16a34a", fontWeight: 700 }}>✓ Subscribed successfully!</span>}
+              {subscribed && (
+                <span
+                  style={{ fontSize: 11.5, color: "#16a34a", fontWeight: 700 }}
+                >
+                  ✓ Subscribed successfully!
+                </span>
+              )}
 
               {/* Social links row */}
-              <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 2 }}>
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 8,
+                  marginTop: 2,
+                }}
+              >
                 <a
                   href="https://twitter.com"
                   target="_blank"
@@ -1694,13 +2822,33 @@ export default function Home() {
             </div>
 
             <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
-              <span className="gf-legal-link" onClick={() => navigate("/resources")}>Privacy</span>
+              <span
+                className="gf-legal-link"
+                onClick={() => navigate("/resources")}
+              >
+                Privacy
+              </span>
               <span>•</span>
-              <span className="gf-legal-link" onClick={() => navigate("/resources")}>Terms</span>
+              <span
+                className="gf-legal-link"
+                onClick={() => navigate("/resources")}
+              >
+                Terms
+              </span>
               <span>•</span>
-              <span className="gf-legal-link" onClick={() => navigate("/about-dev")}>Developer</span>
+              <span
+                className="gf-legal-link"
+                onClick={() => navigate("/about-dev")}
+              >
+                Developer
+              </span>
               <span>•</span>
-              <span className="gf-legal-link" onClick={() => navigate("/admin")}>Admin</span>
+              <span
+                className="gf-legal-link"
+                onClick={() => navigate("/admin")}
+              >
+                Admin
+              </span>
             </div>
           </div>
         </footer>
