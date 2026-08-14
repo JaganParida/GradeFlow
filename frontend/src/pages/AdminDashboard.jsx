@@ -1,11 +1,48 @@
-import { useState, useEffect, useRef, Fragment } from "react";
+import React, { useState, useEffect, useRef, Fragment } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import { useApp } from "../context/AppContext";
 import { Spinner } from "../components/LoadingSpinner";
 import { motion, AnimatePresence } from "framer-motion";
 import { formatDistanceToNow } from "date-fns";
-import { Upload, Trash2, Settings, Users, FileText, FileEdit, Trophy, AlertTriangle, CheckCircle, FileSpreadsheet, LogOut, Database, CloudUpload, MessageSquare, Edit2, X, ChevronDown, ChevronUp, BookOpen, Search, Filter, HelpCircle, Info, Mail, Send, Check, Loader2 } from "lucide-react";
+import {
+  Upload,
+  Trash2,
+  Settings,
+  Users,
+  FileText,
+  FileEdit,
+  Trophy,
+  AlertTriangle,
+  CheckCircle,
+  FileSpreadsheet,
+  LogOut,
+  Database,
+  CloudUpload,
+  MessageSquare,
+  Edit2,
+  X,
+  ChevronDown,
+  ChevronUp,
+  BookOpen,
+  Search,
+  Filter,
+  HelpCircle,
+  Info,
+  Mail,
+  Send,
+  Check,
+  Loader2,
+  ShieldCheck,
+  Sparkles,
+  RefreshCw,
+  Award,
+  Layers,
+  ArrowRight,
+  ChevronLeft,
+  ChevronRight,
+  Star
+} from "lucide-react";
 
 function getDynamicSessionOptions(bStr, semVal, yStr) {
   const bYear = bStr && !isNaN(parseInt(bStr, 10)) ? parseInt(bStr, 10) : null;
@@ -20,8 +57,6 @@ function getDynamicSessionOptions(bStr, semVal, yStr) {
     return sessions;
   }
 
-  const sessions = [];
-  // Exactly 4 academic sessions for a 4-year degree (Sem 1-2, Sem 3-4, Sem 5-6, Sem 7-8)
   for (let offset = 0; offset < 4; offset++) {
     const y1 = startY + offset;
     sessions.push(`${y1}-${String(y1 + 1).slice(-2)}`);
@@ -29,6 +64,20 @@ function getDynamicSessionOptions(bStr, semVal, yStr) {
   return sessions;
 }
 
+function formatTimeAgo(dateStr) {
+  if (!dateStr) return "";
+  try {
+    const d = new Date(dateStr);
+    if (isNaN(d.getTime())) return "";
+    return formatDistanceToNow(d, { addSuffix: true });
+  } catch {
+    return "";
+  }
+}
+
+/* ════════════════════════════════════════════════════════════════
+   1. UPLOAD CARD COMPONENT (Clean Light SaaS Theme)
+   ════════════════════════════════════════════════════════════════ */
 function UploadCard({
   title,
   icon,
@@ -42,7 +91,7 @@ function UploadCard({
   const [extra, setExtra] = useState(() => {
     const init = {};
     if (extraFields) {
-      extraFields.forEach(f => {
+      extraFields.forEach((f) => {
         if (f.value !== undefined) init[f.key] = f.value;
       });
     }
@@ -55,7 +104,7 @@ function UploadCard({
   const inputRef = useRef();
 
   useEffect(() => {
-    const hasSessionField = extraFields?.some(f => f.key === "session");
+    const hasSessionField = extraFields?.some((f) => f.key === "session");
     if (!hasSessionField) return;
 
     const bYear = extra.batch && !isNaN(parseInt(extra.batch, 10)) ? parseInt(extra.batch, 10) : null;
@@ -82,7 +131,7 @@ function UploadCard({
 
   async function handleUpload() {
     if (!file) {
-      setErr("Please select a file");
+      setErr("Please select an Excel file to upload");
       return;
     }
     const requiredFields = extraFields?.filter((f) => f.label && f.label.includes("*"));
@@ -101,7 +150,7 @@ function UploadCard({
       const fd = new FormData();
       fd.append("file", file);
       Object.entries(extra).forEach(([k, v]) => fd.append(k, v));
-      
+
       const { data } = await axios.post(`${API}/admin/${endpoint}`, fd, {
         ...authHeaders,
         headers: {
@@ -111,14 +160,13 @@ function UploadCard({
         onUploadProgress: (progressEvent) => {
           if (progressEvent.total) {
             const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total);
-            // Cap at 90% to leave room for server processing time
             setProgress(Math.min(90, Math.floor(percentCompleted * 0.9)));
           }
-        }
+        },
       });
-      
+
       setProgress(100);
-      
+
       setTimeout(() => {
         setMsg(data.message);
         setFile(null);
@@ -127,7 +175,6 @@ function UploadCard({
         setLoading(false);
         setProgress(0);
       }, 500);
-      
     } catch (e) {
       setErr(e.response?.data?.message || "Upload failed");
       setLoading(false);
@@ -136,117 +183,252 @@ function UploadCard({
   }
 
   return (
-    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="card" style={{ position: "relative", overflow: "hidden" }}>
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          gap: 10,
-          marginBottom: 16,
-        }}
-      >
-        <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 36, height: 36, borderRadius: 8, background: "rgba(59, 130, 246, 0.1)", color: "var(--accent)" }}>{icon}</span>
-        <h3 style={{ fontWeight: 700, fontSize: 16 }}>{title}</h3>
-      </div>
+    <motion.div
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      style={{
+        background: "#ffffff",
+        border: "1px solid #e2e8f0",
+        borderRadius: 16,
+        padding: "22px 20px",
+        boxShadow: "0 2px 10px rgba(15, 23, 42, 0.02)",
+        display: "flex",
+        flexDirection: "column",
+        justifyContent: "space-between",
+        boxSizing: "border-box",
+      }}
+    >
+      <div>
+        {/* Card Header */}
+        <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 16 }}>
+          <div
+            style={{
+              width: 36,
+              height: 36,
+              borderRadius: 10,
+              background: "#eff6ff",
+              color: "#2563eb",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              flexShrink: 0,
+            }}
+          >
+            {icon}
+          </div>
+          <h3 style={{ fontWeight: 800, fontSize: 16, color: "#0f172a", margin: 0, letterSpacing: "-0.3px" }}>
+            {title}
+          </h3>
+        </div>
 
-      {extraFields?.filter(f => !f.hidden).map((f) => {
-        const currentOptions = f.key === "session"
-          ? getDynamicSessionOptions(extra.batch, extra.semester, extra.year)
-          : f.options;
+        {/* Extra Form Fields */}
+        {extraFields
+          ?.filter((f) => !f.hidden)
+          .map((f) => {
+            const currentOptions =
+              f.key === "session"
+                ? getDynamicSessionOptions(extra.batch, extra.semester, extra.year)
+                : f.options;
 
-        return (
-          <div key={f.key} style={{ marginBottom: 12 }}>
-            <label
+            return (
+              <div key={f.key} style={{ marginBottom: 12 }}>
+                <label
+                  style={{
+                    display: "block",
+                    fontSize: 11.5,
+                    color: "#475569",
+                    fontWeight: 700,
+                    marginBottom: 5,
+                    textTransform: "uppercase",
+                    letterSpacing: "0.4px",
+                  }}
+                >
+                  {f.label}
+                </label>
+                {f.type === "select" ? (
+                  <select
+                    value={extra[f.key] || ""}
+                    onChange={(e) => setExtra({ ...extra, [f.key]: e.target.value })}
+                    style={{
+                      width: "100%",
+                      padding: "9px 12px",
+                      borderRadius: 10,
+                      border: "1.5px solid #e2e8f0",
+                      background: "#f8fafc",
+                      color: "#0f172a",
+                      fontSize: 13,
+                      outline: "none",
+                      fontFamily: "'DM Sans', sans-serif",
+                    }}
+                  >
+                    <option value="" disabled>
+                      Select {f.label.replace(" *", "")}
+                    </option>
+                    {currentOptions?.map((opt) => (
+                      <option key={opt.value || opt} value={opt.value || opt}>
+                        {opt.label || opt}
+                      </option>
+                    ))}
+                  </select>
+                ) : (
+                  <input
+                    type={f.type || "text"}
+                    placeholder={f.placeholder}
+                    value={extra[f.key] || ""}
+                    onChange={(e) => setExtra({ ...extra, [f.key]: e.target.value })}
+                    style={{
+                      width: "100%",
+                      padding: "9px 12px",
+                      borderRadius: 10,
+                      border: "1.5px solid #e2e8f0",
+                      background: "#f8fafc",
+                      color: "#0f172a",
+                      fontSize: 13,
+                      outline: "none",
+                      boxSizing: "border-box",
+                      fontFamily: "'DM Sans', sans-serif",
+                    }}
+                  />
+                )}
+              </div>
+            );
+          })}
+
+        {/* Drag & Drop File Zone */}
+        <motion.div
+          whileHover={{ scale: 1.01 }}
+          style={{
+            border: `2px dashed ${file ? "#2563eb" : "#cbd5e1"}`,
+            borderRadius: 12,
+            padding: "16px 14px",
+            textAlign: "center",
+            marginBottom: 14,
+            cursor: "pointer",
+            background: file ? "#eff6ff" : "#f8fafc",
+            transition: "all 0.2s ease",
+          }}
+          onClick={() => inputRef.current?.click()}
+          onDragOver={(e) => e.preventDefault()}
+          onDrop={(e) => {
+            e.preventDefault();
+            setFile(e.dataTransfer.files[0]);
+          }}
+        >
+          <input
+            ref={inputRef}
+            type="file"
+            accept=".xlsx,.xls"
+            style={{ display: "none" }}
+            onChange={(e) => setFile(e.target.files[0])}
+          />
+          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 6 }}>
+            {file ? (
+              <FileSpreadsheet size={26} color="#2563eb" />
+            ) : (
+              <CloudUpload size={26} color="#64748b" />
+            )}
+            <p
               style={{
-                display: "block",
-                fontSize: 12,
-                color: "var(--secondary)",
-                marginBottom: 4,
+                color: file ? "#2563eb" : "#475569",
+                fontSize: 12.5,
+                fontWeight: file ? 700 : 500,
+                margin: 0,
               }}
             >
-              {f.label}
-            </label>
-            {f.type === "select" ? (
-              <select
-                value={extra[f.key] || ""}
-                onChange={(e) => setExtra({ ...extra, [f.key]: e.target.value })}
-                style={{ width: "100%", padding: "10px", borderRadius: "8px", border: "1px solid var(--border)", background: "var(--bg-input)", color: "var(--text-primary)" }}
-              >
-                <option value="" disabled style={{ background: "#1a1a1a", color: "#fff" }}>Select {f.label.replace(" *", "")}</option>
-                {currentOptions?.map(opt => (
-                  <option key={opt.value || opt} value={opt.value || opt} style={{ background: "#1a1a1a", color: "#fff" }}>
-                    {opt.label || opt}
-                  </option>
-                ))}
-              </select>
-            ) : (
-              <input
-                type={f.type || "text"}
-                placeholder={f.placeholder}
-                value={extra[f.key] || ""}
-                onChange={(e) => setExtra({ ...extra, [f.key]: e.target.value })}
-              />
-            )}
+              {file ? file.name : "Click or drag Excel sheet here"}
+            </p>
+            <span style={{ fontSize: 11, color: "#94a3b8" }}>Supports .xlsx & .xls</span>
           </div>
-        );
-      })}
+        </motion.div>
 
-      <motion.div
-        whileHover={{ scale: 1.01 }}
-        style={{
-          border: `2px dashed ${file ? "var(--accent)" : "var(--border)"}`,
-          borderRadius: 8,
-          padding: "12px 16px",
-          textAlign: "center",
-          marginBottom: 12,
-          cursor: "pointer",
-          background: file ? "rgba(62,166,255,0.05)" : "transparent",
-          transition: "all 0.3s"
-        }}
-        onClick={() => inputRef.current?.click()}
-        onDragOver={(e) => e.preventDefault()}
-        onDrop={(e) => {
-          e.preventDefault();
-          setFile(e.dataTransfer.files[0]);
-        }}
-      >
-        <input
-          ref={inputRef}
-          type="file"
-          accept=".xlsx,.xls"
-          style={{ display: "none" }}
-          onChange={(e) => setFile(e.target.files[0])}
-        />
-        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 8 }}>
-          {file ? <FileSpreadsheet size={28} color="var(--accent)" /> : <CloudUpload size={28} color="var(--secondary)" />}
-          <p style={{ color: file ? "var(--accent)" : "var(--secondary)", fontSize: 13, fontWeight: file ? 600 : 400 }}>
-            {file ? file.name : "Click or drag Excel file here"}
-          </p>
-        </div>
-      </motion.div>
+        {/* Error / Success Banners */}
+        <AnimatePresence>
+          {err && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: "auto" }}
+              exit={{ opacity: 0, height: 0 }}
+              style={{
+                color: "#991b1b",
+                background: "#fef2f2",
+                border: "1px solid #fecaca",
+                borderLeft: "3.5px solid #ef4444",
+                padding: "8px 12px",
+                borderRadius: 8,
+                fontSize: 12,
+                marginBottom: 12,
+                display: "flex",
+                alignItems: "center",
+                gap: 7,
+              }}
+            >
+              <AlertTriangle size={14} color="#ef4444" style={{ flexShrink: 0 }} />
+              <span>{err}</span>
+            </motion.div>
+          )}
+          {msg && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: "auto" }}
+              exit={{ opacity: 0, height: 0 }}
+              style={{
+                color: "#065f46",
+                background: "#ecfdf5",
+                border: "1px solid #a7f3d0",
+                borderLeft: "3.5px solid #10b981",
+                padding: "8px 12px",
+                borderRadius: 8,
+                fontSize: 12,
+                marginBottom: 12,
+                display: "flex",
+                alignItems: "center",
+                gap: 7,
+              }}
+            >
+              <CheckCircle size={14} color="#10b981" style={{ flexShrink: 0 }} />
+              <span>{msg}</span>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
 
-      <AnimatePresence>
-        {err && (
-          <motion.p initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }} style={{ color: "var(--danger)", fontSize: 13, marginBottom: 8, display: "flex", alignItems: "center", gap: 6 }}>
-            <AlertTriangle size={14} /> {err}
-          </motion.p>
-        )}
-        {msg && (
-          <motion.p initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }} style={{ color: "var(--success)", fontSize: 13, marginBottom: 8, display: "flex", alignItems: "center", gap: 6 }}>
-            <CheckCircle size={14} /> {msg}
-          </motion.p>
-        )}
-      </AnimatePresence>
-
+      {/* Upload Action Button */}
       <div style={{ position: "relative" }}>
         <button
-          className="btn btn-primary"
           onClick={handleUpload}
           disabled={loading}
-          style={{ width: "100%", justifyContent: "center", overflow: "hidden", position: "relative" }}
+          style={{
+            width: "100%",
+            padding: "11px 16px",
+            borderRadius: 10,
+            background: "#0f172a",
+            color: "#ffffff",
+            border: "none",
+            fontSize: 13.5,
+            fontWeight: 700,
+            cursor: loading ? "not-allowed" : "pointer",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            gap: 8,
+            overflow: "hidden",
+            position: "relative",
+            transition: "background 0.2s ease",
+            fontFamily: "'DM Sans', sans-serif",
+          }}
+          onMouseEnter={(e) => !loading && (e.currentTarget.style.background = "#1e293b")}
+          onMouseLeave={(e) => !loading && (e.currentTarget.style.background = "#0f172a")}
         >
-          <span style={{ position: "relative", zIndex: 2, display: "flex", alignItems: "center", gap: 8 }}>
-            {loading ? <><Spinner size={14} /> Uploading... {progress}%</> : <><Upload size={16} /> Upload</>}
+          <span style={{ position: "relative", zIndex: 2, display: "flex", alignItems: "center", gap: 7 }}>
+            {loading ? (
+              <>
+                <Spinner size={14} /> Uploading... {progress}%
+              </>
+            ) : (
+              <>
+                <Upload size={15} /> Upload Dataset
+              </>
+            )}
           </span>
           {loading && (
             <motion.div
@@ -257,8 +439,8 @@ function UploadCard({
                 left: 0,
                 top: 0,
                 bottom: 0,
-                background: "rgba(255,255,255,0.2)",
-                zIndex: 1
+                background: "#2563eb",
+                zIndex: 1,
               }}
             />
           )}
@@ -268,7 +450,9 @@ function UploadCard({
   );
 }
 
-// ── Delete bad/stale record card ──────────────────────────────────────────
+/* ════════════════════════════════════════════════════════════════
+   2. DELETE RECORD CARD COMPONENT
+   ════════════════════════════════════════════════════════════════ */
 function DeleteRecordCard({ authHeaders, API, onSuccess }) {
   const [regNo, setRegNo] = useState("");
   const [semester, setSemester] = useState("");
@@ -278,12 +462,12 @@ function DeleteRecordCard({ authHeaders, API, onSuccess }) {
 
   async function handleDelete() {
     if (!regNo.trim() || !semester) {
-      setErr("Both RegNo and Semester are required");
+      setErr("Both Registration Number and Semester are required");
       return;
     }
     if (
       !window.confirm(
-        `Delete Sem ${semester} record for ${regNo}? This cannot be undone.`,
+        `Delete Sem ${semester} record for ${regNo}? This cannot be undone.`
       )
     )
       return;
@@ -293,7 +477,7 @@ function DeleteRecordCard({ authHeaders, API, onSuccess }) {
     try {
       const { data } = await axios.delete(
         `${API}/admin/results/${regNo.trim()}/${semester}`,
-        authHeaders,
+        authHeaders
       );
       setMsg(data.message);
       setRegNo("");
@@ -308,90 +492,171 @@ function DeleteRecordCard({ authHeaders, API, onSuccess }) {
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
-      className="card"
-      style={{ border: "1px solid var(--danger, #ef4444)" }}
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      style={{
+        background: "#ffffff",
+        border: "1px solid #fecaca",
+        borderRadius: 16,
+        padding: "22px 20px",
+        boxShadow: "0 2px 10px rgba(239, 68, 68, 0.03)",
+        boxSizing: "border-box",
+      }}
     >
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          gap: 10,
-          marginBottom: 16,
-        }}
-      >
-        <span style={{ fontSize: 20 }}><Trash2 color="var(--danger)" /></span>
-        <h3 style={{ fontWeight: 700, fontSize: 16 }}>Delete Bad Record</h3>
+      <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12 }}>
+        <div
+          style={{
+            width: 36,
+            height: 36,
+            borderRadius: 10,
+            background: "#fef2f2",
+            color: "#ef4444",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            flexShrink: 0,
+          }}
+        >
+          <Trash2 size={18} />
+        </div>
+        <div>
+          <h3 style={{ fontWeight: 800, fontSize: 16, color: "#0f172a", margin: 0 }}>
+            Delete Stale Semester Record
+          </h3>
+          <span style={{ fontSize: 11.5, color: "#64748b" }}>
+            Remove an incorrectly uploaded semester result
+          </span>
+        </div>
       </div>
-      <p style={{ fontSize: 12, color: "var(--secondary)", marginBottom: 14 }}>
-        Remove a stale or incorrectly uploaded semester record from the
-        database.
-      </p>
 
-      <div style={{ marginBottom: 12 }}>
-        <label
-          style={{
-            display: "block",
-            fontSize: 12,
-            color: "var(--secondary)",
-            marginBottom: 4,
-          }}
-        >
-          Student Reg No
-        </label>
-        <input
-          type="text"
-          placeholder="e.g. 230301120327"
-          value={regNo}
-          onChange={(e) => setRegNo(e.target.value)}
-        />
-      </div>
-      <div style={{ marginBottom: 12 }}>
-        <label
-          style={{
-            display: "block",
-            fontSize: 12,
-            color: "var(--secondary)",
-            marginBottom: 4,
-          }}
-        >
-          Semester Number
-        </label>
-        <input
-          type="number"
-          min="1"
-          max="12"
-          placeholder="e.g. 9"
-          value={semester}
-          onChange={(e) => setSemester(e.target.value)}
-        />
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 12 }}>
+        <div>
+          <label style={{ display: "block", fontSize: 11.5, color: "#475569", fontWeight: 700, marginBottom: 5 }}>
+            Registration No.
+          </label>
+          <input
+            type="text"
+            placeholder="e.g. 230301120327"
+            value={regNo}
+            onChange={(e) => setRegNo(e.target.value)}
+            style={{
+              width: "100%",
+              padding: "9px 12px",
+              borderRadius: 10,
+              border: "1.5px solid #e2e8f0",
+              background: "#f8fafc",
+              color: "#0f172a",
+              fontSize: 13,
+              outline: "none",
+              boxSizing: "border-box",
+              fontFamily: "'DM Sans', sans-serif",
+            }}
+          />
+        </div>
+        <div>
+          <label style={{ display: "block", fontSize: 11.5, color: "#475569", fontWeight: 700, marginBottom: 5 }}>
+            Semester
+          </label>
+          <input
+            type="number"
+            min="1"
+            max="12"
+            placeholder="e.g. 4"
+            value={semester}
+            onChange={(e) => setSemester(e.target.value)}
+            style={{
+              width: "100%",
+              padding: "9px 12px",
+              borderRadius: 10,
+              border: "1.5px solid #e2e8f0",
+              background: "#f8fafc",
+              color: "#0f172a",
+              fontSize: 13,
+              outline: "none",
+              boxSizing: "border-box",
+              fontFamily: "'DM Sans', sans-serif",
+            }}
+          />
+        </div>
       </div>
 
       <AnimatePresence>
         {err && (
-          <motion.p initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }} style={{ color: "var(--danger)", fontSize: 13, marginBottom: 8, display: "flex", alignItems: "center", gap: 6 }}>
-            <AlertTriangle size={14} /> {err}
-          </motion.p>
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: "auto" }}
+            exit={{ opacity: 0, height: 0 }}
+            style={{
+              color: "#991b1b",
+              background: "#fef2f2",
+              border: "1px solid #fecaca",
+              padding: "8px 12px",
+              borderRadius: 8,
+              fontSize: 12,
+              marginBottom: 10,
+              display: "flex",
+              alignItems: "center",
+              gap: 6,
+            }}
+          >
+            <AlertTriangle size={14} color="#ef4444" /> {err}
+          </motion.div>
         )}
         {msg && (
-          <motion.p initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }} style={{ color: "var(--success)", fontSize: 13, marginBottom: 8, display: "flex", alignItems: "center", gap: 6 }}>
-            <CheckCircle size={14} /> {msg}
-          </motion.p>
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: "auto" }}
+            exit={{ opacity: 0, height: 0 }}
+            style={{
+              color: "#065f46",
+              background: "#ecfdf5",
+              border: "1px solid #a7f3d0",
+              padding: "8px 12px",
+              borderRadius: 8,
+              fontSize: 12,
+              marginBottom: 10,
+              display: "flex",
+              alignItems: "center",
+              gap: 6,
+            }}
+          >
+            <CheckCircle size={14} color="#10b981" /> {msg}
+          </motion.div>
         )}
       </AnimatePresence>
 
       <button
-        className="btn btn-danger"
         onClick={handleDelete}
         disabled={loading}
-        style={{ width: "100%", justifyContent: "center", display: "flex", alignItems: "center", gap: 8 }}
+        style={{
+          width: "100%",
+          padding: "10px",
+          borderRadius: 10,
+          background: "#fef2f2",
+          border: "1px solid #fecaca",
+          color: "#ef4444",
+          fontSize: 13,
+          fontWeight: 700,
+          cursor: loading ? "not-allowed" : "pointer",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          gap: 6,
+          transition: "all 0.15s ease",
+          fontFamily: "'DM Sans', sans-serif",
+        }}
+        onMouseEnter={(e) => !loading && (e.currentTarget.style.background = "#fee2e2")}
+        onMouseLeave={(e) => !loading && (e.currentTarget.style.background = "#fef2f2")}
       >
-        {loading ? "Deleting..." : <><Trash2 size={16} /> Delete Record</>}
+        {loading ? "Deleting..." : <><Trash2 size={14} /> Delete Record</>}
       </button>
     </motion.div>
   );
 }
 
+/* ════════════════════════════════════════════════════════════════
+   3. MANUAL GRADE UPDATE CARD
+   ════════════════════════════════════════════════════════════════ */
 function ManualGradeUpdateCard({ authHeaders, API, onSuccess }) {
   const [searchQuery, setSearchQuery] = useState("");
   const [studentSuggestions, setStudentSuggestions] = useState([]);
@@ -527,34 +792,69 @@ function ManualGradeUpdateCard({ authHeaders, API, onSuccess }) {
     <motion.div
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
-      className="card"
-      style={{ border: "1px solid rgba(16,185,129,0.35)", gridColumn: "1 / -1" }}
+      style={{
+        background: "#ffffff",
+        border: "1px solid #e2e8f0",
+        borderRadius: 18,
+        padding: "24px 22px",
+        boxShadow: "0 2px 10px rgba(15, 23, 42, 0.02)",
+        gridColumn: "1 / -1",
+        boxSizing: "border-box",
+      }}
     >
-      <h3 style={{ fontWeight: 700, marginBottom: 4, display: "flex", alignItems: "center", gap: 8 }}>
-        <FileEdit size={18} color="#10b981" /> Manual Student Grade Update
-      </h3>
-      <p style={{ color: "var(--secondary)", fontSize: 13, marginBottom: 16 }}>
-        Select or search for a student by Registration Number or Name. Choose their subject and select the new grade.
-        Recalculates SGPA, CGPA, Rankings, and instantly syncs the entire website!
-      </p>
+      <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 8 }}>
+        <div
+          style={{
+            width: 36,
+            height: 36,
+            borderRadius: 10,
+            background: "#ecfdf5",
+            color: "#10b981",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+          }}
+        >
+          <FileEdit size={18} />
+        </div>
+        <div>
+          <h3 style={{ fontWeight: 800, fontSize: 17, color: "#0f172a", margin: 0 }}>
+            Manual Student Grade Update & Sync
+          </h3>
+          <span style={{ fontSize: 12, color: "#64748b" }}>
+            Directly update subject grades, recalculating SGPA, CGPA, and ranks instantly.
+          </span>
+        </div>
+      </div>
 
-      <form onSubmit={handleUpdateGrade}>
+      <form onSubmit={handleUpdateGrade} style={{ marginTop: 16 }}>
+        {/* Search Input with Auto-complete */}
         <div style={{ marginBottom: 16, position: "relative" }}>
-          <label style={{ display: "block", fontSize: 12, fontWeight: 600, color: "var(--secondary)", marginBottom: 6 }}>
-            1. Search / Enter Registration Number or Name *
+          <label style={{ display: "block", fontSize: 12, fontWeight: 700, color: "#475569", marginBottom: 6 }}>
+            1. Search / Enter Registration Number or Student Name *
           </label>
           <div style={{ display: "flex", gap: 8 }}>
             <div style={{ flex: 1, position: "relative" }}>
               <input
                 type="text"
-                className="input-field"
-                placeholder="e.g. 230301120327 or JAGAN PARIDA"
+                placeholder="e.g. 230301120327 or Student Name"
                 value={searchQuery}
                 onChange={(e) => {
                   setSearchQuery(e.target.value);
                   setSelectedRegNo(e.target.value);
                 }}
-                style={{ width: "100%" }}
+                style={{
+                  width: "100%",
+                  padding: "10px 14px",
+                  borderRadius: 10,
+                  border: "1.5px solid #e2e8f0",
+                  background: "#f8fafc",
+                  color: "#0f172a",
+                  fontSize: 13.5,
+                  outline: "none",
+                  boxSizing: "border-box",
+                  fontFamily: "'DM Sans', sans-serif",
+                }}
               />
               {studentSuggestions.length > 0 && (
                 <ul
@@ -564,14 +864,14 @@ function ManualGradeUpdateCard({ authHeaders, API, onSuccess }) {
                     left: 0,
                     right: 0,
                     zIndex: 50,
-                    background: "var(--card-bg, #1f2937)",
-                    border: "1px solid var(--border-color, rgba(255,255,255,0.1))",
-                    borderRadius: 8,
-                    maxHeight: 180,
+                    background: "#ffffff",
+                    border: "1px solid #e2e8f0",
+                    borderRadius: 10,
+                    maxHeight: 200,
                     overflowY: "auto",
-                    boxShadow: "0 10px 25px rgba(0,0,0,0.5)",
+                    boxShadow: "0 10px 25px rgba(0,0,0,0.1)",
                     listStyle: "none",
-                    padding: 0,
+                    padding: "4px 0",
                     margin: "4px 0 0 0",
                   }}
                 >
@@ -580,15 +880,20 @@ function ManualGradeUpdateCard({ authHeaders, API, onSuccess }) {
                       key={s.regNo}
                       onClick={() => fetchStudent(s.regNo)}
                       style={{
-                        padding: "8px 12px",
+                        padding: "9px 14px",
                         cursor: "pointer",
                         fontSize: 13,
-                        borderBottom: "1px solid rgba(255,255,255,0.05)",
+                        borderBottom: "1px solid #f1f5f9",
+                        display: "flex",
+                        justifyContent: "space-between",
                       }}
-                      onMouseEnter={(e) => (e.currentTarget.style.background = "rgba(16,185,129,0.15)")}
+                      onMouseEnter={(e) => (e.currentTarget.style.background = "#f8fafc")}
                       onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
                     >
-                      <strong style={{ color: "#10b981" }}>{s.regNo}</strong> - {s.studentName} ({s.branch || "CSE"})
+                      <strong style={{ color: "#2563eb" }}>{s.regNo}</strong>
+                      <span style={{ color: "#475569" }}>
+                        {s.studentName} ({s.branch || "CSE"})
+                      </span>
                     </li>
                   ))}
                 </ul>
@@ -596,53 +901,79 @@ function ManualGradeUpdateCard({ authHeaders, API, onSuccess }) {
             </div>
             <button
               type="button"
-              className="btn btn-secondary"
               onClick={() => fetchStudent(searchQuery)}
               disabled={loadingStudent}
-              style={{ padding: "8px 16px", whiteSpace: "nowrap" }}
+              style={{
+                padding: "10px 18px",
+                borderRadius: 10,
+                background: "#0f172a",
+                color: "#ffffff",
+                border: "none",
+                fontSize: 13,
+                fontWeight: 700,
+                cursor: loadingStudent ? "not-allowed" : "pointer",
+                whiteSpace: "nowrap",
+                fontFamily: "'DM Sans', sans-serif",
+              }}
             >
               {loadingStudent ? "Searching..." : "Fetch Student"}
             </button>
           </div>
         </div>
 
+        {/* Fetched Student Summary */}
         {studentDetails && (
           <div
             style={{
-              background: "rgba(16,185,129,0.08)",
-              border: "1px solid rgba(16,185,129,0.25)",
-              borderRadius: 8,
-              padding: 12,
+              background: "#ecfdf5",
+              border: "1px solid #a7f3d0",
+              borderRadius: 12,
+              padding: "12px 16px",
               marginBottom: 16,
               fontSize: 13,
             }}
           >
-            <div style={{ fontWeight: 700, fontSize: 14, color: "#10b981", marginBottom: 4 }}>
-              👤 {studentDetails.studentName} ({studentDetails.regNo})
+            <div style={{ fontWeight: 800, fontSize: 14.5, color: "#065f46", marginBottom: 4, display: "flex", alignItems: "center", gap: 6 }}>
+              <Users size={15} color="#059669" /> {studentDetails.studentName} ({studentDetails.regNo})
             </div>
-            <div style={{ display: "flex", gap: 16, color: "var(--secondary)", fontSize: 12, flexWrap: "wrap" }}>
+            <div style={{ display: "flex", gap: 16, color: "#047857", fontSize: 12.5, flexWrap: "wrap" }}>
               <span>Branch: <strong>{studentDetails.branch}</strong></span>
               <span>Batch: <strong>{studentDetails.batch}</strong></span>
-              <span>Total Semesters Uploaded: <strong>{studentDetails.semesters?.length || 0}</strong></span>
+              <span>Total Semesters: <strong>{studentDetails.semesters?.length || 0}</strong></span>
             </div>
           </div>
         )}
 
         {studentDetails && (
           <>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: 12, marginBottom: 16 }}>
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))",
+                gap: 12,
+                marginBottom: 16,
+              }}
+            >
               <div>
-                <label style={{ display: "block", fontSize: 12, fontWeight: 600, color: "var(--secondary)", marginBottom: 6 }}>
+                <label style={{ display: "block", fontSize: 12, fontWeight: 700, color: "#475569", marginBottom: 6 }}>
                   2. Select Semester *
                 </label>
                 <select
-                  className="input-field"
                   value={selectedSem}
                   onChange={(e) => {
                     setSelectedSem(e.target.value);
                     setSelectedSubjectCode("");
                   }}
-                  style={{ width: "100%" }}
+                  style={{
+                    width: "100%",
+                    padding: "10px",
+                    borderRadius: 10,
+                    border: "1.5px solid #e2e8f0",
+                    background: "#f8fafc",
+                    color: "#0f172a",
+                    fontSize: 13,
+                    outline: "none",
+                  }}
                 >
                   <option value="">-- Choose Semester --</option>
                   {studentDetails.semesters?.map((sem) => (
@@ -654,15 +985,23 @@ function ManualGradeUpdateCard({ authHeaders, API, onSuccess }) {
               </div>
 
               <div>
-                <label style={{ display: "block", fontSize: 12, fontWeight: 600, color: "var(--secondary)", marginBottom: 6 }}>
-                  3. Select Subject (Dropdown) *
+                <label style={{ display: "block", fontSize: 12, fontWeight: 700, color: "#475569", marginBottom: 6 }}>
+                  3. Select Subject *
                 </label>
                 <select
-                  className="input-field"
                   value={selectedSubjectCode}
                   onChange={(e) => setSelectedSubjectCode(e.target.value)}
                   disabled={!selectedSem}
-                  style={{ width: "100%" }}
+                  style={{
+                    width: "100%",
+                    padding: "10px",
+                    borderRadius: 10,
+                    border: "1.5px solid #e2e8f0",
+                    background: "#f8fafc",
+                    color: "#0f172a",
+                    fontSize: 13,
+                    outline: "none",
+                  }}
                 >
                   <option value="">-- Choose Subject --</option>
                   {filteredSubjects.map((sub) => (
@@ -674,30 +1013,33 @@ function ManualGradeUpdateCard({ authHeaders, API, onSuccess }) {
               </div>
             </div>
 
-            {availableSubjects.length > 3 && (
-              <div style={{ marginBottom: 16 }}>
-                <input
-                  type="text"
-                  className="input-field"
-                  placeholder="🔍 Type to filter subject dropdown by code or name..."
-                  value={subjectSearch}
-                  onChange={(e) => setSubjectSearch(e.target.value)}
-                  style={{ width: "100%", fontSize: 12 }}
-                />
-              </div>
-            )}
-
             {selectedSubjectCode && (
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 12, alignItems: "end", marginBottom: 16 }}>
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+                  gap: 12,
+                  alignItems: "end",
+                  marginBottom: 16,
+                }}
+              >
                 <div>
-                  <label style={{ display: "block", fontSize: 12, fontWeight: 600, color: "var(--secondary)", marginBottom: 6 }}>
+                  <label style={{ display: "block", fontSize: 12, fontWeight: 700, color: "#475569", marginBottom: 6 }}>
                     4. Select New Grade *
                   </label>
                   <select
-                    className="input-field"
                     value={newGrade}
                     onChange={(e) => setNewGrade(e.target.value)}
-                    style={{ width: "100%" }}
+                    style={{
+                      width: "100%",
+                      padding: "10px",
+                      borderRadius: 10,
+                      border: "1.5px solid #e2e8f0",
+                      background: "#f8fafc",
+                      color: "#0f172a",
+                      fontSize: 13,
+                      outline: "none",
+                    }}
                   >
                     <option value="O">O (10 Grade Points - Outstanding)</option>
                     <option value="E">E (9 Grade Points - Excellent)</option>
@@ -708,24 +1050,29 @@ function ManualGradeUpdateCard({ authHeaders, API, onSuccess }) {
                     <option value="F">F (2 Grade Points - Fail)</option>
                     <option value="R">R (0 Grade Points - Repeat / Backlog)</option>
                     <option value="M">M (0 Grade Points - Absent)</option>
-                    <option value="S">S (0 Grade Points - Satisfactory/0)</option>
+                    <option value="S">S (0 Grade Points - Satisfactory)</option>
                   </select>
                 </div>
 
                 <div>
                   <button
                     type="submit"
-                    className="btn"
                     disabled={updatingGrade}
                     style={{
                       width: "100%",
+                      padding: "11px 16px",
+                      borderRadius: 10,
                       background: "#10b981",
-                      color: "#fff",
-                      fontWeight: 600,
+                      color: "#ffffff",
+                      border: "none",
+                      fontSize: 13.5,
+                      fontWeight: 700,
+                      cursor: updatingGrade ? "not-allowed" : "pointer",
                       display: "flex",
                       alignItems: "center",
                       justifyContent: "center",
                       gap: 8,
+                      fontFamily: "'DM Sans', sans-serif",
                     }}
                   >
                     <CheckCircle size={16} />
@@ -739,46 +1086,46 @@ function ManualGradeUpdateCard({ authHeaders, API, onSuccess }) {
 
         <AnimatePresence>
           {err && (
-            <motion.p
+            <motion.div
               initial={{ opacity: 0, height: 0 }}
               animate={{ opacity: 1, height: "auto" }}
               exit={{ opacity: 0, height: 0 }}
               style={{
-                color: "var(--danger)",
-                fontSize: 13,
-                marginTop: 8,
+                color: "#991b1b",
+                background: "#fef2f2",
+                border: "1px solid #fecaca",
+                padding: "8px 12px",
+                borderRadius: 8,
+                fontSize: 12.5,
+                marginTop: 10,
                 display: "flex",
                 alignItems: "center",
                 gap: 6,
-                background: "rgba(239,68,68,0.1)",
-                padding: "8px 12px",
-                borderRadius: 6,
-                border: "1px solid rgba(239,68,68,0.2)",
               }}
             >
-              <AlertTriangle size={14} /> {err}
-            </motion.p>
+              <AlertTriangle size={14} color="#ef4444" /> {err}
+            </motion.div>
           )}
           {msg && (
-            <motion.p
+            <motion.div
               initial={{ opacity: 0, height: 0 }}
               animate={{ opacity: 1, height: "auto" }}
               exit={{ opacity: 0, height: 0 }}
               style={{
-                color: "var(--success)",
-                fontSize: 13,
-                marginTop: 8,
+                color: "#065f46",
+                background: "#ecfdf5",
+                border: "1px solid #a7f3d0",
+                padding: "8px 12px",
+                borderRadius: 8,
+                fontSize: 12.5,
+                marginTop: 10,
                 display: "flex",
                 alignItems: "center",
                 gap: 6,
-                background: "rgba(16,185,129,0.1)",
-                padding: "8px 12px",
-                borderRadius: 6,
-                border: "1px solid rgba(16,185,129,0.2)",
               }}
             >
-              <CheckCircle size={14} /> {msg}
-            </motion.p>
+              <CheckCircle size={14} color="#10b981" /> {msg}
+            </motion.div>
           )}
         </AnimatePresence>
       </form>
@@ -786,125 +1133,9 @@ function ManualGradeUpdateCard({ authHeaders, API, onSuccess }) {
   );
 }
 
-function FeedbackManager({ authHeaders, API }) {
-  const [feedbacks, setFeedbacks] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [editingId, setEditingId] = useState(null);
-  const [editForm, setEditForm] = useState({});
-  const [msg, setMsg] = useState("");
-  const [err, setErr] = useState("");
-  const feedbackCacheRef = useRef(null);
-
-  useEffect(() => {
-    fetchFeedbacks();
-  }, []);
-
-  async function fetchFeedbacks(forceRefresh = false) {
-    if (!forceRefresh && feedbackCacheRef.current) {
-      setFeedbacks(feedbackCacheRef.current);
-      setLoading(false);
-      return;
-    }
-    setLoading(true);
-    try {
-      const { data } = await axios.get(`${API}/feedback`);
-      feedbackCacheRef.current = data;
-      setFeedbacks(data);
-    } catch (e) {
-      setErr("Failed to load feedbacks");
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  async function handleDelete(id) {
-    if (!window.confirm("Are you sure you want to delete this feedback?")) return;
-    try {
-      await axios.delete(`${API}/feedback/${id}`, authHeaders);
-      setMsg("Feedback deleted successfully");
-      fetchFeedbacks();
-      setTimeout(() => setMsg(""), 3000);
-    } catch (e) {
-      setErr(e.response?.data?.message || "Failed to delete");
-    }
-  }
-
-  function startEdit(fb) {
-    setEditingId(fb._id);
-    setEditForm({ name: fb.name, regNo: fb.regNo || "", rating: fb.rating, comment: fb.comment });
-  }
-
-  async function handleUpdate(e) {
-    e.preventDefault();
-    try {
-      await axios.put(`${API}/feedback/${editingId}`, editForm, authHeaders);
-      setMsg("Feedback updated successfully");
-      setEditingId(null);
-      fetchFeedbacks();
-      setTimeout(() => setMsg(""), 3000);
-    } catch (e) {
-      setErr(e.response?.data?.message || "Failed to update");
-    }
-  }
-
-  if (loading) return <div>Loading feedbacks...</div>;
-
-  return (
-    <div className="card">
-      <h3 style={{ fontWeight: 700, marginBottom: 16, display: "flex", alignItems: "center", gap: 8 }}>
-        <MessageSquare size={18} /> Manage Feedback
-      </h3>
-      
-      <AnimatePresence>
-        {err && <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} style={{ color: "var(--danger)", fontSize: 13, marginBottom: 10 }}>{err}</motion.p>}
-        {msg && <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} style={{ color: "var(--success)", fontSize: 13, marginBottom: 10 }}>{msg}</motion.p>}
-      </AnimatePresence>
-
-      <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-        {feedbacks.length === 0 ? (
-          <p style={{ color: "var(--secondary)", fontSize: 13 }}>No feedback found.</p>
-        ) : (
-          feedbacks.map(fb => (
-            <div key={fb._id} style={{ border: "1px solid var(--border)", borderRadius: 8, padding: 16, background: "var(--bg-secondary)" }}>
-              {editingId === fb._id ? (
-                <form onSubmit={handleUpdate} style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-                  <input type="text" value={editForm.name} onChange={e => setEditForm({...editForm, name: e.target.value})} placeholder="Name" required />
-                  <input type="text" value={editForm.regNo} onChange={e => setEditForm({...editForm, regNo: e.target.value})} placeholder="Reg No" />
-                  <input type="number" min="1" max="5" value={editForm.rating} onChange={e => setEditForm({...editForm, rating: e.target.value})} placeholder="Rating (1-5)" required />
-                  <textarea value={editForm.comment} onChange={e => setEditForm({...editForm, comment: e.target.value})} placeholder="Comment" required style={{ minHeight: 80, padding: 10, borderRadius: 8, border: "1px solid var(--border)", background: "var(--bg-input)", color: "var(--text-primary)" }} />
-                  <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
-                    <button type="submit" className="btn btn-primary" style={{ padding: "8px 16px" }}>Save</button>
-                    <button type="button" className="btn" onClick={() => setEditingId(null)} style={{ padding: "8px 16px" }}>Cancel</button>
-                  </div>
-                </form>
-              ) : (
-                <>
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 8 }}>
-                    <div>
-                      <strong style={{ fontSize: 15 }}>{fb.name}</strong>
-                      {fb.regNo && <span style={{ color: "var(--secondary)", fontSize: 12, marginLeft: 8 }}>({fb.regNo})</span>}
-                    </div>
-                    <div style={{ display: "flex", gap: 8 }}>
-                      <button onClick={() => startEdit(fb)} style={{ background: "transparent", border: "none", color: "var(--accent)", cursor: "pointer", display: "flex", alignItems: "center", gap: 4 }}><Edit2 size={14} /> Edit</button>
-                      <button onClick={() => handleDelete(fb._id)} style={{ background: "transparent", border: "none", color: "var(--danger)", cursor: "pointer", display: "flex", alignItems: "center", gap: 4 }}><Trash2 size={14} /> Delete</button>
-                    </div>
-                  </div>
-                  <div style={{ display: "flex", alignItems: "center", gap: 4, marginBottom: 8 }}>
-                    {Array.from({ length: 5 }).map((_, i) => (
-                      <span key={i} style={{ color: i < fb.rating ? "#f59e0b" : "var(--border)", fontSize: 14 }}>★</span>
-                    ))}
-                  </div>
-                  <p style={{ fontSize: 14, color: "var(--text-secondary)", lineHeight: 1.5 }}>{fb.comment}</p>
-                </>
-              )}
-            </div>
-          ))
-        )}
-      </div>
-    </div>
-  );
-}
-
+/* ════════════════════════════════════════════════════════════════
+   4. SECTION TOPPERS CARD
+   ════════════════════════════════════════════════════════════════ */
 function SectionToppersCard({ authHeaders, API }) {
   const [loading, setLoading] = useState(false);
   const [data, setData] = useState({ totalToppers: 0, students: [] });
@@ -918,6 +1149,13 @@ function SectionToppersCard({ authHeaders, API }) {
   const [sendingEmail, setSendingEmail] = useState(false);
   const [emailSuccessMsg, setEmailSuccessMsg] = useState("");
   const [emailErrorMsg, setEmailErrorMsg] = useState("");
+  const [isMobile, setIsMobile] = useState(() => typeof window !== "undefined" && window.innerWidth < 768);
+
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth < 768);
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
 
   const toppersCacheRef = useRef(new Map());
 
@@ -941,7 +1179,6 @@ function SectionToppersCard({ authHeaders, API }) {
     let errMessage = "";
 
     try {
-      // 1. Try Vercel Serverless Function first with direct payload
       const res = await axios.post(
         "/api/send-topper-email",
         {
@@ -963,9 +1200,7 @@ function SectionToppersCard({ authHeaders, API }) {
       resData = res.data;
       success = true;
     } catch (vercelErr) {
-      console.warn("Vercel serverless email failed, attempting Render backend fallback...", vercelErr);
       try {
-        // 2. Fallback to Render backend route
         const res = await axios.post(
           `${API}/admin/section-toppers/send-email`,
           {
@@ -977,7 +1212,6 @@ function SectionToppersCard({ authHeaders, API }) {
         resData = res.data;
         success = true;
       } catch (backendErr) {
-        console.error("Both Vercel and Render backend email attempts failed:", backendErr);
         errMessage = backendErr.response?.data?.message || vercelErr.response?.data?.message || "Failed to send email. Check SMTP setup.";
       }
     }
@@ -985,39 +1219,30 @@ function SectionToppersCard({ authHeaders, API }) {
     setSendingEmail(false);
 
     if (success && resData) {
-      setEmailSuccessMsg(resData.message || `Congratulatory email sent successfully to ${customEmailInput}`);
-      
-      // Update topper email tracking status in backend DB
-      axios.post(
-        `${API}/admin/section-toppers/topper-email-status`,
-        { regNo: selectedStudentForEmail.regNo, status: "SUCCESS" },
-        authHeaders
-      ).catch(err => console.warn("Topper status sync error:", err));
+      setEmailSuccessMsg(resData.message || `Congratulatory email sent to ${customEmailInput}`);
+      axios
+        .post(`${API}/admin/section-toppers/topper-email-status`, { regNo: selectedStudentForEmail.regNo, status: "SUCCESS" }, authHeaders)
+        .catch((err) => console.warn(err));
 
-      // Update local student state status
       setData((prev) => ({
         ...prev,
         students: prev.students.map((st) => {
           if (st.regNo === selectedStudentForEmail.regNo) {
             return {
               ...st,
-              lastTopperEmailStatus: 'SUCCESS',
+              lastTopperEmailStatus: "SUCCESS",
               lastTopperEmailSentAt: new Date().toISOString(),
-              lastTopperEmailError: null
+              lastTopperEmailError: null,
             };
           }
           return st;
-        })
+        }),
       }));
     } else {
-      setEmailErrorMsg(errMessage || "Failed to send congratulatory email");
-      
-      // Update topper email tracking failure in backend DB
-      axios.post(
-        `${API}/admin/section-toppers/topper-email-status`,
-        { regNo: selectedStudentForEmail.regNo, status: "FAILED", errorMsg: errMessage },
-        authHeaders
-      ).catch(err => console.warn("Topper status sync error:", err));
+      setEmailErrorMsg(errMessage || "Failed to send email");
+      axios
+        .post(`${API}/admin/section-toppers/topper-email-status`, { regNo: selectedStudentForEmail.regNo, status: "FAILED", errorMsg: errMessage }, authHeaders)
+        .catch((err) => console.warn(err));
     }
   }
 
@@ -1085,323 +1310,574 @@ function SectionToppersCard({ authHeaders, API }) {
     });
   }
 
-  function handleResetFilters() {
-    setBatch("2023");
-    setBranch("CSE");
-    setSection("Sec A");
-    setSearch("");
-    fetchSectionToppers(false, { batch: "2023", branch: "CSE", section: "Sec A", search: "" });
-  }
-
   return (
-    <div className="card" style={{ padding: 24, marginBottom: 32 }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20, flexWrap: "wrap", gap: 12 }}>
+    <div
+      style={{
+        background: "#ffffff",
+        border: "1px solid #e2e8f0",
+        borderRadius: 18,
+        padding: isMobile ? "16px 14px" : "24px 20px",
+        marginBottom: 28,
+        boxShadow: "0 2px 10px rgba(15, 23, 42, 0.02)",
+      }}
+    >
+      {/* Card Header Title */}
+      <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 18 }}>
+        <div
+          style={{
+            width: 38,
+            height: 38,
+            borderRadius: 10,
+            background: "#fffbeb",
+            color: "#d97706",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+          }}
+        >
+          <Trophy size={20} />
+        </div>
         <div>
-          <h3 style={{ fontSize: 18, fontWeight: 800, color: "#fff", display: "flex", alignItems: "center", gap: 10, margin: 0 }}>
-            <Trophy size={20} color="#f59e0b" /> Section Toppers (Top 10 Rankers)
+          <h3 style={{ fontSize: 18, fontWeight: 800, color: "#0f172a", margin: 0 }}>
+            Section Academic Toppers
           </h3>
-          <p style={{ fontSize: 13, color: "var(--text-secondary)", margin: "4px 0 0 0" }}>
-            View Top 10 CGPA rankers per section and send clean, professional congratulatory emails.
-          </p>
+          <span style={{ fontSize: 12, color: "#64748b" }}>
+            Total {data.totalToppers || data.students?.length || 0} Toppers Found
+          </span>
         </div>
       </div>
 
-      {/* Filter Bar */}
-      <div className="card" style={{ padding: "16px 20px", marginBottom: 20, background: "rgba(255,255,255,0.02)" }}>
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12, flexWrap: "wrap", gap: 10 }}>
-          <span style={{ fontSize: 13, fontWeight: 700, color: "var(--text-secondary)", display: "flex", alignItems: "center", gap: 6 }}>
-            <Filter size={15} color="#f59e0b" /> Section Filters & Search
-          </span>
-          {(batch !== "2023" || branch !== "CSE" || section !== "Sec A" || search) && (
-            <button
-              onClick={handleResetFilters}
-              style={{ background: "transparent", border: "none", color: "#ef4444", cursor: "pointer", fontSize: 12, fontWeight: 700, display: "flex", alignItems: "center", gap: 4 }}
-            >
-              ✕ Reset Filters
-            </button>
-          )}
-        </div>
-
-        <div style={{ display: "flex", gap: 12, flexWrap: "wrap", alignItems: "center" }}>
-          {/* Search */}
-          <div style={{ flex: "1 1 220px", position: "relative", minWidth: 180 }}>
-            <input
-              type="text"
-              placeholder="Search Reg No or Name..."
-              value={search}
-              onChange={(e) => handleFilterChange("search", e.target.value)}
-              className="input-field"
-              style={{ width: "100%", paddingLeft: 34, height: 38, fontSize: 13 }}
-            />
-            <Search size={15} style={{ position: "absolute", left: 11, top: 11, color: "var(--text-muted)" }} />
+      {/* Dedicated Filter & Search Control Box - Full Width */}
+      <div
+        style={{
+          background: "#f8fafc",
+          border: "1px solid #e2e8f0",
+          borderRadius: 14,
+          padding: "14px 16px",
+          marginBottom: 20,
+        }}
+      >
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: isMobile
+              ? "1fr"
+              : "minmax(220px, 1.5fr) repeat(3, minmax(125px, 1fr)) auto",
+            gap: 10,
+            alignItems: "end",
+          }}
+        >
+          {/* Search Student Input */}
+          <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+            <label style={{ fontSize: 11, fontWeight: 700, color: "#64748b", textTransform: "uppercase" }}>Search Student / Reg. No</label>
+            <div style={{ position: "relative", width: "100%" }}>
+              <Search size={14} color="#64748b" style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)" }} />
+              <input
+                type="text"
+                placeholder="Search student / RegNo..."
+                value={search}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  setSearch(val);
+                  if (val === "") {
+                    fetchSectionToppers(false, { batch, branch, section, search: "" });
+                  }
+                }}
+                onKeyDown={(e) => e.key === "Enter" && fetchSectionToppers(false, { batch, branch, section, search })}
+                style={{
+                  width: "100%",
+                  padding: "8px 12px 8px 32px",
+                  borderRadius: 8,
+                  border: "1.5px solid #cbd5e1",
+                  background: "#ffffff",
+                  color: "#0f172a",
+                  fontSize: 12.5,
+                  outline: "none",
+                  boxSizing: "border-box",
+                }}
+              />
+            </div>
           </div>
 
           {/* Batch */}
-          <select
-            value={batch}
-            onChange={(e) => handleFilterChange("batch", e.target.value)}
-            className="input-field"
-            style={{ width: 130, height: 38, fontSize: 13 }}
-          >
-            <option value="">All Batches</option>
-            <option value="2024">Batch 2024</option>
-            <option value="2023">Batch 2023</option>
-            <option value="2022">Batch 2022</option>
-            <option value="2021">Batch 2021</option>
-          </select>
+          <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+            <label style={{ fontSize: 11, fontWeight: 700, color: "#64748b", textTransform: "uppercase" }}>Batch</label>
+            <select
+              value={batch}
+              onChange={(e) => handleFilterChange("batch", e.target.value)}
+              style={{
+                width: "100%",
+                padding: "8px 10px",
+                borderRadius: 8,
+                border: "1.5px solid #cbd5e1",
+                background: "#ffffff",
+                color: "#0f172a",
+                fontSize: 12.5,
+                fontWeight: 600,
+                cursor: "pointer",
+                boxSizing: "border-box",
+              }}
+            >
+              <option value="">All Batches</option>
+              <option value="2024">Batch 2024</option>
+              <option value="2023">Batch 2023</option>
+              <option value="2022">Batch 2022</option>
+              <option value="2021">Batch 2021</option>
+              <option value="2020">Batch 2020</option>
+            </select>
+          </div>
 
           {/* Branch */}
-          <select
-            value={branch}
-            onChange={(e) => handleFilterChange("branch", e.target.value)}
-            className="input-field"
-            style={{ width: 130, height: 38, fontSize: 13 }}
-          >
-            <option value="">All Branches</option>
-            <option value="CSE">CSE</option>
-            <option value="ECE">ECE</option>
-            <option value="ME">ME</option>
-            <option value="CIVIL">CIVIL</option>
-            <option value="EEE">EEE</option>
-            <option value="BIO">BIO</option>
-            <option value="MI">MI</option>
-            <option value="AERO">AERO</option>
-          </select>
+          <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+            <label style={{ fontSize: 11, fontWeight: 700, color: "#64748b", textTransform: "uppercase" }}>Branch</label>
+            <select
+              value={branch}
+              onChange={(e) => handleFilterChange("branch", e.target.value)}
+              style={{
+                width: "100%",
+                padding: "8px 10px",
+                borderRadius: 8,
+                border: "1.5px solid #cbd5e1",
+                background: "#ffffff",
+                color: "#0f172a",
+                fontSize: 12.5,
+                fontWeight: 600,
+                cursor: "pointer",
+                boxSizing: "border-box",
+              }}
+            >
+              <option value="">All Branches</option>
+              <option value="CSE">CSE</option>
+              <option value="ECE">ECE</option>
+              <option value="ME">ME</option>
+              <option value="CIVIL">CIVIL</option>
+              <option value="EEE">EEE</option>
+              <option value="AERO">AERO</option>
+              <option value="BIO">BIO</option>
+              <option value="MI">MI</option>
+            </select>
+          </div>
 
-          {/* Section */}
-          {branch === "CSE" && (
+          {/* Section (Only A through L) */}
+          <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+            <label style={{ fontSize: 11, fontWeight: 700, color: "#64748b", textTransform: "uppercase" }}>Section</label>
             <select
               value={section}
               onChange={(e) => handleFilterChange("section", e.target.value)}
-              className="input-field"
-              style={{ width: 130, height: 38, fontSize: 13 }}
+              style={{
+                width: "100%",
+                padding: "8px 10px",
+                borderRadius: 8,
+                border: "1.5px solid #cbd5e1",
+                background: "#ffffff",
+                color: "#0f172a",
+                fontSize: 12.5,
+                fontWeight: 600,
+                cursor: "pointer",
+                boxSizing: "border-box",
+              }}
             >
               <option value="">All Sections</option>
-              {["Sec A", "Sec B", "Sec C", "Sec D", "Sec E", "Sec F", "Sec G", "Sec H", "Sec I"].map((sec) => (
-                <option key={sec} value={sec}>{sec}</option>
-              ))}
+              <option value="Sec A">Section A</option>
+              <option value="Sec B">Section B</option>
+              <option value="Sec C">Section C</option>
+              <option value="Sec D">Section D</option>
+              <option value="Sec E">Section E</option>
+              <option value="Sec F">Section F</option>
+              <option value="Sec G">Section G</option>
+              <option value="Sec H">Section H</option>
+              <option value="Sec I">Section I</option>
+              <option value="Sec J">Section J</option>
+              <option value="Sec K">Section K</option>
+              <option value="Sec L">Section L</option>
             </select>
-          )}
+          </div>
+
+          {/* Search Button */}
+          <button
+            onClick={() => fetchSectionToppers(false, { batch, branch, section, search })}
+            style={{
+              width: isMobile ? "100%" : "auto",
+              padding: "9px 20px",
+              borderRadius: 8,
+              background: "#0f172a",
+              color: "#ffffff",
+              fontWeight: 700,
+              fontSize: 12.5,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: 6,
+              cursor: "pointer",
+              border: "none",
+              whiteSpace: "nowrap",
+              height: 38,
+            }}
+          >
+            <Search size={13} /> Search
+          </button>
         </div>
       </div>
 
-      {/* Results Header */}
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
-        <span style={{ fontSize: 13, color: "var(--text-secondary)", fontWeight: 600 }}>
-          {loading ? "Loading toppers..." : `Showing Top ${data.students?.length || 0} Section Rankers`}
-        </span>
-      </div>
-
-      {/* Table */}
+      {/* Toppers Content */}
       {loading ? (
-        <div style={{ padding: 40, textAlign: "center" }}><Spinner /></div>
-      ) : !data.students || data.students.length === 0 ? (
-        <div style={{ padding: 30, textAlign: "center", color: "var(--text-muted)", fontSize: 14 }}>
-          No toppers found matching selected filters.
+        <div style={{ textAlign: "center", padding: "30px 0", color: "#64748b" }}>
+          <Spinner size={24} /> Loading toppers list...
+        </div>
+      ) : data.students?.length === 0 ? (
+        <div style={{ textAlign: "center", padding: "30px 0", color: "#94a3b8", fontSize: 13 }}>
+          No section toppers found matching the current filters.
+        </div>
+      ) : isMobile ? (
+        /* Mobile Card View (Zero Horizontal Scrolling) */
+        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+          {data.students.map((st, idx) => (
+            <div
+              key={st.regNo || idx}
+              style={{
+                background: "#f8fafc",
+                border: "1px solid #e2e8f0",
+                borderRadius: 14,
+                padding: "14px 16px",
+                display: "flex",
+                flexDirection: "column",
+                gap: 10,
+              }}
+            >
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                  <span
+                    style={{
+                      width: 28,
+                      height: 28,
+                      borderRadius: "50%",
+                      background: idx === 0 ? "#fef3c7" : idx === 1 ? "#eff6ff" : "#f1f5f9",
+                      color: idx === 0 ? "#b45309" : idx === 1 ? "#2563eb" : "#475569",
+                      fontWeight: 800,
+                      fontSize: 13,
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      flexShrink: 0,
+                    }}
+                  >
+                    #{idx + 1}
+                  </span>
+                  <div>
+                    <div style={{ fontWeight: 800, color: "#0f172a", fontSize: 14 }}>{st.studentName}</div>
+                    <div style={{ fontSize: 12, color: "#2563eb", fontWeight: 600 }}>{st.regNo}</div>
+                  </div>
+                </div>
+
+                <button
+                  onClick={() => handleOpenEmailModal(st)}
+                  style={{
+                    padding: "6px 12px",
+                    borderRadius: 8,
+                    background: "#ecfdf5",
+                    border: "1px solid #a7f3d0",
+                    color: "#059669",
+                    fontSize: 12,
+                    fontWeight: 700,
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 5,
+                    cursor: "pointer",
+                  }}
+                >
+                  <Send size={12} /> {st.lastTopperEmailStatus === "SUCCESS" ? "Resend Email" : "Send Email"}
+                </button>
+              </div>
+
+              {/* Badges Row */}
+              <div style={{ display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center" }}>
+                <span style={{ background: "#eff6ff", border: "1px solid #dbeafe", color: "#1d4ed8", fontSize: 11, fontWeight: 700, padding: "2px 8px", borderRadius: 6 }}>
+                  {st.section || section || "Sec A"}
+                </span>
+                <span style={{ background: "#f1f5f9", border: "1px solid #e2e8f0", color: "#475569", fontSize: 11, fontWeight: 700, padding: "2px 8px", borderRadius: 6 }}>
+                  {st.batch || batch} • {st.branch || branch}
+                </span>
+                <span style={{ background: "#faf5ff", border: "1px solid #f3e8ff", color: "#7e22ce", fontSize: 11, fontWeight: 700, padding: "2px 8px", borderRadius: 6 }}>
+                  Sem {st.semester || 6}
+                </span>
+              </div>
+
+              {/* Metrics Grid */}
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 6, background: "#ffffff", padding: "8px 10px", borderRadius: 10, border: "1px solid #f1f5f9", textAlign: "center" }}>
+                <div>
+                  <div style={{ fontSize: 10, fontWeight: 700, color: "#64748b" }}>CGPA</div>
+                  <div style={{ fontSize: 13, fontWeight: 800, color: "#059669" }}>{st.cgpa?.toFixed(2) || "N/A"}</div>
+                </div>
+                <div>
+                  <div style={{ fontSize: 10, fontWeight: 700, color: "#64748b" }}>SGPA</div>
+                  <div style={{ fontSize: 13, fontWeight: 800, color: "#0d9488" }}>{st.sgpa?.toFixed(2) || "N/A"}</div>
+                </div>
+                <div>
+                  <div style={{ fontSize: 10, fontWeight: 700, color: "#64748b" }}>SEC RANK</div>
+                  <div style={{ fontSize: 13, fontWeight: 800, color: "#d97706" }}>#{st.sectionCgpaRank || idx + 1}</div>
+                </div>
+                <div>
+                  <div style={{ fontSize: 10, fontWeight: 700, color: "#64748b" }}>UNIV RANK</div>
+                  <div style={{ fontSize: 13, fontWeight: 800, color: "#7c3aed" }}>#{st.universityRank || "-"}</div>
+                </div>
+              </div>
+
+              {/* Email Status Indicator */}
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: 11.5 }}>
+                <span style={{ color: "#64748b" }}>Email Status:</span>
+                {st.lastTopperEmailStatus === "SUCCESS" ? (
+                  <span style={{ color: "#059669", fontWeight: 700, display: "inline-flex", alignItems: "center", gap: 4 }}>
+                    <Check size={12} /> Sent {formatTimeAgo(st.lastTopperEmailSentAt)}
+                  </span>
+                ) : st.lastTopperEmailStatus === "FAILED" ? (
+                  <span style={{ color: "#ef4444", fontWeight: 700, display: "inline-flex", alignItems: "center", gap: 4 }}>
+                    <AlertTriangle size={12} /> Failed
+                  </span>
+                ) : (
+                  <span style={{ color: "#94a3b8", fontWeight: 600 }}>Not Sent Yet</span>
+                )}
+              </div>
+            </div>
+          ))}
         </div>
       ) : (
-        <div className="table-wrapper" style={{ overflowX: "auto" }}>
-          <table className="data-table" style={{ width: "100%", fontSize: 13 }}>
+        /* Desktop Data Table */
+        <div style={{ overflowX: "auto", border: "1px solid #e2e8f0", borderRadius: 12 }}>
+          <table style={{ width: "100%", borderCollapse: "collapse", textAlign: "left", fontSize: 12.5 }}>
             <thead>
-              <tr>
-                <th style={{ textAlign: "center", width: 50 }}>#</th>
-                <th>Student Name</th>
-                <th>Registration No</th>
-                <th style={{ textAlign: "center" }}>Section</th>
-                <th style={{ textAlign: "center" }}>Batch &bull; Branch</th>
-                <th style={{ textAlign: "center" }}>Sem</th>
-                <th style={{ textAlign: "center" }}>CGPA</th>
-                <th style={{ textAlign: "center" }}>SGPA</th>
-                <th style={{ textAlign: "center" }}>Sec Rank</th>
-                <th style={{ textAlign: "center" }}>Univ Rank</th>
-                <th style={{ textAlign: "center" }}>Email Status</th>
-                <th style={{ textAlign: "center" }}>Action</th>
+              <tr style={{ background: "#f8fafc", borderBottom: "1px solid #e2e8f0", color: "#475569" }}>
+                <th style={{ padding: "12px 10px", fontWeight: 700, width: 35 }}>#</th>
+                <th style={{ padding: "12px 12px", fontWeight: 700 }}>STUDENT NAME</th>
+                <th style={{ padding: "12px 12px", fontWeight: 700 }}>REGISTRATION NO</th>
+                <th style={{ padding: "12px 10px", fontWeight: 700 }}>SECTION</th>
+                <th style={{ padding: "12px 10px", fontWeight: 700 }}>BATCH • BRANCH</th>
+                <th style={{ padding: "12px 8px", fontWeight: 700 }}>SEM</th>
+                <th style={{ padding: "12px 10px", fontWeight: 700 }}>CGPA</th>
+                <th style={{ padding: "12px 10px", fontWeight: 700 }}>SGPA</th>
+                <th style={{ padding: "12px 10px", fontWeight: 700 }}>SEC RANK</th>
+                <th style={{ padding: "12px 10px", fontWeight: 700 }}>UNIV RANK</th>
+                <th style={{ padding: "12px 12px", fontWeight: 700 }}>EMAIL STATUS</th>
+                <th style={{ padding: "12px 12px", fontWeight: 700, textAlign: "center" }}>ACTION</th>
               </tr>
             </thead>
             <tbody>
-              {data.students.map((st, idx) => {
-                const isSent = st.lastTopperEmailStatus === "SUCCESS";
-                return (
-                  <tr key={`${st.regNo}-${st.semester || idx}`}>
-                    <td style={{ textAlign: "center", fontWeight: 700, color: "var(--text-secondary)" }}>{idx + 1}</td>
-                    <td style={{ fontWeight: 700, color: "#fff" }}>{st.studentName}</td>
-                    <td style={{ fontFamily: "monospace", color: "#60a5fa" }}>{st.regNo}</td>
-                    <td style={{ textAlign: "center" }}>
-                      <span style={{ background: "rgba(59, 130, 246, 0.15)", color: "#60a5fa", padding: "2px 8px", borderRadius: 4, fontSize: 11, fontWeight: 700 }}>
-                        Sec {st.section}
+              {data.students.map((st, idx) => (
+                <tr
+                  key={st.regNo || idx}
+                  style={{ borderBottom: "1px solid #f1f5f9", transition: "background 0.15s" }}
+                  onMouseEnter={(e) => (e.currentTarget.style.background = "#f8fafc")}
+                  onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
+                >
+                  <td style={{ padding: "12px 10px", fontWeight: 700, color: "#64748b" }}>
+                    {idx + 1}
+                  </td>
+                  <td style={{ padding: "12px 12px", fontWeight: 800, color: "#0f172a" }}>
+                    {st.studentName}
+                  </td>
+                  <td style={{ padding: "12px 12px", color: "#2563eb", fontWeight: 600 }}>
+                    {st.regNo}
+                  </td>
+                  <td style={{ padding: "12px 10px" }}>
+                    <span style={{ background: "#eff6ff", border: "1px solid #dbeafe", color: "#1d4ed8", fontSize: 11, fontWeight: 700, padding: "2px 8px", borderRadius: 6 }}>
+                      {st.section || section || "Sec A"}
+                    </span>
+                  </td>
+                  <td style={{ padding: "12px 10px", color: "#475569", fontSize: 12 }}>
+                    {st.batch || batch} • {st.branch || branch}
+                  </td>
+                  <td style={{ padding: "12px 8px", color: "#64748b", fontSize: 12, fontWeight: 600 }}>
+                    Sem {st.semester || 6}
+                  </td>
+                  <td style={{ padding: "12px 10px" }}>
+                    <span style={{ fontWeight: 800, color: "#059669", fontSize: 13 }}>{st.cgpa?.toFixed(2) || "N/A"}</span>
+                  </td>
+                  <td style={{ padding: "12px 10px" }}>
+                    <span style={{ fontWeight: 800, color: "#0d9488", fontSize: 13 }}>{st.sgpa?.toFixed(2) || "N/A"}</span>
+                  </td>
+                  <td style={{ padding: "12px 10px" }}>
+                    <span style={{ fontWeight: 800, color: "#d97706", fontSize: 13 }}>#{st.sectionCgpaRank || idx + 1}</span>
+                  </td>
+                  <td style={{ padding: "12px 10px" }}>
+                    <span style={{ fontWeight: 800, color: "#7c3aed", fontSize: 13 }}>#{st.universityRank || "-"}</span>
+                  </td>
+                  <td style={{ padding: "12px 12px", fontSize: 11.5 }}>
+                    {st.lastTopperEmailStatus === "SUCCESS" ? (
+                      <span style={{ color: "#059669", fontWeight: 700, display: "inline-flex", alignItems: "center", gap: 4 }}>
+                        <Check size={12} /> Sent {formatTimeAgo(st.lastTopperEmailSentAt)}
                       </span>
-                    </td>
-                    <td style={{ textAlign: "center", color: "var(--text-secondary)", fontSize: 12 }}>{st.batch} &bull; {st.branch}</td>
-                    <td style={{ textAlign: "center" }}>Sem {st.semester}</td>
-                    <td style={{ textAlign: "center", fontWeight: 700, color: "#10b981" }}>{st.cgpa ? Number(st.cgpa).toFixed(2) : "0.00"}</td>
-                    <td style={{ textAlign: "center", color: "#3b82f6", fontWeight: 600 }}>{st.sgpa ? Number(st.sgpa).toFixed(2) : "0.00"}</td>
-                    <td style={{ textAlign: "center", fontWeight: 700, color: "#f59e0b" }}>
-                      #{st.sectionCgpaRank || st.sectionSgpaRank || (idx + 1)}
-                    </td>
-                    <td style={{ textAlign: "center", fontWeight: 700, color: "#a855f7" }}>
-                      #{st.universityRank || "N/A"}
-                    </td>
-                    <td style={{ textAlign: "center", whiteSpace: "nowrap" }}>
-                      {st.lastTopperEmailStatus === "SUCCESS" && st.lastTopperEmailSentAt ? (
-                        <span style={{ color: "#10b981", fontSize: 11, fontWeight: 600, display: "inline-flex", alignItems: "center", gap: 4 }}>
-                          <CheckCircle size={12} color="#10b981" /> Sent {formatDistanceToNow(new Date(st.lastTopperEmailSentAt), { addSuffix: true })}
-                        </span>
-                      ) : st.lastTopperEmailStatus === "FAILED" && st.lastTopperEmailSentAt ? (
-                        <span style={{ color: "#ef4444", fontSize: 11, fontWeight: 600, display: "inline-flex", alignItems: "center", gap: 4 }}>
-                          <AlertTriangle size={12} color="#ef4444" /> Failed {formatDistanceToNow(new Date(st.lastTopperEmailSentAt), { addSuffix: true })}
-                        </span>
-                      ) : (
-                        <span style={{ color: "var(--text-muted)", fontSize: 11 }}>Not Sent Yet</span>
-                      )}
-                    </td>
-                    <td style={{ textAlign: "center" }}>
-                      <button
-                        onClick={() => handleOpenEmailModal(st)}
-                        className="btn-primary"
-                        style={{
-                          padding: "6px 12px",
-                          fontSize: 12,
-                          fontWeight: 700,
-                          background: isSent ? "rgba(16, 185, 129, 0.15)" : "linear-gradient(135deg, #10b981, #059669)",
-                          color: isSent ? "#10b981" : "#ffffff",
-                          border: isSent ? "1px solid rgba(16, 185, 129, 0.3)" : "none",
-                          borderRadius: 6,
-                          cursor: "pointer",
-                          display: "inline-flex",
-                          alignItems: "center",
-                          gap: 5,
-                        }}
-                      >
-                        {isSent ? <><Check size={13} /> Resend Email</> : <><Send size={13} /> Send Email</>}
-                      </button>
-                    </td>
-                  </tr>
-                );
-              })}
+                    ) : st.lastTopperEmailStatus === "FAILED" ? (
+                      <span style={{ color: "#ef4444", fontWeight: 700, display: "inline-flex", alignItems: "center", gap: 4 }}>
+                        <AlertTriangle size={12} /> Failed
+                      </span>
+                    ) : (
+                      <span style={{ color: "#94a3b8" }}>Not Sent Yet</span>
+                    )}
+                  </td>
+                  <td style={{ padding: "12px 12px", textAlign: "center" }}>
+                    <button
+                      onClick={() => handleOpenEmailModal(st)}
+                      style={{
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: 5,
+                        padding: "6px 12px",
+                        borderRadius: 8,
+                        background: "#ecfdf5",
+                        border: "1px solid #a7f3d0",
+                        color: "#059669",
+                        fontSize: 11.5,
+                        fontWeight: 700,
+                        cursor: "pointer",
+                      }}
+                    >
+                      <Send size={11} /> {st.lastTopperEmailStatus === "SUCCESS" ? "Resend Email" : "Send Email"}
+                    </button>
+                  </td>
+                </tr>
+              ))}
             </tbody>
           </table>
         </div>
       )}
 
-      {/* Send Congratulatory Topper Email Confirmation Modal */}
-      {selectedStudentForEmail && (
-        <div
-          style={{
-            position: "fixed",
-            inset: 0,
-            background: "rgba(0,0,0,0.75)",
-            backdropFilter: "blur(8px)",
-            WebkitBackdropFilter: "blur(8px)",
-            zIndex: 9999,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            padding: 16,
-          }}
-          onClick={() => !sendingEmail && setSelectedStudentForEmail(null)}
-        >
-          <div
+      {/* Congratulate Email Modal */}
+      <AnimatePresence>
+        {selectedStudentForEmail && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={() => setSelectedStudentForEmail(null)}
             style={{
-              background: "#18181b",
-              border: "1px solid rgba(255,255,255,0.12)",
-              borderRadius: 20,
-              padding: "24px 28px",
-              maxWidth: 520,
-              width: "100%",
-              boxShadow: "0 24px 70px rgba(0,0,0,0.85)",
+              position: "fixed",
+              inset: 0,
+              background: "rgba(15, 23, 42, 0.4)",
+              backdropFilter: "blur(6px)",
+              zIndex: 10000,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              padding: 16,
             }}
-            onClick={(e) => e.stopPropagation()}
           >
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
-              <h3 style={{ fontSize: 18, fontWeight: 800, color: "#fff", display: "flex", alignItems: "center", gap: 8, margin: 0 }}>
-                <Trophy color="#f59e0b" size={20} /> Send Congratulatory Topper Email
-              </h3>
-              <button
-                type="button"
-                onClick={() => !sendingEmail && setSelectedStudentForEmail(null)}
-                style={{ background: "transparent", border: "none", color: "var(--text-muted)", cursor: "pointer", display: "flex", alignItems: "center" }}
-              >
-                <X size={20} />
-              </button>
-            </div>
-
-            <div style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 12, padding: 16, marginBottom: 18, fontSize: 13 }}>
-              <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>
-                <span style={{ color: "var(--text-muted)" }}>Student Name:</span>
-                <strong style={{ color: "#fff" }}>{selectedStudentForEmail.studentName}</strong>
-              </div>
-              <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>
-                <span style={{ color: "var(--text-muted)" }}>Registration No:</span>
-                <span style={{ fontFamily: "monospace", color: "#60a5fa" }}>{selectedStudentForEmail.regNo}</span>
-              </div>
-              <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>
-                <span style={{ color: "var(--text-muted)" }}>Section & Branch:</span>
-                <span style={{ color: "#fff" }}>Section {selectedStudentForEmail.section} ({selectedStudentForEmail.branch})</span>
-              </div>
-              <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>
-                <span style={{ color: "var(--text-muted)" }}>SGPA / CGPA:</span>
-                <span style={{ color: "#10b981", fontWeight: 700 }}>
-                  SGPA: {selectedStudentForEmail.sgpa ? Number(selectedStudentForEmail.sgpa).toFixed(2) : "0.00"} | CGPA: {selectedStudentForEmail.cgpa ? Number(selectedStudentForEmail.cgpa).toFixed(2) : "0.00"}
-                </span>
-              </div>
-              <div style={{ display: "flex", justifyContent: "space-between" }}>
-                <span style={{ color: "var(--text-muted)" }}>Section Rank:</span>
-                <span style={{ color: "#f59e0b", fontWeight: 700 }}>
-                  #{selectedStudentForEmail.sectionCgpaRank || selectedStudentForEmail.sectionSgpaRank || 1}
-                </span>
-              </div>
-            </div>
-
-            <form onSubmit={handleConfirmSendEmail}>
-              <div style={{ marginBottom: 18 }}>
-                <label style={{ display: "block", fontSize: 12, fontWeight: 700, color: "var(--text-secondary)", marginBottom: 6 }}>
-                  Target Recipient Email Address:
-                </label>
-                <input
-                  type="email"
-                  required
-                  value={customEmailInput}
-                  onChange={(e) => setCustomEmailInput(e.target.value)}
-                  className="input-field"
-                  style={{ width: "100%", height: 38, fontSize: 13, fontFamily: "monospace" }}
-                  placeholder="e.g. student@centurionuniv.edu.in"
-                />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              onClick={(e) => e.stopPropagation()}
+              style={{
+                background: "#ffffff",
+                borderRadius: 20,
+                padding: "26px 24px",
+                maxWidth: 440,
+                width: "100%",
+                boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.25)",
+                border: "1px solid #e2e8f0",
+              }}
+            >
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
+                <h3 style={{ margin: 0, fontSize: 17, fontWeight: 800, color: "#0f172a" }}>
+                  Send Topper Certificate Email
+                </h3>
+                <button
+                  onClick={() => setSelectedStudentForEmail(null)}
+                  style={{ background: "none", border: "none", color: "#94a3b8", cursor: "pointer" }}
+                >
+                  <X size={18} />
+                </button>
               </div>
 
-              {emailSuccessMsg && (
-                <div style={{ background: "rgba(16, 185, 129, 0.15)", border: "1px solid rgba(16, 185, 129, 0.3)", borderRadius: 8, padding: 12, marginBottom: 16, color: "#34d399", fontSize: 13, display: "flex", alignItems: "center", gap: 8 }}>
-                  <CheckCircle size={16} /> {emailSuccessMsg}
+              <div style={{ background: "#f8fafc", padding: "10px 14px", borderRadius: 10, marginBottom: 14, fontSize: 13 }}>
+                <div>Recipient: <strong>{selectedStudentForEmail.studentName}</strong></div>
+                <div style={{ color: "#64748b", fontSize: 12 }}>RegNo: {selectedStudentForEmail.regNo} · CGPA: {selectedStudentForEmail.cgpa}</div>
+              </div>
+
+              <form onSubmit={handleConfirmSendEmail}>
+                <div style={{ marginBottom: 14 }}>
+                  <label style={{ display: "block", fontSize: 12, fontWeight: 700, color: "#475569", marginBottom: 5 }}>
+                    Student Email Address
+                  </label>
+                  <input
+                    type="email"
+                    value={customEmailInput}
+                    onChange={(e) => setCustomEmailInput(e.target.value)}
+                    required
+                    style={{
+                      width: "100%",
+                      padding: "9px 12px",
+                      borderRadius: 10,
+                      border: "1.5px solid #e2e8f0",
+                      background: "#ffffff",
+                      fontSize: 13,
+                      outline: "none",
+                      boxSizing: "border-box",
+                    }}
+                  />
                 </div>
-              )}
 
-              {emailErrorMsg && (
-                <div style={{ background: "rgba(239, 68, 68, 0.15)", border: "1px solid rgba(239, 68, 68, 0.3)", borderRadius: 8, padding: 12, marginBottom: 16, color: "#f87171", fontSize: 13, display: "flex", alignItems: "center", gap: 8 }}>
-                  <AlertTriangle size={16} /> {emailErrorMsg}
-                </div>
-              )}
-
-              <div style={{ display: "flex", justifyContent: "flex-end", gap: 10 }}>
-                {emailSuccessMsg ? (
-                  <button type="button" onClick={() => setSelectedStudentForEmail(null)} className="btn-primary" style={{ padding: "8px 20px", fontSize: 13, background: "#10b981", color: "#ffffff", border: "none", borderRadius: 6, fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", gap: 6 }}>
-                    ✓ Done / Close
-                  </button>
-                ) : (
-                  <>
-                    <button type="button" onClick={() => setSelectedStudentForEmail(null)} className="btn-secondary" style={{ padding: "8px 16px", fontSize: 13 }} disabled={sendingEmail}>Cancel</button>
-                    <button type="submit" disabled={sendingEmail} className="btn-primary" style={{ padding: "8px 18px", fontSize: 13, background: "linear-gradient(135deg, #10b981, #059669)", display: "flex", alignItems: "center", gap: 6, opacity: sendingEmail ? 0.7 : 1 }}>
-                      {sendingEmail ? <><Loader2 size={14} className="spin" /> Sending...</> : <><Send size={14} /> Send Congratulatory Email</>}
-                    </button>
-                  </>
+                {emailSuccessMsg && (
+                  <div style={{ color: "#065f46", background: "#ecfdf5", padding: "8px 12px", borderRadius: 8, fontSize: 12, marginBottom: 12 }}>
+                    {emailSuccessMsg}
+                  </div>
                 )}
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+                {emailErrorMsg && (
+                  <div style={{ color: "#991b1b", background: "#fef2f2", padding: "8px 12px", borderRadius: 8, fontSize: 12, marginBottom: 12 }}>
+                    {emailErrorMsg}
+                  </div>
+                )}
+
+                <div style={{ display: "flex", gap: 10 }}>
+                  <button
+                    type="button"
+                    onClick={() => setSelectedStudentForEmail(null)}
+                    style={{
+                      flex: 1,
+                      padding: "10px",
+                      borderRadius: 10,
+                      background: "#f1f5f9",
+                      color: "#475569",
+                      border: "none",
+                      fontWeight: 600,
+                      fontSize: 13,
+                      cursor: "pointer",
+                    }}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={sendingEmail}
+                    style={{
+                      flex: 1,
+                      padding: "10px",
+                      borderRadius: 10,
+                      background: "#2563eb",
+                      color: "#ffffff",
+                      border: "none",
+                      fontWeight: 700,
+                      fontSize: 13,
+                      cursor: sendingEmail ? "not-allowed" : "pointer",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      gap: 6,
+                    }}
+                  >
+                    {sendingEmail ? <Spinner size={14} /> : <Send size={14} />} Send Email
+                  </button>
+                </div>
+              </form>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
 
+/* ════════════════════════════════════════════════════════════════
+   5. BACKLOG TRACKER CARD
+   ════════════════════════════════════════════════════════════════ */
 function BacklogTrackerCard({ authHeaders, API }) {
   const [loading, setLoading] = useState(false);
   const [data, setData] = useState({ totalStudentsWithBacklogs: 0, totalBacklogsCount: 0, students: [], totalPages: 1, page: 1 });
@@ -1413,13 +1889,18 @@ function BacklogTrackerCard({ authHeaders, API }) {
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(50);
   const [expandedRegNo, setExpandedRegNo] = useState(null);
-  const [showFilterPanel, setShowFilterPanel] = useState(false);
   const [selectedStudentForEmail, setSelectedStudentForEmail] = useState(null);
   const [customEmailInput, setCustomEmailInput] = useState("");
   const [sendingEmail, setSendingEmail] = useState(false);
   const [emailSuccessMsg, setEmailSuccessMsg] = useState("");
   const [emailErrorMsg, setEmailErrorMsg] = useState("");
-  const [emailStatusMap, setEmailStatusMap] = useState({});
+  const [isMobile, setIsMobile] = useState(() => typeof window !== "undefined" && window.innerWidth < 768);
+
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth < 768);
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
 
   const backlogCacheRef = useRef(new Map());
 
@@ -1439,7 +1920,6 @@ function BacklogTrackerCard({ authHeaders, API }) {
     setEmailErrorMsg("");
 
     try {
-      // Render free tier blocks outbound SMTP, so we MUST send via Vercel Serverless Function
       const res = await axios.post(
         "/api/send-backlog-email",
         {
@@ -1448,68 +1928,13 @@ function BacklogTrackerCard({ authHeaders, API }) {
         },
         { timeout: 30000 }
       );
-
-      const resData = res.data;
-      setEmailSuccessMsg(resData.message || `Backlog notification email sent successfully to ${customEmailInput}`);
-      
-      // Update backend DB with SUCCESS status silently
-      axios.post(`${API}/admin/backlogs/email-status`, {
-        regNo: selectedStudentForEmail.regNo,
-        status: "SUCCESS"
-      }, { headers: authHeaders }).catch(e => console.error(e));
-      
-      // Optimistically update the UI to show the email was just sent
-      setData((prev) => ({
-        ...prev,
-        students: prev.students.map((st) => {
-          if (st.regNo === selectedStudentForEmail.regNo) {
-            return {
-              ...st,
-              lastEmailStatus: 'SUCCESS',
-              lastEmailSentAt: new Date().toISOString(),
-              lastEmailError: null
-            };
-          }
-          return st;
-        })
-      }));
+      setEmailSuccessMsg(res.data?.message || `Notification email sent to ${customEmailInput}`);
     } catch (err) {
-      console.error("Email send error:", err);
-      setEmailErrorMsg(
-        err.response?.data?.message || "Failed to send email. Check configuration."
-      );
-      
-      // Update backend DB with FAILED status silently
-      axios.post(`${API}/admin/backlogs/email-status`, {
-        regNo: selectedStudentForEmail.regNo,
-        status: "FAILED",
-        error: err.response?.data?.message || err.message
-      }, { headers: authHeaders }).catch(e => console.error(e));
-
-      // Optimistically update the UI to show the failure
-      setData((prev) => ({
-        ...prev,
-        students: prev.students.map((st) => {
-          if (st.regNo === selectedStudentForEmail.regNo) {
-            return {
-              ...st,
-              lastEmailStatus: 'FAILED',
-              lastEmailSentAt: new Date().toISOString(),
-              lastEmailError: err.response?.data?.message || "Failed to send email"
-            };
-          }
-          return st;
-        })
-      }));
+      setEmailErrorMsg(err.response?.data?.message || "Failed to send email");
     } finally {
       setSendingEmail(false);
     }
   }
-
-  useEffect(() => {
-    setPage(1);
-    fetchBacklogs(1);
-  }, [batch, branch, section, semester, limit]);
 
   async function fetchBacklogs(targetPage = page, searchQuery = search, overrideFilters = null, forceRefresh = false) {
     const activeBatch = overrideFilters ? overrideFilters.batch : batch;
@@ -1543,807 +1968,833 @@ function BacklogTrackerCard({ authHeaders, API }) {
       backlogCacheRef.current.set(cacheKey, resData);
       setData(resData);
     } catch (e) {
-      console.error("Backlog fetch error:", e);
+      console.error(e);
     } finally {
       setLoading(false);
     }
   }
 
-  function handleResetFilters() {
-    setBatch("");
-    setBranch("");
-    setSection("");
-    setSemester("");
-    setSearch("");
-    setPage(1);
-    fetchBacklogs(1, "", { batch: "", branch: "", section: "", semester: "", search: "" });
-  }
-
-  function handleSearchSubmit(e) {
-    e.preventDefault();
-    setPage(1);
-    fetchBacklogs(1, search);
-  }
+  useEffect(() => {
+    fetchBacklogs(1);
+  }, [batch, branch, section, semester, limit]);
 
   return (
-    <div style={{ width: "100%" }}>
-      {/* Header Summary Cards */}
-      {(() => {
-        const filterLabels = [];
-        if (batch) filterLabels.push(`Batch ${batch}`);
-        if (branch) filterLabels.push(`Branch ${branch}`);
-        if (semester) filterLabels.push(`Sem ${semester}`);
-        if (search) filterLabels.push(`"${search}"`);
-
-        const filterSuffix = filterLabels.length > 0 ? ` (${filterLabels.join(" · ")})` : "";
-
-        return (
-          <div className="grid-2" style={{ marginBottom: 20, gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: 16 }}>
-            <div className="stat-card" style={{ borderLeft: "4px solid #ef4444" }}>
-              <span className="label" style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                <AlertTriangle size={16} color="#ef4444" /> Students With Backlogs{filterSuffix}
-              </span>
-              <span className="value" style={{ color: "#ef4444" }}>
-                {data.totalStudentsWithBacklogs?.toLocaleString()} Students
-              </span>
-            </div>
-
-            <div className="stat-card" style={{ borderLeft: "4px solid #f59e0b" }}>
-              <span className="label" style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                <BookOpen size={16} color="#f59e0b" /> Total Backlog Subjects{filterSuffix}
-              </span>
-              <span className="value" style={{ color: "#f59e0b" }}>
-                {data.totalBacklogsCount?.toLocaleString()} Backlogs
-              </span>
-            </div>
+    <div
+      style={{
+        background: "#ffffff",
+        border: "1px solid #e2e8f0",
+        borderRadius: 18,
+        padding: isMobile ? "16px 14px" : "24px 20px",
+        marginBottom: 28,
+        boxShadow: "0 2px 10px rgba(15, 23, 42, 0.02)",
+      }}
+    >
+      {/* Header Metric Summary */}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 14, marginBottom: 20 }}>
+        <div style={{ background: "#fef2f2", border: "1px solid #fecaca", borderRadius: 14, padding: "14px 16px" }}>
+          <div style={{ fontSize: 11.5, color: "#991b1b", fontWeight: 700, textTransform: "uppercase" }}>
+            Students with Backlogs
           </div>
-        );
-      })()}
+          <div style={{ fontSize: 24, fontWeight: 800, color: "#ef4444", marginTop: 4 }}>
+            {data.totalStudentsWithBacklogs?.toLocaleString()}
+          </div>
+        </div>
 
-
-
-      {/* Real-time Backlog Sync Banner */}
-      <div style={{ background: "rgba(59, 130, 246, 0.08)", border: "1px solid rgba(59, 130, 246, 0.2)", borderRadius: 10, padding: "12px 16px", marginBottom: 20, fontSize: 12, color: "var(--text-secondary)", display: "flex", alignItems: "center", gap: 10 }}>
-        <Info size={18} color="#60a5fa" style={{ flexShrink: 0 }} />
-        <div>
-          <strong style={{ color: "#fff" }}>Automatic Live Backlog Sync:</strong> When you upload new Backlog or Rechecking Excel sheets, cleared backlogs are automatically updated and active backlog counts/lists update here in real time!
+        <div style={{ background: "#fffbeb", border: "1px solid #fde68a", borderRadius: 14, padding: "14px 16px" }}>
+          <div style={{ fontSize: 11.5, color: "#92400e", fontWeight: 700, textTransform: "uppercase" }}>
+            Total Backlog Subjects
+          </div>
+          <div style={{ fontSize: 24, fontWeight: 800, color: "#d97706", marginTop: 4 }}>
+            {data.totalBacklogsCount?.toLocaleString()}
+          </div>
         </div>
       </div>
 
-      {/* Permanent Leaderboard-Style Filter Bar */}
-      <div className="card" style={{ padding: "16px 20px", marginBottom: 20 }}>
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12, flexWrap: "wrap", gap: 10 }}>
-          <span style={{ fontSize: 13, fontWeight: 700, color: "var(--text-secondary)", display: "flex", alignItems: "center", gap: 6 }}>
-            <Filter size={15} color="var(--accent)" /> Backlog Filters & Search
-          </span>
-          {(batch || branch || section || semester || search) && (
-            <button
-              onClick={handleResetFilters}
-              style={{ background: "transparent", border: "none", color: "#ef4444", cursor: "pointer", fontSize: 12, fontWeight: 700, display: "flex", alignItems: "center", gap: 4 }}
-            >
-              ✕ Reset All Filters
-            </button>
-          )}
-        </div>
-
-        <form onSubmit={handleSearchSubmit} style={{ display: "flex", gap: 12, flexWrap: "wrap", alignItems: "center" }}>
+      {/* Dedicated Filter & Search Control Box */}
+      <div
+        style={{
+          background: "#f8fafc",
+          border: "1px solid #e2e8f0",
+          borderRadius: 14,
+          padding: "14px 16px",
+          marginBottom: 20,
+        }}
+      >
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: isMobile
+              ? "1fr"
+              : "minmax(220px, 1.4fr) repeat(4, minmax(115px, 1fr)) auto",
+            gap: 10,
+            alignItems: "end",
+          }}
+        >
           {/* Search Input */}
-          <div style={{ flex: "1 1 240px", position: "relative", minWidth: 200 }}>
-            <input
-              type="text"
-              placeholder="Search Reg No or Student Name..."
-              value={search}
-              onChange={(e) => {
-                const val = e.target.value;
-                setSearch(val);
-                if (!val.trim()) {
-                  setPage(1);
-                  fetchBacklogs(1, "", { search: "" });
-                }
-              }}
-              className="input-field"
-              style={{ width: "100%", paddingLeft: 34, height: 38, fontSize: 13 }}
-            />
-            <Search size={15} style={{ position: "absolute", left: 11, top: 11, color: "var(--text-muted)" }} />
+          <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+            <label style={{ fontSize: 11, fontWeight: 700, color: "#64748b", textTransform: "uppercase" }}>Search Records</label>
+            <div style={{ position: "relative", width: "100%" }}>
+              <Search size={14} color="#64748b" style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)" }} />
+              <input
+                type="text"
+                placeholder="Search student / RegNo / Subject..."
+                value={search}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  setSearch(val);
+                  if (val === "") {
+                    fetchBacklogs(1, "");
+                  }
+                }}
+                onKeyDown={(e) => e.key === "Enter" && fetchBacklogs(1, search)}
+                style={{
+                  width: "100%",
+                  padding: "8px 12px 8px 32px",
+                  borderRadius: 8,
+                  border: "1.5px solid #cbd5e1",
+                  background: "#ffffff",
+                  fontSize: 12.5,
+                  color: "#0f172a",
+                  outline: "none",
+                  boxSizing: "border-box",
+                }}
+              />
+            </div>
           </div>
 
-          {/* Batch Dropdown */}
-          <select
-            value={batch}
-            onChange={(e) => {
-              setBatch(e.target.value);
-              setPage(1);
-            }}
-            className="input-field"
-            style={{ width: 140, height: 38, fontSize: 13 }}
-          >
-            <option value="">All Batches</option>
-            <option value="2024">Batch 2024</option>
-            <option value="2023">Batch 2023</option>
-            <option value="2022">Batch 2022</option>
-            <option value="2021">Batch 2021</option>
-            <option value="2020">Batch 2020</option>
-          </select>
+          {/* Batch Select */}
+          <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+            <label style={{ fontSize: 11, fontWeight: 700, color: "#64748b", textTransform: "uppercase" }}>Batch</label>
+            <select
+              value={batch}
+              onChange={(e) => setBatch(e.target.value)}
+              style={{
+                width: "100%",
+                padding: "8px 10px",
+                borderRadius: 8,
+                border: "1.5px solid #cbd5e1",
+                background: "#ffffff",
+                color: "#0f172a",
+                fontSize: 12.5,
+                fontWeight: 600,
+                cursor: "pointer",
+                boxSizing: "border-box",
+              }}
+            >
+              <option value="">All Batches</option>
+              <option value="2024">Batch 2024</option>
+              <option value="2023">Batch 2023</option>
+              <option value="2022">Batch 2022</option>
+              <option value="2021">Batch 2021</option>
+              <option value="2020">Batch 2020</option>
+            </select>
+          </div>
 
-          {/* Branch Dropdown */}
-          <select
-            value={branch}
-            onChange={(e) => {
-              setBranch(e.target.value);
-              setPage(1);
-            }}
-            className="input-field"
-            style={{ width: 140, height: 38, fontSize: 13 }}
-          >
-            <option value="">All Branches</option>
-            <option value="CSE">CSE</option>
-            <option value="ECE">ECE</option>
-            <option value="ME">ME</option>
-            <option value="CIVIL">CIVIL</option>
-            <option value="EEE">EEE</option>
-            <option value="AERO">AERO</option>
-            <option value="BIO">BIO</option>
-            <option value="MI">MI</option>
-          </select>
+          {/* Branch Select */}
+          <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+            <label style={{ fontSize: 11, fontWeight: 700, color: "#64748b", textTransform: "uppercase" }}>Branch</label>
+            <select
+              value={branch}
+              onChange={(e) => setBranch(e.target.value)}
+              style={{
+                width: "100%",
+                padding: "8px 10px",
+                borderRadius: 8,
+                border: "1.5px solid #cbd5e1",
+                background: "#ffffff",
+                color: "#0f172a",
+                fontSize: 12.5,
+                fontWeight: 600,
+                cursor: "pointer",
+                boxSizing: "border-box",
+              }}
+            >
+              <option value="">All Branches</option>
+              <option value="CSE">CSE</option>
+              <option value="ECE">ECE</option>
+              <option value="ME">ME</option>
+              <option value="CIVIL">CIVIL</option>
+              <option value="EEE">EEE</option>
+              <option value="AERO">AERO</option>
+              <option value="BIO">BIO</option>
+              <option value="MI">MI</option>
+            </select>
+          </div>
 
-          {/* Section Dropdown */}
-          <select
-            value={section}
-            onChange={(e) => {
-              setSection(e.target.value);
-              setPage(1);
-            }}
-            className="input-field"
-            style={{ width: 140, height: 38, fontSize: 13 }}
-          >
-            <option value="">All Sections</option>
-            <option value="Sec A">Section A</option>
-            <option value="Sec B">Section B</option>
-            <option value="Sec C">Section C</option>
-            <option value="Sec D">Section D</option>
-            <option value="Sec E">Section E</option>
-            <option value="Sec F">Section F</option>
-            <option value="Sec G">Section G</option>
-            <option value="Sec H">Section H</option>
-            <option value="Sec I">Section I</option>
-            <option value="Sec J">Section J</option>
-            <option value="Sec K">Section K</option>
-            <option value="Sec L">Section L</option>
-          </select>
+          {/* Section Select (Only A through L) */}
+          <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+            <label style={{ fontSize: 11, fontWeight: 700, color: "#64748b", textTransform: "uppercase" }}>Section</label>
+            <select
+              value={section}
+              onChange={(e) => setSection(e.target.value)}
+              style={{
+                width: "100%",
+                padding: "8px 10px",
+                borderRadius: 8,
+                border: "1.5px solid #cbd5e1",
+                background: "#ffffff",
+                color: "#0f172a",
+                fontSize: 12.5,
+                fontWeight: 600,
+                cursor: "pointer",
+                boxSizing: "border-box",
+              }}
+            >
+              <option value="">All Sections</option>
+              <option value="Sec A">Section A</option>
+              <option value="Sec B">Section B</option>
+              <option value="Sec C">Section C</option>
+              <option value="Sec D">Section D</option>
+              <option value="Sec E">Section E</option>
+              <option value="Sec F">Section F</option>
+              <option value="Sec G">Section G</option>
+              <option value="Sec H">Section H</option>
+              <option value="Sec I">Section I</option>
+              <option value="Sec J">Section J</option>
+              <option value="Sec K">Section K</option>
+              <option value="Sec L">Section L</option>
+            </select>
+          </div>
 
-          {/* Semester Dropdown */}
-          <select
-            value={semester}
-            onChange={(e) => {
-              setSemester(e.target.value);
-              setPage(1);
-            }}
-            className="input-field"
-            style={{ width: 140, height: 38, fontSize: 13 }}
-          >
-            <option value="">All Semesters</option>
-            <option value="1">Semester 1</option>
-            <option value="2">Semester 2</option>
-            <option value="3">Semester 3</option>
-            <option value="4">Semester 4</option>
-            <option value="5">Semester 5</option>
-            <option value="6">Semester 6</option>
-            <option value="7">Semester 7</option>
-            <option value="8">Semester 8</option>
-          </select>
+          {/* Semester Select */}
+          <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+            <label style={{ fontSize: 11, fontWeight: 700, color: "#64748b", textTransform: "uppercase" }}>Semester</label>
+            <select
+              value={semester}
+              onChange={(e) => setSemester(e.target.value)}
+              style={{
+                width: "100%",
+                padding: "8px 10px",
+                borderRadius: 8,
+                border: "1.5px solid #cbd5e1",
+                background: "#ffffff",
+                color: "#0f172a",
+                fontSize: 12.5,
+                fontWeight: 600,
+                cursor: "pointer",
+                boxSizing: "border-box",
+              }}
+            >
+              <option value="">All Semesters</option>
+              <option value="1">Semester 1</option>
+              <option value="2">Semester 2</option>
+              <option value="3">Semester 3</option>
+              <option value="4">Semester 4</option>
+              <option value="5">Semester 5</option>
+              <option value="6">Semester 6</option>
+              <option value="7">Semester 7</option>
+              <option value="8">Semester 8</option>
+            </select>
+          </div>
 
-          <button type="submit" className="btn-primary" style={{ height: 38, padding: "0 20px", fontSize: 13 }}>
-            Search
+          {/* Search Button */}
+          <button
+            onClick={() => fetchBacklogs(1, search)}
+            style={{
+              width: isMobile ? "100%" : "auto",
+              padding: "9px 20px",
+              borderRadius: 8,
+              background: "#0f172a",
+              color: "#ffffff",
+              fontWeight: 700,
+              fontSize: 12.5,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: 6,
+              cursor: "pointer",
+              border: "none",
+              whiteSpace: "nowrap",
+              height: 38,
+            }}
+          >
+            <Search size={13} /> Search
           </button>
-        </form>
+        </div>
       </div>
 
-      {/* Backlog Leaderboard Table */}
-      <div className="card" style={{ padding: 18 }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16, flexWrap: "wrap", gap: 8 }}>
-          <h3 style={{ fontSize: 16, fontWeight: 700, margin: 0, display: "flex", alignItems: "center", gap: 8 }}>
-            <AlertTriangle size={18} color="#ef4444" /> Backlog Achievers Leaderboard (Highest Backlogs First)
-          </h3>
-          <span style={{ fontSize: 12, color: "var(--text-muted)" }}>
-            {loading ? "Loading..." : `Showing Top ${data.students?.length || 0} Students`}
-          </span>
+      {/* Backlogs Content */}
+      {loading ? (
+        <div style={{ textAlign: "center", padding: "30px 0", color: "#64748b" }}>
+          <Spinner size={24} /> Loading backlog dataset...
         </div>
+      ) : data.students?.length === 0 ? (
+        <div style={{ textAlign: "center", padding: "30px 0", color: "#94a3b8", fontSize: 13 }}>
+          No backlog records found.
+        </div>
+      ) : isMobile ? (
+        /* Mobile Card View (Zero Horizontal Scrolling) */
+        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+          {data.students.map((st, idx) => {
+            const isExpanded = expandedRegNo === st.regNo;
+            return (
+              <div
+                key={st.regNo || idx}
+                style={{
+                  background: "#f8fafc",
+                  border: isExpanded ? "1.5px solid #fca5a5" : "1px solid #e2e8f0",
+                  borderRadius: 14,
+                  padding: "14px 16px",
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: 10,
+                  transition: "border 0.2s",
+                }}
+              >
+                {/* Header Row: Rank, Student Info, Total Backlogs */}
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                    <span
+                      style={{
+                        width: 28,
+                        height: 28,
+                        borderRadius: "50%",
+                        background: "#fee2e2",
+                        color: "#dc2626",
+                        fontWeight: 800,
+                        fontSize: 12,
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        flexShrink: 0,
+                      }}
+                    >
+                      #{(page - 1) * limit + idx + 1}
+                    </span>
+                    <div>
+                      <div style={{ fontWeight: 800, color: "#0f172a", fontSize: 14 }}>{st.studentName}</div>
+                      <div style={{ fontSize: 12, color: "#2563eb", fontWeight: 600 }}>{st.regNo}</div>
+                    </div>
+                  </div>
 
-        {loading ? (
-          <div style={{ padding: 40, textAlign: "center" }}>
-            <Spinner />
-          </div>
-        ) : !data.students || data.students.length === 0 ? (
-          <div style={{ padding: 40, textAlign: "center", color: "var(--text-muted)" }}>
-            <CheckCircle size={32} color="#10b981" style={{ marginBottom: 8 }} />
-            <p>No active backlog records found for this filter!</p>
-          </div>
-        ) : (
-          <>
-            {/* Desktop Table View */}
-            <div className="admin-desktop-table" style={{ overflowX: "auto" }}>
-              <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13, minWidth: 1050 }}>
-                <thead>
-                  <tr style={{ borderBottom: "1px solid var(--border)", textAlign: "left" }}>
-                    <th style={{ padding: "10px 12px", color: "var(--text-muted)", width: 50, whiteSpace: "nowrap" }}>#</th>
-                    <th style={{ padding: "10px 12px", color: "var(--text-muted)", whiteSpace: "nowrap" }}>Registration No & Student Name</th>
-                    <th style={{ padding: "10px 12px", color: "var(--text-muted)", whiteSpace: "nowrap" }}>Branch / Batch / Section</th>
-                    <th style={{ padding: "10px 12px", color: "var(--text-muted)", whiteSpace: "nowrap" }}>Leaderboard Rank & CGPA</th>
-                    <th style={{ padding: "10px 12px", color: "var(--text-muted)", whiteSpace: "nowrap" }}>Total Backlogs</th>
-                    <th style={{ padding: "10px 12px", color: "var(--text-muted)", whiteSpace: "nowrap" }}>Semester Breakdown</th>
-                    <th style={{ padding: "10px 12px", color: "var(--text-muted)", textAlign: "right", whiteSpace: "nowrap" }}>Backlog Details</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {data.students.map((st, idx) => {
-                    const isExpanded = expandedRegNo === st.regNo;
-                    const globalRankIndex = (data.page - 1) * limit + idx + 1;
-                    return (
-                      <Fragment key={st.regNo}>
-                        <tr style={{ borderBottom: "1px solid rgba(255,255,255,0.04)" }}>
-                          <td style={{ padding: "12px", fontWeight: 800, color: globalRankIndex <= 3 ? "#ef4444" : "var(--text-muted)", whiteSpace: "nowrap" }}>
-                            #{globalRankIndex}
-                          </td>
-                          <td style={{ padding: "12px", whiteSpace: "nowrap" }}>
-                            <div style={{ fontWeight: 700, color: "#fff" }}>{st.studentName}</div>
-                            <div style={{ fontSize: 11, color: "var(--text-muted)", fontFamily: "monospace" }}>{st.regNo}</div>
-                          </td>
-                          <td style={{ padding: "12px", whiteSpace: "nowrap" }}>
-                            <div style={{ display: "inline-flex", gap: 6, alignItems: "center" }}>
-                              <span className="badge" style={{ background: "rgba(255,255,255,0.06)", whiteSpace: "nowrap" }}>
-                                {st.branch || "N/A"}
-                              </span>
-                              <span className="badge" style={{ background: "rgba(59, 130, 246, 0.15)", color: "#60a5fa", whiteSpace: "nowrap" }}>
-                                Batch {st.batch}
-                              </span>
-                              <span className="badge" style={{ background: "rgba(16, 185, 129, 0.15)", color: "#34d399", whiteSpace: "nowrap" }}>
-                                {st.section || "Sec A"}
-                              </span>
-                            </div>
-                          </td>
-                          <td style={{ padding: "12px", whiteSpace: "nowrap" }}>
-                            {st.rankInfo ? (
-                              <div>
-                                <div style={{ fontWeight: 700, color: "#3ea6ff", fontSize: 12, display: "flex", alignItems: "center", gap: 4 }}>
-                                  <Trophy size={13} color="#f59e0b" /> Uni #{st.rankInfo.universityRank || "N/A"} &middot; Branch #{st.rankInfo.departmentRank || "N/A"}
-                                </div>
-                                <div style={{ fontSize: 11, color: "var(--text-secondary)", marginTop: 2 }}>
-                                  CGPA: <strong style={{ color: "#fff" }}>{st.rankInfo.cgpa ? st.rankInfo.cgpa.toFixed(2) : "0.00"}</strong>
-                                </div>
-                              </div>
-                            ) : (
-                              <span style={{ fontSize: 11, color: "var(--text-muted)" }}>Unranked</span>
-                            )}
-                          </td>
-                          <td style={{ padding: "12px", whiteSpace: "nowrap" }}>
-                            <span
-                              style={{
-                                background: "rgba(239, 68, 68, 0.15)",
-                                color: "#f87171",
-                                padding: "4px 10px",
-                                borderRadius: 12,
-                                fontWeight: 800,
-                                border: "1px solid rgba(239, 68, 68, 0.3)",
-                                display: "inline-flex",
-                                alignItems: "center",
-                                gap: 4,
-                                whiteSpace: "nowrap",
-                              }}
-                            >
-                              <AlertTriangle size={13} color="#ef4444" /> {st.totalBacklogs} Backlog{st.totalBacklogs > 1 ? "s" : ""}
-                            </span>
-                            
-                            {/* Email Status Indicator */}
-                            {st.lastEmailSentAt && (
-                              <div style={{ marginTop: 6, fontSize: 10, display: 'flex', alignItems: 'center', gap: 4 }}>
-                                {st.lastEmailStatus === 'SUCCESS' ? (
-                                  <>
-                                    <CheckCircle size={10} color="#10b981" />
-                                    <span style={{ color: "#10b981", fontWeight: 600 }}>Sent {formatDistanceToNow(new Date(st.lastEmailSentAt), { addSuffix: true })}</span>
-                                  </>
-                                ) : (
-                                  <>
-                                    <AlertTriangle size={10} color="#ef4444" />
-                                    <span style={{ color: "#ef4444", fontWeight: 600 }}>Failed {formatDistanceToNow(new Date(st.lastEmailSentAt), { addSuffix: true })}</span>
-                                  </>
-                                )}
-                              </div>
-                            )}
-                          </td>
-                          <td style={{ padding: "12px" }}>
-                            <div style={{ display: "flex", gap: 6, flexWrap: "wrap", minWidth: 320 }}>
-                              {Object.entries(st.semBreakdown || {}).map(([semNum, count]) => (
-                                <span
-                                  key={semNum}
-                                  style={{
-                                    background: "rgba(245, 158, 11, 0.15)",
-                                    color: "#fbbf24",
-                                    padding: "3px 8px",
-                                    borderRadius: 6,
-                                    fontSize: 11,
-                                    border: "1px solid rgba(245, 158, 11, 0.3)",
-                                    whiteSpace: "nowrap",
-                                    display: "inline-block",
-                                  }}
-                                >
-                                  Sem {semNum}: <strong>{count}</strong>
-                                </span>
-                              ))}
-                            </div>
-                          </td>
-                          <td style={{ padding: "12px", textAlign: "right", whiteSpace: "nowrap" }}>
-                            <div style={{ display: "inline-flex", gap: 6, alignItems: "center" }}>
-                              {emailStatusMap[st.regNo]?.sent ? (
-                                <span
-                                  style={{
-                                    fontSize: 11,
-                                    padding: "4px 8px",
-                                    borderRadius: 6,
-                                    background: "rgba(16, 185, 129, 0.15)",
-                                    color: "#34d399",
-                                    border: "1px solid rgba(16, 185, 129, 0.3)",
-                                    fontWeight: 700,
-                                    display: "inline-flex",
-                                    alignItems: "center",
-                                    gap: 4,
-                                  }}
-                                  title={`Sent at ${emailStatusMap[st.regNo].sentAt} to ${emailStatusMap[st.regNo].email}`}
-                                >
-                                  <Check size={12} /> Email Sent
-                                </span>
-                              ) : (
-                                <button
-                                  onClick={() => handleOpenEmailModal(st)}
-                                  className="btn-primary"
-                                  style={{
-                                    padding: "4px 10px",
-                                    fontSize: 11,
-                                    display: "inline-flex",
-                                    alignItems: "center",
-                                    gap: 4,
-                                    whiteSpace: "nowrap",
-                                    background: "linear-gradient(135deg, #3ea6ff, #2563eb)",
-                                  }}
-                                >
-                                  <Mail size={12} /> Send Email
-                                </button>
-                              )}
-                              <button
-                                onClick={() => setExpandedRegNo(isExpanded ? null : st.regNo)}
-                                className="btn-secondary"
-                                style={{ padding: "4px 10px", fontSize: 11, display: "inline-flex", alignItems: "center", gap: 4, whiteSpace: "nowrap" }}
-                              >
-                                {isExpanded ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
-                                {isExpanded ? "Hide Details" : "View Subjects"}
-                              </button>
-                            </div>
-                          </td>
-                        </tr>
+                  <span style={{ fontWeight: 800, color: "#dc2626", background: "#fef2f2", border: "1px solid #fecaca", padding: "3px 8px", borderRadius: 6, fontSize: 11.5, display: "inline-flex", alignItems: "center", gap: 4 }}>
+                    <AlertTriangle size={12} color="#dc2626" /> {st.totalBacklogs || st.backlogs?.length || 0} Backlogs
+                  </span>
+                </div>
 
-                        {/* Expanded Backlog Subject Details Drawer */}
-                        {isExpanded && (
-                          <tr style={{ background: "rgba(0,0,0,0.25)" }}>
-                            <td colSpan={7} style={{ padding: "14px 20px", borderBottom: "1px solid var(--border)" }}>
-                              <div style={{ fontWeight: 700, fontSize: 12, color: "#f87171", marginBottom: 8, display: "flex", alignItems: "center", gap: 6 }}>
-                                <BookOpen size={14} /> Backlog Subjects for {st.studentName} ({st.regNo}):
-                              </div>
-                              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))", gap: 10 }}>
-                                {st.backlogs?.map((sub, sIdx) => (
-                                  <div
-                                    key={sIdx}
-                                    style={{
-                                      background: "rgba(255, 255, 255, 0.03)",
-                                      border: "1px solid rgba(239, 68, 68, 0.2)",
-                                      borderRadius: 8,
-                                      padding: 10,
-                                      fontSize: 12,
-                                    }}
-                                  >
-                                    <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
-                                      <span style={{ fontWeight: 700, color: "#60a5fa" }}>Sem {sub.semester}</span>
-                                      <span style={{ fontWeight: 800, color: "#ef4444" }}>Grade: {sub.grade}</span>
-                                    </div>
-                                    <div style={{ fontWeight: 600, color: "#fff", marginBottom: 2 }}>{sub.subName}</div>
-                                    <div style={{ fontSize: 11, color: "var(--text-muted)", fontFamily: "monospace" }}>
-                                      Code: {sub.subCode} &middot; Credits: {sub.credit}
-                                    </div>
-                                  </div>
-                                ))}
-                              </div>
-                            </td>
-                          </tr>
-                        )}
-                      </Fragment>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
+                {/* Badges Row */}
+                <div style={{ display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center" }}>
+                  <span style={{ background: "#f1f5f9", border: "1px solid #e2e8f0", color: "#475569", fontSize: 11, fontWeight: 700, padding: "2px 8px", borderRadius: 6 }}>
+                    {st.branch || "CSE"}
+                  </span>
+                  <span style={{ background: "#eff6ff", border: "1px solid #dbeafe", color: "#1d4ed8", fontSize: 11, fontWeight: 700, padding: "2px 8px", borderRadius: 6 }}>
+                    BATCH {st.batch || "N/A"}
+                  </span>
+                  <span style={{ background: "#ecfdf5", border: "1px solid #a7f3d0", color: "#065f46", fontSize: 11, fontWeight: 700, padding: "2px 8px", borderRadius: 6 }}>
+                    SEC {st.section || "N/A"}
+                  </span>
+                </div>
 
-            {/* Mobile Responsive Cards View */}
-            <div className="admin-mobile-card-list">
-              {data.students.map((st, idx) => {
-                const isExpanded = expandedRegNo === st.regNo;
-                const globalRankIndex = (data.page - 1) * limit + idx + 1;
-                return (
-                  <div
-                    key={st.regNo}
-                    style={{
-                      background: "rgba(17, 24, 39, 0.6)",
-                      border: "1px solid rgba(255, 255, 255, 0.08)",
-                      borderRadius: 10,
-                      padding: 14,
-                      display: "flex",
-                      flexDirection: "column",
-                      gap: 10,
-                    }}
-                  >
-                    {/* Top Header: Rank & Student Name & Total Backlogs */}
-                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 10 }}>
-                      <div>
-                        <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 2 }}>
-                          <span style={{ fontWeight: 800, fontSize: 14, color: globalRankIndex <= 3 ? "#ef4444" : "#60a5fa" }}>
-                            #{globalRankIndex}
-                          </span>
-                          <span style={{ fontWeight: 700, fontSize: 14, color: "#fff" }}>{st.studentName}</span>
-                        </div>
-                        <div style={{ fontSize: 11, color: "var(--text-muted)", fontFamily: "monospace" }}>{st.regNo}</div>
-                      </div>
+                {/* Rank & CGPA Metrics */}
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", background: "#ffffff", padding: "8px 10px", borderRadius: 8, border: "1px solid #f1f5f9", fontSize: 12 }}>
+                  <span style={{ color: "#d97706", fontWeight: 700, display: "inline-flex", alignItems: "center", gap: 4 }}>
+                    <Trophy size={13} color="#d97706" /> Uni #{st.rankInfo?.universityRank || st.rankInfo?.cgpaRank || "-"} · Branch #{st.rankInfo?.deptRank || st.rankInfo?.deptCgpaRank || "-"}
+                  </span>
+                  <span style={{ fontWeight: 800, color: "#0f172a" }}>
+                    CGPA: {st.rankInfo?.cgpa?.toFixed(2) || (st.cgpa ? st.cgpa.toFixed(2) : "0.00")}
+                  </span>
+                </div>
+
+                {/* Semester Breakdown Chips */}
+                {st.semBreakdown && Object.keys(st.semBreakdown).length > 0 && (
+                  <div style={{ display: "flex", gap: 5, flexWrap: "wrap", alignItems: "center" }}>
+                    {Object.entries(st.semBreakdown).map(([sem, count]) => (
                       <span
+                        key={sem}
                         style={{
-                          background: "rgba(239, 68, 68, 0.15)",
-                          color: "#f87171",
-                          padding: "4px 8px",
-                          borderRadius: 8,
-                          fontWeight: 800,
-                          fontSize: 11,
-                          border: "1px solid rgba(239, 68, 68, 0.3)",
-                          display: "inline-flex",
-                          alignItems: "center",
-                          gap: 4,
-                          flexShrink: 0,
+                          background: "#fffbeb",
+                          border: "1px solid #fde68a",
+                          color: "#b45309",
+                          fontSize: 10.5,
+                          fontWeight: 700,
+                          padding: "2px 6px",
+                          borderRadius: 6,
                         }}
                       >
-                        <AlertTriangle size={12} color="#ef4444" /> {st.totalBacklogs} Backlog{st.totalBacklogs > 1 ? "s" : ""}
+                        Sem {sem}: {count}
                       </span>
-                    </div>
+                    ))}
+                  </div>
+                )}
 
-                    {/* Badges: Branch, Batch, Section */}
-                    <div style={{ display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center" }}>
-                      <span className="badge" style={{ background: "rgba(255,255,255,0.06)", fontSize: 11 }}>
-                        {st.branch || "N/A"}
-                      </span>
-                      <span className="badge" style={{ background: "rgba(59, 130, 246, 0.15)", color: "#60a5fa", fontSize: 11 }}>
-                        Batch {st.batch}
-                      </span>
-                      <span className="badge" style={{ background: "rgba(16, 185, 129, 0.15)", color: "#34d399", fontSize: 11 }}>
-                        {st.section || "Sec A"}
-                      </span>
-                    </div>
+                {/* Action Buttons: Email & Toggle Details */}
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+                  <button
+                    onClick={() => handleOpenEmailModal(st)}
+                    style={{
+                      padding: "8px 10px",
+                      borderRadius: 8,
+                      background: "#ecfdf5",
+                      border: "1px solid #a7f3d0",
+                      color: "#059669",
+                      fontSize: 12,
+                      fontWeight: 700,
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      gap: 5,
+                      cursor: "pointer",
+                    }}
+                  >
+                    <Mail size={12} /> {st.lastEmailStatus === "SUCCESS" ? "Resend Email" : "Send Email"}
+                  </button>
 
-                    {/* Rank & CGPA Info */}
-                    {st.rankInfo && (
-                      <div style={{ background: "rgba(0, 0, 0, 0.25)", padding: "8px 10px", borderRadius: 6, display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: 11 }}>
-                        <span style={{ color: "#3ea6ff", fontWeight: 700, display: "flex", alignItems: "center", gap: 4 }}>
-                          <Trophy size={12} color="#f59e0b" /> Uni #{st.rankInfo.universityRank || "N/A"} &middot; Dept #{st.rankInfo.departmentRank || "N/A"}
-                        </span>
-                        <span style={{ color: "var(--text-secondary)" }}>
-                          CGPA: <strong style={{ color: "#fff" }}>{st.rankInfo.cgpa ? st.rankInfo.cgpa.toFixed(2) : "0.00"}</strong>
-                        </span>
-                      </div>
+                  <button
+                    onClick={() => setExpandedRegNo(isExpanded ? null : st.regNo)}
+                    style={{
+                      padding: "8px 10px",
+                      borderRadius: 8,
+                      background: isExpanded ? "#0f172a" : "#ffffff",
+                      border: "1px solid #cbd5e1",
+                      color: isExpanded ? "#ffffff" : "#0f172a",
+                      fontSize: 12,
+                      fontWeight: 700,
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      gap: 4,
+                      cursor: "pointer",
+                    }}
+                  >
+                    {isExpanded ? (
+                      <><ChevronUp size={12} /> Hide Details</>
+                    ) : (
+                      <><ChevronDown size={12} /> View Backlogs ({st.totalBacklogs || st.backlogs?.length || 0})</>
                     )}
+                  </button>
+                </div>
 
-                    {/* Semester Breakdown Pills */}
-                    <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-                      {Object.entries(st.semBreakdown || {}).map(([semNum, count]) => (
-                        <span
-                          key={semNum}
-                          style={{
-                            background: "rgba(245, 158, 11, 0.15)",
-                            color: "#fbbf24",
-                            padding: "3px 8px",
-                            borderRadius: 6,
-                            fontSize: 11,
-                            border: "1px solid rgba(245, 158, 11, 0.3)",
-                          }}
-                        >
-                          Sem {semNum}: <strong>{count}</strong>
-                        </span>
-                      ))}
-                    </div>
-                    
-                    {/* Email Status Indicator (Mobile) */}
-                    {st.lastEmailSentAt && (
-                      <div style={{ background: "rgba(0, 0, 0, 0.25)", padding: "8px 10px", borderRadius: 6, display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: 11, marginBottom: 8 }}>
-                        <span style={{ color: "var(--text-secondary)" }}>Email Status:</span>
-                        {st.lastEmailStatus === 'SUCCESS' ? (
-                          <span style={{ color: "#10b981", fontWeight: 700, display: "flex", alignItems: "center", gap: 4 }}>
-                            <CheckCircle size={12} /> Sent {formatDistanceToNow(new Date(st.lastEmailSentAt), { addSuffix: true })}
-                          </span>
-                        ) : (
-                          <span style={{ color: "#ef4444", fontWeight: 700, display: "flex", alignItems: "center", gap: 4 }} title={st.lastEmailError}>
-                            <AlertTriangle size={12} /> Failed {formatDistanceToNow(new Date(st.lastEmailSentAt), { addSuffix: true })}
-                          </span>
-                        )}
-                      </div>
-                    )}
+                {/* Email Sent Status Info */}
+                {st.lastEmailStatus === "SUCCESS" && (
+                  <div style={{ fontSize: 11, color: "#059669", fontWeight: 700, display: "flex", alignItems: "center", gap: 4 }}>
+                    <Check size={12} /> Sent {formatTimeAgo(st.lastEmailSentAt)}
+                  </div>
+                )}
 
-                    {/* Action Buttons for Mobile */}
-                    <div style={{ display: "flex", gap: 6, marginTop: 4 }}>
-                      {emailStatusMap[st.regNo]?.sent ? (
-                        <div
-                          style={{
-                            flex: 1,
-                            padding: "7px 10px",
-                            fontSize: 11,
-                            borderRadius: 8,
-                            background: "rgba(16, 185, 129, 0.15)",
-                            color: "#34d399",
-                            border: "1px solid rgba(16, 185, 129, 0.3)",
-                            fontWeight: 700,
-                            display: "inline-flex",
-                            alignItems: "center",
-                            justifyContent: "center",
-                            gap: 4,
-                          }}
-                        >
-                          <Check size={12} /> Email Sent
+                {/* Expanded Backlog Subjects Accordion */}
+                <AnimatePresence>
+                  {isExpanded && (
+                    <motion.div
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: "auto" }}
+                      exit={{ opacity: 0, height: 0 }}
+                      style={{ overflow: "hidden", marginTop: 4 }}
+                    >
+                      <div style={{ background: "#ffffff", border: "1px solid #fee2e2", borderRadius: 12, padding: "12px 14px" }}>
+                        <div style={{ fontSize: 12, fontWeight: 800, color: "#dc2626", marginBottom: 10, display: "flex", alignItems: "center", gap: 6 }}>
+                          <BookOpen size={14} color="#dc2626" /> Backlog Subjects for {st.studentName} ({st.regNo}):
                         </div>
-                      ) : (
-                        <button
-                          onClick={() => handleOpenEmailModal(st)}
-                          className="btn-primary"
-                          style={{
-                            flex: 1,
-                            padding: "7px 10px",
-                            fontSize: 11,
-                            display: "inline-flex",
-                            alignItems: "center",
-                            justifyContent: "center",
-                            gap: 4,
-                            background: "linear-gradient(135deg, #3ea6ff, #2563eb)",
-                          }}
-                        >
-                          <Mail size={12} /> Send Email
-                        </button>
-                      )}
-                      <button
-                        onClick={() => setExpandedRegNo(isExpanded ? null : st.regNo)}
-                        className="btn-secondary"
-                        style={{ flex: 1, justifyContent: "center", padding: "7px 10px", fontSize: 11, display: "inline-flex", alignItems: "center", gap: 4 }}
-                      >
-                        {isExpanded ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
-                        {isExpanded ? "Hide" : "Subjects"}
-                      </button>
-                    </div>
-
-                    {/* Expanded Backlog Subject Details Drawer for Mobile */}
-                    {isExpanded && (
-                      <div style={{ marginTop: 6, paddingTop: 10, borderTop: "1px solid rgba(255,255,255,0.06)" }}>
-                        <div style={{ fontWeight: 700, fontSize: 11, color: "#f87171", marginBottom: 8, display: "flex", alignItems: "center", gap: 6 }}>
-                          <BookOpen size={13} /> Backlog Subjects:
-                        </div>
-                        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                        <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: 8 }}>
                           {st.backlogs?.map((sub, sIdx) => (
                             <div
                               key={sIdx}
                               style={{
-                                background: "rgba(255, 255, 255, 0.03)",
-                                border: "1px solid rgba(239, 68, 68, 0.2)",
-                                borderRadius: 6,
-                                padding: 8,
-                                fontSize: 11,
+                                background: "#fffafb",
+                                border: "1px solid #fee2e2",
+                                borderRadius: 8,
+                                padding: "8px 10px",
                               }}
                             >
-                              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 3 }}>
-                                <span style={{ fontWeight: 700, color: "#60a5fa" }}>Sem {sub.semester}</span>
-                                <span style={{ fontWeight: 800, color: "#ef4444", background: "rgba(239, 68, 68, 0.15)", padding: "1px 6px", borderRadius: 4 }}>
-                                  Grade: {sub.grade}
-                                </span>
+                              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                                <span style={{ fontSize: 11, fontWeight: 700, color: "#2563eb" }}>Sem {sub.semester || 1}</span>
+                                <span style={{ fontSize: 11, fontWeight: 800, color: "#dc2626" }}>Grade: {sub.grade || "F"}</span>
                               </div>
-                              <div style={{ color: "#e5e7eb", fontWeight: 600, marginBottom: 2 }}>{sub.subName}</div>
-                              <div style={{ color: "var(--text-muted)", fontSize: 10 }}>
-                                Code: {sub.subCode} &middot; Credits: {sub.credit}
+                              <div style={{ fontWeight: 800, fontSize: 12, color: "#0f172a", margin: "4px 0", textTransform: "uppercase" }}>
+                                {sub.subName}
+                              </div>
+                              <div style={{ fontSize: 10.5, color: "#64748b" }}>
+                                Code: <strong>{sub.subCode}</strong> · Credits: <strong>{sub.credit || 3}</strong>
                               </div>
                             </div>
                           ))}
                         </div>
                       </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+            );
+          })}
+        </div>
+      ) : (
+        /* Desktop Table with Rich Expandable Rows */
+        <div style={{ overflowX: "auto", border: "1px solid #e2e8f0", borderRadius: 12 }}>
+          <table style={{ width: "100%", borderCollapse: "collapse", textAlign: "left", fontSize: 12.5 }}>
+            <thead>
+              <tr style={{ background: "#f8fafc", borderBottom: "1px solid #e2e8f0", color: "#475569" }}>
+                <th style={{ padding: "12px 10px", fontWeight: 700, width: 35 }}>#</th>
+                <th style={{ padding: "12px 12px", fontWeight: 700 }}>REGISTRATION NO & STUDENT NAME</th>
+                <th style={{ padding: "12px 10px", fontWeight: 700 }}>BRANCH / BATCH / SECTION</th>
+                <th style={{ padding: "12px 10px", fontWeight: 700 }}>LEADERBOARD RANK & CGPA</th>
+                <th style={{ padding: "12px 10px", fontWeight: 700 }}>TOTAL BACKLOGS</th>
+                <th style={{ padding: "12px 10px", fontWeight: 700 }}>SEMESTER BREAKDOWN</th>
+                <th style={{ padding: "12px 12px", fontWeight: 700, textAlign: "right" }}>ACTIONS</th>
+              </tr>
+            </thead>
+            <tbody>
+              {data.students.map((st, idx) => {
+                const isExpanded = expandedRegNo === st.regNo;
+                return (
+                  <Fragment key={st.regNo || idx}>
+                    <tr
+                      style={{
+                        borderBottom: isExpanded ? "none" : "1px solid #f1f5f9",
+                        background: isExpanded ? "#fffafb" : "transparent",
+                        transition: "background 0.15s",
+                      }}
+                      onMouseEnter={(e) => {
+                        if (!isExpanded) e.currentTarget.style.background = "#f8fafc";
+                      }}
+                      onMouseLeave={(e) => {
+                        if (!isExpanded) e.currentTarget.style.background = "transparent";
+                      }}
+                    >
+                      <td style={{ padding: "14px 10px", fontWeight: 800, color: "#dc2626" }}>
+                        #{(page - 1) * limit + idx + 1}
+                      </td>
+                      <td style={{ padding: "14px 12px" }}>
+                        <div style={{ fontWeight: 800, color: "#0f172a", fontSize: 13 }}>{st.studentName}</div>
+                        <div style={{ fontSize: 11.5, color: "#64748b" }}>{st.regNo}</div>
+                      </td>
+                      <td style={{ padding: "14px 10px" }}>
+                        <div style={{ display: "flex", gap: 5, flexWrap: "wrap", alignItems: "center" }}>
+                          <span style={{ background: "#f1f5f9", border: "1px solid #e2e8f0", color: "#475569", fontSize: 11, fontWeight: 700, padding: "2px 7px", borderRadius: 6 }}>
+                            {st.branch || "CSE"}
+                          </span>
+                          <span style={{ background: "#eff6ff", border: "1px solid #dbeafe", color: "#1d4ed8", fontSize: 11, fontWeight: 700, padding: "2px 7px", borderRadius: 6 }}>
+                            BATCH {st.batch || "N/A"}
+                          </span>
+                          <span style={{ background: "#ecfdf5", border: "1px solid #a7f3d0", color: "#065f46", fontSize: 11, fontWeight: 700, padding: "2px 7px", borderRadius: 6 }}>
+                            SEC {st.section || "N/A"}
+                          </span>
+                        </div>
+                      </td>
+                      <td style={{ padding: "14px 10px" }}>
+                        <div style={{ color: "#d97706", fontWeight: 700, fontSize: 12, display: "flex", alignItems: "center", gap: 4 }}>
+                          <Trophy size={13} color="#d97706" /> Uni #{st.rankInfo?.universityRank || st.rankInfo?.cgpaRank || "-"} · Branch #{st.rankInfo?.deptRank || st.rankInfo?.deptCgpaRank || "-"}
+                        </div>
+                        <div style={{ fontSize: 11.5, color: "#64748b", fontWeight: 600, marginTop: 2 }}>
+                          CGPA: <strong style={{ color: "#0f172a" }}>{st.rankInfo?.cgpa?.toFixed(2) || (st.cgpa ? st.cgpa.toFixed(2) : "0.00")}</strong>
+                        </div>
+                      </td>
+                      <td style={{ padding: "14px 10px" }}>
+                        <span style={{ fontWeight: 800, color: "#dc2626", background: "#fef2f2", border: "1px solid #fecaca", padding: "3px 8px", borderRadius: 6, fontSize: 12, display: "inline-flex", alignItems: "center", gap: 4 }}>
+                          <AlertTriangle size={12} color="#dc2626" /> {st.totalBacklogs || st.backlogs?.length || 0} Backlogs
+                        </span>
+                        {st.lastEmailStatus === "SUCCESS" && (
+                          <div style={{ fontSize: 11, color: "#059669", fontWeight: 700, marginTop: 4, display: "flex", alignItems: "center", gap: 3 }}>
+                            <Check size={11} /> Sent {formatTimeAgo(st.lastEmailSentAt)}
+                          </div>
+                        )}
+                      </td>
+                      <td style={{ padding: "14px 10px" }}>
+                        <div style={{ display: "flex", gap: 4, flexWrap: "wrap", maxWidth: 220 }}>
+                          {st.semBreakdown && Object.keys(st.semBreakdown).length > 0 ? (
+                            Object.entries(st.semBreakdown).map(([sem, count]) => (
+                              <span
+                                key={sem}
+                                style={{
+                                  background: "#fffbeb",
+                                  border: "1px solid #fde68a",
+                                  color: "#b45309",
+                                  fontSize: 10.5,
+                                  fontWeight: 700,
+                                  padding: "1px 6px",
+                                  borderRadius: 5,
+                                }}
+                              >
+                                Sem {sem}: {count}
+                              </span>
+                            ))
+                          ) : (
+                            <span style={{ fontSize: 11, color: "#94a3b8" }}>-</span>
+                          )}
+                        </div>
+                      </td>
+                      <td style={{ padding: "14px 12px", textAlign: "right" }}>
+                        <div style={{ display: "inline-flex", gap: 6, alignItems: "center" }}>
+                          <button
+                            onClick={() => handleOpenEmailModal(st)}
+                            style={{
+                              padding: "6px 12px",
+                              borderRadius: 8,
+                              background: "#ecfdf5",
+                              border: "1px solid #a7f3d0",
+                              color: "#059669",
+                              fontSize: 11.5,
+                              fontWeight: 700,
+                              display: "inline-flex",
+                              alignItems: "center",
+                              gap: 4,
+                              cursor: "pointer",
+                            }}
+                          >
+                            <Mail size={11} /> {st.lastEmailStatus === "SUCCESS" ? "Resend Email" : "Send Email"}
+                          </button>
+
+                          <button
+                            onClick={() => setExpandedRegNo(isExpanded ? null : st.regNo)}
+                            style={{
+                              padding: "6px 12px",
+                              borderRadius: 8,
+                              background: isExpanded ? "#0f172a" : "#ffffff",
+                              border: "1px solid #cbd5e1",
+                              color: isExpanded ? "#ffffff" : "#0f172a",
+                              fontSize: 11.5,
+                              fontWeight: 700,
+                              display: "inline-flex",
+                              alignItems: "center",
+                              gap: 4,
+                              cursor: "pointer",
+                            }}
+                          >
+                            {isExpanded ? <><ChevronUp size={12} /> Hide Details</> : <><ChevronDown size={12} /> View Backlogs</>}
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+
+                    {/* Accordion Row for Backlog Subjects Grid */}
+                    {isExpanded && (
+                      <tr style={{ background: "#fffafb", borderBottom: "1px solid #fecaca" }}>
+                        <td colSpan={7} style={{ padding: "12px 18px 20px" }}>
+                          <div style={{ background: "#ffffff", border: "1px solid #fee2e2", borderRadius: 12, padding: "16px 18px" }}>
+                            <div style={{ fontSize: 13, fontWeight: 800, color: "#dc2626", marginBottom: 14, display: "flex", alignItems: "center", gap: 6 }}>
+                              <BookOpen size={14} color="#dc2626" /> Backlog Subjects for {st.studentName} ({st.regNo}):
+                            </div>
+                            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))", gap: 12 }}>
+                              {st.backlogs?.map((sub, sIdx) => (
+                                <div
+                                  key={sIdx}
+                                  style={{
+                                    background: "#fffafb",
+                                    border: "1px solid #fee2e2",
+                                    borderRadius: 10,
+                                    padding: "12px 14px",
+                                    boxShadow: "0 1px 3px rgba(239,68,68,0.04)",
+                                  }}
+                                >
+                                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                                    <span style={{ fontSize: 11, fontWeight: 700, color: "#2563eb", background: "#eff6ff", padding: "2px 7px", borderRadius: 6 }}>
+                                      Sem {sub.semester || 1}
+                                    </span>
+                                    <span style={{ fontSize: 11, fontWeight: 800, color: "#dc2626" }}>
+                                      Grade: {sub.grade || "F"}
+                                    </span>
+                                  </div>
+                                  <div style={{ fontWeight: 800, fontSize: 12.5, color: "#0f172a", margin: "8px 0 6px", textTransform: "uppercase", lineHeight: 1.3 }}>
+                                    {sub.subName}
+                                  </div>
+                                  <div style={{ fontSize: 11, color: "#64748b" }}>
+                                    Code: <strong style={{ color: "#334155" }}>{sub.subCode}</strong> · Credits: <strong style={{ color: "#334155" }}>{sub.credit || 3}</strong>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        </td>
+                      </tr>
                     )}
-                  </div>
+                  </Fragment>
                 );
               })}
-            </div>
-          </>
-        )}
+            </tbody>
+          </table>
+        </div>
+      )}
 
-        {/* Pagination Controls */}
-        {data.totalPages > 0 && (
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 16, paddingTop: 12, borderTop: "1px solid var(--border)", flexWrap: "wrap", gap: 10 }}>
-            <div style={{ fontSize: 12, color: "var(--text-muted)" }}>
-              Page <strong>{data.page}</strong> of <strong>{data.totalPages}</strong> ({data.totalStudentsWithBacklogs?.toLocaleString()} Total Students With Backlogs)
-            </div>
-
-            <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-              <button
-                onClick={() => {
-                  const prev = Math.max(1, page - 1);
-                  setPage(prev);
-                  fetchBacklogs(prev);
-                }}
-                disabled={page <= 1 || loading}
-                className="btn-secondary"
-                style={{ padding: "6px 14px", fontSize: 12, opacity: page <= 1 ? 0.5 : 1, cursor: page <= 1 ? "not-allowed" : "pointer" }}
-              >
-                Previous
-              </button>
-
-              <span style={{ fontSize: 12, fontWeight: 700, color: "var(--text-primary)" }}>
-                {page} / {data.totalPages}
-              </span>
-
-              <button
-                onClick={() => {
-                  const next = Math.min(data.totalPages, page + 1);
-                  setPage(next);
-                  fetchBacklogs(next);
-                }}
-                disabled={page >= data.totalPages || loading}
-                className="btn-secondary"
-                style={{ padding: "6px 14px", fontSize: 12, opacity: page >= data.totalPages ? 0.5 : 1, cursor: page >= data.totalPages ? "not-allowed" : "pointer" }}
-              >
-                Next
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* Send Backlog Email Confirmation Modal */}
-        {selectedStudentForEmail && (
-          <div
-            style={{
-              position: "fixed",
-              inset: 0,
-              background: "rgba(0,0,0,0.75)",
-              backdropFilter: "blur(8px)",
-              WebkitBackdropFilter: "blur(8px)",
-              zIndex: 9999,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              padding: 16,
-            }}
-            onClick={() => !sendingEmail && setSelectedStudentForEmail(null)}
-          >
-            <div
-              style={{
-                background: "#18181b",
-                border: "1px solid rgba(255,255,255,0.12)",
-                borderRadius: 20,
-                padding: "24px 28px",
-                maxWidth: 520,
-                width: "100%",
-                boxShadow: "0 24px 70px rgba(0,0,0,0.85)",
+      {/* Pagination Controls */}
+      {data.totalPages > 1 && (
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 16, flexWrap: "wrap", gap: 8 }}>
+          <span style={{ fontSize: 12.5, color: "#64748b" }}>
+            Showing page <strong>{data.page}</strong> of <strong>{data.totalPages}</strong> ({data.totalStudentsWithBacklogs} total students)
+          </span>
+          <div style={{ display: "flex", gap: 6 }}>
+            <button
+              disabled={page <= 1}
+              onClick={() => {
+                const prev = Math.max(1, page - 1);
+                setPage(prev);
+                fetchBacklogs(prev);
               }}
-              onClick={(e) => e.stopPropagation()}
+              style={{
+                padding: "6px 12px",
+                borderRadius: 8,
+                border: "1px solid #e2e8f0",
+                background: page <= 1 ? "#f8fafc" : "#ffffff",
+                color: page <= 1 ? "#94a3b8" : "#0f172a",
+                fontSize: 12,
+                fontWeight: 600,
+                cursor: page <= 1 ? "not-allowed" : "pointer",
+              }}
             >
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
-                <h3 style={{ fontSize: 18, fontWeight: 800, color: "#fff", display: "flex", alignItems: "center", gap: 8, margin: 0 }}>
-                  <Mail color="#3ea6ff" size={20} /> Send Backlog Notification Email
-                </h3>
+              Previous
+            </button>
+            <button
+              disabled={page >= data.totalPages}
+              onClick={() => {
+                const next = page + 1;
+                setPage(next);
+                fetchBacklogs(next);
+              }}
+              style={{
+                padding: "6px 12px",
+                borderRadius: 8,
+                border: "1px solid #e2e8f0",
+                background: page >= data.totalPages ? "#f8fafc" : "#ffffff",
+                color: page >= data.totalPages ? "#94a3b8" : "#0f172a",
+                fontSize: 12,
+                fontWeight: 600,
+                cursor: page >= data.totalPages ? "not-allowed" : "pointer",
+              }}
+            >
+              Next
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ════════════════════════════════════════════════════════════════
+   6. FEEDBACK MANAGER
+   ════════════════════════════════════════════════════════════════ */
+function FeedbackManager({ authHeaders, API }) {
+  const [feedbacks, setFeedbacks] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [editingId, setEditingId] = useState(null);
+  const [editForm, setEditForm] = useState({});
+  const [msg, setMsg] = useState("");
+  const [err, setErr] = useState("");
+  const feedbackCacheRef = useRef(null);
+
+  useEffect(() => {
+    fetchFeedbacks();
+  }, []);
+
+  async function fetchFeedbacks(forceRefresh = false) {
+    if (!forceRefresh && feedbackCacheRef.current) {
+      setFeedbacks(feedbackCacheRef.current);
+      setLoading(false);
+      return;
+    }
+    setLoading(true);
+    try {
+      const { data } = await axios.get(`${API}/feedback`);
+      feedbackCacheRef.current = data;
+      setFeedbacks(data);
+    } catch (e) {
+      setErr("Failed to load feedbacks");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function handleDelete(id) {
+    if (!window.confirm("Are you sure you want to delete this feedback?")) return;
+    try {
+      await axios.delete(`${API}/feedback/${id}`, authHeaders);
+      setMsg("Feedback deleted successfully");
+      fetchFeedbacks(true);
+      setTimeout(() => setMsg(""), 3000);
+    } catch (e) {
+      setErr(e.response?.data?.message || "Failed to delete");
+    }
+  }
+
+  return (
+    <div
+      style={{
+        background: "#ffffff",
+        border: "1px solid #e2e8f0",
+        borderRadius: 18,
+        padding: "24px 20px",
+        boxShadow: "0 2px 10px rgba(15, 23, 42, 0.02)",
+      }}
+    >
+      <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 16 }}>
+        <div style={{ width: 36, height: 36, borderRadius: 10, background: "#eff6ff", color: "#2563eb", display: "flex", alignItems: "center", justifyContent: "center" }}>
+          <MessageSquare size={18} />
+        </div>
+        <div>
+          <h3 style={{ fontSize: 17, fontWeight: 800, color: "#0f172a", margin: 0 }}>
+            Student Feedback & Reviews
+          </h3>
+          <span style={{ fontSize: 12, color: "#64748b" }}>
+            Total {feedbacks.length} submissions received
+          </span>
+        </div>
+      </div>
+
+      <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+        {feedbacks.length === 0 ? (
+          <p style={{ color: "#94a3b8", fontSize: 13 }}>No student feedback submitted yet.</p>
+        ) : (
+          feedbacks.map((fb) => (
+            <div
+              key={fb._id}
+              style={{
+                border: "1px solid #f1f5f9",
+                borderRadius: 12,
+                padding: "16px",
+                background: "#f8fafc",
+              }}
+            >
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 6 }}>
+                <div>
+                  <strong style={{ fontSize: 14, color: "#0f172a" }}>{fb.name}</strong>
+                  {fb.regNo && <span style={{ color: "#64748b", fontSize: 12, marginLeft: 8 }}>({fb.regNo})</span>}
+                </div>
                 <button
-                  type="button"
-                  onClick={() => !sendingEmail && setSelectedStudentForEmail(null)}
-                  style={{ background: "transparent", border: "none", color: "var(--text-muted)", cursor: "pointer", display: "flex", alignItems: "center" }}
+                  onClick={() => handleDelete(fb._id)}
+                  style={{
+                    background: "transparent",
+                    border: "none",
+                    color: "#ef4444",
+                    cursor: "pointer",
+                    fontSize: 12,
+                    fontWeight: 600,
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 4,
+                  }}
                 >
-                  <X size={20} />
+                  <Trash2 size={13} /> Delete
                 </button>
               </div>
 
-              <div style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 12, padding: 16, marginBottom: 18, fontSize: 13 }}>
-                <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>
-                  <span style={{ color: "var(--text-muted)" }}>Student Name:</span>
-                  <strong style={{ color: "#fff" }}>{selectedStudentForEmail.studentName}</strong>
-                </div>
-                <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>
-                  <span style={{ color: "var(--text-muted)" }}>Registration No:</span>
-                  <strong style={{ color: "#3ea6ff", fontFamily: "monospace" }}>{selectedStudentForEmail.regNo}</strong>
-                </div>
-                <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>
-                  <span style={{ color: "var(--text-muted)" }}>Total Backlogs:</span>
-                  <strong style={{ color: "#ef4444" }}>{selectedStudentForEmail.totalBacklogs} Subject(s)</strong>
-                </div>
-                <div style={{ display: "flex", justifyContent: "space-between" }}>
-                  <span style={{ color: "var(--text-muted)" }}>Current CGPA:</span>
-                  <strong style={{ color: "#10b981" }}>{selectedStudentForEmail.rankInfo?.cgpa ? selectedStudentForEmail.rankInfo.cgpa.toFixed(2) : "N/A"}</strong>
-                </div>
-              </div>
-
-              <form onSubmit={handleConfirmSendEmail}>
-                <div style={{ marginBottom: 20 }}>
-                  <label style={{ display: "block", fontSize: 12, fontWeight: 700, color: "var(--text-secondary)", marginBottom: 6 }}>
-                    Recipient Email Address (Auto-generated using Reg No)
-                  </label>
-                  <input
-                    type="email"
-                    required
-                    className="input-field"
-                    value={customEmailInput}
-                    onChange={(e) => setCustomEmailInput(e.target.value)}
-                    placeholder="e.g. 230301120327@centurionuniv.edu.in"
-                    style={{ width: "100%", fontSize: 13, padding: "10px 14px", height: 42, background: "rgba(0,0,0,0.3)", border: "1px solid rgba(255,255,255,0.12)", color: "#fff", borderRadius: 8 }}
-                    disabled={sendingEmail}
+              <div style={{ display: "flex", alignItems: "center", gap: 3, marginBottom: 8 }}>
+                {Array.from({ length: 5 }).map((_, i) => (
+                  <Star
+                    key={i}
+                    size={13}
+                    fill={i < fb.rating ? "#f59e0b" : "none"}
+                    color={i < fb.rating ? "#f59e0b" : "#cbd5e1"}
                   />
-                  <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 5 }}>
-                    Target official university email: <code style={{ color: "#60a5fa" }}>{selectedStudentForEmail.regNo}@centurionuniv.edu.in</code>
-                  </div>
-                </div>
-
-                {emailErrorMsg && (
-                  <div style={{ padding: "10px 14px", background: "rgba(239,68,68,0.12)", border: "1px solid rgba(239,68,68,0.3)", borderRadius: 8, color: "#f87171", fontSize: 13, marginBottom: 16, display: "flex", alignItems: "center", gap: 8 }}>
-                    <AlertTriangle size={16} style={{ flexShrink: 0 }} />
-                    <span>{emailErrorMsg}</span>
-                  </div>
-                )}
-
-                {emailSuccessMsg && (
-                  <div style={{ padding: "10px 14px", background: "rgba(16,185,129,0.12)", border: "1px solid rgba(16,185,129,0.3)", borderRadius: 8, color: "#34d399", fontSize: 13, marginBottom: 16, display: "flex", alignItems: "center", gap: 8 }}>
-                    <CheckCircle size={16} style={{ flexShrink: 0 }} />
-                    <span>{emailSuccessMsg}</span>
-                  </div>
-                )}
-
-                <div style={{ display: "flex", gap: 12, justifyContent: "flex-end" }}>
-                  <button
-                    type="button"
-                    className="btn-secondary"
-                    onClick={() => setSelectedStudentForEmail(null)}
-                    disabled={sendingEmail}
-                    style={{ padding: "9px 16px", fontSize: 13 }}
-                  >
-                    {emailSuccessMsg ? "Close" : "Cancel"}
-                  </button>
-                  {!emailSuccessMsg && (
-                    <button
-                      type="submit"
-                      className="btn-primary"
-                      disabled={sendingEmail}
-                      style={{
-                        padding: "9px 20px",
-                        fontSize: 13,
-                        fontWeight: 700,
-                        display: "inline-flex",
-                        alignItems: "center",
-                        gap: 8,
-                        background: "linear-gradient(135deg, #3ea6ff, #2563eb)",
-                        opacity: sendingEmail ? 0.7 : 1,
-                        cursor: sendingEmail ? "not-allowed" : "pointer",
-                      }}
-                    >
-                      {sendingEmail ? (
-                        <>
-                          <Spinner size={15} /> Sending Notification...
-                        </>
-                      ) : (
-                        <>
-                          <Send size={15} /> Confirm & Send Email
-                        </>
-                      )}
-                    </button>
-                  )}
-                </div>
-              </form>
+                ))}
+              </div>
+              <p style={{ fontSize: 13, color: "#475569", lineHeight: 1.5, margin: 0 }}>{fb.comment}</p>
             </div>
-          </div>
+          ))
         )}
       </div>
     </div>
   );
 }
 
+/* ════════════════════════════════════════════════════════════════
+   7. MAIN ADMIN DASHBOARD SHELL
+   ════════════════════════════════════════════════════════════════ */
 export default function AdminDashboard() {
-  const { adminToken, adminLogout, authHeaders, API } = useApp();
+  const { adminToken, adminLogout } = useApp();
   const navigate = useNavigate();
+  const API = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
+
+  const authHeaders = {
+    headers: { Authorization: `Bearer ${adminToken}` },
+  };
+
   const [stats, setStats] = useState(null);
   const [rankSem, setRankSem] = useState("");
   const [rankMsg, setRankMsg] = useState("");
@@ -2355,6 +2806,13 @@ export default function AdminDashboard() {
   const [clearCacheErr, setClearCacheErr] = useState("");
   const [clearCacheLoading, setClearCacheLoading] = useState(false);
   const [tab, setTab] = useState("overview");
+  const [isMobile, setIsMobile] = useState(() => typeof window !== "undefined" && window.innerWidth < 768);
+
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth < 768);
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
 
   const [selectedBatchFilter, setSelectedBatchFilter] = useState("all");
   const [showBatchPills, setShowBatchPills] = useState(false);
@@ -2367,26 +2825,6 @@ export default function AdminDashboard() {
     }
     fetchStats();
     fetchPurgeLogs();
-
-    // Advanced anti-inspect & anti-tamper security shield
-    const handleContextMenu = (e) => e.preventDefault();
-    const handleKeyDown = (e) => {
-      if (
-        e.keyCode === 123 || // F12 Key
-        (e.ctrlKey && e.shiftKey && (e.keyCode === 73 || e.keyCode === 74 || e.keyCode === 67)) || // Ctrl+Shift+I/J/C
-        (e.ctrlKey && e.keyCode === 85) // Ctrl+U (View Source)
-      ) {
-        e.preventDefault();
-        e.stopPropagation();
-        return false;
-      }
-    };
-    window.addEventListener("contextmenu", handleContextMenu);
-    window.addEventListener("keydown", handleKeyDown);
-    return () => {
-      window.removeEventListener("contextmenu", handleContextMenu);
-      window.removeEventListener("keydown", handleKeyDown);
-    };
   }, [adminToken]);
 
   async function fetchStats() {
@@ -2403,45 +2841,13 @@ export default function AdminDashboard() {
     } catch {}
   }
 
-  async function dismissPurgeLog(id) {
-    try {
-      await axios.delete(`${API}/admin/purge-logs/${id}`, authHeaders);
-      setPurgeLogs((prev) => prev.filter((item) => item._id !== id));
-    } catch (e) {
-      console.error("Failed to dismiss notification", e);
-    }
-  }
-
-  async function dismissAllPurgeLogs() {
-    try {
-      await axios.delete(`${API}/admin/purge-logs`, authHeaders);
-      setPurgeLogs([]);
-    } catch (e) {
-      console.error("Failed to dismiss all notifications", e);
-    }
-  }
-
-  async function generateRankings() {
-    if (!rankSem) {
-      setRankErr("Enter semester");
-      return;
-    }
-    setRankMsg("");
-    setRankErr("");
-    try {
-      const { data } = await axios.post(
-        `${API}/admin/rankings/generate`,
-        { semester: rankSem },
-        authHeaders,
-      );
-      setRankMsg(data.message);
-    } catch (e) {
-      setRankErr(e.response?.data?.message || "Failed");
-    }
-  }
-
   async function regenAllRankings() {
-    if (!window.confirm("Regenerate ALL rankings for ALL semesters? This recalculates SGPA & CGPA from raw subjects and may take a moment.")) return;
+    if (
+      !window.confirm(
+        "Regenerate ALL rankings for ALL semesters? This recalculates SGPA & CGPA from raw subjects."
+      )
+    )
+      return;
     setRegenAllMsg("");
     setRegenAllErr("");
     setRegenAllLoading(true);
@@ -2449,7 +2855,7 @@ export default function AdminDashboard() {
       const { data } = await axios.post(
         `${API}/admin/rankings/regenerate-all`,
         {},
-        authHeaders,
+        authHeaders
       );
       setRegenAllMsg(data.message);
       fetchStats();
@@ -2468,7 +2874,7 @@ export default function AdminDashboard() {
       const { data } = await axios.post(
         `${API}/admin/cache/clear`,
         {},
-        authHeaders,
+        authHeaders
       );
       setClearCacheMsg(data.message);
     } catch (e) {
@@ -2478,866 +2884,735 @@ export default function AdminDashboard() {
     }
   }
 
+  const ADMIN_TABS = [
+    { id: "overview", label: "Upload Results", icon: <CloudUpload size={15} /> },
+    { id: "toppers", label: "Section Toppers", icon: <Trophy size={15} /> },
+    { id: "backlogs", label: "Backlog Tracker", icon: <AlertTriangle size={15} /> },
+    { id: "manage", label: "Manage Records", icon: <Database size={15} /> },
+    { id: "feedback", label: "Student Feedback", icon: <MessageSquare size={15} /> },
+  ];
+
   return (
-    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.4, ease: "easeOut" }} className="page">
-      {/* Header */}
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "flex-start",
-          marginBottom: 32,
-          paddingBottom: 24,
-          borderBottom: "1px solid var(--border)",
-          flexWrap: "wrap",
-          gap: 12,
-        }}
-      >
-        <div>
-          <p style={{ color: "var(--text-muted)", fontSize: 11, fontWeight: 800, marginBottom: 8, display: "flex", alignItems: "center", gap: 6, textTransform: "uppercase", letterSpacing: "1px" }}>
-            <Settings size={12} /> Administration
-          </p>
-          <h1 style={{ fontSize: 28, fontWeight: 800, letterSpacing: "-0.5px" }}>Admin Dashboard</h1>
-        </div>
-        <motion.button
-          whileHover={{ scale: 1.02 }}
-          whileTap={{ scale: 0.97 }}
-          className="btn btn-danger"
-          onClick={async () => {
-            await adminLogout();
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ duration: 0.3 }}
+      style={{
+        background: "#fcfdfe",
+        minHeight: "100vh",
+        color: "#0f172a",
+        fontFamily: "'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif",
+        padding: isMobile ? "14px 12px 60px 12px" : "24px 20px 80px 20px",
+        boxSizing: "border-box",
+      }}
+    >
+      <div style={{ maxWidth: 1380, margin: "0 auto" }}>
+        {/* ── Admin Top Navigation Header ── */}
+        <div
+          style={{
+            background: "#ffffff",
+            border: "1px solid #e2e8f0",
+            borderRadius: 18,
+            padding: isMobile ? "14px 16px" : "18px 22px",
+            marginBottom: 20,
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            flexWrap: "wrap",
+            gap: 12,
+            boxShadow: "0 2px 10px rgba(15, 23, 42, 0.02)",
           }}
-          style={{ display: "flex", alignItems: "center", gap: 6 }}
         >
-          <LogOut size={15} /> Logout
-        </motion.button>
-      </div>
-
-      {/* Batch Filter Pills & Stats */}
-      {stats && (
-        <div style={{ marginBottom: 28 }}>
-          {/* Batch Selector Collapsible Filter Bar */}
-          {stats.batchBreakdown && stats.batchBreakdown.length > 0 && (
-            <div style={{ marginBottom: 16 }}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10, flexWrap: "wrap", gap: 8 }}>
-                <button
-                  onClick={() => setShowBatchPills(!showBatchPills)}
-                  className="btn-secondary"
-                  style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 12, padding: "8px 16px" }}
-                >
-                  <Filter size={14} /> Filter Stats by Batch {selectedBatchFilter !== "all" ? `(Active: Batch ${selectedBatchFilter})` : ""}
-                </button>
-                {selectedBatchFilter !== "all" && (
-                  <button
-                    onClick={() => setSelectedBatchFilter("all")}
-                    style={{ background: "transparent", border: "none", color: "var(--accent)", cursor: "pointer", fontSize: 12, fontWeight: 700 }}
-                  >
-                    Show All Batches
-                  </button>
-                )}
-              </div>
-
-              {showBatchPills && (
-                <motion.div
-                  initial={{ opacity: 0, y: -6 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="card"
-                  style={{ padding: 14, display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}
-                >
-                  <button
-                    onClick={() => setSelectedBatchFilter("all")}
-                    style={{
-                      padding: "6px 14px",
-                      borderRadius: 20,
-                      fontSize: 12,
-                      fontWeight: 700,
-                      cursor: "pointer",
-                      whiteSpace: "nowrap",
-                      border: selectedBatchFilter === "all" ? "1px solid var(--accent)" : "1px solid var(--border)",
-                      background: selectedBatchFilter === "all" ? "rgba(59, 130, 246, 0.2)" : "rgba(255,255,255,0.04)",
-                      color: selectedBatchFilter === "all" ? "#60a5fa" : "var(--text-secondary)",
-                      transition: "all 0.2s",
-                    }}
-                  >
-                    All Batches ({stats.totalStudents?.toLocaleString()})
-                  </button>
-                  {stats.batchBreakdown.map((b) => (
-                    <button
-                      key={b.batch}
-                      onClick={() => setSelectedBatchFilter(b.batch)}
-                      style={{
-                        padding: "6px 14px",
-                        borderRadius: 20,
-                        fontSize: 12,
-                        fontWeight: 700,
-                        cursor: "pointer",
-                        whiteSpace: "nowrap",
-                        border: selectedBatchFilter === b.batch ? "1px solid var(--accent)" : "1px solid var(--border)",
-                        background: selectedBatchFilter === b.batch ? "rgba(59, 130, 246, 0.2)" : "rgba(255,255,255,0.04)",
-                        color: selectedBatchFilter === b.batch ? "#60a5fa" : "var(--text-secondary)",
-                        transition: "all 0.2s",
-                      }}
-                    >
-                      Batch {b.batch} ({b.totalStudents} Reg / {b.totalRankedStudents} Active)
-                    </button>
-                  ))}
-                </motion.div>
-              )}
+          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+            <div
+              style={{
+                width: 42,
+                height: 42,
+                borderRadius: 12,
+                background: "#eff6ff",
+                color: "#2563eb",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                flexShrink: 0,
+              }}
+            >
+              <ShieldCheck size={22} />
             </div>
-          )}
-
-          {/* Cards */}
-          {(() => {
-            const activeBatch = stats.batchBreakdown?.find((b) => b.batch === selectedBatchFilter);
-            const isFiltered = selectedBatchFilter !== "all" && activeBatch;
-
-            const displayStudents = isFiltered
-              ? `${activeBatch.totalStudents} (${activeBatch.totalRankedStudents} Active)`
-              : stats.totalStudents?.toLocaleString();
-
-            const displayResults = isFiltered
-              ? activeBatch.totalResults?.toLocaleString()
-              : stats.totalResults?.toLocaleString();
-
-            const displayInternal = isFiltered
-              ? activeBatch.totalInternal?.toLocaleString()
-              : stats.totalInternal?.toLocaleString();
-
-            const displayRankings = isFiltered
-              ? activeBatch.totalRankings?.toLocaleString()
-              : stats.totalRankings?.toLocaleString();
-
-            return (
-              <div className="grid-4" style={{ marginBottom: 20 }}>
-                {[
-                  {
-                    label: isFiltered ? `Students (Batch ${selectedBatchFilter})` : "Total Registered Students",
-                    value: displayStudents,
-                    icon: <Users size={16} />,
-                  },
-                  {
-                    label: isFiltered ? `Results (Batch ${selectedBatchFilter})` : "Semester Results",
-                    value: displayResults,
-                    icon: <FileText size={16} />,
-                  },
-                  {
-                    label: isFiltered ? `Internal Records (Batch ${selectedBatchFilter})` : "Internal Records",
-                    value: displayInternal,
-                    icon: <FileEdit size={16} />,
-                  },
-                  {
-                    label: isFiltered ? `Rankings (Batch ${selectedBatchFilter})` : "Generated Rankings",
-                    value: displayRankings,
-                    icon: <Trophy size={16} />,
-                  },
-                ].map((s) => (
-                  <motion.div
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.3, ease: "easeOut" }}
-                    whileHover={{ y: -4 }}
-                    className="stat-card"
-                    key={s.label}
-                  >
-                    <span className="label" style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                      {s.icon} {s.label}
-                    </span>
-                    <span className="value" style={{ color: "var(--accent)", fontSize: isFiltered ? 18 : 22 }}>
-                      {s.value}
-                    </span>
-                  </motion.div>
-                ))}
-              </div>
-            );
-          })()}
-
-          {/* Batch-wise Breakdown Table Card */}
-          {stats.batchBreakdown && stats.batchBreakdown.length > 0 && (
-            <div className="card" style={{ padding: 18, marginTop: 12 }}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
-                <h4 style={{ fontSize: 14, fontWeight: 700, display: "flex", alignItems: "center", gap: 8, margin: 0 }}>
-                  <Users size={16} color="var(--accent)" /> Batch-Wise Active Student & Ranking Breakdown
-                </h4>
-                <span style={{ fontSize: 11, color: "var(--text-muted)" }}>
-                  Shows Registered vs Active Ranked Students on Leaderboard
+            <div>
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <h1 style={{ fontSize: 20, fontWeight: 800, color: "#0f172a", margin: 0, letterSpacing: "-0.4px" }}>
+                  Admin Control Console
+                </h1>
+                <span style={{ fontSize: 10.5, fontWeight: 700, background: "#ecfdf5", color: "#059669", padding: "2px 8px", borderRadius: 99 }}>
+                  Active
                 </span>
               </div>
-              {/* Desktop Table View */}
-              <div className="admin-desktop-table" style={{ overflowX: "auto" }}>
-                <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12, minWidth: 720 }}>
-                  <thead>
-                    <tr style={{ borderBottom: "1px solid var(--border)", textAlign: "left" }}>
-                      <th style={{ padding: "10px 12px", color: "var(--text-muted)", whiteSpace: "nowrap" }}>Batch Year</th>
-                      <th style={{ padding: "10px 12px", color: "var(--text-muted)", whiteSpace: "nowrap" }}>Total Registered Students</th>
-                      <th style={{ padding: "10px 12px", color: "var(--text-muted)", whiteSpace: "nowrap" }}>Active Ranked Students</th>
-                      <th style={{ padding: "10px 12px", color: "var(--text-muted)", whiteSpace: "nowrap" }}>Semester-Wise Student Count</th>
-                      <th style={{ padding: "10px 12px", color: "var(--text-muted)", whiteSpace: "nowrap" }}>Uploaded Results</th>
-                      <th style={{ padding: "10px 12px", color: "var(--text-muted)", whiteSpace: "nowrap" }}>Internal Marks</th>
-                    </tr>
-                  </thead>
-                  <tbody>
+              <p style={{ fontSize: 12.5, color: "#64748b", margin: "2px 0 0 0" }}>
+                Manage institutional results, batch rankings, student grades, and server state.
+              </p>
+            </div>
+          </div>
+
+          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <button
+              onClick={clearServerCache}
+              disabled={clearCacheLoading}
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 6,
+                padding: "8px 14px",
+                borderRadius: 10,
+                background: "#f8fafc",
+                border: "1px solid #e2e8f0",
+                color: "#0f172a",
+                fontSize: 12.5,
+                fontWeight: 600,
+                cursor: "pointer",
+              }}
+              title="Purge in-memory cache"
+            >
+              <RefreshCw size={14} className={clearCacheLoading ? "spin" : ""} />
+              <span>{clearCacheLoading ? "Purging..." : "Clear Cache"}</span>
+            </button>
+
+            <button
+              onClick={async () => {
+                await adminLogout();
+                navigate("/admin");
+              }}
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 6,
+                padding: "8px 14px",
+                borderRadius: 10,
+                background: "#fef2f2",
+                border: "1px solid #fecaca",
+                color: "#ef4444",
+                fontSize: 12.5,
+                fontWeight: 700,
+                cursor: "pointer",
+              }}
+            >
+              <LogOut size={14} /> Logout
+            </button>
+          </div>
+        </div>
+
+        {/* ── 4 Top Metrics Stats Grid ── */}
+        {stats && (
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+              gap: 14,
+              marginBottom: 24,
+            }}
+          >
+            {[
+              {
+                label: "Total Registered Students",
+                value: stats.totalStudents?.toLocaleString(),
+                icon: <Users size={18} color="#2563eb" />,
+                bg: "#eff6ff",
+                border: "#dbeafe",
+              },
+              {
+                label: "Semester Result Records",
+                value: stats.totalResults?.toLocaleString(),
+                icon: <FileSpreadsheet size={18} color="#10b981" />,
+                bg: "#ecfdf5",
+                border: "#a7f3d0",
+              },
+              {
+                label: "Active Academic Batches",
+                value: stats.batchBreakdown?.length || 4,
+                icon: <BookOpen size={18} color="#f59e0b" />,
+                bg: "#fffbeb",
+                border: "#fde68a",
+              },
+              {
+                label: "Total Generated Rankings",
+                value: stats.totalRankings?.toLocaleString() || "Synced",
+                icon: <Trophy size={18} color="#8b5cf6" />,
+                bg: "#f5f3ff",
+                border: "#ede9fe",
+              },
+            ].map((stat, i) => (
+              <motion.div
+                key={i}
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: i * 0.05 }}
+                style={{
+                  background: "#ffffff",
+                  border: "1px solid #e2e8f0",
+                  borderRadius: 16,
+                  padding: "18px 20px",
+                  boxShadow: "0 2px 8px rgba(15, 23, 42, 0.02)",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 14,
+                }}
+              >
+                <div
+                  style={{
+                    width: 42,
+                    height: 42,
+                    borderRadius: 12,
+                    background: stat.bg,
+                    border: `1px solid ${stat.border}`,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    flexShrink: 0,
+                  }}
+                >
+                  {stat.icon}
+                </div>
+                <div>
+                  <div style={{ fontSize: 11.5, fontWeight: 700, color: "#64748b", textTransform: "uppercase", letterSpacing: "0.4px" }}>
+                    {stat.label}
+                  </div>
+                  <div style={{ fontSize: 22, fontWeight: 800, color: "#0f172a", marginTop: 2 }}>
+                    {stat.value}
+                  </div>
+                </div>
+              </motion.div>
+            ))}
+          </div>
+        )}
+
+        {/* ── Segmented Navigation Tabs ── */}
+        <div
+          style={{
+            background: "#f1f5f9",
+            borderRadius: 14,
+            padding: 4,
+            marginBottom: 24,
+            display: "flex",
+            alignItems: "center",
+            gap: 4,
+            overflowX: "auto",
+            scrollbarWidth: "none",
+          }}
+        >
+          {ADMIN_TABS.map((t) => {
+            const isActive = tab === t.id;
+            return (
+              <button
+                key={t.id}
+                onClick={() => setTab(t.id)}
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 6,
+                  padding: "9px 16px",
+                  borderRadius: 10,
+                  border: "none",
+                  background: isActive ? "#ffffff" : "transparent",
+                  color: isActive ? "#0f172a" : "#64748b",
+                  fontSize: 13,
+                  fontWeight: isActive ? 800 : 600,
+                  cursor: "pointer",
+                  whiteSpace: "nowrap",
+                  boxShadow: isActive ? "0 2px 6px rgba(0,0,0,0.06)" : "none",
+                  transition: "all 0.15s ease",
+                  fontFamily: "'DM Sans', sans-serif",
+                }}
+              >
+                <span style={{ color: isActive ? "#2563eb" : "#64748b" }}>{t.icon}</span>
+                <span>{t.label}</span>
+              </button>
+            );
+          })}
+        </div>
+
+        {/* ── TAB 1: UPLOAD RESULTS & INTERNAL MARKS ── */}
+        {tab === "overview" && (
+          <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))",
+                gap: 16,
+              }}
+            >
+              {/* Upload Main Results */}
+              <UploadCard
+                title="Upload Semester Results"
+                icon={<CloudUpload size={20} />}
+                endpoint="upload"
+                API={API}
+                authHeaders={authHeaders}
+                onSuccess={fetchStats}
+                extraFields={[
+                  {
+                    key: "batch",
+                    label: "Batch Year *",
+                    type: "select",
+                    options: [
+                      { label: "Batch 2021", value: "2021" },
+                      { label: "Batch 2022", value: "2022" },
+                      { label: "Batch 2023", value: "2023" },
+                      { label: "Batch 2024", value: "2024" },
+                      { label: "Batch 2025", value: "2025" },
+                    ],
+                  },
+                  {
+                    key: "semester",
+                    label: "Semester Number *",
+                    type: "select",
+                    options: [
+                      { label: "Semester 1", value: "1" },
+                      { label: "Semester 2", value: "2" },
+                      { label: "Semester 3", value: "3" },
+                      { label: "Semester 4", value: "4" },
+                      { label: "Semester 5", value: "5" },
+                      { label: "Semester 6", value: "6" },
+                      { label: "Semester 7", value: "7" },
+                      { label: "Semester 8", value: "8" },
+                    ],
+                  },
+                  {
+                    key: "session",
+                    label: "Academic Session",
+                    type: "select",
+                    options: ["2023-24", "2024-25", "2025-26"],
+                  },
+                ]}
+              />
+
+              {/* Upload Internal Marks */}
+              <UploadCard
+                title="Upload Internal Marks"
+                icon={<FileEdit size={20} />}
+                endpoint="upload-internal"
+                API={API}
+                authHeaders={authHeaders}
+                onSuccess={fetchStats}
+                extraFields={[
+                  {
+                    key: "batch",
+                    label: "Batch Year *",
+                    type: "select",
+                    options: [
+                      { label: "Batch 2021", value: "2021" },
+                      { label: "Batch 2022", value: "2022" },
+                      { label: "Batch 2023", value: "2023" },
+                      { label: "Batch 2024", value: "2024" },
+                      { label: "Batch 2025", value: "2025" },
+                    ],
+                  },
+                  {
+                    key: "semester",
+                    label: "Semester Number *",
+                    type: "select",
+                    options: [
+                      { label: "Semester 1", value: "1" },
+                      { label: "Semester 2", value: "2" },
+                      { label: "Semester 3", value: "3" },
+                      { label: "Semester 4", value: "4" },
+                      { label: "Semester 5", value: "5" },
+                      { label: "Semester 6", value: "6" },
+                      { label: "Semester 7", value: "7" },
+                      { label: "Semester 8", value: "8" },
+                    ],
+                  },
+                ]}
+              />
+
+              {/* Upload Backlog Clearances */}
+              <UploadCard
+                title="Upload Backlog Clearances"
+                icon={<AlertTriangle size={20} />}
+                endpoint="upload-backlogs"
+                API={API}
+                authHeaders={authHeaders}
+                onSuccess={fetchStats}
+                extraFields={[
+                  {
+                    key: "batch",
+                    label: "Batch Year *",
+                    type: "select",
+                    options: [
+                      { label: "Batch 2021", value: "2021" },
+                      { label: "Batch 2022", value: "2022" },
+                      { label: "Batch 2023", value: "2023" },
+                      { label: "Batch 2024", value: "2024" },
+                      { label: "Batch 2025", value: "2025" },
+                    ],
+                  },
+                ]}
+              />
+            </div>
+
+            {/* Recalculate Rankings Toolbar */}
+            <div
+              style={{
+                background: "#ffffff",
+                border: "1px solid #e2e8f0",
+                borderRadius: 16,
+                padding: "20px 22px",
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                flexWrap: "wrap",
+                gap: 14,
+              }}
+            >
+              <div>
+                <h4 style={{ margin: "0 0 4px 0", fontSize: 15, fontWeight: 800, color: "#0f172a" }}>
+                  University Ranking Engine
+                </h4>
+                <p style={{ margin: 0, fontSize: 12.5, color: "#64748b" }}>
+                  Recalculate SGPA, CGPA, and competition standing across all branches.
+                </p>
+              </div>
+
+              <button
+                onClick={regenAllRankings}
+                disabled={regenAllLoading}
+                style={{
+                  padding: "10px 18px",
+                  borderRadius: 10,
+                  background: "#2563eb",
+                  color: "#ffffff",
+                  border: "none",
+                  fontSize: 13,
+                  fontWeight: 700,
+                  cursor: regenAllLoading ? "not-allowed" : "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 7,
+                }}
+              >
+                <RefreshCw size={14} className={regenAllLoading ? "spin" : ""} />
+                {regenAllLoading ? "Recalculating..." : "Regenerate All Rankings"}
+              </button>
+            </div>
+
+            {/* ── BATCH-WISE ACTIVE STUDENT & RANKING BREAKDOWN (LIVE FROM BACKEND) ── */}
+            {stats && stats.batchBreakdown && stats.batchBreakdown.length > 0 && (
+              <div
+                style={{
+                  background: "#ffffff",
+                  border: "1px solid #e2e8f0",
+                  borderRadius: 18,
+                  padding: isMobile ? "16px 14px" : "24px 20px",
+                  boxShadow: "0 2px 10px rgba(15, 23, 42, 0.02)",
+                }}
+              >
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 18, flexWrap: "wrap", gap: 8 }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                    <div
+                      style={{
+                        width: 36,
+                        height: 36,
+                        borderRadius: 10,
+                        background: "#eff6ff",
+                        color: "#2563eb",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        flexShrink: 0,
+                      }}
+                    >
+                      <Layers size={18} />
+                    </div>
+                    <div>
+                      <h3 style={{ fontSize: 16.5, fontWeight: 800, color: "#0f172a", margin: 0 }}>
+                        Batch-Wise Active Student & Ranking Breakdown
+                      </h3>
+                    </div>
+                  </div>
+                  <span style={{ fontSize: 12, color: "#64748b", fontWeight: 500 }}>
+                    Shows Registered vs Active Ranked Students on Leaderboard
+                  </span>
+                </div>
+
+                {isMobile ? (
+                  /* Mobile Card View (Zero Horizontal Scroll) */
+                  <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
                     {stats.batchBreakdown.map((b) => (
-                      <tr key={b.batch} style={{ borderBottom: "1px solid rgba(255,255,255,0.04)" }}>
-                        <td style={{ padding: "12px 10px", fontWeight: 700, whiteSpace: "nowrap" }}>
+                      <div
+                        key={b.batch}
+                        style={{
+                          background: "#f8fafc",
+                          border: "1px solid #e2e8f0",
+                          borderRadius: 14,
+                          padding: "14px",
+                          display: "flex",
+                          flexDirection: "column",
+                          gap: 10,
+                        }}
+                      >
+                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                           <span
                             style={{
-                              background: "rgba(59, 130, 246, 0.15)",
-                              color: "#60a5fa",
                               padding: "4px 10px",
-                              borderRadius: 12,
-                              fontSize: 11,
-                              border: "1px solid rgba(59, 130, 246, 0.3)",
-                              display: "inline-block",
-                              whiteSpace: "nowrap",
+                              borderRadius: 99,
+                              background: "#eff6ff",
+                              border: "1px solid #dbeafe",
+                              color: "#2563eb",
+                              fontWeight: 800,
+                              fontSize: 12.5,
                             }}
                           >
                             Batch {b.batch}
                           </span>
-                        </td>
-                        <td style={{ padding: "12px 10px", fontWeight: 700, color: "var(--text-primary)", whiteSpace: "nowrap" }}>
-                          {b.totalStudents?.toLocaleString()}
-                        </td>
-                        <td style={{ padding: "12px 10px", fontWeight: 700, color: "#3ea6ff", whiteSpace: "nowrap" }}>
-                          <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
-                            <Trophy size={13} color="#f59e0b" /> {b.totalRankedStudents?.toLocaleString()} Active
+                          <span
+                            style={{
+                              color: "#d97706",
+                              fontWeight: 800,
+                              fontSize: 12.5,
+                              display: "flex",
+                              alignItems: "center",
+                              gap: 4,
+                            }}
+                          >
+                            <Trophy size={13} color="#d97706" /> {b.totalRankedStudents?.toLocaleString()} Active
                           </span>
-                        </td>
-                        <td style={{ padding: "12px 10px" }}>
-                          <div style={{ display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center", minWidth: 260 }}>
-                            {b.semBreakdown && b.semBreakdown.length > 0 ? (
-                              b.semBreakdown.map((sb) => (
+                        </div>
+
+                        <div
+                          style={{
+                            display: "grid",
+                            gridTemplateColumns: "1fr 1fr 1fr",
+                            gap: 8,
+                            background: "#ffffff",
+                            padding: "8px 10px",
+                            borderRadius: 10,
+                            border: "1px solid #f1f5f9",
+                            textAlign: "center",
+                          }}
+                        >
+                          <div>
+                            <div style={{ fontSize: 10, color: "#64748b", fontWeight: 700, textTransform: "uppercase" }}>Registered</div>
+                            <div style={{ fontSize: 13, fontWeight: 800, color: "#0f172a", marginTop: 2 }}>{b.totalStudents?.toLocaleString()}</div>
+                          </div>
+                          <div>
+                            <div style={{ fontSize: 10, color: "#64748b", fontWeight: 700, textTransform: "uppercase" }}>Results</div>
+                            <div style={{ fontSize: 13, fontWeight: 800, color: "#0f172a", marginTop: 2 }}>{b.totalResults?.toLocaleString()}</div>
+                          </div>
+                          <div>
+                            <div style={{ fontSize: 10, color: "#64748b", fontWeight: 700, textTransform: "uppercase" }}>Internal</div>
+                            <div style={{ fontSize: 13, fontWeight: 800, color: "#0f172a", marginTop: 2 }}>{b.totalInternal?.toLocaleString()}</div>
+                          </div>
+                        </div>
+
+                        {b.semBreakdown && b.semBreakdown.length > 0 && (
+                          <div>
+                            <div style={{ fontSize: 10.5, fontWeight: 700, color: "#94a3b8", textTransform: "uppercase", marginBottom: 5 }}>
+                              Semester-Wise Students
+                            </div>
+                            <div style={{ display: "flex", flexWrap: "wrap", gap: 5 }}>
+                              {b.semBreakdown.map((s) => (
                                 <span
-                                  key={sb.semester}
+                                  key={s.semester}
                                   style={{
-                                    background: "rgba(255, 255, 255, 0.05)",
-                                    padding: "3px 8px",
+                                    background: "#ffffff",
+                                    border: "1px solid #e2e8f0",
+                                    padding: "3px 7px",
                                     borderRadius: 6,
                                     fontSize: 11,
-                                    border: "1px solid rgba(255, 255, 255, 0.08)",
-                                    color: "var(--text-secondary)",
-                                    whiteSpace: "nowrap",
+                                    color: "#475569",
                                   }}
                                 >
-                                  Sem {sb.semester}: <strong style={{ color: "#fff" }}>{sb.studentCount}</strong>
+                                  Sem {s.semester}: <strong style={{ color: "#0f172a" }}>{s.studentCount}</strong>
                                 </span>
-                              ))
-                            ) : (
-                              <span style={{ color: "var(--text-muted)", fontSize: 11 }}>—</span>
-                            )}
+                              ))}
+                            </div>
                           </div>
-                        </td>
-                        <td style={{ padding: "12px 10px", color: "var(--text-secondary)", whiteSpace: "nowrap" }}>
-                          {b.totalResults?.toLocaleString()}
-                        </td>
-                        <td style={{ padding: "12px 10px", color: "var(--text-secondary)", whiteSpace: "nowrap" }}>
-                          {b.totalInternal?.toLocaleString()}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-
-              {/* Mobile Responsive Cards View */}
-              <div className="admin-mobile-card-list">
-                {stats.batchBreakdown.map((b) => (
-                  <div
-                    key={b.batch}
-                    style={{
-                      background: "rgba(17, 24, 39, 0.6)",
-                      border: "1px solid rgba(255, 255, 255, 0.08)",
-                      borderRadius: 10,
-                      padding: 14,
-                      display: "flex",
-                      flexDirection: "column",
-                      gap: 8,
-                    }}
-                  >
-                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                      <span
-                        style={{
-                          background: "rgba(59, 130, 246, 0.15)",
-                          color: "#60a5fa",
-                          padding: "4px 10px",
-                          borderRadius: 12,
-                          fontSize: 12,
-                          fontWeight: 800,
-                          border: "1px solid rgba(59, 130, 246, 0.3)",
-                        }}
-                      >
-                        Batch {b.batch}
-                      </span>
-                      <span style={{ color: "#3ea6ff", fontWeight: 700, fontSize: 12, display: "flex", alignItems: "center", gap: 4 }}>
-                        <Trophy size={13} color="#f59e0b" /> {b.totalRankedStudents?.toLocaleString()} Active
-                      </span>
-                    </div>
-
-                    <div style={{ fontSize: 12, color: "var(--text-secondary)", display: "flex", justifyContent: "space-between" }}>
-                      <span>Registered Students:</span>
-                      <strong style={{ color: "#fff" }}>{b.totalStudents?.toLocaleString()}</strong>
-                    </div>
-
-                    <div style={{ fontSize: 12, color: "var(--text-secondary)", display: "flex", justifyContent: "space-between" }}>
-                      <span>Uploaded Results / Internal:</span>
-                      <strong style={{ color: "#fff" }}>
-                        {b.totalResults?.toLocaleString()} / {b.totalInternal?.toLocaleString()}
-                      </strong>
-                    </div>
-
-                    <div style={{ marginTop: 4 }}>
-                      <div style={{ fontSize: 11, color: "var(--text-muted)", marginBottom: 4 }}>Semester breakdown:</div>
-                      <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-                        {b.semBreakdown && b.semBreakdown.length > 0 ? (
-                          b.semBreakdown.map((sb) => (
-                            <span
-                              key={sb.semester}
-                              style={{
-                                background: "rgba(255, 255, 255, 0.05)",
-                                padding: "3px 8px",
-                                borderRadius: 6,
-                                fontSize: 11,
-                                border: "1px solid rgba(255, 255, 255, 0.08)",
-                                color: "var(--text-secondary)",
-                              }}
-                            >
-                              Sem {sb.semester}: <strong style={{ color: "#fff" }}>{sb.studentCount}</strong>
-                            </span>
-                          ))
-                        ) : (
-                          <span style={{ color: "var(--text-muted)", fontSize: 11 }}>—</span>
                         )}
                       </div>
-                    </div>
+                    ))}
                   </div>
-                ))}
+                ) : (
+                  /* Desktop Table View */
+                  <div style={{ overflowX: "auto", border: "1px solid #e2e8f0", borderRadius: 12 }}>
+                    <table style={{ width: "100%", borderCollapse: "collapse", textAlign: "left", fontSize: 13 }}>
+                      <thead>
+                        <tr style={{ background: "#f8fafc", borderBottom: "1px solid #e2e8f0", color: "#475569" }}>
+                          <th style={{ padding: "12px 14px", fontWeight: 700 }}>BATCH YEAR</th>
+                          <th style={{ padding: "12px 14px", fontWeight: 700 }}>TOTAL REGISTERED STUDENTS</th>
+                          <th style={{ padding: "12px 14px", fontWeight: 700 }}>ACTIVE RANKED STUDENTS</th>
+                          <th style={{ padding: "12px 14px", fontWeight: 700 }}>SEMESTER-WISE STUDENT COUNT</th>
+                          <th style={{ padding: "12px 14px", fontWeight: 700 }}>UPLOADED RESULTS</th>
+                          <th style={{ padding: "12px 14px", fontWeight: 700 }}>INTERNAL MARKS</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {stats.batchBreakdown.map((b) => (
+                          <tr
+                            key={b.batch}
+                            style={{ borderBottom: "1px solid #f1f5f9" }}
+                            onMouseEnter={(e) => (e.currentTarget.style.background = "#f8fafc")}
+                            onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
+                          >
+                            <td style={{ padding: "12px 14px" }}>
+                              <span
+                                style={{
+                                  padding: "4px 10px",
+                                  borderRadius: 99,
+                                  background: "#eff6ff",
+                                  border: "1px solid #dbeafe",
+                                  color: "#2563eb",
+                                  fontWeight: 800,
+                                  fontSize: 12,
+                                }}
+                              >
+                                Batch {b.batch}
+                              </span>
+                            </td>
+                            <td style={{ padding: "12px 14px", fontWeight: 800, color: "#0f172a" }}>
+                              {b.totalStudents?.toLocaleString()}
+                            </td>
+                            <td style={{ padding: "12px 14px" }}>
+                              <span style={{ color: "#d97706", fontWeight: 800, display: "inline-flex", alignItems: "center", gap: 4 }}>
+                                <Trophy size={13} color="#d97706" /> {b.totalRankedStudents?.toLocaleString()} Active
+                              </span>
+                            </td>
+                            <td style={{ padding: "12px 14px" }}>
+                              <div style={{ display: "flex", flexWrap: "wrap", gap: 5, maxWidth: 380 }}>
+                                {b.semBreakdown?.map((s) => (
+                                  <span
+                                    key={s.semester}
+                                    style={{
+                                      background: "#f1f5f9",
+                                      border: "1px solid #e2e8f0",
+                                      padding: "3px 7px",
+                                      borderRadius: 6,
+                                      fontSize: 11,
+                                      color: "#475569",
+                                    }}
+                                  >
+                                    Sem {s.semester}: <strong style={{ color: "#0f172a" }}>{s.studentCount}</strong>
+                                  </span>
+                                ))}
+                              </div>
+                            </td>
+                            <td style={{ padding: "12px 14px", color: "#475569" }}>
+                              {b.totalResults?.toLocaleString()}
+                            </td>
+                            <td style={{ padding: "12px 14px", color: "#475569" }}>
+                              {b.totalInternal?.toLocaleString()}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
               </div>
-            </div>
-          )}
+            )}
 
-          {/* Active vs Inactive Students & System Sync Guide */}
-          <div className="card" style={{ padding: 20, marginTop: 20 }}>
-            <h4 style={{ fontSize: 14, fontWeight: 700, marginBottom: 14, display: "flex", alignItems: "center", gap: 8, margin: "0 0 14px 0" }}>
-              <HelpCircle size={16} color="var(--accent)" /> Admin System Guide: Active vs. Registered Students & Auto-Sync
-            </h4>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: 14 }}>
-              <div style={{ background: "rgba(59, 130, 246, 0.06)", border: "1px solid rgba(59, 130, 246, 0.2)", borderRadius: 10, padding: 14 }}>
-                <div style={{ fontWeight: 700, color: "#60a5fa", marginBottom: 6, fontSize: 13, display: "flex", alignItems: "center", gap: 6 }}>
-                  <Trophy size={15} color="#60a5fa" /> Active Ranked Students (Leaderboard)
-                </div>
-                <p style={{ fontSize: 12, color: "var(--text-secondary)", lineHeight: 1.5, margin: 0 }}>
-                  Students who have official semester results uploaded. They have calculated SGPA/CGPA and appear on University &amp; Branch Leaderboards.
-                </p>
+            {/* ── ADMIN SYSTEM GUIDE: ACTIVE VS REGISTERED & AUTO-SYNC ── */}
+            <div
+              style={{
+                background: "#ffffff",
+                border: "1px solid #e2e8f0",
+                borderRadius: 18,
+                padding: isMobile ? "16px 14px" : "22px 20px",
+                boxShadow: "0 2px 10px rgba(15, 23, 42, 0.02)",
+              }}
+            >
+              <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 14 }}>
+                <HelpCircle size={18} color="#2563eb" />
+                <h4 style={{ margin: 0, fontSize: 15, fontWeight: 800, color: "#0f172a" }}>
+                  Admin System Guide: Active vs. Registered Students & Auto-Sync
+                </h4>
               </div>
 
-              <div style={{ background: "rgba(245, 158, 11, 0.06)", border: "1px solid rgba(245, 158, 11, 0.2)", borderRadius: 10, padding: 14 }}>
-                <div style={{ fontWeight: 700, color: "#fbbf24", marginBottom: 6, fontSize: 13, display: "flex", alignItems: "center", gap: 6 }}>
-                  <Info size={15} color="#fbbf24" /> Registered / Inactive Students
-                </div>
-                <p style={{ fontSize: 12, color: "var(--text-secondary)", lineHeight: 1.5, margin: 0 }}>
-                  Students stored in DB (e.g. from internal marks or roll list) without semester exam results yet. Once their semester results are uploaded, they automatically become <strong>Active</strong>!
-                </p>
-              </div>
-
-              <div style={{ background: "rgba(16, 185, 129, 0.06)", border: "1px solid rgba(16, 185, 129, 0.2)", borderRadius: 10, padding: 14 }}>
-                <div style={{ fontWeight: 700, color: "#34d399", marginBottom: 6, fontSize: 13, display: "flex", alignItems: "center", gap: 6 }}>
-                  <CheckCircle size={15} color="#34d399" /> Live Excel Auto-Update
-                </div>
-                <p style={{ fontSize: 12, color: "var(--text-secondary)", lineHeight: 1.5, margin: 0 }}>
-                  Whenever you upload any Excel file (Results, Internal Marks, or Backlogs), all batch stats, semester breakdowns, leaderboards, and backlog lists update automatically!
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Tabs */}
-      <div className="tabs" style={{ marginBottom: 24 }}>
-        {[
-          ["overview", "Upload Results", <CloudUpload size={14} key="ov" />],
-          ["toppers", "Section Toppers", <Trophy size={14} key="st" />],
-          ["rankings", "Rankings", <Trophy size={14} key="ra" />],
-          ["backlogs", "Backlog Tracker", <AlertTriangle size={14} key="bk" />],
-          ["manage", "Manage Records", <Database size={14} key="ma" />],
-          ["feedback", "Feedback", <MessageSquare size={14} key="fb" />],
-        ].map(([t, l, icon]) => (
-          <button
-            key={t}
-            className={`tab-btn ${tab === t ? "active" : ""}`}
-            onClick={() => setTab(t)}
-            style={{ display: "flex", alignItems: "center", gap: 6 }}
-          >
-            {icon} {l}
-          </button>
-        ))}
-      </div>
-
-      <div>
-      <div style={{ display: tab === "toppers" ? "block" : "none" }}>
-        <SectionToppersCard authHeaders={authHeaders} API={API} />
-      </div>
-      <div style={{ display: tab === "overview" ? "block" : "none" }}>
-        {/* 5-Year Batch Data Lifecycle Audit Logs */}
-        {purgeLogs && purgeLogs.length > 0 && (
-          <div className="card" style={{ marginBottom: 20, border: "1px solid rgba(239, 68, 68, 0.3)", background: "rgba(239, 68, 68, 0.05)", padding: 16 }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12, flexWrap: "wrap", gap: 8 }}>
-              <h4 style={{ margin: 0, fontSize: 14, fontWeight: 700, color: "#f87171", display: "flex", alignItems: "center", gap: 6 }}>
-                <AlertTriangle size={16} color="#ef4444" /> 5-Year Batch Data Retention Audit Notifications
-              </h4>
-              <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                <span style={{ fontSize: 11, color: "var(--text-muted)" }}>Auto-Purged Expired Batches (&gt; 5 Years Old)</span>
-                <button
-                  onClick={dismissAllPurgeLogs}
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))",
+                  gap: 12,
+                }}
+              >
+                <div
                   style={{
-                    background: "rgba(239, 68, 68, 0.2)",
-                    border: "1px solid rgba(239, 68, 68, 0.4)",
-                    color: "#f87171",
-                    padding: "3px 8px",
-                    borderRadius: 4,
-                    fontSize: 11,
-                    cursor: "pointer",
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 4
+                    background: "#eff6ff",
+                    border: "1px solid #dbeafe",
+                    borderRadius: 12,
+                    padding: "14px 16px",
                   }}
-                  title="Clear all notifications"
                 >
-                  <Trash2 size={12} /> Clear All
-                </button>
-              </div>
-            </div>
-            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-              {purgeLogs.map((log) => (
-                <div key={log._id || log.batch} style={{ background: "rgba(0,0,0,0.25)", padding: "10px 14px", borderRadius: 8, fontSize: 12, display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 8, position: "relative" }}>
-                  <div style={{ flex: 1, paddingRight: 24 }}>
-                    <strong style={{ color: "#f87171" }}>Batch {log.batch} Auto-Purged:</strong> {log.studentsAffected} student(s) &middot; {log.recordsDeleted} total record(s) removed.
-                    <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 2 }}>
-                      Reason: {log.triggerReason} &middot; Affected RegNos: {log.sampleRegNos?.slice(0, 5).join(", ")}{log.sampleRegNos?.length > 5 ? "..." : ""}
-                    </div>
+                  <div style={{ fontWeight: 800, fontSize: 13, color: "#1e40af", display: "flex", alignItems: "center", gap: 6, marginBottom: 6 }}>
+                    <Trophy size={14} color="#1d4ed8" /> Active Ranked Students (Leaderboard)
                   </div>
-                  <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                    <span style={{ fontSize: 11, color: "var(--text-secondary)", whiteSpace: "nowrap" }}>
-                      {formatDistanceToNow(new Date(log.purgedAt), { addSuffix: true })}
-                    </span>
-                    <button
-                      onClick={() => dismissPurgeLog(log._id)}
-                      style={{
-                        background: "rgba(255, 255, 255, 0.08)",
-                        border: "none",
-                        color: "var(--text-secondary)",
-                        cursor: "pointer",
-                        padding: 4,
-                        borderRadius: "50%",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        transition: "all 0.2s ease"
-                      }}
-                      onMouseOver={(e) => { e.currentTarget.style.color = "#ef4444"; e.currentTarget.style.background = "rgba(239, 68, 68, 0.2)"; }}
-                      onMouseOut={(e) => { e.currentTarget.style.color = "var(--text-secondary)"; e.currentTarget.style.background = "rgba(255, 255, 255, 0.08)"; }}
-                      title="Dismiss notification"
-                    >
-                      <X size={14} />
-                    </button>
-                  </div>
+                  <p style={{ margin: 0, fontSize: 12, color: "#3b82f6", lineHeight: 1.5 }}>
+                    Students who have official semester results uploaded. They have calculated SGPA/CGPA and appear on University & Branch Leaderboards.
+                  </p>
                 </div>
-              ))}
+
+                <div
+                  style={{
+                    background: "#fffbeb",
+                    border: "1px solid #fde68a",
+                    borderRadius: 12,
+                    padding: "14px 16px",
+                  }}
+                >
+                  <div style={{ fontWeight: 800, fontSize: 13, color: "#92400e", display: "flex", alignItems: "center", gap: 6, marginBottom: 6 }}>
+                    <Info size={14} color="#b45309" /> Registered / Inactive Students
+                  </div>
+                  <p style={{ margin: 0, fontSize: 12, color: "#b45309", lineHeight: 1.5 }}>
+                    Students stored in DB (e.g. from internal marks or roll list) without semester exam results yet. Once their semester results are uploaded, they automatically become Active!
+                  </p>
+                </div>
+
+                <div
+                  style={{
+                    background: "#ecfdf5",
+                    border: "1px solid #a7f3d0",
+                    borderRadius: 12,
+                    padding: "14px 16px",
+                  }}
+                >
+                  <div style={{ fontWeight: 800, fontSize: 13, color: "#065f46", display: "flex", alignItems: "center", gap: 6, marginBottom: 6 }}>
+                    <CheckCircle size={14} color="#10b981" /> Live Excel Auto-Update
+                  </div>
+                  <p style={{ margin: 0, fontSize: 12, color: "#047857", lineHeight: 1.5 }}>
+                    Whenever you upload any Excel file (Results, Internal Marks, or Backlogs), all batch stats, semester breakdowns, leaderboards, and backlog lists update automatically!
+                  </p>
+                </div>
+              </div>
             </div>
           </div>
         )}
 
-        {/* Upload Tab */}
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(auto-fill, minmax(min(100%, 320px), 1fr))",
-            gap: 20,
-          }}
-        >
-          <UploadCard
-            title="Semester Results"
-            icon={<FileText color="var(--accent)" size={24} />}
-            endpoint="upload/results"
-            API={API}
-            authHeaders={authHeaders}
-            onSuccess={fetchStats}
-            extraFields={[
-              {
-                key: "semester",
-                label: "Semester *",
-                type: "select",
-                options: [1, 2, 3, 4, 5, 6, 7, 8]
-              },
-              {
-                key: "batch",
-                label: "Batch",
-                type: "select",
-                options: ["2018", "2019", "2020", "2021", "2022", "2023", "2024", "2025", "2026", "2027", "2028", "2029", "2030"]
-              },
-              {
-                key: "program",
-                label: "Program",
-                type: "select",
-                options: ["B.Tech", "M.Tech", "BCA", "MCA", "BBA", "MBA", "B.Sc", "M.Sc", "Diploma"]
-              },
-              {
-                key: "session",
-                label: "Session",
-                type: "select",
-                options: ["2023-24", "2024-25", "2025-26", "2026-27", "2027-28"]
-              },
-            ]}
-          />
-          <UploadCard
-            title="EOD / Backlog Results"
-            icon={<FileText color="#a855f7" size={24} />}
-            endpoint="upload/results"
-            API={API}
-            authHeaders={authHeaders}
-            onSuccess={fetchStats}
-            extraFields={[
-              {
-                key: "month",
-                label: "Month",
-                type: "select",
-                options: ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
-              },
-              {
-                key: "year",
-                label: "Year",
-                type: "select",
-                options: ["2018", "2019", "2020", "2021", "2022", "2023", "2024", "2025", "2026", "2027", "2028", "2029", "2030"]
-              },
-              {
-                key: "batch",
-                label: "Batch",
-                type: "select",
-                options: ["2018", "2019", "2020", "2021", "2022", "2023", "2024", "2025", "2026", "2027", "2028", "2029", "2030"]
-              },
-              {
-                key: "session",
-                label: "Session",
-                type: "select",
-                options: ["2023-24", "2024-25", "2025-26", "2026-27", "2027-28"]
-              },
-              {
-                key: "phase",
-                label: "Phase",
-                type: "select",
-                options: ["1", "2", "3", "4"]
-              },
-              {
-                key: "program",
-                label: "Program",
-                type: "select",
-                options: ["B.Tech", "M.Tech", "BCA", "MCA", "BBA", "MBA", "B.Sc", "M.Sc", "Diploma"]
-              },
-              {
-                key: "uploadType",
-                label: "Upload Type (Auto-filled)",
-                type: "text",
-                value: "eod",
-                hidden: true,
-              },
-            ]}
-          />
-          <UploadCard
-            title="Rechecking Results"
-            icon={<FileText color="#f59e0b" size={24} />}
-            endpoint="upload/results"
-            API={API}
-            authHeaders={authHeaders}
-            onSuccess={fetchStats}
-            extraFields={[
-              {
-                key: "semester",
-                label: "Semester *",
-                type: "select",
-                options: [1, 2, 3, 4, 5, 6, 7, 8]
-              },
-              {
-                key: "batch",
-                label: "Batch",
-                type: "select",
-                options: ["2018", "2019", "2020", "2021", "2022", "2023", "2024", "2025", "2026", "2027", "2028", "2029", "2030"]
-              },
-              {
-                key: "program",
-                label: "Program",
-                type: "select",
-                options: ["B.Tech", "M.Tech", "BCA", "MCA", "BBA", "MBA", "B.Sc", "M.Sc", "Diploma"]
-              },
-              {
-                key: "session",
-                label: "Session",
-                type: "select",
-                options: ["2023-24", "2024-25", "2025-26", "2026-27", "2027-28"]
-              },
-              {
-                key: "uploadType",
-                label: "Upload Type (Auto-filled)",
-                type: "text",
-                value: "rechecking",
-                hidden: true,
-              },
-            ]}
-          />
-          <UploadCard
-            title="Internal Marks"
-            icon={<FileEdit color="var(--accent)" size={24} />}
-            endpoint="upload/internal"
-            API={API}
-            authHeaders={authHeaders}
-            onSuccess={fetchStats}
-            extraFields={[
-              {
-                key: "semester",
-                label: "Semester *",
-                type: "select",
-                options: [1, 2, 3, 4, 5, 6, 7, 8]
-              },
-              {
-                key: "batch",
-                label: "Batch",
-                type: "select",
-                options: ["2018", "2019", "2020", "2021", "2022", "2023", "2024", "2025", "2026", "2027", "2028", "2029", "2030"]
-              },
-              {
-                key: "program",
-                label: "Program",
-                type: "select",
-                options: ["B.Tech", "M.Tech", "BCA", "MCA", "BBA", "MBA", "B.Sc", "M.Sc", "Diploma"]
-              },
-              {
-                key: "session",
-                label: "Session",
-                type: "select",
-                options: ["2023-24", "2024-25", "2025-26", "2026-27", "2027-28"]
-              },
-            ]}
-          />
-        </div>
+        {/* ── TAB 2: SECTION TOPPERS ── */}
+        {tab === "toppers" && <SectionToppersCard authHeaders={authHeaders} API={API} />}
+
+        {/* ── TAB 3: BACKLOG TRACKER ── */}
+        {tab === "backlogs" && <BacklogTrackerCard authHeaders={authHeaders} API={API} />}
+
+        {/* ── TAB 4: MANAGE RECORDS & MANUAL GRADE EDITS ── */}
+        {tab === "manage" && (
+          <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: 20 }}>
+            <ManualGradeUpdateCard authHeaders={authHeaders} API={API} onSuccess={fetchStats} />
+            <DeleteRecordCard authHeaders={authHeaders} API={API} onSuccess={fetchStats} />
+          </div>
+        )}
+
+        {/* ── TAB 5: STUDENT FEEDBACK ── */}
+        {tab === "feedback" && <FeedbackManager authHeaders={authHeaders} API={API} />}
       </div>
 
-      {/* Rankings Tab */}
-      <div style={{ display: tab === "rankings" ? "block" : "none" }}>
-        <div style={{ display: "flex", flexDirection: "column", gap: 20, maxWidth: 520 }}>
-          <div className="card">
-            <h3 style={{ fontWeight: 700, marginBottom: 4, display: "flex", alignItems: "center", gap: 8 }}>
-              <Trophy size={18} /> Generate Rankings — Single Semester
-            </h3>
-            <p
-              style={{
-                color: "var(--secondary)",
-                fontSize: 13,
-                marginBottom: 20,
-              }}
-            >
-              Generate rankings for a specific semester based on live-calculated SGPA & CGPA.
-            </p>
-            <label
-              style={{
-                display: "block",
-                fontSize: 12,
-                color: "var(--secondary)",
-                marginBottom: 6,
-              }}
-            >
-              Semester Number
-            </label>
-            <input
-              type="number"
-              min="1"
-              max="12"
-              value={rankSem}
-              onChange={(e) => setRankSem(e.target.value)}
-              placeholder="e.g. 6"
-              style={{ marginBottom: 12 }}
-            />
-            <AnimatePresence>
-              {rankErr && (
-                <motion.p initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }} style={{ color: "var(--danger)", fontSize: 13, marginBottom: 8, display: "flex", alignItems: "center", gap: 6 }}>
-                  <AlertTriangle size={14} /> {rankErr}
-                </motion.p>
-              )}
-              {rankMsg && (
-                <motion.p initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }} style={{ color: "var(--success)", fontSize: 13, marginBottom: 8, display: "flex", alignItems: "center", gap: 6 }}>
-                  <CheckCircle size={14} /> {rankMsg}
-                </motion.p>
-              )}
-            </AnimatePresence>
-            <button className="btn btn-primary" onClick={generateRankings}>
-              Generate Rankings
-            </button>
-          </div>
-
-          <div className="card" style={{ border: "1px solid rgba(168,85,247,0.3)" }}>
-            <h3 style={{ fontWeight: 700, marginBottom: 4, display: "flex", alignItems: "center", gap: 8 }}>
-              <Trophy size={18} color="#a855f7" /> Regenerate ALL Rankings
-            </h3>
-            <p style={{ color: "var(--secondary)", fontSize: 13, marginBottom: 16 }}>
-              Recalculates SGPA &amp; CGPA from raw subject data for <strong>all semesters</strong> using the correct formula.
-              Use this after a formula fix to sync the Leaderboard with the Report Card.
-            </p>
-            <AnimatePresence>
-              {regenAllErr && (
-                <motion.p initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }} style={{ color: "var(--danger)", fontSize: 13, marginBottom: 8, display: "flex", alignItems: "center", gap: 6 }}>
-                  <AlertTriangle size={14} /> {regenAllErr}
-                </motion.p>
-              )}
-              {regenAllMsg && (
-                <motion.p initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }} style={{ color: "var(--success)", fontSize: 13, marginBottom: 8, display: "flex", alignItems: "center", gap: 6 }}>
-                  <CheckCircle size={14} /> {regenAllMsg}
-                </motion.p>
-              )}
-            </AnimatePresence>
-            <button
-              className="btn"
-              onClick={regenAllRankings}
-              disabled={regenAllLoading}
-              style={{ background: "rgba(168,85,247,0.15)", color: "#a855f7", border: "1px solid rgba(168,85,247,0.3)", display: "flex", alignItems: "center", gap: 8 }}
-            >
-              <Trophy size={16} />
-              {regenAllLoading ? "Regenerating... (please wait)" : "Regenerate All Rankings"}
-            </button>
-          </div>
-
-          <div className="card" style={{ border: "1px solid rgba(62,166,255,0.3)" }}>
-            <h3 style={{ fontWeight: 700, marginBottom: 4, display: "flex", alignItems: "center", gap: 8 }}>
-              <Database size={18} color="var(--accent)" /> Clear Server Cache
-            </h3>
-            <p style={{ color: "var(--secondary)", fontSize: 13, marginBottom: 16 }}>
-              Clears the in-memory student data cache on the server. Use this after formula changes so <strong>Dashboard, Analytics &amp; Leaderboard</strong> immediately show fresh, correct CGPA values without waiting.
-            </p>
-            <AnimatePresence>
-              {clearCacheErr && (
-                <motion.p initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }} style={{ color: "var(--danger)", fontSize: 13, marginBottom: 8, display: "flex", alignItems: "center", gap: 6 }}>
-                  <AlertTriangle size={14} /> {clearCacheErr}
-                </motion.p>
-              )}
-              {clearCacheMsg && (
-                <motion.p initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }} style={{ color: "var(--success)", fontSize: 13, marginBottom: 8, display: "flex", alignItems: "center", gap: 6 }}>
-                  <CheckCircle size={14} /> {clearCacheMsg}
-                </motion.p>
-              )}
-            </AnimatePresence>
-            <button
-              className="btn"
-              onClick={clearServerCache}
-              disabled={clearCacheLoading}
-              style={{ background: "rgba(62,166,255,0.15)", color: "var(--accent)", border: "1px solid rgba(62,166,255,0.3)", display: "flex", alignItems: "center", gap: 8 }}
-            >
-              <Database size={16} />
-              {clearCacheLoading ? "Clearing..." : "Clear Server Cache"}
-            </button>
-          </div>
-        </div>
-      </div>
-
-      {/* Manage / Delete Tab */}
-      <div style={{ display: tab === "manage" ? "block" : "none" }}>
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(auto-fill, minmax(340px, 1fr))",
-            gap: 20,
-          }}
-        >
-          <ManualGradeUpdateCard
-            authHeaders={authHeaders}
-            API={API}
-            onSuccess={fetchStats}
-          />
-          <DeleteRecordCard
-            authHeaders={authHeaders}
-            API={API}
-            onSuccess={fetchStats}
-          />
-        </div>
-      </div>
-
-      {/* Feedback Tab */}
-      <div style={{ display: tab === "feedback" ? "block" : "none" }}>
-        <div style={{ maxWidth: 800 }}>
-          <FeedbackManager authHeaders={authHeaders} API={API} />
-        </div>
-      </div>
-
-      {/* Backlog Tracker Tab */}
-      <div style={{ display: tab === "backlogs" ? "block" : "none" }}>
-        <BacklogTrackerCard authHeaders={authHeaders} API={API} />
-      </div>
-
-      {/* Excel Format Guide */}
-      <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="card" style={{ marginTop: 28 }}>
-        <h3 style={{ fontWeight: 700, marginBottom: 16, display: "flex", alignItems: "center", gap: 8 }}>
-          <FileSpreadsheet size={18} /> Excel Format Guide
-        </h3>
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(auto-fit, minmax(250px, 1fr))",
-            gap: 16,
-          }}
-        >
-          <div>
-            <p
-              style={{
-                fontSize: 13,
-                fontWeight: 700,
-                color: "var(--accent)",
-                marginBottom: 8,
-              }}
-            >
-              Semester Results Columns:
-            </p>
-            <p
-              style={{
-                fontFamily: "monospace",
-                fontSize: 11,
-                color: "var(--secondary)",
-                lineHeight: 2,
-                wordWrap: "break-word",
-                whiteSpace: "pre-wrap"
-              }}
-            >
-              SI No | Reg_No | Name | Subject_Code | Subject_Name | Type |
-              Credits | Grade
-            </p>
-            <p
-              style={{ fontSize: 11, color: "var(--secondary)", marginTop: 6, display: "flex", alignItems: "center", gap: 4 }}
-            >
-              <AlertTriangle size={12} color="var(--warning)" /> Fill Semester, Batch, Branch, Session in the form above — not
-              required in Excel.
-            </p>
-          </div>
-          <div>
-            <p
-              style={{
-                fontSize: 13,
-                fontWeight: 700,
-                color: "#a855f7",
-                marginBottom: 8,
-              }}
-            >
-              Valid Grade Values:
-            </p>
-            <p
-              style={{
-                fontFamily: "monospace",
-                fontSize: 11,
-                color: "var(--secondary)",
-                lineHeight: 2,
-                wordWrap: "break-word",
-                whiteSpace: "pre-wrap"
-              }}
-            >
-              O (10) | E (9) | A (8) | B (7) | C (6) | D (5) | F (0) | R-Repeat
-              (0) | S-Suppl (0) | M-Malpractice (0)
-            </p>
-          </div>
-        </div>
-      </motion.div>
-    </div>
-  </motion.div>
-);
+      <style>{`
+        .spin {
+          animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+          100% {
+            transform: rotate(360deg);
+          }
+        }
+      `}</style>
+    </motion.div>
+  );
 }

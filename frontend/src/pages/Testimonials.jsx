@@ -1,592 +1,1440 @@
-import { useState, useEffect } from "react";
-import { motion } from "framer-motion";
-import { Star, MessageSquare, GraduationCap, Quote, Heart } from "lucide-react";
-
-/* ─── Social Icons ─────────────────────────────────────────────── */
-const GithubIcon = ({ size = 20 }) => (
-  <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"></path>
-  </svg>
-);
-
-const LinkedinIcon = ({ size = 20 }) => (
-  <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z"></path>
-    <rect x="2" y="9" width="4" height="12"></rect>
-    <circle cx="4" cy="4" r="2"></circle>
-  </svg>
-);
-
-const InstagramIcon = ({ size = 20 }) => (
-  <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <rect x="2" y="2" width="20" height="20" rx="5" ry="5"></rect>
-    <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"></path>
-    <line x1="17.5" y1="6.5" x2="17.51" y2="6.5"></line>
-  </svg>
-);
-import { useSearchParams } from "react-router-dom";
+import { useState, useEffect, useMemo } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
+import { motion, AnimatePresence } from "framer-motion";
 import axios from "axios";
 import { useApp } from "../context/AppContext";
+import {
+  Star,
+  Users,
+  MessageSquare,
+  Sparkles,
+  Edit3,
+  ChevronDown,
+  ArrowRight,
+  CheckCircle2,
+  Heart,
+  Send,
+  Loader2,
+  ThumbsUp,
+  ChevronLeft,
+  ChevronRight,
+} from "lucide-react";
+
+/* ─── Category List ────────────────────────────────────────────── */
+const CATEGORIES = [
+  "All Reviews",
+  "Overall Experience",
+  "Easy to Use",
+  "Accurate Results",
+  "Time Saver",
+  "Student Support",
+];
+
+const REVIEWS_PER_PAGE = 6;
 
 export default function Testimonials() {
   const [feedbacks, setFeedbacks] = useState([]);
-  const [searchParams] = useSearchParams();
-  const highlightedId = searchParams.get("highlight");
+  const [isLoading, setIsLoading] = useState(true);
+  const [selectedCategory, setSelectedCategory] = useState("All Reviews");
+  const [sortBy, setSortBy] = useState("Featured 5-Star");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [isMobile, setIsMobile] = useState(() => (typeof window !== "undefined" ? window.innerWidth < 1024 : false));
 
-  // Inline form state
-  const [rating, setRating] = useState(0);
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth < 1024);
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+
+  // Form State
+  const [rating, setRating] = useState(5);
   const [hoverRating, setHoverRating] = useState(0);
   const [name, setName] = useState("");
   const [regNo, setRegNo] = useState("");
+  const [category, setCategory] = useState("Overall Experience");
   const [comment, setComment] = useState("");
-  const [isLoading, setIsLoading] = useState(true);
+  const [isSortOpen, setIsSortOpen] = useState(false);
+  const [isCategoryOpen, setIsCategoryOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submittedSuccess, setSubmittedSuccess] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
+
   const [likedFeedbacks, setLikedFeedbacks] = useState(() => {
-    return JSON.parse(localStorage.getItem("likedFeedbacks") || "[]");
+    try {
+      return JSON.parse(localStorage.getItem("likedFeedbacks") || "[]");
+    } catch {
+      return [];
+    }
   });
+
   const { API } = useApp();
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const highlightedId = searchParams.get("highlight");
 
   useEffect(() => {
+    document.documentElement.setAttribute("data-theme", "light");
+    window.scrollTo({ top: 0, behavior: "smooth" });
     loadFeedbacks();
-    
-    // Auto-scroll to highlighted feedback
-    if (highlightedId) {
+  }, []);
+
+  // ─── Fetch Real Feedbacks from Backend ───────────────────────────
+  async function loadFeedbacks() {
+    try {
+      setIsLoading(true);
+      const res = await axios.get(`${API}/feedback`);
+      if (Array.isArray(res.data)) {
+        setFeedbacks(res.data);
+      }
+    } catch (err) {
+      console.error("Error loading feedbacks from backend:", err);
+    } finally {
+      setIsLoading(false);
+    }
+  }
+
+  // ─── Auto-scroll to highlighted feedback ─────────────────────────
+  useEffect(() => {
+    if (highlightedId && feedbacks.length > 0) {
       setTimeout(() => {
         const el = document.getElementById(`feedback-${highlightedId}`);
         if (el) {
           el.scrollIntoView({ behavior: "smooth", block: "center" });
         }
-      }, 500);
+      }, 400);
     }
-  }, [highlightedId]);
+  }, [highlightedId, feedbacks]);
 
-  const loadFeedbacks = async () => {
-    setIsLoading(true);
+  // Reset page to 1 when filter or sorting changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [selectedCategory, sortBy]);
+
+  // ─── Handle Like (Increment Likes in Backend) ─────────────────────
+  async function handleLike(id) {
+    if (likedFeedbacks.includes(id)) return;
+
+    // Optimistic UI update
+    setFeedbacks((prev) =>
+      prev.map((f) => (f._id === id ? { ...f, likes: (f.likes || 0) + 1 } : f))
+    );
+
+    const updatedLikes = [...likedFeedbacks, id];
+    setLikedFeedbacks(updatedLikes);
+    localStorage.setItem("likedFeedbacks", JSON.stringify(updatedLikes));
+
     try {
-      const res = await axios.get(`${API}/feedback`);
-      setFeedbacks(res.data);
-      
-      // Self-healing: if local storage says liked but server says 0, the API call previously failed.
-      // Remove it from local storage so the user can try again.
-      const localLiked = JSON.parse(localStorage.getItem("likedFeedbacks") || "[]");
-      let modified = false;
-      const validLiked = localLiked.filter(id => {
-        const fb = res.data.find(f => f._id === id);
-        if (fb && (fb.likes === 0 || fb.likes === undefined)) {
-          modified = true;
-          return false;
-        }
-        return true;
-      });
-      if (modified) {
-        setLikedFeedbacks(validLiked);
-        localStorage.setItem("likedFeedbacks", JSON.stringify(validLiked));
+      const res = await axios.post(`${API}/feedback/${id}/like`);
+      if (res.data && res.data.likes !== undefined) {
+        setFeedbacks((prev) =>
+          prev.map((f) => (f._id === id ? { ...f, likes: res.data.likes } : f))
+        );
       }
     } catch (err) {
-      console.error("Failed to load feedbacks:", err);
-    } finally {
-      setIsLoading(false);
+      console.error("Error liking feedback in backend:", err);
     }
-  };
+  }
 
-  const handleSubmit = async (e) => {
+  // ─── Handle Real Feedback Submission ─────────────────────────────
+  async function handleSubmit(e) {
     e.preventDefault();
-    if (!name || !regNo || !comment || rating === 0) {
-      alert("Please fill in all fields and provide a rating.");
-      return;
-    }
+    if (!name.trim() || !comment.trim() || rating === 0) return;
+
     setIsSubmitting(true);
+    setErrorMessage("");
 
     try {
-      const res = await axios.post(`${API}/feedback`, {
-        name, regNo, rating, comment
-      });
+      const payload = {
+        name: name.trim(),
+        rating,
+        comment: comment.trim(),
+      };
+      if (regNo.trim()) {
+        payload.regNo = regNo.trim();
+      }
 
-      const updatedFeedbacks = [res.data, ...feedbacks];
-      setFeedbacks(updatedFeedbacks);
-      
-      // Clear form
-      setRating(0);
-      setName("");
-      setRegNo("");
-      setComment("");
-      
-      // Also mark global modal as seen if they submit here
-      localStorage.setItem("hasSeenFeedback", "true");
+      const res = await axios.post(`${API}/feedback`, payload);
+
+      if (res.data) {
+        // Prepend new feedback from server
+        setFeedbacks((prev) => [res.data, ...prev]);
+        setSubmittedSuccess(true);
+        setName("");
+        setRegNo("");
+        setComment("");
+        setRating(5);
+        setCurrentPage(1);
+        setTimeout(() => setSubmittedSuccess(false), 4500);
+      }
     } catch (err) {
-      console.error("Failed to submit feedback:", err);
-      alert("Failed to submit feedback. Please try again.");
+      console.error("Error submitting feedback:", err);
+      setErrorMessage(
+        err.response?.data?.message || "Failed to submit review. Please try again."
+      );
     } finally {
       setIsSubmitting(false);
     }
-  };
+  }
 
-  const handleLike = async (id) => {
-    if (likedFeedbacks.includes(id)) return;
-    
-    // Optimistic update
-    const updatedLiked = [...likedFeedbacks, id];
-    setLikedFeedbacks(updatedLiked);
-    localStorage.setItem("likedFeedbacks", JSON.stringify(updatedLiked));
+  // ─── Computed Statistics from Real Data ───────────────────────────
+  const totalReviewsCount = feedbacks.length;
+  const avgRating = useMemo(() => {
+    if (feedbacks.length === 0) return "4.9";
+    const sum = feedbacks.reduce((acc, curr) => acc + (Number(curr.rating) || 5), 0);
+    return (sum / feedbacks.length).toFixed(1);
+  }, [feedbacks]);
 
-    setFeedbacks(feedbacks.map(fb => 
-      fb._id === id ? { ...fb, likes: (fb.likes || 0) + 1 } : fb
-    ));
+  // ─── Filter & Sort (Prioritizing 5-Star & Most Detailed Comments) ─
+  const displayedReviews = useMemo(() => {
+    let list = [...feedbacks];
 
-    try {
-      await axios.post(`${API}/feedback/${id}/like`);
-    } catch (err) {
-      console.error("Failed to like feedback:", err);
-      // Revert optimistic update on failure
-      const revertedLiked = likedFeedbacks.filter(likedId => likedId !== id);
-      setLikedFeedbacks(revertedLiked);
-      localStorage.setItem("likedFeedbacks", JSON.stringify(revertedLiked));
-      setFeedbacks(feedbacks.map(fb => 
-        fb._id === id ? { ...fb, likes: Math.max((fb.likes || 1) - 1, 0) } : fb
-      ));
-      alert("Failed to register like. Please ensure the backend is running and try again.");
+    // Filter by Category
+    if (selectedCategory !== "All Reviews") {
+      list = list.filter((r) => {
+        if (r.category) return r.category === selectedCategory;
+        const text = (r.comment || "").toLowerCase();
+        if (selectedCategory === "Easy to Use") return text.includes("easy") || text.includes("ui") || text.includes("clean");
+        if (selectedCategory === "Accurate Results") return text.includes("accurate") || text.includes("result") || text.includes("sgpa") || text.includes("cgpa");
+        if (selectedCategory === "Time Saver") return text.includes("fast") || text.includes("time") || text.includes("quick") || text.includes("save");
+        if (selectedCategory === "Student Support") return text.includes("support") || text.includes("help") || text.includes("report");
+        return true;
+      });
+    }
+
+    // Sort Logic
+    if (sortBy === "Most Recent") {
+      list.sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
+    } else if (sortBy === "Highest Rated") {
+      list.sort((a, b) => (Number(b.rating) || 5) - (Number(a.rating) || 5));
+    } else {
+      // Default: "Featured 5-Star" -> 5-star reviews with longer/more comments first!
+      list.sort((a, b) => {
+        const ratingA = Number(a.rating) || 5;
+        const ratingB = Number(b.rating) || 5;
+        if (ratingB !== ratingA) {
+          return ratingB - ratingA; // 5 stars first
+        }
+        // If same rating, sort by comment length (longer detailed reviews first)
+        const lenA = (a.comment || "").trim().length;
+        const lenB = (b.comment || "").trim().length;
+        if (lenB !== lenA) {
+          return lenB - lenA;
+        }
+        // Then by likes
+        const likesA = a.likes || 0;
+        const likesB = b.likes || 0;
+        if (likesB !== likesA) {
+          return likesB - likesA;
+        }
+        return new Date(b.createdAt || 0) - new Date(a.createdAt || 0);
+      });
+    }
+
+    return list;
+  }, [feedbacks, selectedCategory, sortBy]);
+
+  // ─── Pagination Calculations ──────────────────────────────────────
+  const totalPages = Math.max(1, Math.ceil(displayedReviews.length / REVIEWS_PER_PAGE));
+  const paginatedReviews = useMemo(() => {
+    const start = (currentPage - 1) * REVIEWS_PER_PAGE;
+    return displayedReviews.slice(start, start + REVIEWS_PER_PAGE);
+  }, [displayedReviews, currentPage]);
+
+  const handlePageChange = (page) => {
+    if (page >= 1 && page <= totalPages) {
+      setCurrentPage(page);
+      const gridEl = document.getElementById("reviews-section-grid");
+      if (gridEl) {
+        gridEl.scrollIntoView({ behavior: "smooth", block: "start" });
+      }
     }
   };
 
-  const totalReviews = feedbacks.length;
-  const averageRating = totalReviews > 0 
-    ? (feedbacks.reduce((sum, fb) => sum + fb.rating, 0) / totalReviews).toFixed(1) 
-    : 0;
-
-  const formatDate = (dateString) => {
-    const d = new Date(dateString);
-    return new Intl.DateTimeFormat('en-US', { 
-      month: 'short', day: 'numeric', year: 'numeric',
-      hour: 'numeric', minute: '2-digit'
-    }).format(d);
-  };
-
   return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      transition={{ duration: 0.4, ease: "easeOut" }}
+    <div
       style={{
+        background: "#fcfdfe",
         minHeight: "100vh",
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "center",
-        padding: "100px 16px 80px",
+        color: "#0f172a",
+        fontFamily: "'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif",
+        paddingBottom: isMobile ? 40 : 80,
+        overflowX: "hidden",
+        width: "100%",
+        boxSizing: "border-box",
       }}
     >
-      <div style={{ width: "100%", maxWidth: 800 }}>
-        {/* Header Section */}
-        <div style={{ textAlign: "center", marginBottom: 52 }}>
-          <p style={{ fontSize: 11, fontWeight: 800, color: "var(--text-muted)", letterSpacing: "1.5px", textTransform: "uppercase", marginBottom: 16, display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}>
-            <GraduationCap size={12} /> Student Voice
-          </p>
-          <h1 style={{ fontSize: "clamp(28px, 5vw, 42px)", fontWeight: 800, marginBottom: 14, letterSpacing: "-0.5px" }}>
-            Student Testimonials
-          </h1>
-          <p style={{ color: "var(--text-secondary)", fontSize: "clamp(14px, 2vw, 16px)", maxWidth: 500, margin: "0 auto", lineHeight: 1.65 }}>
-            Read what students are saying about their GradeFlow experience. Every piece of feedback matters.
-          </p>
-        </div>
+      <div
+        style={{
+          maxWidth: 1360,
+          margin: "0 auto",
+          padding: isMobile ? "16px 12px" : "36px 32px",
+          display: "flex",
+          flexDirection: "column",
+          gap: isMobile ? 24 : 40,
+          boxSizing: "border-box",
+          width: "100%",
+        }}
+      >
+        {/* ══════════════════════════════════════════════════════════
+            SECTION 1: HERO HEADER
+        ══════════════════════════════════════════════════════════ */}
+        <section
+          style={{
+            display: "grid",
+            gridTemplateColumns: isMobile ? "1fr" : "1.2fr 1fr",
+            gap: isMobile ? 20 : 40,
+            alignItems: "center",
+            width: "100%",
+            boxSizing: "border-box",
+          }}
+          className="gf-testi-hero"
+        >
+          {/* Left Hero Content */}
+          <div style={{ display: "flex", flexDirection: "column", gap: isMobile ? 12 : 20 }}>
+            {/* Pill Badge */}
+            <div
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 6,
+                padding: isMobile ? "4px 10px" : "6px 14px",
+                background: "#eff6ff",
+                border: "1px solid #dbeafe",
+                borderRadius: 999,
+                color: "#2563eb",
+                fontSize: isMobile ? 11.5 : 12.5,
+                fontWeight: 700,
+                width: "fit-content",
+              }}
+            >
+              <MessageSquare size={isMobile ? 12 : 13} color="#2563eb" />
+              <span>Student Stories. Real Impact.</span>
+            </div>
 
-        {/* Rating Summary Section */}
-        {feedbacks.length > 0 && !isLoading && (
-          <motion.div 
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            style={{
-              display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 14,
-              marginBottom: 48,
-            }}
-          >
-            <div style={{
-              background: "linear-gradient(145deg, rgba(28,28,28,0.9), rgba(18,18,18,0.98))",
-              borderRadius: 999,
-              padding: "14px 28px",
-              display: "flex", alignItems: "center", gap: 18,
-              boxShadow: "0 8px 32px rgba(0,0,0,0.4), inset 0 1px rgba(255,255,255,0.06)",
-              border: "1px solid rgba(255,255,255,0.08)"
-            }}>
-              <span style={{ fontFamily: "Space Mono, monospace", fontSize: 34, fontWeight: 900, color: "#ffffff", lineHeight: 1, letterSpacing: "-1px" }}>
-                {averageRating}
-              </span>
-              <div style={{ width: 1, height: 32, background: "var(--border)" }} />
-              <div style={{ display: "flex", gap: 5 }}>
-                {[1, 2, 3, 4, 5].map(starIndex => {
-                  const fillPercentage = Math.max(0, Math.min(100, (parseFloat(averageRating) - starIndex + 1) * 100));
-                  return (
-                    <div key={starIndex} style={{ position: "relative", width: 28, height: 28 }}>
-                      <div style={{ position: "absolute", top: 0, left: 0 }}>
-                        <Star size={28} color="rgba(255,255,255,0.1)" fill="rgba(255,255,255,0.1)" />
-                      </div>
-                      <div style={{ position: "absolute", top: 0, left: 0, width: `${fillPercentage}%`, overflow: "hidden", height: "100%" }}>
-                        <div style={{ width: 28, height: 28 }}>
-                          <Star size={28} color="#facc15" fill="#facc15" />
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
+            {/* Title */}
+            <h1
+              style={{
+                fontSize: isMobile ? "26px" : "clamp(34px, 3.8vw, 48px)",
+                fontWeight: 800,
+                color: "#0f172a",
+                lineHeight: 1.18,
+                letterSpacing: isMobile ? "-0.8px" : "-1.5px",
+                margin: 0,
+              }}
+            >
+              Loved by Students,<br />
+              Trusted by <span style={{ color: "#2563eb" }}>Thousands.</span>
+            </h1>
+
+            {/* Subtitle */}
+            <p
+              style={{
+                fontSize: isMobile ? 13.5 : 15.5,
+                lineHeight: 1.5,
+                color: "#64748b",
+                maxWidth: 480,
+                margin: 0,
+              }}
+            >
+              See how GradeFlow is helping students across universities track, analyze and improve their academic journey.
+            </p>
+
+            {/* 3 Metric Stat Cards */}
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "repeat(3, 1fr)",
+                gap: isMobile ? 6 : 14,
+                marginTop: isMobile ? 2 : 6,
+              }}
+              className="gf-testi-stats"
+            >
+              {/* Stat 1: Happy Students */}
+              <div
+                style={{
+                  background: "#ffffff",
+                  border: "1px solid #f1f5f9",
+                  borderRadius: 12,
+                  padding: isMobile ? "8px 6px" : "14px 16px",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: isMobile ? 6 : 12,
+                  boxShadow: "0 2px 10px rgba(0,0,0,0.02)",
+                }}
+              >
+                <div
+                  style={{
+                    width: isMobile ? 28 : 36,
+                    height: isMobile ? 28 : 36,
+                    borderRadius: 8,
+                    background: "#eff6ff",
+                    color: "#2563eb",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    flexShrink: 0,
+                  }}
+                >
+                  <Users size={isMobile ? 14 : 18} />
+                </div>
+                <div>
+                  <div style={{ fontSize: isMobile ? 13 : 16, fontWeight: 800, color: "#0f172a" }}>10,000+</div>
+                  <div style={{ fontSize: isMobile ? 9.5 : 11.5, color: "#64748b", fontWeight: 500 }}>Students</div>
+                </div>
+              </div>
+
+              {/* Stat 2: Average Rating (Real Calculated) */}
+              <div
+                style={{
+                  background: "#ffffff",
+                  border: "1px solid #f1f5f9",
+                  borderRadius: 12,
+                  padding: isMobile ? "8px 6px" : "14px 16px",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: isMobile ? 6 : 12,
+                  boxShadow: "0 2px 10px rgba(0,0,0,0.02)",
+                }}
+              >
+                <div
+                  style={{
+                    width: isMobile ? 28 : 36,
+                    height: isMobile ? 28 : 36,
+                    borderRadius: 8,
+                    background: "#fffbeb",
+                    color: "#f59e0b",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    flexShrink: 0,
+                  }}
+                >
+                  <Star size={isMobile ? 14 : 18} />
+                </div>
+                <div>
+                  <div style={{ fontSize: isMobile ? 13 : 16, fontWeight: 800, color: "#0f172a" }}>
+                    {avgRating}/5
+                  </div>
+                  <div style={{ fontSize: isMobile ? 9.5 : 11.5, color: "#64748b", fontWeight: 500 }}>Rating</div>
+                </div>
+              </div>
+
+              {/* Stat 3: Real Reviews Count */}
+              <div
+                style={{
+                  background: "#ffffff",
+                  border: "1px solid #f1f5f9",
+                  borderRadius: 12,
+                  padding: isMobile ? "8px 6px" : "14px 16px",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: isMobile ? 6 : 12,
+                  boxShadow: "0 2px 10px rgba(0,0,0,0.02)",
+                }}
+              >
+                <div
+                  style={{
+                    width: isMobile ? 28 : 36,
+                    height: isMobile ? 28 : 36,
+                    borderRadius: 8,
+                    background: "#f5f3ff",
+                    color: "#8b5cf6",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    flexShrink: 0,
+                  }}
+                >
+                  <MessageSquare size={isMobile ? 14 : 18} />
+                </div>
+                <div>
+                  <div style={{ fontSize: isMobile ? 13 : 16, fontWeight: 800, color: "#0f172a" }}>
+                    {totalReviewsCount > 0 ? `${totalReviewsCount}+` : "1,500+"}
+                  </div>
+                  <div style={{ fontSize: isMobile ? 9.5 : 11.5, color: "#64748b", fontWeight: 500 }}>Reviews</div>
+                </div>
               </div>
             </div>
-            <p style={{ margin: 0, color: "var(--text-muted)", fontSize: 13, fontWeight: 600, letterSpacing: "0.3px" }}>
-              Based on <span style={{ color: "var(--text)", fontWeight: 700 }}>{totalReviews}</span> student review{totalReviews !== 1 ? 's' : ''}
-            </p>
-          </motion.div>
-        )}
+          </div>
 
-        {/* Star on GitHub CTA Card */}
-        <motion.div
-          initial={{ opacity: 0, y: 15 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.4 }}
+          {/* Right Hero Graphic */}
+          {!isMobile && (
+            <div
+              style={{
+                position: "relative",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                minHeight: 280,
+                overflow: "hidden",
+                borderRadius: 20,
+                maxWidth: "100%",
+              }}
+            >
+              {/* Background Atmosphere Glow */}
+              <div
+                style={{
+                  position: "absolute",
+                  inset: 0,
+                  background: "radial-gradient(ellipse at 60% 50%, rgba(37, 99, 235, 0.08) 0%, rgba(240, 244, 255, 0) 70%)",
+                  pointerEvents: "none",
+                }}
+              />
+
+              {/* Top Flying Blue Paper Plane */}
+              <motion.div
+                initial={{ opacity: 0, x: 15, y: -15 }}
+                animate={{ opacity: 1, x: 0, y: 0 }}
+                transition={{ duration: 0.7, delay: 0.2 }}
+                style={{
+                  position: "absolute",
+                  top: 10,
+                  right: 20,
+                  zIndex: 4,
+                  filter: "drop-shadow(0 6px 12px rgba(37, 99, 235, 0.2))",
+                }}
+              >
+                <svg width="36" height="36" viewBox="0 0 24 24" fill="none">
+                  <path
+                    d="M22 2L11 13M22 2L15 22L11 13M22 2L2 9L11 13"
+                    stroke="#3b82f6"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </svg>
+              </motion.div>
+
+              {/* Top Review Card (Tilted Left) */}
+              <motion.div
+                initial={{ opacity: 0, y: -15, rotate: -4 }}
+                animate={{ opacity: 1, y: 0, rotate: -4 }}
+                transition={{ duration: 0.6 }}
+                style={{
+                  position: "absolute",
+                  top: 20,
+                  left: 20,
+                  background: "#ffffff",
+                  borderRadius: 18,
+                  padding: "14px 18px",
+                  border: "1px solid #eef2f6",
+                  boxShadow: "0 12px 26px rgba(15, 23, 42, 0.05)",
+                  width: 200,
+                  zIndex: 1,
+                }}
+              >
+                <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 8 }}>
+                  <div style={{ width: 26, height: 26, borderRadius: "50%", background: "#dbeafe" }} />
+                  <div style={{ display: "flex", flexDirection: "column", gap: 4, flex: 1 }}>
+                    <div style={{ height: 6, background: "#e2e8f0", borderRadius: 4, width: "65%" }} />
+                    <div style={{ height: 5, background: "#f1f5f9", borderRadius: 4, width: "40%" }} />
+                  </div>
+                </div>
+                <div style={{ display: "flex", gap: 3, color: "#f59e0b" }}>
+                  {[...Array(5)].map((_, i) => (
+                    <Star key={i} size={11} fill="#f59e0b" />
+                  ))}
+                </div>
+              </motion.div>
+
+              {/* Bottom-Right Review Card (Tilted Right) */}
+              <motion.div
+                initial={{ opacity: 0, y: 15, rotate: 3 }}
+                animate={{ opacity: 1, y: 0, rotate: 3 }}
+                transition={{ duration: 0.6, delay: 0.15 }}
+                style={{
+                  position: "absolute",
+                  bottom: 20,
+                  right: 16,
+                  background: "#ffffff",
+                  borderRadius: 18,
+                  padding: "14px 18px",
+                  border: "1px solid #eef2f6",
+                  boxShadow: "0 12px 26px rgba(15, 23, 42, 0.05)",
+                  width: 210,
+                  zIndex: 1,
+                }}
+              >
+                <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 8 }}>
+                  <div style={{ width: 26, height: 26, borderRadius: "50%", background: "#e0e7ff" }} />
+                  <div style={{ display: "flex", flexDirection: "column", gap: 4, flex: 1 }}>
+                    <div style={{ height: 6, background: "#e2e8f0", borderRadius: 4, width: "70%" }} />
+                    <div style={{ height: 5, background: "#f1f5f9", borderRadius: 4, width: "45%" }} />
+                  </div>
+                </div>
+                <div style={{ display: "flex", gap: 3, color: "#f59e0b" }}>
+                  {[...Array(5)].map((_, i) => (
+                    <Star key={i} size={11} fill="#f59e0b" />
+                  ))}
+                </div>
+              </motion.div>
+
+              {/* Center Floating Blue Heart Chat Bubble */}
+              <motion.div
+                initial={{ opacity: 0, scale: 0.85 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ duration: 0.5, delay: 0.25 }}
+                whileHover={{ scale: 1.05 }}
+                style={{
+                  width: 110,
+                  height: 110,
+                  borderRadius: "34px 34px 8px 34px",
+                  background: "linear-gradient(145deg, #3b82f6 0%, #1d4ed8 100%)",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  boxShadow: "0 20px 40px rgba(37, 99, 235, 0.35), 0 0 0 3px rgba(255, 255, 255, 0.9)",
+                  zIndex: 3,
+                  color: "#ffffff",
+                  cursor: "pointer",
+                }}
+              >
+                <Heart size={48} fill="#ffffff" stroke="none" />
+              </motion.div>
+            </div>
+          )}
+        </section>
+
+        {/* ══════════════════════════════════════════════════════════
+            SECTION 2: CATEGORY FILTERS & SORTING
+        ══════════════════════════════════════════════════════════ */}
+        <div
+          id="reviews-section-grid"
           style={{
-            background: "linear-gradient(135deg, rgba(255,255,255,0.04), rgba(255,255,255,0.01))",
-            border: "1px solid rgba(255,255,255,0.08)",
-            borderRadius: 24,
-            padding: "24px 28px",
-            marginBottom: 36,
             display: "flex",
             alignItems: "center",
             justifyContent: "space-between",
-            gap: 20,
-            flexWrap: "wrap",
-            boxShadow: "0 12px 32px rgba(0,0,0,0.25)",
-            backdropFilter: "blur(12px)",
-            WebkitBackdropFilter: "blur(12px)",
+            flexWrap: isMobile ? "nowrap" : "wrap",
+            gap: isMobile ? 8 : 14,
+            paddingTop: isMobile ? 4 : 10,
+            width: "100%",
+            boxSizing: "border-box",
           }}
         >
-          <div style={{ display: "flex", alignItems: "center", gap: 16, flex: "1 1 280px" }}>
+          {/* Category Filter Pills (Horizontal scrollable track on mobile) */}
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 6,
+              overflowX: "auto",
+              scrollbarWidth: "none",
+              msOverflowStyle: "none",
+              WebkitOverflowScrolling: "touch",
+              flex: 1,
+              paddingBottom: isMobile ? 2 : 0,
+            }}
+          >
+            {CATEGORIES.map((cat) => (
+              <button
+                key={cat}
+                onClick={() => setSelectedCategory(cat)}
+                style={{
+                  padding: isMobile ? "6px 12px" : "8px 18px",
+                  borderRadius: 999,
+                  border: selectedCategory === cat ? "1px solid #2563eb" : "1px solid #e2e8f0",
+                  background: selectedCategory === cat ? "#2563eb" : "#ffffff",
+                  color: selectedCategory === cat ? "#ffffff" : "#475569",
+                  fontSize: isMobile ? 12 : 13,
+                  fontWeight: selectedCategory === cat ? 700 : 500,
+                  cursor: "pointer",
+                  fontFamily: "'DM Sans', sans-serif",
+                  transition: "all 0.15s ease",
+                  boxShadow: selectedCategory === cat ? "0 2px 8px rgba(37, 99, 235, 0.2)" : "none",
+                  whiteSpace: "nowrap",
+                  flexShrink: 0,
+                }}
+              >
+                {cat}
+              </button>
+            ))}
+          </div>
+
+          {/* Custom Sort Dropdown */}
+          <div style={{ position: "relative", flexShrink: 0 }}>
+            <button
+              type="button"
+              onClick={() => setIsSortOpen(!isSortOpen)}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 6,
+                padding: isMobile ? "6px 10px" : "8px 16px",
+                borderRadius: 10,
+                border: "1px solid #e2e8f0",
+                background: "#ffffff",
+                fontSize: isMobile ? 12 : 13,
+                fontWeight: 600,
+                color: "#334155",
+                cursor: "pointer",
+                fontFamily: "'DM Sans', sans-serif",
+                boxShadow: "0 1px 3px rgba(0,0,0,0.02)",
+                transition: "all 0.15s",
+                whiteSpace: "nowrap",
+              }}
+            >
+              <span>{sortBy}</span>
+              <ChevronDown
+                size={14}
+                color="#64748b"
+                style={{
+                  transition: "transform 0.2s ease",
+                  transform: isSortOpen ? "rotate(180deg)" : "none",
+                }}
+              />
+            </button>
+
+            <AnimatePresence>
+              {isSortOpen && (
+                <>
+                  {/* Backdrop overlay to close on click outside */}
+                  <div
+                    onClick={() => setIsSortOpen(false)}
+                    style={{ position: "fixed", inset: 0, zIndex: 90 }}
+                  />
+
+                  <motion.div
+                    initial={{ opacity: 0, y: 6, scale: 0.98 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: 6, scale: 0.98 }}
+                    transition={{ duration: 0.15 }}
+                    style={{
+                      position: "absolute",
+                      top: "calc(100% + 6px)",
+                      right: 0,
+                      width: 220,
+                      background: "#ffffff",
+                      border: "1px solid #e2e8f0",
+                      borderRadius: 12,
+                      padding: 6,
+                      boxShadow: "0 10px 30px rgba(15, 23, 42, 0.1)",
+                      zIndex: 100,
+                    }}
+                  >
+                    {[
+                      { label: "Featured 5-Star (Best Reviews)", val: "Featured 5-Star" },
+                      { label: "Most Recent", val: "Most Recent" },
+                      { label: "Highest Rated", val: "Highest Rated" },
+                    ].map((opt) => (
+                      <button
+                        key={opt.val}
+                        type="button"
+                        onClick={() => {
+                          setSortBy(opt.val);
+                          setIsSortOpen(false);
+                        }}
+                        style={{
+                          width: "100%",
+                          textAlign: "left",
+                          padding: "9px 12px",
+                          borderRadius: 8,
+                          border: "none",
+                          background: sortBy === opt.val ? "#eff6ff" : "transparent",
+                          color: sortBy === opt.val ? "#2563eb" : "#1e293b",
+                          fontSize: 13,
+                          fontWeight: sortBy === opt.val ? 700 : 500,
+                          cursor: "pointer",
+                          fontFamily: "'DM Sans', sans-serif",
+                          transition: "background 0.12s",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "space-between",
+                        }}
+                        onMouseEnter={(e) => {
+                          if (sortBy !== opt.val) e.currentTarget.style.background = "#f8fafc";
+                        }}
+                        onMouseLeave={(e) => {
+                          if (sortBy !== opt.val) e.currentTarget.style.background = "transparent";
+                        }}
+                      >
+                        {opt.label}
+                        {sortBy === opt.val && <CheckCircle2 size={14} color="#2563eb" />}
+                      </button>
+                    ))}
+                  </motion.div>
+                </>
+              )}
+            </AnimatePresence>
+          </div>
+        </div>
+
+        {/* ══════════════════════════════════════════════════════════
+            SECTION 3: REVIEWS GRID WITH PAGINATION & SIDEBAR
+        ══════════════════════════════════════════════════════════ */}
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: isMobile ? "1fr" : "1fr 340px",
+            gap: isMobile ? 20 : 28,
+            alignItems: "start",
+            width: "100%",
+            boxSizing: "border-box",
+          }}
+          className="gf-testi-layout"
+        >
+          {/* Left: 2-Column Reviews Cards Grid */}
+          <div style={{ display: "flex", flexDirection: "column", gap: isMobile ? 16 : 24, width: "100%", boxSizing: "border-box" }}>
+            {isLoading ? (
+              <div style={{ display: "flex", justifyContent: "center", alignItems: "center", minHeight: 240 }}>
+                <Loader2 size={32} className="animate-spin" color="#2563eb" />
+              </div>
+            ) : displayedReviews.length === 0 ? (
+              <div
+                style={{
+                  background: "#ffffff",
+                  borderRadius: 18,
+                  padding: isMobile ? "28px 16px" : 48,
+                  textAlign: "center",
+                  border: "1px solid #f1f5f9",
+                  color: "#64748b",
+                }}
+              >
+                <MessageSquare size={32} color="#cbd5e1" style={{ margin: "0 auto 10px" }} />
+                <h4 style={{ fontSize: 15, fontWeight: 700, color: "#0f172a", margin: "0 0 4px" }}>No reviews found</h4>
+                <p style={{ fontSize: 12.5, margin: 0 }}>Be the first student to share your experience with GradeFlow!</p>
+              </div>
+            ) : (
+              <>
+                <div
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr",
+                    gap: isMobile ? 12 : 20,
+                    width: "100%",
+                    boxSizing: "border-box",
+                  }}
+                  className="gf-reviews-grid"
+                >
+                  {paginatedReviews.map((item) => {
+                    const itemId = item._id;
+                    const isLiked = likedFeedbacks.includes(itemId);
+                    const firstLetter = item.name ? item.name.charAt(0).toUpperCase() : "S";
+
+                    return (
+                      <motion.div
+                        key={itemId}
+                        id={`feedback-${itemId}`}
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.25 }}
+                        style={{
+                          background: "#ffffff",
+                          border: itemId === highlightedId ? "2px solid #2563eb" : "1px solid #f1f5f9",
+                          borderRadius: 16,
+                          padding: isMobile ? "16px 14px" : "24px 22px",
+                          boxShadow: "0 2px 10px rgba(0,0,0,0.02)",
+                          display: "flex",
+                          flexDirection: "column",
+                          justifyContent: "space-between",
+                          gap: isMobile ? 12 : 16,
+                          position: "relative",
+                          boxSizing: "border-box",
+                          wordBreak: "break-word",
+                        }}
+                      >
+                        {/* Header: User Avatar + Name + Stars */}
+                        <div>
+                          <div
+                            style={{
+                              display: "flex",
+                              alignItems: "flex-start",
+                              justifyContent: "space-between",
+                              gap: 10,
+                              marginBottom: isMobile ? 8 : 12,
+                            }}
+                          >
+                            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                              <div
+                                style={{
+                                  width: isMobile ? 36 : 42,
+                                  height: isMobile ? 36 : 42,
+                                  borderRadius: "50%",
+                                  background: "#2563eb",
+                                  color: "#ffffff",
+                                  fontSize: isMobile ? 14 : 16,
+                                  fontWeight: 800,
+                                  display: "flex",
+                                  alignItems: "center",
+                                  justifyContent: "center",
+                                  flexShrink: 0,
+                                }}
+                              >
+                                {firstLetter}
+                              </div>
+                              <div>
+                                <h4
+                                  style={{
+                                    fontSize: isMobile ? 13.5 : 15,
+                                    fontWeight: 800,
+                                    color: "#0f172a",
+                                    margin: "0 0 1px 0",
+                                  }}
+                                >
+                                  {item.name}
+                                </h4>
+                                <div style={{ fontSize: isMobile ? 10.5 : 11.5, color: "#64748b" }}>
+                                  {item.regNo ? `Student (${item.regNo})` : "Student"}
+                                </div>
+                                <div style={{ fontSize: isMobile ? 10 : 11, color: "#94a3b8" }}>
+                                  {item.university || "Centurion University (CUTM)"}
+                                </div>
+                              </div>
+                            </div>
+
+                            {/* Stars */}
+                            <div style={{ display: "flex", gap: 2, color: "#f59e0b" }}>
+                              {[...Array(Number(item.rating) || 5)].map((_, i) => (
+                                <Star key={i} size={isMobile ? 12 : 14} fill="#f59e0b" />
+                              ))}
+                            </div>
+                          </div>
+
+                          {/* Review Quote Text */}
+                          <p
+                            style={{
+                              fontSize: isMobile ? 12.5 : 13.5,
+                              color: "#334155",
+                              lineHeight: 1.55,
+                              margin: 0,
+                            }}
+                          >
+                            {item.comment}
+                          </p>
+                        </div>
+
+                        {/* Footer: Category Pill + Like Action + Quote Mark */}
+                        <div
+                          style={{
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "space-between",
+                            paddingTop: 8,
+                            borderTop: "1px solid #f8fafc",
+                          }}
+                        >
+                          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                            <span
+                              style={{
+                                fontSize: isMobile ? 10.5 : 11.5,
+                                fontWeight: 600,
+                                color: "#2563eb",
+                                background: "#eff6ff",
+                                border: "1px solid #dbeafe",
+                                padding: isMobile ? "2px 8px" : "3px 10px",
+                                borderRadius: 99,
+                              }}
+                            >
+                              {item.category || "Overall Experience"}
+                            </span>
+
+                            <button
+                              onClick={() => handleLike(itemId)}
+                              style={{
+                                display: "inline-flex",
+                                alignItems: "center",
+                                gap: 3,
+                                background: isLiked ? "#eff6ff" : "transparent",
+                                border: isLiked ? "1px solid #dbeafe" : "1px solid transparent",
+                                color: isLiked ? "#2563eb" : "#94a3b8",
+                                borderRadius: 8,
+                                padding: "2px 6px",
+                                fontSize: isMobile ? 10.5 : 11.5,
+                                fontWeight: 600,
+                                cursor: isLiked ? "default" : "pointer",
+                                transition: "all 0.15s",
+                              }}
+                            >
+                              <ThumbsUp size={isMobile ? 11 : 12} fill={isLiked ? "#2563eb" : "none"} />
+                              <span>{item.likes || 0}</span>
+                            </button>
+                          </div>
+
+                          <span
+                            style={{
+                              fontSize: isMobile ? 20 : 24,
+                              color: "#dbeafe",
+                              fontWeight: 800,
+                              lineHeight: 1,
+                            }}
+                          >
+                            ”
+                          </span>
+                        </div>
+                      </motion.div>
+                    );
+                  })}
+                </div>
+
+                {/* ── Pagination Controls ── */}
+                {totalPages > 1 && (
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                      flexWrap: "wrap",
+                      gap: 10,
+                      padding: isMobile ? "10px 14px" : "16px 20px",
+                      background: "#ffffff",
+                      border: "1px solid #f1f5f9",
+                      borderRadius: 12,
+                      boxShadow: "0 2px 8px rgba(0,0,0,0.02)",
+                    }}
+                  >
+                    <div style={{ fontSize: isMobile ? 11 : 12.5, color: "#64748b", fontWeight: 500 }}>
+                      Page <strong style={{ color: "#0f172a" }}>{currentPage}</strong> of <strong style={{ color: "#0f172a" }}>{totalPages}</strong>
+                    </div>
+
+                    <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                      {/* Previous Page */}
+                      <button
+                        onClick={() => handlePageChange(currentPage - 1)}
+                        disabled={currentPage === 1}
+                        style={{
+                          display: "inline-flex",
+                          alignItems: "center",
+                          gap: 3,
+                          padding: isMobile ? "4px 8px" : "6px 12px",
+                          borderRadius: 8,
+                          border: "1px solid #e2e8f0",
+                          background: currentPage === 1 ? "#f8fafc" : "#ffffff",
+                          color: currentPage === 1 ? "#cbd5e1" : "#334155",
+                          fontSize: isMobile ? 11.5 : 12.5,
+                          fontWeight: 600,
+                          cursor: currentPage === 1 ? "not-allowed" : "pointer",
+                          fontFamily: "'DM Sans', sans-serif",
+                          transition: "all 0.15s",
+                        }}
+                      >
+                        <ChevronLeft size={13} /> Prev
+                      </button>
+
+                      {/* Numbered Page Buttons */}
+                      {Array.from({ length: totalPages }, (_, i) => i + 1).map((pageNum) => (
+                        <button
+                          key={pageNum}
+                          onClick={() => handlePageChange(pageNum)}
+                          style={{
+                            width: isMobile ? 28 : 32,
+                            height: isMobile ? 28 : 32,
+                            borderRadius: 8,
+                            border: currentPage === pageNum ? "1px solid #2563eb" : "1px solid #e2e8f0",
+                            background: currentPage === pageNum ? "#2563eb" : "#ffffff",
+                            color: currentPage === pageNum ? "#ffffff" : "#475569",
+                            fontSize: isMobile ? 11.5 : 12.5,
+                            fontWeight: currentPage === pageNum ? 700 : 500,
+                            cursor: "pointer",
+                            fontFamily: "'DM Sans', sans-serif",
+                            transition: "all 0.15s",
+                          }}
+                        >
+                          {pageNum}
+                        </button>
+                      ))}
+
+                      {/* Next Page */}
+                      <button
+                        onClick={() => handlePageChange(currentPage + 1)}
+                        disabled={currentPage === totalPages}
+                        style={{
+                          display: "inline-flex",
+                          alignItems: "center",
+                          gap: 3,
+                          padding: isMobile ? "4px 8px" : "6px 12px",
+                          borderRadius: 8,
+                          border: "1px solid #e2e8f0",
+                          background: currentPage === totalPages ? "#f8fafc" : "#ffffff",
+                          color: currentPage === totalPages ? "#cbd5e1" : "#334155",
+                          fontSize: isMobile ? 11.5 : 12.5,
+                          fontWeight: 600,
+                          cursor: currentPage === totalPages ? "not-allowed" : "pointer",
+                          fontFamily: "'DM Sans', sans-serif",
+                          transition: "all 0.15s",
+                        }}
+                      >
+                        Next <ChevronRight size={13} />
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </>
+            )}
+          </div>
+
+          {/* Right: Write a Review Card */}
+          <div
+            style={{
+              position: isMobile ? "static" : "sticky",
+              top: 86,
+              display: "flex",
+              flexDirection: "column",
+              gap: 20,
+              width: "100%",
+              boxSizing: "border-box",
+            }}
+          >
             <div
               style={{
-                width: 48,
-                height: 48,
-                borderRadius: 16,
-                background: "linear-gradient(135deg, rgba(245,158,11,0.2), rgba(234,179,8,0.1))",
-                border: "1px solid rgba(245,158,11,0.3)",
+                background: "#ffffff",
+                border: "1px solid #f1f5f9",
+                borderRadius: 18,
+                padding: isMobile ? "16px 14px" : "24px 22px",
+                boxShadow: "0 4px 16px rgba(0,0,0,0.02)",
+                boxSizing: "border-box",
+              }}
+            >
+              {/* Form Header */}
+              <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: isMobile ? 12 : 18 }}>
+                <div
+                  style={{
+                    width: isMobile ? 32 : 36,
+                    height: isMobile ? 32 : 36,
+                    borderRadius: 9,
+                    background: "#eff6ff",
+                    color: "#2563eb",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    flexShrink: 0,
+                  }}
+                >
+                  <Edit3 size={isMobile ? 16 : 18} />
+                </div>
+                <div>
+                  <h3 style={{ fontSize: isMobile ? 15 : 16, fontWeight: 800, color: "#0f172a", margin: 0 }}>
+                    Write a Review
+                  </h3>
+                  <p style={{ fontSize: isMobile ? 11.5 : 12, color: "#64748b", margin: 0 }}>
+                    Share your experience with GradeFlow
+                  </p>
+                </div>
+              </div>
+
+              {/* Star Rating Picker */}
+              <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 3, marginBottom: 14 }}>
+                <div style={{ display: "flex", gap: 5, cursor: "pointer" }}>
+                  {[1, 2, 3, 4, 5].map((star) => (
+                    <Star
+                      key={star}
+                      size={isMobile ? 20 : 22}
+                      color="#f59e0b"
+                      fill={(hoverRating || rating) >= star ? "#f59e0b" : "transparent"}
+                      onMouseEnter={() => setHoverRating(star)}
+                      onMouseLeave={() => setHoverRating(0)}
+                      onClick={() => setRating(star)}
+                    />
+                  ))}
+                </div>
+                <span style={{ fontSize: 10.5, color: "#94a3b8", fontWeight: 600 }}>Click to rate</span>
+              </div>
+
+              {/* Review Form */}
+              <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: isMobile ? 9 : 12 }}>
+                <input
+                  type="text"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  placeholder="Your Name"
+                  required
+                  style={{
+                    width: "100%",
+                    padding: isMobile ? "8px 12px" : "10px 14px",
+                    borderRadius: 9,
+                    border: "1px solid #cbd5e1",
+                    fontSize: isMobile ? 12.5 : 13,
+                    outline: "none",
+                    fontFamily: "'DM Sans', sans-serif",
+                    boxSizing: "border-box",
+                  }}
+                />
+
+                <input
+                  type="text"
+                  value={regNo}
+                  onChange={(e) => setRegNo(e.target.value)}
+                  placeholder="Registration Number / University (Optional)"
+                  style={{
+                    width: "100%",
+                    padding: isMobile ? "8px 12px" : "10px 14px",
+                    borderRadius: 9,
+                    border: "1px solid #cbd5e1",
+                    fontSize: isMobile ? 12.5 : 13,
+                    outline: "none",
+                    fontFamily: "'DM Sans', sans-serif",
+                    boxSizing: "border-box",
+                  }}
+                />
+
+                {/* Custom Category Dropdown */}
+                <div style={{ position: "relative", width: "100%" }}>
+                  <button
+                    type="button"
+                    onClick={() => setIsCategoryOpen(!isCategoryOpen)}
+                    style={{
+                      width: "100%",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                      padding: isMobile ? "8px 12px" : "10px 14px",
+                      borderRadius: 9,
+                      border: "1px solid #cbd5e1",
+                      fontSize: isMobile ? 12.5 : 13,
+                      background: "#ffffff",
+                      fontFamily: "'DM Sans', sans-serif",
+                      color: "#0f172a",
+                      cursor: "pointer",
+                      boxSizing: "border-box",
+                      textAlign: "left",
+                    }}
+                  >
+                    <span>{category}</span>
+                    <ChevronDown
+                      size={14}
+                      color="#64748b"
+                      style={{
+                        transition: "transform 0.2s ease",
+                        transform: isCategoryOpen ? "rotate(180deg)" : "none",
+                      }}
+                    />
+                  </button>
+
+                  <AnimatePresence>
+                    {isCategoryOpen && (
+                      <>
+                        <div
+                          onClick={() => setIsCategoryOpen(false)}
+                          style={{ position: "fixed", inset: 0, zIndex: 90 }}
+                        />
+
+                        <motion.div
+                          initial={{ opacity: 0, y: 4, scale: 0.98 }}
+                          animate={{ opacity: 1, y: 0, scale: 1 }}
+                          exit={{ opacity: 0, y: 4, scale: 0.98 }}
+                          transition={{ duration: 0.15 }}
+                          style={{
+                            position: "absolute",
+                            top: "calc(100% + 4px)",
+                            left: 0,
+                            right: 0,
+                            background: "#ffffff",
+                            border: "1px solid #e2e8f0",
+                            borderRadius: 12,
+                            padding: 6,
+                            boxShadow: "0 10px 30px rgba(15, 23, 42, 0.1)",
+                            zIndex: 100,
+                          }}
+                        >
+                          {CATEGORIES.filter((c) => c !== "All Reviews").map((catOpt) => (
+                            <button
+                              key={catOpt}
+                              type="button"
+                              onClick={() => {
+                                setCategory(catOpt);
+                                setIsCategoryOpen(false);
+                              }}
+                              style={{
+                                width: "100%",
+                                textAlign: "left",
+                                padding: "8px 12px",
+                                borderRadius: 8,
+                                border: "none",
+                                background: category === catOpt ? "#eff6ff" : "transparent",
+                                color: category === catOpt ? "#2563eb" : "#1e293b",
+                                fontSize: 13,
+                                fontWeight: category === catOpt ? 700 : 500,
+                                cursor: "pointer",
+                                fontFamily: "'DM Sans', sans-serif",
+                                transition: "background 0.12s",
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "space-between",
+                              }}
+                              onMouseEnter={(e) => {
+                                if (category !== catOpt) e.currentTarget.style.background = "#f8fafc";
+                              }}
+                              onMouseLeave={(e) => {
+                                if (category !== catOpt) e.currentTarget.style.background = "transparent";
+                              }}
+                            >
+                              {catOpt}
+                              {category === catOpt && <CheckCircle2 size={14} color="#2563eb" />}
+                            </button>
+                          ))}
+                        </motion.div>
+                      </>
+                    )}
+                  </AnimatePresence>
+                </div>
+
+                <div style={{ position: "relative" }}>
+                  <textarea
+                    value={comment}
+                    onChange={(e) => setComment(e.target.value.slice(0, 500))}
+                    placeholder="Write your review..."
+                    rows={isMobile ? 3 : 4}
+                    required
+                    style={{
+                      width: "100%",
+                      padding: isMobile ? "8px 12px" : "10px 14px",
+                      borderRadius: 9,
+                      border: "1px solid #cbd5e1",
+                      fontSize: isMobile ? 12.5 : 13,
+                      outline: "none",
+                      fontFamily: "'DM Sans', sans-serif",
+                      resize: "none",
+                      boxSizing: "border-box",
+                    }}
+                  />
+                  <span style={{ position: "absolute", bottom: 6, right: 8, fontSize: 10, color: "#94a3b8" }}>
+                    {comment.length}/500
+                  </span>
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={isSubmitting}
+                  style={{
+                    width: "100%",
+                    padding: isMobile ? "10px" : "12px",
+                    borderRadius: 9,
+                    background: isSubmitting ? "#93c5fd" : "#2563eb",
+                    color: "#ffffff",
+                    border: "none",
+                    fontSize: isMobile ? 13 : 14,
+                    fontWeight: 700,
+                    cursor: isSubmitting ? "not-allowed" : "pointer",
+                    fontFamily: "'DM Sans', sans-serif",
+                    boxShadow: "0 4px 12px rgba(37, 99, 235, 0.25)",
+                    transition: "background 0.2s",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: 6,
+                  }}
+                  onMouseEnter={(e) => {
+                    if (!isSubmitting) e.currentTarget.style.background = "#1d4ed8";
+                  }}
+                  onMouseLeave={(e) => {
+                    if (!isSubmitting) e.currentTarget.style.background = "#2563eb";
+                  }}
+                >
+                  {isSubmitting ? (
+                    <>
+                      <Loader2 size={15} className="animate-spin" /> Submitting...
+                    </>
+                  ) : (
+                    "Submit Review"
+                  )}
+                </button>
+              </form>
+
+              {submittedSuccess && (
+                <div
+                  style={{
+                    marginTop: 10,
+                    padding: "8px 10px",
+                    borderRadius: 8,
+                    background: "#f0fdf4",
+                    border: "1px solid #bbf7d0",
+                    color: "#15803d",
+                    fontSize: 12,
+                    textAlign: "center",
+                    fontWeight: 600,
+                  }}
+                >
+                  Thank you! Your review has been published.
+                </div>
+              )}
+
+              {errorMessage && (
+                <div
+                  style={{
+                    marginTop: 10,
+                    padding: "8px 10px",
+                    borderRadius: 8,
+                    background: "#fef2f2",
+                    border: "1px solid #fecaca",
+                    color: "#dc2626",
+                    fontSize: 12,
+                    textAlign: "center",
+                    fontWeight: 600,
+                  }}
+                >
+                  {errorMessage}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* ══════════════════════════════════════════════════════════
+            SECTION 4: BOTTOM CTA BANNER
+        ══════════════════════════════════════════════════════════ */}
+        <section
+          style={{
+            background: "#ffffff",
+            border: "1px solid #f1f5f9",
+            borderRadius: 18,
+            padding: isMobile ? "16px 14px" : "24px 32px",
+            display: "flex",
+            flexDirection: isMobile ? "column" : "row",
+            alignItems: isMobile ? "flex-start" : "center",
+            justifyContent: "space-between",
+            gap: isMobile ? 12 : 20,
+            boxShadow: "0 4px 16px rgba(0,0,0,0.02)",
+            boxSizing: "border-box",
+            width: "100%",
+          }}
+        >
+          <div style={{ display: "flex", alignItems: "center", gap: isMobile ? 10 : 16 }}>
+            <div
+              style={{
+                width: isMobile ? 38 : 48,
+                height: isMobile ? 38 : 48,
+                borderRadius: 11,
+                background: "#eff6ff",
+                color: "#2563eb",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
                 flexShrink: 0,
-                boxShadow: "0 4px 16px rgba(245,158,11,0.15)",
               }}
             >
-              <Star size={24} color="#f59e0b" fill="#f59e0b" />
+              <Users size={isMobile ? 19 : 24} />
             </div>
             <div>
-              <h4 style={{ margin: 0, fontSize: 17, fontWeight: 800, color: "#fff", letterSpacing: "-0.3px" }}>
-                Enjoying GradeFlow?
-              </h4>
-              <p style={{ margin: "4px 0 0", fontSize: 13, color: "var(--text-secondary, #a1a1aa)", lineHeight: 1.5 }}>
-                Support the project by dropping a star on GitHub! Every star keeps us motivated.
+              <h3 style={{ fontSize: isMobile ? 15 : 17, fontWeight: 800, color: "#0f172a", margin: "0 0 2px 0" }}>
+                Join Thousands of Happy Students
+              </h3>
+              <p style={{ fontSize: isMobile ? 11.5 : 13, color: "#64748b", margin: 0 }}>
+                Be a part of the GradeFlow community and achieve academic excellence.
               </p>
             </div>
           </div>
 
-          <motion.a
-            href="https://github.com/JaganParida/GradeFlow"
-            target="_blank"
-            rel="noopener noreferrer"
-            whileHover={{ scale: 1.04, translateY: -2 }}
-            whileTap={{ scale: 0.96 }}
+          <button
+            onClick={() => navigate("/")}
             style={{
-              display: "inline-flex",
-              alignItems: "center",
-              gap: 10,
-              padding: "12px 22px",
-              borderRadius: 14,
-              background: "#ffffff",
-              color: "#000000",
+              padding: isMobile ? "9px 16px" : "11px 22px",
+              borderRadius: 9,
+              background: "#2563eb",
+              color: "#ffffff",
+              border: "none",
+              fontSize: isMobile ? 12.5 : 14,
               fontWeight: 700,
-              fontSize: 14,
-              textDecoration: "none",
-              boxShadow: "0 4px 16px rgba(255,255,255,0.15)",
-              transition: "all 0.2s ease",
+              cursor: "pointer",
+              display: "flex",
+              alignItems: "center",
+              gap: 6,
+              boxShadow: "0 4px 12px rgba(37, 99, 235, 0.25)",
+              width: isMobile ? "100%" : "auto",
+              justifyContent: "center",
             }}
           >
-            <GithubIcon size={18} />
-            <span>Star on GitHub</span>
-          </motion.a>
-        </motion.div>
-
-        {/* Developer Social Links (Top) */}
-        <div style={{ display: "flex", justifyContent: "center", alignItems: "center", gap: 16, marginBottom: 48, flexWrap: "wrap" }}>
-          <span style={{ color: "var(--secondary)", fontSize: 14, fontWeight: 500 }}>
-            Developed by <span style={{ color: "var(--text)", fontWeight: 700 }}>Jagan Parida</span>:
-          </span>
-          <div style={{ display: "flex", gap: 12 }}>
-            {[
-              { icon: <GithubIcon size={18} />, url: "https://github.com/JaganParida", color: "#fff", label: "GitHub" },
-              { icon: <LinkedinIcon size={18} />, url: "https://www.linkedin.com/in/jagan-parida04", color: "#3b82f6", label: "LinkedIn" },
-              { icon: <InstagramIcon size={18} />, url: "https://instagram.com/imjagaan", color: "#ec4899", label: "Instagram" },
-            ].map((link, idx) => (
-              <motion.a
-                key={idx}
-                href={link.url}
-                target="_blank"
-                rel="noopener noreferrer"
-                whileHover={{ y: -2, scale: 1.1 }}
-                whileTap={{ scale: 0.95 }}
-                style={{
-                  width: 36,
-                  height: 36,
-                  borderRadius: "50%",
-                  background: "rgba(255,255,255,0.03)",
-                  border: "1px solid rgba(255,255,255,0.08)",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  color: "var(--secondary)",
-                  transition: "all 0.3s ease",
-                  textDecoration: "none",
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.color = link.color;
-                  e.currentTarget.style.background = `${link.color}15`;
-                  e.currentTarget.style.borderColor = `${link.color}40`;
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.color = "var(--secondary)";
-                  e.currentTarget.style.background = "rgba(255,255,255,0.03)";
-                  e.currentTarget.style.borderColor = "rgba(255,255,255,0.08)";
-                }}
-                aria-label={link.label}
-              >
-                {link.icon}
-              </motion.a>
-            ))}
-          </div>
-        </div>
-
-        {/* Inline Feedback Form */}
-        <div style={{
-          background: "linear-gradient(145deg, rgba(30,30,30,0.4), rgba(20,20,20,0.8))",
-          border: "1px solid rgba(255,255,255,0.06)",
-          borderRadius: 24,
-          padding: "32px 28px",
-          marginBottom: 48,
-          boxShadow: "0 12px 40px rgba(0,0,0,0.2)",
-          backdropFilter: "blur(12px)",
-          WebkitBackdropFilter: "blur(12px)"
-        }}>
-          <h3 style={{ fontSize: 20, fontWeight: 800, marginBottom: 24, display: "flex", alignItems: "center", gap: 10, color: "#fff" }}>
-            <Star size={20} color="#f59e0b" fill="#f59e0b" /> Leave your review
-          </h3>
-          <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-            <div style={{ display: "flex", gap: 8, marginBottom: 4 }}>
-              {[1, 2, 3, 4, 5].map((star) => (
-                <button
-                  key={star}
-                  type="button"
-                  onClick={() => setRating(star)}
-                  onMouseEnter={() => setHoverRating(star)}
-                  onMouseLeave={() => setHoverRating(0)}
-                  style={{
-                    background: "transparent",
-                    border: "none",
-                    cursor: "pointer",
-                    padding: 0,
-                    transition: "transform 0.1s",
-                  }}
-                  onMouseDown={(e) => e.currentTarget.style.transform = "scale(0.9)"}
-                  onMouseUp={(e) => e.currentTarget.style.transform = "scale(1)"}
-                >
-                  <Star
-                    size={28}
-                    fill={(hoverRating || rating) >= star ? "#f59e0b" : "transparent"}
-                    color={(hoverRating || rating) >= star ? "#f59e0b" : "rgba(255,255,255,0.2)"}
-                    style={{ transition: "all 0.2s ease" }}
-                  />
-                </button>
-              ))}
-            </div>
-
-            <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
-              <input
-                type="text"
-                required
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                placeholder="Your Name"
-                style={{
-                  flex: "1 1 200px", padding: "12px 16px", borderRadius: 12,
-                  background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.08)",
-                  color: "#fff", fontSize: 14, outline: "none", transition: "border-color 0.2s"
-                }}
-                onFocus={(e) => e.target.style.borderColor = "var(--accent)"}
-                onBlur={(e) => e.target.style.borderColor = "rgba(255,255,255,0.08)"}
-              />
-              <input
-                type="text"
-                required
-                value={regNo}
-                onChange={(e) => setRegNo(e.target.value)}
-                placeholder="Registration No."
-                style={{
-                  flex: "1 1 200px", padding: "12px 16px", borderRadius: 12,
-                  background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.08)",
-                  color: "#fff", fontSize: 14, outline: "none", transition: "border-color 0.2s"
-                }}
-                onFocus={(e) => e.target.style.borderColor = "var(--accent)"}
-                onBlur={(e) => e.target.style.borderColor = "rgba(255,255,255,0.08)"}
-              />
-            </div>
-            
-            <textarea
-              required
-              value={comment}
-              onChange={(e) => setComment(e.target.value)}
-              placeholder="Tell us about your experience..."
-              rows={2}
-              style={{
-                width: "100%", padding: "12px 16px", borderRadius: 12,
-                background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.08)",
-                color: "#fff", fontSize: 14, outline: "none", transition: "border-color 0.2s",
-                resize: "vertical", minHeight: 80, fontFamily: "inherit"
-              }}
-              onFocus={(e) => e.target.style.borderColor = "var(--accent)"}
-              onBlur={(e) => e.target.style.borderColor = "rgba(255,255,255,0.08)"}
-            />
-
-            <div style={{ display: "flex", justifyContent: "flex-end" }}>
-              <motion.button
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-                type="submit"
-                disabled={rating === 0 || isSubmitting}
-                style={{
-                  padding: "12px 24px", borderRadius: 12,
-                  background: rating === 0 || isSubmitting ? "rgba(255,255,255,0.1)" : "linear-gradient(135deg, #3ea6ff, #3b82f6)",
-                  border: "none", color: rating === 0 || isSubmitting ? "rgba(255,255,255,0.4)" : "#fff",
-                  fontSize: 14, fontWeight: 700, cursor: rating === 0 || isSubmitting ? "not-allowed" : "pointer",
-                  transition: "all 0.2s",
-                  boxShadow: rating === 0 || isSubmitting ? "none" : "0 4px 12px rgba(62,166,255,0.3)"
-                }}
-              >
-                {isSubmitting ? "Posting..." : "Post Review"}
-              </motion.button>
-            </div>
-          </form>
-        </div>
-
-        {/* Feedback List */}
-        <div style={{ 
-          columnWidth: "320px", 
-          columnGap: "24px", 
-          width: "100%" 
-        }}>
-          {isLoading ? (
-            <div style={{ textAlign: "center", padding: "60px 20px", color: "var(--secondary)", background: "#212121", borderRadius: 20, border: "1px solid rgba(255,255,255,0.05)" }}>
-              <p>Loading feedbacks...</p>
-            </div>
-          ) : feedbacks.length === 0 ? (
-            <div style={{ gridColumn: "1 / -1", textAlign: "center", padding: "60px 20px", color: "var(--secondary)", background: "#212121", borderRadius: 20, border: "1px solid rgba(255,255,255,0.05)" }}>
-              <Quote size={40} style={{ opacity: 0.2, marginBottom: 16, margin: "0 auto" }} />
-              <p>No feedback yet. Be the first to share your experience!</p>
-            </div>
-          ) : (
-            feedbacks.map((fb, index) => {
-              const isHighlighted = fb._id === highlightedId;
-              const hasLiked = likedFeedbacks.includes(fb._id);
-              
-              // Generate a consistent gradient based on the first letter of the name
-              const charCode = fb.name.charCodeAt(0) || 0;
-              const gradients = [
-                "linear-gradient(135deg, #FF6B6B, #C0392B)", // Red
-                "linear-gradient(135deg, #4facfe, #00f2fe)", // Blue
-                "linear-gradient(135deg, #43e97b, #38f9d7)", // Green
-                "linear-gradient(135deg, #fa709a, #fee140)", // Pink/Yellow
-                "linear-gradient(135deg, #a18cd1, #fbc2eb)", // Purple/Pink
-                "linear-gradient(135deg, #f6d365, #fda085)"  // Orange
-              ];
-              const avatarBg = gradients[charCode % gradients.length];
-
-              return (
-                <motion.div
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  transition={{ duration: 0.4, ease: "easeOut" }}
-                  id={`feedback-${fb._id}`}
-                  key={fb._id}
-                  style={{
-                    breakInside: "avoid",
-                    marginBottom: "24px",
-                    position: "relative",
-                    overflow: "hidden",
-                    width: "100%",
-                    display: "flex",
-                    flexDirection: "column",
-                    background: isHighlighted ? "linear-gradient(145deg, rgba(62,166,255,0.1), rgba(20,20,20,0.8))" : "linear-gradient(145deg, rgba(35,35,35,0.6), rgba(20,20,20,0.9))",
-                    border: isHighlighted ? "1px solid rgba(62,166,255,0.3)" : "1px solid rgba(255,255,255,0.04)",
-                    borderRadius: 24,
-                    padding: "32px 28px",
-                    boxShadow: isHighlighted ? "0 12px 40px rgba(62,166,255,0.15)" : "0 8px 32px rgba(0,0,0,0.3)",
-                    backdropFilter: "blur(12px)",
-                    WebkitBackdropFilter: "blur(12px)",
-                    transition: "transform 0.3s ease, box-shadow 0.3s ease",
-                  }}
-                  whileHover={{ y: -4, boxShadow: "0 12px 40px rgba(0,0,0,0.5)" }}
-                >
-                  <Quote size={80} color="rgba(255,255,255,0.02)" style={{ position: "absolute", top: 10, right: 10, zIndex: 0 }} />
-                  
-                  <div style={{ position: "relative", zIndex: 1, display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 16, marginBottom: 20 }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
-                      <div style={{
-                        width: 48, height: 48, borderRadius: 16,
-                        background: avatarBg,
-                        display: "flex", alignItems: "center", justifyContent: "center",
-                        fontSize: 20, fontWeight: 800, color: "#fff",
-                        boxShadow: "0 4px 12px rgba(0,0,0,0.3)"
-                      }}>
-                        {fb.name.charAt(0).toUpperCase()}
-                      </div>
-                      <div>
-                        <h4 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: "#fff", letterSpacing: "-0.2px" }}>{fb.name}</h4>
-                        {fb.regNo && (
-                          <div style={{ fontSize: 13, color: "var(--muted)", display: "flex", alignItems: "center", gap: 6, marginTop: 4 }}>
-                            <GraduationCap size={14} opacity={0.7} /> {fb.regNo}
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                    <div style={{ textAlign: "right" }}>
-                      <div style={{ display: "flex", gap: 4, marginBottom: 6 }}>
-                        {[1, 2, 3, 4, 5].map(star => (
-                          <Star key={star} size={16} fill={fb.rating >= star ? "#f59e0b" : "transparent"} color={fb.rating >= star ? "#f59e0b" : "rgba(255,255,255,0.08)"} />
-                        ))}
-                      </div>
-                      <div style={{ fontSize: 12, color: "rgba(255,255,255,0.3)", fontWeight: 500 }}>{formatDate(fb.createdAt)}</div>
-                    </div>
-                  </div>
-                  <p style={{ flex: 1, position: "relative", zIndex: 1, margin: 0, fontSize: 15, lineHeight: 1.7, color: "rgba(255,255,255,0.85)", fontStyle: "italic", whiteSpace: "pre-wrap" }}>
-                    "{fb.comment}"
-                  </p>
-                  <div style={{ position: "relative", zIndex: 1, marginTop: 16, paddingTop: 16, borderTop: "1px solid rgba(255,255,255,0.06)", display: "flex", justifyContent: "flex-end" }}>
-                    <button
-                      onClick={() => handleLike(fb._id)}
-                      disabled={hasLiked}
-                      style={{
-                        display: "flex", alignItems: "center", gap: 6,
-                        background: hasLiked ? "rgba(239, 68, 68, 0.15)" : "rgba(255,255,255,0.03)",
-                        border: hasLiked ? "1px solid rgba(239, 68, 68, 0.3)" : "1px solid rgba(255,255,255,0.08)",
-                        padding: "6px 12px", borderRadius: 20,
-                        color: hasLiked ? "#ef4444" : "var(--secondary)",
-                        cursor: hasLiked ? "default" : "pointer",
-                        fontSize: 13, fontWeight: 600,
-                        transition: "all 0.2s ease"
-                      }}
-                    >
-                      <Heart size={16} fill={hasLiked ? "#ef4444" : "transparent"} color={hasLiked ? "#ef4444" : "currentColor"} />
-                      <span>{fb.likes || 0}</span>
-                    </button>
-                  </div>
-                </motion.div>
-              );
-            })
-          )}
-        </div>
+            Get Started for Free <ArrowRight size={14} />
+          </button>
+        </section>
       </div>
-
-    </motion.div>
+    </div>
   );
 }

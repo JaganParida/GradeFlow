@@ -2,6 +2,7 @@ const express = require("express");
 const router = express.Router();
 const Ranking = require("../models/Ranking");
 const { sortByScore } = require("../utils/gradeCalculations");
+const { validateAcademicFilters } = require("../middleware/validation");
 
 // Escape special regex characters to prevent ReDoS attacks
 function escapeRegex(str) {
@@ -54,7 +55,7 @@ function getSectionFromRegNo(regNo) {
 }
 
 // Top 50 rankers
-router.get("/top", async (req, res) => {
+router.get("/top", validateAcademicFilters, async (req, res) => {
   try {
     const { semester, branch, search, limit = 50, sortBy = "sgpa", section, batch } = req.query;
     const query = {};

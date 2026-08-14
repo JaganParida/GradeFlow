@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { useApp } from "../context/AppContext";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -15,7 +15,8 @@ import {
   Mail,
   KeyRound,
   ShieldAlert,
-  Server
+  Server,
+  ArrowLeft
 } from "lucide-react";
 
 export default function AdminLogin() {
@@ -99,85 +100,73 @@ export default function AdminLogin() {
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      transition={{ duration: 0.4 }}
+      transition={{ duration: 0.3 }}
       style={{
         minHeight: "100vh",
         display: "flex",
         flexDirection: "column",
-        background: "#0a0c10",
-        color: "#f3f4f6",
-        fontFamily: "'Inter', system-ui, sans-serif",
+        background: "#fcfdfe",
+        color: "#0f172a",
+        fontFamily: "'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif",
         overflowX: "hidden",
         position: "relative",
-        paddingTop: 84, // Clear fixed top Navbar height
       }}
     >
-      {/* Subtle Grid Backdrop Lines */}
-      <div
-        style={{
-          position: "absolute",
-          inset: 0,
-          backgroundImage: "radial-gradient(rgba(255, 255, 255, 0.05) 1px, transparent 1px)",
-          backgroundSize: "24px 24px",
-          pointerEvents: "none",
-          zIndex: 0,
-          opacity: 0.6,
-        }}
-      />
-
       {/* 2-SPLIT CONTAINER */}
       <div
         style={{
           width: "100%",
+          maxWidth: 1380,
+          margin: "0 auto",
           display: "grid",
           gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))",
-          minHeight: "calc(100vh - 84px)",
-          position: "relative",
-          zIndex: 1,
+          minHeight: "calc(100vh - 65px)",
+          alignItems: "center",
+          padding: "32px 24px",
+          gap: 40,
+          boxSizing: "border-box",
         }}
+        className="gf-admin-container"
       >
         {/* LEFT SPLIT: PROFESSIONAL BRANDING & TECHNICAL SUMMARY */}
         <div
           style={{
-            padding: "40px 48px",
             display: "flex",
             flexDirection: "column",
-            justifyContent: "space-between",
-            background: "rgba(13, 16, 23, 0.7)",
-            backdropFilter: "blur(12px)",
-            borderRight: "1px solid rgba(255, 255, 255, 0.07)",
+            justifyContent: "center",
+            padding: "20px 10px",
           }}
+          className="gf-admin-left"
         >
-          {/* Top Header */}
+          {/* Top Header Badge */}
           <div>
             <div
               style={{
                 display: "inline-flex",
                 alignItems: "center",
-                gap: 8,
-                padding: "4px 12px",
-                borderRadius: 4,
-                background: "rgba(59, 130, 246, 0.08)",
-                border: "1px solid rgba(59, 130, 246, 0.2)",
-                color: "#60a5fa",
-                fontSize: 11,
+                gap: 7,
+                padding: "5px 12px",
+                borderRadius: 99,
+                background: "#eff6ff",
+                border: "1px solid #dbeafe",
+                color: "#2563eb",
+                fontSize: 12,
                 fontWeight: 700,
-                letterSpacing: "0.5px",
-                textTransform: "uppercase",
-                marginBottom: 28,
+                letterSpacing: "0.2px",
+                marginBottom: 20,
               }}
             >
-              <ShieldCheck size={13} /> GradeFlow Security Portal
+              <ShieldCheck size={14} /> GradeFlow Security Gateway
             </div>
 
             <h1
               style={{
-                fontSize: 34,
+                fontSize: "clamp(26px, 3.2vw, 38px)",
                 fontWeight: 800,
                 lineHeight: 1.2,
-                letterSpacing: "-0.5px",
-                marginBottom: 14,
-                color: "#ffffff",
+                letterSpacing: "-0.8px",
+                marginBottom: 12,
+                color: "#0f172a",
               }}
             >
               Institutional Administration
@@ -185,32 +174,38 @@ export default function AdminLogin() {
 
             <p
               style={{
-                color: "#9ca3af",
-                fontSize: 14,
+                color: "#64748b",
+                fontSize: 14.5,
                 lineHeight: 1.6,
-                maxWidth: 460,
-                marginBottom: 36,
+                maxWidth: 480,
+                marginBottom: 28,
               }}
             >
-              Enterprise management suite for university result processing, branch ranking leaderboards, and automated backlog tracking.
+              Enterprise portal for university grade management, branch ranking verification, and real-time student intelligence.
             </p>
           </div>
 
           {/* Minimalist Tech Feature List */}
-          <div style={{ display: "flex", flexDirection: "column", gap: 12, margin: "20px 0" }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: 12, marginBottom: 28 }}>
             {[
               {
-                icon: <Lock size={16} color="#60a5fa" />,
+                icon: <Lock size={16} color="#2563eb" />,
+                bg: "#eff6ff",
+                border: "#dbeafe",
                 title: "Zero-Trust Session Isolation",
                 desc: "HMAC JWT authentication with isolated token sandbox and attempt rate limiting.",
               },
               {
-                icon: <BarChart3 size={16} color="#818cf8" />,
+                icon: <BarChart3 size={16} color="#8b5cf6" />,
+                bg: "#f5f3ff",
+                border: "#ede9fe",
                 title: "Real-Time Ranking Engine",
                 desc: "Instant SGPA/CGPA competition rank generation across university & branch levels.",
               },
               {
-                icon: <Zap size={16} color="#34d399" />,
+                icon: <Zap size={16} color="#10b981" />,
+                bg: "#ecfdf5",
+                border: "#d1fae5",
                 title: "Automated Backlog Tracking",
                 desc: "Live Excel sync evaluating uncleared backlogs, recheckings, and clearance.",
               },
@@ -219,34 +214,35 @@ export default function AdminLogin() {
                 key={feat.title}
                 style={{
                   padding: "14px 18px",
-                  borderRadius: 6,
-                  background: "rgba(255, 255, 255, 0.02)",
-                  border: "1px solid rgba(255, 255, 255, 0.06)",
+                  borderRadius: 14,
+                  background: "#ffffff",
+                  border: "1px solid #f1f5f9",
+                  boxShadow: "0 2px 8px rgba(0,0,0,0.02)",
                   display: "flex",
                   alignItems: "flex-start",
-                  gap: 12,
-                  transition: "all 0.2s",
+                  gap: 14,
+                  transition: "all 0.2s ease",
                 }}
               >
                 <div
                   style={{
                     padding: 8,
-                    borderRadius: 4,
-                    background: "rgba(0, 0, 0, 0.4)",
+                    borderRadius: 10,
+                    background: feat.bg,
+                    border: `1px solid ${feat.border}`,
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "center",
                     flexShrink: 0,
-                    border: "1px solid rgba(255, 255, 255, 0.05)",
                   }}
                 >
                   {feat.icon}
                 </div>
                 <div>
-                  <h4 style={{ fontSize: 13, fontWeight: 700, marginBottom: 3, color: "#f3f4f6" }}>
+                  <h4 style={{ fontSize: 13.5, fontWeight: 700, margin: "0 0 3px 0", color: "#0f172a" }}>
                     {feat.title}
                   </h4>
-                  <p style={{ fontSize: 12, color: "#6b7280", lineHeight: 1.5, margin: 0 }}>
+                  <p style={{ fontSize: 12, color: "#64748b", lineHeight: 1.5, margin: 0 }}>
                     {feat.desc}
                   </p>
                 </div>
@@ -259,32 +255,32 @@ export default function AdminLogin() {
             style={{
               display: "flex",
               alignItems: "center",
-              justifyContent: "space-between",
-              paddingTop: 20,
-              borderTop: "1px solid rgba(255, 255, 255, 0.06)",
+              gap: 20,
+              paddingTop: 16,
+              borderTop: "1px solid #f1f5f9",
               fontSize: 12,
-              color: "#6b7280",
+              color: "#64748b",
+              flexWrap: "wrap",
             }}
           >
             <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-              <CheckCircle2 size={13} color="#34d399" />
-              <span>AES-256 Encrypted</span>
+              <CheckCircle2 size={14} color="#10b981" />
+              <span>AES-256 TLS Encrypted</span>
             </div>
             <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-              <Server size={13} color="#60a5fa" />
+              <Server size={14} color="#2563eb" />
               <span>v2.4 Production Gateway</span>
             </div>
           </div>
         </div>
 
-        {/* RIGHT SPLIT: CLEAN PROFESSIONAL FORM PANEL */}
+        {/* RIGHT SPLIT: CLEAN LIGHT PROFESSIONAL FORM CARD */}
         <div
           style={{
-            padding: "48px 40px",
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            position: "relative",
+            width: "100%",
           }}
         >
           <motion.div
@@ -293,38 +289,38 @@ export default function AdminLogin() {
             transition={{ duration: 0.3 }}
             style={{
               width: "100%",
-              maxWidth: 400,
-              padding: 32,
-              background: "rgba(17, 24, 39, 0.65)",
-              backdropFilter: "blur(16px)",
-              border: "1px solid rgba(255, 255, 255, 0.08)",
-              borderRadius: 8,
-              boxShadow: "0 20px 50px rgba(0, 0, 0, 0.5)",
+              maxWidth: 420,
+              padding: "36px 32px",
+              background: "#ffffff",
+              border: "1px solid #e2e8f0",
+              borderRadius: 20,
+              boxShadow: "0 10px 30px rgba(15, 23, 42, 0.04), 0 1px 3px rgba(15, 23, 42, 0.02)",
+              boxSizing: "border-box",
             }}
             onContextMenu={(e) => e.preventDefault()}
           >
             {/* Form Header */}
-            <div style={{ textAlign: "center", marginBottom: 28 }}>
+            <div style={{ textAlign: "center", marginBottom: 24 }}>
               <div
                 style={{
-                  width: 44,
-                  height: 44,
-                  background: "rgba(59, 130, 246, 0.1)",
-                  borderRadius: 6,
+                  width: 48,
+                  height: 48,
+                  background: "#eff6ff",
+                  borderRadius: 12,
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
                   margin: "0 auto 14px",
-                  border: "1px solid rgba(59, 130, 246, 0.2)",
-                  color: "#60a5fa",
+                  border: "1px solid #dbeafe",
+                  color: "#2563eb",
                 }}
               >
                 <KeyRound size={22} />
               </div>
-              <h2 style={{ fontSize: 20, fontWeight: 800, letterSpacing: "-0.3px", marginBottom: 4, color: "#ffffff" }}>
+              <h2 style={{ fontSize: 21, fontWeight: 800, letterSpacing: "-0.4px", margin: "0 0 6px 0", color: "#0f172a" }}>
                 Admin Sign In
               </h2>
-              <p style={{ color: "#9ca3af", fontSize: 13 }}>
+              <p style={{ color: "#64748b", fontSize: 13, margin: 0 }}>
                 Enter authorized credentials to continue
               </p>
             </div>
@@ -336,23 +332,23 @@ export default function AdminLogin() {
                 <label
                   style={{
                     display: "block",
-                    fontSize: 11,
-                    color: "#9ca3af",
+                    fontSize: 11.5,
+                    color: "#475569",
                     marginBottom: 6,
                     fontWeight: 700,
                     textTransform: "uppercase",
                     letterSpacing: "0.5px",
                   }}
                 >
-                  Email Address
+                  Admin Email Address
                 </label>
                 <div style={{ position: "relative" }}>
                   <Mail
                     size={16}
-                    color="#6b7280"
+                    color="#94a3b8"
                     style={{
                       position: "absolute",
-                      left: 12,
+                      left: 14,
                       top: "50%",
                       transform: "translateY(-50%)",
                       pointerEvents: "none",
@@ -369,28 +365,36 @@ export default function AdminLogin() {
                     spellCheck="false"
                     style={{
                       width: "100%",
-                      background: "rgba(0, 0, 0, 0.35)",
-                      border: "1px solid rgba(255, 255, 255, 0.1)",
-                      padding: "11px 14px 11px 38px",
-                      fontSize: 13,
-                      borderRadius: 6,
-                      color: "#ffffff",
-                      transition: "all 0.15s",
+                      background: "#f8fafc",
+                      border: "1.5px solid #e2e8f0",
+                      padding: "11px 14px 11px 40px",
+                      fontSize: 13.5,
+                      borderRadius: 10,
+                      color: "#0f172a",
+                      transition: "all 0.15s ease",
                       outline: "none",
+                      boxSizing: "border-box",
+                      fontFamily: "'DM Sans', sans-serif",
                     }}
-                    onFocus={(e) => (e.target.style.borderColor = "#3b82f6")}
-                    onBlur={(e) => (e.target.style.borderColor = "rgba(255, 255, 255, 0.1)")}
+                    onFocus={(e) => {
+                      e.target.style.borderColor = "#2563eb";
+                      e.target.style.background = "#ffffff";
+                    }}
+                    onBlur={(e) => {
+                      e.target.style.borderColor = "#e2e8f0";
+                      e.target.style.background = "#f8fafc";
+                    }}
                   />
                 </div>
               </div>
 
               {/* Password Input */}
-              <div style={{ marginBottom: 22 }}>
+              <div style={{ marginBottom: 20 }}>
                 <label
                   style={{
                     display: "block",
-                    fontSize: 11,
-                    color: "#9ca3af",
+                    fontSize: 11.5,
+                    color: "#475569",
                     marginBottom: 6,
                     fontWeight: 700,
                     textTransform: "uppercase",
@@ -402,10 +406,10 @@ export default function AdminLogin() {
                 <div style={{ position: "relative" }}>
                   <Lock
                     size={16}
-                    color="#6b7280"
+                    color="#94a3b8"
                     style={{
                       position: "absolute",
-                      left: 12,
+                      left: 14,
                       top: "50%",
                       transform: "translateY(-50%)",
                       pointerEvents: "none",
@@ -422,18 +426,26 @@ export default function AdminLogin() {
                     spellCheck="false"
                     style={{
                       width: "100%",
-                      background: "rgba(0, 0, 0, 0.35)",
-                      border: "1px solid rgba(255, 255, 255, 0.1)",
-                      padding: "11px 40px 11px 38px",
-                      fontSize: 13,
-                      borderRadius: 6,
-                      color: "#ffffff",
+                      background: "#f8fafc",
+                      border: "1.5px solid #e2e8f0",
+                      padding: "11px 40px 11px 40px",
+                      fontSize: 13.5,
+                      borderRadius: 10,
+                      color: "#0f172a",
                       letterSpacing: showPassword ? "normal" : "2px",
-                      transition: "all 0.15s",
+                      transition: "all 0.15s ease",
                       outline: "none",
+                      boxSizing: "border-box",
+                      fontFamily: "'DM Sans', sans-serif",
                     }}
-                    onFocus={(e) => (e.target.style.borderColor = "#3b82f6")}
-                    onBlur={(e) => (e.target.style.borderColor = "rgba(255, 255, 255, 0.1)")}
+                    onFocus={(e) => {
+                      e.target.style.borderColor = "#2563eb";
+                      e.target.style.background = "#ffffff";
+                    }}
+                    onBlur={(e) => {
+                      e.target.style.borderColor = "#e2e8f0";
+                      e.target.style.background = "#f8fafc";
+                    }}
                   />
                   <button
                     type="button"
@@ -441,12 +453,12 @@ export default function AdminLogin() {
                     disabled={lockCountdown > 0}
                     style={{
                       position: "absolute",
-                      right: 10,
+                      right: 12,
                       top: "50%",
                       transform: "translateY(-50%)",
                       background: "none",
                       border: "none",
-                      color: "#6b7280",
+                      color: "#94a3b8",
                       cursor: "pointer",
                       padding: 4,
                       display: "flex",
@@ -467,12 +479,12 @@ export default function AdminLogin() {
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: -6 }}
                     style={{
-                      color: "#f87171",
-                      background: "rgba(239, 68, 68, 0.08)",
-                      border: "1px solid rgba(239, 68, 68, 0.2)",
-                      borderLeft: "3px solid #ef4444",
+                      color: "#991b1b",
+                      background: "#fef2f2",
+                      border: "1px solid #fecaca",
+                      borderLeft: "3.5px solid #ef4444",
                       padding: "10px 12px",
-                      borderRadius: 6,
+                      borderRadius: 8,
                       fontSize: 12,
                       marginBottom: 18,
                       display: "flex",
@@ -488,7 +500,7 @@ export default function AdminLogin() {
                     <div>
                       {error}
                       {lockCountdown > 0 && (
-                        <div style={{ fontWeight: 700, marginTop: 2, color: "#fca5a5" }}>
+                        <div style={{ fontWeight: 700, marginTop: 2, color: "#b91c1c" }}>
                           Unlock in: {lockCountdown}s
                         </div>
                       )}
@@ -505,21 +517,28 @@ export default function AdminLogin() {
                   width: "100%",
                   padding: "12px",
                   fontSize: 14,
-                  fontWeight: 600,
+                  fontWeight: 700,
                   background:
                     lockCountdown > 0
-                      ? "rgba(255, 255, 255, 0.06)"
-                      : "linear-gradient(135deg, #2563eb, #3b82f6)",
+                      ? "#f1f5f9"
+                      : "#0f172a",
                   border: "none",
-                  borderRadius: 6,
-                  color: lockCountdown > 0 ? "#6b7280" : "#ffffff",
+                  borderRadius: 10,
+                  color: lockCountdown > 0 ? "#94a3b8" : "#ffffff",
                   cursor: lockCountdown > 0 ? "not-allowed" : "pointer",
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
-                  gap: 6,
-                  transition: "all 0.15s",
-                  boxShadow: lockCountdown === 0 ? "0 4px 14px rgba(37, 99, 235, 0.3)" : "none",
+                  gap: 8,
+                  transition: "all 0.2s ease",
+                  boxShadow: lockCountdown === 0 ? "0 4px 12px rgba(15, 23, 42, 0.12)" : "none",
+                  fontFamily: "'DM Sans', sans-serif",
+                }}
+                onMouseEnter={(e) => {
+                  if (!loading && lockCountdown === 0) e.currentTarget.style.background = "#1e293b";
+                }}
+                onMouseLeave={(e) => {
+                  if (!loading && lockCountdown === 0) e.currentTarget.style.background = "#0f172a";
                 }}
               >
                 {loading ? (
@@ -534,15 +553,36 @@ export default function AdminLogin() {
               </button>
             </form>
 
+            {/* Back to Student Portal Link */}
+            <div style={{ marginTop: 20, textAlign: "center" }}>
+              <Link
+                to="/"
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 6,
+                  color: "#64748b",
+                  textDecoration: "none",
+                  fontSize: 12.5,
+                  fontWeight: 600,
+                  transition: "color 0.15s ease",
+                }}
+                onMouseEnter={(e) => (e.currentTarget.style.color = "#0f172a")}
+                onMouseLeave={(e) => (e.currentTarget.style.color = "#64748b")}
+              >
+                <ArrowLeft size={13} /> Back to Student Portal
+              </Link>
+            </div>
+
             {/* Security Footer */}
             <div
               style={{
-                marginTop: 22,
+                marginTop: 20,
                 paddingTop: 14,
-                borderTop: "1px solid rgba(255, 255, 255, 0.06)",
+                borderTop: "1px solid #f1f5f9",
                 textAlign: "center",
-                fontSize: 11,
-                color: "#6b7280",
+                fontSize: 11.5,
+                color: "#94a3b8",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
@@ -555,14 +595,26 @@ export default function AdminLogin() {
                   width: 6,
                   height: 6,
                   borderRadius: "50%",
-                  background: "#34d399",
+                  background: "#10b981",
                 }}
               />
-              Security Status: Operational
+              Security Gateway: Operational
             </div>
           </motion.div>
         </div>
       </div>
+
+      <style>{`
+        @media (max-width: 768px) {
+          .gf-admin-container {
+            padding: 16px 14px 40px !important;
+            gap: 24px !important;
+          }
+          .gf-admin-left {
+            padding: 10px 4px !important;
+          }
+        }
+      `}</style>
     </motion.div>
   );
 }

@@ -50,7 +50,7 @@ const errorHandler = require("./middleware/errorHandler");
 
 // Routes with Endpoint-Specific Configurable Rate Limiters
 app.use("/api/auth", authLimiter, require("./routes/auth"));
-app.use("/api/student", publicLimiter, require("./routes/student"));
+app.use(["/api/student", "/api/students"], publicLimiter, require("./routes/student"));
 app.use("/api/admin", adminLimiter, require("./routes/admin"));
 app.use("/api/rankings", publicLimiter, require("./routes/rankings"));
 app.use("/api/feedback", publicLimiter, require("./routes/feedback"));

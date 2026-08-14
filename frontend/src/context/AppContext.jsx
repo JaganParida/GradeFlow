@@ -41,6 +41,20 @@ export function AppProvider({ children }) {
   const [error, setError] = useState("");
   const [adminToken, setAdminToken] = useState(false);
 
+  // ─── Theme Management ────────────────────────────────────────────
+  const [theme, setTheme] = useState(() => {
+    return localStorage.getItem('gf_theme') || 'light';
+  });
+
+  useEffect(() => {
+    document.documentElement.setAttribute('data-theme', theme);
+    localStorage.setItem('gf_theme', theme);
+  }, [theme]);
+
+  const toggleTheme = () => {
+    setTheme(prev => prev === 'light' ? 'dark' : 'light');
+  };
+
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -190,6 +204,8 @@ export function AppProvider({ children }) {
         clearStudentData,
         hasActiveSession,
         leaveSession,
+        theme,
+        toggleTheme,
         // Expose API base for pages that need it
         API: API_BASE,
         // Legacy no-op mocks (nothing breaks if code still references these)

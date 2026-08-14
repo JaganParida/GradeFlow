@@ -1,10 +1,24 @@
-import { CheckCircle, GraduationCap, Info, Target, XCircle, Calculator } from "lucide-react";
-import { motion } from "framer-motion";
-import { useState } from "react";
+import React, { useState, useMemo } from "react";
+import {
+  CheckCircle,
+  GraduationCap,
+  Info,
+  Target,
+  XCircle,
+  Calculator,
+  Briefcase,
+  Search,
+  Filter,
+  AlertTriangle,
+  Building,
+  Check,
+  TrendingUp,
+} from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 
 const COMPANY_DATA = {
   CSE: [
-    ["TCS", "60%", "60%", "6.0 CGPA / 60%", 6.0, "Service Based"],
+    ["TCS", "60%", "60%", "6.0 CGPA", 6.0, "Service Based"],
     ["Infosys", "60%", "60%", "6.0 CGPA", 6.0, "Service Based"],
     ["Wipro", "60%", "60%", "6.0 CGPA", 6.0, "Service Based"],
     ["Cognizant", "60%", "60%", "6.0 CGPA", 6.0, "Service Based"],
@@ -51,7 +65,7 @@ const COMPANY_DATA = {
     ["Qualcomm", "75%", "75%", "7.5 CGPA", 7.5, "Product Based"],
     ["Cisco", "70%", "70%", "7.0 CGPA", 7.0, "Product Based"],
     ["Samsung R&D", "70%", "70%", "7.0 CGPA", 7.0, "Product Based"],
-    ["TCS (Embedded/IT)", "60%", "60%", "6.0 CGPA / 60%", 6.0, "Service Based"],
+    ["TCS (Embedded/IT)", "60%", "60%", "6.0 CGPA", 6.0, "Service Based"],
     ["Ericsson", "60%", "60%", "6.0 CGPA", 6.0, "Product Based"],
     ["boAt", "60%", "60%", "6.0 CGPA", 6.0, "Startup"],
     ["NXP Semiconductors", "70%", "70%", "7.0 CGPA", 7.0, "Product Based"],
@@ -117,6 +131,15 @@ const COMPANY_DATA = {
   ],
 };
 
+const CATEGORY_STYLES = {
+  "Product Based": { color: "#1d4ed8", bg: "#eff6ff", border: "#bfdbfe" },
+  "Product & Service": { color: "#7e22ce", bg: "#f3e8ff", border: "#e9d5ff" },
+  "Service Based": { color: "#475569", bg: "#f1f5f9", border: "#cbd5e1" },
+  Core: { color: "#b45309", bg: "#fef3c7", border: "#fde68a" },
+  PSU: { color: "#0369a1", bg: "#e0f2fe", border: "#bae6fd" },
+  Startup: { color: "#15803d", bg: "#dcfce7", border: "#bbf7d0" },
+};
+
 function normalizeBranch(branch) {
   const key = String(branch || "").trim().toUpperCase();
   if (key.includes("CIVIL")) return "CIVIL";
@@ -136,190 +159,482 @@ export default function CompanyEligibility({ branch, cgpa, regNo }) {
 
   const [localTenth, setLocalTenth] = useState("");
   const [localTwelfth, setLocalTwelfth] = useState("");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [activeCategory, setActiveCategory] = useState("All");
+  const [isMobile, setIsMobile] = useState(() => (typeof window !== "undefined" ? window.innerWidth < 1024 : false));
 
-  const userTenth = localTenth ? parseFloat(localTenth) : null;
-  const userTwelfth = localTwelfth ? parseFloat(localTwelfth) : null;
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth < 1024);
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
 
-  const companies = (COMPANY_DATA[branchKey] || []).map(([name, reqTenthStr, reqTwelfthStr, btech, cgpaReq, category]) => {
-    const reqTenth = parseFloat(reqTenthStr);
-    const reqTwelfth = parseFloat(reqTwelfthStr);
+  const userTenth = localTenth !== "" ? parseFloat(localTenth) : null;
+  const userTwelfth = localTwelfth !== "" ? parseFloat(localTwelfth) : null;
 
-    let eligible = numericCgpa >= cgpaReq;
-    if (userTenth !== null && userTenth < reqTenth) eligible = false;
-    if (userTwelfth !== null && userTwelfth < reqTwelfth) eligible = false;
+  const rawCompanies = COMPANY_DATA[branchKey] || COMPANY_DATA.CSE;
 
-    return {
-      name,
-      tenth: reqTenthStr,
-      twelfth: reqTwelfthStr,
-      btech,
-      cgpaReq,
-      category: category || "Unknown",
-      eligible,
-      gap: Math.max(cgpaReq - numericCgpa, 0),
-      tenthGap: userTenth !== null && userTenth < reqTenth,
-      twelfthGap: userTwelfth !== null && userTwelfth < reqTwelfth,
-    };
-  });
-  const eligibleCount = companies.filter((company) => company.eligible).length;
+  const processedCompanies = useMemo(() => {
+    return rawCompanies.map(([name, reqTenthStr, reqTwelfthStr, btech, cgpaReq, category]) => {
+      const reqTenth = parseFloat(reqTenthStr);
+      const reqTwelfth = parseFloat(reqTwelfthStr);
 
-  if (!companies.length) {
-    return (
-      <div className="placement-empty">
-        <Info size={24} />
-        <div>
-          <h3>No company list mapped for {branch || "this branch"}</h3>
-          <p>Branch is detected from registration number format. Add this branch to the placement list to show eligibility.</p>
-        </div>
-      </div>
-    );
-  }
+      let eligible = numericCgpa >= cgpaReq;
+      let tenthPass = true;
+      let twelfthPass = true;
+
+      if (userTenth !== null && userTenth < reqTenth) {
+        eligible = false;
+        tenthPass = false;
+      }
+      if (userTwelfth !== null && userTwelfth < reqTwelfth) {
+        eligible = false;
+        twelfthPass = false;
+      }
+
+      return {
+        name,
+        tenth: reqTenthStr,
+        twelfth: reqTwelfthStr,
+        btech,
+        cgpaReq,
+        category: category || "General",
+        eligible,
+        tenthPass,
+        twelfthPass,
+        gap: Math.max(0, cgpaReq - numericCgpa),
+      };
+    });
+  }, [rawCompanies, numericCgpa, userTenth, userTwelfth]);
+
+  const eligibleCount = processedCompanies.filter((c) => c.eligible).length;
+  const totalCount = processedCompanies.length;
+  const qualificationRate = totalCount > 0 ? Math.round((eligibleCount / totalCount) * 100) : 0;
+
+  // Categories list
+  const categories = useMemo(() => {
+    const set = new Set(processedCompanies.map((c) => c.category));
+    return ["All", "Eligible Only", ...Array.from(set)];
+  }, [processedCompanies]);
+
+  // Filtered companies
+  const filteredCompanies = useMemo(() => {
+    return processedCompanies.filter((c) => {
+      const matchesSearch = c.name.toLowerCase().includes(searchQuery.toLowerCase());
+      if (!matchesSearch) return false;
+
+      if (activeCategory === "All") return true;
+      if (activeCategory === "Eligible Only") return c.eligible;
+      return c.category === activeCategory;
+    });
+  }, [processedCompanies, searchQuery, activeCategory]);
 
   return (
-    <section className="placement-eligibility">
-      <div className="placement-hero" style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '20px', alignItems: 'flex-start' }}>
-          <div style={{ flex: '1 1 300px' }}>
-            <p className="placement-eyebrow">
-              <Target size={14} /> Branch filtered companies
-            </p>
-            <h2>Placement Eligibility</h2>
-            <p>
-              Showing companies for <strong>{branchKey}</strong>. Eligibility badge is calculated from your current CGPA, and your 10th/12th percentages if provided below.
-            </p>
+    <div style={{ display: "flex", flexDirection: "column", gap: isMobile ? 12 : 20, fontFamily: "'DM Sans', sans-serif" }}>
+      {/* 1. Header & Summary Row */}
+      <div style={{ display: "flex", flexDirection: isMobile ? "column" : "row", justifyContent: "space-between", alignItems: isMobile ? "stretch" : "flex-start", gap: isMobile ? 10 : 16 }}>
+        <div>
+          <div style={{ display: "flex", alignItems: "center", gap: 7, marginBottom: 2 }}>
+            <div
+              style={{
+                width: isMobile ? 30 : 36,
+                height: isMobile ? 30 : 36,
+                borderRadius: 9,
+                background: "#eff6ff",
+                border: "1px solid #bfdbfe",
+                color: "#2563eb",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                flexShrink: 0,
+              }}
+            >
+              <Briefcase size={isMobile ? 15 : 18} />
+            </div>
+            <div>
+              <h2 style={{ fontSize: isMobile ? 15 : 18, fontWeight: 900, color: "#0f172a", margin: 0 }}>
+                Recruitment Eligibility Matrix
+              </h2>
+            </div>
           </div>
-          
-          <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', flex: '1 1 300px' }}>
-            <div className="placement-score-card" style={{ minWidth: '160px', flex: 1, justifyItems: 'center' }}>
-              <span>Your CGPA</span>
-              <strong>{numericCgpa.toFixed(2)}</strong>
-              <small>{eligibleCount} of {companies.length} eligible</small>
+          <p style={{ color: "#64748b", fontSize: isMobile ? 11.5 : 13, margin: "2px 0 0 0" }}>
+            Criteria assessment for <strong>{branchKey}</strong> recruitment drives based on your CGPA
+          </p>
+        </div>
+
+        <div style={{ display: "flex", gap: 8, alignSelf: isMobile ? "flex-start" : "auto" }}>
+          <div
+            style={{
+              background: "#ffffff",
+              border: "1px solid #cbd5e1",
+              borderRadius: 10,
+              padding: isMobile ? "6px 12px" : "10px 16px",
+              boxShadow: "0 1px 3px rgba(0,0,0,0.03)",
+              display: "flex",
+              alignItems: "center",
+              gap: 8,
+            }}
+          >
+            <div>
+              <div style={{ fontSize: isMobile ? 9 : 10.5, fontWeight: 800, color: "#64748b", textTransform: "uppercase" }}>Qualification Rate</div>
+              <div style={{ fontSize: isMobile ? 16 : 20, fontWeight: 900, color: qualificationRate >= 75 ? "#15803d" : "#2563eb", fontFamily: "'Space Mono', monospace" }}>
+                {qualificationRate}%
+              </div>
+            </div>
+            <div style={{ fontSize: isMobile ? 10.5 : 11, color: "#64748b", fontWeight: 600, borderLeft: "1px solid #e2e8f0", paddingLeft: 8 }}>
+              {eligibleCount} / {totalCount} Drives
             </div>
           </div>
         </div>
+      </div>
 
-        <div className="placement-calculator-box">
-          <div className="calc-header">
-            <Calculator size={18} />
-            <h3>Check Full Eligibility (Local)</h3>
+      {/* 2. Local 10th & 12th Percentage Filter Studio */}
+      <div
+        style={{
+          background: "#f8fafc",
+          border: "1px solid #e2e8f0",
+          borderRadius: 14,
+          padding: isMobile ? "12px 14px" : "18px 20px",
+          display: "flex",
+          flexDirection: "column",
+          gap: isMobile ? 10 : 14,
+        }}
+      >
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 6 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
+            <Calculator size={15} color="#2563eb" />
+            <strong style={{ fontSize: isMobile ? 12.5 : 13.5, color: "#0f172a" }}>10th & 12th Percentages (Optional Filter)</strong>
           </div>
-          <div className="calc-disclaimer">
-            <div style={{ flexShrink: 0, marginTop: '2px' }}><Info size={14} /></div>
-            <div style={{ margin: 0, lineHeight: 1.5 }}>
-              Enter your 10th and 12th percentage to see exactly which companies you qualify for. This data is calculated strictly on your device and is NOT stored in the database.
-            </div>
-          </div>
-          <div className="calc-inputs">
-            <div className="input-group">
-              <label>10th Percentage (%)</label>
-              <input 
-                type="number" 
-                placeholder="e.g. 85.5" 
+          <span style={{ fontSize: 10.5, color: "#64748b", background: "#ffffff", border: "1px solid #cbd5e1", padding: "1px 6px", borderRadius: 20 }}>
+            Device Only
+          </span>
+        </div>
+
+        <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(auto-fit, minmax(240px, 1fr))", gap: isMobile ? 8 : 14 }}>
+          {/* 10th input */}
+          <div>
+            <label style={{ display: "block", fontSize: isMobile ? 10.5 : 11.5, fontWeight: 800, color: "#475569", marginBottom: 4, textTransform: "uppercase" }}>
+              10th / Secondary Percentage (%)
+            </label>
+            <div style={{ display: "flex", gap: 5 }}>
+              <input
+                type="number"
+                placeholder="e.g. 85.0"
                 value={localTenth}
                 onChange={(e) => setLocalTenth(e.target.value)}
-                onWheel={(e) => e.target.blur()}
-                className="no-spin-button"
+                style={{
+                  flex: 1,
+                  minWidth: 70,
+                  padding: isMobile ? "7px 10px" : "9px 12px",
+                  background: "#ffffff",
+                  border: "1px solid #cbd5e1",
+                  borderRadius: 8,
+                  fontSize: isMobile ? 13 : 14,
+                  fontWeight: 700,
+                  color: "#0f172a",
+                  fontFamily: "'Space Mono', monospace",
+                  outline: "none",
+                }}
               />
+              {[60, 75, 85, 90].map((val) => (
+                <button
+                  key={val}
+                  type="button"
+                  onClick={() => setLocalTenth(String(val))}
+                  style={{
+                    padding: isMobile ? "3px 6px" : "4px 8px",
+                    borderRadius: 6,
+                    border: "1px solid #cbd5e1",
+                    background: localTenth === String(val) ? "#eff6ff" : "#ffffff",
+                    color: localTenth === String(val) ? "#2563eb" : "#475569",
+                    fontSize: isMobile ? 10.5 : 11.5,
+                    fontWeight: 700,
+                    cursor: "pointer",
+                  }}
+                >
+                  {val}%
+                </button>
+              ))}
             </div>
-            <div className="input-group">
-              <label>12th Percentage (%)</label>
-              <input 
-                type="number" 
-                placeholder="e.g. 80.0" 
+          </div>
+
+          {/* 12th input */}
+          <div>
+            <label style={{ display: "block", fontSize: isMobile ? 10.5 : 11.5, fontWeight: 800, color: "#475569", marginBottom: 4, textTransform: "uppercase" }}>
+              12th / Diploma Percentage (%)
+            </label>
+            <div style={{ display: "flex", gap: 5 }}>
+              <input
+                type="number"
+                placeholder="e.g. 80.0"
                 value={localTwelfth}
                 onChange={(e) => setLocalTwelfth(e.target.value)}
-                onWheel={(e) => e.target.blur()}
-                className="no-spin-button"
+                style={{
+                  flex: 1,
+                  minWidth: 70,
+                  padding: isMobile ? "7px 10px" : "9px 12px",
+                  background: "#ffffff",
+                  border: "1px solid #cbd5e1",
+                  borderRadius: 8,
+                  fontSize: isMobile ? 13 : 14,
+                  fontWeight: 700,
+                  color: "#0f172a",
+                  fontFamily: "'Space Mono', monospace",
+                  outline: "none",
+                }}
               />
+              {[60, 75, 85, 90].map((val) => (
+                <button
+                  key={val}
+                  type="button"
+                  onClick={() => setLocalTwelfth(String(val))}
+                  style={{
+                    padding: isMobile ? "3px 6px" : "4px 8px",
+                    borderRadius: 6,
+                    border: "1px solid #cbd5e1",
+                    background: localTwelfth === String(val) ? "#eff6ff" : "#ffffff",
+                    color: localTwelfth === String(val) ? "#2563eb" : "#475569",
+                    fontSize: isMobile ? 10.5 : 11.5,
+                    fontWeight: 700,
+                    cursor: "pointer",
+                  }}
+                >
+                  {val}%
+                </button>
+              ))}
             </div>
           </div>
         </div>
       </div>
 
-      <div className="placement-summary-grid">
-        <div>
-          <span>Branch</span>
-          <strong>{branchKey}</strong>
+      {/* 3. Search & Category Filter Toolbar */}
+      <div style={{ display: "flex", flexDirection: isMobile ? "column" : "row", alignItems: isMobile ? "stretch" : "center", justifyContent: "space-between", gap: isMobile ? 8 : 12 }}>
+        {/* Search Bar */}
+        <div style={{ position: "relative", minWidth: isMobile ? "100%" : 260, flex: "1 1 260px" }}>
+          <Search size={15} color="#64748b" style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)" }} />
+          <input
+            type="text"
+            placeholder="Search company name..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            style={{
+              width: "100%",
+              boxSizing: "border-box",
+              padding: isMobile ? "8px 10px 8px 32px" : "9px 12px 9px 36px",
+              background: "#ffffff",
+              border: "1px solid #cbd5e1",
+              borderRadius: 9,
+              fontSize: isMobile ? 12.5 : 13.5,
+              color: "#0f172a",
+              outline: "none",
+            }}
+          />
         </div>
-        <div>
-          <span>Eligible Now</span>
-          <strong>{eligibleCount}</strong>
-        </div>
-        <div>
-          <span>Need Improvement</span>
-          <strong>{companies.length - eligibleCount}</strong>
+
+        {/* Category Pills (Horizontal scroll track on mobile) */}
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 5,
+            overflowX: "auto",
+            scrollbarWidth: "none",
+            msOverflowStyle: "none",
+            WebkitOverflowScrolling: "touch",
+            paddingBottom: isMobile ? 2 : 0,
+          }}
+        >
+          {categories.map((cat) => {
+            const isSelected = activeCategory === cat;
+            return (
+              <button
+                key={cat}
+                onClick={() => setActiveCategory(cat)}
+                style={{
+                  padding: isMobile ? "5px 10px" : "6px 12px",
+                  borderRadius: 8,
+                  border: isSelected ? "1px solid #2563eb" : "1px solid #cbd5e1",
+                  background: isSelected ? "#eff6ff" : "#ffffff",
+                  color: isSelected ? "#1d4ed8" : "#475569",
+                  fontSize: isMobile ? 11.5 : 12,
+                  fontWeight: isSelected ? 800 : 600,
+                  cursor: "pointer",
+                  whiteSpace: "nowrap",
+                  flexShrink: 0,
+                  transition: "all 0.15s ease",
+                }}
+              >
+                {cat}
+              </button>
+            );
+          })}
         </div>
       </div>
 
-      <div className="placement-company-grid">
-        {companies.map((company, index) => (
-          <motion.article
-            key={company.name}
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: index * 0.03 }}
-            className={`placement-company-card ${company.eligible ? "eligible" : "locked"}`}
-          >
-            <div className="placement-company-head" style={{ marginBottom: company.category ? '8px' : '0' }}>
-              <div>
-                <span className="placement-company-index">{String(index + 1).padStart(2, "0")}</span>
-                <h3>{company.name}</h3>
-              </div>
-              <span className={`placement-status ${company.eligible ? "eligible" : "locked"}`}>
-                {company.eligible ? <CheckCircle size={13} /> : <XCircle size={13} />}
-                {company.eligible ? "Eligible" : "Not Yet"}
-              </span>
-            </div>
+      {/* 4. Company Cards Grid */}
+      <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(auto-fit, minmax(320px, 1fr))", gap: isMobile ? 10 : 16 }}>
+        {filteredCompanies.map((c, index) => {
+          const catStyle = CATEGORY_STYLES[c.category] || CATEGORY_STYLES["Service Based"];
+          const isEligible = c.eligible;
 
-            {company.category && (
-              <div className="placement-company-category">
-                {company.category}
-              </div>
-            )}
+          return (
+            <motion.div
+              key={c.name}
+              initial={{ opacity: 0, y: 6 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: Math.min(index * 0.02, 0.3) }}
+              style={{
+                background: "#ffffff",
+                border: isEligible ? "1.5px solid #cbd5e1" : "1px solid #e2e8f0",
+                borderRadius: 14,
+                padding: isMobile ? "12px 14px" : "18px 20px",
+                boxShadow: "0 1px 3px rgba(0,0,0,0.03)",
+                display: "flex",
+                flexDirection: "column",
+                justifyContent: "space-between",
+                gap: isMobile ? 10 : 14,
+                opacity: isEligible ? 1 : 0.85,
+              }}
+            >
+              {/* Card Header: Company Name + Status Badge */}
+              <div>
+                <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 8 }}>
+                  <div>
+                    <div style={{ fontSize: isMobile ? 14.5 : 16, fontWeight: 900, color: "#0f172a" }}>
+                      {c.name}
+                    </div>
+                    <span
+                      style={{
+                        display: "inline-block",
+                        marginTop: 3,
+                        fontSize: isMobile ? 10 : 11,
+                        fontWeight: 700,
+                        color: catStyle.color,
+                        background: catStyle.bg,
+                        border: `1px solid ${catStyle.border}`,
+                        padding: "1px 6px",
+                        borderRadius: 5,
+                      }}
+                    >
+                      {c.category}
+                    </span>
+                  </div>
 
-            <div className="placement-requirements">
-              <div>
-                <span>10th</span>
-                <strong>{company.tenth}</strong>
+                  <span
+                    style={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: 3,
+                      fontSize: isMobile ? 10.5 : 11.5,
+                      fontWeight: 800,
+                      color: isEligible ? "#15803d" : "#b91c1c",
+                      background: isEligible ? "#dcfce7" : "#fee2e2",
+                      border: `1px solid ${isEligible ? "#bbf7d0" : "#fecaca"}`,
+                      padding: "2px 7px",
+                      borderRadius: 6,
+                      flexShrink: 0,
+                    }}
+                  >
+                    {isEligible ? <CheckCircle size={12} /> : <XCircle size={12} />}
+                    {isEligible ? "Eligible" : "Need Upgrade"}
+                  </span>
+                </div>
               </div>
-              <div>
-                <span>12th</span>
-                <strong>{company.twelfth}</strong>
-              </div>
-              <div>
-                <span>B.Tech</span>
-                <strong>{company.btech}</strong>
-              </div>
-            </div>
 
-            <div className="placement-progress-row">
-              <div>
-                <span>CGPA requirement</span>
-                <strong>{company.cgpaReq.toFixed(2)}</strong>
-              </div>
-              <div className="placement-progress-track" aria-hidden="true">
-                <div style={{ width: `${Math.min((numericCgpa / company.cgpaReq) * 100, 100)}%` }} />
-              </div>
-            </div>
+              {/* Requirements 3-box Grid */}
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "1fr 1fr 1fr",
+                  gap: 4,
+                  background: "#f8fafc",
+                  border: "1px solid #e2e8f0",
+                  borderRadius: 9,
+                  padding: isMobile ? "6px 8px" : "8px 10px",
+                  textAlign: "center",
+                }}
+              >
+                <div>
+                  <div style={{ fontSize: isMobile ? 9 : 10, fontWeight: 800, color: "#64748b", textTransform: "uppercase" }}>10th Min</div>
+                  <div style={{ fontSize: isMobile ? 11.5 : 12.5, fontWeight: 800, color: c.tenthPass ? "#0f172a" : "#dc2626", marginTop: 1 }}>
+                    {c.tenth}
+                  </div>
+                </div>
 
-            {!company.eligible && (
-              <div className="placement-gap" style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
-                {company.gap > 0 && <span>Need {company.gap.toFixed(2)} more CGPA.</span>}
-                {company.tenthGap && <span>10th % is below requirement.</span>}
-                {company.twelfthGap && <span>12th % is below requirement.</span>}
+                <div style={{ borderLeft: "1px solid #e2e8f0", borderRight: "1px solid #e2e8f0" }}>
+                  <div style={{ fontSize: isMobile ? 9 : 10, fontWeight: 800, color: "#64748b", textTransform: "uppercase" }}>12th Min</div>
+                  <div style={{ fontSize: isMobile ? 11.5 : 12.5, fontWeight: 800, color: c.twelfthPass ? "#0f172a" : "#dc2626", marginTop: 1 }}>
+                    {c.twelfth}
+                  </div>
+                </div>
+
+                <div>
+                  <div style={{ fontSize: isMobile ? 9 : 10, fontWeight: 800, color: "#64748b", textTransform: "uppercase" }}>B.Tech Min</div>
+                  <div style={{ fontSize: isMobile ? 11.5 : 12.5, fontWeight: 800, color: isEligible ? "#15803d" : "#0f172a", marginTop: 1, fontFamily: "'Space Mono', monospace" }}>
+                    {c.cgpaReq.toFixed(2)}
+                  </div>
+                </div>
               </div>
-            )}
-          </motion.article>
-        ))}
+
+              {/* Progress & Gap Advisory */}
+              <div>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: isMobile ? 10.5 : 11, color: "#64748b", marginBottom: 3 }}>
+                  <span>CGPA Match ({numericCgpa.toFixed(2)} / {c.cgpaReq.toFixed(2)})</span>
+                  <span style={{ fontWeight: 700, color: isEligible ? "#15803d" : "#b45309" }}>
+                    {Math.round(Math.min((numericCgpa / c.cgpaReq) * 100, 100))}%
+                  </span>
+                </div>
+                <div style={{ width: "100%", height: 4, background: "#e2e8f0", borderRadius: 4, overflow: "hidden" }}>
+                  <div
+                    style={{
+                      height: "100%",
+                      width: `${Math.min((numericCgpa / c.cgpaReq) * 100, 100)}%`,
+                      background: isEligible ? "#16a34a" : "#f59e0b",
+                      borderRadius: 4,
+                    }}
+                  />
+                </div>
+
+                {!isEligible && (
+                  <div style={{ marginTop: 6, fontSize: isMobile ? 10.5 : 11.5, color: "#b91c1c", fontWeight: 700, display: "flex", alignItems: "center", gap: 3 }}>
+                    <AlertTriangle size={12} />
+                    {c.gap > 0 ? `Requires +${c.gap.toFixed(2)} CGPA gain` : "10th/12th % is below threshold"}
+                  </div>
+                )}
+              </div>
+            </motion.div>
+          );
+        })}
       </div>
 
-      <div className="placement-note">
-        <GraduationCap size={16} />
-        <p>
-          Final placement eligibility may also depend on backlog history, active backlogs, aptitude rounds,
-          branch-specific rules, and official company policy.
-        </p>
+      {filteredCompanies.length === 0 && (
+        <div style={{ textAlign: "center", padding: isMobile ? "24px 14px" : "40px 20px", background: "#f8fafc", borderRadius: 14, border: "1px solid #e2e8f0" }}>
+          <Building size={28} color="#94a3b8" style={{ marginBottom: 6 }} />
+          <h4 style={{ fontSize: 14, fontWeight: 700, color: "#334155", margin: "0 0 3px 0" }}>No matching companies found</h4>
+          <p style={{ color: "#64748b", fontSize: 12, margin: 0 }}>Try clearing your search query or switching category filters.</p>
+        </div>
+      )}
+
+      {/* Bottom Academic Notice */}
+      <div
+        style={{
+          background: "#f8fafc",
+          border: "1px solid #e2e8f0",
+          borderRadius: 12,
+          padding: isMobile ? "10px 12px" : "12px 16px",
+          display: "flex",
+          alignItems: "flex-start",
+          gap: 8,
+          fontSize: isMobile ? 11 : 12,
+          color: "#64748b",
+        }}
+      >
+        <GraduationCap size={15} color="#64748b" style={{ flexShrink: 0, marginTop: 2 }} />
+        <div>
+          Official recruitment shortlisting may also consider backlog count, department specific interview rounds,
+          and company specific eligibility policies during the final drive announcement.
+        </div>
       </div>
-    </section>
+    </div>
   );
 }

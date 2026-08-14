@@ -1,17 +1,34 @@
-import { Routes, Route, Navigate } from "react-router-dom";
+import { Routes, Route, Navigate, useLocation } from "react-router-dom";
 import { useState, useEffect } from "react";
 import axios from "axios";
+import { AnimatePresence, motion } from "framer-motion";
 import Navbar from "./components/Navbar";
 import Home from "./pages/Home";
 import Dashboard from "./pages/Dashboard";
 import Analytics from "./pages/Analytics";
 import Leaderboard from "./pages/Leaderboard";
 import Testimonials from "./pages/Testimonials";
+import AboutDev from "./pages/AboutDev";
+import Resources from "./pages/Resources";
 import AdminLogin from "./pages/AdminLogin";
 import AdminDashboard from "./pages/AdminDashboard";
 import FeedbackModal from "./components/FeedbackModal";
 import { useApp } from "./context/AppContext";
 import { AlertTriangle, X } from "lucide-react";
+
+function PageTransition({ children }) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -6 }}
+      transition={{ duration: 0.24, ease: [0.25, 1, 0.5, 1] }}
+      style={{ width: "100%", minHeight: "100%" }}
+    >
+      {children}
+    </motion.div>
+  );
+}
 
 function ProtectedRoute({ children }) {
   const { hasActiveSession } = useApp();
@@ -23,6 +40,33 @@ function ProtectedRoute({ children }) {
 
 export default function App() {
   const [rateLimitError, setRateLimitError] = useState(null);
+  const location = useLocation();
+
+  // Sync document title with current page route
+  useEffect(() => {
+    const path = location.pathname;
+    if (path === "/") {
+      document.title = "GradeFlow — Academic Analytics & GPA Intelligence";
+    } else if (path.startsWith("/dashboard")) {
+      document.title = "GradeFlow — Student Dashboard";
+    } else if (path.startsWith("/analytics")) {
+      document.title = "GradeFlow — Performance Analytics";
+    } else if (path === "/leaderboard") {
+      document.title = "GradeFlow — University Leaderboard";
+    } else if (path === "/resources") {
+      document.title = "GradeFlow — Academic Resources & Curriculum";
+    } else if (path === "/testimonials") {
+      document.title = "GradeFlow — Student Reviews & Feedback";
+    } else if (path === "/about-dev" || path === "/about") {
+      document.title = "GradeFlow — About Developer";
+    } else if (path === "/admin" || path === "/admin/login") {
+      document.title = "GradeFlow — Admin Portal";
+    } else if (path === "/admin/dashboard") {
+      document.title = "GradeFlow — Admin Dashboard & Data Center";
+    } else {
+      document.title = "GradeFlow — Academic Analytics";
+    }
+  }, [location.pathname]);
 
   useEffect(() => {
     const interceptor = axios.interceptors.response.use(
@@ -92,37 +136,114 @@ export default function App() {
         </div>
       )}
 
-      <Routes>
-        <Route path="/" element={<Home />} />
-        <Route
-          path="/dashboard/:regNo"
-          element={
-            <ProtectedRoute>
-              <Dashboard />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/analytics/:regNo"
-          element={
-            <ProtectedRoute>
-              <Analytics />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/leaderboard"
-          element={
-            <ProtectedRoute>
-              <Leaderboard />
-            </ProtectedRoute>
-          }
-        />
-        <Route path="/testimonials" element={<Testimonials />} />
-        <Route path="/admin" element={<AdminLogin />} />
-        <Route path="/admin/login" element={<AdminLogin />} />
-        <Route path="/admin/dashboard" element={<AdminDashboard />} />
-      </Routes>
+      <AnimatePresence mode="wait">
+        <Routes location={location} key={location.pathname}>
+          <Route
+            path="/"
+            element={
+              <PageTransition>
+                <Home />
+              </PageTransition>
+            }
+          />
+          <Route
+            path="/dashboard/:regNo"
+            element={
+              <ProtectedRoute>
+                <PageTransition>
+                  <Dashboard />
+                </PageTransition>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/analytics/:regNo"
+            element={
+              <ProtectedRoute>
+                <PageTransition>
+                  <Analytics />
+                </PageTransition>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/analytics"
+            element={
+              <ProtectedRoute>
+                <PageTransition>
+                  <Analytics />
+                </PageTransition>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/leaderboard"
+            element={
+              <ProtectedRoute>
+                <PageTransition>
+                  <Leaderboard />
+                </PageTransition>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/testimonials"
+            element={
+              <PageTransition>
+                <Testimonials />
+              </PageTransition>
+            }
+          />
+          <Route
+            path="/about-dev"
+            element={
+              <PageTransition>
+                <AboutDev />
+              </PageTransition>
+            }
+          />
+          <Route
+            path="/about"
+            element={
+              <PageTransition>
+                <AboutDev />
+              </PageTransition>
+            }
+          />
+          <Route
+            path="/resources"
+            element={
+              <PageTransition>
+                <Resources />
+              </PageTransition>
+            }
+          />
+          <Route
+            path="/admin"
+            element={
+              <PageTransition>
+                <AdminLogin />
+              </PageTransition>
+            }
+          />
+          <Route
+            path="/admin/login"
+            element={
+              <PageTransition>
+                <AdminLogin />
+              </PageTransition>
+            }
+          />
+          <Route
+            path="/admin/dashboard"
+            element={
+              <PageTransition>
+                <AdminDashboard />
+              </PageTransition>
+            }
+          />
+        </Routes>
+      </AnimatePresence>
     </>
   );
 }

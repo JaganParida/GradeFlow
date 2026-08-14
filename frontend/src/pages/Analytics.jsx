@@ -1,10 +1,13 @@
 import { useEffect, useState, useMemo, useRef } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useSearchParams, useLocation } from "react-router-dom";
 import { useApp } from "../context/AppContext";
 import CompanyEligibility from "../components/CompanyEligibility";
 import {
   LineChart,
   Line,
+  BarChart,
+  Bar,
+  Cell,
   XAxis,
   YAxis,
   CartesianGrid,
@@ -19,7 +22,34 @@ import {
 } from "recharts";
 import { AnalyticsSkeleton } from "../components/LoadingSpinner";
 import { motion, animate, AnimatePresence } from "framer-motion";
-import { TrendingUp, TrendingDown, Star, Trophy, CheckCircle, AlertTriangle, Target, Medal, Award, BarChart2, PieChart, Briefcase, GraduationCap, Check, ArrowLeft, X, List } from "lucide-react";
+import {
+  TrendingUp,
+  TrendingDown,
+  Star,
+  Trophy,
+  CheckCircle,
+  AlertTriangle,
+  Target,
+  Medal,
+  Award,
+  BarChart2,
+  PieChart,
+  Briefcase,
+  GraduationCap,
+  Check,
+  ArrowLeft,
+  X,
+  List,
+  Sparkles,
+  Layers,
+  ChevronLeft,
+  ChevronRight,
+  BookOpen,
+  HelpCircle,
+  RotateCcw,
+  Sliders,
+  Zap,
+} from "lucide-react";
 import {
   GRADE_POINTS,
   calculateCGPA,
@@ -30,6 +60,16 @@ import {
 } from "../utils/gradeCalculations";
 
 const GRADE_ORDER = ["O", "E", "A", "B", "C", "D", "F"];
+
+const GRADE_META = {
+  O: { pts: 10, label: "Outstanding", color: "#b45309", bg: "#fef3c7", border: "#fde68a" },
+  E: { pts: 9, label: "Excellent", color: "#15803d", bg: "#dcfce7", border: "#bbf7d0" },
+  A: { pts: 8, label: "Very Good", color: "#1d4ed8", bg: "#dbeafe", border: "#bfdbfe" },
+  B: { pts: 7, label: "Good", color: "#7e22ce", bg: "#f3e8ff", border: "#e9d5ff" },
+  C: { pts: 6, label: "Fair", color: "#c2410c", bg: "#ffedd5", border: "#fed7aa" },
+  D: { pts: 5, label: "Pass", color: "#475569", bg: "#f1f5f9", border: "#cbd5e1" },
+  F: { pts: 2, label: "Fail", color: "#b91c1c", bg: "#fee2e2", border: "#fecaca" },
+};
 
 function AnimatedNumber({ value }) {
   const nodeRef = useRef();
@@ -42,7 +82,7 @@ function AnimatedNumber({ value }) {
     if (Number.isNaN(startValue)) return;
 
     const controls = animate(startValue, value, {
-      duration: 0.6,
+      duration: 0.5,
       ease: "easeOut",
       onUpdate(v) {
         node.textContent = v.toFixed(2);
@@ -63,72 +103,84 @@ function calcCGPAUpTo(results, upToIdx) {
 function generateInsights(data) {
   const insights = [];
   const { results, cgpa, latestSgpa, backlogs, ranking, branch } = data;
-  // Use exact SGPA if available, otherwise calculate
-  const liveSGPAs = results.map(r => typeof r.sgpa === 'number' ? r.sgpa : calcSGPA(r.subjects, r.semester));
+  const liveSGPAs = results.map((r) =>
+    typeof r.sgpa === "number" ? r.sgpa : calcSGPA(r.subjects, r.semester)
+  );
+
   if (results.length >= 2) {
     const prev = liveSGPAs[liveSGPAs.length - 2];
     const curr = liveSGPAs[liveSGPAs.length - 1];
     const diff = (curr - prev).toFixed(2);
     if (diff > 0)
       insights.push({
-        icon: <TrendingUp size={18} color="var(--success)" />,
-        text: `Your SGPA improved by ${diff} this semester. Great progress!`,
+        icon: <TrendingUp size={18} color="#15803d" />,
+        text: `Your SGPA improved by +${diff} this semester. Excellent upward performance trajectory!`,
         type: "success",
       });
     else if (diff < 0)
       insights.push({
-        icon: <TrendingDown size={18} color="var(--warning)" />,
-        text: `Your SGPA dropped by ${Math.abs(diff)}. Focus on improvement next semester.`,
+        icon: <TrendingDown size={18} color="#b45309" />,
+        text: `Your SGPA decreased by ${Math.abs(diff)}. Review high-credit subjects for the next semester.`,
         type: "warning",
       });
   }
-  const bestSemIdx = liveSGPAs.reduce((bestIdx, sgpa, i) => sgpa > (liveSGPAs[bestIdx] || 0) ? i : bestIdx, 0);
+
+  const bestSemIdx = liveSGPAs.reduce(
+    (bestIdx, sgpa, i) => (sgpa > (liveSGPAs[bestIdx] || 0) ? i : bestIdx),
+    0
+  );
   const bestSem = results[bestSemIdx];
   const bestSGPA = liveSGPAs[bestSemIdx];
   if (bestSem)
     insights.push({
-      icon: <Star size={18} color="var(--accent)" />,
-      text: `Your strongest semester is Semester ${bestSem.semester} with SGPA ${bestSGPA?.toFixed(2)}.`,
+      icon: <Star size={18} color="#2563eb" />,
+      text: `Your highest academic performance was Semester ${bestSem.semester} with an SGPA of ${bestSGPA?.toFixed(2)}.`,
       type: "info",
     });
+
   if (cgpa >= 8.5)
     insights.push({
-      icon: <Trophy size={18} color="var(--success)" />,
-      text: "You are performing above department average. Keep it up!",
+      icon: <Trophy size={18} color="#15803d" />,
+      text: "You hold a high-distinction standing comfortably above the department average.",
       type: "success",
     });
+
   if (backlogs.length === 0)
     insights.push({
-      icon: <CheckCircle size={18} color="var(--success)" />,
-      text: "Excellent! You have no active backlogs.",
+      icon: <CheckCircle size={18} color="#15803d" />,
+      text: "Outstanding! All course credits are successfully cleared with zero active backlogs.",
       type: "success",
     });
+
   if (backlogs.length > 0)
     insights.push({
-      icon: <AlertTriangle size={18} color="var(--danger)" />,
-      text: `You have ${backlogs.length} active backlog(s). Prioritize clearing them.`,
+      icon: <AlertTriangle size={18} color="#dc2626" />,
+      text: `You have ${backlogs.length} active backlog(s). Prioritize clearing them in the upcoming remedial cycle.`,
       type: "danger",
     });
+
   if (ranking) {
     if (ranking.universityRank <= 10)
       insights.push({
-        icon: <Target size={18} color="var(--success)" />,
-        text: `You are ranked #${ranking.universityRank} in the university. Outstanding!`,
+        icon: <Target size={18} color="#15803d" />,
+        text: `You are ranked #${ranking.universityRank} university-wide!`,
         type: "success",
       });
     if (ranking.deptRank <= 5)
       insights.push({
-        icon: <Medal size={18} color="var(--success)" />,
-        text: `Top 5 in your department — Rank #${ranking.deptRank}!`,
+        icon: <Medal size={18} color="#15803d" />,
+        text: `Top 5 in your department — Department Rank #${ranking.deptRank}!`,
         type: "success",
       });
   }
+
   if (latestSgpa >= 9.0)
     insights.push({
-      icon: <Award size={18} color="var(--success)" />,
-      text: "Eligible for Academic Excellence badge this semester!",
+      icon: <Award size={18} color="#15803d" />,
+      text: "Qualified for Academic Excellence Honours for this semester!",
       type: "success",
     });
+
   return insights;
 }
 
@@ -153,51 +205,149 @@ function getDynamicBranch(regNo, fallbackBranch) {
 }
 
 export default function Analytics() {
-  const { regNo } = useParams();
+  const { regNo: paramRegNo } = useParams();
   const { studentData, fetchStudent, loading } = useApp();
   const navigate = useNavigate();
-  const [tab, setTab] = useState("overview");
+  const [searchParams, setSearchParams] = useSearchParams();
+  const location = useLocation();
+
+  const regNo = paramRegNo || studentData?.regNo || sessionStorage.getItem("last_regNo") || "";
+
+  // Helper to normalize any incoming tab/hash request
+  const resolveTab = (raw) => {
+    if (!raw) return "overview";
+    const clean = String(raw).replace("#", "").toLowerCase().trim();
+    if (clean === "trajectory" || clean === "overview") return "overview";
+    if (clean === "grades" || clean === "distribution") return "grades";
+    if (clean === "placement" || clean === "companies") return "placement";
+    if (clean === "mastery" || clean === "subjects" || clean === "insights") return "mastery";
+    if (clean === "predictor" || clean === "goal") return "predictor";
+    if (clean === "whatif" || clean === "simulator") return "whatif";
+    return "overview";
+  };
+
+  const [tab, setTab] = useState(() => {
+    const fromQuery = searchParams.get("tab");
+    const fromHash = window.location.hash.replace("#", "");
+    return resolveTab(fromQuery || fromHash);
+  });
+
   const [targetCGPA, setTargetCGPA] = useState("");
   const [whatIfGrades, setWhatIfGrades] = useState({});
   const [whatIfCGPA, setWhatIfCGPA] = useState(null);
   const [whatIfSGPA, setWhatIfSGPA] = useState(null);
-  const [isMobile, setIsMobile] = useState(window.innerWidth < 1024);
-  const tabsRef = useRef(null);
-  const [tabsVisible, setTabsVisible] = useState(true);
-  const [isNavSheetOpen, setIsNavSheetOpen] = useState(false);
+  const [isMobile, setIsMobile] = useState(() => (typeof window !== "undefined" ? window.innerWidth < 1024 : false));
+
+  // Mobile Sub-Nav Scroll Reference & Status
+  const mobileTabsRef = useRef(null);
+  const [canScrollLeft, setCanScrollLeft] = useState(false);
+  const [canScrollRight, setCanScrollRight] = useState(true);
+
+  const checkTabsScroll = () => {
+    if (mobileTabsRef.current) {
+      const { scrollLeft, scrollWidth, clientWidth } = mobileTabsRef.current;
+      setCanScrollLeft(scrollLeft > 5);
+      setCanScrollRight(scrollLeft < scrollWidth - clientWidth - 5);
+    }
+  };
+
+  const scrollTabs = (direction) => {
+    if (mobileTabsRef.current) {
+      const scrollAmount = direction === "left" ? -160 : 160;
+      mobileTabsRef.current.scrollBy({ left: scrollAmount, behavior: "smooth" });
+      setTimeout(checkTabsScroll, 200);
+    }
+  };
+
+  const handleTabChange = (newTabId) => {
+    setTab(newTabId);
+    setSearchParams({ tab: newTabId }, { replace: true });
+    // Smooth scroll to top on tab change
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  // Sync tab with URL searchParams or hash whenever location changes
+  useEffect(() => {
+    const fromQuery = searchParams.get("tab");
+    const fromHash = location.hash ? location.hash.replace("#", "") : "";
+    const active = resolveTab(fromQuery || fromHash);
+    if (active && active !== tab) {
+      setTab(active);
+    }
+  }, [searchParams, location.search, location.hash]);
 
   useEffect(() => {
-    const handleResize = () => setIsMobile(window.innerWidth < 1024);
+    const handleResize = () => {
+      setIsMobile(window.innerWidth < 1024);
+      checkTabsScroll();
+    };
     window.addEventListener("resize", handleResize);
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
   useEffect(() => {
-    const observer = new IntersectionObserver(
-      ([entry]) => setTabsVisible(entry.isIntersecting),
-      { threshold: 0 }
-    );
-    if (tabsRef.current) observer.observe(tabsRef.current);
-    return () => observer.disconnect();
-  }, []);
+    checkTabsScroll();
+  }, [tab]);
 
   useEffect(() => {
-    if (!studentData || studentData.regNo !== regNo) fetchStudent(regNo);
+    if (!studentData || studentData.regNo !== regNo) {
+      if (regNo) fetchStudent(regNo);
+    }
   }, [regNo]);
+
+  // Grade Distribution Calculation across all semesters
+  const gradeDistributionData = useMemo(() => {
+    if (!studentData || !studentData.results) return [];
+    const counts = { O: 0, E: 0, A: 0, B: 0, C: 0, D: 0, F: 0 };
+    let totalSubs = 0;
+
+    studentData.results.forEach((r) => {
+      r.subjects?.forEach((s) => {
+        const grade = s.grade?.toUpperCase();
+        if (counts[grade] !== undefined) {
+          counts[grade] += 1;
+          totalSubs += 1;
+        }
+      });
+    });
+
+    return Object.keys(counts).map((g) => ({
+      grade: g,
+      count: counts[g],
+      label: GRADE_META[g]?.label || g,
+      pts: GRADE_META[g]?.pts || 0,
+      color: GRADE_META[g]?.color || "#475569",
+      bg: GRADE_META[g]?.bg || "#f1f5f9",
+      border: GRADE_META[g]?.border || "#cbd5e1",
+      pct: totalSubs > 0 ? ((counts[g] / totalSubs) * 100).toFixed(1) : "0.0",
+    }));
+  }, [studentData]);
+
+  const totalGradedCount = useMemo(() => {
+    return gradeDistributionData.reduce((acc, curr) => acc + curr.count, 0);
+  }, [gradeDistributionData]);
+
+  const honorsGradeRatio = useMemo(() => {
+    if (!totalGradedCount) return "0.0";
+    const highCount = gradeDistributionData
+      .filter((d) => ["O", "E", "A"].includes(d.grade))
+      .reduce((acc, curr) => acc + curr.count, 0);
+    return ((highCount / totalGradedCount) * 100).toFixed(1);
+  }, [gradeDistributionData, totalGradedCount]);
 
   const radarData = useMemo(() => {
     if (!studentData || !studentData.results) return [];
-    
+
     let theoryW = 0, theoryC = 0;
     let practicalW = 0, practicalC = 0;
     let projectW = 0, projectC = 0;
 
-    studentData.results.forEach(r => {
-      r.subjects?.forEach(s => {
+    studentData.results.forEach((r) => {
+      r.subjects?.forEach((s) => {
         if (!s.credit || !GRADE_POINTS[s.grade]) return;
-        const type = s.type ? s.type.toLowerCase() : (s.subName ? s.subName.toLowerCase() : "");
+        const type = s.type ? s.type.toLowerCase() : s.subName ? s.subName.toLowerCase() : "";
         const points = s.credit * GRADE_POINTS[s.grade];
-        
+
         if (type.includes("proj")) {
           projectW += points;
           projectC += s.credit;
@@ -212,13 +362,13 @@ export default function Analytics() {
     });
 
     return [
-      { subject: 'Theory', score: theoryC ? (theoryW / theoryC) * 10 : 0, fullMark: 100 },
-      { subject: 'Practical', score: practicalC ? (practicalW / practicalC) * 10 : 0, fullMark: 100 },
-      { subject: 'Projects', score: projectC ? (projectW / projectC) * 10 : 0, fullMark: 100 },
+      { subject: "Theory Courses", score: theoryC ? (theoryW / theoryC) * 10 : 0, fullMark: 100 },
+      { subject: "Practicals & Labs", score: practicalC ? (practicalW / practicalC) * 10 : 0, fullMark: 100 },
+      { subject: "Project Work", score: projectC ? (projectW / projectC) * 10 : 0, fullMark: 100 },
     ];
   }, [studentData]);
 
-  // What-if simulator (Auto-calculate)
+  // What-if simulator calculation
   useEffect(() => {
     if (!studentData || !studentData.results) {
       setWhatIfCGPA(null);
@@ -235,16 +385,10 @@ export default function Analytics() {
       let semTW = 0, semTC = 0;
 
       r.subjects.forEach((s) => {
-        const grade =
-          isLatest && whatIfGrades[s.subCode]
-            ? whatIfGrades[s.subCode]
-            : s.grade;
-            
-        if (isSem5ProjectException(s, r.semester)) {
-          return;
-        }
+        const grade = isLatest && whatIfGrades[s.subCode] ? whatIfGrades[s.subCode] : s.grade;
 
-        // All other grades (F=2, R=0, S=0, M=0) contribute per official formula
+        if (isSem5ProjectException(s, r.semester)) return;
+
         if (s.credit && GRADE_POINTS[grade] !== undefined) {
           semTW += s.credit * GRADE_POINTS[grade];
           semTC += s.credit;
@@ -254,46 +398,40 @@ export default function Analytics() {
           }
         }
       });
-      
+
       if (semTC > 0) {
-        // Official formula: SGPA TRUNCATED (floor) to 2 decimal places per semester
         let semSGPA = trunc2(semTW / semTC);
         cgpaNumerator += semSGPA * semTC;
         cgpaDenominator += semTC;
       }
     });
-    
-    // Final CGPA is rounded after the SGPA-weighted semester average.
+
     setWhatIfCGPA(cgpaDenominator > 0 ? trunc2(cgpaNumerator / cgpaDenominator).toFixed(2) : "0.00");
     setWhatIfSGPA(sgpa_tc > 0 ? trunc2(sgpa_tw / sgpa_tc).toFixed(2) : "0.00");
   }, [whatIfGrades, studentData]);
 
-  if (loading || !studentData)
-    return <AnalyticsSkeleton />;
+  if (loading || !studentData) return <AnalyticsSkeleton />;
 
   const {
-    results,
-    cgpa,
-    latestSgpa,
-    latestSemester,
-    totalCredits,
-    creditsCleared,
-    backlogs,
-    ranking,
+    results = [],
+    cgpa = 0,
+    latestSgpa = 0,
+    latestSemester = 1,
+    totalCredits = 0,
+    creditsCleared = 0,
+    backlogs = [],
     studentName,
     branch,
     batch,
   } = studentData;
 
-  // Chart data — use exact SGPA if available
   const chartData = results.map((r, i) => ({
     sem: `Sem ${r.semester}`,
-    SGPA: typeof r.sgpa === 'number' ? r.sgpa : parseFloat(calcSGPA(r.subjects, r.semester).toFixed(2)),
+    SGPA: typeof r.sgpa === "number" ? r.sgpa : parseFloat(calcSGPA(r.subjects, r.semester).toFixed(2)),
     CGPA: calcCGPAUpTo(results, i),
   }));
 
-  // CGPA predictor
-  const remainingSems = 8 - latestSemester;
+  const remainingSems = Math.max(0, 8 - latestSemester);
   let requiredSGPA = null;
   if (targetCGPA && remainingSems > 0) {
     const target = parseFloat(targetCGPA);
@@ -306,777 +444,1215 @@ export default function Analytics() {
     ).toFixed(2);
   }
 
-  // Radar Chart Data calculated above
-
-  // Subject analysis
   const latestResult = results[results.length - 1];
   const latestSubjects = latestResult?.subjects || [];
-  const graded = latestSubjects.filter(
-    (s) => s.grade && s.grade !== "F" && GRADE_POINTS[s.grade] && !isSem5ProjectException(s, latestResult?.semester),
-  );
-  const best = graded.reduce(
-    (a, s) =>
-      (GRADE_POINTS[s.grade] || 0) > (GRADE_POINTS[a?.grade] || 0) ? s : a,
-    graded[0],
-  );
-  const worst = graded.reduce(
-    (a, s) =>
-      (GRADE_POINTS[s.grade] || 0) < (GRADE_POINTS[a?.grade] || 0) ? s : a,
-    graded[0],
-  );
   const dynamicBranch = getDynamicBranch(regNo, branch);
-
   const insights = generateInsights(studentData);
 
-  const typeColor = {
-    success: "var(--success)",
-    warning: "var(--warning)",
-    danger: "var(--danger)",
-    info: "var(--accent)",
+  const insightColors = {
+    success: { border: "#bbf7d0", bg: "#f0fdf4", text: "#15803d" },
+    warning: { border: "#fde68a", bg: "#fef3c7", text: "#b45309" },
+    danger: { border: "#fecaca", bg: "#fef2f2", text: "#b91c1c" },
+    info: { border: "#bfdbfe", bg: "#eff6ff", text: "#1d4ed8" },
   };
 
+  const navTabs = [
+    { id: "overview", label: "Performance Trajectory", icon: <TrendingUp size={15} color="#2563eb" /> },
+    { id: "grades", label: "Grade Distribution", icon: <BarChart2 size={15} color="#8b5cf6" /> },
+    { id: "placement", label: "Placement & Companies", icon: <Briefcase size={15} color="#10b981" /> },
+    { id: "mastery", label: "Subject Mastery & Insights", icon: <Target size={15} color="#d97706" /> },
+    { id: "predictor", label: "CGPA Goal Predictor", icon: <Sparkles size={15} color="#16a34a" /> },
+    { id: "whatif", label: "What-If Simulator", icon: <PieChart size={15} color="#6366f1" /> },
+  ];
+
   return (
-    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.4, ease: "easeOut" }} className="page">
-      <div style={{ marginBottom: 32 }}>
-        <button
-          className="btn btn-ghost"
-          onClick={() => navigate(`/dashboard/${regNo}`)}
-          style={{ marginBottom: 16, display: "flex", alignItems: "center", gap: 6, fontSize: 13, padding: "7px 14px" }}
+    <div
+      style={{
+        minHeight: "100vh",
+        background: "#f8fafc",
+        padding: isMobile ? "12px 10px 40px 10px" : "24px 20px 60px 20px",
+        fontFamily: "'DM Sans', sans-serif",
+      }}
+    >
+      <div style={{ maxWidth: 1240, margin: "0 auto", display: "flex", flexDirection: "column", gap: isMobile ? 12 : 22 }}>
+        
+        {/* Top Header Card */}
+        <div
+          style={{
+            background: "#ffffff",
+            border: "1px solid #cbd5e1",
+            borderRadius: 16,
+            padding: isMobile ? "14px 14px" : "20px 24px",
+            boxShadow: "0 1px 3px rgba(0,0,0,0.05), 0 4px 14px rgba(15,23,42,0.03)",
+            display: "flex",
+            flexDirection: "column",
+            gap: isMobile ? 12 : 16,
+          }}
         >
-          <ArrowLeft size={15} /> Dashboard
-        </button>
-        <p style={{ color: "var(--text-muted)", fontSize: 11, fontWeight: 800, marginBottom: 8, textTransform: "uppercase", letterSpacing: "1px", display: "flex", alignItems: "center", gap: 6 }}>
-          <BarChart2 size={12} /> Academic Analytics
-        </p>
-        <h1 style={{ fontSize: 28, fontWeight: 800, letterSpacing: "-0.5px", marginBottom: 6 }}>Performance Overview</h1>
-        <p style={{ color: "var(--text-secondary)", fontSize: 14 }}>
-          {studentName} &nbsp;&middot;&nbsp; {dynamicBranch} &nbsp;&middot;&nbsp; Batch {batch}
-        </p>
-      </div>
+          {/* Breadcrumb row */}
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 10 }}>
+            <button
+              onClick={() => navigate(`/dashboard/${regNo}`)}
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 5,
+                padding: isMobile ? "5px 10px" : "6px 13px",
+                borderRadius: 8,
+                border: "1px solid #cbd5e1",
+                background: "#ffffff",
+                color: "#334155",
+                fontSize: isMobile ? 12 : 13,
+                fontWeight: 600,
+                cursor: "pointer",
+                transition: "all 0.15s ease",
+              }}
+            >
+              <ArrowLeft size={13} /> Back to Dashboard
+            </button>
 
-      <div className="tabs" style={{ marginBottom: 28 }} ref={tabsRef}>
-        {[
-          ["overview", "Overview", <BarChart2 size={14} key="ov" />],
-          ["predictor", "Predictor", <Target size={14} key="pr" />],
-          ["whatif", "What-If", <PieChart size={14} key="wi" />],
-          ["placement", "Placement", <Briefcase size={14} key="pl" />],
-        ].map(([t, l, icon]) => (
-          <button
-            key={t}
-            className={`tab-btn ${tab === t ? "active" : ""}`}
-            onClick={() => setTab(t)}
-            style={{ display: "flex", alignItems: "center", gap: 6 }}
-          >
-            {icon} {l}
-          </button>
-        ))}
-      </div>
+            <span
+              style={{
+                fontSize: isMobile ? 11 : 12,
+                fontWeight: 700,
+                color: "#2563eb",
+                background: "#eff6ff",
+                border: "1px solid #bfdbfe",
+                padding: "3px 9px",
+                borderRadius: 20,
+              }}
+            >
+              Analytics Suite
+            </span>
+          </div>
 
-      <motion.div
-        key={tab}
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.2 }}
-      >
-      {tab === "overview" && (
-        <div>
-          {/* Stats row */}
-          <div className="grid-4" style={{ marginBottom: 28 }}>
-            <motion.div whileHover={{ y: -4 }} className="stat-card">
-              <span className="label">CGPA</span>
-              <span className="value" style={{ color: "var(--accent)" }}>
-                {cgpa}
-              </span>
-              <span className="sub">Cumulative</span>
-            </motion.div>
-            <motion.div whileHover={{ y: -4 }} className="stat-card">
-              <span className="label">Latest SGPA</span>
-              <span className="value">{latestSgpa?.toFixed(2)}</span>
-              <span className="sub">Sem {latestSemester}</span>
-            </motion.div>
-            <motion.div whileHover={{ y: -4 }} className="stat-card" style={{ position: "relative", overflow: "hidden" }}>
-              <span className="label">Credits Cleared</span>
-              <div style={{ display: "flex", alignItems: "baseline", gap: 4 }}>
-                <span className="value">{creditsCleared}</span>
-                <span style={{ fontSize: 16, color: "var(--secondary)", fontWeight: 600 }}>
-                  / {totalCredits}
-                </span>
-              </div>
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: 4 }}>
-                <span className="sub" style={{ margin: 0 }}>Up to Sem {latestSemester}</span>
-                <span style={{ fontSize: 11, background: "rgba(255,255,255,0.06)", padding: "2px 6px", borderRadius: 4, color: "#aaaaaa", fontWeight: 600 }}>Goal: 160</span>
-              </div>
-              <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, height: 3, background: "rgba(255,255,255,0.05)" }}>
-                <div style={{ height: "100%", width: `${Math.min((creditsCleared / 160) * 100, 100)}%`, background: "var(--accent)" }} />
-              </div>
-            </motion.div>
-            <motion.div whileHover={{ y: -4 }} className="stat-card">
-              <span className="label">Backlogs</span>
-              <span
-                className="value"
+          {/* Student Profile Info & Quick Metrics */}
+          <div style={{ display: "flex", flexDirection: isMobile ? "column" : "row", justifyContent: "space-between", alignItems: isMobile ? "stretch" : "center", gap: isMobile ? 10 : 16 }}>
+            <div>
+              <h1 style={{ fontSize: isMobile ? 18 : 23, fontWeight: 900, color: "#0f172a", margin: "0 0 2px 0", letterSpacing: "-0.4px" }}>
+                {studentName}
+              </h1>
+              <p style={{ color: "#64748b", fontSize: isMobile ? 11.5 : 13, margin: 0, fontWeight: 500 }}>
+                Reg No: <strong style={{ color: "#0f172a", fontFamily: "'Space Mono', monospace" }}>{regNo}</strong> &nbsp;·&nbsp;
+                Branch: <strong style={{ color: "#0f172a" }}>{dynamicBranch}</strong>
+              </p>
+            </div>
+
+            {/* Quick Metrics (3-column responsive grid) */}
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "repeat(3, 1fr)",
+                gap: isMobile ? 6 : 10,
+              }}
+            >
+              <div
                 style={{
-                  color: backlogs.length ? "var(--danger)" : "var(--success)",
+                  background: "#eff6ff",
+                  border: "1px solid #bfdbfe",
+                  borderRadius: 10,
+                  padding: isMobile ? "6px 8px" : "7px 14px",
+                  textAlign: "center",
                 }}
               >
-                {backlogs.length}
-              </span>
-              <span className="sub">
-                {backlogs.length ? "Active" : "All Clear"}
-              </span>
-            </motion.div>
-          </div>
-
-          {/* Charts Grid */}
-          <div className="grid-2" style={{ marginBottom: 24, alignItems: "stretch" }}>
-            {/* CGPA Trend Chart */}
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="card" style={{ display: "flex", flexDirection: "column" }}>
-              <h3 style={{ marginBottom: 20, fontWeight: 700, display: "flex", alignItems: "center", gap: 8 }}>
-                <TrendingUp size={18} /> SGPA & CGPA Trend
-              </h3>
-              <div style={{ flex: 1 }}>
-                <ResponsiveContainer width="100%" height={window.innerWidth < 768 ? 180 : 260}>
-                  <LineChart data={chartData} margin={{ top: 10, right: 25, left: 0, bottom: 0 }}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#2a2a2a" />
-                    <XAxis dataKey="sem" tick={{ fill: "#aaa", fontSize: 12 }} interval={0} />
-                    <YAxis domain={[0, 10]} tick={{ fill: "#aaa", fontSize: 12 }} />
-                    <Tooltip
-                      contentStyle={{
-                        background: "#212121",
-                        border: "1px solid #2a2a2a",
-                        borderRadius: 8,
-                        color: "#f1f1f1",
-                      }}
-                    />
-                    <ReferenceLine
-                      y={cgpa}
-                      stroke="#a855f7"
-                      strokeDasharray="4 4"
-                      label={{
-                        value: `CGPA ${cgpa}`,
-                        fill: "#a855f7",
-                        fontSize: 11,
-                      }}
-                    />
-                    <Line isAnimationActive={false}
-                      type="monotone"
-                      dataKey="SGPA"
-                      stroke="#3ea6ff"
-                      strokeWidth={2.5}
-                      dot={{ fill: "#3ea6ff", r: 5 }}
-                      activeDot={{ r: 7 }}
-                    />
-                    <Line isAnimationActive={false}
-                      type="monotone"
-                      dataKey="CGPA"
-                      stroke="#a855f7"
-                      strokeWidth={2}
-                      strokeDasharray="5 5"
-                      dot={{ fill: "#a855f7", r: 4 }}
-                    />
-                  </LineChart>
-                </ResponsiveContainer>
+                <div style={{ fontSize: isMobile ? 9 : 10, fontWeight: 800, color: "#2563eb", textTransform: "uppercase" }}>CGPA</div>
+                <div style={{ fontSize: isMobile ? 14 : 17, fontWeight: 800, color: "#1d4ed8", fontFamily: "'Space Mono', monospace" }}>
+                  {cgpa}
+                </div>
               </div>
-            </motion.div>
 
-            {/* Subject Insights Radar Chart */}
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="card" style={{ display: "flex", flexDirection: "column" }}>
-              <h3 style={{ marginBottom: 20, fontWeight: 700, display: "flex", alignItems: "center", gap: 8 }}>
-                <Target size={18} /> Advanced Subject Insights
-              </h3>
-              <div style={{ flex: 1 }}>
-                <ResponsiveContainer width="100%" height={window.innerWidth < 768 ? 200 : 260}>
-                  <RadarChart cx="50%" cy="50%" outerRadius="70%" data={radarData}>
-                    <PolarGrid stroke="#333" />
-                    <PolarAngleAxis dataKey="subject" tick={{ fill: "#aaa", fontSize: 12 }} />
-                    <PolarRadiusAxis angle={30} domain={[0, 10]} tick={false} axisLine={false} />
-                    <Radar isAnimationActive={false}
-                      name="Score"
-                      dataKey="score"
-                      stroke="#3ea6ff"
-                      fill="#3ea6ff"
-                      fillOpacity={0.4}
-                    />
-                    <Tooltip
-                      contentStyle={{
-                        background: "#212121",
-                        border: "1px solid #2a2a2a",
-                        borderRadius: 8,
-                        color: "#f1f1f1",
-                      }}
-                      formatter={(value) => [value.toFixed(2), "Performance"]}
-                    />
-                  </RadarChart>
-                </ResponsiveContainer>
+              <div
+                style={{
+                  background: "#f0fdf4",
+                  border: "1px solid #bbf7d0",
+                  borderRadius: 10,
+                  padding: isMobile ? "6px 8px" : "7px 14px",
+                  textAlign: "center",
+                }}
+              >
+                <div style={{ fontSize: isMobile ? 9 : 10, fontWeight: 800, color: "#15803d", textTransform: "uppercase" }}>Latest SGPA</div>
+                <div style={{ fontSize: isMobile ? 14 : 17, fontWeight: 800, color: "#16a34a", fontFamily: "'Space Mono', monospace" }}>
+                  {latestSgpa?.toFixed(2)}
+                </div>
               </div>
-            </motion.div>
-          </div>
 
-          {/* Subject Performance */}
-          {best && worst && (
-            <div className="grid-2" style={{ marginBottom: 24 }}>
-              <motion.div
-                whileHover={{ scale: 1.02 }}
-                className="card"
-                style={{ borderColor: "rgba(34,197,94,0.3)" }}
+              <div
+                style={{
+                  background: backlogs.length ? "#fef2f2" : "#f0fdf4",
+                  border: `1px solid ${backlogs.length ? "#fecaca" : "#bbf7d0"}`,
+                  borderRadius: 10,
+                  padding: isMobile ? "6px 8px" : "7px 14px",
+                  textAlign: "center",
+                }}
               >
-                <p
-                  style={{
-                    fontSize: 12,
-                    color: "var(--secondary)",
-                    marginBottom: 8,
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 6
-                  }}
-                >
-                  <Medal size={14} /> BEST SUBJECT
-                </p>
-                <p style={{ fontWeight: 700, fontSize: 16 }}>{best.subName}</p>
-                <p style={{ color: "var(--secondary)", fontSize: 13 }}>
-                  {best.subCode}
-                </p>
-                <span
-                  style={{
-                    marginTop: 8,
-                    display: "inline-block",
-                    background: "#22c55e22",
-                    color: "var(--success)",
-                    padding: "2px 10px",
-                    borderRadius: 6,
-                    fontWeight: 700,
-                  }}
-                >
-                  {best.grade}
-                </span>
-              </motion.div>
-              <motion.div
-                whileHover={{ scale: 1.02 }}
-                className="card"
-                style={{ borderColor: "rgba(245,158,11,0.3)" }}
-              >
-                <p
-                  style={{
-                    fontSize: 12,
-                    color: "var(--secondary)",
-                    marginBottom: 8,
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 6
-                  }}
-                >
-                  <Target size={14} /> NEEDS FOCUS
-                </p>
-                <p style={{ fontWeight: 700, fontSize: 16 }}>{worst.subName}</p>
-                <p style={{ color: "var(--secondary)", fontSize: 13 }}>
-                  {worst.subCode}
-                </p>
-                <span
-                  style={{
-                    marginTop: 8,
-                    display: "inline-block",
-                    background: "#f59e0b22",
-                    color: "var(--warning)",
-                    padding: "2px 10px",
-                    borderRadius: 6,
-                    fontWeight: 700,
-                  }}
-                >
-                  {worst.grade}
-                </span>
-              </motion.div>
+                <div style={{ fontSize: isMobile ? 9 : 10, fontWeight: 800, color: backlogs.length ? "#b91c1c" : "#15803d", textTransform: "uppercase" }}>
+                  Backlogs
+                </div>
+                <div style={{ fontSize: isMobile ? 14 : 17, fontWeight: 800, color: backlogs.length ? "#dc2626" : "#16a34a", fontFamily: "'Space Mono', monospace" }}>
+                  {backlogs.length ? `${backlogs.length}` : "Clear"}
+                </div>
+              </div>
             </div>
-          )}
+          </div>
 
-          {/* Graduation Progress */}
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="card" style={{ marginBottom: 24 }}>
+          {/* ══════════════════════════════════════════════════════════
+              SUB-NAV SEGMENTED TAB SWITCHER (With Scroll Arrows on Mobile)
+          ══════════════════════════════════════════════════════════ */}
+          {isMobile ? (
             <div
               style={{
                 display: "flex",
-                justifyContent: "space-between",
-                marginBottom: 12,
-                alignItems: "center"
+                alignItems: "center",
+                gap: 6,
+                background: "#f1f5f9",
+                border: "1px solid #e2e8f0",
+                borderRadius: 12,
+                padding: "4px 6px",
               }}
             >
-              <h3 style={{ fontWeight: 700, display: "flex", alignItems: "center", gap: 8 }}>
-                <GraduationCap size={18} /> Graduation Progress
-              </h3>
-              <span
+              {/* Left Arrow Button */}
+              <button
+                onClick={() => scrollTabs("left")}
+                disabled={!canScrollLeft}
+                aria-label="Scroll sub-nav left"
                 style={{
-                  color: "var(--accent)",
-                  fontFamily: "Space Mono",
-                  fontWeight: 700,
+                  width: 26,
+                  height: 26,
+                  borderRadius: "50%",
+                  border: canScrollLeft ? "1px solid #cbd5e1" : "1px solid #e2e8f0",
+                  background: "#ffffff",
+                  color: canScrollLeft ? "#2563eb" : "#94a3b8",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  cursor: canScrollLeft ? "pointer" : "default",
+                  flexShrink: 0,
+                  opacity: canScrollLeft ? 1 : 0.4,
+                  transition: "all 0.15s ease",
+                  padding: 0,
                 }}
               >
-                {Math.round((creditsCleared / 160) * 100)}%
-              </span>
-            </div>
-            <div
-              className="progress-bar-bg"
-              style={{ height: 10, marginBottom: 8 }}
-            >
-              <motion.div
-                initial={{ width: 0 }}
-                animate={{ width: `${Math.min((creditsCleared / 160) * 100, 100)}%` }}
-                transition={{ duration: 1 }}
-                className="progress-bar-fill"
-                style={{
-                  background: "linear-gradient(90deg, var(--accent), #a855f7)",
-                }}
-              />
-            </div>
-            <p style={{ fontSize: 13, color: "var(--secondary)" }}>
-              {creditsCleared} credits completed ·{" "}
-              {Math.max(0, 160 - creditsCleared)} remaining
-            </p>
-          </motion.div>
+                <ChevronLeft size={14} />
+              </button>
 
-          {/* AI Insights */}
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="card">
-            <h3 style={{ fontWeight: 700, marginBottom: 16, display: "flex", alignItems: "center", gap: 8 }}>
-              <Star size={18} /> Academic Insights
-            </h3>
-            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-              {insights.map((ins, i) => (
-                <motion.div
-                  initial={{ opacity: 0, x: -10 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ duration: 0.3, ease: "easeOut" }}
-                  key={i}
-                  style={{
-                    display: "flex",
-                    gap: 12,
-                    alignItems: "flex-start",
-                    padding: "12px 14px",
-                    background: typeColor[ins.type] + "10",
-                    borderRadius: 8,
-                    borderLeft: `3px solid ${typeColor[ins.type]}`,
-                  }}
-                >
-                  <span style={{ fontSize: 16 }}>{ins.icon}</span>
-                  <p style={{ fontSize: 14, color: "var(--text)" }}>
-                    {ins.text}
-                  </p>
-                </motion.div>
-              ))}
-            </div>
-          </motion.div>
-        </div>
-      )}
-
-      {tab === "predictor" && (
-        <div className="card">
-          <h3 style={{ fontWeight: 700, marginBottom: 4, display: "flex", alignItems: "center", gap: 8 }}>
-            <Target size={18} /> CGPA Predictor
-          </h3>
-          <p
-            style={{
-              color: "var(--secondary)",
-              fontSize: 14,
-              marginBottom: 24,
-            }}
-          >
-            Find out what SGPA you need to achieve your target CGPA.
-          </p>
-          <div
-            style={{
-              display: "flex",
-              gap: 12,
-              marginBottom: 16,
-              flexWrap: "wrap",
-            }}
-          >
-            <div style={{ flex: 1, minWidth: 200 }}>
-              <label
-                style={{
-                  display: "block",
-                  fontSize: 12,
-                  color: "var(--secondary)",
-                  marginBottom: 6,
-                }}
-              >
-                Current CGPA
-              </label>
-              <input value={cgpa} disabled />
-            </div>
-            <div style={{ flex: 1, minWidth: 200 }}>
-              <label
-                style={{
-                  display: "block",
-                  fontSize: 12,
-                  color: "var(--secondary)",
-                  marginBottom: 6,
-                }}
-              >
-                Remaining Semesters
-              </label>
-              <input value={remainingSems} disabled />
-            </div>
-            <div style={{ flex: 1, minWidth: 200 }}>
-              <label
-                style={{
-                  display: "block",
-                  fontSize: 12,
-                  color: "var(--secondary)",
-                  marginBottom: 6,
-                }}
-              >
-                Target CGPA
-              </label>
-              <input
-                type="number"
-                min="0"
-                max="10"
-                step="0.01"
-                value={targetCGPA}
-                onChange={(e) => setTargetCGPA(e.target.value)}
-                placeholder="e.g. 9.0"
-              />
-            </div>
-          </div>
-          {requiredSGPA && (
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              style={{
-                background: "rgba(62,166,255,0.1)",
-                border: "1px solid rgba(62,166,255,0.3)",
-                borderRadius: 10,
-                padding: 20,
-                marginTop: 8,
-              }}
-            >
-              <p
-                style={{
-                  color: "var(--secondary)",
-                  fontSize: 13,
-                  marginBottom: 4,
-                }}
-              >
-                Required SGPA in remaining semesters
-              </p>
-              <p
-                style={{
-                  fontFamily: "Space Mono",
-                  fontSize: 36,
-                  fontWeight: 700,
-                  color: "var(--accent)",
-                }}
-              >
-                {requiredSGPA}
-              </p>
-              {parseFloat(requiredSGPA) > 10 ? (
-                <p style={{ color: "var(--danger)", fontSize: 13, display: "flex", alignItems: "center", gap: 6 }}>
-                  <AlertTriangle size={14} /> Target CGPA is not achievable. Try a lower target.
-                </p>
-              ) : parseFloat(requiredSGPA) <= 0 ? (
-                <p style={{ color: "var(--success)", fontSize: 13, display: "flex", alignItems: "center", gap: 6 }}>
-                  <CheckCircle size={14} /> You have already achieved this target!
-                </p>
-              ) : (
-                <p style={{ color: "var(--success)", fontSize: 13, display: "flex", alignItems: "center", gap: 6 }}>
-                  <CheckCircle size={14} /> Achievable! Maintain SGPA of {requiredSGPA} each semester.
-                </p>
-              )}
-            </motion.div>
-          )}
-
-          {/* Degree classification */}
-          <div style={{ marginTop: 28 }}>
-            <h4 style={{ fontWeight: 700, marginBottom: 12, display: "flex", alignItems: "center", gap: 8 }}>
-              <GraduationCap size={16} /> Degree Classification
-            </h4>
-            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-              {[
-                { label: "Distinction", req: 9.0, color: "#f59e0b" },
-                {
-                  label: "First Class With Distinction",
-                  req: 8.5,
-                  color: "#3ea6ff",
-                },
-                { label: "First Class", req: 7.5, color: "#22c55e" },
-                { label: "Second Class", req: 6.0, color: "#6b7280" },
-              ].map((c) => (
-                <div
-                  key={c.label}
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 12,
-                    padding: "10px 14px",
-                    background: cgpa >= c.req ? c.color + "15" : "transparent",
-                    border: `1px solid ${cgpa >= c.req ? c.color + "44" : "var(--border)"}`,
-                    borderRadius: 8,
-                    transition: "all 0.3s",
-                  }}
-                >
-                  <span
-                    style={{
-                      width: 10,
-                      height: 10,
-                      borderRadius: "50%",
-                      background: cgpa >= c.req ? c.color : "var(--muted)",
-                      flexShrink: 0,
-                    }}
-                  />
-                  <span style={{ flex: 1, fontSize: 14 }}>{c.label}</span>
-                  <span style={{ fontSize: 12, color: "var(--secondary)" }}>
-                    CGPA ≥ {c.req}
-                  </span>
-                  <span
-                    style={{
-                      fontSize: 12,
-                      fontWeight: 700,
-                      color: cgpa >= c.req ? c.color : "var(--muted)",
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 4
-                    }}
-                  >
-                    {cgpa >= c.req ? <><Check size={12}/> Achieved</> : "Not Yet"}
-                  </span>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {tab === "whatif" && (
-        <div className="card">
-          <h3 style={{ fontWeight: 700, marginBottom: 4, display: "flex", alignItems: "center", gap: 8 }}>
-            <PieChart size={18} /> What-If Simulator
-          </h3>
-          <p
-            style={{
-              color: "var(--secondary)",
-              fontSize: 14,
-              marginBottom: 20,
-            }}
-          >
-            Change grades for Semester {latestSemester} virtually and see how it
-            affects your CGPA.
-          </p>
-          <div
-            style={{
-              display: "flex",
-              flexDirection: "column",
-              gap: 10,
-              marginBottom: 20,
-            }}
-          >
-            {latestSubjects.map((s) => (
+              {/* Scrollable Track */}
               <div
-                key={s.subCode}
+                ref={mobileTabsRef}
+                onScroll={checkTabsScroll}
                 style={{
                   display: "flex",
                   alignItems: "center",
-                  gap: 12,
-                  padding: "12px 14px",
-                  background: "var(--surface)",
-                  borderRadius: 8,
+                  gap: 6,
+                  overflowX: "auto",
+                  scrollbarWidth: "none",
+                  msOverflowStyle: "none",
+                  WebkitOverflowScrolling: "touch",
+                  flex: 1,
                 }}
               >
-                <div style={{ flex: 1 }}>
-                  <p style={{ fontWeight: 600, fontSize: 14 }}>{s.subName}</p>
-                  <p style={{ fontSize: 12, color: "var(--secondary)" }}>
-                    {s.subCode} · {s.credit} credits · Current: {s.grade}
-                  </p>
-                </div>
-                <select
-                  value={whatIfGrades[s.subCode] || s.grade}
-                  onChange={(e) =>
-                    setWhatIfGrades({
-                      ...whatIfGrades,
-                      [s.subCode]: e.target.value,
-                    })
-                  }
-                  style={{ width: 80 }}
-                >
-                  {GRADE_ORDER.map((g) => (
-                    <option key={g} value={g}>
-                      {g}
-                    </option>
-                  ))}
-                </select>
+                {navTabs.map((t) => {
+                  const isActive = tab === t.id;
+                  return (
+                    <button
+                      key={t.id}
+                      onClick={() => handleTabChange(t.id)}
+                      style={{
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: 5,
+                        padding: "6px 12px",
+                        borderRadius: 8,
+                        border: isActive ? "1px solid #cbd5e1" : "1px solid transparent",
+                        background: isActive ? "#ffffff" : "transparent",
+                        color: isActive ? "#2563eb" : "#475569",
+                        fontSize: 12,
+                        fontWeight: isActive ? 800 : 600,
+                        cursor: "pointer",
+                        whiteSpace: "nowrap",
+                        flexShrink: 0,
+                        boxShadow: isActive ? "0 1px 3px rgba(0,0,0,0.06)" : "none",
+                        fontFamily: "'DM Sans', sans-serif",
+                      }}
+                    >
+                      {t.icon}
+                      <span>{t.label}</span>
+                    </button>
+                  );
+                })}
               </div>
-            ))}
-          </div>
-          <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
-            <button
-              className="btn btn-ghost"
-              onClick={() => setWhatIfGrades({})}
-              disabled={Object.keys(whatIfGrades).length === 0}
-            >
-              Reset All
-            </button>
-          </div>
-          {(whatIfCGPA !== null) && (
-            <motion.div
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
+
+              {/* Right Arrow Button */}
+              <button
+                onClick={() => scrollTabs("right")}
+                disabled={!canScrollRight}
+                aria-label="Scroll sub-nav right"
+                style={{
+                  width: 26,
+                  height: 26,
+                  borderRadius: "50%",
+                  border: canScrollRight ? "1px solid #cbd5e1" : "1px solid #e2e8f0",
+                  background: "#ffffff",
+                  color: canScrollRight ? "#2563eb" : "#94a3b8",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  cursor: canScrollRight ? "pointer" : "default",
+                  flexShrink: 0,
+                  opacity: canScrollRight ? 1 : 0.4,
+                  transition: "all 0.15s ease",
+                  padding: 0,
+                }}
+              >
+                <ChevronRight size={14} />
+              </button>
+            </div>
+          ) : (
+            <div
               style={{
-                marginTop: 20,
-                display: "grid",
-                gridTemplateColumns: "repeat(auto-fit, minmax(250px, 1fr))",
-                gap: 16,
+                background: "#f1f5f9",
+                border: "1px solid #e2e8f0",
+                borderRadius: 12,
+                padding: "4px",
+                display: "flex",
+                alignItems: "center",
+                gap: 4,
+                overflowX: "auto",
               }}
             >
-              {/* Simulated CGPA */}
-              <div style={{ background: "rgba(62,166,255,0.06)", border: "1px solid rgba(62,166,255,0.2)", borderRadius: 10, padding: 20 }}>
-                <p style={{ color: "var(--secondary)", fontSize: 13, display: "flex", alignItems: "center", gap: 6 }}><Target size={14}/> Simulated CGPA</p>
-                <div style={{ display: "flex", alignItems: "baseline", gap: 16, flexWrap: "wrap", marginTop: 8 }}>
-                  <p style={{ fontFamily: "Space Mono", fontSize: 42, fontWeight: 800, color: "var(--accent)", lineHeight: 1 }}>
-                    <AnimatedNumber value={parseFloat(whatIfCGPA)} />
-                  </p>
-                  <p style={{
-                    color: parseFloat(whatIfCGPA) > cgpa ? "var(--success)" : parseFloat(whatIfCGPA) < cgpa ? "var(--danger)" : "var(--secondary)",
-                    fontWeight: 600,
-                  }}>
-                    {parseFloat(whatIfCGPA) > cgpa ? `▲ +${(whatIfCGPA - cgpa).toFixed(2)}` : parseFloat(whatIfCGPA) < cgpa ? `▼ ${(whatIfCGPA - cgpa).toFixed(2)}` : "→ No change"} from {cgpa}
-                  </p>
+              {navTabs.map((t) => {
+                const isActive = tab === t.id;
+                return (
+                  <button
+                    key={t.id}
+                    onClick={() => handleTabChange(t.id)}
+                    style={{
+                      flex: 1,
+                      minWidth: 150,
+                      display: "inline-flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      gap: 8,
+                      padding: "9px 16px",
+                      borderRadius: 9,
+                      border: isActive ? "1px solid #cbd5e1" : "1px solid transparent",
+                      background: isActive ? "#ffffff" : "transparent",
+                      color: isActive ? "#0f172a" : "#64748b",
+                      fontSize: 13,
+                      fontWeight: isActive ? 800 : 600,
+                      cursor: "pointer",
+                      transition: "all 0.15s ease",
+                      boxShadow: isActive ? "0 2px 6px rgba(15, 23, 42, 0.06)" : "none",
+                      whiteSpace: "nowrap",
+                      fontFamily: "'DM Sans', sans-serif",
+                    }}
+                  >
+                    {t.icon}
+                    {t.label}
+                  </button>
+                );
+              })}
+            </div>
+          )}
+        </div>
+
+        {/* ══════════════════════════════════════════════════════════
+            ANIMATED TAB CONTENT SWITCHER
+        ══════════════════════════════════════════════════════════ */}
+        <AnimatePresence mode="wait">
+          {/* ══════════════════════════════════════════════════════════
+              TAB 1: OVERVIEW / TRAJECTORY
+          ══════════════════════════════════════════════════════════ */}
+          {tab === "overview" && (
+            <motion.div
+              key="overview"
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -6 }}
+              transition={{ duration: 0.22, ease: "easeOut" }}
+              style={{ display: "flex", flexDirection: "column", gap: isMobile ? 12 : 20 }}
+            >
+              {/* 4 Metric Cards (2x2 on Mobile) */}
+              <div style={{ display: "grid", gridTemplateColumns: isMobile ? "repeat(2, 1fr)" : "repeat(auto-fit, minmax(230px, 1fr))", gap: isMobile ? 8 : 16 }}>
+                <div style={{ background: "#ffffff", border: "1px solid #cbd5e1", borderRadius: 14, padding: isMobile ? "12px 14px" : "18px 20px", boxShadow: "0 1px 3px rgba(0,0,0,0.03)" }}>
+                  <div style={{ fontSize: isMobile ? 9.5 : 11, fontWeight: 800, color: "#64748b", textTransform: "uppercase", letterSpacing: "0.4px" }}>
+                    Cumulative CGPA
+                  </div>
+                  <div style={{ fontSize: isMobile ? 20 : 26, fontWeight: 900, color: "#2563eb", marginTop: 2, fontFamily: "'Space Mono', monospace" }}>
+                    {cgpa}
+                  </div>
+                  <div style={{ fontSize: isMobile ? 10.5 : 12, color: "#64748b", marginTop: 2 }}>
+                    Across {results.length} sems
+                  </div>
+                </div>
+
+                <div style={{ background: "#ffffff", border: "1px solid #cbd5e1", borderRadius: 14, padding: isMobile ? "12px 14px" : "18px 20px", boxShadow: "0 1px 3px rgba(0,0,0,0.03)" }}>
+                  <div style={{ fontSize: isMobile ? 9.5 : 11, fontWeight: 800, color: "#64748b", textTransform: "uppercase", letterSpacing: "0.4px" }}>
+                    Latest SGPA
+                  </div>
+                  <div style={{ fontSize: isMobile ? 20 : 26, fontWeight: 900, color: "#0f172a", marginTop: 2, fontFamily: "'Space Mono', monospace" }}>
+                    {latestSgpa?.toFixed(2)}
+                  </div>
+                  <div style={{ fontSize: isMobile ? 10.5 : 12, color: "#64748b", marginTop: 2 }}>
+                    Semester {latestSemester} exam
+                  </div>
+                </div>
+
+                <div style={{ background: "#ffffff", border: "1px solid #cbd5e1", borderRadius: 14, padding: isMobile ? "12px 14px" : "18px 20px", boxShadow: "0 1px 3px rgba(0,0,0,0.03)" }}>
+                  <div style={{ fontSize: isMobile ? 9.5 : 11, fontWeight: 800, color: "#64748b", textTransform: "uppercase", letterSpacing: "0.4px" }}>
+                    Earned Credits
+                  </div>
+                  <div style={{ display: "flex", alignItems: "baseline", gap: 3, marginTop: 2 }}>
+                    <span style={{ fontSize: isMobile ? 20 : 26, fontWeight: 900, color: "#0f172a", fontFamily: "'Space Mono', monospace" }}>
+                      {creditsCleared}
+                    </span>
+                    <span style={{ fontSize: isMobile ? 11 : 14, color: "#64748b", fontWeight: 700 }}>/ {totalCredits} Cr</span>
+                  </div>
+                  <div style={{ width: "100%", height: 5, background: "#e2e8f0", borderRadius: 4, marginTop: 6, overflow: "hidden" }}>
+                    <div style={{ height: "100%", width: `${Math.min((creditsCleared / 160) * 100, 100)}%`, background: "#2563eb", borderRadius: 4 }} />
+                  </div>
+                </div>
+
+                <div style={{ background: "#ffffff", border: "1px solid #cbd5e1", borderRadius: 14, padding: isMobile ? "12px 14px" : "18px 20px", boxShadow: "0 1px 3px rgba(0,0,0,0.03)" }}>
+                  <div style={{ fontSize: isMobile ? 9.5 : 11, fontWeight: 800, color: "#64748b", textTransform: "uppercase", letterSpacing: "0.4px" }}>
+                    Academic Standing
+                  </div>
+                  <div style={{ fontSize: isMobile ? 18 : 22, fontWeight: 900, color: backlogs.length ? "#dc2626" : "#15803d", marginTop: 2 }}>
+                    {backlogs.length ? `${backlogs.length} Backlogs` : "All Clear"}
+                  </div>
+                  <div style={{ fontSize: isMobile ? 10.5 : 12, color: "#64748b", marginTop: 2 }}>
+                    {backlogs.length ? "Remedial exams" : "Zero backlogs"}
+                  </div>
                 </div>
               </div>
 
-              {/* Simulated SGPA */}
-              <div style={{ background: "rgba(34,197,94,0.06)", border: "1px solid rgba(34,197,94,0.2)", borderRadius: 10, padding: 20 }}>
-                <p style={{ color: "var(--secondary)", fontSize: 13, display: "flex", alignItems: "center", gap: 6 }}><TrendingUp size={14}/> Simulated SGPA</p>
-                <div style={{ display: "flex", alignItems: "baseline", gap: 16, flexWrap: "wrap", marginTop: 8 }}>
-                  <p style={{ fontFamily: "Space Mono", fontSize: 42, fontWeight: 800, color: "var(--success)", lineHeight: 1 }}>
-                    <AnimatedNumber value={parseFloat(whatIfSGPA)} />
-                  </p>
-                  <p style={{
-                    color: parseFloat(whatIfSGPA) > latestSgpa ? "var(--success)" : parseFloat(whatIfSGPA) < latestSgpa ? "var(--danger)" : "var(--secondary)",
-                    fontWeight: 600,
-                  }}>
-                    {parseFloat(whatIfSGPA) > latestSgpa ? `▲ +${(whatIfSGPA - latestSgpa).toFixed(2)}` : parseFloat(whatIfSGPA) < latestSgpa ? `▼ ${(whatIfSGPA - latestSgpa).toFixed(2)}` : "→ No change"} from {latestSgpa?.toFixed(2) || "0.00"}
-                  </p>
+              {/* Charts Row */}
+              <div style={{ background: "#ffffff", border: "1px solid #cbd5e1", borderRadius: 16, padding: isMobile ? "14px 14px" : "22px 24px", boxShadow: "0 1px 3px rgba(0,0,0,0.05)", display: "flex", flexDirection: "column" }}>
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: isMobile ? 12 : 18 }}>
+                  <div>
+                    <h3 style={{ fontSize: isMobile ? 14 : 16, fontWeight: 800, color: "#0f172a", margin: "0 0 2px 0", display: "flex", alignItems: "center", gap: 6 }}>
+                      <TrendingUp size={16} color="#2563eb" /> Performance Progression
+                    </h3>
+                    <p style={{ color: "#64748b", fontSize: isMobile ? 11 : 12.5, margin: 0 }}>
+                      Performance trajectory across completed semesters
+                    </p>
+                  </div>
+                  <div style={{ display: "flex", gap: 8, fontSize: 11, fontWeight: 700 }}>
+                    <span style={{ color: "#2563eb", display: "flex", alignItems: "center", gap: 3 }}>
+                      <span style={{ width: 7, height: 7, borderRadius: "50%", background: "#2563eb" }} /> SGPA
+                    </span>
+                    <span style={{ color: "#8b5cf6", display: "flex", alignItems: "center", gap: 3 }}>
+                      <span style={{ width: 7, height: 7, borderRadius: "50%", background: "#8b5cf6" }} /> CGPA
+                    </span>
+                  </div>
+                </div>
+
+                <div style={{ flex: 1, minHeight: isMobile ? 240 : 300 }}>
+                  <ResponsiveContainer width="100%" height={isMobile ? 240 : 300}>
+                    <LineChart data={chartData} margin={{ top: 10, right: 10, left: -25, bottom: 0 }}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                      <XAxis dataKey="sem" tick={{ fill: "#64748b", fontSize: 11, fontWeight: 600 }} />
+                      <YAxis domain={[0, 10]} tick={{ fill: "#64748b", fontSize: 11 }} />
+                      <Tooltip
+                        contentStyle={{
+                          background: "#ffffff",
+                          border: "1px solid #cbd5e1",
+                          borderRadius: 10,
+                          boxShadow: "0 4px 14px rgba(0,0,0,0.08)",
+                          color: "#0f172a",
+                          fontSize: 12,
+                        }}
+                      />
+                      <ReferenceLine
+                        y={cgpa}
+                        stroke="#8b5cf6"
+                        strokeDasharray="4 4"
+                        label={{ value: `CGPA ${cgpa}`, fill: "#8b5cf6", fontSize: 10, fontWeight: 700 }}
+                      />
+                      <Line type="monotone" dataKey="SGPA" stroke="#2563eb" strokeWidth={3} dot={{ fill: "#2563eb", r: 3.5 }} activeDot={{ r: 5 }} />
+                      <Line type="monotone" dataKey="CGPA" stroke="#8b5cf6" strokeWidth={2.5} strokeDasharray="5 5" dot={{ fill: "#8b5cf6", r: 3 }} />
+                    </LineChart>
+                  </ResponsiveContainer>
                 </div>
               </div>
             </motion.div>
           )}
-        </div>
-      )}
 
-      {tab === "placement" && (
-        <CompanyEligibility 
-          branch={dynamicBranch} 
-          cgpa={cgpa} 
-          regNo={regNo}
-        />
-      )}
-
-      </motion.div>
-                  {/* Floating Quick Navigation Button */}
-      <AnimatePresence>
-      {!tabsVisible && isMobile && !isNavSheetOpen && (
-        <motion.button
-          initial={{ opacity: 0, scale: 0.8, y: 20 }}
-          animate={{ opacity: 1, scale: 1, y: 0 }}
-          exit={{ opacity: 0, scale: 0.8, y: 20 }}
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
-          onClick={() => setIsNavSheetOpen(true)}
-          style={{
-            position: 'fixed',
-            bottom: 'calc(90px + env(safe-area-inset-bottom))',
-            right: 20,
-            zIndex: 1100,
-            background: 'rgba(15,15,15,0.85)',
-            backdropFilter: 'blur(24px)',
-            WebkitBackdropFilter: 'blur(24px)',
-            color: 'rgba(255,255,255,0.9)',
-            border: '1px solid rgba(255,255,255,0.12)',
-            width: 48,
-            height: 48,
-            borderRadius: 24,
-            boxShadow: '0 8px 32px rgba(0,0,0,0.6)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            cursor: 'pointer',
-          }}
-        >
-          <List size={20} />
-        </motion.button>
-      )}
-      </AnimatePresence>
-
-      {/* Mobile Navigation Bottom Sheet */}
-      <AnimatePresence>
-        {isNavSheetOpen && (
-          <>
+          {/* ══════════════════════════════════════════════════════════
+              TAB 2: GRADE DISTRIBUTION
+          ══════════════════════════════════════════════════════════ */}
+          {tab === "grades" && (
             <motion.div
-              className="mobile-bottom-sheet-backdrop"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={() => setIsNavSheetOpen(false)}
-            />
-            <motion.div
-              className="mobile-bottom-sheet"
-              style={{ zIndex: 1200 }}
-              initial={{ y: "100%" }}
-              animate={{ y: 0 }}
-              exit={{ y: "100%" }}
-              transition={{ type: "spring", stiffness: 320, damping: 32 }}
+              key="grades"
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -6 }}
+              transition={{ duration: 0.22, ease: "easeOut" }}
+              style={{ display: "flex", flexDirection: "column", gap: isMobile ? 12 : 20 }}
             >
-              <div className="mobile-bottom-sheet-grabber" />
-              <div className="mobile-bottom-sheet-head" style={{ marginBottom: 16 }}>
-                <h3>Navigation</h3>
-                <button type="button" className="mobile-bottom-sheet-close" onClick={() => setIsNavSheetOpen(false)}>
-                  <X size={18} />
-                </button>
+              {/* 4 Grade KPI Cards */}
+              <div style={{ display: "grid", gridTemplateColumns: isMobile ? "repeat(2, 1fr)" : "repeat(auto-fit, minmax(230px, 1fr))", gap: isMobile ? 8 : 16 }}>
+                <div style={{ background: "#ffffff", border: "1px solid #cbd5e1", borderRadius: 14, padding: isMobile ? "12px 14px" : "18px 20px", boxShadow: "0 1px 3px rgba(0,0,0,0.03)" }}>
+                  <div style={{ fontSize: isMobile ? 9.5 : 11, fontWeight: 800, color: "#64748b", textTransform: "uppercase", letterSpacing: "0.4px" }}>
+                    Total Graded Courses
+                  </div>
+                  <div style={{ fontSize: isMobile ? 20 : 26, fontWeight: 900, color: "#0f172a", marginTop: 2, fontFamily: "'Space Mono', monospace" }}>
+                    {totalGradedCount} <span style={{ fontSize: 13, fontWeight: 600, color: "#64748b" }}>Subs</span>
+                  </div>
+                  <div style={{ fontSize: isMobile ? 10.5 : 12, color: "#64748b", marginTop: 2 }}>
+                    Across all completed semesters
+                  </div>
+                </div>
+
+                <div style={{ background: "#ffffff", border: "1px solid #cbd5e1", borderRadius: 14, padding: isMobile ? "12px 14px" : "18px 20px", boxShadow: "0 1px 3px rgba(0,0,0,0.03)" }}>
+                  <div style={{ fontSize: isMobile ? 9.5 : 11, fontWeight: 800, color: "#64748b", textTransform: "uppercase", letterSpacing: "0.4px" }}>
+                    Honours Grade Ratio (O/E/A)
+                  </div>
+                  <div style={{ fontSize: isMobile ? 20 : 26, fontWeight: 900, color: "#15803d", marginTop: 2, fontFamily: "'Space Mono', monospace" }}>
+                    {honorsGradeRatio}%
+                  </div>
+                  <div style={{ fontSize: isMobile ? 10.5 : 12, color: "#64748b", marginTop: 2 }}>
+                    Top tier academic performance
+                  </div>
+                </div>
+
+                <div style={{ background: "#ffffff", border: "1px solid #cbd5e1", borderRadius: 14, padding: isMobile ? "12px 14px" : "18px 20px", boxShadow: "0 1px 3px rgba(0,0,0,0.03)" }}>
+                  <div style={{ fontSize: isMobile ? 9.5 : 11, fontWeight: 800, color: "#64748b", textTransform: "uppercase", letterSpacing: "0.4px" }}>
+                    Outstanding 'O' Grades (10 Pts)
+                  </div>
+                  <div style={{ fontSize: isMobile ? 20 : 26, fontWeight: 900, color: "#b45309", marginTop: 2, fontFamily: "'Space Mono', monospace" }}>
+                    {gradeDistributionData.find((d) => d.grade === "O")?.count || 0}
+                  </div>
+                  <div style={{ fontSize: isMobile ? 10.5 : 12, color: "#64748b", marginTop: 2 }}>
+                    Maximum score courses
+                  </div>
+                </div>
+
+                <div style={{ background: "#ffffff", border: "1px solid #cbd5e1", borderRadius: 14, padding: isMobile ? "12px 14px" : "18px 20px", boxShadow: "0 1px 3px rgba(0,0,0,0.03)" }}>
+                  <div style={{ fontSize: isMobile ? 9.5 : 11, fontWeight: 800, color: "#64748b", textTransform: "uppercase", letterSpacing: "0.4px" }}>
+                    Remedial / Backlogs
+                  </div>
+                  <div style={{ fontSize: isMobile ? 18 : 22, fontWeight: 900, color: backlogs.length ? "#dc2626" : "#15803d", marginTop: 2 }}>
+                    {backlogs.length ? `${backlogs.length} Pending` : "100% Passed"}
+                  </div>
+                  <div style={{ fontSize: isMobile ? 10.5 : 12, color: "#64748b", marginTop: 2 }}>
+                    {backlogs.length ? "Active backlogs" : "Zero backlogs"}
+                  </div>
+                </div>
               </div>
-              
-              <div style={{ marginTop: 8 }}>
-                <p style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 12, fontWeight: 700, letterSpacing: 1, paddingLeft: 4 }}>ANALYTICS VIEWS</p>
-                <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-                  {[
-                    ["overview", "Overview", <BarChart2 size={18} key="ov" />],
-                    ["predictor", "Predictor", <Target size={18} key="pr" />],
-                    ["whatif", "What-If", <PieChart size={18} key="wi" />],
-                    ["placement", "Placement", <Briefcase size={18} key="pl" />],
-                  ].map(([t, l, icon]) => {
-                    const isActive = tab === t;
-                    return (
-                    <button
-                      key={t}
-                      onClick={() => {
-                        setTab(t); setIsNavSheetOpen(false); setTimeout(() => { if (tabsRef.current) { const y = tabsRef.current.getBoundingClientRect().top + window.scrollY - 80; window.scrollTo({ top: y, behavior: 'smooth' }); } }, 150);
-                      }}
-                      style={{ 
-                        width: '100%',
-                        display: 'flex', 
-                        alignItems: 'center', 
-                        gap: 12,
-                        padding: '10px 14px',
-                        borderRadius: 14,
-                        border: isActive ? '1px solid rgba(255,255,255,0.15)' : '1px solid rgba(255,255,255,0.04)',
-                        background: isActive ? 'rgba(255,255,255,0.08)' : 'rgba(255,255,255,0.02)',
-                        color: isActive ? '#fff' : 'rgba(255,255,255,0.7)',
-                        fontSize: 15,
-                        fontWeight: isActive ? 700 : 500,
-                        cursor: 'pointer',
-                        transition: 'all 0.2s',
+
+              {/* Grade Distribution BarChart Card */}
+              <div style={{ background: "#ffffff", border: "1px solid #cbd5e1", borderRadius: 16, padding: isMobile ? "14px 14px" : "24px 26px", boxShadow: "0 1px 3px rgba(0,0,0,0.05)", display: "flex", flexDirection: "column", gap: isMobile ? 12 : 18 }}>
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 8 }}>
+                  <div>
+                    <h3 style={{ fontSize: isMobile ? 14 : 16, fontWeight: 800, color: "#0f172a", margin: "0 0 2px 0", display: "flex", alignItems: "center", gap: 6 }}>
+                      <BarChart2 size={16} color="#8b5cf6" /> Overall Grade Distribution & Frequencies
+                    </h3>
+                    <p style={{ color: "#64748b", fontSize: isMobile ? 11 : 12.5, margin: 0 }}>
+                      Complete breakdown of letter grades across all completed academic semesters
+                    </p>
+                  </div>
+                </div>
+
+                <div style={{ minHeight: isMobile ? 220 : 280 }}>
+                  <ResponsiveContainer width="100%" height={isMobile ? 220 : 280}>
+                    <BarChart data={gradeDistributionData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
+                      <XAxis dataKey="grade" tick={{ fill: "#334155", fontSize: 12, fontWeight: 800 }} />
+                      <YAxis allowDecimals={false} tick={{ fill: "#64748b", fontSize: 11 }} />
+                      <Tooltip
+                        contentStyle={{
+                          background: "#ffffff",
+                          border: "1px solid #cbd5e1",
+                          borderRadius: 10,
+                          boxShadow: "0 4px 14px rgba(0,0,0,0.08)",
+                          color: "#0f172a",
+                          fontSize: 12,
+                        }}
+                        formatter={(value, name, item) => [
+                          `${value} Subjects (${item.payload.pct}%)`,
+                          `Grade ${item.payload.grade} (${item.payload.label})`,
+                        ]}
+                      />
+                      <Bar dataKey="count" radius={[6, 6, 0, 0]}>
+                        {gradeDistributionData.map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={entry.color} />
+                        ))}
+                      </Bar>
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+
+                {/* Grade Chips Grid */}
+                <div style={{ display: "grid", gridTemplateColumns: isMobile ? "repeat(2, 1fr)" : "repeat(auto-fit, minmax(130px, 1fr))", gap: 8 }}>
+                  {gradeDistributionData.map((g) => (
+                    <div
+                      key={g.grade}
+                      style={{
+                        background: g.bg,
+                        border: `1px solid ${g.border}`,
+                        borderRadius: 10,
+                        padding: "10px 12px",
+                        textAlign: "center",
                       }}
                     >
-                      <div style={{ 
-                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        width: 32, height: 32, borderRadius: 8,
-                        background: isActive ? 'var(--accent)' : 'rgba(255,255,255,0.06)',
-                        color: isActive ? '#000' : 'var(--text)',
-                      }}>
-                        {icon}
+                      <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 5 }}>
+                        <span style={{ fontSize: 15, fontWeight: 900, color: g.color, fontFamily: "'Space Mono', monospace" }}>{g.grade}</span>
+                        <span style={{ fontSize: 11, fontWeight: 700, color: "#64748b" }}>({g.pts} pts)</span>
                       </div>
-                      {l}
-                    </button>
-                  )})}
+                      <div style={{ fontSize: 17, fontWeight: 900, color: "#0f172a", marginTop: 2, fontFamily: "'Space Mono', monospace" }}>
+                        {g.count} <span style={{ fontSize: 11, fontWeight: 600, color: "#64748b" }}>({g.pct}%)</span>
+                      </div>
+                      <div style={{ fontSize: 10.5, color: "#64748b", marginTop: 1 }}>{g.label}</div>
+                    </div>
+                  ))}
                 </div>
               </div>
             </motion.div>
-          </>
-        )}
-      </AnimatePresence>
-    </motion.div>
+          )}
+
+          {/* ══════════════════════════════════════════════════════════
+              TAB 3: PLACEMENT & COMPANIES
+          ══════════════════════════════════════════════════════════ */}
+          {tab === "placement" && (
+            <motion.div
+              key="placement"
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -6 }}
+              transition={{ duration: 0.22, ease: "easeOut" }}
+              style={{
+                background: "#ffffff",
+                border: "1px solid #cbd5e1",
+                borderRadius: 16,
+                padding: isMobile ? "14px 14px" : "24px 26px",
+                boxShadow: "0 1px 3px rgba(0,0,0,0.05)",
+              }}
+            >
+              <CompanyEligibility branch={dynamicBranch} cgpa={cgpa} regNo={regNo} />
+            </motion.div>
+          )}
+
+          {/* ══════════════════════════════════════════════════════════
+              TAB 4: SUBJECT MASTERY & INSIGHTS
+          ══════════════════════════════════════════════════════════ */}
+          {tab === "mastery" && (
+            <motion.div
+              key="mastery"
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -6 }}
+              transition={{ duration: 0.22, ease: "easeOut" }}
+              style={{ display: "flex", flexDirection: "column", gap: isMobile ? 12 : 20 }}
+            >
+              {/* Radar Chart Card */}
+              <div style={{ background: "#ffffff", border: "1px solid #cbd5e1", borderRadius: 16, padding: isMobile ? "14px 14px" : "22px 24px", boxShadow: "0 1px 3px rgba(0,0,0,0.05)", display: "flex", flexDirection: "column" }}>
+                <div style={{ marginBottom: isMobile ? 12 : 18 }}>
+                  <h3 style={{ fontSize: isMobile ? 14 : 16, fontWeight: 800, color: "#0f172a", margin: "0 0 2px 0", display: "flex", alignItems: "center", gap: 6 }}>
+                    <Target size={16} color="#d97706" /> Curriculum Mastery Profile
+                  </h3>
+                  <p style={{ color: "#64748b", fontSize: isMobile ? 11 : 12.5, margin: 0 }}>
+                    Weighted score distribution across Theory, Practical, and Project components
+                  </p>
+                </div>
+
+                <div style={{ flex: 1, minHeight: isMobile ? 240 : 280 }}>
+                  <ResponsiveContainer width="100%" height={isMobile ? 240 : 280}>
+                    <RadarChart cx="50%" cy="50%" outerRadius={isMobile ? "65%" : "75%"} data={radarData}>
+                      <PolarGrid stroke="#e2e8f0" />
+                      <PolarAngleAxis dataKey="subject" tick={{ fill: "#334155", fontSize: 11, fontWeight: 700 }} />
+                      <PolarRadiusAxis angle={30} domain={[0, 100]} tick={false} axisLine={false} />
+                      <Radar name="Mastery Score" dataKey="score" stroke="#d97706" fill="#f59e0b" fillOpacity={0.25} />
+                      <Tooltip
+                        contentStyle={{ background: "#ffffff", border: "1px solid #cbd5e1", borderRadius: 8, color: "#0f172a", fontSize: 11.5 }}
+                        formatter={(v) => [`${v.toFixed(1)} / 100`, "Mastery Index"]}
+                      />
+                    </RadarChart>
+                  </ResponsiveContainer>
+                </div>
+              </div>
+
+              {/* AI Insights Card */}
+              <div style={{ background: "#ffffff", border: "1px solid #cbd5e1", borderRadius: 16, padding: isMobile ? "14px 14px" : "24px 26px", boxShadow: "0 1px 3px rgba(0,0,0,0.05)", display: "flex", flexDirection: "column", gap: isMobile ? 10 : 16 }}>
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 8 }}>
+                  <div>
+                    <h3 style={{ fontSize: isMobile ? 14 : 16, fontWeight: 800, color: "#0f172a", margin: "0 0 2px 0", display: "flex", alignItems: "center", gap: 6 }}>
+                      <Sparkles size={16} color="#2563eb" /> Performance Observations & Highlights
+                    </h3>
+                    <p style={{ color: "#64748b", fontSize: isMobile ? 11 : 12.5, margin: 0 }}>
+                      Intelligent academic highlights synthesized from transcript records
+                    </p>
+                  </div>
+                  <span style={{ fontSize: isMobile ? 10.5 : 11.5, fontWeight: 700, color: "#15803d", background: "#dcfce7", border: "1px solid #bbf7d0", padding: "2px 7px", borderRadius: 6 }}>
+                    {insights.length} Observations
+                  </span>
+                </div>
+
+                <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(auto-fit, minmax(360px, 1fr))", gap: isMobile ? 8 : 12 }}>
+                  {insights.map((ins, idx) => {
+                    const style = insightColors[ins.type] || insightColors.info;
+                    return (
+                      <div
+                        key={idx}
+                        style={{
+                          display: "flex",
+                          alignItems: "flex-start",
+                          gap: 10,
+                          padding: isMobile ? "10px 12px" : "14px 16px",
+                          background: style.bg,
+                          border: `1px solid ${style.border}`,
+                          borderRadius: 12,
+                        }}
+                      >
+                        <div style={{ marginTop: 2, flexShrink: 0 }}>{ins.icon}</div>
+                        <div style={{ fontSize: isMobile ? 12 : 13.5, color: "#0f172a", fontWeight: 600, lineHeight: 1.4 }}>
+                          {ins.text}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            </motion.div>
+          )}
+
+          {/* ══════════════════════════════════════════════════════════
+              TAB 5: CGPA GOAL PREDICTOR
+          ══════════════════════════════════════════════════════════ */}
+          {tab === "predictor" && (
+            <motion.div
+              key="predictor"
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -6 }}
+              transition={{ duration: 0.22, ease: "easeOut" }}
+              style={{ display: "flex", flexDirection: "column", gap: isMobile ? 12 : 20 }}
+            >
+              {/* Input & Calculator Card */}
+              <div
+                style={{
+                  background: "#ffffff",
+                  border: "1px solid #cbd5e1",
+                  borderRadius: 16,
+                  padding: isMobile ? "14px 14px" : "26px 28px",
+                  boxShadow: "0 1px 3px rgba(0,0,0,0.05), 0 4px 14px rgba(15,23,42,0.03)",
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: isMobile ? 14 : 22,
+                }}
+              >
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 10 }}>
+                  <div>
+                    <h3 style={{ fontSize: isMobile ? 15 : 17, fontWeight: 800, color: "#0f172a", margin: "0 0 2px 0", display: "flex", alignItems: "center", gap: 6 }}>
+                      <Target size={18} color="#16a34a" /> Target CGPA Goal Predictor
+                    </h3>
+                    <p style={{ color: "#64748b", fontSize: isMobile ? 11.5 : 13, margin: 0 }}>
+                      Calculate the exact SGPA needed across remaining {remainingSems} semester(s)
+                    </p>
+                  </div>
+
+                  <div style={{ display: "flex", alignItems: "center", gap: 5, flexWrap: "wrap" }}>
+                    <span style={{ fontSize: isMobile ? 11 : 12, color: "#64748b", fontWeight: 700 }}>Quick Targets:</span>
+                    {[8.5, 8.75, 9.0, 9.25, 9.5].map((val) => (
+                      <button
+                        key={val}
+                        onClick={() => setTargetCGPA(String(val))}
+                        style={{
+                          padding: "3px 8px",
+                          borderRadius: 6,
+                          border: targetCGPA === String(val) ? "1.5px solid #16a34a" : "1px solid #cbd5e1",
+                          background: targetCGPA === String(val) ? "#dcfce7" : "#ffffff",
+                          color: targetCGPA === String(val) ? "#15803d" : "#334155",
+                          fontSize: isMobile ? 11 : 12,
+                          fontWeight: 800,
+                          cursor: "pointer",
+                          fontFamily: "'Space Mono', monospace",
+                          transition: "all 0.1s ease",
+                        }}
+                      >
+                        {val.toFixed(2)}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* 3 Metric Inputs */}
+                <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(auto-fit, minmax(200px, 1fr))", gap: isMobile ? 10 : 16 }}>
+                  <div>
+                    <label style={{ display: "block", fontSize: isMobile ? 10.5 : 11.5, fontWeight: 800, color: "#475569", marginBottom: 4, textTransform: "uppercase" }}>
+                      CURRENT CUMULATIVE CGPA
+                    </label>
+                    <input
+                      value={cgpa}
+                      disabled
+                      style={{
+                        width: "100%",
+                        boxSizing: "border-box",
+                        padding: "10px 12px",
+                        background: "#f1f5f9",
+                        border: "1px solid #cbd5e1",
+                        borderRadius: 10,
+                        fontWeight: 800,
+                        color: "#0f172a",
+                        fontSize: 15,
+                        fontFamily: "'Space Mono', monospace",
+                      }}
+                    />
+                  </div>
+
+                  <div>
+                    <label style={{ display: "block", fontSize: isMobile ? 10.5 : 11.5, fontWeight: 800, color: "#475569", marginBottom: 4, textTransform: "uppercase" }}>
+                      REMAINING SEMESTERS
+                    </label>
+                    <input
+                      value={`${remainingSems} Semesters`}
+                      disabled
+                      style={{
+                        width: "100%",
+                        boxSizing: "border-box",
+                        padding: "10px 12px",
+                        background: "#f1f5f9",
+                        border: "1px solid #cbd5e1",
+                        borderRadius: 10,
+                        fontWeight: 800,
+                        color: "#0f172a",
+                        fontSize: 15,
+                      }}
+                    />
+                  </div>
+
+                  <div>
+                    <label style={{ display: "block", fontSize: isMobile ? 10.5 : 11.5, fontWeight: 800, color: "#475569", marginBottom: 4, textTransform: "uppercase" }}>
+                      YOUR TARGET GRADUATION CGPA
+                    </label>
+                    <input
+                      type="number"
+                      min="0"
+                      max="10"
+                      step="0.01"
+                      value={targetCGPA}
+                      onChange={(e) => setTargetCGPA(e.target.value)}
+                      placeholder="e.g. 9.20"
+                      style={{
+                        width: "100%",
+                        boxSizing: "border-box",
+                        padding: "10px 12px",
+                        background: "#ffffff",
+                        border: "1.5px solid #16a34a",
+                        borderRadius: 10,
+                        fontWeight: 800,
+                        color: "#0f172a",
+                        fontSize: 15,
+                        outline: "none",
+                        fontFamily: "'Space Mono', monospace",
+                      }}
+                    />
+                  </div>
+                </div>
+
+                {/* Prediction Result Display */}
+                {requiredSGPA && (
+                  <div
+                    style={{
+                      background: parseFloat(requiredSGPA) > 10 ? "#fef2f2" : "#f0fdf4",
+                      border: `1px solid ${parseFloat(requiredSGPA) > 10 ? "#fecaca" : "#bbf7d0"}`,
+                      borderRadius: 14,
+                      padding: isMobile ? "14px 16px" : "20px 24px",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                      flexWrap: "wrap",
+                      gap: 12,
+                    }}
+                  >
+                    <div>
+                      <div style={{ fontSize: isMobile ? 11 : 12, fontWeight: 800, color: "#475569", textTransform: "uppercase" }}>
+                        Required SGPA in Each Remaining Semester
+                      </div>
+                      <div
+                        style={{
+                          fontSize: isMobile ? 28 : 38,
+                          fontWeight: 900,
+                          color: parseFloat(requiredSGPA) > 10 ? "#dc2626" : "#15803d",
+                          margin: "4px 0",
+                          fontFamily: "'Space Mono', monospace",
+                        }}
+                      >
+                        {requiredSGPA}
+                      </div>
+                      {parseFloat(requiredSGPA) > 10 ? (
+                        <p style={{ color: "#dc2626", fontSize: isMobile ? 11.5 : 13, margin: 0, fontWeight: 600, display: "flex", alignItems: "center", gap: 4 }}>
+                          <AlertTriangle size={14} /> This target requires SGPA &gt; 10.0 (impossible).
+                        </p>
+                      ) : parseFloat(requiredSGPA) <= 0 ? (
+                        <p style={{ color: "#15803d", fontSize: isMobile ? 11.5 : 13, margin: 0, fontWeight: 600, display: "flex", alignItems: "center", gap: 4 }}>
+                          <CheckCircle size={14} /> You already have enough credits to clear this target!
+                        </p>
+                      ) : (
+                        <p style={{ color: "#15803d", fontSize: isMobile ? 11.5 : 13, margin: 0, fontWeight: 600, display: "flex", alignItems: "center", gap: 4 }}>
+                          <CheckCircle size={14} /> Maintain average SGPA of {requiredSGPA} across remaining semesters.
+                        </p>
+                      )}
+                    </div>
+
+                    <div
+                      style={{
+                        background: "#ffffff",
+                        border: "1px solid #cbd5e1",
+                        borderRadius: 10,
+                        padding: isMobile ? "8px 12px" : "12px 18px",
+                        textAlign: "right",
+                      }}
+                    >
+                      <div style={{ fontSize: 10.5, color: "#64748b", fontWeight: 700 }}>Trajectory Gap</div>
+                      <div style={{ fontSize: isMobile ? 13.5 : 16, fontWeight: 800, color: "#0f172a", fontFamily: "'Space Mono', monospace", marginTop: 2 }}>
+                        {cgpa} ➔ {parseFloat(targetCGPA).toFixed(2)}
+                      </div>
+                      <div style={{ fontSize: 10.5, color: "#16a34a", fontWeight: 700, marginTop: 1 }}>
+                        +{(parseFloat(targetCGPA) - cgpa).toFixed(2)} Delta
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Degree Classification Tiers */}
+              <div
+                style={{
+                  background: "#ffffff",
+                  border: "1px solid #cbd5e1",
+                  borderRadius: 16,
+                  padding: isMobile ? "14px 14px" : "24px 28px",
+                  boxShadow: "0 1px 3px rgba(0,0,0,0.05)",
+                }}
+              >
+                <h4 style={{ fontSize: isMobile ? 13.5 : 15, fontWeight: 800, color: "#0f172a", marginBottom: 10, display: "flex", alignItems: "center", gap: 6 }}>
+                  <GraduationCap size={16} color="#2563eb" /> Degree Honours & Classification Thresholds
+                </h4>
+                <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(auto-fit, minmax(240px, 1fr))", gap: 8 }}>
+                  {[
+                    { label: "Distinction", req: 9.0, color: "#b45309", bg: "#fef3c7" },
+                    { label: "First Class with Distinction", req: 8.5, color: "#1d4ed8", bg: "#eff6ff" },
+                    { label: "First Class", req: 7.5, color: "#15803d", bg: "#f0fdf4" },
+                    { label: "Second Class", req: 6.0, color: "#475569", bg: "#f1f5f9" },
+                  ].map((c) => {
+                    const isAchieved = cgpa >= c.req;
+                    return (
+                      <div
+                        key={c.label}
+                        style={{
+                          padding: isMobile ? "10px 12px" : "14px 16px",
+                          background: isAchieved ? c.bg : "#ffffff",
+                          border: `1px solid ${isAchieved ? c.color + "40" : "#cbd5e1"}`,
+                          borderRadius: 10,
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "space-between",
+                        }}
+                      >
+                        <div>
+                          <div style={{ fontSize: isMobile ? 12.5 : 13.5, fontWeight: 800, color: "#0f172a" }}>{c.label}</div>
+                          <div style={{ fontSize: isMobile ? 10.5 : 11.5, color: "#64748b", fontWeight: 600 }}>CGPA ≥ {c.req}</div>
+                        </div>
+                        {isAchieved ? (
+                          <span style={{ fontSize: 10.5, fontWeight: 800, color: c.color, display: "flex", alignItems: "center", gap: 3 }}>
+                            <Check size={12} /> Achieved
+                          </span>
+                        ) : (
+                          <span style={{ fontSize: 10.5, fontWeight: 600, color: "#94a3b8" }}>Pending</span>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            </motion.div>
+          )}
+
+          {/* ══════════════════════════════════════════════════════════
+              TAB 6: WHAT-IF SIMULATION LAB
+          ══════════════════════════════════════════════════════════ */}
+          {tab === "whatif" && (
+            <motion.div
+              key="whatif"
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -6 }}
+              transition={{ duration: 0.22, ease: "easeOut" }}
+              style={{ display: "flex", flexDirection: "column", gap: isMobile ? 12 : 20 }}
+            >
+              {/* Header & Quick Simulator Controls */}
+              <div
+                style={{
+                  background: "#ffffff",
+                  border: "1px solid #cbd5e1",
+                  borderRadius: 16,
+                  padding: isMobile ? "14px 14px" : "24px 26px",
+                  boxShadow: "0 1px 3px rgba(0,0,0,0.05), 0 4px 14px rgba(15,23,42,0.03)",
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: isMobile ? 12 : 18,
+                }}
+              >
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 10 }}>
+                  <div>
+                    <h3 style={{ fontSize: isMobile ? 15 : 17, fontWeight: 800, color: "#0f172a", margin: "0 0 2px 0", display: "flex", alignItems: "center", gap: 6 }}>
+                      <PieChart size={18} color="#8b5cf6" /> What-If Semester Grade Simulation Studio
+                    </h3>
+                    <p style={{ color: "#64748b", fontSize: isMobile ? 11.5 : 13, margin: 0 }}>
+                      Simulate grade variations in Sem {latestSemester} to see instant real-time SGPA and CGPA changes
+                    </p>
+                  </div>
+
+                  {/* Quick Presets */}
+                  <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+                    <button
+                      onClick={() => {
+                        const allO = {};
+                        latestSubjects.forEach((s) => (allO[s.subCode] = "O"));
+                        setWhatIfGrades(allO);
+                      }}
+                      style={{
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: 4,
+                        padding: isMobile ? "5px 10px" : "6px 12px",
+                        borderRadius: 8,
+                        border: "1px solid #fde68a",
+                        background: "#fef3c7",
+                        color: "#b45309",
+                        fontSize: isMobile ? 11 : 12,
+                        fontWeight: 800,
+                        cursor: "pointer",
+                      }}
+                    >
+                      <Zap size={12} /> Max Out (All O)
+                    </button>
+
+                    <button
+                      onClick={() => {
+                        const allE = {};
+                        latestSubjects.forEach((s) => (allE[s.subCode] = "E"));
+                        setWhatIfGrades(allE);
+                      }}
+                      style={{
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: 4,
+                        padding: isMobile ? "5px 10px" : "6px 12px",
+                        borderRadius: 8,
+                        border: "1px solid #bbf7d0",
+                        background: "#dcfce7",
+                        color: "#15803d",
+                        fontSize: isMobile ? 11 : 12,
+                        fontWeight: 800,
+                        cursor: "pointer",
+                      }}
+                    >
+                      All E (9 Pts)
+                    </button>
+
+                    <button
+                      onClick={() => setWhatIfGrades({})}
+                      disabled={Object.keys(whatIfGrades).length === 0}
+                      style={{
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: 4,
+                        padding: isMobile ? "5px 10px" : "6px 12px",
+                        borderRadius: 8,
+                        border: "1px solid #cbd5e1",
+                        background: Object.keys(whatIfGrades).length === 0 ? "#f1f5f9" : "#ffffff",
+                        color: Object.keys(whatIfGrades).length === 0 ? "#94a3b8" : "#334155",
+                        fontSize: isMobile ? 11 : 12,
+                        fontWeight: 700,
+                        cursor: Object.keys(whatIfGrades).length === 0 ? "not-allowed" : "pointer",
+                      }}
+                    >
+                      <RotateCcw size={12} /> Reset
+                    </button>
+                  </div>
+                </div>
+
+                {/* Side by Side Simulation Metric Cards */}
+                {whatIfCGPA !== null && (
+                  <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(auto-fit, minmax(280px, 1fr))", gap: isMobile ? 10 : 16 }}>
+                    <div
+                      style={{
+                        background: "#eff6ff",
+                        border: "1.5px solid #bfdbfe",
+                        borderRadius: 14,
+                        padding: isMobile ? "14px 16px" : "20px 24px",
+                      }}
+                    >
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                        <span style={{ fontSize: isMobile ? 11 : 12, fontWeight: 800, color: "#2563eb", textTransform: "uppercase" }}>
+                          Simulated CGPA
+                        </span>
+                        <span
+                          style={{
+                            fontSize: isMobile ? 10.5 : 11.5,
+                            fontWeight: 800,
+                            background: parseFloat(whatIfCGPA) >= cgpa ? "#dcfce7" : "#fee2e2",
+                            color: parseFloat(whatIfCGPA) >= cgpa ? "#15803d" : "#b91c1c",
+                            padding: "2px 7px",
+                            borderRadius: 6,
+                          }}
+                        >
+                          {parseFloat(whatIfCGPA) >= cgpa
+                            ? `+${(whatIfCGPA - cgpa).toFixed(2)} Gain`
+                            : `${(whatIfCGPA - cgpa).toFixed(2)} Drop`}
+                        </span>
+                      </div>
+
+                      <div style={{ fontSize: isMobile ? 28 : 40, fontWeight: 900, color: "#1d4ed8", fontFamily: "'Space Mono', monospace", margin: "4px 0" }}>
+                        <AnimatedNumber value={parseFloat(whatIfCGPA)} />
+                      </div>
+                      <div style={{ fontSize: isMobile ? 11 : 12.5, color: "#64748b" }}>
+                        Baseline CGPA: <strong style={{ color: "#0f172a" }}>{cgpa}</strong>
+                      </div>
+                    </div>
+
+                    <div
+                      style={{
+                        background: "#f0fdf4",
+                        border: "1.5px solid #bbf7d0",
+                        borderRadius: 14,
+                        padding: isMobile ? "14px 16px" : "20px 24px",
+                      }}
+                    >
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                        <span style={{ fontSize: isMobile ? 11 : 12, fontWeight: 800, color: "#15803d", textTransform: "uppercase" }}>
+                          Simulated Sem {latestSemester} SGPA
+                        </span>
+                        <span
+                          style={{
+                            fontSize: isMobile ? 10.5 : 11.5,
+                            fontWeight: 800,
+                            background: parseFloat(whatIfSGPA) >= latestSgpa ? "#dcfce7" : "#fee2e2",
+                            color: parseFloat(whatIfSGPA) >= latestSgpa ? "#15803d" : "#b91c1c",
+                            padding: "2px 7px",
+                            borderRadius: 6,
+                          }}
+                        >
+                          {parseFloat(whatIfSGPA) >= latestSgpa
+                            ? `+${(whatIfSGPA - latestSgpa).toFixed(2)} Gain`
+                            : `${(whatIfSGPA - latestSgpa).toFixed(2)} Drop`}
+                        </span>
+                      </div>
+
+                      <div style={{ fontSize: isMobile ? 28 : 40, fontWeight: 900, color: "#16a34a", fontFamily: "'Space Mono', monospace", margin: "4px 0" }}>
+                        <AnimatedNumber value={parseFloat(whatIfSGPA)} />
+                      </div>
+                      <div style={{ fontSize: isMobile ? 11 : 12.5, color: "#64748b" }}>
+                        Baseline SGPA: <strong style={{ color: "#0f172a" }}>{latestSgpa?.toFixed(2)}</strong>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Subject Grade Modification Cards Grid */}
+              <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(auto-fit, minmax(360px, 1fr))", gap: isMobile ? 10 : 14 }}>
+                {latestSubjects.map((s) => {
+                  const currentSimGrade = whatIfGrades[s.subCode] || s.grade;
+                  const isModified = Boolean(whatIfGrades[s.subCode] && whatIfGrades[s.subCode] !== s.grade);
+                  const originalMeta = GRADE_META[s.grade] || GRADE_META.F;
+                  const simMeta = GRADE_META[currentSimGrade] || GRADE_META.F;
+
+                  return (
+                    <div
+                      key={s.subCode}
+                      style={{
+                        background: "#ffffff",
+                        border: isModified ? `2px solid #8b5cf6` : "1px solid #cbd5e1",
+                        borderRadius: 14,
+                        padding: isMobile ? "12px 14px" : "16px 18px",
+                        boxShadow: isModified
+                          ? "0 4px 14px rgba(139, 92, 246, 0.08)"
+                          : "0 1px 3px rgba(0,0,0,0.03)",
+                        display: "flex",
+                        flexDirection: "column",
+                        justifyContent: "space-between",
+                        gap: 10,
+                      }}
+                    >
+                      <div>
+                        <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 8 }}>
+                          <div style={{ fontWeight: 800, fontSize: isMobile ? 13 : 14, color: "#0f172a", lineHeight: 1.3 }}>
+                            {s.subName}
+                          </div>
+                          {isModified && (
+                            <span
+                              style={{
+                                fontSize: 10,
+                                fontWeight: 800,
+                                background: "#f3e8ff",
+                                color: "#7e22ce",
+                                border: "1px solid #e9d5ff",
+                                padding: "1px 5px",
+                                borderRadius: 5,
+                                flexShrink: 0,
+                              }}
+                            >
+                              Simulated
+                            </span>
+                          )}
+                        </div>
+
+                        <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 4, fontSize: isMobile ? 11 : 12, color: "#64748b", flexWrap: "wrap" }}>
+                          <span style={{ fontFamily: "'Space Mono', monospace", fontWeight: 700 }}>{s.subCode}</span>
+                          <span>•</span>
+                          <span>{s.credit} Credits</span>
+                          <span>•</span>
+                          <span>
+                            Original: <strong style={{ color: originalMeta.color }}>{s.grade}</strong>
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Segmented Grade Pills */}
+                      <div>
+                        <div style={{ fontSize: 10.5, fontWeight: 700, color: "#64748b", marginBottom: 5 }}>
+                          Select Simulated Grade:
+                        </div>
+                        <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
+                          {GRADE_ORDER.map((g) => {
+                            const gMeta = GRADE_META[g];
+                            const isSelected = currentSimGrade === g;
+                            return (
+                              <button
+                                key={g}
+                                onClick={() => setWhatIfGrades({ ...whatIfGrades, [s.subCode]: g })}
+                                style={{
+                                  flex: "1 1 30px",
+                                  minWidth: 28,
+                                  height: isMobile ? 28 : 32,
+                                  borderRadius: 7,
+                                  border: isSelected ? `2px solid ${gMeta.color}` : "1px solid #cbd5e1",
+                                  background: isSelected ? gMeta.bg : "#ffffff",
+                                  color: isSelected ? gMeta.color : "#334155",
+                                  fontSize: isMobile ? 12 : 13,
+                                  fontWeight: 800,
+                                  cursor: "pointer",
+                                  fontFamily: "'Space Mono', monospace",
+                                  transition: "all 0.1s ease",
+                                  padding: 0,
+                                }}
+                              >
+                                {g}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
+    </div>
   );
 }

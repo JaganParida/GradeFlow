@@ -127,12 +127,13 @@ router.get("/:regNo", validateRegNo, async (req, res) => {
   }
 });
 
-// GET specific semester result
-router.get("/:regNo/semester/:sem", validateRegNo, async (req, res) => {
+// GET specific semester result (supports both /semester/:sem and /semesters/:sem)
+router.get(["/:regNo/semester/:sem", "/:regNo/semesters/:sem"], validateRegNo, async (req, res) => {
   try {
+    const semNum = Number(req.params.sem);
     const result = await SemesterResult.findOne({
       regNo: req.params.regNo,
-      semester: req.params.sem,
+      $or: [{ semester: req.params.sem }, { semester: isNaN(semNum) ? req.params.sem : semNum }],
     });
     if (!result) return res.status(404).json({ message: "Result not found" });
     res.json(result);
@@ -145,9 +146,10 @@ router.get("/:regNo/semester/:sem", validateRegNo, async (req, res) => {
 // GET specific semester ranking
 router.get("/:regNo/ranking/:sem", validateRegNo, async (req, res) => {
   try {
+    const semNum = Number(req.params.sem);
     const ranking = await Ranking.findOne({
       regNo: req.params.regNo,
-      semester: req.params.sem,
+      $or: [{ semester: req.params.sem }, { semester: isNaN(semNum) ? req.params.sem : semNum }],
     });
     if (!ranking) return res.status(404).json({ message: "Ranking not found" });
     res.json(ranking);
@@ -158,11 +160,12 @@ router.get("/:regNo/ranking/:sem", validateRegNo, async (req, res) => {
 });
 
 // GET internal marks
-router.get("/:regNo/internal/:sem", validateRegNo, async (req, res) => {
+router.get(["/:regNo/internal/:sem", "/:regNo/internals/:sem"], validateRegNo, async (req, res) => {
   try {
+    const semNum = Number(req.params.sem);
     const marks = await InternalMark.findOne({
       regNo: req.params.regNo,
-      semester: req.params.sem,
+      $or: [{ semester: req.params.sem }, { semester: isNaN(semNum) ? req.params.sem : semNum }],
     });
     if (!marks)
       return res.status(404).json({ message: "Internal marks not found" });

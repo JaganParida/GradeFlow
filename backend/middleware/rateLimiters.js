@@ -10,19 +10,35 @@ const PUBLIC_MAX = Number(process.env.RATE_LIMIT_PUBLIC_MAX) || 200;
 const ADMIN_WINDOW_MS = Number(process.env.RATE_LIMIT_ADMIN_WINDOW_MS) || 60 * 1000;
 const ADMIN_MAX = Number(process.env.RATE_LIMIT_ADMIN_MAX) || 300;
 
-// Strict limiter for authentication routes (login, credentials check)
+const EMAIL_WINDOW_MS = Number(process.env.RATE_LIMIT_EMAIL_WINDOW_MS) || 60 * 1000;
+const EMAIL_MAX = Number(process.env.RATE_LIMIT_EMAIL_MAX) || 50;
+
+// Strict limiter for authentication routes (login, credentials check) with IP+Email key
 const authLimiter = rateLimit({
   windowMs: AUTH_WINDOW_MS,
   max: AUTH_MAX,
   standardHeaders: true,
   legacyHeaders: false,
   message: {
-    message: "Too many authentication attempts. Please try again after 15 minutes.",
+    success: false,
+    message: "Too many authentication attempts. Please wait 15 minutes before trying again.",
   },
   keyGenerator: (req) => {
     const ip = req.ip || req.headers["x-forwarded-for"] || "127.0.0.1";
     const email = req.body && req.body.email ? String(req.body.email).trim().toLowerCase() : "";
     return email ? `${ip}_${email}` : ip;
+  },
+});
+
+// Dedicated limiter for sending email notifications (prevents spamming / SMTP quota drain)
+const emailLimiter = rateLimit({
+  windowMs: EMAIL_WINDOW_MS,
+  max: EMAIL_MAX,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: {
+    success: false,
+    message: "Email dispatch rate limit reached. Please wait a moment before sending more emails.",
   },
 });
 
@@ -33,6 +49,7 @@ const publicLimiter = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
   message: {
+    success: false,
     message: "Server is experiencing high traffic. Please try again in a minute.",
   },
 });
@@ -44,12 +61,14 @@ const adminLimiter = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
   message: {
+    success: false,
     message: "Admin request limit exceeded. Please wait a moment before trying again.",
   },
 });
 
 module.exports = {
   authLimiter,
+  emailLimiter,
   publicLimiter,
   adminLimiter,
 };

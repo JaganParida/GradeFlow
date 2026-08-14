@@ -2,14 +2,15 @@ const express = require("express");
 const jwt = require("jsonwebtoken");
 const Admin = require("../models/Admin");
 const { protect } = require("../middleware/auth");
+const { validateLoginInput } = require("../middleware/validation");
 const router = express.Router();
 
-router.post("/login", async (req, res) => {
+router.post("/login", validateLoginInput, async (req, res) => {
   try {
     const { email, password } = req.body;
     const admin = await Admin.findOne({ email });
     if (!admin || !(await admin.comparePassword(password))) {
-      return res.status(401).json({ message: "Invalid credentials" });
+      return res.status(401).json({ message: "Invalid email or password." });
     }
     const token = jwt.sign(
       { id: admin._id, email: admin.email },
@@ -19,7 +20,7 @@ router.post("/login", async (req, res) => {
     
     const options = {
       expires: new Date(Date.now() + 24 * 60 * 60 * 1000), // 1 day
-      httpOnly: true, // Prevents XSS attacks
+      httpOnly: true, // Prevents XSS attacks (JS cannot access cookie)
       secure: true, // HTTPS required for cross-origin cookies
       sameSite: "none", // Required for cross-site (Render to Vercel) cookie support
       path: "/",
@@ -29,7 +30,7 @@ router.post("/login", async (req, res) => {
     res.json({ success: true, email: admin.email });
   } catch (err) {
     console.error("Auth login error:", err.message);
-    res.status(500).json({ message: "Server error" });
+    res.status(500).json({ message: "An internal authentication error occurred." });
   }
 });
 

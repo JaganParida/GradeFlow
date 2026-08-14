@@ -3,6 +3,7 @@ const router = express.Router();
 const multer = require("multer");
 const XLSX = require("xlsx");
 const { protect } = require("../middleware/auth");
+const { emailLimiter } = require("../middleware/rateLimiters");
 const { sendBacklogEmailNotification } = require("../utils/emailService");
 const SemesterResult = require("../models/SemesterResult");
 const InternalMark = require("../models/InternalMark");
@@ -24,8 +25,15 @@ const {
 } = require("../utils/gradeCalculations");
 
 const { uploadStorage, validateFileBuffer } = require("../middleware/uploadSafety");
-const { validateEmailRequest } = require("../middleware/validation");
+const {
+  validateEmailRequest,
+  validateAcademicFilters,
+  validateGradeUpdateInput,
+} = require("../middleware/validation");
 const upload = uploadStorage;
+
+// Defense-in-Depth: Enforce JWT authentication on ALL admin routes
+router.use(protect);
 
 function col(row, ...keys) {
   for (const k of keys) {
@@ -1199,7 +1207,7 @@ router.get("/student/details/:regNo", protect, async (req, res) => {
 });
 
 // Update individual grade for a student's subject manually
-router.post("/student/update-grade", protect, async (req, res) => {
+router.post("/student/update-grade", validateGradeUpdateInput, async (req, res) => {
   try {
     const { regNo, semester, subCode, newGrade } = req.body;
 
@@ -1297,7 +1305,7 @@ router.post("/student/update-grade", protect, async (req, res) => {
 });
 
 // Get backlog students breakdown & leaderboard for admin
-router.get("/backlogs", protect, async (req, res) => {
+router.get("/backlogs", validateAcademicFilters, async (req, res) => {
   try {
     const { batch, branch, section, semester, search, page = 1, limit = 50 } = req.query;
 
@@ -1322,7 +1330,10 @@ router.get("/backlogs", protect, async (req, res) => {
         studentRankingMap.set(regNo, {
           cgpa: rk.cgpa || 0,
           universityRank: rk.universityRank || rk.cgpaRank || null,
-          departmentRank: rk.deptCgpaRank || rk.deptRank || rk.departmentRank || null,
+          deptRank: rk.deptCgpaRank || rk.deptRank || null,
+          departmentRank: rk.deptCgpaRank || rk.deptRank || null,
+          branchRank: rk.deptCgpaRank || rk.deptRank || null,
+          batchRank: rk.universityRank || rk.cgpaRank || null,
           sectionRank: rk.sectionCgpaRank || rk.sectionSgpaRank || null,
           semester: rk.semester,
         });
@@ -1482,7 +1493,7 @@ router.get("/backlogs", protect, async (req, res) => {
 });
 
 // Send backlog notification email to student
-router.post("/backlogs/send-email", protect, async (req, res) => {
+router.post("/backlogs/send-email", emailLimiter, validateEmailRequest, async (req, res) => {
   try {
     const { regNo, registrationNumber, studentId, customEmail, email } = req.body;
     const cleanRegNo = String(regNo || registrationNumber || studentId || "").trim();
@@ -1801,7 +1812,7 @@ router.delete("/purge-logs", protect, async (req, res) => {
 });
 
 // Get section toppers (Top 10 rankers per section/branch) - Queries pre-calculated rankings
-router.get("/section-toppers", protect, async (req, res) => {
+router.get("/section-toppers", validateAcademicFilters, async (req, res) => {
   try {
     const { batch = "2023", branch = "CSE", section = "Sec A", semester, search, limit = 10 } = req.query;
 
@@ -1822,11 +1833,11 @@ router.get("/section-toppers", protect, async (req, res) => {
       filteredRankings = filteredRankings.filter((rk) => Number(rk.semester) === semNum);
     } else {
       const latestMap = new Map();
-      filteredRankings.forEach((rk) => {
-        if (!rk.regNo) return;
-        const regNo = String(rk.regNo).trim();
+      allRankings.forEach((rk) => {
+        const regNo = rk.regNo;
+        const currentSem = Number(rk.semester) || 0;
         const existing = latestMap.get(regNo);
-        if (!existing || Number(rk.semester) > Number(existing.semester)) {
+        if (!existing || currentSem > (Number(existing.semester) || 0)) {
           latestMap.set(regNo, rk);
         }
       });
@@ -1958,7 +1969,7 @@ router.post("/section-toppers/topper-email-status", protect, async (req, res) =>
 });
 
 // Send congratulatory topper email to student (Backend fallback)
-router.post("/section-toppers/send-email", protect, async (req, res) => {
+router.post("/section-toppers/send-email", emailLimiter, validateEmailRequest, async (req, res) => {
   try {
     const { regNo, customEmail } = req.body;
     const cleanRegNo = String(regNo || "").trim();
