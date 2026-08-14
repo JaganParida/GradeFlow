@@ -71,9 +71,8 @@ router.get("/top", validateAcademicFilters, async (req, res) => {
       else query.branch = branch; // fallback
     }
 
-    const isGlobalSearch = search && !branch;
-    if (isGlobalSearch) {
-      const escaped = escapeRegex(search);
+    if (search && String(search).trim()) {
+      const escaped = escapeRegex(String(search).trim());
       andClauses.push({
         $or: [
           { studentName: { $regex: escaped, $options: "i" } },
@@ -83,9 +82,9 @@ router.get("/top", validateAcademicFilters, async (req, res) => {
     }
 
     if (sortBy === "cgpa") {
-      if (!section) query.cgpa = { $gt: 0 };
+      if (!section && !search) query.cgpa = { $gt: 0 };
     } else {
-      if (!section) query.sgpa = { $gt: 0 };
+      if (!section && !search) query.sgpa = { $gt: 0 };
     }
 
     if (andClauses.length > 0) query.$and = andClauses;

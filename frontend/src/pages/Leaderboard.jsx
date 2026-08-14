@@ -464,26 +464,70 @@ export default function Leaderboard() {
             </div>
           </div>
 
-          {/* Filter Controls: Perfectly Balanced Grid Without Empty Gaps */}
+          {/* Filter Controls: Perfectly Balanced Flex/Grid */}
           <div
             style={{
-              display: isMobile ? "grid" : "flex",
-              gridTemplateColumns: isMobile ? "1fr 1fr" : "none",
-              alignItems: "center",
-              gap: 8,
+              display: "flex",
+              flexDirection: isMobile ? "column" : "row",
+              alignItems: isMobile ? "stretch" : "center",
+              gap: 10,
               borderTop: "1px solid #f1f5f9",
-              paddingTop: 12,
+              paddingTop: 14,
               width: "100%",
               boxSizing: "border-box",
             }}
           >
-            {/* Semester Select (SGPA only) */}
-            {isSGPA && (
-              <div style={{ width: "100%", boxSizing: "border-box" }}>
+            {/* Dropdowns Group */}
+            <div
+              style={{
+                display: isMobile ? "grid" : "flex",
+                gridTemplateColumns: isMobile ? "repeat(auto-fit, minmax(130px, 1fr))" : "none",
+                alignItems: "center",
+                gap: 8,
+                flexShrink: 0,
+                width: isMobile ? "100%" : "auto",
+                boxSizing: "border-box",
+              }}
+            >
+              {/* Semester Select (SGPA only) */}
+              {isSGPA && (
+                <div style={{ minWidth: isMobile ? "auto" : 135, width: isMobile ? "100%" : "auto", boxSizing: "border-box" }}>
+                  <select
+                    disabled={loading}
+                    value={filters.semester}
+                    onChange={(e) => handleFilter("semester", e.target.value)}
+                    style={{
+                      width: "100%",
+                      height: 38,
+                      padding: "0 28px 0 10px",
+                      borderRadius: 8,
+                      border: "1px solid #cbd5e1",
+                      background: loading ? "#f8fafc" : "#ffffff",
+                      color: "#0f172a",
+                      fontSize: 13,
+                      fontWeight: 700,
+                      cursor: loading ? "not-allowed" : "pointer",
+                      opacity: loading ? 0.65 : 1,
+                      outline: "none",
+                      boxSizing: "border-box",
+                      transition: "all 0.15s ease",
+                    }}
+                  >
+                    {meta.semesters.map((s) => (
+                      <option key={s} value={s}>
+                        Semester {s}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
+              {/* Branch Select */}
+              <div style={{ minWidth: isMobile ? "auto" : 140, width: isMobile ? "100%" : "auto", boxSizing: "border-box" }}>
                 <select
                   disabled={loading}
-                  value={filters.semester}
-                  onChange={(e) => handleFilter("semester", e.target.value)}
+                  value={filters.branch}
+                  onChange={(e) => handleFilter("branch", e.target.value)}
                   style={{
                     width: "100%",
                     height: 38,
@@ -501,122 +545,85 @@ export default function Leaderboard() {
                     transition: "all 0.15s ease",
                   }}
                 >
-                  {meta.semesters.map((s) => (
-                    <option key={s} value={s}>
-                      Semester {s}
+                  <option value="">All Branches</option>
+                  {meta.branches.map((b) => (
+                    <option key={b} value={b}>
+                      Branch {b}
                     </option>
                   ))}
                 </select>
               </div>
-            )}
 
-            {/* Branch Select */}
-            <div style={{ width: "100%", boxSizing: "border-box" }}>
-              <select
-                disabled={loading}
-                value={filters.branch}
-                onChange={(e) => handleFilter("branch", e.target.value)}
-                style={{
-                  width: "100%",
-                  height: 38,
-                  padding: "0 28px 0 10px",
-                  borderRadius: 8,
-                  border: "1px solid #cbd5e1",
-                  background: loading ? "#f8fafc" : "#ffffff",
-                  color: "#0f172a",
-                  fontSize: 13,
-                  fontWeight: 700,
-                  cursor: loading ? "not-allowed" : "pointer",
-                  opacity: loading ? 0.65 : 1,
-                  outline: "none",
-                  boxSizing: "border-box",
-                  transition: "all 0.15s ease",
-                }}
-              >
-                <option value="">All Branches</option>
-                {meta.branches.map((b) => (
-                  <option key={b} value={b}>
-                    Branch {b}
-                  </option>
-                ))}
-              </select>
+              {/* Section Select (CSE Only) */}
+              {filters.branch === "CSE" && (
+                <div style={{ minWidth: isMobile ? "auto" : 130, width: isMobile ? "100%" : "auto", boxSizing: "border-box" }}>
+                  <select
+                    disabled={loading}
+                    value={filters.section}
+                    onChange={(e) => handleFilter("section", e.target.value)}
+                    style={{
+                      width: "100%",
+                      height: 38,
+                      padding: "0 28px 0 10px",
+                      borderRadius: 8,
+                      border: "1px solid #cbd5e1",
+                      background: loading ? "#f8fafc" : "#ffffff",
+                      color: "#0f172a",
+                      fontSize: 13,
+                      fontWeight: 700,
+                      cursor: loading ? "not-allowed" : "pointer",
+                      opacity: loading ? 0.65 : 1,
+                      outline: "none",
+                      boxSizing: "border-box",
+                      transition: "all 0.15s ease",
+                    }}
+                  >
+                    <option value="">All Sections</option>
+                    {["A", "B", "C", "D", "E", "F", "G", "H", "I", "J"].map((sec) => (
+                      <option key={sec} value={sec}>
+                        Section {sec}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
+              {/* Batch Select */}
+              {meta.batches && meta.batches.length > 0 && (
+                <div style={{ minWidth: isMobile ? "auto" : 135, width: isMobile ? "100%" : "auto", boxSizing: "border-box" }}>
+                  <select
+                    disabled={loading}
+                    value={filters.batch}
+                    onChange={(e) => handleFilter("batch", e.target.value)}
+                    style={{
+                      width: "100%",
+                      height: 38,
+                      padding: "0 28px 0 10px",
+                      borderRadius: 8,
+                      border: "1px solid #cbd5e1",
+                      background: loading ? "#f8fafc" : "#ffffff",
+                      color: "#0f172a",
+                      fontSize: 13,
+                      fontWeight: 700,
+                      cursor: loading ? "not-allowed" : "pointer",
+                      opacity: loading ? 0.65 : 1,
+                      outline: "none",
+                      boxSizing: "border-box",
+                      transition: "all 0.15s ease",
+                    }}
+                  >
+                    <option value="">All Batches</option>
+                    {meta.batches.map((b) => (
+                      <option key={b} value={b}>
+                        Batch {b}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
             </div>
 
-            {/* Section Select (CSE Only) */}
-            {filters.branch === "CSE" && (
-              <div style={{ width: "100%", boxSizing: "border-box" }}>
-                <select
-                  disabled={loading}
-                  value={filters.section}
-                  onChange={(e) => handleFilter("section", e.target.value)}
-                  style={{
-                    width: "100%",
-                    height: 38,
-                    padding: "0 28px 0 10px",
-                    borderRadius: 8,
-                    border: "1px solid #cbd5e1",
-                    background: loading ? "#f8fafc" : "#ffffff",
-                    color: "#0f172a",
-                    fontSize: 13,
-                    fontWeight: 700,
-                    cursor: loading ? "not-allowed" : "pointer",
-                    opacity: loading ? 0.65 : 1,
-                    outline: "none",
-                    boxSizing: "border-box",
-                    transition: "all 0.15s ease",
-                  }}
-                >
-                  <option value="">All Sections</option>
-                  {["A", "B", "C", "D", "E", "F", "G", "H", "I", "J"].map((sec) => (
-                    <option key={sec} value={sec}>
-                      Section {sec}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            )}
-
-            {/* Batch Select (Spans 2 columns if odd item to prevent empty gaps) */}
-            {meta.batches && meta.batches.length > 0 && (
-              <div
-                style={{
-                  width: "100%",
-                  gridColumn: isMobile && activeFilterCount % 2 === 1 ? "1 / -1" : "auto",
-                  boxSizing: "border-box",
-                }}
-              >
-                <select
-                  disabled={loading}
-                  value={filters.batch}
-                  onChange={(e) => handleFilter("batch", e.target.value)}
-                  style={{
-                    width: "100%",
-                    height: 38,
-                    padding: "0 28px 0 10px",
-                    borderRadius: 8,
-                    border: "1px solid #cbd5e1",
-                    background: loading ? "#f8fafc" : "#ffffff",
-                    color: "#0f172a",
-                    fontSize: 13,
-                    fontWeight: 700,
-                    cursor: loading ? "not-allowed" : "pointer",
-                    opacity: loading ? 0.65 : 1,
-                    outline: "none",
-                    boxSizing: "border-box",
-                    transition: "all 0.15s ease",
-                  }}
-                >
-                  <option value="">All Batches</option>
-                  {meta.batches.map((b) => (
-                    <option key={b} value={b}>
-                      Batch {b}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            )}
-
-            {/* Search Input Field */}
+            {/* Search Input Field (Expands to fill all remaining horizontal width) */}
             <form
               onSubmit={(e) => {
                 e.preventDefault();
@@ -624,21 +631,22 @@ export default function Leaderboard() {
                 handleFilter("search", searchInput, searchInput.trim() ? 50 : 10);
               }}
               style={{
-                gridColumn: isMobile ? "1 / -1" : "auto",
-                flex: isMobile ? "none" : "1 1 200px",
+                flex: 1,
                 display: "flex",
-                gap: 6,
+                alignItems: "center",
+                gap: 8,
                 width: "100%",
                 boxSizing: "border-box",
+                minWidth: isMobile ? "100%" : 240,
               }}
             >
-              <div style={{ position: "relative", flex: 1 }}>
+              <div style={{ position: "relative", flex: 1, width: "100%" }}>
                 <Search
-                  size={14}
+                  size={15}
                   color="#64748b"
                   style={{
                     position: "absolute",
-                    left: 10,
+                    left: 11,
                     top: "50%",
                     transform: "translateY(-50%)",
                     pointerEvents: "none",
@@ -658,7 +666,7 @@ export default function Leaderboard() {
                     width: "100%",
                     boxSizing: "border-box",
                     height: 38,
-                    padding: searchInput ? "0 30px 0 32px" : "0 10px 0 32px",
+                    padding: searchInput ? "0 32px 0 34px" : "0 12px 0 34px",
                     background: loading ? "#f8fafc" : "#ffffff",
                     border: "1px solid #cbd5e1",
                     borderRadius: 8,
@@ -668,7 +676,10 @@ export default function Leaderboard() {
                     cursor: loading ? "not-allowed" : "text",
                     opacity: loading ? 0.65 : 1,
                     transition: "all 0.15s ease",
+                    fontFamily: "'DM Sans', sans-serif",
                   }}
+                  onFocus={(e) => (e.currentTarget.style.borderColor = "#2563eb")}
+                  onBlur={(e) => (e.currentTarget.style.borderColor = "#cbd5e1")}
                 />
                 {searchInput && (
                   <button
@@ -679,7 +690,7 @@ export default function Leaderboard() {
                     }}
                     style={{
                       position: "absolute",
-                      right: 8,
+                      right: 9,
                       top: "50%",
                       transform: "translateY(-50%)",
                       background: "transparent",
@@ -690,32 +701,48 @@ export default function Leaderboard() {
                       alignItems: "center",
                       justifyContent: "center",
                       color: "#94a3b8",
+                      transition: "color 0.15s ease",
                     }}
+                    onMouseEnter={(e) => (e.currentTarget.style.color = "#0f172a")}
+                    onMouseLeave={(e) => (e.currentTarget.style.color = "#94a3b8")}
                   >
                     <X size={14} />
                   </button>
                 )}
               </div>
+
               <button
                 type="submit"
                 disabled={loading}
                 style={{
                   height: 38,
-                  padding: "0 14px",
+                  padding: "0 16px",
                   borderRadius: 8,
                   border: "none",
                   background: "#0f172a",
                   color: "#ffffff",
-                  fontSize: 12.5,
+                  fontSize: 13,
                   fontWeight: 700,
                   cursor: loading ? "not-allowed" : "pointer",
                   opacity: loading ? 0.65 : 1,
                   fontFamily: "'DM Sans', sans-serif",
                   whiteSpace: "nowrap",
-                  transition: "all 0.15s ease",
+                  display: "inline-flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: 6,
+                  transition: "background 0.15s ease",
+                  flexShrink: 0,
+                }}
+                onMouseEnter={(e) => {
+                  if (!loading) e.currentTarget.style.background = "#1e293b";
+                }}
+                onMouseLeave={(e) => {
+                  if (!loading) e.currentTarget.style.background = "#0f172a";
                 }}
               >
-                Search
+                <Search size={13} />
+                <span>Search</span>
               </button>
 
               {isFiltersActive && (
@@ -723,24 +750,39 @@ export default function Leaderboard() {
                   type="button"
                   disabled={loading}
                   onClick={handleResetFilters}
+                  title="Reset all filters"
                   style={{
                     height: 38,
-                    padding: "0 10px",
+                    padding: "0 12px",
                     borderRadius: 8,
                     border: "1px solid #cbd5e1",
                     background: "#ffffff",
-                    color: "#64748b",
-                    fontSize: 12,
-                    fontWeight: 600,
+                    color: "#475569",
+                    fontSize: 13,
+                    fontWeight: 700,
                     cursor: loading ? "not-allowed" : "pointer",
                     opacity: loading ? 0.65 : 1,
                     display: "inline-flex",
                     alignItems: "center",
-                    gap: 4,
+                    justifyContent: "center",
+                    gap: 6,
+                    fontFamily: "'DM Sans', sans-serif",
                     whiteSpace: "nowrap",
                     transition: "all 0.15s ease",
+                    flexShrink: 0,
                   }}
-                  title="Reset all filters"
+                  onMouseEnter={(e) => {
+                    if (!loading) {
+                      e.currentTarget.style.background = "#f1f5f9";
+                      e.currentTarget.style.color = "#0f172a";
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    if (!loading) {
+                      e.currentTarget.style.background = "#ffffff";
+                      e.currentTarget.style.color = "#475569";
+                    }
+                  }}
                 >
                   <RotateCcw size={13} />
                 </button>
