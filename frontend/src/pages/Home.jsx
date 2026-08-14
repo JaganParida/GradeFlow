@@ -2119,7 +2119,8 @@ export default function Home() {
                 )}
               </div>
               <button
-                onClick={() => navigate("/resources")}
+                type="button"
+                onClick={handleDashboardAction}
                 style={{
                   background: "none",
                   border: "none",
@@ -2127,6 +2128,8 @@ export default function Home() {
                   fontSize: 12.5,
                   fontWeight: 700,
                   cursor: "pointer",
+                  padding: 0,
+                  fontFamily: "inherit",
                 }}
               >
                 View All
@@ -2285,7 +2288,8 @@ export default function Home() {
                 )}
               </div>
               <button
-                onClick={() => navigate("/resources")}
+                type="button"
+                onClick={handleDashboardAction}
                 style={{
                   background: "none",
                   border: "none",
@@ -2293,6 +2297,8 @@ export default function Home() {
                   fontSize: 12.5,
                   fontWeight: 700,
                   cursor: "pointer",
+                  padding: 0,
+                  fontFamily: "inherit",
                 }}
               >
                 View All
