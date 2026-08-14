@@ -2576,6 +2576,7 @@ router.post(
       }
 
       const bulkOps = [];
+      const studentOps = [];
       const addedStudents = [];
 
       for (const key of missingKeys) {
@@ -2601,6 +2602,14 @@ router.post(
           },
         });
 
+        studentOps.push({
+          updateOne: {
+            filter: { regNo: item.regNo },
+            update: { $setOnInsert: { regNo: item.regNo } },
+            upsert: true,
+          },
+        });
+
         addedStudents.push({
           regNo: item.regNo,
           studentName: item.studentName || "Student",
@@ -2613,6 +2622,10 @@ router.post(
       }
 
       if (bulkOps.length > 0) await InternalMark.bulkWrite(bulkOps);
+      if (studentOps.length > 0) await Student.bulkWrite(studentOps);
+
+      // Invalidate cache for newly ingested students
+      addedStudents.forEach((s) => clearStudentCache(s.regNo));
 
       return res.json({
         success: true,
