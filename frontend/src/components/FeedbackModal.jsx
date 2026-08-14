@@ -351,9 +351,18 @@ export default function FeedbackModal() {
                         </button>
                       ))}
                     </div>
-                    <span style={{ fontSize: 12, fontWeight: 700, color: "#475569" }}>
-                      {getRatingLabel(hoverRating || rating)}
-                    </span>
+                    <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6, minHeight: 18 }}>
+                      {(hoverRating || rating) > 0 && (
+                        <div style={{ display: "flex", alignItems: "center", gap: 2 }}>
+                          {[1, 2, 3, 4, 5].slice(0, hoverRating || rating).map((s) => (
+                            <Star key={s} size={12} fill="#f59e0b" color="#d97706" />
+                          ))}
+                        </div>
+                      )}
+                      <span style={{ fontSize: 12, fontWeight: 700, color: "#475569" }}>
+                        {getRatingLabel(hoverRating || rating)}
+                      </span>
+                    </div>
                   </div>
 
                   {/* Name & Registration Number Inputs */}

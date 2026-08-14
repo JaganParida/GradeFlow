@@ -1462,11 +1462,28 @@ export default function Testimonials() {
                     </button>
                   ))}
                 </div>
-                <span
-                  style={{ fontSize: 11, fontWeight: 700, color: "#475569" }}
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: 6,
+                    minHeight: 16,
+                  }}
                 >
-                  {getRatingLabel(hoverRating || rating)}
-                </span>
+                  {(hoverRating || rating) > 0 && (
+                    <div style={{ display: "flex", alignItems: "center", gap: 2 }}>
+                      {[1, 2, 3, 4, 5].slice(0, hoverRating || rating).map((s) => (
+                        <Star key={s} size={11} fill="#f59e0b" color="#d97706" />
+                      ))}
+                    </div>
+                  )}
+                  <span
+                    style={{ fontSize: 11, fontWeight: 700, color: "#475569" }}
+                  >
+                    {getRatingLabel(hoverRating || rating)}
+                  </span>
+                </div>
               </div>
 
               {/* Review Form */}
