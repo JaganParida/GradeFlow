@@ -1,73 +1,125 @@
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Star, MessageSquare } from "lucide-react";
+import { X, Star, MessageSquare, CheckCircle2, Send, Sparkles, AlertCircle } from "lucide-react";
 import { useNavigate, useLocation } from "react-router-dom";
 import axios from "axios";
 import { useApp } from "../context/AppContext";
 
 export default function FeedbackModal() {
   const [show, setShow] = useState(false);
-  const [step, setStep] = useState(1); // 1 = Prompt (Star/Feedback), 2 = Form
-  const [rating, setRating] = useState(0);
+  const [step, setStep] = useState(2); // 1 = Prompt (Star/Feedback), 2 = Review Form
+  const [rating, setRating] = useState(5);
   const [hoverRating, setHoverRating] = useState(0);
   const [name, setName] = useState("");
   const [regNo, setRegNo] = useState("");
   const [comment, setComment] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
+  const [isSuccess, setIsSuccess] = useState(false);
+
   const navigate = useNavigate();
   const location = useLocation();
-  const { API } = useApp();
+  const { API, studentData } = useApp();
 
+  // Prefill student details if logged in
   useEffect(() => {
-    // Check if user has already seen the popup (persisted in localStorage)
-    const hasBeenShown = localStorage.getItem("gf_github_modal_shown");
-    const isHome = location.pathname === "/";
-    const isAdmin = location.pathname.startsWith("/admin");
-
-    // Only show ONCE when user navigates to any section other than Home (Dashboard, Analytics, Leaderboard, Testimonials)
-    if (!isHome && !isAdmin && !hasBeenShown) {
-      const timer = setTimeout(() => {
-        setShow(true);
-        // Permanently record that popup was shown so it NEVER shows on refresh or future navigations
-        localStorage.setItem("gf_github_modal_shown", "true");
-      }, 500);
-      return () => clearTimeout(timer);
-    } else {
-      setShow(false);
+    if (studentData) {
+      if (!name && studentData.studentName) setName(studentData.studentName);
+      if (!regNo && studentData.regNo) setRegNo(studentData.regNo);
     }
-  }, [location.pathname]);
+  }, [studentData, show]);
+
+  // Listen to open event from any part of the app (e.g. Upgrade popup, footer, navbar)
+  useEffect(() => {
+    const handleOpen = (e) => {
+      setShow(true);
+      setStep(2);
+      setIsSuccess(false);
+      setErrorMessage("");
+      if (e?.detail?.rating) setRating(e.detail.rating);
+    };
+
+    window.addEventListener("open-feedback-modal", handleOpen);
+    return () => window.removeEventListener("open-feedback-modal", handleOpen);
+  }, []);
 
   const handleClose = () => {
     setShow(false);
-    localStorage.setItem("gf_github_modal_shown", "true");
-    setTimeout(() => setStep(1), 300);
+    setIsSuccess(false);
+    setErrorMessage("");
+    localStorage.setItem("gf_feedback_modal_dismissed", "true");
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!name || !regNo || !comment || rating === 0) {
-      alert("Please fill in all fields and provide a rating.");
+    setErrorMessage("");
+
+    const trimmedName = name.trim();
+    const trimmedRegNo = regNo.trim();
+    const trimmedComment = comment.trim();
+
+    if (!trimmedName) {
+      setErrorMessage("Please enter your full name.");
       return;
     }
+
+    if (!trimmedComment) {
+      setErrorMessage("Please share a brief comment or review.");
+      return;
+    }
+
+    if (rating === 0) {
+      setErrorMessage("Please select a star rating.");
+      return;
+    }
+
     setIsSubmitting(true);
 
     try {
-      const res = await axios.post(`${API}/feedback`, {
-        name,
-        regNo,
-        rating,
-        comment,
-      });
+      const payload = {
+        name: trimmedName,
+        rating: Number(rating),
+        comment: trimmedComment,
+      };
 
-      setShow(false);
-      localStorage.setItem("gf_github_modal_shown", "true");
-      setTimeout(() => setStep(1), 300);
-      navigate(`/testimonials?highlight=${res.data._id}`);
+      if (trimmedRegNo) {
+        payload.regNo = trimmedRegNo;
+      }
+
+      const res = await axios.post(`${API}/feedback`, payload);
+
+      setIsSuccess(true);
+      setTimeout(() => {
+        setShow(false);
+        setIsSuccess(false);
+        setComment("");
+        navigate(`/testimonials?highlight=${res.data._id}`);
+      }, 1200);
     } catch (err) {
       console.error("Failed to submit feedback", err);
-      alert("Failed to submit feedback. Please try again.");
+      const serverMsg =
+        err.response?.data?.message ||
+        "Failed to submit feedback. Please ensure all inputs are valid.";
+      setErrorMessage(serverMsg);
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  const getRatingLabel = (r) => {
+    switch (r) {
+      case 5:
+        return "Outstanding experience! ⭐⭐⭐⭐⭐";
+      case 4:
+        return "Very good & helpful! ⭐⭐⭐⭐";
+      case 3:
+        return "Good, with room for improvement ⭐⭐⭐";
+      case 2:
+        return "Fair, needs work ⭐⭐";
+      case 1:
+        return "Needs major improvement ⭐";
+      default:
+        return "Select your star rating";
     }
   };
 
@@ -75,10 +127,12 @@ export default function FeedbackModal() {
     <AnimatePresence>
       {show && (
         <div
+          role="dialog"
+          aria-modal="true"
           style={{
             position: "fixed",
             inset: 0,
-            zIndex: 9999,
+            zIndex: 999999,
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
@@ -92,214 +146,169 @@ export default function FeedbackModal() {
             exit={{ opacity: 0 }}
             onClick={handleClose}
             style={{
-              position: "absolute",
+              position: "fixed",
               inset: 0,
-              background: "rgba(0,0,0,0.7)",
+              background: "rgba(15, 23, 42, 0.65)",
               backdropFilter: "blur(8px)",
+              WebkitBackdropFilter: "blur(8px)",
             }}
           />
 
+          {/* Modal Box */}
           <motion.div
-            initial={{ opacity: 0, scale: 0.9, y: 20 }}
+            initial={{ opacity: 0, scale: 0.94, y: 14 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.9, y: 20 }}
-            transition={{ type: "spring", damping: 25, stiffness: 300 }}
+            exit={{ opacity: 0, scale: 0.94, y: 10 }}
+            transition={{ type: "spring", damping: 28, stiffness: 350 }}
             style={{
               position: "relative",
               width: "100%",
-              maxWidth: step === 1 ? 400 : 480,
-              maxHeight: "100%",
-              overflowY: "auto",
-              background: "#121212",
-              border: "1px solid rgba(255,255,255,0.1)",
-              borderRadius: 24,
-              padding: "20px 16px",
-              boxShadow: "0 32px 64px rgba(0,0,0,0.5)",
-              zIndex: 1,
+              maxWidth: 480,
+              background: "#ffffff",
+              borderRadius: 22,
+              border: "1px solid #e2e8f0",
+              boxShadow:
+                "0 25px 50px -12px rgba(15, 23, 42, 0.25), 0 0 0 1px rgba(15, 23, 42, 0.05)",
+              padding: "26px 24px",
+              zIndex: 10,
+              fontFamily: "'DM Sans', sans-serif",
             }}
           >
+            {/* Top Accent Strip */}
+            <div
+              style={{
+                position: "absolute",
+                top: 0,
+                left: 0,
+                right: 0,
+                height: 5,
+                background: "linear-gradient(90deg, #2563eb, #8b5cf6, #f59e0b)",
+                borderTopLeftRadius: 22,
+                borderTopRightRadius: 22,
+              }}
+            />
+
+            {/* Close Button */}
             <button
               onClick={handleClose}
+              aria-label="Close modal"
               style={{
                 position: "absolute",
                 top: 16,
                 right: 16,
-                background: "rgba(255,255,255,0.05)",
-                border: "none",
+                background: "#f1f5f9",
+                border: "1px solid #e2e8f0",
                 borderRadius: "50%",
                 width: 32,
                 height: 32,
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
-                color: "var(--secondary, #a1a1aa)",
+                color: "#64748b",
                 cursor: "pointer",
-                transition: "all 0.2s",
+                transition: "all 0.15s ease",
+                padding: 0,
               }}
               onMouseEnter={(e) => {
-                e.currentTarget.style.background = "rgba(255,255,255,0.1)";
-                e.currentTarget.style.color = "#fff";
+                e.currentTarget.style.background = "#e2e8f0";
+                e.currentTarget.style.color = "#0f172a";
               }}
               onMouseLeave={(e) => {
-                e.currentTarget.style.background = "rgba(255,255,255,0.05)";
-                e.currentTarget.style.color = "var(--secondary, #a1a1aa)";
+                e.currentTarget.style.background = "#f1f5f9";
+                e.currentTarget.style.color = "#64748b";
               }}
             >
-              <X size={18} />
+              <X size={16} />
             </button>
 
-            <AnimatePresence mode="wait">
-              {step === 1 ? (
-                <motion.div
-                  key="step1"
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: 20 }}
-                  transition={{ duration: 0.2 }}
-                  style={{ textAlign: "center" }}
+            {isSuccess ? (
+              <motion.div
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                style={{
+                  textAlign: "center",
+                  padding: "30px 10px",
+                  display: "flex",
+                  flexDirection: "column",
+                  alignItems: "center",
+                  gap: 12,
+                }}
+              >
+                <div
+                  style={{
+                    width: 56,
+                    height: 56,
+                    borderRadius: "50%",
+                    background: "#dcfce7",
+                    border: "2px solid #86efac",
+                    color: "#15803d",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}
                 >
+                  <CheckCircle2 size={32} />
+                </div>
+                <h3 style={{ fontSize: 20, fontWeight: 900, color: "#0f172a", margin: 0 }}>
+                  Thank You for Your Review!
+                </h3>
+                <p style={{ fontSize: 13.5, color: "#64748b", margin: 0 }}>
+                  Your feedback helps us continuously improve GradeFlow for everyone.
+                </p>
+              </motion.div>
+            ) : (
+              <div>
+                {/* Header */}
+                <div style={{ textAlign: "center", marginBottom: 18 }}>
                   <div
                     style={{
-                      width: 64,
-                      height: 64,
-                      borderRadius: "50%",
-                      background: "linear-gradient(135deg, rgba(62,166,255,0.15), rgba(168,85,247,0.15))",
+                      width: 44,
+                      height: 44,
+                      borderRadius: 12,
+                      background: "#fef3c7",
+                      border: "1px solid #fde68a",
+                      color: "#b45309",
                       display: "flex",
                       alignItems: "center",
                       justifyContent: "center",
-                      margin: "0 auto 16px",
-                      border: "1px solid rgba(255,255,255,0.08)",
-                      boxShadow: "0 8px 16px rgba(0,0,0,0.2)",
+                      margin: "0 auto 10px",
                     }}
                   >
-                    <Star size={32} color="#f59e0b" fill="#f59e0b" />
+                    <Star size={22} fill="#f59e0b" color="#f59e0b" />
                   </div>
-                  <h2
+                  <h3
                     style={{
-                      fontSize: 26,
-                      fontWeight: 800,
-                      marginBottom: 12,
-                      color: "#fff",
-                      letterSpacing: "-0.5px",
+                      fontSize: 20,
+                      fontWeight: 900,
+                      color: "#0f172a",
+                      margin: "0 0 4px 0",
                     }}
                   >
-                    Enjoying GradeFlow?
-                  </h2>
-                  <p
-                      style={{
-                        color: "var(--secondary, #a1a1aa)",
-                        fontSize: 15,
-                        lineHeight: 1.6,
-                        marginBottom: 24,
-                      }}
-                    >
-                      If GradeFlow has been helpful to you, consider dropping a star on GitHub, or share your thoughts to help me improve it!
-                    </p>
+                    Leave a Review for GradeFlow
+                  </h3>
+                  <p style={{ fontSize: 13, color: "#64748b", margin: 0 }}>
+                    Share your experience with the new look and tools!
+                  </p>
+                </div>
 
-                  <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-                    <a
-                      href="https://github.com/JaganParida/GradeFlow"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      onClick={handleClose}
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        gap: 10,
-                        padding: "16px",
-                        borderRadius: 14,
-                        background: "#fff",
-                        color: "#000",
-                        fontWeight: 700,
-                        textDecoration: "none",
-                        fontSize: 16,
-                        transition: "all 0.2s",
-                        boxShadow: "0 4px 12px rgba(255,255,255,0.1)",
-                      }}
-                      onMouseEnter={(e) => (e.currentTarget.style.transform = "translateY(-2px)")}
-                      onMouseLeave={(e) => (e.currentTarget.style.transform = "translateY(0)")}
-                    >
-                      <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 22v-4a4.8 4.8 0 0 0-1-3.2c3-.3 6-1.5 6-6.5a5.5 5.5 0 0 0-1.5-3.8 5.5 5.5 0 0 0-.1-3.8s-1.2-.4-3.9 1.4a13.3 13.3 0 0 0-7 0C6.2 1.6 5 2 5 2a5.5 5.5 0 0 0-.1 3.8A5.5 5.5 0 0 0 3.4 9.6c0 5 3 6.2 6 6.5a4.8 4.8 0 0 0-1 3.2v4"/><path d="M9 18c-4.5 1.5-5-2.5-7-3"/></svg> Star on GitHub
-                    </a>
-                    <button
-                      onClick={() => setStep(2)}
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        gap: 10,
-                        padding: "16px",
-                        borderRadius: 14,
-                        background: "rgba(255,255,255,0.04)",
-                        border: "1px solid rgba(255,255,255,0.1)",
-                        color: "#fff",
-                        fontWeight: 600,
-                        cursor: "pointer",
-                        fontSize: 16,
-                        transition: "all 0.2s",
-                      }}
-                      onMouseEnter={(e) => {
-                        e.currentTarget.style.background = "rgba(255,255,255,0.08)";
-                        e.currentTarget.style.transform = "translateY(-2px)";
-                      }}
-                      onMouseLeave={(e) => {
-                        e.currentTarget.style.background = "rgba(255,255,255,0.04)";
-                        e.currentTarget.style.transform = "translateY(0)";
-                      }}
-                    >
-                      <MessageSquare size={20} /> Provide Feedback
-                    </button>
-                  </div>
-                </motion.div>
-              ) : (
-                <motion.div
-                  key="step2"
-                  initial={{ opacity: 0, x: 20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: -20 }}
-                  transition={{ duration: 0.2 }}
+                {/* Form */}
+                <form
+                  onSubmit={handleSubmit}
+                  style={{ display: "flex", flexDirection: "column", gap: 14 }}
                 >
-                  <div style={{ textAlign: "center", marginBottom: 12 }}>
-                    <div
-                      style={{
-                        width: 44,
-                        height: 44,
-                        borderRadius: 14,
-                        background: "linear-gradient(135deg, rgba(62,166,255,0.15), rgba(168,85,247,0.15))",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        margin: "0 auto 8px",
-                        border: "1px solid rgba(255,255,255,0.08)",
-                      }}
-                    >
-                      <MessageSquare size={20} color="#3ea6ff" />
-                    </div>
-                    <h2
-                      style={{
-                        fontSize: 22,
-                        fontWeight: 800,
-                        marginBottom: 4,
-                        color: "#fff",
-                      }}
-                    >
-                      We Value Your Experience!
-                    </h2>
-                    <p
-                      style={{
-                        color: "var(--secondary, #a1a1aa)",
-                        fontSize: 13,
-                        lineHeight: 1.4,
-                      }}
-                    >
-                      Your feedback helps us improve GradeFlow. Please take a moment to share your thoughts.
-                    </p>
-                  </div>
-
-                  <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-                    {/* Star Rating */}
-                    <div style={{ display: "flex", justifyContent: "center", gap: 4, marginBottom: 4 }}>
+                  {/* Star Rating Interactive Selector */}
+                  <div
+                    style={{
+                      display: "flex",
+                      flexDirection: "column",
+                      alignItems: "center",
+                      background: "#f8fafc",
+                      border: "1px solid #e2e8f0",
+                      borderRadius: 14,
+                      padding: "12px 14px",
+                    }}
+                  >
+                    <div style={{ display: "flex", gap: 6, marginBottom: 4 }}>
                       {[1, 2, 3, 4, 5].map((star) => (
                         <button
                           key={star}
@@ -312,197 +321,184 @@ export default function FeedbackModal() {
                             border: "none",
                             cursor: "pointer",
                             padding: 4,
-                            transition: "transform 0.1s",
+                            transition: "transform 0.12s ease",
                           }}
-                          onMouseDown={(e) => (e.currentTarget.style.transform = "scale(0.9)")}
+                          onMouseDown={(e) => (e.currentTarget.style.transform = "scale(0.88)")}
                           onMouseUp={(e) => (e.currentTarget.style.transform = "scale(1)")}
                         >
                           <Star
-                            size={24}
-                            fill={(hoverRating || rating) >= star ? "#f59e0b" : "transparent"}
-                            color={(hoverRating || rating) >= star ? "#f59e0b" : "rgba(255,255,255,0.2)"}
-                            style={{ transition: "all 0.2s ease" }}
+                            size={28}
+                            fill={(hoverRating || rating) >= star ? "#f59e0b" : "#e2e8f0"}
+                            color={(hoverRating || rating) >= star ? "#d97706" : "#cbd5e1"}
                           />
                         </button>
                       ))}
                     </div>
+                    <span style={{ fontSize: 12, fontWeight: 700, color: "#475569" }}>
+                      {getRatingLabel(hoverRating || rating)}
+                    </span>
+                  </div>
 
-                    <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                      <div style={{ flex: "1 1 180px" }}>
-                        <label
-                          style={{
-                            display: "block",
-                            fontSize: 12,
-                            fontWeight: 600,
-                            color: "var(--secondary, #a1a1aa)",
-                            marginBottom: 6,
-                            textTransform: "uppercase",
-                            letterSpacing: "0.5px",
-                          }}
-                        >
-                          Name
-                        </label>
-                        <input
-                          type="text"
-                          required
-                          value={name}
-                          onChange={(e) => setName(e.target.value)}
-                          placeholder="John Doe"
-                          style={{
-                            width: "100%",
-                            padding: "10px 12px",
-                            borderRadius: 10,
-                            background: "rgba(255,255,255,0.03)",
-                            border: "1px solid rgba(255,255,255,0.1)",
-                            color: "#fff",
-                            fontSize: 14,
-                            outline: "none",
-                            transition: "all 0.2s",
-                          }}
-                          onFocus={(e) => {
-                            e.target.style.borderColor = "var(--accent, #3ea6ff)";
-                            e.target.style.background = "rgba(255,255,255,0.05)";
-                          }}
-                          onBlur={(e) => {
-                            e.target.style.borderColor = "rgba(255,255,255,0.1)";
-                            e.target.style.background = "rgba(255,255,255,0.03)";
-                          }}
-                        />
-                      </div>
-                      <div style={{ flex: "1 1 120px" }}>
-                        <label
-                          style={{
-                            display: "block",
-                            fontSize: 12,
-                            fontWeight: 600,
-                            color: "var(--secondary, #a1a1aa)",
-                            marginBottom: 6,
-                            textTransform: "uppercase",
-                            letterSpacing: "0.5px",
-                          }}
-                        >
-                          Registration No.
-                        </label>
-                        <input
-                          type="text"
-                          required
-                          value={regNo}
-                          onChange={(e) => setRegNo(e.target.value)}
-                          placeholder="230..."
-                          style={{
-                            width: "100%",
-                            padding: "10px 12px",
-                            borderRadius: 10,
-                            background: "rgba(255,255,255,0.03)",
-                            border: "1px solid rgba(255,255,255,0.1)",
-                            color: "#fff",
-                            fontSize: 14,
-                            outline: "none",
-                            transition: "all 0.2s",
-                          }}
-                          onFocus={(e) => {
-                            e.target.style.borderColor = "var(--accent, #3ea6ff)";
-                            e.target.style.background = "rgba(255,255,255,0.05)";
-                          }}
-                          onBlur={(e) => {
-                            e.target.style.borderColor = "rgba(255,255,255,0.1)";
-                            e.target.style.background = "rgba(255,255,255,0.03)";
-                          }}
-                        />
-                      </div>
+                  {/* Name & Registration Number Inputs */}
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+                    <div>
+                      <label
+                        style={{
+                          display: "block",
+                          fontSize: 11,
+                          fontWeight: 800,
+                          color: "#475569",
+                          marginBottom: 4,
+                          textTransform: "uppercase",
+                          letterSpacing: "0.3px",
+                        }}
+                      >
+                        Full Name *
+                      </label>
+                      <input
+                        type="text"
+                        required
+                        value={name}
+                        onChange={(e) => setName(e.target.value)}
+                        placeholder="e.g. Rahul Sharma"
+                        style={{
+                          width: "100%",
+                          boxSizing: "border-box",
+                          padding: "9px 12px",
+                          borderRadius: 10,
+                          background: "#ffffff",
+                          border: "1px solid #cbd5e1",
+                          color: "#0f172a",
+                          fontSize: 13.5,
+                          outline: "none",
+                          fontFamily: "inherit",
+                        }}
+                      />
                     </div>
 
                     <div>
                       <label
                         style={{
                           display: "block",
-                          fontSize: 12,
-                          fontWeight: 600,
-                          color: "var(--secondary, #a1a1aa)",
-                          marginBottom: 6,
+                          fontSize: 11,
+                          fontWeight: 800,
+                          color: "#475569",
+                          marginBottom: 4,
                           textTransform: "uppercase",
-                          letterSpacing: "0.5px",
+                          letterSpacing: "0.3px",
                         }}
                       >
-                        Your Feedback
+                        Reg. No (Optional)
                       </label>
-                      <textarea
-                        required
-                        value={comment}
-                        onChange={(e) => setComment(e.target.value)}
-                        placeholder="What do you think about GradeFlow?"
-                        rows={3}
+                      <input
+                        type="text"
+                        value={regNo}
+                        onChange={(e) => setRegNo(e.target.value)}
+                        placeholder="e.g. 23030112..."
                         style={{
                           width: "100%",
-                          padding: "10px 12px",
+                          boxSizing: "border-box",
+                          padding: "9px 12px",
                           borderRadius: 10,
-                          background: "rgba(255,255,255,0.03)",
-                          border: "1px solid rgba(255,255,255,0.1)",
-                          color: "#fff",
-                          fontSize: 14,
+                          background: "#ffffff",
+                          border: "1px solid #cbd5e1",
+                          color: "#0f172a",
+                          fontSize: 13.5,
                           outline: "none",
-                          transition: "all 0.2s",
-                          resize: "vertical",
-                          minHeight: 60,
                           fontFamily: "inherit",
-                        }}
-                        onFocus={(e) => {
-                          e.target.style.borderColor = "var(--accent, #3ea6ff)";
-                          e.target.style.background = "rgba(255,255,255,0.05)";
-                        }}
-                        onBlur={(e) => {
-                          e.target.style.borderColor = "rgba(255,255,255,0.1)";
-                          e.target.style.background = "rgba(255,255,255,0.03)";
                         }}
                       />
                     </div>
+                  </div>
 
-                    <motion.button
-                      whileHover={{ scale: rating === 0 || isSubmitting ? 1 : 1.02 }}
-                      whileTap={{ scale: rating === 0 || isSubmitting ? 1 : 0.98 }}
-                      type="submit"
-                      disabled={rating === 0 || isSubmitting}
+                  {/* Comment / Review */}
+                  <div>
+                    <label
+                      style={{
+                        display: "block",
+                        fontSize: 11,
+                        fontWeight: 800,
+                        color: "#475569",
+                        marginBottom: 4,
+                        textTransform: "uppercase",
+                        letterSpacing: "0.3px",
+                      }}
+                    >
+                      Your Review / Thoughts *
+                    </label>
+                    <textarea
+                      required
+                      value={comment}
+                      onChange={(e) => setComment(e.target.value)}
+                      placeholder="What do you think about GradeFlow's new design, features, and accuracy?"
+                      rows={3}
                       style={{
                         width: "100%",
-                        padding: "12px",
+                        boxSizing: "border-box",
+                        padding: "10px 12px",
                         borderRadius: 10,
-                        background:
-                          rating === 0 || isSubmitting
-                            ? "rgba(255,255,255,0.05)"
-                            : "linear-gradient(135deg, #3ea6ff, #3b82f6)",
-                        border: "none",
-                        color: rating === 0 || isSubmitting ? "rgba(255,255,255,0.3)" : "#fff",
-                        fontSize: 15,
-                        fontWeight: 700,
-                        cursor: rating === 0 || isSubmitting ? "not-allowed" : "pointer",
-                        marginTop: 0,
-                        transition: "all 0.2s",
-                        boxShadow:
-                          rating === 0 || isSubmitting ? "none" : "0 8px 24px rgba(62,166,255,0.3)",
+                        background: "#ffffff",
+                        border: "1px solid #cbd5e1",
+                        color: "#0f172a",
+                        fontSize: 13.5,
+                        outline: "none",
+                        resize: "vertical",
+                        minHeight: 70,
+                        fontFamily: "inherit",
                       }}
-                    >
-                      {isSubmitting ? "Submitting..." : "Submit Feedback"}
-                    </motion.button>
+                    />
+                  </div>
 
-                    <button
-                      type="button"
-                      onClick={() => setStep(1)}
+                  {/* Error banner if any */}
+                  {errorMessage && (
+                    <div
                       style={{
-                        background: "transparent",
-                        border: "none",
-                        color: "var(--secondary, #a1a1aa)",
-                        fontSize: 13,
-                        cursor: "pointer",
-                        textDecoration: "underline",
-                        marginTop: -2,
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 8,
+                        background: "#fef2f2",
+                        border: "1px solid #fecaca",
+                        borderRadius: 10,
+                        padding: "8px 12px",
+                        color: "#b91c1c",
+                        fontSize: 12.5,
+                        fontWeight: 600,
                       }}
                     >
-                      Back
-                    </button>
-                  </form>
-                </motion.div>
-              )}
-            </AnimatePresence>
+                      <AlertCircle size={15} style={{ flexShrink: 0 }} />
+                      <span>{errorMessage}</span>
+                    </div>
+                  )}
+
+                  {/* Submit Button */}
+                  <button
+                    type="submit"
+                    disabled={isSubmitting}
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      gap: 8,
+                      width: "100%",
+                      padding: "12px 16px",
+                      borderRadius: 11,
+                      background: "linear-gradient(135deg, #2563eb, #1d4ed8)",
+                      border: "1px solid #1e40af",
+                      color: "#ffffff",
+                      fontSize: 14,
+                      fontWeight: 800,
+                      cursor: isSubmitting ? "not-allowed" : "pointer",
+                      opacity: isSubmitting ? 0.7 : 1,
+                      transition: "all 0.15s ease",
+                      boxShadow: "0 4px 14px rgba(37, 99, 235, 0.25)",
+                    }}
+                  >
+                    <Send size={15} />
+                    <span>{isSubmitting ? "Submitting Review..." : "Submit Review"}</span>
+                  </button>
+                </form>
+              </div>
+            )}
           </motion.div>
         </div>
       )}

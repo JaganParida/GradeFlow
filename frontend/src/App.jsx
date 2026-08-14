@@ -13,6 +13,7 @@ import Resources from "./pages/Resources";
 import AdminLogin from "./pages/AdminLogin";
 import AdminDashboard from "./pages/AdminDashboard";
 import FeedbackModal from "./components/FeedbackModal";
+import UpgradeModal from "./components/UpgradeModal";
 import { useApp } from "./context/AppContext";
 import { AlertTriangle, X } from "lucide-react";
 
@@ -91,6 +92,7 @@ export default function App() {
     <>
       <Navbar />
       <FeedbackModal />
+      <UpgradeModal />
 
       {rateLimitError && (
         <div
