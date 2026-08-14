@@ -397,6 +397,7 @@ export default function Leaderboard() {
               }}
             >
               <button
+                disabled={loading}
                 onClick={() => handleTabSwitch("sgpa")}
                 style={{
                   flex: isMobile ? 1 : "initial",
@@ -411,7 +412,8 @@ export default function Leaderboard() {
                   color: isSGPA ? "#0f172a" : "#64748b",
                   fontSize: 12.5,
                   fontWeight: isSGPA ? 800 : 600,
-                  cursor: "pointer",
+                  cursor: loading ? "not-allowed" : "pointer",
+                  opacity: loading ? 0.65 : 1,
                   boxShadow: isSGPA ? "0 1px 3px rgba(0,0,0,0.06)" : "none",
                   transition: "all 0.15s ease",
                   fontFamily: "'DM Sans', sans-serif",
@@ -421,6 +423,7 @@ export default function Leaderboard() {
               </button>
 
               <button
+                disabled={loading}
                 onClick={() => handleTabSwitch("cgpa")}
                 style={{
                   flex: isMobile ? 1 : "initial",
@@ -435,7 +438,8 @@ export default function Leaderboard() {
                   color: !isSGPA ? "#0f172a" : "#64748b",
                   fontSize: 12.5,
                   fontWeight: !isSGPA ? 800 : 600,
-                  cursor: "pointer",
+                  cursor: loading ? "not-allowed" : "pointer",
+                  opacity: loading ? 0.65 : 1,
                   boxShadow: !isSGPA ? "0 1px 3px rgba(0,0,0,0.06)" : "none",
                   transition: "all 0.15s ease",
                   fontFamily: "'DM Sans', sans-serif",
@@ -463,6 +467,7 @@ export default function Leaderboard() {
             {isSGPA && (
               <div style={{ width: "100%", boxSizing: "border-box" }}>
                 <select
+                  disabled={loading}
                   value={filters.semester}
                   onChange={(e) => handleFilter("semester", e.target.value)}
                   style={{
@@ -471,13 +476,15 @@ export default function Leaderboard() {
                     padding: "0 28px 0 10px",
                     borderRadius: 8,
                     border: "1px solid #cbd5e1",
-                    background: "#ffffff",
+                    background: loading ? "#f8fafc" : "#ffffff",
                     color: "#0f172a",
                     fontSize: 13,
                     fontWeight: 700,
-                    cursor: "pointer",
+                    cursor: loading ? "not-allowed" : "pointer",
+                    opacity: loading ? 0.65 : 1,
                     outline: "none",
                     boxSizing: "border-box",
+                    transition: "all 0.15s ease",
                   }}
                 >
                   {meta.semesters.map((s) => (
@@ -492,6 +499,7 @@ export default function Leaderboard() {
             {/* Branch Select */}
             <div style={{ width: "100%", boxSizing: "border-box" }}>
               <select
+                disabled={loading}
                 value={filters.branch}
                 onChange={(e) => handleFilter("branch", e.target.value)}
                 style={{
@@ -500,13 +508,15 @@ export default function Leaderboard() {
                   padding: "0 28px 0 10px",
                   borderRadius: 8,
                   border: "1px solid #cbd5e1",
-                  background: "#ffffff",
+                  background: loading ? "#f8fafc" : "#ffffff",
                   color: "#0f172a",
                   fontSize: 13,
                   fontWeight: 700,
-                  cursor: "pointer",
+                  cursor: loading ? "not-allowed" : "pointer",
+                  opacity: loading ? 0.65 : 1,
                   outline: "none",
                   boxSizing: "border-box",
+                  transition: "all 0.15s ease",
                 }}
               >
                 <option value="">All Branches</option>
@@ -522,6 +532,7 @@ export default function Leaderboard() {
             {filters.branch === "CSE" && (
               <div style={{ width: "100%", boxSizing: "border-box" }}>
                 <select
+                  disabled={loading}
                   value={filters.section}
                   onChange={(e) => handleFilter("section", e.target.value)}
                   style={{
@@ -530,13 +541,15 @@ export default function Leaderboard() {
                     padding: "0 28px 0 10px",
                     borderRadius: 8,
                     border: "1px solid #cbd5e1",
-                    background: "#ffffff",
+                    background: loading ? "#f8fafc" : "#ffffff",
                     color: "#0f172a",
                     fontSize: 13,
                     fontWeight: 700,
-                    cursor: "pointer",
+                    cursor: loading ? "not-allowed" : "pointer",
+                    opacity: loading ? 0.65 : 1,
                     outline: "none",
                     boxSizing: "border-box",
+                    transition: "all 0.15s ease",
                   }}
                 >
                   <option value="">All Sections</option>
@@ -559,6 +572,7 @@ export default function Leaderboard() {
                 }}
               >
                 <select
+                  disabled={loading}
                   value={filters.batch}
                   onChange={(e) => handleFilter("batch", e.target.value)}
                   style={{
@@ -567,13 +581,15 @@ export default function Leaderboard() {
                     padding: "0 28px 0 10px",
                     borderRadius: 8,
                     border: "1px solid #cbd5e1",
-                    background: "#ffffff",
+                    background: loading ? "#f8fafc" : "#ffffff",
                     color: "#0f172a",
                     fontSize: 13,
                     fontWeight: 700,
-                    cursor: "pointer",
+                    cursor: loading ? "not-allowed" : "pointer",
+                    opacity: loading ? 0.65 : 1,
                     outline: "none",
                     boxSizing: "border-box",
+                    transition: "all 0.15s ease",
                   }}
                 >
                   <option value="">All Batches</option>
@@ -590,6 +606,7 @@ export default function Leaderboard() {
             <form
               onSubmit={(e) => {
                 e.preventDefault();
+                if (loading) return;
                 handleFilter("search", searchInput, searchInput.trim() ? 50 : 10);
               }}
               style={{
@@ -614,6 +631,7 @@ export default function Leaderboard() {
                   }}
                 />
                 <input
+                  disabled={loading}
                   placeholder="Search name or reg no..."
                   value={searchInput}
                   onChange={(e) => {
@@ -627,17 +645,21 @@ export default function Leaderboard() {
                     boxSizing: "border-box",
                     height: 38,
                     padding: "0 10px 0 32px",
-                    background: "#ffffff",
+                    background: loading ? "#f8fafc" : "#ffffff",
                     border: "1px solid #cbd5e1",
                     borderRadius: 8,
                     fontSize: 13,
                     color: "#0f172a",
                     outline: "none",
+                    cursor: loading ? "not-allowed" : "text",
+                    opacity: loading ? 0.65 : 1,
+                    transition: "all 0.15s ease",
                   }}
                 />
               </div>
               <button
                 type="submit"
+                disabled={loading}
                 style={{
                   height: 38,
                   padding: "0 14px",
@@ -647,9 +669,11 @@ export default function Leaderboard() {
                   color: "#ffffff",
                   fontSize: 12.5,
                   fontWeight: 700,
-                  cursor: "pointer",
+                  cursor: loading ? "not-allowed" : "pointer",
+                  opacity: loading ? 0.65 : 1,
                   fontFamily: "'DM Sans', sans-serif",
                   whiteSpace: "nowrap",
+                  transition: "all 0.15s ease",
                 }}
               >
                 Search
@@ -658,6 +682,7 @@ export default function Leaderboard() {
               {isFiltersActive && (
                 <button
                   type="button"
+                  disabled={loading}
                   onClick={handleResetFilters}
                   style={{
                     height: 38,
@@ -668,11 +693,13 @@ export default function Leaderboard() {
                     color: "#64748b",
                     fontSize: 12,
                     fontWeight: 600,
-                    cursor: "pointer",
+                    cursor: loading ? "not-allowed" : "pointer",
+                    opacity: loading ? 0.65 : 1,
                     display: "inline-flex",
                     alignItems: "center",
                     gap: 4,
                     whiteSpace: "nowrap",
+                    transition: "all 0.15s ease",
                   }}
                   title="Reset all filters"
                 >
