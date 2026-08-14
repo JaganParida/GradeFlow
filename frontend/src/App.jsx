@@ -24,15 +24,14 @@ function ScrollToTop() {
     if (hash) {
       const el = document.getElementById(hash.replace("#", ""));
       if (el) {
-        el.scrollIntoView({ behavior: "smooth" });
+        setTimeout(() => {
+          el.scrollIntoView({ behavior: "smooth" });
+        }, 50);
         return;
       }
     }
-    window.scrollTo({
-      top: 0,
-      left: 0,
-      behavior: "instant",
-    });
+    // Instant scroll to top on route change to prevent any layout jumping
+    window.scrollTo(0, 0);
     if (document.documentElement) document.documentElement.scrollTop = 0;
     if (document.body) document.body.scrollTop = 0;
   }, [pathname, hash]);
@@ -43,11 +42,17 @@ function ScrollToTop() {
 function PageTransition({ children }) {
   return (
     <motion.div
-      initial={{ opacity: 0, y: 8 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: -6 }}
-      transition={{ duration: 0.24, ease: [0.25, 1, 0.5, 1] }}
-      style={{ width: "100%", minHeight: "100%" }}
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.18, ease: "easeOut" }}
+      style={{
+        width: "100%",
+        maxWidth: "100%",
+        minHeight: "100vh",
+        boxSizing: "border-box",
+        overflowX: "hidden",
+      }}
     >
       {children}
     </motion.div>
