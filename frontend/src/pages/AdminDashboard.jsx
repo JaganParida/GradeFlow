@@ -1921,16 +1921,28 @@ function BacklogTrackerCard({ authHeaders, API }) {
 
     try {
       const res = await axios.post(
-        "/api/send-backlog-email",
+        `${API}/admin/backlogs/send-email`,
         {
           regNo: selectedStudentForEmail.regNo,
           customEmail: customEmailInput,
         },
-        { timeout: 30000 }
+        { headers: authHeaders?.headers, timeout: 30000 }
       );
       setEmailSuccessMsg(res.data?.message || `Notification email sent to ${customEmailInput}`);
     } catch (err) {
-      setEmailErrorMsg(err.response?.data?.message || "Failed to send email");
+      try {
+        const res2 = await axios.post(
+          "/api/send-backlog-email",
+          {
+            regNo: selectedStudentForEmail.regNo,
+            customEmail: customEmailInput,
+          },
+          { timeout: 30000 }
+        );
+        setEmailSuccessMsg(res2.data?.message || `Notification email sent to ${customEmailInput}`);
+      } catch (err2) {
+        setEmailErrorMsg(err.response?.data?.message || err2.response?.data?.message || "Failed to send email");
+      }
     } finally {
       setSendingEmail(false);
     }
@@ -2787,9 +2799,9 @@ function FeedbackManager({ authHeaders, API }) {
    7. MAIN ADMIN DASHBOARD SHELL
    ════════════════════════════════════════════════════════════════ */
 export default function AdminDashboard() {
-  const { adminToken, adminLogout } = useApp();
+  const { adminToken, adminLogout, API: ctxAPI } = useApp();
   const navigate = useNavigate();
-  const API = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
+  const API = ctxAPI || import.meta.env.VITE_API_URL || "/api";
 
   const authHeaders = {
     headers: { Authorization: `Bearer ${adminToken}` },
