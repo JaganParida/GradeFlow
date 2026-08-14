@@ -552,7 +552,7 @@ export default function Home() {
                 margin: 0,
               }}
             >
-              <span style={{ display: "block", whiteSpace: "nowrap" }}>
+              <span style={{ display: "block", whiteSpace: "nowrap", marginBottom: 3 }}>
                 Track Every <span style={{ color: "#0284c7" }}>Grade</span>
               </span>
               <span style={{ display: "block", whiteSpace: "nowrap" }}>
@@ -3169,8 +3169,13 @@ export default function Home() {
 
         @media (max-width: 768px) {
           .gf-home-container {
-            padding: 16px 14px 44px !important;
+            padding: 18px 14px 44px !important;
             gap: 24px !important;
+          }
+          .gf-hero-title {
+            font-size: clamp(25px, 4.4vw, 34px) !important;
+            line-height: 1.22 !important;
+            letter-spacing: -0.8px !important;
           }
           .gf-mockup-card {
             transform: none !important;
@@ -3214,17 +3219,18 @@ export default function Home() {
         @media (max-width: 540px) {
           .gf-home-container {
             padding: 14px 12px 36px !important;
-            gap: 18px !important;
+            gap: 20px !important;
           }
           .gf-hero-title {
-            font-size: 21px !important;
-            line-height: 1.25 !important;
-            letter-spacing: -0.5px !important;
+            font-size: clamp(23.5px, 6.2vw, 27.5px) !important;
+            line-height: 1.24 !important;
+            letter-spacing: -0.6px !important;
           }
           .gf-hero-subtitle {
-            font-size: 13px !important;
-            line-height: 1.5 !important;
+            font-size: 13.5px !important;
+            line-height: 1.55 !important;
             color: #64748b !important;
+            margin: 0 !important;
           }
           .gf-hero-actions {
             display: flex !important;
@@ -3233,7 +3239,7 @@ export default function Home() {
             gap: 8px !important;
             width: 100% !important;
             flex-wrap: wrap !important;
-            margin-top: 2px !important;
+            margin-top: 4px !important;
           }
           .gf-btn-primary {
             width: auto !important;
