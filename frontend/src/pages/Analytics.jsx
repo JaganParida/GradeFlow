@@ -39,6 +39,7 @@ import {
   GraduationCap,
   Check,
   ArrowLeft,
+  ArrowRight,
   X,
   List,
   Sparkles,
@@ -1315,8 +1316,10 @@ export default function Analytics() {
                       }}
                     >
                       <div style={{ fontSize: 10.5, color: "#64748b", fontWeight: 700 }}>Trajectory Gap</div>
-                      <div style={{ fontSize: isMobile ? 13.5 : 16, fontWeight: 800, color: "#0f172a", fontFamily: "'Space Mono', monospace", marginTop: 2 }}>
-                        {cgpa} ➔ {parseFloat(targetCGPA).toFixed(2)}
+                      <div style={{ fontSize: isMobile ? 13.5 : 16, fontWeight: 800, color: "#0f172a", fontFamily: "'Space Mono', monospace", marginTop: 2, display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 4 }}>
+                        <span>{cgpa}</span>
+                        <ArrowRight size={14} color="#64748b" />
+                        <span>{parseFloat(targetCGPA).toFixed(2)}</span>
                       </div>
                       <div style={{ fontSize: 10.5, color: "#16a34a", fontWeight: 700, marginTop: 1 }}>
                         +{(parseFloat(targetCGPA) - cgpa).toFixed(2)} Delta

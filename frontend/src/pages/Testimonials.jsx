@@ -1695,17 +1695,22 @@ export default function Testimonials() {
                 <div
                   style={{
                     marginTop: 10,
-                    padding: "8px 10px",
+                    padding: "10px 12px",
                     borderRadius: 8,
                     background: "#f0fdf4",
                     border: "1px solid #bbf7d0",
                     color: "#15803d",
-                    fontSize: 11.5,
+                    fontSize: 12,
                     textAlign: "center",
                     fontWeight: 700,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: 6,
                   }}
                 >
-                  🎉 Thank you! Your review has been published.
+                  <CheckCircle2 size={15} color="#15803d" />
+                  <span>Thank you! Your review has been published.</span>
                 </div>
               )}
 

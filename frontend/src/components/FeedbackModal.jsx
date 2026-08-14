@@ -109,15 +109,15 @@ export default function FeedbackModal() {
   const getRatingLabel = (r) => {
     switch (r) {
       case 5:
-        return "Outstanding experience! ⭐⭐⭐⭐⭐";
+        return "Outstanding experience (5/5)";
       case 4:
-        return "Very good & helpful! ⭐⭐⭐⭐";
+        return "Very good & helpful (4/5)";
       case 3:
-        return "Good, with room for improvement ⭐⭐⭐";
+        return "Good, with room for improvement (3/5)";
       case 2:
-        return "Fair, needs work ⭐⭐";
+        return "Fair, needs work (2/5)";
       case 1:
-        return "Needs major improvement ⭐";
+        return "Needs major improvement (1/5)";
       default:
         return "Select your star rating";
     }

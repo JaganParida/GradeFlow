@@ -800,6 +800,8 @@ export default function Home() {
                 border: "1px solid rgba(226, 232, 240, 0.9)",
                 boxShadow:
                   "0 20px 40px -10px rgba(15, 23, 42, 0.1), 0 0 0 1px rgba(255, 255, 255, 0.8)",
+                display: "grid",
+                gridTemplateColumns: "52px 1fr",
                 overflow: "hidden",
                 position: "relative",
                 zIndex: 1,
@@ -920,7 +922,7 @@ export default function Home() {
                       style={{
                         display: "flex",
                         alignItems: "center",
-                        gap: 6,
+                        gap: 7,
                         flexWrap: "wrap",
                       }}
                     >
@@ -930,21 +932,27 @@ export default function Home() {
                           fontWeight: 800,
                           color: "#0f172a",
                           margin: 0,
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 6,
                         }}
                       >
-                        {currentRegNo && studentData?.studentName
-                          ? `Welcome back, ${studentData.studentName.split(" ")[0]} 👋`
-                          : "Alex Kumar (Sample Student) 🎓"}
+                        <span>
+                          {currentRegNo && studentData?.studentName
+                            ? `Welcome back, ${studentData.studentName.split(" ")[0]}`
+                            : "Alex Kumar (Sample Student)"}
+                        </span>
+                        <Sparkles size={14} color="#2563eb" />
                       </h3>
                       {!currentRegNo && (
                         <span
                           style={{
                             fontSize: 9.5,
                             fontWeight: 800,
-                            background: "#f1f5f9",
-                            color: "#64748b",
-                            border: "1px solid #e2e8f0",
-                            padding: "1px 6px",
+                            background: "#eff6ff",
+                            color: "#2563eb",
+                            border: "1px solid #dbeafe",
+                            padding: "2px 6px",
                             borderRadius: 4,
                             textTransform: "uppercase",
                             letterSpacing: "0.4px",
@@ -1491,19 +1499,22 @@ export default function Home() {
         {/* ══════════════════════════════════════════════════════════
             SECTION 2: 4 STANDALONE STAT CARDS
         ══════════════════════════════════════════════════════════ */}
-        <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: 6, marginTop: 4 }}>
           <div
             style={{
               display: "flex",
-              alignItems: "center",
+              alignItems: isMobile ? "flex-start" : "center",
               justifyContent: "space-between",
-              flexWrap: "wrap",
-              gap: 8,
+              flexDirection: isMobile ? "column" : "row",
+              gap: isMobile ? 8 : 12,
             }}
           >
-            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
               <span
                 style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 4,
                   fontSize: 10.5,
                   fontWeight: 800,
                   color: "#2563eb",
@@ -1512,17 +1523,20 @@ export default function Home() {
                   padding: "3px 8px",
                   borderRadius: 6,
                   textTransform: "uppercase",
-                  letterSpacing: "0.5px",
+                  letterSpacing: "0.4px",
+                  whiteSpace: "nowrap",
                 }}
               >
-                {currentRegNo ? "Your Summary" : "Sample Preview"}
+                <Activity size={12} color="#2563eb" />
+                <span>{currentRegNo ? "Student Summary" : "Sample Preview"}</span>
               </span>
               <h2
                 style={{
-                  fontSize: 18,
+                  fontSize: isMobile ? 17 : 20,
                   fontWeight: 800,
                   color: "#0f172a",
                   margin: 0,
+                  lineHeight: 1.25,
                 }}
               >
                 {currentRegNo
@@ -1545,17 +1559,18 @@ export default function Home() {
                   fontSize: 12.5,
                   fontWeight: 700,
                   cursor: "pointer",
-                  display: "flex",
+                  display: "inline-flex",
                   alignItems: "center",
                   gap: 4,
                   padding: 0,
                 }}
               >
-                View your real scores <ArrowRight size={13} />
+                <span>View your real scores</span>
+                <ArrowRight size={13} />
               </button>
             )}
           </div>
-          <p style={{ fontSize: 12.5, color: "#64748b", margin: 0 }}>
+          <p style={{ fontSize: isMobile ? 12 : 13, color: "#64748b", margin: 0, lineHeight: 1.4 }}>
             {currentRegNo
               ? `Live metrics computed for ${studentData?.studentName || "your account"}`
               : "Here is how GradeFlow calculates your CGPA, SGPA, health index, and university standing once searched."}
@@ -2964,9 +2979,17 @@ export default function Home() {
               </form>
               {subscribed && (
                 <span
-                  style={{ fontSize: 11.5, color: "#16a34a", fontWeight: 700 }}
+                  style={{
+                    fontSize: 11.5,
+                    color: "#16a34a",
+                    fontWeight: 700,
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 4,
+                  }}
                 >
-                  ✓ Subscribed successfully!
+                  <CheckCircle2 size={13} color="#16a34a" />
+                  <span>Subscribed successfully!</span>
                 </span>
               )}
 

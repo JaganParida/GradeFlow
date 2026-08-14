@@ -192,9 +192,13 @@ export default function UpgradeModal() {
                   margin: "0 0 4px 0",
                   letterSpacing: "-0.4px",
                   paddingRight: 24,
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 8,
                 }}
               >
-                Welcome to the All-New Look of GradeFlow! 🎉
+                <span>Welcome to the All-New Look of GradeFlow!</span>
+                <Sparkles size={20} color="#2563eb" style={{ flexShrink: 0 }} />
               </h2>
               <p
                 style={{
