@@ -649,7 +649,8 @@ export default function Home() {
                   e.currentTarget.style.borderColor = "#e2e8f0";
                 }}
               >
-                Explore Features <span style={{ fontSize: 12 }}>▷</span>
+                <span>Explore Features</span>
+                <ArrowRight size={13} style={{ color: "#64748b" }} />
               </button>
             </div>
 
@@ -3226,19 +3227,37 @@ export default function Home() {
             color: #64748b !important;
           }
           .gf-hero-actions {
-            flex-direction: column !important;
+            display: flex !important;
+            flex-direction: row !important;
+            align-items: center !important;
+            gap: 8px !important;
             width: 100% !important;
-            gap: 9px !important;
+            flex-wrap: wrap !important;
             margin-top: 2px !important;
           }
-          .gf-btn-primary, .gf-btn-secondary {
-            width: 100% !important;
-            min-height: 42px !important;
-            height: 42px !important;
+          .gf-btn-primary {
+            width: auto !important;
+            flex: 1 1 auto !important;
+            max-width: fit-content !important;
+            min-height: 38px !important;
+            height: 38px !important;
             padding: 0 16px !important;
-            font-size: 13.5px !important;
+            font-size: 13px !important;
             font-weight: 700 !important;
-            border-radius: 10px !important;
+            border-radius: 9px !important;
+            box-sizing: border-box !important;
+            box-shadow: 0 2px 8px rgba(37, 99, 235, 0.22) !important;
+          }
+          .gf-btn-secondary {
+            width: auto !important;
+            flex: 1 1 auto !important;
+            max-width: fit-content !important;
+            min-height: 38px !important;
+            height: 38px !important;
+            padding: 0 14px !important;
+            font-size: 12.5px !important;
+            font-weight: 600 !important;
+            border-radius: 9px !important;
             box-sizing: border-box !important;
           }
           .gf-trust-badge {
