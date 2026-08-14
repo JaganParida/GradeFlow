@@ -178,6 +178,17 @@ export default function Leaderboard() {
     fetchRankings(f);
   };
 
+  // Debounced Live Search (300ms) for responsive search experience
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      if (searchInput !== filters.search) {
+        handleFilter("search", searchInput, searchInput.trim() ? 50 : 10);
+      }
+    }, 300);
+
+    return () => clearTimeout(handler);
+  }, [searchInput]);
+
   function handleFilter(key, val, nextShowCount = null) {
     const f = { ...filters, [key]: val };
     if (key === "branch" && val !== "CSE") f.section = "";
@@ -234,7 +245,7 @@ export default function Leaderboard() {
       .map((r) => {
         let displayRank;
         if (filters.branch) {
-          displayRank = r.dynamicRank;
+          displayRank = r.dynamicRank || Number(!isSGPA ? r.cgpaRank : r.sgpaRank || r.universityRank);
         } else {
           const rankFromDB = !isSGPA ? r.cgpaRank : r.sgpaRank || r.universityRank;
           displayRank = Number(rankFromDB);
@@ -243,7 +254,10 @@ export default function Leaderboard() {
       })
       .filter((r) => {
         if (filters.search) {
-          return r.displayRank <= (filters.section ? 200 : 50);
+          const s = filters.search.toLowerCase().trim();
+          const matchesName = r.studentName && r.studentName.toLowerCase().includes(s);
+          const matchesReg = r.regNo && r.regNo.toLowerCase().includes(s);
+          return matchesName || matchesReg;
         }
         return (
           Number.isFinite(r.displayRank) &&
@@ -254,7 +268,7 @@ export default function Leaderboard() {
   }, [sortedRankings, filters.branch, filters.section, filters.search, isSGPA]);
 
   const visibleRankings = filters.search
-    ? processedRankings.slice(0, showCount)
+    ? processedRankings
     : processedRankings.filter((r) => r.displayRank <= showCount);
 
   const totalStudents = processedRankings.length;
@@ -644,7 +658,7 @@ export default function Leaderboard() {
                     width: "100%",
                     boxSizing: "border-box",
                     height: 38,
-                    padding: "0 10px 0 32px",
+                    padding: searchInput ? "0 30px 0 32px" : "0 10px 0 32px",
                     background: loading ? "#f8fafc" : "#ffffff",
                     border: "1px solid #cbd5e1",
                     borderRadius: 8,
@@ -656,6 +670,31 @@ export default function Leaderboard() {
                     transition: "all 0.15s ease",
                   }}
                 />
+                {searchInput && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSearchInput("");
+                      handleFilter("search", "");
+                    }}
+                    style={{
+                      position: "absolute",
+                      right: 8,
+                      top: "50%",
+                      transform: "translateY(-50%)",
+                      background: "transparent",
+                      border: "none",
+                      cursor: "pointer",
+                      padding: 2,
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      color: "#94a3b8",
+                    }}
+                  >
+                    <X size={14} />
+                  </button>
+                )}
               </div>
               <button
                 type="submit"

@@ -128,9 +128,9 @@ router.get("/top", validateAcademicFilters, async (req, res) => {
       }
     }
 
-    if (search && branch) {
-      const s = search.toLowerCase();
-      rankings = rankings.filter(r => {
+    if (search) {
+      const s = String(search).trim().toLowerCase();
+      rankings = rankings.filter((r) => {
         const nameMatch = r.studentName && r.studentName.toLowerCase().includes(s);
         const regMatch = r.regNo && r.regNo.toLowerCase().includes(s);
         return nameMatch || regMatch;
@@ -138,14 +138,12 @@ router.get("/top", validateAcademicFilters, async (req, res) => {
     }
 
     let bounded = [];
-    if (branch || search) {
-      if (branch && !search) {
-        for (const r of rankings) {
-          if (r.dynamicRank > maxRank) break;
-          bounded.push(r);
-        }
-      } else if (search) {
-        bounded = rankings.slice(0, maxRank);
+    if (search) {
+      bounded = rankings.slice(0, 100);
+    } else if (branch) {
+      for (const r of rankings) {
+        if (r.dynamicRank > maxRank) break;
+        bounded.push(r);
       }
     } else {
       const rankKey = sortBy === "cgpa" ? "cgpaRank" : "sgpaRank";
