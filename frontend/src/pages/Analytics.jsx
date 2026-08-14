@@ -21,6 +21,7 @@ import {
   PolarRadiusAxis,
 } from "recharts";
 import { AnalyticsSkeleton } from "../components/LoadingSpinner";
+import { encodeStudentId, decodeStudentId } from "../utils/studentIdEncoder";
 import { motion, animate, AnimatePresence } from "framer-motion";
 import {
   TrendingUp,
@@ -206,12 +207,22 @@ function getDynamicBranch(regNo, fallbackBranch) {
 
 export default function Analytics() {
   const { regNo: paramRegNo } = useParams();
+  const decodedRegNo = decodeStudentId(paramRegNo);
   const { studentData, fetchStudent, loading } = useApp();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const location = useLocation();
 
-  const regNo = paramRegNo || studentData?.regNo || sessionStorage.getItem("last_regNo") || "";
+  const regNo = decodedRegNo || studentData?.regNo || sessionStorage.getItem("last_regNo") || "";
+
+  // Normalize URL to obfuscated token if raw registration number is provided
+  useEffect(() => {
+    if (decodedRegNo && paramRegNo && !paramRegNo.startsWith("GF_")) {
+      const query = location.search || "";
+      const hash = location.hash || "";
+      navigate(`/analytics/${encodeStudentId(decodedRegNo)}${query}${hash}`, { replace: true });
+    }
+  }, [paramRegNo, decodedRegNo, navigate, location.search, location.hash]);
 
   // Helper to normalize any incoming tab/hash request
   const resolveTab = (raw) => {
@@ -492,7 +503,7 @@ export default function Analytics() {
           {/* Breadcrumb row */}
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 10 }}>
             <button
-              onClick={() => navigate(`/dashboard/${regNo}`)}
+              onClick={() => navigate(`/dashboard/${encodeStudentId(regNo)}`)}
               style={{
                 display: "inline-flex",
                 alignItems: "center",

@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useApp } from "../context/AppContext";
+import { encodeStudentId } from "../utils/studentIdEncoder";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   AreaChart,
@@ -431,7 +432,7 @@ export default function Home() {
 
   const handleDashboardAction = () => {
     if (currentRegNo) {
-      navigate(`/dashboard/${currentRegNo}`);
+      navigate(`/dashboard/${encodeStudentId(currentRegNo)}`);
     } else {
       setShowSearchModal(true);
       setSearchError("");
@@ -442,7 +443,7 @@ export default function Home() {
   const handleQuickAction = (act) => {
     if (act.to.startsWith("/analytics")) {
       if (currentRegNo) {
-        navigate(`/analytics/${currentRegNo}${act.hash || ""}`);
+        navigate(`/analytics/${encodeStudentId(currentRegNo)}${act.hash || ""}`);
       } else {
         setShowSearchModal(true);
         setSearchError("");
@@ -468,7 +469,7 @@ export default function Home() {
       const success = await fetchStudent(cleanReg);
       if (success) {
         setShowSearchModal(false);
-        navigate(`/dashboard/${cleanReg}`);
+        navigate(`/dashboard/${encodeStudentId(cleanReg)}`);
       } else {
         setSearchError("Student record not found. Please verify your registration number.");
       }

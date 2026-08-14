@@ -1,7 +1,13 @@
 import React, { useEffect, useState, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useApp } from "../context/AppContext";
-import { Spinner, DashboardSkeleton, ReportCardSkeleton } from "../components/LoadingSpinner";
+import {
+  Spinner,
+  DashboardSkeleton,
+  ReportCardSkeleton,
+  InternalMarksSkeleton,
+} from "../components/LoadingSpinner";
+import { encodeStudentId, decodeStudentId } from "../utils/studentIdEncoder";
 import GradeSheet from "../components/GradeSheet";
 import BasketDashboard from "../components/BasketDashboard";
 import TargetPredictor from "../components/TargetPredictor";
@@ -281,9 +287,18 @@ function getSectionFromRegNo(regNo) {
 }
 
 export default function Dashboard() {
-  const { regNo } = useParams();
+  const { regNo: urlParam } = useParams();
+  const regNo = decodeStudentId(urlParam);
   const { studentData, fetchStudent, loading, error, API } = useApp();
   const navigate = useNavigate();
+
+  // Normalize URL to obfuscated GF_ token if raw registration number is provided
+  useEffect(() => {
+    if (regNo && urlParam && !urlParam.startsWith("GF_")) {
+      navigate(`/dashboard/${encodeStudentId(regNo)}`, { replace: true });
+    }
+  }, [urlParam, regNo, navigate]);
+
   const [tab, setTab] = useState("result");
   const [selectedSem, setSelectedSem] = useState(null);
   const [semResult, setSemResult] = useState(null);
@@ -910,7 +925,7 @@ export default function Dashboard() {
                 /* Desktop Vertical Action List */
                 <>
                   <button
-                    onClick={() => navigate(`/analytics/${regNo}`)}
+                    onClick={() => navigate(`/analytics/${encodeStudentId(regNo)}`)}
                     style={{
                       width: "100%",
                       display: "flex",
@@ -2012,22 +2027,7 @@ export default function Dashboard() {
                       </div>
 
                       {isInternalLoading ? (
-                        <div
-                          style={{
-                            display: "flex",
-                            flexDirection: "column",
-                            alignItems: "center",
-                            justifyContent: "center",
-                            minHeight: 200,
-                            gap: 10,
-                            padding: 32,
-                          }}
-                        >
-                          <Loader2 size={28} className="animate-spin" color="#2563eb" />
-                          <span style={{ fontSize: 13, color: "#64748b", fontWeight: 600 }}>
-                            Loading internal assessment marks...
-                          </span>
-                        </div>
+                        <InternalMarksSkeleton />
                       ) : internalMarks && internalSubjects.length > 0 ? (
                       (() => {
                         const INTERNAL_PER_PAGE = 6;

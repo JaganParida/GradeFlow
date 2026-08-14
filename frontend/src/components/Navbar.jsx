@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useApp } from "../context/AppContext";
+import { encodeStudentId } from "../utils/studentIdEncoder";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   BarChart2, ChevronDown, ChevronRight, Search, LogOut,
@@ -26,9 +27,11 @@ export default function Navbar() {
   const analyticsRef = useRef(null);
 
   useEffect(() => {
-    const fn = () => setScrolled(window.scrollY > 8);
-    window.addEventListener("scroll", fn);
-    return () => window.removeEventListener("scroll", fn);
+    const handleScroll = () => {
+      setScrolled(window.scrollY > 20);
+    };
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
   // Close dropdowns on outside click
@@ -42,14 +45,14 @@ export default function Navbar() {
     return () => document.removeEventListener("mousedown", handler);
   }, []);
 
-  // Close on route change
+  // Close mobile menu on page navigation
   useEffect(() => {
-    setAnalyticsDropdown(false);
     setMobileMenuOpen(false);
+    setAnalyticsDropdown(false);
     setMobileAnalyticsOpen(false);
   }, [location.pathname]);
 
-  // Prevent background scroll when mobile drawer is open
+  // Lock body scroll when mobile menu is open
   useEffect(() => {
     if (mobileMenuOpen) {
       document.body.style.overflow = "hidden";
@@ -70,7 +73,7 @@ export default function Navbar() {
     if (!hasActiveSession && !currentRegNo) {
       setShowAuthModal(true);
     } else {
-      navigate(`/dashboard/${currentRegNo}`);
+      navigate(`/dashboard/${encodeStudentId(currentRegNo)}`);
     }
   };
 
@@ -80,18 +83,25 @@ export default function Navbar() {
     if (!hasActiveSession && !currentRegNo) {
       setShowAuthModal(true);
     } else {
-      navigate(`/analytics/${currentRegNo}${query}`);
+      navigate(`/analytics/${encodeStudentId(currentRegNo)}${query}`);
     }
   };
 
   const handleSearchSubmit = async (e) => {
     e.preventDefault();
-    if (!searchRegNo.trim() || loading) return;
-    const success = await fetchStudent(searchRegNo.trim());
+    const cleanReg = searchRegNo.trim();
+    if (!cleanReg || loading) return;
+    const success = await fetchStudent(cleanReg);
     if (success) {
       setSearchModalOpen(false);
       setMobileMenuOpen(false);
-      navigate(`/dashboard/${searchRegNo.trim()}`);
+      setSearchRegNo("");
+      const isAlreadyOnStudentPage =
+        location.pathname.startsWith("/dashboard") ||
+        location.pathname.startsWith("/analytics");
+      navigate(`/dashboard/${encodeStudentId(cleanReg)}`, {
+        replace: isAlreadyOnStudentPage,
+      });
     }
   };
 
@@ -593,7 +603,7 @@ export default function Navbar() {
               {hasActiveSession ? (
                 <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                   <Link
-                    to={`/dashboard/${currentRegNo}`}
+                    to={`/dashboard/${encodeStudentId(currentRegNo)}`}
                     style={{
                       display: "inline-flex",
                       alignItems: "center",

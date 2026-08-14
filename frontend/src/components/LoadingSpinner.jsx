@@ -2,120 +2,367 @@ export function SkeletonBlock({ w = "100%", h = 20, r = "8px", style = {} }) {
   return (
     <div
       className="skeleton"
-      style={{ width: w, height: h, borderRadius: r, ...style }}
+      style={{
+        width: w,
+        height: h,
+        borderRadius: r,
+        boxSizing: "border-box",
+        ...style,
+      }}
     />
   );
 }
 
-export function SkeletonCard({ h = 100 }) {
-  return <SkeletonBlock h={h} r="var(--radius)" />;
+export function SkeletonCard({ h = 100, r = "14px" }) {
+  return <SkeletonBlock h={h} r={r} />;
 }
 
 export function SkeletonGrid({ count = 4, h = 100 }) {
   return (
-    <div className="grid-4">
-      {Array(count).fill(0).map((_, i) => (
-        <SkeletonCard key={i} h={h} />
-      ))}
+    <div
+      style={{
+        display: "grid",
+        gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+        gap: 14,
+        width: "100%",
+        boxSizing: "border-box",
+      }}
+    >
+      {Array(count)
+        .fill(0)
+        .map((_, i) => (
+          <SkeletonCard key={i} h={h} />
+        ))}
     </div>
   );
 }
 
+/* ─── Dashboard Full-Page Skeleton ─────────────────────────────── */
 export function DashboardSkeleton() {
   return (
-    <div className="page" style={{ display: 'flex', flexDirection: 'column', gap: '32px' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: '16px' }}>
-        <div>
-          <SkeletonBlock w="120px" h="16px" style={{ marginBottom: '8px' }} />
-          <SkeletonBlock w="240px" h="32px" style={{ marginBottom: '8px' }} />
-          <SkeletonBlock w="180px" h="16px" />
+    <div
+      style={{
+        maxWidth: 1320,
+        margin: "0 auto",
+        padding: "24px 16px 60px",
+        display: "flex",
+        flexDirection: "column",
+        gap: 24,
+        width: "100%",
+        boxSizing: "border-box",
+      }}
+    >
+      {/* Top Banner Card Skeleton */}
+      <div
+        style={{
+          background: "#ffffff",
+          border: "1px solid #e2e8f0",
+          borderRadius: 20,
+          padding: 24,
+          display: "flex",
+          flexDirection: "column",
+          gap: 16,
+          boxShadow: "0 1px 3px rgba(0,0,0,0.02)",
+        }}
+      >
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 16 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+            <SkeletonBlock w="54px" h="54px" r="16px" />
+            <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+              <SkeletonBlock w="180px" h="22px" r="6px" />
+              <SkeletonBlock w="120px" h="14px" r="4px" />
+            </div>
+          </div>
+          <div style={{ display: "flex", gap: 10 }}>
+            <SkeletonBlock w="110px" h="38px" r="10px" />
+            <SkeletonBlock w="100px" h="38px" r="10px" />
+          </div>
         </div>
-        <div style={{ display: 'flex', gap: '12px' }}>
-          <SkeletonBlock w="140px" h="40px" r="6px" />
-          <SkeletonBlock w="100px" h="40px" r="6px" />
-          <SkeletonBlock w="160px" h="40px" r="6px" />
+
+        {/* 4 Metadata Badges */}
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(120px, 1fr))", gap: 10, marginTop: 4 }}>
+          {Array(4)
+            .fill(0)
+            .map((_, i) => (
+              <SkeletonBlock key={i} h="44px" r="10px" />
+            ))}
         </div>
       </div>
-      <SkeletonGrid count={4} h={110} />
-      <SkeletonBlock w="100%" h="160px" r="var(--radius)" />
-      <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-        {Array(4).fill(0).map((_, i) => (
-          <SkeletonBlock key={i} w="120px" h="36px" r="20px" />
-        ))}
+
+      {/* GPA & Stats Row */}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: 14 }}>
+        {Array(4)
+          .fill(0)
+          .map((_, i) => (
+            <div
+              key={i}
+              style={{
+                background: "#ffffff",
+                border: "1px solid #e2e8f0",
+                borderRadius: 16,
+                padding: 18,
+                display: "flex",
+                flexDirection: "column",
+                gap: 10,
+              }}
+            >
+              <SkeletonBlock w="90px" h="14px" r="4px" />
+              <SkeletonBlock w="130px" h="32px" r="8px" />
+              <SkeletonBlock w="70%" h="12px" r="4px" />
+            </div>
+          ))}
       </div>
+
+      {/* Semester Tab Switcher */}
+      <div style={{ display: "flex", gap: 8, overflowX: "hidden", paddingBottom: 4 }}>
+        {Array(6)
+          .fill(0)
+          .map((_, i) => (
+            <SkeletonBlock key={i} w="100px" h="38px" r="10px" />
+          ))}
+      </div>
+
+      {/* Grade Report Card Skeleton */}
       <ReportCardSkeleton />
     </div>
   );
 }
 
+/* ─── Grade Report Card Skeleton ──────────────────────────────── */
 export function ReportCardSkeleton() {
   return (
-    <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: '16px' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
-        <SkeletonBlock w="150px" h="24px" />
-        <SkeletonBlock w="100px" h="36px" r="6px" />
+    <div
+      style={{
+        background: "#ffffff",
+        border: "1px solid #e2e8f0",
+        borderRadius: 20,
+        padding: 20,
+        display: "flex",
+        flexDirection: "column",
+        gap: 16,
+        boxShadow: "0 1px 3px rgba(0,0,0,0.02)",
+      }}
+    >
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        <SkeletonBlock w="200px" h="24px" r="6px" />
+        <SkeletonBlock w="120px" h="36px" r="10px" />
       </div>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-        <SkeletonBlock w="100%" h="40px" r="4px" />
-        {Array(6).fill(0).map((_, i) => (
-          <SkeletonBlock key={i} w="100%" h="60px" r="4px" />
-        ))}
+
+      {/* Table Header */}
+      <SkeletonBlock w="100%" h="42px" r="8px" />
+
+      {/* Table Rows */}
+      <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+        {Array(6)
+          .fill(0)
+          .map((_, i) => (
+            <SkeletonBlock key={i} w="100%" h="52px" r="8px" />
+          ))}
       </div>
     </div>
   );
 }
 
+/* ─── Internal Assessment Marks Skeleton ─────────────────────── */
+export function InternalMarksSkeleton() {
+  return (
+    <div
+      style={{
+        display: "flex",
+        flexDirection: "column",
+        gap: 12,
+        width: "100%",
+        padding: "12px 0",
+        boxSizing: "border-box",
+      }}
+    >
+      {/* Search & Action Bar */}
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12 }}>
+        <SkeletonBlock w="240px" h="38px" r="10px" />
+        <SkeletonBlock w="100px" h="38px" r="10px" />
+      </div>
+
+      {/* Table Header Row */}
+      <SkeletonBlock w="100%" h="40px" r="8px" />
+
+      {/* 6 Assessment Subject Rows */}
+      <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+        {Array(6)
+          .fill(0)
+          .map((_, i) => (
+            <SkeletonBlock key={i} w="100%" h="48px" r="8px" />
+          ))}
+      </div>
+    </div>
+  );
+}
+
+/* ─── Analytics Page Skeleton ─────────────────────────────────── */
 export function AnalyticsSkeleton() {
   return (
-    <div className="page" style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <div>
-          <SkeletonBlock w="140px" h="16px" style={{ marginBottom: '8px' }} />
-          <SkeletonBlock w="280px" h="32px" />
+    <div
+      style={{
+        maxWidth: 1320,
+        margin: "0 auto",
+        padding: "24px 16px 60px",
+        display: "flex",
+        flexDirection: "column",
+        gap: 24,
+        width: "100%",
+        boxSizing: "border-box",
+      }}
+    >
+      {/* Top Banner Skeleton */}
+      <div
+        style={{
+          background: "#ffffff",
+          border: "1px solid #e2e8f0",
+          borderRadius: 20,
+          padding: 24,
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          flexWrap: "wrap",
+          gap: 16,
+        }}
+      >
+        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+          <SkeletonBlock w="140px" h="14px" r="4px" />
+          <SkeletonBlock w="240px" h="28px" r="6px" />
         </div>
-        <SkeletonBlock w="120px" h="40px" r="6px" />
+        <SkeletonBlock w="140px" h="40px" r="10px" />
       </div>
-      <div style={{ display: 'flex', gap: '8px', marginBottom: '8px' }}>
-        {Array(3).fill(0).map((_, i) => (
-          <SkeletonBlock key={i} w="100px" h="36px" r="20px" />
-        ))}
+
+      {/* Tab Pills */}
+      <div style={{ display: "flex", gap: 10 }}>
+        {Array(4)
+          .fill(0)
+          .map((_, i) => (
+            <SkeletonBlock key={i} w="120px" h="38px" r="10px" />
+          ))}
       </div>
-      <SkeletonGrid count={4} h={110} />
-      <div className="grid-2">
-        <SkeletonBlock w="100%" h="300px" r="var(--radius)" />
-        <SkeletonBlock w="100%" h="300px" r="var(--radius)" />
+
+      {/* 4 Metric Stats */}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 14 }}>
+        {Array(4)
+          .fill(0)
+          .map((_, i) => (
+            <SkeletonCard key={i} h={110} r="16px" />
+          ))}
+      </div>
+
+      {/* Charts Grid */}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(340px, 1fr))", gap: 18 }}>
+        <SkeletonBlock h="320px" r="20px" />
+        <SkeletonBlock h="320px" r="20px" />
       </div>
     </div>
   );
 }
 
+/* ─── Leaderboard Page Skeleton ───────────────────────────────── */
 export function LeaderboardSkeleton() {
   return (
-    <div className="page" style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-      <div style={{ textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px' }}>
-        <SkeletonBlock w="200px" h="36px" />
-        <SkeletonBlock w="300px" h="16px" />
+    <div
+      style={{
+        display: "flex",
+        flexDirection: "column",
+        gap: 16,
+        width: "100%",
+        boxSizing: "border-box",
+      }}
+    >
+      {/* Podium Top 3 Cards Skeleton */}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 12 }}>
+        {Array(3)
+          .fill(0)
+          .map((_, i) => (
+            <SkeletonBlock key={i} h="140px" r="16px" />
+          ))}
       </div>
-      <div style={{ display: 'flex', justifyContent: 'center', gap: '16px', flexWrap: 'wrap' }}>
-        <SkeletonBlock w="200px" h="40px" r="8px" />
-        <SkeletonBlock w="200px" h="40px" r="8px" />
-        <SkeletonBlock w="140px" h="40px" r="8px" />
+
+      {/* Leaderboard Table Rows */}
+      <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+        {Array(8)
+          .fill(0)
+          .map((_, i) => (
+            <SkeletonBlock key={i} w="100%" h="58px" r="12px" />
+          ))}
       </div>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginTop: '16px' }}>
-        {Array(10).fill(0).map((_, i) => (
-          <SkeletonBlock key={i} w="100%" h="64px" r="8px" />
+    </div>
+  );
+}
+
+/* ─── Testimonials Page Skeleton ──────────────────────────────── */
+export function TestimonialsSkeleton() {
+  return (
+    <div
+      style={{
+        display: "grid",
+        gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
+        gap: 14,
+        width: "100%",
+        boxSizing: "border-box",
+      }}
+    >
+      {Array(6)
+        .fill(0)
+        .map((_, i) => (
+          <div
+            key={i}
+            style={{
+              background: "#ffffff",
+              border: "1px solid #e2e8f0",
+              borderRadius: 16,
+              padding: 18,
+              display: "flex",
+              flexDirection: "column",
+              gap: 12,
+              boxShadow: "0 1px 3px rgba(0,0,0,0.02)",
+            }}
+          >
+            {/* Header: Avatar + Name + Stars */}
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                <SkeletonBlock w="36px" h="36px" r="50%" />
+                <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                  <SkeletonBlock w="110px" h="14px" r="4px" />
+                  <SkeletonBlock w="80px" h="10px" r="3px" />
+                </div>
+              </div>
+              <SkeletonBlock w="70px" h="14px" r="4px" />
+            </div>
+
+            {/* Comment Lines */}
+            <div style={{ display: "flex", flexDirection: "column", gap: 6, margin: "4px 0" }}>
+              <SkeletonBlock w="100%" h="12px" r="3px" />
+              <SkeletonBlock w="92%" h="12px" r="3px" />
+              <SkeletonBlock w="65%" h="12px" r="3px" />
+            </div>
+
+            {/* Footer Pills */}
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", paddingTop: 6 }}>
+              <SkeletonBlock w="90px" h="22px" r="6px" />
+              <SkeletonBlock w="60px" h="22px" r="6px" />
+            </div>
+          </div>
         ))}
-      </div>
     </div>
   );
 }
 
 export function Spinner({ size = 32 }) {
-  // Keeping this just in case Admin sections still use it
   return (
-    <div style={{ display: "flex", justifyContent: "center", padding: "40px 0" }}>
+    <div style={{ display: "flex", justifyContent: "center", padding: "30px 0" }}>
       <div
-        style={{ width: size, height: size, border: `3px solid var(--border)`, borderTopColor: "var(--accent)", borderRadius: "50%", animation: "spin 0.7s linear infinite" }}
+        style={{
+          width: size,
+          height: size,
+          border: `3px solid var(--border)`,
+          borderTopColor: "#2563eb",
+          borderRadius: "50%",
+          animation: "spin 0.7s linear infinite",
+        }}
       />
       <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
     </div>

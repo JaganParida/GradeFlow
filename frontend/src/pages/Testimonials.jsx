@@ -3,6 +3,7 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import axios from "axios";
 import { useApp } from "../context/AppContext";
+import { TestimonialsSkeleton } from "../components/LoadingSpinner";
 import {
   Star,
   Users,
@@ -826,16 +827,7 @@ export default function Testimonials() {
             }}
           >
             {isLoading ? (
-              <div
-                style={{
-                  display: "flex",
-                  justifyContent: "center",
-                  alignItems: "center",
-                  minHeight: 200,
-                }}
-              >
-                <Loader2 size={30} className="animate-spin" color="#2563eb" />
-              </div>
+              <TestimonialsSkeleton />
             ) : displayedReviews.length === 0 ? (
               <div
                 style={{
