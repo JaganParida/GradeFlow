@@ -1180,7 +1180,7 @@ function SectionToppersCard({ authHeaders, API }) {
 
     try {
       const res = await axios.post(
-        "/api/send-topper-email",
+        `${API}/admin/section-toppers/send-email`,
         {
           regNo: selectedStudentForEmail.regNo,
           studentName: selectedStudentForEmail.studentName,
@@ -1195,24 +1195,34 @@ function SectionToppersCard({ authHeaders, API }) {
           section: selectedStudentForEmail.section,
           customEmail: customEmailInput,
         },
-        { timeout: 30000 }
+        { headers: authHeaders?.headers, timeout: 30000 }
       );
       resData = res.data;
       success = true;
-    } catch (vercelErr) {
+    } catch (primaryErr) {
       try {
-        const res = await axios.post(
-          `${API}/admin/section-toppers/send-email`,
+        const res2 = await axios.post(
+          "/api/send-topper-email",
           {
             regNo: selectedStudentForEmail.regNo,
+            studentName: selectedStudentForEmail.studentName,
+            cgpa: selectedStudentForEmail.cgpa,
+            sgpa: selectedStudentForEmail.sgpa,
+            sectionCgpaRank: selectedStudentForEmail.sectionCgpaRank,
+            sectionSgpaRank: selectedStudentForEmail.sectionSgpaRank,
+            universityRank: selectedStudentForEmail.universityRank,
+            semester: selectedStudentForEmail.semester,
+            batch: selectedStudentForEmail.batch,
+            branch: selectedStudentForEmail.branch,
+            section: selectedStudentForEmail.section,
             customEmail: customEmailInput,
           },
-          { headers: authHeaders?.headers, timeout: 30000 }
+          { timeout: 30000 }
         );
-        resData = res.data;
+        resData = res2.data;
         success = true;
-      } catch (backendErr) {
-        errMessage = backendErr.response?.data?.message || vercelErr.response?.data?.message || "Failed to send email. Check SMTP setup.";
+      } catch (fallbackErr) {
+        errMessage = primaryErr.response?.data?.message || fallbackErr.response?.data?.message || "Failed to send email. Check SMTP setup.";
       }
     }
 
@@ -1222,7 +1232,7 @@ function SectionToppersCard({ authHeaders, API }) {
       setEmailSuccessMsg(resData.message || `Congratulatory email sent to ${customEmailInput}`);
       axios
         .post(`${API}/admin/section-toppers/topper-email-status`, { regNo: selectedStudentForEmail.regNo, status: "SUCCESS" }, authHeaders)
-        .catch((err) => console.warn(err));
+        .catch(() => {});
 
       setData((prev) => ({
         ...prev,
@@ -1242,7 +1252,7 @@ function SectionToppersCard({ authHeaders, API }) {
       setEmailErrorMsg(errMessage || "Failed to send email");
       axios
         .post(`${API}/admin/section-toppers/topper-email-status`, { regNo: selectedStudentForEmail.regNo, status: "FAILED", errorMsg: errMessage }, authHeaders)
-        .catch((err) => console.warn(err));
+        .catch(() => {});
     }
   }
 
@@ -1919,6 +1929,10 @@ function BacklogTrackerCard({ authHeaders, API }) {
     setEmailSuccessMsg("");
     setEmailErrorMsg("");
 
+    let success = false;
+    let resData = null;
+    let errMessage = "";
+
     try {
       const res = await axios.post(
         `${API}/admin/backlogs/send-email`,
@@ -1928,7 +1942,8 @@ function BacklogTrackerCard({ authHeaders, API }) {
         },
         { headers: authHeaders?.headers, timeout: 30000 }
       );
-      setEmailSuccessMsg(res.data?.message || `Notification email sent to ${customEmailInput}`);
+      resData = res.data;
+      success = true;
     } catch (err) {
       try {
         const res2 = await axios.post(
@@ -1939,12 +1954,40 @@ function BacklogTrackerCard({ authHeaders, API }) {
           },
           { timeout: 30000 }
         );
-        setEmailSuccessMsg(res2.data?.message || `Notification email sent to ${customEmailInput}`);
+        resData = res2.data;
+        success = true;
       } catch (err2) {
-        setEmailErrorMsg(err.response?.data?.message || err2.response?.data?.message || "Failed to send email");
+        errMessage = err.response?.data?.message || err2.response?.data?.message || "Failed to send email. Check SMTP setup.";
       }
     } finally {
       setSendingEmail(false);
+    }
+
+    if (success && resData) {
+      setEmailSuccessMsg(resData.message || `Notification email sent to ${customEmailInput}`);
+      axios
+        .post(`${API}/admin/backlogs/email-status`, { regNo: selectedStudentForEmail.regNo, status: "SUCCESS" }, authHeaders)
+        .catch(() => {});
+
+      setData((prev) => ({
+        ...prev,
+        students: (prev.students || []).map((st) => {
+          if (st.regNo === selectedStudentForEmail.regNo) {
+            return {
+              ...st,
+              lastEmailStatus: "SUCCESS",
+              lastEmailSentAt: new Date().toISOString(),
+              lastEmailError: null,
+            };
+          }
+          return st;
+        }),
+      }));
+    } else {
+      setEmailErrorMsg(errMessage || "Failed to send email");
+      axios
+        .post(`${API}/admin/backlogs/email-status`, { regNo: selectedStudentForEmail.regNo, status: "FAILED", errorMsg: errMessage }, authHeaders)
+        .catch(() => {});
     }
   }
 

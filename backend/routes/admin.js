@@ -1980,23 +1980,55 @@ router.post("/section-toppers/send-email", emailLimiter, validateEmailRequest, a
 
     const { sendTopperEmailNotification } = require("../utils/emailService");
     const rankings = await Ranking.find({ regNo: cleanRegNo }).sort({ semester: -1 }).lean();
-    if (!rankings || !rankings.length) {
-      return res.status(404).json({ message: `No ranking records found for student "${cleanRegNo}"` });
+    
+    let rk = null;
+    if (rankings && rankings.length) {
+      rk = rankings[0];
+    } else {
+      const results = await SemesterResult.find({ regNo: cleanRegNo }).sort({ semester: 1 }).lean();
+      if (results && results.length) {
+        const cgpa = calculateCGPA(results);
+        const latestResult = results[results.length - 1];
+        rk = {
+          studentName: latestResult.studentName || req.body.studentName || "Student",
+          cgpa: Number(cgpa) || req.body.cgpa || 0,
+          sgpa: Number(latestResult.sgpa) || req.body.sgpa || Number(cgpa) || 0,
+          semester: Number(latestResult.semester) || req.body.semester || 1,
+          batch: latestResult.batch || req.body.batch || (`20${cleanRegNo.slice(0, 2)}`),
+          branch: latestResult.branch || req.body.branch || detectBranch(cleanRegNo),
+          sectionCgpaRank: req.body.sectionCgpaRank || 1,
+          sectionSgpaRank: req.body.sectionSgpaRank || 1,
+          universityRank: req.body.universityRank || null,
+        };
+      } else if (req.body.studentName) {
+        rk = {
+          studentName: req.body.studentName,
+          cgpa: req.body.cgpa || 0,
+          sgpa: req.body.sgpa || 0,
+          semester: req.body.semester || 1,
+          batch: req.body.batch || (`20${cleanRegNo.slice(0, 2)}`),
+          branch: req.body.branch || detectBranch(cleanRegNo),
+          sectionCgpaRank: req.body.sectionCgpaRank || 1,
+          sectionSgpaRank: req.body.sectionSgpaRank || 1,
+          universityRank: req.body.universityRank || null,
+        };
+      } else {
+        return res.status(404).json({ message: `No ranking records found for student "${cleanRegNo}"` });
+      }
     }
 
-    const rk = rankings[0];
-    const studentName = rk.studentName || "Student";
-    const cgpa = rk.cgpa || 0;
-    const sgpa = rk.sgpa || 0;
-    const semester = rk.semester || 1;
-    const batch = rk.batch || (`20${cleanRegNo.slice(0, 2)}`);
-    const branch = rk.branch || "CSE";
-    let section = getSectionFromRegNo(cleanRegNo);
+    const studentName = rk.studentName || req.body.studentName || "Student";
+    const cgpa = Number(rk.cgpa || req.body.cgpa || 0);
+    const sgpa = Number(rk.sgpa || req.body.sgpa || 0);
+    const semester = Number(rk.semester || req.body.semester || 1);
+    const batch = rk.batch || req.body.batch || (`20${cleanRegNo.slice(0, 2)}`);
+    const branch = rk.branch || req.body.branch || "CSE";
+    let section = req.body.section || getSectionFromRegNo(cleanRegNo) || "N/A";
     if (section && !section.startsWith("Sec")) section = `Sec ${section}`;
 
-    const sectionCgpaRank = rk.sectionCgpaRank || rk.sectionSgpaRank || 1;
-    const sectionSgpaRank = rk.sectionSgpaRank || 1;
-    const universityRank = rk.universityRank || rk.cgpaRank || null;
+    const sectionCgpaRank = rk.sectionCgpaRank || req.body.sectionCgpaRank || 1;
+    const sectionSgpaRank = rk.sectionSgpaRank || req.body.sectionSgpaRank || 1;
+    const universityRank = rk.universityRank || req.body.universityRank || null;
 
     const recipientEmail = customEmail ? String(customEmail).trim().toLowerCase() : `${cleanRegNo}@centurionuniv.edu.in`.toLowerCase();
 
