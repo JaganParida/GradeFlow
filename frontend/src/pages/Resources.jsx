@@ -681,7 +681,7 @@ export default function Resources() {
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
-                transition={{ duration: 0.18, ease: "easeOut" }}
+                transition={{ duration: 0.22, ease: "easeInOut" }}
                 style={{
                   background: "#ffffff",
                   border: "1px solid #f1f5f9",
@@ -1353,7 +1353,7 @@ export default function Resources() {
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
-                transition={{ duration: 0.18, ease: "easeOut" }}
+                transition={{ duration: 0.22, ease: "easeInOut" }}
                 style={{
                   background: "#ffffff",
                   border: "1px solid #f1f5f9",
@@ -1653,7 +1653,7 @@ export default function Resources() {
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
-                transition={{ duration: 0.18, ease: "easeOut" }}
+                transition={{ duration: 0.22, ease: "easeInOut" }}
                 style={{
                   background: "#ffffff",
                   border: "1px solid #f1f5f9",
@@ -1897,7 +1897,7 @@ export default function Resources() {
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
-                transition={{ duration: 0.18, ease: "easeOut" }}
+                transition={{ duration: 0.22, ease: "easeInOut" }}
                 style={{ background: "#ffffff", border: "1px solid #f1f5f9", borderRadius: 20, padding: isMobile ? "20px 14px" : "32px", boxShadow: "0 4px 16px rgba(0,0,0,0.02)" }}
               >
                 <h2 style={{ fontSize: isMobile ? 20 : 24, fontWeight: 800, color: "#0f172a", margin: "0 0 6px 0" }}>
@@ -1951,7 +1951,7 @@ export default function Resources() {
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
-                transition={{ duration: 0.18, ease: "easeOut" }}
+                transition={{ duration: 0.22, ease: "easeInOut" }}
                 style={{ background: "#ffffff", border: "1px solid #f1f5f9", borderRadius: 20, padding: isMobile ? "20px 16px" : "32px", boxShadow: "0 4px 16px rgba(0,0,0,0.02)" }}
               >
                 <h2 style={{ fontSize: isMobile ? 20 : 24, fontWeight: 800, color: "#0f172a", margin: "0 0 6px 0" }}>
@@ -2023,7 +2023,7 @@ export default function Resources() {
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
-                transition={{ duration: 0.18, ease: "easeOut" }}
+                transition={{ duration: 0.22, ease: "easeInOut" }}
                 style={{ background: "#ffffff", border: "1px solid #f1f5f9", borderRadius: 20, padding: isMobile ? "18px 14px" : "32px", boxShadow: "0 4px 16px rgba(0,0,0,0.02)" }}
               >
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: isMobile ? "flex-start" : "center", marginBottom: 20, flexDirection: isMobile ? "column" : "row", gap: 12 }}>
@@ -2126,7 +2126,7 @@ export default function Resources() {
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
-                transition={{ duration: 0.18, ease: "easeOut" }}
+                transition={{ duration: 0.22, ease: "easeInOut" }}
                 style={{ background: "#ffffff", border: "1px solid #f1f5f9", borderRadius: 20, padding: isMobile ? "18px 14px" : "32px", boxShadow: "0 4px 16px rgba(0,0,0,0.02)" }}
               >
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: isMobile ? "flex-start" : "center", marginBottom: 20, flexDirection: isMobile ? "column" : "row", gap: 12 }}>
@@ -2222,7 +2222,7 @@ export default function Resources() {
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
-                transition={{ duration: 0.18, ease: "easeOut" }}
+                transition={{ duration: 0.22, ease: "easeInOut" }}
                 style={{ background: "#ffffff", border: "1px solid #f1f5f9", borderRadius: 20, padding: isMobile ? "20px 16px" : "32px", boxShadow: "0 4px 16px rgba(0,0,0,0.02)" }}
               >
                 <h2 style={{ fontSize: isMobile ? 20 : 22, fontWeight: 800, color: "#0f172a", margin: "0 0 6px 0" }}>
@@ -2268,7 +2268,7 @@ export default function Resources() {
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
-                transition={{ duration: 0.18, ease: "easeOut" }}
+                transition={{ duration: 0.22, ease: "easeInOut" }}
                 style={{ background: "#ffffff", border: "1px solid #f1f5f9", borderRadius: 20, padding: isMobile ? "20px 14px" : "32px", boxShadow: "0 4px 16px rgba(0,0,0,0.02)" }}
               >
                 <h2 style={{ fontSize: isMobile ? 20 : 24, fontWeight: 800, color: "#0f172a", margin: "0 0 6px 0" }}>Frequently Asked Questions</h2>
