@@ -558,19 +558,17 @@ export default function Home() {
             <h1
               className="gf-hero-title"
               style={{
-                fontSize: "clamp(30px, 4.2vw, 52px)",
+                fontSize: "clamp(32px, 4.4vw, 54px)",
                 fontWeight: 800,
-                lineHeight: 1.14,
+                lineHeight: 1.15,
                 color: "#0f172a",
-                letterSpacing: "-1.2px",
+                letterSpacing: "-1.3px",
                 margin: 0,
               }}
             >
-              Your Performance.
+              Track Every Grade.
               <br />
-              Your Progress.
-              <br />
-              Your <span style={{ color: "#2563eb" }}>Success.</span>
+              Own Your <span style={{ color: "#2563eb" }}>Academic Future.</span>
             </h1>
 
             {/* Subtitle */}
@@ -580,12 +578,12 @@ export default function Home() {
                 fontSize: "clamp(14px, 3.6vw, 15.5px)",
                 lineHeight: 1.6,
                 color: "#64748b",
-                maxWidth: 460,
+                maxWidth: 480,
                 margin: 0,
               }}
             >
-              GradeFlow helps you track your academic performance, analyze
-              results, and achieve your goals with powerful insights.
+              GradeFlow delivers real-time GPA tracking, predictive career intelligence,
+              and in-depth performance analytics built for academic excellence.
             </p>
 
             {/* Action Buttons */}
