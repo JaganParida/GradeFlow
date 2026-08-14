@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import axios from "axios";
@@ -18,6 +18,8 @@ import {
   ThumbsUp,
   ChevronLeft,
   ChevronRight,
+  BadgeCheck,
+  Calendar,
 } from "lucide-react";
 
 /* ─── Category List ────────────────────────────────────────────── */
@@ -38,10 +40,21 @@ export default function Testimonials() {
   const [selectedCategory, setSelectedCategory] = useState("All Reviews");
   const [sortBy, setSortBy] = useState("Featured 5-Star");
   const [currentPage, setCurrentPage] = useState(1);
-  const [isMobile, setIsMobile] = useState(() => (typeof window !== "undefined" ? window.innerWidth < 1024 : false));
+  const [expandedReviews, setExpandedReviews] = useState({});
+
+  // Responsive state
+  const [isMobile, setIsMobile] = useState(
+    () => (typeof window !== "undefined" ? window.innerWidth < 1024 : false)
+  );
+  const [isSmallMobile, setIsSmallMobile] = useState(
+    () => (typeof window !== "undefined" ? window.innerWidth < 640 : false)
+  );
 
   useEffect(() => {
-    const handleResize = () => setIsMobile(window.innerWidth < 1024);
+    const handleResize = () => {
+      setIsMobile(window.innerWidth < 1024);
+      setIsSmallMobile(window.innerWidth < 640);
+    };
     window.addEventListener("resize", handleResize);
     return () => window.removeEventListener("resize", handleResize);
   }, []);
@@ -67,7 +80,7 @@ export default function Testimonials() {
     }
   });
 
-  const { API } = useApp();
+  const { API, studentData } = useApp();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const highlightedId = searchParams.get("highlight");
@@ -77,6 +90,14 @@ export default function Testimonials() {
     window.scrollTo({ top: 0, behavior: "smooth" });
     loadFeedbacks();
   }, []);
+
+  // Auto-fill student data if logged in
+  useEffect(() => {
+    if (studentData) {
+      if (!name && studentData.studentName) setName(studentData.studentName);
+      if (!regNo && studentData.regNo) setRegNo(studentData.regNo);
+    }
+  }, [studentData]);
 
   // ─── Fetch Real Feedbacks from Backend ───────────────────────────
   async function loadFeedbacks() {
@@ -135,6 +156,22 @@ export default function Testimonials() {
     }
   }
 
+  // ─── Toggle Review Expansion ─────────────────────────────────────
+  const toggleExpand = (id) => {
+    setExpandedReviews((prev) => ({
+      ...prev,
+      [id]: !prev[id],
+    }));
+  };
+
+  // ─── Scroll to Review Form ───────────────────────────────────────
+  const scrollToForm = () => {
+    const el = document.getElementById("write-review-card");
+    if (el) {
+      el.scrollIntoView({ behavior: "smooth", block: "center" });
+    }
+  };
+
   // ─── Handle Real Feedback Submission ─────────────────────────────
   async function handleSubmit(e) {
     e.preventDefault();
@@ -190,13 +227,8 @@ export default function Testimonials() {
 
     // Filter by Category
     if (selectedCategory !== "All Reviews") {
-      list = list.filter((r) => {
-        if (r.category) return r.category === selectedCategory;
-        const text = (r.comment || "").toLowerCase();
-        if (selectedCategory === "Easy to Use") return text.includes("easy") || text.includes("ui") || text.includes("clean");
-        if (selectedCategory === "Accurate Results") return text.includes("accurate") || text.includes("result") || text.includes("sgpa") || text.includes("cgpa");
-        if (selectedCategory === "Time Saver") return text.includes("fast") || text.includes("time") || text.includes("quick") || text.includes("save");
-        if (selectedCategory === "Student Support") return text.includes("support") || text.includes("help") || text.includes("report");
+      list = list.filter((item) => {
+        if (item.category) return item.category === selectedCategory;
         return true;
       });
     }
@@ -207,20 +239,18 @@ export default function Testimonials() {
     } else if (sortBy === "Highest Rated") {
       list.sort((a, b) => (Number(b.rating) || 5) - (Number(a.rating) || 5));
     } else {
-      // Default: "Featured 5-Star" -> 5-star reviews with longer/more comments first!
+      // Default: "Featured 5-Star" -> 5-star reviews with longer/more comments first
       list.sort((a, b) => {
         const ratingA = Number(a.rating) || 5;
         const ratingB = Number(b.rating) || 5;
         if (ratingB !== ratingA) {
-          return ratingB - ratingA; // 5 stars first
+          return ratingB - ratingA;
         }
-        // If same rating, sort by comment length (longer detailed reviews first)
         const lenA = (a.comment || "").trim().length;
         const lenB = (b.comment || "").trim().length;
         if (lenB !== lenA) {
           return lenB - lenA;
         }
-        // Then by likes
         const likesA = a.likes || 0;
         const likesB = b.likes || 0;
         if (likesB !== likesA) {
@@ -250,14 +280,31 @@ export default function Testimonials() {
     }
   };
 
+  const getRatingLabel = (r) => {
+    switch (r) {
+      case 5:
+        return "Excellent! 5/5";
+      case 4:
+        return "Very Good! 4/5";
+      case 3:
+        return "Average 3/5";
+      case 2:
+        return "Below Average 2/5";
+      case 1:
+        return "Needs Work 1/5";
+      default:
+        return "Select rating";
+    }
+  };
+
   return (
     <div
       style={{
-        background: "#fcfdfe",
+        background: "#f8fafc",
         minHeight: "100vh",
         color: "#0f172a",
         fontFamily: "'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif",
-        paddingBottom: isMobile ? 40 : 80,
+        paddingBottom: isSmallMobile ? 32 : 64,
         overflowX: "hidden",
         width: "100%",
         boxSizing: "border-box",
@@ -265,12 +312,12 @@ export default function Testimonials() {
     >
       <div
         style={{
-          maxWidth: 1360,
+          maxWidth: 1320,
           margin: "0 auto",
-          padding: isMobile ? "16px 12px" : "36px 32px",
+          padding: isSmallMobile ? "16px 12px" : isMobile ? "24px 18px" : "36px 32px",
           display: "flex",
           flexDirection: "column",
-          gap: isMobile ? 24 : 40,
+          gap: isSmallMobile ? 18 : 32,
           boxSizing: "border-box",
           width: "100%",
         }}
@@ -281,62 +328,64 @@ export default function Testimonials() {
         <section
           style={{
             display: "grid",
-            gridTemplateColumns: isMobile ? "1fr" : "1.2fr 1fr",
-            gap: isMobile ? 20 : 40,
+            gridTemplateColumns: isMobile ? "1fr" : "1.2fr 0.8fr",
+            gap: isMobile ? 16 : 36,
             alignItems: "center",
             width: "100%",
             boxSizing: "border-box",
           }}
-          className="gf-testi-hero"
         >
           {/* Left Hero Content */}
-          <div style={{ display: "flex", flexDirection: "column", gap: isMobile ? 12 : 20 }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: isSmallMobile ? 10 : 16 }}>
             {/* Pill Badge */}
             <div
               style={{
                 display: "inline-flex",
                 alignItems: "center",
                 gap: 6,
-                padding: isMobile ? "4px 10px" : "6px 14px",
+                padding: isSmallMobile ? "3px 9px" : "5px 12px",
                 background: "#eff6ff",
-                border: "1px solid #dbeafe",
+                border: "1px solid #bfdbfe",
                 borderRadius: 999,
-                color: "#2563eb",
-                fontSize: isMobile ? 11.5 : 12.5,
-                fontWeight: 700,
+                color: "#1d4ed8",
+                fontSize: isSmallMobile ? 11 : 12,
+                fontWeight: 800,
                 width: "fit-content",
+                letterSpacing: "0.2px",
               }}
             >
-              <MessageSquare size={isMobile ? 12 : 13} color="#2563eb" />
-              <span>Student Stories. Real Impact.</span>
+              <Sparkles size={isSmallMobile ? 12 : 14} color="#2563eb" />
+              <span>STUDENT REVIEWS & EXPERIENCES</span>
             </div>
 
             {/* Title */}
             <h1
               style={{
-                fontSize: isMobile ? "26px" : "clamp(34px, 3.8vw, 48px)",
-                fontWeight: 800,
+                fontSize: isSmallMobile ? 24 : isMobile ? 30 : 42,
+                fontWeight: 900,
                 color: "#0f172a",
-                lineHeight: 1.18,
-                letterSpacing: isMobile ? "-0.8px" : "-1.5px",
+                lineHeight: 1.2,
+                letterSpacing: "-0.8px",
                 margin: 0,
               }}
             >
-              Loved by Students,<br />
+              Loved by Students,{" "}
+              <br className={isSmallMobile ? "hidden" : "block"} />
               Trusted by <span style={{ color: "#2563eb" }}>Thousands.</span>
             </h1>
 
             {/* Subtitle */}
             <p
               style={{
-                fontSize: isMobile ? 13.5 : 15.5,
+                fontSize: isSmallMobile ? 12.5 : 14.5,
                 lineHeight: 1.5,
                 color: "#64748b",
-                maxWidth: 480,
+                maxWidth: 520,
                 margin: 0,
               }}
             >
-              See how GradeFlow is helping students across universities track, analyze and improve their academic journey.
+              See how GradeFlow is helping university students track their GPAs, analyze grade
+              distributions, and predict placements with confidence.
             </p>
 
             {/* 3 Metric Stat Cards */}
@@ -344,30 +393,30 @@ export default function Testimonials() {
               style={{
                 display: "grid",
                 gridTemplateColumns: "repeat(3, 1fr)",
-                gap: isMobile ? 6 : 14,
-                marginTop: isMobile ? 2 : 6,
+                gap: isSmallMobile ? 6 : 10,
+                marginTop: isSmallMobile ? 2 : 4,
               }}
-              className="gf-testi-stats"
             >
-              {/* Stat 1: Happy Students */}
+              {/* Stat 1: Students */}
               <div
                 style={{
                   background: "#ffffff",
-                  border: "1px solid #f1f5f9",
-                  borderRadius: 12,
-                  padding: isMobile ? "8px 6px" : "14px 16px",
+                  border: "1px solid #e2e8f0",
+                  borderRadius: isSmallMobile ? 12 : 14,
+                  padding: isSmallMobile ? "10px 8px" : "12px 14px",
                   display: "flex",
-                  alignItems: "center",
-                  gap: isMobile ? 6 : 12,
-                  boxShadow: "0 2px 10px rgba(0,0,0,0.02)",
+                  flexDirection: isSmallMobile ? "column" : "row",
+                  alignItems: isSmallMobile ? "flex-start" : "center",
+                  gap: isSmallMobile ? 4 : 10,
+                  boxShadow: "0 1px 3px rgba(0,0,0,0.02)",
                 }}
               >
                 <div
                   style={{
-                    width: isMobile ? 28 : 36,
-                    height: isMobile ? 28 : 36,
+                    width: isSmallMobile ? 26 : 32,
+                    height: isSmallMobile ? 26 : 32,
                     borderRadius: 8,
-                    background: "#eff6ff",
+                    background: "#dbeafe",
                     color: "#2563eb",
                     display: "flex",
                     alignItems: "center",
@@ -375,89 +424,99 @@ export default function Testimonials() {
                     flexShrink: 0,
                   }}
                 >
-                  <Users size={isMobile ? 14 : 18} />
+                  <Users size={isSmallMobile ? 13 : 16} />
                 </div>
                 <div>
-                  <div style={{ fontSize: isMobile ? 13 : 16, fontWeight: 800, color: "#0f172a" }}>10,000+</div>
-                  <div style={{ fontSize: isMobile ? 9.5 : 11.5, color: "#64748b", fontWeight: 500 }}>Students</div>
+                  <div style={{ fontSize: isSmallMobile ? 13 : 15, fontWeight: 900, color: "#0f172a", lineHeight: 1.2 }}>
+                    10,000+
+                  </div>
+                  <div style={{ fontSize: isSmallMobile ? 10 : 11, color: "#64748b", fontWeight: 600 }}>
+                    Students
+                  </div>
                 </div>
               </div>
 
-              {/* Stat 2: Average Rating (Real Calculated) */}
+              {/* Stat 2: Rating */}
               <div
                 style={{
                   background: "#ffffff",
-                  border: "1px solid #f1f5f9",
-                  borderRadius: 12,
-                  padding: isMobile ? "8px 6px" : "14px 16px",
+                  border: "1px solid #e2e8f0",
+                  borderRadius: isSmallMobile ? 12 : 14,
+                  padding: isSmallMobile ? "10px 8px" : "12px 14px",
                   display: "flex",
-                  alignItems: "center",
-                  gap: isMobile ? 6 : 12,
-                  boxShadow: "0 2px 10px rgba(0,0,0,0.02)",
+                  flexDirection: isSmallMobile ? "column" : "row",
+                  alignItems: isSmallMobile ? "flex-start" : "center",
+                  gap: isSmallMobile ? 4 : 10,
+                  boxShadow: "0 1px 3px rgba(0,0,0,0.02)",
                 }}
               >
                 <div
                   style={{
-                    width: isMobile ? 28 : 36,
-                    height: isMobile ? 28 : 36,
+                    width: isSmallMobile ? 26 : 32,
+                    height: isSmallMobile ? 26 : 32,
                     borderRadius: 8,
-                    background: "#fffbeb",
-                    color: "#f59e0b",
+                    background: "#fef3c7",
+                    color: "#b45309",
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "center",
                     flexShrink: 0,
                   }}
                 >
-                  <Star size={isMobile ? 14 : 18} />
+                  <Star size={isSmallMobile ? 13 : 16} fill="#f59e0b" color="#f59e0b" />
                 </div>
                 <div>
-                  <div style={{ fontSize: isMobile ? 13 : 16, fontWeight: 800, color: "#0f172a" }}>
+                  <div style={{ fontSize: isSmallMobile ? 13 : 15, fontWeight: 900, color: "#0f172a", lineHeight: 1.2 }}>
                     {avgRating}/5
                   </div>
-                  <div style={{ fontSize: isMobile ? 9.5 : 11.5, color: "#64748b", fontWeight: 500 }}>Rating</div>
+                  <div style={{ fontSize: isSmallMobile ? 10 : 11, color: "#64748b", fontWeight: 600 }}>
+                    Rating
+                  </div>
                 </div>
               </div>
 
-              {/* Stat 3: Real Reviews Count */}
+              {/* Stat 3: Reviews */}
               <div
                 style={{
                   background: "#ffffff",
-                  border: "1px solid #f1f5f9",
-                  borderRadius: 12,
-                  padding: isMobile ? "8px 6px" : "14px 16px",
+                  border: "1px solid #e2e8f0",
+                  borderRadius: isSmallMobile ? 12 : 14,
+                  padding: isSmallMobile ? "10px 8px" : "12px 14px",
                   display: "flex",
-                  alignItems: "center",
-                  gap: isMobile ? 6 : 12,
-                  boxShadow: "0 2px 10px rgba(0,0,0,0.02)",
+                  flexDirection: isSmallMobile ? "column" : "row",
+                  alignItems: isSmallMobile ? "flex-start" : "center",
+                  gap: isSmallMobile ? 4 : 10,
+                  boxShadow: "0 1px 3px rgba(0,0,0,0.02)",
                 }}
               >
                 <div
                   style={{
-                    width: isMobile ? 28 : 36,
-                    height: isMobile ? 28 : 36,
+                    width: isSmallMobile ? 26 : 32,
+                    height: isSmallMobile ? 26 : 32,
                     borderRadius: 8,
-                    background: "#f5f3ff",
-                    color: "#8b5cf6",
+                    background: "#f3e8ff",
+                    color: "#7e22ce",
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "center",
                     flexShrink: 0,
                   }}
                 >
-                  <MessageSquare size={isMobile ? 14 : 18} />
+                  <MessageSquare size={isSmallMobile ? 13 : 16} />
                 </div>
                 <div>
-                  <div style={{ fontSize: isMobile ? 13 : 16, fontWeight: 800, color: "#0f172a" }}>
-                    {totalReviewsCount > 0 ? `${totalReviewsCount}+` : "1,500+"}
+                  <div style={{ fontSize: isSmallMobile ? 13 : 15, fontWeight: 900, color: "#0f172a", lineHeight: 1.2 }}>
+                    {totalReviewsCount > 0 ? `${totalReviewsCount}+` : "45+"}
                   </div>
-                  <div style={{ fontSize: isMobile ? 9.5 : 11.5, color: "#64748b", fontWeight: 500 }}>Reviews</div>
+                  <div style={{ fontSize: isSmallMobile ? 10 : 11, color: "#64748b", fontWeight: 600 }}>
+                    Reviews
+                  </div>
                 </div>
               </div>
             </div>
           </div>
 
-          {/* Right Hero Graphic */}
+          {/* Right Hero Graphic / CTA (Desktop only) */}
           {!isMobile && (
             <div
               style={{
@@ -465,333 +524,317 @@ export default function Testimonials() {
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
-                minHeight: 280,
-                overflow: "hidden",
+                minHeight: 220,
+                background: "linear-gradient(135deg, #eff6ff 0%, #f8fafc 100%)",
                 borderRadius: 20,
-                maxWidth: "100%",
+                border: "1px solid #e2e8f0",
+                padding: "24px",
+                overflow: "hidden",
               }}
             >
-              {/* Background Atmosphere Glow */}
               <div
                 style={{
-                  position: "absolute",
-                  inset: 0,
-                  background: "radial-gradient(ellipse at 60% 50%, rgba(37, 99, 235, 0.08) 0%, rgba(240, 244, 255, 0) 70%)",
-                  pointerEvents: "none",
-                }}
-              />
-
-              {/* Top Flying Blue Paper Plane */}
-              <motion.div
-                initial={{ opacity: 0, x: 15, y: -15 }}
-                animate={{ opacity: 1, x: 0, y: 0 }}
-                transition={{ duration: 0.7, delay: 0.2 }}
-                style={{
-                  position: "absolute",
-                  top: 10,
-                  right: 20,
-                  zIndex: 4,
-                  filter: "drop-shadow(0 6px 12px rgba(37, 99, 235, 0.2))",
-                }}
-              >
-                <svg width="36" height="36" viewBox="0 0 24 24" fill="none">
-                  <path
-                    d="M22 2L11 13M22 2L15 22L11 13M22 2L2 9L11 13"
-                    stroke="#3b82f6"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
-                </svg>
-              </motion.div>
-
-              {/* Top Review Card (Tilted Left) */}
-              <motion.div
-                initial={{ opacity: 0, y: -15, rotate: -4 }}
-                animate={{ opacity: 1, y: 0, rotate: -4 }}
-                transition={{ duration: 0.6 }}
-                style={{
-                  position: "absolute",
-                  top: 20,
-                  left: 20,
-                  background: "#ffffff",
-                  borderRadius: 18,
-                  padding: "14px 18px",
-                  border: "1px solid #eef2f6",
-                  boxShadow: "0 12px 26px rgba(15, 23, 42, 0.05)",
-                  width: 200,
-                  zIndex: 1,
-                }}
-              >
-                <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 8 }}>
-                  <div style={{ width: 26, height: 26, borderRadius: "50%", background: "#dbeafe" }} />
-                  <div style={{ display: "flex", flexDirection: "column", gap: 4, flex: 1 }}>
-                    <div style={{ height: 6, background: "#e2e8f0", borderRadius: 4, width: "65%" }} />
-                    <div style={{ height: 5, background: "#f1f5f9", borderRadius: 4, width: "40%" }} />
-                  </div>
-                </div>
-                <div style={{ display: "flex", gap: 3, color: "#f59e0b" }}>
-                  {[...Array(5)].map((_, i) => (
-                    <Star key={i} size={11} fill="#f59e0b" />
-                  ))}
-                </div>
-              </motion.div>
-
-              {/* Bottom-Right Review Card (Tilted Right) */}
-              <motion.div
-                initial={{ opacity: 0, y: 15, rotate: 3 }}
-                animate={{ opacity: 1, y: 0, rotate: 3 }}
-                transition={{ duration: 0.6, delay: 0.15 }}
-                style={{
-                  position: "absolute",
-                  bottom: 20,
-                  right: 16,
-                  background: "#ffffff",
-                  borderRadius: 18,
-                  padding: "14px 18px",
-                  border: "1px solid #eef2f6",
-                  boxShadow: "0 12px 26px rgba(15, 23, 42, 0.05)",
-                  width: 210,
-                  zIndex: 1,
-                }}
-              >
-                <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 8 }}>
-                  <div style={{ width: 26, height: 26, borderRadius: "50%", background: "#e0e7ff" }} />
-                  <div style={{ display: "flex", flexDirection: "column", gap: 4, flex: 1 }}>
-                    <div style={{ height: 6, background: "#e2e8f0", borderRadius: 4, width: "70%" }} />
-                    <div style={{ height: 5, background: "#f1f5f9", borderRadius: 4, width: "45%" }} />
-                  </div>
-                </div>
-                <div style={{ display: "flex", gap: 3, color: "#f59e0b" }}>
-                  {[...Array(5)].map((_, i) => (
-                    <Star key={i} size={11} fill="#f59e0b" />
-                  ))}
-                </div>
-              </motion.div>
-
-              {/* Center Floating Blue Heart Chat Bubble */}
-              <motion.div
-                initial={{ opacity: 0, scale: 0.85 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ duration: 0.5, delay: 0.25 }}
-                whileHover={{ scale: 1.05 }}
-                style={{
-                  width: 110,
-                  height: 110,
-                  borderRadius: "34px 34px 8px 34px",
-                  background: "linear-gradient(145deg, #3b82f6 0%, #1d4ed8 100%)",
                   display: "flex",
+                  flexDirection: "column",
                   alignItems: "center",
-                  justifyContent: "center",
-                  boxShadow: "0 20px 40px rgba(37, 99, 235, 0.35), 0 0 0 3px rgba(255, 255, 255, 0.9)",
-                  zIndex: 3,
-                  color: "#ffffff",
-                  cursor: "pointer",
+                  textAlign: "center",
+                  gap: 12,
+                  zIndex: 2,
                 }}
               >
-                <Heart size={48} fill="#ffffff" stroke="none" />
-              </motion.div>
+                <div
+                  style={{
+                    width: 52,
+                    height: 52,
+                    borderRadius: "50%",
+                    background: "#ffffff",
+                    border: "2px solid #bfdbfe",
+                    color: "#2563eb",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    boxShadow: "0 8px 20px rgba(37, 99, 235, 0.15)",
+                  }}
+                >
+                  <Heart size={24} fill="#2563eb" color="#2563eb" />
+                </div>
+                <h3 style={{ fontSize: 17, fontWeight: 900, color: "#0f172a", margin: 0 }}>
+                  Have You Used GradeFlow?
+                </h3>
+                <p style={{ fontSize: 13, color: "#64748b", margin: 0, maxWidth: 280 }}>
+                  Share your experience to help us improve features for all students.
+                </p>
+                <button
+                  onClick={scrollToForm}
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 6,
+                    padding: "9px 16px",
+                    borderRadius: 10,
+                    background: "#2563eb",
+                    color: "#ffffff",
+                    fontSize: 13,
+                    fontWeight: 800,
+                    border: "none",
+                    cursor: "pointer",
+                    boxShadow: "0 4px 12px rgba(37, 99, 235, 0.25)",
+                    transition: "all 0.15s ease",
+                  }}
+                  onMouseEnter={(e) => (e.currentTarget.style.background = "#1d4ed8")}
+                  onMouseLeave={(e) => (e.currentTarget.style.background = "#2563eb")}
+                >
+                  <Edit3 size={14} />
+                  <span>Write a Review</span>
+                </button>
+              </div>
             </div>
           )}
         </section>
 
         {/* ══════════════════════════════════════════════════════════
-            SECTION 2: CATEGORY FILTERS & SORTING
+            SECTION 2: CATEGORY FILTERS & SORT CONTROLS
         ══════════════════════════════════════════════════════════ */}
         <div
           id="reviews-section-grid"
           style={{
             display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            flexWrap: isMobile ? "nowrap" : "wrap",
-            gap: isMobile ? 8 : 14,
-            paddingTop: isMobile ? 4 : 10,
+            flexDirection: "column",
+            gap: 10,
             width: "100%",
             boxSizing: "border-box",
           }}
         >
-          {/* Category Filter Pills (Horizontal scrollable track on mobile) */}
+          {/* Top Controls Row */}
           <div
             style={{
               display: "flex",
               alignItems: "center",
-              gap: 6,
-              overflowX: "auto",
-              scrollbarWidth: "none",
-              msOverflowStyle: "none",
-              WebkitOverflowScrolling: "touch",
-              flex: 1,
-              paddingBottom: isMobile ? 2 : 0,
+              justifyContent: "space-between",
+              gap: 8,
+              width: "100%",
             }}
           >
-            {CATEGORIES.map((cat) => (
-              <button
-                key={cat}
-                onClick={() => setSelectedCategory(cat)}
-                style={{
-                  padding: isMobile ? "6px 12px" : "8px 18px",
-                  borderRadius: 999,
-                  border: selectedCategory === cat ? "1px solid #2563eb" : "1px solid #e2e8f0",
-                  background: selectedCategory === cat ? "#2563eb" : "#ffffff",
-                  color: selectedCategory === cat ? "#ffffff" : "#475569",
-                  fontSize: isMobile ? 12 : 13,
-                  fontWeight: selectedCategory === cat ? 700 : 500,
-                  cursor: "pointer",
-                  fontFamily: "'DM Sans', sans-serif",
-                  transition: "all 0.15s ease",
-                  boxShadow: selectedCategory === cat ? "0 2px 8px rgba(37, 99, 235, 0.2)" : "none",
-                  whiteSpace: "nowrap",
-                  flexShrink: 0,
-                }}
-              >
-                {cat}
-              </button>
-            ))}
-          </div>
-
-          {/* Custom Sort Dropdown */}
-          <div style={{ position: "relative", flexShrink: 0 }}>
-            <button
-              type="button"
-              onClick={() => setIsSortOpen(!isSortOpen)}
+            {/* Scrollable Category Filter Pills */}
+            <div
               style={{
                 display: "flex",
                 alignItems: "center",
                 gap: 6,
-                padding: isMobile ? "6px 10px" : "8px 16px",
-                borderRadius: 10,
-                border: "1px solid #e2e8f0",
-                background: "#ffffff",
-                fontSize: isMobile ? 12 : 13,
-                fontWeight: 600,
-                color: "#334155",
-                cursor: "pointer",
-                fontFamily: "'DM Sans', sans-serif",
-                boxShadow: "0 1px 3px rgba(0,0,0,0.02)",
-                transition: "all 0.15s",
-                whiteSpace: "nowrap",
+                overflowX: "auto",
+                scrollbarWidth: "none",
+                msOverflowStyle: "none",
+                WebkitOverflowScrolling: "touch",
+                flex: 1,
+                padding: "2px 0",
               }}
             >
-              <span>{sortBy}</span>
-              <ChevronDown
-                size={14}
-                color="#64748b"
+              {CATEGORIES.map((cat) => (
+                <button
+                  key={cat}
+                  onClick={() => setSelectedCategory(cat)}
+                  style={{
+                    padding: isSmallMobile ? "6px 11px" : "7px 14px",
+                    borderRadius: 999,
+                    border: selectedCategory === cat ? "1px solid #2563eb" : "1px solid #e2e8f0",
+                    background: selectedCategory === cat ? "#2563eb" : "#ffffff",
+                    color: selectedCategory === cat ? "#ffffff" : "#475569",
+                    fontSize: isSmallMobile ? 11.5 : 12.5,
+                    fontWeight: selectedCategory === cat ? 800 : 600,
+                    cursor: "pointer",
+                    fontFamily: "'DM Sans', sans-serif",
+                    transition: "all 0.15s ease",
+                    boxShadow:
+                      selectedCategory === cat
+                        ? "0 2px 8px rgba(37, 99, 235, 0.2)"
+                        : "0 1px 2px rgba(0,0,0,0.02)",
+                    whiteSpace: "nowrap",
+                    flexShrink: 0,
+                  }}
+                >
+                  {cat}
+                </button>
+              ))}
+            </div>
+
+            {/* Custom Sort Dropdown */}
+            <div style={{ position: "relative", flexShrink: 0 }}>
+              <button
+                type="button"
+                onClick={() => setIsSortOpen(!isSortOpen)}
                 style={{
-                  transition: "transform 0.2s ease",
-                  transform: isSortOpen ? "rotate(180deg)" : "none",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 5,
+                  padding: isSmallMobile ? "6px 10px" : "7px 12px",
+                  borderRadius: 10,
+                  border: "1px solid #e2e8f0",
+                  background: "#ffffff",
+                  fontSize: isSmallMobile ? 11.5 : 12.5,
+                  fontWeight: 700,
+                  color: "#334155",
+                  cursor: "pointer",
+                  fontFamily: "'DM Sans', sans-serif",
+                  boxShadow: "0 1px 2px rgba(0,0,0,0.02)",
+                  whiteSpace: "nowrap",
                 }}
-              />
-            </button>
+              >
+                <span>{sortBy}</span>
+                <ChevronDown
+                  size={13}
+                  color="#64748b"
+                  style={{
+                    transition: "transform 0.2s ease",
+                    transform: isSortOpen ? "rotate(180deg)" : "none",
+                  }}
+                />
+              </button>
 
-            <AnimatePresence>
-              {isSortOpen && (
-                <>
-                  {/* Backdrop overlay to close on click outside */}
-                  <div
-                    onClick={() => setIsSortOpen(false)}
-                    style={{ position: "fixed", inset: 0, zIndex: 90 }}
-                  />
+              <AnimatePresence>
+                {isSortOpen && (
+                  <>
+                    <div
+                      onClick={() => setIsSortOpen(false)}
+                      style={{ position: "fixed", inset: 0, zIndex: 90 }}
+                    />
 
-                  <motion.div
-                    initial={{ opacity: 0, y: 6, scale: 0.98 }}
-                    animate={{ opacity: 1, y: 0, scale: 1 }}
-                    exit={{ opacity: 0, y: 6, scale: 0.98 }}
-                    transition={{ duration: 0.15 }}
-                    style={{
-                      position: "absolute",
-                      top: "calc(100% + 6px)",
-                      right: 0,
-                      width: 220,
-                      background: "#ffffff",
-                      border: "1px solid #e2e8f0",
-                      borderRadius: 12,
-                      padding: 6,
-                      boxShadow: "0 10px 30px rgba(15, 23, 42, 0.1)",
-                      zIndex: 100,
-                    }}
-                  >
-                    {[
-                      { label: "Featured 5-Star (Best Reviews)", val: "Featured 5-Star" },
-                      { label: "Most Recent", val: "Most Recent" },
-                      { label: "Highest Rated", val: "Highest Rated" },
-                    ].map((opt) => (
-                      <button
-                        key={opt.val}
-                        type="button"
-                        onClick={() => {
-                          setSortBy(opt.val);
-                          setIsSortOpen(false);
-                        }}
-                        style={{
-                          width: "100%",
-                          textAlign: "left",
-                          padding: "9px 12px",
-                          borderRadius: 8,
-                          border: "none",
-                          background: sortBy === opt.val ? "#eff6ff" : "transparent",
-                          color: sortBy === opt.val ? "#2563eb" : "#1e293b",
-                          fontSize: 13,
-                          fontWeight: sortBy === opt.val ? 700 : 500,
-                          cursor: "pointer",
-                          fontFamily: "'DM Sans', sans-serif",
-                          transition: "background 0.12s",
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "space-between",
-                        }}
-                        onMouseEnter={(e) => {
-                          if (sortBy !== opt.val) e.currentTarget.style.background = "#f8fafc";
-                        }}
-                        onMouseLeave={(e) => {
-                          if (sortBy !== opt.val) e.currentTarget.style.background = "transparent";
-                        }}
-                      >
-                        {opt.label}
-                        {sortBy === opt.val && <CheckCircle2 size={14} color="#2563eb" />}
-                      </button>
-                    ))}
-                  </motion.div>
-                </>
-              )}
-            </AnimatePresence>
+                    <motion.div
+                      initial={{ opacity: 0, y: 6, scale: 0.98 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      exit={{ opacity: 0, y: 6, scale: 0.98 }}
+                      transition={{ duration: 0.15 }}
+                      style={{
+                        position: "absolute",
+                        top: "calc(100% + 4px)",
+                        right: 0,
+                        width: isSmallMobile ? 200 : 220,
+                        background: "#ffffff",
+                        border: "1px solid #e2e8f0",
+                        borderRadius: 12,
+                        padding: 5,
+                        boxShadow: "0 10px 25px rgba(15, 23, 42, 0.12)",
+                        zIndex: 100,
+                      }}
+                    >
+                      {[
+                        { label: "Featured 5-Star (Best)", val: "Featured 5-Star" },
+                        { label: "Most Recent", val: "Most Recent" },
+                        { label: "Highest Rated", val: "Highest Rated" },
+                      ].map((opt) => (
+                        <button
+                          key={opt.val}
+                          type="button"
+                          onClick={() => {
+                            setSortBy(opt.val);
+                            setIsSortOpen(false);
+                          }}
+                          style={{
+                            width: "100%",
+                            textAlign: "left",
+                            padding: "8px 10px",
+                            borderRadius: 8,
+                            border: "none",
+                            background: sortBy === opt.val ? "#eff6ff" : "transparent",
+                            color: sortBy === opt.val ? "#2563eb" : "#1e293b",
+                            fontSize: 12.5,
+                            fontWeight: sortBy === opt.val ? 800 : 600,
+                            cursor: "pointer",
+                            fontFamily: "'DM Sans', sans-serif",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "space-between",
+                          }}
+                        >
+                          {opt.label}
+                          {sortBy === opt.val && <CheckCircle2 size={13} color="#2563eb" />}
+                        </button>
+                      ))}
+                    </motion.div>
+                  </>
+                )}
+              </AnimatePresence>
+            </div>
           </div>
+
+          {/* Mobile "Write a Review" Quick Banner Button */}
+          {isMobile && (
+            <button
+              onClick={scrollToForm}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: 6,
+                padding: "8px 12px",
+                borderRadius: 10,
+                background: "#eff6ff",
+                border: "1px dashed #bfdbfe",
+                color: "#2563eb",
+                fontSize: 12,
+                fontWeight: 800,
+                cursor: "pointer",
+                width: "100%",
+                boxSizing: "border-box",
+              }}
+            >
+              <Edit3 size={13} />
+              <span>Write a Review for GradeFlow</span>
+            </button>
+          )}
         </div>
 
         {/* ══════════════════════════════════════════════════════════
-            SECTION 3: REVIEWS GRID WITH PAGINATION & SIDEBAR
+            SECTION 3: REVIEWS LIST & SIDEBAR WRITE-A-REVIEW FORM
         ══════════════════════════════════════════════════════════ */}
         <div
           style={{
             display: "grid",
-            gridTemplateColumns: isMobile ? "1fr" : "1fr 340px",
-            gap: isMobile ? 20 : 28,
+            gridTemplateColumns: isMobile ? "1fr" : "1fr 360px",
+            gap: isSmallMobile ? 16 : 24,
             alignItems: "start",
             width: "100%",
             boxSizing: "border-box",
           }}
-          className="gf-testi-layout"
         >
-          {/* Left: 2-Column Reviews Cards Grid */}
-          <div style={{ display: "flex", flexDirection: "column", gap: isMobile ? 16 : 24, width: "100%", boxSizing: "border-box" }}>
+          {/* Left: Reviews Cards Grid */}
+          <div
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              gap: isSmallMobile ? 12 : 16,
+              width: "100%",
+              boxSizing: "border-box",
+            }}
+          >
             {isLoading ? (
-              <div style={{ display: "flex", justifyContent: "center", alignItems: "center", minHeight: 240 }}>
-                <Loader2 size={32} className="animate-spin" color="#2563eb" />
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "center",
+                  alignItems: "center",
+                  minHeight: 200,
+                }}
+              >
+                <Loader2 size={30} className="animate-spin" color="#2563eb" />
               </div>
             ) : displayedReviews.length === 0 ? (
               <div
                 style={{
                   background: "#ffffff",
-                  borderRadius: 18,
-                  padding: isMobile ? "28px 16px" : 48,
+                  borderRadius: 16,
+                  padding: "36px 20px",
                   textAlign: "center",
-                  border: "1px solid #f1f5f9",
+                  border: "1px solid #e2e8f0",
                   color: "#64748b",
                 }}
               >
-                <MessageSquare size={32} color="#cbd5e1" style={{ margin: "0 auto 10px" }} />
-                <h4 style={{ fontSize: 15, fontWeight: 700, color: "#0f172a", margin: "0 0 4px" }}>No reviews found</h4>
-                <p style={{ fontSize: 12.5, margin: 0 }}>Be the first student to share your experience with GradeFlow!</p>
+                <MessageSquare size={30} color="#cbd5e1" style={{ margin: "0 auto 8px" }} />
+                <h4 style={{ fontSize: 15, fontWeight: 800, color: "#0f172a", margin: "0 0 4px" }}>
+                  No reviews found in this category
+                </h4>
+                <p style={{ fontSize: 12.5, margin: 0 }}>
+                  Be the first student to share your review!
+                </p>
               </div>
             ) : (
               <>
@@ -799,60 +842,66 @@ export default function Testimonials() {
                   style={{
                     display: "grid",
                     gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr",
-                    gap: isMobile ? 12 : 20,
+                    gap: isSmallMobile ? 10 : 14,
                     width: "100%",
                     boxSizing: "border-box",
                   }}
-                  className="gf-reviews-grid"
                 >
                   {paginatedReviews.map((item) => {
                     const itemId = item._id;
                     const isLiked = likedFeedbacks.includes(itemId);
                     const firstLetter = item.name ? item.name.charAt(0).toUpperCase() : "S";
+                    const isExpanded = !!expandedReviews[itemId];
+                    const fullComment = item.comment || "";
+                    const shouldTruncate = fullComment.length > 200;
+                    const displayComment =
+                      shouldTruncate && !isExpanded
+                        ? fullComment.slice(0, 180) + "..."
+                        : fullComment;
 
                     return (
                       <motion.div
                         key={itemId}
                         id={`feedback-${itemId}`}
-                        initial={{ opacity: 0, y: 10 }}
+                        initial={{ opacity: 0, y: 8 }}
                         animate={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.25 }}
+                        transition={{ duration: 0.2 }}
                         style={{
                           background: "#ffffff",
-                          border: itemId === highlightedId ? "2px solid #2563eb" : "1px solid #f1f5f9",
-                          borderRadius: 16,
-                          padding: isMobile ? "16px 14px" : "24px 22px",
-                          boxShadow: "0 2px 10px rgba(0,0,0,0.02)",
+                          border:
+                            itemId === highlightedId ? "2px solid #2563eb" : "1px solid #e2e8f0",
+                          borderRadius: isSmallMobile ? 14 : 16,
+                          padding: isSmallMobile ? "12px 12px" : "16px 16px",
+                          boxShadow: "0 1px 3px rgba(0,0,0,0.02)",
                           display: "flex",
                           flexDirection: "column",
                           justifyContent: "space-between",
-                          gap: isMobile ? 12 : 16,
-                          position: "relative",
+                          gap: 10,
                           boxSizing: "border-box",
                           wordBreak: "break-word",
                         }}
                       >
-                        {/* Header: User Avatar + Name + Stars */}
+                        {/* Top Row: User Avatar + Name + Stars */}
                         <div>
                           <div
                             style={{
                               display: "flex",
                               alignItems: "flex-start",
                               justifyContent: "space-between",
-                              gap: 10,
-                              marginBottom: isMobile ? 8 : 12,
+                              gap: 8,
+                              marginBottom: 8,
                             }}
                           >
-                            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                            <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
                               <div
                                 style={{
-                                  width: isMobile ? 36 : 42,
-                                  height: isMobile ? 36 : 42,
+                                  width: isSmallMobile ? 32 : 36,
+                                  height: isSmallMobile ? 32 : 36,
                                   borderRadius: "50%",
-                                  background: "#2563eb",
+                                  background: "linear-gradient(135deg, #2563eb, #3b82f6)",
                                   color: "#ffffff",
-                                  fontSize: isMobile ? 14 : 16,
-                                  fontWeight: 800,
+                                  fontSize: isSmallMobile ? 13 : 14,
+                                  fontWeight: 900,
                                   display: "flex",
                                   alignItems: "center",
                                   justifyContent: "center",
@@ -861,104 +910,137 @@ export default function Testimonials() {
                               >
                                 {firstLetter}
                               </div>
-                              <div>
-                                <h4
+                              <div style={{ minWidth: 0 }}>
+                                <div
                                   style={{
-                                    fontSize: isMobile ? 13.5 : 15,
-                                    fontWeight: 800,
-                                    color: "#0f172a",
-                                    margin: "0 0 1px 0",
+                                    display: "flex",
+                                    alignItems: "center",
+                                    gap: 4,
                                   }}
                                 >
-                                  {item.name}
-                                </h4>
-                                <div style={{ fontSize: isMobile ? 10.5 : 11.5, color: "#64748b" }}>
-                                  {item.regNo ? `Student (${item.regNo})` : "Student"}
+                                  <h4
+                                    style={{
+                                      fontSize: isSmallMobile ? 13 : 14,
+                                      fontWeight: 800,
+                                      color: "#0f172a",
+                                      margin: 0,
+                                      whiteSpace: "nowrap",
+                                      overflow: "hidden",
+                                      textOverflow: "ellipsis",
+                                    }}
+                                  >
+                                    {item.name}
+                                  </h4>
+                                  <BadgeCheck size={13} color="#2563eb" fill="#dbeafe" />
                                 </div>
-                                <div style={{ fontSize: isMobile ? 10 : 11, color: "#94a3b8" }}>
-                                  {item.university || "Centurion University (CUTM)"}
+                                <div
+                                  style={{
+                                    fontSize: isSmallMobile ? 10 : 11,
+                                    color: "#64748b",
+                                    whiteSpace: "nowrap",
+                                    overflow: "hidden",
+                                    textOverflow: "ellipsis",
+                                  }}
+                                >
+                                  {item.regNo ? `Student (${item.regNo})` : "Student"}
                                 </div>
                               </div>
                             </div>
 
-                            {/* Stars */}
-                            <div style={{ display: "flex", gap: 2, color: "#f59e0b" }}>
+                            {/* Stars Rating */}
+                            <div style={{ display: "flex", gap: 2, color: "#f59e0b", flexShrink: 0 }}>
                               {[...Array(Number(item.rating) || 5)].map((_, i) => (
-                                <Star key={i} size={isMobile ? 12 : 14} fill="#f59e0b" />
+                                <Star
+                                  key={i}
+                                  size={isSmallMobile ? 11 : 13}
+                                  fill="#f59e0b"
+                                  color="#f59e0b"
+                                />
                               ))}
                             </div>
                           </div>
 
-                          {/* Review Quote Text */}
+                          {/* Comment Body */}
                           <p
                             style={{
-                              fontSize: isMobile ? 12.5 : 13.5,
+                              fontSize: isSmallMobile ? 12 : 13,
                               color: "#334155",
-                              lineHeight: 1.55,
-                              margin: 0,
+                              lineHeight: 1.5,
+                              margin: "0 0 4px 0",
+                              whiteSpace: "pre-line",
                             }}
                           >
-                            {item.comment}
+                            {displayComment}
                           </p>
+
+                          {/* Read More / Read Less Toggle */}
+                          {shouldTruncate && (
+                            <button
+                              onClick={() => toggleExpand(itemId)}
+                              style={{
+                                background: "none",
+                                border: "none",
+                                padding: 0,
+                                color: "#2563eb",
+                                fontSize: 11.5,
+                                fontWeight: 700,
+                                cursor: "pointer",
+                                marginBottom: 4,
+                              }}
+                            >
+                              {isExpanded ? "Read less" : "Read more"}
+                            </button>
+                          )}
                         </div>
 
-                        {/* Footer: Category Pill + Like Action + Quote Mark */}
+                        {/* Card Footer: Category Badge + Like Button */}
                         <div
                           style={{
                             display: "flex",
                             alignItems: "center",
                             justifyContent: "space-between",
                             paddingTop: 8,
-                            borderTop: "1px solid #f8fafc",
+                            borderTop: "1px solid #f1f5f9",
+                            fontSize: isSmallMobile ? 10.5 : 11,
                           }}
                         >
-                          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                            <span
-                              style={{
-                                fontSize: isMobile ? 10.5 : 11.5,
-                                fontWeight: 600,
-                                color: "#2563eb",
-                                background: "#eff6ff",
-                                border: "1px solid #dbeafe",
-                                padding: isMobile ? "2px 8px" : "3px 10px",
-                                borderRadius: 99,
-                              }}
-                            >
-                              {item.category || "Overall Experience"}
-                            </span>
-
-                            <button
-                              onClick={() => handleLike(itemId)}
-                              style={{
-                                display: "inline-flex",
-                                alignItems: "center",
-                                gap: 3,
-                                background: isLiked ? "#eff6ff" : "transparent",
-                                border: isLiked ? "1px solid #dbeafe" : "1px solid transparent",
-                                color: isLiked ? "#2563eb" : "#94a3b8",
-                                borderRadius: 8,
-                                padding: "2px 6px",
-                                fontSize: isMobile ? 10.5 : 11.5,
-                                fontWeight: 600,
-                                cursor: isLiked ? "default" : "pointer",
-                                transition: "all 0.15s",
-                              }}
-                            >
-                              <ThumbsUp size={isMobile ? 11 : 12} fill={isLiked ? "#2563eb" : "none"} />
-                              <span>{item.likes || 0}</span>
-                            </button>
-                          </div>
-
                           <span
                             style={{
-                              fontSize: isMobile ? 20 : 24,
-                              color: "#dbeafe",
-                              fontWeight: 800,
-                              lineHeight: 1,
+                              fontWeight: 700,
+                              color: "#2563eb",
+                              background: "#eff6ff",
+                              border: "1px solid #dbeafe",
+                              padding: "2px 7px",
+                              borderRadius: 6,
+                              fontSize: isSmallMobile ? 10 : 11,
                             }}
                           >
-                            ”
+                            {item.category || "Overall Experience"}
                           </span>
+
+                          <button
+                            onClick={() => handleLike(itemId)}
+                            style={{
+                              display: "inline-flex",
+                              alignItems: "center",
+                              gap: 4,
+                              background: isLiked ? "#eff6ff" : "#f8fafc",
+                              border: isLiked ? "1px solid #bfdbfe" : "1px solid #e2e8f0",
+                              color: isLiked ? "#1d4ed8" : "#64748b",
+                              borderRadius: 6,
+                              padding: "3px 8px",
+                              fontSize: isSmallMobile ? 10.5 : 11.5,
+                              fontWeight: 700,
+                              cursor: isLiked ? "default" : "pointer",
+                              transition: "all 0.15s ease",
+                            }}
+                          >
+                            <ThumbsUp
+                              size={isSmallMobile ? 11 : 12}
+                              fill={isLiked ? "#2563eb" : "none"}
+                            />
+                            <span>{item.likes || 0} Helpful</span>
+                          </button>
                         </div>
                       </motion.div>
                     );
@@ -973,83 +1055,90 @@ export default function Testimonials() {
                       alignItems: "center",
                       justifyContent: "space-between",
                       flexWrap: "wrap",
-                      gap: 10,
-                      padding: isMobile ? "10px 14px" : "16px 20px",
+                      gap: 8,
+                      padding: isSmallMobile ? "8px 10px" : "12px 16px",
                       background: "#ffffff",
-                      border: "1px solid #f1f5f9",
+                      border: "1px solid #e2e8f0",
                       borderRadius: 12,
-                      boxShadow: "0 2px 8px rgba(0,0,0,0.02)",
+                      boxShadow: "0 1px 2px rgba(0,0,0,0.02)",
                     }}
                   >
-                    <div style={{ fontSize: isMobile ? 11 : 12.5, color: "#64748b", fontWeight: 500 }}>
-                      Page <strong style={{ color: "#0f172a" }}>{currentPage}</strong> of <strong style={{ color: "#0f172a" }}>{totalPages}</strong>
+                    <div
+                      style={{
+                        fontSize: isSmallMobile ? 11 : 12,
+                        color: "#64748b",
+                        fontWeight: 600,
+                      }}
+                    >
+                      Page <strong style={{ color: "#0f172a" }}>{currentPage}</strong> of{" "}
+                      <strong style={{ color: "#0f172a" }}>{totalPages}</strong>
                     </div>
 
                     <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
-                      {/* Previous Page */}
+                      {/* Prev Button */}
                       <button
                         onClick={() => handlePageChange(currentPage - 1)}
                         disabled={currentPage === 1}
                         style={{
                           display: "inline-flex",
                           alignItems: "center",
-                          gap: 3,
-                          padding: isMobile ? "4px 8px" : "6px 12px",
+                          gap: 2,
+                          padding: isSmallMobile ? "4px 8px" : "5px 10px",
                           borderRadius: 8,
                           border: "1px solid #e2e8f0",
                           background: currentPage === 1 ? "#f8fafc" : "#ffffff",
                           color: currentPage === 1 ? "#cbd5e1" : "#334155",
-                          fontSize: isMobile ? 11.5 : 12.5,
-                          fontWeight: 600,
+                          fontSize: isSmallMobile ? 11 : 12,
+                          fontWeight: 700,
                           cursor: currentPage === 1 ? "not-allowed" : "pointer",
                           fontFamily: "'DM Sans', sans-serif",
-                          transition: "all 0.15s",
                         }}
                       >
                         <ChevronLeft size={13} /> Prev
                       </button>
 
-                      {/* Numbered Page Buttons */}
+                      {/* Numbered Buttons */}
                       {Array.from({ length: totalPages }, (_, i) => i + 1).map((pageNum) => (
                         <button
                           key={pageNum}
                           onClick={() => handlePageChange(pageNum)}
                           style={{
-                            width: isMobile ? 28 : 32,
-                            height: isMobile ? 28 : 32,
-                            borderRadius: 8,
-                            border: currentPage === pageNum ? "1px solid #2563eb" : "1px solid #e2e8f0",
+                            width: isSmallMobile ? 26 : 30,
+                            height: isSmallMobile ? 26 : 30,
+                            borderRadius: 7,
+                            border:
+                              currentPage === pageNum
+                                ? "1px solid #2563eb"
+                                : "1px solid #e2e8f0",
                             background: currentPage === pageNum ? "#2563eb" : "#ffffff",
                             color: currentPage === pageNum ? "#ffffff" : "#475569",
-                            fontSize: isMobile ? 11.5 : 12.5,
-                            fontWeight: currentPage === pageNum ? 700 : 500,
+                            fontSize: isSmallMobile ? 11 : 12,
+                            fontWeight: currentPage === pageNum ? 800 : 600,
                             cursor: "pointer",
                             fontFamily: "'DM Sans', sans-serif",
-                            transition: "all 0.15s",
                           }}
                         >
                           {pageNum}
                         </button>
                       ))}
 
-                      {/* Next Page */}
+                      {/* Next Button */}
                       <button
                         onClick={() => handlePageChange(currentPage + 1)}
                         disabled={currentPage === totalPages}
                         style={{
                           display: "inline-flex",
                           alignItems: "center",
-                          gap: 3,
-                          padding: isMobile ? "4px 8px" : "6px 12px",
+                          gap: 2,
+                          padding: isSmallMobile ? "4px 8px" : "5px 10px",
                           borderRadius: 8,
                           border: "1px solid #e2e8f0",
                           background: currentPage === totalPages ? "#f8fafc" : "#ffffff",
                           color: currentPage === totalPages ? "#cbd5e1" : "#334155",
-                          fontSize: isMobile ? 11.5 : 12.5,
-                          fontWeight: 600,
+                          fontSize: isSmallMobile ? 11 : 12,
+                          fontWeight: 700,
                           cursor: currentPage === totalPages ? "not-allowed" : "pointer",
                           fontFamily: "'DM Sans', sans-serif",
-                          transition: "all 0.15s",
                         }}
                       >
                         Next <ChevronRight size={13} />
@@ -1063,12 +1152,10 @@ export default function Testimonials() {
 
           {/* Right: Write a Review Card */}
           <div
+            id="write-review-card"
             style={{
               position: isMobile ? "static" : "sticky",
               top: 86,
-              display: "flex",
-              flexDirection: "column",
-              gap: 20,
               width: "100%",
               boxSizing: "border-box",
             }}
@@ -1076,19 +1163,26 @@ export default function Testimonials() {
             <div
               style={{
                 background: "#ffffff",
-                border: "1px solid #f1f5f9",
-                borderRadius: 18,
-                padding: isMobile ? "16px 14px" : "24px 22px",
-                boxShadow: "0 4px 16px rgba(0,0,0,0.02)",
+                border: "1px solid #e2e8f0",
+                borderRadius: isSmallMobile ? 16 : 18,
+                padding: isSmallMobile ? "14px 14px" : "20px 18px",
+                boxShadow: "0 2px 8px rgba(0,0,0,0.03)",
                 boxSizing: "border-box",
               }}
             >
               {/* Form Header */}
-              <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: isMobile ? 12 : 18 }}>
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 8,
+                  marginBottom: isSmallMobile ? 10 : 14,
+                }}
+              >
                 <div
                   style={{
-                    width: isMobile ? 32 : 36,
-                    height: isMobile ? 32 : 36,
+                    width: isSmallMobile ? 30 : 34,
+                    height: isSmallMobile ? 30 : 34,
                     borderRadius: 9,
                     background: "#eff6ff",
                     color: "#2563eb",
@@ -1098,53 +1192,88 @@ export default function Testimonials() {
                     flexShrink: 0,
                   }}
                 >
-                  <Edit3 size={isMobile ? 16 : 18} />
+                  <Edit3 size={isSmallMobile ? 15 : 17} />
                 </div>
                 <div>
-                  <h3 style={{ fontSize: isMobile ? 15 : 16, fontWeight: 800, color: "#0f172a", margin: 0 }}>
+                  <h3
+                    style={{
+                      fontSize: isSmallMobile ? 14 : 15.5,
+                      fontWeight: 800,
+                      color: "#0f172a",
+                      margin: 0,
+                    }}
+                  >
                     Write a Review
                   </h3>
-                  <p style={{ fontSize: isMobile ? 11.5 : 12, color: "#64748b", margin: 0 }}>
+                  <p style={{ fontSize: isSmallMobile ? 11 : 12, color: "#64748b", margin: 0 }}>
                     Share your experience with GradeFlow
                   </p>
                 </div>
               </div>
 
               {/* Star Rating Picker */}
-              <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 3, marginBottom: 14 }}>
-                <div style={{ display: "flex", gap: 5, cursor: "pointer" }}>
+              <div
+                style={{
+                  display: "flex",
+                  flexDirection: "column",
+                  alignItems: "center",
+                  background: "#f8fafc",
+                  border: "1px solid #e2e8f0",
+                  borderRadius: 10,
+                  padding: "8px 10px",
+                  marginBottom: 10,
+                }}
+              >
+                <div style={{ display: "flex", gap: 5, cursor: "pointer", marginBottom: 2 }}>
                   {[1, 2, 3, 4, 5].map((star) => (
-                    <Star
+                    <button
                       key={star}
-                      size={isMobile ? 20 : 22}
-                      color="#f59e0b"
-                      fill={(hoverRating || rating) >= star ? "#f59e0b" : "transparent"}
+                      type="button"
+                      onClick={() => setRating(star)}
                       onMouseEnter={() => setHoverRating(star)}
                       onMouseLeave={() => setHoverRating(0)}
-                      onClick={() => setRating(star)}
-                    />
+                      style={{
+                        background: "transparent",
+                        border: "none",
+                        cursor: "pointer",
+                        padding: 2,
+                      }}
+                    >
+                      <Star
+                        size={isSmallMobile ? 22 : 24}
+                        fill={(hoverRating || rating) >= star ? "#f59e0b" : "#e2e8f0"}
+                        color={(hoverRating || rating) >= star ? "#d97706" : "#cbd5e1"}
+                      />
+                    </button>
                   ))}
                 </div>
-                <span style={{ fontSize: 10.5, color: "#94a3b8", fontWeight: 600 }}>Click to rate</span>
+                <span style={{ fontSize: 11, fontWeight: 700, color: "#475569" }}>
+                  {getRatingLabel(hoverRating || rating)}
+                </span>
               </div>
 
               {/* Review Form */}
-              <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: isMobile ? 9 : 12 }}>
+              <form
+                onSubmit={handleSubmit}
+                style={{ display: "flex", flexDirection: "column", gap: isSmallMobile ? 8 : 10 }}
+              >
                 <input
                   type="text"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  placeholder="Your Name"
+                  placeholder="Your Full Name *"
                   required
                   style={{
                     width: "100%",
-                    padding: isMobile ? "8px 12px" : "10px 14px",
-                    borderRadius: 9,
+                    padding: isSmallMobile ? "8px 10px" : "9px 12px",
+                    borderRadius: 8,
                     border: "1px solid #cbd5e1",
-                    fontSize: isMobile ? 12.5 : 13,
+                    fontSize: isSmallMobile ? 12 : 13,
                     outline: "none",
                     fontFamily: "'DM Sans', sans-serif",
                     boxSizing: "border-box",
+                    background: "#ffffff",
+                    color: "#0f172a",
                   }}
                 />
 
@@ -1152,20 +1281,22 @@ export default function Testimonials() {
                   type="text"
                   value={regNo}
                   onChange={(e) => setRegNo(e.target.value)}
-                  placeholder="Registration Number / University (Optional)"
+                  placeholder="Registration Number (Optional)"
                   style={{
                     width: "100%",
-                    padding: isMobile ? "8px 12px" : "10px 14px",
-                    borderRadius: 9,
+                    padding: isSmallMobile ? "8px 10px" : "9px 12px",
+                    borderRadius: 8,
                     border: "1px solid #cbd5e1",
-                    fontSize: isMobile ? 12.5 : 13,
+                    fontSize: isSmallMobile ? 12 : 13,
                     outline: "none",
                     fontFamily: "'DM Sans', sans-serif",
                     boxSizing: "border-box",
+                    background: "#ffffff",
+                    color: "#0f172a",
                   }}
                 />
 
-                {/* Custom Category Dropdown */}
+                {/* Category Dropdown */}
                 <div style={{ position: "relative", width: "100%" }}>
                   <button
                     type="button"
@@ -1175,21 +1306,20 @@ export default function Testimonials() {
                       display: "flex",
                       alignItems: "center",
                       justifyContent: "space-between",
-                      padding: isMobile ? "8px 12px" : "10px 14px",
-                      borderRadius: 9,
+                      padding: isSmallMobile ? "8px 10px" : "9px 12px",
+                      borderRadius: 8,
                       border: "1px solid #cbd5e1",
-                      fontSize: isMobile ? 12.5 : 13,
+                      fontSize: isSmallMobile ? 12 : 13,
                       background: "#ffffff",
                       fontFamily: "'DM Sans', sans-serif",
                       color: "#0f172a",
                       cursor: "pointer",
                       boxSizing: "border-box",
-                      textAlign: "left",
                     }}
                   >
                     <span>{category}</span>
                     <ChevronDown
-                      size={14}
+                      size={13}
                       color="#64748b"
                       style={{
                         transition: "transform 0.2s ease",
@@ -1218,9 +1348,9 @@ export default function Testimonials() {
                             right: 0,
                             background: "#ffffff",
                             border: "1px solid #e2e8f0",
-                            borderRadius: 12,
-                            padding: 6,
-                            boxShadow: "0 10px 30px rgba(15, 23, 42, 0.1)",
+                            borderRadius: 10,
+                            padding: 4,
+                            boxShadow: "0 10px 25px rgba(15, 23, 42, 0.1)",
                             zIndex: 100,
                           }}
                         >
@@ -1235,29 +1365,22 @@ export default function Testimonials() {
                               style={{
                                 width: "100%",
                                 textAlign: "left",
-                                padding: "8px 12px",
-                                borderRadius: 8,
+                                padding: "7px 10px",
+                                borderRadius: 6,
                                 border: "none",
                                 background: category === catOpt ? "#eff6ff" : "transparent",
                                 color: category === catOpt ? "#2563eb" : "#1e293b",
-                                fontSize: 13,
+                                fontSize: 12.5,
                                 fontWeight: category === catOpt ? 700 : 500,
                                 cursor: "pointer",
                                 fontFamily: "'DM Sans', sans-serif",
-                                transition: "background 0.12s",
                                 display: "flex",
                                 alignItems: "center",
                                 justifyContent: "space-between",
                               }}
-                              onMouseEnter={(e) => {
-                                if (category !== catOpt) e.currentTarget.style.background = "#f8fafc";
-                              }}
-                              onMouseLeave={(e) => {
-                                if (category !== catOpt) e.currentTarget.style.background = "transparent";
-                              }}
                             >
                               {catOpt}
-                              {category === catOpt && <CheckCircle2 size={14} color="#2563eb" />}
+                              {category === catOpt && <CheckCircle2 size={13} color="#2563eb" />}
                             </button>
                           ))}
                         </motion.div>
@@ -1266,68 +1389,78 @@ export default function Testimonials() {
                   </AnimatePresence>
                 </div>
 
+                {/* Comment Textarea */}
                 <div style={{ position: "relative" }}>
                   <textarea
                     value={comment}
                     onChange={(e) => setComment(e.target.value.slice(0, 500))}
-                    placeholder="Write your review..."
-                    rows={isMobile ? 3 : 4}
+                    placeholder="Write your review or feedback..."
+                    rows={isSmallMobile ? 3 : 4}
                     required
                     style={{
                       width: "100%",
-                      padding: isMobile ? "8px 12px" : "10px 14px",
-                      borderRadius: 9,
+                      padding: isSmallMobile ? "8px 10px" : "9px 12px",
+                      borderRadius: 8,
                       border: "1px solid #cbd5e1",
-                      fontSize: isMobile ? 12.5 : 13,
+                      fontSize: isSmallMobile ? 12 : 13,
                       outline: "none",
                       fontFamily: "'DM Sans', sans-serif",
                       resize: "none",
                       boxSizing: "border-box",
+                      background: "#ffffff",
+                      color: "#0f172a",
                     }}
                   />
-                  <span style={{ position: "absolute", bottom: 6, right: 8, fontSize: 10, color: "#94a3b8" }}>
+                  <span
+                    style={{
+                      position: "absolute",
+                      bottom: 5,
+                      right: 8,
+                      fontSize: 10,
+                      color: "#94a3b8",
+                    }}
+                  >
                     {comment.length}/500
                   </span>
                 </div>
 
+                {/* Submit Button */}
                 <button
                   type="submit"
                   disabled={isSubmitting}
                   style={{
                     width: "100%",
-                    padding: isMobile ? "10px" : "12px",
+                    padding: isSmallMobile ? "9px" : "11px",
                     borderRadius: 9,
-                    background: isSubmitting ? "#93c5fd" : "#2563eb",
+                    background: isSubmitting
+                      ? "#93c5fd"
+                      : "linear-gradient(135deg, #2563eb, #1d4ed8)",
                     color: "#ffffff",
-                    border: "none",
-                    fontSize: isMobile ? 13 : 14,
-                    fontWeight: 700,
+                    border: "1px solid #1e40af",
+                    fontSize: isSmallMobile ? 12.5 : 13.5,
+                    fontWeight: 800,
                     cursor: isSubmitting ? "not-allowed" : "pointer",
                     fontFamily: "'DM Sans', sans-serif",
-                    boxShadow: "0 4px 12px rgba(37, 99, 235, 0.25)",
-                    transition: "background 0.2s",
+                    boxShadow: "0 3px 10px rgba(37, 99, 235, 0.2)",
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "center",
                     gap: 6,
                   }}
-                  onMouseEnter={(e) => {
-                    if (!isSubmitting) e.currentTarget.style.background = "#1d4ed8";
-                  }}
-                  onMouseLeave={(e) => {
-                    if (!isSubmitting) e.currentTarget.style.background = "#2563eb";
-                  }}
                 >
                   {isSubmitting ? (
                     <>
-                      <Loader2 size={15} className="animate-spin" /> Submitting...
+                      <Loader2 size={14} className="animate-spin" /> Submitting...
                     </>
                   ) : (
-                    "Submit Review"
+                    <>
+                      <Send size={13} /> Submit Review
+                    </>
                   )}
                 </button>
               </form>
 
+              {/* Success Alert */}
               {submittedSuccess && (
                 <div
                   style={{
@@ -1337,15 +1470,16 @@ export default function Testimonials() {
                     background: "#f0fdf4",
                     border: "1px solid #bbf7d0",
                     color: "#15803d",
-                    fontSize: 12,
+                    fontSize: 11.5,
                     textAlign: "center",
-                    fontWeight: 600,
+                    fontWeight: 700,
                   }}
                 >
-                  Thank you! Your review has been published.
+                  🎉 Thank you! Your review has been published.
                 </div>
               )}
 
+              {/* Error Alert */}
               {errorMessage && (
                 <div
                   style={{
@@ -1355,9 +1489,9 @@ export default function Testimonials() {
                     background: "#fef2f2",
                     border: "1px solid #fecaca",
                     color: "#dc2626",
-                    fontSize: 12,
+                    fontSize: 11.5,
                     textAlign: "center",
-                    fontWeight: 600,
+                    fontWeight: 700,
                   }}
                 >
                   {errorMessage}
@@ -1373,25 +1507,25 @@ export default function Testimonials() {
         <section
           style={{
             background: "#ffffff",
-            border: "1px solid #f1f5f9",
-            borderRadius: 18,
-            padding: isMobile ? "16px 14px" : "24px 32px",
+            border: "1px solid #e2e8f0",
+            borderRadius: isSmallMobile ? 14 : 18,
+            padding: isSmallMobile ? "14px 14px" : "20px 24px",
             display: "flex",
             flexDirection: isMobile ? "column" : "row",
             alignItems: isMobile ? "flex-start" : "center",
             justifyContent: "space-between",
-            gap: isMobile ? 12 : 20,
-            boxShadow: "0 4px 16px rgba(0,0,0,0.02)",
+            gap: isSmallMobile ? 10 : 16,
+            boxShadow: "0 2px 8px rgba(0,0,0,0.02)",
             boxSizing: "border-box",
             width: "100%",
           }}
         >
-          <div style={{ display: "flex", alignItems: "center", gap: isMobile ? 10 : 16 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: isSmallMobile ? 10 : 14 }}>
             <div
               style={{
-                width: isMobile ? 38 : 48,
-                height: isMobile ? 38 : 48,
-                borderRadius: 11,
+                width: isSmallMobile ? 36 : 44,
+                height: isSmallMobile ? 36 : 44,
+                borderRadius: 10,
                 background: "#eff6ff",
                 color: "#2563eb",
                 display: "flex",
@@ -1400,14 +1534,21 @@ export default function Testimonials() {
                 flexShrink: 0,
               }}
             >
-              <Users size={isMobile ? 19 : 24} />
+              <Users size={isSmallMobile ? 18 : 22} />
             </div>
             <div>
-              <h3 style={{ fontSize: isMobile ? 15 : 17, fontWeight: 800, color: "#0f172a", margin: "0 0 2px 0" }}>
+              <h3
+                style={{
+                  fontSize: isSmallMobile ? 14 : 16,
+                  fontWeight: 800,
+                  color: "#0f172a",
+                  margin: "0 0 2px 0",
+                }}
+              >
                 Join Thousands of Happy Students
               </h3>
-              <p style={{ fontSize: isMobile ? 11.5 : 13, color: "#64748b", margin: 0 }}>
-                Be a part of the GradeFlow community and achieve academic excellence.
+              <p style={{ fontSize: isSmallMobile ? 11 : 12.5, color: "#64748b", margin: 0 }}>
+                Explore your academic analytics and take control of your grades today.
               </p>
             </div>
           </div>
@@ -1415,23 +1556,24 @@ export default function Testimonials() {
           <button
             onClick={() => navigate("/")}
             style={{
-              padding: isMobile ? "9px 16px" : "11px 22px",
-              borderRadius: 9,
-              background: "#2563eb",
+              padding: isSmallMobile ? "8px 14px" : "10px 20px",
+              borderRadius: 8,
+              background: "linear-gradient(135deg, #2563eb, #1d4ed8)",
               color: "#ffffff",
-              border: "none",
-              fontSize: isMobile ? 12.5 : 14,
-              fontWeight: 700,
+              border: "1px solid #1e40af",
+              fontSize: isSmallMobile ? 12 : 13.5,
+              fontWeight: 800,
               cursor: "pointer",
               display: "flex",
               alignItems: "center",
               gap: 6,
-              boxShadow: "0 4px 12px rgba(37, 99, 235, 0.25)",
+              boxShadow: "0 3px 10px rgba(37, 99, 235, 0.2)",
               width: isMobile ? "100%" : "auto",
               justifyContent: "center",
             }}
           >
-            Get Started for Free <ArrowRight size={14} />
+            <span>Get Started for Free</span>
+            <ArrowRight size={14} />
           </button>
         </section>
       </div>
