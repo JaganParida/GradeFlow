@@ -44,11 +44,11 @@ export default function Testimonials() {
   const [expandedReviews, setExpandedReviews] = useState({});
 
   // Responsive state
-  const [isMobile, setIsMobile] = useState(
-    () => (typeof window !== "undefined" ? window.innerWidth < 1024 : false)
+  const [isMobile, setIsMobile] = useState(() =>
+    typeof window !== "undefined" ? window.innerWidth < 1024 : false,
   );
-  const [isSmallMobile, setIsSmallMobile] = useState(
-    () => (typeof window !== "undefined" ? window.innerWidth < 640 : false)
+  const [isSmallMobile, setIsSmallMobile] = useState(() =>
+    typeof window !== "undefined" ? window.innerWidth < 640 : false,
   );
 
   useEffect(() => {
@@ -138,7 +138,7 @@ export default function Testimonials() {
 
     // Optimistic UI update
     setFeedbacks((prev) =>
-      prev.map((f) => (f._id === id ? { ...f, likes: (f.likes || 0) + 1 } : f))
+      prev.map((f) => (f._id === id ? { ...f, likes: (f.likes || 0) + 1 } : f)),
     );
 
     const updatedLikes = [...likedFeedbacks, id];
@@ -149,7 +149,7 @@ export default function Testimonials() {
       const res = await axios.post(`${API}/feedback/${id}/like`);
       if (res.data && res.data.likes !== undefined) {
         setFeedbacks((prev) =>
-          prev.map((f) => (f._id === id ? { ...f, likes: res.data.likes } : f))
+          prev.map((f) => (f._id === id ? { ...f, likes: res.data.likes } : f)),
         );
       }
     } catch (err) {
@@ -207,7 +207,8 @@ export default function Testimonials() {
     } catch (err) {
       console.error("Error submitting feedback:", err);
       setErrorMessage(
-        err.response?.data?.message || "Failed to submit review. Please try again."
+        err.response?.data?.message ||
+          "Failed to submit review. Please try again.",
       );
     } finally {
       setIsSubmitting(false);
@@ -218,7 +219,10 @@ export default function Testimonials() {
   const totalReviewsCount = feedbacks.length;
   const avgRating = useMemo(() => {
     if (feedbacks.length === 0) return "4.9";
-    const sum = feedbacks.reduce((acc, curr) => acc + (Number(curr.rating) || 5), 0);
+    const sum = feedbacks.reduce(
+      (acc, curr) => acc + (Number(curr.rating) || 5),
+      0,
+    );
     return (sum / feedbacks.length).toFixed(1);
   }, [feedbacks]);
 
@@ -236,7 +240,9 @@ export default function Testimonials() {
 
     // Sort Logic
     if (sortBy === "Most Recent") {
-      list.sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
+      list.sort(
+        (a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0),
+      );
     } else if (sortBy === "Highest Rated") {
       list.sort((a, b) => (Number(b.rating) || 5) - (Number(a.rating) || 5));
     } else {
@@ -265,7 +271,10 @@ export default function Testimonials() {
   }, [feedbacks, selectedCategory, sortBy]);
 
   // ─── Pagination Calculations ──────────────────────────────────────
-  const totalPages = Math.max(1, Math.ceil(displayedReviews.length / REVIEWS_PER_PAGE));
+  const totalPages = Math.max(
+    1,
+    Math.ceil(displayedReviews.length / REVIEWS_PER_PAGE),
+  );
   const paginatedReviews = useMemo(() => {
     const start = (currentPage - 1) * REVIEWS_PER_PAGE;
     return displayedReviews.slice(start, start + REVIEWS_PER_PAGE);
@@ -329,7 +338,11 @@ export default function Testimonials() {
         style={{
           maxWidth: 1320,
           margin: "0 auto",
-          padding: isSmallMobile ? "14px 12px" : isMobile ? "20px 16px" : "36px 32px",
+          padding: isSmallMobile
+            ? "14px 12px"
+            : isMobile
+              ? "20px 16px"
+              : "36px 32px",
           display: "flex",
           flexDirection: "column",
           gap: isSmallMobile ? 16 : 28,
@@ -353,7 +366,16 @@ export default function Testimonials() {
           }}
         >
           {/* Left Hero Content */}
-          <div style={{ display: "flex", flexDirection: "column", gap: isSmallMobile ? 10 : 16, width: "100%", minWidth: 0, boxSizing: "border-box" }}>
+          <div
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              gap: isSmallMobile ? 10 : 16,
+              width: "100%",
+              minWidth: 0,
+              boxSizing: "border-box",
+            }}
+          >
             {/* Pill Badge */}
             <div
               style={{
@@ -401,8 +423,9 @@ export default function Testimonials() {
                 margin: 0,
               }}
             >
-              See how GradeFlow is helping university students track their GPAs, analyze grade
-              distributions, and predict placements with confidence.
+              See how GradeFlow is helping university students track their GPAs,
+              analyze grade distributions, and predict placements with
+              confidence.
             </p>
 
             {/* 3 Metric Stat Cards */}
@@ -446,10 +469,23 @@ export default function Testimonials() {
                   <Users size={isSmallMobile ? 13 : 16} />
                 </div>
                 <div>
-                  <div style={{ fontSize: isSmallMobile ? 13 : 15, fontWeight: 900, color: "#0f172a", lineHeight: 1.2 }}>
-                    10,000+
+                  <div
+                    style={{
+                      fontSize: isSmallMobile ? 13 : 15,
+                      fontWeight: 900,
+                      color: "#0f172a",
+                      lineHeight: 1.2,
+                    }}
+                  >
+                    1000+
                   </div>
-                  <div style={{ fontSize: isSmallMobile ? 10 : 11, color: "#64748b", fontWeight: 600 }}>
+                  <div
+                    style={{
+                      fontSize: isSmallMobile ? 10 : 11,
+                      color: "#64748b",
+                      fontWeight: 600,
+                    }}
+                  >
                     Students
                   </div>
                 </div>
@@ -482,13 +518,30 @@ export default function Testimonials() {
                     flexShrink: 0,
                   }}
                 >
-                  <Star size={isSmallMobile ? 13 : 16} fill="#f59e0b" color="#f59e0b" />
+                  <Star
+                    size={isSmallMobile ? 13 : 16}
+                    fill="#f59e0b"
+                    color="#f59e0b"
+                  />
                 </div>
                 <div>
-                  <div style={{ fontSize: isSmallMobile ? 13 : 15, fontWeight: 900, color: "#0f172a", lineHeight: 1.2 }}>
+                  <div
+                    style={{
+                      fontSize: isSmallMobile ? 13 : 15,
+                      fontWeight: 900,
+                      color: "#0f172a",
+                      lineHeight: 1.2,
+                    }}
+                  >
                     {avgRating}/5
                   </div>
-                  <div style={{ fontSize: isSmallMobile ? 10 : 11, color: "#64748b", fontWeight: 600 }}>
+                  <div
+                    style={{
+                      fontSize: isSmallMobile ? 10 : 11,
+                      color: "#64748b",
+                      fontWeight: 600,
+                    }}
+                  >
                     Rating
                   </div>
                 </div>
@@ -524,10 +577,23 @@ export default function Testimonials() {
                   <MessageSquare size={isSmallMobile ? 13 : 16} />
                 </div>
                 <div>
-                  <div style={{ fontSize: isSmallMobile ? 13 : 15, fontWeight: 900, color: "#0f172a", lineHeight: 1.2 }}>
+                  <div
+                    style={{
+                      fontSize: isSmallMobile ? 13 : 15,
+                      fontWeight: 900,
+                      color: "#0f172a",
+                      lineHeight: 1.2,
+                    }}
+                  >
                     {totalReviewsCount > 0 ? `${totalReviewsCount}+` : "45+"}
                   </div>
-                  <div style={{ fontSize: isSmallMobile ? 10 : 11, color: "#64748b", fontWeight: 600 }}>
+                  <div
+                    style={{
+                      fontSize: isSmallMobile ? 10 : 11,
+                      color: "#64748b",
+                      fontWeight: 600,
+                    }}
+                  >
                     Reviews
                   </div>
                 </div>
@@ -577,11 +643,26 @@ export default function Testimonials() {
                 >
                   <Heart size={24} fill="#2563eb" color="#2563eb" />
                 </div>
-                <h3 style={{ fontSize: 17, fontWeight: 900, color: "#0f172a", margin: 0 }}>
+                <h3
+                  style={{
+                    fontSize: 17,
+                    fontWeight: 900,
+                    color: "#0f172a",
+                    margin: 0,
+                  }}
+                >
                   Have You Used GradeFlow?
                 </h3>
-                <p style={{ fontSize: 13, color: "#64748b", margin: 0, maxWidth: 280 }}>
-                  Share your experience to help us improve features for all students.
+                <p
+                  style={{
+                    fontSize: 13,
+                    color: "#64748b",
+                    margin: 0,
+                    maxWidth: 280,
+                  }}
+                >
+                  Share your experience to help us improve features for all
+                  students.
                 </p>
                 <button
                   onClick={scrollToForm}
@@ -600,8 +681,12 @@ export default function Testimonials() {
                     boxShadow: "0 4px 12px rgba(37, 99, 235, 0.25)",
                     transition: "all 0.15s ease",
                   }}
-                  onMouseEnter={(e) => (e.currentTarget.style.background = "#1d4ed8")}
-                  onMouseLeave={(e) => (e.currentTarget.style.background = "#2563eb")}
+                  onMouseEnter={(e) =>
+                    (e.currentTarget.style.background = "#1d4ed8")
+                  }
+                  onMouseLeave={(e) =>
+                    (e.currentTarget.style.background = "#2563eb")
+                  }
                 >
                   <Edit3 size={14} />
                   <span>Write a Review</span>
@@ -656,8 +741,12 @@ export default function Testimonials() {
                   style={{
                     padding: isSmallMobile ? "6px 11px" : "7px 14px",
                     borderRadius: 999,
-                    border: selectedCategory === cat ? "1px solid #2563eb" : "1px solid #e2e8f0",
-                    background: selectedCategory === cat ? "#2563eb" : "#ffffff",
+                    border:
+                      selectedCategory === cat
+                        ? "1px solid #2563eb"
+                        : "1px solid #e2e8f0",
+                    background:
+                      selectedCategory === cat ? "#2563eb" : "#ffffff",
                     color: selectedCategory === cat ? "#ffffff" : "#475569",
                     fontSize: isSmallMobile ? 11.5 : 12.5,
                     fontWeight: selectedCategory === cat ? 800 : 600,
@@ -737,7 +826,10 @@ export default function Testimonials() {
                       }}
                     >
                       {[
-                        { label: "Featured 5-Star (Best)", val: "Featured 5-Star" },
+                        {
+                          label: "Featured 5-Star (Best)",
+                          val: "Featured 5-Star",
+                        },
                         { label: "Most Recent", val: "Most Recent" },
                         { label: "Highest Rated", val: "Highest Rated" },
                       ].map((opt) => (
@@ -754,7 +846,8 @@ export default function Testimonials() {
                             padding: "8px 10px",
                             borderRadius: 8,
                             border: "none",
-                            background: sortBy === opt.val ? "#eff6ff" : "transparent",
+                            background:
+                              sortBy === opt.val ? "#eff6ff" : "transparent",
                             color: sortBy === opt.val ? "#2563eb" : "#1e293b",
                             fontSize: 12.5,
                             fontWeight: sortBy === opt.val ? 800 : 600,
@@ -766,7 +859,9 @@ export default function Testimonials() {
                           }}
                         >
                           {opt.label}
-                          {sortBy === opt.val && <CheckCircle2 size={13} color="#2563eb" />}
+                          {sortBy === opt.val && (
+                            <CheckCircle2 size={13} color="#2563eb" />
+                          )}
                         </button>
                       ))}
                     </motion.div>
@@ -839,8 +934,19 @@ export default function Testimonials() {
                   color: "#64748b",
                 }}
               >
-                <MessageSquare size={30} color="#cbd5e1" style={{ margin: "0 auto 8px" }} />
-                <h4 style={{ fontSize: 15, fontWeight: 800, color: "#0f172a", margin: "0 0 4px" }}>
+                <MessageSquare
+                  size={30}
+                  color="#cbd5e1"
+                  style={{ margin: "0 auto 8px" }}
+                />
+                <h4
+                  style={{
+                    fontSize: 15,
+                    fontWeight: 800,
+                    color: "#0f172a",
+                    margin: "0 0 4px",
+                  }}
+                >
                   No reviews found in this category
                 </h4>
                 <p style={{ fontSize: 12.5, margin: 0 }}>
@@ -852,7 +958,9 @@ export default function Testimonials() {
                 <div
                   style={{
                     display: "grid",
-                    gridTemplateColumns: isMobile ? "minmax(0, 1fr)" : "repeat(2, minmax(0, 1fr))",
+                    gridTemplateColumns: isMobile
+                      ? "minmax(0, 1fr)"
+                      : "repeat(2, minmax(0, 1fr))",
                     gap: isSmallMobile ? 10 : 14,
                     width: "100%",
                     maxWidth: "100%",
@@ -862,7 +970,9 @@ export default function Testimonials() {
                   {paginatedReviews.map((item) => {
                     const itemId = item._id;
                     const isLiked = likedFeedbacks.includes(itemId);
-                    const firstLetter = item.name ? item.name.charAt(0).toUpperCase() : "S";
+                    const firstLetter = item.name
+                      ? item.name.charAt(0).toUpperCase()
+                      : "S";
                     const isExpanded = !!expandedReviews[itemId];
                     const fullComment = item.comment || "";
                     const shouldTruncate = fullComment.length > 200;
@@ -881,7 +991,9 @@ export default function Testimonials() {
                         style={{
                           background: "#ffffff",
                           border:
-                            itemId === highlightedId ? "2px solid #2563eb" : "1px solid #e2e8f0",
+                            itemId === highlightedId
+                              ? "2px solid #2563eb"
+                              : "1px solid #e2e8f0",
                           borderRadius: isSmallMobile ? 14 : 16,
                           padding: isSmallMobile ? "12px 12px" : "16px 16px",
                           boxShadow: "0 1px 3px rgba(0,0,0,0.02)",
@@ -909,13 +1021,22 @@ export default function Testimonials() {
                               boxSizing: "border-box",
                             }}
                           >
-                            <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0, flex: "1 1 auto" }}>
+                            <div
+                              style={{
+                                display: "flex",
+                                alignItems: "center",
+                                gap: 8,
+                                minWidth: 0,
+                                flex: "1 1 auto",
+                              }}
+                            >
                               <div
                                 style={{
                                   width: isSmallMobile ? 32 : 36,
                                   height: isSmallMobile ? 32 : 36,
                                   borderRadius: "50%",
-                                  background: "linear-gradient(135deg, #2563eb, #3b82f6)",
+                                  background:
+                                    "linear-gradient(135deg, #2563eb, #3b82f6)",
                                   color: "#ffffff",
                                   fontSize: isSmallMobile ? 13 : 14,
                                   fontWeight: 900,
@@ -949,7 +1070,12 @@ export default function Testimonials() {
                                   >
                                     {item.name}
                                   </h4>
-                                  <BadgeCheck size={13} color="#2563eb" fill="#dbeafe" style={{ flexShrink: 0 }} />
+                                  <BadgeCheck
+                                    size={13}
+                                    color="#2563eb"
+                                    fill="#dbeafe"
+                                    style={{ flexShrink: 0 }}
+                                  />
                                 </div>
                                 <div
                                   style={{
@@ -960,21 +1086,32 @@ export default function Testimonials() {
                                     textOverflow: "ellipsis",
                                   }}
                                 >
-                                  {item.regNo ? `Student (${item.regNo})` : "Student"}
+                                  {item.regNo
+                                    ? `Student (${item.regNo})`
+                                    : "Student"}
                                 </div>
                               </div>
                             </div>
 
                             {/* Stars Rating */}
-                            <div style={{ display: "flex", gap: 1.5, color: "#f59e0b", flexShrink: 0 }}>
-                              {[...Array(Number(item.rating) || 5)].map((_, i) => (
-                                <Star
-                                  key={i}
-                                  size={isSmallMobile ? 11.5 : 13}
-                                  fill="#f59e0b"
-                                  color="#f59e0b"
-                                />
-                              ))}
+                            <div
+                              style={{
+                                display: "flex",
+                                gap: 1.5,
+                                color: "#f59e0b",
+                                flexShrink: 0,
+                              }}
+                            >
+                              {[...Array(Number(item.rating) || 5)].map(
+                                (_, i) => (
+                                  <Star
+                                    key={i}
+                                    size={isSmallMobile ? 11.5 : 13}
+                                    fill="#f59e0b"
+                                    color="#f59e0b"
+                                  />
+                                ),
+                              )}
                             </div>
                           </div>
 
@@ -1050,7 +1187,9 @@ export default function Testimonials() {
                               alignItems: "center",
                               gap: 4,
                               background: isLiked ? "#eff6ff" : "#f8fafc",
-                              border: isLiked ? "1px solid #bfdbfe" : "1px solid #e2e8f0",
+                              border: isLiked
+                                ? "1px solid #bfdbfe"
+                                : "1px solid #e2e8f0",
                               color: isLiked ? "#1d4ed8" : "#64748b",
                               borderRadius: 6,
                               padding: "3px 8px",
@@ -1153,7 +1292,8 @@ export default function Testimonials() {
                                 currentPage === p
                                   ? "1px solid #2563eb"
                                   : "1px solid #e2e8f0",
-                              background: currentPage === p ? "#2563eb" : "#ffffff",
+                              background:
+                                currentPage === p ? "#2563eb" : "#ffffff",
                               color: currentPage === p ? "#ffffff" : "#475569",
                               fontSize: isSmallMobile ? 11 : 12,
                               fontWeight: currentPage === p ? 800 : 600,
@@ -1167,7 +1307,7 @@ export default function Testimonials() {
                           >
                             {p}
                           </button>
-                        )
+                        ),
                       )}
                     </div>
 
@@ -1182,11 +1322,16 @@ export default function Testimonials() {
                         padding: isSmallMobile ? "5px 8px" : "7px 12px",
                         borderRadius: 8,
                         border: "1px solid #e2e8f0",
-                        background: currentPage === totalPages ? "#f8fafc" : "#ffffff",
-                        color: currentPage === totalPages ? "#cbd5e1" : "#1e293b",
+                        background:
+                          currentPage === totalPages ? "#f8fafc" : "#ffffff",
+                        color:
+                          currentPage === totalPages ? "#cbd5e1" : "#1e293b",
                         fontSize: isSmallMobile ? 11.5 : 12.5,
                         fontWeight: 700,
-                        cursor: currentPage === totalPages ? "not-allowed" : "pointer",
+                        cursor:
+                          currentPage === totalPages
+                            ? "not-allowed"
+                            : "pointer",
                         fontFamily: "'DM Sans', sans-serif",
                         flexShrink: 0,
                       }}
@@ -1254,7 +1399,13 @@ export default function Testimonials() {
                   >
                     Write a Review
                   </h3>
-                  <p style={{ fontSize: isSmallMobile ? 11 : 12, color: "#64748b", margin: 0 }}>
+                  <p
+                    style={{
+                      fontSize: isSmallMobile ? 11 : 12,
+                      color: "#64748b",
+                      margin: 0,
+                    }}
+                  >
                     Share your experience with GradeFlow
                   </p>
                 </div>
@@ -1273,7 +1424,14 @@ export default function Testimonials() {
                   marginBottom: 10,
                 }}
               >
-                <div style={{ display: "flex", gap: 5, cursor: "pointer", marginBottom: 2 }}>
+                <div
+                  style={{
+                    display: "flex",
+                    gap: 5,
+                    cursor: "pointer",
+                    marginBottom: 2,
+                  }}
+                >
                   {[1, 2, 3, 4, 5].map((star) => (
                     <button
                       key={star}
@@ -1290,13 +1448,23 @@ export default function Testimonials() {
                     >
                       <Star
                         size={isSmallMobile ? 22 : 24}
-                        fill={(hoverRating || rating) >= star ? "#f59e0b" : "#e2e8f0"}
-                        color={(hoverRating || rating) >= star ? "#d97706" : "#cbd5e1"}
+                        fill={
+                          (hoverRating || rating) >= star
+                            ? "#f59e0b"
+                            : "#e2e8f0"
+                        }
+                        color={
+                          (hoverRating || rating) >= star
+                            ? "#d97706"
+                            : "#cbd5e1"
+                        }
                       />
                     </button>
                   ))}
                 </div>
-                <span style={{ fontSize: 11, fontWeight: 700, color: "#475569" }}>
+                <span
+                  style={{ fontSize: 11, fontWeight: 700, color: "#475569" }}
+                >
                   {getRatingLabel(hoverRating || rating)}
                 </span>
               </div>
@@ -1304,7 +1472,11 @@ export default function Testimonials() {
               {/* Review Form */}
               <form
                 onSubmit={handleSubmit}
-                style={{ display: "flex", flexDirection: "column", gap: isSmallMobile ? 8 : 10 }}
+                style={{
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: isSmallMobile ? 8 : 10,
+                }}
               >
                 <input
                   type="text"
@@ -1403,35 +1575,43 @@ export default function Testimonials() {
                             zIndex: 100,
                           }}
                         >
-                          {CATEGORIES.filter((c) => c !== "All Reviews").map((catOpt) => (
-                            <button
-                              key={catOpt}
-                              type="button"
-                              onClick={() => {
-                                setCategory(catOpt);
-                                setIsCategoryOpen(false);
-                              }}
-                              style={{
-                                width: "100%",
-                                textAlign: "left",
-                                padding: "7px 10px",
-                                borderRadius: 6,
-                                border: "none",
-                                background: category === catOpt ? "#eff6ff" : "transparent",
-                                color: category === catOpt ? "#2563eb" : "#1e293b",
-                                fontSize: 12.5,
-                                fontWeight: category === catOpt ? 700 : 500,
-                                cursor: "pointer",
-                                fontFamily: "'DM Sans', sans-serif",
-                                display: "flex",
-                                alignItems: "center",
-                                justifyContent: "space-between",
-                              }}
-                            >
-                              {catOpt}
-                              {category === catOpt && <CheckCircle2 size={13} color="#2563eb" />}
-                            </button>
-                          ))}
+                          {CATEGORIES.filter((c) => c !== "All Reviews").map(
+                            (catOpt) => (
+                              <button
+                                key={catOpt}
+                                type="button"
+                                onClick={() => {
+                                  setCategory(catOpt);
+                                  setIsCategoryOpen(false);
+                                }}
+                                style={{
+                                  width: "100%",
+                                  textAlign: "left",
+                                  padding: "7px 10px",
+                                  borderRadius: 6,
+                                  border: "none",
+                                  background:
+                                    category === catOpt
+                                      ? "#eff6ff"
+                                      : "transparent",
+                                  color:
+                                    category === catOpt ? "#2563eb" : "#1e293b",
+                                  fontSize: 12.5,
+                                  fontWeight: category === catOpt ? 700 : 500,
+                                  cursor: "pointer",
+                                  fontFamily: "'DM Sans', sans-serif",
+                                  display: "flex",
+                                  alignItems: "center",
+                                  justifyContent: "space-between",
+                                }}
+                              >
+                                {catOpt}
+                                {category === catOpt && (
+                                  <CheckCircle2 size={13} color="#2563eb" />
+                                )}
+                              </button>
+                            ),
+                          )}
                         </motion.div>
                       </>
                     )}
@@ -1499,7 +1679,8 @@ export default function Testimonials() {
                 >
                   {isSubmitting ? (
                     <>
-                      <Loader2 size={14} className="animate-spin" /> Submitting...
+                      <Loader2 size={14} className="animate-spin" />{" "}
+                      Submitting...
                     </>
                   ) : (
                     <>
@@ -1569,7 +1750,13 @@ export default function Testimonials() {
             width: "100%",
           }}
         >
-          <div style={{ display: "flex", alignItems: "center", gap: isSmallMobile ? 10 : 14 }}>
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: isSmallMobile ? 10 : 14,
+            }}
+          >
             <div
               style={{
                 width: isSmallMobile ? 36 : 44,
@@ -1596,8 +1783,15 @@ export default function Testimonials() {
               >
                 Join Thousands of Happy Students
               </h3>
-              <p style={{ fontSize: isSmallMobile ? 11 : 12.5, color: "#64748b", margin: 0 }}>
-                Explore your academic analytics and take control of your grades today.
+              <p
+                style={{
+                  fontSize: isSmallMobile ? 11 : 12.5,
+                  color: "#64748b",
+                  margin: 0,
+                }}
+              >
+                Explore your academic analytics and take control of your grades
+                today.
               </p>
             </div>
           </div>
