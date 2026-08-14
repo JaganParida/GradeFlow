@@ -48,9 +48,9 @@ function getDynamicSessionOptions(bStr, semVal, yStr) {
   const bYear = bStr && !isNaN(parseInt(bStr, 10)) ? parseInt(bStr, 10) : null;
   const yVal = yStr && !isNaN(parseInt(yStr, 10)) ? parseInt(yStr, 10) : null;
   const startY = bYear ? bYear : yVal;
+  const sessions = [];
 
   if (!startY) {
-    const sessions = [];
     for (let y = 2018; y <= 2030; y++) {
       sessions.push(`${y}-${String(y + 1).slice(-2)}`);
     }
