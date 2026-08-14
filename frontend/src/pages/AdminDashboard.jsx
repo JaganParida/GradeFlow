@@ -41,7 +41,13 @@ import {
   ArrowRight,
   ChevronLeft,
   ChevronRight,
-  Star
+  Star,
+  UserPlus,
+  UserCheck,
+  FileCheck,
+  Copy,
+  CheckCheck,
+  SearchCode
 } from "lucide-react";
 
 function getDynamicSessionOptions(bStr, semVal, yStr) {
@@ -446,6 +452,484 @@ function UploadCard({
           )}
         </button>
       </div>
+    </motion.div>
+  );
+}
+
+/* ════════════════════════════════════════════════════════════════
+   1.5 MISSING STUDENTS UPLOAD CARD (Filters out existing students, ingests only missing ones)
+   ════════════════════════════════════════════════════════════════ */
+function MissingUploadCard({
+  title,
+  icon,
+  endpoint,
+  typeBadge,
+  extraFields,
+  authHeaders,
+  API,
+  onSuccess,
+}) {
+  const [file, setFile] = useState(null);
+  const [extra, setExtra] = useState(() => {
+    const init = {};
+    if (extraFields) {
+      extraFields.forEach((f) => {
+        if (f.value !== undefined) init[f.key] = f.value;
+      });
+    }
+    return init;
+  });
+  const [loading, setLoading] = useState(false);
+  const [progress, setProgress] = useState(0);
+  const [report, setReport] = useState(null);
+  const [err, setErr] = useState("");
+  const [copiedAll, setCopiedAll] = useState(false);
+  const inputRef = useRef();
+
+  useEffect(() => {
+    const hasSessionField = extraFields?.some((f) => f.key === "session");
+    if (!hasSessionField) return;
+
+    const bYear = extra.batch && !isNaN(parseInt(extra.batch, 10)) ? parseInt(extra.batch, 10) : null;
+    const semNum = extra.semester && !isNaN(parseInt(extra.semester, 10)) ? parseInt(extra.semester, 10) : null;
+    const yVal = extra.year && !isNaN(parseInt(extra.year, 10)) ? parseInt(extra.year, 10) : null;
+
+    let targetSession = extra.session;
+
+    if (bYear && semNum && semNum >= 1) {
+      const yearOffset = Math.floor((semNum - 1) / 2);
+      const calcYear = bYear + yearOffset;
+      targetSession = `${calcYear}-${String(calcYear + 1).slice(-2)}`;
+    } else if (bYear || yVal) {
+      const validSessions = getDynamicSessionOptions(extra.batch, extra.semester, extra.year);
+      if (!targetSession || !validSessions.includes(targetSession)) {
+        targetSession = validSessions[0];
+      }
+    }
+
+    if (targetSession && targetSession !== extra.session) {
+      setExtra((prev) => ({ ...prev, session: targetSession }));
+    }
+  }, [extra.batch, extra.semester, extra.year]);
+
+  async function handleIngest() {
+    if (!file) {
+      setErr("Please select an Excel file to upload");
+      return;
+    }
+    const requiredFields = extraFields?.filter((f) => f.label && f.label.includes("*"));
+    const missing = requiredFields?.find((f) => !extra[f.key]);
+    if (missing) {
+      setErr(`${missing.label.replace(" *", "")} is required`);
+      return;
+    }
+
+    setLoading(true);
+    setProgress(0);
+    setReport(null);
+    setErr("");
+
+    try {
+      const fd = new FormData();
+      fd.append("file", file);
+      Object.entries(extra).forEach(([k, v]) => fd.append(k, v));
+
+      const { data } = await axios.post(`${API}/admin/${endpoint}`, fd, {
+        ...authHeaders,
+        headers: {
+          ...authHeaders.headers,
+          "Content-Type": "multipart/form-data",
+        },
+        onUploadProgress: (progressEvent) => {
+          if (progressEvent.total) {
+            const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+            setProgress(Math.min(90, Math.floor(percentCompleted * 0.9)));
+          }
+        },
+      });
+
+      setProgress(100);
+
+      setTimeout(() => {
+        setReport(data);
+        setFile(null);
+        if (inputRef.current) inputRef.current.value = "";
+        if (onSuccess) onSuccess();
+        setLoading(false);
+        setProgress(0);
+      }, 500);
+    } catch (e) {
+      setErr(e.response?.data?.message || "Ingestion failed");
+      setLoading(false);
+      setProgress(0);
+    }
+  }
+
+  const handleCopyRegs = () => {
+    if (!report?.addedStudents?.length) return;
+    const list = report.addedStudents.map((s) => s.regNo).join(", ");
+    navigator.clipboard.writeText(list);
+    setCopiedAll(true);
+    setTimeout(() => setCopiedAll(false), 2500);
+  };
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      style={{
+        background: "#ffffff",
+        border: "1.5px solid #e0e7ff",
+        borderRadius: 16,
+        padding: "22px 20px",
+        boxShadow: "0 2px 12px rgba(79, 70, 229, 0.04)",
+        display: "flex",
+        flexDirection: "column",
+        justifyContent: "space-between",
+        boxSizing: "border-box",
+      }}
+    >
+      <div>
+        {/* Header */}
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 16 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <div
+              style={{
+                width: 38,
+                height: 38,
+                borderRadius: 10,
+                background: "#e0e7ff",
+                color: "#4338ca",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                flexShrink: 0,
+              }}
+            >
+              {icon}
+            </div>
+            <div>
+              <h3 style={{ fontWeight: 800, fontSize: 16, color: "#0f172a", margin: 0, letterSpacing: "-0.3px" }}>
+                {title}
+              </h3>
+              <p style={{ margin: "2px 0 0 0", fontSize: 11.5, color: "#64748b" }}>
+                Filters out existing students; ingests only completely new records.
+              </p>
+            </div>
+          </div>
+          {typeBadge && (
+            <span
+              style={{
+                background: "#e0e7ff",
+                color: "#4338ca",
+                padding: "3px 8px",
+                borderRadius: 6,
+                fontSize: 10.5,
+                fontWeight: 800,
+                textTransform: "uppercase",
+              }}
+            >
+              {typeBadge}
+            </span>
+          )}
+        </div>
+
+        {/* Extra Form Fields */}
+        {extraFields
+          ?.filter((f) => !f.hidden)
+          .map((f) => {
+            const currentOptions =
+              f.key === "session"
+                ? getDynamicSessionOptions(extra.batch, extra.semester, extra.year)
+                : f.options;
+
+            return (
+              <div key={f.key} style={{ marginBottom: 12 }}>
+                <label
+                  style={{
+                    display: "block",
+                    fontSize: 11.5,
+                    color: "#475569",
+                    fontWeight: 700,
+                    marginBottom: 5,
+                    textTransform: "uppercase",
+                    letterSpacing: "0.4px",
+                  }}
+                >
+                  {f.label}
+                </label>
+                {f.type === "select" ? (
+                  <select
+                    value={extra[f.key] || ""}
+                    onChange={(e) =>
+                      setExtra((prev) => ({ ...prev, [f.key]: e.target.value }))
+                    }
+                    style={{
+                      width: "100%",
+                      padding: "8px 10px",
+                      borderRadius: 8,
+                      border: "1px solid #cbd5e1",
+                      fontSize: 13,
+                      color: "#1e293b",
+                      background: "#ffffff",
+                    }}
+                  >
+                    {currentOptions?.map((opt) => {
+                      const val = typeof opt === "object" ? opt.value : opt;
+                      const lbl = typeof opt === "object" ? opt.label : opt;
+                      return (
+                        <option key={val} value={val}>
+                          {lbl}
+                        </option>
+                      );
+                    })}
+                  </select>
+                ) : (
+                  <input
+                    type="text"
+                    value={extra[f.key] || ""}
+                    onChange={(e) =>
+                      setExtra((prev) => ({ ...prev, [f.key]: e.target.value }))
+                    }
+                    placeholder={f.placeholder || ""}
+                    style={{
+                      width: "100%",
+                      padding: "8px 10px",
+                      borderRadius: 8,
+                      border: "1px solid #cbd5e1",
+                      fontSize: 13,
+                      color: "#1e293b",
+                      boxSizing: "border-box",
+                    }}
+                  />
+                )}
+              </div>
+            );
+          })}
+
+        {/* File Input */}
+        <div style={{ marginTop: 14 }}>
+          <label
+            style={{
+              display: "block",
+              fontSize: 11.5,
+              color: "#475569",
+              fontWeight: 700,
+              marginBottom: 5,
+              textTransform: "uppercase",
+              letterSpacing: "0.4px",
+            }}
+          >
+            Select Excel File (.xlsx, .xls, .csv)
+          </label>
+          <input
+            ref={inputRef}
+            type="file"
+            accept=".xlsx,.xls,.csv"
+            onChange={(e) => setFile(e.target.files[0])}
+            style={{
+              width: "100%",
+              padding: "7px",
+              border: "1px dashed #94a3b8",
+              borderRadius: 8,
+              fontSize: 12,
+              color: "#475569",
+              background: "#f8fafc",
+              boxSizing: "border-box",
+            }}
+          />
+        </div>
+
+        {/* Progress Bar */}
+        {loading && (
+          <div style={{ marginTop: 14 }}>
+            <div
+              style={{
+                width: "100%",
+                height: 6,
+                background: "#e2e8f0",
+                borderRadius: 99,
+                overflow: "hidden",
+              }}
+            >
+              <div
+                style={{
+                  width: `${progress}%`,
+                  height: "100%",
+                  background: "#4f46e5",
+                  transition: "width 0.2s ease",
+                }}
+              />
+            </div>
+            <div
+              style={{
+                fontSize: 11,
+                color: "#6366f1",
+                textAlign: "right",
+                marginTop: 4,
+                fontWeight: 600,
+              }}
+            >
+              Filtering database & ingesting... {progress}%
+            </div>
+          </div>
+        )}
+
+        {/* Feedback Messages & Live Ingestion Report */}
+        {report && (
+          <div style={{ marginTop: 14, display: "flex", flexDirection: "column", gap: 10 }}>
+            <div
+              style={{
+                padding: "10px 12px",
+                background: report.addedCount > 0 ? "#ecfdf5" : "#f0f9ff",
+                border: report.addedCount > 0 ? "1px solid #a7f3d0" : "1px solid #bae6fd",
+                borderRadius: 10,
+                color: report.addedCount > 0 ? "#065f46" : "#0369a1",
+                fontSize: 12.5,
+                fontWeight: 600,
+                display: "flex",
+                alignItems: "center",
+                gap: 7,
+              }}
+            >
+              <CheckCircle size={16} color={report.addedCount > 0 ? "#059669" : "#0284c7"} />
+              <span>{report.message}</span>
+            </div>
+
+            {/* Quick Metrics */}
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8 }}>
+              <div style={{ background: "#f8fafc", border: "1px solid #e2e8f0", padding: "8px 10px", borderRadius: 8, textAlign: "center" }}>
+                <div style={{ fontSize: 10, color: "#64748b", fontWeight: 700, textTransform: "uppercase" }}>In File</div>
+                <div style={{ fontSize: 14, fontWeight: 800, color: "#0f172a" }}>{report.totalInFile}</div>
+              </div>
+              <div style={{ background: "#fef3c7", border: "1px solid #fde68a", padding: "8px 10px", borderRadius: 8, textAlign: "center" }}>
+                <div style={{ fontSize: 10, color: "#92400e", fontWeight: 700, textTransform: "uppercase" }}>Skipped (In DB)</div>
+                <div style={{ fontSize: 14, fontWeight: 800, color: "#b45309" }}>{report.skippedCount}</div>
+              </div>
+              <div style={{ background: "#ecfdf5", border: "1px solid #a7f3d0", padding: "8px 10px", borderRadius: 8, textAlign: "center" }}>
+                <div style={{ fontSize: 10, color: "#065f46", fontWeight: 700, textTransform: "uppercase" }}>Newly Ingested</div>
+                <div style={{ fontSize: 14, fontWeight: 800, color: "#059669" }}>{report.addedCount}</div>
+              </div>
+            </div>
+
+            {/* Added Students Table */}
+            {report.addedStudents && report.addedStudents.length > 0 && (
+              <div style={{ marginTop: 4 }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
+                  <span style={{ fontSize: 11.5, fontWeight: 700, color: "#334155" }}>
+                    Ingested Students ({report.addedStudents.length})
+                  </span>
+                  <button
+                    type="button"
+                    onClick={handleCopyRegs}
+                    style={{
+                      background: "none",
+                      border: "none",
+                      color: "#4f46e5",
+                      fontSize: 11.5,
+                      fontWeight: 700,
+                      cursor: "pointer",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 4,
+                    }}
+                  >
+                    {copiedAll ? <CheckCheck size={12} color="#16a34a" /> : <Copy size={12} />}
+                    {copiedAll ? "Copied!" : "Copy Reg Nos"}
+                  </button>
+                </div>
+                <div style={{ maxHeight: 180, overflowY: "auto", border: "1px solid #e2e8f0", borderRadius: 8 }}>
+                  <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 11.5, textAlign: "left" }}>
+                    <thead style={{ background: "#f8fafc", position: "sticky", top: 0 }}>
+                      <tr style={{ borderBottom: "1px solid #e2e8f0", color: "#64748b" }}>
+                        <th style={{ padding: "6px 8px" }}>Reg No</th>
+                        <th style={{ padding: "6px 8px" }}>Name</th>
+                        <th style={{ padding: "6px 8px" }}>Branch</th>
+                        {report.addedStudents[0].sgpa !== undefined && (
+                          <th style={{ padding: "6px 8px" }}>SGPA</th>
+                        )}
+                        <th style={{ padding: "6px 8px" }}>Status</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {report.addedStudents.map((st) => (
+                        <tr key={st.regNo} style={{ borderBottom: "1px solid #f1f5f9" }}>
+                          <td style={{ padding: "6px 8px", fontFamily: "monospace", fontWeight: 700 }}>{st.regNo}</td>
+                          <td style={{ padding: "6px 8px" }}>{st.studentName}</td>
+                          <td style={{ padding: "6px 8px" }}>{st.branch}</td>
+                          {st.sgpa !== undefined && (
+                            <td style={{ padding: "6px 8px", fontWeight: 800, color: "#2563eb" }}>{st.sgpa}</td>
+                          )}
+                          <td style={{ padding: "6px 8px" }}>
+                            <span style={{ background: "#ecfdf5", color: "#065f46", padding: "2px 5px", borderRadius: 4, fontSize: 10, fontWeight: 700 }}>
+                              ✅ Ingested
+                            </span>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {err && (
+          <div
+            style={{
+              marginTop: 12,
+              padding: "9px 12px",
+              background: "#fef2f2",
+              border: "1px solid #fecaca",
+              borderRadius: 8,
+              color: "#991b1b",
+              fontSize: 12.5,
+              fontWeight: 600,
+              display: "flex",
+              alignItems: "center",
+              gap: 6,
+            }}
+          >
+            <AlertTriangle size={15} color="#dc2626" />
+            <span>{err}</span>
+          </div>
+        )}
+      </div>
+
+      <button
+        onClick={handleIngest}
+        disabled={loading}
+        style={{
+          marginTop: 18,
+          width: "100%",
+          padding: "10px",
+          borderRadius: 9,
+          background: loading ? "#94a3b8" : "linear-gradient(135deg, #4f46e5 0%, #2563eb 100%)",
+          color: "#ffffff",
+          border: "none",
+          fontSize: 13,
+          fontWeight: 700,
+          cursor: loading ? "not-allowed" : "pointer",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          gap: 6,
+          boxShadow: "0 2px 8px rgba(79, 70, 229, 0.25)",
+        }}
+      >
+        {loading ? (
+          <>
+            <Loader2 size={15} className="spin" />
+            <span>Scanning Database & Ingesting...</span>
+          </>
+        ) : (
+          <>
+            <UserPlus size={15} />
+            <span>Ingest Missing Students Only</span>
+          </>
+        )}
+      </button>
     </motion.div>
   );
 }
@@ -3075,6 +3559,7 @@ export default function AdminDashboard() {
 
   const ADMIN_TABS = [
     { id: "overview", label: "Upload Results", icon: <CloudUpload size={15} /> },
+    { id: "missing-uploader", label: "Missing Students Ingestion", icon: <UserPlus size={15} /> },
     { id: "toppers", label: "Section Toppers", icon: <Trophy size={15} /> },
     { id: "backlogs", label: "Backlog Tracker", icon: <AlertTriangle size={15} /> },
     { id: "manage", label: "Manage Records", icon: <Database size={15} /> },
@@ -3770,6 +4255,167 @@ export default function AdminDashboard() {
                   </p>
                 </div>
               </div>
+            </div>
+          </div>
+        )}
+
+        {/* ── TAB 1.5: MISSING & UNREGISTERED STUDENTS INGESTION TAB ── */}
+        {tab === "missing-uploader" && (
+          <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+            {/* Safe Ingestion Explanation Banner */}
+            <div
+              style={{
+                background: "linear-gradient(135deg, #eff6ff 0%, #e0e7ff 100%)",
+                border: "1.5px solid #c7d2fe",
+                borderRadius: 18,
+                padding: isMobile ? "16px 14px" : "20px 22px",
+                display: "flex",
+                alignItems: "flex-start",
+                gap: 14,
+              }}
+            >
+              <div
+                style={{
+                  width: 42,
+                  height: 42,
+                  borderRadius: 12,
+                  background: "#4f46e5",
+                  color: "#ffffff",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  flexShrink: 0,
+                  boxShadow: "0 3px 10px rgba(79, 70, 229, 0.25)",
+                }}
+              >
+                <ShieldCheck size={22} />
+              </div>
+              <div>
+                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  <h3 style={{ margin: 0, fontSize: 16.5, fontWeight: 800, color: "#1e1b4b" }}>
+                    Safe Missing Students Ingestion Engine
+                  </h3>
+                  <span
+                    style={{
+                      background: "#4338ca",
+                      color: "#ffffff",
+                      fontSize: 10.5,
+                      fontWeight: 800,
+                      padding: "2px 7px",
+                      borderRadius: 6,
+                      textTransform: "uppercase",
+                    }}
+                  >
+                    Selective Filter
+                  </span>
+                </div>
+                <p style={{ margin: "5px 0 0 0", fontSize: 13, color: "#3730a3", lineHeight: 1.5 }}>
+                  Upload full semester results or internal mark sheets. GradeFlow will automatically scan the database: 
+                  <strong> If a student has even 1 record in the database, they are completely SKIPPED</strong> (no overwriting). 
+                  <strong> ONLY students who are totally absent from GradeFlow are inserted</strong>, with SGPA, credits, profiles, and rankings calculated automatically.
+                </p>
+              </div>
+            </div>
+
+            {/* Ingestion Upload Cards Grid */}
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))",
+                gap: 16,
+              }}
+            >
+              {/* Missing Semester Results Ingestion */}
+              <MissingUploadCard
+                title="Ingest Missing Semester Results"
+                icon={<CloudUpload size={20} />}
+                typeBadge="Results Mode"
+                endpoint="upload-missing-results"
+                API={API}
+                authHeaders={authHeaders}
+                onSuccess={fetchStats}
+                extraFields={[
+                  {
+                    key: "batch",
+                    label: "Batch Year *",
+                    type: "select",
+                    options: [
+                      { label: "Batch 2021", value: "2021" },
+                      { label: "Batch 2022", value: "2022" },
+                      { label: "Batch 2023", value: "2023" },
+                      { label: "Batch 2024", value: "2024" },
+                      { label: "Batch 2025", value: "2025" },
+                    ],
+                  },
+                  {
+                    key: "semester",
+                    label: "Semester Number *",
+                    type: "select",
+                    options: [
+                      { label: "Semester 1", value: "1" },
+                      { label: "Semester 2", value: "2" },
+                      { label: "Semester 3", value: "3" },
+                      { label: "Semester 4", value: "4" },
+                      { label: "Semester 5", value: "5" },
+                      { label: "Semester 6", value: "6" },
+                      { label: "Semester 7", value: "7" },
+                      { label: "Semester 8", value: "8" },
+                    ],
+                  },
+                  {
+                    key: "session",
+                    label: "Academic Session",
+                    type: "select",
+                    options: ["2023-24", "2024-25", "2025-26"],
+                  },
+                ]}
+              />
+
+              {/* Missing Internal Marks Ingestion */}
+              <MissingUploadCard
+                title="Ingest Missing Internal Marks"
+                icon={<FileEdit size={20} />}
+                typeBadge="Internal Mode"
+                endpoint="upload-missing-internal"
+                API={API}
+                authHeaders={authHeaders}
+                onSuccess={fetchStats}
+                extraFields={[
+                  {
+                    key: "batch",
+                    label: "Batch Year *",
+                    type: "select",
+                    options: [
+                      { label: "Batch 2021", value: "2021" },
+                      { label: "Batch 2022", value: "2022" },
+                      { label: "Batch 2023", value: "2023" },
+                      { label: "Batch 2024", value: "2024" },
+                      { label: "Batch 2025", value: "2025" },
+                    ],
+                  },
+                  {
+                    key: "semester",
+                    label: "Semester Number *",
+                    type: "select",
+                    options: [
+                      { label: "Semester 1", value: "1" },
+                      { label: "Semester 2", value: "2" },
+                      { label: "Semester 3", value: "3" },
+                      { label: "Semester 4", value: "4" },
+                      { label: "Semester 5", value: "5" },
+                      { label: "Semester 6", value: "6" },
+                      { label: "Semester 7", value: "7" },
+                      { label: "Semester 8", value: "8" },
+                    ],
+                  },
+                  {
+                    key: "session",
+                    label: "Academic Session",
+                    type: "select",
+                    options: ["2023-24", "2024-25", "2025-26"],
+                  },
+                ]}
+              />
             </div>
           </div>
         )}

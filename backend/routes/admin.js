@@ -2124,15 +2124,492 @@ router.post("/section-toppers/send-email", emailLimiter, validateEmailRequest, a
       { upsert: true }
     ).catch(() => {});
 
-    res.json({
-      success: true,
-      message: `Congratulatory email sent successfully to ${recipientEmail}`,
-    });
-  } catch (err) {
-    console.error("Send section topper email error:", err);
-    res.status(500).json({ message: err.message || "Failed to send email" });
+// ─── UPLOAD SEMESTER RESULTS: ONLY MISSING / NEW STUDENTS ────────────
+router.post(
+  "/upload-missing-results",
+  protect,
+  upload.single("file"),
+  validateFileBuffer,
+  async (req, res) => {
+    try {
+      if (!req.file) return res.status(400).json({ message: "No file uploaded" });
+
+      const wb = XLSX.read(req.file.buffer, { type: "buffer" });
+      const formSemester = req.body.semester;
+      const formBatch = req.body.batch;
+      const formProgram = req.body.program;
+      const formSession = req.body.session;
+      const uploadType = req.body.uploadType || "regular";
+
+      const grouped = {};
+      let totalParsedRows = 0;
+
+      function detectBranchLocal(regNo) {
+        if (!regNo) return "";
+        const r = String(regNo).trim();
+        if (r === "230301180026") return "CSE";
+        if (["230301120110", "230301120186", "230301120371", "230301120481"].includes(r)) return "ECE";
+        if (r === "230301231033") return "AERO";
+
+        const suffix = r.length >= 9 ? r.slice(2) : r;
+        if (suffix.startsWith("0301110") || suffix.startsWith("0301111")) return "CIVIL";
+        if (suffix.startsWith("0301120") || suffix.startsWith("0301121")) return "CSE";
+        if (suffix.startsWith("0301130") || suffix.startsWith("0301131") || suffix.startsWith("0301132")) return "ECE";
+        if (suffix.startsWith("0301150") || suffix.startsWith("0301151")) return "EEE";
+        if (suffix.startsWith("0301160") || suffix.startsWith("0301161")) return "ME";
+        if (suffix.startsWith("0301180")) return "BIO";
+        if (suffix.startsWith("0301190") || suffix.startsWith("0301191")) return "MI";
+        if (suffix.startsWith("0301230")) return "AERO";
+
+        if (r.startsWith("230301110") || r.startsWith("230301111")) return "CIVIL";
+        if (r.startsWith("230301120") || r.startsWith("230301121")) return "CSE";
+        if (r.startsWith("230301130") || r.startsWith("230301131") || r.startsWith("230301132")) return "ECE";
+        if (r.startsWith("230301150") || r.startsWith("230301151")) return "EEE";
+        if (r.startsWith("230301160") || r.startsWith("230301161")) return "ME";
+        if (r.startsWith("230301180")) return "BIO";
+        if (r.startsWith("230301190") || r.startsWith("230301191")) return "MI";
+        if (r.startsWith("230301230")) return "AERO";
+        return "";
+      }
+
+      wb.SheetNames.forEach((sheetName) => {
+        const ws = wb.Sheets[sheetName];
+        const rows = XLSX.utils.sheet_to_json(ws, { defval: "" });
+        totalParsedRows += rows.length;
+
+        rows.forEach((row, idx) => {
+          const regNo = String(col(row, "Reg_No", "RegNo", "reg_no", "Reg No", "Registration No", "regno") || "").trim();
+          const name = String(col(row, "Name", "StudentName", "Student Name", "student_name") || "").trim();
+          const subCode = String(col(row, "Subject_Code", "SubCode", "Sub Code", "subject_code", "Code") || "").trim();
+          const subName = String(col(row, "Subject_Name", "SubName", "Subject", "subject_name") || "").trim();
+          const type = String(col(row, "Type", "type") || "").trim();
+
+          function parseCredit(val) {
+            if (!val && val !== 0) return 0;
+            return val.toString().split("+").reduce((a, c) => a + parseFloat(c || 0), 0);
+          }
+
+          const credit = parseCredit(col(row, "Credits", "Credit", "credits", "credit") || 0);
+          const grade = String(col(row, "New Grade", "NewGrade", "Grade", "grade") || "").trim().toUpperCase();
+          const slNo = col(row, "Sl No", "SlNo", "Sl_No", "sl_no", "S.No", "SNo", "SI No") || idx + 1;
+
+          const semRaw = formSemester || col(row, "Semester", "semester", "Sem", "sem");
+          let semester = Number(semRaw);
+          let batch = detectBatch(regNo);
+          if (!batch) {
+            batch = String(formBatch || col(row, "Batch", "batch") || "");
+          }
+
+          let branch = detectBranchLocal(regNo);
+          if (!branch) {
+            branch = String(col(row, "Branch", "branch") || sheetName || "").trim();
+          }
+          const program = String(formProgram || "").trim();
+          const session = String(formSession || col(row, "Session", "session") || "");
+
+          if (!regNo) return;
+          if (!semester || isNaN(semester)) semester = 1;
+          if (!grade || !(grade in GRADE_POINTS)) return;
+
+          const key = `${regNo}_${semester}`;
+          if (!grouped[key]) {
+            grouped[key] = {
+              regNo,
+              studentName: name,
+              branch,
+              batch,
+              program,
+              semester,
+              session,
+              subjects: [],
+            };
+          }
+
+          grouped[key].subjects.push({
+            slNo: Number(slNo),
+            subCode,
+            subName,
+            type,
+            credit,
+            grade,
+            gradePoint: GRADE_POINTS[grade] || 0,
+            resultType: uploadType,
+          });
+        });
+      });
+
+      const keys = Object.keys(grouped);
+      if (!keys.length) {
+        return res.status(400).json({ message: "No valid rows found in Excel sheet." });
+      }
+
+      const allRegNos = Array.from(new Set(keys.map((k) => grouped[k].regNo)));
+
+      // ─── QUERY DATABASE: FIND STUDENTS WHO ALREADY EXIST ───
+      const existingInDb = await SemesterResult.distinct("regNo", { regNo: { $in: allRegNos } });
+      const existingSet = new Set(existingInDb);
+
+      // ─── FILTER: KEEP ONLY STUDENTS WHO ARE TOTALLY MISSING (0 records in DB) ───
+      const missingKeys = keys.filter((k) => !existingSet.has(grouped[k].regNo));
+
+      if (missingKeys.length === 0) {
+        return res.json({
+          success: true,
+          message: `All ${allRegNos.length} student(s) in this Excel sheet already exist in the database. 0 missing students added.`,
+          totalInFile: allRegNos.length,
+          skippedCount: allRegNos.length,
+          addedCount: 0,
+          addedStudents: [],
+        });
+      }
+
+      const bulkOps = [];
+      const studentOps = [];
+      const affectedSemesters = new Set();
+      const addedStudents = [];
+
+      for (const key of missingKeys) {
+        const data = grouped[key];
+        const { totalCredits, creditsCleared, sgpa } = calculateSemesterMetrics(
+          data.subjects,
+          data.semester
+        );
+
+        bulkOps.push({
+          updateOne: {
+            filter: { regNo: data.regNo, semester: data.semester },
+            update: {
+              $set: {
+                ...data,
+                totalCredits,
+                creditsCleared,
+                sgpa,
+              },
+            },
+            upsert: true,
+          },
+        });
+
+        studentOps.push({
+          updateOne: {
+            filter: { regNo: data.regNo },
+            update: { $setOnInsert: { regNo: data.regNo } },
+            upsert: true,
+          },
+        });
+
+        affectedSemesters.add(data.semester);
+        addedStudents.push({
+          regNo: data.regNo,
+          studentName: data.studentName || "Student",
+          branch: data.branch,
+          batch: data.batch,
+          semester: data.semester,
+          session: data.session,
+          totalCredits,
+          creditsCleared,
+          sgpa,
+          subjectsCount: data.subjects.length,
+        });
+      }
+
+      if (bulkOps.length > 0) await SemesterResult.bulkWrite(bulkOps);
+      if (studentOps.length > 0) await Student.bulkWrite(studentOps);
+
+      // Recalculate rankings for affected semesters
+      for (const sem of affectedSemesters) {
+        await generateRankingForSemester(sem);
+      }
+
+      // Invalidate cache for newly ingested students
+      addedStudents.forEach((s) => clearStudentCache(s.regNo));
+
+      return res.json({
+        success: true,
+        message: `✅ Successfully ingested ${addedStudents.length} missing student(s) into database! (Skipped ${existingInDb.length} existing students). Auto-generated rankings & metrics.`,
+        totalInFile: allRegNos.length,
+        skippedCount: existingInDb.length,
+        addedCount: addedStudents.length,
+        addedStudents,
+      });
+    } catch (err) {
+      console.error("Upload missing results error:", err);
+      res.status(500).json({ message: "Server error during missing students upload." });
+    }
   }
-});
+);
+
+// ─── UPLOAD INTERNAL MARKS: ONLY MISSING / NEW STUDENTS ──────────────
+router.post(
+  "/upload-missing-internal",
+  protect,
+  upload.single("file"),
+  validateFileBuffer,
+  async (req, res) => {
+    try {
+      if (!req.file) return res.status(400).json({ message: "No file uploaded" });
+
+      const formSemester = req.body.semester;
+      const formBatch = req.body.batch;
+      const formProgram = req.body.program;
+      const formSession = req.body.session;
+      const grouped = {};
+      const wb = XLSX.read(req.file.buffer, { type: "buffer" });
+      const uploadSemester = Number(formSemester) || 1;
+      const isSem1Upload = uploadSemester === 1;
+
+      const sem1Assessments = new Set(["classTest1", "classTest2", "classTest3", "classTest4", "assignment", "total"]);
+      const regularAssessments = new Set(["midSem", "presentation", "assignment", "learningRecord", "internalPractical", "projectInternal", "total"]);
+
+      const compactHeader = (value) => String(value || "").trim().toUpperCase().replace(/[\s\-_.:]+/g, "");
+      const detectAssessment = (value) => {
+        const val = String(value || "").trim().toUpperCase();
+        const compactVal = compactHeader(value);
+        if (!compactVal) return null;
+        if (compactVal.includes("MIDSEMESTER") || compactVal.includes("MIDSEM")) return "midSem";
+        if (compactVal.includes("CLASSTESTIV") || compactVal.includes("CLASSTEST4") || compactVal.includes("CTIV") || compactVal.includes("CT4")) return "classTest4";
+        if (compactVal.includes("CLASSTESTIII") || compactVal.includes("CLASSTEST3") || compactVal.includes("CTIII") || compactVal.includes("CT3")) return "classTest3";
+        if (compactVal.includes("CLASSTESTII") || compactVal.includes("CLASSTEST2") || compactVal.includes("CTII") || compactVal.includes("CT2")) return "classTest2";
+        if (compactVal.includes("CLASSTESTI") || compactVal.includes("CLASSTEST1") || compactVal.includes("CTI") || compactVal.includes("CT1")) return "classTest1";
+        if (compactVal.includes("PRESENTATION")) return "presentation";
+        if (compactVal.includes("ASSIGNMENT")) return "assignment";
+        if (compactVal.includes("LEARNINGRECORD")) return "learningRecord";
+        if (compactVal.includes("INTERNALPRACTICAL") || compactVal.includes("INTERNALPRAC")) return "internalPractical";
+        if (compactVal.includes("PROJECTINTERNAL")) return "projectInternal";
+        if (compactVal === "TOTAL" || compactVal.includes("TOTALSCORE") || val.includes("TOTAL:")) return "total";
+        return null;
+      };
+
+      const isAllowedAssessment = (assessment) => assessment && (isSem1Upload ? sem1Assessments.has(assessment) : regularAssessments.has(assessment));
+
+      wb.SheetNames.forEach((sheetName) => {
+        const ws = wb.Sheets[sheetName];
+        const rows = XLSX.utils.sheet_to_json(ws, { header: 1, defval: "" });
+        if (!rows || rows.length < 5) return;
+
+        let headerRowIdx = -1;
+        for (let r = 0; r < Math.min(15, rows.length); r++) {
+          const rowStr = rows[r].join("").toLowerCase();
+          if (rowStr.includes("student") && (rowStr.includes("rollno") || rowStr.includes("regno"))) {
+            headerRowIdx = r;
+            break;
+          }
+        }
+        if (headerRowIdx === -1) headerRowIdx = 6;
+
+        let maxCol = 0;
+        for (let r = Math.max(0, headerRowIdx - 3); r <= headerRowIdx + 2; r++) {
+          if (rows[r] && rows[r].length > maxCol) maxCol = rows[r].length;
+        }
+
+        let colMap = {};
+        let currentSubject = null;
+        let currentAssessment = null;
+        let assessmentMetrics = {};
+
+        for (let c = 3; c < maxCol; c++) {
+          let foundSubject = null;
+          for (let r = Math.max(0, headerRowIdx - 3); r <= headerRowIdx; r++) {
+            const val = String(rows[r] && rows[r][c] ? rows[r][c] : "").trim().toLowerCase();
+            if (val) {
+              const subMatch = val.match(/-\s*\((.*?)\)\s*\((pp|pr|tut)/i) || val.match(/\((.*?)\)\s*\((pp|pr|tut)/i);
+              if (subMatch) {
+                foundSubject = {
+                  subCode: subMatch[1].toUpperCase(),
+                  subName: val.split("-")[0].trim().toUpperCase(),
+                  type: subMatch[2].toUpperCase(),
+                };
+              } else if (val.length > 5) {
+                foundSubject = {
+                  subCode: val.substring(0, 8).toUpperCase(),
+                  subName: val.toUpperCase(),
+                  type: "PP",
+                };
+              }
+            }
+          }
+          if (foundSubject) {
+            currentSubject = foundSubject;
+            currentAssessment = null;
+            assessmentMetrics = {};
+          }
+
+          let foundAss = null;
+          for (let r = Math.max(0, headerRowIdx - 3); r <= headerRowIdx + 2; r++) {
+            const detected = detectAssessment(rows[r] && rows[r][c]);
+            if (isAllowedAssessment(detected)) foundAss = detected;
+          }
+          if (foundAss) {
+            if (currentAssessment !== foundAss) {
+              currentAssessment = foundAss;
+              assessmentMetrics = {};
+            }
+          }
+
+          let foundMetric = null;
+          for (let r = Math.max(0, headerRowIdx - 3); r <= headerRowIdx + 2; r++) {
+            const rawText = String(rows[r] && rows[r][c] ? rows[r][c] : "");
+            const cleanVal = compactHeader(rawText);
+            if (cleanVal.includes("ROUND")) {
+              foundMetric = "roundOff";
+            } else if (cleanVal.includes("OBTAINED") || cleanVal.includes("OBT")) {
+              foundMetric = "obtained";
+            } else if (cleanVal.includes("MAX")) {
+              foundMetric = "max";
+            } else if (currentAssessment === "total" && cleanVal.includes("TOTALSCORE")) {
+              foundMetric = "obtained";
+            }
+          }
+
+          if (currentSubject && currentAssessment && foundMetric) {
+            assessmentMetrics[foundMetric] = true;
+            colMap[c] = { subject: currentSubject, assessment: currentAssessment, metric: foundMetric };
+          } else if (currentSubject && !currentAssessment && foundMetric) {
+            assessmentMetrics[foundMetric] = true;
+            colMap[c] = { subject: currentSubject, assessment: "total", metric: foundMetric };
+          }
+        }
+
+        for (let r = headerRowIdx + 1; r < rows.length; r++) {
+          const row = rows[r];
+          if (!row || row.length === 0) continue;
+          let regNo = "";
+          let name = "";
+          for (let c = 0; c < Math.min(5, row.length); c++) {
+            const val = String(row[c] || "").trim();
+            if (val && !isNaN(val) && val.length > 5 && !regNo) {
+              regNo = val;
+            } else if (val && isNaN(val) && val.length > 3 && !val.toLowerCase().includes("sr") && !name) {
+              name = val;
+            }
+          }
+          if (!regNo) continue;
+
+          const semester = Number(formSemester) || 1;
+          const branch = String(sheetName || "").trim();
+          const program = String(formProgram || "").trim();
+          const session = String(formSession || "").trim();
+          let batch = detectBatch(regNo) || String(formBatch || "");
+
+          const key = `${regNo}_${semester}`;
+          if (!grouped[key]) {
+            grouped[key] = {
+              regNo,
+              studentName: name,
+              branch,
+              batch,
+              program,
+              session,
+              semester,
+              subjectsObj: {},
+            };
+          }
+
+          for (const c in colMap) {
+            const map = colMap[c];
+            const rawVal = row[c];
+            if (rawVal === undefined || rawVal === null || String(rawVal).trim() === "" || String(rawVal).trim() === "-") continue;
+            const val = Number(rawVal);
+            if (isNaN(val)) continue;
+
+            const subjKey = `${map.subject.subCode}_${map.subject.type}`;
+            if (!grouped[key].subjectsObj[subjKey]) {
+              grouped[key].subjectsObj[subjKey] = {
+                subCode: map.subject.subCode,
+                subName: map.subject.subName,
+                type: map.subject.type,
+              };
+            }
+            let fieldName;
+            if (map.assessment === "total") {
+              if (map.metric === "obtained") fieldName = "totalScore";
+              else if (map.metric === "max") fieldName = "totalMax";
+              else continue;
+            } else {
+              fieldName = `${map.assessment}${map.metric.charAt(0).toUpperCase() + map.metric.slice(1)}`;
+            }
+            if (grouped[key].subjectsObj[subjKey][fieldName] === undefined) {
+              grouped[key].subjectsObj[subjKey][fieldName] = val;
+            }
+          }
+        }
+      });
+
+      const allRegNos = Array.from(new Set(Object.values(grouped).map((g) => g.regNo)));
+      if (!allRegNos.length) {
+        return res.status(400).json({ message: "No valid internal mark rows found in Excel." });
+      }
+
+      // Check against InternalMark collection
+      const existingInDb = await InternalMark.distinct("regNo", { regNo: { $in: allRegNos } });
+      const existingSet = new Set(existingInDb);
+
+      const missingKeys = Object.keys(grouped).filter((k) => !existingSet.has(grouped[k].regNo));
+
+      if (missingKeys.length === 0) {
+        return res.json({
+          success: true,
+          message: `All ${allRegNos.length} student(s) in this Excel sheet already have internal mark records. 0 missing students added.`,
+          totalInFile: allRegNos.length,
+          skippedCount: allRegNos.length,
+          addedCount: 0,
+          addedStudents: [],
+        });
+      }
+
+      const bulkOps = [];
+      const addedStudents = [];
+
+      for (const key of missingKeys) {
+        const item = grouped[key];
+        const subjects = Object.values(item.subjectsObj);
+
+        bulkOps.push({
+          updateOne: {
+            filter: { regNo: item.regNo, semester: item.semester },
+            update: {
+              $set: {
+                regNo: item.regNo,
+                studentName: item.studentName || "Student",
+                branch: item.branch,
+                batch: item.batch,
+                program: item.program,
+                session: item.session,
+                semester: item.semester,
+                subjects,
+              },
+            },
+            upsert: true,
+          },
+        });
+
+        addedStudents.push({
+          regNo: item.regNo,
+          studentName: item.studentName || "Student",
+          branch: item.branch,
+          batch: item.batch,
+          semester: item.semester,
+          session: item.session,
+          subjectsCount: subjects.length,
+        });
+      }
+
+      if (bulkOps.length > 0) await InternalMark.bulkWrite(bulkOps);
+
+      return res.json({
+        success: true,
+        message: `✅ Successfully ingested internal marks for ${addedStudents.length} missing student(s)! (Skipped ${existingInDb.length} existing students).`,
+        totalInFile: allRegNos.length,
+        skippedCount: existingInDb.length,
+        addedCount: addedStudents.length,
+        addedStudents,
+      });
+    } catch (err) {
+      console.error("Upload missing internal error:", err);
+      res.status(500).json({ message: "Server error during missing internal marks upload." });
+    }
+  }
+);
 
 module.exports = router;
 
