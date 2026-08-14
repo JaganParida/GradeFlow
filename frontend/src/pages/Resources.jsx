@@ -871,7 +871,7 @@ export default function Resources() {
                   style={{
                     display: "grid",
                     gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr",
-                    gap: isMobile ? 16 : 22,
+                    gap: isMobile ? 12 : 20,
                   }}
                   className="gf-row-split"
                 >
@@ -879,33 +879,35 @@ export default function Resources() {
                   <div
                     style={{
                       background: "#ffffff",
-                      border: "1px solid #f1f5f9",
-                      borderRadius: 18,
-                      padding: isMobile ? "18px 16px" : "24px 26px",
-                      boxShadow: "0 4px 16px rgba(0,0,0,0.02)",
+                      border: "1px solid #e2e8f0",
+                      borderRadius: isMobile ? 14 : 16,
+                      padding: isMobile ? "14px 12px" : "22px 24px",
+                      boxShadow: "0 1px 3px rgba(0,0,0,0.03)",
                       display: "flex",
                       flexDirection: "column",
                       justifyContent: "space-between",
                     }}
                   >
                     <div>
-                      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 6 }}>
-                        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                          <Star size={18} color="#f59e0b" />
-                          <h3 style={{ fontSize: 16, fontWeight: 800, color: "#0f172a", margin: 0 }}>Grading Scale</h3>
+                      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 4 }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
+                          <span style={{ width: 26, height: 26, borderRadius: 6, background: "#fef3c7", color: "#d97706", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                            <Star size={15} />
+                          </span>
+                          <h3 style={{ fontSize: isMobile ? 14.5 : 16, fontWeight: 800, color: "#0f172a", margin: 0 }}>Grading Scale</h3>
                         </div>
                         <button
                           type="button"
                           onClick={() => setActiveTab("grading-scale")}
-                          style={{ background: "none", border: "none", color: "#2563eb", fontSize: 12, fontWeight: 700, cursor: "pointer", padding: 0 }}
+                          style={{ background: "none", border: "none", color: "#2563eb", fontSize: 11.5, fontWeight: 700, cursor: "pointer", padding: 0 }}
                         >
                           Full Scale →
                         </button>
                       </div>
-                      <p style={{ fontSize: 12, color: "#94a3b8", margin: "0 0 14px 0" }}>Standard university grade point mapping</p>
+                      <p style={{ fontSize: isMobile ? 11 : 12, color: "#64748b", margin: "0 0 10px 0" }}>Standard university grade point mapping</p>
 
                       {isMobile ? (
-                        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+                        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6 }}>
                           {GRADE_SCALE.slice(0, 6).map((g, idx) => (
                             <div
                               key={idx}
@@ -916,7 +918,7 @@ export default function Resources() {
                                 padding: "6px 8px",
                                 borderRadius: 8,
                                 background: "#f8fafc",
-                                border: "1px solid #f1f5f9",
+                                border: "1px solid #edf2f7",
                               }}
                             >
                               <div style={{ display: "flex", alignItems: "center", gap: 6, minWidth: 0 }}>
@@ -979,7 +981,7 @@ export default function Resources() {
                       )}
                     </div>
 
-                    <div style={{ marginTop: 14, padding: "10px 12px", background: "#eff6ff", borderRadius: 10, fontSize: 11.5, color: "#1e40af", lineHeight: 1.4 }}>
+                    <div style={{ marginTop: 10, padding: "8px 10px", background: "#eff6ff", border: "1px solid #dbeafe", borderRadius: 8, fontSize: isMobile ? 11 : 11.5, color: "#1e40af", lineHeight: 1.35 }}>
                       <strong>Counted?</strong> — All grades contribute to total credits denominator.
                     </div>
                   </div>
@@ -988,51 +990,97 @@ export default function Resources() {
                   <div
                     style={{
                       background: "#ffffff",
-                      border: "1px solid #f1f5f9",
-                      borderRadius: 18,
-                      padding: isMobile ? "18px 16px" : "24px 26px",
-                      boxShadow: "0 4px 16px rgba(0,0,0,0.02)",
+                      border: "1px solid #e2e8f0",
+                      borderRadius: isMobile ? 14 : 16,
+                      padding: isMobile ? "14px 12px" : "22px 24px",
+                      boxShadow: "0 1px 3px rgba(0,0,0,0.03)",
                       display: "flex",
                       flexDirection: "column",
                       justifyContent: "space-between",
                     }}
                   >
                     <div>
-                      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 6 }}>
-                        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                          <Activity size={18} color="#8b5cf6" />
-                          <h3 style={{ fontSize: 16, fontWeight: 800, color: "#0f172a", margin: 0 }}>Academic Health</h3>
+                      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 4 }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
+                          <span style={{ width: 26, height: 26, borderRadius: 6, background: "#f5f3ff", color: "#8b5cf6", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                            <Activity size={15} />
+                          </span>
+                          <h3 style={{ fontSize: isMobile ? 14.5 : 16, fontWeight: 800, color: "#0f172a", margin: 0 }}>Academic Health</h3>
                         </div>
                         <button
                           type="button"
                           onClick={() => setActiveTab("academic-health")}
-                          style={{ background: "none", border: "none", color: "#8b5cf6", fontSize: 12, fontWeight: 700, cursor: "pointer", padding: 0 }}
+                          style={{ background: "none", border: "none", color: "#8b5cf6", fontSize: 11.5, fontWeight: 700, cursor: "pointer", padding: 0 }}
                         >
                           Live Health Meter →
                         </button>
                       </div>
-                      <p style={{ fontSize: 12, color: "#94a3b8", margin: "0 0 14px 0" }}>Score calculation out of 100</p>
+                      <p style={{ fontSize: isMobile ? 11 : 12, color: "#64748b", margin: "0 0 10px 0" }}>Score calculation out of 100</p>
 
-                      <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                      <div style={{ display: "flex", flexDirection: "column", gap: isMobile ? 6 : 8 }}>
                         {ACADEMIC_HEALTH_SCALE.map((item, idx) => (
-                          <div key={idx} style={{ padding: "8px 12px", background: "#f8fafc", borderRadius: 10, border: "1px solid #f1f5f9", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                              <span style={{ color: item.color }}>{item.icon}</span>
-                              <div>
-                                <div style={{ fontSize: 12.5, fontWeight: 700, color: "#0f172a" }}>{item.factor}</div>
-                                <div style={{ fontSize: 10.5, color: "#64748b" }}>{item.desc}</div>
+                          <div
+                            key={idx}
+                            style={{
+                              padding: isMobile ? "7px 10px" : "9px 12px",
+                              background: "#f8fafc",
+                              borderRadius: 10,
+                              border: "1px solid #edf2f7",
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "space-between",
+                              gap: 8,
+                            }}
+                          >
+                            <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
+                              <span
+                                style={{
+                                  width: 28,
+                                  height: 28,
+                                  borderRadius: 7,
+                                  background: `${item.color}15`,
+                                  color: item.color,
+                                  display: "flex",
+                                  alignItems: "center",
+                                  justifyContent: "center",
+                                  flexShrink: 0,
+                                }}
+                              >
+                                {item.icon}
+                              </span>
+                              <div style={{ minWidth: 0 }}>
+                                <div style={{ fontSize: isMobile ? 12 : 12.5, fontWeight: 800, color: "#0f172a", lineHeight: 1.2 }}>
+                                  {item.factor}
+                                </div>
+                                <div style={{ fontSize: isMobile ? 10 : 10.5, color: "#64748b", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                                  {item.desc}
+                                </div>
                               </div>
                             </div>
-                            <div style={{ textAlign: "right" }}>
-                              <div style={{ fontSize: 13, fontWeight: 800, color: item.color }}>{item.maxPts} pts</div>
-                              <div style={{ fontSize: 10, fontFamily: "'Space Mono', monospace", color: "#64748b" }}>{item.formula}</div>
+                            <div style={{ textAlign: "right", flexShrink: 0 }}>
+                              <div
+                                style={{
+                                  fontSize: isMobile ? 11.5 : 12.5,
+                                  fontWeight: 800,
+                                  color: item.color,
+                                  background: `${item.color}12`,
+                                  padding: "2px 6px",
+                                  borderRadius: 5,
+                                  display: "inline-block",
+                                }}
+                              >
+                                {item.maxPts} pts
+                              </div>
+                              <div style={{ fontSize: isMobile ? 9.5 : 10, fontFamily: "'Space Mono', monospace", color: "#64748b", marginTop: 2 }}>
+                                {item.formula}
+                              </div>
                             </div>
                           </div>
                         ))}
                       </div>
                     </div>
 
-                    <div style={{ marginTop: 14, padding: "10px 12px", background: "#f5f3ff", borderRadius: 10, fontSize: 11.5, color: "#6d28d9", lineHeight: 1.4 }}>
+                    <div style={{ marginTop: 10, padding: "8px 10px", background: "#f5f3ff", border: "1px solid #ede9fe", borderRadius: 8, fontSize: isMobile ? 11 : 11.5, color: "#6d28d9", lineHeight: 1.35 }}>
                       <strong>Total Score</strong> — Max 100 points, calculated and rounded to nearest whole number.
                     </div>
                   </div>
@@ -1041,47 +1089,67 @@ export default function Resources() {
                   <div
                     style={{
                       background: "#ffffff",
-                      border: "1px solid #f1f5f9",
-                      borderRadius: 18,
-                      padding: isMobile ? "18px 16px" : "24px 26px",
-                      boxShadow: "0 4px 16px rgba(0,0,0,0.02)",
+                      border: "1px solid #e2e8f0",
+                      borderRadius: isMobile ? 14 : 16,
+                      padding: isMobile ? "14px 12px" : "22px 24px",
+                      boxShadow: "0 1px 3px rgba(0,0,0,0.03)",
                       display: "flex",
                       flexDirection: "column",
                       justifyContent: "space-between",
                     }}
                   >
                     <div>
-                      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 6 }}>
-                        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                          <Medal size={18} color="#ef4444" />
-                          <h3 style={{ fontSize: 16, fontWeight: 800, color: "#0f172a", margin: 0 }}>Badges &amp; Achievements</h3>
+                      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 4 }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
+                          <span style={{ width: 26, height: 26, borderRadius: 6, background: "#fee2e2", color: "#ef4444", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                            <Medal size={15} />
+                          </span>
+                          <h3 style={{ fontSize: isMobile ? 14.5 : 16, fontWeight: 800, color: "#0f172a", margin: 0 }}>Badges &amp; Achievements</h3>
                         </div>
                         <button
                           type="button"
                           onClick={() => setActiveTab("badges-tab")}
-                          style={{ background: "none", border: "none", color: "#ef4444", fontSize: 12, fontWeight: 700, cursor: "pointer", padding: 0 }}
+                          style={{ background: "none", border: "none", color: "#ef4444", fontSize: 11.5, fontWeight: 700, cursor: "pointer", padding: 0 }}
                         >
                           All Badges →
                         </button>
                       </div>
-                      <p style={{ fontSize: 12, color: "#94a3b8", margin: "0 0 14px 0" }}>Criteria for unlocking profile badges</p>
+                      <p style={{ fontSize: isMobile ? 11 : 12, color: "#64748b", margin: "0 0 10px 0" }}>Criteria for unlocking profile badges</p>
 
-                      <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: 8 }}>
+                      <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: isMobile ? 6 : 8 }}>
                         {BADGES_SCALE.slice(0, 4).map((b, idx) => (
-                          <div key={idx} style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 10px", borderRadius: 10, background: "#f8fafc", border: "1px solid #f1f5f9" }}>
-                            <span style={{ width: 28, height: 28, borderRadius: 8, background: b.bg, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                              {b.icon}
-                            </span>
-                            <div style={{ minWidth: 0 }}>
-                              <div style={{ fontSize: 11.5, fontWeight: 700, color: "#0f172a", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{b.name}</div>
-                              <div style={{ fontSize: 10, fontWeight: 700, color: b.color, fontFamily: "'Space Mono', monospace" }}>{b.criteria}</div>
+                          <div
+                            key={idx}
+                            style={{
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "space-between",
+                              gap: 8,
+                              padding: isMobile ? "7px 9px" : "8px 10px",
+                              borderRadius: 10,
+                              background: "#f8fafc",
+                              border: "1px solid #edf2f7",
+                            }}
+                          >
+                            <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
+                              <span style={{ width: 28, height: 28, borderRadius: 7, background: b.bg, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                                {b.icon}
+                              </span>
+                              <div style={{ minWidth: 0 }}>
+                                <div style={{ fontSize: isMobile ? 11.5 : 12, fontWeight: 800, color: "#0f172a", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                                  {b.name}
+                                </div>
+                                <div style={{ fontSize: isMobile ? 10 : 10.5, fontWeight: 700, color: b.color, fontFamily: "'Space Mono', monospace" }}>
+                                  {b.criteria}
+                                </div>
+                              </div>
                             </div>
                           </div>
                         ))}
                       </div>
                     </div>
 
-                    <div style={{ marginTop: 14, padding: "10px 12px", background: "#fef2f2", borderRadius: 10, fontSize: 11.5, color: "#991b1b", lineHeight: 1.4 }}>
+                    <div style={{ marginTop: 10, padding: "8px 10px", background: "#fef2f2", border: "1px solid #fee2e2", borderRadius: 8, fontSize: isMobile ? 11 : 11.5, color: "#991b1b", lineHeight: 1.35 }}>
                       <strong>Profile Badges</strong> — Badges appear automatically on your dashboard when unlocked!
                     </div>
                   </div>
@@ -1090,24 +1158,26 @@ export default function Resources() {
                   <div
                     style={{
                       background: "#ffffff",
-                      border: "1px solid #f1f5f9",
-                      borderRadius: 18,
-                      padding: isMobile ? "18px 16px" : "24px 26px",
-                      boxShadow: "0 4px 16px rgba(0,0,0,0.02)",
+                      border: "1px solid #e2e8f0",
+                      borderRadius: isMobile ? 14 : 16,
+                      padding: isMobile ? "14px 12px" : "22px 24px",
+                      boxShadow: "0 1px 3px rgba(0,0,0,0.03)",
                       display: "flex",
                       flexDirection: "column",
                       justifyContent: "space-between",
                     }}
                   >
                     <div>
-                      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
-                        <BarChart2 size={18} color="#f97316" />
-                        <h3 style={{ fontSize: 16, fontWeight: 800, color: "#0f172a", margin: 0 }}>Example Calculation</h3>
+                      <div style={{ display: "flex", alignItems: "center", gap: 7, marginBottom: 4 }}>
+                        <span style={{ width: 26, height: 26, borderRadius: 6, background: "#ffedd5", color: "#f97316", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                          <BarChart2 size={15} />
+                        </span>
+                        <h3 style={{ fontSize: isMobile ? 14.5 : 16, fontWeight: 800, color: "#0f172a", margin: 0 }}>Example Calculation</h3>
                       </div>
-                      <p style={{ fontSize: 12, color: "#94a3b8", margin: "0 0 14px 0" }}>Understanding SGPA calculation with an example</p>
+                      <p style={{ fontSize: isMobile ? 11 : 12, color: "#64748b", margin: "0 0 10px 0" }}>Understanding SGPA calculation with an example</p>
 
                       <div style={{ overflowX: "auto" }}>
-                        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
+                        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: isMobile ? 11.5 : 12 }}>
                           <thead>
                             <tr style={{ color: "#94a3b8", fontWeight: 700, borderBottom: "1px solid #f1f5f9" }}>
                               <th style={{ textAlign: "left", paddingBottom: 6 }}>SUBJECT</th>
@@ -1138,14 +1208,14 @@ export default function Resources() {
 
                     <div
                       style={{
-                        marginTop: 14,
+                        marginTop: 10,
                         background: "#f0fdf4",
                         border: "1px solid #bbf7d0",
-                        borderRadius: 10,
-                        padding: "8px 12px",
+                        borderRadius: 8,
+                        padding: "7px 10px",
                         textAlign: "center",
                         color: "#15803d",
-                        fontSize: 12,
+                        fontSize: isMobile ? 11.5 : 12,
                         fontWeight: 800,
                         display: "flex",
                         alignItems: "center",
