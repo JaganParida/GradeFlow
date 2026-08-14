@@ -2253,25 +2253,32 @@ router.post(
         return res.status(400).json({ message: "No valid rows found in Excel sheet." });
       }
 
-      const allRegNos = Array.from(new Set(keys.map((k) => grouped[k].regNo)));
+      const allSemestersInFile = Array.from(new Set(keys.map((k) => grouped[k].semester)));
 
-      // ─── QUERY DATABASE: FIND STUDENTS WHO ALREADY EXIST ───
-      const [existingResults, existingStudents] = await Promise.all([
-        SemesterResult.distinct("regNo", { regNo: { $in: allRegNos } }),
-        Student.distinct("regNo", { regNo: { $in: allRegNos } }),
-      ]);
-      const existingSet = new Set([...existingResults, ...existingStudents]);
-      const existingInDb = Array.from(existingSet);
+      // ─── QUERY DATABASE: FIND STUDENTS WHO ALREADY HAVE RESULTS FOR THIS SEMESTER ───
+      const existingResultsInDb = await SemesterResult.find(
+        {
+          regNo: { $in: allRegNos },
+          semester: { $in: allSemestersInFile },
+        },
+        { regNo: 1, semester: 1 }
+      ).lean();
 
-      // ─── FILTER: KEEP ONLY STUDENTS WHO ARE TOTALLY MISSING (0 records in DB) ───
-      const missingKeys = keys.filter((k) => !existingSet.has(grouped[k].regNo));
+      const existingSemesterKeySet = new Set(
+        existingResultsInDb.map((r) => `${r.regNo}_${r.semester}`)
+      );
+
+      // ─── FILTER: KEEP ONLY STUDENTS WHO DO NOT HAVE DATA FOR THIS SEMESTER IN DB ───
+      const missingKeys = keys.filter((k) => !existingSemesterKeySet.has(k));
+      const totalInFile = keys.length;
+      const skippedCount = totalInFile - missingKeys.length;
 
       if (missingKeys.length === 0) {
         return res.json({
           success: true,
-          message: `All ${allRegNos.length} student(s) in this Excel sheet already exist in the database. 0 missing students added.`,
-          totalInFile: allRegNos.length,
-          skippedCount: allRegNos.length,
+          message: `All ${totalInFile} student record(s) in this Excel sheet already exist in the database for Semester ${allSemestersInFile.join(", ")}. 0 missing students added.`,
+          totalInFile,
+          skippedCount,
           addedCount: 0,
           addedStudents: [],
         });
@@ -2340,9 +2347,9 @@ router.post(
 
       return res.json({
         success: true,
-        message: `✅ Successfully ingested ${addedStudents.length} missing student(s) into database! (Skipped ${existingInDb.length} existing students). Auto-generated rankings & metrics.`,
-        totalInFile: allRegNos.length,
-        skippedCount: existingInDb.length,
+        message: `✅ Successfully ingested ${addedStudents.length} missing student record(s) into database! (Skipped ${skippedCount} existing records for Sem ${allSemestersInFile.join(", ")}). Auto-generated rankings & metrics.`,
+        totalInFile,
+        skippedCount,
         addedCount: addedStudents.length,
         addedStudents,
       });
@@ -2554,22 +2561,32 @@ router.post(
         return res.status(400).json({ message: "No valid internal mark rows found in Excel." });
       }
 
-      // Check against InternalMark & SemesterResult collections
-      const [existingInternal, existingResults] = await Promise.all([
-        InternalMark.distinct("regNo", { regNo: { $in: allRegNos } }),
-        SemesterResult.distinct("regNo", { regNo: { $in: allRegNos } }),
-      ]);
-      const existingSet = new Set([...existingInternal, ...existingResults]);
-      const existingInDb = Array.from(existingSet);
+      const allSemestersInFile = Array.from(new Set(Object.values(grouped).map((g) => g.semester)));
 
-      const missingKeys = Object.keys(grouped).filter((k) => !existingSet.has(grouped[k].regNo));
+      // ─── QUERY DATABASE: FIND STUDENTS WHO ALREADY HAVE INTERNAL MARKS FOR THIS SEMESTER ───
+      const existingInternalsInDb = await InternalMark.find(
+        {
+          regNo: { $in: allRegNos },
+          semester: { $in: allSemestersInFile },
+        },
+        { regNo: 1, semester: 1 }
+      ).lean();
+
+      const existingInternalKeySet = new Set(
+        existingInternalsInDb.map((r) => `${r.regNo}_${r.semester}`)
+      );
+
+      // ─── FILTER: KEEP ONLY STUDENTS WHO DO NOT HAVE INTERNAL MARKS FOR THIS SEMESTER ───
+      const missingKeys = Object.keys(grouped).filter((k) => !existingInternalKeySet.has(k));
+      const totalInFile = Object.keys(grouped).length;
+      const skippedCount = totalInFile - missingKeys.length;
 
       if (missingKeys.length === 0) {
         return res.json({
           success: true,
-          message: `All ${allRegNos.length} student(s) in this Excel sheet already have internal mark records. 0 missing students added.`,
-          totalInFile: allRegNos.length,
-          skippedCount: allRegNos.length,
+          message: `All ${totalInFile} student(s) in this Excel sheet already have internal mark records for Semester ${allSemestersInFile.join(", ")}. 0 missing students added.`,
+          totalInFile,
+          skippedCount,
           addedCount: 0,
           addedStudents: [],
         });
@@ -2629,9 +2646,9 @@ router.post(
 
       return res.json({
         success: true,
-        message: `✅ Successfully ingested internal marks for ${addedStudents.length} missing student(s)! (Skipped ${existingInDb.length} existing students).`,
-        totalInFile: allRegNos.length,
-        skippedCount: existingInDb.length,
+        message: `✅ Successfully ingested internal marks for ${addedStudents.length} missing student(s)! (Skipped ${skippedCount} existing records for Sem ${allSemestersInFile.join(", ")}).`,
+        totalInFile,
+        skippedCount,
         addedCount: addedStudents.length,
         addedStudents,
       });
