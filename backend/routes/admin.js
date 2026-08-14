@@ -2261,6 +2261,7 @@ router.post(
         Student.distinct("regNo", { regNo: { $in: allRegNos } }),
       ]);
       const existingSet = new Set([...existingResults, ...existingStudents]);
+      const existingInDb = Array.from(existingSet);
 
       // ─── FILTER: KEEP ONLY STUDENTS WHO ARE TOTALLY MISSING (0 records in DB) ───
       const missingKeys = keys.filter((k) => !existingSet.has(grouped[k].regNo));
@@ -2347,7 +2348,7 @@ router.post(
       });
     } catch (err) {
       console.error("Upload missing results error:", err);
-      res.status(500).json({ message: "Server error during missing students upload." });
+      res.status(500).json({ message: err.message || "Server error during missing students upload." });
     }
   }
 );
@@ -2623,7 +2624,7 @@ router.post(
       });
     } catch (err) {
       console.error("Upload missing internal error:", err);
-      res.status(500).json({ message: "Server error during missing internal marks upload." });
+      res.status(500).json({ message: err.message || "Server error during missing internal marks upload." });
     }
   }
 );
