@@ -17,6 +17,29 @@ import UpgradeModal from "./components/UpgradeModal";
 import { useApp } from "./context/AppContext";
 import { AlertTriangle, X } from "lucide-react";
 
+function ScrollToTop() {
+  const { pathname, hash } = useLocation();
+
+  useEffect(() => {
+    if (hash) {
+      const el = document.getElementById(hash.replace("#", ""));
+      if (el) {
+        el.scrollIntoView({ behavior: "smooth" });
+        return;
+      }
+    }
+    window.scrollTo({
+      top: 0,
+      left: 0,
+      behavior: "instant",
+    });
+    if (document.documentElement) document.documentElement.scrollTop = 0;
+    if (document.body) document.body.scrollTop = 0;
+  }, [pathname, hash]);
+
+  return null;
+}
+
 function PageTransition({ children }) {
   return (
     <motion.div
@@ -90,6 +113,7 @@ export default function App() {
 
   return (
     <>
+      <ScrollToTop />
       <Navbar />
       <FeedbackModal />
       <UpgradeModal />
