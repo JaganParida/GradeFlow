@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useApp } from "../context/AppContext";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   AreaChart,
   Area,
@@ -39,6 +39,10 @@ import {
   Briefcase,
   Sliders,
   Star,
+  Search,
+  X,
+  Loader2,
+  AlertCircle,
 } from "lucide-react";
 
 /* ─── Social SVG Icons ─────────────────────────────────────────── */
@@ -414,30 +418,64 @@ function DonutChartComponent() {
    ════════════════════════════════════════════════════════════════ */
 export default function Home() {
   const navigate = useNavigate();
-  const { studentData, hasActiveSession } = useApp();
+  const { studentData, hasActiveSession, fetchStudent } = useApp();
   const [emailSub, setEmailSub] = useState("");
   const [subscribed, setSubscribed] = useState(false);
+  const [showSearchModal, setShowSearchModal] = useState(false);
+  const [searchRegInput, setSearchRegInput] = useState("");
+  const [searchError, setSearchError] = useState("");
+  const [isSearching, setIsSearching] = useState(false);
 
   const currentRegNo =
-    studentData?.regNo || sessionStorage.getItem("last_regNo") || "";
+    studentData?.regNo || sessionStorage.getItem("last_regNo") || localStorage.getItem("last_regNo") || "";
 
   const handleDashboardAction = () => {
-    if (hasActiveSession && currentRegNo) {
+    if (currentRegNo) {
       navigate(`/dashboard/${currentRegNo}`);
     } else {
-      navigate(`/resources`);
+      setShowSearchModal(true);
+      setSearchError("");
+      setSearchRegInput("");
     }
   };
 
   const handleQuickAction = (act) => {
     if (act.to.startsWith("/analytics")) {
-      if (hasActiveSession && currentRegNo) {
+      if (currentRegNo) {
         navigate(`/analytics/${currentRegNo}${act.hash || ""}`);
       } else {
-        navigate(`/resources`);
+        setShowSearchModal(true);
+        setSearchError("");
+        setSearchRegInput("");
       }
+    } else if (act.to.startsWith("/dashboard")) {
+      handleDashboardAction();
     } else {
       navigate(act.to);
+    }
+  };
+
+  const handleSearchModalSubmit = async (e) => {
+    e.preventDefault();
+    const cleanReg = searchRegInput.trim();
+    if (!cleanReg) {
+      setSearchError("Please enter your university registration number.");
+      return;
+    }
+    setIsSearching(true);
+    setSearchError("");
+    try {
+      const success = await fetchStudent(cleanReg);
+      if (success) {
+        setShowSearchModal(false);
+        navigate(`/dashboard/${cleanReg}`);
+      } else {
+        setSearchError("Student record not found. Please verify your registration number.");
+      }
+    } catch (err) {
+      setSearchError("Unable to fetch student records. Please try again.");
+    } finally {
+      setIsSearching(false);
     }
   };
 
@@ -2452,7 +2490,7 @@ export default function Home() {
               >
                 <span
                   className="gf-footer-link"
-                  onClick={() => navigate("/dashboard")}
+                  onClick={handleDashboardAction}
                 >
                   Student Dashboard
                 </span>
@@ -3042,6 +3080,250 @@ export default function Home() {
           }
         }
       `}</style>
+
+      {/* ── Search Required Modal ── */}
+      <AnimatePresence>
+        {showSearchModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={() => setShowSearchModal(false)}
+            style={{
+              position: "fixed",
+              inset: 0,
+              background: "rgba(15, 23, 42, 0.55)",
+              backdropFilter: "blur(8px)",
+              WebkitBackdropFilter: "blur(8px)",
+              zIndex: 10000,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              padding: 16,
+            }}
+          >
+            <motion.div
+              initial={{ opacity: 0, scale: 0.94, y: 10 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.94, y: 10 }}
+              transition={{ duration: 0.2, ease: "easeOut" }}
+              onClick={(e) => e.stopPropagation()}
+              style={{
+                background: "#ffffff",
+                borderRadius: 20,
+                padding: "26px 22px",
+                maxWidth: 420,
+                width: "100%",
+                textAlign: "center",
+                boxShadow: "0 25px 50px -12px rgba(15, 23, 42, 0.25)",
+                border: "1px solid #e2e8f0",
+                position: "relative",
+                boxSizing: "border-box",
+              }}
+            >
+              {/* Close Button */}
+              <button
+                onClick={() => setShowSearchModal(false)}
+                aria-label="Close search modal"
+                style={{
+                  position: "absolute",
+                  top: 14,
+                  right: 14,
+                  background: "#f1f5f9",
+                  border: "none",
+                  borderRadius: "50%",
+                  width: 30,
+                  height: 30,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  color: "#64748b",
+                  cursor: "pointer",
+                  transition: "all 0.15s ease",
+                }}
+                onMouseEnter={(e) => (e.currentTarget.style.background = "#e2e8f0")}
+                onMouseLeave={(e) => (e.currentTarget.style.background = "#f1f5f9")}
+              >
+                <X size={16} />
+              </button>
+
+              {/* Icon */}
+              <div
+                style={{
+                  width: 50,
+                  height: 50,
+                  borderRadius: 14,
+                  background: "linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%)",
+                  color: "#2563eb",
+                  border: "1px solid #bfdbfe",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  margin: "0 auto 14px auto",
+                  boxShadow: "0 4px 12px rgba(37, 99, 235, 0.12)",
+                }}
+              >
+                <GraduationCap size={24} />
+              </div>
+
+              <h3
+                style={{
+                  fontSize: 19,
+                  fontWeight: 800,
+                  color: "#0f172a",
+                  margin: "0 0 6px 0",
+                  letterSpacing: "-0.4px",
+                }}
+              >
+                Registration Number Required
+              </h3>
+              <p
+                style={{
+                  fontSize: 13,
+                  color: "#64748b",
+                  margin: "0 0 20px 0",
+                  lineHeight: 1.5,
+                }}
+              >
+                Please enter your university registration number to access your student dashboard.
+              </p>
+
+              {/* Form */}
+              <form onSubmit={handleSearchModalSubmit} style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                <div style={{ position: "relative", width: "100%" }}>
+                  <div
+                    style={{
+                      position: "absolute",
+                      left: 12,
+                      top: "50%",
+                      transform: "translateY(-50%)",
+                      color: "#94a3b8",
+                      display: "flex",
+                      alignItems: "center",
+                      pointerEvents: "none",
+                    }}
+                  >
+                    <Search size={16} />
+                  </div>
+                  <input
+                    type="text"
+                    autoFocus
+                    value={searchRegInput}
+                    onChange={(e) => {
+                      setSearchRegInput(e.target.value);
+                      if (searchError) setSearchError("");
+                    }}
+                    placeholder="e.g. 230301120000"
+                    style={{
+                      width: "100%",
+                      padding: "11px 12px 11px 38px",
+                      borderRadius: 10,
+                      border: searchError ? "1px solid #ef4444" : "1px solid #cbd5e1",
+                      background: "#f8fafc",
+                      color: "#0f172a",
+                      fontSize: 14,
+                      fontWeight: 600,
+                      fontFamily: "'Space Mono', monospace",
+                      outline: "none",
+                      boxSizing: "border-box",
+                      transition: "all 0.15s ease",
+                    }}
+                    onFocus={(e) => (e.currentTarget.style.background = "#ffffff")}
+                    onBlur={(e) => (e.currentTarget.style.background = "#f8fafc")}
+                  />
+                </div>
+
+                {/* Error Notice */}
+                {searchError && (
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 6,
+                      padding: "8px 12px",
+                      borderRadius: 8,
+                      background: "#fef2f2",
+                      border: "1px solid #fee2e2",
+                      color: "#b91c1c",
+                      fontSize: 12,
+                      fontWeight: 600,
+                      textAlign: "left",
+                    }}
+                  >
+                    <AlertCircle size={14} style={{ flexShrink: 0 }} />
+                    <span>{searchError}</span>
+                  </div>
+                )}
+
+                {/* Actions */}
+                <div style={{ display: "flex", gap: 10, marginTop: 4 }}>
+                  <button
+                    type="button"
+                    onClick={() => setShowSearchModal(false)}
+                    style={{
+                      flex: 1,
+                      padding: "11px 14px",
+                      borderRadius: 10,
+                      background: "#f1f5f9",
+                      color: "#475569",
+                      border: "none",
+                      fontWeight: 700,
+                      fontSize: 13.5,
+                      cursor: "pointer",
+                      fontFamily: "'DM Sans', sans-serif",
+                      transition: "background 0.15s ease",
+                    }}
+                    onMouseEnter={(e) => (e.currentTarget.style.background = "#e2e8f0")}
+                    onMouseLeave={(e) => (e.currentTarget.style.background = "#f1f5f9")}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={isSearching}
+                    style={{
+                      flex: 1.5,
+                      display: "inline-flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      gap: 6,
+                      padding: "11px 14px",
+                      borderRadius: 10,
+                      background: "#2563eb",
+                      color: "#ffffff",
+                      border: "none",
+                      fontWeight: 700,
+                      fontSize: 13.5,
+                      cursor: isSearching ? "not-allowed" : "pointer",
+                      fontFamily: "'DM Sans', sans-serif",
+                      boxShadow: "0 4px 12px rgba(37, 99, 235, 0.25)",
+                      transition: "background 0.15s ease",
+                    }}
+                    onMouseEnter={(e) => {
+                      if (!isSearching) e.currentTarget.style.background = "#1d4ed8";
+                    }}
+                    onMouseLeave={(e) => {
+                      if (!isSearching) e.currentTarget.style.background = "#2563eb";
+                    }}
+                  >
+                    {isSearching ? (
+                      <>
+                        <Loader2 size={16} className="animate-spin" />
+                        <span>Searching...</span>
+                      </>
+                    ) : (
+                      <>
+                        <span>View Dashboard</span>
+                        <ArrowRight size={15} />
+                      </>
+                    )}
+                  </button>
+                </div>
+              </form>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
