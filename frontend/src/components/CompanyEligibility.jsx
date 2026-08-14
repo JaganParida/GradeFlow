@@ -13,6 +13,7 @@ import {
   Building,
   Check,
   TrendingUp,
+  X,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -408,10 +409,39 @@ export default function CompanyEligibility({ branch, cgpa, regNo }) {
       </div>
 
       {/* 3. Search & Category Filter Toolbar */}
-      <div style={{ display: "flex", flexDirection: isMobile ? "column" : "row", alignItems: isMobile ? "stretch" : "center", justifyContent: "space-between", gap: isMobile ? 8 : 12 }}>
+      <div
+        style={{
+          display: "flex",
+          flexDirection: isMobile ? "column" : "row",
+          alignItems: isMobile ? "stretch" : "center",
+          justifyContent: "space-between",
+          gap: isMobile ? 8 : 12,
+          width: "100%",
+        }}
+      >
         {/* Search Bar */}
-        <div style={{ position: "relative", minWidth: isMobile ? "100%" : 260, flex: "1 1 260px" }}>
-          <Search size={15} color="#64748b" style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)" }} />
+        <div
+          style={{
+            position: "relative",
+            width: isMobile ? "100%" : "auto",
+            minWidth: isMobile ? "100%" : 240,
+            maxWidth: isMobile ? "100%" : 320,
+            flex: isMobile ? "none" : "0 1 300px",
+            display: "flex",
+            alignItems: "center",
+            boxSizing: "border-box",
+          }}
+        >
+          <Search
+            size={14}
+            color="#64748b"
+            style={{
+              position: "absolute",
+              left: 10,
+              pointerEvents: "none",
+              zIndex: 2,
+            }}
+          />
           <input
             type="text"
             placeholder="Search company name..."
@@ -419,16 +449,41 @@ export default function CompanyEligibility({ branch, cgpa, regNo }) {
             onChange={(e) => setSearchQuery(e.target.value)}
             style={{
               width: "100%",
+              height: isMobile ? 36 : 38,
               boxSizing: "border-box",
-              padding: isMobile ? "8px 10px 8px 32px" : "9px 12px 9px 36px",
+              padding: "0 28px 0 32px",
               background: "#ffffff",
               border: "1px solid #cbd5e1",
-              borderRadius: 9,
-              fontSize: isMobile ? 12.5 : 13.5,
+              borderRadius: 8,
+              fontSize: isMobile ? 12 : 13,
               color: "#0f172a",
               outline: "none",
+              fontFamily: "'DM Sans', sans-serif",
             }}
           />
+          {searchQuery && (
+            <button
+              type="button"
+              onClick={() => setSearchQuery("")}
+              style={{
+                position: "absolute",
+                right: 8,
+                background: "#f1f5f9",
+                border: "none",
+                borderRadius: "50%",
+                width: 18,
+                height: 18,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                cursor: "pointer",
+                color: "#64748b",
+                padding: 0,
+              }}
+            >
+              <X size={11} />
+            </button>
+          )}
         </div>
 
         {/* Category Pills (Horizontal scroll track on mobile) */}
