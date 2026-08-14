@@ -553,7 +553,7 @@ export default function Home() {
               }}
             >
               <span style={{ display: "block", whiteSpace: "nowrap" }}>
-                Track Every <span style={{ color: "#2563eb" }}>Grade</span>
+                Track Every <span style={{ color: "#0284c7" }}>Grade</span>
               </span>
               <span style={{ display: "block", whiteSpace: "nowrap" }}>
                 Own Your <span style={{ color: "#2563eb" }}>Academic Future</span>
