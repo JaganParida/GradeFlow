@@ -914,30 +914,24 @@ export default function Home() {
                           gap: 6,
                         }}
                       >
-                        <span>
-                          {currentRegNo && studentData?.studentName
-                            ? `Welcome back, ${studentData.studentName.split(" ")[0]}`
-                            : "Alex Kumar (Sample Student)"}
-                        </span>
+                        <span>Alex Kumar (Sample Student)</span>
                         <Sparkles size={14} color="#2563eb" />
                       </h3>
-                      {!currentRegNo && (
-                        <span
-                          style={{
-                            fontSize: 9.5,
-                            fontWeight: 800,
-                            background: "#eff6ff",
-                            color: "#2563eb",
-                            border: "1px solid #dbeafe",
-                            padding: "2px 6px",
-                            borderRadius: 4,
-                            textTransform: "uppercase",
-                            letterSpacing: "0.4px",
-                          }}
-                        >
-                          Sample Data
-                        </span>
-                      )}
+                      <span
+                        style={{
+                          fontSize: 9.5,
+                          fontWeight: 800,
+                          background: "#eff6ff",
+                          color: "#2563eb",
+                          border: "1px solid #dbeafe",
+                          padding: "2px 6px",
+                          borderRadius: 4,
+                          textTransform: "uppercase",
+                          letterSpacing: "0.4px",
+                        }}
+                      >
+                        Sample Preview
+                      </span>
                     </div>
                     <p
                       style={{
@@ -946,9 +940,7 @@ export default function Home() {
                         margin: "2px 0 0 0",
                       }}
                     >
-                      {currentRegNo && studentData?.regNo
-                        ? `${studentData.regNo} • ${studentData.branch || "B.Tech"}`
-                        : "Sample academic overview • Centurion University"}
+                      Sample academic overview • Centurion University
                     </p>
                   </div>
                   <div
@@ -1505,7 +1497,7 @@ export default function Home() {
                 }}
               >
                 <Activity size={12} color="#2563eb" />
-                <span>{currentRegNo ? "Student Summary" : "Sample Preview"}</span>
+                <span>Dashboard Preview</span>
               </span>
               <h2
                 style={{
@@ -1516,41 +1508,31 @@ export default function Home() {
                   lineHeight: 1.25,
                 }}
               >
-                {currentRegNo
-                  ? "Your Real-Time Academic Stats"
-                  : "Interactive Academic Metrics"}
+                How Your Academic Dashboard Looks
               </h2>
             </div>
-            {!currentRegNo && (
-              <button
-                type="button"
-                onClick={() => {
-                  setShowSearchModal(true);
-                  setSearchError("");
-                  setSearchRegInput("");
-                }}
-                style={{
-                  background: "transparent",
-                  border: "none",
-                  color: "#2563eb",
-                  fontSize: 12.5,
-                  fontWeight: 700,
-                  cursor: "pointer",
-                  display: "inline-flex",
-                  alignItems: "center",
-                  gap: 4,
-                  padding: 0,
-                }}
-              >
-                <span>View your real scores</span>
-                <ArrowRight size={13} />
-              </button>
-            )}
+            <button
+              type="button"
+              onClick={handleDashboardAction}
+              style={{
+                background: "transparent",
+                border: "none",
+                color: "#2563eb",
+                fontSize: 12.5,
+                fontWeight: 700,
+                cursor: "pointer",
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 4,
+                padding: 0,
+              }}
+            >
+              <span>{currentRegNo ? "View your real grades" : "Search your registration number"}</span>
+              <ArrowRight size={13} />
+            </button>
           </div>
           <p style={{ fontSize: isMobile ? 12 : 13, color: "#64748b", margin: 0, lineHeight: 1.4 }}>
-            {currentRegNo
-              ? `Live metrics computed for ${studentData?.studentName || "your account"}`
-              : "Here is how GradeFlow calculates your CGPA, SGPA, health index, and university standing once searched."}
+            Sample student metrics — Here is how GradeFlow calculates and visualizes your CGPA, SGPA, academic health, and university standing once searched.
           </p>
         </div>
 
