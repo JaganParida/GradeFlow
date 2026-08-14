@@ -2256,8 +2256,11 @@ router.post(
       const allRegNos = Array.from(new Set(keys.map((k) => grouped[k].regNo)));
 
       // ─── QUERY DATABASE: FIND STUDENTS WHO ALREADY EXIST ───
-      const existingInDb = await SemesterResult.distinct("regNo", { regNo: { $in: allRegNos } });
-      const existingSet = new Set(existingInDb);
+      const [existingResults, existingStudents] = await Promise.all([
+        SemesterResult.distinct("regNo", { regNo: { $in: allRegNos } }),
+        Student.distinct("regNo", { regNo: { $in: allRegNos } }),
+      ]);
+      const existingSet = new Set([...existingResults, ...existingStudents]);
 
       // ─── FILTER: KEEP ONLY STUDENTS WHO ARE TOTALLY MISSING (0 records in DB) ───
       const missingKeys = keys.filter((k) => !existingSet.has(grouped[k].regNo));
@@ -2550,9 +2553,13 @@ router.post(
         return res.status(400).json({ message: "No valid internal mark rows found in Excel." });
       }
 
-      // Check against InternalMark collection
-      const existingInDb = await InternalMark.distinct("regNo", { regNo: { $in: allRegNos } });
-      const existingSet = new Set(existingInDb);
+      // Check against InternalMark & SemesterResult collections
+      const [existingInternal, existingResults] = await Promise.all([
+        InternalMark.distinct("regNo", { regNo: { $in: allRegNos } }),
+        SemesterResult.distinct("regNo", { regNo: { $in: allRegNos } }),
+      ]);
+      const existingSet = new Set([...existingInternal, ...existingResults]);
+      const existingInDb = Array.from(existingSet);
 
       const missingKeys = Object.keys(grouped).filter((k) => !existingSet.has(grouped[k].regNo));
 

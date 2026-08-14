@@ -98,7 +98,14 @@ function UploadCard({
     const init = {};
     if (extraFields) {
       extraFields.forEach((f) => {
-        if (f.value !== undefined) init[f.key] = f.value;
+        if (f.value !== undefined) {
+          init[f.key] = f.value;
+        } else if (f.type === "select" && f.options && f.options.length > 0) {
+          const first = f.options[0];
+          init[f.key] = typeof first === "object" ? first.value : first;
+        } else {
+          init[f.key] = "";
+        }
       });
     }
     return init;
@@ -110,29 +117,43 @@ function UploadCard({
   const inputRef = useRef();
 
   useEffect(() => {
-    const hasSessionField = extraFields?.some((f) => f.key === "session");
-    if (!hasSessionField) return;
-
-    const bYear = extra.batch && !isNaN(parseInt(extra.batch, 10)) ? parseInt(extra.batch, 10) : null;
-    const semNum = extra.semester && !isNaN(parseInt(extra.semester, 10)) ? parseInt(extra.semester, 10) : null;
+    const bYear = extra.batch && !isNaN(parseInt(extra.batch, 10)) ? parseInt(extra.batch, 10) : 2023;
+    const semNum = extra.semester && !isNaN(parseInt(extra.semester, 10)) ? parseInt(extra.semester, 10) : 1;
     const yVal = extra.year && !isNaN(parseInt(extra.year, 10)) ? parseInt(extra.year, 10) : null;
 
     let targetSession = extra.session;
+    const validSessions = getDynamicSessionOptions(extra.batch || bYear, extra.semester || semNum, extra.year || yVal);
 
     if (bYear && semNum && semNum >= 1) {
       const yearOffset = Math.floor((semNum - 1) / 2);
       const calcYear = bYear + yearOffset;
       targetSession = `${calcYear}-${String(calcYear + 1).slice(-2)}`;
-    } else if (bYear || yVal) {
-      const validSessions = getDynamicSessionOptions(extra.batch, extra.semester, extra.year);
-      if (!targetSession || !validSessions.includes(targetSession)) {
-        targetSession = validSessions[0];
-      }
+    } else if (!targetSession || !validSessions.includes(targetSession)) {
+      targetSession = validSessions[0];
     }
 
-    if (targetSession && targetSession !== extra.session) {
-      setExtra((prev) => ({ ...prev, session: targetSession }));
-    }
+    setExtra((prev) => {
+      const next = { ...prev };
+      let changed = false;
+
+      extraFields?.forEach((f) => {
+        if (f.type === "select" && (!next[f.key] || next[f.key] === "")) {
+          const opts = f.key === "session" ? validSessions : f.options;
+          if (opts && opts.length > 0) {
+            const first = opts[0];
+            next[f.key] = typeof first === "object" ? first.value : first;
+            changed = true;
+          }
+        }
+      });
+
+      if (extraFields?.some((f) => f.key === "session") && targetSession && next.session !== targetSession) {
+        next.session = targetSession;
+        changed = true;
+      }
+
+      return changed ? next : prev;
+    });
   }, [extra.batch, extra.semester, extra.year]);
 
   async function handleUpload() {
@@ -140,8 +161,22 @@ function UploadCard({
       setErr("Please select an Excel file to upload");
       return;
     }
+
+    const payload = { ...extra };
+    extraFields?.forEach((f) => {
+      if (f.type === "select" && (!payload[f.key] || payload[f.key] === "")) {
+        const opts = f.key === "session"
+          ? getDynamicSessionOptions(payload.batch, payload.semester, payload.year)
+          : f.options;
+        if (opts && opts.length > 0) {
+          const first = opts[0];
+          payload[f.key] = typeof first === "object" ? first.value : first;
+        }
+      }
+    });
+
     const requiredFields = extraFields?.filter((f) => f.label && f.label.includes("*"));
-    const missing = requiredFields?.find((f) => !extra[f.key]);
+    const missing = requiredFields?.find((f) => !payload[f.key]);
     if (missing) {
       setErr(`${missing.label.replace(" *", "")} is required`);
       return;
@@ -253,8 +288,11 @@ function UploadCard({
                 </label>
                 {f.type === "select" ? (
                   <select
-                    value={extra[f.key] || ""}
-                    onChange={(e) => setExtra({ ...extra, [f.key]: e.target.value })}
+                    value={extra[f.key] || (typeof currentOptions?.[0] === "object" ? currentOptions[0].value : currentOptions?.[0]) || ""}
+                    onChange={(e) => {
+                      setErr("");
+                      setExtra((prev) => ({ ...prev, [f.key]: e.target.value }));
+                    }}
                     style={{
                       width: "100%",
                       padding: "9px 12px",
@@ -267,9 +305,6 @@ function UploadCard({
                       fontFamily: "'DM Sans', sans-serif",
                     }}
                   >
-                    <option value="" disabled>
-                      Select {f.label.replace(" *", "")}
-                    </option>
                     {currentOptions?.map((opt) => (
                       <option key={opt.value || opt} value={opt.value || opt}>
                         {opt.label || opt}
@@ -474,7 +509,14 @@ function MissingUploadCard({
     const init = {};
     if (extraFields) {
       extraFields.forEach((f) => {
-        if (f.value !== undefined) init[f.key] = f.value;
+        if (f.value !== undefined) {
+          init[f.key] = f.value;
+        } else if (f.type === "select" && f.options && f.options.length > 0) {
+          const first = f.options[0];
+          init[f.key] = typeof first === "object" ? first.value : first;
+        } else {
+          init[f.key] = "";
+        }
       });
     }
     return init;
@@ -487,29 +529,43 @@ function MissingUploadCard({
   const inputRef = useRef();
 
   useEffect(() => {
-    const hasSessionField = extraFields?.some((f) => f.key === "session");
-    if (!hasSessionField) return;
-
-    const bYear = extra.batch && !isNaN(parseInt(extra.batch, 10)) ? parseInt(extra.batch, 10) : null;
-    const semNum = extra.semester && !isNaN(parseInt(extra.semester, 10)) ? parseInt(extra.semester, 10) : null;
+    const bYear = extra.batch && !isNaN(parseInt(extra.batch, 10)) ? parseInt(extra.batch, 10) : 2023;
+    const semNum = extra.semester && !isNaN(parseInt(extra.semester, 10)) ? parseInt(extra.semester, 10) : 1;
     const yVal = extra.year && !isNaN(parseInt(extra.year, 10)) ? parseInt(extra.year, 10) : null;
 
     let targetSession = extra.session;
+    const validSessions = getDynamicSessionOptions(extra.batch || bYear, extra.semester || semNum, extra.year || yVal);
 
     if (bYear && semNum && semNum >= 1) {
       const yearOffset = Math.floor((semNum - 1) / 2);
       const calcYear = bYear + yearOffset;
       targetSession = `${calcYear}-${String(calcYear + 1).slice(-2)}`;
-    } else if (bYear || yVal) {
-      const validSessions = getDynamicSessionOptions(extra.batch, extra.semester, extra.year);
-      if (!targetSession || !validSessions.includes(targetSession)) {
-        targetSession = validSessions[0];
-      }
+    } else if (!targetSession || !validSessions.includes(targetSession)) {
+      targetSession = validSessions[0];
     }
 
-    if (targetSession && targetSession !== extra.session) {
-      setExtra((prev) => ({ ...prev, session: targetSession }));
-    }
+    setExtra((prev) => {
+      const next = { ...prev };
+      let changed = false;
+
+      extraFields?.forEach((f) => {
+        if (f.type === "select" && (!next[f.key] || next[f.key] === "")) {
+          const opts = f.key === "session" ? validSessions : f.options;
+          if (opts && opts.length > 0) {
+            const first = opts[0];
+            next[f.key] = typeof first === "object" ? first.value : first;
+            changed = true;
+          }
+        }
+      });
+
+      if (extraFields?.some((f) => f.key === "session") && targetSession && next.session !== targetSession) {
+        next.session = targetSession;
+        changed = true;
+      }
+
+      return changed ? next : prev;
+    });
   }, [extra.batch, extra.semester, extra.year]);
 
   async function handleIngest() {
@@ -517,8 +573,22 @@ function MissingUploadCard({
       setErr("Please select an Excel file to upload");
       return;
     }
+
+    const payload = { ...extra };
+    extraFields?.forEach((f) => {
+      if (f.type === "select" && (!payload[f.key] || payload[f.key] === "")) {
+        const opts = f.key === "session"
+          ? getDynamicSessionOptions(payload.batch, payload.semester, payload.year)
+          : f.options;
+        if (opts && opts.length > 0) {
+          const first = opts[0];
+          payload[f.key] = typeof first === "object" ? first.value : first;
+        }
+      }
+    });
+
     const requiredFields = extraFields?.filter((f) => f.label && f.label.includes("*"));
-    const missing = requiredFields?.find((f) => !extra[f.key]);
+    const missing = requiredFields?.find((f) => !payload[f.key]);
     if (missing) {
       setErr(`${missing.label.replace(" *", "")} is required`);
       return;
@@ -532,7 +602,7 @@ function MissingUploadCard({
     try {
       const fd = new FormData();
       fd.append("file", file);
-      Object.entries(extra).forEach(([k, v]) => fd.append(k, v));
+      Object.entries(payload).forEach(([k, v]) => fd.append(k, v));
 
       const { data } = await axios.post(`${API}/admin/${endpoint}`, fd, {
         ...authHeaders,
@@ -660,10 +730,11 @@ function MissingUploadCard({
                 </label>
                 {f.type === "select" ? (
                   <select
-                    value={extra[f.key] || ""}
-                    onChange={(e) =>
-                      setExtra((prev) => ({ ...prev, [f.key]: e.target.value }))
-                    }
+                    value={extra[f.key] || (typeof currentOptions?.[0] === "object" ? currentOptions[0].value : currentOptions?.[0]) || ""}
+                    onChange={(e) => {
+                      setErr("");
+                      setExtra((prev) => ({ ...prev, [f.key]: e.target.value }));
+                    }}
                     style={{
                       width: "100%",
                       padding: "8px 10px",
@@ -3827,6 +3898,7 @@ export default function AdminDashboard() {
                     key: "batch",
                     label: "Batch Year *",
                     type: "select",
+                    value: "2023",
                     options: [
                       { label: "Batch 2021", value: "2021" },
                       { label: "Batch 2022", value: "2022" },
@@ -3839,6 +3911,7 @@ export default function AdminDashboard() {
                     key: "semester",
                     label: "Semester Number *",
                     type: "select",
+                    value: "1",
                     options: [
                       { label: "Semester 1", value: "1" },
                       { label: "Semester 2", value: "2" },
@@ -3854,6 +3927,7 @@ export default function AdminDashboard() {
                     key: "session",
                     label: "Academic Session",
                     type: "select",
+                    value: "2023-24",
                     options: ["2023-24", "2024-25", "2025-26"],
                   },
                 ]}
@@ -3872,6 +3946,7 @@ export default function AdminDashboard() {
                     key: "batch",
                     label: "Batch Year *",
                     type: "select",
+                    value: "2023",
                     options: [
                       { label: "Batch 2021", value: "2021" },
                       { label: "Batch 2022", value: "2022" },
@@ -3884,6 +3959,7 @@ export default function AdminDashboard() {
                     key: "semester",
                     label: "Semester Number *",
                     type: "select",
+                    value: "1",
                     options: [
                       { label: "Semester 1", value: "1" },
                       { label: "Semester 2", value: "2" },
@@ -3911,6 +3987,7 @@ export default function AdminDashboard() {
                     key: "batch",
                     label: "Batch Year *",
                     type: "select",
+                    value: "2023",
                     options: [
                       { label: "Batch 2021", value: "2021" },
                       { label: "Batch 2022", value: "2022" },
@@ -4339,6 +4416,7 @@ export default function AdminDashboard() {
                     key: "batch",
                     label: "Batch Year *",
                     type: "select",
+                    value: "2023",
                     options: [
                       { label: "Batch 2021", value: "2021" },
                       { label: "Batch 2022", value: "2022" },
@@ -4351,6 +4429,7 @@ export default function AdminDashboard() {
                     key: "semester",
                     label: "Semester Number *",
                     type: "select",
+                    value: "1",
                     options: [
                       { label: "Semester 1", value: "1" },
                       { label: "Semester 2", value: "2" },
@@ -4366,6 +4445,7 @@ export default function AdminDashboard() {
                     key: "session",
                     label: "Academic Session",
                     type: "select",
+                    value: "2023-24",
                     options: ["2023-24", "2024-25", "2025-26"],
                   },
                 ]}
@@ -4385,6 +4465,7 @@ export default function AdminDashboard() {
                     key: "batch",
                     label: "Batch Year *",
                     type: "select",
+                    value: "2023",
                     options: [
                       { label: "Batch 2021", value: "2021" },
                       { label: "Batch 2022", value: "2022" },
@@ -4397,6 +4478,7 @@ export default function AdminDashboard() {
                     key: "semester",
                     label: "Semester Number *",
                     type: "select",
+                    value: "1",
                     options: [
                       { label: "Semester 1", value: "1" },
                       { label: "Semester 2", value: "2" },
@@ -4412,6 +4494,7 @@ export default function AdminDashboard() {
                     key: "session",
                     label: "Academic Session",
                     type: "select",
+                    value: "2023-24",
                     options: ["2023-24", "2024-25", "2025-26"],
                   },
                 ]}
