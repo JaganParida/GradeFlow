@@ -462,6 +462,104 @@ export default function Home() {
     }
   };
 
+  const renderQuickActionsCard = (isHeroMobile = false) => (
+    <div
+      className={isHeroMobile ? "gf-mobile-quick-card gf-content-card" : "gf-desktop-quick-card gf-content-card"}
+      style={{
+        background: "#ffffff",
+        border: "1px solid #f1f5f9",
+        borderRadius: isHeroMobile ? 16 : 18,
+        padding: isHeroMobile ? "14px 12px" : "22px 24px",
+        boxShadow: "0 2px 12px rgba(0,0,0,0.02)",
+        marginTop: isHeroMobile ? 6 : 0,
+        width: "100%",
+        boxSizing: "border-box",
+      }}
+    >
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: isHeroMobile ? 12 : 16 }}>
+        <h3
+          style={{
+            fontSize: isHeroMobile ? 14.5 : 16,
+            fontWeight: 800,
+            color: "#0f172a",
+            margin: 0,
+          }}
+        >
+          Quick Actions
+        </h3>
+        <span style={{ fontSize: 10.5, fontWeight: 700, color: "#2563eb", background: "#eff6ff", padding: "2px 7px", borderRadius: 5 }}>
+          6 Tools
+        </span>
+      </div>
+
+      <div
+        className="gf-quick-grid"
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(3, 1fr)",
+          gap: isHeroMobile ? 8 : 10,
+        }}
+      >
+        {QUICK_ACTIONS_ITEMS.map((act, idx) => (
+          <div
+            key={idx}
+            onClick={() => handleQuickAction(act)}
+            className="gf-quick-btn"
+            style={{
+              background: "#fcfdfe",
+              border: "1px solid #f1f5f9",
+              borderRadius: 12,
+              padding: isHeroMobile ? "12px 4px" : "16px 8px",
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: 6,
+              cursor: "pointer",
+              transition: "all 0.2s ease",
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.transform = "translateY(-2px)";
+              e.currentTarget.style.boxShadow =
+                "0 6px 16px rgba(0,0,0,0.04)";
+              e.currentTarget.style.borderColor = "#e2e8f0";
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.transform = "none";
+              e.currentTarget.style.boxShadow = "none";
+              e.currentTarget.style.borderColor = "#f1f5f9";
+            }}
+          >
+            <div
+              style={{
+                width: isHeroMobile ? 36 : 40,
+                height: isHeroMobile ? 36 : 40,
+                borderRadius: 10,
+                background: act.bg,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              {act.icon}
+            </div>
+            <span
+              style={{
+                fontSize: isHeroMobile ? 11 : 11.5,
+                fontWeight: 700,
+                color: "#334155",
+                textAlign: "center",
+                lineHeight: 1.2,
+              }}
+            >
+              {act.label}
+            </span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+
   const handleSearchModalSubmit = async (e) => {
     e.preventDefault();
     const cleanReg = searchRegInput.trim();
@@ -749,6 +847,11 @@ export default function Home() {
                   students used
                 </span>
               </div>
+            </div>
+
+            {/* Mobile Only: Quick Actions positioned right under Hero */}
+            <div className="gf-mobile-quick-wrapper">
+              {renderQuickActionsCard(true)}
             </div>
           </motion.div>
 
@@ -2130,93 +2233,9 @@ export default function Home() {
             gap: 20,
           }}
         >
-          {/* Left: Quick Actions (3x2 Grid) */}
-          <div
-            className="gf-content-card"
-            style={{
-              background: "#ffffff",
-              border: "1px solid #f1f5f9",
-              borderRadius: 18,
-              padding: "22px 24px",
-              boxShadow: "0 2px 12px rgba(0,0,0,0.02)",
-            }}
-          >
-            <h3
-              style={{
-                fontSize: 16,
-                fontWeight: 800,
-                color: "#0f172a",
-                margin: "0 0 16px 0",
-              }}
-            >
-              Quick Actions
-            </h3>
-
-            <div
-              className="gf-quick-grid"
-              style={{
-                display: "grid",
-                gridTemplateColumns: "repeat(3, 1fr)",
-                gap: 10,
-              }}
-            >
-              {QUICK_ACTIONS_ITEMS.map((act, idx) => (
-                <div
-                  key={idx}
-                  onClick={() => handleQuickAction(act)}
-                  className="gf-quick-btn"
-                  style={{
-                    background: "#fcfdfe",
-                    border: "1px solid #f1f5f9",
-                    borderRadius: 12,
-                    padding: "16px 8px",
-                    display: "flex",
-                    flexDirection: "column",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    gap: 8,
-                    cursor: "pointer",
-                    transition: "all 0.2s ease",
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.transform = "translateY(-2px)";
-                    e.currentTarget.style.boxShadow =
-                      "0 6px 16px rgba(0,0,0,0.04)";
-                    e.currentTarget.style.borderColor = "#e2e8f0";
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.transform = "none";
-                    e.currentTarget.style.boxShadow = "none";
-                    e.currentTarget.style.borderColor = "#f1f5f9";
-                  }}
-                >
-                  <div
-                    style={{
-                      width: 40,
-                      height: 40,
-                      borderRadius: 10,
-                      background: act.bg,
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                    }}
-                  >
-                    {act.icon}
-                  </div>
-                  <span
-                    style={{
-                      fontSize: 11.5,
-                      fontWeight: 700,
-                      color: "#334155",
-                      textAlign: "center",
-                      lineHeight: 1.25,
-                    }}
-                  >
-                    {act.label}
-                  </span>
-                </div>
-              ))}
-            </div>
+          {/* Left: Quick Actions (Desktop only) */}
+          <div className="gf-desktop-quick-wrapper">
+            {renderQuickActionsCard(false)}
           </div>
 
           {/* Right: Recent Academic Activity */}
@@ -3167,7 +3186,21 @@ export default function Home() {
           }
         }
 
+        .gf-mobile-quick-wrapper {
+          display: none;
+        }
+        .gf-desktop-quick-wrapper {
+          display: block;
+        }
+
         @media (max-width: 768px) {
+          .gf-mobile-quick-wrapper {
+            display: block !important;
+            width: 100% !important;
+          }
+          .gf-desktop-quick-wrapper {
+            display: none !important;
+          }
           .gf-home-container {
             padding: 18px 14px 44px !important;
             gap: 24px !important;
