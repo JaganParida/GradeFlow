@@ -423,6 +423,7 @@ export default function Home() {
   const [emailSub, setEmailSub] = useState("");
   const [subscribed, setSubscribed] = useState(false);
   const [showSearchModal, setShowSearchModal] = useState(false);
+  const [showAuthPromptModal, setShowAuthPromptModal] = useState(false);
   const [searchRegInput, setSearchRegInput] = useState("");
   const [searchError, setSearchError] = useState("");
   const [isSearching, setIsSearching] = useState(false);
@@ -443,9 +444,7 @@ export default function Home() {
     if (currentRegNo) {
       navigate(`/dashboard/${encodeStudentId(currentRegNo)}`);
     } else {
-      setShowSearchModal(true);
-      setSearchError("");
-      setSearchRegInput("");
+      setShowAuthPromptModal(true);
     }
   };
 
@@ -454,9 +453,7 @@ export default function Home() {
       if (currentRegNo) {
         navigate(`/analytics/${encodeStudentId(currentRegNo)}${act.hash || ""}`);
       } else {
-        setShowSearchModal(true);
-        setSearchError("");
-        setSearchRegInput("");
+        setShowAuthPromptModal(true);
       }
     } else if (act.to.startsWith("/dashboard")) {
       handleDashboardAction();
@@ -3543,6 +3540,117 @@ export default function Home() {
                   </button>
                 </div>
               </form>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Auth Prompt Modal (Registration Number Required) */}
+      <AnimatePresence>
+        {showAuthPromptModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={() => setShowAuthPromptModal(false)}
+            style={{
+              position: "fixed",
+              inset: 0,
+              background: "rgba(15, 23, 42, 0.45)",
+              backdropFilter: "blur(8px)",
+              WebkitBackdropFilter: "blur(8px)",
+              zIndex: 10000,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              padding: 16,
+            }}
+          >
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              onClick={(e) => e.stopPropagation()}
+              style={{
+                background: "#ffffff",
+                borderRadius: 20,
+                padding: "26px 22px",
+                maxWidth: 400,
+                width: "100%",
+                textAlign: "center",
+                boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.25)",
+              }}
+            >
+              <div
+                style={{
+                  width: 46,
+                  height: 46,
+                  borderRadius: 14,
+                  background: "#eff6ff",
+                  color: "#2563eb",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  margin: "0 auto 12px auto",
+                }}
+              >
+                <Search size={20} />
+              </div>
+              <h3 style={{ fontSize: 18, fontWeight: 800, color: "#0f172a", marginBottom: 4 }}>
+                Registration Number Required
+              </h3>
+              <p style={{ fontSize: 12.5, color: "#64748b", marginBottom: 18, lineHeight: 1.5 }}>
+                Please enter your registration number to continue.
+              </p>
+              <div style={{ display: "flex", gap: 10 }}>
+                <button
+                  type="button"
+                  onClick={() => setShowAuthPromptModal(false)}
+                  style={{
+                    flex: 1,
+                    padding: "10px",
+                    borderRadius: 10,
+                    background: "#f1f5f9",
+                    color: "#475569",
+                    border: "none",
+                    fontWeight: 600,
+                    fontSize: 13,
+                    cursor: "pointer",
+                    fontFamily: "inherit",
+                    transition: "background 0.15s ease",
+                  }}
+                  onMouseEnter={(e) => (e.currentTarget.style.background = "#e2e8f0")}
+                  onMouseLeave={(e) => (e.currentTarget.style.background = "#f1f5f9")}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowAuthPromptModal(false);
+                    setShowSearchModal(true);
+                    setSearchError("");
+                    setSearchRegInput("");
+                  }}
+                  style={{
+                    flex: 1,
+                    padding: "10px",
+                    borderRadius: 10,
+                    background: "#0f172a",
+                    color: "#ffffff",
+                    border: "none",
+                    fontWeight: 600,
+                    fontSize: 13,
+                    cursor: "pointer",
+                    fontFamily: "inherit",
+                    transition: "background 0.15s ease",
+                  }}
+                  onMouseEnter={(e) => (e.currentTarget.style.background = "#1e293b")}
+                  onMouseLeave={(e) => (e.currentTarget.style.background = "#0f172a")}
+                >
+                  Search Now
+                </button>
+              </div>
             </motion.div>
           </motion.div>
         )}
