@@ -700,6 +700,7 @@ export default function Home() {
                   <div
                     key={idx}
                     title={u.name}
+                    className="gf-trust-avatar"
                     style={{
                       width: 26,
                       height: 26,
@@ -738,6 +739,7 @@ export default function Home() {
                   ))}
                 </div>
                 <span
+                  className="gf-trust-text"
                   style={{ fontSize: 12, color: "#475569", fontWeight: 600 }}
                 >
                   <strong style={{ color: "#0f172a", fontWeight: 800 }}>
@@ -3210,16 +3212,51 @@ export default function Home() {
 
         @media (max-width: 540px) {
           .gf-home-container {
-            padding: 12px 12px 36px !important;
-            gap: 20px !important;
+            padding: 14px 12px 36px !important;
+            gap: 18px !important;
+          }
+          .gf-hero-title {
+            font-size: 21px !important;
+            line-height: 1.25 !important;
+            letter-spacing: -0.5px !important;
+          }
+          .gf-hero-subtitle {
+            font-size: 13px !important;
+            line-height: 1.5 !important;
+            color: #64748b !important;
           }
           .gf-hero-actions {
             flex-direction: column !important;
             width: 100% !important;
+            gap: 9px !important;
+            margin-top: 2px !important;
           }
-          .gf-btn-primary, .gf-btn-secondary, .gf-cta-btn {
+          .gf-btn-primary, .gf-btn-secondary {
             width: 100% !important;
+            min-height: 42px !important;
+            height: 42px !important;
+            padding: 0 16px !important;
+            font-size: 13.5px !important;
+            font-weight: 700 !important;
+            border-radius: 10px !important;
             box-sizing: border-box !important;
+          }
+          .gf-trust-badge {
+            padding: 4px 10px 4px 6px !important;
+            margin-top: 2px !important;
+            gap: 8px !important;
+          }
+          .gf-trust-avatar {
+            width: 22px !important;
+            height: 22px !important;
+            font-size: 9px !important;
+            margin-left: -6px !important;
+          }
+          .gf-trust-avatar:first-child {
+            margin-left: 0 !important;
+          }
+          .gf-trust-text {
+            font-size: 11px !important;
           }
           .gf-mockup-card {
             grid-template-columns: 1fr !important;
@@ -3233,25 +3270,42 @@ export default function Home() {
           }
           .gf-stats-grid {
             grid-template-columns: repeat(2, 1fr) !important;
-            gap: 10px !important;
+            gap: 8px !important;
           }
           .gf-stat-card {
-            padding: 12px 10px !important;
-            gap: 10px !important;
+            padding: 11px 10px !important;
+            gap: 8px !important;
+            border-radius: 12px !important;
           }
           .gf-stat-card > div:first-child {
-            width: 38px !important;
-            height: 38px !important;
+            width: 36px !important;
+            height: 36px !important;
+            border-radius: 10px !important;
           }
           .gf-stat-card > div:last-child > div:nth-child(2) {
-            font-size: 20px !important;
+            font-size: 18px !important;
+            font-weight: 800 !important;
+          }
+          .gf-content-card {
+            padding: 14px 12px !important;
+            border-radius: 14px !important;
           }
           .gf-quick-grid {
             grid-template-columns: repeat(3, 1fr) !important;
             gap: 8px !important;
           }
           .gf-quick-btn {
-            padding: 12px 4px !important;
+            padding: 10px 4px !important;
+            font-size: 11px !important;
+            border-radius: 10px !important;
+          }
+          .gf-cta-btn {
+            min-height: 42px !important;
+            height: 42px !important;
+            padding: 0 18px !important;
+            font-size: 13.5px !important;
+            border-radius: 10px !important;
+            width: 100% !important;
           }
           .gf-footer-brand-strip {
             flex-direction: column !important;
