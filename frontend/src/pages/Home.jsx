@@ -2295,9 +2295,11 @@ export default function Home() {
               alignItems: "center",
               justifyContent: "space-between",
               flexWrap: "wrap",
-              gap: 16,
+              gap: 14,
               paddingBottom: 22,
-              borderBottom: "1px solid #f8fafc",
+              borderBottom: "1px solid #f1f5f9",
+              width: "100%",
+              boxSizing: "border-box",
             }}
           >
             {/* Logo + Tagline */}
@@ -2306,7 +2308,7 @@ export default function Home() {
                 display: "flex",
                 flexDirection: "column",
                 gap: 6,
-                maxWidth: 440,
+                maxWidth: 460,
               }}
             >
               <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
@@ -2373,13 +2375,14 @@ export default function Home() {
                 display: "inline-flex",
                 alignItems: "center",
                 gap: 8,
-                background: "#f8fafc",
+                background: "#ffffff",
                 border: "1px solid #e2e8f0",
                 borderRadius: 99,
                 padding: "6px 14px",
                 fontSize: 12,
                 fontWeight: 600,
                 color: "#334155",
+                boxShadow: "0 1px 2px rgba(0,0,0,0.02)",
               }}
             >
               <span
@@ -2403,9 +2406,11 @@ export default function Home() {
             className="gf-footer-content-grid"
             style={{
               display: "grid",
-              gridTemplateColumns: "1.2fr 1fr 1fr 1.5fr",
+              gridTemplateColumns: "1.1fr 1.1fr 1.1fr 1.5fr",
               gap: 28,
               alignItems: "start",
+              width: "100%",
+              boxSizing: "border-box",
             }}
           >
             {/* Column 1: Product & Tools */}
@@ -2424,7 +2429,7 @@ export default function Home() {
                 />
                 <h4
                   style={{
-                    fontSize: 13.5,
+                    fontSize: 13,
                     fontWeight: 800,
                     color: "#0f172a",
                     margin: 0,
@@ -2488,7 +2493,7 @@ export default function Home() {
                 />
                 <h4
                   style={{
-                    fontSize: 13.5,
+                    fontSize: 13,
                     fontWeight: 800,
                     color: "#0f172a",
                     margin: 0,
@@ -2536,7 +2541,7 @@ export default function Home() {
               </div>
             </div>
 
-            {/* Column 3: Company */}
+            {/* Column 3: Developer */}
             <div
               className="gf-footer-col"
               style={{ display: "flex", flexDirection: "column", gap: 10 }}
@@ -2552,7 +2557,7 @@ export default function Home() {
                 />
                 <h4
                   style={{
-                    fontSize: 13.5,
+                    fontSize: 13,
                     fontWeight: 800,
                     color: "#0f172a",
                     margin: 0,
@@ -2607,11 +2612,12 @@ export default function Home() {
                 background: "#ffffff",
                 border: "1px solid #e2e8f0",
                 borderRadius: 16,
-                padding: "18px 20px",
+                padding: "18px 18px",
                 display: "flex",
                 flexDirection: "column",
                 gap: 12,
-                boxShadow: "0 4px 16px rgba(0,0,0,0.02)",
+                boxShadow: "0 2px 10px rgba(0,0,0,0.02)",
+                boxSizing: "border-box",
               }}
             >
               <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
@@ -2625,6 +2631,7 @@ export default function Home() {
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "center",
+                    flexShrink: 0,
                   }}
                 >
                   <Mail size={14} />
@@ -2707,6 +2714,7 @@ export default function Home() {
 
               {/* Social links row */}
               <div
+                className="gf-footer-social-row"
                 style={{
                   display: "flex",
                   alignItems: "center",
@@ -2721,9 +2729,9 @@ export default function Home() {
                   aria-label="Twitter"
                   className="gf-social-icon"
                   style={{
-                    width: 32,
-                    height: 32,
-                    borderRadius: 8,
+                    width: 34,
+                    height: 34,
+                    borderRadius: 9,
                     background: "#f1f5f9",
                     color: "#475569",
                     display: "flex",
@@ -2733,7 +2741,7 @@ export default function Home() {
                     transition: "all 0.2s",
                   }}
                 >
-                  <TwitterIcon size={14} />
+                  <TwitterIcon size={15} />
                 </a>
                 <a
                   href="https://linkedin.com"
@@ -2742,9 +2750,9 @@ export default function Home() {
                   aria-label="LinkedIn"
                   className="gf-social-icon"
                   style={{
-                    width: 32,
-                    height: 32,
-                    borderRadius: 8,
+                    width: 34,
+                    height: 34,
+                    borderRadius: 9,
                     background: "#f1f5f9",
                     color: "#475569",
                     display: "flex",
@@ -2754,7 +2762,7 @@ export default function Home() {
                     transition: "all 0.2s",
                   }}
                 >
-                  <LinkedinIcon size={14} />
+                  <LinkedinIcon size={15} />
                 </a>
                 <a
                   href="https://instagram.com"
@@ -2763,9 +2771,9 @@ export default function Home() {
                   aria-label="Instagram"
                   className="gf-social-icon"
                   style={{
-                    width: 32,
-                    height: 32,
-                    borderRadius: 8,
+                    width: 34,
+                    height: 34,
+                    borderRadius: 9,
                     background: "#f1f5f9",
                     color: "#475569",
                     display: "flex",
@@ -2775,7 +2783,7 @@ export default function Home() {
                     transition: "all 0.2s",
                   }}
                 >
-                  <InstagramIcon size={14} />
+                  <InstagramIcon size={15} />
                 </a>
                 <a
                   href="https://github.com"
@@ -2784,9 +2792,9 @@ export default function Home() {
                   aria-label="GitHub"
                   className="gf-social-icon"
                   style={{
-                    width: 32,
-                    height: 32,
-                    borderRadius: 8,
+                    width: 34,
+                    height: 34,
+                    borderRadius: 9,
                     background: "#f1f5f9",
                     color: "#475569",
                     display: "flex",
@@ -2796,7 +2804,7 @@ export default function Home() {
                     transition: "all 0.2s",
                   }}
                 >
-                  <GithubIcon size={14} />
+                  <GithubIcon size={15} />
                 </a>
               </div>
             </div>
@@ -2815,13 +2823,15 @@ export default function Home() {
               gap: 12,
               fontSize: 12,
               color: "#94a3b8",
+              width: "100%",
+              boxSizing: "border-box",
             }}
           >
             <div>
-              © 2025 GradeFlow. Built for Centurion University students.
+              © 2026 GradeFlow. Built for Centurion University students.
             </div>
 
-            <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 14, flexWrap: "wrap", justifyContent: "center" }}>
               <span
                 className="gf-legal-link"
                 onClick={() => navigate("/resources")}
@@ -2944,14 +2954,14 @@ export default function Home() {
           .gf-main-chart-wrap {
             height: 200px !important;
           }
-          /* 2-column clean link matrix on mobile */
+          /* 2-column clean link matrix on tablet */
           .gf-footer-content-grid {
-            grid-template-columns: 1fr 1fr !important;
-            gap: 18px 14px !important;
+            grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+            gap: 20px 16px !important;
           }
           .gf-footer-newsletter-card {
             grid-column: 1 / -1 !important;
-            margin-top: 6px !important;
+            margin-top: 4px !important;
           }
         }
 
@@ -3005,25 +3015,30 @@ export default function Home() {
             align-items: flex-start !important;
             gap: 12px !important;
           }
+          .gf-footer-content-grid {
+            grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+            gap: 18px 12px !important;
+          }
+          .gf-footer-col:nth-child(3) {
+            grid-column: 1 / -1 !important;
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 12px 14px;
+          }
+          .gf-footer-col:nth-child(3) .gf-footer-link-list {
+            display: grid !important;
+            grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+            gap: 8px 10px !important;
+          }
+          .gf-footer-social-row {
+            justify-content: center !important;
+          }
           .gf-footer-bottom-bar {
             flex-direction: column !important;
-            align-items: flex-start !important;
-            gap: 10px !important;
-          }
-        }
-
-        @media (max-width: 360px) {
-          .gf-stats-grid {
-            grid-template-columns: 1fr !important;
-          }
-          .gf-quick-grid {
-            grid-template-columns: repeat(2, 1fr) !important;
-          }
-          .gf-mockup-stats-grid {
-            grid-template-columns: 1fr !important;
-          }
-          .gf-footer-content-grid {
-            grid-template-columns: 1fr !important;
+            align-items: center !important;
+            text-align: center !important;
+            gap: 8px !important;
           }
         }
       `}</style>
