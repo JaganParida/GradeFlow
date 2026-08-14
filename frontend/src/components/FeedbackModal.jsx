@@ -123,6 +123,18 @@ export default function FeedbackModal() {
     }
   };
 
+  const [isMobile, setIsMobile] = useState(
+    () => (typeof window !== "undefined" ? window.innerWidth < 640 || window.innerHeight < 700 : false)
+  );
+
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth < 640 || window.innerHeight < 700);
+    };
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+
   return (
     <AnimatePresence>
       {show && (
@@ -136,7 +148,8 @@ export default function FeedbackModal() {
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            padding: 16,
+            padding: isMobile ? "8px" : "16px",
+            boxSizing: "border-box",
           }}
         >
           {/* Backdrop */}
@@ -164,12 +177,16 @@ export default function FeedbackModal() {
               position: "relative",
               width: "100%",
               maxWidth: 480,
+              maxHeight: "min(92vh, 580px)",
+              overflowY: "auto",
+              WebkitOverflowScrolling: "touch",
+              scrollbarWidth: "none",
               background: "#ffffff",
-              borderRadius: 22,
+              borderRadius: isMobile ? 18 : 22,
               border: "1px solid #e2e8f0",
               boxShadow:
                 "0 25px 50px -12px rgba(15, 23, 42, 0.25), 0 0 0 1px rgba(15, 23, 42, 0.05)",
-              padding: "26px 24px",
+              padding: isMobile ? "18px 16px 16px 16px" : "26px 24px",
               zIndex: 10,
               fontFamily: "'DM Sans', sans-serif",
             }}
@@ -181,10 +198,10 @@ export default function FeedbackModal() {
                 top: 0,
                 left: 0,
                 right: 0,
-                height: 5,
+                height: 4,
                 background: "linear-gradient(90deg, #2563eb, #8b5cf6, #f59e0b)",
-                borderTopLeftRadius: 22,
-                borderTopRightRadius: 22,
+                borderTopLeftRadius: isMobile ? 18 : 22,
+                borderTopRightRadius: isMobile ? 18 : 22,
               }}
             />
 
