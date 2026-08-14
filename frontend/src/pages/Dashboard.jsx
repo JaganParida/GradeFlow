@@ -7,7 +7,7 @@ import {
   ReportCardSkeleton,
   InternalMarksSkeleton,
 } from "../components/LoadingSpinner";
-import { encodeStudentId, decodeStudentId } from "../utils/studentIdEncoder";
+import { encodeStudentId, decodeStudentId, isEncryptedToken } from "../utils/studentIdEncoder";
 import GradeSheet from "../components/GradeSheet";
 import BasketDashboard from "../components/BasketDashboard";
 import TargetPredictor from "../components/TargetPredictor";
@@ -292,9 +292,9 @@ export default function Dashboard() {
   const { studentData, fetchStudent, loading, error, API } = useApp();
   const navigate = useNavigate();
 
-  // Normalize URL to obfuscated GF_ token if raw registration number is provided
+  // Normalize URL to obfuscated token if raw registration number is provided
   useEffect(() => {
-    if (regNo && urlParam && !urlParam.startsWith("GF_")) {
+    if (regNo && urlParam && !isEncryptedToken(urlParam)) {
       navigate(`/dashboard/${encodeStudentId(regNo)}`, { replace: true });
     }
   }, [urlParam, regNo, navigate]);

@@ -21,7 +21,7 @@ import {
   PolarRadiusAxis,
 } from "recharts";
 import { AnalyticsSkeleton } from "../components/LoadingSpinner";
-import { encodeStudentId, decodeStudentId } from "../utils/studentIdEncoder";
+import { encodeStudentId, decodeStudentId, isEncryptedToken } from "../utils/studentIdEncoder";
 import { motion, animate, AnimatePresence } from "framer-motion";
 import {
   TrendingUp,
@@ -217,7 +217,7 @@ export default function Analytics() {
 
   // Normalize URL to obfuscated token if raw registration number is provided
   useEffect(() => {
-    if (decodedRegNo && paramRegNo && !paramRegNo.startsWith("GF_")) {
+    if (decodedRegNo && paramRegNo && !isEncryptedToken(paramRegNo)) {
       const query = location.search || "";
       const hash = location.hash || "";
       navigate(`/analytics/${encodeStudentId(decodedRegNo)}${query}${hash}`, { replace: true });
