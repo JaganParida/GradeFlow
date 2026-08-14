@@ -543,26 +543,6 @@ export default function Home() {
             transition={{ duration: 0.45 }}
             style={{ display: "flex", flexDirection: "column", gap: 18 }}
           >
-            {/* Pill Badge */}
-            <div
-              style={{
-                display: "inline-flex",
-                alignItems: "center",
-                gap: 7,
-                padding: "5px 12px",
-                background: "#eff6ff",
-                border: "1px solid #dbeafe",
-                borderRadius: 999,
-                color: "#2563eb",
-                fontSize: 12,
-                fontWeight: 700,
-                width: "fit-content",
-              }}
-            >
-              <Sparkles size={12} color="#2563eb" />
-              <span>Smart Academic Analytics</span>
-            </div>
-
             {/* Main Headline */}
             <h1
               className="gf-hero-title"
