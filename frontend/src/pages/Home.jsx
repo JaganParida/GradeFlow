@@ -528,7 +528,7 @@ export default function Home() {
           className="gf-hero-grid"
           style={{
             display: "grid",
-            gridTemplateColumns: "1fr 1.22fr",
+            gridTemplateColumns: "1.08fr 1.15fr",
             gap: 36,
             alignItems: "center",
           }}
@@ -544,17 +544,20 @@ export default function Home() {
             <h1
               className="gf-hero-title"
               style={{
-                fontSize: "clamp(28px, 3.8vw, 48px)",
+                fontSize: "clamp(22px, 3.2vw, 42px)",
                 fontWeight: 800,
-                lineHeight: 1.18,
+                lineHeight: 1.2,
                 color: "#0f172a",
-                letterSpacing: "-1.1px",
+                letterSpacing: "-0.8px",
                 margin: 0,
               }}
             >
-              <span>Track Every <span style={{ color: "#2563eb" }}>Grade</span></span>
-              <br />
-              <span>Own Your <span style={{ color: "#2563eb" }}>Academic Future</span></span>
+              <span style={{ display: "block", whiteSpace: "nowrap" }}>
+                Track Every <span style={{ color: "#2563eb" }}>Grade</span>
+              </span>
+              <span style={{ display: "block", whiteSpace: "nowrap" }}>
+                Own Your <span style={{ color: "#2563eb" }}>Academic Future</span>
+              </span>
             </h1>
 
             {/* Subtitle */}
