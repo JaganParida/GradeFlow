@@ -79,12 +79,18 @@ export function AppProvider({ children }) {
     setLoading(true);
     setError("");
     try {
-      await axios.post(`${API_BASE}/auth/login`, { email, password });
-      setAdminToken(true);
-      return true;
+      const res = await axios.post(`${API_BASE}/auth/login`, { email, password });
+      if (res.data?.success || res.status === 200) {
+        setAdminToken(true);
+        return { success: true };
+      }
+      const msg = res.data?.message || "Invalid credentials";
+      setError(msg);
+      return { success: false, error: msg };
     } catch (err) {
-      setError(err.response?.data?.message || "Login failed");
-      return false;
+      const msg = err.response?.data?.message || "Invalid email or password. Please try again.";
+      setError(msg);
+      return { success: false, error: msg };
     } finally {
       setLoading(false);
     }

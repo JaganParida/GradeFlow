@@ -72,9 +72,26 @@ export default function AdminLogin() {
     setError("");
 
     try {
-      await adminLogin(cleanEmail, cleanPassword);
-      setForm({ email: "", password: "" });
-      navigate("/admin/dashboard");
+      const res = await adminLogin(cleanEmail, cleanPassword);
+      if (res && res.success) {
+        setForm({ email: "", password: "" });
+        navigate("/admin/dashboard");
+      } else {
+        const nextAttempts = failedAttempts + 1;
+        setFailedAttempts(nextAttempts);
+
+        if (nextAttempts >= 5) {
+          setLockCountdown(45);
+          setError("Security Alert: Too many failed attempts. Login locked for 45 seconds.");
+        } else {
+          const remaining = 5 - nextAttempts;
+          const serverMsg = res?.error || "Invalid email or password.";
+          setError(
+            `${serverMsg} (${remaining} attempt${remaining > 1 ? "s" : ""} remaining before temporary lockout)`
+          );
+        }
+        setForm((prev) => ({ ...prev, password: "" }));
+      }
     } catch (err) {
       const nextAttempts = failedAttempts + 1;
       setFailedAttempts(nextAttempts);
@@ -86,7 +103,7 @@ export default function AdminLogin() {
         const remaining = 5 - nextAttempts;
         setError(
           err.response?.data?.message ||
-            `Invalid credentials. ${remaining} attempt${remaining > 1 ? "s" : ""} remaining before lockout.`
+            `Invalid credentials. (${remaining} attempt${remaining > 1 ? "s" : ""} remaining before lockout)`
         );
       }
       setForm((prev) => ({ ...prev, password: "" }));
