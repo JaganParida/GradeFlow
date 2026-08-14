@@ -836,7 +836,7 @@ export default function Dashboard() {
                 /* Mobile 3-Button Compact Row */
                 <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 6 }}>
                   <button
-                    onClick={() => navigate(`/analytics/${regNo}`)}
+                    onClick={() => navigate(`/analytics/${encodeStudentId(regNo)}`)}
                     style={{
                       display: "flex",
                       flexDirection: "column",
@@ -1253,7 +1253,7 @@ export default function Dashboard() {
                       <span>Transcript</span>
                     </button>
                     <button
-                      onClick={() => navigate(`/analytics/${regNo}`)}
+                      onClick={() => navigate(`/analytics/${encodeStudentId(regNo)}`)}
                       style={{
                         display: "inline-flex",
                         alignItems: "center",
