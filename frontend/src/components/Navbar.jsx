@@ -87,6 +87,15 @@ export default function Navbar() {
     }
   };
 
+  const handleRankingsClick = (e) => {
+    if (e) e.preventDefault();
+    if (!hasActiveSession && !currentRegNo) {
+      setShowAuthModal(true);
+    } else {
+      navigate("/leaderboard");
+    }
+  };
+
   const handleSearchSubmit = async (e) => {
     e.preventDefault();
     const cleanReg = searchRegNo.trim();
@@ -415,6 +424,7 @@ export default function Navbar() {
             {/* Rankings */}
             <Link
               to="/leaderboard"
+              onClick={handleRankingsClick}
               style={{
                 textDecoration: "none",
                 fontSize: 14,
@@ -994,7 +1004,15 @@ export default function Navbar() {
                 {/* Rankings */}
                 <Link
                   to="/leaderboard"
-                  onClick={() => setMobileMenuOpen(false)}
+                  onClick={(e) => {
+                    if (!hasActiveSession && !currentRegNo) {
+                      e.preventDefault();
+                      setMobileMenuOpen(false);
+                      setShowAuthModal(true);
+                    } else {
+                      setMobileMenuOpen(false);
+                    }
+                  }}
                   style={{
                     display: "flex",
                     alignItems: "center",
@@ -1386,7 +1404,7 @@ export default function Navbar() {
                 Registration Number Required
               </h3>
               <p style={{ fontSize: 12.5, color: "#64748b", marginBottom: 18, lineHeight: 1.5 }}>
-                Please enter your registration number to access your student dashboard.
+                Please enter your registration number to continue.
               </p>
               <div style={{ display: "flex", gap: 10 }}>
                 <button
