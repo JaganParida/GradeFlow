@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useApp } from "../context/AppContext";
 import { encodeStudentId } from "../utils/studentIdEncoder";
@@ -426,6 +426,15 @@ export default function Home() {
   const [searchRegInput, setSearchRegInput] = useState("");
   const [searchError, setSearchError] = useState("");
   const [isSearching, setIsSearching] = useState(false);
+  const [isMobile, setIsMobile] = useState(() =>
+    typeof window !== "undefined" ? window.innerWidth < 768 : false
+  );
+
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth < 768);
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
 
   const currentRegNo =
     studentData?.regNo || sessionStorage.getItem("last_regNo") || localStorage.getItem("last_regNo") || "";
@@ -791,8 +800,6 @@ export default function Home() {
                 border: "1px solid rgba(226, 232, 240, 0.9)",
                 boxShadow:
                   "0 20px 40px -10px rgba(15, 23, 42, 0.1), 0 0 0 1px rgba(255, 255, 255, 0.8)",
-                display: "grid",
-                gridTemplateColumns: "52px 1fr",
                 overflow: "hidden",
                 position: "relative",
                 zIndex: 1,
@@ -909,16 +916,44 @@ export default function Home() {
                   }}
                 >
                   <div>
-                    <h3
+                    <div
                       style={{
-                        fontSize: 16,
-                        fontWeight: 800,
-                        color: "#0f172a",
-                        margin: 0,
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 6,
+                        flexWrap: "wrap",
                       }}
                     >
-                      Welcome back, Student 👋
-                    </h3>
+                      <h3
+                        style={{
+                          fontSize: 16,
+                          fontWeight: 800,
+                          color: "#0f172a",
+                          margin: 0,
+                        }}
+                      >
+                        {currentRegNo && studentData?.studentName
+                          ? `Welcome back, ${studentData.studentName.split(" ")[0]} 👋`
+                          : "Alex Kumar (Sample Student) 🎓"}
+                      </h3>
+                      {!currentRegNo && (
+                        <span
+                          style={{
+                            fontSize: 9.5,
+                            fontWeight: 800,
+                            background: "#f1f5f9",
+                            color: "#64748b",
+                            border: "1px solid #e2e8f0",
+                            padding: "1px 6px",
+                            borderRadius: 4,
+                            textTransform: "uppercase",
+                            letterSpacing: "0.4px",
+                          }}
+                        >
+                          Sample Data
+                        </span>
+                      )}
+                    </div>
                     <p
                       style={{
                         fontSize: 11.5,
@@ -926,7 +961,9 @@ export default function Home() {
                         margin: "2px 0 0 0",
                       }}
                     >
-                      Here's your academic overview
+                      {currentRegNo && studentData?.regNo
+                        ? `${studentData.regNo} • ${studentData.branch || "B.Tech"}`
+                        : "Sample academic overview • Centurion University"}
                     </p>
                   </div>
                   <div
@@ -1389,9 +1426,142 @@ export default function Home() {
           </div>
         </section>
 
+        {/* ── Mobile Notice Banner for Unauthenticated Students ── */}
+        {!currentRegNo && isMobile && (
+          <div
+            style={{
+              background: "linear-gradient(135deg, #1e3a8a 0%, #2563eb 100%)",
+              borderRadius: 16,
+              padding: "16px 18px",
+              color: "#ffffff",
+              display: "flex",
+              flexDirection: "column",
+              gap: 10,
+              boxShadow: "0 8px 20px rgba(37, 99, 235, 0.15)",
+              width: "100%",
+              boxSizing: "border-box",
+            }}
+          >
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <Sparkles size={18} color="#93c5fd" />
+              <span style={{ fontSize: 13.5, fontWeight: 800 }}>
+                Want to see your actual grades?
+              </span>
+            </div>
+            <p
+              style={{
+                fontSize: 11.5,
+                color: "#dbeafe",
+                margin: 0,
+                lineHeight: 1.45,
+              }}
+            >
+              The statistics above show a <strong>sample demo preview</strong>.
+              Enter your registration number to load your official results and
+              rank.
+            </p>
+            <button
+              onClick={() => {
+                setShowSearchModal(true);
+                setSearchError("");
+                setSearchRegInput("");
+              }}
+              style={{
+                width: "100%",
+                padding: "10px",
+                borderRadius: 10,
+                background: "#ffffff",
+                color: "#1e3a8a",
+                border: "none",
+                fontSize: 13,
+                fontWeight: 800,
+                cursor: "pointer",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: 6,
+                boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
+              }}
+            >
+              <Search size={15} /> Search Your Registration Number
+            </button>
+          </div>
+        )}
+
         {/* ══════════════════════════════════════════════════════════
             SECTION 2: 4 STANDALONE STAT CARDS
         ══════════════════════════════════════════════════════════ */}
+        <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              flexWrap: "wrap",
+              gap: 8,
+            }}
+          >
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <span
+                style={{
+                  fontSize: 10.5,
+                  fontWeight: 800,
+                  color: "#2563eb",
+                  background: "#eff6ff",
+                  border: "1px solid #dbeafe",
+                  padding: "3px 8px",
+                  borderRadius: 6,
+                  textTransform: "uppercase",
+                  letterSpacing: "0.5px",
+                }}
+              >
+                {currentRegNo ? "Your Summary" : "Sample Preview"}
+              </span>
+              <h2
+                style={{
+                  fontSize: 18,
+                  fontWeight: 800,
+                  color: "#0f172a",
+                  margin: 0,
+                }}
+              >
+                {currentRegNo
+                  ? "Your Real-Time Academic Stats"
+                  : "Interactive Academic Metrics"}
+              </h2>
+            </div>
+            {!currentRegNo && (
+              <button
+                type="button"
+                onClick={() => {
+                  setShowSearchModal(true);
+                  setSearchError("");
+                  setSearchRegInput("");
+                }}
+                style={{
+                  background: "transparent",
+                  border: "none",
+                  color: "#2563eb",
+                  fontSize: 12.5,
+                  fontWeight: 700,
+                  cursor: "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 4,
+                  padding: 0,
+                }}
+              >
+                View your real scores <ArrowRight size={13} />
+              </button>
+            )}
+          </div>
+          <p style={{ fontSize: 12.5, color: "#64748b", margin: 0 }}>
+            {currentRegNo
+              ? `Live metrics computed for ${studentData?.studentName || "your account"}`
+              : "Here is how GradeFlow calculates your CGPA, SGPA, health index, and university standing once searched."}
+          </p>
+        </div>
+
         <section
           className="gf-stats-grid"
           style={{
@@ -1692,16 +1862,33 @@ export default function Home() {
                 gap: 8,
               }}
             >
-              <h3
-                style={{
-                  fontSize: 16,
-                  fontWeight: 800,
-                  color: "#0f172a",
-                  margin: 0,
-                }}
-              >
-                SGPA Across Semesters
-              </h3>
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <h3
+                  style={{
+                    fontSize: 16,
+                    fontWeight: 800,
+                    color: "#0f172a",
+                    margin: 0,
+                  }}
+                >
+                  SGPA Across Semesters
+                </h3>
+                {!currentRegNo && (
+                  <span
+                    style={{
+                      fontSize: 10,
+                      fontWeight: 700,
+                      color: "#64748b",
+                      background: "#f8fafc",
+                      border: "1px solid #e2e8f0",
+                      padding: "1px 6px",
+                      borderRadius: 4,
+                    }}
+                  >
+                    Sample
+                  </span>
+                )}
+              </div>
               <div
                 style={{
                   display: "flex",
@@ -1816,21 +2003,38 @@ export default function Home() {
                 marginBottom: 16,
               }}
             >
-              <h3
-                style={{
-                  fontSize: 16,
-                  fontWeight: 800,
-                  color: "#0f172a",
-                  margin: 0,
-                }}
-              >
-                Top Subjects{" "}
-                <span
-                  style={{ fontSize: 12, fontWeight: 500, color: "#94a3b8" }}
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <h3
+                  style={{
+                    fontSize: 16,
+                    fontWeight: 800,
+                    color: "#0f172a",
+                    margin: 0,
+                  }}
                 >
-                  (Sem 6)
-                </span>
-              </h3>
+                  Top Subjects{" "}
+                  <span
+                    style={{ fontSize: 12, fontWeight: 500, color: "#94a3b8" }}
+                  >
+                    (Sem 6)
+                  </span>
+                </h3>
+                {!currentRegNo && (
+                  <span
+                    style={{
+                      fontSize: 10,
+                      fontWeight: 700,
+                      color: "#64748b",
+                      background: "#f8fafc",
+                      border: "1px solid #e2e8f0",
+                      padding: "1px 6px",
+                      borderRadius: 4,
+                    }}
+                  >
+                    Sample
+                  </span>
+                )}
+              </div>
               <button
                 onClick={() => navigate("/resources")}
                 style={{
@@ -2054,16 +2258,33 @@ export default function Home() {
                 marginBottom: 16,
               }}
             >
-              <h3
-                style={{
-                  fontSize: 16,
-                  fontWeight: 800,
-                  color: "#0f172a",
-                  margin: 0,
-                }}
-              >
-                Recent Academic Activity
-              </h3>
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <h3
+                  style={{
+                    fontSize: 16,
+                    fontWeight: 800,
+                    color: "#0f172a",
+                    margin: 0,
+                  }}
+                >
+                  Recent Academic Activity
+                </h3>
+                {!currentRegNo && (
+                  <span
+                    style={{
+                      fontSize: 10,
+                      fontWeight: 700,
+                      color: "#64748b",
+                      background: "#f8fafc",
+                      border: "1px solid #e2e8f0",
+                      padding: "1px 6px",
+                      borderRadius: 4,
+                    }}
+                  >
+                    Sample Feed
+                  </span>
+                )}
+              </div>
               <button
                 onClick={() => navigate("/resources")}
                 style={{
