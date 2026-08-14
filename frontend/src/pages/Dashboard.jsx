@@ -570,13 +570,14 @@ export default function Dashboard() {
   const internalSubjects = getSortedInternalSubjects(internalMarks);
 
   // SVG Achievement Badges (100% synchronized with Unlockable Academic Badges Scale)
+  const currentRanking = semesterRanking || studentData?.ranking;
   const isTopRanker = Boolean(
-    ranking &&
-      ((ranking.universityRank && ranking.universityRank <= 10) ||
-        (ranking.sgpaRank && ranking.sgpaRank <= 10) ||
-        (ranking.cgpaRank && ranking.cgpaRank <= 10) ||
-        (ranking.sectionSgpaRank && ranking.sectionSgpaRank <= 10) ||
-        (ranking.sectionCgpaRank && ranking.sectionCgpaRank <= 10))
+    currentRanking &&
+      ((currentRanking.universityRank && currentRanking.universityRank <= 10) ||
+        (currentRanking.sgpaRank && currentRanking.sgpaRank <= 10) ||
+        (currentRanking.cgpaRank && currentRanking.cgpaRank <= 10) ||
+        (currentRanking.sectionSgpaRank && currentRanking.sectionSgpaRank <= 10) ||
+        (currentRanking.sectionCgpaRank && currentRanking.sectionCgpaRank <= 10))
   );
 
   const badges = [
