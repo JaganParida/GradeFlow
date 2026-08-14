@@ -406,8 +406,8 @@ export default function Resources() {
         {!isMobile && (
           <aside
             style={{
-              position: "sticky",
-              top: 80,
+              position: isMobile ? "relative" : "sticky",
+              top: isMobile ? "auto" : 20,
               alignSelf: "start",
               display: "flex",
               flexDirection: "column",
@@ -424,7 +424,7 @@ export default function Resources() {
                 background: "#ffffff",
                 border: "1px solid #f1f5f9",
                 borderRadius: 20,
-                padding: "24px 14px",
+                padding: isMobile ? "20px 14px" : "28px 16px",
                 boxShadow: "0 4px 16px rgba(0,0,0,0.02)",
                 display: "flex",
                 flexDirection: "column",
@@ -687,13 +687,14 @@ export default function Resources() {
                   background: "#ffffff",
                   border: "1px solid #f1f5f9",
                   borderRadius: isMobile ? 16 : 20,
-                  padding: isMobile ? "20px 14px" : "32px",
+                  padding: isMobile ? "20px 14px" : "28px 28px",
                   boxShadow: "0 4px 16px rgba(0,0,0,0.02)",
                   display: "flex",
                   flexDirection: "column",
                   gap: isMobile ? 18 : 24,
                   width: "100%",
                   boxSizing: "border-box",
+                  margin: 0,
                 }}
               >
                 {/* Header Title with Verified Blue Badge */}
@@ -1359,7 +1360,7 @@ export default function Resources() {
                   background: "#ffffff",
                   border: "1px solid #f1f5f9",
                   borderRadius: isMobile ? 16 : 20,
-                  padding: isMobile ? "16px 12px" : "32px",
+                  padding: isMobile ? "20px 14px" : "28px 28px",
                   boxShadow: "0 4px 16px rgba(0,0,0,0.02)",
                   display: "flex",
                   flexDirection: "column",
@@ -1368,6 +1369,7 @@ export default function Resources() {
                   maxWidth: "100%",
                   boxSizing: "border-box",
                   overflowX: "hidden",
+                  margin: 0,
                 }}
               >
                 {/* Section Header */}
@@ -1659,13 +1661,14 @@ export default function Resources() {
                   background: "#ffffff",
                   border: "1px solid #f1f5f9",
                   borderRadius: isMobile ? 16 : 20,
-                  padding: isMobile ? "20px 14px" : "32px",
+                  padding: isMobile ? "20px 14px" : "28px 28px",
                   boxShadow: "0 4px 16px rgba(0,0,0,0.02)",
                   display: "flex",
                   flexDirection: "column",
                   gap: isMobile ? 16 : 20,
                   width: "100%",
                   boxSizing: "border-box",
+                  margin: 0,
                 }}
               >
                 <div>
@@ -1899,7 +1902,7 @@ export default function Resources() {
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
                 transition={{ duration: 0.22, ease: "easeInOut" }}
-                style={{ background: "#ffffff", border: "1px solid #f1f5f9", borderRadius: 20, padding: isMobile ? "20px 14px" : "32px", boxShadow: "0 4px 16px rgba(0,0,0,0.02)" }}
+                style={{ background: "#ffffff", border: "1px solid #f1f5f9", borderRadius: 20, padding: isMobile ? "20px 14px" : "28px 28px", boxShadow: "0 4px 16px rgba(0,0,0,0.02)", margin: 0 }}
               >
                 <h2 style={{ fontSize: isMobile ? 20 : 24, fontWeight: 800, color: "#0f172a", margin: "0 0 6px 0" }}>
                   Unlockable Academic Badges
@@ -1953,7 +1956,7 @@ export default function Resources() {
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
                 transition={{ duration: 0.22, ease: "easeInOut" }}
-                style={{ background: "#ffffff", border: "1px solid #f1f5f9", borderRadius: 20, padding: isMobile ? "20px 16px" : "32px", boxShadow: "0 4px 16px rgba(0,0,0,0.02)" }}
+                style={{ background: "#ffffff", border: "1px solid #f1f5f9", borderRadius: 20, padding: isMobile ? "20px 14px" : "28px 28px", boxShadow: "0 4px 16px rgba(0,0,0,0.02)", margin: 0 }}
               >
                 <h2 style={{ fontSize: isMobile ? 20 : 24, fontWeight: 800, color: "#0f172a", margin: "0 0 6px 0" }}>
                   Target GPA Goal Predictor
@@ -2025,7 +2028,7 @@ export default function Resources() {
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
                 transition={{ duration: 0.22, ease: "easeInOut" }}
-                style={{ background: "#ffffff", border: "1px solid #f1f5f9", borderRadius: 20, padding: isMobile ? "18px 14px" : "32px", boxShadow: "0 4px 16px rgba(0,0,0,0.02)" }}
+                style={{ background: "#ffffff", border: "1px solid #f1f5f9", borderRadius: 20, padding: isMobile ? "20px 14px" : "28px 28px", boxShadow: "0 4px 16px rgba(0,0,0,0.02)", margin: 0 }}
               >
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: isMobile ? "flex-start" : "center", marginBottom: 20, flexDirection: isMobile ? "column" : "row", gap: 12 }}>
                   <div>
@@ -2128,7 +2131,7 @@ export default function Resources() {
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
                 transition={{ duration: 0.22, ease: "easeInOut" }}
-                style={{ background: "#ffffff", border: "1px solid #f1f5f9", borderRadius: 20, padding: isMobile ? "18px 14px" : "32px", boxShadow: "0 4px 16px rgba(0,0,0,0.02)" }}
+                style={{ background: "#ffffff", border: "1px solid #f1f5f9", borderRadius: 20, padding: isMobile ? "20px 14px" : "28px 28px", boxShadow: "0 4px 16px rgba(0,0,0,0.02)", margin: 0 }}
               >
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: isMobile ? "flex-start" : "center", marginBottom: 20, flexDirection: isMobile ? "column" : "row", gap: 12 }}>
                   <div>
@@ -2224,7 +2227,7 @@ export default function Resources() {
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
                 transition={{ duration: 0.22, ease: "easeInOut" }}
-                style={{ background: "#ffffff", border: "1px solid #f1f5f9", borderRadius: 20, padding: isMobile ? "20px 16px" : "32px", boxShadow: "0 4px 16px rgba(0,0,0,0.02)" }}
+                style={{ background: "#ffffff", border: "1px solid #f1f5f9", borderRadius: 20, padding: isMobile ? "20px 14px" : "28px 28px", boxShadow: "0 4px 16px rgba(0,0,0,0.02)", margin: 0 }}
               >
                 <h2 style={{ fontSize: isMobile ? 20 : 22, fontWeight: 800, color: "#0f172a", margin: "0 0 6px 0" }}>
                   Academic Report Card Overview
@@ -2270,7 +2273,7 @@ export default function Resources() {
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
                 transition={{ duration: 0.22, ease: "easeInOut" }}
-                style={{ background: "#ffffff", border: "1px solid #f1f5f9", borderRadius: 20, padding: isMobile ? "20px 14px" : "32px", boxShadow: "0 4px 16px rgba(0,0,0,0.02)" }}
+                style={{ background: "#ffffff", border: "1px solid #f1f5f9", borderRadius: 20, padding: isMobile ? "20px 14px" : "28px 28px", boxShadow: "0 4px 16px rgba(0,0,0,0.02)", margin: 0 }}
               >
                 <h2 style={{ fontSize: isMobile ? 20 : 24, fontWeight: 800, color: "#0f172a", margin: "0 0 6px 0" }}>Frequently Asked Questions</h2>
                 <p style={{ fontSize: 13.5, color: "#64748b", margin: "0 0 20px 0" }}>Everything you need to know about Centurion University grading &amp; calculations.</p>
