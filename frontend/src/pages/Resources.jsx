@@ -408,6 +408,7 @@ export default function Resources() {
             style={{
               position: "sticky",
               top: 80,
+              alignSelf: "start",
               display: "flex",
               flexDirection: "column",
               gap: 16,
@@ -423,7 +424,7 @@ export default function Resources() {
                 background: "#ffffff",
                 border: "1px solid #f1f5f9",
                 borderRadius: 20,
-                padding: "20px 14px",
+                padding: "24px 14px",
                 boxShadow: "0 4px 16px rgba(0,0,0,0.02)",
                 display: "flex",
                 flexDirection: "column",
@@ -670,7 +671,7 @@ export default function Resources() {
         {/* ══════════════════════════════════════════════════════════
             MAIN CONTENT AREA (Smooth Animated Transitions)
         ══════════════════════════════════════════════════════════ */}
-        <main style={{ minHeight: "80vh", width: "100%", maxWidth: "100%", minWidth: 0, boxSizing: "border-box", overflowX: "hidden" }}>
+        <main style={{ alignSelf: "start", margin: 0, padding: 0, minHeight: "80vh", width: "100%", maxWidth: "100%", minWidth: 0, boxSizing: "border-box", overflowX: "hidden" }}>
           <AnimatePresence mode="wait">
             {/* ────────────────────────────────────────────────────────
                 VIEW: MASTER OVERVIEW (Spacious & Responsive Layout)
