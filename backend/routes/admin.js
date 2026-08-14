@@ -2253,6 +2253,7 @@ router.post(
         return res.status(400).json({ message: "No valid rows found in Excel sheet." });
       }
 
+      const allRegNos = Array.from(new Set(keys.map((k) => grouped[k].regNo)));
       const allSemestersInFile = Array.from(new Set(keys.map((k) => grouped[k].semester)));
 
       // ─── QUERY DATABASE: FIND STUDENTS WHO ALREADY HAVE RESULTS FOR THIS SEMESTER ───
