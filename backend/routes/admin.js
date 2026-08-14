@@ -1502,8 +1502,8 @@ router.post("/backlogs/send-email", emailLimiter, validateEmailRequest, async (r
       return res.status(400).json({ message: "Registration number is required" });
     }
 
-    // Retrieve student results from DB
-    const results = await SemesterResult.find({ regNo: cleanRegNo }).sort({ semester: 1 }).lean();
+    // Retrieve student results from DB with projected fields
+    const results = await SemesterResult.find({ regNo: cleanRegNo }).select("studentName batch branch semester sgpa results subjects").sort({ semester: 1 }).lean();
     if (!results || !results.length) {
       return res.status(404).json({ message: `No student records found for registration number "${cleanRegNo}"` });
     }
@@ -1557,17 +1557,19 @@ router.post("/backlogs/send-email", emailLimiter, validateEmailRequest, async (r
       section,
     });
 
-    // Update Email Status to SUCCESS
+    // Update Email Status asynchronously
     const sentDate = new Date();
-    await Student.findOneAndUpdate(
+    Student.findOneAndUpdate(
       { regNo: cleanRegNo },
       {
-        lastEmailSentAt: sentDate,
-        lastEmailStatus: 'SUCCESS',
-        lastEmailError: null
+        $set: {
+          lastEmailSentAt: sentDate,
+          lastEmailStatus: 'SUCCESS',
+          lastEmailError: null
+        }
       },
       { upsert: true }
-    );
+    ).catch(() => {});
 
     res.json({
       success: true,
@@ -1971,7 +1973,7 @@ router.post("/section-toppers/topper-email-status", protect, async (req, res) =>
 // Send congratulatory topper email to student (Backend fallback)
 router.post("/section-toppers/send-email", emailLimiter, validateEmailRequest, async (req, res) => {
   try {
-    const { regNo, customEmail } = req.body;
+    const { regNo, customEmail, studentName: bodyName, cgpa: bodyCgpa, sgpa: bodySgpa, semester: bodySem, batch: bodyBatch, branch: bodyBranch, section: bodySection, sectionCgpaRank: bodySecRank, sectionSgpaRank: bodySgpaRank, universityRank: bodyUniRank } = req.body;
     const cleanRegNo = String(regNo || "").trim();
 
     if (!cleanRegNo) {
@@ -1979,57 +1981,48 @@ router.post("/section-toppers/send-email", emailLimiter, validateEmailRequest, a
     }
 
     const { sendTopperEmailNotification } = require("../utils/emailService");
-    const rankings = await Ranking.find({ regNo: cleanRegNo }).sort({ semester: -1 }).lean();
     
-    let rk = null;
-    if (rankings && rankings.length) {
-      rk = rankings[0];
-    } else {
-      const results = await SemesterResult.find({ regNo: cleanRegNo }).sort({ semester: 1 }).lean();
-      if (results && results.length) {
-        const cgpa = calculateCGPA(results);
-        const latestResult = results[results.length - 1];
-        rk = {
-          studentName: latestResult.studentName || req.body.studentName || "Student",
-          cgpa: Number(cgpa) || req.body.cgpa || 0,
-          sgpa: Number(latestResult.sgpa) || req.body.sgpa || Number(cgpa) || 0,
-          semester: Number(latestResult.semester) || req.body.semester || 1,
-          batch: latestResult.batch || req.body.batch || (`20${cleanRegNo.slice(0, 2)}`),
-          branch: latestResult.branch || req.body.branch || detectBranch(cleanRegNo),
-          sectionCgpaRank: req.body.sectionCgpaRank || 1,
-          sectionSgpaRank: req.body.sectionSgpaRank || 1,
-          universityRank: req.body.universityRank || null,
-        };
-      } else if (req.body.studentName) {
-        rk = {
-          studentName: req.body.studentName,
-          cgpa: req.body.cgpa || 0,
-          sgpa: req.body.sgpa || 0,
-          semester: req.body.semester || 1,
-          batch: req.body.batch || (`20${cleanRegNo.slice(0, 2)}`),
-          branch: req.body.branch || detectBranch(cleanRegNo),
-          sectionCgpaRank: req.body.sectionCgpaRank || 1,
-          sectionSgpaRank: req.body.sectionSgpaRank || 1,
-          universityRank: req.body.universityRank || null,
-        };
+    let studentName = bodyName;
+    let cgpa = Number(bodyCgpa) || 0;
+    let sgpa = Number(bodySgpa) || cgpa;
+    let semester = Number(bodySem) || 1;
+    let batch = bodyBatch || (`20${cleanRegNo.slice(0, 2)}`);
+    let branch = bodyBranch || detectBranch(cleanRegNo);
+    let section = bodySection || getSectionFromRegNo(cleanRegNo) || "N/A";
+    if (section && !section.startsWith("Sec")) section = `Sec ${section}`;
+
+    let sectionCgpaRank = bodySecRank || 1;
+    let sectionSgpaRank = bodySgpaRank || 1;
+    let universityRank = bodyUniRank || null;
+
+    if (!studentName || cgpa <= 0) {
+      const rk = await Ranking.findOne({ regNo: cleanRegNo }).sort({ semester: -1 }).lean();
+      if (rk) {
+        studentName = rk.studentName || "Student";
+        cgpa = Number(rk.cgpa) || cgpa;
+        sgpa = Number(rk.sgpa) || sgpa;
+        semester = Number(rk.semester) || semester;
+        batch = rk.batch || batch;
+        branch = rk.branch || branch;
+        sectionCgpaRank = rk.sectionCgpaRank || sectionCgpaRank;
+        sectionSgpaRank = rk.sectionSgpaRank || sectionSgpaRank;
+        universityRank = rk.universityRank || universityRank;
       } else {
-        return res.status(404).json({ message: `No ranking records found for student "${cleanRegNo}"` });
+        const results = await SemesterResult.find({ regNo: cleanRegNo }).select("studentName batch branch semester sgpa results subjects").sort({ semester: 1 }).lean();
+        if (results && results.length) {
+          const calcCgpa = calculateCGPA(results);
+          const latestResult = results[results.length - 1];
+          studentName = latestResult.studentName || "Student";
+          cgpa = Number(calcCgpa) || 0;
+          sgpa = Number(latestResult.sgpa) || cgpa;
+          semester = Number(latestResult.semester) || 1;
+          batch = latestResult.batch || batch;
+          branch = latestResult.branch || branch;
+        }
       }
     }
 
-    const studentName = rk.studentName || req.body.studentName || "Student";
-    const cgpa = Number(rk.cgpa || req.body.cgpa || 0);
-    const sgpa = Number(rk.sgpa || req.body.sgpa || 0);
-    const semester = Number(rk.semester || req.body.semester || 1);
-    const batch = rk.batch || req.body.batch || (`20${cleanRegNo.slice(0, 2)}`);
-    const branch = rk.branch || req.body.branch || "CSE";
-    let section = req.body.section || getSectionFromRegNo(cleanRegNo) || "N/A";
-    if (section && !section.startsWith("Sec")) section = `Sec ${section}`;
-
-    const sectionCgpaRank = rk.sectionCgpaRank || req.body.sectionCgpaRank || 1;
-    const sectionSgpaRank = rk.sectionSgpaRank || req.body.sectionSgpaRank || 1;
-    const universityRank = rk.universityRank || req.body.universityRank || null;
-
+    studentName = studentName || "Student";
     const recipientEmail = customEmail ? String(customEmail).trim().toLowerCase() : `${cleanRegNo}@centurionuniv.edu.in`.toLowerCase();
 
     if (!recipientEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(recipientEmail)) {
@@ -2051,8 +2044,8 @@ router.post("/section-toppers/send-email", emailLimiter, validateEmailRequest, a
       section: section.replace(/^Sec\s*/i, ""),
     });
 
-    // Update tracking in Student collection
-    await Student.findOneAndUpdate(
+    // Update tracking asynchronously without blocking response
+    Student.findOneAndUpdate(
       { regNo: cleanRegNo },
       {
         $set: {
@@ -2062,7 +2055,7 @@ router.post("/section-toppers/send-email", emailLimiter, validateEmailRequest, a
         },
       },
       { upsert: true }
-    );
+    ).catch(() => {});
 
     res.json({
       success: true,

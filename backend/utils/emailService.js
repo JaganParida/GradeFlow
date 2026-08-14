@@ -44,9 +44,10 @@ function createTransporter() {
         service,
         ...poolConfig,
         auth: { user: emailUser, pass: emailPass },
-        connectionTimeout: 10000,
-        greetingTimeout: 5000,
-        socketTimeout: 10000,
+        family: 4, // Force IPv4 to prevent 3-5s IPv6 socket timeout on cloud hosts
+        connectionTimeout: 5000,
+        greetingTimeout: 3000,
+        socketTimeout: 8000,
       }
     : {
         host,
@@ -54,9 +55,10 @@ function createTransporter() {
         secure, // false for 587 (STARTTLS), true for 465
         ...poolConfig,
         auth: { user: emailUser, pass: emailPass },
-        connectionTimeout: 10000,
-        greetingTimeout: 5000,
-        socketTimeout: 10000,
+        family: 4, // Force IPv4 to prevent 3-5s IPv6 socket timeout on cloud hosts
+        connectionTimeout: 5000,
+        greetingTimeout: 3000,
+        socketTimeout: 8000,
       };
 
   cachedTransporter = nodemailer.createTransport(config);
