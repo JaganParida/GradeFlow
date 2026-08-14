@@ -438,7 +438,7 @@ export default function Home() {
   }, []);
 
   const currentRegNo =
-    studentData?.regNo || sessionStorage.getItem("last_regNo") || localStorage.getItem("last_regNo") || "";
+    studentData?.regNo || sessionStorage.getItem("last_regNo") || "";
 
   const handleDashboardAction = () => {
     if (currentRegNo) {
