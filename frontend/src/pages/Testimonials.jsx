@@ -1002,6 +1002,9 @@ export default function Testimonials() {
                           hour12: true,
                         })
                       : null;
+                    const fullDateTimeStr = formattedDate && formattedTime
+                      ? `${formattedDate}, ${formattedTime}`
+                      : (formattedDate || formattedTime);
 
                     return (
                       <motion.div
@@ -1115,12 +1118,12 @@ export default function Testimonials() {
                                       ? `Student (${item.regNo})`
                                       : "Student"}
                                   </span>
-                                  {formattedDate && (
+                                  {fullDateTimeStr && (
                                     <>
                                       <span style={{ color: "#cbd5e1" }}>•</span>
                                       <span
                                         style={{
-                                          color: "#94a3b8",
+                                          color: "#64748b",
                                           display: "inline-flex",
                                           alignItems: "center",
                                           gap: 3,
@@ -1131,7 +1134,7 @@ export default function Testimonials() {
                                           size={isSmallMobile ? 10 : 11}
                                           color="#94a3b8"
                                         />
-                                        {formattedDate}
+                                        {fullDateTimeStr}
                                       </span>
                                     </>
                                   )}
@@ -1194,7 +1197,7 @@ export default function Testimonials() {
                           )}
                         </div>
 
-                        {/* Card Footer: Category Badge + Time + Like Button */}
+                        {/* Card Footer: Category Badge + Like Button */}
                         <div
                           style={{
                             display: "flex",
@@ -1208,53 +1211,23 @@ export default function Testimonials() {
                             gap: 6,
                           }}
                         >
-                          <div
+                          <span
                             style={{
-                              display: "flex",
-                              alignItems: "center",
-                              gap: 6,
-                              minWidth: 0,
-                              flexWrap: "wrap",
+                              fontWeight: 700,
+                              color: "#2563eb",
+                              background: "#eff6ff",
+                              border: "1px solid #dbeafe",
+                              padding: "2px 7px",
+                              borderRadius: 6,
+                              fontSize: isSmallMobile ? 10 : 11,
+                              whiteSpace: "nowrap",
+                              overflow: "hidden",
+                              textOverflow: "ellipsis",
+                              maxWidth: "60%",
                             }}
                           >
-                            <span
-                              style={{
-                                fontWeight: 700,
-                                color: "#2563eb",
-                                background: "#eff6ff",
-                                border: "1px solid #dbeafe",
-                                padding: "2px 7px",
-                                borderRadius: 6,
-                                fontSize: isSmallMobile ? 10 : 11,
-                                whiteSpace: "nowrap",
-                                overflow: "hidden",
-                                textOverflow: "ellipsis",
-                                maxWidth: "100%",
-                              }}
-                            >
-                              {item.category || "Overall Experience"}
-                            </span>
-
-                            {formattedTime && (
-                              <span
-                                style={{
-                                  display: "inline-flex",
-                                  alignItems: "center",
-                                  gap: 3,
-                                  color: "#94a3b8",
-                                  fontSize: isSmallMobile ? 9.5 : 10.5,
-                                  fontWeight: 500,
-                                  whiteSpace: "nowrap",
-                                }}
-                              >
-                                <Clock
-                                  size={isSmallMobile ? 10 : 11}
-                                  color="#94a3b8"
-                                />
-                                {formattedTime}
-                              </span>
-                            )}
-                          </div>
+                            {item.category || "Overall Experience"}
+                          </span>
 
                           <button
                             onClick={() => handleLike(itemId)}
