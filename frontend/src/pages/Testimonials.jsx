@@ -982,7 +982,11 @@ export default function Testimonials() {
                         ? fullComment.slice(0, 180) + "..."
                         : fullComment;
 
-                    const createdDate = item.createdAt ? new Date(item.createdAt) : null;
+                    const createdDate = item.createdAt
+                      ? new Date(item.createdAt)
+                      : (item._id && typeof item._id === "string" && item._id.length >= 8
+                          ? new Date(parseInt(item._id.substring(0, 8), 16) * 1000)
+                          : null);
                     const isValidDate = createdDate && !isNaN(createdDate.getTime());
                     const formattedDate = isValidDate
                       ? createdDate.toLocaleDateString("en-IN", {
