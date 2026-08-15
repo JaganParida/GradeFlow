@@ -677,8 +677,8 @@ export default function Home() {
             margin: 0,
           }}
         >
-          Track Every <span style={{ color: "#0284c7" }}>Grade</span>. <br />
-          Own Your <span style={{ color: "#2563eb" }}>Academic Future</span>.
+          Track Every <span style={{ color: "#0284c7" }}>Grade</span> <br />
+          Own Your <span style={{ color: "#2563eb" }}>Academic Future</span>
         </h1>
 
         <p
