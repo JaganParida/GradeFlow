@@ -456,6 +456,14 @@ export default function Home() {
     }
   };
 
+  const handleLeaderboardAction = () => {
+    if (currentRegNo) {
+      navigate("/leaderboard");
+    } else {
+      setShowAuthPromptModal(true);
+    }
+  };
+
   const handleQuickAction = (act) => {
     if (act.to.startsWith("/analytics")) {
       if (currentRegNo) {
@@ -801,7 +809,7 @@ export default function Home() {
           </button>
 
           <button
-            onClick={() => navigate("/leaderboard")}
+            onClick={handleLeaderboardAction}
             style={{
               flex: 1,
               padding: "10px 12px",
@@ -1036,7 +1044,7 @@ export default function Home() {
               Compare your academic standing against classmates across semesters, branches (CSE, ME, ECE, CIVIL), and sections.
             </p>
             <button
-              onClick={() => navigate("/leaderboard")}
+              onClick={handleLeaderboardAction}
               style={{
                 padding: "8px 12px",
                 borderRadius: 8,
