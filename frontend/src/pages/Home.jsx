@@ -434,6 +434,7 @@ export default function Home() {
   const [searchRegInput, setSearchRegInput] = useState("");
   const [searchError, setSearchError] = useState("");
   const [isSearching, setIsSearching] = useState(false);
+  const [mobileShowcaseTab, setMobileShowcaseTab] = useState("tracker");
   const [isMobile, setIsMobile] = useState(() =>
     typeof window !== "undefined" ? window.innerWidth < 768 : false
   );
@@ -612,6 +613,698 @@ export default function Home() {
     }
   };
 
+  const renderMobileHome = () => (
+    <div
+      style={{
+        display: "flex",
+        flexDirection: "column",
+        gap: 20,
+        width: "100%",
+        maxWidth: 540,
+        margin: "0 auto",
+        padding: "16px 12px 36px 12px",
+        boxSizing: "border-box",
+      }}
+    >
+      {/* ── 1. Hero Header & 1-Tap Search ── */}
+      <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.35 }}
+        style={{
+          display: "flex",
+          flexDirection: "column",
+          gap: 12,
+        }}
+      >
+        {/* Pill Badge */}
+        <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+          <span
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 5,
+              padding: "4px 10px",
+              borderRadius: 99,
+              background: "#eff6ff",
+              border: "1px solid #dbeafe",
+              color: "#2563eb",
+              fontSize: 11,
+              fontWeight: 700,
+              letterSpacing: "0.2px",
+            }}
+          >
+            <Sparkles size={12} color="#2563eb" /> Centurion University Academic Portal
+          </span>
+        </div>
+
+        {/* Hero Title */}
+        <h1
+          style={{
+            fontSize: "26px",
+            fontWeight: 800,
+            lineHeight: 1.22,
+            color: "#0f172a",
+            letterSpacing: "-0.6px",
+            margin: 0,
+          }}
+        >
+          Track Every <span style={{ color: "#0284c7" }}>Grade</span>. <br />
+          Own Your <span style={{ color: "#2563eb" }}>Academic Future</span>.
+        </h1>
+
+        <p
+          style={{
+            fontSize: "13px",
+            lineHeight: 1.5,
+            color: "#64748b",
+            margin: 0,
+          }}
+        >
+          Real-time GPA tracking, university rankings, placement insights, and simulation tools.
+        </p>
+
+        {/* 1-Tap Search Box inside Hero */}
+        <form
+          onSubmit={handleSearchModalSubmit}
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            gap: 6,
+            marginTop: 4,
+          }}
+        >
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 6,
+              background: "#ffffff",
+              border: searchError ? "1.5px solid #ef4444" : "1.5px solid #cbd5e1",
+              borderRadius: 12,
+              padding: "4px 6px 4px 10px",
+              boxShadow: "0 2px 8px rgba(15, 23, 42, 0.04)",
+              transition: "border-color 0.15s ease",
+            }}
+          >
+            <Search size={16} color="#64748b" style={{ flexShrink: 0 }} />
+            <input
+              type="text"
+              value={searchRegInput}
+              onChange={(e) => {
+                setSearchRegInput(e.target.value);
+                if (searchError) setSearchError("");
+              }}
+              placeholder="Enter Reg. No. (e.g. 230301120042)"
+              style={{
+                flex: 1,
+                border: "none",
+                outline: "none",
+                background: "transparent",
+                fontSize: 13,
+                fontWeight: 600,
+                color: "#0f172a",
+                fontFamily: "'Space Mono', monospace",
+                minWidth: 0,
+              }}
+            />
+            {searchRegInput && (
+              <button
+                type="button"
+                onClick={() => setSearchRegInput("")}
+                style={{
+                  background: "transparent",
+                  border: "none",
+                  padding: 2,
+                  cursor: "pointer",
+                  color: "#94a3b8",
+                  display: "flex",
+                  alignItems: "center",
+                }}
+              >
+                <X size={14} />
+              </button>
+            )}
+            <button
+              type="submit"
+              disabled={isSearching}
+              style={{
+                padding: "8px 14px",
+                borderRadius: 8,
+                background: "#2563eb",
+                color: "#ffffff",
+                border: "none",
+                fontSize: 12.5,
+                fontWeight: 700,
+                cursor: isSearching ? "not-allowed" : "pointer",
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 5,
+                fontFamily: "'DM Sans', sans-serif",
+                whiteSpace: "nowrap",
+                flexShrink: 0,
+              }}
+            >
+              {isSearching ? <Loader2 size={13} className="animate-spin" /> : <span>Search</span>}
+            </button>
+          </div>
+          {searchError && (
+            <span style={{ fontSize: 11.5, color: "#ef4444", fontWeight: 600, paddingLeft: 4 }}>
+              {searchError}
+            </span>
+          )}
+        </form>
+
+        {/* Action Buttons Row */}
+        <div style={{ display: "flex", gap: 8, marginTop: 2 }}>
+          <button
+            onClick={handleDashboardAction}
+            style={{
+              flex: 1.2,
+              padding: "10px 14px",
+              borderRadius: 10,
+              background: "#0f172a",
+              color: "#ffffff",
+              border: "none",
+              fontSize: 13,
+              fontWeight: 700,
+              cursor: "pointer",
+              display: "inline-flex",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: 6,
+              boxShadow: "0 2px 6px rgba(15, 23, 42, 0.15)",
+            }}
+          >
+            <span>{currentRegNo ? "My Dashboard" : "Go to Dashboard"}</span>
+            <ArrowRight size={14} />
+          </button>
+
+          <button
+            onClick={() => navigate("/leaderboard")}
+            style={{
+              flex: 1,
+              padding: "10px 12px",
+              borderRadius: 10,
+              background: "#ffffff",
+              color: "#1e293b",
+              border: "1px solid #cbd5e1",
+              fontSize: 13,
+              fontWeight: 700,
+              cursor: "pointer",
+              display: "inline-flex",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: 6,
+            }}
+          >
+            <Trophy size={14} color="#f59e0b" />
+            <span>Leaderboard</span>
+          </button>
+        </div>
+
+        {/* Social Trust Strip */}
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            padding: "8px 12px",
+            background: "#ffffff",
+            border: "1px solid #f1f5f9",
+            borderRadius: 10,
+            fontSize: 11.5,
+            color: "#475569",
+            fontWeight: 600,
+          }}
+        >
+          <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+            {[...Array(5)].map((_, i) => (
+              <Star key={i} size={11} fill="#f59e0b" color="#f59e0b" />
+            ))}
+            <span style={{ fontWeight: 800, color: "#0f172a", marginLeft: 4 }}>5.0 Rating</span>
+          </div>
+          <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+            <GraduationCap size={13} color="#2563eb" />
+            <span><strong style={{ color: "#0f172a" }}>1000+</strong> students</span>
+          </div>
+        </div>
+      </motion.div>
+
+      {/* ── 2. Quick Tools Grid ── */}
+      <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+            <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#2563eb" }} />
+            <h2 style={{ fontSize: 15, fontWeight: 800, color: "#0f172a", margin: 0 }}>Quick Tools</h2>
+          </div>
+          <span style={{ fontSize: 11, fontWeight: 700, color: "#2563eb", background: "#eff6ff", padding: "2px 7px", borderRadius: 6 }}>
+            6 Academic Tools
+          </span>
+        </div>
+
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 8 }}>
+          {QUICK_ACTIONS_ITEMS.map((act, idx) => (
+            <div
+              key={idx}
+              onClick={() => handleQuickAction(act)}
+              style={{
+                background: "#ffffff",
+                border: "1px solid #e2e8f0",
+                borderRadius: 12,
+                padding: "12px 6px",
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+                justifyContent: "center",
+                textAlign: "center",
+                gap: 6,
+                cursor: "pointer",
+                boxShadow: "0 1px 3px rgba(0,0,0,0.02)",
+                transition: "transform 0.15s ease",
+              }}
+            >
+              <div
+                style={{
+                  width: 38,
+                  height: 38,
+                  borderRadius: 10,
+                  background: act.bg,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                {act.icon}
+              </div>
+              <span
+                style={{
+                  fontSize: 11,
+                  fontWeight: 700,
+                  color: "#1e293b",
+                  lineHeight: 1.25,
+                  display: "-webkit-box",
+                  WebkitLineClamp: 2,
+                  WebkitBoxOrient: "vertical",
+                  overflow: "hidden",
+                }}
+              >
+                {act.label}
+              </span>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* ── 3. Interactive Showcase (Clean, Native Mobile Tab Card) ── */}
+      <div
+        style={{
+          background: "#ffffff",
+          border: "1px solid #e2e8f0",
+          borderRadius: 16,
+          padding: "14px",
+          display: "flex",
+          flexDirection: "column",
+          gap: 12,
+          boxShadow: "0 1px 4px rgba(0,0,0,0.03)",
+        }}
+      >
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+            <Activity size={15} color="#2563eb" />
+            <h3 style={{ fontSize: 14.5, fontWeight: 800, color: "#0f172a", margin: 0 }}>
+              Feature Highlights
+            </h3>
+          </div>
+          <span style={{ fontSize: 10.5, color: "#64748b", fontWeight: 600 }}>Interactive</span>
+        </div>
+
+        {/* Tab Pills */}
+        <div
+          style={{
+            display: "flex",
+            gap: 6,
+            overflowX: "auto",
+            paddingBottom: 4,
+            WebkitOverflowScrolling: "touch",
+          }}
+        >
+          {[
+            { id: "tracker", label: "📈 Performance" },
+            { id: "rankings", label: "🏆 Rankings" },
+            { id: "career", label: "💼 Placement" },
+            { id: "simulator", label: "🎛️ Simulator" },
+          ].map((t) => (
+            <button
+              key={t.id}
+              onClick={() => setMobileShowcaseTab(t.id)}
+              style={{
+                padding: "6px 11px",
+                borderRadius: 99,
+                border: mobileShowcaseTab === t.id ? "1px solid #2563eb" : "1px solid #e2e8f0",
+                background: mobileShowcaseTab === t.id ? "#2563eb" : "#f8fafc",
+                color: mobileShowcaseTab === t.id ? "#ffffff" : "#475569",
+                fontSize: 11.5,
+                fontWeight: mobileShowcaseTab === t.id ? 800 : 600,
+                cursor: "pointer",
+                whiteSpace: "nowrap",
+                flexShrink: 0,
+                transition: "all 0.15s ease",
+              }}
+            >
+              {t.label}
+            </button>
+          ))}
+        </div>
+
+        {/* Active Content Showcase */}
+        {mobileShowcaseTab === "tracker" && (
+          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+              <div style={{ padding: "10px", background: "#eff6ff", borderRadius: 10, border: "1px solid #dbeafe" }}>
+                <span style={{ fontSize: 10.5, color: "#1e40af", fontWeight: 700 }}>CUMULATIVE CGPA</span>
+                <div style={{ fontSize: 20, fontWeight: 900, color: "#1e3a8a", marginTop: 2 }}>9.10</div>
+                <span style={{ fontSize: 10, color: "#16a34a", fontWeight: 700 }}>+0.25 vs Last Sem</span>
+              </div>
+              <div style={{ padding: "10px", background: "#ecfdf5", borderRadius: 10, border: "1px solid #a7f3d0" }}>
+                <span style={{ fontSize: 10.5, color: "#065f46", fontWeight: 700 }}>LATEST SGPA</span>
+                <div style={{ fontSize: 20, fontWeight: 900, color: "#064e3b", marginTop: 2 }}>9.40</div>
+                <span style={{ fontSize: 10, color: "#059669", fontWeight: 700 }}>Top 5% Tier</span>
+              </div>
+            </div>
+            <p style={{ fontSize: 12, color: "#64748b", margin: 0, lineHeight: 1.45 }}>
+              Track semester-by-semester SGPA progression, total credits earned, and historical GPA growth trajectory.
+            </p>
+            <button
+              onClick={() => handleQuickAction({ to: "/analytics", tab: "overview", hash: "#overview" })}
+              style={{
+                padding: "8px 12px",
+                borderRadius: 8,
+                background: "#f1f5f9",
+                border: "none",
+                color: "#2563eb",
+                fontSize: 12,
+                fontWeight: 700,
+                cursor: "pointer",
+                display: "inline-flex",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: 5,
+              }}
+            >
+              <span>View Performance Studio</span>
+              <ArrowRight size={13} />
+            </button>
+          </div>
+        )}
+
+        {mobileShowcaseTab === "rankings" && (
+          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+              <div style={{ padding: "10px", background: "#f5f3ff", borderRadius: 10, border: "1px solid #ddd6fe" }}>
+                <span style={{ fontSize: 10.5, color: "#5b21b6", fontWeight: 700 }}>UNIVERSITY RANK</span>
+                <div style={{ fontSize: 20, fontWeight: 900, color: "#4c1d95", marginTop: 2 }}>#12</div>
+                <span style={{ fontSize: 10, color: "#6d28d9", fontWeight: 700 }}>Top 2% Overall</span>
+              </div>
+              <div style={{ padding: "10px", background: "#fef3c7", borderRadius: 10, border: "1px solid #fde68a" }}>
+                <span style={{ fontSize: 10.5, color: "#92400e", fontWeight: 700 }}>BRANCH RANK</span>
+                <div style={{ fontSize: 20, fontWeight: 900, color: "#78350f", marginTop: 2 }}>#4</div>
+                <span style={{ fontSize: 10, color: "#b45309", fontWeight: 700 }}>CSE Department</span>
+              </div>
+            </div>
+            <p style={{ fontSize: 12, color: "#64748b", margin: 0, lineHeight: 1.45 }}>
+              Compare your academic standing against classmates across semesters, branches (CSE, ME, ECE, CIVIL), and sections.
+            </p>
+            <button
+              onClick={() => navigate("/leaderboard")}
+              style={{
+                padding: "8px 12px",
+                borderRadius: 8,
+                background: "#f1f5f9",
+                border: "none",
+                color: "#2563eb",
+                fontSize: 12,
+                fontWeight: 700,
+                cursor: "pointer",
+                display: "inline-flex",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: 5,
+              }}
+            >
+              <span>Explore Leaderboard</span>
+              <ArrowRight size={13} />
+            </button>
+          </div>
+        )}
+
+        {mobileShowcaseTab === "career" && (
+          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 6 }}>
+              <div style={{ padding: "8px 6px", background: "#f8fafc", borderRadius: 8, textAlign: "center", border: "1px solid #edf2f7" }}>
+                <span style={{ fontSize: 10, color: "#64748b", fontWeight: 700 }}>TIER 1 (8.5+)</span>
+                <div style={{ fontSize: 14, fontWeight: 800, color: "#16a34a", marginTop: 2 }}>Eligible</div>
+              </div>
+              <div style={{ padding: "8px 6px", background: "#f8fafc", borderRadius: 8, textAlign: "center", border: "1px solid #edf2f7" }}>
+                <span style={{ fontSize: 10, color: "#64748b", fontWeight: 700 }}>TIER 2 (7.5+)</span>
+                <div style={{ fontSize: 14, fontWeight: 800, color: "#16a34a", marginTop: 2 }}>Eligible</div>
+              </div>
+              <div style={{ padding: "8px 6px", background: "#f8fafc", borderRadius: 8, textAlign: "center", border: "1px solid #edf2f7" }}>
+                <span style={{ fontSize: 10, color: "#64748b", fontWeight: 700 }}>COMPANIES</span>
+                <div style={{ fontSize: 14, fontWeight: 800, color: "#2563eb", marginTop: 2 }}>45+ Matches</div>
+              </div>
+            </div>
+            <p style={{ fontSize: 12, color: "#64748b", margin: 0, lineHeight: 1.45 }}>
+              Check placement cutoffs for top recruiters (TCS, Infosys, Wipro, Amazon, Deloitte) based on your live CGPA.
+            </p>
+            <button
+              onClick={() => handleQuickAction({ to: "/analytics", tab: "placement", hash: "#placement" })}
+              style={{
+                padding: "8px 12px",
+                borderRadius: 8,
+                background: "#f1f5f9",
+                border: "none",
+                color: "#2563eb",
+                fontSize: 12,
+                fontWeight: 700,
+                cursor: "pointer",
+                display: "inline-flex",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: 5,
+              }}
+            >
+              <span>View Placement Insights</span>
+              <ArrowRight size={13} />
+            </button>
+          </div>
+        )}
+
+        {mobileShowcaseTab === "simulator" && (
+          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+            <div style={{ padding: "10px 12px", background: "#faf5ff", borderRadius: 10, border: "1px solid #e9d5ff" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <span style={{ fontSize: 11, color: "#7e22ce", fontWeight: 700 }}>SIMULATED TARGET</span>
+                <span style={{ fontSize: 11, color: "#16a34a", fontWeight: 800 }}>Achievable</span>
+              </div>
+              <div style={{ fontSize: 18, fontWeight: 900, color: "#581c87", marginTop: 2 }}>Need 8.8 SGPA next semester</div>
+              <span style={{ fontSize: 10.5, color: "#9333ea" }}>To reach 9.00 Cumulative CGPA</span>
+            </div>
+            <p style={{ fontSize: 12, color: "#64748b", margin: 0, lineHeight: 1.45 }}>
+              Simulate upcoming course grades or compute required SGPA to hit your dream graduation honors.
+            </p>
+            <button
+              onClick={() => handleQuickAction({ to: "/analytics", tab: "whatif", hash: "#whatif" })}
+              style={{
+                padding: "8px 12px",
+                borderRadius: 8,
+                background: "#f1f5f9",
+                border: "none",
+                color: "#2563eb",
+                fontSize: 12,
+                fontWeight: 700,
+                cursor: "pointer",
+                display: "inline-flex",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: 5,
+              }}
+            >
+              <span>Open Simulation Studio</span>
+              <ArrowRight size={13} />
+            </button>
+          </div>
+        )}
+      </div>
+
+      {/* ── 4. Why GradeFlow (Minimal, High-Value Cards) ── */}
+      <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+          <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#10b981" }} />
+          <h2 style={{ fontSize: 15, fontWeight: 800, color: "#0f172a", margin: 0 }}>Built for Centurion Students</h2>
+        </div>
+
+        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+          {[
+            {
+              icon: <CheckCircle2 size={16} color="#16a34a" />,
+              bg: "#f0fdf4",
+              title: "100% University Verified Formula",
+              desc: "Accurate grade points and credit weightings calculated according to official Centurion guidelines.",
+            },
+            {
+              icon: <Trophy size={16} color="#d97706" />,
+              bg: "#fffbeb",
+              title: "Branch & Batch Leaderboards",
+              desc: "Instant live ranks across CSE, ME, ECE, EEE, CIVIL, and all sections.",
+            },
+            {
+              icon: <ShieldCheck size={16} color="#2563eb" />,
+              bg: "#eff6ff",
+              title: "Fast & Privacy Protected",
+              desc: "Encrypted student identifiers ensure your academic profile is secure.",
+            },
+          ].map((item, idx) => (
+            <div
+              key={idx}
+              style={{
+                display: "flex",
+                alignItems: "flex-start",
+                gap: 10,
+                padding: "10px 12px",
+                background: "#ffffff",
+                border: "1px solid #f1f5f9",
+                borderRadius: 12,
+              }}
+            >
+              <div
+                style={{
+                  width: 30,
+                  height: 30,
+                  borderRadius: 8,
+                  background: item.bg,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  flexShrink: 0,
+                  marginTop: 1,
+                }}
+              >
+                {item.icon}
+              </div>
+              <div style={{ minWidth: 0 }}>
+                <h4 style={{ fontSize: 12.5, fontWeight: 700, color: "#0f172a", margin: "0 0 2px 0" }}>
+                  {item.title}
+                </h4>
+                <p style={{ fontSize: 11.5, color: "#64748b", margin: 0, lineHeight: 1.4 }}>
+                  {item.desc}
+                </p>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* ── 5. Bottom CTA Banner (Compact Gradient) ── */}
+      <div
+        style={{
+          background: "linear-gradient(135deg, #0f172a 0%, #1e293b 100%)",
+          borderRadius: 16,
+          padding: "18px 16px",
+          color: "#ffffff",
+          display: "flex",
+          flexDirection: "column",
+          gap: 12,
+          boxShadow: "0 4px 14px rgba(15, 23, 42, 0.15)",
+        }}
+      >
+        <div>
+          <span style={{ fontSize: 11, fontWeight: 800, color: "#38bdf8", textTransform: "uppercase", letterSpacing: "0.5px" }}>
+            Ready to track?
+          </span>
+          <h3 style={{ fontSize: 17, fontWeight: 800, color: "#ffffff", margin: "4px 0 0 0" }}>
+            Check Your Results &amp; Rankings
+          </h3>
+        </div>
+        <div style={{ display: "flex", gap: 8 }}>
+          <button
+            onClick={handleDashboardAction}
+            style={{
+              flex: 1,
+              padding: "10px 14px",
+              borderRadius: 10,
+              background: "#2563eb",
+              color: "#ffffff",
+              border: "none",
+              fontSize: 13,
+              fontWeight: 700,
+              cursor: "pointer",
+              display: "inline-flex",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: 6,
+            }}
+          >
+            <span>Go to Dashboard</span>
+            <ArrowRight size={14} />
+          </button>
+          <button
+            onClick={() => navigate("/resources")}
+            style={{
+              padding: "10px 14px",
+              borderRadius: 10,
+              background: "rgba(255, 255, 255, 0.1)",
+              color: "#ffffff",
+              border: "1px solid rgba(255, 255, 255, 0.2)",
+              fontSize: 13,
+              fontWeight: 600,
+              cursor: "pointer",
+            }}
+          >
+            Resources
+          </button>
+        </div>
+      </div>
+
+      {/* ── 6. Minimalist Mobile Footer ── */}
+      <div
+        style={{
+          borderTop: "1px solid #e2e8f0",
+          paddingTop: 16,
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          textAlign: "center",
+          gap: 12,
+        }}
+      >
+        <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+          <GraduationCap size={16} color="#2563eb" />
+          <span style={{ fontSize: 14, fontWeight: 800, color: "#0f172a" }}>GradeFlow</span>
+          <span style={{ fontSize: 11, color: "#64748b" }}>• Centurion University</span>
+        </div>
+
+        <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "center", gap: "6px 14px", fontSize: 12, color: "#475569", fontWeight: 600 }}>
+          <span onClick={() => navigate("/resources?tab=grading-scale")} style={{ cursor: "pointer" }}>Grading Scale</span>
+          <span>•</span>
+          <span onClick={() => navigate("/resources?tab=academic-health")} style={{ cursor: "pointer" }}>Academic Health</span>
+          <span>•</span>
+          <span onClick={() => navigate("/leaderboard")} style={{ cursor: "pointer" }}>Leaderboard</span>
+          <span>•</span>
+          <span onClick={() => navigate("/resources?tab=help-faq")} style={{ cursor: "pointer" }}>Help & FAQ</span>
+          <span>•</span>
+          <span onClick={() => navigate("/about-dev")} style={{ cursor: "pointer" }}>Developer</span>
+          <span>•</span>
+          <span onClick={() => navigate("/admin")} style={{ cursor: "pointer" }}>Admin</span>
+        </div>
+
+        <div style={{ fontSize: 11, color: "#94a3b8" }}>
+          © 2026 GradeFlow. Designed &amp; engineered for Centurion University students.
+        </div>
+      </div>
+    </div>
+  );
+
   return (
     <div
       style={{
@@ -624,20 +1317,23 @@ export default function Home() {
         boxSizing: "border-box",
       }}
     >
-      {/* ── Main Container ─────────────────────────────────────── */}
-      <div
-        className="gf-home-container"
-        style={{
-          maxWidth: 1280,
-          margin: "0 auto",
-          padding: "36px 28px 60px",
-          display: "flex",
-          flexDirection: "column",
-          gap: 36,
-          boxSizing: "border-box",
-          width: "100%",
-        }}
-      >
+      {/* ── Main Container (Mobile vs Desktop) ── */}
+      {isMobile ? (
+        renderMobileHome()
+      ) : (
+        <div
+          className="gf-home-container"
+          style={{
+            maxWidth: 1280,
+            margin: "0 auto",
+            padding: "36px 28px 60px",
+            display: "flex",
+            flexDirection: "column",
+            gap: 36,
+            boxSizing: "border-box",
+            width: "100%",
+          }}
+        >
         {/* ══════════════════════════════════════════════════════════
             SECTION 1: HERO SECTION
         ══════════════════════════════════════════════════════════ */}
@@ -3151,6 +3847,7 @@ export default function Home() {
           </div>
         </footer>
       </div>
+      )}
 
       {/* ── Mobile & Tablet Responsive Media Queries ── */}
       <style>{`
