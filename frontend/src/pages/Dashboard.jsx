@@ -14,6 +14,7 @@ import TargetPredictor from "../components/TargetPredictor";
 import axios from "axios";
 import { motion, AnimatePresence } from "framer-motion";
 import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
 import html2canvas from "html2canvas";
 import {
   User,
@@ -2047,95 +2048,184 @@ export default function Dashboard() {
                             {internalSubjects.length} Subjects
                           </p>
                         </div>
-                        <button
-                          onClick={() => {
-                            const printContent = document.getElementById("printable-internal-sheet");
-                            if (!printContent) {
-                              window.print();
-                              return;
-                            }
-                            try {
-                              const win = window.open("", "_blank");
-                              if (win) {
-                                win.document.write(`<!DOCTYPE html>
-<html>
-<head>
-  <title>Internal Assessment Marks - ${studentData?.regNo || "Student"}</title>
-  <style>
-    @page {
-      size: A4 landscape;
-      margin: 8mm 10mm;
-    }
-    * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-    }
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-      padding: 10px 14px;
-      color: #000000;
-      background: #ffffff;
-      -webkit-print-color-adjust: exact;
-      print-color-adjust: exact;
-    }
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      table-layout: fixed;
-      margin: 10px 0;
-    }
-    th, td {
-      border: 1px solid #333333;
-      padding: 5px 4px;
-      word-break: break-word;
-      overflow-wrap: break-word;
-    }
-    th {
-      background-color: #f1f5f9 !important;
-      font-weight: 800;
-      text-transform: uppercase;
-      font-size: 9.5px;
-      letter-spacing: 0.3px;
-    }
-    td {
-      font-size: 9.5px;
-    }
-  </style>
-</head>
-<body>
-  ${printContent.innerHTML}
-</body>
-</html>`);
-                                win.document.close();
-                                win.focus();
-                                setTimeout(() => {
-                                  win.print();
-                                }, 300);
-                              } else {
+                        <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                          <button
+                            onClick={async () => {
+                              try {
+                                const doc = new jsPDF("landscape", "mm", "a4");
+                                const semNumber = internalMarks?.semester || selectedSem;
+                                const isSem1 = Number(semNumber) === 1;
+
+                                // University Header
+                                doc.setFont("helvetica", "bold");
+                                doc.setFontSize(14);
+                                doc.text("CENTURION UNIVERSITY OF TECHNOLOGY & MANAGEMENT", 148.5, 12, { align: "center" });
+
+                                doc.setFontSize(11);
+                                doc.text("STATEMENT OF INTERNAL ASSESSMENT MARKS", 148.5, 18, { align: "center" });
+
+                                doc.setFont("helvetica", "normal");
+                                doc.setFontSize(9.5);
+                                doc.setTextColor(70, 70, 70);
+                                doc.text(`Semester ${semNumber} Examination Record · Academic Session 2023–2027`, 148.5, 23, { align: "center" });
+                                doc.setTextColor(0, 0, 0);
+
+                                // Student Meta Box
+                                const section = getSectionFromRegNo(studentData?.regNo);
+                                doc.setDrawColor(50, 50, 50);
+                                doc.setFillColor(250, 250, 250);
+                                doc.roundedRect(12, 27, 273, 10, 1.5, 1.5, "FD");
+
+                                doc.setFontSize(9);
+                                doc.setFont("helvetica", "bold");
+                                doc.text(`Name: `, 16, 33.5);
+                                doc.setFont("helvetica", "normal");
+                                doc.text(`${studentData?.studentName || "N/A"}`, 28, 33.5);
+
+                                doc.setFont("helvetica", "bold");
+                                doc.text(`Reg No: `, 95, 33.5);
+                                doc.setFont("helvetica", "normal");
+                                doc.text(`${studentData?.regNo || "N/A"}`, 110, 33.5);
+
+                                doc.setFont("helvetica", "bold");
+                                doc.text(`Branch: `, 160, 33.5);
+                                doc.setFont("helvetica", "normal");
+                                doc.text(`${dynamicBranch} (${section})`, 175, 33.5);
+
+                                doc.setFont("helvetica", "bold");
+                                doc.text(`Date: `, 235, 33.5);
+                                doc.setFont("helvetica", "normal");
+                                doc.text(`${new Date().toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })}`, 246, 33.5);
+
+                                // Table Data
+                                const tableHeaders = isSem1
+                                  ? ["SUBJECT NAME", "CODE", "CLASS TEST I", "CLASS TEST II", "CLASS TEST III", "CLASS TEST IV", "ASSIGNMENT", "TOTAL"]
+                                  : ["SUBJECT NAME", "CODE", "MID SEM", "PRESENTATION", "ASSIGNMENT", "LEARNING REC.", "INTERNAL PRAC", "PROJECT", "TOTAL"];
+
+                                const tableRows = internalSubjects.map((s) => {
+                                  const assessments = getInternalAssessments(s, semNumber);
+                                  const total = getSubjectTotal(s, semNumber, assessments);
+                                  return [
+                                    s.subName || "—",
+                                    s.subCode || "—",
+                                    ...assessments.map((a) => (isMarkAvailable(a.obtained) ? `${formatMark(a.obtained)}/${formatMark(a.max)}` : "—")),
+                                    total.hasAny ? `${formatMark(total.score)}/${formatMark(total.max)}` : "—",
+                                  ];
+                                });
+
+                                const columnStyles = isSem1
+                                  ? {
+                                      0: { cellWidth: 70, halign: "left", fontStyle: "bold" },
+                                      1: { cellWidth: 30, halign: "center", font: "courier" },
+                                      2: { cellWidth: 26, halign: "center" },
+                                      3: { cellWidth: 26, halign: "center" },
+                                      4: { cellWidth: 26, halign: "center" },
+                                      5: { cellWidth: 26, halign: "center" },
+                                      6: { cellWidth: 27, halign: "center" },
+                                      7: { cellWidth: 27, halign: "center", fontStyle: "bold" },
+                                    }
+                                  : {
+                                      0: { cellWidth: 64, halign: "left", fontStyle: "bold" },
+                                      1: { cellWidth: 25, halign: "center", font: "courier" },
+                                      2: { cellWidth: 23, halign: "center" },
+                                      3: { cellWidth: 25, halign: "center" },
+                                      4: { cellWidth: 23, halign: "center" },
+                                      5: { cellWidth: 26, halign: "center" },
+                                      6: { cellWidth: 25, halign: "center" },
+                                      7: { cellWidth: 24, halign: "center" },
+                                      8: { cellWidth: 23, halign: "center", fontStyle: "bold" },
+                                    };
+
+                                autoTable(doc, {
+                                  head: [tableHeaders],
+                                  body: tableRows,
+                                  startY: 40,
+                                  margin: { left: 12, right: 12 },
+                                  theme: "grid",
+                                  styles: {
+                                    fontSize: 8.5,
+                                    cellPadding: 2,
+                                    valign: "middle",
+                                    lineColor: [80, 80, 80],
+                                    lineWidth: 0.15,
+                                  },
+                                  headStyles: {
+                                    fillColor: [241, 245, 249],
+                                    textColor: [15, 23, 42],
+                                    fontStyle: "bold",
+                                    fontSize: 8.5,
+                                    halign: "center",
+                                  },
+                                  alternateRowStyles: {
+                                    fillColor: [250, 252, 255],
+                                  },
+                                  columnStyles,
+                                });
+
+                                const finalY = doc.lastAutoTable.finalY || 160;
+
+                                // Verification & Signatures
+                                doc.setFontSize(8);
+                                doc.setFont("helvetica", "normal");
+                                doc.setTextColor(100, 100, 100);
+                                doc.text("* Computer generated official internal assessment statement via GradeFlow.", 12, finalY + 10);
+                                doc.text(`Generated on: ${new Date().toLocaleString("en-IN")}`, 12, finalY + 14);
+
+                                doc.setTextColor(0, 0, 0);
+                                doc.setFont("helvetica", "bold");
+                                doc.setDrawColor(0, 0, 0);
+                                doc.setLineWidth(0.3);
+
+                                doc.line(160, finalY + 14, 205, finalY + 14);
+                                doc.text("Faculty / Coordinator", 182.5, finalY + 18, { align: "center" });
+
+                                doc.line(225, finalY + 14, 275, finalY + 14);
+                                doc.text("Dean / Controller of Exam", 250, finalY + 18, { align: "center" });
+
+                                doc.save(`Internal_Assessment_Marks_${studentData?.regNo || "Student"}_Sem${semNumber}.pdf`);
+                              } catch (err) {
+                                console.error("PDF generation error:", err);
                                 window.print();
                               }
-                            } catch (e) {
-                              window.print();
-                            }
-                          }}
-                          style={{
-                            display: "inline-flex",
-                            alignItems: "center",
-                            gap: 5,
-                            padding: isMobile ? "6px 12px" : "8px 16px",
-                            borderRadius: 8,
-                            border: "1px solid #cbd5e1",
-                            background: "#ffffff",
-                            color: "#334155",
-                            fontSize: isMobile ? 12 : 13,
-                            fontWeight: 600,
-                            cursor: "pointer",
-                            fontFamily: "'DM Sans', sans-serif",
-                          }}
-                        >
-                          <Printer size={14} /> Print
-                        </button>
+                            }}
+                            style={{
+                              display: "inline-flex",
+                              alignItems: "center",
+                              gap: 5,
+                              padding: isMobile ? "6px 12px" : "8px 16px",
+                              borderRadius: 8,
+                              border: "1px solid #2563eb",
+                              background: "#2563eb",
+                              color: "#ffffff",
+                              fontSize: isMobile ? 12 : 13,
+                              fontWeight: 700,
+                              cursor: "pointer",
+                              fontFamily: "'DM Sans', sans-serif",
+                              boxShadow: "0 2px 6px rgba(37, 99, 235, 0.2)",
+                            }}
+                          >
+                            <DownloadCloud size={15} /> Download PDF
+                          </button>
+                          <button
+                            onClick={() => window.print()}
+                            style={{
+                              display: "inline-flex",
+                              alignItems: "center",
+                              gap: 5,
+                              padding: isMobile ? "6px 12px" : "8px 16px",
+                              borderRadius: 8,
+                              border: "1px solid #cbd5e1",
+                              background: "#ffffff",
+                              color: "#334155",
+                              fontSize: isMobile ? 12 : 13,
+                              fontWeight: 600,
+                              cursor: "pointer",
+                              fontFamily: "'DM Sans', sans-serif",
+                            }}
+                          >
+                            <Printer size={14} /> Print
+                          </button>
+                        </div>
                       </div>
 
                       {isInternalLoading ? (
