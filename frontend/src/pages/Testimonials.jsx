@@ -217,9 +217,18 @@ export default function Testimonials() {
     setSearchLoading(true);
     try {
       const data = await fetchStudent(cleanInput);
-      if (data && (data.studentName || data.regNo)) {
-        const foundName = data.studentName || "";
-        const foundReg = data.regNo || cleanInput;
+      let studentObj = data && typeof data === "object" ? data : null;
+      if (!studentObj) {
+        try {
+          studentObj = JSON.parse(sessionStorage.getItem("gf_student_data"));
+        } catch {}
+      }
+      if (
+        data &&
+        (studentObj?.studentName || studentObj?.regNo || data === true)
+      ) {
+        const foundName = studentObj?.studentName || "";
+        const foundReg = studentObj?.regNo || cleanInput;
         setName(foundName);
         setRegNo(foundReg);
         try {

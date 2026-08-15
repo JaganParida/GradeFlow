@@ -118,13 +118,13 @@ export function AppProvider({ children }) {
     // Reuse existing in-memory/sessionStorage student data instantly to prevent tab switch loading spinners
     if (!forceRefresh && studentData && studentData.regNo === regNo) {
       setLoading(false);
-      return true;
+      return studentData;
     }
     const cached = getCachedStudentData();
     if (!forceRefresh && cached && cached.regNo === regNo) {
       setStudentData(cached);
       setLoading(false);
-      return true;
+      return cached;
     }
 
     // Only set loading on first call (not during a silent retry)
@@ -138,6 +138,9 @@ export function AppProvider({ children }) {
       try {
         sessionStorage.setItem(STUDENT_CACHE_KEY, JSON.stringify(res.data));
         sessionStorage.setItem("last_regNo", regNo);
+        if (res.data?.studentName) {
+          sessionStorage.setItem("last_studentName", res.data.studentName);
+        }
       } catch (storageErr) {
         console.warn("Could not save to sessionStorage. Attempting to clear space...", storageErr);
         try {
@@ -145,13 +148,16 @@ export function AppProvider({ children }) {
           sessionStorage.setItem(CACHE_VERSION_KEY, CACHE_VERSION); // Restore version
           sessionStorage.setItem(STUDENT_CACHE_KEY, JSON.stringify(res.data));
           sessionStorage.setItem("last_regNo", regNo);
+          if (res.data?.studentName) {
+            sessionStorage.setItem("last_studentName", res.data.studentName);
+          }
         } catch (retryErr) {
           console.error("Local storage still unavailable after clearing.", retryErr);
         }
       }
       setStudentData(res.data);
       setLoading(false);
-      return true;
+      return res.data;
     } catch (err) {
       const status = err.response?.status;
 
