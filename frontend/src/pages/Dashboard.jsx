@@ -2048,7 +2048,77 @@ export default function Dashboard() {
                           </p>
                         </div>
                         <button
-                          onClick={() => window.print()}
+                          onClick={() => {
+                            const printContent = document.getElementById("printable-internal-sheet");
+                            if (!printContent) {
+                              window.print();
+                              return;
+                            }
+                            try {
+                              const win = window.open("", "_blank");
+                              if (win) {
+                                win.document.write(`<!DOCTYPE html>
+<html>
+<head>
+  <title>Internal Assessment Marks - ${studentData?.regNo || "Student"}</title>
+  <style>
+    @page {
+      size: A4 landscape;
+      margin: 8mm 10mm;
+    }
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+      padding: 10px 14px;
+      color: #000000;
+      background: #ffffff;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      table-layout: fixed;
+      margin: 10px 0;
+    }
+    th, td {
+      border: 1px solid #333333;
+      padding: 5px 4px;
+      word-break: break-word;
+      overflow-wrap: break-word;
+    }
+    th {
+      background-color: #f1f5f9 !important;
+      font-weight: 800;
+      text-transform: uppercase;
+      font-size: 9.5px;
+      letter-spacing: 0.3px;
+    }
+    td {
+      font-size: 9.5px;
+    }
+  </style>
+</head>
+<body>
+  ${printContent.innerHTML}
+</body>
+</html>`);
+                                win.document.close();
+                                win.focus();
+                                setTimeout(() => {
+                                  win.print();
+                                }, 300);
+                              } else {
+                                window.print();
+                              }
+                            } catch (e) {
+                              window.print();
+                            }
+                          }}
                           style={{
                             display: "inline-flex",
                             alignItems: "center",
@@ -2082,9 +2152,8 @@ export default function Dashboard() {
                         const startIdx = (currentInternalPage - 1) * INTERNAL_PER_PAGE + 1;
                         const endIdx = Math.min(currentInternalPage * INTERNAL_PER_PAGE, internalSubjects.length);
 
-                        // Evaluated subjects for the 1-page print statement
-                        const evaluatedPrintSubjects = internalSubjects.filter(s => hasSubjectInternalScore(s, internalMarks?.semester));
-                        const printSubjectsList = evaluatedPrintSubjects.length > 0 ? evaluatedPrintSubjects : internalSubjects.slice(0, 8);
+                        // All evaluated / registered subjects for the complete print statement
+                        const printSubjectsList = internalSubjects;
 
                         return (
                           <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
@@ -2400,8 +2469,8 @@ export default function Dashboard() {
                                 {`
                                 @media print {
                                   @page {
-                                    size: A4 portrait;
-                                    margin: 10mm 12mm 10mm 12mm;
+                                    size: A4 landscape;
+                                    margin: 8mm 10mm 8mm 10mm;
                                   }
                                   html, body {
                                     background: #ffffff !important;
@@ -2409,6 +2478,8 @@ export default function Dashboard() {
                                     margin: 0 !important;
                                     padding: 0 !important;
                                     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif !important;
+                                    -webkit-print-color-adjust: exact !important;
+                                    print-color-adjust: exact !important;
                                   }
                                   body * {
                                     visibility: hidden !important;
@@ -2417,97 +2488,112 @@ export default function Dashboard() {
                                     visibility: visible !important;
                                   }
                                   #printable-internal-sheet {
-                                    position: fixed !important;
+                                    position: absolute !important;
                                     left: 0 !important;
                                     top: 0 !important;
                                     width: 100% !important;
                                     display: block !important;
                                     background: #ffffff !important;
                                     color: #000000 !important;
-                                    z-index: 999999 !important;
-                                    page-break-after: avoid !important;
-                                    page-break-inside: avoid !important;
+                                    padding: 0 !important;
+                                    margin: 0 !important;
                                   }
                                 }
                                 `}
                               </style>
 
-                              <div style={{ padding: "0 4px", color: "#000000" }}>
+                              <div style={{ padding: "0 2px", color: "#000000" }}>
                                 {/* Institution & Statement Header */}
-                                <div style={{ textAlign: "center", borderBottom: "2px solid #000000", paddingBottom: 10, marginBottom: 12 }}>
+                                <div style={{ textAlign: "center", borderBottom: "2px solid #000000", paddingBottom: 8, marginBottom: 10 }}>
                                   <div style={{ fontSize: 16, fontWeight: 900, textTransform: "uppercase", letterSpacing: "0.5px" }}>
-                                    CENTURION UNIVERSITY OF TECHNOLOGY & MANAGEMENT
+                                    CENTURION UNIVERSITY OF TECHNOLOGY &amp; MANAGEMENT
                                   </div>
-                                  <div style={{ fontSize: 12, fontWeight: 700, textTransform: "uppercase", marginTop: 2, color: "#333333" }}>
+                                  <div style={{ fontSize: 12, fontWeight: 700, textTransform: "uppercase", marginTop: 2, color: "#1e293b" }}>
                                     STATEMENT OF INTERNAL ASSESSMENT MARKS
                                   </div>
-                                  <div style={{ fontSize: 11, fontWeight: 600, color: "#555555", marginTop: 2 }}>
+                                  <div style={{ fontSize: 11, fontWeight: 600, color: "#475569", marginTop: 2 }}>
                                     Semester {internalMarks?.semester || selectedSem} Examination Record · Academic Session 2023–2027
                                   </div>
                                 </div>
 
                                 {/* Student Meta Card */}
-                                <div style={{ border: "1px solid #000000", borderRadius: 4, padding: "8px 12px", marginBottom: 14, fontSize: 11.5, display: "grid", gridTemplateColumns: "1.2fr 1fr 1fr 1fr", gap: 8 }}>
+                                <div style={{ border: "1px solid #333333", borderRadius: 4, padding: "6px 12px", marginBottom: 10, fontSize: 11, display: "grid", gridTemplateColumns: "1.2fr 1fr 1.1fr 0.9fr", gap: 8, background: "#fafafa" }}>
                                   <div><strong>Name:</strong> {studentData?.studentName}</div>
                                   <div><strong>Reg No:</strong> {studentData?.regNo}</div>
                                   <div><strong>Branch:</strong> {dynamicBranch} ({getSectionFromRegNo(studentData?.regNo)})</div>
                                   <div><strong>Date:</strong> {new Date().toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })}</div>
                                 </div>
 
-                                {/* Printable Table */}
-                                <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 10.5, border: "1px solid #000000" }}>
-                                  <thead>
-                                    <tr style={{ background: "#f1f5f9", borderBottom: "1.5px solid #000000" }}>
-                                      <th style={{ border: "1px solid #000000", padding: "6px 8px", textAlign: "left", width: "32%" }}>Subject Name</th>
-                                      <th style={{ border: "1px solid #000000", padding: "6px 4px", textAlign: "center", width: "12%" }}>Code</th>
-                                      {getInternalAssessments(printSubjectsList[0], internalMarks.semester).map((a, idx) => (
-                                        <th key={idx} style={{ border: "1px solid #000000", padding: "6px 4px", textAlign: "center", width: "9%" }}>
-                                          {a.label}
-                                        </th>
-                                      ))}
-                                      <th style={{ border: "1px solid #000000", padding: "6px 6px", textAlign: "center", width: "10%" }}>Total</th>
-                                    </tr>
-                                  </thead>
-                                  <tbody>
-                                    {printSubjectsList.map((s, idx) => {
-                                      const assessments = getInternalAssessments(s, internalMarks.semester);
-                                      const total = getSubjectTotal(s, internalMarks.semester, assessments);
-                                      return (
-                                        <tr key={idx} style={{ borderBottom: "1px solid #cccccc" }}>
-                                          <td style={{ border: "1px solid #cccccc", padding: "6px 8px", fontWeight: 700 }}>
-                                            {s.subName}
-                                          </td>
-                                          <td style={{ border: "1px solid #cccccc", padding: "6px 4px", textAlign: "center", fontFamily: "monospace" }}>
-                                            {s.subCode}
-                                          </td>
-                                          {assessments.map((a, ci) => (
-                                            <td key={ci} style={{ border: "1px solid #cccccc", padding: "6px 4px", textAlign: "center" }}>
-                                              {isMarkAvailable(a.obtained) ? `${formatMark(a.obtained)}/${formatMark(a.max)}` : "—"}
-                                            </td>
-                                          ))}
-                                          <td style={{ border: "1px solid #cccccc", padding: "6px 6px", textAlign: "center", fontWeight: 800 }}>
-                                            {total.hasAny ? `${formatMark(total.score)}/${formatMark(total.max)}` : "—"}
-                                          </td>
+                                {/* Printable Table (100% fixed layout) */}
+                                {(() => {
+                                  const isSem1 = Number(internalMarks?.semester) === 1;
+                                  const headerAssessments = getInternalAssessments({}, internalMarks?.semester);
+
+                                  return (
+                                    <table style={{ width: "100%", borderCollapse: "collapse", tableLayout: "fixed", fontSize: 9.5, border: "1.5px solid #000000", boxSizing: "border-box" }}>
+                                      <thead>
+                                        <tr style={{ background: "#f1f5f9", borderBottom: "1.5px solid #000000" }}>
+                                          <th style={{ border: "1px solid #000000", padding: "6px 6px", textAlign: "left", width: isSem1 ? "28%" : "25%", fontSize: 9.5, fontWeight: 800, textTransform: "uppercase" }}>
+                                            Subject Name
+                                          </th>
+                                          <th style={{ border: "1px solid #000000", padding: "6px 3px", textAlign: "center", width: isSem1 ? "12%" : "9.5%", fontSize: 9.5, fontWeight: 800, textTransform: "uppercase" }}>
+                                            Code
+                                          </th>
+                                          {headerAssessments.map((a, idx) => {
+                                            const colWidth = isSem1 ? "10%" : idx === 3 ? "10%" : "9%";
+                                            return (
+                                              <th key={idx} style={{ border: "1px solid #000000", padding: "6px 3px", textAlign: "center", width: colWidth, fontSize: 9, fontWeight: 800, textTransform: "uppercase" }}>
+                                                {a.label}
+                                              </th>
+                                            );
+                                          })}
+                                          <th style={{ border: "1px solid #000000", padding: "6px 4px", textAlign: "center", width: isSem1 ? "10%" : "9.5%", fontSize: 9.5, fontWeight: 800, textTransform: "uppercase" }}>
+                                            Total
+                                          </th>
                                         </tr>
-                                      );
-                                    })}
-                                  </tbody>
-                                </table>
+                                      </thead>
+                                      <tbody>
+                                        {printSubjectsList.map((s, idx) => {
+                                          const assessments = getInternalAssessments(s, internalMarks.semester);
+                                          const total = getSubjectTotal(s, internalMarks.semester, assessments);
+                                          return (
+                                            <tr key={idx} style={{ borderBottom: "1px solid #333333", background: idx % 2 === 0 ? "#ffffff" : "#f8fafc" }}>
+                                              <td style={{ border: "1px solid #333333", padding: "5px 6px", fontWeight: 700, fontSize: 9.5, lineHeight: 1.25, wordBreak: "break-word" }}>
+                                                {s.subName}
+                                              </td>
+                                              <td style={{ border: "1px solid #333333", padding: "5px 3px", textAlign: "center", fontFamily: "monospace", fontSize: 9.5 }}>
+                                                {s.subCode}
+                                              </td>
+                                              {assessments.map((a, ci) => (
+                                                <td key={ci} style={{ border: "1px solid #333333", padding: "5px 3px", textAlign: "center", fontSize: 9.5 }}>
+                                                  {isMarkAvailable(a.obtained) ? `${formatMark(a.obtained)}/${formatMark(a.max)}` : "—"}
+                                                </td>
+                                              ))}
+                                              <td style={{ border: "1px solid #333333", padding: "5px 4px", textAlign: "center", fontWeight: 800, fontSize: 9.5 }}>
+                                                {total.hasAny ? `${formatMark(total.score)}/${formatMark(total.max)}` : "—"}
+                                              </td>
+                                            </tr>
+                                          );
+                                        })}
+                                      </tbody>
+                                    </table>
+                                  );
+                                })()}
 
                                 {/* Footer Verification & Signatures */}
-                                <div style={{ marginTop: 24, display: "flex", justifyContent: "space-between", alignItems: "flex-end", fontSize: 10.5 }}>
+                                <div style={{ marginTop: 20, display: "flex", justifyContent: "space-between", alignItems: "flex-end", fontSize: 10 }}>
                                   <div>
-                                    <div style={{ color: "#666666" }}>* Computer generated official internal assessment statement via GradeFlow.</div>
-                                    <div style={{ color: "#666666", marginTop: 2 }}>Printed on: {new Date().toLocaleString("en-IN")}</div>
+                                    <div style={{ color: "#555555" }}>* Computer generated official internal assessment statement via GradeFlow.</div>
+                                    <div style={{ color: "#555555", marginTop: 2 }}>Printed on: {new Date().toLocaleString("en-IN")}</div>
                                   </div>
 
-                                  <div style={{ display: "flex", gap: 40, textAlign: "center" }}>
+                                  <div style={{ display: "flex", gap: 36, textAlign: "center" }}>
                                     <div>
-                                      <div style={{ width: 140, borderTop: "1px solid #000000", marginBottom: 4 }} />
+                                      <div style={{ width: 130, borderTop: "1px solid #000000", marginBottom: 4 }} />
                                       <strong>Faculty / Coordinator</strong>
                                     </div>
                                     <div>
-                                      <div style={{ width: 140, borderTop: "1px solid #000000", marginBottom: 4 }} />
+                                      <div style={{ width: 130, borderTop: "1px solid #000000", marginBottom: 4 }} />
                                       <strong>Dean / Controller of Exam</strong>
                                     </div>
                                   </div>
