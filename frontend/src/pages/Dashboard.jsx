@@ -2751,11 +2751,11 @@ export default function Dashboard() {
                     {/* Semester Cards List */}
                     <div style={{ display: "flex", flexDirection: "column", gap: isMobile ? 8 : 12 }}>
                       {results.map((r) => {
-                        const liveSGPA = typeof r.sgpa === "number" ? r.sgpa : calcSGPAFromSubjects(r.subjects, r.semester);
+                        const { creditsCleared, totalCredits, sgpa: computedSGPA } = calculateSemesterMetrics(r.subjects, r.semester);
+                        const liveSGPA = (r.subjects && r.subjects.length > 0) ? computedSGPA : (typeof r.sgpa === "number" ? r.sgpa : computedSGPA);
                         const sgpaColor = liveSGPA >= 9 ? "#15803d" : liveSGPA >= 7.5 ? "#1d4ed8" : "#b45309";
                         const sgpaBg = liveSGPA >= 9 ? "#dcfce7" : liveSGPA >= 7.5 ? "#dbeafe" : "#fef3c7";
                         const sgpaBorder = liveSGPA >= 9 ? "#bbf7d0" : liveSGPA >= 7.5 ? "#bfdbfe" : "#fde68a";
-                        const { creditsCleared, totalCredits } = calculateSemesterMetrics(r.subjects, r.semester);
                         const isClear = creditsCleared === totalCredits;
                         const isSelected = selectedSem === r.semester;
                         const subjectsCount = r.subjects ? r.subjects.length : 0;

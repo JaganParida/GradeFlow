@@ -218,14 +218,19 @@ export default function Resources() {
   // Calculate live SGPA
   const calculatedSgpa = () => {
     let totalCredits = 0;
+    let creditsCleared = 0;
     let totalPoints = 0;
     sgpaSubjects.forEach((sub) => {
       const cr = Number(sub.credit) || 0;
       const gp = gradeToPointsMap[sub.grade] ?? 0;
       totalCredits += cr;
       totalPoints += cr * gp;
+      if (!["F", "R", "S", "M"].includes(String(sub.grade || "").trim().toUpperCase())) {
+        creditsCleared += cr;
+      }
     });
-    return totalCredits > 0 ? (totalPoints / totalCredits).toFixed(2) : "0.00";
+    const divisor = creditsCleared > 0 ? creditsCleared : totalCredits;
+    return divisor > 0 ? (totalPoints / divisor).toFixed(2) : "0.00";
   };
 
   // Calculate live CGPA
