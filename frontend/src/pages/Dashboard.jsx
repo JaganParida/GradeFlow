@@ -2105,9 +2105,10 @@ export default function Dashboard() {
                                 const tableRows = internalSubjects.map((s) => {
                                   const assessments = getInternalAssessments(s, semNumber);
                                   const total = getSubjectTotal(s, semNumber, assessments);
+                                  const formattedCode = s.type ? `${s.subCode || "—"} [${s.type}]` : (s.subCode || "—");
                                   return [
                                     s.subName || "—",
-                                    s.subCode || "—",
+                                    formattedCode,
                                     ...assessments.map((a) => (isMarkAvailable(a.obtained) ? `${formatMark(a.obtained)}/${formatMark(a.max)}` : "—")),
                                     total.hasAny ? `${formatMark(total.score)}/${formatMark(total.max)}` : "—",
                                   ];
@@ -2651,8 +2652,13 @@ export default function Dashboard() {
                                               <td style={{ border: "1px solid #333333", padding: "5px 6px", fontWeight: 700, fontSize: 9.5, lineHeight: 1.25, wordBreak: "break-word" }}>
                                                 {s.subName}
                                               </td>
-                                              <td style={{ border: "1px solid #333333", padding: "5px 3px", textAlign: "center", fontFamily: "monospace", fontSize: 9.5 }}>
-                                                {s.subCode}
+                                              <td style={{ border: "1px solid #333333", padding: "5px 3px", textAlign: "center", fontSize: 9.5 }}>
+                                                <div style={{ fontFamily: "monospace", fontWeight: 700 }}>{s.subCode}</div>
+                                                {s.type && (
+                                                  <span style={{ display: "inline-block", fontSize: 8.5, color: "#6b21a8", background: "#f3e8ff", padding: "0 4px", borderRadius: 3, fontWeight: 800, marginTop: 1, border: "1px solid #d8b4fe" }}>
+                                                    {s.type}
+                                                  </span>
+                                                )}
                                               </td>
                                               {assessments.map((a, ci) => (
                                                 <td key={ci} style={{ border: "1px solid #333333", padding: "5px 3px", textAlign: "center", fontSize: 9.5 }}>
