@@ -35,4 +35,17 @@ const semesterResultSchema = new mongoose.Schema(
 
 semesterResultSchema.index({ regNo: 1, semester: 1 }, { unique: true });
 
+const { calculateSemesterMetrics } = require("../gradeCalculations");
+
+semesterResultSchema.pre("save", function (next) {
+  if (this.subjects && this.subjects.length > 0) {
+    const metrics = calculateSemesterMetrics(this.subjects, this.semester);
+    this.totalCredits = metrics.totalCredits;
+    this.creditsCleared = metrics.creditsCleared;
+    this.sgpa = metrics.sgpa;
+  }
+  next();
+});
+
 module.exports = mongoose.models.SemesterResult || mongoose.model("SemesterResult", semesterResultSchema);
+
