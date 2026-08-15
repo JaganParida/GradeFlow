@@ -53,7 +53,7 @@ import {
   Medal,
   Check,
 } from "lucide-react";
-import { calculateSGPA as calcSGPAFromSubjects, calculateSemesterMetrics } from "../utils/gradeCalculations";
+import { calculateSGPA as calcSGPAFromSubjects, calculateSemesterMetrics, calculateCGPA } from "../utils/gradeCalculations";
 
 /* ─── Custom WhatsApp SVG Icon ───────────────────────────────────── */
 const WhatsAppIcon = ({ size = 16, color = "#ffffff" }) => (
@@ -549,13 +549,14 @@ export default function Dashboard() {
   const section = getSectionFromRegNo(regNo);
 
   const latestResult = results.find((r) => r.semester === selectedSem) || results[0];
-  const latestSgpa = latestResult
-    ? typeof latestResult.sgpa === "number"
-      ? latestResult.sgpa
-      : calcSGPAFromSubjects(latestResult.subjects, latestResult.semester)
+  const latestMetrics = latestResult?.subjects?.length > 0
+    ? calculateSemesterMetrics(latestResult.subjects, latestResult.semester)
     : null;
+  const latestSgpa = latestMetrics
+    ? latestMetrics.sgpa
+    : (typeof latestResult?.sgpa === "number" ? latestResult.sgpa : null);
 
-  const cgpa = studentData.cgpa;
+  const cgpa = results.length > 0 ? calculateCGPA(results) : studentData.cgpa;
   const academicHealthScore = academicHealth?.score ?? 85;
   const healthColor =
     academicHealthScore >= 90 ? "#16a34a" : academicHealthScore >= 75 ? "#2563eb" : academicHealthScore >= 60 ? "#d97706" : "#dc2626";
@@ -1455,14 +1456,26 @@ export default function Dashboard() {
                 </span>
               </div>
               <div style={{ fontSize: isMobile ? 22 : 30, fontWeight: 800, color: "#0f172a", fontFamily: "'Space Mono', monospace", lineHeight: 1.1 }}>
-                {studentData.creditsCleared}
-                <span style={{ fontSize: 11, color: "#94a3b8", fontWeight: 500 }}> / {studentData.totalCredits}</span>
+                {results.length > 0 ? results.reduce((sum, r) => sum + calculateSemesterMetrics(r.subjects, r.semester).creditsCleared, 0) : studentData.creditsCleared}
+                <span style={{ fontSize: 11, color: "#94a3b8", fontWeight: 500 }}>
+                  {" "}
+                  / {results.length > 0 ? results.reduce((sum, r) => sum + calculateSemesterMetrics(r.subjects, r.semester).totalCredits, 0) : studentData.totalCredits}
+                </span>
               </div>
               <span style={{ fontSize: 10.5, color: "#64748b" }}>Degree requirement progress</span>
               <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, height: 3.5, background: "#f1f5f9" }}>
                 <motion.div
                   initial={{ width: 0 }}
-                  animate={{ width: `${Math.min((studentData.creditsCleared / 160) * 100, 100)}%` }}
+                  animate={{
+                    width: `${Math.min(
+                      100,
+                      ((results.length > 0
+                        ? results.reduce((sum, r) => sum + calculateSemesterMetrics(r.subjects, r.semester).creditsCleared, 0)
+                        : (studentData.creditsCleared || 0)) /
+                        160) *
+                        100
+                    )}%`,
+                  }}
                   transition={{ duration: 1, ease: "easeOut" }}
                   style={{ height: "100%", background: "#2563eb" }}
                 />
