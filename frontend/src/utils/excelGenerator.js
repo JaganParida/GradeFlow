@@ -13,7 +13,7 @@ export const generateBasketExcel = async (studentData) => {
             studentData.results.forEach(semData => {
                 semData.subjects.forEach(sub => {
                     let targetSem = Number(semData.semester);
-                    const isProject = (sub.subName || "").toLowerCase().includes("project") || (sub.type && sub.type.toLowerCase() === "project");
+                    const isProject = (sub.type && sub.type.trim().toLowerCase() === "project");
                     if (targetSem === 5 && Number(sub.credit) === 6 && isProject) {
                         targetSem = 6;
                     }
