@@ -11,8 +11,8 @@ const GRADE_POINTS = Object.freeze({
   S: 0,
 });
 
-const NON_PASSING_GRADES = Object.freeze(["F", "M", "S", "R"]);
-const PASSING_GRADES = Object.freeze(["O", "E", "A", "B", "C", "D"]);
+const NON_PASSING_GRADES = Object.freeze(["M", "S", "R"]);
+const PASSING_GRADES = Object.freeze(["O", "E", "A", "B", "C", "D", "F"]);
 const ROUNDING_EPSILON = 1e-8;
 
 function normalizeGrade(grade) {
@@ -64,10 +64,13 @@ function calculateSemesterMetrics(subjects = [], semester) {
     const gradePoint = getGradePoint(grade);
 
     if (credit > 0 && gradePoint !== undefined) {
-      totalWeighted += credit * gradePoint;
       totalCredits += credit;
 
-      if (!NON_PASSING_GRADES.includes(grade)) {
+      if (grade === "F") {
+        totalWeighted += 2; // Flat 2 points without multiplying with credit
+        creditsCleared += credit;
+      } else if (!NON_PASSING_GRADES.includes(grade)) {
+        totalWeighted += credit * gradePoint;
         creditsCleared += credit;
       }
     }
