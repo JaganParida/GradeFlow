@@ -1347,7 +1347,7 @@ export const BASKET_5_DOMAINS_DATA = [
       {
         "subCode": "CUBD1095",
         "subName": "Advanced Blockchain Concepts and Development",
-        "credits": 3
+        "credits": 2
       },
       {
         "subCode": "CUBD1096",
