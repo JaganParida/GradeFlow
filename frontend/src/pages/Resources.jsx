@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import { useNavigate, Link, useLocation, useSearchParams } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Calculator,
@@ -112,15 +112,54 @@ const ALL_RESOURCE_TABS = [
   { id: "help-faq", label: "Help & FAQ", shortLabel: "Help & FAQ", icon: <HelpCircle size={15} /> },
 ];
 
+const resolveResourceTab = (raw) => {
+  if (!raw) return "all-overview";
+  const clean = String(raw).replace("#", "").toLowerCase().trim();
+  if (clean === "sgpa" || clean === "sgpa-calc" || clean === "calculatesgpa" || clean === "calculate-sgpa") return "sgpa-calc";
+  if (clean === "cgpa" || clean === "cgpa-calc" || clean === "calculatecgpa" || clean === "calculate-cgpa") return "cgpa-calc";
+  if (clean === "target-predictor" || clean === "predictor" || clean === "gpapredictor" || clean === "gpa-predictor" || clean === "goal") return "target-predictor";
+  if (clean === "grading-scale" || clean === "grades" || clean === "scale") return "grading-scale";
+  if (clean === "academic-health" || clean === "health") return "academic-health";
+  if (clean === "badges-tab" || clean === "badges" || clean === "achievements") return "badges-tab";
+  if (clean === "academic-report" || clean === "report") return "academic-report";
+  if (clean === "help-faq" || clean === "faq" || clean === "help") return "help-faq";
+  if (clean === "all-overview" || clean === "overview") return "all-overview";
+  return "all-overview";
+};
+
 export default function Resources() {
-  const [activeTab, setActiveTab] = useState("all-overview");
+  const [searchParams, setSearchParams] = useSearchParams();
+  const location = useLocation();
+  const navigate = useNavigate();
+
+  const [activeTab, setActiveTab] = useState(() => {
+    const fromQuery = new URLSearchParams(window.location.search).get("tab");
+    const fromHash = window.location.hash.replace("#", "");
+    return resolveResourceTab(fromQuery || fromHash);
+  });
+
+  const handleTabChange = (tabId) => {
+    setActiveTab(tabId);
+    setSearchParams({ tab: tabId }, { replace: true });
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  // Sync tab with URL searchParams or hash whenever location changes
+  useEffect(() => {
+    const fromQuery = searchParams.get("tab");
+    const fromHash = location.hash ? location.hash.replace("#", "") : "";
+    const resolved = resolveResourceTab(fromQuery || fromHash);
+    if (resolved && resolved !== activeTab) {
+      setActiveTab(resolved);
+    }
+  }, [searchParams, location.search, location.hash]);
+
   const [openFaq, setOpenFaq] = useState(null);
   const [gradeSearch, setGradeSearch] = useState("");
   const [isMobile, setIsMobile] = useState(() => (typeof window !== "undefined" ? window.innerWidth < 1100 : false));
   const mobileTabsRef = useRef(null);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(true);
-  const navigate = useNavigate();
 
   useEffect(() => {
     const handleResize = () => setIsMobile(window.innerWidth < 1100);
@@ -329,7 +368,7 @@ export default function Resources() {
                   key={tab.id}
                   type="button"
                   onClick={() => {
-                    setActiveTab(tab.id);
+                    handleTabChange(tab.id);
                   }}
                   style={{
                     display: "inline-flex",
@@ -459,7 +498,7 @@ export default function Resources() {
                   ].map((tab) => (
                     <button
                       key={tab.id}
-                      onClick={() => setActiveTab(tab.id)}
+                      onClick={() => handleTabChange(tab.id)}
                       style={{
                         display: "flex",
                         alignItems: "center",
@@ -522,7 +561,7 @@ export default function Resources() {
                   ].map((tab) => (
                     <button
                       key={tab.id}
-                      onClick={() => setActiveTab(tab.id)}
+                      onClick={() => handleTabChange(tab.id)}
                       style={{
                         display: "flex",
                         alignItems: "center",
@@ -576,7 +615,7 @@ export default function Resources() {
 
                 <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
                   <button
-                    onClick={() => setActiveTab("help-faq")}
+                    onClick={() => handleTabChange("help-faq")}
                     style={{
                       display: "flex",
                       alignItems: "center",
@@ -945,7 +984,7 @@ export default function Resources() {
                         </div>
                         <button
                           type="button"
-                          onClick={() => setActiveTab("grading-scale")}
+                          onClick={() => handleTabChange("grading-scale")}
                           style={{ background: "none", border: "none", color: "#2563eb", fontSize: 12, fontWeight: 700, cursor: "pointer", padding: 0 }}
                         >
                           Full Scale →
@@ -1057,7 +1096,7 @@ export default function Resources() {
                         </div>
                         <button
                           type="button"
-                          onClick={() => setActiveTab("academic-health")}
+                          onClick={() => handleTabChange("academic-health")}
                           style={{ background: "none", border: "none", color: "#8b5cf6", fontSize: 12, fontWeight: 700, cursor: "pointer", padding: 0 }}
                         >
                           Live Health Meter →
@@ -1159,7 +1198,7 @@ export default function Resources() {
                     </div>
                     <button
                       type="button"
-                      onClick={() => setActiveTab("badges-tab")}
+                      onClick={() => handleTabChange("badges-tab")}
                       style={{ background: "none", border: "none", color: "#ef4444", fontSize: 12, fontWeight: 700, cursor: "pointer", padding: 0 }}
                     >
                       All Badges →

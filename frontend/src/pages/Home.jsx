@@ -181,34 +181,39 @@ const QUICK_ACTIONS_ITEMS = [
     icon: <Calculator size={20} color="#2563eb" />,
     bg: "#eff6ff",
     to: "/resources",
-    hash: "",
+    tab: "sgpa-calc",
+    hash: "#sgpa-calc",
   },
   {
     label: "Calculate CGPA",
     icon: <BarChart2 size={20} color="#10b981" />,
     bg: "#ecfdf5",
     to: "/resources",
-    hash: "",
+    tab: "cgpa-calc",
+    hash: "#cgpa-calc",
   },
   {
     label: "What-If Simulator",
     icon: <Sliders size={20} color="#8b5cf6" />,
     bg: "#f5f3ff",
     to: "/analytics",
+    tab: "whatif",
     hash: "#whatif",
   },
   {
     label: "GPA Predictor",
     icon: <Target size={20} color="#f59e0b" />,
     bg: "#fffbeb",
-    to: "/analytics",
-    hash: "#predictor",
+    to: "/resources",
+    tab: "target-predictor",
+    hash: "#target-predictor",
   },
   {
     label: "Placement Insights",
     icon: <Briefcase size={20} color="#06b6d4" />,
     bg: "#ecfeff",
     to: "/analytics",
+    tab: "placement",
     hash: "#placement",
   },
   {
@@ -216,7 +221,8 @@ const QUICK_ACTIONS_ITEMS = [
     icon: <GitCompare size={20} color="#ec4899" />,
     bg: "#fdf2f8",
     to: "/analytics",
-    hash: "#trajectory",
+    tab: "overview",
+    hash: "#overview",
   },
 ];
 
@@ -424,6 +430,7 @@ export default function Home() {
   const [subscribed, setSubscribed] = useState(false);
   const [showSearchModal, setShowSearchModal] = useState(false);
   const [showAuthPromptModal, setShowAuthPromptModal] = useState(false);
+  const [pendingQuickAction, setPendingQuickAction] = useState(null);
   const [searchRegInput, setSearchRegInput] = useState("");
   const [searchError, setSearchError] = useState("");
   const [isSearching, setIsSearching] = useState(false);
@@ -451,10 +458,15 @@ export default function Home() {
   const handleQuickAction = (act) => {
     if (act.to.startsWith("/analytics")) {
       if (currentRegNo) {
-        navigate(`/analytics/${encodeStudentId(currentRegNo)}${act.hash || ""}`);
+        const query = act.tab ? `?tab=${act.tab}` : "";
+        navigate(`/analytics/${encodeStudentId(currentRegNo)}${query}${act.hash || ""}`);
       } else {
+        setPendingQuickAction(act);
         setShowAuthPromptModal(true);
       }
+    } else if (act.to.startsWith("/resources")) {
+      const query = act.tab ? `?tab=${act.tab}` : "";
+      navigate(`/resources${query}${act.hash || ""}`);
     } else if (act.to.startsWith("/dashboard")) {
       handleDashboardAction();
     } else {
@@ -573,7 +585,14 @@ export default function Home() {
       const success = await fetchStudent(cleanReg);
       if (success) {
         setShowSearchModal(false);
-        navigate(`/dashboard/${encodeStudentId(cleanReg)}`);
+        if (pendingQuickAction && pendingQuickAction.to.startsWith("/analytics")) {
+          const query = pendingQuickAction.tab ? `?tab=${pendingQuickAction.tab}` : "";
+          const target = `/analytics/${encodeStudentId(cleanReg)}${query}${pendingQuickAction.hash || ""}`;
+          setPendingQuickAction(null);
+          navigate(target);
+        } else {
+          navigate(`/dashboard/${encodeStudentId(cleanReg)}`);
+        }
       } else {
         setSearchError("Student record not found. Please verify your registration number.");
       }
@@ -2777,25 +2796,25 @@ export default function Home() {
               >
                 <span
                   className="gf-footer-link"
-                  onClick={() => navigate("/resources")}
+                  onClick={() => navigate("/resources?tab=grading-scale")}
                 >
                   Grading Guidelines
                 </span>
                 <span
                   className="gf-footer-link"
-                  onClick={() => navigate("/resources")}
+                  onClick={() => navigate("/resources?tab=all-overview")}
                 >
                   Credit System
                 </span>
                 <span
                   className="gf-footer-link"
-                  onClick={() => navigate("/resources")}
+                  onClick={() => navigate("/resources?tab=academic-health")}
                 >
-                  Placement Cutoffs
+                  Academic Health
                 </span>
                 <span
                   className="gf-footer-link"
-                  onClick={() => navigate("/resources")}
+                  onClick={() => navigate("/resources?tab=help-faq")}
                 >
                   Help & FAQ
                 </span>

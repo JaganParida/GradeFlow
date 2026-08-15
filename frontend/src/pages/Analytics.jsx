@@ -229,12 +229,12 @@ export default function Analytics() {
   const resolveTab = (raw) => {
     if (!raw) return "overview";
     const clean = String(raw).replace("#", "").toLowerCase().trim();
-    if (clean === "trajectory" || clean === "overview") return "overview";
+    if (clean === "trajectory" || clean === "overview" || clean === "comparescores" || clean === "compare" || clean === "scores") return "overview";
     if (clean === "grades" || clean === "distribution") return "grades";
-    if (clean === "placement" || clean === "companies") return "placement";
-    if (clean === "mastery" || clean === "subjects" || clean === "insights") return "mastery";
-    if (clean === "predictor" || clean === "goal") return "predictor";
-    if (clean === "whatif" || clean === "simulator") return "whatif";
+    if (clean === "placement" || clean === "companies" || clean === "placementinsights") return "placement";
+    if (clean === "mastery" || clean === "subjects" || clean === "subjectmastery" || clean === "insights") return "mastery";
+    if (clean === "predictor" || clean === "goal" || clean === "gpapredictor" || clean === "gpa-predictor") return "predictor";
+    if (clean === "whatif" || clean === "simulator" || clean === "what-if" || clean === "simulation") return "whatif";
     return "overview";
   };
 
