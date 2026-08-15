@@ -21,6 +21,7 @@ import {
   ChevronRight,
   BadgeCheck,
   Calendar,
+  Clock,
 } from "lucide-react";
 
 /* ─── Category List ────────────────────────────────────────────── */
@@ -981,6 +982,23 @@ export default function Testimonials() {
                         ? fullComment.slice(0, 180) + "..."
                         : fullComment;
 
+                    const createdDate = item.createdAt ? new Date(item.createdAt) : null;
+                    const isValidDate = createdDate && !isNaN(createdDate.getTime());
+                    const formattedDate = isValidDate
+                      ? createdDate.toLocaleDateString("en-IN", {
+                          day: "numeric",
+                          month: "short",
+                          year: "numeric",
+                        })
+                      : null;
+                    const formattedTime = isValidDate
+                      ? createdDate.toLocaleTimeString("en-IN", {
+                          hour: "2-digit",
+                          minute: "2-digit",
+                          hour12: true,
+                        })
+                      : null;
+
                     return (
                       <motion.div
                         key={itemId}
@@ -1081,14 +1099,38 @@ export default function Testimonials() {
                                   style={{
                                     fontSize: isSmallMobile ? 10 : 11,
                                     color: "#64748b",
-                                    whiteSpace: "nowrap",
-                                    overflow: "hidden",
-                                    textOverflow: "ellipsis",
+                                    display: "flex",
+                                    alignItems: "center",
+                                    flexWrap: "wrap",
+                                    gap: 4,
+                                    marginTop: 1,
                                   }}
                                 >
-                                  {item.regNo
-                                    ? `Student (${item.regNo})`
-                                    : "Student"}
+                                  <span>
+                                    {item.regNo
+                                      ? `Student (${item.regNo})`
+                                      : "Student"}
+                                  </span>
+                                  {formattedDate && (
+                                    <>
+                                      <span style={{ color: "#cbd5e1" }}>•</span>
+                                      <span
+                                        style={{
+                                          color: "#94a3b8",
+                                          display: "inline-flex",
+                                          alignItems: "center",
+                                          gap: 3,
+                                          fontWeight: 500,
+                                        }}
+                                      >
+                                        <Calendar
+                                          size={isSmallMobile ? 10 : 11}
+                                          color="#94a3b8"
+                                        />
+                                        {formattedDate}
+                                      </span>
+                                    </>
+                                  )}
                                 </div>
                               </div>
                             </div>
@@ -1148,7 +1190,7 @@ export default function Testimonials() {
                           )}
                         </div>
 
-                        {/* Card Footer: Category Badge + Like Button */}
+                        {/* Card Footer: Category Badge + Time + Like Button */}
                         <div
                           style={{
                             display: "flex",
@@ -1162,23 +1204,53 @@ export default function Testimonials() {
                             gap: 6,
                           }}
                         >
-                          <span
+                          <div
                             style={{
-                              fontWeight: 700,
-                              color: "#2563eb",
-                              background: "#eff6ff",
-                              border: "1px solid #dbeafe",
-                              padding: "2px 7px",
-                              borderRadius: 6,
-                              fontSize: isSmallMobile ? 10 : 11,
-                              whiteSpace: "nowrap",
-                              overflow: "hidden",
-                              textOverflow: "ellipsis",
-                              maxWidth: "60%",
+                              display: "flex",
+                              alignItems: "center",
+                              gap: 6,
+                              minWidth: 0,
+                              flexWrap: "wrap",
                             }}
                           >
-                            {item.category || "Overall Experience"}
-                          </span>
+                            <span
+                              style={{
+                                fontWeight: 700,
+                                color: "#2563eb",
+                                background: "#eff6ff",
+                                border: "1px solid #dbeafe",
+                                padding: "2px 7px",
+                                borderRadius: 6,
+                                fontSize: isSmallMobile ? 10 : 11,
+                                whiteSpace: "nowrap",
+                                overflow: "hidden",
+                                textOverflow: "ellipsis",
+                                maxWidth: "100%",
+                              }}
+                            >
+                              {item.category || "Overall Experience"}
+                            </span>
+
+                            {formattedTime && (
+                              <span
+                                style={{
+                                  display: "inline-flex",
+                                  alignItems: "center",
+                                  gap: 3,
+                                  color: "#94a3b8",
+                                  fontSize: isSmallMobile ? 9.5 : 10.5,
+                                  fontWeight: 500,
+                                  whiteSpace: "nowrap",
+                                }}
+                              >
+                                <Clock
+                                  size={isSmallMobile ? 10 : 11}
+                                  color="#94a3b8"
+                                />
+                                {formattedTime}
+                              </span>
+                            )}
+                          </div>
 
                           <button
                             onClick={() => handleLike(itemId)}

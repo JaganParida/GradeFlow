@@ -46,8 +46,9 @@ import {
   UserCheck,
   FileCheck,
   Copy,
-  CheckCheck,
-  SearchCode
+  SearchCode,
+  Calendar,
+  Clock,
 } from "lucide-react";
 
 function getDynamicSessionOptions(bStr, semVal, yStr) {
@@ -3487,8 +3488,19 @@ function FeedbackManager({ authHeaders, API }) {
             >
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 6 }}>
                 <div>
-                  <strong style={{ fontSize: 14, color: "#0f172a" }}>{fb.name}</strong>
-                  {fb.regNo && <span style={{ color: "#64748b", fontSize: 12, marginLeft: 8 }}>({fb.regNo})</span>}
+                  <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                    <strong style={{ fontSize: 14, color: "#0f172a" }}>{fb.name}</strong>
+                    {fb.regNo && <span style={{ color: "#64748b", fontSize: 12 }}>({fb.regNo})</span>}
+                  </div>
+                  {fb.createdAt && (
+                    <div style={{ display: "flex", alignItems: "center", gap: 4, color: "#94a3b8", fontSize: 11, marginTop: 2 }}>
+                      <Calendar size={11} color="#94a3b8" />
+                      <span>{new Date(fb.createdAt).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}</span>
+                      <span>•</span>
+                      <Clock size={11} color="#94a3b8" />
+                      <span>{new Date(fb.createdAt).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit", hour12: true })}</span>
+                    </div>
+                  )}
                 </div>
                 <button
                   onClick={() => handleDelete(fb._id)}
