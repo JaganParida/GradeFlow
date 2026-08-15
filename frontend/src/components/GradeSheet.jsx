@@ -433,9 +433,7 @@ export default function GradeSheet({ result, studentData, highlightedSubject }) 
                 gap: 6
               }}
             >
-              <AlertTriangle size={14} /> Subjects with grade <strong>R / S / M / F</strong> are
-              included in SGPA with their grade points (F=2, R=0, S=0, M=0).
-              Credits are not cleared for failed subjects.
+              <AlertTriangle size={14} /> SGPA is calculated on cleared credits ({clearedCredits}/{totalCredits} credits). Failed subjects (R / S / M / F) are not included in cleared credits.
             </div>
           )}
         </div>

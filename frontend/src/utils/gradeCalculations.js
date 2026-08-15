@@ -74,11 +74,13 @@ export function calculateSemesterMetrics(subjects = [], semester) {
     }
   });
 
+  const divisor = creditsCleared > 0 ? creditsCleared : totalCredits;
+
   return {
     totalWeighted,
     totalCredits,
     creditsCleared,
-    sgpa: totalCredits > 0 ? trunc2(totalWeighted / totalCredits) : 0,
+    sgpa: divisor > 0 ? trunc2(totalWeighted / divisor) : 0,
   };
 }
 
@@ -98,7 +100,7 @@ export function calculateCGPA(results = [], upToSemester = null) {
     .filter((result) => Number(result.semester) <= maxSemester)
     .sort((a, b) => Number(a.semester) - Number(b.semester))
     .forEach((result) => {
-      const { sgpa: calculatedSgpa, totalCredits } = calculateSemesterMetrics(
+      const { sgpa: calculatedSgpa, totalCredits, creditsCleared } = calculateSemesterMetrics(
         result.subjects,
         result.semester,
       );
@@ -109,9 +111,11 @@ export function calculateCGPA(results = [], upToSemester = null) {
             ? result.sgpa
             : calculatedSgpa;
 
-      if (totalCredits > 0) {
-        numerator += sgpa * totalCredits;
-        denominator += totalCredits;
+      const creditsToUse = creditsCleared > 0 ? creditsCleared : totalCredits;
+
+      if (creditsToUse > 0) {
+        numerator += sgpa * creditsToUse;
+        denominator += creditsToUse;
       }
     });
 
