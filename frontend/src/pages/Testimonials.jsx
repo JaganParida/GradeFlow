@@ -22,6 +22,12 @@ import {
   BadgeCheck,
   Calendar,
   Clock,
+  Lock,
+  Search,
+  AlertCircle,
+  X,
+  Info,
+  ShieldCheck,
 } from "lucide-react";
 
 /* ─── Category List ────────────────────────────────────────────── */
@@ -61,11 +67,27 @@ export default function Testimonials() {
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
+  const { API, studentData, fetchStudent } = useApp();
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const highlightedId = searchParams.get("highlight");
+
+  const currentRegNo =
+    studentData?.regNo ||
+    (typeof window !== "undefined"
+      ? sessionStorage.getItem("last_regNo") || ""
+      : "");
+  const currentStudentName =
+    studentData?.studentName ||
+    (typeof window !== "undefined"
+      ? sessionStorage.getItem("last_studentName") || ""
+      : "");
+
   // Form State
   const [rating, setRating] = useState(5);
   const [hoverRating, setHoverRating] = useState(0);
-  const [name, setName] = useState("");
-  const [regNo, setRegNo] = useState("");
+  const [name, setName] = useState(currentStudentName);
+  const [regNo, setRegNo] = useState(currentRegNo);
   const [category, setCategory] = useState("Overall Experience");
   const [comment, setComment] = useState("");
   const [isSortOpen, setIsSortOpen] = useState(false);
@@ -73,6 +95,14 @@ export default function Testimonials() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submittedSuccess, setSubmittedSuccess] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
+
+  // Auth / Lock state
+  const [showAuthPromptModal, setShowAuthPromptModal] = useState(false);
+  const [showSearchModal, setShowSearchModal] = useState(false);
+  const [searchRegInput, setSearchRegInput] = useState("");
+  const [searchLoading, setSearchLoading] = useState(false);
+  const [searchError, setSearchError] = useState("");
+  const [showLockTooltip, setShowLockTooltip] = useState(false);
 
   const [likedFeedbacks, setLikedFeedbacks] = useState(() => {
     try {
@@ -82,24 +112,21 @@ export default function Testimonials() {
     }
   });
 
-  const { API, studentData } = useApp();
-  const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
-  const highlightedId = searchParams.get("highlight");
-
   useEffect(() => {
     document.documentElement.setAttribute("data-theme", "light");
     window.scrollTo({ top: 0, behavior: "smooth" });
     loadFeedbacks();
   }, []);
 
-  // Auto-fill student data if logged in
+  // Auto-fill student data whenever available
   useEffect(() => {
-    if (studentData) {
-      if (!name && studentData.studentName) setName(studentData.studentName);
-      if (!regNo && studentData.regNo) setRegNo(studentData.regNo);
+    if (currentRegNo) {
+      setRegNo(currentRegNo);
     }
-  }, [studentData]);
+    if (currentStudentName) {
+      setName(currentStudentName);
+    }
+  }, [studentData, currentRegNo, currentStudentName]);
 
   // ─── Fetch Real Feedbacks from Backend ───────────────────────────
   async function loadFeedbacks() {
@@ -168,29 +195,86 @@ export default function Testimonials() {
 
   // ─── Scroll to Review Form ───────────────────────────────────────
   const scrollToForm = () => {
+    if (!currentRegNo) {
+      setShowAuthPromptModal(true);
+      return;
+    }
     const el = document.getElementById("write-review-card");
     if (el) {
       el.scrollIntoView({ behavior: "smooth", block: "center" });
     }
   };
 
+  // ─── Handle Registration Search Submission ──────────────────────
+  async function handleRegSearchSubmit(e) {
+    if (e) e.preventDefault();
+    setSearchError("");
+    const cleanInput = searchRegInput.trim();
+    if (!cleanInput) {
+      setSearchError("Please enter your registration number.");
+      return;
+    }
+    setSearchLoading(true);
+    try {
+      const data = await fetchStudent(cleanInput);
+      if (data && (data.studentName || data.regNo)) {
+        const foundName = data.studentName || "";
+        const foundReg = data.regNo || cleanInput;
+        setName(foundName);
+        setRegNo(foundReg);
+        try {
+          sessionStorage.setItem("last_regNo", foundReg);
+          sessionStorage.setItem("last_studentName", foundName);
+        } catch {}
+        setShowSearchModal(false);
+        setShowAuthPromptModal(false);
+        setTimeout(() => {
+          const formEl = document.getElementById("write-review-card");
+          if (formEl)
+            formEl.scrollIntoView({ behavior: "smooth", block: "center" });
+          const commentInput = document.getElementById(
+            "review-comment-textarea",
+          );
+          if (commentInput) commentInput.focus();
+        }, 300);
+      } else {
+        setSearchError(
+          "Student record not found. Please verify your registration number.",
+        );
+      }
+    } catch (err) {
+      setSearchError(
+        err?.response?.data?.message ||
+          "Failed to find student. Please verify your registration number.",
+      );
+    } finally {
+      setSearchLoading(false);
+    }
+  }
+
   // ─── Handle Real Feedback Submission ─────────────────────────────
   async function handleSubmit(e) {
     e.preventDefault();
-    if (!name.trim() || !comment.trim() || rating === 0) return;
+    if (!currentRegNo && !regNo.trim()) {
+      setShowAuthPromptModal(true);
+      return;
+    }
+    const finalName = (name || currentStudentName).trim();
+    const finalRegNo = (regNo || currentRegNo).trim();
+    const finalComment = comment.trim();
+
+    if (!finalName || !finalRegNo || !finalComment || rating === 0) return;
 
     setIsSubmitting(true);
     setErrorMessage("");
 
     try {
       const payload = {
-        name: name.trim(),
+        name: finalName,
+        regNo: finalRegNo,
         rating,
-        comment: comment.trim(),
+        comment: finalComment,
       };
-      if (regNo.trim()) {
-        payload.regNo = regNo.trim();
-      }
 
       const res = await axios.post(`${API}/feedback`, payload);
 
@@ -198,8 +282,6 @@ export default function Testimonials() {
         // Prepend new feedback from server
         setFeedbacks((prev) => [res.data, ...prev]);
         setSubmittedSuccess(true);
-        setName("");
-        setRegNo("");
         setComment("");
         setRating(5);
         setCurrentPage(1);
@@ -1544,44 +1626,221 @@ export default function Testimonials() {
                   gap: isSmallMobile ? 8 : 10,
                 }}
               >
-                <input
-                  type="text"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  placeholder="Your Full Name *"
-                  required
-                  style={{
-                    width: "100%",
-                    padding: isSmallMobile ? "8px 10px" : "9px 12px",
-                    borderRadius: 8,
-                    border: "1px solid #cbd5e1",
-                    fontSize: isSmallMobile ? 12 : 13,
-                    outline: "none",
-                    fontFamily: "'DM Sans', sans-serif",
-                    boxSizing: "border-box",
-                    background: "#ffffff",
-                    color: "#0f172a",
-                  }}
-                />
+                {/* Name & RegNo - Strict Mode & Auto Filled */}
+                <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                  {/* Full Name Field */}
+                  <div style={{ position: "relative" }}>
+                    <input
+                      type="text"
+                      value={name || currentStudentName}
+                      readOnly={Boolean(currentRegNo)}
+                      onClick={() => {
+                        if (!currentRegNo) setShowAuthPromptModal(true);
+                        else setShowLockTooltip(true);
+                      }}
+                      onMouseEnter={() => {
+                        if (currentRegNo) setShowLockTooltip(true);
+                      }}
+                      placeholder="Your Full Name *"
+                      required
+                      style={{
+                        width: "100%",
+                        padding: currentRegNo
+                          ? isSmallMobile
+                            ? "8px 30px 8px 10px"
+                            : "9px 32px 9px 12px"
+                          : isSmallMobile
+                            ? "8px 10px"
+                            : "9px 12px",
+                        borderRadius: 8,
+                        border: "1px solid #cbd5e1",
+                        fontSize: isSmallMobile ? 12 : 13,
+                        outline: "none",
+                        fontFamily: "'DM Sans', sans-serif",
+                        boxSizing: "border-box",
+                        background: currentRegNo ? "#f8fafc" : "#ffffff",
+                        color: "#0f172a",
+                        cursor: currentRegNo ? "default" : "pointer",
+                      }}
+                    />
+                    {currentRegNo && (
+                      <Lock
+                        size={13}
+                        color="#64748b"
+                        style={{
+                          position: "absolute",
+                          right: 10,
+                          top: "50%",
+                          transform: "translateY(-50%)",
+                          pointerEvents: "none",
+                        }}
+                      />
+                    )}
+                  </div>
 
-                <input
-                  type="text"
-                  value={regNo}
-                  onChange={(e) => setRegNo(e.target.value)}
-                  placeholder="Registration Number (Optional)"
-                  style={{
-                    width: "100%",
-                    padding: isSmallMobile ? "8px 10px" : "9px 12px",
-                    borderRadius: 8,
-                    border: "1px solid #cbd5e1",
-                    fontSize: isSmallMobile ? 12 : 13,
-                    outline: "none",
-                    fontFamily: "'DM Sans', sans-serif",
-                    boxSizing: "border-box",
-                    background: "#ffffff",
-                    color: "#0f172a",
-                  }}
-                />
+                  {/* Registration Number Field */}
+                  <div style={{ position: "relative" }}>
+                    <input
+                      type="text"
+                      value={regNo || currentRegNo}
+                      readOnly={Boolean(currentRegNo)}
+                      onClick={() => {
+                        if (!currentRegNo) setShowAuthPromptModal(true);
+                        else setShowLockTooltip(true);
+                      }}
+                      onMouseEnter={() => {
+                        if (currentRegNo) setShowLockTooltip(true);
+                      }}
+                      placeholder="Registration Number *"
+                      required
+                      style={{
+                        width: "100%",
+                        padding: currentRegNo
+                          ? isSmallMobile
+                            ? "8px 30px 8px 10px"
+                            : "9px 32px 9px 12px"
+                          : isSmallMobile
+                            ? "8px 10px"
+                            : "9px 12px",
+                        borderRadius: 8,
+                        border: "1px solid #cbd5e1",
+                        fontSize: isSmallMobile ? 12 : 13,
+                        outline: "none",
+                        fontFamily: "'DM Sans', sans-serif",
+                        boxSizing: "border-box",
+                        background: currentRegNo ? "#f8fafc" : "#ffffff",
+                        color: "#0f172a",
+                        cursor: currentRegNo ? "default" : "pointer",
+                      }}
+                    />
+                    {currentRegNo && (
+                      <Lock
+                        size={13}
+                        color="#64748b"
+                        style={{
+                          position: "absolute",
+                          right: 10,
+                          top: "50%",
+                          transform: "translateY(-50%)",
+                          pointerEvents: "none",
+                        }}
+                      />
+                    )}
+                  </div>
+
+                  {/* Locked / Verified Badge Indicator */}
+                  {currentRegNo ? (
+                    <div
+                      onClick={() => setShowLockTooltip(!showLockTooltip)}
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "space-between",
+                        padding: "6px 9px",
+                        background: "#eff6ff",
+                        border: "1px solid #dbeafe",
+                        borderRadius: 7,
+                        fontSize: 11,
+                        color: "#1e40af",
+                        cursor: "pointer",
+                      }}
+                    >
+                      <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
+                        <ShieldCheck size={13} color="#2563eb" />
+                        <span>
+                          Verified Student: <strong>{currentRegNo}</strong>
+                        </span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setShowSearchModal(true);
+                          setSearchError("");
+                          setSearchRegInput("");
+                        }}
+                        style={{
+                          background: "none",
+                          border: "none",
+                          color: "#2563eb",
+                          fontWeight: 700,
+                          fontSize: 11,
+                          cursor: "pointer",
+                          padding: 0,
+                          textDecoration: "underline",
+                        }}
+                      >
+                        Change
+                      </button>
+                    </div>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowAuthPromptModal(true);
+                      }}
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        gap: 6,
+                        padding: "7px 10px",
+                        background: "#fffbeb",
+                        border: "1px dashed #fde68a",
+                        borderRadius: 7,
+                        fontSize: 11.5,
+                        fontWeight: 700,
+                        color: "#b45309",
+                        cursor: "pointer",
+                        width: "100%",
+                      }}
+                    >
+                      <Search size={12} color="#b45309" />
+                      <span>Search Registration Number to Verify</span>
+                    </button>
+                  )}
+
+                  {/* Lock Tooltip Banner */}
+                  <AnimatePresence>
+                    {showLockTooltip && currentRegNo && (
+                      <motion.div
+                        initial={{ opacity: 0, y: -4 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -4 }}
+                        style={{
+                          background: "#0f172a",
+                          color: "#ffffff",
+                          borderRadius: 8,
+                          padding: "7px 10px",
+                          fontSize: 11,
+                          lineHeight: 1.35,
+                          display: "flex",
+                          alignItems: "flex-start",
+                          gap: 6,
+                          boxShadow: "0 4px 12px rgba(0,0,0,0.15)",
+                        }}
+                      >
+                        <Info size={13} color="#60a5fa" style={{ flexShrink: 0, marginTop: 1 }} />
+                        <span style={{ flex: 1 }}>
+                          Locked to verified profile. If this is not your registration number, search your registration number to submit your review.
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => setShowLockTooltip(false)}
+                          style={{
+                            background: "none",
+                            border: "none",
+                            color: "#94a3b8",
+                            cursor: "pointer",
+                            padding: 0,
+                          }}
+                        >
+                          <X size={12} />
+                        </button>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
 
                 {/* Category Dropdown */}
                 <div style={{ position: "relative", width: "100%" }}>
@@ -1687,7 +1946,11 @@ export default function Testimonials() {
                 {/* Comment Textarea */}
                 <div style={{ position: "relative" }}>
                   <textarea
+                    id="review-comment-textarea"
                     value={comment}
+                    onClick={() => {
+                      if (!currentRegNo) setShowAuthPromptModal(true);
+                    }}
                     onChange={(e) => setComment(e.target.value.slice(0, 500))}
                     placeholder="Write your review or feedback..."
                     rows={isSmallMobile ? 3 : 4}
@@ -1891,6 +2154,345 @@ export default function Testimonials() {
           </button>
         </section>
       </div>
+
+      {/* ─── Auth Prompt Modal (Registration Number Required) ─────────── */}
+      <AnimatePresence>
+        {showAuthPromptModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={() => setShowAuthPromptModal(false)}
+            style={{
+              position: "fixed",
+              inset: 0,
+              background: "rgba(15, 23, 42, 0.45)",
+              backdropFilter: "blur(8px)",
+              WebkitBackdropFilter: "blur(8px)",
+              zIndex: 10000,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              padding: 16,
+            }}
+          >
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              onClick={(e) => e.stopPropagation()}
+              style={{
+                background: "#ffffff",
+                borderRadius: 20,
+                padding: "26px 22px",
+                maxWidth: 400,
+                width: "100%",
+                textAlign: "center",
+                boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.25)",
+              }}
+            >
+              <div
+                style={{
+                  width: 46,
+                  height: 46,
+                  borderRadius: 14,
+                  background: "#eff6ff",
+                  color: "#2563eb",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  margin: "0 auto 12px auto",
+                }}
+              >
+                <Search size={20} />
+              </div>
+              <h3
+                style={{
+                  fontSize: 18,
+                  fontWeight: 800,
+                  color: "#0f172a",
+                  marginBottom: 4,
+                }}
+              >
+                Registration Number Required
+              </h3>
+              <p
+                style={{
+                  fontSize: 12.5,
+                  color: "#64748b",
+                  marginBottom: 18,
+                  lineHeight: 1.5,
+                }}
+              >
+                Please enter your registration number to continue.
+              </p>
+              <div style={{ display: "flex", gap: 10 }}>
+                <button
+                  type="button"
+                  onClick={() => setShowAuthPromptModal(false)}
+                  style={{
+                    flex: 1,
+                    padding: "10px",
+                    borderRadius: 10,
+                    background: "#f1f5f9",
+                    color: "#475569",
+                    border: "none",
+                    fontWeight: 600,
+                    fontSize: 13,
+                    cursor: "pointer",
+                    fontFamily: "inherit",
+                    transition: "background 0.15s ease",
+                  }}
+                  onMouseEnter={(e) =>
+                    (e.currentTarget.style.background = "#e2e8f0")
+                  }
+                  onMouseLeave={(e) =>
+                    (e.currentTarget.style.background = "#f1f5f9")
+                  }
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowAuthPromptModal(false);
+                    setShowSearchModal(true);
+                    setSearchError("");
+                    setSearchRegInput("");
+                  }}
+                  style={{
+                    flex: 1.2,
+                    padding: "10px",
+                    borderRadius: 10,
+                    background: "#2563eb",
+                    color: "#ffffff",
+                    border: "none",
+                    fontWeight: 700,
+                    fontSize: 13,
+                    cursor: "pointer",
+                    fontFamily: "inherit",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: 6,
+                    boxShadow: "0 4px 12px rgba(37, 99, 235, 0.2)",
+                    transition: "background 0.15s ease",
+                  }}
+                  onMouseEnter={(e) =>
+                    (e.currentTarget.style.background = "#1d4ed8")
+                  }
+                  onMouseLeave={(e) =>
+                    (e.currentTarget.style.background = "#2563eb")
+                  }
+                >
+                  <Search size={14} />
+                  <span>Search Now</span>
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* ─── Search Registration Modal ──────────────────────────────── */}
+      <AnimatePresence>
+        {showSearchModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={() => setShowSearchModal(false)}
+            style={{
+              position: "fixed",
+              inset: 0,
+              background: "rgba(15, 23, 42, 0.5)",
+              backdropFilter: "blur(8px)",
+              WebkitBackdropFilter: "blur(8px)",
+              zIndex: 10001,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              padding: 16,
+            }}
+          >
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              onClick={(e) => e.stopPropagation()}
+              style={{
+                background: "#ffffff",
+                borderRadius: 20,
+                padding: "24px 22px",
+                maxWidth: 420,
+                width: "100%",
+                boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.25)",
+                fontFamily: "'DM Sans', sans-serif",
+              }}
+            >
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  marginBottom: 14,
+                }}
+              >
+                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  <div
+                    style={{
+                      width: 36,
+                      height: 36,
+                      borderRadius: 10,
+                      background: "#eff6ff",
+                      color: "#2563eb",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                    }}
+                  >
+                    <Search size={18} />
+                  </div>
+                  <div>
+                    <h3
+                      style={{
+                        fontSize: 16,
+                        fontWeight: 800,
+                        color: "#0f172a",
+                        margin: 0,
+                      }}
+                    >
+                      Verify Student Profile
+                    </h3>
+                    <p style={{ fontSize: 11.5, color: "#64748b", margin: 0 }}>
+                      Enter your registration number to submit your review
+                    </p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowSearchModal(false)}
+                  style={{
+                    background: "none",
+                    border: "none",
+                    color: "#94a3b8",
+                    cursor: "pointer",
+                    padding: 4,
+                  }}
+                >
+                  <X size={18} />
+                </button>
+              </div>
+
+              <form onSubmit={handleRegSearchSubmit}>
+                <div style={{ marginBottom: 12 }}>
+                  <label
+                    style={{
+                      display: "block",
+                      fontSize: 11,
+                      fontWeight: 800,
+                      color: "#475569",
+                      marginBottom: 5,
+                      textTransform: "uppercase",
+                      letterSpacing: "0.4px",
+                    }}
+                  >
+                    Registration Number *
+                  </label>
+                  <input
+                    type="text"
+                    autoFocus
+                    value={searchRegInput}
+                    onChange={(e) => {
+                      setSearchRegInput(e.target.value);
+                      setSearchError("");
+                    }}
+                    placeholder="e.g. 230301120450"
+                    style={{
+                      width: "100%",
+                      boxSizing: "border-box",
+                      padding: "10px 12px",
+                      borderRadius: 10,
+                      border: searchError
+                        ? "1px solid #ef4444"
+                        : "1px solid #cbd5e1",
+                      fontSize: 14,
+                      outline: "none",
+                      fontFamily: "inherit",
+                    }}
+                  />
+                  {searchError && (
+                    <p
+                      style={{
+                        fontSize: 11.5,
+                        color: "#dc2626",
+                        marginTop: 4,
+                        marginBottom: 0,
+                        fontWeight: 600,
+                      }}
+                    >
+                      {searchError}
+                    </p>
+                  )}
+                </div>
+
+                <div style={{ display: "flex", gap: 8 }}>
+                  <button
+                    type="button"
+                    onClick={() => setShowSearchModal(false)}
+                    style={{
+                      flex: 1,
+                      padding: "10px",
+                      borderRadius: 10,
+                      background: "#f1f5f9",
+                      color: "#475569",
+                      border: "none",
+                      fontWeight: 600,
+                      fontSize: 13,
+                      cursor: "pointer",
+                      fontFamily: "inherit",
+                    }}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={searchLoading}
+                    style={{
+                      flex: 1.3,
+                      padding: "10px",
+                      borderRadius: 10,
+                      background: "#2563eb",
+                      color: "#ffffff",
+                      border: "none",
+                      fontWeight: 700,
+                      fontSize: 13,
+                      cursor: searchLoading ? "not-allowed" : "pointer",
+                      fontFamily: "inherit",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      gap: 6,
+                    }}
+                  >
+                    {searchLoading ? (
+                      <>
+                        <Loader2 size={14} className="animate-spin" />
+                        <span>Verifying...</span>
+                      </>
+                    ) : (
+                      <>
+                        <BadgeCheck size={14} />
+                        <span>Verify & Review</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+              </form>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

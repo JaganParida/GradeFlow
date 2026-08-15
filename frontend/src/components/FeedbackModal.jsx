@@ -1,13 +1,26 @@
 import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Star, MessageSquare, CheckCircle2, Send, Sparkles, AlertCircle } from "lucide-react";
+import {
+  X,
+  Star,
+  MessageSquare,
+  CheckCircle2,
+  Send,
+  Sparkles,
+  AlertCircle,
+  Lock,
+  Search,
+  ShieldCheck,
+  Loader2,
+  Info,
+  BadgeCheck,
+} from "lucide-react";
 import { useNavigate, useLocation } from "react-router-dom";
 import axios from "axios";
 import { useApp } from "../context/AppContext";
 
 export default function FeedbackModal() {
   const [show, setShow] = useState(false);
-  const [step, setStep] = useState(2); // 1 = Prompt (Star/Feedback), 2 = Review Form
   const [rating, setRating] = useState(5);
   const [hoverRating, setHoverRating] = useState(0);
   const [name, setName] = useState("");
@@ -17,25 +30,45 @@ export default function FeedbackModal() {
   const [errorMessage, setErrorMessage] = useState("");
   const [isSuccess, setIsSuccess] = useState(false);
 
+  // Search Step State
+  const [searchRegInput, setSearchRegInput] = useState("");
+  const [searchLoading, setSearchLoading] = useState(false);
+  const [searchError, setSearchError] = useState("");
+  const [isChangingReg, setIsChangingReg] = useState(false);
+
   const navigate = useNavigate();
   const location = useLocation();
-  const { API, studentData } = useApp();
+  const { API, studentData, fetchStudent } = useApp();
 
-  // Prefill student details if logged in
+  const currentRegNo =
+    studentData?.regNo ||
+    (typeof window !== "undefined"
+      ? sessionStorage.getItem("last_regNo") || ""
+      : "");
+  const currentStudentName =
+    studentData?.studentName ||
+    (typeof window !== "undefined"
+      ? sessionStorage.getItem("last_studentName") || ""
+      : "");
+
+  // Prefill student details whenever available
   useEffect(() => {
-    if (studentData) {
-      if (!name && studentData.studentName) setName(studentData.studentName);
-      if (!regNo && studentData.regNo) setRegNo(studentData.regNo);
+    if (currentRegNo) {
+      setRegNo(currentRegNo);
     }
-  }, [studentData, show]);
+    if (currentStudentName) {
+      setName(currentStudentName);
+    }
+  }, [studentData, currentRegNo, currentStudentName]);
 
   // Listen to open event from any part of the app (e.g. Upgrade popup, footer, navbar)
   useEffect(() => {
     const handleOpen = (e) => {
       setShow(true);
-      setStep(2);
       setIsSuccess(false);
       setErrorMessage("");
+      setSearchError("");
+      setIsChangingReg(false);
       if (e?.detail?.rating) setRating(e.detail.rating);
     };
 
@@ -47,16 +80,60 @@ export default function FeedbackModal() {
     setShow(false);
     setIsSuccess(false);
     setErrorMessage("");
+    setSearchError("");
+    setIsChangingReg(false);
     localStorage.setItem("gf_feedback_modal_dismissed", "true");
+  };
+
+  const handleVerifyStudent = async (e) => {
+    if (e) e.preventDefault();
+    setSearchError("");
+    const cleanInput = searchRegInput.trim();
+    if (!cleanInput) {
+      setSearchError("Please enter your registration number.");
+      return;
+    }
+
+    setSearchLoading(true);
+    try {
+      const data = await fetchStudent(cleanInput);
+      if (data && (data.studentName || data.regNo)) {
+        const foundName = data.studentName || "";
+        const foundReg = data.regNo || cleanInput;
+        setName(foundName);
+        setRegNo(foundReg);
+        try {
+          sessionStorage.setItem("last_regNo", foundReg);
+          sessionStorage.setItem("last_studentName", foundName);
+        } catch {}
+        setIsChangingReg(false);
+      } else {
+        setSearchError(
+          "Student record not found. Please verify your registration number.",
+        );
+      }
+    } catch (err) {
+      setSearchError(
+        err?.response?.data?.message ||
+          "Failed to verify student. Please check your registration number.",
+      );
+    } finally {
+      setSearchLoading(false);
+    }
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setErrorMessage("");
 
-    const trimmedName = name.trim();
-    const trimmedRegNo = regNo.trim();
+    const trimmedName = (name || currentStudentName).trim();
+    const trimmedRegNo = (regNo || currentRegNo).trim();
     const trimmedComment = comment.trim();
+
+    if (!trimmedRegNo) {
+      setIsChangingReg(true);
+      return;
+    }
 
     if (!trimmedName) {
       setErrorMessage("Please enter your full name.");
@@ -78,13 +155,10 @@ export default function FeedbackModal() {
     try {
       const payload = {
         name: trimmedName,
+        regNo: trimmedRegNo,
         rating: Number(rating),
         comment: trimmedComment,
       };
-
-      if (trimmedRegNo) {
-        payload.regNo = trimmedRegNo;
-      }
 
       const res = await axios.post(`${API}/feedback`, payload);
 
@@ -273,10 +347,151 @@ export default function FeedbackModal() {
                   Your feedback helps us continuously improve GradeFlow for everyone.
                 </p>
               </motion.div>
+            ) : (!currentRegNo && !regNo) || isChangingReg ? (
+              /* Step 0: Registration Number Required */
+              <div>
+                <div style={{ textAlign: "center", marginBottom: 18 }}>
+                  <div
+                    style={{
+                      width: 46,
+                      height: 46,
+                      borderRadius: 14,
+                      background: "#eff6ff",
+                      color: "#2563eb",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      margin: "0 auto 12px auto",
+                    }}
+                  >
+                    <Search size={22} />
+                  </div>
+                  <h3
+                    style={{
+                      fontSize: 19,
+                      fontWeight: 900,
+                      color: "#0f172a",
+                      margin: "0 0 6px 0",
+                    }}
+                  >
+                    Registration Number Required
+                  </h3>
+                  <p style={{ fontSize: 13, color: "#64748b", margin: 0, lineHeight: 1.5 }}>
+                    Please enter your registration number to continue.
+                  </p>
+                </div>
+
+                <form onSubmit={handleVerifyStudent} style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                  <div>
+                    <label
+                      style={{
+                        display: "block",
+                        fontSize: 11,
+                        fontWeight: 800,
+                        color: "#475569",
+                        marginBottom: 5,
+                        textTransform: "uppercase",
+                        letterSpacing: "0.3px",
+                      }}
+                    >
+                      Registration Number *
+                    </label>
+                    <input
+                      type="text"
+                      autoFocus
+                      value={searchRegInput}
+                      onChange={(e) => {
+                        setSearchRegInput(e.target.value);
+                        setSearchError("");
+                      }}
+                      placeholder="e.g. 230301120450"
+                      style={{
+                        width: "100%",
+                        boxSizing: "border-box",
+                        padding: "10px 12px",
+                        borderRadius: 10,
+                        border: searchError ? "1px solid #ef4444" : "1px solid #cbd5e1",
+                        fontSize: 14,
+                        outline: "none",
+                        fontFamily: "inherit",
+                      }}
+                    />
+                    {searchError && (
+                      <p
+                        style={{
+                          fontSize: 11.5,
+                          color: "#dc2626",
+                          marginTop: 4,
+                          marginBottom: 0,
+                          fontWeight: 600,
+                        }}
+                      >
+                        {searchError}
+                      </p>
+                    )}
+                  </div>
+
+                  <div style={{ display: "flex", gap: 8, marginTop: 4 }}>
+                    {isChangingReg && (
+                      <button
+                        type="button"
+                        onClick={() => setIsChangingReg(false)}
+                        style={{
+                          flex: 1,
+                          padding: "10px",
+                          borderRadius: 10,
+                          background: "#f1f5f9",
+                          color: "#475569",
+                          border: "none",
+                          fontWeight: 600,
+                          fontSize: 13,
+                          cursor: "pointer",
+                          fontFamily: "inherit",
+                        }}
+                      >
+                        Cancel
+                      </button>
+                    )}
+                    <button
+                      type="submit"
+                      disabled={searchLoading}
+                      style={{
+                        flex: 1.3,
+                        padding: "10px",
+                        borderRadius: 10,
+                        background: "#2563eb",
+                        color: "#ffffff",
+                        border: "none",
+                        fontWeight: 700,
+                        fontSize: 13,
+                        cursor: searchLoading ? "not-allowed" : "pointer",
+                        fontFamily: "inherit",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        gap: 6,
+                        boxShadow: "0 4px 12px rgba(37, 99, 235, 0.2)",
+                      }}
+                    >
+                      {searchLoading ? (
+                        <>
+                          <Loader2 size={14} className="animate-spin" />
+                          <span>Verifying...</span>
+                        </>
+                      ) : (
+                        <>
+                          <BadgeCheck size={14} />
+                          <span>Verify & Continue</span>
+                        </>
+                      )}
+                    </button>
+                  </div>
+                </form>
+              </div>
             ) : (
               <div>
                 {/* Header */}
-                <div style={{ textAlign: "center", marginBottom: 18 }}>
+                <div style={{ textAlign: "center", marginBottom: 16 }}>
                   <div
                     style={{
                       width: 44,
@@ -304,14 +519,14 @@ export default function FeedbackModal() {
                     Leave a Review for GradeFlow
                   </h3>
                   <p style={{ fontSize: 13, color: "#64748b", margin: 0 }}>
-                    Share your experience with the new look and tools!
+                    Share your experience with GradeFlow
                   </p>
                 </div>
 
                 {/* Form */}
                 <form
                   onSubmit={handleSubmit}
-                  style={{ display: "flex", flexDirection: "column", gap: 14 }}
+                  style={{ display: "flex", flexDirection: "column", gap: 12 }}
                 >
                   {/* Star Rating Interactive Selector */}
                   <div
@@ -322,7 +537,7 @@ export default function FeedbackModal() {
                       background: "#f8fafc",
                       border: "1px solid #e2e8f0",
                       borderRadius: 14,
-                      padding: "12px 14px",
+                      padding: "10px 14px",
                     }}
                   >
                     <div style={{ display: "flex", gap: 6, marginBottom: 4 }}>
@@ -365,7 +580,7 @@ export default function FeedbackModal() {
                     </div>
                   </div>
 
-                  {/* Name & Registration Number Inputs */}
+                  {/* Name & Registration Number Inputs (Strict Locked Mode) */}
                   <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
                     <div>
                       <label
@@ -381,25 +596,39 @@ export default function FeedbackModal() {
                       >
                         Full Name *
                       </label>
-                      <input
-                        type="text"
-                        required
-                        value={name}
-                        onChange={(e) => setName(e.target.value)}
-                        placeholder="e.g. Rahul Sharma"
-                        style={{
-                          width: "100%",
-                          boxSizing: "border-box",
-                          padding: "9px 12px",
-                          borderRadius: 10,
-                          background: "#ffffff",
-                          border: "1px solid #cbd5e1",
-                          color: "#0f172a",
-                          fontSize: 13.5,
-                          outline: "none",
-                          fontFamily: "inherit",
-                        }}
-                      />
+                      <div style={{ position: "relative" }}>
+                        <input
+                          type="text"
+                          readOnly
+                          required
+                          value={name || currentStudentName}
+                          placeholder="Full Name"
+                          style={{
+                            width: "100%",
+                            boxSizing: "border-box",
+                            padding: "9px 28px 9px 12px",
+                            borderRadius: 10,
+                            background: "#f8fafc",
+                            border: "1px solid #cbd5e1",
+                            color: "#0f172a",
+                            fontSize: 13,
+                            outline: "none",
+                            fontFamily: "inherit",
+                            cursor: "default",
+                          }}
+                        />
+                        <Lock
+                          size={12}
+                          color="#64748b"
+                          style={{
+                            position: "absolute",
+                            right: 9,
+                            top: "50%",
+                            transform: "translateY(-50%)",
+                            pointerEvents: "none",
+                          }}
+                        />
+                      </div>
                     </div>
 
                     <div>
@@ -414,27 +643,84 @@ export default function FeedbackModal() {
                           letterSpacing: "0.3px",
                         }}
                       >
-                        Reg. No (Optional)
+                        Reg. No *
                       </label>
-                      <input
-                        type="text"
-                        value={regNo}
-                        onChange={(e) => setRegNo(e.target.value)}
-                        placeholder="e.g. 23030112..."
-                        style={{
-                          width: "100%",
-                          boxSizing: "border-box",
-                          padding: "9px 12px",
-                          borderRadius: 10,
-                          background: "#ffffff",
-                          border: "1px solid #cbd5e1",
-                          color: "#0f172a",
-                          fontSize: 13.5,
-                          outline: "none",
-                          fontFamily: "inherit",
-                        }}
-                      />
+                      <div style={{ position: "relative" }}>
+                        <input
+                          type="text"
+                          readOnly
+                          required
+                          value={regNo || currentRegNo}
+                          placeholder="Registration Number"
+                          style={{
+                            width: "100%",
+                            boxSizing: "border-box",
+                            padding: "9px 28px 9px 12px",
+                            borderRadius: 10,
+                            background: "#f8fafc",
+                            border: "1px solid #cbd5e1",
+                            color: "#0f172a",
+                            fontSize: 13,
+                            outline: "none",
+                            fontFamily: "inherit",
+                            cursor: "default",
+                          }}
+                        />
+                        <Lock
+                          size={12}
+                          color="#64748b"
+                          style={{
+                            position: "absolute",
+                            right: 9,
+                            top: "50%",
+                            transform: "translateY(-50%)",
+                            pointerEvents: "none",
+                          }}
+                        />
+                      </div>
                     </div>
+                  </div>
+
+                  {/* Locked Profile Badge with Change Option */}
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                      padding: "6px 10px",
+                      background: "#eff6ff",
+                      border: "1px solid #dbeafe",
+                      borderRadius: 8,
+                      fontSize: 11,
+                      color: "#1e40af",
+                    }}
+                  >
+                    <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
+                      <ShieldCheck size={13} color="#2563eb" />
+                      <span>
+                        Verified Profile: <strong>{regNo || currentRegNo}</strong>
+                      </span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsChangingReg(true);
+                        setSearchRegInput(regNo || currentRegNo);
+                        setSearchError("");
+                      }}
+                      style={{
+                        background: "none",
+                        border: "none",
+                        color: "#2563eb",
+                        fontWeight: 700,
+                        fontSize: 11,
+                        cursor: "pointer",
+                        padding: 0,
+                        textDecoration: "underline",
+                      }}
+                    >
+                      Change
+                    </button>
                   </div>
 
                   {/* Comment / Review */}
@@ -456,71 +742,58 @@ export default function FeedbackModal() {
                       required
                       value={comment}
                       onChange={(e) => setComment(e.target.value)}
-                      placeholder="What do you think about GradeFlow's new design, features, and accuracy?"
+                      placeholder="What do you think about GradeFlow?"
                       rows={3}
                       style={{
                         width: "100%",
                         boxSizing: "border-box",
-                        padding: "10px 12px",
+                        padding: "9px 12px",
                         borderRadius: 10,
                         background: "#ffffff",
                         border: "1px solid #cbd5e1",
                         color: "#0f172a",
-                        fontSize: 13.5,
+                        fontSize: 13,
                         outline: "none",
-                        resize: "vertical",
-                        minHeight: 70,
                         fontFamily: "inherit",
+                        resize: "none",
                       }}
                     />
                   </div>
-
-                  {/* Error banner if any */}
-                  {errorMessage && (
-                    <div
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        gap: 8,
-                        background: "#fef2f2",
-                        border: "1px solid #fecaca",
-                        borderRadius: 10,
-                        padding: "8px 12px",
-                        color: "#b91c1c",
-                        fontSize: 12.5,
-                        fontWeight: 600,
-                      }}
-                    >
-                      <AlertCircle size={15} style={{ flexShrink: 0 }} />
-                      <span>{errorMessage}</span>
-                    </div>
-                  )}
 
                   {/* Submit Button */}
                   <button
                     type="submit"
                     disabled={isSubmitting}
                     style={{
+                      width: "100%",
+                      padding: "10px",
+                      borderRadius: 10,
+                      background: isSubmitting
+                        ? "#93c5fd"
+                        : "linear-gradient(135deg, #2563eb, #1d4ed8)",
+                      color: "#ffffff",
+                      border: "none",
+                      fontSize: 13.5,
+                      fontWeight: 800,
+                      cursor: isSubmitting ? "not-allowed" : "pointer",
                       display: "flex",
                       alignItems: "center",
                       justifyContent: "center",
-                      gap: 8,
-                      width: "100%",
-                      padding: "12px 16px",
-                      borderRadius: 11,
-                      background: "linear-gradient(135deg, #2563eb, #1d4ed8)",
-                      border: "1px solid #1e40af",
-                      color: "#ffffff",
-                      fontSize: 14,
-                      fontWeight: 800,
-                      cursor: isSubmitting ? "not-allowed" : "pointer",
-                      opacity: isSubmitting ? 0.7 : 1,
-                      transition: "all 0.15s ease",
-                      boxShadow: "0 4px 14px rgba(37, 99, 235, 0.25)",
+                      gap: 6,
+                      boxShadow: "0 4px 12px rgba(37, 99, 235, 0.2)",
                     }}
                   >
-                    <Send size={15} />
-                    <span>{isSubmitting ? "Submitting Review..." : "Submit Review"}</span>
+                    {isSubmitting ? (
+                      <>
+                        <Loader2 size={15} className="animate-spin" />
+                        <span>Submitting Review...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Send size={14} />
+                        <span>Submit Review</span>
+                      </>
+                    )}
                   </button>
                 </form>
               </div>

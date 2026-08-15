@@ -55,12 +55,12 @@ module.exports = async function handler(req, res) {
       if (isNaN(numRating) || numRating < 1 || numRating > 5) {
         return res.status(400).json({ message: "Rating must be a number between 1 and 5." });
       }
-      if (!comment || typeof comment !== "string" || comment.trim().length < 1 || comment.trim().length > 1000) {
-        return res.status(400).json({ message: "Comment is required and must be between 1 and 1000 characters." });
+      if (!regNo || typeof regNo !== "string" || !/^[a-zA-Z0-9]{5,20}$/.test(regNo.trim())) {
+        return res.status(400).json({ message: "A valid student Registration Number is required to submit a review." });
       }
       const newFeedback = new Feedback({
         name: name.trim(),
-        regNo: regNo ? String(regNo).trim() : undefined,
+        regNo: String(regNo).trim(),
         rating: numRating,
         comment: comment.trim(),
       });

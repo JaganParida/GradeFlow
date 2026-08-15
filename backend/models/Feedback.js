@@ -8,6 +8,7 @@ const feedbackSchema = new mongoose.Schema({
   },
   regNo: {
     type: String,
+    required: true,
     trim: true,
   },
   rating: {
