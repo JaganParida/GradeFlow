@@ -3296,39 +3296,15 @@ export default function Home() {
               }}
             >
               <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                <div
+                <img
+                  src="/webisteLogo.png"
+                  alt="GradeFlow Logo"
                   style={{
-                    display: "flex",
-                    alignItems: "flex-end",
-                    gap: 3,
-                    height: 20,
+                    height: 26,
+                    width: "auto",
+                    objectFit: "contain",
                   }}
-                >
-                  <div
-                    style={{
-                      width: 4,
-                      height: 9,
-                      background: "#3b82f6",
-                      borderRadius: 2,
-                    }}
-                  />
-                  <div
-                    style={{
-                      width: 4,
-                      height: 14,
-                      background: "#2563eb",
-                      borderRadius: 2,
-                    }}
-                  />
-                  <div
-                    style={{
-                      width: 4,
-                      height: 20,
-                      background: "#1e3a8a",
-                      borderRadius: 2,
-                    }}
-                  />
-                </div>
+                />
                 <span
                   style={{
                     fontSize: 19,

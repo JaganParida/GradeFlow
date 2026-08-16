@@ -154,12 +154,15 @@ export default function Navbar() {
               zIndex: 1001,
             }}
           >
-            {/* 3-bar icon matching brand */}
-            <div style={{ display: "flex", alignItems: "flex-end", gap: 3, height: 22, paddingBottom: 2 }}>
-              <div style={{ width: 4.5, height: 10, background: "#3b82f6", borderRadius: 2 }} />
-              <div style={{ width: 4.5, height: 16, background: "#2563eb", borderRadius: 2 }} />
-              <div style={{ width: 4.5, height: 22, background: "#1e3a8a", borderRadius: 2 }} />
-            </div>
+            <img
+              src="/webisteLogo.png"
+              alt="GradeFlow Logo"
+              style={{
+                height: 32,
+                width: "auto",
+                objectFit: "contain",
+              }}
+            />
             <span
               style={{
                 fontFamily: "'DM Sans', sans-serif",

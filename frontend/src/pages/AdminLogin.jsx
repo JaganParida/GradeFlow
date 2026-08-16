@@ -161,19 +161,19 @@ export default function AdminLogin() {
               style={{
                 display: "inline-flex",
                 alignItems: "center",
-                gap: 7,
-                padding: "5px 12px",
+                gap: 8,
+                padding: "5px 14px",
                 borderRadius: 99,
                 background: "#eff6ff",
                 border: "1px solid #dbeafe",
                 color: "#2563eb",
-                fontSize: 12,
+                fontSize: 12.5,
                 fontWeight: 700,
                 letterSpacing: "0.2px",
                 marginBottom: 20,
               }}
             >
-              <ShieldCheck size={14} /> GradeFlow Security Gateway
+              <img src="/webisteLogo.png" alt="GradeFlow" style={{ height: 18, width: "auto", objectFit: "contain" }} /> GradeFlow Security Gateway
             </div>
 
             <h1

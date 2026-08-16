@@ -251,8 +251,8 @@ export default function GradeSheet({ result, studentData, highlightedSubject }) 
 
         {/* University Header */}
         <div style={{ textAlign: "center", marginBottom: 28 }}>
-          <div style={{ marginBottom: 6, display: "flex", justifyContent: "center" }}>
-            <GraduationCap size={44} color="#1a56db" />
+          <div style={{ marginBottom: 8, display: "flex", justifyContent: "center" }}>
+            <img src="/webisteLogo.png" alt="GradeFlow Logo" style={{ height: 48, width: "auto", objectFit: "contain" }} />
           </div>
           <h1
             style={{
