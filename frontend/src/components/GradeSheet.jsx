@@ -1,7 +1,7 @@
 import { useRef, useState, useEffect } from "react";
 import jsPDF from "jspdf";
 import html2canvas from "html2canvas";
-import { Download, Image as ImageIcon, Printer, GraduationCap, AlertTriangle, ZoomIn, ZoomOut, Info } from "lucide-react";
+import { Download, Image as ImageIcon, Printer, GraduationCap, AlertTriangle, ZoomIn, ZoomOut } from "lucide-react";
 import {
   FAIL_GRADES,
   calculateCGPA,
@@ -28,7 +28,7 @@ function getDynamicBranch(regNo, fallbackBranch) {
   return fallbackBranch || "—";
 }
 
-const GRADE_LABEL = { F: "Grade F (Pass)", R: "Repeat (Backlog)", S: "Suppl. (Backlog)", M: "Malpractice" };
+const GRADE_LABEL = { F: "Fail (Backlog)", R: "Repeat (Backlog)", S: "Suppl. (Backlog)", M: "Malpractice" };
 const GRADE_COLOR = {
   O: "#15803d",
   E: "#1d4ed8",
@@ -36,7 +36,7 @@ const GRADE_COLOR = {
   B: "#1d4ed8",
   C: "#b45309",
   D: "#b45309",
-  F: "#d97706",
+  F: "#dc2626",
   R: "#dc2626",
   S: "#dc2626",
   M: "#dc2626",
@@ -79,9 +79,6 @@ export default function GradeSheet({ result, studentData, highlightedSubject }) 
 
   const allResults = studentData?.results || [];
   const cgpaUpToNow = calculateCGPA(allResults, result.semester);
-  const hasGradeF =
-    subjects.some((s) => s.grade === "F") ||
-    allResults.some((r) => (r.subjects || []).some((s) => s.grade === "F"));
 
   const today = new Date().toLocaleDateString("en-IN", {
     day: "2-digit",
@@ -206,89 +203,6 @@ export default function GradeSheet({ result, studentData, highlightedSubject }) 
           </button>
         </div>
       </div>
-
-      {/* ── ERP Grade 'F' Evaluation Disclaimer Banner (Only for students with Grade F) ── */}
-      {hasGradeF && (
-        <div
-          data-html2canvas-ignore="true"
-          style={{
-            maxWidth: 820,
-            margin: "0 auto 16px auto",
-            background: "#eff6ff",
-            border: "1px solid #bfdbfe",
-            borderRadius: 12,
-            padding: "12px 16px",
-            display: "flex",
-            alignItems: "flex-start",
-            gap: 12,
-            boxShadow: "0 2px 8px rgba(37, 99, 235, 0.05)",
-            boxSizing: "border-box",
-            fontFamily: "'DM Sans', sans-serif",
-          }}
-        >
-          <div
-            style={{
-              width: 32,
-              height: 32,
-              borderRadius: 9,
-              background: "#dbeafe",
-              color: "#2563eb",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              flexShrink: 0,
-              marginTop: 1,
-            }}
-          >
-            <Info size={17} />
-          </div>
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 8,
-                flexWrap: "wrap",
-                marginBottom: 4,
-              }}
-            >
-              <h4
-                style={{
-                  fontSize: 13.5,
-                  fontWeight: 800,
-                  color: "#1e3a8a",
-                  margin: 0,
-                }}
-              >
-                ERP Notice · Grade 'F' Evaluation
-              </h4>
-              <span
-                style={{
-                  fontSize: 10.5,
-                  fontWeight: 700,
-                  background: "#dbeafe",
-                  color: "#1d4ed8",
-                  padding: "2px 8px",
-                  borderRadius: 20,
-                  border: "1px solid #bfdbfe",
-                }}
-              >
-                Latest University ERP Logic
-              </span>
-            </div>
-            <p
-              style={{
-                margin: 0,
-                fontSize: 12,
-                color: "#334155",
-                lineHeight: 1.5,
-              }}
-            >
-              Grade 'F' metrics in GradeFlow are evaluated strictly in accordance with the latest Centurion University ERP grading criteria. Due to ERP calculation revisions across versions, if an older printed grade card displays a slight variance, please check and verify with the latest live records on your university ERP portal.
-            </p>
-          </div>
-        </div>
-      )}
 
       {/* ── Official Grade Sheet ── */}
       <div style={{ width: "100%", overflowX: "auto", overflowY: "hidden", paddingBottom: 20 }}>
@@ -519,32 +433,7 @@ export default function GradeSheet({ result, studentData, highlightedSubject }) 
                 gap: 6
               }}
             >
-              <AlertTriangle size={14} /> SGPA is calculated on cleared credits ({creditsCleared}/{totalCredits} credits). Failed backlog subjects (R / S / M / F) are not included in cleared credits.
-            </div>
-          )}
-
-          {/* Grade F ERP Evaluation Notice */}
-          {hasGradeF && (
-            <div
-              data-html2canvas-ignore="true"
-              style={{
-                background: "#eff6ff",
-                border: "1px solid #bfdbfe",
-                borderRadius: 4,
-                padding: "6px 12px",
-                fontSize: 11,
-                color: "#1e40af",
-                marginBottom: 10,
-                display: "flex",
-                alignItems: "flex-start",
-                gap: 6,
-                lineHeight: 1.4,
-              }}
-            >
-              <Info size={14} color="#2563eb" style={{ flexShrink: 0, marginTop: 1 }} />
-              <span>
-                <strong>ERP Notice:</strong> Grade 'F' metrics reflect the latest University ERP evaluation policy. If an older printed grade card shows a variance, verify with your latest live ERP records.
-              </span>
+              <AlertTriangle size={14} /> SGPA includes evaluated subjects ({totalCredits} credits). Failed backlog subjects (R / S / M / F) are not included in cleared credits ({creditsCleared}/{totalCredits} credits).
             </div>
           )}
         </div>

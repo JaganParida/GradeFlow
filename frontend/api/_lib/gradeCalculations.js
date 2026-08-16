@@ -11,8 +11,8 @@ const GRADE_POINTS = Object.freeze({
   S: 0,
 });
 
-const NON_PASSING_GRADES = Object.freeze(["M", "S", "R"]);
-const PASSING_GRADES = Object.freeze(["O", "E", "A", "B", "C", "D", "F"]);
+const NON_PASSING_GRADES = Object.freeze(["M", "S", "R", "F"]);
+const PASSING_GRADES = Object.freeze(["O", "E", "A", "B", "C", "D"]);
 const ROUNDING_EPSILON = 1e-8;
 
 function normalizeGrade(grade) {
@@ -55,6 +55,7 @@ function calculateSemesterMetrics(subjects = [], semester) {
   let totalWeighted = 0;
   let totalCredits = 0;
   let creditsCleared = 0;
+  let creditsForDivisor = 0;
 
   (subjects || []).forEach((subject) => {
     if (isSem5ProjectException(subject, semester)) return;
@@ -66,19 +67,25 @@ function calculateSemesterMetrics(subjects = [], semester) {
     if (credit > 0 && gradePoint !== undefined) {
       totalCredits += credit;
 
-      if (!NON_PASSING_GRADES.includes(grade)) {
+      if (grade === "F") {
+        totalWeighted += credit * 2; // F has 2 points per credit (2 * credit)
+        creditsForDivisor += credit; // Included in SGPA total credits divisor
+        // NOT cleared (creditsCleared not incremented, treated as active backlog)
+      } else if (!NON_PASSING_GRADES.includes(grade)) {
         totalWeighted += credit * gradePoint;
         creditsCleared += credit;
+        creditsForDivisor += credit;
       }
     }
   });
 
-  const divisor = creditsCleared > 0 ? creditsCleared : totalCredits;
+  const divisor = creditsForDivisor > 0 ? creditsForDivisor : totalCredits;
 
   return {
     totalWeighted,
     totalCredits,
     creditsCleared,
+    creditsForDivisor: divisor,
     sgpa: divisor > 0 ? trunc2(totalWeighted / divisor) : 0,
   };
 }
@@ -101,27 +108,44 @@ function calculateCGPA(results = [], upToSemester = null) {
     .forEach((result) => {
       const hasSubjects = Array.isArray(result.subjects) && result.subjects.length > 0;
       let totalWeighted = 0;
-      let creditsToUse = 0;
+      let divisor = 0;
 
       if (hasSubjects) {
         const metrics = calculateSemesterMetrics(result.subjects, result.semester);
         totalWeighted = metrics.totalWeighted;
-        creditsToUse = metrics.creditsCleared > 0 ? metrics.creditsCleared : metrics.totalCredits;
+        divisor = metrics.creditsForDivisor;
       } else {
-        const cleared = Number(result.creditsCleared) || 0;
         const total = Number(result.totalCredits) || 0;
-        creditsToUse = cleared > 0 ? cleared : total;
+        const cleared = Number(result.creditsCleared) || 0;
+        divisor = total > 0 ? total : cleared;
         const sgpa = typeof result.sgpa === "number" ? result.sgpa : 0;
-        totalWeighted = sgpa * creditsToUse;
+        totalWeighted = sgpa * divisor;
       }
 
-      if (creditsToUse > 0) {
+      if (divisor > 0) {
         totalNumerator += totalWeighted;
-        totalDenominator += creditsToUse;
+        totalDenominator += divisor;
       }
     });
 
   return totalDenominator > 0 ? trunc2(totalNumerator / totalDenominator) : 0;
+}
+
+function calculateBacklogs(results = []) {
+  return (results || []).flatMap((result) =>
+    (result.subjects || [])
+      .filter((subject) => {
+        if (isSem5ProjectException(subject, result.semester)) return false;
+        return NON_PASSING_GRADES.includes(normalizeGrade(subject.grade));
+      })
+      .map((subject) => ({
+        subName: subject.subName,
+        subCode: subject.subCode,
+        credit: subject.credit,
+        grade: normalizeGrade(subject.grade),
+        semester: result.semester,
+      })),
+  );
 }
 
 function calculateBacklogs(results = []) {
