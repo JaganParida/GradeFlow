@@ -3220,16 +3220,18 @@ export default function Home() {
                   width: 52,
                   height: 52,
                   borderRadius: 14,
-                  background: "#2563eb",
-                  color: "#ffffff",
+                  background: "#ffffff",
+                  border: "1px solid #dbeafe",
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
-                  boxShadow: "0 6px 16px rgba(37, 99, 235, 0.25)",
+                  boxShadow: "0 6px 16px rgba(37, 99, 235, 0.12)",
                   flexShrink: 0,
+                  padding: 6,
+                  boxSizing: "border-box",
                 }}
               >
-                <GraduationCap size={28} />
+                <img src="/webisteLogo.png" alt="GradeFlow" style={{ width: "100%", height: "100%", objectFit: "contain" }} />
               </div>
               <div style={{ display: "flex", flexDirection: "column", gap: 3 }}>
                 <div
@@ -3295,19 +3297,21 @@ export default function Home() {
                 maxWidth: 460,
               }}
             >
-              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                 <img
                   src="/webisteLogo.png"
                   alt="GradeFlow Logo"
                   style={{
-                    height: 26,
+                    height: 32,
                     width: "auto",
+                    maxHeight: 36,
                     objectFit: "contain",
                   }}
                 />
                 <span
                   style={{
-                    fontSize: 19,
+                    fontFamily: "'DM Sans', sans-serif",
+                    fontSize: 21,
                     fontWeight: 800,
                     color: "#0f172a",
                     letterSpacing: "-0.5px",
