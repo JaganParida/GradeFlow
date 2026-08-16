@@ -28,7 +28,7 @@ function getDynamicBranch(regNo, fallbackBranch) {
   return fallbackBranch || "—";
 }
 
-const GRADE_LABEL = { F: "Fail (Backlog)", R: "Repeat (Backlog)", S: "Suppl. (Backlog)", M: "Malpractice" };
+const GRADE_LABEL = { F: "Grade F (Pass)", R: "Repeat (Backlog)", S: "Suppl. (Backlog)", M: "Malpractice" };
 const GRADE_COLOR = {
   O: "#15803d",
   E: "#1d4ed8",
@@ -36,7 +36,7 @@ const GRADE_COLOR = {
   B: "#1d4ed8",
   C: "#b45309",
   D: "#b45309",
-  F: "#dc2626",
+  F: "#d97706",
   R: "#dc2626",
   S: "#dc2626",
   M: "#dc2626",

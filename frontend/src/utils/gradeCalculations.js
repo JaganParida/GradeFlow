@@ -5,15 +5,15 @@ export const GRADE_POINTS = Object.freeze({
   B: 7,
   C: 6,
   D: 5,
-  F: 0,
+  F: 2,
   R: 0,
   M: 0,
   S: 0,
 });
 
-export const PASSING_GRADES = Object.freeze(["O", "E", "A", "B", "C", "D"]);
-export const FAIL_GRADES = Object.freeze(["R", "S", "M", "F"]);
-export const NON_PASSING_GRADES = Object.freeze(["R", "S", "M", "F"]);
+export const PASSING_GRADES = Object.freeze(["O", "E", "A", "B", "C", "D", "F"]);
+export const FAIL_GRADES = Object.freeze(["R", "S", "M"]);
+export const NON_PASSING_GRADES = Object.freeze(["R", "S", "M"]);
 
 const ROUNDING_EPSILON = 1e-8;
 
@@ -94,31 +94,34 @@ export function calculateCGPA(results = [], upToSemester = null) {
     upToSemester === null || upToSemester === undefined
       ? Infinity
       : Number(upToSemester);
-  let numerator = 0;
-  let denominator = 0;
+  let totalNumerator = 0;
+  let totalDenominator = 0;
 
   (results || [])
     .filter((result) => Number(result.semester) <= maxSemester)
     .sort((a, b) => Number(a.semester) - Number(b.semester))
     .forEach((result) => {
-      const { sgpa: calculatedSgpa, totalCredits, creditsCleared } = calculateSemesterMetrics(
-        result.subjects,
-        result.semester,
-      );
-      const sgpa =
-        result.subjects && result.subjects.length > 0
-          ? calculatedSgpa
-          : typeof result.sgpa === "number"
-            ? result.sgpa
-            : calculatedSgpa;
+      const hasSubjects = Array.isArray(result.subjects) && result.subjects.length > 0;
+      let totalWeighted = 0;
+      let creditsToUse = 0;
 
-      const creditsToUse = creditsCleared > 0 ? creditsCleared : totalCredits;
+      if (hasSubjects) {
+        const metrics = calculateSemesterMetrics(result.subjects, result.semester);
+        totalWeighted = metrics.totalWeighted;
+        creditsToUse = metrics.creditsCleared > 0 ? metrics.creditsCleared : metrics.totalCredits;
+      } else {
+        const cleared = Number(result.creditsCleared) || 0;
+        const total = Number(result.totalCredits) || 0;
+        creditsToUse = cleared > 0 ? cleared : total;
+        const sgpa = typeof result.sgpa === "number" ? result.sgpa : 0;
+        totalWeighted = sgpa * creditsToUse;
+      }
 
       if (creditsToUse > 0) {
-        numerator += sgpa * creditsToUse;
-        denominator += creditsToUse;
+        totalNumerator += totalWeighted;
+        totalDenominator += creditsToUse;
       }
     });
 
-  return denominator > 0 ? trunc2(numerator / denominator) : 0;
+  return totalDenominator > 0 ? trunc2(totalNumerator / totalDenominator) : 0;
 }
