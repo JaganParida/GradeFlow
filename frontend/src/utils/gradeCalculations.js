@@ -5,14 +5,15 @@ export const GRADE_POINTS = Object.freeze({
   B: 7,
   C: 6,
   D: 5,
-  F: 2,
+  F: 0,
   R: 0,
   M: 0,
   S: 0,
 });
 
-export const PASSING_GRADES = Object.freeze(["O", "E", "A", "B", "C", "D", "F"]);
-export const FAIL_GRADES = Object.freeze(["R", "S", "M"]);
+export const PASSING_GRADES = Object.freeze(["O", "E", "A", "B", "C", "D"]);
+export const FAIL_GRADES = Object.freeze(["R", "S", "M", "F"]);
+export const NON_PASSING_GRADES = Object.freeze(["R", "S", "M", "F"]);
 
 const ROUNDING_EPSILON = 1e-8;
 
@@ -67,10 +68,7 @@ export function calculateSemesterMetrics(subjects = [], semester) {
     if (credit > 0 && gradePoint !== undefined) {
       totalCredits += credit;
 
-      if (grade === "F") {
-        totalWeighted += 2; // Flat 2 points without multiplying with credit
-        creditsCleared += credit;
-      } else if (!FAIL_GRADES.includes(grade)) {
+      if (!FAIL_GRADES.includes(grade)) {
         totalWeighted += credit * gradePoint;
         creditsCleared += credit;
       }

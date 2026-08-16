@@ -28,7 +28,7 @@ function getDynamicBranch(regNo, fallbackBranch) {
   return fallbackBranch || "—";
 }
 
-const GRADE_LABEL = { F: "Grade F (Pass)", R: "Repeat (Backlog)", S: "Suppl. (Backlog)", M: "Malpractice" };
+const GRADE_LABEL = { F: "Fail (Backlog)", R: "Repeat (Backlog)", S: "Suppl. (Backlog)", M: "Malpractice" };
 const GRADE_COLOR = {
   O: "#15803d",
   E: "#1d4ed8",
@@ -36,7 +36,7 @@ const GRADE_COLOR = {
   B: "#1d4ed8",
   C: "#b45309",
   D: "#b45309",
-  F: "#d97706",
+  F: "#dc2626",
   R: "#dc2626",
   S: "#dc2626",
   M: "#dc2626",
@@ -519,7 +519,7 @@ export default function GradeSheet({ result, studentData, highlightedSubject }) 
                 gap: 6
               }}
             >
-              <AlertTriangle size={14} /> SGPA is calculated on cleared credits ({creditsCleared}/{totalCredits} credits). Active backlog subjects (R / S / M) are not included in cleared credits.
+              <AlertTriangle size={14} /> SGPA is calculated on cleared credits ({creditsCleared}/{totalCredits} credits). Failed backlog subjects (R / S / M / F) are not included in cleared credits.
             </div>
           )}
 
