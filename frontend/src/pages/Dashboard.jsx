@@ -577,9 +577,7 @@ export default function Dashboard() {
     currentRanking &&
       ((currentRanking.universityRank && currentRanking.universityRank <= 10) ||
         (currentRanking.sgpaRank && currentRanking.sgpaRank <= 10) ||
-        (currentRanking.cgpaRank && currentRanking.cgpaRank <= 10) ||
-        (currentRanking.sectionSgpaRank && currentRanking.sectionSgpaRank <= 10) ||
-        (currentRanking.sectionCgpaRank && currentRanking.sectionCgpaRank <= 10))
+        (currentRanking.cgpaRank && currentRanking.cgpaRank <= 10))
   );
 
   const badges = [
