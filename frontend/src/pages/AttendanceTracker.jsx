@@ -1014,7 +1014,7 @@ export default function AttendanceTracker() {
                   <BookOpen size={isMobile ? 14 : 16} color="#059669" />
                   Select Subject from Routine:
                 </span>
-                {activeWeeklySlots.length > 0 && (
+                {activeCatalogItem && activeCatalogItem.classesPerWeek > 0 && (
                   <span
                     style={{
                       fontSize: isMobile ? 10.5 : 12,
@@ -1026,7 +1026,7 @@ export default function AttendanceTracker() {
                       border: "1px solid #bfdbfe",
                     }}
                   >
-                    {activeWeeklySlots.length} classes / week
+                    {activeCatalogItem.classesPerWeek} classes / week
                   </span>
                 )}
               </div>
