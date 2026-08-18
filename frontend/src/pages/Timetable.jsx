@@ -16,6 +16,7 @@ import {
   Coffee,
   CheckCircle2,
   AlertCircle,
+  AlertTriangle,
   BookOpen,
   Grid,
   List,
@@ -242,7 +243,7 @@ export default function Timetable() {
   const [dynamicSchedules, setDynamicSchedules] = useState([]);
 
   useEffect(() => {
-    const API = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
+    const API = import.meta.env.VITE_API_URL || "/api";
     axios
       .get(`${API}/timetable/active-all`)
       .then(({ data }) => {
