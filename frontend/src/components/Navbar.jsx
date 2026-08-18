@@ -8,7 +8,7 @@ import {
   LayoutDashboard, Trophy, BookOpen, MessageSquare,
   TrendingUp, Briefcase, Target, Award, Activity,
   Menu, X, Sparkles, Home as HomeIcon, User, Calculator, ArrowRight,
-  ShieldCheck, Clock
+  ShieldCheck, Clock, Percent
 } from "lucide-react";
 
 export default function Navbar() {
@@ -83,6 +83,15 @@ export default function Navbar() {
       setShowAuthModal(true);
     } else {
       navigate(`/timetable/${encodeStudentId(currentRegNo)}`);
+    }
+  };
+
+  const handleAttendanceClick = (e) => {
+    if (e) e.preventDefault();
+    if (!hasActiveSession && !currentRegNo) {
+      setShowAuthModal(true);
+    } else {
+      navigate(`/attendance/${encodeStudentId(currentRegNo)}`);
     }
   };
 
@@ -286,6 +295,40 @@ export default function Navbar() {
                     right: 0,
                     height: 2.5,
                     background: "#2563eb",
+                    borderRadius: 99,
+                  }}
+                />
+              )}
+            </button>
+
+            {/* Attendance Tracker */}
+            <button
+              onClick={handleAttendanceClick}
+              style={{
+                background: "transparent",
+                border: "none",
+                textDecoration: "none",
+                fontSize: 14,
+                fontWeight: location.pathname.startsWith("/attendance") ? 700 : 500,
+                color: location.pathname.startsWith("/attendance") ? "#0f172a" : "#64748b",
+                cursor: "pointer",
+                padding: "8px 0",
+                position: "relative",
+                fontFamily: "'DM Sans', sans-serif",
+                transition: "color 0.2s ease",
+              }}
+            >
+              Attendance Tracker
+              {location.pathname.startsWith("/attendance") && (
+                <motion.div
+                  layoutId="nav-indicator"
+                  style={{
+                    position: "absolute",
+                    bottom: 0,
+                    left: 0,
+                    right: 0,
+                    height: 2.5,
+                    background: "#059669",
                     borderRadius: 99,
                   }}
                 />
@@ -949,6 +992,59 @@ export default function Navbar() {
                         height: 6,
                         borderRadius: "50%",
                         background: "#2563eb",
+                      }}
+                    />
+                  ) : (
+                    <ChevronRight size={15} color="#cbd5e1" />
+                  )}
+                </button>
+
+                {/* Attendance Tracker */}
+                <button
+                  onClick={(e) => {
+                    setMobileMenuOpen(false);
+                    handleAttendanceClick(e);
+                  }}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    width: "100%",
+                    padding: "11px 12px",
+                    borderRadius: 10,
+                    border: "none",
+                    background: location.pathname.startsWith("/attendance")
+                      ? "#ecfdf5"
+                      : "transparent",
+                    color: location.pathname.startsWith("/attendance")
+                      ? "#059669"
+                      : "#1e293b",
+                    fontSize: 14.5,
+                    fontWeight: location.pathname.startsWith("/attendance")
+                      ? 700
+                      : 600,
+                    cursor: "pointer",
+                    textAlign: "left",
+                  }}
+                >
+                  <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                    <Percent
+                      size={17}
+                      color={
+                        location.pathname.startsWith("/attendance")
+                          ? "#059669"
+                          : "#64748b"
+                      }
+                    />
+                    <span>Attendance Tracker</span>
+                  </div>
+                  {location.pathname.startsWith("/attendance") ? (
+                    <span
+                      style={{
+                        width: 6,
+                        height: 6,
+                        borderRadius: "50%",
+                        background: "#059669",
                       }}
                     />
                   ) : (

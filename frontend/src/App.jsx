@@ -13,6 +13,7 @@ import Resources from "./pages/Resources";
 import AdminLogin from "./pages/AdminLogin";
 import AdminDashboard from "./pages/AdminDashboard";
 import Timetable from "./pages/Timetable";
+import AttendanceTracker from "./pages/AttendanceTracker";
 import FeedbackModal from "./components/FeedbackModal";
 import UpgradeModal from "./components/UpgradeModal";
 import { useApp } from "./context/AppContext";
@@ -81,6 +82,8 @@ export default function App() {
       document.title = "GradeFlow — Student Dashboard";
     } else if (path.startsWith("/timetable")) {
       document.title = "GradeFlow — Class Timetable & Schedule";
+    } else if (path.startsWith("/attendance")) {
+      document.title = "GradeFlow — Attendance Intelligence & Simulator";
     } else if (path.startsWith("/analytics")) {
       document.title = "GradeFlow — Performance Analytics";
     } else if (path === "/leaderboard") {
@@ -203,6 +206,22 @@ export default function App() {
             element={
               <PageTransition>
                 <Timetable />
+              </PageTransition>
+            }
+          />
+          <Route
+            path="/attendance/:studentId"
+            element={
+              <PageTransition>
+                <AttendanceTracker />
+              </PageTransition>
+            }
+          />
+          <Route
+            path="/attendance"
+            element={
+              <PageTransition>
+                <AttendanceTracker />
               </PageTransition>
             }
           />

@@ -2417,12 +2417,12 @@
       },
       {
         "timeSlot": "1.30PM-2.30PM",
-        "isFree": false,
-        "subject": "Information Security (CISCO)(TUT)",
-        "room": "CSE-F-AR-317",
-        "faculty": "Smita Patra",
-        "type": "TUT",
-        "raw": "Information Security (CISCO)(TUT)\nCSE-F-AR-317\nSmita Patra"
+        "isFree": true,
+        "subject": "No Class / Free",
+        "room": "",
+        "faculty": "",
+        "type": "",
+        "raw": ""
       },
       {
         "timeSlot": "2.30PM-3.30PM",

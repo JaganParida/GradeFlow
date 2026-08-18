@@ -288,6 +288,25 @@ export function isSunday(dateObj) {
   return d.getDay() === 0;
 }
 
+// ── CUTM Optional Holidays Guidelines (2026–27 Circular) ─────────────────────
+export const CUTM_OPTIONAL_HOLIDAYS_RULES = {
+  title: "CUTM Optional Holidays Guidelines (2026–27)",
+  maxLeavesAllowed: 2,
+  description:
+    "CUTM provides 5 designated optional holidays out of which any two holidays can be availed by students and faculty during the academic session.",
+  headsOfInstitutesRule:
+    "Heads of Institutes at different campuses are allowed to declare two holidays depending on local social exigencies.",
+  sundayOverlapNote:
+    "Diwali (08-11-2026) and Gajalaxmi Puja (25-10-2026) fall on Sundays.",
+  optionalList: [
+    { slNo: "i", name: "Raksha Bandhan", date: "2026-08-28", day: "Friday" },
+    { slNo: "ii", name: "Kartika Purnima", date: "2026-11-24", day: "Tuesday" },
+    { slNo: "iii", name: "Prathamastami", date: "2026-12-01", day: "Tuesday" },
+    { slNo: "iv", name: "Good Friday", date: "2027-03-26", day: "Friday" },
+    { slNo: "v", name: "Eid-ul-Adha (Bakrid)", date: "2027-05-17", day: "Monday" },
+  ],
+};
+
 /**
  * Checks if a given date is the 2nd Saturday of that month
  * (Falls on day 8 to 14 of the month)
@@ -309,16 +328,23 @@ export function getHolidayInfo(dateObj) {
   // 1. Check Official Academic Calendar Holidays
   const matchedHoliday = ACADEMIC_HOLIDAYS_2026_27.find((h) => h.date === dateKey);
   if (matchedHoliday) {
+    const isOptional = matchedHoliday.type === "optional";
+    const isObservation = matchedHoliday.type === "observation";
+    const isFullHoliday = !isOptional && !isObservation;
+
     return {
-      isHoliday: matchedHoliday.type !== "observation",
-      isObservation: matchedHoliday.type === "observation",
+      isHoliday: isFullHoliday,
+      isOptional,
+      isObservation,
       title: matchedHoliday.name,
       type: matchedHoliday.type,
       color: matchedHoliday.color,
       bg: matchedHoliday.bg,
-      description: matchedHoliday.type === "observation"
-        ? `Official University Observation Day: ${matchedHoliday.name}`
-        : `University Academic Holiday: ${matchedHoliday.name}`,
+      description: isOptional
+        ? `Optional University Holiday: ${matchedHoliday.name}. University remains open and classes are conducted as scheduled. Students & faculty are permitted to avail any 2 optional leaves per academic year.`
+        : isObservation
+        ? `Official University Observation Day: ${matchedHoliday.name}. Commemorative events and classes held as notified.`
+        : `Official University Academic Holiday: ${matchedHoliday.name}. University is closed.`,
     };
   }
 
@@ -326,6 +352,7 @@ export function getHolidayInfo(dateObj) {
   if (isSunday(d)) {
     return {
       isHoliday: true,
+      isOptional: false,
       isObservation: false,
       title: "Sunday (Weekend Holiday)",
       type: "weekend",
@@ -339,6 +366,7 @@ export function getHolidayInfo(dateObj) {
   if (isSecondSaturday(d)) {
     return {
       isHoliday: true,
+      isOptional: false,
       isObservation: false,
       title: "2nd Saturday (University Holiday)",
       type: "second_saturday",
@@ -483,11 +511,215 @@ export function getLiveScheduleOverview(section, dateObj = new Date()) {
   };
 }
 
+/**
+ * Extract clean base name from raw subject string
+ */
+export function cleanSubjectBaseName(rawSubject) {
+  if (!rawSubject || rawSubject === "No Class / Free") return "";
+  return rawSubject
+    .replace(/\s*\((PP|PR|TUT|Theory|T\+P|Practice|Project)\)\s*$/i, "")
+    .trim();
+}
+
+/**
+ * Scan section schedule and return all unique subjects with components, weekly frequency, and slots
+ */
+export function getSectionSubjectCatalog(sectionName = "CSE-A") {
+  const normSec = normalizeSection(sectionName);
+  const secData = timetableData[normSec] || timetableData["CSE-A"];
+  if (!secData) return [];
+
+  const catalogMap = new Map();
+
+  DAYS_LIST.forEach((day) => {
+    const dayPeriods = secData[day] || [];
+    dayPeriods.forEach((period, pIdx) => {
+      if (period.isFree || !period.subject || period.subject === "No Class / Free") return;
+
+      const baseName = cleanSubjectBaseName(period.subject);
+      if (!baseName) return;
+
+      const componentType = (period.type || "PP").toUpperCase();
+      const slot = TIME_SLOTS[pIdx] || {};
+
+      if (!catalogMap.has(baseName)) {
+        catalogMap.set(baseName, {
+          subjectName: baseName,
+          components: new Set(),
+          weeklyOccurrences: [],
+          faculties: new Set(),
+          rooms: new Set(),
+        });
+      }
+
+      const entry = catalogMap.get(baseName);
+      entry.components.add(componentType);
+      if (period.faculty) entry.faculties.add(period.faculty.trim());
+      if (period.room) entry.rooms.add(period.room.trim());
+      entry.weeklyOccurrences.push({
+        day,
+        periodIndex: pIdx + 1,
+        timeSlot: period.timeSlot || `${slot.startTime} - ${slot.endTime}`,
+        type: componentType,
+        room: period.room,
+        faculty: period.faculty,
+      });
+    });
+  });
+
+  return Array.from(catalogMap.values())
+    .map((item) => ({
+      subjectName: item.subjectName,
+      components: Array.from(item.components),
+      classesPerWeek: item.weeklyOccurrences.length,
+      weeklyOccurrences: item.weeklyOccurrences,
+      faculties: Array.from(item.faculties),
+      rooms: Array.from(item.rooms),
+    }))
+    .sort((a, b) => a.subjectName.localeCompare(b.subjectName));
+}
+
+/**
+ * Comprehensive Attendance Mathematical Predictor
+ */
+export function calculateAttendance({
+  components = [],
+  targetPercentage = 75,
+  simulateAbsent = 0,
+  simulatePresent = 0,
+}) {
+  let totalAttended = 0;
+  let totalDelivered = 0;
+
+  components.forEach((c) => {
+    const att = Math.max(0, Number(c.attended) || 0);
+    const del = Math.max(att, Number(c.delivered) || 0);
+    totalAttended += att;
+    totalDelivered += del;
+  });
+
+  const currentPercentage = totalDelivered > 0 ? (totalAttended / totalDelivered) * 100 : 100;
+  const target = Math.min(100, Math.max(1, Number(targetPercentage) || 75));
+
+  // Simulation: Absent X classes
+  const simulatedAbsentTotalDelivered = totalDelivered + Number(simulateAbsent || 0);
+  const simulatedAbsentPercentage =
+    simulatedAbsentTotalDelivered > 0
+      ? (totalAttended / simulatedAbsentTotalDelivered) * 100
+      : currentPercentage;
+
+  // Simulation: Attend Y classes
+  const simulatedPresentTotalAttended = totalAttended + Number(simulatePresent || 0);
+  const simulatedPresentTotalDelivered = totalDelivered + Number(simulatePresent || 0);
+  const simulatedPresentPercentage =
+    simulatedPresentTotalDelivered > 0
+      ? (simulatedPresentTotalAttended / simulatedPresentTotalDelivered) * 100
+      : currentPercentage;
+
+  // Goal Planner to reach target%
+  let classesNeeded = 0;
+  let safeBunks = 0;
+
+  if (target >= 100) {
+    if (totalAttended === totalDelivered) {
+      classesNeeded = 0;
+      safeBunks = 0;
+    } else {
+      classesNeeded = Infinity;
+      safeBunks = 0;
+    }
+  } else if (currentPercentage < target) {
+    // Deficit zone: Need N continuous classes
+    const numerator = target * totalDelivered - 100 * totalAttended;
+    const denominator = 100 - target;
+    classesNeeded = Math.ceil(numerator / denominator);
+    safeBunks = 0;
+  } else {
+    // Safe zone: Can bunk B classes
+    classesNeeded = 0;
+    const numerator = 100 * totalAttended - target * totalDelivered;
+    safeBunks = Math.floor(numerator / target);
+  }
+
+  // Safety status
+  let status = "SAFE"; // "SAFE" (>=75%), "WARNING" (65-74.9%), "CRITICAL" (<65%)
+  if (currentPercentage < 65) status = "CRITICAL";
+  else if (currentPercentage < 75) status = "WARNING";
+
+  return {
+    totalAttended,
+    totalDelivered,
+    currentPercentage: Number(currentPercentage.toFixed(2)),
+    status,
+    target,
+    classesNeeded: Number.isFinite(classesNeeded) ? classesNeeded : 999,
+    safeBunks: Math.max(0, safeBunks),
+    simulatedAbsent: {
+      missedCount: simulateAbsent,
+      projectedPercentage: Number(simulatedAbsentPercentage.toFixed(2)),
+      delta: Number((simulatedAbsentPercentage - currentPercentage).toFixed(2)),
+      isBelow75: simulatedAbsentPercentage < 75,
+    },
+    simulatedPresent: {
+      attendedCount: simulatePresent,
+      projectedPercentage: Number(simulatedPresentPercentage.toFixed(2)),
+      delta: Number((simulatedPresentPercentage - currentPercentage).toFixed(2)),
+    },
+  };
+}
+
+/**
+ * Estimate target reach date based on weekly timetable schedule
+ */
+export function estimateTargetReachDate(classesNeeded, weeklyOccurrences = [], startDate = new Date()) {
+  if (!classesNeeded || classesNeeded <= 0 || !weeklyOccurrences || weeklyOccurrences.length === 0) {
+    return null;
+  }
+
+  const daysOfWeek = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+  const dayIndices = weeklyOccurrences.map((occ) => daysOfWeek.indexOf(occ.day)).filter((idx) => idx >= 0);
+
+  if (dayIndices.length === 0) return null;
+
+  let remaining = classesNeeded;
+  const current = new Date(startDate);
+  let daysAdded = 0;
+
+  while (remaining > 0 && daysAdded < 365) {
+    current.setDate(current.getDate() + 1);
+    daysAdded++;
+
+    const dayIdx = current.getDay();
+    const occurrencesOnDay = dayIndices.filter((idx) => idx === dayIdx).length;
+    if (occurrencesOnDay > 0) {
+      remaining -= occurrencesOnDay;
+    }
+  }
+
+  const weeksCount = (classesNeeded / weeklyOccurrences.length).toFixed(1);
+
+  return {
+    estimatedDate: current.toLocaleDateString("en-IN", {
+      weekday: "short",
+      day: "numeric",
+      month: "short",
+      year: "numeric",
+    }),
+    estimatedWeeks: Number(weeksCount),
+    classesPerWeek: weeklyOccurrences.length,
+  };
+}
+
 export default {
   ALL_SECTIONS,
   DAYS_LIST,
   TIME_SLOTS,
   ACADEMIC_HOLIDAYS_2026_27,
+  CUTM_ACADEMIC_CALENDAR_2026_27,
+  cleanSubjectBaseName,
+  getSectionSubjectCatalog,
+  calculateAttendance,
+  estimateTargetReachDate,
   formatDateKey,
   getDayName,
   getDaySchedule,

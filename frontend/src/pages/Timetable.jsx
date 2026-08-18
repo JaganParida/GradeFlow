@@ -32,6 +32,7 @@ import {
   Trophy,
   X,
   Eye,
+  Percent,
 } from "lucide-react";
 import {
   ALL_SECTIONS,
@@ -39,6 +40,7 @@ import {
   TIME_SLOTS,
   ACADEMIC_HOLIDAYS_2026_27,
   CUTM_ACADEMIC_CALENDAR_2026_27,
+  CUTM_OPTIONAL_HOLIDAYS_RULES,
   getDayName,
   getDaySchedule,
   getHolidayInfo,
@@ -77,6 +79,7 @@ export default function Timetable() {
   const [selectedDate, setSelectedDate] = useState(() => new Date());
   const [currentTime, setCurrentTime] = useState(() => new Date());
   const [filterHolidayType, setFilterHolidayType] = useState("all");
+  const [selectedHolidayMonth, setSelectedHolidayMonth] = useState("all");
   const [searchRegInput, setSearchRegInput] = useState("");
   const [searchError, setSearchError] = useState("");
   const [isSearching, setIsSearching] = useState(false);
@@ -118,13 +121,6 @@ export default function Timetable() {
     }
   }, [decodedParam, urlParam, navigate]);
 
-  const selectedDayName = useMemo(() => getDayName(selectedDate), [selectedDate]);
-  const holidayInfo = useMemo(() => getHolidayInfo(selectedDate), [selectedDate]);
-
-  // Day schedule for current section and day
-  const daySchedule = useMemo(() => {
-    return getDaySchedule(selectedSection, selectedDayName);
-  }, [selectedSection, selectedDayName]);
 
   // Live class overview for today
   const liveOverview = useMemo(() => {
@@ -197,7 +193,32 @@ export default function Timetable() {
     return { status: "UPCOMING", label: `In ${diffDays} days`, color: "#2563eb", bg: "#eff6ff" };
   }
 
-  // Enriched holidays list with countdown
+  // Available Holiday Months list with counts
+  const availableHolidayMonths = useMemo(() => {
+    const monthMap = new Map();
+
+    ACADEMIC_HOLIDAYS_2026_27.forEach((h) => {
+      const parts = h.date.split("-");
+      const monthKey = `${parts[0]}-${parts[1]}`;
+      const d = new Date(h.date);
+      const label = d.toLocaleDateString("en-IN", { month: "short", year: "numeric" });
+      const fullLabel = d.toLocaleDateString("en-IN", { month: "long", year: "numeric" });
+
+      if (!monthMap.has(monthKey)) {
+        monthMap.set(monthKey, {
+          key: monthKey,
+          label,
+          fullLabel,
+          count: 0,
+        });
+      }
+      monthMap.get(monthKey).count += 1;
+    });
+
+    return Array.from(monthMap.values()).sort((a, b) => a.key.localeCompare(b.key));
+  }, []);
+
+  // Enriched holidays list with countdown and dual filtering (type + month)
   const enrichedHolidays = useMemo(() => {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
@@ -206,9 +227,12 @@ export default function Timetable() {
       const hDate = new Date(h.date);
       hDate.setHours(0, 0, 0, 0);
       const diffDays = Math.ceil((hDate - today) / (1000 * 60 * 60 * 24));
+      const parts = h.date.split("-");
+      const monthKey = `${parts[0]}-${parts[1]}`;
 
       return {
         ...h,
+        monthKey,
         diffDays,
         isPast: diffDays < 0,
         isToday: diffDays === 0,
@@ -219,10 +243,11 @@ export default function Timetable() {
         }),
       };
     }).filter((h) => {
-      if (filterHolidayType === "all") return true;
-      return h.type === filterHolidayType;
+      if (filterHolidayType !== "all" && h.type !== filterHolidayType) return false;
+      if (selectedHolidayMonth !== "all" && h.monthKey !== selectedHolidayMonth) return false;
+      return true;
     });
-  }, [filterHolidayType]);
+  }, [filterHolidayType, selectedHolidayMonth]);
 
   const activeStudentName = studentData?.studentName || "";
 
@@ -323,33 +348,55 @@ export default function Timetable() {
               </div>
             </div>
 
-            {/* Right: Section Selector Dropdown & Student Tag */}
+            {/* Right: Section Badge / Selector & Student Tag */}
             <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-              <span style={{ fontSize: 12.5, fontWeight: 700, color: "#64748b" }}>
-                Section:
-              </span>
-              <select
-                value={selectedSection}
-                onChange={(e) => setSelectedSection(e.target.value)}
-                style={{
-                  padding: "8px 14px",
-                  borderRadius: 10,
-                  border: "1.5px solid #2563eb",
-                  background: "#eff6ff",
-                  color: "#1d4ed8",
-                  fontSize: 13,
-                  fontWeight: 800,
-                  cursor: "pointer",
-                  outline: "none",
-                  boxShadow: "0 1px 3px rgba(37, 99, 235, 0.1)",
-                }}
-              >
-                {ALL_SECTIONS.map((sec) => (
-                  <option key={sec} value={sec}>
-                    {sec}
-                  </option>
-                ))}
-              </select>
+              {activeStudentName || currentRegNo ? (
+                <div
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 6,
+                    padding: "7px 14px",
+                    borderRadius: 10,
+                    background: "#eff6ff",
+                    border: "1.5px solid #2563eb",
+                    color: "#1d4ed8",
+                    fontSize: 13,
+                    fontWeight: 800,
+                  }}
+                >
+                  <Building size={14} color="#2563eb" />
+                  <span>Section {selectedSection}</span>
+                </div>
+              ) : (
+                <>
+                  <span style={{ fontSize: 12.5, fontWeight: 700, color: "#64748b" }}>
+                    Section:
+                  </span>
+                  <select
+                    value={selectedSection}
+                    onChange={(e) => setSelectedSection(e.target.value)}
+                    style={{
+                      padding: "8px 14px",
+                      borderRadius: 10,
+                      border: "1.5px solid #2563eb",
+                      background: "#eff6ff",
+                      color: "#1d4ed8",
+                      fontSize: 13,
+                      fontWeight: 800,
+                      cursor: "pointer",
+                      outline: "none",
+                      boxShadow: "0 1px 3px rgba(37, 99, 235, 0.1)",
+                    }}
+                  >
+                    {ALL_SECTIONS.map((sec) => (
+                      <option key={sec} value={sec}>
+                        {sec}
+                      </option>
+                    ))}
+                  </select>
+                </>
+              )}
 
               {activeStudentName && (
                 <div
@@ -373,8 +420,8 @@ export default function Timetable() {
             </div>
           </div>
 
-          {/* Quick Section Switcher Pills for Desktop */}
-          {!isMobile && (
+          {/* Quick Section Switcher Pills (ONLY in Guest / Generic Mode when no student searched) */}
+          {!isMobile && !activeStudentName && !currentRegNo && (
             <div
               style={{
                 display: "flex",
@@ -600,6 +647,35 @@ export default function Timetable() {
               >
                 <Sun size={14} />
                 <span>Holidays</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  if (currentRegNo) {
+                    navigate(`/attendance/${encodeStudentId(currentRegNo)}`);
+                  } else {
+                    navigate("/attendance");
+                  }
+                }}
+                style={{
+                  padding: isMobile ? "6px 10px" : "7px 14px",
+                  borderRadius: 9,
+                  border: "none",
+                  background: "transparent",
+                  color: "#059669",
+                  fontSize: 12,
+                  fontWeight: 800,
+                  cursor: "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 6,
+                  whiteSpace: "nowrap",
+                  transition: "background 0.15s ease",
+                }}
+              >
+                <Percent size={14} />
+                <span>Attendance Tracker</span>
               </button>
             </div>
           </div>
@@ -892,6 +968,61 @@ export default function Timetable() {
             ) : (
               /* Day Period Cards */
               <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                {/* Optional Holiday Notice Banner if applicable */}
+                {holidayInfo?.isOptional && (
+                  <motion.div
+                    initial={{ opacity: 0, y: -4 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    style={{
+                      background: "linear-gradient(135deg, #faf5ff 0%, #f5f3ff 100%)",
+                      border: "1.5px solid #c084fc",
+                      borderRadius: 14,
+                      padding: "14px 18px",
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: "center",
+                      flexWrap: "wrap",
+                      gap: 12,
+                      boxShadow: "0 2px 8px rgba(124, 58, 237, 0.08)",
+                    }}
+                  >
+                    <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                      <div
+                        style={{
+                          width: 36,
+                          height: 36,
+                          borderRadius: 10,
+                          background: "#7c3aed",
+                          color: "#ffffff",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          flexShrink: 0,
+                        }}
+                      >
+                        <Sparkles size={18} />
+                      </div>
+                      <div>
+                        <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 11, fontWeight: 800, color: "#7c3aed", textTransform: "uppercase", letterSpacing: "0.5px" }}>
+                          <span>Optional University Holiday · Classes Running as Scheduled</span>
+                        </div>
+                        <div style={{ fontSize: 14.5, fontWeight: 800, color: "#0f172a", marginTop: 2 }}>
+                          {holidayInfo.title}
+                        </div>
+                        <div style={{ fontSize: 12, color: "#6b21a8", marginTop: 2 }}>
+                          University remains open and instructional classes are conducted as scheduled below. Students and faculty are permitted to avail any 2 optional leaves per academic year.
+                        </div>
+                      </div>
+                    </div>
+
+                    <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                      <span style={{ fontSize: 11, fontWeight: 800, background: "#ede9fe", color: "#6d28d9", padding: "4px 10px", borderRadius: 8, border: "1px solid #ddd6fe" }}>
+                        Optional Leave Eligible
+                      </span>
+                    </div>
+                  </motion.div>
+                )}
+
                 {daySchedule.map((period, idx) => {
                   const slot = TIME_SLOTS[idx] || {};
                   const isToday = formatDateKey(selectedDate) === formatDateKey(currentTime);
@@ -1919,6 +2050,182 @@ export default function Timetable() {
                     {t === "all" ? "All Occasions" : t}
                   </button>
                 ))}
+              </div>
+            </div>
+
+            {/* Interactive Month Filter Tabs */}
+            <div
+              style={{
+                background: "#ffffff",
+                border: "1px solid #e2e8f0",
+                borderRadius: 14,
+                padding: "8px 12px",
+                display: "flex",
+                alignItems: "center",
+                gap: 6,
+                overflowX: "auto",
+                boxShadow: "0 1px 3px rgba(0,0,0,0.02)",
+              }}
+            >
+              <span style={{ fontSize: 11, fontWeight: 800, color: "#64748b", textTransform: "uppercase", marginRight: 4, whiteSpace: "nowrap" }}>
+                Filter By Month:
+              </span>
+
+              <button
+                type="button"
+                onClick={() => setSelectedHolidayMonth("all")}
+                style={{
+                  padding: "5px 12px",
+                  borderRadius: 8,
+                  fontSize: 12,
+                  fontWeight: 800,
+                  cursor: "pointer",
+                  border: selectedHolidayMonth === "all" ? "1.5px solid #dc2626" : "1px solid #e2e8f0",
+                  background: selectedHolidayMonth === "all" ? "#dc2626" : "#ffffff",
+                  color: selectedHolidayMonth === "all" ? "#ffffff" : "#475569",
+                  whiteSpace: "nowrap",
+                  transition: "all 0.15s ease",
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 6,
+                }}
+              >
+                <span>All Months</span>
+                <span
+                  style={{
+                    fontSize: 10,
+                    fontWeight: 900,
+                    background: selectedHolidayMonth === "all" ? "rgba(255,255,255,0.25)" : "#f1f5f9",
+                    color: selectedHolidayMonth === "all" ? "#ffffff" : "#64748b",
+                    padding: "1px 6px",
+                    borderRadius: 99,
+                  }}
+                >
+                  {ACADEMIC_HOLIDAYS_2026_27.length}
+                </span>
+              </button>
+
+              {availableHolidayMonths.map((m) => {
+                const isSelected = selectedHolidayMonth === m.key;
+                return (
+                  <button
+                    key={m.key}
+                    type="button"
+                    onClick={() => setSelectedHolidayMonth(m.key)}
+                    style={{
+                      padding: "5px 12px",
+                      borderRadius: 8,
+                      fontSize: 12,
+                      fontWeight: 800,
+                      cursor: "pointer",
+                      border: isSelected ? "1.5px solid #dc2626" : "1px solid #e2e8f0",
+                      background: isSelected ? "#dc2626" : "#ffffff",
+                      color: isSelected ? "#ffffff" : "#475569",
+                      whiteSpace: "nowrap",
+                      transition: "all 0.15s ease",
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: 6,
+                    }}
+                  >
+                    <span>{m.label}</span>
+                    <span
+                      style={{
+                        fontSize: 10,
+                        fontWeight: 900,
+                        background: isSelected ? "rgba(255,255,255,0.25)" : "#fef2f2",
+                        color: isSelected ? "#ffffff" : "#dc2626",
+                        padding: "1px 6px",
+                        borderRadius: 99,
+                      }}
+                    >
+                      {m.count}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* CUTM Optional Holidays & Guidelines Policy Showcase */}
+            <div
+              style={{
+                background: "linear-gradient(135deg, #faf5ff 0%, #ffffff 100%)",
+                border: "1.5px solid #d8b4fe",
+                borderRadius: 16,
+                padding: isMobile ? "14px 14px" : "18px 22px",
+                display: "flex",
+                flexDirection: "column",
+                gap: 12,
+                boxShadow: "0 2px 8px rgba(147, 51, 234, 0.05)",
+              }}
+            >
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 8 }}>
+                <div>
+                  <div style={{ display: "flex", alignItems: "center", gap: 6, color: "#7c3aed", fontSize: 11.5, fontWeight: 800, textTransform: "uppercase", letterSpacing: "0.5px" }}>
+                    <Sparkles size={13} />
+                    <span>Official CUTM Circular Guidelines</span>
+                  </div>
+                  <h4 style={{ fontSize: 15, fontWeight: 800, color: "#0f172a", margin: "3px 0 0 0" }}>
+                    Optional Holidays Policy (Any 2 Can Be Availed)
+                  </h4>
+                </div>
+
+                <span style={{ fontSize: 11, fontWeight: 800, background: "#ede9fe", color: "#6d28d9", padding: "4px 12px", borderRadius: 999, border: "1px solid #ddd6fe" }}>
+                  Max 2 Optional Leaves
+                </span>
+              </div>
+
+              <p style={{ fontSize: 12.5, color: "#475569", margin: 0, lineHeight: 1.45 }}>
+                {CUTM_OPTIONAL_HOLIDAYS_RULES.description} On these dates, the university remains open and instructional classes run as scheduled, but students & staff who choose to take leave are officially excused.
+              </p>
+
+              {/* 5 Optional Holidays Pills Grid */}
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: isMobile ? "1fr" : "repeat(auto-fit, minmax(220px, 1fr))",
+                  gap: 8,
+                  marginTop: 4,
+                }}
+              >
+                {CUTM_OPTIONAL_HOLIDAYS_RULES.optionalList.map((opt) => (
+                  <div
+                    key={opt.slNo}
+                    style={{
+                      background: "#ffffff",
+                      border: "1px solid #e9d5ff",
+                      borderRadius: 10,
+                      padding: "8px 12px",
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: "center",
+                    }}
+                  >
+                    <div>
+                      <div style={{ fontSize: 12, fontWeight: 800, color: "#0f172a" }}>
+                        {opt.slNo}. {opt.name}
+                      </div>
+                      <div style={{ fontSize: 11, color: "#7c3aed", fontFamily: "'Space Mono', monospace" }}>
+                        {opt.date} ({opt.day})
+                      </div>
+                    </div>
+                    <span style={{ fontSize: 9.5, fontWeight: 900, background: "#f5f3ff", color: "#7c3aed", padding: "2px 6px", borderRadius: 4 }}>
+                      OPTIONAL
+                    </span>
+                  </div>
+                ))}
+              </div>
+
+              {/* Circular Notes */}
+              <div style={{ display: "flex", flexDirection: "column", gap: 4, marginTop: 4, borderTop: "1px solid #f3e8ff", paddingTop: 10, fontSize: 11.5, color: "#6b21a8" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                  <Info size={13} style={{ flexShrink: 0 }} />
+                  <span>1. {CUTM_OPTIONAL_HOLIDAYS_RULES.headsOfInstitutesRule}</span>
+                </div>
+                <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                  <Info size={13} style={{ flexShrink: 0 }} />
+                  <span>2. Note: {CUTM_OPTIONAL_HOLIDAYS_RULES.sundayOverlapNote}</span>
+                </div>
               </div>
             </div>
 
