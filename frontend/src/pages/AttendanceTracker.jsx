@@ -34,11 +34,20 @@ import {
   Zap,
   Grid,
   Sun,
+  Check,
+  X,
+  Sparkles,
+  BarChart3,
 } from "lucide-react";
 import {
   ALL_SECTIONS,
+  DAYS_LIST,
+  TIME_SLOTS,
   normalizeSection,
   getSectionSubjectCatalog,
+  getDaySchedule,
+  resolveSubjectCode,
+  cleanSubjectBaseName,
   calculateAttendance,
   estimateTargetReachDate,
 } from "../utils/timetableHelper";
@@ -280,6 +289,162 @@ export default function AttendanceTracker() {
     });
   }
 
+  // ── Daily Timetable Check-in State ──────────────────────────────
+  const todayDateObj = useMemo(() => new Date(), []);
+  const todayDateKey = useMemo(() => todayDateObj.toISOString().slice(0, 10), [todayDateObj]);
+  const todayDayIndex = todayDateObj.getDay(); // 0 Sun, 1 Mon ... 6 Sat
+  const todayDayName = DAYS_LIST[todayDayIndex === 0 ? 0 : todayDayIndex - 1] || "Monday";
+
+  const todayScheduleRaw = useMemo(() => {
+    return getDaySchedule(selectedSection, todayDayName);
+  }, [selectedSection, todayDayName]);
+
+  const todayClasses = useMemo(() => {
+    return (todayScheduleRaw || [])
+      .map((period, idx) => ({
+        ...period,
+        slotIndex: idx,
+        slot: TIME_SLOTS[idx],
+        cleanName: cleanSubjectBaseName(period.subject),
+      }))
+      .filter((p) => !p.isFree && p.subject && p.subject !== "No Class / Free");
+  }, [todayScheduleRaw]);
+
+  const dailyLogKey = `gradeflow_attendance_log_${currentRegNo || selectedSection}_${todayDateKey}`;
+  const [dailyAttendanceLogs, setDailyAttendanceLogs] = useState(() => {
+    try {
+      const stored = localStorage.getItem(dailyLogKey);
+      return stored ? JSON.parse(stored) : {};
+    } catch {
+      return {};
+    }
+  });
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(dailyLogKey, JSON.stringify(dailyAttendanceLogs));
+    } catch (e) {
+      console.error("Failed to persist daily attendance log:", e);
+    }
+  }, [dailyAttendanceLogs, dailyLogKey]);
+
+  // Handler for marking Present / Absent on today's classes
+  function handleToggleDailyAttendance(period, newStatus) {
+    const slotIdx = period.slotIndex;
+    const currentStatus = dailyAttendanceLogs[slotIdx] || null;
+    const cleanName = period.cleanName || cleanSubjectBaseName(period.subject);
+    const compType = (period.type || "PP").toUpperCase();
+
+    // Determine changes in attended and delivered counts
+    let deltaAttended = 0;
+    let deltaDelivered = 0;
+
+    // First revert previous status if any
+    if (currentStatus === "present") {
+      deltaAttended -= 1;
+      deltaDelivered -= 1;
+    } else if (currentStatus === "absent") {
+      deltaDelivered -= 1;
+    }
+
+    // Apply new status (toggle off if tapping same status)
+    const finalStatus = currentStatus === newStatus ? null : newStatus;
+    if (finalStatus === "present") {
+      deltaAttended += 1;
+      deltaDelivered += 1;
+    } else if (finalStatus === "absent") {
+      deltaDelivered += 1;
+    }
+
+    // Update dailyAttendanceLogs
+    setDailyAttendanceLogs((prev) => {
+      const updated = { ...prev };
+      if (finalStatus) {
+        updated[slotIdx] = finalStatus;
+      } else {
+        delete updated[slotIdx];
+      }
+      return updated;
+    });
+
+    // Update savedSubjects store
+    setSavedSubjects((prev) => {
+      const existingIdx = prev.findIndex((s) => s.subjectName === cleanName);
+      let updatedList = [...prev];
+
+      if (existingIdx !== -1) {
+        const sub = { ...updatedList[existingIdx] };
+        let matchedComp = false;
+        const components = (sub.components || []).map((c) => {
+          if (c.type.toUpperCase() === compType) {
+            matchedComp = true;
+            return {
+              ...c,
+              attended: Math.max(0, (c.attended || 0) + deltaAttended),
+              delivered: Math.max(0, (c.delivered || 0) + deltaDelivered),
+            };
+          }
+          return c;
+        });
+
+        if (!matchedComp) {
+          components.push({
+            type: compType,
+            attended: Math.max(0, 18 + deltaAttended),
+            delivered: Math.max(0, 24 + deltaDelivered),
+          });
+        }
+
+        sub.components = components;
+        sub.lastUpdated = new Date().toISOString();
+        updatedList[existingIdx] = sub;
+      } else {
+        updatedList.push({
+          subjectName: cleanName,
+          components: [
+            {
+              type: compType,
+              attended: Math.max(0, 18 + deltaAttended),
+              delivered: Math.max(0, 24 + deltaDelivered),
+            },
+          ],
+          section: selectedSection,
+          lastUpdated: new Date().toISOString(),
+          weeklyOccurrences: [],
+        });
+      }
+      return updatedList;
+    });
+
+    // If currently inspecting this subject in the studio, update componentInputs in real time
+    if (selectedSubjectName === cleanName) {
+      setComponentInputs((prev) => {
+        let hasType = false;
+        const nextComps = prev.map((c) => {
+          if (c.type.toUpperCase() === compType) {
+            hasType = true;
+            return {
+              ...c,
+              attended: Math.max(0, (c.attended || 0) + deltaAttended),
+              delivered: Math.max(0, (c.delivered || 0) + deltaDelivered),
+            };
+          }
+          return c;
+        });
+        if (!hasType) {
+          nextComps.push({
+            type: compType,
+            attended: Math.max(0, 18 + deltaAttended),
+            delivered: Math.max(0, 24 + deltaDelivered),
+          });
+        }
+        return nextComps;
+      });
+    }
+  }
+
+  const [saveSuccessAlert, setSaveSuccessAlert] = useState(false);
+
   function addCustomComponent(type = "PR") {
     setComponentInputs((prev) => [
       ...prev,
@@ -309,6 +474,8 @@ export default function AttendanceTracker() {
         },
       ];
     });
+    setSaveSuccessAlert(true);
+    setTimeout(() => setSaveSuccessAlert(false), 3500);
   }
 
   function handleDeleteSavedSubject(subjectName) {
@@ -980,6 +1147,212 @@ export default function AttendanceTracker() {
         </div>
 
         {/* ═══════════════════════════════════════════════════════════════
+            TODAY'S DAILY ROUTINE ATTENDANCE CHECK-IN HUB
+        ═══════════════════════════════════════════════════════════════ */}
+        <div
+          style={{
+            background: "#ffffff",
+            border: "1.5px solid #e2e8f0",
+            borderRadius: 18,
+            padding: isMobile ? "16px 14px" : "20px 24px",
+            display: "flex",
+            flexDirection: "column",
+            gap: 14,
+            boxShadow: "0 2px 6px rgba(0,0,0,0.02)",
+            overflow: "hidden",
+          }}
+        >
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 8 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+              <div
+                style={{
+                  width: 36,
+                  height: 36,
+                  borderRadius: 10,
+                  background: "linear-gradient(135deg, #059669 0%, #10b981 100%)",
+                  color: "#ffffff",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  flexShrink: 0,
+                }}
+              >
+                <CalendarIcon size={18} />
+              </div>
+              <div>
+                <h3 style={{ fontSize: isMobile ? 15 : 17, fontWeight: 800, color: "#0f172a", margin: 0 }}>
+                  Today's Class Check-in ({todayDayName})
+                </h3>
+                <p style={{ fontSize: 12, color: "#64748b", margin: "2px 0 0 0" }}>
+                  Mark attendance as each class ends to auto-increment your saved records in real time.
+                </p>
+              </div>
+            </div>
+
+            <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+              <span
+                style={{
+                  fontSize: 11.5,
+                  fontWeight: 800,
+                  color: "#059669",
+                  background: "#ecfdf5",
+                  border: "1px solid #a7f3d0",
+                  padding: "3px 10px",
+                  borderRadius: 8,
+                }}
+              >
+                {Object.keys(dailyAttendanceLogs).length} / {todayClasses.length} Logged Today
+              </span>
+            </div>
+          </div>
+
+          {todayClasses.length === 0 ? (
+            <div
+              style={{
+                background: "#f8fafc",
+                border: "1px dashed #cbd5e1",
+                borderRadius: 12,
+                padding: "16px 20px",
+                textAlign: "center",
+                color: "#64748b",
+                fontSize: 13,
+                fontWeight: 600,
+              }}
+            >
+              🎉 No classes scheduled for {todayDayName} (Section {selectedSection})! Enjoy your day.
+            </div>
+          ) : (
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: isMobile ? "1fr" : "repeat(auto-fill, minmax(280px, 1fr))",
+                gap: 10,
+              }}
+            >
+              {todayClasses.map((period) => {
+                const logStatus = dailyAttendanceLogs[period.slotIndex] || null;
+                const subCode = resolveSubjectCode(period, studentData);
+
+                return (
+                  <div
+                    key={period.slotIndex}
+                    style={{
+                      background: logStatus === "present" ? "#f0fdf4" : logStatus === "absent" ? "#fef2f2" : "#f8fafc",
+                      border: `1.5px solid ${logStatus === "present" ? "#86efac" : logStatus === "absent" ? "#fca5a5" : "#e2e8f0"}`,
+                      borderRadius: 14,
+                      padding: "12px 14px",
+                      display: "flex",
+                      flexDirection: "column",
+                      justifyContent: "space-between",
+                      gap: 10,
+                      transition: "all 0.15s ease",
+                    }}
+                  >
+                    <div>
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 6 }}>
+                        <span style={{ fontSize: 10.5, fontWeight: 800, color: "#64748b", fontFamily: "'Space Mono', monospace" }}>
+                          P{period.slotIndex + 1} · {period.slot?.startTime} - {period.slot?.endTime}
+                        </span>
+                        <span
+                          style={{
+                            fontSize: 9.5,
+                            fontWeight: 900,
+                            background: period.type === "PR" ? "#faf5ff" : period.type === "TUT" ? "#fffbeb" : "#eff6ff",
+                            color: period.type === "PR" ? "#7c3aed" : period.type === "TUT" ? "#b45309" : "#2563eb",
+                            padding: "2px 6px",
+                            borderRadius: 6,
+                            border: `1px solid ${period.type === "PR" ? "#ddd6fe" : period.type === "TUT" ? "#fde68a" : "#bfdbfe"}`,
+                          }}
+                        >
+                          {period.type || "PP"}
+                        </span>
+                      </div>
+
+                      <div style={{ marginTop: 4 }}>
+                        <div style={{ fontSize: 13.5, fontWeight: 800, color: "#0f172a", lineHeight: 1.3 }}>
+                          {period.cleanName}
+                        </div>
+                        {subCode && (
+                          <span
+                            style={{
+                              fontSize: 10,
+                              fontFamily: "'Space Mono', monospace",
+                              fontWeight: 800,
+                              color: "#2563eb",
+                              background: "#eff6ff",
+                              border: "1px solid #bfdbfe",
+                              padding: "1px 5px",
+                              borderRadius: 4,
+                              display: "inline-block",
+                              marginTop: 3,
+                            }}
+                          >
+                            {subCode}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Present / Absent Action Buttons */}
+                    <div style={{ display: "flex", gap: 6, paddingTop: 4 }}>
+                      <button
+                        type="button"
+                        onClick={() => handleToggleDailyAttendance(period, "present")}
+                        style={{
+                          flex: 1,
+                          padding: "7px 10px",
+                          borderRadius: 8,
+                          border: logStatus === "present" ? "1.5px solid #16a34a" : "1px solid #cbd5e1",
+                          background: logStatus === "present" ? "#16a34a" : "#ffffff",
+                          color: logStatus === "present" ? "#ffffff" : "#166534",
+                          fontSize: 12,
+                          fontWeight: 800,
+                          cursor: "pointer",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          gap: 5,
+                          transition: "all 0.15s ease",
+                          boxShadow: logStatus === "present" ? "0 2px 5px rgba(22, 163, 74, 0.2)" : "none",
+                        }}
+                      >
+                        <Check size={13} />
+                        <span>{logStatus === "present" ? "Attended ✅" : "Present"}</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => handleToggleDailyAttendance(period, "absent")}
+                        style={{
+                          flex: 1,
+                          padding: "7px 10px",
+                          borderRadius: 8,
+                          border: logStatus === "absent" ? "1.5px solid #dc2626" : "1px solid #cbd5e1",
+                          background: logStatus === "absent" ? "#dc2626" : "#ffffff",
+                          color: logStatus === "absent" ? "#ffffff" : "#991b1b",
+                          fontSize: 12,
+                          fontWeight: 800,
+                          cursor: "pointer",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          gap: 5,
+                          transition: "all 0.15s ease",
+                          boxShadow: logStatus === "absent" ? "0 2px 5px rgba(220, 38, 38, 0.2)" : "none",
+                        }}
+                      >
+                        <X size={13} />
+                        <span>{logStatus === "absent" ? "Missed ❌" : "Absent"}</span>
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+
+        {/* ═══════════════════════════════════════════════════════════════
             MAIN INTERACTIVE ATTENDANCE SIMULATOR STUDIO
         ═══════════════════════════════════════════════════════════════ */}
         <div
@@ -1495,7 +1868,7 @@ export default function AttendanceTracker() {
             </div>
 
             {/* Save to My Subjects Button */}
-            <div style={{ display: "flex", gap: 8, marginTop: 4 }}>
+            <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 4 }}>
               <button
                 type="button"
                 onClick={handleSaveActiveSubject}
@@ -1506,19 +1879,40 @@ export default function AttendanceTracker() {
                   border: "none",
                   background: "linear-gradient(135deg, #059669 0%, #047857 100%)",
                   color: "#ffffff",
-                  fontSize: 13,
+                  fontSize: isMobile ? 13 : 14.5,
                   fontWeight: 800,
                   cursor: "pointer",
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
-                  gap: 6,
-                  boxShadow: "0 2px 6px rgba(5, 150, 105, 0.2)",
+                  gap: 8,
+                  boxShadow: "0 4px 12px rgba(5, 150, 105, 0.25)",
+                  transition: "all 0.15s ease",
                 }}
               >
-                <Save size={14} />
+                <Save size={isMobile ? 14 : 16} />
                 <span>Save to Semester Dashboard</span>
               </button>
+
+              {saveSuccessAlert && (
+                <div
+                  style={{
+                    background: "#ecfdf5",
+                    border: "1px solid #a7f3d0",
+                    color: "#065f46",
+                    padding: "8px 12px",
+                    borderRadius: 10,
+                    fontSize: 12.5,
+                    fontWeight: 700,
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 6,
+                  }}
+                >
+                  <CheckCircle2 size={15} color="#059669" />
+                  <span>Subject "{selectedSubjectName}" saved & updated in your semester matrix!</span>
+                </div>
+              )}
             </div>
           </div>
 
@@ -1639,30 +2033,29 @@ export default function AttendanceTracker() {
                 </div>
               </div>
 
-              {simulateMissCount > 0 && (
-                <div
-                  style={{
-                    background: "#ffffff",
-                    borderRadius: 10,
-                    padding: "8px 12px",
-                    display: "flex",
-                    justifyContent: "space-between",
-                    alignItems: "center",
-                    fontSize: 12,
-                    fontWeight: 700,
-                  }}
-                >
-                  <span style={{ color: "#475569" }}>
-                    Projected Percentage after {simulateMissCount} {simulateMissCount === 1 ? "absence" : "absences"}:
-                  </span>
-                  <span style={{ color: activeCalculation.simulatedAbsent.isBelow75 ? "#dc2626" : "#059669", fontWeight: 900 }}>
-                    {activeCalculation.simulatedAbsent.projectedPercentage}% ({activeCalculation.simulatedAbsent.delta}%)
-                  </span>
+              {simulateMissCount > 0 ? (
+                <div style={{ background: "#ffffff", padding: "10px 12px", borderRadius: 10, border: "1px solid #fca5a5" }}>
+                  <div style={{ fontSize: 12, color: "#7f1d1d" }}>
+                    If you miss <strong>{simulateMissCount} class(es)</strong>, your score drops from{" "}
+                    <strong>{activeCalculation.currentPercentage}%</strong> to{" "}
+                    <strong style={{ color: activeCalculation.simulatedPercentage >= 75 ? "#059669" : "#dc2626" }}>
+                      {activeCalculation.simulatedPercentage}%
+                    </strong>
+                  </div>
+                  {activeCalculation.simulatedPercentage < 75 && (
+                    <div style={{ fontSize: 11, fontWeight: 800, color: "#dc2626", marginTop: 4 }}>
+                      ⚠️ WARNING: This drop puts you below the mandatory 75% cutoff!
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div style={{ fontSize: 11.5, color: "#b91c1c" }}>
+                  Test how missing upcoming lectures or labs impacts your 75% cutoff margin.
                 </div>
               )}
             </div>
 
-            {/* 2. "WHAT-IF I ATTEND NEXT Y CLASSES" */}
+            {/* 2. "WHAT-IF I ATTEND X CLASSES IN A ROW" */}
             <div
               style={{
                 background: "#f0fdf4",
@@ -1678,7 +2071,7 @@ export default function AttendanceTracker() {
                 <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                   <TrendingUp size={16} color="#16a34a" />
                   <span style={{ fontSize: 13, fontWeight: 800, color: "#166534" }}>
-                    What if I attend next classes?
+                    What if I attend classes consecutively?
                   </span>
                 </div>
 
@@ -1725,91 +2118,86 @@ export default function AttendanceTracker() {
                 </div>
               </div>
 
-              {simulateAttendCount > 0 && (
-                <div
-                  style={{
-                    background: "#ffffff",
-                    borderRadius: 10,
-                    padding: "8px 12px",
-                    display: "flex",
-                    justifyContent: "space-between",
-                    alignItems: "center",
-                    fontSize: 12,
-                    fontWeight: 700,
-                  }}
-                >
-                  <span style={{ color: "#475569" }}>
-                    Projected Percentage after attending {simulateAttendCount} classes:
-                  </span>
-                  <span style={{ color: "#16a34a", fontWeight: 900 }}>
-                    {activeCalculation.simulatedPresent.projectedPercentage}% (+{activeCalculation.simulatedPresent.delta}%)
-                  </span>
+              {simulateAttendCount > 0 ? (
+                <div style={{ background: "#ffffff", padding: "10px 12px", borderRadius: 10, border: "1px solid #86efac" }}>
+                  <div style={{ fontSize: 12, color: "#14532d" }}>
+                    Attending <strong>{simulateAttendCount} class(es)</strong> boosts your score from{" "}
+                    <strong>{activeCalculation.currentPercentage}%</strong> to{" "}
+                    <strong style={{ color: "#059669" }}>
+                      {activeCalculation.simulatedPercentage}%
+                    </strong>
+                  </div>
+                </div>
+              ) : (
+                <div style={{ fontSize: 11.5, color: "#15803d" }}>
+                  See how many points your attendance gains with continuous attendance.
                 </div>
               )}
             </div>
 
-            {/* 3. TARGET ATTENDANCE GOAL PLANNER */}
+            {/* 3. TARGET GOAL PLANNER (75% / 80% / 85% / 90%) */}
             <div
               style={{
                 background: "#f8fafc",
                 border: "1px solid #e2e8f0",
-                borderRadius: 16,
-                padding: "16px 18px",
+                borderRadius: 14,
+                padding: "14px 16px",
                 display: "flex",
                 flexDirection: "column",
                 gap: 12,
               }}
             >
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                  <Target size={16} color="#2563eb" />
-                  <span style={{ fontSize: 13, fontWeight: 800, color: "#0f172a" }}>
-                    Target Attendance Goal Planner
-                  </span>
-                </div>
-
-                <div style={{ display: "flex", gap: 4 }}>
-                  {[75, 80, 85, 90].map((goal) => (
-                    <button
-                      key={goal}
-                      type="button"
-                      onClick={() => setTargetGoal(goal)}
-                      style={{
-                        padding: "3px 8px",
-                        borderRadius: 6,
-                        fontSize: 11,
-                        fontWeight: 800,
-                        cursor: "pointer",
-                        border: targetGoal === goal ? "1.5px solid #2563eb" : "1px solid #cbd5e1",
-                        background: targetGoal === goal ? "#eff6ff" : "#ffffff",
-                        color: targetGoal === goal ? "#2563eb" : "#64748b",
-                      }}
-                    >
-                      {goal}%
-                    </button>
-                  ))}
-                </div>
+                <span style={{ fontSize: 13, fontWeight: 800, color: "#0f172a", display: "flex", alignItems: "center", gap: 6 }}>
+                  <Target size={15} color="#2563eb" />
+                  Target Goal Milestone:
+                </span>
+                <span style={{ fontSize: 12, fontWeight: 900, color: "#2563eb" }}>{targetGoal}%</span>
               </div>
 
-              {/* Goal Outcome Callout */}
+              <div style={{ display: "flex", gap: 6 }}>
+                {[75, 80, 85, 90].map((goal) => (
+                  <button
+                    key={goal}
+                    type="button"
+                    onClick={() => setTargetGoal(goal)}
+                    style={{
+                      flex: 1,
+                      padding: "6px 0",
+                      borderRadius: 8,
+                      border: targetGoal === goal ? "1.5px solid #2563eb" : "1px solid #cbd5e1",
+                      background: targetGoal === goal ? "#2563eb" : "#ffffff",
+                      color: targetGoal === goal ? "#ffffff" : "#475569",
+                      fontSize: 12,
+                      fontWeight: 800,
+                      cursor: "pointer",
+                      transition: "all 0.15s",
+                    }}
+                  >
+                    {goal}%
+                  </button>
+                ))}
+              </div>
+
+              {/* Requirement or Safe Bunk Result Card */}
               <div
                 style={{
-                  background: activeCalculation.classesNeeded > 0 ? "#eff6ff" : "#f0fdf4",
-                  border: `1.5px solid ${activeCalculation.classesNeeded > 0 ? "#bfdbfe" : "#bbf7d0"}`,
-                  borderRadius: 12,
-                  padding: "14px 16px",
+                  background: activeCalculation.classesNeeded > 0 ? "#fffbeb" : "#f0fdf4",
+                  border: `1px solid ${activeCalculation.classesNeeded > 0 ? "#fde68a" : "#bbf7d0"}`,
+                  borderRadius: 10,
+                  padding: "12px 14px",
                   display: "flex",
                   flexDirection: "column",
-                  gap: 8,
+                  gap: 6,
                 }}
               >
                 {activeCalculation.classesNeeded > 0 ? (
                   <>
-                    <div style={{ fontSize: 13.5, fontWeight: 800, color: "#1e40af" }}>
-                      Attend <strong>{activeCalculation.classesNeeded} more classes continuously</strong> to reach {targetGoal}%
+                    <div style={{ fontSize: 13.5, fontWeight: 800, color: "#92400e" }}>
+                      Need to attend <strong>{activeCalculation.classesNeeded} more classes</strong> without absence to reach {targetGoal}%
                     </div>
                     {dateProjection && (
-                      <div style={{ fontSize: 12, color: "#3b82f6", display: "flex", alignItems: "center", gap: 6 }}>
+                      <div style={{ fontSize: 11.5, color: "#b45309", display: "flex", alignItems: "center", gap: 5 }}>
                         <CalendarIcon size={13} />
                         <span>
                           Estimated reach date: <strong>{dateProjection.estimatedDate}</strong> (approx {dateProjection.estimatedWeeks} weeks based on {dateProjection.classesPerWeek} classes/week routine)
@@ -1822,7 +2210,7 @@ export default function AttendanceTracker() {
                     <div style={{ fontSize: 13.5, fontWeight: 800, color: "#166534" }}>
                       Safe Zone! You can safely miss up to <strong>{activeCalculation.safeBunks} classes</strong> and maintain &ge; {targetGoal}%
                     </div>
-                    <div style={{ fontSize: 12, color: "#15803d" }}>
+                    <div style={{ fontSize: 11.5, color: "#15803d" }}>
                       Current attendance is well above your {targetGoal}% target goal.
                     </div>
                   </>
@@ -1833,38 +2221,59 @@ export default function AttendanceTracker() {
         </div>
 
         {/* ═══════════════════════════════════════════════════════════════
-            MY SEMESTER SUBJECTS MATRIX (SAVED STORE)
+            MY SEMESTER SUBJECTS MATRIX & TARGET PREDICTOR (SAVED STORE)
         ═══════════════════════════════════════════════════════════════ */}
         {savedSubjects.length > 0 && (
           <div
             style={{
               background: "#ffffff",
-              border: "1px solid #e2e8f0",
+              border: "1.5px solid #e2e8f0",
               borderRadius: 18,
-              padding: isMobile ? "16px 14px" : "20px 24px",
+              padding: isMobile ? "16px 14px" : "22px 24px",
               display: "flex",
               flexDirection: "column",
-              gap: 14,
-              boxShadow: "0 1px 3px rgba(0,0,0,0.03)",
+              gap: 16,
+              boxShadow: "0 2px 6px rgba(0,0,0,0.02)",
             }}
           >
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            {/* Header */}
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 10 }}>
               <div>
-                <h3 style={{ fontSize: 16, fontWeight: 800, color: "#0f172a", margin: 0, display: "flex", alignItems: "center", gap: 8 }}>
-                  <Layers size={16} color="#059669" />
-                  My Saved Semester Subjects ({savedSubjects.length})
+                <h3 style={{ fontSize: isMobile ? 16 : 18, fontWeight: 800, color: "#0f172a", margin: 0, display: "flex", alignItems: "center", gap: 8 }}>
+                  <Layers size={18} color="#059669" />
+                  Semester Subjects Attendance & Target Predictor ({savedSubjects.length})
                 </h3>
-                <p style={{ fontSize: 12, color: "#64748b", margin: "2px 0 0 0" }}>
-                  Saved attendance records for Section {selectedSection}. Click any card to edit or simulate.
+                <p style={{ fontSize: 12, color: "#64748b", margin: "3px 0 0 0" }}>
+                  Full breakdown of theory (PP), practical (PR), tutorial (TUT) with live target prediction for Section {selectedSection}.
                 </p>
+              </div>
+
+              <div
+                style={{
+                  background: "linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%)",
+                  border: "1.5px solid #a7f3d0",
+                  borderRadius: 12,
+                  padding: "8px 14px",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 10,
+                }}
+              >
+                <div>
+                  <div style={{ fontSize: 10.5, fontWeight: 800, color: "#065f46", textTransform: "uppercase" }}>Overall Semester Score</div>
+                  <div style={{ fontSize: 18, fontWeight: 900, color: overallAggregate.percentage >= 75 ? "#059669" : "#dc2626" }}>
+                    {overallAggregate.percentage}% <span style={{ fontSize: 12, fontWeight: 700, color: "#065f46" }}>({overallAggregate.totalAttended}/{overallAggregate.totalDelivered})</span>
+                  </div>
+                </div>
               </div>
             </div>
 
+            {/* Subject Cards Grid */}
             <div
               style={{
                 display: "grid",
-                gridTemplateColumns: isMobile ? "1fr" : "repeat(auto-fit, minmax(300px, 1fr))",
-                gap: 12,
+                gridTemplateColumns: isMobile ? "1fr" : "repeat(auto-fit, minmax(320px, 1fr))",
+                gap: 14,
               }}
             >
               {savedSubjects.map((sub, idx) => {
@@ -1872,6 +2281,12 @@ export default function AttendanceTracker() {
                   components: sub.components,
                   targetPercentage: 75,
                 });
+                const subCalc80 = calculateAttendance({
+                  components: sub.components,
+                  targetPercentage: 80,
+                });
+                const subCode = resolveSubjectCode({ subject: sub.subjectName }, studentData);
+                const isPassing = subCalc.currentPercentage >= 75;
 
                 return (
                   <div
@@ -1879,71 +2294,176 @@ export default function AttendanceTracker() {
                     onClick={() => {
                       setSelectedSubjectName(sub.subjectName);
                       setComponentInputs(sub.components || []);
+                      window.scrollTo({ top: 400, behavior: "smooth" });
                     }}
                     style={{
-                      background: "#f8fafc",
-                      border: "1px solid #e2e8f0",
-                      borderRadius: 14,
-                      padding: "14px 16px",
+                      background: "#ffffff",
+                      border: `1.5px solid ${isPassing ? "#e2e8f0" : "#fecaca"}`,
+                      borderRadius: 16,
+                      padding: "16px 18px",
                       display: "flex",
                       flexDirection: "column",
                       justifyContent: "space-between",
-                      gap: 10,
+                      gap: 12,
                       cursor: "pointer",
-                      transition: "transform 0.15s, box-shadow 0.15s",
+                      boxShadow: "0 1px 3px rgba(0,0,0,0.02)",
+                      transition: "transform 0.15s, box-shadow 0.15s, border-color 0.15s",
                     }}
                   >
-                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
-                      <div>
-                        <h4 style={{ fontSize: 14, fontWeight: 800, color: "#0f172a", margin: 0 }}>
-                          {sub.subjectName}
-                        </h4>
-                        <div style={{ fontSize: 11, color: "#64748b", marginTop: 2 }}>
-                          {subCalc.totalAttended} / {subCalc.totalDelivered} classes · {(sub.components || []).map((c) => c.type).join("+")}
+                    <div>
+                      {/* Card Header: Name + Code + Overall % */}
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 10 }}>
+                        <div>
+                          <h4 style={{ fontSize: 14.5, fontWeight: 800, color: "#0f172a", margin: 0, lineHeight: 1.3 }}>
+                            {sub.subjectName}
+                          </h4>
+                          <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 4, flexWrap: "wrap" }}>
+                            {subCode && (
+                              <span
+                                style={{
+                                  fontSize: 10,
+                                  fontFamily: "'Space Mono', monospace",
+                                  fontWeight: 800,
+                                  color: "#2563eb",
+                                  background: "#eff6ff",
+                                  border: "1px solid #bfdbfe",
+                                  padding: "1px 5px",
+                                  borderRadius: 4,
+                                }}
+                              >
+                                {subCode}
+                              </span>
+                            )}
+                            <span style={{ fontSize: 11, color: "#64748b", fontWeight: 700 }}>
+                              {subCalc.totalAttended} / {subCalc.totalDelivered} classes
+                            </span>
+                          </div>
+                        </div>
+
+                        <div style={{ textAlign: "right" }}>
+                          <div
+                            style={{
+                              fontSize: 18,
+                              fontWeight: 900,
+                              color: isPassing ? "#059669" : "#dc2626",
+                            }}
+                          >
+                            {subCalc.currentPercentage}%
+                          </div>
+                          <span
+                            style={{
+                              fontSize: 9.5,
+                              fontWeight: 900,
+                              background: isPassing ? "#ecfdf5" : "#fef2f2",
+                              color: isPassing ? "#059669" : "#dc2626",
+                              padding: "1px 6px",
+                              borderRadius: 4,
+                            }}
+                          >
+                            {isPassing ? "ELIGIBLE" : "SHORTAGE"}
+                          </span>
                         </div>
                       </div>
 
-                      <div style={{ textAlign: "right" }}>
-                        <span
+                      {/* Progress Bar */}
+                      <div style={{ width: "100%", height: 5, background: "#f1f5f9", borderRadius: 999, margin: "10px 0 8px 0", overflow: "hidden" }}>
+                        <div
                           style={{
-                            fontSize: 16,
-                            fontWeight: 900,
-                            color: subCalc.currentPercentage >= 75 ? "#059669" : "#dc2626",
+                            width: `${Math.min(100, Math.max(0, subCalc.currentPercentage))}%`,
+                            height: "100%",
+                            background: isPassing ? "linear-gradient(90deg, #10b981, #059669)" : "linear-gradient(90deg, #f87171, #dc2626)",
+                            borderRadius: 999,
                           }}
-                        >
-                          {subCalc.currentPercentage}%
-                        </span>
+                        />
+                      </div>
+
+                      {/* Component breakdown list */}
+                      <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 4 }}>
+                        {(sub.components || []).map((c, cIdx) => {
+                          const cPct = c.delivered > 0 ? ((c.attended / c.delivered) * 100).toFixed(1) : "100.0";
+                          return (
+                            <span
+                              key={cIdx}
+                              style={{
+                                fontSize: 11,
+                                fontWeight: 700,
+                                background: c.type === "PR" ? "#faf5ff" : c.type === "TUT" ? "#fffbeb" : "#eff6ff",
+                                color: c.type === "PR" ? "#7c3aed" : c.type === "TUT" ? "#b45309" : "#1e40af",
+                                border: `1px solid ${c.type === "PR" ? "#ddd6fe" : c.type === "TUT" ? "#fde68a" : "#bfdbfe"}`,
+                                padding: "2px 8px",
+                                borderRadius: 6,
+                              }}
+                            >
+                              {c.type}: {c.attended}/{c.delivered} ({cPct}%)
+                            </span>
+                          );
+                        })}
                       </div>
                     </div>
 
-                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderTop: "1px solid #e2e8f0", paddingTop: 8 }}>
-                      <span
-                        style={{
-                          fontSize: 10.5,
-                          fontWeight: 800,
-                          color: subCalc.classesNeeded > 0 ? "#d97706" : "#16a34a",
-                        }}
-                      >
-                        {subCalc.classesNeeded > 0 ? `Need ${subCalc.classesNeeded} classes for 75%` : `Safe: ${subCalc.safeBunks} bunks`}
-                      </span>
+                    {/* Smart Target & Safe Bunk Prediction Footer */}
+                    <div
+                      style={{
+                        background: subCalc.classesNeeded > 0 ? "#fffbeb" : "#f0fdf4",
+                        border: `1px solid ${subCalc.classesNeeded > 0 ? "#fde68a" : "#bbf7d0"}`,
+                        borderRadius: 10,
+                        padding: "8px 10px",
+                        display: "flex",
+                        justifyContent: "space-between",
+                        alignItems: "center",
+                        gap: 8,
+                      }}
+                    >
+                      <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 11.5 }}>
+                        <Sparkles size={13} color={subCalc.classesNeeded > 0 ? "#d97706" : "#16a34a"} />
+                        <span style={{ fontWeight: 800, color: subCalc.classesNeeded > 0 ? "#92400e" : "#166534" }}>
+                          {subCalc.classesNeeded > 0
+                            ? `⚠️ Need ${subCalc.classesNeeded} classes to reach 75.0%`
+                            : subCalc80.classesNeeded > 0
+                            ? `⚡ Attend ${subCalc80.classesNeeded} more classes for 80.0%`
+                            : `🌟 Safe to bunk ${subCalc.safeBunks} classes`}
+                        </span>
+                      </div>
 
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleDeleteSavedSubject(sub.subjectName);
-                        }}
-                        style={{
-                          border: "none",
-                          background: "transparent",
-                          color: "#94a3b8",
-                          cursor: "pointer",
-                          padding: 2,
-                        }}
-                        title="Delete Subject"
-                      >
-                        <Trash2 size={13} />
-                      </button>
+                      <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setSelectedSubjectName(sub.subjectName);
+                            setComponentInputs(sub.components || []);
+                            window.scrollTo({ top: 400, behavior: "smooth" });
+                          }}
+                          style={{
+                            border: "none",
+                            background: "transparent",
+                            color: "#2563eb",
+                            fontSize: 11,
+                            fontWeight: 800,
+                            cursor: "pointer",
+                            padding: "2px 4px",
+                          }}
+                        >
+                          Simulate &rarr;
+                        </button>
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDeleteSavedSubject(sub.subjectName);
+                          }}
+                          style={{
+                            border: "none",
+                            background: "transparent",
+                            color: "#94a3b8",
+                            cursor: "pointer",
+                            padding: 2,
+                          }}
+                          title="Delete Subject"
+                        >
+                          <Trash2 size={13} />
+                        </button>
+                      </div>
                     </div>
                   </div>
                 );
