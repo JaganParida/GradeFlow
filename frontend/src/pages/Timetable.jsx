@@ -48,6 +48,7 @@ import {
   getLiveScheduleOverview,
   normalizeSection,
   formatDateKey,
+  is2023CSEBatch,
 } from "../utils/timetableHelper";
 
 export default function Timetable() {
@@ -250,6 +251,7 @@ export default function Timetable() {
   }, [filterHolidayType, selectedHolidayMonth]);
 
   const activeStudentName = studentData?.studentName || "";
+  const isEligibleBatch = is2023CSEBatch(studentData, currentRegNo);
 
   return (
     <div
@@ -794,10 +796,82 @@ export default function Timetable() {
           </motion.div>
         ) : null}
 
+        {/* Notice for non-2023 CSE students */}
+        {!isEligibleBatch && (studentData || currentRegNo) && (viewMode === "day" || viewMode === "week") && (
+          <div
+            style={{
+              background: "#fffbeb",
+              border: "1.5px solid #fde68a",
+              borderRadius: 18,
+              padding: "26px 28px",
+              display: "flex",
+              alignItems: "flex-start",
+              gap: 16,
+              boxShadow: "0 2px 8px rgba(245, 158, 11, 0.08)",
+            }}
+          >
+            <div
+              style={{
+                width: 44,
+                height: 44,
+                borderRadius: 12,
+                background: "#fef3c7",
+                color: "#d97706",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                flexShrink: 0,
+              }}
+            >
+              <Info size={22} />
+            </div>
+
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: 11, fontWeight: 900, color: "#d97706", textTransform: "uppercase", letterSpacing: "0.5px" }}>
+                Notice · 2023 CSE Batch Only
+              </div>
+              <h3 style={{ fontSize: 17, fontWeight: 800, color: "#92400e", margin: "4px 0 6px 0" }}>
+                Class Timetable is Currently Available for 2023 CSE Batch Only
+              </h3>
+              <p style={{ fontSize: 13.5, color: "#78350f", margin: 0, lineHeight: 1.5 }}>
+                The class timetable schedule is currently published specifically for <strong>B.Tech Computer Science &amp; Engineering (2023–2027 Batch)</strong>. Routine data for other batches and departments will be published as soon as released. You can still access the Academic Calendar and University Holidays tabs above.
+              </p>
+              <div style={{ marginTop: 14 }}>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (currentRegNo) {
+                      navigate(`/dashboard/${encodeStudentId(currentRegNo)}`);
+                    } else {
+                      navigate("/");
+                    }
+                  }}
+                  style={{
+                    padding: "8px 16px",
+                    borderRadius: 10,
+                    border: "none",
+                    background: "#0f172a",
+                    color: "#ffffff",
+                    fontSize: 12.5,
+                    fontWeight: 700,
+                    cursor: "pointer",
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 6,
+                  }}
+                >
+                  <span>Back to Dashboard</span>
+                  <ArrowRight size={13} />
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* ═══════════════════════════════════════════════════════════════
             MODE 1: DAILY ROUTINE VIEW
         ═══════════════════════════════════════════════════════════════ */}
-        {viewMode === "day" && (
+        {viewMode === "day" && (isEligibleBatch || (!studentData && !currentRegNo)) && (
           <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
             {/* Day / Date Navigation Toolbar */}
             <div
@@ -1192,7 +1266,7 @@ export default function Timetable() {
         {/* ═══════════════════════════════════════════════════════════════
             MODE 2: WEEKLY TIMETABLE MATRIX (100% Full Width On Desktop)
         ═══════════════════════════════════════════════════════════════ */}
-        {viewMode === "week" && (
+        {viewMode === "week" && (isEligibleBatch || (!studentData && !currentRegNo)) && (
           <div
             style={{
               background: "#ffffff",

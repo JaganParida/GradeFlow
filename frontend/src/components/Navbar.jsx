@@ -10,6 +10,7 @@ import {
   Menu, X, Sparkles, Home as HomeIcon, User, Calculator, ArrowRight,
   ShieldCheck, Clock, Percent
 } from "lucide-react";
+import { is2023CSEBatch } from "../utils/timetableHelper";
 
 export default function Navbar() {
   const [scrolled, setScrolled] = useState(false);
@@ -67,6 +68,8 @@ export default function Navbar() {
   const currentRegNo = studentData?.regNo 
     || sessionStorage.getItem("last_regNo") 
     || "";
+
+  const isEligibleForTimetable = is2023CSEBatch(studentData, currentRegNo);
 
   const handleDashboardClick = (e) => {
     if (e) e.preventDefault();
@@ -267,39 +270,41 @@ export default function Navbar() {
               )}
             </button>
 
-            {/* Timetable */}
-            <button
-              onClick={handleTimetableClick}
-              style={{
-                background: "transparent",
-                border: "none",
-                textDecoration: "none",
-                fontSize: 14,
-                fontWeight: location.pathname.startsWith("/timetable") ? 700 : 500,
-                color: location.pathname.startsWith("/timetable") ? "#0f172a" : "#64748b",
-                cursor: "pointer",
-                padding: "8px 0",
-                position: "relative",
-                fontFamily: "'DM Sans', sans-serif",
-                transition: "color 0.2s ease",
-              }}
-            >
-              Timetable
-              {location.pathname.startsWith("/timetable") && (
-                <motion.div
-                  layoutId="nav-indicator"
-                  style={{
-                    position: "absolute",
-                    bottom: 0,
-                    left: 0,
-                    right: 0,
-                    height: 2.5,
-                    background: "#2563eb",
-                    borderRadius: 99,
-                  }}
-                />
-              )}
-            </button>
+            {/* Timetable - Only for 2023 CSE Batch or Guest Mode */}
+            {isEligibleForTimetable && (
+              <button
+                onClick={handleTimetableClick}
+                style={{
+                  background: "transparent",
+                  border: "none",
+                  textDecoration: "none",
+                  fontSize: 14,
+                  fontWeight: location.pathname.startsWith("/timetable") ? 700 : 500,
+                  color: location.pathname.startsWith("/timetable") ? "#0f172a" : "#64748b",
+                  cursor: "pointer",
+                  padding: "8px 0",
+                  position: "relative",
+                  fontFamily: "'DM Sans', sans-serif",
+                  transition: "color 0.2s ease",
+                }}
+              >
+                Timetable
+                {location.pathname.startsWith("/timetable") && (
+                  <motion.div
+                    layoutId="nav-indicator"
+                    style={{
+                      position: "absolute",
+                      bottom: 0,
+                      left: 0,
+                      right: 0,
+                      height: 2.5,
+                      background: "#2563eb",
+                      borderRadius: 99,
+                    }}
+                  />
+                )}
+              </button>
+            )}
 
             {/* Attendance Tracker */}
             <button
@@ -946,58 +951,60 @@ export default function Navbar() {
                   )}
                 </button>
 
-                {/* Class Timetable */}
-                <button
-                  onClick={(e) => {
-                    setMobileMenuOpen(false);
-                    handleTimetableClick(e);
-                  }}
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "space-between",
-                    width: "100%",
-                    padding: "11px 12px",
-                    borderRadius: 10,
-                    border: "none",
-                    background: location.pathname.startsWith("/timetable")
-                      ? "#eff6ff"
-                      : "transparent",
-                    color: location.pathname.startsWith("/timetable")
-                      ? "#2563eb"
-                      : "#1e293b",
-                    fontSize: 14.5,
-                    fontWeight: location.pathname.startsWith("/timetable")
-                      ? 700
-                      : 600,
-                    cursor: "pointer",
-                    textAlign: "left",
-                  }}
-                >
-                  <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                    <Clock
-                      size={17}
-                      color={
-                        location.pathname.startsWith("/timetable")
-                          ? "#2563eb"
-                          : "#64748b"
-                      }
-                    />
-                    <span>Class Timetable</span>
-                  </div>
-                  {location.pathname.startsWith("/timetable") ? (
-                    <span
-                      style={{
-                        width: 6,
-                        height: 6,
-                        borderRadius: "50%",
-                        background: "#2563eb",
-                      }}
-                    />
-                  ) : (
-                    <ChevronRight size={15} color="#cbd5e1" />
-                  )}
-                </button>
+                {/* Class Timetable - Only for 2023 CSE Batch or Guest Mode */}
+                {isEligibleForTimetable && (
+                  <button
+                    onClick={(e) => {
+                      setMobileMenuOpen(false);
+                      handleTimetableClick(e);
+                    }}
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                      width: "100%",
+                      padding: "11px 12px",
+                      borderRadius: 10,
+                      border: "none",
+                      background: location.pathname.startsWith("/timetable")
+                        ? "#eff6ff"
+                        : "transparent",
+                      color: location.pathname.startsWith("/timetable")
+                        ? "#2563eb"
+                        : "#1e293b",
+                      fontSize: 14.5,
+                      fontWeight: location.pathname.startsWith("/timetable")
+                        ? 700
+                        : 600,
+                      cursor: "pointer",
+                      textAlign: "left",
+                    }}
+                  >
+                    <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                      <Clock
+                        size={17}
+                        color={
+                          location.pathname.startsWith("/timetable")
+                            ? "#2563eb"
+                            : "#64748b"
+                        }
+                      />
+                      <span>Class Timetable</span>
+                    </div>
+                    {location.pathname.startsWith("/timetable") ? (
+                      <span
+                        style={{
+                          width: 6,
+                          height: 6,
+                          borderRadius: "50%",
+                          background: "#2563eb",
+                        }}
+                      />
+                    ) : (
+                      <ChevronRight size={15} color="#cbd5e1" />
+                    )}
+                  </button>
+                )}
 
                 {/* Attendance Tracker */}
                 <button

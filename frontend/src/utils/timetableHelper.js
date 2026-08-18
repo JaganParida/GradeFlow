@@ -710,16 +710,45 @@ export function estimateTargetReachDate(classesNeeded, weeklyOccurrences = [], s
   };
 }
 
+/**
+ * Validate if a student belongs to the 2023 CSE Batch
+ */
+export function is2023CSEBatch(studentData, regNo = "") {
+  const reg = String(studentData?.regNo || regNo || "").trim().toUpperCase();
+  const rawBatch = String(studentData?.batch || "").trim();
+  const rawBranch = String(studentData?.branch || studentData?.department || "").trim().toUpperCase();
+
+  // If no info provided (unsearched guest)
+  if (!reg && !rawBatch && !rawBranch) {
+    return true;
+  }
+
+  // Check Registration Number (e.g. 230301120001, 23030112...)
+  if (reg) {
+    const isYear2023 = reg.startsWith("23");
+    const isCSE = reg.includes("030112") || rawBranch.includes("CSE") || rawBranch.includes("COMPUTER") || !rawBranch;
+    return isYear2023 && isCSE;
+  }
+
+  // Check batch and branch fields
+  const isBatch2023 = rawBatch === "2023" || rawBatch.startsWith("2023") || rawBatch === "23";
+  const isCSEBranch = rawBranch.includes("CSE") || rawBranch.includes("COMPUTER SCIENCE");
+
+  return isBatch2023 && isCSEBranch;
+}
+
 export default {
   ALL_SECTIONS,
   DAYS_LIST,
   TIME_SLOTS,
   ACADEMIC_HOLIDAYS_2026_27,
   CUTM_ACADEMIC_CALENDAR_2026_27,
+  CUTM_OPTIONAL_HOLIDAYS_RULES,
   cleanSubjectBaseName,
   getSectionSubjectCatalog,
   calculateAttendance,
   estimateTargetReachDate,
+  is2023CSEBatch,
   formatDateKey,
   getDayName,
   getDaySchedule,
