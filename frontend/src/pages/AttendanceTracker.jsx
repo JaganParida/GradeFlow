@@ -1007,16 +1007,26 @@ export default function AttendanceTracker() {
               overflow: "hidden",
             }}
           >
-            {/* Subject Selector from Timetable Catalog */}
-            <div>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8, flexWrap: "wrap", gap: 6 }}>
-                <label style={{ fontSize: 13, fontWeight: 800, color: "#0f172a", display: "flex", alignItems: "center", gap: 6 }}>
-                  <BookOpen size={15} color="#059669" />
-                  <span>Select Subject from Routine:</span>
-                </label>
-                {activeCatalogItem && (
-                  <span style={{ fontSize: 11.5, fontWeight: 800, color: "#2563eb", background: "#eff6ff", border: "1px solid #bfdbfe", padding: "3px 10px", borderRadius: 8 }}>
-                    {activeCatalogItem.classesPerWeek} classes / week
+            {/* Routine Quick Subject Selector */}
+            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <span style={{ fontSize: isMobile ? 12 : 13.5, fontWeight: 800, color: "#1e293b", display: "flex", alignItems: "center", gap: 6 }}>
+                  <BookOpen size={isMobile ? 14 : 16} color="#059669" />
+                  Select Subject from Routine:
+                </span>
+                {activeWeeklySlots.length > 0 && (
+                  <span
+                    style={{
+                      fontSize: isMobile ? 10.5 : 12,
+                      fontWeight: 800,
+                      color: "#2563eb",
+                      background: "#eff6ff",
+                      padding: isMobile ? "2px 8px" : "3px 10px",
+                      borderRadius: 8,
+                      border: "1px solid #bfdbfe",
+                    }}
+                  >
+                    {activeWeeklySlots.length} classes / week
                   </span>
                 )}
               </div>
@@ -1030,8 +1040,8 @@ export default function AttendanceTracker() {
                     disabled={!canScrollSubjectLeft}
                     aria-label="Scroll subjects left"
                     style={{
-                      width: 30,
-                      height: 30,
+                      width: isMobile ? 30 : 34,
+                      height: isMobile ? 30 : 34,
                       borderRadius: 8,
                       border: "1px solid #cbd5e1",
                       background: "#ffffff",
@@ -1045,7 +1055,7 @@ export default function AttendanceTracker() {
                       transition: "all 0.15s",
                     }}
                   >
-                    <ChevronLeft size={16} />
+                    <ChevronLeft size={isMobile ? 16 : 18} />
                   </button>
 
                   <div
@@ -1072,17 +1082,17 @@ export default function AttendanceTracker() {
                           type="button"
                           onClick={() => selectSubjectFromCatalog(s)}
                           style={{
-                            padding: "7px 14px",
+                            padding: isMobile ? "7px 14px" : "8px 16px",
                             borderRadius: 10,
-                            fontSize: 12.5,
-                            fontWeight: 800,
+                            fontSize: isMobile ? 12.5 : 13,
+                            fontWeight: 700,
                             cursor: "pointer",
                             border: isSelected ? "1.5px solid #059669" : "1px solid #e2e8f0",
                             background: isSelected ? "linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%)" : "#ffffff",
                             color: isSelected ? "#065f46" : "#475569",
                             whiteSpace: "nowrap",
                             flexShrink: 0,
-                            boxShadow: isSelected ? "0 2px 5px rgba(5, 150, 105, 0.15)" : "0 1px 2px rgba(0,0,0,0.02)",
+                            boxShadow: isSelected ? "0 2px 6px rgba(5, 150, 105, 0.15)" : "0 1px 2px rgba(0,0,0,0.02)",
                             transition: "all 0.15s ease",
                           }}
                         >
@@ -1098,8 +1108,8 @@ export default function AttendanceTracker() {
                     disabled={!canScrollSubjectRight}
                     aria-label="Scroll subjects right"
                     style={{
-                      width: 30,
-                      height: 30,
+                      width: isMobile ? 30 : 34,
+                      height: isMobile ? 30 : 34,
                       borderRadius: 8,
                       border: "1px solid #cbd5e1",
                       background: "#ffffff",
@@ -1113,37 +1123,38 @@ export default function AttendanceTracker() {
                       transition: "all 0.15s",
                     }}
                   >
-                    <ChevronRight size={16} />
+                    <ChevronRight size={isMobile ? 16 : 18} />
                   </button>
                 </div>
               )}
             </div>
 
             {/* Component Breakdown Card Rows */}
-            <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+            <div style={{ display: "flex", flexDirection: "column", gap: isMobile ? 10 : 14 }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                <span style={{ fontSize: 12, fontWeight: 800, color: "#475569", textTransform: "uppercase", letterSpacing: "0.5px" }}>
+                <span style={{ fontSize: isMobile ? 12 : 13, fontWeight: 800, color: "#334155", textTransform: "uppercase", letterSpacing: "0.5px" }}>
                   Components Breakdown (ERP Components)
                 </span>
                 <button
                   type="button"
                   onClick={() => addCustomComponent("PR")}
                   style={{
-                    border: "1px solid #cbd5e1",
+                    border: "1.5px solid #cbd5e1",
                     background: "#ffffff",
-                    padding: "4px 10px",
+                    padding: isMobile ? "4px 10px" : "6px 14px",
                     borderRadius: 8,
-                    fontSize: 11.5,
+                    fontSize: isMobile ? 11.5 : 12.5,
                     fontWeight: 700,
                     color: "#334155",
                     cursor: "pointer",
                     display: "flex",
                     alignItems: "center",
-                    gap: 4,
-                    boxShadow: "0 1px 2px rgba(0,0,0,0.02)",
+                    gap: 5,
+                    boxShadow: "0 1px 2px rgba(0,0,0,0.03)",
+                    transition: "all 0.15s ease",
                   }}
                 >
-                  <Plus size={12} />
+                  <Plus size={isMobile ? 12 : 14} />
                   <span>Add Component</span>
                 </button>
               </div>
@@ -1159,12 +1170,12 @@ export default function AttendanceTracker() {
                     style={{
                       background: "#ffffff",
                       border: "1.5px solid #e2e8f0",
-                      borderRadius: 16,
-                      padding: isMobile ? "12px 12px" : "16px 18px",
+                      borderRadius: isMobile ? 16 : 18,
+                      padding: isMobile ? "12px 12px" : "18px 20px",
                       display: "flex",
                       flexDirection: "column",
-                      gap: 10,
-                      boxShadow: "0 1px 3px rgba(0,0,0,0.02)",
+                      gap: isMobile ? 10 : 14,
+                      boxShadow: isMobile ? "0 1px 3px rgba(0,0,0,0.02)" : "0 2px 8px rgba(0,0,0,0.03)",
                       minWidth: 0,
                     }}
                   >
@@ -1173,12 +1184,12 @@ export default function AttendanceTracker() {
                       <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                         <span
                           style={{
-                            fontSize: 11.5,
-                            fontWeight: 900,
+                            fontSize: isMobile ? 11.5 : 12.5,
+                            fontWeight: 800,
                             background: comp.type === "PR" ? "#faf5ff" : comp.type === "TUT" ? "#fffbeb" : "#eff6ff",
                             color: comp.type === "PR" ? "#7c3aed" : comp.type === "TUT" ? "#b45309" : "#2563eb",
                             border: `1.5px solid ${comp.type === "PR" ? "#ddd6fe" : comp.type === "TUT" ? "#fde68a" : "#bfdbfe"}`,
-                            padding: "3px 10px",
+                            padding: isMobile ? "3px 10px" : "4px 12px",
                             borderRadius: 8,
                             letterSpacing: "0.3px",
                           }}
@@ -1190,12 +1201,12 @@ export default function AttendanceTracker() {
                       <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                         <span
                           style={{
-                            fontSize: 12.5,
+                            fontSize: isMobile ? 12.5 : 13.5,
                             fontWeight: 900,
                             background: isPassing ? "#ecfdf5" : "#fef2f2",
                             color: isPassing ? "#059669" : "#dc2626",
                             border: `1px solid ${isPassing ? "#a7f3d0" : "#fecaca"}`,
-                            padding: "3px 10px",
+                            padding: isMobile ? "3px 10px" : "4px 12px",
                             borderRadius: 8,
                           }}
                         >
@@ -1215,9 +1226,10 @@ export default function AttendanceTracker() {
                               display: "flex",
                               alignItems: "center",
                               borderRadius: 6,
+                              transition: "color 0.15s ease",
                             }}
                           >
-                            <Trash2 size={14} />
+                            <Trash2 size={isMobile ? 14 : 16} />
                           </button>
                         )}
                       </div>
@@ -1241,7 +1253,7 @@ export default function AttendanceTracker() {
                       style={{
                         display: "grid",
                         gridTemplateColumns: "1fr 1fr",
-                        gap: isMobile ? 8 : 12,
+                        gap: isMobile ? 8 : 14,
                         alignItems: "center",
                         width: "100%",
                         boxSizing: "border-box",
@@ -1252,19 +1264,28 @@ export default function AttendanceTracker() {
                         style={{
                           background: "#f8fafc",
                           border: "1px solid #e2e8f0",
-                          borderRadius: 12,
-                          padding: isMobile ? "8px 6px" : "10px 12px",
+                          borderRadius: isMobile ? 12 : 14,
+                          padding: isMobile ? "8px 6px" : "12px 14px",
                           display: "flex",
                           flexDirection: "column",
-                          gap: 6,
+                          gap: isMobile ? 6 : 8,
                           minWidth: 0,
                         }}
                       >
                         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                          <span style={{ fontSize: isMobile ? 11 : 12, color: "#475569", fontWeight: 800 }}>
+                          <span style={{ fontSize: isMobile ? 11 : 13, color: "#334155", fontWeight: 800 }}>
                             Attended
                           </span>
-                          <span style={{ fontSize: 10.5, color: "#059669", fontWeight: 800 }}>
+                          <span
+                            style={{
+                              fontSize: isMobile ? 10.5 : 11.5,
+                              color: "#059669",
+                              fontWeight: 800,
+                              background: isMobile ? "transparent" : "#ecfdf5",
+                              padding: isMobile ? "0" : "2px 8px",
+                              borderRadius: 6,
+                            }}
+                          >
                             {comp.attended} classes
                           </span>
                         </div>
@@ -1273,14 +1294,15 @@ export default function AttendanceTracker() {
                           style={{
                             display: "flex",
                             alignItems: "center",
-                            justifyContent: "center",
-                            gap: 4,
+                            justifyContent: isMobile ? "center" : "space-between",
+                            gap: isMobile ? 4 : 8,
                             background: "#ffffff",
                             border: "1.5px solid #cbd5e1",
-                            borderRadius: 10,
-                            padding: "3px 4px",
+                            borderRadius: isMobile ? 10 : 12,
+                            padding: isMobile ? "3px 4px" : "5px 8px",
                             width: "100%",
                             boxSizing: "border-box",
+                            boxShadow: isMobile ? "none" : "0 1px 2px rgba(0, 0, 0, 0.02)",
                           }}
                         >
                           <button
@@ -1288,20 +1310,21 @@ export default function AttendanceTracker() {
                             onClick={() => adjustComponentCount(idx, "attended", -1)}
                             aria-label="Decrease attended"
                             style={{
-                              width: isMobile ? 28 : 32,
-                              height: isMobile ? 28 : 32,
-                              borderRadius: 6,
-                              border: "none",
-                              background: "#f1f5f9",
+                              width: isMobile ? 28 : 36,
+                              height: isMobile ? 28 : 36,
+                              borderRadius: isMobile ? 6 : 8,
+                              border: isMobile ? "none" : "1px solid #e2e8f0",
+                              background: isMobile ? "#f1f5f9" : "#f8fafc",
                               color: "#334155",
                               cursor: "pointer",
                               display: "flex",
                               alignItems: "center",
                               justifyContent: "center",
                               flexShrink: 0,
+                              transition: "all 0.15s ease",
                             }}
                           >
-                            <Minus size={13} />
+                            <Minus size={isMobile ? 13 : 15} />
                           </button>
 
                           <input
@@ -1311,13 +1334,14 @@ export default function AttendanceTracker() {
                             onChange={(e) => handleComponentChange(idx, "attended", e.target.value)}
                             style={{
                               flex: 1,
-                              minWidth: 28,
-                              maxWidth: 54,
-                              height: isMobile ? 28 : 32,
+                              minWidth: isMobile ? 28 : 45,
+                              maxWidth: isMobile ? 54 : "none",
+                              height: isMobile ? 28 : 36,
                               border: "none",
                               textAlign: "center",
-                              fontSize: isMobile ? 14 : 15,
+                              fontSize: isMobile ? 14 : 18,
                               fontWeight: 900,
+                              fontFamily: isMobile ? "inherit" : "'Space Grotesk', -apple-system, sans-serif",
                               color: "#0f172a",
                               background: "transparent",
                               outline: "none",
@@ -1331,20 +1355,21 @@ export default function AttendanceTracker() {
                             onClick={() => adjustComponentCount(idx, "attended", 1)}
                             aria-label="Increase attended"
                             style={{
-                              width: isMobile ? 28 : 32,
-                              height: isMobile ? 28 : 32,
-                              borderRadius: 6,
-                              border: "none",
-                              background: "#f1f5f9",
+                              width: isMobile ? 28 : 36,
+                              height: isMobile ? 28 : 36,
+                              borderRadius: isMobile ? 6 : 8,
+                              border: isMobile ? "none" : "1px solid #e2e8f0",
+                              background: isMobile ? "#f1f5f9" : "#f8fafc",
                               color: "#334155",
                               cursor: "pointer",
                               display: "flex",
                               alignItems: "center",
                               justifyContent: "center",
                               flexShrink: 0,
+                              transition: "all 0.15s ease",
                             }}
                           >
-                            <Plus size={13} />
+                            <Plus size={isMobile ? 13 : 15} />
                           </button>
                         </div>
                       </div>
@@ -1354,19 +1379,28 @@ export default function AttendanceTracker() {
                         style={{
                           background: "#f8fafc",
                           border: "1px solid #e2e8f0",
-                          borderRadius: 12,
-                          padding: isMobile ? "8px 6px" : "10px 12px",
+                          borderRadius: isMobile ? 12 : 14,
+                          padding: isMobile ? "8px 6px" : "12px 14px",
                           display: "flex",
                           flexDirection: "column",
-                          gap: 6,
+                          gap: isMobile ? 6 : 8,
                           minWidth: 0,
                         }}
                       >
                         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                          <span style={{ fontSize: isMobile ? 11 : 12, color: "#475569", fontWeight: 800 }}>
+                          <span style={{ fontSize: isMobile ? 11 : 13, color: "#334155", fontWeight: 800 }}>
                             Conducted
                           </span>
-                          <span style={{ fontSize: 10.5, color: "#64748b", fontWeight: 800 }}>
+                          <span
+                            style={{
+                              fontSize: isMobile ? 10.5 : 11.5,
+                              color: "#475569",
+                              fontWeight: 800,
+                              background: isMobile ? "transparent" : "#f1f5f9",
+                              padding: isMobile ? "0" : "2px 8px",
+                              borderRadius: 6,
+                            }}
+                          >
                             {comp.delivered} total
                           </span>
                         </div>
@@ -1375,14 +1409,15 @@ export default function AttendanceTracker() {
                           style={{
                             display: "flex",
                             alignItems: "center",
-                            justifyContent: "center",
-                            gap: 4,
+                            justifyContent: isMobile ? "center" : "space-between",
+                            gap: isMobile ? 4 : 8,
                             background: "#ffffff",
                             border: "1.5px solid #cbd5e1",
-                            borderRadius: 10,
-                            padding: "3px 4px",
+                            borderRadius: isMobile ? 10 : 12,
+                            padding: isMobile ? "3px 4px" : "5px 8px",
                             width: "100%",
                             boxSizing: "border-box",
+                            boxShadow: isMobile ? "none" : "0 1px 2px rgba(0, 0, 0, 0.02)",
                           }}
                         >
                           <button
@@ -1390,20 +1425,21 @@ export default function AttendanceTracker() {
                             onClick={() => adjustComponentCount(idx, "delivered", -1)}
                             aria-label="Decrease delivered"
                             style={{
-                              width: isMobile ? 28 : 32,
-                              height: isMobile ? 28 : 32,
-                              borderRadius: 6,
-                              border: "none",
-                              background: "#f1f5f9",
+                              width: isMobile ? 28 : 36,
+                              height: isMobile ? 28 : 36,
+                              borderRadius: isMobile ? 6 : 8,
+                              border: isMobile ? "none" : "1px solid #e2e8f0",
+                              background: isMobile ? "#f1f5f9" : "#f8fafc",
                               color: "#334155",
                               cursor: "pointer",
                               display: "flex",
                               alignItems: "center",
                               justifyContent: "center",
                               flexShrink: 0,
+                              transition: "all 0.15s ease",
                             }}
                           >
-                            <Minus size={13} />
+                            <Minus size={isMobile ? 13 : 15} />
                           </button>
 
                           <input
@@ -1413,13 +1449,14 @@ export default function AttendanceTracker() {
                             onChange={(e) => handleComponentChange(idx, "delivered", e.target.value)}
                             style={{
                               flex: 1,
-                              minWidth: 28,
-                              maxWidth: 54,
-                              height: isMobile ? 28 : 32,
+                              minWidth: isMobile ? 28 : 45,
+                              maxWidth: isMobile ? 54 : "none",
+                              height: isMobile ? 28 : 36,
                               border: "none",
                               textAlign: "center",
-                              fontSize: isMobile ? 14 : 15,
+                              fontSize: isMobile ? 14 : 18,
                               fontWeight: 900,
+                              fontFamily: isMobile ? "inherit" : "'Space Grotesk', -apple-system, sans-serif",
                               color: "#0f172a",
                               background: "transparent",
                               outline: "none",
@@ -1433,20 +1470,21 @@ export default function AttendanceTracker() {
                             onClick={() => adjustComponentCount(idx, "delivered", 1)}
                             aria-label="Increase delivered"
                             style={{
-                              width: isMobile ? 28 : 32,
-                              height: isMobile ? 28 : 32,
-                              borderRadius: 6,
-                              border: "none",
-                              background: "#f1f5f9",
+                              width: isMobile ? 28 : 36,
+                              height: isMobile ? 28 : 36,
+                              borderRadius: isMobile ? 6 : 8,
+                              border: isMobile ? "none" : "1px solid #e2e8f0",
+                              background: isMobile ? "#f1f5f9" : "#f8fafc",
                               color: "#334155",
                               cursor: "pointer",
                               display: "flex",
                               alignItems: "center",
                               justifyContent: "center",
                               flexShrink: 0,
+                              transition: "all 0.15s ease",
                             }}
                           >
-                            <Plus size={13} />
+                            <Plus size={isMobile ? 13 : 15} />
                           </button>
                         </div>
                       </div>
@@ -1463,10 +1501,10 @@ export default function AttendanceTracker() {
                 onClick={handleSaveActiveSubject}
                 style={{
                   flex: 1,
-                  padding: "10px 14px",
+                  padding: isMobile ? "10px 14px" : "13px 20px",
                   borderRadius: 12,
                   border: "none",
-                  background: "#059669",
+                  background: "linear-gradient(135deg, #059669 0%, #047857 100%)",
                   color: "#ffffff",
                   fontSize: 13,
                   fontWeight: 800,
