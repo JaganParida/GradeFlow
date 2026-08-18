@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useApp } from "../context/AppContext";
 import { encodeStudentId, decodeStudentId, isEncryptedToken } from "../utils/studentIdEncoder";
@@ -28,6 +28,8 @@ import {
   Award,
   Info,
   ChevronDown,
+  ChevronLeft,
+  ChevronRight,
   Target,
   Zap,
   Grid,
@@ -75,6 +77,43 @@ export default function AttendanceTracker() {
     window.addEventListener("resize", handleResize);
     return () => window.removeEventListener("resize", handleResize);
   }, []);
+
+  // Arrow Scroll Controllers for Horizontal Pill Bars
+  const subjectPillsRef = useRef(null);
+  const [canScrollSubjectLeft, setCanScrollSubjectLeft] = useState(false);
+  const [canScrollSubjectRight, setCanScrollSubjectRight] = useState(true);
+
+  const sectionPillsRef = useRef(null);
+  const [canScrollSectionLeft, setCanScrollSectionLeft] = useState(false);
+  const [canScrollSectionRight, setCanScrollSectionRight] = useState(true);
+
+  function checkSubjectScroll() {
+    if (!subjectPillsRef.current) return;
+    const { scrollLeft, scrollWidth, clientWidth } = subjectPillsRef.current;
+    setCanScrollSubjectLeft(scrollLeft > 4);
+    setCanScrollSubjectRight(scrollLeft < scrollWidth - clientWidth - 4);
+  }
+
+  function scrollSubjectPills(direction) {
+    if (!subjectPillsRef.current) return;
+    const offset = direction === "left" ? -220 : 220;
+    subjectPillsRef.current.scrollBy({ left: offset, behavior: "smooth" });
+    setTimeout(checkSubjectScroll, 250);
+  }
+
+  function checkSectionScroll() {
+    if (!sectionPillsRef.current) return;
+    const { scrollLeft, scrollWidth, clientWidth } = sectionPillsRef.current;
+    setCanScrollSectionLeft(scrollLeft > 4);
+    setCanScrollSectionRight(scrollLeft < scrollWidth - clientWidth - 4);
+  }
+
+  function scrollSectionPills(direction) {
+    if (!sectionPillsRef.current) return;
+    const offset = direction === "left" ? -180 : 180;
+    sectionPillsRef.current.scrollBy({ left: offset, behavior: "smooth" });
+    setTimeout(checkSectionScroll, 250);
+  }
 
   // Sync student section when studentData changes
   useEffect(() => {
@@ -317,6 +356,7 @@ export default function AttendanceTracker() {
         fontFamily: "'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif",
         paddingBottom: 90,
         width: "100%",
+        overflowX: "hidden",
         boxSizing: "border-box",
       }}
     >
@@ -325,10 +365,12 @@ export default function AttendanceTracker() {
         style={{
           maxWidth: 1360,
           margin: "0 auto",
-          padding: isMobile ? "14px 12px" : "24px 24px",
+          padding: isMobile ? "12px 10px 80px 10px" : "24px 24px 90px 24px",
           display: "flex",
           flexDirection: "column",
           gap: 16,
+          boxSizing: "border-box",
+          width: "100%",
         }}
       >
         {/* ═══════════════════════════════════════════════════════════════
@@ -477,47 +519,100 @@ export default function AttendanceTracker() {
             </div>
           </div>
 
-          {/* Quick Section Switcher Pills (ONLY in Guest / Generic Mode when no student searched) */}
-          {!isMobile && !activeStudentName && !currentRegNo && (
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 6,
-                padding: "8px 12px",
-                borderRadius: 12,
-                background: "#f8fafc",
-                border: "1px solid #e2e8f0",
-                overflowX: "auto",
-              }}
-            >
-              <span style={{ fontSize: 11, fontWeight: 800, color: "#64748b", textTransform: "uppercase", marginRight: 4 }}>
-                Section:
-              </span>
-              {ALL_SECTIONS.map((sec) => {
-                const isActive = selectedSection === sec;
-                return (
-                  <button
-                    key={sec}
-                    type="button"
-                    onClick={() => setSelectedSection(sec)}
-                    style={{
-                      padding: "4px 10px",
-                      borderRadius: 8,
-                      fontSize: 12,
-                      fontWeight: 800,
-                      cursor: "pointer",
-                      border: isActive ? "1.5px solid #059669" : "1px solid transparent",
-                      background: isActive ? "#059669" : "transparent",
-                      color: isActive ? "#ffffff" : "#475569",
-                      transition: "all 0.15s ease",
-                      whiteSpace: "nowrap",
-                    }}
-                  >
-                    {sec}
-                  </button>
-                );
-              })}
+          {/* Quick Section Switcher Pills with Arrow Buttons (In Guest / Generic Mode) */}
+          {!activeStudentName && !currentRegNo && (
+            <div style={{ display: "flex", alignItems: "center", gap: 4, width: "100%", position: "relative" }}>
+              <button
+                type="button"
+                onClick={() => scrollSectionPills("left")}
+                disabled={!canScrollSectionLeft}
+                aria-label="Scroll sections left"
+                style={{
+                  width: 26,
+                  height: 26,
+                  borderRadius: 7,
+                  border: "1px solid #cbd5e1",
+                  background: "#ffffff",
+                  color: canScrollSectionLeft ? "#0f172a" : "#cbd5e1",
+                  cursor: canScrollSectionLeft ? "pointer" : "default",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  flexShrink: 0,
+                }}
+              >
+                <ChevronLeft size={14} />
+              </button>
+
+              <div
+                ref={sectionPillsRef}
+                onScroll={checkSectionScroll}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 5,
+                  padding: "6px 8px",
+                  borderRadius: 10,
+                  background: "#f8fafc",
+                  border: "1px solid #e2e8f0",
+                  overflowX: "auto",
+                  scrollBehavior: "smooth",
+                  scrollbarWidth: "none",
+                  msOverflowStyle: "none",
+                  flex: 1,
+                }}
+              >
+                <span style={{ fontSize: 11, fontWeight: 800, color: "#64748b", textTransform: "uppercase", marginRight: 2, flexShrink: 0 }}>
+                  Sec:
+                </span>
+                {ALL_SECTIONS.map((sec) => {
+                  const isActive = selectedSection === sec;
+                  return (
+                    <button
+                      key={sec}
+                      type="button"
+                      onClick={() => setSelectedSection(sec)}
+                      style={{
+                        padding: "3px 9px",
+                        borderRadius: 7,
+                        fontSize: 11.5,
+                        fontWeight: 800,
+                        cursor: "pointer",
+                        border: isActive ? "1.5px solid #059669" : "1px solid transparent",
+                        background: isActive ? "#059669" : "transparent",
+                        color: isActive ? "#ffffff" : "#475569",
+                        transition: "all 0.15s ease",
+                        whiteSpace: "nowrap",
+                        flexShrink: 0,
+                      }}
+                    >
+                      {sec}
+                    </button>
+                  );
+                })}
+              </div>
+
+              <button
+                type="button"
+                onClick={() => scrollSectionPills("right")}
+                disabled={!canScrollSectionRight}
+                aria-label="Scroll sections right"
+                style={{
+                  width: 26,
+                  height: 26,
+                  borderRadius: 7,
+                  border: "1px solid #cbd5e1",
+                  background: "#ffffff",
+                  color: canScrollSectionRight ? "#0f172a" : "#cbd5e1",
+                  cursor: canScrollSectionRight ? "pointer" : "default",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  flexShrink: 0,
+                }}
+              >
+                <ChevronRight size={14} />
+              </button>
             </div>
           )}
 
@@ -920,6 +1015,98 @@ export default function AttendanceTracker() {
                   </span>
                 )}
               </div>
+
+              {/* Quick Subject Pills with Arrow Scroll Buttons */}
+              {sectionCatalog.length > 0 && (
+                <div style={{ position: "relative", marginBottom: 10, display: "flex", alignItems: "center", gap: 4 }}>
+                  <button
+                    type="button"
+                    onClick={() => scrollSubjectPills("left")}
+                    disabled={!canScrollSubjectLeft}
+                    aria-label="Scroll subjects left"
+                    style={{
+                      width: 28,
+                      height: 28,
+                      borderRadius: 8,
+                      border: "1px solid #cbd5e1",
+                      background: "#ffffff",
+                      color: canScrollSubjectLeft ? "#0f172a" : "#cbd5e1",
+                      cursor: canScrollSubjectLeft ? "pointer" : "default",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      flexShrink: 0,
+                      boxShadow: "0 1px 2px rgba(0,0,0,0.05)",
+                    }}
+                  >
+                    <ChevronLeft size={15} />
+                  </button>
+
+                  <div
+                    ref={subjectPillsRef}
+                    onScroll={checkSubjectScroll}
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 6,
+                      overflowX: "auto",
+                      scrollBehavior: "smooth",
+                      scrollbarWidth: "none",
+                      msOverflowStyle: "none",
+                      padding: "2px 0",
+                    }}
+                  >
+                    {sectionCatalog.map((s) => {
+                      const isSelected = selectedSubjectName === s.subjectName;
+                      return (
+                        <button
+                          key={s.subjectName}
+                          type="button"
+                          onClick={() => selectSubjectFromCatalog(s)}
+                          style={{
+                            padding: "6px 12px",
+                            borderRadius: 8,
+                            fontSize: 12,
+                            fontWeight: 800,
+                            cursor: "pointer",
+                            border: isSelected ? "1.5px solid #059669" : "1px solid #e2e8f0",
+                            background: isSelected ? "#ecfdf5" : "#ffffff",
+                            color: isSelected ? "#059669" : "#475569",
+                            whiteSpace: "nowrap",
+                            flexShrink: 0,
+                            transition: "all 0.15s ease",
+                          }}
+                        >
+                          {s.subjectName}
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => scrollSubjectPills("right")}
+                    disabled={!canScrollSubjectRight}
+                    aria-label="Scroll subjects right"
+                    style={{
+                      width: 28,
+                      height: 28,
+                      borderRadius: 8,
+                      border: "1px solid #cbd5e1",
+                      background: "#ffffff",
+                      color: canScrollSubjectRight ? "#0f172a" : "#cbd5e1",
+                      cursor: canScrollSubjectRight ? "pointer" : "default",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      flexShrink: 0,
+                      boxShadow: "0 1px 2px rgba(0,0,0,0.05)",
+                    }}
+                  >
+                    <ChevronRight size={15} />
+                  </button>
+                </div>
+              )}
 
               <select
                 value={selectedSubjectName}

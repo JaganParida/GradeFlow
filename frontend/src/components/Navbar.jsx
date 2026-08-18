@@ -205,6 +205,7 @@ export default function Navbar() {
             <img
               src="/webisteLogo.png"
               alt="GradeFlow Logo"
+              className="gf-logo-img"
               style={{
                 height: 32,
                 width: "auto",
@@ -213,6 +214,7 @@ export default function Navbar() {
               }}
             />
             <span
+              className="gf-logo-text"
               style={{
                 fontFamily: "'DM Sans', sans-serif",
                 fontWeight: 800,
@@ -708,6 +710,7 @@ export default function Navbar() {
             {/* Subtle Admin Button (Not Bright / Clean Ghost Pill) */}
             <Link
               to="/admin"
+              className="gf-admin-link"
               title="Admin Portal"
               style={{
                 textDecoration: "none",
@@ -735,7 +738,7 @@ export default function Navbar() {
               }}
             >
               <ShieldCheck size={14} color="#64748b" />
-              <span>Admin</span>
+              <span className="gf-admin-text">Admin</span>
             </Link>
 
             {/* Desktop Auth Button */}
@@ -1830,8 +1833,38 @@ export default function Navbar() {
         }
         @media (max-width: 768px) {
           .gf-navbar-inner {
-            height: 58px !important;
-            padding: 0 16px !important;
+            height: 56px !important;
+            padding: 0 12px !important;
+            gap: 8px !important;
+          }
+          .gf-logo-text {
+            font-size: 18px !important;
+          }
+          .gf-logo-img {
+            height: 28px !important;
+          }
+        }
+        @media (max-width: 480px) {
+          .gf-navbar-inner {
+            padding: 0 10px !important;
+            gap: 6px !important;
+          }
+          .gf-admin-text {
+            display: none !important;
+          }
+          .gf-admin-link {
+            padding: 7px !important;
+            border-radius: 50% !important;
+            width: 34px !important;
+            height: 34px !important;
+            justify-content: center !important;
+            box-sizing: border-box !important;
+          }
+          .gf-logo-text {
+            font-size: 16.5px !important;
+          }
+          .gf-logo-img {
+            height: 25px !important;
           }
         }
       `}</style>

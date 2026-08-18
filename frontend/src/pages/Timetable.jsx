@@ -95,6 +95,26 @@ export default function Timetable() {
   const [canScrollHolidayLeft, setCanScrollHolidayLeft] = useState(false);
   const [canScrollHolidayRight, setCanScrollHolidayRight] = useState(true);
 
+  // Mode Switcher Scroll Controls
+  const modeSwitcherRef = useRef(null);
+  const [canScrollModeLeft, setCanScrollModeLeft] = useState(false);
+  const [canScrollModeRight, setCanScrollModeRight] = useState(true);
+
+  // Section Switcher Scroll Controls
+  const sectionPillsRef = useRef(null);
+  const [canScrollSectionLeft, setCanScrollSectionLeft] = useState(false);
+  const [canScrollSectionRight, setCanScrollSectionRight] = useState(true);
+
+  // Day Selector Pills Scroll Controls
+  const dayPillsRef = useRef(null);
+  const [canScrollDayLeft, setCanScrollDayLeft] = useState(false);
+  const [canScrollDayRight, setCanScrollDayRight] = useState(true);
+
+  // Weekly Matrix Mobile Day Tabs Scroll Controls
+  const weekMobileDayRef = useRef(null);
+  const [canScrollWeekDayLeft, setCanScrollWeekDayLeft] = useState(false);
+  const [canScrollWeekDayRight, setCanScrollWeekDayRight] = useState(true);
+
   const checkHolidayScroll = () => {
     if (holidayMonthsRef.current) {
       const { scrollLeft, scrollWidth, clientWidth } = holidayMonthsRef.current;
@@ -111,11 +131,79 @@ export default function Timetable() {
     }
   };
 
+  const checkModeScroll = () => {
+    if (modeSwitcherRef.current) {
+      const { scrollLeft, scrollWidth, clientWidth } = modeSwitcherRef.current;
+      setCanScrollModeLeft(scrollLeft > 4);
+      setCanScrollModeRight(scrollLeft < scrollWidth - clientWidth - 4);
+    }
+  };
+
+  const scrollModeSwitcher = (direction) => {
+    if (modeSwitcherRef.current) {
+      const scrollAmount = direction === "left" ? -160 : 160;
+      modeSwitcherRef.current.scrollBy({ left: scrollAmount, behavior: "smooth" });
+      setTimeout(checkModeScroll, 200);
+    }
+  };
+
+  const checkSectionScroll = () => {
+    if (sectionPillsRef.current) {
+      const { scrollLeft, scrollWidth, clientWidth } = sectionPillsRef.current;
+      setCanScrollSectionLeft(scrollLeft > 4);
+      setCanScrollSectionRight(scrollLeft < scrollWidth - clientWidth - 4);
+    }
+  };
+
+  const scrollSectionPills = (direction) => {
+    if (sectionPillsRef.current) {
+      const scrollAmount = direction === "left" ? -160 : 160;
+      sectionPillsRef.current.scrollBy({ left: scrollAmount, behavior: "smooth" });
+      setTimeout(checkSectionScroll, 200);
+    }
+  };
+
+  const checkDayScroll = () => {
+    if (dayPillsRef.current) {
+      const { scrollLeft, scrollWidth, clientWidth } = dayPillsRef.current;
+      setCanScrollDayLeft(scrollLeft > 4);
+      setCanScrollDayRight(scrollLeft < scrollWidth - clientWidth - 4);
+    }
+  };
+
+  const scrollDayPills = (direction) => {
+    if (dayPillsRef.current) {
+      const scrollAmount = direction === "left" ? -140 : 140;
+      dayPillsRef.current.scrollBy({ left: scrollAmount, behavior: "smooth" });
+      setTimeout(checkDayScroll, 200);
+    }
+  };
+
+  const checkWeekDayScroll = () => {
+    if (weekMobileDayRef.current) {
+      const { scrollLeft, scrollWidth, clientWidth } = weekMobileDayRef.current;
+      setCanScrollWeekDayLeft(scrollLeft > 4);
+      setCanScrollWeekDayRight(scrollLeft < scrollWidth - clientWidth - 4);
+    }
+  };
+
+  const scrollWeekMobileDay = (direction) => {
+    if (weekMobileDayRef.current) {
+      const scrollAmount = direction === "left" ? -140 : 140;
+      weekMobileDayRef.current.scrollBy({ left: scrollAmount, behavior: "smooth" });
+      setTimeout(checkWeekDayScroll, 200);
+    }
+  };
+
   // Responsive listener
   useEffect(() => {
     const handleResize = () => {
       setIsMobile(window.innerWidth < 1024);
       checkHolidayScroll();
+      checkModeScroll();
+      checkSectionScroll();
+      checkDayScroll();
+      checkWeekDayScroll();
     };
     window.addEventListener("resize", handleResize);
     return () => window.removeEventListener("resize", handleResize);
@@ -341,6 +429,7 @@ export default function Timetable() {
         fontFamily: "'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif",
         paddingBottom: 90,
         width: "100%",
+        overflowX: "hidden",
         boxSizing: "border-box",
       }}
     >
@@ -349,10 +438,12 @@ export default function Timetable() {
         style={{
           maxWidth: 1360,
           margin: "0 auto",
-          padding: isMobile ? "14px 12px" : "24px 24px",
+          padding: isMobile ? "12px 10px 80px 10px" : "24px 24px 90px 24px",
           display: "flex",
           flexDirection: "column",
           gap: 16,
+          boxSizing: "border-box",
+          width: "100%",
         }}
       >
         {/* ═══════════════════════════════════════════════════════════════
@@ -501,47 +592,100 @@ export default function Timetable() {
             </div>
           </div>
 
-          {/* Quick Section Switcher Pills (ONLY in Guest / Generic Mode when no student searched) */}
-          {!isMobile && !activeStudentName && !currentRegNo && (
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 6,
-                padding: "8px 12px",
-                borderRadius: 12,
-                background: "#f8fafc",
-                border: "1px solid #e2e8f0",
-                overflowX: "auto",
-              }}
-            >
-              <span style={{ fontSize: 11, fontWeight: 800, color: "#64748b", textTransform: "uppercase", marginRight: 4 }}>
-                Sections:
-              </span>
-              {ALL_SECTIONS.map((sec) => {
-                const isActive = selectedSection === sec;
-                return (
-                  <button
-                    key={sec}
-                    type="button"
-                    onClick={() => setSelectedSection(sec)}
-                    style={{
-                      padding: "4px 10px",
-                      borderRadius: 8,
-                      fontSize: 12,
-                      fontWeight: 800,
-                      cursor: "pointer",
-                      border: isActive ? "1.5px solid #2563eb" : "1px solid transparent",
-                      background: isActive ? "#2563eb" : "transparent",
-                      color: isActive ? "#ffffff" : "#475569",
-                      transition: "all 0.15s ease",
-                      whiteSpace: "nowrap",
-                    }}
-                  >
-                    {sec}
-                  </button>
-                );
-              })}
+          {/* Quick Section Switcher Pills with Arrow Buttons (In Guest / Generic Mode) */}
+          {!activeStudentName && !currentRegNo && (
+            <div style={{ display: "flex", alignItems: "center", gap: 4, width: "100%", position: "relative" }}>
+              <button
+                type="button"
+                onClick={() => scrollSectionPills("left")}
+                disabled={!canScrollSectionLeft}
+                aria-label="Scroll sections left"
+                style={{
+                  width: 26,
+                  height: 26,
+                  borderRadius: 7,
+                  border: "1px solid #cbd5e1",
+                  background: "#ffffff",
+                  color: canScrollSectionLeft ? "#0f172a" : "#cbd5e1",
+                  cursor: canScrollSectionLeft ? "pointer" : "default",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  flexShrink: 0,
+                }}
+              >
+                <ChevronLeft size={14} />
+              </button>
+
+              <div
+                ref={sectionPillsRef}
+                onScroll={checkSectionScroll}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 5,
+                  padding: "6px 8px",
+                  borderRadius: 10,
+                  background: "#f8fafc",
+                  border: "1px solid #e2e8f0",
+                  overflowX: "auto",
+                  scrollBehavior: "smooth",
+                  scrollbarWidth: "none",
+                  msOverflowStyle: "none",
+                  flex: 1,
+                }}
+              >
+                <span style={{ fontSize: 11, fontWeight: 800, color: "#64748b", textTransform: "uppercase", marginRight: 2, flexShrink: 0 }}>
+                  Sec:
+                </span>
+                {ALL_SECTIONS.map((sec) => {
+                  const isActive = selectedSection === sec;
+                  return (
+                    <button
+                      key={sec}
+                      type="button"
+                      onClick={() => setSelectedSection(sec)}
+                      style={{
+                        padding: "3px 9px",
+                        borderRadius: 7,
+                        fontSize: 11.5,
+                        fontWeight: 800,
+                        cursor: "pointer",
+                        border: isActive ? "1.5px solid #2563eb" : "1px solid transparent",
+                        background: isActive ? "#2563eb" : "transparent",
+                        color: isActive ? "#ffffff" : "#475569",
+                        transition: "all 0.15s ease",
+                        whiteSpace: "nowrap",
+                        flexShrink: 0,
+                      }}
+                    >
+                      {sec}
+                    </button>
+                  );
+                })}
+              </div>
+
+              <button
+                type="button"
+                onClick={() => scrollSectionPills("right")}
+                disabled={!canScrollSectionRight}
+                aria-label="Scroll sections right"
+                style={{
+                  width: 26,
+                  height: 26,
+                  borderRadius: 7,
+                  border: "1px solid #cbd5e1",
+                  background: "#ffffff",
+                  color: canScrollSectionRight ? "#0f172a" : "#cbd5e1",
+                  cursor: canScrollSectionRight ? "pointer" : "default",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  flexShrink: 0,
+                }}
+              >
+                <ChevronRight size={14} />
+              </button>
             </div>
           )}
 
@@ -625,109 +769,164 @@ export default function Timetable() {
               </button>
             </form>
 
-            {/* View Mode Switcher Pills */}
-            <div
-              style={{
-                display: "inline-flex",
-                background: "#f1f5f9",
-                padding: 4,
-                borderRadius: 12,
-                gap: 3,
-                border: "1px solid #e2e8f0",
-                overflowX: "auto",
-                maxWidth: "100%",
-              }}
-            >
+            {/* View Mode Switcher Pills with Arrow Scroll Buttons */}
+            <div style={{ display: "flex", alignItems: "center", gap: 4, maxWidth: "100%", position: "relative" }}>
               <button
                 type="button"
-                onClick={() => setViewMode("day")}
+                onClick={() => scrollModeSwitcher("left")}
+                disabled={!canScrollModeLeft}
+                aria-label="Scroll modes left"
                 style={{
-                  padding: isMobile ? "6px 10px" : "7px 14px",
-                  borderRadius: 9,
-                  border: "none",
-                  background: viewMode === "day" ? "#ffffff" : "transparent",
-                  color: viewMode === "day" ? "#2563eb" : "#64748b",
-                  fontSize: 12,
-                  fontWeight: 800,
-                  cursor: "pointer",
+                  width: 26,
+                  height: 26,
+                  borderRadius: 7,
+                  border: "1px solid #cbd5e1",
+                  background: "#ffffff",
+                  color: canScrollModeLeft ? "#0f172a" : "#cbd5e1",
+                  cursor: canScrollModeLeft ? "pointer" : "default",
                   display: "flex",
                   alignItems: "center",
-                  gap: 6,
-                  boxShadow: viewMode === "day" ? "0 1px 4px rgba(0,0,0,0.08)" : "none",
-                  whiteSpace: "nowrap",
+                  justifyContent: "center",
+                  flexShrink: 0,
                 }}
               >
-                <Clock size={14} />
-                <span>Daily Routine</span>
+                <ChevronLeft size={14} />
               </button>
+
+              <div
+                ref={modeSwitcherRef}
+                onScroll={checkModeScroll}
+                style={{
+                  display: "inline-flex",
+                  background: "#f1f5f9",
+                  padding: 4,
+                  borderRadius: 12,
+                  gap: 3,
+                  border: "1px solid #e2e8f0",
+                  overflowX: "auto",
+                  scrollBehavior: "smooth",
+                  scrollbarWidth: "none",
+                  msOverflowStyle: "none",
+                  maxWidth: "100%",
+                }}
+              >
+                <button
+                  type="button"
+                  onClick={() => setViewMode("day")}
+                  style={{
+                    padding: isMobile ? "6px 10px" : "7px 14px",
+                    borderRadius: 9,
+                    border: "none",
+                    background: viewMode === "day" ? "#ffffff" : "transparent",
+                    color: viewMode === "day" ? "#2563eb" : "#64748b",
+                    fontSize: 12,
+                    fontWeight: 800,
+                    cursor: "pointer",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 6,
+                    boxShadow: viewMode === "day" ? "0 1px 4px rgba(0,0,0,0.08)" : "none",
+                    whiteSpace: "nowrap",
+                    flexShrink: 0,
+                  }}
+                >
+                  <Clock size={14} />
+                  <span>Daily Routine</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setViewMode("week")}
+                  style={{
+                    padding: isMobile ? "6px 10px" : "7px 14px",
+                    borderRadius: 9,
+                    border: "none",
+                    background: viewMode === "week" ? "#ffffff" : "transparent",
+                    color: viewMode === "week" ? "#2563eb" : "#64748b",
+                    fontSize: 12,
+                    fontWeight: 800,
+                    cursor: "pointer",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 6,
+                    boxShadow: viewMode === "week" ? "0 1px 4px rgba(0,0,0,0.08)" : "none",
+                    whiteSpace: "nowrap",
+                    flexShrink: 0,
+                  }}
+                >
+                  <Grid size={14} />
+                  <span>Weekly Matrix</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setViewMode("academic")}
+                  style={{
+                    padding: isMobile ? "6px 10px" : "7px 14px",
+                    borderRadius: 9,
+                    border: "none",
+                    background: viewMode === "academic" ? "#ffffff" : "transparent",
+                    color: viewMode === "academic" ? "#7c3aed" : "#64748b",
+                    fontSize: 12,
+                    fontWeight: 800,
+                    cursor: "pointer",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 6,
+                    boxShadow: viewMode === "academic" ? "0 1px 4px rgba(0,0,0,0.08)" : "none",
+                    whiteSpace: "nowrap",
+                    flexShrink: 0,
+                  }}
+                >
+                  <CalendarIcon size={14} />
+                  <span>Academic Calendar</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setViewMode("holidays")}
+                  style={{
+                    padding: isMobile ? "6px 10px" : "7px 14px",
+                    borderRadius: 9,
+                    border: "none",
+                    background: viewMode === "holidays" ? "#ffffff" : "transparent",
+                    color: viewMode === "holidays" ? "#dc2626" : "#64748b",
+                    fontSize: 12,
+                    fontWeight: 800,
+                    cursor: "pointer",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 6,
+                    boxShadow: viewMode === "holidays" ? "0 1px 4px rgba(0,0,0,0.08)" : "none",
+                    whiteSpace: "nowrap",
+                    flexShrink: 0,
+                  }}
+                >
+                  <Sun size={14} />
+                  <span>Holidays</span>
+                </button>
+              </div>
 
               <button
                 type="button"
-                onClick={() => setViewMode("week")}
+                onClick={() => scrollModeSwitcher("right")}
+                disabled={!canScrollModeRight}
+                aria-label="Scroll modes right"
                 style={{
-                  padding: isMobile ? "6px 10px" : "7px 14px",
-                  borderRadius: 9,
-                  border: "none",
-                  background: viewMode === "week" ? "#ffffff" : "transparent",
-                  color: viewMode === "week" ? "#2563eb" : "#64748b",
-                  fontSize: 12,
-                  fontWeight: 800,
-                  cursor: "pointer",
+                  width: 26,
+                  height: 26,
+                  borderRadius: 7,
+                  border: "1px solid #cbd5e1",
+                  background: "#ffffff",
+                  color: canScrollModeRight ? "#0f172a" : "#cbd5e1",
+                  cursor: canScrollModeRight ? "pointer" : "default",
                   display: "flex",
                   alignItems: "center",
-                  gap: 6,
-                  boxShadow: viewMode === "week" ? "0 1px 4px rgba(0,0,0,0.08)" : "none",
-                  whiteSpace: "nowrap",
+                  justifyContent: "center",
+                  flexShrink: 0,
                 }}
               >
-                <Grid size={14} />
-                <span>Weekly Matrix</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setViewMode("academic")}
-                style={{
-                  padding: isMobile ? "6px 10px" : "7px 14px",
-                  borderRadius: 9,
-                  border: "none",
-                  background: viewMode === "academic" ? "#ffffff" : "transparent",
-                  color: viewMode === "academic" ? "#7c3aed" : "#64748b",
-                  fontSize: 12,
-                  fontWeight: 800,
-                  cursor: "pointer",
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 6,
-                  boxShadow: viewMode === "academic" ? "0 1px 4px rgba(0,0,0,0.08)" : "none",
-                  whiteSpace: "nowrap",
-                }}
-              >
-                <CalendarIcon size={14} />
-                <span>Academic Calendar</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setViewMode("holidays")}
-                style={{
-                  padding: isMobile ? "6px 10px" : "7px 14px",
-                  borderRadius: 9,
-                  border: "none",
-                  background: viewMode === "holidays" ? "#ffffff" : "transparent",
-                  color: viewMode === "holidays" ? "#dc2626" : "#64748b",
-                  fontSize: 12,
-                  fontWeight: 800,
-                  cursor: "pointer",
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 6,
-                  boxShadow: viewMode === "holidays" ? "0 1px 4px rgba(0,0,0,0.08)" : "none",
-                  whiteSpace: "nowrap",
-                }}
-              >
-                <Sun size={14} />
-                <span>Holidays</span>
+                <ChevronRight size={14} />
               </button>
             </div>
           </div>
@@ -1040,32 +1239,96 @@ export default function Timetable() {
                 </span>
               </div>
 
-              {/* Quick Jump Day Pills */}
-              <div style={{ display: "flex", gap: 4, overflowX: "auto", maxWidth: "100%", paddingBottom: isMobile ? 4 : 0 }}>
-                {DAYS_LIST.map((day) => {
-                  const isSelected = selectedDayName === day;
-                  return (
-                    <button
-                      key={day}
-                      type="button"
-                      onClick={() => jumpToDay(day)}
-                      style={{
-                        padding: isMobile ? "5px 9px" : "6px 12px",
-                        borderRadius: 8,
-                        fontSize: 12,
-                        fontWeight: 800,
-                        cursor: "pointer",
-                        border: isSelected ? "1.5px solid #2563eb" : "1px solid #e2e8f0",
-                        background: isSelected ? "#eff6ff" : "#ffffff",
-                        color: isSelected ? "#2563eb" : "#64748b",
-                        whiteSpace: "nowrap",
-                        transition: "all 0.15s ease",
-                      }}
-                    >
-                      {day.substring(0, 3)}
-                    </button>
-                  );
-                })}
+              {/* Quick Jump Day Pills with Arrow Controls */}
+              <div style={{ display: "flex", alignItems: "center", gap: 3, maxWidth: "100%" }}>
+                {isMobile && (
+                  <button
+                    type="button"
+                    onClick={() => scrollDayPills("left")}
+                    disabled={!canScrollDayLeft}
+                    aria-label="Scroll days left"
+                    style={{
+                      width: 24,
+                      height: 24,
+                      borderRadius: 6,
+                      border: "1px solid #cbd5e1",
+                      background: "#ffffff",
+                      color: canScrollDayLeft ? "#0f172a" : "#cbd5e1",
+                      cursor: canScrollDayLeft ? "pointer" : "default",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      flexShrink: 0,
+                    }}
+                  >
+                    <ChevronLeft size={13} />
+                  </button>
+                )}
+
+                <div
+                  ref={dayPillsRef}
+                  onScroll={checkDayScroll}
+                  style={{
+                    display: "flex",
+                    gap: 4,
+                    overflowX: "auto",
+                    scrollBehavior: "smooth",
+                    scrollbarWidth: "none",
+                    msOverflowStyle: "none",
+                    maxWidth: "100%",
+                    paddingBottom: isMobile ? 2 : 0,
+                  }}
+                >
+                  {DAYS_LIST.map((day) => {
+                    const isSelected = selectedDayName === day;
+                    return (
+                      <button
+                        key={day}
+                        type="button"
+                        onClick={() => jumpToDay(day)}
+                        style={{
+                          padding: isMobile ? "5px 9px" : "6px 12px",
+                          borderRadius: 8,
+                          fontSize: 12,
+                          fontWeight: 800,
+                          cursor: "pointer",
+                          border: isSelected ? "1.5px solid #2563eb" : "1px solid #e2e8f0",
+                          background: isSelected ? "#eff6ff" : "#ffffff",
+                          color: isSelected ? "#2563eb" : "#64748b",
+                          whiteSpace: "nowrap",
+                          flexShrink: 0,
+                          transition: "all 0.15s ease",
+                        }}
+                      >
+                        {day.substring(0, 3)}
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {isMobile && (
+                  <button
+                    type="button"
+                    onClick={() => scrollDayPills("right")}
+                    disabled={!canScrollDayRight}
+                    aria-label="Scroll days right"
+                    style={{
+                      width: 24,
+                      height: 24,
+                      borderRadius: 6,
+                      border: "1px solid #cbd5e1",
+                      background: "#ffffff",
+                      color: canScrollDayRight ? "#0f172a" : "#cbd5e1",
+                      cursor: canScrollDayRight ? "pointer" : "default",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      flexShrink: 0,
+                    }}
+                  >
+                    <ChevronRight size={13} />
+                  </button>
+                )}
               </div>
             </div>
 
@@ -1404,25 +1667,87 @@ export default function Timetable() {
               </div>
 
               {isMobile && (
-                <div style={{ display: "flex", gap: 4, overflowX: "auto", maxWidth: "100%" }}>
-                  {DAYS_LIST.map((d) => (
-                    <button
-                      key={d}
-                      type="button"
-                      onClick={() => setMobileWeekDay(d)}
-                      style={{
-                        padding: "4px 8px",
-                        borderRadius: 6,
-                        fontSize: 11,
-                        fontWeight: 800,
-                        border: mobileWeekDay === d ? "1.5px solid #2563eb" : "1px solid #e2e8f0",
-                        background: mobileWeekDay === d ? "#eff6ff" : "#ffffff",
-                        color: mobileWeekDay === d ? "#2563eb" : "#64748b",
-                      }}
-                    >
-                      {d.substring(0, 3)}
-                    </button>
-                  ))}
+                <div style={{ display: "flex", alignItems: "center", gap: 3, maxWidth: "100%" }}>
+                  <button
+                    type="button"
+                    onClick={() => scrollWeekMobileDay("left")}
+                    disabled={!canScrollWeekDayLeft}
+                    aria-label="Scroll week days left"
+                    style={{
+                      width: 24,
+                      height: 24,
+                      borderRadius: 6,
+                      border: "1px solid #cbd5e1",
+                      background: "#ffffff",
+                      color: canScrollWeekDayLeft ? "#0f172a" : "#cbd5e1",
+                      cursor: canScrollWeekDayLeft ? "pointer" : "default",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      flexShrink: 0,
+                    }}
+                  >
+                    <ChevronLeft size={13} />
+                  </button>
+
+                  <div
+                    ref={weekMobileDayRef}
+                    onScroll={checkWeekDayScroll}
+                    style={{
+                      display: "flex",
+                      gap: 4,
+                      overflowX: "auto",
+                      scrollBehavior: "smooth",
+                      scrollbarWidth: "none",
+                      msOverflowStyle: "none",
+                      maxWidth: "100%",
+                      padding: "2px 0",
+                    }}
+                  >
+                    {DAYS_LIST.map((d) => (
+                      <button
+                        key={d}
+                        type="button"
+                        onClick={() => setMobileWeekDay(d)}
+                        style={{
+                          padding: "5px 9px",
+                          borderRadius: 7,
+                          fontSize: 11.5,
+                          fontWeight: 800,
+                          cursor: "pointer",
+                          border: mobileWeekDay === d ? "1.5px solid #2563eb" : "1px solid #e2e8f0",
+                          background: mobileWeekDay === d ? "#eff6ff" : "#ffffff",
+                          color: mobileWeekDay === d ? "#2563eb" : "#64748b",
+                          whiteSpace: "nowrap",
+                          flexShrink: 0,
+                        }}
+                      >
+                        {d.substring(0, 3)}
+                      </button>
+                    ))}
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => scrollWeekMobileDay("right")}
+                    disabled={!canScrollWeekDayRight}
+                    aria-label="Scroll week days right"
+                    style={{
+                      width: 24,
+                      height: 24,
+                      borderRadius: 6,
+                      border: "1px solid #cbd5e1",
+                      background: "#ffffff",
+                      color: canScrollWeekDayRight ? "#0f172a" : "#cbd5e1",
+                      cursor: canScrollWeekDayRight ? "pointer" : "default",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      flexShrink: 0,
+                    }}
+                  >
+                    <ChevronRight size={13} />
+                  </button>
                 </div>
               )}
             </div>
