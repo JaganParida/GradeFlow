@@ -1,4 +1,14 @@
 import timetableData from "../data/timetableData.json";
+import {
+  BASKET_1_SYLLABUS,
+  BASKET_2_SYLLABUS,
+  BASKET_3_SYLLABUS,
+  BASKET_4_SYLLABUS,
+  COMMON_BASKET_5_SYLLABUS,
+  BASKET_5_SKILL_COURSES,
+  BASKET_5_DOMAINS_DATA,
+  isMatch,
+} from "./basketLogic";
 
 // ── Time Slot Configuration with Exact Minute Offsets ───────────────────────
 export const TIME_SLOTS = [
@@ -852,9 +862,10 @@ export function is2023CSEBatch(studentData, regNo = "") {
 }
 
 /**
- * Automatically resolve and return the official University Subject Code (e.g. CUTM1020, CUCS1005)
- * by cross-referencing period.code, student database records (semesters, subjects, rawGrades),
- * and standard university syllabus registries.
+ * Automatically resolve and return the official University Subject Code (e.g. CUCS1014, CUCS1015, CUTM1020)
+ * strictly and exclusively by cross-referencing:
+ * 1. The Student's actual Degree Progress / Semester records (studentData.semesters[].subjects)
+ * 2. The Official Branch Degree Progress Syllabus Baskets (B1, B2, B3, B4 Core & Electives, B5 Domains & Skills)
  */
 export function resolveSubjectCode(period, studentData = null) {
   if (!period || period.isFree || !period.subject || period.subject === "No Class / Free") {
@@ -866,22 +877,22 @@ export function resolveSubjectCode(period, studentData = null) {
     return String(period.code).trim().toUpperCase();
   }
 
-  const rawTarget = String(period.subject || "").trim();
-  const cleanTarget = cleanSubjectBaseName(rawTarget).toLowerCase().replace(/[^a-z0-9]/g, "");
-  if (!cleanTarget || cleanTarget === "free" || cleanTarget === "freetime" || cleanTarget === "noclass") {
+  const rawTarget = String(period.subject || period.subName || "").trim();
+  const cleanTarget = cleanSubjectBaseName(rawTarget);
+  if (!cleanTarget || cleanTarget === "Free" || cleanTarget === "No Class / Free") {
     return "";
   }
 
-  // 2. Check Student Database Records (studentData.semesters, subjects, rawGrades)
+  const targetSubObj = { subName: cleanTarget };
+
+  // 2. Strict Check: Student's Personal Degree Progress & Semester Records
   if (studentData) {
-    // Check all semesters
     if (Array.isArray(studentData.semesters)) {
       for (const sem of studentData.semesters) {
         if (Array.isArray(sem.subjects)) {
           for (const s of sem.subjects) {
             if (!s.subCode) continue;
-            const cleanSubName = cleanSubjectBaseName(s.subName || "").toLowerCase().replace(/[^a-z0-9]/g, "");
-            if (cleanSubName && (cleanSubName === cleanTarget || cleanSubName.includes(cleanTarget) || cleanTarget.includes(cleanSubName))) {
+            if (isMatch(targetSubObj, s)) {
               return String(s.subCode).trim().toUpperCase();
             }
           }
@@ -889,79 +900,44 @@ export function resolveSubjectCode(period, studentData = null) {
       }
     }
 
-    // Check direct subjects array
     if (Array.isArray(studentData.subjects)) {
       for (const s of studentData.subjects) {
         if (!s.subCode) continue;
-        const cleanSubName = cleanSubjectBaseName(s.subName || "").toLowerCase().replace(/[^a-z0-9]/g, "");
-        if (cleanSubName && (cleanSubName === cleanTarget || cleanSubName.includes(cleanTarget) || cleanTarget.includes(cleanSubName))) {
+        if (isMatch(targetSubObj, s)) {
           return String(s.subCode).trim().toUpperCase();
         }
       }
     }
   }
 
-  // 3. Fallback to Known CUTM Degree Progress & Syllabus Subject Code Dictionary
-  const KNOWN_SUBJECT_CODES = {
-    "promptengineeringusingchatgpt": "CUCS1014",
-    "promptengineering": "CUCS1014",
-    "cloudfundamentalsazure": "CUCS1015",
-    "cloudfundamentals": "CUCS1015",
-    "cloudpractitioneraws": "CUCS1010",
-    "cloudpractitioner": "CUCS1010",
-    "cloudcomputing": "CUTM1025",
-    "datastructureandalgorithms": "CUCS1002",
-    "datastructureswithcompetitivecoding": "CUCS1002",
-    "datastructures": "CUCS1002",
-    "designandanalysisofalgorithms": "CUCS1003",
-    "javaprogramming": "CUCS1004",
-    "relationalanddistributeddatabases": "CUCS1005",
-    "relationaldatabases": "CUCS1005",
-    "database": "CUCS1005",
-    "dbms": "CUCS1005",
-    "networkandprotocolsforiot": "CUCS1006",
-    "networkprotocolsforiot": "CUCS1006",
-    "informationsecuritycisco": "CUCS1007",
-    "informationsecurity": "CUCS1007",
-    "theoryofcomputationandcompilerdesign": "CUCS1008",
-    "theoryofcomputation": "CUCS1008",
-    "compilerdesign": "CUTM1020",
-    "systemadministratorredhat": "CUCS1009",
-    "systemadministrator": "CUCS1009",
-    "softwareengineeringandtesting": "CUCS1011",
-    "softwareengineering": "CUTM1024",
-    "customerexperiencedesignandprogramming": "CUCS1012",
-    "customerexperiencedesign": "CUCS1012",
-    "androiddevelopmentwithkotlin": "CUCS1013",
-    "androiddevelopment": "CUCS1013",
-    "programminginc": "CUCS1001",
-    "cprogramming": "CUCS1001",
-    "computernetworks": "CUTM1021",
-    "computernetwork": "CUTM1021",
-    "webtechnologies": "CUTM1022",
-    "webtechnology": "CUTM1022",
-    "machinelearning": "CUTM1023",
-    "roboticautomation": "CUME1001",
-    "robotics": "CUME1001",
-    "vlsi": "CUEC1001",
-    "vlsidesign": "CUEC1001",
-    "digitalsignalprocessing": "CUEC1002",
-    "microcontrollers": "CUEC1003",
-    "embeddedsystems": "CUEC1004",
-    "wirelesscommunication": "CUEC1005",
-    "softskills": "CUTM1030",
-    "softskillsaptitude": "CUTM1030",
-    "aptitude": "CUTM1030",
-    "basicelectricalengineering": "CUTM1057",
-    "electronicdevicesandsystems": "CUTM1046",
-    "appliedmathematics": "CUTM1001",
-    "appliedphysics": "CUTM1002",
-    "environmentalscience": "CUTM1003",
-  };
+  // 3. Strict Check: Official Branch Degree Progress Syllabus Baskets (Centurion University ERP Syllabus)
+  const allDegreeProgressSyllabus = [
+    ...BASKET_4_SYLLABUS,
+    ...BASKET_1_SYLLABUS,
+    ...BASKET_2_SYLLABUS,
+    ...BASKET_3_SYLLABUS,
+    ...COMMON_BASKET_5_SYLLABUS,
+    ...BASKET_5_SKILL_COURSES,
+  ];
 
-  for (const [key, code] of Object.entries(KNOWN_SUBJECT_CODES)) {
-    if (cleanTarget === key || cleanTarget.includes(key) || key.includes(cleanTarget)) {
-      return code;
+  for (const s of allDegreeProgressSyllabus) {
+    if (!s.subCode) continue;
+    if (isMatch(targetSubObj, s)) {
+      return String(s.subCode).trim().toUpperCase();
+    }
+  }
+
+  // Check Basket 5 Domain Specialization Courses
+  if (Array.isArray(BASKET_5_DOMAINS_DATA)) {
+    for (const domain of BASKET_5_DOMAINS_DATA) {
+      if (Array.isArray(domain.subjects)) {
+        for (const s of domain.subjects) {
+          if (!s.subCode) continue;
+          if (isMatch(targetSubObj, s)) {
+            return String(s.subCode).trim().toUpperCase();
+          }
+        }
+      }
     }
   }
 
