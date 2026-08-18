@@ -192,17 +192,35 @@ export default function AttendanceTracker() {
 
     // Check if subject already exists in saved list
     const existing = savedSubjects.find((s) => s.subjectName === catalogItem.subjectName);
-    if (existing && existing.components) {
-      setComponentInputs(existing.components);
-    } else {
-      // Initialize components based on timetable detection
-      const initialComps = catalogItem.components.map((type) => ({
-        type,
-        attended: 18,
-        delivered: 24,
-      }));
-      setComponentInputs(initialComps.length > 0 ? initialComps : [{ type: "PP", attended: 18, delivered: 24 }]);
-    }
+    const existingComps = existing?.components || [];
+
+    // Ensure all detected components (PP, PR, TUT) from timetable catalog are included
+    const detectedTypes =
+      catalogItem.components && catalogItem.components.length > 0
+        ? catalogItem.components
+        : ["PP"];
+
+    const mergedComps = detectedTypes.map((type) => {
+      const found = existingComps.find(
+        (c) => c.type.toUpperCase() === type.toUpperCase()
+      );
+      return (
+        found || {
+          type,
+          attended: 18,
+          delivered: 24,
+        }
+      );
+    });
+
+    // Also include any user-added custom components that weren't in catalog
+    existingComps.forEach((c) => {
+      if (!detectedTypes.some((t) => t.toUpperCase() === c.type.toUpperCase())) {
+        mergedComps.push(c);
+      }
+    });
+
+    setComponentInputs(mergedComps.length > 0 ? mergedComps : [{ type: "PP", attended: 18, delivered: 24 }]);
     setSimulateMissCount(0);
     setSimulateAttendCount(0);
   }
@@ -328,39 +346,21 @@ export default function AttendanceTracker() {
     }
   }, [dailyAttendanceLogs, dailyLogKey]);
 
-  // Handler for marking Present / Absent on today's classes
-  function handleToggleDailyAttendance(period, newStatus) {
+  // Handler for marking Present on today's classes (simple toggle, zero auto-absent)
+  function handleToggleDailyAttendance(period) {
     const slotIdx = period.slotIndex;
-    const currentStatus = dailyAttendanceLogs[slotIdx] || null;
+    const isCurrentlyPresent = dailyAttendanceLogs[slotIdx] === "present";
     const cleanName = period.cleanName || cleanSubjectBaseName(period.subject);
     const compType = (period.type || "PP").toUpperCase();
 
-    // Determine changes in attended and delivered counts
-    let deltaAttended = 0;
-    let deltaDelivered = 0;
-
-    // First revert previous status if any
-    if (currentStatus === "present") {
-      deltaAttended -= 1;
-      deltaDelivered -= 1;
-    } else if (currentStatus === "absent") {
-      deltaDelivered -= 1;
-    }
-
-    // Apply new status (toggle off if tapping same status)
-    const finalStatus = currentStatus === newStatus ? null : newStatus;
-    if (finalStatus === "present") {
-      deltaAttended += 1;
-      deltaDelivered += 1;
-    } else if (finalStatus === "absent") {
-      deltaDelivered += 1;
-    }
+    const deltaAttended = isCurrentlyPresent ? -1 : 1;
+    const deltaDelivered = isCurrentlyPresent ? -1 : 1;
 
     // Update dailyAttendanceLogs
     setDailyAttendanceLogs((prev) => {
       const updated = { ...prev };
-      if (finalStatus) {
-        updated[slotIdx] = finalStatus;
+      if (!isCurrentlyPresent) {
+        updated[slotIdx] = "present";
       } else {
         delete updated[slotIdx];
       }
@@ -482,9 +482,56 @@ export default function AttendanceTracker() {
     setSavedSubjects((prev) => prev.filter((s) => s.subjectName !== subjectName));
   }
 
-  // Overall Aggregate Attendance across all Saved Subjects
+  // Complete List of Section Subjects with Detected Components & Saved Overrides
+  const allSectionSubjects = useMemo(() => {
+    const map = new Map();
+
+    sectionCatalog.forEach((catItem) => {
+      const saved = savedSubjects.find((s) => s.subjectName === catItem.subjectName);
+      const savedComps = saved?.components || [];
+
+      const detectedTypes =
+        catItem.components && catItem.components.length > 0 ? catItem.components : ["PP"];
+
+      const components = detectedTypes.map((type) => {
+        const found = savedComps.find((c) => c.type.toUpperCase() === type.toUpperCase());
+        return found || { type, attended: 18, delivered: 24 };
+      });
+
+      savedComps.forEach((c) => {
+        if (!detectedTypes.some((t) => t.toUpperCase() === c.type.toUpperCase())) {
+          components.push(c);
+        }
+      });
+
+      map.set(catItem.subjectName, {
+        subjectName: catItem.subjectName,
+        components,
+        classesPerWeek: catItem.classesPerWeek,
+        weeklyOccurrences: catItem.weeklyOccurrences,
+        isSaved: Boolean(saved),
+      });
+    });
+
+    savedSubjects.forEach((saved) => {
+      if (!map.has(saved.subjectName)) {
+        map.set(saved.subjectName, {
+          subjectName: saved.subjectName,
+          components: saved.components || [{ type: "PP", attended: 18, delivered: 24 }],
+          classesPerWeek: (saved.weeklyOccurrences || []).length || 3,
+          weeklyOccurrences: saved.weeklyOccurrences || [],
+          isSaved: true,
+        });
+      }
+    });
+
+    return Array.from(map.values());
+  }, [sectionCatalog, savedSubjects]);
+
+  // Overall Aggregate Attendance across all Semester Subjects
   const overallAggregate = useMemo(() => {
-    if (savedSubjects.length === 0) {
+    const list = allSectionSubjects.length > 0 ? allSectionSubjects : savedSubjects;
+    if (list.length === 0) {
       return {
         totalAttended: activeCalculation.totalAttended,
         totalDelivered: activeCalculation.totalDelivered,
@@ -496,7 +543,7 @@ export default function AttendanceTracker() {
     let totAtt = 0;
     let totDel = 0;
 
-    savedSubjects.forEach((sub) => {
+    list.forEach((sub) => {
       (sub.components || []).forEach((c) => {
         totAtt += Number(c.attended) || 0;
         totDel += Number(c.delivered) || 0;
@@ -508,9 +555,9 @@ export default function AttendanceTracker() {
       totalAttended: totAtt,
       totalDelivered: totDel,
       percentage: Number(percentage.toFixed(2)),
-      subjectsCount: savedSubjects.length,
+      subjectsCount: list.length,
     };
-  }, [savedSubjects, activeCalculation]);
+  }, [allSectionSubjects, savedSubjects, activeCalculation]);
 
   const activeStudentName = studentData?.studentName || "";
 
@@ -1217,9 +1264,14 @@ export default function AttendanceTracker() {
                 color: "#64748b",
                 fontSize: 13,
                 fontWeight: 600,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: 8,
               }}
             >
-              🎉 No classes scheduled for {todayDayName} (Section {selectedSection})! Enjoy your day.
+              <Info size={16} color="#64748b" />
+              <span>No classes scheduled for {todayDayName} (Section {selectedSection}). Enjoy your day.</span>
             </div>
           ) : (
             <div
@@ -1230,21 +1282,22 @@ export default function AttendanceTracker() {
               }}
             >
               {todayClasses.map((period) => {
-                const logStatus = dailyAttendanceLogs[period.slotIndex] || null;
+                const isPresent = dailyAttendanceLogs[period.slotIndex] === "present";
                 const subCode = resolveSubjectCode(period, studentData);
 
                 return (
                   <div
                     key={period.slotIndex}
                     style={{
-                      background: logStatus === "present" ? "#f0fdf4" : logStatus === "absent" ? "#fef2f2" : "#f8fafc",
-                      border: `1.5px solid ${logStatus === "present" ? "#86efac" : logStatus === "absent" ? "#fca5a5" : "#e2e8f0"}`,
+                      background: isPresent ? "#f0fdf4" : "#ffffff",
+                      border: `1.5px solid ${isPresent ? "#86efac" : "#e2e8f0"}`,
                       borderRadius: 14,
                       padding: "12px 14px",
                       display: "flex",
                       flexDirection: "column",
                       justifyContent: "space-between",
                       gap: 10,
+                      boxShadow: isPresent ? "0 2px 8px rgba(16, 185, 129, 0.08)" : "0 1px 3px rgba(0,0,0,0.02)",
                       transition: "all 0.15s ease",
                     }}
                   >
@@ -1293,56 +1346,40 @@ export default function AttendanceTracker() {
                       </div>
                     </div>
 
-                    {/* Present / Absent Action Buttons */}
-                    <div style={{ display: "flex", gap: 6, paddingTop: 4 }}>
+                    {/* Single Clean Interactive Mark Present Check-in Button */}
+                    <div style={{ paddingTop: 4 }}>
                       <button
                         type="button"
-                        onClick={() => handleToggleDailyAttendance(period, "present")}
+                        onClick={() => handleToggleDailyAttendance(period)}
                         style={{
-                          flex: 1,
-                          padding: "7px 10px",
-                          borderRadius: 8,
-                          border: logStatus === "present" ? "1.5px solid #16a34a" : "1px solid #cbd5e1",
-                          background: logStatus === "present" ? "#16a34a" : "#ffffff",
-                          color: logStatus === "present" ? "#ffffff" : "#166534",
+                          width: "100%",
+                          padding: "8px 12px",
+                          borderRadius: 9,
+                          border: isPresent ? "1.5px solid #059669" : "1px solid #cbd5e1",
+                          background: isPresent ? "linear-gradient(135deg, #059669 0%, #047857 100%)" : "#ffffff",
+                          color: isPresent ? "#ffffff" : "#334155",
                           fontSize: 12,
                           fontWeight: 800,
                           cursor: "pointer",
                           display: "flex",
                           alignItems: "center",
                           justifyContent: "center",
-                          gap: 5,
+                          gap: 6,
                           transition: "all 0.15s ease",
-                          boxShadow: logStatus === "present" ? "0 2px 5px rgba(22, 163, 74, 0.2)" : "none",
+                          boxShadow: isPresent ? "0 2px 6px rgba(5, 150, 105, 0.25)" : "none",
                         }}
                       >
-                        <Check size={13} />
-                        <span>{logStatus === "present" ? "Attended ✅" : "Present"}</span>
-                      </button>
-
-                      <button
-                        type="button"
-                        onClick={() => handleToggleDailyAttendance(period, "absent")}
-                        style={{
-                          flex: 1,
-                          padding: "7px 10px",
-                          borderRadius: 8,
-                          border: logStatus === "absent" ? "1.5px solid #dc2626" : "1px solid #cbd5e1",
-                          background: logStatus === "absent" ? "#dc2626" : "#ffffff",
-                          color: logStatus === "absent" ? "#ffffff" : "#991b1b",
-                          fontSize: 12,
-                          fontWeight: 800,
-                          cursor: "pointer",
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                          gap: 5,
-                          transition: "all 0.15s ease",
-                          boxShadow: logStatus === "absent" ? "0 2px 5px rgba(220, 38, 38, 0.2)" : "none",
-                        }}
-                      >
-                        <X size={13} />
-                        <span>{logStatus === "absent" ? "Missed ❌" : "Absent"}</span>
+                        {isPresent ? (
+                          <>
+                            <CheckCircle2 size={14} color="#ffffff" />
+                            <span>Attended (Present)</span>
+                          </>
+                        ) : (
+                          <>
+                            <Check size={14} color="#64748b" />
+                            <span>Mark Present</span>
+                          </>
+                        )}
                       </button>
                     </div>
                   </div>
@@ -2043,8 +2080,9 @@ export default function AttendanceTracker() {
                     </strong>
                   </div>
                   {activeCalculation.simulatedPercentage < 75 && (
-                    <div style={{ fontSize: 11, fontWeight: 800, color: "#dc2626", marginTop: 4 }}>
-                      ⚠️ WARNING: This drop puts you below the mandatory 75% cutoff!
+                    <div style={{ fontSize: 11, fontWeight: 800, color: "#dc2626", marginTop: 4, display: "flex", alignItems: "center", gap: 5 }}>
+                      <AlertTriangle size={13} color="#dc2626" />
+                      <span>Warning: This drop puts you below the mandatory 75% cutoff!</span>
                     </div>
                   )}
                 </div>
@@ -2221,9 +2259,9 @@ export default function AttendanceTracker() {
         </div>
 
         {/* ═══════════════════════════════════════════════════════════════
-            MY SEMESTER SUBJECTS MATRIX & TARGET PREDICTOR (SAVED STORE)
+            ALL SEMESTER SUBJECTS MATRIX & TARGET PREDICTOR
         ═══════════════════════════════════════════════════════════════ */}
-        {savedSubjects.length > 0 && (
+        {allSectionSubjects.length > 0 && (
           <div
             style={{
               background: "#ffffff",
@@ -2241,10 +2279,10 @@ export default function AttendanceTracker() {
               <div>
                 <h3 style={{ fontSize: isMobile ? 16 : 18, fontWeight: 800, color: "#0f172a", margin: 0, display: "flex", alignItems: "center", gap: 8 }}>
                   <Layers size={18} color="#059669" />
-                  Semester Subjects Attendance & Target Predictor ({savedSubjects.length})
+                  Semester Subjects Attendance & Target Matrix ({allSectionSubjects.length})
                 </h3>
                 <p style={{ fontSize: 12, color: "#64748b", margin: "3px 0 0 0" }}>
-                  Full breakdown of theory (PP), practical (PR), tutorial (TUT) with live target prediction for Section {selectedSection}.
+                  Full multi-component breakdown (theory PP, practical PR, tutorial TUT) with target prediction for Section {selectedSection}.
                 </p>
               </div>
 
@@ -2276,7 +2314,7 @@ export default function AttendanceTracker() {
                 gap: 14,
               }}
             >
-              {savedSubjects.map((sub, idx) => {
+              {allSectionSubjects.map((sub, idx) => {
                 const subCalc = calculateAttendance({
                   components: sub.components,
                   targetPercentage: 75,
@@ -2415,14 +2453,28 @@ export default function AttendanceTracker() {
                       }}
                     >
                       <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 11.5 }}>
-                        <Sparkles size={13} color={subCalc.classesNeeded > 0 ? "#d97706" : "#16a34a"} />
-                        <span style={{ fontWeight: 800, color: subCalc.classesNeeded > 0 ? "#92400e" : "#166534" }}>
-                          {subCalc.classesNeeded > 0
-                            ? `⚠️ Need ${subCalc.classesNeeded} classes to reach 75.0%`
-                            : subCalc80.classesNeeded > 0
-                            ? `⚡ Attend ${subCalc80.classesNeeded} more classes for 80.0%`
-                            : `🌟 Safe to bunk ${subCalc.safeBunks} classes`}
-                        </span>
+                        {subCalc.classesNeeded > 0 ? (
+                          <>
+                            <AlertTriangle size={13} color="#d97706" />
+                            <span style={{ fontWeight: 800, color: "#92400e" }}>
+                              Need {subCalc.classesNeeded} more classes for 75.0%
+                            </span>
+                          </>
+                        ) : subCalc80.classesNeeded > 0 ? (
+                          <>
+                            <TrendingUp size={13} color="#2563eb" />
+                            <span style={{ fontWeight: 800, color: "#1e40af" }}>
+                              Attend {subCalc80.classesNeeded} more classes for 80.0%
+                            </span>
+                          </>
+                        ) : (
+                          <>
+                            <Sparkles size={13} color="#16a34a" />
+                            <span style={{ fontWeight: 800, color: "#166534" }}>
+                              Safe to miss {subCalc.safeBunks} classes
+                            </span>
+                          </>
+                        )}
                       </div>
 
                       <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
@@ -2446,23 +2498,25 @@ export default function AttendanceTracker() {
                         >
                           Simulate &rarr;
                         </button>
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleDeleteSavedSubject(sub.subjectName);
-                          }}
-                          style={{
-                            border: "none",
-                            background: "transparent",
-                            color: "#94a3b8",
-                            cursor: "pointer",
-                            padding: 2,
-                          }}
-                          title="Delete Subject"
-                        >
-                          <Trash2 size={13} />
-                        </button>
+                        {sub.isSaved && (
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleDeleteSavedSubject(sub.subjectName);
+                            }}
+                            style={{
+                              border: "none",
+                              background: "transparent",
+                              color: "#94a3b8",
+                              cursor: "pointer",
+                              padding: 2,
+                            }}
+                            title="Reset Subject to Default"
+                          >
+                            <Trash2 size={13} />
+                          </button>
+                        )}
                       </div>
                     </div>
                   </div>
