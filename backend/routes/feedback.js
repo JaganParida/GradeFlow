@@ -19,7 +19,7 @@ router.get("/", async (req, res) => {
 // POST /api/feedback - Submit new feedback with strict schema validation
 router.post("/", validateFeedbackInput, async (req, res) => {
   try {
-    const { name, regNo, rating, comment } = req.body;
+    const { name, regNo, rating, comment, category } = req.body;
 
     if (!name || !rating || !comment) {
       return res.status(400).json({ message: "Name, rating, and comment are required." });
@@ -30,6 +30,7 @@ router.post("/", validateFeedbackInput, async (req, res) => {
       regNo,
       rating,
       comment,
+      category: category || "Overall Experience",
     });
 
     const savedFeedback = await newFeedback.save();

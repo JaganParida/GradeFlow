@@ -47,7 +47,7 @@ module.exports = async function handler(req, res) {
     }
 
     if (req.method === "POST" && !feedbackId) {
-      const { name, regNo, rating, comment } = req.body || {};
+      const { name, regNo, rating, comment, category } = req.body || {};
       if (!name || typeof name !== "string" || name.trim().length < 1 || name.trim().length > 100) {
         return res.status(400).json({ message: "Name is required and must be between 1 and 100 characters." });
       }
@@ -63,6 +63,7 @@ module.exports = async function handler(req, res) {
         regNo: String(regNo).trim(),
         rating: numRating,
         comment: comment.trim(),
+        category: typeof category === "string" && category.trim() ? category.trim() : "Overall Experience",
       });
       const savedFeedback = await newFeedback.save();
       return res.status(201).json(savedFeedback);

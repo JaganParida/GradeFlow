@@ -22,6 +22,11 @@ const feedbackSchema = new mongoose.Schema({
     required: true,
     trim: true,
   },
+  category: {
+    type: String,
+    trim: true,
+    default: "Overall Experience",
+  },
   likes: {
     type: Number,
     default: 0,

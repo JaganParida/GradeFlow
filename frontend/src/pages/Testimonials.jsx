@@ -142,17 +142,24 @@ export default function Testimonials() {
     }
   }
 
-  // ─── Auto-scroll to highlighted feedback ─────────────────────────
+  // ─── Auto-scroll & Auto-Pagination for highlighted feedback ─────
   useEffect(() => {
-    if (highlightedId && feedbacks.length > 0) {
-      setTimeout(() => {
-        const el = document.getElementById(`feedback-${highlightedId}`);
-        if (el) {
-          el.scrollIntoView({ behavior: "smooth", block: "center" });
-        }
-      }, 400);
+    if (highlightedId && displayedReviews.length > 0) {
+      const targetIdx = displayedReviews.findIndex(
+        (f) => String(f._id) === String(highlightedId),
+      );
+      if (targetIdx !== -1) {
+        const targetPage = Math.floor(targetIdx / REVIEWS_PER_PAGE) + 1;
+        setCurrentPage(targetPage);
+        setTimeout(() => {
+          const el = document.getElementById(`feedback-${highlightedId}`);
+          if (el) {
+            el.scrollIntoView({ behavior: "smooth", block: "center" });
+          }
+        }, 350);
+      }
     }
-  }, [highlightedId, feedbacks]);
+  }, [highlightedId, displayedReviews]);
 
   // Reset page to 1 when filter or sorting changes
   useEffect(() => {
@@ -282,6 +289,7 @@ export default function Testimonials() {
         regNo: finalRegNo,
         rating,
         comment: finalComment,
+        category: category || "Overall Experience",
       };
 
       const res = await axios.post(`${API}/feedback`, payload);
