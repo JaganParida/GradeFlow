@@ -1304,6 +1304,225 @@ router.post("/student/update-grade", validateGradeUpdateInput, async (req, res) 
   }
 });
 
+// Fetch full semester report card details for a student & semester
+router.get("/student/semester-record/:regNo/:semester", protect, async (req, res) => {
+  try {
+    const cleanRegNo = String(req.params.regNo || "").trim();
+    const semNum = Number(req.params.semester);
+
+    if (!cleanRegNo || isNaN(semNum)) {
+      return res.status(400).json({ message: "Valid Registration Number and Semester number are required" });
+    }
+
+    const allResults = await SemesterResult.find({ regNo: cleanRegNo }).sort({ semester: 1 }).lean();
+    if (!allResults || !allResults.length) {
+      return res.status(404).json({ message: `No academic records found for student "${cleanRegNo}"` });
+    }
+
+    const enrichedResults = allResults.map((r) => {
+      const liveSGPA = calculateSGPA(r.subjects, r.semester);
+      const liveCGPA = calculateCGPA(allResults, r.semester);
+      const metrics = calculateSemesterMetrics(r.subjects, r.semester);
+      return {
+        ...r,
+        sgpa: liveSGPA,
+        cgpa: liveCGPA,
+        totalCredits: metrics.totalCredits,
+        creditsCleared: metrics.creditsCleared,
+      };
+    });
+
+    const targetSem = enrichedResults.find((r) => Number(r.semester) === semNum);
+    const latest = enrichedResults[enrichedResults.length - 1];
+
+    res.json({
+      regNo: cleanRegNo,
+      studentName: latest.studentName,
+      branch: latest.branch,
+      batch: latest.batch,
+      section: getSectionFromRegNo(cleanRegNo),
+      availableSemesters: enrichedResults.map((r) => Number(r.semester)),
+      selectedSemester: semNum,
+      semesterRecord: targetSem || null,
+      allSemesters: enrichedResults,
+    });
+  } catch (err) {
+    console.error("Fetch semester record error:", err);
+    res.status(500).json({ message: "Server error fetching semester record" });
+  }
+});
+
+// Full update / save of a student's semester report card (subjects, credits, grades, recalculations)
+router.post("/student/update-semester-record", protect, async (req, res) => {
+  try {
+    const { regNo, semester, studentName, branch, batch, subjects } = req.body;
+
+    const cleanRegNo = String(req.params?.regNo || regNo || "").trim();
+    const semNum = Number(semester);
+
+    if (!cleanRegNo || isNaN(semNum) || semNum < 1 || semNum > 12) {
+      return res.status(400).json({ message: "Valid Registration Number and Semester (1-12) are required" });
+    }
+
+    if (!Array.isArray(subjects) || subjects.length === 0) {
+      return res.status(400).json({ message: "Subjects list cannot be empty. Please add at least 1 subject." });
+    }
+
+    // Clean, validate and normalize each subject entry
+    const cleanSubjects = [];
+    for (let i = 0; i < subjects.length; i++) {
+      const s = subjects[i] || {};
+      const subCode = String(s.subCode || "").trim().toUpperCase();
+      const subName = String(s.subName || "").trim();
+      const type = String(s.type || "Theory").trim();
+      const credit = Number(s.credit);
+      const grade = normalizeGrade(s.grade);
+
+      if (!subCode || !subName) {
+        return res.status(400).json({ message: `Row #${i + 1}: Subject Code and Subject Name are required.` });
+      }
+      if (isNaN(credit) || credit <= 0) {
+        return res.status(400).json({ message: `Row #${i + 1} ("${subName}"): Credit must be a positive number.` });
+      }
+      if (!GRADE_POINTS.hasOwnProperty(grade)) {
+        return res.status(400).json({
+          message: `Row #${i + 1} ("${subName}"): Invalid grade "${grade}". Accepted grades: O, E, A, B, C, D, F, R, M, S.`,
+        });
+      }
+
+      const gradePoint = getGradePoint(grade);
+      cleanSubjects.push({
+        slNo: s.slNo || i + 1,
+        subCode,
+        subName,
+        type,
+        credit,
+        grade,
+        gradePoint,
+        resultType: s.resultType || "regular",
+      });
+    }
+
+    // Calculate live metrics for this semester
+    const currentSemMetrics = calculateSemesterMetrics(cleanSubjects, semNum);
+
+    // Find or create SemesterResult document
+    let semResult = await SemesterResult.findOne({
+      regNo: cleanRegNo,
+      semester: semNum,
+    });
+
+    if (semResult) {
+      if (studentName) semResult.studentName = String(studentName).trim();
+      if (branch) semResult.branch = String(branch).trim();
+      if (batch) semResult.batch = String(batch).trim();
+      semResult.subjects = cleanSubjects;
+      semResult.totalCredits = currentSemMetrics.totalCredits;
+      semResult.creditsCleared = currentSemMetrics.creditsCleared;
+      semResult.sgpa = currentSemMetrics.sgpa;
+    } else {
+      let defaultName = studentName;
+      let defaultBranch = branch;
+      let defaultBatch = batch;
+      if (!defaultName || !defaultBranch || !defaultBatch) {
+        const existingAny = await SemesterResult.findOne({ regNo: cleanRegNo }).lean();
+        if (existingAny) {
+          defaultName = defaultName || existingAny.studentName;
+          defaultBranch = defaultBranch || existingAny.branch;
+          defaultBatch = defaultBatch || existingAny.batch;
+        }
+      }
+
+      semResult = new SemesterResult({
+        regNo: cleanRegNo,
+        semester: semNum,
+        studentName: defaultName || "Student",
+        branch: defaultBranch || (getSectionFromRegNo(cleanRegNo) ? "CSE" : "General"),
+        batch: defaultBatch || "2023-27",
+        subjects: cleanSubjects,
+        totalCredits: currentSemMetrics.totalCredits,
+        creditsCleared: currentSemMetrics.creditsCleared,
+        sgpa: currentSemMetrics.sgpa,
+      });
+    }
+
+    semResult.markModified("subjects");
+    await semResult.save();
+
+    // Synchronize Student profile metadata if changed
+    if (studentName || branch || batch) {
+      await Student.findOneAndUpdate(
+        { regNo: cleanRegNo },
+        {
+          $set: {
+            ...(studentName ? { studentName: String(studentName).trim() } : {}),
+            ...(branch ? { branch: String(branch).trim() } : {}),
+            ...(batch ? { batch: String(batch).trim() } : {}),
+          },
+        },
+        { upsert: false }
+      );
+    }
+
+    // Cascading Recalculation across ALL semesters for this student
+    const allStudentResults = await SemesterResult.find({ regNo: cleanRegNo }).sort({ semester: 1 });
+
+    for (const r of allStudentResults) {
+      const sNum = Number(r.semester);
+      const metrics = calculateSemesterMetrics(r.subjects, sNum);
+      r.totalCredits = metrics.totalCredits;
+      r.creditsCleared = metrics.creditsCleared;
+      r.sgpa = metrics.sgpa;
+      r.cgpa = calculateCGPA(allStudentResults, sNum);
+      r.markModified("subjects");
+      await r.save();
+    }
+
+    // Automatically regenerate rankings for all semesters where this student has records
+    const affectedSemesters = [...new Set(allStudentResults.map((r) => Number(r.semester)))];
+    for (const sem of affectedSemesters) {
+      await generateRankingForSemester(sem);
+    }
+
+    // Clear in-memory student cache globally so all endpoints return fresh data
+    clearStudentCache();
+
+    // Prepare response data
+    const updatedTargetSem = allStudentResults.find((r) => Number(r.semester) === semNum) || semResult;
+    const finalOverallCgpa = calculateCGPA(allStudentResults);
+
+    res.json({
+      success: true,
+      message: `✅ Full Report Card synchronized for ${updatedTargetSem.studentName || cleanRegNo} (Semester ${semNum})! SGPA: ${updatedTargetSem.sgpa.toFixed(2)}, CGPA: ${updatedTargetSem.cgpa.toFixed(2)}, Credits: ${updatedTargetSem.creditsCleared}/${updatedTargetSem.totalCredits}. Rankings & Dashboard updated!`,
+      student: {
+        regNo: cleanRegNo,
+        studentName: updatedTargetSem.studentName,
+        branch: updatedTargetSem.branch,
+        batch: updatedTargetSem.batch,
+        section: getSectionFromRegNo(cleanRegNo),
+        semester: semNum,
+        sgpa: updatedTargetSem.sgpa,
+        cgpa: updatedTargetSem.cgpa,
+        overallCgpa: finalOverallCgpa,
+        totalCredits: updatedTargetSem.totalCredits,
+        creditsCleared: updatedTargetSem.creditsCleared,
+        subjects: updatedTargetSem.subjects,
+        allSemesters: allStudentResults.map((r) => ({
+          semester: r.semester,
+          sgpa: r.sgpa,
+          cgpa: r.cgpa,
+          totalCredits: r.totalCredits,
+          creditsCleared: r.creditsCleared,
+          subjectsCount: r.subjects?.length || 0,
+        })),
+      },
+    });
+  } catch (err) {
+    console.error("Full semester report card update error:", err);
+    res.status(500).json({ message: err.message || "Server error updating semester report card" });
+  }
+});
+
 // Delete individual semester result record
 router.delete("/results/:regNo/:semester", protect, async (req, res) => {
   try {
