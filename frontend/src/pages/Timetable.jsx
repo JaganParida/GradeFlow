@@ -51,6 +51,7 @@ import {
   normalizeSection,
   formatDateKey,
   is2023CSEBatch,
+  resolveSubjectCode,
 } from "../utils/timetableHelper";
 
 export default function Timetable() {
@@ -793,8 +794,26 @@ export default function Timetable() {
                   <Radio size={13} color="#16a34a" />
                   <span>ONGOING CLASS ({liveOverview.activeClass.remainingMins} mins remaining)</span>
                 </div>
-                <div style={{ fontSize: 15, fontWeight: 800, color: "#0f172a", marginTop: 2 }}>
-                  {liveOverview.activeClass.subject}
+                <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", marginTop: 2 }}>
+                  <span style={{ fontSize: 15, fontWeight: 800, color: "#0f172a" }}>
+                    {liveOverview.activeClass.subject}
+                  </span>
+                  {resolveSubjectCode(liveOverview.activeClass, studentData) && (
+                    <span
+                      style={{
+                        fontSize: 11,
+                        fontFamily: "'Space Mono', monospace",
+                        fontWeight: 800,
+                        color: "#15803d",
+                        background: "#ffffff",
+                        border: "1px solid #86efac",
+                        padding: "1px 6px",
+                        borderRadius: 6,
+                      }}
+                    >
+                      {resolveSubjectCode(liveOverview.activeClass, studentData)}
+                    </span>
+                  )}
                 </div>
               </div>
             </div>
@@ -830,10 +849,27 @@ export default function Timetable() {
               gap: 12,
             }}
           >
-            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
               <Clock size={18} color="#7c3aed" />
               <span style={{ fontSize: 13, fontWeight: 700, color: "#5b21b6" }}>
-                Next Class in {liveOverview.nextClass.startsInMins}m: <strong>{liveOverview.nextClass.subject}</strong> ({liveOverview.nextClass.slot.startTime})
+                Next Class in {liveOverview.nextClass.startsInMins}m: <strong>{liveOverview.nextClass.subject}</strong>
+                {resolveSubjectCode(liveOverview.nextClass, studentData) && (
+                  <span
+                    style={{
+                      marginLeft: 6,
+                      fontSize: 11,
+                      fontFamily: "'Space Mono', monospace",
+                      fontWeight: 800,
+                      color: "#6d28d9",
+                      background: "#ffffff",
+                      border: "1px solid #ddd6fe",
+                      padding: "1px 5px",
+                      borderRadius: 5,
+                    }}
+                  >
+                    {resolveSubjectCode(liveOverview.nextClass, studentData)}
+                  </span>
+                )} ({liveOverview.nextClass.slot.startTime})
               </span>
             </div>
             {liveOverview.nextClass.room && (
@@ -1231,6 +1267,24 @@ export default function Timetable() {
                             {period.subject}
                           </span>
 
+                          {!period.isFree && resolveSubjectCode(period, studentData) && (
+                            <span
+                              style={{
+                                fontSize: 11,
+                                fontFamily: "'Space Mono', monospace",
+                                fontWeight: 800,
+                                color: "#2563eb",
+                                background: "#eff6ff",
+                                border: "1px solid #bfdbfe",
+                                padding: "2px 7px",
+                                borderRadius: 6,
+                                letterSpacing: "0.5px",
+                              }}
+                            >
+                              {resolveSubjectCode(period, studentData)}
+                            </span>
+                          )}
+
                           {period.type && (
                             <span
                               style={{
@@ -1524,6 +1578,21 @@ export default function Timetable() {
                                       {period.subject}
                                     </div>
 
+                                    {resolveSubjectCode(period, studentData) && (
+                                      <div
+                                        style={{
+                                          fontSize: 9,
+                                          fontFamily: "'Space Mono', monospace",
+                                          fontWeight: 800,
+                                          color: "#2563eb",
+                                          marginTop: 2,
+                                          letterSpacing: "0.3px",
+                                        }}
+                                      >
+                                        {resolveSubjectCode(period, studentData)}
+                                      </div>
+                                    )}
+
                                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 4, gap: 2 }}>
                                       {period.room ? (
                                         <span style={{ fontSize: 9.5, color: "#2563eb", fontWeight: 800 }}>
@@ -1595,8 +1664,26 @@ export default function Timetable() {
                           P{idx + 1}
                         </div>
                         <div>
-                          <div style={{ fontSize: 13, fontWeight: 800, color: period.isFree ? "#94a3b8" : "#0f172a" }}>
-                            {period.subject}
+                          <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+                            <span style={{ fontSize: 13, fontWeight: 800, color: period.isFree ? "#94a3b8" : "#0f172a" }}>
+                              {period.subject}
+                            </span>
+                            {!period.isFree && resolveSubjectCode(period, studentData) && (
+                              <span
+                                style={{
+                                  fontSize: 10,
+                                  fontFamily: "'Space Mono', monospace",
+                                  fontWeight: 800,
+                                  color: "#2563eb",
+                                  background: "#eff6ff",
+                                  border: "1px solid #bfdbfe",
+                                  padding: "1px 5px",
+                                  borderRadius: 4,
+                                }}
+                              >
+                                {resolveSubjectCode(period, studentData)}
+                              </span>
+                            )}
                           </div>
                           <div style={{ fontSize: 11, color: "#64748b" }}>
                             {slot.startTime} - {slot.endTime}

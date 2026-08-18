@@ -737,6 +737,103 @@ export function is2023CSEBatch(studentData, regNo = "") {
   return isBatch2023 && isCSEBranch;
 }
 
+/**
+ * Automatically resolve and return the official University Subject Code (e.g. CUTM1020, CUCS1005)
+ * by cross-referencing period.code, student database records (semesters, subjects, rawGrades),
+ * and standard university syllabus registries.
+ */
+export function resolveSubjectCode(period, studentData = null) {
+  if (!period || period.isFree || !period.subject || period.subject === "No Class / Free") {
+    return "";
+  }
+
+  // 1. Direct explicit period code if provided
+  if (period.code && String(period.code).trim() && period.code !== "-") {
+    return String(period.code).trim().toUpperCase();
+  }
+
+  const rawTarget = String(period.subject || "").trim();
+  const cleanTarget = cleanSubjectBaseName(rawTarget).toLowerCase().replace(/[^a-z0-9]/g, "");
+  if (!cleanTarget || cleanTarget === "free" || cleanTarget === "freetime" || cleanTarget === "noclass") {
+    return "";
+  }
+
+  // 2. Check Student Database Records (studentData.semesters, subjects, rawGrades)
+  if (studentData) {
+    // Check all semesters
+    if (Array.isArray(studentData.semesters)) {
+      for (const sem of studentData.semesters) {
+        if (Array.isArray(sem.subjects)) {
+          for (const s of sem.subjects) {
+            if (!s.subCode) continue;
+            const cleanSubName = cleanSubjectBaseName(s.subName || "").toLowerCase().replace(/[^a-z0-9]/g, "");
+            if (cleanSubName && (cleanSubName === cleanTarget || cleanSubName.includes(cleanTarget) || cleanTarget.includes(cleanSubName))) {
+              return String(s.subCode).trim().toUpperCase();
+            }
+          }
+        }
+      }
+    }
+
+    // Check direct subjects array
+    if (Array.isArray(studentData.subjects)) {
+      for (const s of studentData.subjects) {
+        if (!s.subCode) continue;
+        const cleanSubName = cleanSubjectBaseName(s.subName || "").toLowerCase().replace(/[^a-z0-9]/g, "");
+        if (cleanSubName && (cleanSubName === cleanTarget || cleanSubName.includes(cleanTarget) || cleanTarget.includes(cleanSubName))) {
+          return String(s.subCode).trim().toUpperCase();
+        }
+      }
+    }
+  }
+
+  // 3. Fallback to Known CUTM Subject Code Dictionary
+  const KNOWN_SUBJECT_CODES = {
+    "compilerdesign": "CUTM1020",
+    "theoryofcomputationandcompilerdesign": "CUCS1008",
+    "computernetworks": "CUTM1021",
+    "computernetwork": "CUTM1021",
+    "networkandprotocolsforiot": "CUCS1006",
+    "webtechnologies": "CUTM1022",
+    "webtechnology": "CUTM1022",
+    "machinelearning": "CUTM1023",
+    "softwareengineering": "CUTM1024",
+    "softwareengineeringandtesting": "CUCS1011",
+    "cloudcomputing": "CUTM1025",
+    "cloudpractitioner": "CUCS1010",
+    "relationalanddistributeddatabases": "CUCS1005",
+    "database": "CUCS1005",
+    "dbms": "CUCS1005",
+    "javaprogramming": "CUCS1004",
+    "designandanalysisofalgorithms": "CUCS1003",
+    "datastructureswithcompetitivecoding": "CUCS1002",
+    "datastructures": "CUCS1002",
+    "programminginc": "CUCS1001",
+    "cprogramming": "CUCS1001",
+    "androiddevelopmentwithkotlin": "CUCS1013",
+    "informationsecurity": "CUCS1007",
+    "systemadministrator": "CUCS1009",
+    "customerexperiencedesignandprogramming": "CUCS1012",
+    "vlsi": "CUEC1001",
+    "vlsidesign": "CUEC1001",
+    "digitalsignalprocessing": "CUEC1002",
+    "microcontrollers": "CUEC1003",
+    "embeddedsystems": "CUEC1004",
+    "wirelesscommunication": "CUEC1005",
+    "softskills": "CUTM1030",
+    "softskillsaptitude": "CUTM1030",
+    "aptitude": "CUTM1030",
+  };
+
+  for (const [key, code] of Object.entries(KNOWN_SUBJECT_CODES)) {
+    if (cleanTarget === key || cleanTarget.includes(key) || key.includes(cleanTarget)) {
+      return code;
+    }
+  }
+
+  return "";
+}
+
 export default {
   ALL_SECTIONS,
   DAYS_LIST,
@@ -749,6 +846,7 @@ export default {
   calculateAttendance,
   estimateTargetReachDate,
   is2023CSEBatch,
+  resolveSubjectCode,
   formatDateKey,
   getDayName,
   getDaySchedule,
