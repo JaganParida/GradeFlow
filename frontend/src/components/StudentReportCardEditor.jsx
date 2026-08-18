@@ -49,13 +49,18 @@ const GRADE_OPTIONS = [
   { grade: "S", point: 0, label: "S (Malpractice / 0 GP)", color: "#dc2626", bg: "#fef2f2" },
 ];
 
+// Scanned directly from database (SemesterResult distinct types)
 const SUBJECT_TYPES = [
-  "Theory",
-  "Practical",
-  "Sessional",
-  "Project",
-  "Elective",
-  "Audit",
+  { value: "T+P", label: "T+P (Theory + Practical)" },
+  { value: "P+Proj", label: "P+Proj (Practical + Project)" },
+  { value: "TPP", label: "TPP (Theory + Practice + Project)" },
+  { value: "T+Proj", label: "T+Proj (Theory + Project)" },
+  { value: "Project", label: "Project (Project Work)" },
+  { value: "Practical", label: "Practical (Lab / Practical)" },
+  { value: "Theory", label: "Theory (Classroom Theory)" },
+  { value: "Theory+Practice", label: "Theory+Practice" },
+  { value: "Practice+Project", label: "Practice+Project" },
+  { value: "Theory+Project", label: "Theory+Project" },
 ];
 
 export default function StudentReportCardEditor({ authHeaders, API, onSuccess }) {
@@ -166,7 +171,7 @@ export default function StudentReportCardEditor({ authHeaders, API, onSuccess })
           slNo: s.slNo || idx + 1,
           subCode: s.subCode || "",
           subName: s.subName || "",
-          type: s.type || "Theory",
+          type: s.type || "T+P",
           credit: Number(s.credit) || 0,
           grade: normalizeGrade(s.grade) || "O",
           gradePoint: getGradePoint(s.grade) !== undefined ? getGradePoint(s.grade) : 10,
@@ -182,7 +187,7 @@ export default function StudentReportCardEditor({ authHeaders, API, onSuccess })
             slNo: 1,
             subCode: "",
             subName: "",
-            type: "Theory",
+            type: "T+P",
             credit: 4,
             grade: "O",
             gradePoint: 10,
@@ -256,7 +261,7 @@ export default function StudentReportCardEditor({ authHeaders, API, onSuccess })
         slNo: prev.length + 1,
         subCode: "",
         subName: "",
-        type: "Theory",
+        type: "T+P",
         credit: 3,
         grade: "O",
         gradePoint: 10,
@@ -1154,7 +1159,7 @@ export default function StudentReportCardEditor({ authHeaders, API, onSuccess })
                         {/* 4. Type */}
                         <td style={{ padding: "10px 14px" }}>
                           <select
-                            value={sub.type || "Theory"}
+                            value={sub.type || "T+P"}
                             onChange={(e) => handleSubjectChange(idx, "type", e.target.value)}
                             style={{
                               width: "100%",
@@ -1162,16 +1167,19 @@ export default function StudentReportCardEditor({ authHeaders, API, onSuccess })
                               borderRadius: 7,
                               border: "1px solid #cbd5e1",
                               fontSize: 12,
-                              fontWeight: 600,
-                              color: "#334155",
+                              fontWeight: 700,
+                              color: "#1e293b",
                               outline: "none",
                               background: "#ffffff",
                               cursor: "pointer",
                             }}
                           >
+                            {sub.type && !SUBJECT_TYPES.some((t) => t.value.toLowerCase() === String(sub.type).toLowerCase()) && (
+                              <option value={sub.type}>{sub.type}</option>
+                            )}
                             {SUBJECT_TYPES.map((t) => (
-                              <option key={t} value={t}>
-                                {t}
+                              <option key={t.value} value={t.value}>
+                                {t.label}
                               </option>
                             ))}
                           </select>
