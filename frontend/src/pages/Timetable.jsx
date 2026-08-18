@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useRef } from "react";
 import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { useApp } from "../context/AppContext";
 import { encodeStudentId, decodeStudentId, isEncryptedToken } from "../utils/studentIdEncoder";
@@ -9,7 +9,6 @@ import {
   MapPin,
   User,
   Search,
-  Sparkles,
   ChevronLeft,
   ChevronRight,
   Sun,
@@ -33,6 +32,8 @@ import {
   X,
   Eye,
   Percent,
+  Radio,
+  FileText,
 } from "lucide-react";
 import {
   ALL_SECTIONS,
@@ -87,9 +88,33 @@ export default function Timetable() {
   const [isMobile, setIsMobile] = useState(() => window.innerWidth < 1024);
   const [inspectedClass, setInspectedClass] = useState(null);
 
+  // Holiday Month Scroll State & Methods
+  const holidayMonthsRef = useRef(null);
+  const [canScrollHolidayLeft, setCanScrollHolidayLeft] = useState(false);
+  const [canScrollHolidayRight, setCanScrollHolidayRight] = useState(true);
+
+  const checkHolidayScroll = () => {
+    if (holidayMonthsRef.current) {
+      const { scrollLeft, scrollWidth, clientWidth } = holidayMonthsRef.current;
+      setCanScrollHolidayLeft(scrollLeft > 5);
+      setCanScrollHolidayRight(scrollLeft < scrollWidth - clientWidth - 5);
+    }
+  };
+
+  const scrollHolidayMonths = (direction) => {
+    if (holidayMonthsRef.current) {
+      const scrollAmount = direction === "left" ? -180 : 180;
+      holidayMonthsRef.current.scrollBy({ left: scrollAmount, behavior: "smooth" });
+      setTimeout(checkHolidayScroll, 200);
+    }
+  };
+
   // Responsive listener
   useEffect(() => {
-    const handleResize = () => setIsMobile(window.innerWidth < 1024);
+    const handleResize = () => {
+      setIsMobile(window.innerWidth < 1024);
+      checkHolidayScroll();
+    };
     window.addEventListener("resize", handleResize);
     return () => window.removeEventListener("resize", handleResize);
   }, []);
@@ -716,7 +741,7 @@ export default function Timetable() {
               </div>
               <div>
                 <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 11.5, fontWeight: 800, color: "#16a34a" }}>
-                  <Sparkles size={13} />
+                  <Radio size={13} color="#16a34a" />
                   <span>ONGOING CLASS ({liveOverview.activeClass.remainingMins} mins remaining)</span>
                 </div>
                 <div style={{ fontSize: 15, fontWeight: 800, color: "#0f172a", marginTop: 2 }}>
@@ -1049,7 +1074,7 @@ export default function Timetable() {
                           flexShrink: 0,
                         }}
                       >
-                        <Sparkles size={18} />
+                        <Info size={18} />
                       </div>
                       <div>
                         <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 11, fontWeight: 800, color: "#7c3aed", textTransform: "uppercase", letterSpacing: "0.5px" }}>
@@ -1184,10 +1209,10 @@ export default function Timetable() {
                                 borderRadius: 999,
                                 display: "inline-flex",
                                 alignItems: "center",
-                                gap: 4,
+                                gap: 5,
                               }}
                             >
-                              <Sparkles size={10} /> LIVE NOW
+                              <span style={{ width: 5, height: 5, borderRadius: "50%", background: "#ffffff" }} /> LIVE NOW
                             </span>
                           )}
                         </div>
@@ -1735,7 +1760,7 @@ export default function Timetable() {
                               gap: 4,
                             }}
                           >
-                            {statusInfo.status === "ACTIVE" && <Sparkles size={11} />}
+                            {statusInfo.status === "ACTIVE" && <CheckCircle2 size={11} />}
                             {statusInfo.label}
                           </span>
                         </div>
@@ -1878,7 +1903,7 @@ export default function Timetable() {
                               gap: 4,
                             }}
                           >
-                            {statusInfo.status === "ACTIVE" && <Sparkles size={11} />}
+                            {statusInfo.status === "ACTIVE" && <CheckCircle2 size={11} />}
                             {statusInfo.label}
                           </span>
                         </div>
@@ -2102,97 +2127,166 @@ export default function Timetable() {
               </div>
             </div>
 
-            {/* Interactive Month Filter Tabs */}
+            {/* Interactive Month Filter Tabs with Left/Right Scroll Controls */}
             <div
               style={{
                 background: "#ffffff",
                 border: "1px solid #e2e8f0",
                 borderRadius: 14,
-                padding: "8px 12px",
+                padding: "8px 10px",
                 display: "flex",
                 alignItems: "center",
-                gap: 6,
-                overflowX: "auto",
+                gap: 8,
                 boxShadow: "0 1px 3px rgba(0,0,0,0.02)",
+                position: "relative",
               }}
             >
-              <span style={{ fontSize: 11, fontWeight: 800, color: "#64748b", textTransform: "uppercase", marginRight: 4, whiteSpace: "nowrap" }}>
-                Filter By Month:
-              </span>
-
+              {/* Left Scroll Arrow */}
               <button
                 type="button"
-                onClick={() => setSelectedHolidayMonth("all")}
+                onClick={() => scrollHolidayMonths("left")}
+                disabled={!canScrollHolidayLeft}
+                aria-label="Scroll months left"
                 style={{
-                  padding: "5px 12px",
+                  width: 30,
+                  height: 30,
                   borderRadius: 8,
-                  fontSize: 12,
-                  fontWeight: 800,
-                  cursor: "pointer",
-                  border: selectedHolidayMonth === "all" ? "1.5px solid #dc2626" : "1px solid #e2e8f0",
-                  background: selectedHolidayMonth === "all" ? "#dc2626" : "#ffffff",
-                  color: selectedHolidayMonth === "all" ? "#ffffff" : "#475569",
-                  whiteSpace: "nowrap",
-                  transition: "all 0.15s ease",
-                  display: "inline-flex",
+                  border: canScrollHolidayLeft ? "1px solid #cbd5e1" : "1px solid #e2e8f0",
+                  background: canScrollHolidayLeft ? "#f8fafc" : "#f1f5f9",
+                  color: canScrollHolidayLeft ? "#0f172a" : "#94a3b8",
+                  display: "flex",
                   alignItems: "center",
-                  gap: 6,
+                  justifyContent: "center",
+                  cursor: canScrollHolidayLeft ? "pointer" : "default",
+                  flexShrink: 0,
+                  transition: "all 0.15s ease",
+                  opacity: canScrollHolidayLeft ? 1 : 0.45,
                 }}
               >
-                <span>All Months</span>
-                <span
-                  style={{
-                    fontSize: 10,
-                    fontWeight: 900,
-                    background: selectedHolidayMonth === "all" ? "rgba(255,255,255,0.25)" : "#f1f5f9",
-                    color: selectedHolidayMonth === "all" ? "#ffffff" : "#64748b",
-                    padding: "1px 6px",
-                    borderRadius: 99,
-                  }}
-                >
-                  {ACADEMIC_HOLIDAYS_2026_27.length}
-                </span>
+                <ChevronLeft size={16} />
               </button>
 
-              {availableHolidayMonths.map((m) => {
-                const isSelected = selectedHolidayMonth === m.key;
-                return (
-                  <button
-                    key={m.key}
-                    type="button"
-                    onClick={() => setSelectedHolidayMonth(m.key)}
+              {/* Scrollable Months Track */}
+              <div
+                ref={holidayMonthsRef}
+                onScroll={checkHolidayScroll}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 6,
+                  overflowX: "auto",
+                  scrollbarWidth: "none",
+                  msOverflowStyle: "none",
+                  WebkitOverflowScrolling: "touch",
+                  flex: 1,
+                  padding: "2px 0",
+                }}
+              >
+                <span style={{ fontSize: 11, fontWeight: 800, color: "#64748b", textTransform: "uppercase", marginRight: 4, whiteSpace: "nowrap" }}>
+                  Month:
+                </span>
+
+                <button
+                  type="button"
+                  onClick={() => setSelectedHolidayMonth("all")}
+                  style={{
+                    padding: "5px 12px",
+                    borderRadius: 8,
+                    fontSize: 12,
+                    fontWeight: 800,
+                    cursor: "pointer",
+                    border: selectedHolidayMonth === "all" ? "1.5px solid #dc2626" : "1px solid #e2e8f0",
+                    background: selectedHolidayMonth === "all" ? "#dc2626" : "#ffffff",
+                    color: selectedHolidayMonth === "all" ? "#ffffff" : "#475569",
+                    whiteSpace: "nowrap",
+                    transition: "all 0.15s ease",
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 6,
+                    flexShrink: 0,
+                  }}
+                >
+                  <span>All Months</span>
+                  <span
                     style={{
-                      padding: "5px 12px",
-                      borderRadius: 8,
-                      fontSize: 12,
-                      fontWeight: 800,
-                      cursor: "pointer",
-                      border: isSelected ? "1.5px solid #dc2626" : "1px solid #e2e8f0",
-                      background: isSelected ? "#dc2626" : "#ffffff",
-                      color: isSelected ? "#ffffff" : "#475569",
-                      whiteSpace: "nowrap",
-                      transition: "all 0.15s ease",
-                      display: "inline-flex",
-                      alignItems: "center",
-                      gap: 6,
+                      fontSize: 10,
+                      fontWeight: 900,
+                      background: selectedHolidayMonth === "all" ? "rgba(255,255,255,0.25)" : "#f1f5f9",
+                      color: selectedHolidayMonth === "all" ? "#ffffff" : "#64748b",
+                      padding: "1px 6px",
+                      borderRadius: 99,
                     }}
                   >
-                    <span>{m.label}</span>
-                    <span
+                    {ACADEMIC_HOLIDAYS_2026_27.length}
+                  </span>
+                </button>
+
+                {availableHolidayMonths.map((m) => {
+                  const isSelected = selectedHolidayMonth === m.key;
+                  return (
+                    <button
+                      key={m.key}
+                      type="button"
+                      onClick={() => setSelectedHolidayMonth(m.key)}
                       style={{
-                        fontSize: 10,
-                        fontWeight: 900,
-                        background: isSelected ? "rgba(255,255,255,0.25)" : "#fef2f2",
-                        color: isSelected ? "#ffffff" : "#dc2626",
-                        padding: "1px 6px",
-                        borderRadius: 99,
+                        padding: "5px 12px",
+                        borderRadius: 8,
+                        fontSize: 12,
+                        fontWeight: 800,
+                        cursor: "pointer",
+                        border: isSelected ? "1.5px solid #dc2626" : "1px solid #e2e8f0",
+                        background: isSelected ? "#dc2626" : "#ffffff",
+                        color: isSelected ? "#ffffff" : "#475569",
+                        whiteSpace: "nowrap",
+                        transition: "all 0.15s ease",
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: 6,
+                        flexShrink: 0,
                       }}
                     >
-                      {m.count}
-                    </span>
-                  </button>
-                );
-              })}
+                      <span>{m.label}</span>
+                      <span
+                        style={{
+                          fontSize: 10,
+                          fontWeight: 900,
+                          background: isSelected ? "rgba(255,255,255,0.25)" : "#fef2f2",
+                          color: isSelected ? "#ffffff" : "#dc2626",
+                          padding: "1px 6px",
+                          borderRadius: 99,
+                        }}
+                      >
+                        {m.count}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* Right Scroll Arrow */}
+              <button
+                type="button"
+                onClick={() => scrollHolidayMonths("right")}
+                disabled={!canScrollHolidayRight}
+                aria-label="Scroll months right"
+                style={{
+                  width: 30,
+                  height: 30,
+                  borderRadius: 8,
+                  border: canScrollHolidayRight ? "1px solid #cbd5e1" : "1px solid #e2e8f0",
+                  background: canScrollHolidayRight ? "#f8fafc" : "#f1f5f9",
+                  color: canScrollHolidayRight ? "#0f172a" : "#94a3b8",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  cursor: canScrollHolidayRight ? "pointer" : "default",
+                  flexShrink: 0,
+                  transition: "all 0.15s ease",
+                  opacity: canScrollHolidayRight ? 1 : 0.45,
+                }}
+              >
+                <ChevronRight size={16} />
+              </button>
             </div>
 
             {/* CUTM Optional Holidays & Guidelines Policy Showcase */}
@@ -2211,7 +2305,7 @@ export default function Timetable() {
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 8 }}>
                 <div>
                   <div style={{ display: "flex", alignItems: "center", gap: 6, color: "#7c3aed", fontSize: 11.5, fontWeight: 800, textTransform: "uppercase", letterSpacing: "0.5px" }}>
-                    <Sparkles size={13} />
+                    <FileText size={13} color="#7c3aed" />
                     <span>Official CUTM Circular Guidelines</span>
                   </div>
                   <h4 style={{ fontSize: 15, fontWeight: 800, color: "#0f172a", margin: "3px 0 0 0" }}>

@@ -8,7 +8,6 @@ import {
   Star,
   Users,
   MessageSquare,
-  Sparkles,
   Edit3,
   ChevronDown,
   ArrowRight,
@@ -485,7 +484,7 @@ export default function Testimonials() {
                 letterSpacing: "0.2px",
               }}
             >
-              <Sparkles size={isSmallMobile ? 12 : 14} color="#2563eb" />
+              <MessageSquare size={isSmallMobile ? 12 : 14} color="#2563eb" />
               <span>STUDENT REVIEWS & EXPERIENCES</span>
             </div>
 

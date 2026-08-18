@@ -7,7 +7,6 @@ import {
   Percent,
   CheckCircle2,
   AlertTriangle,
-  Sparkles,
   TrendingUp,
   TrendingDown,
   Calculator,

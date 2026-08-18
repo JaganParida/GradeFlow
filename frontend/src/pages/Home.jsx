@@ -19,7 +19,6 @@ import {
   Trophy,
   TrendingUp,
   Target,
-  Sparkles,
   FileText,
   Calculator,
   Home as HomeIcon,
@@ -662,7 +661,7 @@ export default function Home() {
               letterSpacing: "0.2px",
             }}
           >
-            <Sparkles size={12} color="#2563eb" /> Centurion University Academic Portal
+            <GraduationCap size={13} color="#2563eb" /> Centurion University Academic Portal
           </span>
         </div>
 
@@ -1745,7 +1744,7 @@ export default function Home() {
                         }}
                       >
                         <span>Alex Kumar (Sample Student)</span>
-                        <Sparkles size={14} color="#2563eb" />
+                        <CheckCircle2 size={13} color="#2563eb" />
                       </h3>
                       <span
                         style={{
@@ -2250,7 +2249,7 @@ export default function Home() {
             }}
           >
             <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-              <Sparkles size={18} color="#93c5fd" />
+              <Target size={18} color="#93c5fd" />
               <span style={{ fontSize: 13.5, fontWeight: 800 }}>
                 Want to see your actual grades?
               </span>

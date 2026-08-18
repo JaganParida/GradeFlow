@@ -42,7 +42,6 @@ import {
   ArrowRight,
   X,
   List,
-  Sparkles,
   Layers,
   ChevronLeft,
   ChevronRight,
@@ -478,7 +477,7 @@ export default function Analytics() {
     { id: "grades", label: "Grade Distribution", icon: <BarChart2 size={15} color="#8b5cf6" /> },
     { id: "placement", label: "Placement & Companies", icon: <Briefcase size={15} color="#10b981" /> },
     { id: "mastery", label: "Subject Mastery & Insights", icon: <Target size={15} color="#d97706" /> },
-    { id: "predictor", label: "CGPA Goal Predictor", icon: <Sparkles size={15} color="#16a34a" /> },
+    { id: "predictor", label: "CGPA Goal Predictor", icon: <Award size={15} color="#16a34a" /> },
     { id: "whatif", label: "What-If Simulator", icon: <PieChart size={15} color="#6366f1" /> },
   ];
 
@@ -1093,7 +1092,7 @@ export default function Analytics() {
                 <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 8 }}>
                   <div>
                     <h3 style={{ fontSize: isMobile ? 14 : 16, fontWeight: 800, color: "#0f172a", margin: "0 0 2px 0", display: "flex", alignItems: "center", gap: 6 }}>
-                      <Sparkles size={16} color="#2563eb" /> Performance Observations & Highlights
+                      <Award size={16} color="#2563eb" /> Performance Observations & Highlights
                     </h3>
                     <p style={{ color: "#64748b", fontSize: isMobile ? 11 : 12.5, margin: 0 }}>
                       Intelligent academic highlights synthesized from transcript records

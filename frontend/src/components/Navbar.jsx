@@ -7,7 +7,7 @@ import {
   BarChart2, ChevronDown, ChevronRight, Search, LogOut,
   LayoutDashboard, Trophy, BookOpen, MessageSquare,
   TrendingUp, Briefcase, Target, Award, Activity,
-  Menu, X, Sparkles, Home as HomeIcon, User, Calculator, ArrowRight,
+  Menu, X, Home as HomeIcon, User, Calculator, ArrowRight,
   ShieldCheck, Clock, Percent
 } from "lucide-react";
 import { is2023CSEBatch } from "../utils/timetableHelper";
@@ -1344,7 +1344,7 @@ export default function Navbar() {
                   }}
                 >
                   <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                    <Sparkles size={17} color={(location.pathname === "/about-dev" || location.pathname === "/about") ? "#2563eb" : "#64748b"} />
+                    <User size={17} color={(location.pathname === "/about-dev" || location.pathname === "/about") ? "#2563eb" : "#64748b"} />
                     <span>About Developer</span>
                   </div>
                   {(location.pathname === "/about-dev" || location.pathname === "/about") && (
