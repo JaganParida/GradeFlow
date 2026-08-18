@@ -231,7 +231,7 @@ export default function Navbar() {
             style={{
               display: "flex",
               alignItems: "center",
-              gap: 18,
+              gap: 24,
               flexShrink: 1,
               flexWrap: "nowrap",
             }}
@@ -1781,35 +1781,40 @@ export default function Navbar() {
         .gf-desktop-nav {
           display: flex;
           align-items: center;
-          gap: 18px;
+          gap: 24px !important;
         }
         .gf-desktop-nav a, .gf-desktop-nav button {
           white-space: nowrap !important;
           font-size: 13.5px !important;
+          padding: 6px 2px !important;
         }
-        @media (max-width: 1360px) {
+        @media (max-width: 1400px) {
           .gf-desktop-nav {
-            gap: 14px !important;
+            gap: 20px !important;
+          }
+        }
+        @media (max-width: 1280px) {
+          .gf-desktop-nav {
+            gap: 16px !important;
           }
           .gf-desktop-nav a, .gf-desktop-nav button {
             font-size: 13px !important;
           }
         }
-        @media (max-width: 1220px) {
+        @media (max-width: 1160px) {
           .gf-desktop-nav {
-            gap: 10px !important;
+            gap: 12px !important;
           }
           .gf-desktop-nav a, .gf-desktop-nav button {
             font-size: 12.5px !important;
           }
         }
-        @media (max-width: 1100px) {
+        @media (max-width: 1040px) {
           .gf-desktop-nav {
             gap: 8px !important;
           }
           .gf-desktop-nav a, .gf-desktop-nav button {
             font-size: 12px !important;
-            padding: 6px 0 !important;
           }
         }
         @media (max-width: 1024px) {
