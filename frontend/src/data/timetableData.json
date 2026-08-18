@@ -1,0 +1,4462 @@
+{
+  "CSE-A": {
+    "Monday": [
+      {
+        "timeSlot": "9.30AM-10.30AM",
+        "isFree": false,
+        "subject": "Cloud Fundamentals (Azure)(PP)",
+        "room": "CSE-A-AR-301",
+        "faculty": "Partha Sarathi Pradhan",
+        "type": "PP",
+        "raw": "Cloud Fundamentals (Azure)(PP)\nCSE-A-AR-301\nPartha Sarathi Pradhan"
+      },
+      {
+        "timeSlot": "10.30AM-11.30AM",
+        "isFree": false,
+        "subject": "Robotic automation with ROS and C++(PP)",
+        "room": "CSE-A-AR-301",
+        "faculty": "Subrat Kumar Pradhan",
+        "type": "PP",
+        "raw": "Robotic automation with ROS and C++(PP)\nCSE-A-AR-301\nSubrat Kumar Pradhan"
+      },
+      {
+        "timeSlot": "11.30AM-12.30PM",
+        "isFree": false,
+        "subject": "Network and Protocols for IoT(PP)",
+        "room": "CSE-A-AR-301",
+        "faculty": "Sushanta Meher",
+        "type": "PP",
+        "raw": "Network and Protocols for IoT(PP)\nCSE-A-AR-301\nSushanta Meher"
+      },
+      {
+        "timeSlot": "12.30PM-1.30PM",
+        "isFree": true,
+        "subject": "No Class / Free",
+        "room": "",
+        "faculty": "",
+        "type": "",
+        "raw": ""
+      },
+      {
+        "timeSlot": "1.30PM-2.30PM",
+        "isFree": true,
+        "subject": "No Class / Free",
+        "room": "",
+        "faculty": "",
+        "type": "",
+        "raw": ""
+      },
+      {
+        "timeSlot": "2.30PM-3.30PM",
+        "isFree": true,
+        "subject": "No Class / Free",
+        "room": "",
+        "faculty": "",
+        "type": "",
+        "raw": ""
+      },
+      {
+        "timeSlot": "3.30PM-4.30PM",
+        "isFree": true,
+        "subject": "No Class / Free",
+        "room": "",
+        "faculty": "",
+        "type": "",
+        "raw": ""
+      },
+      {
+        "timeSlot": "4.30PM-5.30PM",
+        "isFree": true,
+        "subject": "No Class / Free",
+        "room": "",
+        "faculty": "",
+        "type": "",
+        "raw": ""
+      }
+    ],
+    "Tuesday": [
+      {
+        "timeSlot": "9.30AM-10.30AM",
+        "isFree": false,
+        "subject": "Theory of Computation and Compiler Design(PP)",
+        "room": "CSE-A-AR-301",
+        "faculty": "Dr. Prachee Dewangan",
+        "type": "PP",
+        "raw": "Theory of Computation and Compiler Design(PP)\nCSE-A-AR-301\nDr. Prachee Dewangan"
+      },
+      {
+        "timeSlot": "10.30AM-11.30AM",
+        "isFree": false,
+        "subject": "Data Structure and Algorithms (PR)",
+        "room": "CSE-A-AR-301",
+        "faculty": "Verman Kumar(GOG)",
+        "type": "PR",
+        "raw": "Data Structure and Algorithms (PR)\nCSE-A-AR-301\nVerman Kumar(GOG)"
+      },
+      {
+        "timeSlot": "11.30AM-12.30PM",
+        "isFree": false,
+        "subject": "Data Structure and Algorithms (PR)",
+        "room": "CSE-A-AR-301",
+        "faculty": "Verman Kumar(GOG)",
+        "type": "PR",
+        "raw": "Data Structure and Algorithms (PR)\nCSE-A-AR-301\nVerman Kumar(GOG)"
+      },
+      {
+        "timeSlot": "12.30PM-1.30PM",
+        "isFree": true,
+        "subject": "No Class / Free",
+        "room": "",
+        "faculty": "",
+        "type": "",
+        "raw": ""
+      },
+      {
+        "timeSlot": "1.30PM-2.30PM",
+        "isFree": false,
+        "subject": "Robotic automation with ROS and C++(PR)",
+        "room": "CSE-A-AR-301",
+        "faculty": "Subrat Kumar Pradhan",
+        "type": "PR",
+        "raw": "Robotic automation with ROS and C++(PR)\nCSE-A-AR-301\nSubrat Kumar Pradhan"
+      },
+      {
+        "timeSlot": "2.30PM-3.30PM",
+        "isFree": false,
+        "subject": "Robotic automation with ROS and C++(PR)",
+        "room": "CSE-A-AR-301",
+        "faculty": "Subrat Kumar Pradhan",
+        "type": "PR",
+        "raw": "Robotic automation with ROS and C++(PR)\nCSE-A-AR-301\nSubrat Kumar Pradhan"
+      },
+      {
+        "timeSlot": "3.30PM-4.30PM",
+        "isFree": true,
+        "subject": "No Class / Free",
+        "room": "",
+        "faculty": "",
+        "type": "",
+        "raw": ""
+      },
+      {
+        "timeSlot": "4.30PM-5.30PM",
+        "isFree": true,
+        "subject": "No Class / Free",
+        "room": "",
+        "faculty": "",
+        "type": "",
+        "raw": ""
+      }
+    ],
+    "Wednesday": [
+      {
+        "timeSlot": "9.30AM-10.30AM",
+        "isFree": true,
+        "subject": "No Class / Free",
+        "room": "",
+        "faculty": "",
+        "type": "",
+        "raw": ""
+      },
+      {
+        "timeSlot": "10.30AM-11.30AM",
+        "isFree": false,
+        "subject": "Information Security (CISCO)(TUT)",
+        "room": "CSE-A-AR-301",
+        "faculty": "Dr.Sanjay Kumar Jena",
+        "type": "TUT",
+        "raw": "Information Security (CISCO)(TUT)\nCSE-A-AR-301\nDr.Sanjay Kumar Jena"
+      },
+      {
+        "timeSlot": "11.30AM-12.30PM",
+        "isFree": false,
+        "subject": "Information Security (CISCO)(TUT)",
+        "room": "CSE-A-AR-301",
+        "faculty": "Dr.Sanjay Kumar Jena",
+        "type": "TUT",
+        "raw": "Information Security (CISCO)(TUT)\nCSE-A-AR-301\nDr.Sanjay Kumar Jena"
+      },
+      {
+        "timeSlot": "12.30PM-1.30PM",
+        "isFree": true,
+        "subject": "No Class / Free",
+        "room": "",
+        "faculty": "",
+        "type": "",
+        "raw": ""
+      },
+      {
+        "timeSlot": "1.30PM-2.30PM",
+        "isFree": false,
+        "subject": "Theory of Computation and Compiler Design(PR)",
+        "room": "CSE-A-AR-301",
+        "faculty": "Dr. Prachee Dewangan",
+        "type": "PR",
+        "raw": "Theory of Computation and Compiler Design(PR)\nCSE-A-AR-301\nDr. Prachee Dewangan"
+      },
+      {
+        "timeSlot": "2.30PM-3.30PM",
+        "isFree": false,
+        "subject": "Theory of Computation and Compiler Design(PR)",
+        "room": "CSE-A-AR-301",
+        "faculty": "Dr. Prachee Dewangan",
+        "type": "PR",
+        "raw": "Theory of Computation and Compiler Design(PR)\nCSE-A-AR-301\nDr. Prachee Dewangan"
+      },
+      {
+        "timeSlot": "3.30PM-4.30PM",
+        "isFree": false,
+        "subject": "Data Structure and Algorithms (PR)",
+        "room": "CSE-A-AR-301",
+        "faculty": "Verman Kumar(GOG)",
+        "type": "PR",
+        "raw": "Data Structure and Algorithms (PR)\nCSE-A-AR-301\nVerman Kumar(GOG)"
+      },
+      {
+        "timeSlot": "4.30PM-5.30PM",
+        "isFree": false,
+        "subject": "Data Structure and Algorithms (PR)",
+        "room": "CSE-A-AR-301",
+        "faculty": "Verman Kumar(GOG)",
+        "type": "PR",
+        "raw": "Data Structure and Algorithms (PR)\nCSE-A-AR-301\nVerman Kumar(GOG)"
+      }
+    ],
+    "Thursday": [
+      {
+        "timeSlot": "9.30AM-10.30AM",
+        "isFree": false,
+        "subject": "Cloud Fundamentals (Azure)(PR)",
+        "room": "CSE-A-AR-301",
+        "faculty": "Partha Sarathi Pradhan",
+        "type": "PR",
+        "raw": "Cloud Fundamentals (Azure)(PR)\nCSE-A-AR-301\nPartha Sarathi Pradhan"
+      },
+      {
+        "timeSlot": "10.30AM-11.30AM",
+        "isFree": false,
+        "subject": "Cloud Fundamentals (Azure)(PR)",
+        "room": "CSE-A-AR-301",
+        "faculty": "Partha Sarathi Pradhan",
+        "type": "PR",
+        "raw": "Cloud Fundamentals (Azure)(PR)\nCSE-A-AR-301\nPartha Sarathi Pradhan"
+      },
+      {
+        "timeSlot": "11.30AM-12.30PM",
+        "isFree": false,
+        "subject": "Information Security (CISCO)(PP)",
+        "room": "CSE-A-AR-301",
+        "faculty": "Dr.Sanjay Kumar Jena",
+        "type": "PP",
+        "raw": "Information Security (CISCO)(PP)\nCSE-A-AR-301\nDr.Sanjay Kumar Jena"
+      },
+      {
+        "timeSlot": "12.30PM-1.30PM",
+        "isFree": true,
+        "subject": "No Class / Free",
+        "room": "",
+        "faculty": "",
+        "type": "",
+        "raw": ""
+      },
+      {
+        "timeSlot": "1.30PM-2.30PM",
+        "isFree": false,
+        "subject": "Prompt Engineering using ChatGPT(PR)",
+        "room": "CSE-A-AR-301",
+        "faculty": "Amulya Das",
+        "type": "PR",
+        "raw": "Prompt Engineering using ChatGPT(PR)\nCSE-A-AR-301\nAmulya Das"
+      },
+      {
+        "timeSlot": "2.30PM-3.30PM",
+        "isFree": false,
+        "subject": "Prompt Engineering using ChatGPT(PR)",
+        "room": "CSE-A-AR-301",
+        "faculty": "Amulya Das",
+        "type": "PR",
+        "raw": "Prompt Engineering using ChatGPT(PR)\nCSE-A-AR-301\nAmulya Das"
+      },
+      {
+        "timeSlot": "3.30PM-4.30PM",
+        "isFree": false,
+        "subject": "Network and Protocols for IoT(PR)",
+        "room": "CSE-A-AR-301",
+        "faculty": "Sushanta Meher",
+        "type": "PR",
+        "raw": "Network and Protocols for IoT(PR)\nCSE-A-AR-301\nSushanta Meher"
+      },
+      {
+        "timeSlot": "4.30PM-5.30PM",
+        "isFree": false,
+        "subject": "Network and Protocols for IoT(PR)",
+        "room": "CSE-A-AR-301",
+        "faculty": "Sushanta Meher",
+        "type": "PR",
+        "raw": "Network and Protocols for IoT(PR)\nCSE-A-AR-301\nSushanta Meher"
+      }
+    ],
+    "Friday": [
+      {
+        "timeSlot": "9.30AM-10.30AM",
+        "isFree": false,
+        "subject": "Robotic automation with ROS and C++(PR)",
+        "room": "CSE-A-AR-301",
+        "faculty": "Subrat Kumar Pradhan",
+        "type": "PR",
+        "raw": "Robotic automation with ROS and C++(PR)\nCSE-A-AR-301\nSubrat Kumar Pradhan"
+      },
+      {
+        "timeSlot": "10.30AM-11.30AM",
+        "isFree": false,
+        "subject": "Robotic automation with ROS and C++(PR)",
+        "room": "CSE-A-AR-301",
+        "faculty": "Subrat Kumar Pradhan",
+        "type": "PR",
+        "raw": "Robotic automation with ROS and C++(PR)\nCSE-A-AR-301\nSubrat Kumar Pradhan"
+      },
+      {
+        "timeSlot": "11.30AM-12.30PM",
+        "isFree": false,
+        "subject": "Prompt Engineering using ChatGPT(PP)",
+        "room": "CSE-A-AR-301",
+        "faculty": "Amulya Das",
+        "type": "PP",
+        "raw": "Prompt Engineering using ChatGPT(PP)\nCSE-A-AR-301\nAmulya Das"
+      },
+      {
+        "timeSlot": "12.30PM-1.30PM",
+        "isFree": true,
+        "subject": "No Class / Free",
+        "room": "",
+        "faculty": "",
+        "type": "",
+        "raw": ""
+      },
+      {
+        "timeSlot": "1.30PM-2.30PM",
+        "isFree": false,
+        "subject": "Data Structure and Algorithms (TUT)",
+        "room": "CSE-A-AR-301",
+        "faculty": "Verman Kumar(GOG)",
+        "type": "TUT",
+        "raw": "Data Structure and Algorithms (TUT)\nCSE-A-AR-301\nVerman Kumar(GOG)"
+      },
+      {
+        "timeSlot": "2.30PM-3.30PM",
+        "isFree": false,
+        "subject": "Data Structure and Algorithms (TUT)",
+        "room": "CSE-A-AR-301",
+        "faculty": "Verman Kumar(GOG)",
+        "type": "TUT",
+        "raw": "Data Structure and Algorithms (TUT)\nCSE-A-AR-301\nVerman Kumar(GOG)"
+      },
+      {
+        "timeSlot": "3.30PM-4.30PM",
+        "isFree": false,
+        "subject": "Information Security (CISCO)(PR)",
+        "room": "CSE-A-AR-301",
+        "faculty": "Dr.Sanjay Kumar Jena",
+        "type": "PR",
+        "raw": "Information Security (CISCO)(PR)\nCSE-A-AR-301\nDr.Sanjay Kumar Jena"
+      },
+      {
+        "timeSlot": "4.30PM-5.30PM",
+        "isFree": false,
+        "subject": "Information Security (CISCO)(PR)",
+        "room": "CSE-A-AR-301",
+        "faculty": "Dr.Sanjay Kumar Jena",
+        "type": "PR",
+        "raw": "Information Security (CISCO)(PR)\nCSE-A-AR-301\nDr.Sanjay Kumar Jena"
+      }
+    ],
+    "Saturday": [
+      {
+        "timeSlot": "9.30AM-10.30AM",
+        "isFree": false,
+        "subject": "Theory of Computation and Compiler Design(PR)",
+        "room": "CSE-A-AR-301",
+        "faculty": "Dr. Prachee Dewangan",
+        "type": "PR",
+        "raw": "Theory of Computation and Compiler Design(PR)\nCSE-A-AR-301\nDr. Prachee Dewangan"
+      },
+      {
+        "timeSlot": "10.30AM-11.30AM",
+        "isFree": false,
+        "subject": "Theory of Computation and Compiler Design(PR)",
+        "room": "CSE-A-AR-301",
+        "faculty": "Dr. Prachee Dewangan",
+        "type": "PR",
+        "raw": "Theory of Computation and Compiler Design(PR)\nCSE-A-AR-301\nDr. Prachee Dewangan"
+      },
+      {
+        "timeSlot": "11.30AM-12.30PM",
+        "isFree": false,
+        "subject": "Prompt Engineering using ChatGPT(PP)",
+        "room": "CSE-A-AR-301",
+        "faculty": "Amulya Das",
+        "type": "PP",
+        "raw": "Prompt Engineering using ChatGPT(PP)\nCSE-A-AR-301\nAmulya Das"
+      },
+      {
+        "timeSlot": "12.30PM-1.30PM",
+        "isFree": true,
+        "subject": "No Class / Free",
+        "room": "",
+        "faculty": "",
+        "type": "",
+        "raw": ""
+      },
+      {
+        "timeSlot": "1.30PM-2.30PM",
+        "isFree": false,
+        "subject": "Network and Protocols for IoT(PR)",
+        "room": "CSE-A-AR-301",
+        "faculty": "Sushanta Meher",
+        "type": "PR",
+        "raw": "Network and Protocols for IoT(PR)\nCSE-A-AR-301\nSushanta Meher"
+      },
+      {
+        "timeSlot": "2.30PM-3.30PM",
+        "isFree": false,
+        "subject": "Network and Protocols for IoT(PR)",
+        "room": "CSE-A-AR-301",
+        "faculty": "Sushanta Meher",
+        "type": "PR",
+        "raw": "Network and Protocols for IoT(PR)\nCSE-A-AR-301\nSushanta Meher"
+      },
+      {
+        "timeSlot": "3.30PM-4.30PM",
+        "isFree": false,
+        "subject": "Robotic automation with ROS and C++(TUT)",
+        "room": "CSE-A-AR-301",
+        "faculty": "Subrat Kumar Pradhan",
+        "type": "TUT",
+        "raw": "Robotic automation with ROS and C++(TUT)\nCSE-A-AR-301\nSubrat Kumar Pradhan"
+      },
+      {
+        "timeSlot": "4.30PM-5.30PM",
+        "isFree": false,
+        "subject": "Robotic automation with ROS and C++(TUT)",
+        "room": "CSE-A-AR-301",
+        "faculty": "Subrat Kumar Pradhan",
+        "type": "TUT",
+        "raw": "Robotic automation with ROS and C++(TUT)\nCSE-A-AR-301\nSubrat Kumar Pradhan"
+      }
+    ]
+  },
+  "CSE-B": {
+    "Monday": [
+      {
+        "timeSlot": "9.30AM-10.30AM",
+        "isFree": false,
+        "subject": "Cloud Fundamentals (Azure)(PP)",
+        "room": "CSE-A-AR-305",
+        "faculty": "Gourab Kumar Dash",
+        "type": "PP",
+        "raw": "Cloud Fundamentals (Azure)(PP)\nCSE-A-AR-305\nGourab Kumar Dash"
+      },
+      {
+        "timeSlot": "10.30AM-11.30AM",
+        "isFree": false,
+        "subject": "Prompt Engineering using ChatGPT(PR)",
+        "room": "CSE-B-AR-305",
+        "faculty": "Snehil Gupta",
+        "type": "PR",
+        "raw": "Prompt Engineering using ChatGPT(PR)\nCSE-B-AR-305\nSnehil Gupta"
+      },
+      {
+        "timeSlot": "11.30AM-12.30PM",
+        "isFree": false,
+        "subject": "Prompt Engineering using ChatGPT(PR)",
+        "room": "CSE-B-AR-305",
+        "faculty": "Snehil Gupta",
+        "type": "PR",
+        "raw": "Prompt Engineering using ChatGPT(PR)\nCSE-B-AR-305\nSnehil Gupta"
+      },
+      {
+        "timeSlot": "12.30PM-1.30PM",
+        "isFree": true,
+        "subject": "No Class / Free",
+        "room": "",
+        "faculty": "",
+        "type": "",
+        "raw": ""
+      },
+      {
+        "timeSlot": "1.30PM-2.30PM",
+        "isFree": false,
+        "subject": "Theory of Computation and Compiler Design(PR)",
+        "room": "CSE-B-AR-305",
+        "faculty": "Dr. Prachee Dewangan",
+        "type": "PR",
+        "raw": "Theory of Computation and Compiler Design(PR)\nCSE-B-AR-305\nDr. Prachee Dewangan"
+      },
+      {
+        "timeSlot": "2.30PM-3.30PM",
+        "isFree": false,
+        "subject": "Theory of Computation and Compiler Design(PR)",
+        "room": "CSE-B-AR-305",
+        "faculty": "Dr. Prachee Dewangan",
+        "type": "PR",
+        "raw": "Theory of Computation and Compiler Design(PR)\nCSE-B-AR-305\nDr. Prachee Dewangan"
+      },
+      {
+        "timeSlot": "3.30PM-4.30PM",
+        "isFree": false,
+        "subject": "Network and Protocols for IoT(PR)",
+        "room": "CSE-B-AR-305",
+        "faculty": "Sushanta Meher",
+        "type": "PR",
+        "raw": "Network and Protocols for IoT(PR)\nCSE-B-AR-305\nSushanta Meher"
+      },
+      {
+        "timeSlot": "4.30PM-5.30PM",
+        "isFree": false,
+        "subject": "Network and Protocols for IoT(PR)",
+        "room": "CSE-B-AR-305",
+        "faculty": "Sushanta Meher",
+        "type": "PR",
+        "raw": "Network and Protocols for IoT(PR)\nCSE-B-AR-305\nSushanta Meher"
+      }
+    ],
+    "Tuesday": [
+      {
+        "timeSlot": "9.30AM-10.30AM",
+        "isFree": false,
+        "subject": "Robotic automation with ROS and C++(PR)",
+        "room": "CSE-B-AR-305",
+        "faculty": "Subrat Kumar Pradhan",
+        "type": "PR",
+        "raw": "Robotic automation with ROS and C++(PR)\nCSE-B-AR-305\nSubrat Kumar Pradhan"
+      },
+      {
+        "timeSlot": "10.30AM-11.30AM",
+        "isFree": false,
+        "subject": "Robotic automation with ROS and C++(PR)",
+        "room": "CSE-B-AR-305",
+        "faculty": "Subrat Kumar Pradhan",
+        "type": "PR",
+        "raw": "Robotic automation with ROS and C++(PR)\nCSE-B-AR-305\nSubrat Kumar Pradhan"
+      },
+      {
+        "timeSlot": "11.30AM-12.30PM",
+        "isFree": true,
+        "subject": "No Class / Free",
+        "room": "",
+        "faculty": "",
+        "type": "",
+        "raw": ""
+      },
+      {
+        "timeSlot": "12.30PM-1.30PM",
+        "isFree": true,
+        "subject": "No Class / Free",
+        "room": "",
+        "faculty": "",
+        "type": "",
+        "raw": ""
+      },
+      {
+        "timeSlot": "1.30PM-2.30PM",
+        "isFree": false,
+        "subject": "Data Structure and Algorithms (PR)",
+        "room": "CSE-B-AR-305",
+        "faculty": "Ravi Ranjan Kumar(GOG)",
+        "type": "PR",
+        "raw": "Data Structure and Algorithms (PR)\nCSE-B-AR-305\nRavi Ranjan Kumar(GOG)"
+      },
+      {
+        "timeSlot": "2.30PM-3.30PM",
+        "isFree": false,
+        "subject": "Data Structure and Algorithms (PR)",
+        "room": "CSE-B-AR-305",
+        "faculty": "Ravi Ranjan Kumar(GOG)",
+        "type": "PR",
+        "raw": "Data Structure and Algorithms (PR)\nCSE-B-AR-305\nRavi Ranjan Kumar(GOG)"
+      },
+      {
+        "timeSlot": "3.30PM-4.30PM",
+        "isFree": false,
+        "subject": "Information Security (CISCO)(TUT)",
+        "room": "CSE-B-AR-305",
+        "faculty": "Dr.Sanjay Kumar Jena",
+        "type": "TUT",
+        "raw": "Information Security (CISCO)(TUT)\nCSE-B-AR-305\nDr.Sanjay Kumar Jena"
+      },
+      {
+        "timeSlot": "4.30PM-5.30PM",
+        "isFree": false,
+        "subject": "Information Security (CISCO)(TUT)",
+        "room": "CSE-B-AR-305",
+        "faculty": "Dr.Sanjay Kumar Jena",
+        "type": "TUT",
+        "raw": "Information Security (CISCO)(TUT)\nCSE-B-AR-305\nDr.Sanjay Kumar Jena"
+      }
+    ],
+    "Wednesday": [
+      {
+        "timeSlot": "9.30AM-10.30AM",
+        "isFree": false,
+        "subject": "Robotic automation with ROS and C++(PP)",
+        "room": "CSE-B-AR-305",
+        "faculty": "Subrat Kumar Pradhan",
+        "type": "PP",
+        "raw": "Robotic automation with ROS and C++(PP)\nCSE-B-AR-305\nSubrat Kumar Pradhan"
+      },
+      {
+        "timeSlot": "10.30AM-11.30AM",
+        "isFree": false,
+        "subject": "Network and Protocols for IoT(PR)",
+        "room": "CSE-B-AR-305",
+        "faculty": "Sushanta Meher",
+        "type": "PR",
+        "raw": "Network and Protocols for IoT(PR)\nCSE-B-AR-305\nSushanta Meher"
+      },
+      {
+        "timeSlot": "11.30AM-12.30PM",
+        "isFree": false,
+        "subject": "Network and Protocols for IoT(PR)",
+        "room": "CSE-B-AR-305",
+        "faculty": "Sushanta Meher",
+        "type": "PR",
+        "raw": "Network and Protocols for IoT(PR)\nCSE-B-AR-305\nSushanta Meher"
+      },
+      {
+        "timeSlot": "12.30PM-1.30PM",
+        "isFree": true,
+        "subject": "No Class / Free",
+        "room": "",
+        "faculty": "",
+        "type": "",
+        "raw": ""
+      },
+      {
+        "timeSlot": "1.30PM-2.30PM",
+        "isFree": false,
+        "subject": "Robotic automation with ROS and C++(TUT)",
+        "room": "CSE-B-AR-305",
+        "faculty": "Subrat Kumar Pradhan",
+        "type": "TUT",
+        "raw": "Robotic automation with ROS and C++(TUT)\nCSE-B-AR-305\nSubrat Kumar Pradhan"
+      },
+      {
+        "timeSlot": "2.30PM-3.30PM",
+        "isFree": false,
+        "subject": "Robotic automation with ROS and C++(TUT)",
+        "room": "CSE-B-AR-305",
+        "faculty": "Subrat Kumar Pradhan",
+        "type": "TUT",
+        "raw": "Robotic automation with ROS and C++(TUT)\nCSE-B-AR-305\nSubrat Kumar Pradhan"
+      },
+      {
+        "timeSlot": "3.30PM-4.30PM",
+        "isFree": false,
+        "subject": "Data Structure and Algorithms (PR)",
+        "room": "CSE-B-AR-305",
+        "faculty": "Ravi Ranjan Kumar(GOG)",
+        "type": "PR",
+        "raw": "Data Structure and Algorithms (PR)\nCSE-B-AR-305\nRavi Ranjan Kumar(GOG)"
+      },
+      {
+        "timeSlot": "4.30PM-5.30PM",
+        "isFree": false,
+        "subject": "Data Structure and Algorithms (PR)",
+        "room": "CSE-B-AR-305",
+        "faculty": "Ravi Ranjan Kumar(GOG)",
+        "type": "PR",
+        "raw": "Data Structure and Algorithms (PR)\nCSE-B-AR-305\nRavi Ranjan Kumar(GOG)"
+      }
+    ],
+    "Thursday": [
+      {
+        "timeSlot": "9.30AM-10.30AM",
+        "isFree": false,
+        "subject": "Cloud Fundamentals (Azure)(PR)",
+        "room": "CSE-B-AR-305",
+        "faculty": "Gourab Kumar Dash",
+        "type": "PR",
+        "raw": "Cloud Fundamentals (Azure)(PR)\nCSE-B-AR-305\nGourab Kumar Dash"
+      },
+      {
+        "timeSlot": "10.30AM-11.30AM",
+        "isFree": false,
+        "subject": "Cloud Fundamentals (Azure)(PR)",
+        "room": "CSE-B-AR-305",
+        "faculty": "Gourab Kumar Dash",
+        "type": "PR",
+        "raw": "Cloud Fundamentals (Azure)(PR)\nCSE-B-AR-305\nGourab Kumar Dash"
+      },
+      {
+        "timeSlot": "11.30AM-12.30PM",
+        "isFree": false,
+        "subject": "Theory of Computation and Compiler Design(PP)",
+        "room": "CSE-B-AR-305",
+        "faculty": "Dr. Prachee Dewangan",
+        "type": "PP",
+        "raw": "Theory of Computation and Compiler Design(PP)\nCSE-B-AR-305\nDr. Prachee Dewangan"
+      },
+      {
+        "timeSlot": "12.30PM-1.30PM",
+        "isFree": true,
+        "subject": "No Class / Free",
+        "room": "",
+        "faculty": "",
+        "type": "",
+        "raw": ""
+      },
+      {
+        "timeSlot": "1.30PM-2.30PM",
+        "isFree": true,
+        "subject": "No Class / Free",
+        "room": "",
+        "faculty": "",
+        "type": "",
+        "raw": ""
+      },
+      {
+        "timeSlot": "2.30PM-3.30PM",
+        "isFree": true,
+        "subject": "No Class / Free",
+        "room": "",
+        "faculty": "",
+        "type": "",
+        "raw": ""
+      },
+      {
+        "timeSlot": "3.30PM-4.30PM",
+        "isFree": true,
+        "subject": "No Class / Free",
+        "room": "",
+        "faculty": "",
+        "type": "",
+        "raw": ""
+      },
+      {
+        "timeSlot": "4.30PM-5.30PM",
+        "isFree": true,
+        "subject": "No Class / Free",
+        "room": "",
+        "faculty": "",
+        "type": "",
+        "raw": ""
+      }
+    ],
+    "Friday": [
+      {
+        "timeSlot": "9.30AM-10.30AM",
+        "isFree": false,
+        "subject": "Theory of Computation and Compiler Design(PR)",
+        "room": "CSE-B-AR-305",
+        "faculty": "Dr. Prachee Dewangan",
+        "type": "PR",
+        "raw": "Theory of Computation and Compiler Design(PR)\nCSE-B-AR-305\n\nDr. Prachee Dewangan"
+      },
+      {
+        "timeSlot": "10.30AM-11.30AM",
+        "isFree": false,
+        "subject": "Theory of Computation and Compiler Design(PR)",
+        "room": "CSE-B-AR-305",
+        "faculty": "Dr. Prachee Dewangan",
+        "type": "PR",
+        "raw": "Theory of Computation and Compiler Design(PR)\nCSE-B-AR-305\nDr. Prachee Dewangan"
+      },
+      {
+        "timeSlot": "11.30AM-12.30PM",
+        "isFree": false,
+        "subject": "Network and Protocols for IoT(PP)",
+        "room": "CSE-B-AR-305",
+        "faculty": "Sushanta Meher",
+        "type": "PP",
+        "raw": "Network and Protocols for IoT(PP)\nCSE-B-AR-305\nSushanta Meher"
+      },
+      {
+        "timeSlot": "12.30PM-1.30PM",
+        "isFree": true,
+        "subject": "No Class / Free",
+        "room": "",
+        "faculty": "",
+        "type": "",
+        "raw": ""
+      },
+      {
+        "timeSlot": "1.30PM-2.30PM",
+        "isFree": false,
+        "subject": "Information Security (CISCO)(PP)",
+        "room": "CSE-B-AR-305",
+        "faculty": "Dr.Sanjay Kumar Jena",
+        "type": "PP",
+        "raw": "Information Security (CISCO)(PP)\nCSE-B-AR-305\nDr.Sanjay Kumar Jena"
+      },
+      {
+        "timeSlot": "2.30PM-3.30PM",
+        "isFree": false,
+        "subject": "Prompt Engineering using ChatGPT(PP)",
+        "room": "CSE-B-AR-305",
+        "faculty": "Snehil Gupta",
+        "type": "PP",
+        "raw": "Prompt Engineering using ChatGPT(PP)\nCSE-B-AR-305\nSnehil Gupta"
+      },
+      {
+        "timeSlot": "3.30PM-4.30PM",
+        "isFree": true,
+        "subject": "No Class / Free",
+        "room": "",
+        "faculty": "",
+        "type": "",
+        "raw": ""
+      },
+      {
+        "timeSlot": "4.30PM-5.30PM",
+        "isFree": true,
+        "subject": "No Class / Free",
+        "room": "",
+        "faculty": "",
+        "type": "",
+        "raw": ""
+      }
+    ],
+    "Saturday": [
+      {
+        "timeSlot": "9.30AM-10.30AM",
+        "isFree": true,
+        "subject": "No Class / Free",
+        "room": "",
+        "faculty": "",
+        "type": "",
+        "raw": ""
+      },
+      {
+        "timeSlot": "10.30AM-11.30AM",
+        "isFree": false,
+        "subject": "Robotic automation with ROS and C++(PR)",
+        "room": "CSE-B-AR-305",
+        "faculty": "Subrat Kumar Pradhan",
+        "type": "PR",
+        "raw": "Robotic automation with ROS and C++(PR)\nCSE-B-AR-305\nSubrat Kumar Pradhan"
+      },
+      {
+        "timeSlot": "11.30AM-12.30PM",
+        "isFree": false,
+        "subject": "Robotic automation with ROS and C++(PR)",
+        "room": "CSE-B-AR-305",
+        "faculty": "Subrat Kumar Pradhan",
+        "type": "PR",
+        "raw": "Robotic automation with ROS and C++(PR)\nCSE-B-AR-305\nSubrat Kumar Pradhan"
+      },
+      {
+        "timeSlot": "12.30PM-1.30PM",
+        "isFree": true,
+        "subject": "No Class / Free",
+        "room": "",
+        "faculty": "",
+        "type": "",
+        "raw": ""
+      },
+      {
+        "timeSlot": "1.30PM-2.30PM",
+        "isFree": false,
+        "subject": "Data Structure and Algorithms (TUT)",
+        "room": "CSE-B-AR-305",
+        "faculty": "Ravi Ranjan Kumar(GOG)",
+        "type": "TUT",
+        "raw": "Data Structure and Algorithms (TUT)\nCSE-B-AR-305\nRavi Ranjan Kumar(GOG)"
+      },
+      {
+        "timeSlot": "2.30PM-3.30PM",
+        "isFree": false,
+        "subject": "Data Structure and Algorithms (TUT)",
+        "room": "CSE-B-AR-305",
+        "faculty": "Ravi Ranjan Kumar(GOG)",
+        "type": "TUT",
+        "raw": "Data Structure and Algorithms (TUT)\nCSE-B-AR-305\nRavi Ranjan Kumar(GOG)"
+      },
+      {
+        "timeSlot": "3.30PM-4.30PM",
+        "isFree": false,
+        "subject": "Information Security (CISCO)(PR)",
+        "room": "CSE-B-AR-305",
+        "faculty": "Dr.Sanjay Kumar Jena",
+        "type": "PR",
+        "raw": "Information Security (CISCO)(PR)\nCSE-B-AR-305\nDr.Sanjay Kumar Jena"
+      },
+      {
+        "timeSlot": "4.30PM-5.30PM",
+        "isFree": false,
+        "subject": "Information Security (CISCO)(PR)",
+        "room": "CSE-B-AR-305",
+        "faculty": "Dr.Sanjay Kumar Jena",
+        "type": "PR",
+        "raw": "Information Security (CISCO)(PR)\nCSE-B-AR-305\nDr.Sanjay Kumar Jena"
+      }
+    ]
+  },
+  "CSE-C": {
+    "Monday": [
+      {
+        "timeSlot": "9.30AM-10.30AM",
+        "isFree": false,
+        "subject": "Theory of Computation and Compiler Design(PP)",
+        "room": "CSE-C-AR-306",
+        "faculty": "Dr. Prachee Dewangan",
+        "type": "PP",
+        "raw": "Theory of Computation and Compiler Design(PP)\nCSE-C-AR-306\nDr. Prachee Dewangan"
+      },
+      {
+        "timeSlot": "10.30AM-11.30AM",
+        "isFree": false,
+        "subject": "Data Structure and Algorithms (PR)",
+        "room": "CSE-C-AR-306",
+        "faculty": "Verman Kumar(GOG)",
+        "type": "PR",
+        "raw": "Data Structure and Algorithms (PR)\nCSE-C-AR-306\nVerman Kumar(GOG)"
+      },
+      {
+        "timeSlot": "11.30AM-12.30PM",
+        "isFree": false,
+        "subject": "Data Structure and Algorithms (PR)",
+        "room": "CSE-C-AR-306",
+        "faculty": "Verman Kumar(GOG)",
+        "type": "PR",
+        "raw": "Data Structure and Algorithms (PR)\nCSE-C-AR-306\nVerman Kumar(GOG)"
+      },
+      {
+        "timeSlot": "12.30PM-1.30PM",
+        "isFree": true,
+        "subject": "No Class / Free",
+        "room": "",
+        "faculty": "",
+        "type": "",
+        "raw": ""
+      },
+      {
+        "timeSlot": "1.30PM-2.30PM",
+        "isFree": false,
+        "subject": "Prompt Engineering using ChatGPT(PR)",
+        "room": "CSE-C-AR-305",
+        "faculty": "Snehil Gupta",
+        "type": "PR",
+        "raw": "Prompt Engineering using ChatGPT(PR)\nCSE-C-AR-305\nSnehil Gupta"
+      },
+      {
+        "timeSlot": "2.30PM-3.30PM",
+        "isFree": false,
+        "subject": "Prompt Engineering using ChatGPT(PR)",
+        "room": "CSE-C-AR-305",
+        "faculty": "Snehil Gupta",
+        "type": "PR",
+        "raw": "Prompt Engineering using ChatGPT(PR)\nCSE-C-AR-305\nSnehil Gupta"
+      },
+      {
+        "timeSlot": "3.30PM-4.30PM",
+        "isFree": false,
+        "subject": "Robotic automation with ROS and C++(PR)",
+        "room": "CSE-C-AR-306",
+        "faculty": "Subrat Kumar Pradhan",
+        "type": "PR",
+        "raw": "Robotic automation with ROS and C++(PR)\nCSE-C-AR-306\nSubrat Kumar Pradhan"
+      },
+      {
+        "timeSlot": "4.30PM-5.30PM",
+        "isFree": false,
+        "subject": "Robotic automation with ROS and C++(PR)",
+        "room": "CSE-C-AR-306",
+        "faculty": "Subrat Kumar Pradhan",
+        "type": "PR",
+        "raw": "Robotic automation with ROS and C++(PR)\nCSE-C-AR-306\nSubrat Kumar Pradhan"
+      }
+    ],
+    "Tuesday": [
+      {
+        "timeSlot": "9.30AM-10.30AM",
+        "isFree": false,
+        "subject": "Cloud Fundamentals (Azure)(PP)",
+        "room": "CSE-C-AR-306",
+        "faculty": "Gourab Kumar Dash",
+        "type": "PP",
+        "raw": "Cloud Fundamentals (Azure)(PP)\nCSE-C-AR-306\nGourab Kumar Dash"
+      },
+      {
+        "timeSlot": "10.30AM-11.30AM",
+        "isFree": false,
+        "subject": "Network and Protocols for IoT(PR)",
+        "room": "CSE-C-AR-306",
+        "faculty": "Sushanta Meher",
+        "type": "PR",
+        "raw": "Network and Protocols for IoT(PR)\nCSE-C-AR-306\nSushanta Meher"
+      },
+      {
+        "timeSlot": "11.30AM-12.30PM",
+        "isFree": false,
+        "subject": "Network and Protocols for IoT(PR)",
+        "room": "CSE-C-AR-306",
+        "faculty": "Sushanta Meher",
+        "type": "PR",
+        "raw": "Network and Protocols for IoT(PR)\nCSE-C-AR-306\nSushanta Meher"
+      },
+      {
+        "timeSlot": "12.30PM-1.30PM",
+        "isFree": true,
+        "subject": "No Class / Free",
+        "room": "",
+        "faculty": "",
+        "type": "",
+        "raw": ""
+      },
+      {
+        "timeSlot": "1.30PM-2.30PM",
+        "isFree": false,
+        "subject": "Data Structure and Algorithms (PR)",
+        "room": "CSE-C-AR-306",
+        "faculty": "Verman Kumar(GOG)",
+        "type": "PR",
+        "raw": "Data Structure and Algorithms (PR)\nCSE-C-AR-306\nVerman Kumar(GOG)"
+      },
+      {
+        "timeSlot": "2.30PM-3.30PM",
+        "isFree": false,
+        "subject": "Data Structure and Algorithms (PR)",
+        "room": "CSE-C-AR-306",
+        "faculty": "Verman Kumar(GOG)",
+        "type": "PR",
+        "raw": "Data Structure and Algorithms (PR)\nCSE-C-AR-306\nVerman Kumar(GOG)"
+      },
+      {
+        "timeSlot": "3.30PM-4.30PM",
+        "isFree": false,
+        "subject": "Theory of Computation and Compiler Design(PR)",
+        "room": "CSE-C-AR-306",
+        "faculty": "Dr. Prachee Dewangan",
+        "type": "PR",
+        "raw": "Theory of Computation and Compiler Design(PR)\nCSE-C-AR-306\nDr. Prachee Dewangan"
+      },
+      {
+        "timeSlot": "4.30PM-5.30PM",
+        "isFree": false,
+        "subject": "Theory of Computation and Compiler Design(PR)",
+        "room": "CSE-C-AR-306",
+        "faculty": "Dr. Prachee Dewangan",
+        "type": "PR",
+        "raw": "Theory of Computation and Compiler Design(PR)\nCSE-C-AR-306\nDr. Prachee Dewangan"
+      }
+    ],
+    "Wednesday": [
+      {
+        "timeSlot": "9.30AM-10.30AM",
+        "isFree": false,
+        "subject": "Data Structure and Algorithms (TUT)",
+        "room": "CSE-C-AR-306",
+        "faculty": "Verman Kumar(GOG)",
+        "type": "TUT",
+        "raw": "Data Structure and Algorithms (TUT)\nCSE-C-AR-306\nVerman Kumar(GOG)"
+      },
+      {
+        "timeSlot": "10.30AM-11.30AM",
+        "isFree": false,
+        "subject": "Data Structure and Algorithms (TUT)",
+        "room": "CSE-C-AR-306",
+        "faculty": "Verman Kumar(GOG)",
+        "type": "TUT",
+        "raw": "Data Structure and Algorithms (TUT)\nCSE-C-AR-306\nVerman Kumar(GOG)"
+      },
+      {
+        "timeSlot": "11.30AM-12.30PM",
+        "isFree": false,
+        "subject": "Information Security (CISCO)(PP)",
+        "room": "CSE-C-AR-306",
+        "faculty": "Smita Patra",
+        "type": "PP",
+        "raw": "Information Security (CISCO)(PP)\nCSE-C-AR-306\nSmita Patra"
+      },
+      {
+        "timeSlot": "12.30PM-1.30PM",
+        "isFree": true,
+        "subject": "No Class / Free",
+        "room": "",
+        "faculty": "",
+        "type": "",
+        "raw": ""
+      },
+      {
+        "timeSlot": "1.30PM-2.30PM",
+        "isFree": true,
+        "subject": "No Class / Free",
+        "room": "",
+        "faculty": "",
+        "type": "",
+        "raw": ""
+      },
+      {
+        "timeSlot": "2.30PM-3.30PM",
+        "isFree": true,
+        "subject": "No Class / Free",
+        "room": "",
+        "faculty": "",
+        "type": "",
+        "raw": ""
+      },
+      {
+        "timeSlot": "3.30PM-4.30PM",
+        "isFree": true,
+        "subject": "No Class / Free",
+        "room": "",
+        "faculty": "",
+        "type": "",
+        "raw": ""
+      },
+      {
+        "timeSlot": "4.30PM-5.30PM",
+        "isFree": true,
+        "subject": "No Class / Free",
+        "room": "",
+        "faculty": "",
+        "type": "",
+        "raw": ""
+      }
+    ],
+    "Thursday": [
+      {
+        "timeSlot": "9.30AM-10.30AM",
+        "isFree": false,
+        "subject": "Robotic automation with ROS and C++(PP)",
+        "room": "CSE-C-AR-306",
+        "faculty": "Subrat Kumar Pradhan",
+        "type": "PP",
+        "raw": "Robotic automation with ROS and C++(PP)\nCSE-C-AR-306\nSubrat Kumar Pradhan"
+      },
+      {
+        "timeSlot": "10.30AM-11.30AM",
+        "isFree": false,
+        "subject": "Network and Protocols for IoT(PR)",
+        "room": "CSE-C-AR-306",
+        "faculty": "Sushanta Meher",
+        "type": "PR",
+        "raw": "Network and Protocols for IoT(PR)\nCSE-C-AR-306\nSushanta Meher"
+      },
+      {
+        "timeSlot": "11.30AM-12.30PM",
+        "isFree": false,
+        "subject": "Network and Protocols for IoT(PR)",
+        "room": "CSE-C-AR-306",
+        "faculty": "Sushanta Meher",
+        "type": "PR",
+        "raw": "Network and Protocols for IoT(PR)\nCSE-C-AR-306\nSushanta Meher"
+      },
+      {
+        "timeSlot": "12.30PM-1.30PM",
+        "isFree": true,
+        "subject": "No Class / Free",
+        "room": "",
+        "faculty": "",
+        "type": "",
+        "raw": ""
+      },
+      {
+        "timeSlot": "1.30PM-2.30PM",
+        "isFree": false,
+        "subject": "Robotic automation with ROS and C++(PR)",
+        "room": "CSE-C-AR-306",
+        "faculty": "Subrat Kumar Pradhan",
+        "type": "PR",
+        "raw": "Robotic automation with ROS and C++(PR)\nCSE-C-AR-306\nSubrat Kumar Pradhan"
+      },
+      {
+        "timeSlot": "2.30PM-3.30PM",
+        "isFree": false,
+        "subject": "Robotic automation with ROS and C++(PR)",
+        "room": "CSE-C-AR-306",
+        "faculty": "Subrat Kumar Pradhan",
+        "type": "PR",
+        "raw": "Robotic automation with ROS and C++(PR)\nCSE-C-AR-306\nSubrat Kumar Pradhan"
+      },
+      {
+        "timeSlot": "3.30PM-4.30PM",
+        "isFree": false,
+        "subject": "Theory of Computation and Compiler Design(PR)",
+        "room": "CSE-C-AR-306",
+        "faculty": "Dr. Prachee Dewangan",
+        "type": "PR",
+        "raw": "Theory of Computation and Compiler Design(PR)\nCSE-C-AR-306\nDr. Prachee Dewangan"
+      },
+      {
+        "timeSlot": "4.30PM-5.30PM",
+        "isFree": false,
+        "subject": "Theory of Computation and Compiler Design(PR)",
+        "room": "CSE-C-AR-306",
+        "faculty": "Dr. Prachee Dewangan",
+        "type": "PR",
+        "raw": "Theory of Computation and Compiler Design(PR)\nCSE-C-AR-306\nDr. Prachee Dewangan"
+      }
+    ],
+    "Friday": [
+      {
+        "timeSlot": "9.30AM-10.30AM",
+        "isFree": false,
+        "subject": "Cloud Fundamentals (Azure)(PR)",
+        "room": "CSE-C-AR-306",
+        "faculty": "Gourab Kumar Dash",
+        "type": "PR",
+        "raw": "Cloud Fundamentals (Azure)(PR)\nCSE-C-AR-306\nGourab Kumar Dash"
+      },
+      {
+        "timeSlot": "10.30AM-11.30AM",
+        "isFree": false,
+        "subject": "Cloud Fundamentals (Azure)(PR)",
+        "room": "CSE-C-AR-306",
+        "faculty": "Gourab Kumar Dash",
+        "type": "PR",
+        "raw": "Cloud Fundamentals (Azure)(PR)\nCSE-C-AR-306\nGourab Kumar Dash"
+      },
+      {
+        "timeSlot": "11.30AM-12.30PM",
+        "isFree": false,
+        "subject": "Prompt Engineering using ChatGPT(PP)",
+        "room": "CSE-C-AR-306",
+        "faculty": "Snehil Gupta",
+        "type": "PP",
+        "raw": "Prompt Engineering using ChatGPT(PP)\nCSE-C-AR-306\nSnehil Gupta"
+      },
+      {
+        "timeSlot": "12.30PM-1.30PM",
+        "isFree": true,
+        "subject": "No Class / Free",
+        "room": "",
+        "faculty": "",
+        "type": "",
+        "raw": ""
+      },
+      {
+        "timeSlot": "1.30PM-2.30PM",
+        "isFree": false,
+        "subject": "Information Security (CISCO)(TUT)",
+        "room": "CSE-C-AR-306",
+        "faculty": "Smita Patra",
+        "type": "TUT",
+        "raw": "Information Security (CISCO)(TUT)\nCSE-C-AR-306\nSmita Patra"
+      },
+      {
+        "timeSlot": "2.30PM-3.30PM",
+        "isFree": false,
+        "subject": "Information Security (CISCO)(TUT)",
+        "room": "CSE-C-AR-306",
+        "faculty": "Smita Patra",
+        "type": "TUT",
+        "raw": "Information Security (CISCO)(TUT)\nCSE-C-AR-306\nSmita Patra"
+      },
+      {
+        "timeSlot": "3.30PM-4.30PM",
+        "isFree": false,
+        "subject": "Robotic automation with ROS and C++(TUT)",
+        "room": "CSE-C-AR-306",
+        "faculty": "Subrat Kumar Pradhan",
+        "type": "TUT",
+        "raw": "Robotic automation with ROS and C++(TUT)\nCSE-C-AR-306\nSubrat Kumar Pradhan"
+      },
+      {
+        "timeSlot": "4.30PM-5.30PM",
+        "isFree": false,
+        "subject": "Robotic automation with ROS and C++(TUT)",
+        "room": "CSE-C-AR-306",
+        "faculty": "Subrat Kumar Pradhan",
+        "type": "TUT",
+        "raw": "Robotic automation with ROS and C++(TUT)\nCSE-C-AR-306\nSubrat Kumar Pradhan"
+      }
+    ],
+    "Saturday": [
+      {
+        "timeSlot": "9.30AM-10.30AM",
+        "isFree": false,
+        "subject": "Network and Protocols for IoT(PP)",
+        "room": "CSE-C-AR-306",
+        "faculty": "Sushanta Meher",
+        "type": "PP",
+        "raw": "Network and Protocols for IoT(PP)\nCSE-C-AR-306\nSushanta Meher"
+      },
+      {
+        "timeSlot": "10.30AM-11.30AM",
+        "isFree": false,
+        "subject": "Information Security (CISCO)(PR)",
+        "room": "CSE-C-AR-306",
+        "faculty": "Smita Patra",
+        "type": "PR",
+        "raw": "Information Security (CISCO)(PR)\nCSE-C-AR-306\nSmita Patra"
+      },
+      {
+        "timeSlot": "11.30AM-12.30PM",
+        "isFree": false,
+        "subject": "Information Security (CISCO)(PR)",
+        "room": "CSE-C-AR-306",
+        "faculty": "Smita Patra",
+        "type": "PR",
+        "raw": "Information Security (CISCO)(PR)\nCSE-C-AR-306\nSmita Patra"
+      },
+      {
+        "timeSlot": "12.30PM-1.30PM",
+        "isFree": true,
+        "subject": "No Class / Free",
+        "room": "",
+        "faculty": "",
+        "type": "",
+        "raw": ""
+      },
+      {
+        "timeSlot": "1.30PM-2.30PM",
+        "isFree": true,
+        "subject": "No Class / Free",
+        "room": "",
+        "faculty": "",
+        "type": "",
+        "raw": ""
+      },
+      {
+        "timeSlot": "2.30PM-3.30PM",
+        "isFree": true,
+        "subject": "No Class / Free",
+        "room": "",
+        "faculty": "",
+        "type": "",
+        "raw": ""
+      },
+      {
+        "timeSlot": "3.30PM-4.30PM",
+        "isFree": true,
+        "subject": "No Class / Free",
+        "room": "",
+        "faculty": "",
+        "type": "",
+        "raw": ""
+      },
+      {
+        "timeSlot": "4.30PM-5.30PM",
+        "isFree": true,
+        "subject": "No Class / Free",
+        "room": "",
+        "faculty": "",
+        "type": "",
+        "raw": ""
+      }
+    ]
+  },
+  "CSE-D": {
+    "Monday": [
+      {
+        "timeSlot": "9.30AM-10.30AM",
+        "isFree": false,
+        "subject": "Cloud Fundamentals (Azure)(PP)",
+        "room": "CSE-D-AR-308",
+        "faculty": "Shrabana Kumar Rout",
+        "type": "PP",
+        "raw": "Cloud Fundamentals (Azure)(PP)\nCSE-D-AR-308\nShrabana Kumar Rout"
+      },
+      {
+        "timeSlot": "10.30AM-11.30AM",
+        "isFree": false,
+        "subject": "Theory of Computation and Compiler Design(PP)",
+        "room": "CSE-D-AR-308",
+        "faculty": "Sasmita Tripathy",
+        "type": "PP",
+        "raw": "Theory of Computation and Compiler Design(PP)\nCSE-D-AR-308\nSasmita Tripathy"
+      },
+      {
+        "timeSlot": "11.30AM-12.30PM",
+        "isFree": false,
+        "subject": "Theory of Computation and Compiler Design(PP)",
+        "room": "CSE-D-AR-308",
+        "faculty": "Sasmita Tripathy",
+        "type": "PP",
+        "raw": "Theory of Computation and Compiler Design(PP)\nCSE-D-AR-308\nSasmita Tripathy"
+      },
+      {
+        "timeSlot": "12.30PM-1.30PM",
+        "isFree": true,
+        "subject": "No Class / Free",
+        "room": "",
+        "faculty": "",
+        "type": "",
+        "raw": ""
+      },
+      {
+        "timeSlot": "1.30PM-2.30PM",
+        "isFree": false,
+        "subject": "Data Structure and Algorithms (TUT)",
+        "room": "CSE-D-AR-308",
+        "faculty": "Ravi Ranjan Kumar(GOG)",
+        "type": "TUT",
+        "raw": "Data Structure and Algorithms (TUT)\nCSE-D-AR-308\nRavi Ranjan Kumar(GOG)"
+      },
+      {
+        "timeSlot": "2.30PM-3.30PM",
+        "isFree": false,
+        "subject": "Data Structure and Algorithms (TUT)",
+        "room": "CSE-D-AR-308",
+        "faculty": "Ravi Ranjan Kumar(GOG)",
+        "type": "TUT",
+        "raw": "Data Structure and Algorithms (TUT)\nCSE-D-AR-308\nRavi Ranjan Kumar(GOG)"
+      },
+      {
+        "timeSlot": "3.30PM-4.30PM",
+        "isFree": false,
+        "subject": "Network and Protocols for IoT(PR)",
+        "room": "CSE-D-AR-308",
+        "faculty": "Dr.Sanjay Kumar Jena",
+        "type": "PR",
+        "raw": "Network and Protocols for IoT(PR)\nCSE-D-AR-308\nDr.Sanjay Kumar Jena"
+      },
+      {
+        "timeSlot": "4.30PM-5.30PM",
+        "isFree": false,
+        "subject": "Network and Protocols for IoT(PR)",
+        "room": "CSE-D-AR-308",
+        "faculty": "Dr.Sanjay Kumar Jena",
+        "type": "PR",
+        "raw": "Network and Protocols for IoT(PR)\nCSE-D-AR-308\nDr.Sanjay Kumar Jena"
+      }
+    ],
+    "Tuesday": [
+      {
+        "timeSlot": "9.30AM-10.30AM",
+        "isFree": false,
+        "subject": "Cloud Fundamentals (Azure)(PR)",
+        "room": "CSE-D-AR-308",
+        "faculty": "Shrabana Kumar Rout",
+        "type": "PR",
+        "raw": "Cloud Fundamentals (Azure)(PR)\nCSE-D-AR-308\nShrabana Kumar Rout"
+      },
+      {
+        "timeSlot": "10.30AM-11.30AM",
+        "isFree": false,
+        "subject": "Cloud Fundamentals (Azure)(PR)",
+        "room": "CSE-D-AR-308",
+        "faculty": "Shrabana Kumar Rout",
+        "type": "PR",
+        "raw": "Cloud Fundamentals (Azure)(PR)\nCSE-D-AR-308\nShrabana Kumar Rout"
+      },
+      {
+        "timeSlot": "11.30AM-12.30PM",
+        "isFree": false,
+        "subject": "Robotic automation with ROS and C++(PP)",
+        "room": "CSE-D-AR-308",
+        "faculty": "Biswajit Mallik",
+        "type": "PP",
+        "raw": "Robotic automation with ROS and C++(PP)\nCSE-D-AR-308\nBiswajit Mallik"
+      },
+      {
+        "timeSlot": "12.30PM-1.30PM",
+        "isFree": true,
+        "subject": "No Class / Free",
+        "room": "",
+        "faculty": "",
+        "type": "",
+        "raw": ""
+      },
+      {
+        "timeSlot": "1.30PM-2.30PM",
+        "isFree": true,
+        "subject": "No Class / Free",
+        "room": "",
+        "faculty": "",
+        "type": "",
+        "raw": ""
+      },
+      {
+        "timeSlot": "2.30PM-3.30PM",
+        "isFree": true,
+        "subject": "No Class / Free",
+        "room": "",
+        "faculty": "",
+        "type": "",
+        "raw": ""
+      },
+      {
+        "timeSlot": "3.30PM-4.30PM",
+        "isFree": true,
+        "subject": "No Class / Free",
+        "room": "",
+        "faculty": "",
+        "type": "",
+        "raw": ""
+      },
+      {
+        "timeSlot": "4.30PM-5.30PM",
+        "isFree": true,
+        "subject": "No Class / Free",
+        "room": "",
+        "faculty": "",
+        "type": "",
+        "raw": ""
+      }
+    ],
+    "Wednesday": [
+      {
+        "timeSlot": "9.30AM-10.30AM",
+        "isFree": false,
+        "subject": "Network and Protocols for IoT(PP)",
+        "room": "CSE-D-AR-308",
+        "faculty": "Dr.Sanjay Kumar Jena",
+        "type": "PP",
+        "raw": "Network and Protocols for IoT(PP)\nCSE-D-AR-308\nDr.Sanjay Kumar Jena"
+      },
+      {
+        "timeSlot": "10.30AM-11.30AM",
+        "isFree": false,
+        "subject": "Theory of Computation and Compiler Design(PR)",
+        "room": "CSE-D-AR-308",
+        "faculty": "Sasmita Tripathy",
+        "type": "PR",
+        "raw": "Theory of Computation and Compiler Design(PR)\nCSE-D-AR-308\nSasmita Tripathy"
+      },
+      {
+        "timeSlot": "11.30AM-12.30PM",
+        "isFree": false,
+        "subject": "Theory of Computation and Compiler Design(PR)",
+        "room": "CSE-D-AR-308",
+        "faculty": "Sasmita Tripathy",
+        "type": "PR",
+        "raw": "Theory of Computation and Compiler Design(PR)\nCSE-D-AR-308\nSasmita Tripathy"
+      },
+      {
+        "timeSlot": "12.30PM-1.30PM",
+        "isFree": true,
+        "subject": "No Class / Free",
+        "room": "",
+        "faculty": "",
+        "type": "",
+        "raw": ""
+      },
+      {
+        "timeSlot": "1.30PM-2.30PM",
+        "isFree": false,
+        "subject": "Robotic automation with ROS and C++(PR)",
+        "room": "CSE-D-AR-308",
+        "faculty": "Biswajit Mallik",
+        "type": "PR",
+        "raw": "Robotic automation with ROS and C++(PR)\nCSE-D-AR-308\nBiswajit Mallik"
+      },
+      {
+        "timeSlot": "2.30PM-3.30PM",
+        "isFree": false,
+        "subject": "Robotic automation with ROS and C++(PR)",
+        "room": "CSE-D-AR-308",
+        "faculty": "Biswajit Mallik",
+        "type": "PR",
+        "raw": "Robotic automation with ROS and C++(PR)\nCSE-D-AR-308\nBiswajit Mallik"
+      },
+      {
+        "timeSlot": "3.30PM-4.30PM",
+        "isFree": true,
+        "subject": "No Class / Free",
+        "room": "",
+        "faculty": "",
+        "type": "",
+        "raw": ""
+      },
+      {
+        "timeSlot": "4.30PM-5.30PM",
+        "isFree": true,
+        "subject": "No Class / Free",
+        "room": "",
+        "faculty": "",
+        "type": "",
+        "raw": ""
+      }
+    ],
+    "Thursday": [
+      {
+        "timeSlot": "9.30AM-10.30AM",
+        "isFree": false,
+        "subject": "Data Structure and Algorithms (PR)",
+        "room": "CSE-D-AR-308",
+        "faculty": "Ravi Ranjan Kumar(GOG)",
+        "type": "PR",
+        "raw": "Data Structure and Algorithms (PR)\nCSE-D-AR-308\nRavi Ranjan Kumar(GOG)"
+      },
+      {
+        "timeSlot": "10.30AM-11.30AM",
+        "isFree": false,
+        "subject": "Data Structure and Algorithms (PR)",
+        "room": "CSE-D-AR-308",
+        "faculty": "Ravi Ranjan Kumar(GOG)",
+        "type": "PR",
+        "raw": "Data Structure and Algorithms (PR)\nCSE-D-AR-308\n\nRavi Ranjan Kumar(GOG)"
+      },
+      {
+        "timeSlot": "11.30AM-12.30PM",
+        "isFree": true,
+        "subject": "No Class / Free",
+        "room": "",
+        "faculty": "",
+        "type": "",
+        "raw": ""
+      },
+      {
+        "timeSlot": "12.30PM-1.30PM",
+        "isFree": true,
+        "subject": "No Class / Free",
+        "room": "",
+        "faculty": "",
+        "type": "",
+        "raw": ""
+      },
+      {
+        "timeSlot": "1.30PM-2.30PM",
+        "isFree": false,
+        "subject": "Prompt Engineering using ChatGPT(PR)",
+        "room": "CSE-D-AR-308",
+        "faculty": "Swatilagna Sahu",
+        "type": "PR",
+        "raw": "Prompt Engineering using ChatGPT(PR)\nCSE-D-AR-308\nSwatilagna Sahu"
+      },
+      {
+        "timeSlot": "2.30PM-3.30PM",
+        "isFree": false,
+        "subject": "Prompt Engineering using ChatGPT(PR)",
+        "room": "CSE-D-AR-308",
+        "faculty": "Swatilagna Sahu",
+        "type": "PR",
+        "raw": "Prompt Engineering using ChatGPT(PR)\nCSE-D-AR-308\nSwatilagna Sahu"
+      },
+      {
+        "timeSlot": "3.30PM-4.30PM",
+        "isFree": false,
+        "subject": "Robotic automation with ROS and C++(PR)",
+        "room": "CSE-D-AR-308",
+        "faculty": "Biswajit Mallik",
+        "type": "PR",
+        "raw": "Robotic automation with ROS and C++(PR)\nCSE-D-AR-308\nBiswajit Mallik"
+      },
+      {
+        "timeSlot": "4.30PM-5.30PM",
+        "isFree": false,
+        "subject": "Robotic automation with ROS and C++(PR)",
+        "room": "CSE-D-AR-308",
+        "faculty": "Biswajit Mallik",
+        "type": "PR",
+        "raw": "Robotic automation with ROS and C++(PR)\nCSE-D-AR-308\nBiswajit Mallik"
+      }
+    ],
+    "Friday": [
+      {
+        "timeSlot": "9.30AM-10.30AM",
+        "isFree": false,
+        "subject": "Data Structure and Algorithms (PR)",
+        "room": "CSE-D-AR-308",
+        "faculty": "Ravi Ranjan Kumar(GOG)",
+        "type": "PR",
+        "raw": "Data Structure and Algorithms (PR)\nCSE-D-AR-308\nRavi Ranjan Kumar(GOG)"
+      },
+      {
+        "timeSlot": "10.30AM-11.30AM",
+        "isFree": false,
+        "subject": "Data Structure and Algorithms (PR)",
+        "room": "CSE-D-AR-308",
+        "faculty": "Ravi Ranjan Kumar(GOG)",
+        "type": "PR",
+        "raw": "Data Structure and Algorithms (PR)\nCSE-D-AR-308\nRavi Ranjan Kumar(GOG)"
+      },
+      {
+        "timeSlot": "11.30AM-12.30PM",
+        "isFree": false,
+        "subject": "Prompt Engineering using ChatGPT(PP)",
+        "room": "CSE-D-AR-308",
+        "faculty": "Swatilagna Sahu",
+        "type": "PP",
+        "raw": "Prompt Engineering using ChatGPT(PP)\nCSE-D-AR-308\nSwatilagna Sahu"
+      },
+      {
+        "timeSlot": "12.30PM-1.30PM",
+        "isFree": true,
+        "subject": "No Class / Free",
+        "room": "",
+        "faculty": "",
+        "type": "",
+        "raw": ""
+      },
+      {
+        "timeSlot": "1.30PM-2.30PM",
+        "isFree": true,
+        "subject": "No Class / Free",
+        "room": "",
+        "faculty": "",
+        "type": "",
+        "raw": ""
+      },
+      {
+        "timeSlot": "2.30PM-3.30PM",
+        "isFree": false,
+        "subject": "Theory of Computation and Compiler Design(PR)",
+        "room": "CSE-D-AR-308",
+        "faculty": "Sasmita Tripathy",
+        "type": "PR",
+        "raw": "Theory of Computation and Compiler Design(PR)\nCSE-D-AR-308\nSasmita Tripathy"
+      },
+      {
+        "timeSlot": "3.30PM-4.30PM",
+        "isFree": false,
+        "subject": "Theory of Computation and Compiler Design(PR)",
+        "room": "CSE-D-AR-308",
+        "faculty": "Sasmita Tripathy",
+        "type": "PR",
+        "raw": "Theory of Computation and Compiler Design(PR)\nCSE-D-AR-308\nSasmita Tripathy"
+      },
+      {
+        "timeSlot": "4.30PM-5.30PM",
+        "isFree": true,
+        "subject": "No Class / Free",
+        "room": "",
+        "faculty": "",
+        "type": "",
+        "raw": ""
+      }
+    ],
+    "Saturday": [
+      {
+        "timeSlot": "9.30AM-10.30AM",
+        "isFree": true,
+        "subject": "No Class / Free",
+        "room": "",
+        "faculty": "",
+        "type": "",
+        "raw": ""
+      },
+      {
+        "timeSlot": "10.30AM-11.30AM",
+        "isFree": false,
+        "subject": "Robotic automation with ROS and C++(TUT)",
+        "room": "CSE-D-AR-308",
+        "faculty": "Biswajit Mallik",
+        "type": "TUT",
+        "raw": "Robotic automation with ROS and C++(TUT)\nCSE-D-AR-308\nBiswajit Mallik"
+      },
+      {
+        "timeSlot": "11.30AM-12.30PM",
+        "isFree": false,
+        "subject": "Robotic automation with ROS and C++(TUT)",
+        "room": "CSE-D-AR-308",
+        "faculty": "Biswajit Mallik",
+        "type": "TUT",
+        "raw": "Robotic automation with ROS and C++(TUT)\nCSE-D-AR-308\nBiswajit Mallik"
+      },
+      {
+        "timeSlot": "12.30PM-1.30PM",
+        "isFree": true,
+        "subject": "No Class / Free",
+        "room": "",
+        "faculty": "",
+        "type": "",
+        "raw": ""
+      },
+      {
+        "timeSlot": "1.30PM-2.30PM",
+        "isFree": false,
+        "subject": "Network and Protocols for IoT(PR)",
+        "room": "CSE-D-AR-308",
+        "faculty": "Dr.Sanjay Kumar Jena",
+        "type": "PR",
+        "raw": "Network and Protocols for IoT(PR)\nCSE-D-AR-308\nDr.Sanjay Kumar Jena"
+      },
+      {
+        "timeSlot": "2.30PM-3.30PM",
+        "isFree": false,
+        "subject": "Network and Protocols for IoT(PR)",
+        "room": "CSE-D-AR-308",
+        "faculty": "Dr.Sanjay Kumar Jena",
+        "type": "PR",
+        "raw": "Network and Protocols for IoT(PR)\nCSE-D-AR-308\nDr.Sanjay Kumar Jena"
+      },
+      {
+        "timeSlot": "3.30PM-4.30PM",
+        "isFree": true,
+        "subject": "No Class / Free",
+        "room": "",
+        "faculty": "",
+        "type": "",
+        "raw": ""
+      },
+      {
+        "timeSlot": "4.30PM-5.30PM",
+        "isFree": true,
+        "subject": "No Class / Free",
+        "room": "",
+        "faculty": "",
+        "type": "",
+        "raw": ""
+      }
+    ]
+  },
+  "CSE-E": {
+    "Monday": [
+      {
+        "timeSlot": "9.30AM-10.30AM",
+        "isFree": false,
+        "subject": "Robotic automation with ROS and C++(PP)",
+        "room": "CSE-E-AR-316",
+        "faculty": "Biswajit Mallik",
+        "type": "PP",
+        "raw": "Robotic automation with ROS and C++(PP)\nCSE-E-AR-316\nBiswajit Mallik"
+      },
+      {
+        "timeSlot": "10.30AM-11.30AM",
+        "isFree": false,
+        "subject": "Network and Protocols for IoT(PR)",
+        "room": "CSE-E-AR-316",
+        "faculty": "Dr.Sanjay Kumar Jena",
+        "type": "PR",
+        "raw": "Network and Protocols for IoT(PR)\nCSE-E-AR-316\nDr.Sanjay Kumar Jena"
+      },
+      {
+        "timeSlot": "11.30AM-12.30PM",
+        "isFree": false,
+        "subject": "Network and Protocols for IoT(PR)",
+        "room": "CSE-E-AR-316",
+        "faculty": "Dr.Sanjay Kumar Jena",
+        "type": "PR",
+        "raw": "Network and Protocols for IoT(PR)\nCSE-E-AR-316\nDr.Sanjay Kumar Jena"
+      },
+      {
+        "timeSlot": "12.30PM-1.30PM",
+        "isFree": true,
+        "subject": "No Class / Free",
+        "room": "",
+        "faculty": "",
+        "type": "",
+        "raw": ""
+      },
+      {
+        "timeSlot": "1.30PM-2.30PM",
+        "isFree": false,
+        "subject": "Theory of Computation and Compiler Design(PP)",
+        "room": "CSE-E-AR-316",
+        "faculty": "Sasmita Tripathy",
+        "type": "PP",
+        "raw": "Theory of Computation and Compiler Design(PP)\nCSE-E-AR-316\nSasmita Tripathy"
+      },
+      {
+        "timeSlot": "2.30PM-3.30PM",
+        "isFree": false,
+        "subject": "Theory of Computation and Compiler Design(PP)",
+        "room": "CSE-E-AR-316",
+        "faculty": "Sasmita Tripathy",
+        "type": "PP",
+        "raw": "Theory of Computation and Compiler Design(PP)\nCSE-E-AR-316\nSasmita Tripathy"
+      },
+      {
+        "timeSlot": "3.30PM-4.30PM",
+        "isFree": false,
+        "subject": "Cloud Fundamentals (Azure)(PR)",
+        "room": "CSE-E-AR-316",
+        "faculty": "Shrabana Kumar Rout",
+        "type": "PR",
+        "raw": "Cloud Fundamentals (Azure)(PR)\nCSE-E-AR-316\nShrabana Kumar Rout"
+      },
+      {
+        "timeSlot": "4.30PM-5.30PM",
+        "isFree": false,
+        "subject": "Cloud Fundamentals (Azure)(PR)",
+        "room": "CSE-E-AR-316",
+        "faculty": "Shrabana Kumar Rout",
+        "type": "PR",
+        "raw": "Cloud Fundamentals (Azure)(PR)\nCSE-E-AR-316\nShrabana Kumar Rout"
+      }
+    ],
+    "Tuesday": [
+      {
+        "timeSlot": "9.30AM-10.30AM",
+        "isFree": false,
+        "subject": "Information Security (CISCO)(TUT)",
+        "room": "CSE-E-AR-316",
+        "faculty": "Smita Patra",
+        "type": "TUT",
+        "raw": "Information Security (CISCO)(TUT)\nCSE-E-AR-316\nSmita Patra"
+      },
+      {
+        "timeSlot": "10.30AM-11.30AM",
+        "isFree": false,
+        "subject": "Information Security (CISCO)(TUT)",
+        "room": "CSE-E-AR-316",
+        "faculty": "Smita Patra",
+        "type": "TUT",
+        "raw": "Information Security (CISCO)(TUT)\nCSE-E-AR-316\nSmita Patra"
+      },
+      {
+        "timeSlot": "11.30AM-12.30PM",
+        "isFree": true,
+        "subject": "No Class / Free",
+        "room": "",
+        "faculty": "",
+        "type": "",
+        "raw": ""
+      },
+      {
+        "timeSlot": "12.30PM-1.30PM",
+        "isFree": true,
+        "subject": "No Class / Free",
+        "room": "",
+        "faculty": "",
+        "type": "",
+        "raw": ""
+      },
+      {
+        "timeSlot": "1.30PM-2.30PM",
+        "isFree": false,
+        "subject": "Cloud Fundamentals (Azure)(PP)",
+        "room": "CSE-E-AR-316",
+        "faculty": "Shrabana Kumar Rout",
+        "type": "PP",
+        "raw": "Cloud Fundamentals (Azure)(PP)\nCSE-E-AR-316\nShrabana Kumar Rout"
+      },
+      {
+        "timeSlot": "2.30PM-3.30PM",
+        "isFree": false,
+        "subject": "Theory of Computation and Compiler Design(PR)",
+        "room": "CSE-E-AR-308",
+        "faculty": "Sasmita Tripathy",
+        "type": "PR",
+        "raw": "Theory of Computation and Compiler Design(PR)\nCSE-E-AR-308\nSasmita Tripathy"
+      },
+      {
+        "timeSlot": "3.30PM-4.30PM",
+        "isFree": false,
+        "subject": "Theory of Computation and Compiler Design(PR)",
+        "room": "CSE-E-AR-308",
+        "faculty": "Sasmita Tripathy",
+        "type": "PR",
+        "raw": "Theory of Computation and Compiler Design(PR)\nCSE-E-AR-308\nSasmita Tripathy"
+      },
+      {
+        "timeSlot": "4.30PM-5.30PM",
+        "isFree": true,
+        "subject": "No Class / Free",
+        "room": "",
+        "faculty": "",
+        "type": "",
+        "raw": ""
+      }
+    ],
+    "Wednesday": [
+      {
+        "timeSlot": "9.30AM-10.30AM",
+        "isFree": false,
+        "subject": "Robotic automation with ROS and C++(PR)",
+        "room": "CSE-E-AR-316",
+        "faculty": "Biswajit Mallik",
+        "type": "PR",
+        "raw": "Robotic automation with ROS and C++(PR)\nCSE-E-AR-316\nBiswajit Mallik"
+      },
+      {
+        "timeSlot": "10.30AM-11.30AM",
+        "isFree": false,
+        "subject": "Robotic automation with ROS and C++(PR)",
+        "room": "CSE-E-AR-316",
+        "faculty": "Biswajit Mallik",
+        "type": "PR",
+        "raw": "Robotic automation with ROS and C++(PR)\nCSE-E-AR-316\nBiswajit Mallik"
+      },
+      {
+        "timeSlot": "11.30AM-12.30PM",
+        "isFree": true,
+        "subject": "No Class / Free",
+        "room": "",
+        "faculty": "",
+        "type": "",
+        "raw": ""
+      },
+      {
+        "timeSlot": "12.30PM-1.30PM",
+        "isFree": true,
+        "subject": "No Class / Free",
+        "room": "",
+        "faculty": "",
+        "type": "",
+        "raw": ""
+      },
+      {
+        "timeSlot": "1.30PM-2.30PM",
+        "isFree": false,
+        "subject": "Network and Protocols for IoT(PR)",
+        "room": "CSE-E-AR-316",
+        "faculty": "Dr.Sanjay Kumar Jena",
+        "type": "PR",
+        "raw": "Network and Protocols for IoT(PR)\nCSE-E-AR-316\nDr.Sanjay Kumar Jena"
+      },
+      {
+        "timeSlot": "2.30PM-3.30PM",
+        "isFree": false,
+        "subject": "Network and Protocols for IoT(PR)",
+        "room": "CSE-E-AR-316",
+        "faculty": "Dr.Sanjay Kumar Jena",
+        "type": "PR",
+        "raw": "Network and Protocols for IoT(PR)\nCSE-E-AR-316\nDr.Sanjay Kumar Jena"
+      },
+      {
+        "timeSlot": "3.30PM-4.30PM",
+        "isFree": true,
+        "subject": "No Class / Free",
+        "room": "",
+        "faculty": "",
+        "type": "",
+        "raw": ""
+      },
+      {
+        "timeSlot": "4.30PM-5.30PM",
+        "isFree": true,
+        "subject": "No Class / Free",
+        "room": "",
+        "faculty": "",
+        "type": "",
+        "raw": ""
+      }
+    ],
+    "Thursday": [
+      {
+        "timeSlot": "9.30AM-10.30AM",
+        "isFree": false,
+        "subject": "Prompt Engineering using ChatGPT(PP)",
+        "room": "CSE-E-AR-316",
+        "faculty": "Snehil Gupta",
+        "type": "PP",
+        "raw": "Prompt Engineering using ChatGPT(PP)\nCSE-E-AR-316\nSnehil Gupta"
+      },
+      {
+        "timeSlot": "10.30AM-11.30AM",
+        "isFree": false,
+        "subject": "Theory of Computation and Compiler Design(PR)",
+        "room": "CSE-E-AR-316",
+        "faculty": "Sasmita Tripathy",
+        "type": "PR",
+        "raw": "Theory of Computation and Compiler Design(PR)\nCSE-E-AR-316\nSasmita Tripathy"
+      },
+      {
+        "timeSlot": "11.30AM-12.30PM",
+        "isFree": false,
+        "subject": "Theory of Computation and Compiler Design(PR)",
+        "room": "CSE-E-AR-316",
+        "faculty": "Sasmita Tripathy",
+        "type": "PR",
+        "raw": "Theory of Computation and Compiler Design(PR)\nCSE-E-AR-316\nSasmita Tripathy"
+      },
+      {
+        "timeSlot": "12.30PM-1.30PM",
+        "isFree": true,
+        "subject": "No Class / Free",
+        "room": "",
+        "faculty": "",
+        "type": "",
+        "raw": ""
+      },
+      {
+        "timeSlot": "1.30PM-2.30PM",
+        "isFree": false,
+        "subject": "Data Structure and Algorithms (PR)",
+        "room": "CSE-E-AR-316",
+        "faculty": "Verman Kumar(GOG)",
+        "type": "PR",
+        "raw": "Data Structure and Algorithms (PR)\nCSE-E-AR-316\nVerman Kumar(GOG)"
+      },
+      {
+        "timeSlot": "2.30PM-3.30PM",
+        "isFree": false,
+        "subject": "Data Structure and Algorithms (PR)",
+        "room": "CSE-E-AR-316",
+        "faculty": "Verman Kumar(GOG)",
+        "type": "PR",
+        "raw": "Data Structure and Algorithms (PR)\nCSE-E-AR-316\nVerman Kumar(GOG)"
+      },
+      {
+        "timeSlot": "3.30PM-4.30PM",
+        "isFree": false,
+        "subject": "Information Security (CISCO)(PR)",
+        "room": "CSE-E-AR-316",
+        "faculty": "Smita Patra",
+        "type": "PR",
+        "raw": "Information Security (CISCO)(PR)\nCSE-E-AR-316\nSmita Patra"
+      },
+      {
+        "timeSlot": "4.30PM-5.30PM",
+        "isFree": false,
+        "subject": "Information Security (CISCO)(PR)",
+        "room": "CSE-E-AR-316",
+        "faculty": "Smita Patra",
+        "type": "PR",
+        "raw": "Information Security (CISCO)(PR)\nCSE-E-AR-316\nSmita Patra"
+      }
+    ],
+    "Friday": [
+      {
+        "timeSlot": "9.30AM-10.30AM",
+        "isFree": false,
+        "subject": "Data Structure and Algorithms (PR)",
+        "room": "CSE-E-AR-316",
+        "faculty": "Verman Kumar(GOG)",
+        "type": "PR",
+        "raw": "Data Structure and Algorithms (PR)\nCSE-E-AR-316\nVerman Kumar(GOG)"
+      },
+      {
+        "timeSlot": "10.30AM-11.30AM",
+        "isFree": false,
+        "subject": "Data Structure and Algorithms (PR)",
+        "room": "CSE-E-AR-316",
+        "faculty": "Verman Kumar(GOG)",
+        "type": "PR",
+        "raw": "Data Structure and Algorithms (PR)\nCSE-E-AR-316\nVerman Kumar(GOG)"
+      },
+      {
+        "timeSlot": "11.30AM-12.30PM",
+        "isFree": false,
+        "subject": "Network and Protocols for IoT(PP)",
+        "room": "CSE-E-AR-316",
+        "faculty": "Dr.Sanjay Kumar Jena",
+        "type": "PP",
+        "raw": "Network and Protocols for IoT(PP)\nCSE-E-AR-316\nDr.Sanjay Kumar Jena"
+      },
+      {
+        "timeSlot": "12.30PM-1.30PM",
+        "isFree": true,
+        "subject": "No Class / Free",
+        "room": "",
+        "faculty": "",
+        "type": "",
+        "raw": ""
+      },
+      {
+        "timeSlot": "1.30PM-2.30PM",
+        "isFree": false,
+        "subject": "Robotic automation with ROS and C++(PR)",
+        "room": "CSE-E-AR-316",
+        "faculty": "Biswajit Mallik",
+        "type": "PR",
+        "raw": "Robotic automation with ROS and C++(PR)\nCSE-E-AR-316\nBiswajit Mallik"
+      },
+      {
+        "timeSlot": "2.30PM-3.30PM",
+        "isFree": false,
+        "subject": "Robotic automation with ROS and C++(PR)",
+        "room": "CSE-E-AR-316",
+        "faculty": "Biswajit Mallik",
+        "type": "PR",
+        "raw": "Robotic automation with ROS and C++(PR)\nCSE-E-AR-316\nBiswajit Mallik"
+      },
+      {
+        "timeSlot": "3.30PM-4.30PM",
+        "isFree": true,
+        "subject": "No Class / Free",
+        "room": "",
+        "faculty": "",
+        "type": "",
+        "raw": ""
+      },
+      {
+        "timeSlot": "4.30PM-5.30PM",
+        "isFree": true,
+        "subject": "No Class / Free",
+        "room": "",
+        "faculty": "",
+        "type": "",
+        "raw": ""
+      }
+    ],
+    "Saturday": [
+      {
+        "timeSlot": "9.30AM-10.30AM",
+        "isFree": false,
+        "subject": "Information Security (CISCO)(PP)",
+        "room": "CSE-E-AR-316",
+        "faculty": "Smita Patra",
+        "type": "PP",
+        "raw": "Information Security (CISCO)(PP)\nCSE-E-AR-316\nSmita Patra"
+      },
+      {
+        "timeSlot": "10.30AM-11.30AM",
+        "isFree": false,
+        "subject": "Prompt Engineering using ChatGPT(PR)",
+        "room": "CSE-E-AR-316",
+        "faculty": "Snehil Gupta",
+        "type": "PR",
+        "raw": "Prompt Engineering using ChatGPT(PR)\nCSE-E-AR-316\nSnehil Gupta"
+      },
+      {
+        "timeSlot": "11.30AM-12.30PM",
+        "isFree": false,
+        "subject": "Prompt Engineering using ChatGPT(PR)",
+        "room": "CSE-E-AR-316",
+        "faculty": "Snehil Gupta",
+        "type": "PR",
+        "raw": "Prompt Engineering using ChatGPT(PR)\nCSE-E-AR-316\nSnehil Gupta"
+      },
+      {
+        "timeSlot": "12.30PM-1.30PM",
+        "isFree": true,
+        "subject": "No Class / Free",
+        "room": "",
+        "faculty": "",
+        "type": "",
+        "raw": ""
+      },
+      {
+        "timeSlot": "1.30PM-2.30PM",
+        "isFree": false,
+        "subject": "Data Structure and Algorithms (TUT)",
+        "room": "CSE-E-AR-316",
+        "faculty": "Verman Kumar(GOG)",
+        "type": "TUT",
+        "raw": "Data Structure and Algorithms (TUT)\nCSE-E-AR-316\nVerman Kumar(GOG)"
+      },
+      {
+        "timeSlot": "2.30PM-3.30PM",
+        "isFree": false,
+        "subject": "Data Structure and Algorithms (TUT)",
+        "room": "CSE-E-AR-316",
+        "faculty": "Verman Kumar(GOG)",
+        "type": "TUT",
+        "raw": "Data Structure and Algorithms (TUT)\nCSE-E-AR-316\nVerman Kumar(GOG)"
+      },
+      {
+        "timeSlot": "3.30PM-4.30PM",
+        "isFree": false,
+        "subject": "Robotic automation with ROS and C++(TUT)",
+        "room": "CSE-E-AR-316",
+        "faculty": "Biswajit Mallik",
+        "type": "TUT",
+        "raw": "Robotic automation with ROS and C++(TUT)\nCSE-E-AR-316\nBiswajit Mallik"
+      },
+      {
+        "timeSlot": "4.30PM-5.30PM",
+        "isFree": false,
+        "subject": "Robotic automation with ROS and C++(TUT)",
+        "room": "CSE-E-AR-316",
+        "faculty": "Biswajit Mallik",
+        "type": "TUT",
+        "raw": "Robotic automation with ROS and C++(TUT)\nCSE-E-AR-316\nBiswajit Mallik"
+      }
+    ]
+  },
+  "CSE-F": {
+    "Monday": [
+      {
+        "timeSlot": "9.30AM-10.30AM",
+        "isFree": false,
+        "subject": "Data Structure and Algorithms (PR)",
+        "room": "CSE-F-AR-317",
+        "faculty": "Baddigam Siddardhareddy(GOG)",
+        "type": "PR",
+        "raw": "Data Structure and Algorithms (PR)\nCSE-F-AR-317\nBaddigam Siddardhareddy(GOG)"
+      },
+      {
+        "timeSlot": "10.30AM-11.30AM",
+        "isFree": false,
+        "subject": "Data Structure and Algorithms (PR)",
+        "room": "CSE-F-AR-317",
+        "faculty": "Baddigam Siddardhareddy(GOG)",
+        "type": "PR",
+        "raw": "Data Structure and Algorithms (PR)\nCSE-F-AR-317\nBaddigam Siddardhareddy(GOG)"
+      },
+      {
+        "timeSlot": "11.30AM-12.30PM",
+        "isFree": false,
+        "subject": "Network and Protocols for IoT(PP)",
+        "room": "CSE-F-AR-317",
+        "faculty": "Dr. Prabin Kumar Panigrahi",
+        "type": "PP",
+        "raw": "Network and Protocols for IoT(PP)\nCSE-F-AR-317\nDr. Prabin Kumar Panigrahi"
+      },
+      {
+        "timeSlot": "12.30PM-1.30PM",
+        "isFree": true,
+        "subject": "No Class / Free",
+        "room": "",
+        "faculty": "",
+        "type": "",
+        "raw": ""
+      },
+      {
+        "timeSlot": "1.30PM-2.30PM",
+        "isFree": false,
+        "subject": "Robotic automation with ROS and C++(PR)",
+        "room": "CSE-F-AR-317",
+        "faculty": "Biswajit Mallik",
+        "type": "PR",
+        "raw": "Robotic automation with ROS and C++(PR)\nCSE-F-AR-317\nBiswajit Mallik"
+      },
+      {
+        "timeSlot": "2.30PM-3.30PM",
+        "isFree": false,
+        "subject": "Robotic automation with ROS and C++(PR)",
+        "room": "CSE-F-AR-317",
+        "faculty": "Biswajit Mallik",
+        "type": "PR",
+        "raw": "Robotic automation with ROS and C++(PR)\nCSE-F-AR-317\nBiswajit Mallik"
+      },
+      {
+        "timeSlot": "3.30PM-4.30PM",
+        "isFree": false,
+        "subject": "Information Security (CISCO)(PR)",
+        "room": "CSE-F-AR-317",
+        "faculty": "Smita Patra",
+        "type": "PR",
+        "raw": "Information Security (CISCO)(PR)\nCSE-F-AR-317\nSmita Patra"
+      },
+      {
+        "timeSlot": "4.30PM-5.30PM",
+        "isFree": false,
+        "subject": "Information Security (CISCO)(PR)",
+        "room": "CSE-F-AR-317",
+        "faculty": "Smita Patra",
+        "type": "PR",
+        "raw": "Information Security (CISCO)(PR)\nCSE-F-AR-317\nSmita Patra"
+      }
+    ],
+    "Tuesday": [
+      {
+        "timeSlot": "9.30AM-10.30AM",
+        "isFree": false,
+        "subject": "Cloud Fundamentals (Azure)(PP)",
+        "room": "CSE-F-AR-317",
+        "faculty": "Partha Sarathi Pradhan",
+        "type": "PP",
+        "raw": "Cloud Fundamentals (Azure)(PP)\nCSE-F-AR-317\nPartha Sarathi Pradhan"
+      },
+      {
+        "timeSlot": "10.30AM-11.30AM",
+        "isFree": false,
+        "subject": "Theory of Computation and Compiler Design(PP)",
+        "room": "CSE-F-AR-317",
+        "faculty": "Sasmita Tripathy",
+        "type": "PP",
+        "raw": "Theory of Computation and Compiler Design(PP)\nCSE-F-AR-317\nSasmita Tripathy"
+      },
+      {
+        "timeSlot": "11.30AM-12.30PM",
+        "isFree": false,
+        "subject": "Theory of Computation and Compiler Design(PP)",
+        "room": "CSE-F-AR-317",
+        "faculty": "Sasmita Tripathy",
+        "type": "PP",
+        "raw": "Theory of Computation and Compiler Design(PP)\nCSE-F-AR-317\nSasmita Tripathy"
+      },
+      {
+        "timeSlot": "12.30PM-1.30PM",
+        "isFree": true,
+        "subject": "No Class / Free",
+        "room": "",
+        "faculty": "",
+        "type": "",
+        "raw": ""
+      },
+      {
+        "timeSlot": "1.30PM-2.30PM",
+        "isFree": false,
+        "subject": "Data Structure and Algorithms (PR)",
+        "room": "CSE-F-AR-317",
+        "faculty": "Baddigam Siddardhareddy(GOG)",
+        "type": "PR",
+        "raw": "Data Structure and Algorithms (PR)\nCSE-F-AR-317\nBaddigam Siddardhareddy(GOG)"
+      },
+      {
+        "timeSlot": "2.30PM-3.30PM",
+        "isFree": false,
+        "subject": "Data Structure and Algorithms (PR)",
+        "room": "CSE-F-AR-317",
+        "faculty": "Baddigam Siddardhareddy(GOG)",
+        "type": "PR",
+        "raw": "Data Structure and Algorithms (PR)\nCSE-F-AR-317\nBaddigam Siddardhareddy(GOG)"
+      },
+      {
+        "timeSlot": "3.30PM-4.30PM",
+        "isFree": false,
+        "subject": "Robotic automation with ROS and C++(PR)",
+        "room": "CSE-F-AR-317",
+        "faculty": "Biswajit Mallik",
+        "type": "PR",
+        "raw": "Robotic automation with ROS and C++(PR)\nCSE-F-AR-317\n\nBiswajit Mallik"
+      },
+      {
+        "timeSlot": "4.30PM-5.30PM",
+        "isFree": false,
+        "subject": "Robotic automation with ROS and C++(PR)",
+        "room": "CSE-F-AR-317",
+        "faculty": "Biswajit Mallik",
+        "type": "PR",
+        "raw": "Robotic automation with ROS and C++(PR)\nCSE-F-AR-317\nBiswajit Mallik"
+      }
+    ],
+    "Wednesday": [
+      {
+        "timeSlot": "9.30AM-10.30AM",
+        "isFree": false,
+        "subject": "Network and Protocols for IoT(PR)",
+        "room": "CSE-F-AR-317",
+        "faculty": "Dr. Prabin Kumar Panigrahi",
+        "type": "PR",
+        "raw": "Network and Protocols for IoT(PR)\nCSE-F-AR-317\nDr. Prabin Kumar Panigrahi"
+      },
+      {
+        "timeSlot": "10.30AM-11.30AM",
+        "isFree": false,
+        "subject": "Network and Protocols for IoT(PR)",
+        "room": "CSE-F-AR-317",
+        "faculty": "Dr. Prabin Kumar Panigrahi",
+        "type": "PR",
+        "raw": "Network and Protocols for IoT(PR)\nCSE-F-AR-317\nDr. Prabin Kumar Panigrahi"
+      },
+      {
+        "timeSlot": "11.30AM-12.30PM",
+        "isFree": false,
+        "subject": "Prompt Engineering using ChatGPT(PP)",
+        "room": "CSE-F-AR-317",
+        "faculty": "NF-2",
+        "type": "PP",
+        "raw": "Prompt Engineering using ChatGPT(PP)\nCSE-F-AR-317\nNF-2"
+      },
+      {
+        "timeSlot": "12.30PM-1.30PM",
+        "isFree": true,
+        "subject": "No Class / Free",
+        "room": "",
+        "faculty": "",
+        "type": "",
+        "raw": ""
+      },
+      {
+        "timeSlot": "1.30PM-2.30PM",
+        "isFree": false,
+        "subject": "Information Security (CISCO)(TUT)",
+        "room": "CSE-F-AR-317",
+        "faculty": "Smita Patra",
+        "type": "TUT",
+        "raw": "Information Security (CISCO)(TUT)\nCSE-F-AR-317\nSmita Patra"
+      },
+      {
+        "timeSlot": "2.30PM-3.30PM",
+        "isFree": false,
+        "subject": "Information Security (CISCO)(TUT)",
+        "room": "CSE-F-AR-317",
+        "faculty": "Smita Patra",
+        "type": "TUT",
+        "raw": "Information Security (CISCO)(TUT)\nCSE-F-AR-317\nSmita Patra"
+      },
+      {
+        "timeSlot": "3.30PM-4.30PM",
+        "isFree": true,
+        "subject": "No Class / Free",
+        "room": "",
+        "faculty": "",
+        "type": "",
+        "raw": ""
+      },
+      {
+        "timeSlot": "4.30PM-5.30PM",
+        "isFree": true,
+        "subject": "No Class / Free",
+        "room": "",
+        "faculty": "",
+        "type": "",
+        "raw": ""
+      }
+    ],
+    "Thursday": [
+      {
+        "timeSlot": "9.30AM-10.30AM",
+        "isFree": false,
+        "subject": "Robotic automation with ROS and C++(PP)",
+        "room": "CSE-F-AR-317",
+        "faculty": "Biswajit Mallik",
+        "type": "PP",
+        "raw": "Robotic automation with ROS and C++(PP)\nCSE-F-AR-317\nBiswajit Mallik"
+      },
+      {
+        "timeSlot": "10.30AM-11.30AM",
+        "isFree": false,
+        "subject": "Data Structure and Algorithms (TUT)",
+        "room": "CSE-F-AR-317",
+        "faculty": "Baddigam Siddardhareddy(GOG)",
+        "type": "TUT",
+        "raw": "Data Structure and Algorithms (TUT)\nCSE-F-AR-317\nBaddigam Siddardhareddy(GOG)"
+      },
+      {
+        "timeSlot": "11.30AM-12.30PM",
+        "isFree": false,
+        "subject": "Data Structure and Algorithms (TUT)",
+        "room": "CSE-F-AR-317",
+        "faculty": "Baddigam Siddardhareddy(GOG)",
+        "type": "TUT",
+        "raw": "Data Structure and Algorithms (TUT)\nCSE-F-AR-317\nBaddigam Siddardhareddy(GOG)"
+      },
+      {
+        "timeSlot": "12.30PM-1.30PM",
+        "isFree": true,
+        "subject": "No Class / Free",
+        "room": "",
+        "faculty": "",
+        "type": "",
+        "raw": ""
+      },
+      {
+        "timeSlot": "1.30PM-2.30PM",
+        "isFree": false,
+        "subject": "Prompt Engineering using ChatGPT(PR)",
+        "room": "CSE-F-AR-317",
+        "faculty": "NF-2",
+        "type": "PR",
+        "raw": "Prompt Engineering using ChatGPT(PR)\nCSE-F-AR-317\nNF-2"
+      },
+      {
+        "timeSlot": "2.30PM-3.30PM",
+        "isFree": false,
+        "subject": "Prompt Engineering using ChatGPT(PR)",
+        "room": "CSE-F-AR-317",
+        "faculty": "NF-2",
+        "type": "PR",
+        "raw": "Prompt Engineering using ChatGPT(PR)\nCSE-F-AR-317\nNF-2"
+      },
+      {
+        "timeSlot": "3.30PM-4.30PM",
+        "isFree": false,
+        "subject": "Theory of Computation and Compiler Design(PR)",
+        "room": "CSE-F-AR-317",
+        "faculty": "Sasmita Tripathy",
+        "type": "PR",
+        "raw": "Theory of Computation and Compiler Design(PR)\nCSE-F-AR-317\nSasmita Tripathy"
+      },
+      {
+        "timeSlot": "4.30PM-5.30PM",
+        "isFree": false,
+        "subject": "Theory of Computation and Compiler Design(PR)",
+        "room": "CSE-F-AR-317",
+        "faculty": "Sasmita Tripathy",
+        "type": "PR",
+        "raw": "Theory of Computation and Compiler Design(PR)\nCSE-F-AR-317\nSasmita Tripathy"
+      }
+    ],
+    "Friday": [
+      {
+        "timeSlot": "9.30AM-10.30AM",
+        "isFree": false,
+        "subject": "Robotic automation with ROS and C++(TUT)",
+        "room": "CSE-F-AR-317",
+        "faculty": "Biswajit Mallik",
+        "type": "TUT",
+        "raw": "Robotic automation with ROS and C++(TUT)\nCSE-F-AR-317\nBiswajit Mallik"
+      },
+      {
+        "timeSlot": "10.30AM-11.30AM",
+        "isFree": false,
+        "subject": "Robotic automation with ROS and C++(TUT)",
+        "room": "CSE-F-AR-317",
+        "faculty": "Biswajit Mallik",
+        "type": "TUT",
+        "raw": "Robotic automation with ROS and C++(TUT)\nCSE-F-AR-317\nBiswajit Mallik"
+      },
+      {
+        "timeSlot": "11.30AM-12.30PM",
+        "isFree": false,
+        "subject": "Information Security (CISCO)(PP)",
+        "room": "CSE-F-AR-317",
+        "faculty": "Smita Patra",
+        "type": "PP",
+        "raw": "Information Security (CISCO)(PP)\nCSE-F-AR-317\nSmita Patra"
+      },
+      {
+        "timeSlot": "12.30PM-1.30PM",
+        "isFree": true,
+        "subject": "No Class / Free",
+        "room": "",
+        "faculty": "",
+        "type": "",
+        "raw": ""
+      },
+      {
+        "timeSlot": "1.30PM-2.30PM",
+        "isFree": true,
+        "subject": "No Class / Free",
+        "room": "",
+        "faculty": "",
+        "type": "",
+        "raw": ""
+      },
+      {
+        "timeSlot": "2.30PM-3.30PM",
+        "isFree": true,
+        "subject": "No Class / Free",
+        "room": "",
+        "faculty": "",
+        "type": "",
+        "raw": ""
+      },
+      {
+        "timeSlot": "3.30PM-4.30PM",
+        "isFree": false,
+        "subject": "Network and Protocols for IoT(PR)",
+        "room": "CSE-F-AR-317",
+        "faculty": "Dr. Prabin Kumar Panigrahi",
+        "type": "PR",
+        "raw": "Network and Protocols for IoT(PR)\nCSE-F-AR-317\nDr. Prabin Kumar Panigrahi"
+      },
+      {
+        "timeSlot": "4.30PM-5.30PM",
+        "isFree": false,
+        "subject": "Network and Protocols for IoT(PR)",
+        "room": "CSE-F-AR-317",
+        "faculty": "Dr. Prabin Kumar Panigrahi",
+        "type": "PR",
+        "raw": "Network and Protocols for IoT(PR)\nCSE-F-AR-317\nDr. Prabin Kumar Panigrahi"
+      }
+    ],
+    "Saturday": [
+      {
+        "timeSlot": "9.30AM-10.30AM",
+        "isFree": false,
+        "subject": "Cloud Fundamentals (Azure)(PR)",
+        "room": "CSE-F-AR-317",
+        "faculty": "Partha Sarathi Pradhan",
+        "type": "PR",
+        "raw": "Cloud Fundamentals (Azure)(PR)\nCSE-F-AR-317\nPartha Sarathi Pradhan"
+      },
+      {
+        "timeSlot": "10.30AM-11.30AM",
+        "isFree": false,
+        "subject": "Cloud Fundamentals (Azure)(PR)",
+        "room": "CSE-F-AR-317",
+        "faculty": "Partha Sarathi Pradhan",
+        "type": "PR",
+        "raw": "Cloud Fundamentals (Azure)(PR)\nCSE-F-AR-317\nPartha Sarathi Pradhan"
+      },
+      {
+        "timeSlot": "11.30AM-12.30PM",
+        "isFree": true,
+        "subject": "No Class / Free",
+        "room": "",
+        "faculty": "",
+        "type": "",
+        "raw": ""
+      },
+      {
+        "timeSlot": "12.30PM-1.30PM",
+        "isFree": true,
+        "subject": "No Class / Free",
+        "room": "",
+        "faculty": "",
+        "type": "",
+        "raw": ""
+      },
+      {
+        "timeSlot": "1.30PM-2.30PM",
+        "isFree": true,
+        "subject": "No Class / Free",
+        "room": "",
+        "faculty": "",
+        "type": "",
+        "raw": ""
+      },
+      {
+        "timeSlot": "2.30PM-3.30PM",
+        "isFree": false,
+        "subject": "Theory of Computation and Compiler Design(PR)",
+        "room": "CSE-F-AR-317",
+        "faculty": "Sasmita Tripathy",
+        "type": "PR",
+        "raw": "Theory of Computation and Compiler Design(PR)\nCSE-F-AR-317\nSasmita Tripathy"
+      },
+      {
+        "timeSlot": "3.30PM-4.30PM",
+        "isFree": false,
+        "subject": "Theory of Computation and Compiler Design(PR)",
+        "room": "CSE-F-AR-317",
+        "faculty": "Sasmita Tripathy",
+        "type": "PR",
+        "raw": "Theory of Computation and Compiler Design(PR)\nCSE-F-AR-317\nSasmita Tripathy"
+      },
+      {
+        "timeSlot": "4.30PM-5.30PM",
+        "isFree": true,
+        "subject": "No Class / Free",
+        "room": "",
+        "faculty": "",
+        "type": "",
+        "raw": ""
+      }
+    ]
+  },
+  "CSE-G": {
+    "Monday": [
+      {
+        "timeSlot": "9.30AM-10.30AM",
+        "isFree": false,
+        "subject": "Theory of Computation and Compiler Design(PP)",
+        "room": "CSE-G-AR-318",
+        "faculty": "Soumyarasmi Panigrahi",
+        "type": "PP",
+        "raw": "Theory of Computation and Compiler Design(PP)\nCSE-G-AR-318\nSoumyarasmi Panigrahi"
+      },
+      {
+        "timeSlot": "10.30AM-11.30AM",
+        "isFree": false,
+        "subject": "Theory of Computation and Compiler Design(PP)",
+        "room": "CSE-G-AR-318",
+        "faculty": "Soumyarasmi Panigrahi",
+        "type": "PP",
+        "raw": "Theory of Computation and Compiler Design(PP)\nCSE-G-AR-318\nSoumyarasmi Panigrahi"
+      },
+      {
+        "timeSlot": "11.30AM-12.30PM",
+        "isFree": false,
+        "subject": "Robotic automation with ROS and C++(PP)",
+        "room": "CSE-G-AR-318",
+        "faculty": "Biswajit Mallik",
+        "type": "PP",
+        "raw": "Robotic automation with ROS and C++(PP)\nCSE-G-AR-318\nBiswajit Mallik"
+      },
+      {
+        "timeSlot": "12.30PM-1.30PM",
+        "isFree": true,
+        "subject": "No Class / Free",
+        "room": "",
+        "faculty": "",
+        "type": "",
+        "raw": ""
+      },
+      {
+        "timeSlot": "1.30PM-2.30PM",
+        "isFree": false,
+        "subject": "Information Security (CISCO)(PP)",
+        "room": "CSE-G-AR-318",
+        "faculty": "Smita Patra",
+        "type": "PP",
+        "raw": "Information Security (CISCO)(PP)\nCSE-G-AR-318\nSmita Patra"
+      },
+      {
+        "timeSlot": "2.30PM-3.30PM",
+        "isFree": false,
+        "subject": "Prompt Engineering using ChatGPT(PP)",
+        "room": "CSE-G-AR-318",
+        "faculty": "NF-2",
+        "type": "PP",
+        "raw": "Prompt Engineering using ChatGPT(PP)\nCSE-G-AR-318\nNF-2"
+      },
+      {
+        "timeSlot": "3.30PM-4.30PM",
+        "isFree": false,
+        "subject": "Network and Protocols for IoT(PR)",
+        "room": "CSE-G-AR-318",
+        "faculty": "Dr. Prabin Kumar Panigrahi",
+        "type": "PR",
+        "raw": "Network and Protocols for IoT(PR)\nCSE-G-AR-318\nDr. Prabin Kumar Panigrahi"
+      },
+      {
+        "timeSlot": "4.30PM-5.30PM",
+        "isFree": false,
+        "subject": "Network and Protocols for IoT(PR)",
+        "room": "CSE-G-AR-318",
+        "faculty": "Dr. Prabin Kumar Panigrahi",
+        "type": "PR",
+        "raw": "Network and Protocols for IoT(PR)\nCSE-G-AR-318\nDr. Prabin Kumar Panigrahi"
+      }
+    ],
+    "Tuesday": [
+      {
+        "timeSlot": "9.30AM-10.30AM",
+        "isFree": false,
+        "subject": "Robotic automation with ROS and C++(PR)",
+        "room": "CSE-G-AR-318",
+        "faculty": "Biswajit Mallik",
+        "type": "PR",
+        "raw": "Robotic automation with ROS and C++(PR)\nCSE-G-AR-318\nBiswajit Mallik"
+      },
+      {
+        "timeSlot": "10.30AM-11.30AM",
+        "isFree": false,
+        "subject": "Robotic automation with ROS and C++(PR)",
+        "room": "CSE-G-AR-318",
+        "faculty": "Biswajit Mallik",
+        "type": "PR",
+        "raw": "Robotic automation with ROS and C++(PR)\nCSE-G-AR-318\nBiswajit Mallik"
+      },
+      {
+        "timeSlot": "11.30AM-12.30PM",
+        "isFree": false,
+        "subject": "Data Structure and Algorithms (PR)",
+        "room": "CSE-G-AR-318",
+        "faculty": "Ravi Ranjan Kumar(GOG)",
+        "type": "PR",
+        "raw": "Data Structure and Algorithms (PR)\nCSE-G-AR-318\nRavi Ranjan Kumar(GOG)"
+      },
+      {
+        "timeSlot": "12.30PM-1.30PM",
+        "isFree": true,
+        "subject": "No Class / Free",
+        "room": "",
+        "faculty": "",
+        "type": "",
+        "raw": ""
+      },
+      {
+        "timeSlot": "1.30PM-2.30PM",
+        "isFree": false,
+        "subject": "Prompt Engineering using ChatGPT(PR)",
+        "room": "CSE-G-AR-318",
+        "faculty": "NF-2",
+        "type": "PR",
+        "raw": "Prompt Engineering using ChatGPT(PR)\nCSE-G-AR-318\nNF-2"
+      },
+      {
+        "timeSlot": "2.30PM-3.30PM",
+        "isFree": false,
+        "subject": "Prompt Engineering using ChatGPT(PR)",
+        "room": "CSE-G-AR-318",
+        "faculty": "NF-2",
+        "type": "PR",
+        "raw": "Prompt Engineering using ChatGPT(PR)\nCSE-G-AR-318\nNF-2"
+      },
+      {
+        "timeSlot": "3.30PM-4.30PM",
+        "isFree": false,
+        "subject": "Information Security (CISCO)(TUT)",
+        "room": "CSE-G-AR-318",
+        "faculty": "Smita Patra",
+        "type": "TUT",
+        "raw": "Information Security (CISCO)(TUT)\nCSE-G-AR-318\nSmita Patra"
+      },
+      {
+        "timeSlot": "4.30PM-5.30PM",
+        "isFree": false,
+        "subject": "Information Security (CISCO)(TUT)",
+        "room": "CSE-G-AR-318",
+        "faculty": "Smita Patra",
+        "type": "TUT",
+        "raw": "Information Security (CISCO)(TUT)\nCSE-G-AR-318\nSmita Patra"
+      }
+    ],
+    "Wednesday": [
+      {
+        "timeSlot": "9.30AM-10.30AM",
+        "isFree": false,
+        "subject": "Cloud Fundamentals (Azure)(PP)",
+        "room": "CSE-G-AR-318",
+        "faculty": "Shrabana Kumar Rout",
+        "type": "PP",
+        "raw": "Cloud Fundamentals (Azure)(PP)\nCSE-G-AR-318\nShrabana Kumar Rout"
+      },
+      {
+        "timeSlot": "10.30AM-11.30AM",
+        "isFree": false,
+        "subject": "Theory of Computation and Compiler Design(PR)",
+        "room": "CSE-G-AR-318",
+        "faculty": "Soumyarasmi Panigrahi",
+        "type": "PR",
+        "raw": "Theory of Computation and Compiler Design(PR)\nCSE-G-AR-318\nSoumyarasmi Panigrahi"
+      },
+      {
+        "timeSlot": "11.30AM-12.30PM",
+        "isFree": false,
+        "subject": "Theory of Computation and Compiler Design(PR)",
+        "room": "CSE-G-AR-318",
+        "faculty": "Soumyarasmi Panigrahi",
+        "type": "PR",
+        "raw": "Theory of Computation and Compiler Design(PR)\nCSE-G-AR-318\nSoumyarasmi Panigrahi"
+      },
+      {
+        "timeSlot": "12.30PM-1.30PM",
+        "isFree": true,
+        "subject": "No Class / Free",
+        "room": "",
+        "faculty": "",
+        "type": "",
+        "raw": ""
+      },
+      {
+        "timeSlot": "1.30PM-2.30PM",
+        "isFree": true,
+        "subject": "No Class / Free",
+        "room": "",
+        "faculty": "",
+        "type": "",
+        "raw": ""
+      },
+      {
+        "timeSlot": "2.30PM-3.30PM",
+        "isFree": true,
+        "subject": "No Class / Free",
+        "room": "",
+        "faculty": "",
+        "type": "",
+        "raw": ""
+      },
+      {
+        "timeSlot": "3.30PM-4.30PM",
+        "isFree": false,
+        "subject": "Robotic automation with ROS and C++(TUT)",
+        "room": "CSE-G-AR-318",
+        "faculty": "Biswajit Mallik",
+        "type": "TUT",
+        "raw": "Robotic automation with ROS and C++(TUT)\nCSE-G-AR-318\nBiswajit Mallik"
+      },
+      {
+        "timeSlot": "4.30PM-5.30PM",
+        "isFree": false,
+        "subject": "Robotic automation with ROS and C++(TUT)",
+        "room": "CSE-G-AR-318",
+        "faculty": "Biswajit Mallik",
+        "type": "TUT",
+        "raw": "Robotic automation with ROS and C++(TUT)\nCSE-G-AR-318\nBiswajit Mallik"
+      }
+    ],
+    "Thursday": [
+      {
+        "timeSlot": "9.30AM-10.30AM",
+        "isFree": false,
+        "subject": "Network and Protocols for IoT(PP)",
+        "room": "CSE-G-AR-318",
+        "faculty": "Dr. Prabin Kumar Panigrahi",
+        "type": "PP",
+        "raw": "Network and Protocols for IoT(PP)\nCSE-G-AR-318\nDr. Prabin Kumar Panigrahi"
+      },
+      {
+        "timeSlot": "10.30AM-11.30AM",
+        "isFree": false,
+        "subject": "Robotic automation with ROS and C++(PR)",
+        "room": "CSE-G-AR-318",
+        "faculty": "Biswajit Mallik",
+        "type": "PR",
+        "raw": "Robotic automation with ROS and C++(PR)\nCSE-G-AR-318\nBiswajit Mallik"
+      },
+      {
+        "timeSlot": "11.30AM-12.30PM",
+        "isFree": false,
+        "subject": "Robotic automation with ROS and C++(PR)",
+        "room": "CSE-G-AR-318",
+        "faculty": "Biswajit Mallik",
+        "type": "PR",
+        "raw": "Robotic automation with ROS and C++(PR)\nCSE-G-AR-318\nBiswajit Mallik"
+      },
+      {
+        "timeSlot": "12.30PM-1.30PM",
+        "isFree": true,
+        "subject": "No Class / Free",
+        "room": "",
+        "faculty": "",
+        "type": "",
+        "raw": ""
+      },
+      {
+        "timeSlot": "1.30PM-2.30PM",
+        "isFree": true,
+        "subject": "No Class / Free",
+        "room": "",
+        "faculty": "",
+        "type": "",
+        "raw": ""
+      },
+      {
+        "timeSlot": "2.30PM-3.30PM",
+        "isFree": true,
+        "subject": "No Class / Free",
+        "room": "",
+        "faculty": "",
+        "type": "",
+        "raw": ""
+      },
+      {
+        "timeSlot": "3.30PM-4.30PM",
+        "isFree": false,
+        "subject": "Data Structure and Algorithms (PR)",
+        "room": "CSE-G-AR-318",
+        "faculty": "Ravi Ranjan Kumar(GOG)",
+        "type": "PR",
+        "raw": "Data Structure and Algorithms (PR)\nCSE-G-AR-318\nRavi Ranjan Kumar(GOG)"
+      },
+      {
+        "timeSlot": "4.30PM-5.30PM",
+        "isFree": false,
+        "subject": "Data Structure and Algorithms (PR)",
+        "room": "CSE-G-AR-318",
+        "faculty": "Ravi Ranjan Kumar(GOG)",
+        "type": "PR",
+        "raw": "Data Structure and Algorithms (PR)\nCSE-G-AR-318\nRavi Ranjan Kumar(GOG)"
+      }
+    ],
+    "Friday": [
+      {
+        "timeSlot": "9.30AM-10.30AM",
+        "isFree": false,
+        "subject": "Cloud Fundamentals (Azure)(PR)",
+        "room": "CSE-G-AR-318",
+        "faculty": "Shrabana Kumar Rout",
+        "type": "PR",
+        "raw": "Cloud Fundamentals (Azure)(PR)\nCSE-G-AR-318\nShrabana Kumar Rout"
+      },
+      {
+        "timeSlot": "10.30AM-11.30AM",
+        "isFree": false,
+        "subject": "Cloud Fundamentals (Azure)(PR)",
+        "room": "CSE-G-AR-318",
+        "faculty": "Shrabana Kumar Rout",
+        "type": "PR",
+        "raw": "Cloud Fundamentals (Azure)(PR)\nCSE-G-AR-318\nShrabana Kumar Rout"
+      },
+      {
+        "timeSlot": "11.30AM-12.30PM",
+        "isFree": true,
+        "subject": "No Class / Free",
+        "room": "",
+        "faculty": "",
+        "type": "",
+        "raw": ""
+      },
+      {
+        "timeSlot": "12.30PM-1.30PM",
+        "isFree": true,
+        "subject": "No Class / Free",
+        "room": "",
+        "faculty": "",
+        "type": "",
+        "raw": ""
+      },
+      {
+        "timeSlot": "1.30PM-2.30PM",
+        "isFree": true,
+        "subject": "No Class / Free",
+        "room": "",
+        "faculty": "",
+        "type": "",
+        "raw": ""
+      },
+      {
+        "timeSlot": "2.30PM-3.30PM",
+        "isFree": false,
+        "subject": "Data Structure and Algorithms (PR)",
+        "room": "CSE-G-AR-318",
+        "faculty": "Ravi Ranjan Kumar(GOG)",
+        "type": "PR",
+        "raw": "Data Structure and Algorithms (PR)\nCSE-G-AR-318\nRavi Ranjan Kumar(GOG)"
+      },
+      {
+        "timeSlot": "3.30PM-4.30PM",
+        "isFree": false,
+        "subject": "Theory of Computation and Compiler Design(PR)",
+        "room": "CSE-G-AR-318",
+        "faculty": "Soumyarasmi Panigrahi",
+        "type": "PR",
+        "raw": "Theory of Computation and Compiler Design(PR)\nCSE-G-AR-318\nSoumyarasmi Panigrahi"
+      },
+      {
+        "timeSlot": "4.30PM-5.30PM",
+        "isFree": false,
+        "subject": "Theory of Computation and Compiler Design(PR)",
+        "room": "CSE-G-AR-318",
+        "faculty": "Soumyarasmi Panigrahi",
+        "type": "PR",
+        "raw": "Theory of Computation and Compiler Design(PR)\nCSE-G-AR-318\nSoumyarasmi Panigrahi"
+      }
+    ],
+    "Saturday": [
+      {
+        "timeSlot": "9.30AM-10.30AM",
+        "isFree": false,
+        "subject": "Data Structure and Algorithms (TUT)",
+        "room": "CSE-G-AR-318",
+        "faculty": "Ravi Ranjan Kumar(GOG)",
+        "type": "TUT",
+        "raw": "Data Structure and Algorithms (TUT)\nCSE-G-AR-318\nRavi Ranjan Kumar(GOG)"
+      },
+      {
+        "timeSlot": "10.30AM-11.30AM",
+        "isFree": false,
+        "subject": "Data Structure and Algorithms (TUT)",
+        "room": "CSE-G-AR-318",
+        "faculty": "Ravi Ranjan Kumar(GOG)",
+        "type": "TUT",
+        "raw": "Data Structure and Algorithms (TUT)\nCSE-G-AR-318\nRavi Ranjan Kumar(GOG)"
+      },
+      {
+        "timeSlot": "11.30AM-12.30PM",
+        "isFree": true,
+        "subject": "No Class / Free",
+        "room": "",
+        "faculty": "",
+        "type": "",
+        "raw": ""
+      },
+      {
+        "timeSlot": "12.30PM-1.30PM",
+        "isFree": true,
+        "subject": "No Class / Free",
+        "room": "",
+        "faculty": "",
+        "type": "",
+        "raw": ""
+      },
+      {
+        "timeSlot": "1.30PM-2.30PM",
+        "isFree": false,
+        "subject": "Network and Protocols for IoT(PR)",
+        "room": "CSE-G-AR-318",
+        "faculty": "Dr. Prabin Kumar Panigrahi",
+        "type": "PR",
+        "raw": "Network and Protocols for IoT(PR)\nCSE-G-AR-318\nDr. Prabin Kumar Panigrahi"
+      },
+      {
+        "timeSlot": "2.30PM-3.30PM",
+        "isFree": false,
+        "subject": "Network and Protocols for IoT(PR)",
+        "room": "CSE-G-AR-318",
+        "faculty": "Dr. Prabin Kumar Panigrahi",
+        "type": "PR",
+        "raw": "Network and Protocols for IoT(PR)\nCSE-G-AR-318\nDr. Prabin Kumar Panigrahi"
+      },
+      {
+        "timeSlot": "3.30PM-4.30PM",
+        "isFree": false,
+        "subject": "Information Security (CISCO)(PR)",
+        "room": "CSE-G-AR-318",
+        "faculty": "Smita Patra",
+        "type": "PR",
+        "raw": "Information Security (CISCO)(PR)\nCSE-G-AR-318\nSmita Patra"
+      },
+      {
+        "timeSlot": "4.30PM-5.30PM",
+        "isFree": false,
+        "subject": "Information Security (CISCO)(PR)",
+        "room": "CSE-G-AR-318",
+        "faculty": "Smita Patra",
+        "type": "PR",
+        "raw": "Information Security (CISCO)(PR)\nCSE-G-AR-318\nSmita Patra"
+      }
+    ]
+  },
+  "CSE-H": {
+    "Monday": [
+      {
+        "timeSlot": "9.30AM-10.30AM",
+        "isFree": false,
+        "subject": "Data Structure and Algorithms (PR)",
+        "room": "CSE-H-AR-319",
+        "faculty": "Simran Jatav(GOG)",
+        "type": "PR",
+        "raw": "Data Structure and Algorithms (PR)\nCSE-H-AR-319\nSimran Jatav(GOG)"
+      },
+      {
+        "timeSlot": "10.30AM-11.30AM",
+        "isFree": false,
+        "subject": "Data Structure and Algorithms (PR)",
+        "room": "CSE-H-AR-319",
+        "faculty": "Simran Jatav(GOG)",
+        "type": "PR",
+        "raw": "Data Structure and Algorithms (PR)\nCSE-H-AR-319\nSimran Jatav(GOG)"
+      },
+      {
+        "timeSlot": "11.30AM-12.30PM",
+        "isFree": false,
+        "subject": "Robotic automation with ROS and C++(PP)",
+        "room": "CSE-H-AR-319",
+        "faculty": "Naresh Kanungo",
+        "type": "PP",
+        "raw": "Robotic automation with ROS and C++(PP)\nCSE-H-AR-319\nNaresh Kanungo"
+      },
+      {
+        "timeSlot": "12.30PM-1.30PM",
+        "isFree": true,
+        "subject": "No Class / Free",
+        "room": "",
+        "faculty": "",
+        "type": "",
+        "raw": ""
+      },
+      {
+        "timeSlot": "1.30PM-2.30PM",
+        "isFree": true,
+        "subject": "No Class / Free",
+        "room": "",
+        "faculty": "",
+        "type": "",
+        "raw": ""
+      },
+      {
+        "timeSlot": "2.30PM-3.30PM",
+        "isFree": true,
+        "subject": "No Class / Free",
+        "room": "",
+        "faculty": "",
+        "type": "",
+        "raw": ""
+      },
+      {
+        "timeSlot": "3.30PM-4.30PM",
+        "isFree": true,
+        "subject": "No Class / Free",
+        "room": "",
+        "faculty": "",
+        "type": "",
+        "raw": ""
+      },
+      {
+        "timeSlot": "4.30PM-5.30PM",
+        "isFree": true,
+        "subject": "No Class / Free",
+        "room": "",
+        "faculty": "",
+        "type": "",
+        "raw": ""
+      }
+    ],
+    "Tuesday": [
+      {
+        "timeSlot": "9.30AM-10.30AM",
+        "isFree": true,
+        "subject": "No Class / Free",
+        "room": "",
+        "faculty": "",
+        "type": "",
+        "raw": ""
+      },
+      {
+        "timeSlot": "10.30AM-11.30AM",
+        "isFree": false,
+        "subject": "Network and Protocols for IoT(PR)",
+        "room": "CSE-H-AR-319",
+        "faculty": "Dr. Prabin Kumar Panigrahi",
+        "type": "PR",
+        "raw": "Network and Protocols for IoT(PR)\nCSE-H-AR-319\n\nDr. Prabin Kumar Panigrahi"
+      },
+      {
+        "timeSlot": "11.30AM-12.30PM",
+        "isFree": false,
+        "subject": "Network and Protocols for IoT(PR)",
+        "room": "CSE-H-AR-319",
+        "faculty": "Dr. Prabin Kumar Panigrahi",
+        "type": "PR",
+        "raw": "Network and Protocols for IoT(PR)\nCSE-H-AR-319\nDr. Prabin Kumar Panigrahi"
+      },
+      {
+        "timeSlot": "12.30PM-1.30PM",
+        "isFree": true,
+        "subject": "No Class / Free",
+        "room": "",
+        "faculty": "",
+        "type": "",
+        "raw": ""
+      },
+      {
+        "timeSlot": "1.30PM-2.30PM",
+        "isFree": false,
+        "subject": "Theory of Computation and Compiler Design(PP)",
+        "room": "CSE-H-AR-319",
+        "faculty": "Soumyarasmi Panigrahi",
+        "type": "PP",
+        "raw": "Theory of Computation and Compiler Design(PP)\nCSE-H-AR-319\nSoumyarasmi Panigrahi"
+      },
+      {
+        "timeSlot": "2.30PM-3.30PM",
+        "isFree": false,
+        "subject": "Theory of Computation and Compiler Design(PP)",
+        "room": "CSE-H-AR-319",
+        "faculty": "Soumyarasmi Panigrahi",
+        "type": "PP",
+        "raw": "Theory of Computation and Compiler Design(PP)\nCSE-H-AR-319\nSoumyarasmi Panigrahi"
+      },
+      {
+        "timeSlot": "3.30PM-4.30PM",
+        "isFree": false,
+        "subject": "Robotic automation with ROS and C++(PR)",
+        "room": "CSE-H-AR-319",
+        "faculty": "Naresh Kanungo",
+        "type": "PR",
+        "raw": "Robotic automation with ROS and C++(PR)\nCSE-H-AR-319\nNaresh Kanungo"
+      },
+      {
+        "timeSlot": "4.30PM-5.30PM",
+        "isFree": false,
+        "subject": "Robotic automation with ROS and C++(PR)",
+        "room": "CSE-H-AR-319",
+        "faculty": "Naresh Kanungo",
+        "type": "PR",
+        "raw": "Robotic automation with ROS and C++(PR)\nCSE-H-AR-319\nNaresh Kanungo"
+      }
+    ],
+    "Wednesday": [
+      {
+        "timeSlot": "9.30AM-10.30AM",
+        "isFree": true,
+        "subject": "No Class / Free",
+        "room": "",
+        "faculty": "",
+        "type": "",
+        "raw": ""
+      },
+      {
+        "timeSlot": "10.30AM-11.30AM",
+        "isFree": false,
+        "subject": "Robotic automation with ROS and C++(PR)",
+        "room": "CSE-H-AR-319",
+        "faculty": "Naresh Kanungo",
+        "type": "PR",
+        "raw": "Robotic automation with ROS and C++(PR)\nCSE-H-AR-319\nNaresh Kanungo"
+      },
+      {
+        "timeSlot": "11.30AM-12.30PM",
+        "isFree": false,
+        "subject": "Robotic automation with ROS and C++(PR)",
+        "room": "CSE-H-AR-319",
+        "faculty": "Naresh Kanungo",
+        "type": "PR",
+        "raw": "Robotic automation with ROS and C++(PR)\nCSE-H-AR-319\nNaresh Kanungo"
+      },
+      {
+        "timeSlot": "12.30PM-1.30PM",
+        "isFree": true,
+        "subject": "No Class / Free",
+        "room": "",
+        "faculty": "",
+        "type": "",
+        "raw": ""
+      },
+      {
+        "timeSlot": "1.30PM-2.30PM",
+        "isFree": false,
+        "subject": "Cloud Fundamentals (Azure)(PP)",
+        "room": "CSE-H-AR-319",
+        "faculty": "Shrabana Kumar Rout",
+        "type": "PP",
+        "raw": "Cloud Fundamentals (Azure)(PP)\nCSE-H-AR-319\nShrabana Kumar Rout"
+      },
+      {
+        "timeSlot": "2.30PM-3.30PM",
+        "isFree": false,
+        "subject": "Prompt Engineering using ChatGPT(PR)",
+        "room": "CSE-H-AR-319",
+        "faculty": "NF-2",
+        "type": "PR",
+        "raw": "Prompt Engineering using ChatGPT(PR)\nCSE-H-AR-319\nNF-2"
+      },
+      {
+        "timeSlot": "3.30PM-4.30PM",
+        "isFree": false,
+        "subject": "Prompt Engineering using ChatGPT(PR)",
+        "room": "CSE-H-AR-319",
+        "faculty": "NF-2",
+        "type": "PR",
+        "raw": "Prompt Engineering using ChatGPT(PR)\nCSE-H-AR-319\nNF-2"
+      },
+      {
+        "timeSlot": "4.30PM-5.30PM",
+        "isFree": true,
+        "subject": "No Class / Free",
+        "room": "",
+        "faculty": "",
+        "type": "",
+        "raw": ""
+      }
+    ],
+    "Thursday": [
+      {
+        "timeSlot": "9.30AM-10.30AM",
+        "isFree": false,
+        "subject": "Theory of Computation and Compiler Design(PR)",
+        "room": "CSE-H-AR-319",
+        "faculty": "Soumyarasmi Panigrahi",
+        "type": "PR",
+        "raw": "Theory of Computation and Compiler Design(PR)\nCSE-H-AR-319\nSoumyarasmi Panigrahi"
+      },
+      {
+        "timeSlot": "10.30AM-11.30AM",
+        "isFree": false,
+        "subject": "Theory of Computation and Compiler Design(PR)",
+        "room": "CSE-H-AR-319",
+        "faculty": "Soumyarasmi Panigrahi",
+        "type": "PR",
+        "raw": "Theory of Computation and Compiler Design(PR)\nCSE-H-AR-319\nSoumyarasmi Panigrahi"
+      },
+      {
+        "timeSlot": "11.30AM-12.30PM",
+        "isFree": true,
+        "subject": "No Class / Free",
+        "room": "",
+        "faculty": "",
+        "type": "",
+        "raw": ""
+      },
+      {
+        "timeSlot": "12.30PM-1.30PM",
+        "isFree": true,
+        "subject": "No Class / Free",
+        "room": "",
+        "faculty": "",
+        "type": "",
+        "raw": ""
+      },
+      {
+        "timeSlot": "1.30PM-2.30PM",
+        "isFree": false,
+        "subject": "Theory of Computation and Compiler Design(PR)",
+        "room": "CSE-H-AR-319",
+        "faculty": "Soumyarasmi Panigrahi",
+        "type": "PR",
+        "raw": "Theory of Computation and Compiler Design(PR)\nCSE-H-AR-319\nSoumyarasmi Panigrahi"
+      },
+      {
+        "timeSlot": "2.30PM-3.30PM",
+        "isFree": false,
+        "subject": "Theory of Computation and Compiler Design(PR)",
+        "room": "CSE-H-AR-319",
+        "faculty": "Soumyarasmi Panigrahi",
+        "type": "PR",
+        "raw": "Theory of Computation and Compiler Design(PR)\nCSE-H-AR-319\nSoumyarasmi Panigrahi"
+      },
+      {
+        "timeSlot": "3.30PM-4.30PM",
+        "isFree": false,
+        "subject": "Network and Protocols for IoT(PP)",
+        "room": "CSE-H-AR-319",
+        "faculty": "Dr. Prabin Kumar Panigrahi",
+        "type": "PP",
+        "raw": "Network and Protocols for IoT(PP)\nCSE-H-AR-319\nDr. Prabin Kumar Panigrahi"
+      },
+      {
+        "timeSlot": "4.30PM-5.30PM",
+        "isFree": true,
+        "subject": "No Class / Free",
+        "room": "",
+        "faculty": "",
+        "type": "",
+        "raw": ""
+      }
+    ],
+    "Friday": [
+      {
+        "timeSlot": "9.30AM-10.30AM",
+        "isFree": false,
+        "subject": "Network and Protocols for IoT(PR)",
+        "room": "CSE-H-AR-319",
+        "faculty": "Dr. Prabin Kumar Panigrahi",
+        "type": "PR",
+        "raw": "Network and Protocols for IoT(PR)\nCSE-H-AR-319\nDr. Prabin Kumar Panigrahi"
+      },
+      {
+        "timeSlot": "10.30AM-11.30AM",
+        "isFree": false,
+        "subject": "Network and Protocols for IoT(PR)",
+        "room": "CSE-H-AR-319",
+        "faculty": "Dr. Prabin Kumar Panigrahi",
+        "type": "PR",
+        "raw": "Network and Protocols for IoT(PR)\nCSE-H-AR-319\nDr. Prabin Kumar Panigrahi"
+      },
+      {
+        "timeSlot": "11.30AM-12.30PM",
+        "isFree": true,
+        "subject": "No Class / Free",
+        "room": "",
+        "faculty": "",
+        "type": "",
+        "raw": ""
+      },
+      {
+        "timeSlot": "12.30PM-1.30PM",
+        "isFree": true,
+        "subject": "No Class / Free",
+        "room": "",
+        "faculty": "",
+        "type": "",
+        "raw": ""
+      },
+      {
+        "timeSlot": "1.30PM-2.30PM",
+        "isFree": false,
+        "subject": "Prompt Engineering using ChatGPT(PP)",
+        "room": "CSE-H-AR-319",
+        "faculty": "NF-2",
+        "type": "PP",
+        "raw": "Prompt Engineering using ChatGPT(PP)\nCSE-H-AR-319\nNF-2"
+      },
+      {
+        "timeSlot": "2.30PM-3.30PM",
+        "isFree": true,
+        "subject": "No Class / Free",
+        "room": "",
+        "faculty": "",
+        "type": "",
+        "raw": ""
+      },
+      {
+        "timeSlot": "3.30PM-4.30PM",
+        "isFree": false,
+        "subject": "Cloud Fundamentals (Azure)(PR)",
+        "room": "CSE-H-AR-319",
+        "faculty": "Shrabana Kumar Rout",
+        "type": "PR",
+        "raw": "Cloud Fundamentals (Azure)(PR)\nCSE-H-AR-319\nShrabana Kumar Rout"
+      },
+      {
+        "timeSlot": "4.30PM-5.30PM",
+        "isFree": false,
+        "subject": "Cloud Fundamentals (Azure)(PR)",
+        "room": "CSE-H-AR-319",
+        "faculty": "Shrabana Kumar Rout",
+        "type": "PR",
+        "raw": "Cloud Fundamentals (Azure)(PR)\nCSE-H-AR-319\nShrabana Kumar Rout"
+      }
+    ],
+    "Saturday": [
+      {
+        "timeSlot": "9.30AM-10.30AM",
+        "isFree": false,
+        "subject": "Theory of Computation and Compiler Design(TUT)",
+        "room": "CSE-H-AR-319",
+        "faculty": "Soumyarasmi Panigrahi",
+        "type": "TUT",
+        "raw": "Theory of Computation and Compiler Design(TUT)\nCSE-H-AR-319\nSoumyarasmi Panigrahi"
+      },
+      {
+        "timeSlot": "10.30AM-11.30AM",
+        "isFree": false,
+        "subject": "Theory of Computation and Compiler Design(TUT)",
+        "room": "CSE-H-AR-319",
+        "faculty": "Soumyarasmi Panigrahi",
+        "type": "TUT",
+        "raw": "Theory of Computation and Compiler Design(TUT)\nCSE-H-AR-319\nSoumyarasmi Panigrahi"
+      },
+      {
+        "timeSlot": "11.30AM-12.30PM",
+        "isFree": true,
+        "subject": "No Class / Free",
+        "room": "",
+        "faculty": "",
+        "type": "",
+        "raw": ""
+      },
+      {
+        "timeSlot": "12.30PM-1.30PM",
+        "isFree": true,
+        "subject": "No Class / Free",
+        "room": "",
+        "faculty": "",
+        "type": "",
+        "raw": ""
+      },
+      {
+        "timeSlot": "1.30PM-2.30PM",
+        "isFree": false,
+        "subject": "Robotic automation with ROS and C++(TUT)",
+        "room": "CSE-H-AR-319",
+        "faculty": "Naresh Kanungo",
+        "type": "TUT",
+        "raw": "Robotic automation with ROS and C++(TUT)\nCSE-H-AR-319\nNaresh Kanungo"
+      },
+      {
+        "timeSlot": "2.30PM-3.30PM",
+        "isFree": false,
+        "subject": "Robotic automation with ROS and C++(TUT)",
+        "room": "CSE-H-AR-319",
+        "faculty": "Naresh Kanungo",
+        "type": "TUT",
+        "raw": "Robotic automation with ROS and C++(TUT)\nCSE-H-AR-319\nNaresh Kanungo"
+      },
+      {
+        "timeSlot": "3.30PM-4.30PM",
+        "isFree": true,
+        "subject": "No Class / Free",
+        "room": "",
+        "faculty": "",
+        "type": "",
+        "raw": ""
+      },
+      {
+        "timeSlot": "4.30PM-5.30PM",
+        "isFree": true,
+        "subject": "No Class / Free",
+        "room": "",
+        "faculty": "",
+        "type": "",
+        "raw": ""
+      }
+    ]
+  },
+  "CSE-I": {
+    "Monday": [
+      {
+        "timeSlot": "9.30AM-10.30AM",
+        "isFree": false,
+        "subject": "Information Security (CISCO)(PP)",
+        "room": "CSE-I-AR-320",
+        "faculty": "Swatilagna Sahu",
+        "type": "PP",
+        "raw": "Information Security (CISCO)(PP)\nCSE-I-AR-320\nSwatilagna Sahu"
+      },
+      {
+        "timeSlot": "10.30AM-11.30AM",
+        "isFree": false,
+        "subject": "Network and Protocols for IoT(PR)",
+        "room": "CSE-I-AR-320",
+        "faculty": "NF-1",
+        "type": "PR",
+        "raw": "Network and Protocols for IoT(PR)\nCSE-I-AR-320\nNF-1"
+      },
+      {
+        "timeSlot": "11.30AM-12.30PM",
+        "isFree": false,
+        "subject": "Network and Protocols for IoT(PR)",
+        "room": "CSE-I-AR-320",
+        "faculty": "NF-1",
+        "type": "PR",
+        "raw": "Network and Protocols for IoT(PR)\nCSE-I-AR-320\nNF-1"
+      },
+      {
+        "timeSlot": "12.30PM-1.30PM",
+        "isFree": true,
+        "subject": "No Class / Free",
+        "room": "",
+        "faculty": "",
+        "type": "",
+        "raw": ""
+      },
+      {
+        "timeSlot": "1.30PM-2.30PM",
+        "isFree": false,
+        "subject": "Prompt Engineering using ChatGPT(PP)",
+        "room": "CSE-I-AR-320",
+        "faculty": "NF-2",
+        "type": "PP",
+        "raw": "Prompt Engineering using ChatGPT(PP)\nCSE-I-AR-320\nNF-2"
+      },
+      {
+        "timeSlot": "2.30PM-3.30PM",
+        "isFree": true,
+        "subject": "No Class / Free",
+        "room": "",
+        "faculty": "",
+        "type": "",
+        "raw": ""
+      },
+      {
+        "timeSlot": "3.30PM-4.30PM",
+        "isFree": false,
+        "subject": "Theory of Computation and Compiler Design(PP)",
+        "room": "CSE-I-AR-320",
+        "faculty": "Soumyarasmi Panigrahi",
+        "type": "PP",
+        "raw": "Theory of Computation and Compiler Design(PP)\nCSE-I-AR-320\nSoumyarasmi Panigrahi"
+      },
+      {
+        "timeSlot": "4.30PM-5.30PM",
+        "isFree": false,
+        "subject": "Theory of Computation and Compiler Design(PP)",
+        "room": "CSE-I-AR-320",
+        "faculty": "Soumyarasmi Panigrahi",
+        "type": "PP",
+        "raw": "Theory of Computation and Compiler Design(PP)\nCSE-I-AR-320\nSoumyarasmi Panigrahi"
+      }
+    ],
+    "Tuesday": [
+      {
+        "timeSlot": "9.30AM-10.30AM",
+        "isFree": false,
+        "subject": "Prompt Engineering using ChatGPT(PR)",
+        "room": "CSE-I-AR-320",
+        "faculty": "NF-2",
+        "type": "PR",
+        "raw": "Prompt Engineering using ChatGPT(PR)\nCSE-I-AR-320\nNF-2"
+      },
+      {
+        "timeSlot": "10.30AM-11.30AM",
+        "isFree": false,
+        "subject": "Prompt Engineering using ChatGPT(PR)",
+        "room": "CSE-I-AR-320",
+        "faculty": "NF-2",
+        "type": "PR",
+        "raw": "Prompt Engineering using ChatGPT(PR)\nCSE-I-AR-320\nNF-2"
+      },
+      {
+        "timeSlot": "11.30AM-12.30PM",
+        "isFree": true,
+        "subject": "No Class / Free",
+        "room": "",
+        "faculty": "",
+        "type": "",
+        "raw": ""
+      },
+      {
+        "timeSlot": "12.30PM-1.30PM",
+        "isFree": true,
+        "subject": "No Class / Free",
+        "room": "",
+        "faculty": "",
+        "type": "",
+        "raw": ""
+      },
+      {
+        "timeSlot": "1.30PM-2.30PM",
+        "isFree": false,
+        "subject": "Robotic automation with ROS and C++(PR)",
+        "room": "CSE-I-AR-320",
+        "faculty": "Saswat Pradhan",
+        "type": "PR",
+        "raw": "Robotic automation with ROS and C++(PR)\nCSE-I-AR-320\nSaswat Pradhan"
+      },
+      {
+        "timeSlot": "2.30PM-3.30PM",
+        "isFree": false,
+        "subject": "Robotic automation with ROS and C++(PR)",
+        "room": "CSE-I-AR-320",
+        "faculty": "Saswat Pradhan",
+        "type": "PR",
+        "raw": "Robotic automation with ROS and C++(PR)\nCSE-I-AR-320\nSaswat Pradhan"
+      },
+      {
+        "timeSlot": "3.30PM-4.30PM",
+        "isFree": false,
+        "subject": "Network and Protocols for IoT(PR)",
+        "room": "CSE-I-AR-320",
+        "faculty": "NF-1",
+        "type": "PR",
+        "raw": "Network and Protocols for IoT(PR)\nCSE-I-AR-320\nNF-1"
+      },
+      {
+        "timeSlot": "4.30PM-5.30PM",
+        "isFree": false,
+        "subject": "Network and Protocols for IoT(PR)",
+        "room": "CSE-I-AR-320",
+        "faculty": "NF-1",
+        "type": "PR",
+        "raw": "Network and Protocols for IoT(PR)\nCSE-I-AR-320\nNF-1"
+      }
+    ],
+    "Wednesday": [
+      {
+        "timeSlot": "9.30AM-10.30AM",
+        "isFree": false,
+        "subject": "Cloud Fundamentals (Azure)(PP)",
+        "room": "CSE-I-AR-320",
+        "faculty": "Sanmay Panda",
+        "type": "PP",
+        "raw": "Cloud Fundamentals (Azure)(PP)\nCSE-I-AR-320\nSanmay Panda"
+      },
+      {
+        "timeSlot": "10.30AM-11.30AM",
+        "isFree": false,
+        "subject": "Data Structure and Algorithms (PR)",
+        "room": "CSE-I-AR-320",
+        "faculty": "Baddigam Siddardhareddy(GOG)",
+        "type": "PR",
+        "raw": "Data Structure and Algorithms (PR)\nCSE-I-AR-320\nBaddigam Siddardhareddy(GOG)"
+      },
+      {
+        "timeSlot": "11.30AM-12.30PM",
+        "isFree": false,
+        "subject": "Data Structure and Algorithms (PR)",
+        "room": "CSE-I-AR-320",
+        "faculty": "Baddigam Siddardhareddy(GOG)",
+        "type": "PR",
+        "raw": "Data Structure and Algorithms (PR)\nCSE-I-AR-320\nBaddigam Siddardhareddy(GOG)"
+      },
+      {
+        "timeSlot": "12.30PM-1.30PM",
+        "isFree": true,
+        "subject": "No Class / Free",
+        "room": "",
+        "faculty": "",
+        "type": "",
+        "raw": ""
+      },
+      {
+        "timeSlot": "1.30PM-2.30PM",
+        "isFree": true,
+        "subject": "No Class / Free",
+        "room": "",
+        "faculty": "",
+        "type": "",
+        "raw": ""
+      },
+      {
+        "timeSlot": "2.30PM-3.30PM",
+        "isFree": true,
+        "subject": "No Class / Free",
+        "room": "",
+        "faculty": "",
+        "type": "",
+        "raw": ""
+      },
+      {
+        "timeSlot": "3.30PM-4.30PM",
+        "isFree": false,
+        "subject": "Theory of Computation and Compiler Design(PR)",
+        "room": "CSE-I-AR-320",
+        "faculty": "Soumyarasmi Panigrahi",
+        "type": "PR",
+        "raw": "Theory of Computation and Compiler Design(PR)\nCSE-I-AR-320\nSoumyarasmi Panigrahi"
+      },
+      {
+        "timeSlot": "4.30PM-5.30PM",
+        "isFree": false,
+        "subject": "Theory of Computation and Compiler Design(PR)",
+        "room": "CSE-I-AR-320",
+        "faculty": "Soumyarasmi Panigrahi",
+        "type": "PR",
+        "raw": "Theory of Computation and Compiler Design(PR)\nCSE-I-AR-320\nSoumyarasmi Panigrahi"
+      }
+    ],
+    "Thursday": [
+      {
+        "timeSlot": "9.30AM-10.30AM",
+        "isFree": false,
+        "subject": "Network and Protocols for IoT(PP)",
+        "room": "CSE-I-AR-320",
+        "faculty": "NF-1",
+        "type": "PP",
+        "raw": "Network and Protocols for IoT(PP)\nCSE-I-AR-320\nNF-1"
+      },
+      {
+        "timeSlot": "10.30AM-11.30AM",
+        "isFree": false,
+        "subject": "Information Security (CISCO)(PR)",
+        "room": "CSE-I-AR-320",
+        "faculty": "Swatilagna Sahu",
+        "type": "PR",
+        "raw": "Information Security (CISCO)(PR)\nCSE-I-AR-320\nSwatilagna Sahu"
+      },
+      {
+        "timeSlot": "11.30AM-12.30PM",
+        "isFree": false,
+        "subject": "Information Security (CISCO)(PR)",
+        "room": "CSE-I-AR-320",
+        "faculty": "Swatilagna Sahu",
+        "type": "PR",
+        "raw": "Information Security (CISCO)(PR)\nCSE-I-AR-320\nSwatilagna Sahu"
+      },
+      {
+        "timeSlot": "12.30PM-1.30PM",
+        "isFree": true,
+        "subject": "No Class / Free",
+        "room": "",
+        "faculty": "",
+        "type": "",
+        "raw": ""
+      },
+      {
+        "timeSlot": "1.30PM-2.30PM",
+        "isFree": false,
+        "subject": "Robotic automation with ROS and C++(TUT)",
+        "room": "CSE-I-AR-320",
+        "faculty": "Saswat Pradhan",
+        "type": "TUT",
+        "raw": "Robotic automation with ROS and C++(TUT)\nCSE-I-AR-320\nSaswat Pradhan"
+      },
+      {
+        "timeSlot": "2.30PM-3.30PM",
+        "isFree": false,
+        "subject": "Robotic automation with ROS and C++(TUT)",
+        "room": "CSE-I-AR-320",
+        "faculty": "Saswat Pradhan",
+        "type": "TUT",
+        "raw": "Robotic automation with ROS and C++(TUT)\nCSE-I-AR-320\nSaswat Pradhan"
+      },
+      {
+        "timeSlot": "3.30PM-4.30PM",
+        "isFree": false,
+        "subject": "Data Structure and Algorithms (PR)",
+        "room": "CSE-I-AR-320",
+        "faculty": "Baddigam Siddardhareddy(GOG)",
+        "type": "PR",
+        "raw": "Data Structure and Algorithms (PR)\nCSE-I-AR-320\nBaddigam Siddardhareddy(GOG)"
+      },
+      {
+        "timeSlot": "4.30PM-5.30PM",
+        "isFree": false,
+        "subject": "Data Structure and Algorithms (PR)",
+        "room": "CSE-I-AR-320",
+        "faculty": "Baddigam Siddardhareddy(GOG)",
+        "type": "PR",
+        "raw": "Data Structure and Algorithms (PR)\nCSE-I-AR-320\nBaddigam Siddardhareddy(GOG)"
+      }
+    ],
+    "Friday": [
+      {
+        "timeSlot": "9.30AM-10.30AM",
+        "isFree": false,
+        "subject": "Theory of Computation and Compiler Design(PR)",
+        "room": "CSE-I-AR-320",
+        "faculty": "Soumyarasmi Panigrahi",
+        "type": "PR",
+        "raw": "Theory of Computation and Compiler Design(PR)\nCSE-I-AR-320\nSoumyarasmi Panigrahi"
+      },
+      {
+        "timeSlot": "10.30AM-11.30AM",
+        "isFree": false,
+        "subject": "Theory of Computation and Compiler Design(PR)",
+        "room": "CSE-I-AR-320",
+        "faculty": "Soumyarasmi Panigrahi",
+        "type": "PR",
+        "raw": "Theory of Computation and Compiler Design(PR)\nCSE-I-AR-320\nSoumyarasmi Panigrahi"
+      },
+      {
+        "timeSlot": "11.30AM-12.30PM",
+        "isFree": false,
+        "subject": "Robotic automation with ROS and C++(PP)",
+        "room": "CSE-I-AR-320",
+        "faculty": "Saswat Pradhan",
+        "type": "PP",
+        "raw": "Robotic automation with ROS and C++(PP)\nCSE-I-AR-320\nSaswat Pradhan"
+      },
+      {
+        "timeSlot": "12.30PM-1.30PM",
+        "isFree": true,
+        "subject": "No Class / Free",
+        "room": "",
+        "faculty": "",
+        "type": "",
+        "raw": ""
+      },
+      {
+        "timeSlot": "1.30PM-2.30PM",
+        "isFree": false,
+        "subject": "Cloud Fundamentals (Azure)(PR)",
+        "room": "CSE-I-AR-320",
+        "faculty": "Sanmay Panda",
+        "type": "PR",
+        "raw": "Cloud Fundamentals (Azure)(PR)\nCSE-I-AR-320\nSanmay Panda"
+      },
+      {
+        "timeSlot": "2.30PM-3.30PM",
+        "isFree": false,
+        "subject": "Cloud Fundamentals (Azure)(PR)",
+        "room": "CSE-I-AR-320",
+        "faculty": "Sanmay Panda",
+        "type": "PR",
+        "raw": "Cloud Fundamentals (Azure)(PR)\nCSE-I-AR-320\nSanmay Panda"
+      },
+      {
+        "timeSlot": "3.30PM-4.30PM",
+        "isFree": false,
+        "subject": "Data Structure and Algorithms (TUT)",
+        "room": "CSE-I-AR-320",
+        "faculty": "Baddigam Siddardhareddy(GOG)",
+        "type": "TUT",
+        "raw": "Data Structure and Algorithms (TUT)\nCSE-I-AR-320\nBaddigam Siddardhareddy(GOG)"
+      },
+      {
+        "timeSlot": "4.30PM-5.30PM",
+        "isFree": false,
+        "subject": "Data Structure and Algorithms (TUT)",
+        "room": "CSE-I-AR-320",
+        "faculty": "Baddigam Siddardhareddy(GOG)",
+        "type": "TUT",
+        "raw": "Data Structure and Algorithms (TUT)\nCSE-I-AR-320\nBaddigam Siddardhareddy(GOG)"
+      }
+    ],
+    "Saturday": [
+      {
+        "timeSlot": "9.30AM-10.30AM",
+        "isFree": true,
+        "subject": "No Class / Free",
+        "room": "",
+        "faculty": "",
+        "type": "",
+        "raw": ""
+      },
+      {
+        "timeSlot": "10.30AM-11.30AM",
+        "isFree": true,
+        "subject": "No Class / Free",
+        "room": "",
+        "faculty": "",
+        "type": "",
+        "raw": ""
+      },
+      {
+        "timeSlot": "11.30AM-12.30PM",
+        "isFree": true,
+        "subject": "No Class / Free",
+        "room": "",
+        "faculty": "",
+        "type": "",
+        "raw": ""
+      },
+      {
+        "timeSlot": "12.30PM-1.30PM",
+        "isFree": true,
+        "subject": "No Class / Free",
+        "room": "",
+        "faculty": "",
+        "type": "",
+        "raw": ""
+      },
+      {
+        "timeSlot": "1.30PM-2.30PM",
+        "isFree": false,
+        "subject": "Information Security (CISCO)(TUT)",
+        "room": "CSE-I-AR-320",
+        "faculty": "Swatilagna Sahu",
+        "type": "TUT",
+        "raw": "Information Security (CISCO)(TUT)\nCSE-I-AR-320\nSwatilagna Sahu"
+      },
+      {
+        "timeSlot": "2.30PM-3.30PM",
+        "isFree": false,
+        "subject": "Information Security (CISCO)(TUT)",
+        "room": "CSE-I-AR-320",
+        "faculty": "Swatilagna Sahu",
+        "type": "TUT",
+        "raw": "Information Security (CISCO)(TUT)\nCSE-I-AR-320\nSwatilagna Sahu"
+      },
+      {
+        "timeSlot": "3.30PM-4.30PM",
+        "isFree": false,
+        "subject": "Robotic automation with ROS and C++(PR)",
+        "room": "CSE-I-AR-320",
+        "faculty": "Saswat Pradhan",
+        "type": "PR",
+        "raw": "Robotic automation with ROS and C++(PR)\nCSE-I-AR-320\nSaswat Pradhan"
+      },
+      {
+        "timeSlot": "4.30PM-5.30PM",
+        "isFree": false,
+        "subject": "Robotic automation with ROS and C++(PR)",
+        "room": "CSE-I-AR-320",
+        "faculty": "Saswat Pradhan",
+        "type": "PR",
+        "raw": "Robotic automation with ROS and C++(PR)\nCSE-I-AR-320\nSaswat Pradhan"
+      }
+    ]
+  },
+  "CSE-J": {
+    "Monday": [
+      {
+        "timeSlot": "9.30AM-10.30AM",
+        "isFree": false,
+        "subject": "Theory of Computation and Compiler Design(PP)",
+        "room": "CSE-J-AR-313",
+        "faculty": "NF 1",
+        "type": "PP",
+        "raw": "Theory of Computation and Compiler Design(PP)\nCSE-J-AR-313\nNF 1"
+      },
+      {
+        "timeSlot": "10.30AM-11.30AM",
+        "isFree": false,
+        "subject": "Information Security (CISCO)(PP)",
+        "room": "CSE-J-AR-313",
+        "faculty": "Swatilagna Sahu",
+        "type": "PP",
+        "raw": "Information Security (CISCO)(PP)\nCSE-J-AR-313\n\nSwatilagna Sahu"
+      },
+      {
+        "timeSlot": "11.30AM-12.30PM",
+        "isFree": false,
+        "subject": "Cloud Fundamentals (Azure)(PP)",
+        "room": "CSE-J-AR-313",
+        "faculty": "Gourab Kumar Dash",
+        "type": "PP",
+        "raw": "Cloud Fundamentals (Azure)(PP)\nCSE-J-AR-313\nGourab Kumar Dash"
+      },
+      {
+        "timeSlot": "12.30PM-1.30PM",
+        "isFree": true,
+        "subject": "No Class / Free",
+        "room": "",
+        "faculty": "",
+        "type": "",
+        "raw": ""
+      },
+      {
+        "timeSlot": "1.30PM-2.30PM",
+        "isFree": false,
+        "subject": "Network and Protocols for IoT(PP)",
+        "room": "CSE-J-AR-313",
+        "faculty": "NF-1",
+        "type": "PP",
+        "raw": "Network and Protocols for IoT(PP)\nCSE-J-AR-313\nNF-1"
+      },
+      {
+        "timeSlot": "2.30PM-3.30PM",
+        "isFree": true,
+        "subject": "No Class / Free",
+        "room": "",
+        "faculty": "",
+        "type": "",
+        "raw": ""
+      },
+      {
+        "timeSlot": "3.30PM-4.30PM",
+        "isFree": false,
+        "subject": "Robotic automation with ROS and C++(PR)",
+        "room": "CSE-J-AR-313",
+        "faculty": "Saswat Pradhan",
+        "type": "PR",
+        "raw": "Robotic automation with ROS and C++(PR)\nCSE-J-AR-313\nSaswat Pradhan"
+      },
+      {
+        "timeSlot": "4.30PM-5.30PM",
+        "isFree": false,
+        "subject": "Robotic automation with ROS and C++(PR)",
+        "room": "CSE-J-AR-313",
+        "faculty": "Saswat Pradhan",
+        "type": "PR",
+        "raw": "Robotic automation with ROS and C++(PR)\nCSE-J-AR-313\nSaswat Pradhan"
+      }
+    ],
+    "Tuesday": [
+      {
+        "timeSlot": "9.30AM-10.30AM",
+        "isFree": false,
+        "subject": "Prompt Engineering using ChatGPT(PP)",
+        "room": "CSE-J-AR-313",
+        "faculty": "Amulya Das",
+        "type": "PP",
+        "raw": "Prompt Engineering using ChatGPT(PP)\nCSE-J-AR-313\nAmulya Das"
+      },
+      {
+        "timeSlot": "10.30AM-11.30AM",
+        "isFree": false,
+        "subject": "Network and Protocols for IoT(PR)",
+        "room": "CSE-J-AR-313",
+        "faculty": "NF-1",
+        "type": "PR",
+        "raw": "Network and Protocols for IoT(PR)\nCSE-J-AR-313\nNF-1"
+      },
+      {
+        "timeSlot": "11.30AM-12.30PM",
+        "isFree": false,
+        "subject": "Network and Protocols for IoT(PR)",
+        "room": "CSE-J-AR-313",
+        "faculty": "NF-1",
+        "type": "PR",
+        "raw": "Network and Protocols for IoT(PR)\nCSE-J-AR-313\nNF-1"
+      },
+      {
+        "timeSlot": "12.30PM-1.30PM",
+        "isFree": true,
+        "subject": "No Class / Free",
+        "room": "",
+        "faculty": "",
+        "type": "",
+        "raw": ""
+      },
+      {
+        "timeSlot": "1.30PM-2.30PM",
+        "isFree": false,
+        "subject": "Data Structure and Algorithms (PR)",
+        "room": "CSE-J-AR-313",
+        "faculty": "Simran Jatav(GOG)",
+        "type": "PR",
+        "raw": "Data Structure and Algorithms (PR)\nCSE-J-AR-313\nSimran Jatav(GOG)"
+      },
+      {
+        "timeSlot": "2.30PM-3.30PM",
+        "isFree": false,
+        "subject": "Data Structure and Algorithms (PR)",
+        "room": "CSE-J-AR-313",
+        "faculty": "Simran Jatav(GOG)",
+        "type": "PR",
+        "raw": "Data Structure and Algorithms (PR)\nCSE-J-AR-313\nSimran Jatav(GOG)"
+      },
+      {
+        "timeSlot": "3.30PM-4.30PM",
+        "isFree": false,
+        "subject": "Information Security (CISCO)(PR)",
+        "room": "CSE-J-AR-313",
+        "faculty": "Swatilagna Sahu",
+        "type": "PR",
+        "raw": "Information Security (CISCO)(PR)\nCSE-J-AR-313\nSwatilagna Sahu"
+      },
+      {
+        "timeSlot": "4.30PM-5.30PM",
+        "isFree": false,
+        "subject": "Information Security (CISCO)(PR)",
+        "room": "CSE-J-AR-313",
+        "faculty": "Swatilagna Sahu",
+        "type": "PR",
+        "raw": "Information Security (CISCO)(PR)\nCSE-J-AR-313\nSwatilagna Sahu"
+      }
+    ],
+    "Wednesday": [
+      {
+        "timeSlot": "9.30AM-10.30AM",
+        "isFree": false,
+        "subject": "Robotic automation with ROS and C++(PR)",
+        "room": "CSE-J-AR-313",
+        "faculty": "Saswat Pradhan",
+        "type": "PR",
+        "raw": "Robotic automation with ROS and C++(PR)\nCSE-J-AR-313\nSaswat Pradhan"
+      },
+      {
+        "timeSlot": "10.30AM-11.30AM",
+        "isFree": false,
+        "subject": "Robotic automation with ROS and C++(PR)",
+        "room": "CSE-J-AR-313",
+        "faculty": "Saswat Pradhan",
+        "type": "PR",
+        "raw": "Robotic automation with ROS and C++(PR)\nCSE-J-AR-313\nSaswat Pradhan"
+      },
+      {
+        "timeSlot": "11.30AM-12.30PM",
+        "isFree": true,
+        "subject": "No Class / Free",
+        "room": "",
+        "faculty": "",
+        "type": "",
+        "raw": ""
+      },
+      {
+        "timeSlot": "12.30PM-1.30PM",
+        "isFree": true,
+        "subject": "No Class / Free",
+        "room": "",
+        "faculty": "",
+        "type": "",
+        "raw": ""
+      },
+      {
+        "timeSlot": "1.30PM-2.30PM",
+        "isFree": false,
+        "subject": "Theory of Computation and Compiler Design(PR)",
+        "room": "CSE-J-AR-313",
+        "faculty": "NF 1",
+        "type": "PR",
+        "raw": "Theory of Computation and Compiler Design(PR)\nCSE-J-AR-313\nNF 1"
+      },
+      {
+        "timeSlot": "2.30PM-3.30PM",
+        "isFree": false,
+        "subject": "Theory of Computation and Compiler Design(PR)",
+        "room": "CSE-J-AR-313",
+        "faculty": "NF 1",
+        "type": "PR",
+        "raw": "Theory of Computation and Compiler Design(PR)\nCSE-J-AR-313\nNF 1"
+      },
+      {
+        "timeSlot": "3.30PM-4.30PM",
+        "isFree": false,
+        "subject": "Data Structure and Algorithms (PR)",
+        "room": "CSE-J-AR-313",
+        "faculty": "Simran Jatav(GOG)",
+        "type": "PR",
+        "raw": "Data Structure and Algorithms (PR)\nCSE-J-AR-313\nSimran Jatav(GOG)"
+      },
+      {
+        "timeSlot": "4.30PM-5.30PM",
+        "isFree": false,
+        "subject": "Data Structure and Algorithms (PR)",
+        "room": "CSE-J-AR-313",
+        "faculty": "Simran Jatav(GOG)",
+        "type": "PR",
+        "raw": "Data Structure and Algorithms (PR)\nCSE-J-AR-313\nSimran Jatav(GOG)"
+      }
+    ],
+    "Thursday": [
+      {
+        "timeSlot": "9.30AM-10.30AM",
+        "isFree": true,
+        "subject": "No Class / Free",
+        "room": "",
+        "faculty": "",
+        "type": "",
+        "raw": ""
+      },
+      {
+        "timeSlot": "10.30AM-11.30AM",
+        "isFree": false,
+        "subject": "Robotic automation with ROS and C++(TUT)",
+        "room": "CSE-J-AR-313",
+        "faculty": "Saswat Pradhan",
+        "type": "TUT",
+        "raw": "Robotic automation with ROS and C++(TUT)\nCSE-J-AR-313\nSaswat Pradhan"
+      },
+      {
+        "timeSlot": "11.30AM-12.30PM",
+        "isFree": false,
+        "subject": "Robotic automation with ROS and C++(TUT)",
+        "room": "CSE-J-AR-313",
+        "faculty": "Saswat Pradhan",
+        "type": "TUT",
+        "raw": "Robotic automation with ROS and C++(TUT)\nCSE-J-AR-313\nSaswat Pradhan"
+      },
+      {
+        "timeSlot": "12.30PM-1.30PM",
+        "isFree": true,
+        "subject": "No Class / Free",
+        "room": "",
+        "faculty": "",
+        "type": "",
+        "raw": ""
+      },
+      {
+        "timeSlot": "1.30PM-2.30PM",
+        "isFree": true,
+        "subject": "No Class / Free",
+        "room": "",
+        "faculty": "",
+        "type": "",
+        "raw": ""
+      },
+      {
+        "timeSlot": "2.30PM-3.30PM",
+        "isFree": true,
+        "subject": "No Class / Free",
+        "room": "",
+        "faculty": "",
+        "type": "",
+        "raw": ""
+      },
+      {
+        "timeSlot": "3.30PM-4.30PM",
+        "isFree": true,
+        "subject": "No Class / Free",
+        "room": "",
+        "faculty": "",
+        "type": "",
+        "raw": ""
+      },
+      {
+        "timeSlot": "4.30PM-5.30PM",
+        "isFree": true,
+        "subject": "No Class / Free",
+        "room": "",
+        "faculty": "",
+        "type": "",
+        "raw": ""
+      }
+    ],
+    "Friday": [
+      {
+        "timeSlot": "9.30AM-10.30AM",
+        "isFree": false,
+        "subject": "Robotic automation with ROS and C++(PP)",
+        "room": "CSE-J-AR-313",
+        "faculty": "Saswat Pradhan",
+        "type": "PP",
+        "raw": "Robotic automation with ROS and C++(PP)\nCSE-J-AR-313\nSaswat Pradhan"
+      },
+      {
+        "timeSlot": "10.30AM-11.30AM",
+        "isFree": false,
+        "subject": "Theory of Computation and Compiler Design(PR)",
+        "room": "CSE-J-AR-313",
+        "faculty": "NF 1",
+        "type": "PR",
+        "raw": "Theory of Computation and Compiler Design(PR)\nCSE-J-AR-313\nNF 1"
+      },
+      {
+        "timeSlot": "11.30AM-12.30PM",
+        "isFree": false,
+        "subject": "Theory of Computation and Compiler Design(PR)",
+        "room": "CSE-J-AR-313",
+        "faculty": "NF 1",
+        "type": "PR",
+        "raw": "Theory of Computation and Compiler Design(PR)\nCSE-J-AR-313\nNF 1"
+      },
+      {
+        "timeSlot": "12.30PM-1.30PM",
+        "isFree": true,
+        "subject": "No Class / Free",
+        "room": "",
+        "faculty": "",
+        "type": "",
+        "raw": ""
+      },
+      {
+        "timeSlot": "1.30PM-2.30PM",
+        "isFree": false,
+        "subject": "Data Structure and Algorithms (TUT)",
+        "room": "CSE-J-AR-313",
+        "faculty": "Simran Jatav(GOG)",
+        "type": "TUT",
+        "raw": "Data Structure and Algorithms (TUT)\nCSE-J-AR-313\nSimran Jatav(GOG)"
+      },
+      {
+        "timeSlot": "2.30PM-3.30PM",
+        "isFree": false,
+        "subject": "Data Structure and Algorithms (TUT)",
+        "room": "CSE-J-AR-313",
+        "faculty": "Simran Jatav(GOG)",
+        "type": "TUT",
+        "raw": "Data Structure and Algorithms (TUT)\nCSE-J-AR-313\nSimran Jatav(GOG)"
+      },
+      {
+        "timeSlot": "3.30PM-4.30PM",
+        "isFree": false,
+        "subject": "Information Security (CISCO)(TUT)",
+        "room": "CSE-J-AR-313",
+        "faculty": "Swatilagna Sahu",
+        "type": "TUT",
+        "raw": "Information Security (CISCO)(TUT)\nCSE-J-AR-313\nSwatilagna Sahu"
+      },
+      {
+        "timeSlot": "4.30PM-5.30PM",
+        "isFree": false,
+        "subject": "Information Security (CISCO)(TUT)",
+        "room": "CSE-J-AR-313",
+        "faculty": "Swatilagna Sahu",
+        "type": "TUT",
+        "raw": "Information Security (CISCO)(TUT)\nCSE-J-AR-313\nSwatilagna Sahu"
+      }
+    ],
+    "Saturday": [
+      {
+        "timeSlot": "9.30AM-10.30AM",
+        "isFree": false,
+        "subject": "Prompt Engineering using ChatGPT(PR)",
+        "room": "CSE-J-AR-313",
+        "faculty": "Amulya Das",
+        "type": "PR",
+        "raw": "Prompt Engineering using ChatGPT(PR)\nCSE-J-AR-313\nAmulya Das"
+      },
+      {
+        "timeSlot": "10.30AM-11.30AM",
+        "isFree": false,
+        "subject": "Prompt Engineering using ChatGPT(PR)",
+        "room": "CSE-J-AR-313",
+        "faculty": "Amulya Das",
+        "type": "PR",
+        "raw": "Prompt Engineering using ChatGPT(PR)\nCSE-J-AR-313\nAmulya Das"
+      },
+      {
+        "timeSlot": "11.30AM-12.30PM",
+        "isFree": true,
+        "subject": "No Class / Free",
+        "room": "",
+        "faculty": "",
+        "type": "",
+        "raw": ""
+      },
+      {
+        "timeSlot": "12.30PM-1.30PM",
+        "isFree": true,
+        "subject": "No Class / Free",
+        "room": "",
+        "faculty": "",
+        "type": "",
+        "raw": ""
+      },
+      {
+        "timeSlot": "1.30PM-2.30PM",
+        "isFree": false,
+        "subject": "Network and Protocols for IoT(PR)",
+        "room": "CSE-J-AR-313",
+        "faculty": "NF-1",
+        "type": "PR",
+        "raw": "Network and Protocols for IoT(PR)\nCSE-J-AR-313\nNF-1"
+      },
+      {
+        "timeSlot": "2.30PM-3.30PM",
+        "isFree": false,
+        "subject": "Network and Protocols for IoT(PR)",
+        "room": "CSE-J-AR-313",
+        "faculty": "NF-1",
+        "type": "PR",
+        "raw": "Network and Protocols for IoT(PR)\nCSE-J-AR-313\nNF-1"
+      },
+      {
+        "timeSlot": "3.30PM-4.30PM",
+        "isFree": false,
+        "subject": "Cloud Fundamentals (Azure)(PR)",
+        "room": "CSE-J-AR-313",
+        "faculty": "Gourab Kumar Dash",
+        "type": "PR",
+        "raw": "Cloud Fundamentals (Azure)(PR)\nCSE-J-AR-313\nGourab Kumar Dash"
+      },
+      {
+        "timeSlot": "4.30PM-5.30PM",
+        "isFree": false,
+        "subject": "Cloud Fundamentals (Azure)(PR)",
+        "room": "CSE-J-AR-313",
+        "faculty": "Gourab Kumar Dash",
+        "type": "PR",
+        "raw": "Cloud Fundamentals (Azure)(PR)\nCSE-J-AR-313\nGourab Kumar Dash"
+      }
+    ]
+  }
+}

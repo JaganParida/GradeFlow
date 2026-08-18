@@ -8,7 +8,7 @@ import {
   LayoutDashboard, Trophy, BookOpen, MessageSquare,
   TrendingUp, Briefcase, Target, Award, Activity,
   Menu, X, Sparkles, Home as HomeIcon, User, Calculator, ArrowRight,
-  ShieldCheck
+  ShieldCheck, Clock
 } from "lucide-react";
 
 export default function Navbar() {
@@ -74,6 +74,15 @@ export default function Navbar() {
       setShowAuthModal(true);
     } else {
       navigate(`/dashboard/${encodeStudentId(currentRegNo)}`);
+    }
+  };
+
+  const handleTimetableClick = (e) => {
+    if (e) e.preventDefault();
+    if (!hasActiveSession && !currentRegNo) {
+      setShowAuthModal(true);
+    } else {
+      navigate(`/dashboard/${encodeStudentId(currentRegNo)}?tab=timetable`);
     }
   };
 
@@ -247,6 +256,49 @@ export default function Navbar() {
                   }}
                 />
               )}
+            </button>
+
+            {/* Timetable */}
+            <button
+              onClick={handleTimetableClick}
+              style={{
+                background: "transparent",
+                border: "none",
+                textDecoration: "none",
+                fontSize: 14,
+                fontWeight:
+                  location.pathname.startsWith("/dashboard") &&
+                  new URLSearchParams(location.search).get("tab") === "timetable"
+                    ? 700
+                    : 500,
+                color:
+                  location.pathname.startsWith("/dashboard") &&
+                  new URLSearchParams(location.search).get("tab") === "timetable"
+                    ? "#0f172a"
+                    : "#64748b",
+                cursor: "pointer",
+                padding: "8px 0",
+                position: "relative",
+                fontFamily: "'DM Sans', sans-serif",
+                transition: "color 0.2s ease",
+              }}
+            >
+              Timetable
+              {location.pathname.startsWith("/dashboard") &&
+                new URLSearchParams(location.search).get("tab") === "timetable" && (
+                  <motion.div
+                    layoutId="nav-indicator"
+                    style={{
+                      position: "absolute",
+                      bottom: 0,
+                      left: 0,
+                      right: 0,
+                      height: 2.5,
+                      background: "#2563eb",
+                      borderRadius: 99,
+                    }}
+                  />
+                )}
             </button>
 
             {/* Analytics with Subnav Dropdown */}
@@ -858,6 +910,67 @@ export default function Navbar() {
                   ) : (
                     <ChevronRight size={15} color="#cbd5e1" />
                   )}
+                </button>
+
+                {/* Class Timetable */}
+                <button
+                  onClick={(e) => {
+                    setMobileMenuOpen(false);
+                    handleTimetableClick(e);
+                  }}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    width: "100%",
+                    padding: "11px 12px",
+                    borderRadius: 10,
+                    border: "none",
+                    background:
+                      location.pathname.startsWith("/dashboard") &&
+                      new URLSearchParams(location.search).get("tab") === "timetable"
+                        ? "#eff6ff"
+                        : "transparent",
+                    color:
+                      location.pathname.startsWith("/dashboard") &&
+                      new URLSearchParams(location.search).get("tab") === "timetable"
+                        ? "#2563eb"
+                        : "#1e293b",
+                    fontSize: 14.5,
+                    fontWeight:
+                      location.pathname.startsWith("/dashboard") &&
+                      new URLSearchParams(location.search).get("tab") === "timetable"
+                        ? 700
+                        : 600,
+                    cursor: "pointer",
+                    textAlign: "left",
+                  }}
+                >
+                  <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                    <Clock
+                      size={17}
+                      color={
+                        location.pathname.startsWith("/dashboard") &&
+                        new URLSearchParams(location.search).get("tab") === "timetable"
+                          ? "#2563eb"
+                          : "#64748b"
+                      }
+                    />
+                    <span>Class Timetable</span>
+                  </div>
+                  {location.pathname.startsWith("/dashboard") &&
+                    new URLSearchParams(location.search).get("tab") === "timetable" ? (
+                      <span
+                        style={{
+                          width: 6,
+                          height: 6,
+                          borderRadius: "50%",
+                          background: "#2563eb",
+                        }}
+                      />
+                    ) : (
+                      <ChevronRight size={15} color="#cbd5e1" />
+                    )}
                 </button>
 
                 {/* Analytics Accordion */}
