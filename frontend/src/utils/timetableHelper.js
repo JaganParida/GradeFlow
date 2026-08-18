@@ -628,8 +628,10 @@ export function getLiveScheduleOverview(section, dateObj = new Date()) {
  */
 export function cleanSubjectBaseName(rawSubject) {
   if (!rawSubject || rawSubject === "No Class / Free") return "";
-  return rawSubject
-    .replace(/\s*\((PP|PR|TUT|Theory|T\+P|Practice|Project)\)\s*$/i, "")
+  return String(rawSubject)
+    .replace(/\s*\((PP|PR|TUT|Theory|Practice|Project|Lab|T\+P|P\+P|PP\s*\+\s*PR|PR\s*\+\s*PP|PP\/PR|TUT\s*\+\s*PP)\)\s*$/i, "")
+    .replace(/\((PP|PR|TUT|Theory|Practice|Project|Lab|T\+P|P\+P|PP\s*\+\s*PR|PR\s*\+\s*PP|PP\/PR|TUT\s*\+\s*PP)\)$/i, "")
+    .replace(/\s*\(PP\s*\+\s*PR\)\s*$/i, "")
     .trim();
 }
 
@@ -899,33 +901,48 @@ export function resolveSubjectCode(period, studentData = null) {
     }
   }
 
-  // 3. Fallback to Known CUTM Subject Code Dictionary
+  // 3. Fallback to Known CUTM Degree Progress & Syllabus Subject Code Dictionary
   const KNOWN_SUBJECT_CODES = {
-    "compilerdesign": "CUTM1020",
+    "promptengineeringusingchatgpt": "CUCS1014",
+    "promptengineering": "CUCS1014",
+    "cloudfundamentalsazure": "CUCS1015",
+    "cloudfundamentals": "CUCS1015",
+    "cloudpractitioneraws": "CUCS1010",
+    "cloudpractitioner": "CUCS1010",
+    "cloudcomputing": "CUTM1025",
+    "datastructureandalgorithms": "CUCS1002",
+    "datastructureswithcompetitivecoding": "CUCS1002",
+    "datastructures": "CUCS1002",
+    "designandanalysisofalgorithms": "CUCS1003",
+    "javaprogramming": "CUCS1004",
+    "relationalanddistributeddatabases": "CUCS1005",
+    "relationaldatabases": "CUCS1005",
+    "database": "CUCS1005",
+    "dbms": "CUCS1005",
+    "networkandprotocolsforiot": "CUCS1006",
+    "networkprotocolsforiot": "CUCS1006",
+    "informationsecuritycisco": "CUCS1007",
+    "informationsecurity": "CUCS1007",
     "theoryofcomputationandcompilerdesign": "CUCS1008",
+    "theoryofcomputation": "CUCS1008",
+    "compilerdesign": "CUTM1020",
+    "systemadministratorredhat": "CUCS1009",
+    "systemadministrator": "CUCS1009",
+    "softwareengineeringandtesting": "CUCS1011",
+    "softwareengineering": "CUTM1024",
+    "customerexperiencedesignandprogramming": "CUCS1012",
+    "customerexperiencedesign": "CUCS1012",
+    "androiddevelopmentwithkotlin": "CUCS1013",
+    "androiddevelopment": "CUCS1013",
+    "programminginc": "CUCS1001",
+    "cprogramming": "CUCS1001",
     "computernetworks": "CUTM1021",
     "computernetwork": "CUTM1021",
-    "networkandprotocolsforiot": "CUCS1006",
     "webtechnologies": "CUTM1022",
     "webtechnology": "CUTM1022",
     "machinelearning": "CUTM1023",
-    "softwareengineering": "CUTM1024",
-    "softwareengineeringandtesting": "CUCS1011",
-    "cloudcomputing": "CUTM1025",
-    "cloudpractitioner": "CUCS1010",
-    "relationalanddistributeddatabases": "CUCS1005",
-    "database": "CUCS1005",
-    "dbms": "CUCS1005",
-    "javaprogramming": "CUCS1004",
-    "designandanalysisofalgorithms": "CUCS1003",
-    "datastructureswithcompetitivecoding": "CUCS1002",
-    "datastructures": "CUCS1002",
-    "programminginc": "CUCS1001",
-    "cprogramming": "CUCS1001",
-    "androiddevelopmentwithkotlin": "CUCS1013",
-    "informationsecurity": "CUCS1007",
-    "systemadministrator": "CUCS1009",
-    "customerexperiencedesignandprogramming": "CUCS1012",
+    "roboticautomation": "CUME1001",
+    "robotics": "CUME1001",
     "vlsi": "CUEC1001",
     "vlsidesign": "CUEC1001",
     "digitalsignalprocessing": "CUEC1002",
@@ -935,6 +952,11 @@ export function resolveSubjectCode(period, studentData = null) {
     "softskills": "CUTM1030",
     "softskillsaptitude": "CUTM1030",
     "aptitude": "CUTM1030",
+    "basicelectricalengineering": "CUTM1057",
+    "electronicdevicesandsystems": "CUTM1046",
+    "appliedmathematics": "CUTM1001",
+    "appliedphysics": "CUTM1002",
+    "environmentalscience": "CUTM1003",
   };
 
   for (const [key, code] of Object.entries(KNOWN_SUBJECT_CODES)) {

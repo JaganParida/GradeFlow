@@ -54,6 +54,7 @@ import {
   formatDateKey,
   is2023CSEBatch,
   resolveSubjectCode,
+  cleanSubjectBaseName,
 } from "../utils/timetableHelper";
 
 export default function Timetable() {
@@ -998,7 +999,7 @@ export default function Timetable() {
                 </div>
                 <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", marginTop: 2 }}>
                   <span style={{ fontSize: 15, fontWeight: 800, color: "#0f172a" }}>
-                    {liveOverview.activeClass.subject}
+                    {cleanSubjectBaseName(liveOverview.activeClass.subject) || liveOverview.activeClass.subject}
                   </span>
                   {resolveSubjectCode(liveOverview.activeClass, studentData) && (
                     <span
@@ -1054,7 +1055,7 @@ export default function Timetable() {
             <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
               <Clock size={18} color="#7c3aed" />
               <span style={{ fontSize: 13, fontWeight: 700, color: "#5b21b6" }}>
-                Next Class in {liveOverview.nextClass.startsInMins}m: <strong>{liveOverview.nextClass.subject}</strong>
+                Next Class in {liveOverview.nextClass.startsInMins}m: <strong>{cleanSubjectBaseName(liveOverview.nextClass.subject) || liveOverview.nextClass.subject}</strong>
                 {resolveSubjectCode(liveOverview.nextClass, studentData) && (
                   <span
                     style={{
@@ -1650,7 +1651,7 @@ export default function Timetable() {
                               color: period.isFree ? "#94a3b8" : "#0f172a",
                             }}
                           >
-                            {period.subject}
+                            {cleanSubjectBaseName(period.subject) || period.subject}
                           </span>
 
                           {!period.isFree && resolveSubjectCode(period, studentData) && (
@@ -2021,9 +2022,9 @@ export default function Timetable() {
                                         WebkitLineClamp: 2,
                                         WebkitBoxOrient: "vertical",
                                       }}
-                                      title={period.subject}
+                                      title={cleanSubjectBaseName(period.subject) || period.subject}
                                     >
-                                      {period.subject}
+                                      {cleanSubjectBaseName(period.subject) || period.subject}
                                     </div>
 
                                     {resolveSubjectCode(period, studentData) && (
@@ -2114,7 +2115,7 @@ export default function Timetable() {
                         <div>
                           <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
                             <span style={{ fontSize: 13, fontWeight: 800, color: period.isFree ? "#94a3b8" : "#0f172a" }}>
-                              {period.subject}
+                              {cleanSubjectBaseName(period.subject) || period.subject}
                             </span>
                             {!period.isFree && resolveSubjectCode(period, studentData) && (
                               <span
@@ -3099,9 +3100,28 @@ export default function Timetable() {
                     <span style={{ fontSize: 11, fontWeight: 800, color: "#2563eb", textTransform: "uppercase", letterSpacing: "0.5px" }}>
                       {inspectedClass.day} · {inspectedClass.slot?.startTime} - {inspectedClass.slot?.endTime}
                     </span>
-                    <h3 style={{ fontSize: 17, fontWeight: 800, color: "#0f172a", margin: "4px 0 0 0" }}>
-                      {inspectedClass.subject}
-                    </h3>
+                    <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", marginTop: 4 }}>
+                      <h3 style={{ fontSize: 17, fontWeight: 800, color: "#0f172a", margin: 0 }}>
+                        {cleanSubjectBaseName(inspectedClass.subject) || inspectedClass.subject}
+                      </h3>
+                      {resolveSubjectCode(inspectedClass, studentData) && (
+                        <span
+                          style={{
+                            fontSize: 11,
+                            fontFamily: "'Space Mono', monospace",
+                            fontWeight: 800,
+                            color: "#2563eb",
+                            background: "#eff6ff",
+                            border: "1px solid #bfdbfe",
+                            padding: "2px 7px",
+                            borderRadius: 6,
+                            letterSpacing: "0.5px",
+                          }}
+                        >
+                          {resolveSubjectCode(inspectedClass, studentData)}
+                        </span>
+                      )}
+                    </div>
                   </div>
                   <button
                     onClick={() => setInspectedClass(null)}
