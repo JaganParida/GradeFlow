@@ -142,25 +142,6 @@ export default function Testimonials() {
     }
   }
 
-  // ─── Auto-scroll & Auto-Pagination for highlighted feedback ─────
-  useEffect(() => {
-    if (highlightedId && displayedReviews.length > 0) {
-      const targetIdx = displayedReviews.findIndex(
-        (f) => String(f._id) === String(highlightedId),
-      );
-      if (targetIdx !== -1) {
-        const targetPage = Math.floor(targetIdx / REVIEWS_PER_PAGE) + 1;
-        setCurrentPage(targetPage);
-        setTimeout(() => {
-          const el = document.getElementById(`feedback-${highlightedId}`);
-          if (el) {
-            el.scrollIntoView({ behavior: "smooth", block: "center" });
-          }
-        }, 350);
-      }
-    }
-  }, [highlightedId, displayedReviews]);
-
   // Reset page to 1 when filter or sorting changes
   useEffect(() => {
     setCurrentPage(1);
@@ -378,6 +359,25 @@ export default function Testimonials() {
     const start = (currentPage - 1) * REVIEWS_PER_PAGE;
     return displayedReviews.slice(start, start + REVIEWS_PER_PAGE);
   }, [displayedReviews, currentPage]);
+
+  // ─── Auto-scroll & Auto-Pagination for highlighted feedback ─────
+  useEffect(() => {
+    if (highlightedId && displayedReviews.length > 0) {
+      const targetIdx = displayedReviews.findIndex(
+        (f) => String(f._id) === String(highlightedId),
+      );
+      if (targetIdx !== -1) {
+        const targetPage = Math.floor(targetIdx / REVIEWS_PER_PAGE) + 1;
+        setCurrentPage(targetPage);
+        setTimeout(() => {
+          const el = document.getElementById(`feedback-${highlightedId}`);
+          if (el) {
+            el.scrollIntoView({ behavior: "smooth", block: "center" });
+          }
+        }, 350);
+      }
+    }
+  }, [highlightedId, displayedReviews]);
 
   const handlePageChange = (page) => {
     if (page >= 1 && page <= totalPages) {
