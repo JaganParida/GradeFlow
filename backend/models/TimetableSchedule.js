@@ -2,9 +2,9 @@ const mongoose = require("mongoose");
 
 const periodSlotSchema = new mongoose.Schema(
   {
-    slotIndex: { type: Number, required: true },
-    time: { type: String, required: true },
-    subject: { type: String, required: true },
+    slotIndex: { type: Number, default: 0 },
+    time: { type: String, default: "" },
+    subject: { type: String, default: "Free Time" },
     code: { type: String, default: "" },
     type: { type: String, enum: ["TH", "PR", "TUT", "FREE", "OTHER"], default: "TH" },
     faculty: { type: String, default: "" },

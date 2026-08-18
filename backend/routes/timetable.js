@@ -3,7 +3,7 @@ const router = express.Router();
 const TimetableSchedule = require("../models/TimetableSchedule");
 const AcademicCalendar = require("../models/AcademicCalendar");
 const AcademicHoliday = require("../models/AcademicHoliday");
-const authMiddleware = require("../middleware/auth");
+const { protect } = require("../middleware/auth");
 
 // ═════════════════════════════════════════════════════════════════
 // PUBLIC ENDPOINTS (For students looking up timetable)
@@ -102,7 +102,7 @@ router.get("/holidays", async (req, res) => {
 // ═════════════════════════════════════════════════════════════════
 
 // 5. Admin: Save or Update Timetable Schedule
-router.post("/admin/schedule/save", authMiddleware, async (req, res) => {
+router.post("/admin/schedule/save", protect, async (req, res) => {
   try {
     const { batch, branch, year, semester, section, title, schedule } = req.body;
 
@@ -165,7 +165,7 @@ router.post("/admin/schedule/save", authMiddleware, async (req, res) => {
 });
 
 // 6. Admin: List All Timetable Schedules
-router.get("/admin/schedule/list", authMiddleware, async (req, res) => {
+router.get("/admin/schedule/list", protect, async (req, res) => {
   try {
     const schedules = await TimetableSchedule.find().sort({ updatedAt: -1 });
     res.json({
@@ -180,7 +180,7 @@ router.get("/admin/schedule/list", authMiddleware, async (req, res) => {
 });
 
 // 7. Admin: Delete / Deactivate Timetable Schedule
-router.delete("/admin/schedule/:id", authMiddleware, async (req, res) => {
+router.delete("/admin/schedule/:id", protect, async (req, res) => {
   try {
     const deleted = await TimetableSchedule.findByIdAndDelete(req.params.id);
     if (!deleted) {
@@ -194,7 +194,7 @@ router.delete("/admin/schedule/:id", authMiddleware, async (req, res) => {
 });
 
 // 8. Admin: Save or Update Academic Calendar
-router.post("/admin/calendar/save", authMiddleware, async (req, res) => {
+router.post("/admin/calendar/save", protect, async (req, res) => {
   try {
     const { academicYear, semesterType, title, semestersLabel, activities } = req.body;
 
@@ -247,7 +247,7 @@ router.post("/admin/calendar/save", authMiddleware, async (req, res) => {
 });
 
 // 9. Admin: Save or Update Holidays List
-router.post("/admin/holidays/save", authMiddleware, async (req, res) => {
+router.post("/admin/holidays/save", protect, async (req, res) => {
   try {
     const { academicYear, title, holidays, optionalRules } = req.body;
 
