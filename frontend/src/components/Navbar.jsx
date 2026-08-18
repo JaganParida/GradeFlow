@@ -1837,6 +1837,24 @@ export default function Navbar() {
             padding: 0 12px !important;
             gap: 8px !important;
           }
+          .gf-admin-text {
+            display: inline-block !important;
+            font-size: 12px !important;
+            font-weight: 700 !important;
+          }
+          .gf-admin-link {
+            display: inline-flex !important;
+            align-items: center !important;
+            gap: 4px !important;
+            padding: 5px 9px !important;
+            border-radius: 8px !important;
+            height: 34px !important;
+            background: #f8fafc !important;
+            border: 1px solid #e2e8f0 !important;
+            color: #334155 !important;
+            box-sizing: border-box !important;
+            white-space: nowrap !important;
+          }
           .gf-logo-text {
             font-size: 18px !important;
           }
@@ -1846,25 +1864,53 @@ export default function Navbar() {
         }
         @media (max-width: 480px) {
           .gf-navbar-inner {
-            padding: 0 10px !important;
-            gap: 6px !important;
+            padding: 0 8px !important;
+            gap: 5px !important;
           }
           .gf-admin-text {
-            display: none !important;
+            display: inline-block !important;
+            font-size: 11.5px !important;
+            font-weight: 700 !important;
           }
           .gf-admin-link {
-            padding: 7px !important;
-            border-radius: 50% !important;
-            width: 34px !important;
+            display: inline-flex !important;
+            align-items: center !important;
+            gap: 4px !important;
+            padding: 4px 8px !important;
+            border-radius: 8px !important;
             height: 34px !important;
-            justify-content: center !important;
+            background: #f8fafc !important;
+            border: 1px solid #e2e8f0 !important;
+            color: #334155 !important;
             box-sizing: border-box !important;
+            white-space: nowrap !important;
           }
           .gf-logo-text {
-            font-size: 16.5px !important;
+            font-size: 16px !important;
           }
           .gf-logo-img {
             height: 25px !important;
+          }
+        }
+        @media (max-width: 360px) {
+          .gf-navbar-inner {
+            padding: 0 6px !important;
+            gap: 4px !important;
+          }
+          .gf-admin-text {
+            display: inline-block !important;
+            font-size: 11px !important;
+            font-weight: 700 !important;
+          }
+          .gf-admin-link {
+            padding: 4px 6px !important;
+            height: 32px !important;
+          }
+          .gf-logo-text {
+            font-size: 14.5px !important;
+          }
+          .gf-logo-img {
+            height: 23px !important;
           }
         }
       `}</style>
