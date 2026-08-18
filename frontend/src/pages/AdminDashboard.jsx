@@ -4,6 +4,7 @@ import axios from "axios";
 import { useApp } from "../context/AppContext";
 import { Spinner } from "../components/LoadingSpinner";
 import StudentReportCardEditor from "../components/StudentReportCardEditor";
+import TimetableAdminManager from "../components/TimetableAdminManager";
 import { motion, AnimatePresence } from "framer-motion";
 import { formatDistanceToNow } from "date-fns";
 import {
@@ -3643,6 +3644,7 @@ export default function AdminDashboard() {
 
   const ADMIN_TABS = [
     { id: "overview", label: "Upload Results", icon: <CloudUpload size={15} /> },
+    { id: "timetable", label: "Timetable & Calendar", icon: <Clock size={15} /> },
     { id: "report-card", label: "Report Card Editor", icon: <FileText size={15} /> },
     { id: "missing-uploader", label: "Missing Students Ingestion", icon: <UserPlus size={15} /> },
     { id: "toppers", label: "Section Toppers", icon: <Trophy size={15} /> },
@@ -4535,6 +4537,9 @@ export default function AdminDashboard() {
             <DeleteRecordCard authHeaders={authHeaders} API={API} onSuccess={fetchStats} />
           </div>
         )}
+
+        {/* ── TAB: TIMETABLE & ACADEMIC CALENDAR MANAGEMENT ── */}
+        {tab === "timetable" && <TimetableAdminManager authHeaders={authHeaders} API={API} />}
 
         {/* ── TAB 5: STUDENT FEEDBACK ── */}
         {tab === "feedback" && <FeedbackManager authHeaders={authHeaders} API={API} />}

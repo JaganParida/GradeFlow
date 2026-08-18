@@ -54,6 +54,7 @@ app.use(["/api/student", "/api/students"], publicLimiter, require("./routes/stud
 app.use("/api/admin", adminLimiter, require("./routes/admin"));
 app.use("/api/rankings", publicLimiter, require("./routes/rankings"));
 app.use("/api/feedback", publicLimiter, require("./routes/feedback"));
+app.use("/api/timetable", publicLimiter, require("./routes/timetable"));
 
 // ─── Health Check Endpoint ──────────────────────────────────────
 app.get("/api/health", (req, res) => {

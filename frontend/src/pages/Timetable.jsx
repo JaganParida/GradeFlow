@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo, useRef } from "react";
 import { useParams, useNavigate, useLocation } from "react-router-dom";
+import axios from "axios";
 import { useApp } from "../context/AppContext";
 import { encodeStudentId, decodeStudentId, isEncryptedToken } from "../utils/studentIdEncoder";
 import { motion, AnimatePresence } from "framer-motion";
@@ -147,10 +148,43 @@ export default function Timetable() {
     }
   }, [decodedParam, urlParam, navigate]);
 
+  // Dynamic custom schedules from server
+  const [dynamicSchedules, setDynamicSchedules] = useState([]);
+
+  useEffect(() => {
+    const API = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
+    axios
+      .get(`${API}/timetable/active-all`)
+      .then(({ data }) => {
+        if (data?.schedules) setDynamicSchedules(data.schedules);
+      })
+      .catch(() => {});
+  }, []);
+
+  const activeCustomSchedule = useMemo(() => {
+    if (!dynamicSchedules.length) return null;
+    const reg = String(currentRegNo || "").trim();
+    const sBatch = studentData?.batch || (reg.startsWith("23") ? "2023" : reg.length >= 2 ? `20${reg.slice(0, 2)}` : "2023");
+    const sBranch = (studentData?.branch || "CSE").toUpperCase();
+    const sSec = selectedSection.toUpperCase();
+
+    return (
+      dynamicSchedules.find((s) => (s.section === sSec || s.section === "ALL") && (s.batch === sBatch || s.batch === "ALL")) ||
+      dynamicSchedules.find((s) => s.section === sSec) ||
+      null
+    );
+  }, [dynamicSchedules, studentData, currentRegNo, selectedSection]);
+
   // Derived date & routine helpers
   const selectedDayName = useMemo(() => getDayName(selectedDate), [selectedDate]);
   const holidayInfo = useMemo(() => getHolidayInfo(selectedDate), [selectedDate]);
-  const daySchedule = useMemo(() => getDaySchedule(selectedSection, selectedDayName), [selectedSection, selectedDayName]);
+
+  const daySchedule = useMemo(() => {
+    if (activeCustomSchedule?.schedule?.[selectedDayName]?.length > 0) {
+      return activeCustomSchedule.schedule[selectedDayName];
+    }
+    return getDaySchedule(selectedSection, selectedDayName);
+  }, [activeCustomSchedule, selectedSection, selectedDayName]);
 
   // Live class overview for today
   const liveOverview = useMemo(() => {
@@ -280,7 +314,22 @@ export default function Timetable() {
   }, [filterHolidayType, selectedHolidayMonth]);
 
   const activeStudentName = studentData?.studentName || "";
-  const isEligibleBatch = is2023CSEBatch(studentData, currentRegNo);
+  const isEligibleBatch = useMemo(() => {
+    if (!currentRegNo && !studentData) return true;
+    if (is2023CSEBatch(studentData, currentRegNo)) return true;
+    if (dynamicSchedules.length > 0) {
+      const reg = String(currentRegNo || "").trim();
+      const stBatch = studentData?.batch || (reg.length >= 2 ? `20${reg.slice(0, 2)}` : "");
+      const stBranch = (studentData?.branch || "").toUpperCase();
+      const hasMatch = dynamicSchedules.some(
+        (s) =>
+          (s.batch === stBatch || s.batch === "ALL") &&
+          (stBranch.includes(s.branch) || s.branch === "ALL")
+      );
+      if (hasMatch) return true;
+    }
+    return false;
+  }, [studentData, currentRegNo, dynamicSchedules]);
 
   return (
     <div
