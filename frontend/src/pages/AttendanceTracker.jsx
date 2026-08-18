@@ -1604,7 +1604,11 @@ export default function AttendanceTracker() {
                             letterSpacing: "0.3px",
                           }}
                         >
-                          {comp.type === "PR" ? "PR • Practical / Lab" : comp.type === "TUT" ? "TUT • Tutorial" : "PP • Theory / Practice"}
+                          {comp.type === "PR"
+                            ? "PR • Practice (Lab)"
+                            : comp.type === "TUT"
+                            ? "TUT • Tutorial (Project)"
+                            : "PP • Theory"}
                         </span>
                       </div>
 
@@ -2432,7 +2436,7 @@ export default function AttendanceTracker() {
                                 borderRadius: 6,
                               }}
                             >
-                              {c.type}: {c.attended}/{c.delivered} ({cPct}%)
+                              {c.type === "PR" ? "PR (Practice)" : c.type === "TUT" ? "TUT (Project)" : "PP (Theory)"}: {c.attended}/{c.delivered} ({cPct}%)
                             </span>
                           );
                         })}
