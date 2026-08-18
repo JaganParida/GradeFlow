@@ -380,6 +380,118 @@ export function getHolidayInfo(dateObj) {
 }
 
 /**
+ * Analyze Academic Calendar for a given date:
+ * - Check if before Commencement of Classes (July 6, 2026)
+ * - Check if after Last Date of Instruction (October 31, 2026)
+ * - Check if on Examination dates (Mid Sem, Practical, End Sem)
+ * - Check if on University Events / Festivals
+ */
+export function getAcademicCalendarDateStatus(dateObj) {
+  if (!dateObj) return null;
+  const d = new Date(dateObj);
+  d.setHours(0, 0, 0, 0);
+
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  const dateStr = `${y}-${m}-${day}`;
+
+  // Session Range for Odd Semester: 2026-07-06 to 2026-10-31
+  const sessionStartStr = "2026-07-06";
+  const lastInstructionDateStr = "2026-10-31";
+
+  if (dateStr < sessionStartStr) {
+    return {
+      isOutsideSession: true,
+      type: "pre_session",
+      title: "Pre-Semester Period",
+      message: "Odd Semester classes officially commenced on 6th July 2026. Prior dates do not have scheduled class routines.",
+      color: "#64748b",
+      bg: "#f8fafc",
+    };
+  }
+
+  // Check if exactly the Last Date of Instruction
+  if (dateStr === lastInstructionDateStr) {
+    return {
+      isCalendarEvent: true,
+      isLastInstruction: true,
+      classesSuspended: false,
+      title: "Last Date of Instruction (Odd Semester)",
+      message: "Today marks the final day of classroom teaching & instructional delivery for the Odd Semester 2026.",
+      color: "#2563eb",
+      bg: "#eff6ff",
+    };
+  }
+
+  // Check if date is after the Last Date of Instruction (Post-Instruction & Examinations)
+  if (dateStr > lastInstructionDateStr) {
+    const oddActivities = CUTM_ACADEMIC_CALENDAR_2026_27?.oddSemester?.activities || [];
+    for (const act of oddActivities) {
+      if (dateStr >= act.startDate && dateStr <= act.endDate) {
+        return {
+          isOutsideSession: true,
+          isExam: true,
+          classesSuspended: true,
+          title: act.name,
+          schedule: act.schedule,
+          message: `Semester instructional classes ended on 31st Oct 2026. ${act.name} is underway (${act.schedule}).`,
+          color: "#dc2626",
+          bg: "#fef2f2",
+        };
+      }
+    }
+
+    return {
+      isOutsideSession: true,
+      type: "post_instruction",
+      title: "Semester Instruction Concluded",
+      message: "Instructional teaching for the Odd Semester ended on 31st October 2026. Examinations and assessments follow.",
+      color: "#d97706",
+      bg: "#fffbeb",
+    };
+  }
+
+  // Check if date falls in Mid-Semester Exam or other within-session activities
+  const oddActivities = CUTM_ACADEMIC_CALENDAR_2026_27?.oddSemester?.activities || [];
+  for (const act of oddActivities) {
+    if (dateStr >= act.startDate && dateStr <= act.endDate) {
+      if (act.category === "exam") {
+        return {
+          isCalendarEvent: true,
+          isExam: true,
+          classesSuspended: true,
+          title: act.name,
+          schedule: act.schedule,
+          message: `${act.name} is currently underway (${act.schedule}). Regular theory & practice classes are suspended for examinations.`,
+          color: "#ea580c",
+          bg: "#fff7ed",
+        };
+      }
+    }
+  }
+
+  // Check University Events
+  const events = CUTM_ACADEMIC_CALENDAR_2026_27?.events?.items || [];
+  for (const ev of events) {
+    if (dateStr >= ev.startDate && dateStr <= ev.endDate) {
+      return {
+        isCalendarEvent: true,
+        isEvent: true,
+        classesSuspended: false,
+        title: ev.name,
+        schedule: ev.schedule,
+        message: `University event window: ${ev.name} (${ev.schedule}). Classes may be subject to event schedules.`,
+        color: "#7c3aed",
+        bg: "#f5f3ff",
+      };
+    }
+  }
+
+  return null;
+}
+
+/**
  * Get Day name for a date (e.g. "Monday", "Tuesday", etc.)
  */
 export function getDayName(dateObj) {
@@ -851,6 +963,7 @@ export default {
   getDayName,
   getDaySchedule,
   getHolidayInfo,
+  getAcademicCalendarDateStatus,
   getLivePeriodStatus,
   getLiveScheduleOverview,
   isSecondSaturday,

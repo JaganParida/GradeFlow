@@ -46,6 +46,7 @@ import {
   getDayName,
   getDaySchedule,
   getHolidayInfo,
+  getAcademicCalendarDateStatus,
   getLivePeriodStatus,
   getLiveScheduleOverview,
   normalizeSection,
@@ -267,6 +268,7 @@ export default function Timetable() {
   // Derived date & routine helpers
   const selectedDayName = useMemo(() => getDayName(selectedDate), [selectedDate]);
   const holidayInfo = useMemo(() => getHolidayInfo(selectedDate), [selectedDate]);
+  const academicDateStatus = useMemo(() => getAcademicCalendarDateStatus(selectedDate), [selectedDate]);
 
   const daySchedule = useMemo(() => {
     if (activeCustomSchedule?.schedule?.[selectedDayName]?.length > 0) {
@@ -1152,6 +1154,29 @@ export default function Timetable() {
           </div>
         )}
 
+        {/* ── ERP Master Schedule Variance Disclaimer Banner ── */}
+        <div
+          style={{
+            background: "linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%)",
+            border: "1px solid #cbd5e1",
+            borderRadius: 14,
+            padding: isMobile ? "10px 14px" : "12px 18px",
+            display: "flex",
+            alignItems: "flex-start",
+            gap: 10,
+            fontSize: 12,
+            color: "#475569",
+            lineHeight: 1.5,
+            boxShadow: "0 1px 3px rgba(0,0,0,0.02)",
+          }}
+        >
+          <Info size={16} color="#2563eb" style={{ flexShrink: 0, marginTop: 1 }} />
+          <div>
+            <strong style={{ color: "#0f172a", fontWeight: 800 }}>Schedule Disclaimer: </strong>
+            Class routines displayed on GradeFlow reflect the semester master timetable. Daily period schedules or room allocations on the official university ERP may occasionally vary due to day-to-day faculty adjustments, compensatory classes, or university event schedules.
+          </div>
+        </div>
+
         {/* ═══════════════════════════════════════════════════════════════
             MODE 1: DAILY ROUTINE VIEW
         ═══════════════════════════════════════════════════════════════ */}
@@ -1332,7 +1357,7 @@ export default function Timetable() {
               </div>
             </div>
 
-            {/* Holiday / Weekend Banner */}
+            {/* 1. Holiday / Weekend Banner */}
             {holidayInfo?.isHoliday ? (
               <motion.div
                 initial={{ opacity: 0, scale: 0.98 }}
@@ -1341,7 +1366,7 @@ export default function Timetable() {
                   background: holidayInfo.bg || "#fef2f2",
                   border: `1.5px solid ${holidayInfo.color || "#dc2626"}30`,
                   borderRadius: 18,
-                  padding: "38px 24px",
+                  padding: isMobile ? "28px 16px" : "38px 24px",
                   textAlign: "center",
                   color: holidayInfo.color || "#dc2626",
                   boxShadow: "0 2px 8px rgba(0,0,0,0.03)",
@@ -1387,9 +1412,106 @@ export default function Timetable() {
                   <span>No instructional classes on {selectedDate.toLocaleDateString("en-IN", { weekday: "long", day: "numeric", month: "long" })}</span>
                 </div>
               </motion.div>
+            ) : (academicDateStatus?.isOutsideSession || academicDateStatus?.classesSuspended) ? (
+              /* 2. Academic Calendar Milestone / Outside Session Notice */
+              <motion.div
+                initial={{ opacity: 0, scale: 0.98 }}
+                animate={{ opacity: 1, scale: 1 }}
+                style={{
+                  background: academicDateStatus.bg || "#f8fafc",
+                  border: `1.5px solid ${academicDateStatus.color}35`,
+                  borderRadius: 18,
+                  padding: isMobile ? "28px 16px" : "38px 24px",
+                  textAlign: "center",
+                  color: academicDateStatus.color,
+                  boxShadow: "0 2px 8px rgba(0,0,0,0.03)",
+                }}
+              >
+                <div
+                  style={{
+                    width: 50,
+                    height: 50,
+                    borderRadius: 14,
+                    background: "#ffffff",
+                    color: academicDateStatus.color,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    margin: "0 auto 12px auto",
+                    boxShadow: "0 2px 8px rgba(0,0,0,0.06)",
+                  }}
+                >
+                  {academicDateStatus.isExam ? <AlertTriangle size={26} /> : <GraduationCap size={26} />}
+                </div>
+                <h3 style={{ fontSize: 20, fontWeight: 900, margin: 0, color: "#0f172a" }}>
+                  {academicDateStatus.title}
+                </h3>
+                <p style={{ fontSize: 13.5, color: "#475569", margin: "8px auto 0 auto", maxWidth: 520, lineHeight: 1.5 }}>
+                  {academicDateStatus.message}
+                </p>
+                <div
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 6,
+                    marginTop: 16,
+                    background: "#ffffff",
+                    border: `1px solid ${academicDateStatus.color}40`,
+                    padding: "6px 18px",
+                    borderRadius: 999,
+                    fontSize: 12,
+                    fontWeight: 800,
+                  }}
+                >
+                  <CalendarIcon size={13} />
+                  <span>{selectedDate.toLocaleDateString("en-IN", { weekday: "long", day: "numeric", month: "long", year: "numeric" })}</span>
+                </div>
+                <div style={{ marginTop: 14 }}>
+                  <button
+                    type="button"
+                    onClick={() => setViewMode("academic")}
+                    style={{
+                      background: "#0f172a",
+                      color: "#ffffff",
+                      border: "none",
+                      padding: "8px 18px",
+                      borderRadius: 10,
+                      fontSize: 12.5,
+                      fontWeight: 700,
+                      cursor: "pointer",
+                    }}
+                  >
+                    View Full Academic Calendar
+                  </button>
+                </div>
+              </motion.div>
             ) : (
-              /* Day Period Cards */
+              /* 3. Regular Scheduled Routine */
               <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                {/* Last Date of Instruction Celebration Banner */}
+                {academicDateStatus?.isLastInstruction && (
+                  <motion.div
+                    initial={{ opacity: 0, y: -4 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    style={{
+                      background: "linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%)",
+                      border: "1.5px solid #3b82f6",
+                      borderRadius: 14,
+                      padding: "14px 18px",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 12,
+                      color: "#1e40af",
+                      boxShadow: "0 2px 8px rgba(59, 130, 246, 0.08)",
+                    }}
+                  >
+                    <GraduationCap size={22} color="#2563eb" style={{ flexShrink: 0 }} />
+                    <div style={{ fontSize: 13, fontWeight: 700 }}>
+                      <strong>🎯 Last Date of Instruction (Odd Semester): </strong>
+                      Today (31st October 2026) is the final day of semester teaching. Practical &amp; Theory exams commence next week.
+                    </div>
+                  </motion.div>
+                )}
                 {/* Optional Holiday Notice Banner if applicable */}
                 {holidayInfo?.isOptional && (
                   <motion.div
@@ -2853,12 +2975,13 @@ export default function Timetable() {
                       display: "flex",
                       justifyContent: "space-between",
                       alignItems: "center",
+                      gap: 12,
                       boxShadow: "0 1px 3px rgba(0,0,0,0.02)",
                     }}
                   >
-                    <div>
-                      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                        <span style={{ fontSize: 14, fontWeight: 800, color: "#0f172a" }}>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                        <span style={{ fontSize: 14, fontWeight: 800, color: "#0f172a", wordBreak: "break-word" }}>
                           {h.name}
                         </span>
                         <span
@@ -2870,6 +2993,8 @@ export default function Timetable() {
                             padding: "2px 6px",
                             borderRadius: 4,
                             textTransform: "uppercase",
+                            whiteSpace: "nowrap",
+                            flexShrink: 0,
                           }}
                         >
                           {h.type}
@@ -2882,17 +3007,47 @@ export default function Timetable() {
                     </div>
 
                     {/* Countdown Pill */}
-                    <div>
+                    <div style={{ flexShrink: 0, marginLeft: "auto" }}>
                       {h.isToday ? (
-                        <span style={{ fontSize: 11, fontWeight: 900, background: "#16a34a", color: "#ffffff", padding: "4px 9px", borderRadius: 6 }}>
+                        <span
+                          style={{
+                            fontSize: 11,
+                            fontWeight: 900,
+                            background: "#16a34a",
+                            color: "#ffffff",
+                            padding: "4px 9px",
+                            borderRadius: 6,
+                            whiteSpace: "nowrap",
+                            display: "inline-block",
+                          }}
+                        >
                           TODAY
                         </span>
                       ) : h.diffDays > 0 ? (
-                        <span style={{ fontSize: 11, fontWeight: 800, background: "#eff6ff", color: "#2563eb", padding: "4px 9px", borderRadius: 6 }}>
+                        <span
+                          style={{
+                            fontSize: 11,
+                            fontWeight: 800,
+                            background: "#eff6ff",
+                            color: "#2563eb",
+                            padding: "4px 9px",
+                            borderRadius: 6,
+                            whiteSpace: "nowrap",
+                            display: "inline-block",
+                          }}
+                        >
                           In {h.diffDays} days
                         </span>
                       ) : (
-                        <span style={{ fontSize: 10.5, color: "#94a3b8", fontWeight: 600 }}>
+                        <span
+                          style={{
+                            fontSize: 10.5,
+                            color: "#94a3b8",
+                            fontWeight: 600,
+                            whiteSpace: "nowrap",
+                            display: "inline-block",
+                          }}
+                        >
                           Past
                         </span>
                       )}

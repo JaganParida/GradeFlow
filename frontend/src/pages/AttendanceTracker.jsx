@@ -1018,7 +1018,7 @@ export default function AttendanceTracker() {
 
               {/* Quick Subject Pills with Arrow Scroll Buttons */}
               {sectionCatalog.length > 0 && (
-                <div style={{ position: "relative", marginBottom: 10, display: "flex", alignItems: "center", gap: 4 }}>
+                <div style={{ position: "relative", marginBottom: 10, display: "flex", alignItems: "center", gap: 4, width: "100%", maxWidth: "100%", boxSizing: "border-box" }}>
                   <button
                     type="button"
                     onClick={() => scrollSubjectPills("left")}
@@ -1046,6 +1046,8 @@ export default function AttendanceTracker() {
                     ref={subjectPillsRef}
                     onScroll={checkSubjectScroll}
                     style={{
+                      flex: 1,
+                      minWidth: 0,
                       display: "flex",
                       alignItems: "center",
                       gap: 6,
@@ -1224,33 +1226,36 @@ export default function AttendanceTracker() {
                     <div
                       style={{
                         display: "grid",
-                        gridTemplateColumns: "1fr 1fr",
-                        gap: 12,
+                        gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr",
+                        gap: isMobile ? 10 : 12,
                         alignItems: "center",
+                        width: "100%",
                       }}
                     >
                       {/* Attended Stepper */}
-                      <div>
-                        <span style={{ fontSize: 11, color: "#64748b", fontWeight: 700 }}>
+                      <div style={{ background: "#ffffff", padding: "8px 10px", borderRadius: 10, border: "1px solid #e2e8f0" }}>
+                        <span style={{ fontSize: 11, color: "#64748b", fontWeight: 700, display: "block" }}>
                           Attended Classes:
                         </span>
-                        <div style={{ display: "flex", alignItems: "center", gap: 4, marginTop: 4 }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 6, width: "100%" }}>
                           <button
                             type="button"
                             onClick={() => adjustComponentCount(idx, "attended", -1)}
+                            aria-label="Decrease attended"
                             style={{
-                              width: 28,
-                              height: 28,
-                              borderRadius: 6,
+                              width: 32,
+                              height: 32,
+                              borderRadius: 8,
                               border: "1px solid #cbd5e1",
-                              background: "#ffffff",
+                              background: "#f8fafc",
                               cursor: "pointer",
                               display: "flex",
                               alignItems: "center",
                               justifyContent: "center",
+                              flexShrink: 0,
                             }}
                           >
-                            <Minus size={12} />
+                            <Minus size={13} />
                           </button>
 
                           <input
@@ -1259,59 +1264,66 @@ export default function AttendanceTracker() {
                             value={comp.attended}
                             onChange={(e) => handleComponentChange(idx, "attended", e.target.value)}
                             style={{
+                              flex: 1,
+                              minWidth: 0,
                               width: "100%",
-                              padding: "4px 8px",
-                              borderRadius: 6,
+                              padding: "6px 8px",
+                              borderRadius: 8,
                               border: "1px solid #cbd5e1",
                               textAlign: "center",
-                              fontSize: 13,
+                              fontSize: 14,
                               fontWeight: 800,
                               color: "#0f172a",
+                              boxSizing: "border-box",
                             }}
                           />
 
                           <button
                             type="button"
                             onClick={() => adjustComponentCount(idx, "attended", 1)}
+                            aria-label="Increase attended"
                             style={{
-                              width: 28,
-                              height: 28,
-                              borderRadius: 6,
+                              width: 32,
+                              height: 32,
+                              borderRadius: 8,
                               border: "1px solid #cbd5e1",
-                              background: "#ffffff",
+                              background: "#f8fafc",
                               cursor: "pointer",
                               display: "flex",
                               alignItems: "center",
                               justifyContent: "center",
+                              flexShrink: 0,
                             }}
                           >
-                            <Plus size={12} />
+                            <Plus size={13} />
                           </button>
                         </div>
                       </div>
 
                       {/* Delivered / Total Stepper */}
-                      <div>
-                        <span style={{ fontSize: 11, color: "#64748b", fontWeight: 700 }}>
+                      <div style={{ background: "#ffffff", padding: "8px 10px", borderRadius: 10, border: "1px solid #e2e8f0" }}>
+                        <span style={{ fontSize: 11, color: "#64748b", fontWeight: 700, display: "block" }}>
                           Total Delivered:
                         </span>
-                        <div style={{ display: "flex", alignItems: "center", gap: 4, marginTop: 4 }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 6, width: "100%" }}>
                           <button
                             type="button"
                             onClick={() => adjustComponentCount(idx, "delivered", -1)}
+                            aria-label="Decrease delivered"
                             style={{
-                              width: 28,
-                              height: 28,
-                              borderRadius: 6,
+                              width: 32,
+                              height: 32,
+                              borderRadius: 8,
                               border: "1px solid #cbd5e1",
-                              background: "#ffffff",
+                              background: "#f8fafc",
                               cursor: "pointer",
                               display: "flex",
                               alignItems: "center",
                               justifyContent: "center",
+                              flexShrink: 0,
                             }}
                           >
-                            <Minus size={12} />
+                            <Minus size={13} />
                           </button>
 
                           <input
@@ -1320,33 +1332,38 @@ export default function AttendanceTracker() {
                             value={comp.delivered}
                             onChange={(e) => handleComponentChange(idx, "delivered", e.target.value)}
                             style={{
+                              flex: 1,
+                              minWidth: 0,
                               width: "100%",
-                              padding: "4px 8px",
-                              borderRadius: 6,
+                              padding: "6px 8px",
+                              borderRadius: 8,
                               border: "1px solid #cbd5e1",
                               textAlign: "center",
-                              fontSize: 13,
+                              fontSize: 14,
                               fontWeight: 800,
                               color: "#0f172a",
+                              boxSizing: "border-box",
                             }}
                           />
 
                           <button
                             type="button"
                             onClick={() => adjustComponentCount(idx, "delivered", 1)}
+                            aria-label="Increase delivered"
                             style={{
-                              width: 28,
-                              height: 28,
-                              borderRadius: 6,
+                              width: 32,
+                              height: 32,
+                              borderRadius: 8,
                               border: "1px solid #cbd5e1",
-                              background: "#ffffff",
+                              background: "#f8fafc",
                               cursor: "pointer",
                               display: "flex",
                               alignItems: "center",
                               justifyContent: "center",
+                              flexShrink: 0,
                             }}
                           >
-                            <Plus size={12} />
+                            <Plus size={13} />
                           </button>
                         </div>
                       </div>
