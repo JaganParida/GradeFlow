@@ -654,35 +654,6 @@ export default function Timetable() {
                 <Sun size={14} />
                 <span>Holidays</span>
               </button>
-
-              <button
-                type="button"
-                onClick={() => {
-                  if (currentRegNo) {
-                    navigate(`/attendance/${encodeStudentId(currentRegNo)}`);
-                  } else {
-                    navigate("/attendance");
-                  }
-                }}
-                style={{
-                  padding: isMobile ? "6px 10px" : "7px 14px",
-                  borderRadius: 9,
-                  border: "none",
-                  background: "transparent",
-                  color: "#059669",
-                  fontSize: 12,
-                  fontWeight: 800,
-                  cursor: "pointer",
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 6,
-                  whiteSpace: "nowrap",
-                  transition: "background 0.15s ease",
-                }}
-              >
-                <Percent size={14} />
-                <span>Attendance Tracker</span>
-              </button>
             </div>
           </div>
 

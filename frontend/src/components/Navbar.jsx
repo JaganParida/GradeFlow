@@ -179,12 +179,13 @@ export default function Navbar() {
         <div
           className="gf-navbar-inner"
           style={{
-            maxWidth: 1280,
+            maxWidth: 1400,
             margin: "0 auto",
-            padding: "0 28px",
+            padding: "0 24px",
             display: "flex",
             alignItems: "center",
             justifyContent: "space-between",
+            gap: 20,
             height: 66,
           }}
         >
@@ -195,7 +196,9 @@ export default function Navbar() {
               textDecoration: "none",
               display: "flex",
               alignItems: "center",
-              gap: 8,
+              gap: 10,
+              flexShrink: 0,
+              marginRight: 10,
               zIndex: 1001,
             }}
           >
@@ -206,15 +209,17 @@ export default function Navbar() {
                 height: 32,
                 width: "auto",
                 objectFit: "contain",
+                flexShrink: 0,
               }}
             />
             <span
               style={{
                 fontFamily: "'DM Sans', sans-serif",
                 fontWeight: 800,
-                fontSize: 21,
+                fontSize: 20.5,
                 color: "#0f172a",
                 letterSpacing: "-0.5px",
+                whiteSpace: "nowrap",
               }}
             >
               GradeFlow
@@ -226,7 +231,9 @@ export default function Navbar() {
             style={{
               display: "flex",
               alignItems: "center",
-              gap: 26,
+              gap: 18,
+              flexShrink: 1,
+              flexWrap: "nowrap",
             }}
             className="gf-desktop-nav"
           >
@@ -330,7 +337,7 @@ export default function Navbar() {
               </button>
             )}
 
-            {/* Attendance Tracker */}
+            {/* Attendance */}
             <button
               onClick={handleAttendanceClick}
               style={{
@@ -347,7 +354,7 @@ export default function Navbar() {
                 transition: "color 0.2s ease",
               }}
             >
-              Attendance Tracker
+              Attendance
               {location.pathname.startsWith("/attendance") && (
                 <motion.div
                   layoutId="nav-indicator"
@@ -423,7 +430,7 @@ export default function Navbar() {
                       position: "absolute",
                       top: "calc(100% + 8px)",
                       left: -20,
-                      width: 250,
+                      width: 240,
                       background: "#ffffff",
                       border: "1px solid #cbd5e1",
                       borderRadius: 12,
@@ -484,33 +491,6 @@ export default function Navbar() {
                       onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
                     >
                       <BarChart2 size={15} color="#8b5cf6" /> Grade Distribution
-                    </button>
-
-                    <button
-                      onClick={(e) => {
-                        setAnalyticsDropdown(false);
-                        handleAttendanceClick(e);
-                      }}
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        gap: 10,
-                        padding: "10px 12px",
-                        borderRadius: 8,
-                        color: "#0f172a",
-                        background: "transparent",
-                        border: "none",
-                        width: "100%",
-                        textAlign: "left",
-                        fontSize: 13,
-                        fontWeight: 600,
-                        cursor: "pointer",
-                        transition: "background 0.15s",
-                      }}
-                      onMouseEnter={(e) => (e.currentTarget.style.background = "#f8fafc")}
-                      onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
-                    >
-                      <Percent size={15} color="#059669" /> Attendance Tracker & Simulator
                     </button>
 
                     <button
@@ -1210,28 +1190,7 @@ export default function Navbar() {
                         >
                           <BarChart2 size={14} color="#8b5cf6" /> Grade Distribution
                         </button>
-                        <button
-                          onClick={(e) => {
-                            setMobileMenuOpen(false);
-                            handleAttendanceClick(e);
-                          }}
-                          style={{
-                            display: "flex",
-                            alignItems: "center",
-                            gap: 9,
-                            padding: "8px 10px",
-                            borderRadius: 8,
-                            border: "none",
-                            background: "transparent",
-                            color: "#475569",
-                            fontSize: 13,
-                            fontWeight: 600,
-                            cursor: "pointer",
-                            textAlign: "left",
-                          }}
-                        >
-                          <Percent size={14} color="#059669" /> Attendance Tracker
-                        </button>
+
                         <button
                           onClick={(e) => {
                             setMobileMenuOpen(false);
@@ -1819,19 +1778,41 @@ export default function Navbar() {
       </AnimatePresence>
 
       <style>{`
-        @media (max-width: 1024px) {
+        .gf-desktop-nav {
+          display: flex;
+          align-items: center;
+          gap: 18px;
+        }
+        .gf-desktop-nav a, .gf-desktop-nav button {
+          white-space: nowrap !important;
+          font-size: 13.5px !important;
+        }
+        @media (max-width: 1360px) {
           .gf-desktop-nav {
-            gap: 16px !important;
+            gap: 14px !important;
           }
           .gf-desktop-nav a, .gf-desktop-nav button {
-            font-size: 13.5px !important;
+            font-size: 13px !important;
           }
         }
-        @media (max-width: 768px) {
-          .gf-navbar-inner {
-            height: 58px !important;
-            padding: 0 16px !important;
+        @media (max-width: 1220px) {
+          .gf-desktop-nav {
+            gap: 10px !important;
           }
+          .gf-desktop-nav a, .gf-desktop-nav button {
+            font-size: 12.5px !important;
+          }
+        }
+        @media (max-width: 1100px) {
+          .gf-desktop-nav {
+            gap: 8px !important;
+          }
+          .gf-desktop-nav a, .gf-desktop-nav button {
+            font-size: 12px !important;
+            padding: 6px 0 !important;
+          }
+        }
+        @media (max-width: 1024px) {
           .gf-desktop-nav {
             display: none !important;
           }
@@ -1840,6 +1821,12 @@ export default function Navbar() {
           }
           .gf-mobile-toggle {
             display: flex !important;
+          }
+        }
+        @media (max-width: 768px) {
+          .gf-navbar-inner {
+            height: 58px !important;
+            padding: 0 16px !important;
           }
         }
       `}</style>
