@@ -51,6 +51,7 @@ import {
   RotateCcw,
   Sliders,
   Zap,
+  Percent,
 } from "lucide-react";
 import {
   GRADE_POINTS,
@@ -272,6 +273,10 @@ export default function Analytics() {
   };
 
   const handleTabChange = (newTabId) => {
+    if (newTabId === "attendance") {
+      navigate(`/attendance/${encodeStudentId(regNo)}`);
+      return;
+    }
     setTab(newTabId);
     setSearchParams({ tab: newTabId }, { replace: true });
     // Smooth scroll to top on tab change
@@ -475,6 +480,7 @@ export default function Analytics() {
     { id: "mastery", label: "Subject Mastery & Insights", icon: <Target size={15} color="#d97706" /> },
     { id: "predictor", label: "CGPA Goal Predictor", icon: <Sparkles size={15} color="#16a34a" /> },
     { id: "whatif", label: "What-If Simulator", icon: <PieChart size={15} color="#6366f1" /> },
+    { id: "attendance", label: "Attendance Tracker", icon: <Percent size={15} color="#059669" /> },
   ];
 
   return (

@@ -20,6 +20,7 @@ export default function Navbar() {
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [searchModalOpen, setSearchModalOpen] = useState(false);
   const [searchRegNo, setSearchRegNo] = useState("");
+  const [pendingDestination, setPendingDestination] = useState(null);
 
   const location = useLocation();
   const navigate = useNavigate();
@@ -71,10 +72,16 @@ export default function Navbar() {
 
   const isEligibleForTimetable = is2023CSEBatch(studentData, currentRegNo);
 
+  const requireAuthFor = (destination) => {
+    setPendingDestination(destination);
+    setSearchRegNo("");
+    setShowAuthModal(true);
+  };
+
   const handleDashboardClick = (e) => {
     if (e) e.preventDefault();
     if (!hasActiveSession && !currentRegNo) {
-      setShowAuthModal(true);
+      requireAuthFor({ type: "dashboard" });
     } else {
       navigate(`/dashboard/${encodeStudentId(currentRegNo)}`);
     }
@@ -83,7 +90,7 @@ export default function Navbar() {
   const handleTimetableClick = (e) => {
     if (e) e.preventDefault();
     if (!hasActiveSession && !currentRegNo) {
-      setShowAuthModal(true);
+      requireAuthFor({ type: "timetable" });
     } else {
       navigate(`/timetable/${encodeStudentId(currentRegNo)}`);
     }
@@ -92,7 +99,7 @@ export default function Navbar() {
   const handleAttendanceClick = (e) => {
     if (e) e.preventDefault();
     if (!hasActiveSession && !currentRegNo) {
-      setShowAuthModal(true);
+      requireAuthFor({ type: "attendance" });
     } else {
       navigate(`/attendance/${encodeStudentId(currentRegNo)}`);
     }
@@ -100,10 +107,10 @@ export default function Navbar() {
 
   const handleAnalyticsClick = (e, targetTab = "") => {
     if (e) e.preventDefault();
-    const query = targetTab ? `?tab=${encodeURIComponent(targetTab)}` : "";
     if (!hasActiveSession && !currentRegNo) {
-      setShowAuthModal(true);
+      requireAuthFor({ type: "analytics", tab: targetTab });
     } else {
+      const query = targetTab ? `?tab=${encodeURIComponent(targetTab)}` : "";
       navigate(`/analytics/${encodeStudentId(currentRegNo)}${query}`);
     }
   };
@@ -111,7 +118,7 @@ export default function Navbar() {
   const handleRankingsClick = (e) => {
     if (e) e.preventDefault();
     if (!hasActiveSession && !currentRegNo) {
-      setShowAuthModal(true);
+      requireAuthFor({ type: "leaderboard" });
     } else {
       navigate("/leaderboard");
     }
@@ -123,15 +130,32 @@ export default function Navbar() {
     if (!cleanReg || loading) return;
     const success = await fetchStudent(cleanReg);
     if (success) {
+      setShowAuthModal(false);
       setSearchModalOpen(false);
       setMobileMenuOpen(false);
       setSearchRegNo("");
-      const isAlreadyOnStudentPage =
-        location.pathname.startsWith("/dashboard") ||
-        location.pathname.startsWith("/analytics");
-      navigate(`/dashboard/${encodeStudentId(cleanReg)}`, {
-        replace: isAlreadyOnStudentPage,
-      });
+
+      const encodedId = encodeStudentId(cleanReg);
+      const dest = pendingDestination;
+      setPendingDestination(null);
+
+      if (dest?.type === "timetable") {
+        navigate(`/timetable/${encodedId}`);
+      } else if (dest?.type === "attendance") {
+        navigate(`/attendance/${encodedId}`);
+      } else if (dest?.type === "analytics") {
+        const query = dest.tab ? `?tab=${encodeURIComponent(dest.tab)}` : "";
+        navigate(`/analytics/${encodedId}${query}`);
+      } else if (dest?.type === "leaderboard") {
+        navigate("/leaderboard");
+      } else {
+        const isAlreadyOnStudentPage =
+          location.pathname.startsWith("/dashboard") ||
+          location.pathname.startsWith("/analytics");
+        navigate(`/dashboard/${encodedId}`, {
+          replace: isAlreadyOnStudentPage,
+        });
+      }
     }
   };
 
@@ -341,7 +365,12 @@ export default function Navbar() {
             </button>
 
             {/* Analytics with Subnav Dropdown */}
-            <div ref={analyticsRef} style={{ position: "relative" }}>
+            <div
+              ref={analyticsRef}
+              style={{ position: "relative" }}
+              onMouseEnter={() => setAnalyticsDropdown(true)}
+              onMouseLeave={() => setAnalyticsDropdown(false)}
+            >
               <button
                 onClick={(e) => {
                   if (hasActiveSession || currentRegNo) {
@@ -394,7 +423,7 @@ export default function Navbar() {
                       position: "absolute",
                       top: "calc(100% + 8px)",
                       left: -20,
-                      width: 240,
+                      width: 250,
                       background: "#ffffff",
                       border: "1px solid #cbd5e1",
                       borderRadius: 12,
@@ -455,6 +484,33 @@ export default function Navbar() {
                       onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
                     >
                       <BarChart2 size={15} color="#8b5cf6" /> Grade Distribution
+                    </button>
+
+                    <button
+                      onClick={(e) => {
+                        setAnalyticsDropdown(false);
+                        handleAttendanceClick(e);
+                      }}
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 10,
+                        padding: "10px 12px",
+                        borderRadius: 8,
+                        color: "#0f172a",
+                        background: "transparent",
+                        border: "none",
+                        width: "100%",
+                        textAlign: "left",
+                        fontSize: 13,
+                        fontWeight: 600,
+                        cursor: "pointer",
+                        transition: "background 0.15s",
+                      }}
+                      onMouseEnter={(e) => (e.currentTarget.style.background = "#f8fafc")}
+                      onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
+                    >
+                      <Percent size={15} color="#059669" /> Attendance Tracker & Simulator
                     </button>
 
                     <button
@@ -1157,6 +1213,28 @@ export default function Navbar() {
                         <button
                           onClick={(e) => {
                             setMobileMenuOpen(false);
+                            handleAttendanceClick(e);
+                          }}
+                          style={{
+                            display: "flex",
+                            alignItems: "center",
+                            gap: 9,
+                            padding: "8px 10px",
+                            borderRadius: 8,
+                            border: "none",
+                            background: "transparent",
+                            color: "#475569",
+                            fontSize: 13,
+                            fontWeight: 600,
+                            cursor: "pointer",
+                            textAlign: "left",
+                          }}
+                        >
+                          <Percent size={14} color="#059669" /> Attendance Tracker
+                        </button>
+                        <button
+                          onClick={(e) => {
+                            setMobileMenuOpen(false);
                             handleAnalyticsClick(e, "placement");
                           }}
                           style={{
@@ -1551,7 +1629,7 @@ export default function Navbar() {
         )}
       </AnimatePresence>
 
-      {/* Auth Required Modal */}
+      {/* Direct Search / Auth Required Modal */}
       <AnimatePresence>
         {showAuthModal && (
           <motion.div
@@ -1573,78 +1651,168 @@ export default function Navbar() {
             }}
           >
             <motion.div
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.95 }}
+              initial={{ opacity: 0, scale: 0.95, y: 10 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 10 }}
+              transition={{ type: "spring", stiffness: 320, damping: 26 }}
               onClick={(e) => e.stopPropagation()}
               style={{
                 background: "#ffffff",
                 borderRadius: 20,
                 padding: "26px 22px",
-                maxWidth: 400,
+                maxWidth: 430,
                 width: "100%",
-                textAlign: "center",
                 boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.25)",
+                position: "relative",
               }}
             >
-              <div
+              <button
+                onClick={() => setShowAuthModal(false)}
                 style={{
-                  width: 46,
-                  height: 46,
-                  borderRadius: 14,
-                  background: "#eff6ff",
-                  color: "#2563eb",
+                  position: "absolute",
+                  top: 14,
+                  right: 14,
+                  background: "transparent",
+                  border: "none",
+                  color: "#94a3b8",
+                  cursor: "pointer",
+                  padding: 4,
                   display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  margin: "0 auto 12px auto",
                 }}
               >
-                <Search size={20} />
-              </div>
-              <h3 style={{ fontSize: 18, fontWeight: 800, color: "#0f172a", marginBottom: 4 }}>
-                Registration Number Required
-              </h3>
-              <p style={{ fontSize: 12.5, color: "#64748b", marginBottom: 18, lineHeight: 1.5 }}>
-                Please enter your registration number to continue.
-              </p>
-              <div style={{ display: "flex", gap: 10 }}>
-                <button
-                  onClick={() => setShowAuthModal(false)}
+                <X size={18} />
+              </button>
+
+              <div style={{ textAlign: "center", marginBottom: 18 }}>
+                <div
                   style={{
-                    flex: 1,
-                    padding: "10px",
-                    borderRadius: 10,
-                    background: "#f1f5f9",
-                    color: "#475569",
-                    border: "none",
-                    fontWeight: 600,
-                    fontSize: 13,
-                    cursor: "pointer",
+                    width: 48,
+                    height: 48,
+                    borderRadius: 14,
+                    background: pendingDestination?.type === "attendance"
+                      ? "#ecfdf5"
+                      : pendingDestination?.type === "analytics"
+                      ? "#f5f3ff"
+                      : "#eff6ff",
+                    color: pendingDestination?.type === "attendance"
+                      ? "#059669"
+                      : pendingDestination?.type === "analytics"
+                      ? "#8b5cf6"
+                      : "#2563eb",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    margin: "0 auto 12px auto",
                   }}
                 >
-                  Cancel
-                </button>
-                <button
-                  onClick={() => {
-                    setShowAuthModal(false);
-                    setSearchModalOpen(true);
-                  }}
-                  style={{
-                    flex: 1,
-                    padding: "10px",
-                    borderRadius: 10,
-                    background: "#0f172a",
-                    color: "#ffffff",
-                    border: "none",
-                    fontWeight: 600,
-                    fontSize: 13,
-                    cursor: "pointer",
-                  }}
-                >
-                  Search Now
-                </button>
+                  {pendingDestination?.type === "timetable" ? (
+                    <Clock size={22} />
+                  ) : pendingDestination?.type === "attendance" ? (
+                    <Percent size={22} />
+                  ) : pendingDestination?.type === "analytics" ? (
+                    <BarChart2 size={22} />
+                  ) : (
+                    <Search size={22} />
+                  )}
+                </div>
+                <h3 style={{ fontSize: 18, fontWeight: 800, color: "#0f172a", marginBottom: 4 }}>
+                  {pendingDestination?.type === "timetable"
+                    ? "Open Class Timetable"
+                    : pendingDestination?.type === "attendance"
+                    ? "Open Attendance Tracker"
+                    : pendingDestination?.type === "analytics"
+                    ? "Academic Analytics Suite"
+                    : "Search Academic Record"}
+                </h3>
+                <p style={{ fontSize: 12.5, color: "#64748b", margin: 0, lineHeight: 1.5 }}>
+                  {pendingDestination?.type === "timetable"
+                    ? "Enter your University Registration Number to view your schedule & routine."
+                    : pendingDestination?.type === "attendance"
+                    ? "Enter your University Registration Number to simulate & track your attendance."
+                    : pendingDestination?.type === "analytics"
+                    ? "Enter your University Registration Number to explore in-depth performance analytics."
+                    : "Enter your University Registration Number to continue."}
+                </p>
               </div>
+
+              <form onSubmit={handleSearchSubmit}>
+                <div style={{ display: "flex", flexDirection: "column", gap: 11 }}>
+                  <input
+                    type="text"
+                    value={searchRegNo}
+                    onChange={(e) => setSearchRegNo(e.target.value)}
+                    placeholder="e.g. 230301120327"
+                    autoFocus
+                    style={{
+                      width: "100%",
+                      padding: "12px 14px",
+                      borderRadius: 12,
+                      border: "1.5px solid #cbd5e1",
+                      fontSize: 14,
+                      color: "#0f172a",
+                      outline: "none",
+                      fontFamily: "'DM Sans', sans-serif",
+                      transition: "border-color 0.2s",
+                      boxSizing: "border-box",
+                    }}
+                    onFocus={(e) => (e.target.style.borderColor = "#2563eb")}
+                    onBlur={(e) => (e.target.style.borderColor = "#cbd5e1")}
+                  />
+
+                  {error && (
+                    <div style={{ color: "#ef4444", fontSize: 12, textAlign: "center" }}>
+                      {error}
+                    </div>
+                  )}
+
+                  <div style={{ display: "flex", gap: 10, marginTop: 4 }}>
+                    <button
+                      type="button"
+                      onClick={() => setShowAuthModal(false)}
+                      style={{
+                        padding: "11px 16px",
+                        borderRadius: 12,
+                        background: "#f1f5f9",
+                        color: "#475569",
+                        border: "none",
+                        fontSize: 13.5,
+                        fontWeight: 700,
+                        cursor: "pointer",
+                        fontFamily: "'DM Sans', sans-serif",
+                      }}
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="submit"
+                      disabled={loading}
+                      style={{
+                        flex: 1,
+                        padding: "11px",
+                        borderRadius: 12,
+                        background: pendingDestination?.type === "attendance" ? "#059669" : "#0f172a",
+                        color: "#ffffff",
+                        border: "none",
+                        fontSize: 13.5,
+                        fontWeight: 700,
+                        cursor: loading ? "not-allowed" : "pointer",
+                        fontFamily: "'DM Sans', sans-serif",
+                        transition: "background 0.2s",
+                      }}
+                    >
+                      {loading
+                        ? "Searching..."
+                        : pendingDestination?.type === "timetable"
+                        ? "Open Timetable"
+                        : pendingDestination?.type === "attendance"
+                        ? "Open Attendance Tracker"
+                        : pendingDestination?.type === "analytics"
+                        ? "Open Analytics"
+                        : "View Dashboard"}
+                    </button>
+                  </div>
+                </div>
+              </form>
             </motion.div>
           </motion.div>
         )}

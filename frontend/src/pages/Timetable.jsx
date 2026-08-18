@@ -122,6 +122,10 @@ export default function Timetable() {
     }
   }, [decodedParam, urlParam, navigate]);
 
+  // Derived date & routine helpers
+  const selectedDayName = useMemo(() => getDayName(selectedDate), [selectedDate]);
+  const holidayInfo = useMemo(() => getHolidayInfo(selectedDate), [selectedDate]);
+  const daySchedule = useMemo(() => getDaySchedule(selectedSection, selectedDayName), [selectedSection, selectedDayName]);
 
   // Live class overview for today
   const liveOverview = useMemo(() => {
