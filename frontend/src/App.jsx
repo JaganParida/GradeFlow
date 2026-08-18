@@ -12,6 +12,7 @@ import AboutDev from "./pages/AboutDev";
 import Resources from "./pages/Resources";
 import AdminLogin from "./pages/AdminLogin";
 import AdminDashboard from "./pages/AdminDashboard";
+import Timetable from "./pages/Timetable";
 import FeedbackModal from "./components/FeedbackModal";
 import UpgradeModal from "./components/UpgradeModal";
 import { useApp } from "./context/AppContext";
@@ -78,6 +79,8 @@ export default function App() {
       document.title = "GradeFlow — Academic Analytics & GPA Intelligence";
     } else if (path.startsWith("/dashboard")) {
       document.title = "GradeFlow — Student Dashboard";
+    } else if (path.startsWith("/timetable")) {
+      document.title = "GradeFlow — Class Timetable & Schedule";
     } else if (path.startsWith("/analytics")) {
       document.title = "GradeFlow — Performance Analytics";
     } else if (path === "/leaderboard") {
@@ -185,6 +188,22 @@ export default function App() {
                   <Dashboard />
                 </PageTransition>
               </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/timetable/:studentId"
+            element={
+              <PageTransition>
+                <Timetable />
+              </PageTransition>
+            }
+          />
+          <Route
+            path="/timetable"
+            element={
+              <PageTransition>
+                <Timetable />
+              </PageTransition>
             }
           />
           <Route

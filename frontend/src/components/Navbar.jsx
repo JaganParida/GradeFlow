@@ -82,7 +82,7 @@ export default function Navbar() {
     if (!hasActiveSession && !currentRegNo) {
       setShowAuthModal(true);
     } else {
-      navigate(`/dashboard/${encodeStudentId(currentRegNo)}?tab=timetable`);
+      navigate(`/timetable/${encodeStudentId(currentRegNo)}`);
     }
   };
 
@@ -266,16 +266,8 @@ export default function Navbar() {
                 border: "none",
                 textDecoration: "none",
                 fontSize: 14,
-                fontWeight:
-                  location.pathname.startsWith("/dashboard") &&
-                  new URLSearchParams(location.search).get("tab") === "timetable"
-                    ? 700
-                    : 500,
-                color:
-                  location.pathname.startsWith("/dashboard") &&
-                  new URLSearchParams(location.search).get("tab") === "timetable"
-                    ? "#0f172a"
-                    : "#64748b",
+                fontWeight: location.pathname.startsWith("/timetable") ? 700 : 500,
+                color: location.pathname.startsWith("/timetable") ? "#0f172a" : "#64748b",
                 cursor: "pointer",
                 padding: "8px 0",
                 position: "relative",
@@ -284,21 +276,20 @@ export default function Navbar() {
               }}
             >
               Timetable
-              {location.pathname.startsWith("/dashboard") &&
-                new URLSearchParams(location.search).get("tab") === "timetable" && (
-                  <motion.div
-                    layoutId="nav-indicator"
-                    style={{
-                      position: "absolute",
-                      bottom: 0,
-                      left: 0,
-                      right: 0,
-                      height: 2.5,
-                      background: "#2563eb",
-                      borderRadius: 99,
-                    }}
-                  />
-                )}
+              {location.pathname.startsWith("/timetable") && (
+                <motion.div
+                  layoutId="nav-indicator"
+                  style={{
+                    position: "absolute",
+                    bottom: 0,
+                    left: 0,
+                    right: 0,
+                    height: 2.5,
+                    background: "#2563eb",
+                    borderRadius: 99,
+                  }}
+                />
+              )}
             </button>
 
             {/* Analytics with Subnav Dropdown */}
@@ -926,22 +917,16 @@ export default function Navbar() {
                     padding: "11px 12px",
                     borderRadius: 10,
                     border: "none",
-                    background:
-                      location.pathname.startsWith("/dashboard") &&
-                      new URLSearchParams(location.search).get("tab") === "timetable"
-                        ? "#eff6ff"
-                        : "transparent",
-                    color:
-                      location.pathname.startsWith("/dashboard") &&
-                      new URLSearchParams(location.search).get("tab") === "timetable"
-                        ? "#2563eb"
-                        : "#1e293b",
+                    background: location.pathname.startsWith("/timetable")
+                      ? "#eff6ff"
+                      : "transparent",
+                    color: location.pathname.startsWith("/timetable")
+                      ? "#2563eb"
+                      : "#1e293b",
                     fontSize: 14.5,
-                    fontWeight:
-                      location.pathname.startsWith("/dashboard") &&
-                      new URLSearchParams(location.search).get("tab") === "timetable"
-                        ? 700
-                        : 600,
+                    fontWeight: location.pathname.startsWith("/timetable")
+                      ? 700
+                      : 600,
                     cursor: "pointer",
                     textAlign: "left",
                   }}
@@ -950,27 +935,25 @@ export default function Navbar() {
                     <Clock
                       size={17}
                       color={
-                        location.pathname.startsWith("/dashboard") &&
-                        new URLSearchParams(location.search).get("tab") === "timetable"
+                        location.pathname.startsWith("/timetable")
                           ? "#2563eb"
                           : "#64748b"
                       }
                     />
                     <span>Class Timetable</span>
                   </div>
-                  {location.pathname.startsWith("/dashboard") &&
-                    new URLSearchParams(location.search).get("tab") === "timetable" ? (
-                      <span
-                        style={{
-                          width: 6,
-                          height: 6,
-                          borderRadius: "50%",
-                          background: "#2563eb",
-                        }}
-                      />
-                    ) : (
-                      <ChevronRight size={15} color="#cbd5e1" />
-                    )}
+                  {location.pathname.startsWith("/timetable") ? (
+                    <span
+                      style={{
+                        width: 6,
+                        height: 6,
+                        borderRadius: "50%",
+                        background: "#2563eb",
+                      }}
+                    />
+                  ) : (
+                    <ChevronRight size={15} color="#cbd5e1" />
+                  )}
                 </button>
 
                 {/* Analytics Accordion */}

@@ -11,15 +11,12 @@ import { encodeStudentId, decodeStudentId, isEncryptedToken } from "../utils/stu
 import GradeSheet from "../components/GradeSheet";
 import BasketDashboard from "../components/BasketDashboard";
 import TargetPredictor from "../components/TargetPredictor";
-import TimetableTopBar from "../components/TimetableTopBar";
-import TimetableScheduleView from "../components/TimetableScheduleView";
 import axios from "axios";
 import { motion, AnimatePresence } from "framer-motion";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import html2canvas from "html2canvas";
 import {
-  Clock,
   User,
   TrendingUp,
   Star,
@@ -647,7 +644,6 @@ export default function Dashboard() {
 
   const navMenuItems = [
     { id: "result", label: "Semester Result", icon: <FileText size={17} /> },
-    { id: "timetable", label: "Class Timetable", icon: <Clock size={17} /> },
     { id: "internal", label: "Internal Marks", icon: <FileEdit size={17} /> },
     { id: "history", label: "Semester History", icon: <Calendar size={17} /> },
     { id: "baskets", label: "Degree Progress", icon: <Layout size={17} /> },
@@ -2038,17 +2034,6 @@ export default function Dashboard() {
                         result={currentResult}
                         studentData={studentData}
                         highlightedSubject={highlightedSubject}
-                      />
-                    </div>
-                  )}
-
-                  {/* Tab: Class Timetable & Schedule View */}
-                  {tab === "timetable" && (
-                    <div style={{ width: "100%", minWidth: 0 }}>
-                      <TimetableScheduleView
-                        studentSection={studentData?.section || studentData?.branch || "CSE-A"}
-                        regNo={regNo}
-                        isMobile={isMobile}
                       />
                     </div>
                   )}
