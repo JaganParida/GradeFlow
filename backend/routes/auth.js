@@ -72,7 +72,7 @@ router.post("/student/send-otp", async (req, res) => {
     const studentName = studentRecord.studentName || "Student";
     const studentEmail = `${rawReg.toLowerCase()}@centurionuniv.edu.in`;
 
-    // ── Single Device Check: Is an active session running on another device? ──
+    // ── Single Device Check: Is an active session running on this device? ──
     const existingSession = await StudentSession.findOne({
       regNo: rawReg,
       isActive: true,
@@ -104,21 +104,6 @@ router.post("/student/send-otp", async (req, res) => {
             regNo: rawReg,
             studentName,
           },
-        });
-      }
-
-      // Check if session has timed out due to 7-day inactivity
-      const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000;
-      const lastActive = new Date(existingSession.lastActiveAt).getTime();
-      if (Date.now() - lastActive > SEVEN_DAYS_MS) {
-        // Expired, delete old session
-        await StudentSession.deleteOne({ _id: existingSession._id });
-      } else {
-        // Active on another device -> block sending OTP to prevent unauthorized spam / device takeover
-        return res.status(409).json({
-          message: `This account is already active and logged in on another device. For security, concurrent logins are restricted. Please log out from your active device first.`,
-          code: "DEVICE_ALREADY_ACTIVE",
-          activeSince: existingSession.loggedInAt,
         });
       }
     }

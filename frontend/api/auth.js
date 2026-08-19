@@ -214,18 +214,6 @@ module.exports = async function handler(req, res) {
             student: { regNo: rawReg, studentName },
           });
         }
-
-        const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000;
-        const lastActive = new Date(existingSession.lastActiveAt).getTime();
-        if (Date.now() - lastActive > SEVEN_DAYS_MS) {
-          await StudentSession.deleteOne({ _id: existingSession._id });
-        } else {
-          return res.status(409).json({
-            message: "This account is already active and logged in on another device. For security, concurrent logins are restricted. Please log out from your active device first.",
-            code: "DEVICE_ALREADY_ACTIVE",
-            activeSince: existingSession.loggedInAt,
-          });
-        }
       }
 
       // ── Daily Limit Check (Max 2 attempts/day, bypassed for developer whitelisted regNo) ──

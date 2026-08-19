@@ -84,6 +84,45 @@ export default function AttendanceTracker() {
     return normalizeSection("CSE-A", currentRegNo);
   });
 
+  // ── Daily Timetable Check-in State & Keys ──────────────────────────────
+  const todayDateObj = useMemo(() => new Date(), []);
+  const todayDateKey = useMemo(() => todayDateObj.toISOString().slice(0, 10), [todayDateObj]);
+  const todayDayIndex = todayDateObj.getDay(); // 0 Sun, 1 Mon ... 6 Sat
+  const todayDayName = DAYS_LIST[todayDayIndex === 0 ? 0 : todayDayIndex - 1] || "Monday";
+
+  const todayScheduleRaw = useMemo(() => {
+    return getDaySchedule(selectedSection, todayDayName);
+  }, [selectedSection, todayDayName]);
+
+  const todayClasses = useMemo(() => {
+    return (todayScheduleRaw || [])
+      .map((period, idx) => ({
+        ...period,
+        slotIndex: idx,
+        slot: TIME_SLOTS[idx],
+        cleanName: cleanSubjectBaseName(period.subject),
+      }))
+      .filter((p) => !p.isFree && p.subject && p.subject !== "No Class / Free");
+  }, [todayScheduleRaw]);
+
+  const dailyLogKey = `gradeflow_attendance_log_${currentRegNo || selectedSection}_${todayDateKey}`;
+  const [dailyAttendanceLogs, setDailyAttendanceLogs] = useState(() => {
+    try {
+      const stored = localStorage.getItem(dailyLogKey);
+      return stored ? JSON.parse(stored) : {};
+    } catch {
+      return {};
+    }
+  });
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(dailyLogKey, JSON.stringify(dailyAttendanceLogs));
+    } catch (e) {
+      console.error("Failed to persist daily attendance log:", e);
+    }
+  }, [dailyAttendanceLogs, dailyLogKey]);
+
   // Search State
   const [searchRegInput, setSearchRegInput] = useState("");
   const [searchError, setSearchError] = useState("");
@@ -366,44 +405,6 @@ export default function AttendanceTracker() {
     });
   }
 
-  // ── Daily Timetable Check-in State ──────────────────────────────
-  const todayDateObj = useMemo(() => new Date(), []);
-  const todayDateKey = useMemo(() => todayDateObj.toISOString().slice(0, 10), [todayDateObj]);
-  const todayDayIndex = todayDateObj.getDay(); // 0 Sun, 1 Mon ... 6 Sat
-  const todayDayName = DAYS_LIST[todayDayIndex === 0 ? 0 : todayDayIndex - 1] || "Monday";
-
-  const todayScheduleRaw = useMemo(() => {
-    return getDaySchedule(selectedSection, todayDayName);
-  }, [selectedSection, todayDayName]);
-
-  const todayClasses = useMemo(() => {
-    return (todayScheduleRaw || [])
-      .map((period, idx) => ({
-        ...period,
-        slotIndex: idx,
-        slot: TIME_SLOTS[idx],
-        cleanName: cleanSubjectBaseName(period.subject),
-      }))
-      .filter((p) => !p.isFree && p.subject && p.subject !== "No Class / Free");
-  }, [todayScheduleRaw]);
-
-  const dailyLogKey = `gradeflow_attendance_log_${currentRegNo || selectedSection}_${todayDateKey}`;
-  const [dailyAttendanceLogs, setDailyAttendanceLogs] = useState(() => {
-    try {
-      const stored = localStorage.getItem(dailyLogKey);
-      return stored ? JSON.parse(stored) : {};
-    } catch {
-      return {};
-    }
-  });
-
-  useEffect(() => {
-    try {
-      localStorage.setItem(dailyLogKey, JSON.stringify(dailyAttendanceLogs));
-    } catch (e) {
-      console.error("Failed to persist daily attendance log:", e);
-    }
-  }, [dailyAttendanceLogs, dailyLogKey]);
 
   // Handler for marking Present on today's classes (simple toggle, zero auto-absent)
   function handleToggleDailyAttendance(period) {
