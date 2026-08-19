@@ -86,8 +86,14 @@ export default function StudentReportCardEditor({ authHeaders, API, onSuccess })
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [successMsg, setSuccessMsg] = useState("");
-  const [errorMsg, setErrorMsg] = useState("");
   const [searchDebounceTimer, setSearchDebounceTimer] = useState(null);
+  const [isMobile, setIsMobile] = useState(() => (typeof window !== "undefined" ? window.innerWidth < 768 : false));
+
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth < 768);
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
 
   const searchBoxRef = useRef(null);
 
@@ -420,13 +426,13 @@ export default function StudentReportCardEditor({ authHeaders, API, onSuccess })
           background: "#ffffff",
           border: "1px solid #e2e8f0",
           borderRadius: 16,
-          padding: "20px 24px",
+          padding: isMobile ? "16px 14px" : "20px 24px",
           boxShadow: "0 2px 10px rgba(15, 23, 42, 0.03)",
         }}
       >
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 14, marginBottom: 18 }}>
           <div>
-            <h3 style={{ fontSize: 18, fontWeight: 800, color: "#0f172a", margin: 0, display: "flex", alignItems: "center", gap: 8 }}>
+            <h3 style={{ fontSize: isMobile ? 16 : 18, fontWeight: 800, color: "#0f172a", margin: 0, display: "flex", alignItems: "center", gap: 8 }}>
               <BookOpen size={20} color="#2563eb" />
               Student Report Card & Full Academic Record Editor
             </h3>
@@ -435,8 +441,8 @@ export default function StudentReportCardEditor({ authHeaders, API, onSuccess })
             </p>
           </div>
 
-          <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-            <span style={{ fontSize: 11.5, fontWeight: 700, color: "#475569", textTransform: "uppercase", letterSpacing: "0.5px" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+            <span style={{ fontSize: 11, fontWeight: 700, color: "#475569", textTransform: "uppercase", letterSpacing: "0.5px" }}>
               Quick Semesters:
             </span>
             {[1, 2, 3, 4, 5, 6, 7, 8].map((s) => {
@@ -448,9 +454,9 @@ export default function StudentReportCardEditor({ authHeaders, API, onSuccess })
                   type="button"
                   onClick={() => handleSemesterChange(s)}
                   style={{
-                    padding: "4px 10px",
+                    padding: "4px 8px",
                     borderRadius: 8,
-                    fontSize: 12,
+                    fontSize: 11.5,
                     fontWeight: 800,
                     cursor: "pointer",
                     border: isSelected ? "2px solid #2563eb" : "1px solid #e2e8f0",
@@ -469,10 +475,18 @@ export default function StudentReportCardEditor({ authHeaders, API, onSuccess })
         </div>
 
         {/* Search Input Row */}
-        <div style={{ display: "grid", gridTemplateColumns: "minmax(280px, 1.8fr) 180px auto", gap: 12, alignItems: "center" }}>
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: isMobile ? "1fr" : "minmax(240px, 1.8fr) 150px auto",
+            gap: 10,
+            alignItems: "center",
+            width: "100%",
+          }}
+        >
           {/* RegNo / Name Search Box */}
-          <div ref={searchBoxRef} style={{ position: "relative" }}>
-            <div style={{ display: "flex", alignItems: "center", position: "relative" }}>
+          <div ref={searchBoxRef} style={{ position: "relative", width: "100%" }}>
+            <div style={{ display: "flex", alignItems: "center", position: "relative", width: "100%" }}>
               <Search
                 size={16}
                 color="#64748b"
@@ -576,7 +590,7 @@ export default function StudentReportCardEditor({ authHeaders, API, onSuccess })
           </div>
 
           {/* Semester Selector */}
-          <div>
+          <div style={{ width: "100%" }}>
             <select
               value={selectedSem}
               onChange={(e) => handleSemesterChange(e.target.value)}
@@ -591,6 +605,7 @@ export default function StudentReportCardEditor({ authHeaders, API, onSuccess })
                 outline: "none",
                 background: "#ffffff",
                 cursor: "pointer",
+                boxSizing: "border-box",
               }}
             >
               {[1, 2, 3, 4, 5, 6, 7, 8].map((sem) => (
@@ -607,7 +622,7 @@ export default function StudentReportCardEditor({ authHeaders, API, onSuccess })
             onClick={() => loadStudentData(searchQuery, selectedSem)}
             disabled={loading}
             style={{
-              padding: "11px 20px",
+              padding: isMobile ? "12px 16px" : "11px 20px",
               borderRadius: 10,
               background: "#2563eb",
               color: "#ffffff",
@@ -617,9 +632,12 @@ export default function StudentReportCardEditor({ authHeaders, API, onSuccess })
               cursor: loading ? "not-allowed" : "pointer",
               display: "flex",
               alignItems: "center",
+              justifyContent: "center",
               gap: 8,
               boxShadow: "0 2px 6px rgba(37, 99, 235, 0.25)",
               whiteSpace: "nowrap",
+              width: isMobile ? "100%" : "auto",
+              boxSizing: "border-box",
             }}
           >
             {loading ? <RefreshCw size={16} className="spin" /> : <Search size={16} />}
