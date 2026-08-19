@@ -526,8 +526,8 @@ export default function AttendanceTracker() {
       if (!matchedComp) {
         components.push({
           type: compType,
-          attended: Math.max(0, 18 + deltaAttended),
-          delivered: Math.max(0, 24 + deltaDelivered),
+          attended: Math.max(0, deltaAttended > 0 ? 1 : 0),
+          delivered: Math.max(0, deltaDelivered > 0 ? 1 : 0),
         });
       }
 
@@ -540,8 +540,8 @@ export default function AttendanceTracker() {
         components: [
           {
             type: compType,
-            attended: Math.max(0, 18 + deltaAttended),
-            delivered: Math.max(0, 24 + deltaDelivered),
+            attended: Math.max(0, deltaAttended > 0 ? 1 : 0),
+            delivered: Math.max(0, deltaDelivered > 0 ? 1 : 0),
           },
         ],
         section: selectedSection,
@@ -570,8 +570,8 @@ export default function AttendanceTracker() {
         if (!hasType) {
           nextComps.push({
             type: compType,
-            attended: Math.max(0, 18 + deltaAttended),
-            delivered: Math.max(0, 24 + deltaDelivered),
+            attended: Math.max(0, deltaAttended > 0 ? 1 : 0),
+            delivered: Math.max(0, deltaDelivered > 0 ? 1 : 0),
           });
         }
         return nextComps;
