@@ -3,11 +3,13 @@ const StudentSession = require("../models/StudentSession");
 
 // Admin Protection Middleware
 const protect = (req, res, next) => {
-  let token;
-  if (req.cookies && req.cookies.jwt) {
-    token = req.cookies.jwt;
-  } else if (req.headers.authorization && req.headers.authorization.startsWith("Bearer")) {
+  let token = null;
+  if (req.headers.authorization && req.headers.authorization.startsWith("Bearer")) {
     token = req.headers.authorization.split(" ")[1];
+  } else if (req.headers["x-admin-token"]) {
+    token = req.headers["x-admin-token"];
+  } else if (req.cookies && req.cookies.jwt && req.cookies.jwt !== "none" && req.cookies.jwt !== "") {
+    token = req.cookies.jwt;
   }
 
   if (!token || token === "none") {
@@ -93,10 +95,14 @@ const protectStudent = async (req, res, next) => {
 const requireStudentOrAdmin = async (req, res, next) => {
   const targetRegNo = (req.params.regNo || "").trim().toUpperCase();
 
-  // 1. Check if valid Admin Token
-  let adminToken = req.cookies?.jwt;
-  if (!adminToken && req.headers.authorization && req.headers.authorization.startsWith("Bearer")) {
+  // 1. Check if valid Admin Token (Bearer header takes highest precedence)
+  let adminToken = null;
+  if (req.headers.authorization && req.headers.authorization.startsWith("Bearer")) {
     adminToken = req.headers.authorization.split(" ")[1];
+  } else if (req.headers["x-admin-token"]) {
+    adminToken = req.headers["x-admin-token"];
+  } else if (req.cookies && req.cookies.jwt && req.cookies.jwt !== "none" && req.cookies.jwt !== "") {
+    adminToken = req.cookies.jwt;
   }
 
   if (adminToken && adminToken !== "none" && adminToken !== "") {
