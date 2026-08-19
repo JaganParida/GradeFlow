@@ -305,7 +305,15 @@ export default function AttendanceScreenshotModal({
         activeSubject = matchedCat;
       }
 
-      const fracMatch = line.match(/(\d+)\s*[\/|\\]\s*(\d+)/);
+      // Check current line and up to 2 adjacent lines for attendance fractions
+      let fracMatch = line.match(/(\d+)\s*[\/|\\]\s*(\d+)/);
+      if (!fracMatch && i + 1 < lines.length) {
+        const nextLine = lines[i + 1];
+        if (!findCatalogSubject(nextLine)) {
+          fracMatch = nextLine.match(/(\d+)\s*[\/|\\]\s*(\d+)/);
+        }
+      }
+
       if (fracMatch && activeSubject) {
         const att = parseInt(fracMatch[1], 10);
         const del = parseInt(fracMatch[2], 10);
