@@ -10,9 +10,9 @@ async function connectToDatabase() {
     return cached.conn;
   }
 
-  const MONGO_URI = process.env.MONGO_URI;
+  const MONGO_URI = process.env.MONGO_URI || process.env.MONGODB_URI;
   if (!MONGO_URI) {
-    throw new Error("MONGO_URI environment variable is missing on Vercel.");
+    throw new Error("MONGO_URI or MONGODB_URI environment variable is missing.");
   }
 
   if (!cached.promise) {

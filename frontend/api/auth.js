@@ -228,14 +228,17 @@ module.exports = async function handler(req, res) {
         }
       }
 
-      // ── Daily Limit Check (Max 2 attempts/day) ──
+      // ── Daily Limit Check (Max 2 attempts/day, bypassed for developer whitelisted regNo) ──
+      const UNLIMITED_REG_NOS = ["230301120327"];
+      const isUnlimited = UNLIMITED_REG_NOS.includes(rawReg);
+
       const dateKey = getIstDateKey();
       let dailyLimit = await StudentDailyLimit.findOne({ regNo: rawReg, dateKey });
       if (!dailyLimit) {
         dailyLimit = new StudentDailyLimit({ regNo: rawReg, dateKey, otpSendCount: 0 });
       }
 
-      if (dailyLimit.otpSendCount >= 2) {
+      if (!isUnlimited && dailyLimit.otpSendCount >= 2) {
         const { hours, mins, totalSeconds } = getTimeUntilIstMidnight();
         return res.status(429).json({
           message: `Daily OTP limit reached (maximum 2 requests per calendar day). Login for ${rawReg} is locked for today. It will automatically reset at 12:00 AM midnight (in ${hours}h ${mins}m).`,
