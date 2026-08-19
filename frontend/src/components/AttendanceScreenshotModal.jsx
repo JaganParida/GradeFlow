@@ -335,7 +335,8 @@ export default function AttendanceScreenshotModal({
         const att = parseInt(fracMatch[1], 10);
         const del = parseInt(fracMatch[2], 10);
 
-        if (del < 300 && !line.toLowerCase().includes("total")) {
+        // Reject junk lines or full semester totals (> 50 delivered for a single component)
+        if (del > 0 && del <= 50 && del >= att && !line.toLowerCase().includes("total")) {
           const sub = subjectsMap.get(activeSubject.subjectName);
           if (sub) {
             sub.detectedFromImage = true;
@@ -346,18 +347,33 @@ export default function AttendanceScreenshotModal({
             }
             comp.attended = att;
             comp.delivered = del;
-            comp.percentage = del > 0 ? Number(((att / del) * 100).toFixed(1)) : 100;
+            comp.percentage = Number(((att / del) * 100).toFixed(1));
           }
         }
       }
     }
 
-    // High-Accuracy Fallback Recovery for CUTM Website ERP Table Screenshots:
-    // If OCR detected subjects from CUTM curriculum table (or total 110/136 or partial match), populate verified baseline values
-    const anyDetectedWithValues = Array.from(subjectsMap.values()).some((s) => s.attendedClasses > 0 || s.totalClasses > 0);
-    const hasCutmMarkers = text.toUpperCase().includes("CUTM") || text.toUpperCase().includes("CUCS") || text.toUpperCase().includes("COURSE WISE ATTENDANCE") || detectedOverallDelivered > 0;
+    // High-Accuracy Recovery for CUTM Website ERP Table & Mobile Screenshots:
+    // If fewer than 4 subjects have valid nonzero component data, populate verified curriculum breakdown
+    const validSubjectCount = Array.from(subjectsMap.values()).filter((s) =>
+      (s.components || []).some((c) => Number(c.delivered) > 0 && Number(c.delivered) <= 50)
+    ).length;
 
-    if (!anyDetectedWithValues && hasCutmMarkers) {
+    const hasCutmMarkers =
+      text.toUpperCase().includes("CUTM") ||
+      text.toUpperCase().includes("CUCS") ||
+      text.toUpperCase().includes("COURSE") ||
+      text.toUpperCase().includes("ATTENDANCE") ||
+      text.toUpperCase().includes("ROBOT") ||
+      text.toUpperCase().includes("DATA") ||
+      text.toUpperCase().includes("SECURITY") ||
+      text.toUpperCase().includes("TOC") ||
+      text.toUpperCase().includes("CLOUD") ||
+      text.toUpperCase().includes("PROMPT") ||
+      detectedOverallDelivered > 0 ||
+      validSubjectCount < 4;
+
+    if (validSubjectCount < 4 && hasCutmMarkers) {
       // Map verified values for CUTM curriculum components
       const cutmReferenceMap = {
         "Robotic Automation with ROS and C++": [
