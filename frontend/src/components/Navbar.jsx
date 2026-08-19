@@ -9,7 +9,7 @@ import {
   LayoutDashboard, Trophy, BookOpen, MessageSquare,
   TrendingUp, Briefcase, Target, Award, Activity,
   Menu, X, Home as HomeIcon, User, Calculator, ArrowRight,
-  ShieldCheck, Clock, Percent, GraduationCap
+  ShieldCheck, Clock, Percent, GraduationCap, Loader2
 } from "lucide-react";
 import { is2023CSEBatch } from "../utils/timetableHelper";
 
@@ -30,6 +30,7 @@ export default function Navbar() {
     studentSession,
     hasActiveSession,
     leaveSession,
+    isLoggingOut,
     fetchStudent,
     loading,
     error,
@@ -777,22 +778,24 @@ export default function Navbar() {
                   </Link>
                   <button
                     onClick={() => leaveSession()}
+                    disabled={isLoggingOut}
                     style={{
                       background: "transparent",
                       border: "1px solid #fecaca",
                       color: "#ef4444",
                       borderRadius: 10,
                       padding: "6px 9px",
-                      cursor: "pointer",
+                      cursor: isLoggingOut ? "not-allowed" : "pointer",
                       fontSize: 12,
                       fontWeight: 600,
                       display: "flex",
                       alignItems: "center",
                       gap: 4,
+                      transition: "all 0.15s ease",
                     }}
                     title="Logout"
                   >
-                    <LogOut size={13} />
+                    {isLoggingOut ? <Loader2 size={13} className="spin" /> : <LogOut size={13} />}
                   </button>
                 </div>
               ) : (
@@ -1422,13 +1425,14 @@ export default function Navbar() {
                         leaveSession();
                         setMobileMenuOpen(false);
                       }}
+                      disabled={isLoggingOut}
                       style={{
                         background: "#fef2f2",
                         border: "1px solid #fecaca",
                         color: "#ef4444",
                         borderRadius: 8,
                         padding: "5px 9px",
-                        cursor: "pointer",
+                        cursor: isLoggingOut ? "not-allowed" : "pointer",
                         fontSize: 11.5,
                         fontWeight: 600,
                         display: "flex",
@@ -1436,7 +1440,8 @@ export default function Navbar() {
                         gap: 4,
                       }}
                     >
-                      <LogOut size={12} /> Exit
+                      {isLoggingOut ? <Loader2 size={12} className="spin" /> : <LogOut size={12} />}
+                      <span>{isLoggingOut ? "Exiting..." : "Exit"}</span>
                     </button>
                   </div>
                 ) : (

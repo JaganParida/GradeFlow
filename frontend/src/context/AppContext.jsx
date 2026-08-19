@@ -122,21 +122,30 @@ export function AppProvider({ children }) {
     }
   };
 
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
+
   const studentLogout = async () => {
+    setIsLoggingOut(true);
+
+    // 1. Immediately wipe in-memory state for instant UI response
+    setStudentSession(null);
+    setStudentData(null);
+    setError("");
+
+    try {
+      localStorage.removeItem("gf_student_data");
+      localStorage.removeItem("gf_student_session");
+      localStorage.removeItem("last_regNo");
+      localStorage.removeItem("last_studentName");
+    } catch {}
+
+    // 2. Clear session on server in background
     try {
       await axios.post(`${API_BASE}/auth/student/logout`);
     } catch (err) {
-      console.warn("Student logout error:", err);
+      console.warn("Student logout server sync:", err);
     } finally {
-      setStudentSession(null);
-      setStudentData(null);
-      setError("");
-      try {
-        localStorage.removeItem("gf_student_data");
-        localStorage.removeItem("gf_student_session");
-        localStorage.removeItem("last_regNo");
-        localStorage.removeItem("last_studentName");
-      } catch {}
+      setIsLoggingOut(false);
       navigate("/");
     }
   };
@@ -264,6 +273,7 @@ export function AppProvider({ children }) {
         sendStudentOtp,
         verifyStudentOtp,
         studentLogout,
+        isLoggingOut,
         loading,
         error,
         adminToken,

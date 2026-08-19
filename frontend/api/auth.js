@@ -480,19 +480,16 @@ module.exports = async function handler(req, res) {
       if (token) {
         try {
           const decoded = jwt.verify(token, process.env.JWT_SECRET);
-          await StudentSession.deleteMany({ regNo: decoded.regNo, sessionId: decoded.sessionId });
+          if (decoded?.regNo) {
+            await StudentSession.deleteMany({ regNo: decoded.regNo });
+          }
         } catch {}
       }
 
-      const cookieOptions = [
-        `student_jwt=`,
-        `Path=/`,
-        `HttpOnly`,
-        `Secure`,
-        `SameSite=Lax`,
-        `Max-Age=0`,
-      ].join("; ");
-      res.setHeader("Set-Cookie", cookieOptions);
+      res.setHeader("Set-Cookie", [
+        `student_jwt=; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=0; Expires=Thu, 01 Jan 1970 00:00:00 GMT`,
+        `student_jwt=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0; Expires=Thu, 01 Jan 1970 00:00:00 GMT`,
+      ]);
 
       return res.json({ success: true, message: "Student logged out successfully." });
     }
