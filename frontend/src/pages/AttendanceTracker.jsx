@@ -1673,22 +1673,30 @@ export default function AttendanceTracker() {
                         </span>
                       </div>
 
-                      <div style={{ display: "flex", flexDirection: "column", gap: 7, fontSize: 12, color: "#475569" }}>
+                      <div style={{ display: "flex", flexDirection: "column", gap: 8, fontSize: 12, color: "#475569" }}>
                         <div style={{ display: "flex", alignItems: "flex-start", gap: 8 }}>
                           <span style={{ width: 18, height: 18, borderRadius: 999, background: "#eff6ff", color: "#2563eb", fontSize: 10, fontWeight: 900, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, marginTop: 1 }}>1</span>
-                          <span>Open your <strong>Mobile ERP App</strong> or <strong>Website ERP Portal</strong> &rarr; navigate to <strong>Subject-wise Attendance</strong>.</span>
+                          <div>
+                            <strong>Choose your ERP screenshot source:</strong>
+                            <div style={{ margin: "3px 0 0 0", color: "#334155" }}>
+                              &bull; <strong>Website ERP:</strong> Go to <strong>"Student Course Attendance"</strong> &rarr; take a full screenshot of the attendance table.
+                            </div>
+                            <div style={{ margin: "2px 0 0 0", color: "#334155" }}>
+                              &bull; <strong>Mobile ERP App:</strong> Go to <strong>"Subject-wise Attendance"</strong> &rarr; take a long screenshot or subject screenshots.
+                            </div>
+                          </div>
                         </div>
                         <div style={{ display: "flex", alignItems: "flex-start", gap: 8 }}>
                           <span style={{ width: 18, height: 18, borderRadius: 999, background: "#eff6ff", color: "#2563eb", fontSize: 10, fontWeight: 900, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, marginTop: 1 }}>2</span>
-                          <span>Take a screenshot of the attendance table or cards (or copy with <kbd style={{ background: "#e2e8f0", padding: "1px 4px", borderRadius: 3, fontSize: 10.5 }}>Win+Shift+S</kbd>).</span>
+                          <span>Click <strong>Auto-Import via Screenshot</strong> or press <kbd style={{ background: "#e2e8f0", padding: "1px 4px", borderRadius: 3, fontSize: 10.5 }}>Ctrl + V</kbd> to paste directly.</span>
                         </div>
                         <div style={{ display: "flex", alignItems: "flex-start", gap: 8 }}>
                           <span style={{ width: 18, height: 18, borderRadius: 999, background: "#eff6ff", color: "#2563eb", fontSize: 10, fontWeight: 900, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, marginTop: 1 }}>3</span>
-                          <span>Click <strong>Auto-Import via Screenshot</strong> or press <strong>Ctrl + V</strong> to paste directly.</span>
+                          <span>AI extracts theory (<strong>PP</strong>), practical (<strong>PR</strong>), and tutorial (<strong>TUT</strong>) numbers matching course codes automatically.</span>
                         </div>
                         <div style={{ display: "flex", alignItems: "flex-start", gap: 8 }}>
                           <span style={{ width: 18, height: 18, borderRadius: 999, background: "#eff6ff", color: "#2563eb", fontSize: 10, fontWeight: 900, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, marginTop: 1 }}>4</span>
-                          <span>AI Vision extracts theory (<strong>PP</strong>), practical (<strong>PR</strong>), and tutorial (<strong>TUT</strong>) numbers. Recheck and match with your ERP, then click <strong>Save to Cloud</strong>.</span>
+                          <span>Recheck against your ERP screen, then click <strong>Save to Cloud</strong> to start real-time tracking!</span>
                         </div>
                       </div>
 
