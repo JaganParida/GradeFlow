@@ -42,6 +42,8 @@ import {
   GraduationCap,
   Lock,
   Smartphone,
+  Laptop,
+  Monitor,
   CloudUpload,
   HelpCircle,
   Upload,
@@ -1673,16 +1675,18 @@ export default function AttendanceTracker() {
                         </span>
                       </div>
 
-                      <div style={{ display: "flex", flexDirection: "column", gap: 8, fontSize: 12, color: "#475569" }}>
+                      <div style={{ display: "flex", flexDirection: "column", gap: 9, fontSize: 12, color: "#475569" }}>
                         <div style={{ display: "flex", alignItems: "flex-start", gap: 8 }}>
                           <span style={{ width: 18, height: 18, borderRadius: 999, background: "#eff6ff", color: "#2563eb", fontSize: 10, fontWeight: 900, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, marginTop: 1 }}>1</span>
                           <div>
-                            <strong>Choose your ERP screenshot source:</strong>
-                            <div style={{ margin: "3px 0 0 0", color: "#334155" }}>
-                              &bull; <strong>Website ERP:</strong> Go to <strong>"Student Course Attendance"</strong> &rarr; take a full screenshot of the attendance table.
+                            <strong style={{ color: "#0f172a" }}>Choose your ERP screenshot source:</strong>
+                            <div style={{ margin: "4px 0 0 0", color: "#334155", display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+                              <Monitor size={13} color="#2563eb" style={{ flexShrink: 0 }} />
+                              <span><strong>Website ERP:</strong> Go to <strong>"Student Course Wise Attendance"</strong> &rarr; take a full screenshot of the attendance table.</span>
                             </div>
-                            <div style={{ margin: "2px 0 0 0", color: "#334155" }}>
-                              &bull; <strong>Mobile ERP App:</strong> Go to <strong>"Subject-wise Attendance"</strong> &rarr; take a long screenshot or subject screenshots.
+                            <div style={{ margin: "3px 0 0 0", color: "#334155", display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+                              <Smartphone size={13} color="#059669" style={{ flexShrink: 0 }} />
+                              <span><strong>Mobile ERP App:</strong> Go to <strong>"Subject-wise Attendance"</strong> &rarr; take a long screenshot or subject screenshots.</span>
                             </div>
                           </div>
                         </div>
