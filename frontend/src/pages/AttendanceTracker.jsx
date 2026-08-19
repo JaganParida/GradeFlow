@@ -54,6 +54,7 @@ import {
   calculateAttendance,
   estimateTargetReachDate,
 } from "../utils/timetableHelper";
+import SmartBunkAnalyzer from "../components/SmartBunkAnalyzer";
 
 export default function AttendanceTracker() {
   const { studentId: urlParam } = useParams();
@@ -206,6 +207,7 @@ export default function AttendanceTracker() {
   const [targetGoal, setTargetGoal] = useState(75);
   const [simulateMissCount, setSimulateMissCount] = useState(0);
   const [simulateAttendCount, setSimulateAttendCount] = useState(0);
+  const [activeTab, setActiveTab] = useState("studio"); // "studio" | "bunk_analyzer"
 
   // Saved Subjects LocalStorage Store
   const storageKey = `gradeflow_attendance_${currentRegNo || selectedSection}`;
@@ -1337,9 +1339,104 @@ export default function AttendanceTracker() {
         </div>
 
         {/* ═══════════════════════════════════════════════════════════════
-            TODAY'S DAILY ROUTINE ATTENDANCE CHECK-IN HUB
+            VIEW MODE TAB SWITCHER: STUDIO vs SMART BUNK ANALYZER
         ═══════════════════════════════════════════════════════════════ */}
         <div
+          style={{
+            background: "#ffffff",
+            border: "1px solid #e2e8f0",
+            borderRadius: 14,
+            padding: 5,
+            display: "grid",
+            gridTemplateColumns: "1fr 1fr",
+            gap: 6,
+            boxShadow: "0 1px 3px rgba(0,0,0,0.02)",
+          }}
+        >
+          <button
+            type="button"
+            onClick={() => setActiveTab("studio")}
+            style={{
+              padding: isMobile ? "9px 12px" : "11px 18px",
+              borderRadius: 10,
+              border: "none",
+              background:
+                activeTab === "studio"
+                  ? "linear-gradient(135deg, #059669 0%, #047857 100%)"
+                  : "transparent",
+              color: activeTab === "studio" ? "#ffffff" : "#475569",
+              fontSize: isMobile ? 12.5 : 13.5,
+              fontWeight: 800,
+              cursor: "pointer",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: 8,
+              transition: "all 0.15s ease",
+              boxShadow:
+                activeTab === "studio"
+                  ? "0 2px 8px rgba(5,150,105,0.25)"
+                  : "none",
+            }}
+          >
+            <Sliders size={16} />
+            <span>Attendance Studio & Matrix</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setActiveTab("bunk_analyzer")}
+            style={{
+              padding: isMobile ? "9px 12px" : "11px 18px",
+              borderRadius: 10,
+              border: "none",
+              background:
+                activeTab === "bunk_analyzer"
+                  ? "linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)"
+                  : "transparent",
+              color: activeTab === "bunk_analyzer" ? "#ffffff" : "#475569",
+              fontSize: isMobile ? 12.5 : 13.5,
+              fontWeight: 800,
+              cursor: "pointer",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: 8,
+              transition: "all 0.15s ease",
+              boxShadow:
+                activeTab === "bunk_analyzer"
+                  ? "0 2px 8px rgba(37,99,235,0.25)"
+                  : "none",
+            }}
+          >
+            <Sparkles size={16} />
+            <span>Smart Bunk & Safe Days Analyzer</span>
+            <span
+              style={{
+                fontSize: 10,
+                fontWeight: 900,
+                padding: "2px 6px",
+                borderRadius: 999,
+                background:
+                  activeTab === "bunk_analyzer"
+                    ? "rgba(255,255,255,0.25)"
+                    : "#eff6ff",
+                color: activeTab === "bunk_analyzer" ? "#ffffff" : "#2563eb",
+                textTransform: "uppercase",
+              }}
+            >
+              Intelligence
+            </span>
+          </button>
+        </div>
+
+        {/* ═══════════════════════════════════════════════════════════════
+            TAB 1: ATTENDANCE STUDIO & MATRIX
+        ═══════════════════════════════════════════════════════════════ */}
+        {activeTab === "studio" && (
+          <>
+            {/* TODAY'S DAILY ROUTINE ATTENDANCE CHECK-IN HUB */}
+            <div
           style={{
             background: "#ffffff",
             border: "1.5px solid #e2e8f0",
@@ -2681,7 +2778,23 @@ export default function AttendanceTracker() {
             </div>
           </div>
         )}
-      </div>
-    </div>
-  );
+      </>
+    )}
+
+    {/* ═══════════════════════════════════════════════════════════════
+        TAB 2: SMART BUNK & WEEKLY SAFE DAYS ANALYZER
+    ═══════════════════════════════════════════════════════════════ */}
+    {activeTab === "bunk_analyzer" && (
+      <SmartBunkAnalyzer
+        selectedSection={selectedSection}
+        allSectionSubjects={allSectionSubjects}
+        overallCalculation={overallCalculation}
+        studentData={studentData}
+        todayDayName={todayDayName}
+        isMobile={isMobile}
+      />
+    )}
+  </div>
+</div>
+);
 }
