@@ -141,8 +141,8 @@ router.post("/student/send-otp", async (req, res) => {
     // Delete any old unverified OTP for this regNo
     await OtpVerification.deleteMany({ regNo: rawReg });
 
-    // Store new OTP valid for strictly 3 minutes (180 seconds)
-    const expiresAt = new Date(Date.now() + 3 * 60 * 1000);
+    // Store new OTP valid for 5 minutes (300 seconds)
+    const expiresAt = new Date(Date.now() + 5 * 60 * 1000);
     await OtpVerification.create({
       regNo: rawReg,
       email: studentEmail,
@@ -163,7 +163,7 @@ router.post("/student/send-otp", async (req, res) => {
         studentName,
         regNo: rawReg,
         otp: otpCode,
-        expiresInMinutes: 3,
+        expiresInMinutes: 5,
       });
     } catch (emailErr) {
       console.error("Email dispatch failed:", emailErr.message);
@@ -181,8 +181,9 @@ router.post("/student/send-otp", async (req, res) => {
       maskedEmail,
       studentName,
       regNo: rawReg,
-      expiresInSeconds: 180,
-      remainingDailyAttempts: Math.max(0, 2 - dailyLimit.otpSendCount),
+      expiresInSeconds: 300,
+      remainingDailyAttempts: isUnlimited ? 99 : Math.max(0, 2 - dailyLimit.otpSendCount),
+      isUnlimited,
     });
   } catch (err) {
     console.error("Student send-otp error:", err);

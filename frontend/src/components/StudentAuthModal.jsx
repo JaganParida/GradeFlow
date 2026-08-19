@@ -434,7 +434,11 @@ export default function StudentAuthModal({ isOpen, onClose }) {
                   {maskedEmail}
                 </div>
                 <div style={{ fontSize: 11, color: "#166534", marginTop: 3 }}>
-                  Remaining attempts today: <strong>{remainingDailyAttempts}/2</strong>
+                  {remainingDailyAttempts >= 90 ? (
+                    <span>Access: <strong>Developer Access (Unlimited)</strong></span>
+                  ) : (
+                    <span>Remaining attempts today: <strong>{remainingDailyAttempts}/2</strong></span>
+                  )}
                 </div>
               </div>
 

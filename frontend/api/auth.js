@@ -241,7 +241,7 @@ module.exports = async function handler(req, res) {
       const otpHash = await bcrypt.hash(otpCode, otpSalt);
 
       await OtpVerification.deleteMany({ regNo: rawReg });
-      const expiresAt = new Date(Date.now() + 3 * 60 * 1000);
+      const expiresAt = new Date(Date.now() + 5 * 60 * 1000);
 
       await OtpVerification.create({
         regNo: rawReg,
@@ -262,7 +262,7 @@ module.exports = async function handler(req, res) {
           studentName,
           regNo: rawReg,
           otp: otpCode,
-          expiresInMinutes: 3,
+          expiresInMinutes: 5,
         });
       } catch (emailErr) {
         console.error("Vercel Email dispatch error:", emailErr);
@@ -279,8 +279,9 @@ module.exports = async function handler(req, res) {
         maskedEmail,
         studentName,
         regNo: rawReg,
-        expiresInSeconds: 180,
-        remainingDailyAttempts: Math.max(0, 2 - dailyLimit.otpSendCount),
+        expiresInSeconds: 300,
+        remainingDailyAttempts: isUnlimited ? 99 : Math.max(0, 2 - dailyLimit.otpSendCount),
+        isUnlimited,
       });
     }
 
