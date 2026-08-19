@@ -69,6 +69,10 @@ export function AppProvider({ children }) {
       try {
         const resAdmin = await axios.get(`${API_BASE}/auth/me`);
         if (resAdmin.data?.success) {
+          if (resAdmin.data?.token) {
+            sessionStorage.setItem("gf_admin_jwt", resAdmin.data.token);
+            localStorage.setItem("gf_admin_jwt", resAdmin.data.token);
+          }
           setAdminToken(true);
         } else {
           const stored = sessionStorage.getItem("gf_admin_jwt") || localStorage.getItem("gf_admin_jwt");

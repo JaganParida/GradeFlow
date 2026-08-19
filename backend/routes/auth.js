@@ -427,7 +427,7 @@ router.get("/me", async (req, res) => {
       return res.json({ success: false, message: "Admin not found" });
     }
     
-    res.json({ success: true, admin });
+    res.json({ success: true, admin, token });
   } catch (err) {
     res.json({ success: false, message: "Token invalid or expired" });
   }
