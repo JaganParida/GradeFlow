@@ -183,17 +183,30 @@ export default function AttendanceScreenshotModal({
     });
   };
 
-  // Dedicated CUTM ERP Text Heuristic Parser (Website Table ERP + Mobile ERP Cards)
-  const parseCutmOcrText = (text, catalog) => {
+  // Dedicated CUTM ERP Text Parser (Strictly Maps to Enrolled Section Catalog Subjects)
+  const parseCutmOcrText = (text, catalog = []) => {
     const lines = text.split("\n").map((l) => l.trim()).filter(Boolean);
     const subjectsMap = new Map();
-    let activeSubjectKey = null;
-    let activeCompType = "PP";
+
+    // 1. Pre-populate with all authentic section catalog subjects initialized cleanly
+    catalog.forEach((c) => {
+      subjectsMap.set(c.subjectName, {
+        name: c.subjectName,
+        code: c.code || "",
+        components: (c.components || ["PP", "PR"]).map((t) => ({
+          type: t,
+          attended: 0,
+          delivered: 0,
+          percentage: 0,
+        })),
+        detectedFromImage: false,
+      });
+    });
 
     let detectedOverallAttended = 0;
     let detectedOverallDelivered = 0;
 
-    // 1. Detect Total Percentage line (e.g. "Total Percentage 110/136 80.88%")
+    // Detect Total Percentage line (e.g. "Total Percentage 110/136 80.88%")
     for (let line of lines) {
       if (
         line.toLowerCase().includes("total percentage") ||
@@ -208,241 +221,109 @@ export default function AttendanceScreenshotModal({
       }
     }
 
-    // 2. Multi-Format Line Scanner
+    // Fuzzy Subject Matcher — STRICTLY resolves to enrolled catalog only
+    const findCatalogSubject = (str) => {
+      const upper = str.toUpperCase();
+      for (const c of catalog) {
+        if (c.code && upper.includes(c.code.toUpperCase())) return c;
+        if (upper.includes(c.subjectName.toUpperCase())) return c;
+      }
+      // Fuzzy keywords for CUTM curriculum
+      if (upper.includes("FOBLTIC") || upper.includes("ROBOT") || upper.includes("ROS") || upper.includes("1020")) {
+        return catalog.find((c) => c.code === "CUTM1020" || c.subjectName.toLowerCase().includes("robotic"));
+      }
+      if (upper.includes("MINCE") || upper.includes("MINOR") || upper.includes("1577") || upper.includes("1906")) {
+        return catalog.find((c) => c.code === "CUTM1577" || c.code === "CUTM1906" || c.subjectName.toLowerCase().includes("minor"));
+      }
+      if (upper.includes("CAMA") || upper.includes("STHLCT") || upper.includes("DATA") || upper.includes("STRUCT") || upper.includes("ALGO") || upper.includes("3166")) {
+        return catalog.find((c) => c.code === "CUTM3166" || c.subjectName.toLowerCase().includes("data structure"));
+      }
+      if (upper.includes("TION BES") || upper.includes("TION SER") || upper.includes("INFO") || upper.includes("SECUR") || upper.includes("CIS") || upper.includes("1007")) {
+        return catalog.find((c) => c.code === "CUCS1007" || c.subjectName.toLowerCase().includes("security"));
+      }
+      if (upper.includes("NET") || upper.includes("PROT") || upper.includes("IOT") || upper.includes("1006")) {
+        return catalog.find((c) => c.code === "CUCS1006" || c.subjectName.toLowerCase().includes("network"));
+      }
+      if (upper.includes("COMP") || upper.includes("TOC") || upper.includes("THEORY") || upper.includes("1008")) {
+        return catalog.find((c) => c.code === "CUCS1008" || c.subjectName.toLowerCase().includes("theory of comp"));
+      }
+      if (upper.includes("FISH") || upper.includes("PROMPT") || upper.includes("CHAT") || upper.includes("GPT") || upper.includes("1014")) {
+        return catalog.find((c) => c.code === "CUCS1014" || c.subjectName.toLowerCase().includes("prompt"));
+      }
+      if (upper.includes("LOS FUND") || upper.includes("FUNDZ") || upper.includes("CLOUD") || upper.includes("AZURE") || upper.includes("1015")) {
+        return catalog.find((c) => c.code === "CUCS1015" || c.subjectName.toLowerCase().includes("cloud"));
+      }
+      return null;
+    };
+
+    // 2. Line Scanner
+    let activeSubject = null;
+    let activeCompType = "PP";
+
     for (let i = 0; i < lines.length; i++) {
       const line = lines[i];
 
-      // Ignore header strings
+      // Ignore noise & headers
       if (
         line.includes("Sr.No") ||
         line.includes("Course Name") ||
         line.includes("Course Short Name") ||
         line.includes("Course Code") ||
         line.includes("Attended/Delivered") ||
-        line.includes("Attendance Details") ||
-        line.includes("Wise Attendance") ||
         line.includes("From date") ||
         line.includes("To date") ||
-        line.toLowerCase().startsWith("total percentage") ||
-        /^\d{10,14}$/.test(line)
+        line.toLowerCase().startsWith("total percentage")
       ) {
         continue;
       }
 
-      // A. WEBSITE ERP TABLE LINE PATTERN (Code + Short Tag + Fraction):
-      const codeMatch = line.match(/\b(CUTM|CUCS|CUEC|CUEE|CUME|CUCY|CUPH|CUMA|BTE|BBA|MBA)\d{3,4}\b/i);
-      const shortCompMatch = line.match(/(?:-\s*|\(\s*|\b)(PP|PR|TUT|PF|TL)(?:\s*\)|\b)/i);
-      const fracMatch = line.match(/(\d+)\s*[\/|\\]\s*(\d+)/);
-
-      if (codeMatch && fracMatch) {
-        const code = codeMatch[0].toUpperCase();
-        let compType = "PP";
-        if (shortCompMatch) {
-          compType = shortCompMatch[1].toUpperCase().replace("PF", "PP").replace("TL", "TUT");
-        }
-        const att = parseInt(fracMatch[1], 10);
-        const del = parseInt(fracMatch[2], 10);
-
-        let matchedCatalog = catalog.find((c) => c.code && c.code.toUpperCase() === code);
-        if (!matchedCatalog) {
-          const rawName = line.split(codeMatch[0])[0].replace(/^\d+\s+/, "").trim();
-          if (rawName.length > 3) {
-            matchedCatalog = catalog.find((c) => c.subjectName.toLowerCase().includes(rawName.toLowerCase()));
-          }
-        }
-
-        let subName = matchedCatalog?.subjectName || code;
-        subName = cleanSubjectBaseName(subName);
-
-        if (!subjectsMap.has(subName)) {
-          subjectsMap.set(subName, {
-            name: subName,
-            code,
-            components: [],
-            detectedFromImage: true,
-          });
-        }
-
-        const sub = subjectsMap.get(subName);
-        const existingComp = sub.components.find((c) => c.type === compType);
-        if (existingComp) {
-          existingComp.attended = att;
-          existingComp.delivered = del;
-          existingComp.percentage = del > 0 ? Number(((att / del) * 100).toFixed(1)) : 100;
-        } else {
-          sub.components.push({
-            type: compType,
-            attended: att,
-            delivered: del,
-            percentage: del > 0 ? Number(((att / del) * 100).toFixed(1)) : 100,
-          });
-        }
-        continue;
-      }
-
-      // B. MOBILE ERP CARD FORMAT (Original & Restored):
+      // Component Type Detector (PP, PR, TUT)
       const upper = line.toUpperCase();
-      if (upper.includes("(PR") || upper.includes("- (PR") || upper.includes("-(PR") || upper.endsWith("- PR")) {
+      if (upper.includes("- PR") || upper.includes("(PR") || upper.includes("- (PR") || upper.includes("-(PR")) {
         activeCompType = "PR";
       } else if (
+        upper.includes("- PP") ||
         upper.includes("(PP") ||
         upper.includes("- (PP") ||
         upper.includes("-(PP") ||
-        upper.endsWith("- PP") ||
         upper.includes("(PF")
       ) {
         activeCompType = "PP";
       } else if (
+        upper.includes("- TUT") ||
         upper.includes("(TUT") ||
         upper.includes("- (TUT") ||
         upper.includes("-(TUT") ||
-        upper.endsWith("- TUT") ||
         upper.includes("(TL")
       ) {
         activeCompType = "TUT";
       }
 
-      const mobileTitleMatch = line.match(/^([^(]+?)(?:\s*\(([A-Z0-9]+)\))?$/);
-      let matchedCatalog = catalog.find(
-        (c) =>
-          line.toLowerCase().includes(c.subjectName.toLowerCase()) ||
-          (c.code && line.toLowerCase().includes(c.code.toLowerCase()))
-      );
-
-      // Fuzzy matching keywords for CUTM curriculum
-      if (!matchedCatalog) {
-        const lower = line.toLowerCase();
-        if (lower.includes("robotic") || lower.includes("ros")) {
-          matchedCatalog = catalog.find((c) => c.subjectName.toLowerCase().includes("robotic")) || {
-            subjectName: "Robotic Automation with ROS and C++",
-            code: "CUTM1020",
-          };
-        } else if (lower.includes("minor project")) {
-          matchedCatalog = catalog.find((c) => c.subjectName.toLowerCase().includes("minor project")) || {
-            subjectName: "Minor Project II",
-            code: "CUTM1577",
-          };
-        } else if (lower.includes("summer internship") || lower.includes("internship")) {
-          matchedCatalog = catalog.find((c) => c.subjectName.toLowerCase().includes("internship")) || {
-            subjectName: "Summer Internship I",
-            code: "CUTM1578",
-          };
-        } else if (lower.includes("cloud") || lower.includes("azure")) {
-          matchedCatalog = catalog.find((c) => c.subjectName.toLowerCase().includes("cloud"));
-        } else if (lower.includes("network") || lower.includes("iot")) {
-          matchedCatalog = catalog.find((c) => c.subjectName.toLowerCase().includes("network"));
-        } else if (
-          lower.includes("compiler") ||
-          lower.includes("theory of comp") ||
-          lower.includes("toc") ||
-          lower.includes("heory of comp")
-        ) {
-          matchedCatalog = catalog.find((c) => c.subjectName.toLowerCase().includes("theory of computation"));
-        } else if (lower.includes("information security") || lower.includes("cisco")) {
-          matchedCatalog = catalog.find((c) => c.subjectName.toLowerCase().includes("information security"));
-        } else if (lower.includes("prompt") || lower.includes("chatgpt")) {
-          matchedCatalog = catalog.find((c) => c.subjectName.toLowerCase().includes("prompt"));
-        } else if (lower.includes("data structure") || lower.includes("dsa") || lower.includes("algorithm")) {
-          matchedCatalog = catalog.find((c) => c.subjectName.toLowerCase().includes("data structure"));
-        }
+      const matchedCat = findCatalogSubject(line);
+      if (matchedCat) {
+        activeSubject = matchedCat;
       }
 
-      if (matchedCatalog) {
-        activeSubjectKey = matchedCatalog.subjectName;
-      } else if (mobileTitleMatch && mobileTitleMatch[1].length > 4 && !mobileTitleMatch[1].includes("/")) {
-        activeSubjectKey = cleanSubjectBaseName(mobileTitleMatch[1]);
-      }
-
-      if (activeSubjectKey && !subjectsMap.has(activeSubjectKey)) {
-        subjectsMap.set(activeSubjectKey, {
-          name: activeSubjectKey,
-          code: matchedCatalog?.code || "",
-          components: [],
-          detectedFromImage: true,
-        });
-      }
-
-      if (fracMatch && activeSubjectKey && subjectsMap.has(activeSubjectKey)) {
+      const fracMatch = line.match(/(\d+)\s*[\/|\\]\s*(\d+)/);
+      if (fracMatch && activeSubject) {
         const att = parseInt(fracMatch[1], 10);
         const del = parseInt(fracMatch[2], 10);
 
-        if (del < 300 && !line.includes("2026") && !line.includes("2027") && !line.toLowerCase().includes("total")) {
-          const sub = subjectsMap.get(activeSubjectKey);
-          const existingComp = sub.components.find((c) => c.type === activeCompType);
-          if (existingComp) {
-            existingComp.attended = att;
-            existingComp.delivered = del;
-            existingComp.percentage = del > 0 ? Number(((att / del) * 100).toFixed(1)) : 100;
-          } else {
-            sub.components.push({
-              type: activeCompType,
-              attended: att,
-              delivered: del,
-              percentage: del > 0 ? Number(((att / del) * 100).toFixed(1)) : 100,
-            });
+        if (del < 300 && !line.toLowerCase().includes("total")) {
+          const sub = subjectsMap.get(activeSubject.subjectName);
+          if (sub) {
+            sub.detectedFromImage = true;
+            let comp = sub.components.find((c) => c.type === activeCompType);
+            if (!comp) {
+              comp = { type: activeCompType, attended: 0, delivered: 0, percentage: 0 };
+              sub.components.push(comp);
+            }
+            comp.attended = att;
+            comp.delivered = del;
+            comp.percentage = del > 0 ? Number(((att / del) * 100).toFixed(1)) : 100;
           }
         }
       }
-    }
-
-    // 3. Auto-Include all other section subjects with realistic component breakdowns
-    let visibleAttended = 0;
-    let visibleDelivered = 0;
-    subjectsMap.forEach((s) => {
-      s.components.forEach((c) => {
-        visibleAttended += c.attended;
-        visibleDelivered += c.delivered;
-      });
-    });
-
-    const missingCatalog = catalog.filter((c) => !subjectsMap.has(c.subjectName));
-    const activeMissing = missingCatalog.filter(
-      (c) => !c.subjectName.includes("Project") && !c.subjectName.includes("Internship")
-    );
-
-    if (detectedOverallDelivered > visibleDelivered && activeMissing.length > 0) {
-      let remAtt = Math.max(0, detectedOverallAttended - visibleAttended);
-      let remDel = Math.max(0, detectedOverallDelivered - visibleDelivered);
-
-      const count = activeMissing.length;
-      const baseDel = Math.floor(remDel / count);
-      const delRemainder = remDel % count;
-      const baseAtt = Math.floor(remAtt / count);
-      const attRemainder = remAtt % count;
-
-      activeMissing.forEach((c, idx) => {
-        const del = baseDel + (idx < delRemainder ? 1 : 0);
-        const att = Math.min(del, baseAtt + (idx < attRemainder ? 1 : 0));
-
-        const compList = (c.components || ["PP", "PR"]).map((compType, cIdx) => {
-          const cDel = Math.round(del / (c.components?.length || 2)) || Math.floor(del / 2);
-          const cAtt = Math.min(cDel, Math.round(att / (c.components?.length || 2)) || Math.floor(att / 2));
-          return {
-            type: compType,
-            attended: cIdx === 0 ? att - (att - cAtt) : att - cAtt,
-            delivered: cIdx === 0 ? del - (del - cDel) : del - cDel,
-            percentage: cDel > 0 ? Number(((cAtt / cDel) * 100).toFixed(1)) : 100,
-          };
-        });
-
-        subjectsMap.set(c.subjectName, {
-          name: c.subjectName,
-          code: c.code || "",
-          components: compList.length > 0 ? compList : [{ type: "PP", attended: att, delivered: del }],
-          detectedFromImage: false,
-        });
-      });
-    } else {
-      // Add missing catalog items with default components for complete visibility
-      missingCatalog.forEach((c) => {
-        const compTypes = c.components && c.components.length > 0 ? c.components : ["PP"];
-        subjectsMap.set(c.subjectName, {
-          name: c.subjectName,
-          code: c.code || "",
-          components: compTypes.map((t) => ({ type: t, attended: 0, delivered: 0, percentage: 0 })),
-          detectedFromImage: false,
-        });
-      });
     }
 
     return Array.from(subjectsMap.values()).map((s, idx) => {
