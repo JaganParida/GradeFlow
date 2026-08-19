@@ -1257,12 +1257,23 @@ export default function Timetable() {
         </div>
 
         {/* ═══════════════════════════════════════════════════════════════
-            MODE 1: DAILY ROUTINE VIEW
+            TAB SWITCHER CONTAINER (AnimatePresence smooth fade-in/fade-out)
         ═══════════════════════════════════════════════════════════════ */}
-        {viewMode === "day" && (isEligibleBatch || (!studentData && !currentRegNo)) && (
-          <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-            {/* Day / Date Navigation Toolbar */}
-            <div
+        <AnimatePresence mode="wait">
+          {/* ═══════════════════════════════════════════════════════════════
+              MODE 1: DAILY ROUTINE VIEW
+          ═══════════════════════════════════════════════════════════════ */}
+          {viewMode === "day" && (isEligibleBatch || (!studentData && !currentRegNo)) && (
+            <motion.div
+              key="day"
+              initial={{ opacity: 0, y: 6 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -6 }}
+              transition={{ duration: 0.18, ease: "easeOut" }}
+              style={{ display: "flex", flexDirection: "column", gap: 14, width: "100%" }}
+            >
+              {/* Day / Date Navigation Toolbar */}
+              <div
               style={{
                 background: "#ffffff",
                 border: "1px solid #e2e8f0",
@@ -1866,23 +1877,31 @@ export default function Timetable() {
                 })}
               </div>
             )}
-          </div>
+          </motion.div>
         )}
 
         {/* ═══════════════════════════════════════════════════════════════
             MODE 2: WEEKLY TIMETABLE MATRIX (100% Full Width On Desktop)
         ═══════════════════════════════════════════════════════════════ */}
         {viewMode === "week" && (isEligibleBatch || (!studentData && !currentRegNo)) && (
-          <div
-            style={{
-              background: "#ffffff",
-              border: "1px solid #e2e8f0",
-              borderRadius: 18,
-              overflow: "hidden",
-              boxShadow: "0 1px 4px rgba(0,0,0,0.03)",
-              width: "100%",
-            }}
+          <motion.div
+            key="week"
+            initial={{ opacity: 0, y: 6 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -6 }}
+            transition={{ duration: 0.18, ease: "easeOut" }}
+            style={{ width: "100%" }}
           >
+            <div
+              style={{
+                background: "#ffffff",
+                border: "1px solid #e2e8f0",
+                borderRadius: 18,
+                overflow: "hidden",
+                boxShadow: "0 1px 4px rgba(0,0,0,0.03)",
+                width: "100%",
+              }}
+            >
             {/* Header Toolbar */}
             <div
               style={{
@@ -2268,15 +2287,23 @@ export default function Timetable() {
               </div>
             )}
           </div>
-        )}
+        </motion.div>
+      )}
 
-        {/* ═══════════════════════════════════════════════════════════════
-            MODE 3: CUTM ACADEMIC CALENDAR 2026–27 (School of Engineering)
-        ═══════════════════════════════════════════════════════════════ */}
-        {viewMode === "academic" && (
-          <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-            {/* Top Academic Scope Card & Filter Toolbar */}
-            <div
+      {/* ═══════════════════════════════════════════════════════════════
+          MODE 3: CUTM ACADEMIC CALENDAR 2026–27 (School of Engineering)
+      ═══════════════════════════════════════════════════════════════ */}
+      {viewMode === "academic" && (
+        <motion.div
+          key="academic"
+          initial={{ opacity: 0, y: 6 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -6 }}
+          transition={{ duration: 0.18, ease: "easeOut" }}
+          style={{ display: "flex", flexDirection: "column", gap: 16, width: "100%" }}
+        >
+          {/* Top Academic Scope Card & Filter Toolbar */}
+          <div
               style={{
                 background: "#ffffff",
                 border: "1px solid #e2e8f0",
@@ -2771,16 +2798,23 @@ export default function Timetable() {
                 </div>
               </div>
             )}
-          </div>
+          </motion.div>
         )}
 
-        {/* ═══════════════════════════════════════════════════════════════
-            MODE 4: ACADEMIC HOLIDAYS CALENDAR (CUTM 2026-27)
-        ═══════════════════════════════════════════════════════════════ */}
-        {viewMode === "holidays" && (
-          <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-            {/* Filter Toolbar */}
-            <div
+      {/* ═══════════════════════════════════════════════════════════════
+          MODE 4: ACADEMIC HOLIDAYS CALENDAR (CUTM 2026-27)
+      ═══════════════════════════════════════════════════════════════ */}
+      {viewMode === "holidays" && (
+        <motion.div
+          key="holidays"
+          initial={{ opacity: 0, y: 6 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -6 }}
+          transition={{ duration: 0.18, ease: "easeOut" }}
+          style={{ display: "flex", flexDirection: "column", gap: 14, width: "100%" }}
+        >
+          {/* Filter Toolbar */}
+          <div
               style={{
                 background: "#ffffff",
                 border: "1px solid #e2e8f0",
@@ -3174,13 +3208,14 @@ export default function Timetable() {
                 );
               })}
             </div>
-          </div>
+          </motion.div>
         )}
+      </AnimatePresence>
 
-        {/* ═══════════════════════════════════════════════════════════════
-            CLASS DETAIL POPUP MODAL (For Matrix Click on Desktop)
-        ═══════════════════════════════════════════════════════════════ */}
-        <AnimatePresence>
+    {/* ═══════════════════════════════════════════════════════════════
+        CLASS DETAIL POPUP MODAL (For Matrix Click on Desktop)
+    ═══════════════════════════════════════════════════════════════ */}
+    <AnimatePresence>
           {inspectedClass && (
             <div
               style={{

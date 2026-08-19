@@ -793,10 +793,17 @@ export function calculateAttendance({
 }
 
 /**
- * Estimate target reach date based on weekly timetable schedule & academic calendar
+ * Estimate target reach date based on weekly timetable schedule & CUTM academic calendar
  */
-export function estimateTargetReachDate(classesNeeded, weeklyOccurrences = [], startDate = new Date()) {
-  if (!classesNeeded || classesNeeded <= 0 || !weeklyOccurrences || weeklyOccurrences.length === 0) {
+export function estimateTargetReachDate(
+  classesNeeded,
+  weeklyOccurrences = [],
+  startDate = new Date(),
+  currentAttended = 0,
+  currentDelivered = 0,
+  targetPercentage = 75
+) {
+  if (!classesNeeded || classesNeeded <= 0 || !Array.isArray(weeklyOccurrences) || weeklyOccurrences.length === 0) {
     return null;
   }
 
@@ -805,28 +812,47 @@ export function estimateTargetReachDate(classesNeeded, weeklyOccurrences = [], s
 
   if (dayIndices.length === 0) return null;
 
+  // CUTM Odd Semester Last Date of Instruction (31 Oct 2026)
+  const lastInstructionDate = new Date("2026-10-31T23:59:59");
+
   let remaining = classesNeeded;
   const current = new Date(startDate);
-  let daysAdded = 0;
   const upcomingSessions = [];
+  let totalRemainingSemClasses = 0;
+  let reachDate = null;
 
-  while (remaining > 0 && daysAdded < 180) {
-    current.setDate(current.getDate() + 1);
-    daysAdded++;
+  const simCurrent = new Date(startDate);
+
+  // Scan until Last Date of Instruction
+  while (simCurrent <= lastInstructionDate) {
+    simCurrent.setDate(simCurrent.getDate() + 1);
+    if (simCurrent > lastInstructionDate) break;
 
     // Skip official non-working academic calendar holidays
-    const hol = getHolidayInfo(current);
+    const hol = getHolidayInfo(simCurrent);
     if (hol?.isHoliday) continue;
 
-    const dayIdx = current.getDay();
+    // Skip examination weeks when regular classes are suspended
+    const acStatus = getAcademicCalendarDateStatus(simCurrent);
+    if (acStatus?.classesSuspended || acStatus?.isExam) continue;
+
+    const dayIdx = simCurrent.getDay();
     const dayName = daysOfWeek[dayIdx];
     const matchingOccurrences = weeklyOccurrences.filter((occ) => occ.day === dayName);
 
     matchingOccurrences.forEach((occ) => {
+      totalRemainingSemClasses++;
+
       if (remaining > 0) {
         remaining--;
+        if (remaining === 0 && !reachDate) {
+          reachDate = new Date(simCurrent);
+        }
+      }
+
+      if (upcomingSessions.length < 5) {
         upcomingSessions.push({
-          dateStr: current.toLocaleDateString("en-IN", {
+          dateStr: simCurrent.toLocaleDateString("en-IN", {
             weekday: "short",
             day: "numeric",
             month: "short",
@@ -835,24 +861,39 @@ export function estimateTargetReachDate(classesNeeded, weeklyOccurrences = [], s
           timeSlot: occ.timeSlot,
           room: occ.room || "Classroom",
           type: occ.type || "Lecture",
+          faculty: occ.faculty || "",
         });
       }
     });
   }
 
+  const isAttainable = classesNeeded <= totalRemainingSemClasses;
+  const maxAttainableAttended = (Number(currentAttended) || 0) + totalRemainingSemClasses;
+  const maxAttainableDelivered = (Number(currentDelivered) || 0) + totalRemainingSemClasses;
+  const maxAttainablePercentage =
+    maxAttainableDelivered > 0
+      ? Number(((maxAttainableAttended / maxAttainableDelivered) * 100).toFixed(1))
+      : 0;
+
   const weeksCount = (classesNeeded / weeklyOccurrences.length).toFixed(1);
 
   return {
-    estimatedDate: current.toLocaleDateString("en-IN", {
-      weekday: "short",
-      day: "numeric",
-      month: "short",
-      year: "numeric",
-    }),
+    isAttainable,
+    estimatedDate: reachDate
+      ? reachDate.toLocaleDateString("en-IN", {
+          weekday: "short",
+          day: "numeric",
+          month: "short",
+          year: "numeric",
+        })
+      : null,
     estimatedWeeks: Number(weeksCount),
     classesPerWeek: weeklyOccurrences.length,
     classesNeeded,
-    upcomingSessions: upcomingSessions.slice(0, 4), // Next 4 upcoming sessions
+    totalRemainingSemClasses,
+    maxAttainablePercentage,
+    lastInstructionDateStr: "31 Oct 2026",
+    upcomingSessions,
   };
 }
 

@@ -414,18 +414,26 @@ export default function AttendanceTracker() {
     if (!activeCatalogItem || activeCalculation.classesNeeded <= 0) return null;
     return estimateTargetReachDate(
       activeCalculation.classesNeeded,
-      activeCatalogItem.weeklyOccurrences || []
+      activeCatalogItem.weeklyOccurrences || [],
+      todayDateObj,
+      activeCalculation.totalAttended,
+      activeCalculation.totalDelivered,
+      targetGoal
     );
-  }, [activeCalculation.classesNeeded, activeCatalogItem]);
+  }, [activeCalculation.classesNeeded, activeCalculation.totalAttended, activeCalculation.totalDelivered, activeCatalogItem, todayDateObj, targetGoal]);
 
   // Timetable Calendar Safe Bunk Date Projection (Safe Zone -> Buffer Date Span)
   const bunkDateProjection = useMemo(() => {
     if (!activeCatalogItem || activeCalculation.safeBunks <= 0) return null;
     return estimateTargetReachDate(
       activeCalculation.safeBunks,
-      activeCatalogItem.weeklyOccurrences || []
+      activeCatalogItem.weeklyOccurrences || [],
+      todayDateObj,
+      activeCalculation.totalAttended,
+      activeCalculation.totalDelivered,
+      targetGoal
     );
-  }, [activeCalculation.safeBunks, activeCatalogItem]);
+  }, [activeCalculation.safeBunks, activeCalculation.totalAttended, activeCalculation.totalDelivered, activeCatalogItem, todayDateObj, targetGoal]);
 
   // Update a component's attended or delivered value
   function handleComponentChange(index, field, value) {
@@ -1517,14 +1525,22 @@ export default function AttendanceTracker() {
         </div>
 
         {/* ═══════════════════════════════════════════════════════════════
-            TAB 1: ATTENDANCE STUDIO & MATRIX
+            TAB SWITCHER CONTAINER (AnimatePresence smooth fade-in/fade-out)
         ═══════════════════════════════════════════════════════════════ */}
-        {activeTab === "studio" && (
-          <>
-            {/* TODAY'S DAILY ROUTINE ATTENDANCE CHECK-IN HUB */}
-            <div
-          style={{
-            background: "#ffffff",
+        <AnimatePresence mode="wait">
+          {activeTab === "studio" && (
+            <motion.div
+              key="studio"
+              initial={{ opacity: 0, y: 6 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -6 }}
+              transition={{ duration: 0.18, ease: "easeOut" }}
+              style={{ display: "flex", flexDirection: "column", gap: 16, width: "100%" }}
+            >
+              {/* TODAY'S DAILY ROUTINE ATTENDANCE CHECK-IN HUB */}
+              <div
+            style={{
+              background: "#ffffff",
             border: "1.5px solid #e2e8f0",
             borderRadius: 18,
             padding: isMobile ? "16px 14px" : "20px 24px",
@@ -2554,19 +2570,102 @@ export default function AttendanceTracker() {
               </div>
 
               {/* Requirement or Safe Bunk Result Card */}
-              <div
-                style={{
-                  background: activeCalculation.classesNeeded > 0 ? "#fffbeb" : "#f0fdf4",
-                  border: `1px solid ${activeCalculation.classesNeeded > 0 ? "#fde68a" : "#bbf7d0"}`,
-                  borderRadius: 10,
-                  padding: "12px 14px",
-                  display: "flex",
-                  flexDirection: "column",
-                  gap: 8,
-                }}
-              >
-                {activeCalculation.classesNeeded > 0 ? (
-                  <>
+              {activeCalculation.classesNeeded > 0 ? (
+                dateProjection && !dateProjection.isAttainable ? (
+                  <div
+                    style={{
+                      background: "#fef2f2",
+                      border: "1.5px solid #fca5a5",
+                      borderRadius: 12,
+                      padding: "12px 14px",
+                      display: "flex",
+                      flexDirection: "column",
+                      gap: 8,
+                    }}
+                  >
+                    <div style={{ fontSize: 13, fontWeight: 800, color: "#991b1b", display: "flex", alignItems: "center", gap: 6 }}>
+                      <AlertTriangle size={16} color="#dc2626" />
+                      <span>Target {targetGoal}% is Mathematically Unattainable this Semester</span>
+                    </div>
+                    <div style={{ fontSize: 11.5, color: "#7f1d1d", lineHeight: 1.5 }}>
+                      Reaching {targetGoal}% requires <strong>{activeCalculation.classesNeeded} classes</strong> without absence, but only <strong>{dateProjection.totalRemainingSemClasses} classes</strong> remain before the Last Date of Instruction ({dateProjection.lastInstructionDateStr}).
+                      <br />
+                      Max attainable attendance is <strong style={{ color: "#dc2626" }}>{dateProjection.maxAttainablePercentage}%</strong> even if you attend 100% of all remaining classes.
+                    </div>
+
+                    {dateProjection.upcomingSessions && dateProjection.upcomingSessions.length > 0 && (
+                      <div style={{ marginTop: 4 }}>
+                        <div style={{ fontSize: 11, fontWeight: 800, color: "#991b1b", marginBottom: 4 }}>
+                          Remaining Classes to Maximize Attendance:
+                        </div>
+                        <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                          {dateProjection.upcomingSessions.map((ses, sIdx) => (
+                            <div
+                              key={sIdx}
+                              style={{
+                                fontSize: 11,
+                                background: "#ffffff",
+                                padding: "5px 9px",
+                                borderRadius: 6,
+                                border: "1px solid #fecaca",
+                                display: "flex",
+                                justifyContent: "space-between",
+                                alignItems: "center",
+                                color: "#991b1b",
+                                fontWeight: 600,
+                              }}
+                            >
+                              <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                                <span>{ses.dateStr} ({ses.day})</span>
+                                <span
+                                  style={{
+                                    fontSize: 9.5,
+                                    fontWeight: 900,
+                                    background:
+                                      ses.type === "PR"
+                                        ? "#faf5ff"
+                                        : ses.type === "TUT"
+                                        ? "#fffbeb"
+                                        : "#eff6ff",
+                                    color:
+                                      ses.type === "PR"
+                                        ? "#7c3aed"
+                                        : ses.type === "TUT"
+                                        ? "#b45309"
+                                        : "#1e40af",
+                                    border: `1px solid ${
+                                      ses.type === "PR"
+                                        ? "#ddd6fe"
+                                        : ses.type === "TUT"
+                                        ? "#fde68a"
+                                        : "#bfdbfe"
+                                    }`,
+                                    padding: "1px 5px",
+                                    borderRadius: 4,
+                                  }}
+                                >
+                                  {ses.type}
+                                </span>
+                              </div>
+                              <span>{ses.timeSlot} &bull; {ses.room}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <div
+                    style={{
+                      background: "#fffbeb",
+                      border: "1px solid #fde68a",
+                      borderRadius: 12,
+                      padding: "12px 14px",
+                      display: "flex",
+                      flexDirection: "column",
+                      gap: 8,
+                    }}
+                  >
                     <div style={{ fontSize: 13.5, fontWeight: 800, color: "#92400e" }}>
                       Need to attend <strong>{activeCalculation.classesNeeded} more classes</strong> without absence to reach {targetGoal}%
                     </div>
@@ -2591,7 +2690,7 @@ export default function AttendanceTracker() {
                                   style={{
                                     fontSize: 11,
                                     background: "#ffffff",
-                                    padding: "4px 8px",
+                                    padding: "5px 9px",
                                     borderRadius: 6,
                                     border: "1px solid #fde68a",
                                     display: "flex",
@@ -2601,7 +2700,38 @@ export default function AttendanceTracker() {
                                     fontWeight: 600,
                                   }}
                                 >
-                                  <span>{ses.dateStr} ({ses.day})</span>
+                                  <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                                    <span>{ses.dateStr} ({ses.day})</span>
+                                    <span
+                                      style={{
+                                        fontSize: 9.5,
+                                        fontWeight: 900,
+                                        background:
+                                          ses.type === "PR"
+                                            ? "#faf5ff"
+                                            : ses.type === "TUT"
+                                            ? "#fffbeb"
+                                            : "#eff6ff",
+                                        color:
+                                          ses.type === "PR"
+                                            ? "#7c3aed"
+                                            : ses.type === "TUT"
+                                            ? "#b45309"
+                                            : "#1e40af",
+                                        border: `1px solid ${
+                                          ses.type === "PR"
+                                            ? "#ddd6fe"
+                                            : ses.type === "TUT"
+                                            ? "#fde68a"
+                                            : "#bfdbfe"
+                                        }`,
+                                        padding: "1px 5px",
+                                        borderRadius: 4,
+                                      }}
+                                    >
+                                      {ses.type}
+                                    </span>
+                                  </div>
                                   <span>{ses.timeSlot} &bull; {ses.room}</span>
                                 </div>
                               ))}
@@ -2610,59 +2740,100 @@ export default function AttendanceTracker() {
                         )}
                       </div>
                     )}
-                  </>
-                ) : (
-                  <>
-                    <div style={{ fontSize: 13.5, fontWeight: 800, color: "#166534" }}>
-                      Safe Zone! You can safely miss up to <strong>{activeCalculation.safeBunks} {activeCalculation.safeBunks === 1 ? "class" : "classes"}</strong> and maintain &ge; {targetGoal}%
-                    </div>
-                    {bunkDateProjection ? (
-                      <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-                        <div style={{ fontSize: 11.5, color: "#15803d", display: "flex", alignItems: "center", gap: 5 }}>
-                          <CalendarIcon size={13} />
-                          <span>
-                            Your {targetGoal}% safe buffer spans through <strong>{bunkDateProjection.estimatedDate}</strong> based on {bunkDateProjection.classesPerWeek} classes/week timetable schedule.
-                          </span>
-                        </div>
+                  </div>
+                )
+              ) : (
+                <div
+                  style={{
+                    background: "#f0fdf4",
+                    border: "1px solid #bbf7d0",
+                    borderRadius: 12,
+                    padding: "12px 14px",
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: 8,
+                  }}
+                >
+                  <div style={{ fontSize: 13.5, fontWeight: 800, color: "#166534" }}>
+                    Safe Zone! You can safely miss up to <strong>{activeCalculation.safeBunks} {activeCalculation.safeBunks === 1 ? "class" : "classes"}</strong> and maintain &ge; {targetGoal}%
+                  </div>
+                  {bunkDateProjection ? (
+                    <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                      <div style={{ fontSize: 11.5, color: "#15803d", display: "flex", alignItems: "center", gap: 5 }}>
+                        <CalendarIcon size={13} />
+                        <span>
+                          Your {targetGoal}% safe buffer spans through <strong>{bunkDateProjection.estimatedDate}</strong> based on {bunkDateProjection.classesPerWeek} classes/week timetable schedule.
+                        </span>
+                      </div>
 
-                        {bunkDateProjection.upcomingSessions && bunkDateProjection.upcomingSessions.length > 0 && (
-                          <div style={{ marginTop: 4 }}>
-                            <div style={{ fontSize: 11, fontWeight: 800, color: "#14532d", marginBottom: 4 }}>
-                              Safe Days Window:
-                            </div>
-                            <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-                              {bunkDateProjection.upcomingSessions.map((ses, sIdx) => (
-                                <div
-                                  key={sIdx}
-                                  style={{
-                                    fontSize: 11,
-                                    background: "#ffffff",
-                                    padding: "4px 8px",
-                                    borderRadius: 6,
-                                    border: "1px solid #bbf7d0",
-                                    display: "flex",
-                                    justifyContent: "space-between",
-                                    alignItems: "center",
-                                    color: "#166534",
-                                    fontWeight: 600,
-                                  }}
-                                >
-                                  <span>{ses.dateStr} ({ses.day})</span>
-                                  <span>{ses.timeSlot} &bull; {ses.room}</span>
-                                </div>
-                              ))}
-                            </div>
+                      {bunkDateProjection.upcomingSessions && bunkDateProjection.upcomingSessions.length > 0 && (
+                        <div style={{ marginTop: 4 }}>
+                          <div style={{ fontSize: 11, fontWeight: 800, color: "#14532d", marginBottom: 4 }}>
+                            Safe Days Window:
                           </div>
-                        )}
-                      </div>
-                    ) : (
-                      <div style={{ fontSize: 11.5, color: "#15803d" }}>
-                        Current attendance is well above your {targetGoal}% target goal.
-                      </div>
-                    )}
-                  </>
-                )}
-              </div>
+                          <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                            {bunkDateProjection.upcomingSessions.map((ses, sIdx) => (
+                              <div
+                                key={sIdx}
+                                style={{
+                                  fontSize: 11,
+                                  background: "#ffffff",
+                                  padding: "5px 9px",
+                                  borderRadius: 6,
+                                  border: "1px solid #bbf7d0",
+                                  display: "flex",
+                                  justifyContent: "space-between",
+                                  alignItems: "center",
+                                  color: "#166534",
+                                  fontWeight: 600,
+                                }}
+                              >
+                                <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                                  <span>{ses.dateStr} ({ses.day})</span>
+                                  <span
+                                    style={{
+                                      fontSize: 9.5,
+                                      fontWeight: 900,
+                                      background:
+                                        ses.type === "PR"
+                                          ? "#faf5ff"
+                                          : ses.type === "TUT"
+                                          ? "#fffbeb"
+                                          : "#eff6ff",
+                                      color:
+                                        ses.type === "PR"
+                                          ? "#7c3aed"
+                                          : ses.type === "TUT"
+                                          ? "#b45309"
+                                          : "#1e40af",
+                                      border: `1px solid ${
+                                        ses.type === "PR"
+                                          ? "#ddd6fe"
+                                          : ses.type === "TUT"
+                                          ? "#fde68a"
+                                          : "#bfdbfe"
+                                      }`,
+                                      padding: "1px 5px",
+                                      borderRadius: 4,
+                                    }}
+                                  >
+                                    {ses.type}
+                                  </span>
+                                </div>
+                                <span>{ses.timeSlot} &bull; {ses.room}</span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <div style={{ fontSize: 11.5, color: "#15803d" }}>
+                      Current attendance is well above your {targetGoal}% target goal.
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -2934,22 +3105,32 @@ export default function AttendanceTracker() {
             </div>
           </div>
         )}
-      </>
+      </motion.div>
     )}
 
     {/* ═══════════════════════════════════════════════════════════════
         TAB 2: SMART BUNK & WEEKLY SAFE DAYS ANALYZER
     ═══════════════════════════════════════════════════════════════ */}
     {activeTab === "bunk_analyzer" && (
-      <SmartBunkAnalyzer
-        selectedSection={selectedSection}
-        allSectionSubjects={allSectionSubjects}
-        overallCalculation={overallCalculation}
-        studentData={studentData}
-        todayDayName={todayDayName}
-        isMobile={isMobile}
-      />
+      <motion.div
+        key="bunk_analyzer"
+        initial={{ opacity: 0, y: 6 }}
+        animate={{ opacity: 1, y: 0 }}
+        exit={{ opacity: 0, y: -6 }}
+        transition={{ duration: 0.18, ease: "easeOut" }}
+        style={{ width: "100%" }}
+      >
+        <SmartBunkAnalyzer
+          selectedSection={selectedSection}
+          allSectionSubjects={allSectionSubjects}
+          overallCalculation={overallCalculation}
+          studentData={studentData}
+          todayDayName={todayDayName}
+          isMobile={isMobile}
+        />
+      </motion.div>
     )}
+  </AnimatePresence>
 
     {/* AI Screenshot Auto-Importer Modal */}
     <AttendanceScreenshotModal
