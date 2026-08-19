@@ -98,9 +98,17 @@ export default function AttendanceTracker() {
     return normalizeSection("CSE-A", currentRegNo);
   });
 
+  // Helper for local calendar date key (YYYY-MM-DD in user's local timezone, resets at exact 12:00 AM midnight)
+  function getLocalCalendarDateKey(d = new Date()) {
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, "0");
+    const day = String(d.getDate()).padStart(2, "0");
+    return `${year}-${month}-${day}`;
+  }
+
   // ── Daily Timetable Check-in State & Keys ──────────────────────────────
   const todayDateObj = useMemo(() => new Date(), []);
-  const todayDateKey = useMemo(() => todayDateObj.toISOString().slice(0, 10), [todayDateObj]);
+  const todayDateKey = useMemo(() => getLocalCalendarDateKey(todayDateObj), [todayDateObj]);
   const todayDayIndex = todayDateObj.getDay(); // 0 Sun, 1 Mon ... 6 Sat
   const todayDayName = DAYS_LIST[todayDayIndex === 0 ? 0 : todayDayIndex - 1] || "Monday";
 
@@ -119,7 +127,9 @@ export default function AttendanceTracker() {
       .filter((p) => !p.isFree && p.subject && p.subject !== "No Class / Free");
   }, [todayScheduleRaw]);
 
-  // Daily routine check-ins (In-Memory React State, synced direct to MongoDB Atlas)
+  // Full calendar dailyLogs store map (Date -> { slotIndex: "present" | "absent" })
+  const [allDailyLogs, setAllDailyLogs] = useState({});
+  // Today's specific routine check-ins (resets at exact 12:00 AM midnight for new day)
   const [dailyAttendanceLogs, setDailyAttendanceLogs] = useState({});
 
   // Search State
@@ -271,11 +281,13 @@ export default function AttendanceTracker() {
     const regToSync = currentRegNo || studentSession?.regNo || studentData?.regNo;
     if (!regToSync) return;
     try {
+      const updatedAll = { ...allDailyLogs, [todayDateKey]: updatedDaily };
+      setAllDailyLogs(updatedAll);
       await axios.post(`${API}/student/${regToSync}/attendance`, {
         section: selectedSection,
         targetGoal: goal,
         savedSubjects: updatedSaved,
-        dailyLogs: { [todayDateKey]: updatedDaily },
+        dailyLogs: updatedAll,
       });
     } catch (err) {
       console.warn("Background attendance sync to MongoDB:", err.message);
@@ -307,13 +319,15 @@ export default function AttendanceTracker() {
             setTargetGoal(att.targetGoal);
           }
           if (att.dailyLogs && typeof att.dailyLogs === "object") {
+            setAllDailyLogs(att.dailyLogs);
             const todayLogs = att.dailyLogs[todayDateKey];
-            if (todayLogs && typeof todayLogs === "object") {
+            if (todayLogs && typeof todayLogs === "object" && Object.keys(todayLogs).length > 0) {
               setDailyAttendanceLogs(todayLogs);
             } else {
               setDailyAttendanceLogs({});
             }
           } else {
+            setAllDailyLogs({});
             setDailyAttendanceLogs({});
           }
         }
