@@ -280,6 +280,7 @@ export default function AttendanceScreenshotModal({
 
     for (let i = 0; i < lines.length; i++) {
       const line = lines[i];
+      const upper = line.toUpperCase();
 
       // Ignore noise & headers
       if (
@@ -290,21 +291,19 @@ export default function AttendanceScreenshotModal({
         line.includes("Attended/Delivered") ||
         line.includes("From date") ||
         line.includes("To date") ||
-        line.toLowerCase().startsWith("total percentage")
+        line.toLowerCase().startsWith("total")
       ) {
         continue;
       }
 
       // Component Type Detector (PP, PR, TUT)
-      const upper = line.toUpperCase();
-      if (upper.includes("- PR") || upper.includes("(PR") || upper.includes("- (PR") || upper.includes("-(PR")) {
+      if (upper.includes("- PR") || upper.includes("(PR") || upper.includes("- (PR") || upper.includes("-(PR") || upper.includes("(PF") || upper.includes("- (PF")) {
         activeCompType = "PR";
       } else if (
         upper.includes("- PP") ||
         upper.includes("(PP") ||
         upper.includes("- (PP") ||
-        upper.includes("-(PP") ||
-        upper.includes("(PF")
+        upper.includes("-(PP")
       ) {
         activeCompType = "PP";
       } else if (
@@ -322,121 +321,75 @@ export default function AttendanceScreenshotModal({
         activeSubject = matchedCat;
       }
 
-      // Check current line and up to 2 adjacent lines for attendance fractions
-      let fracMatch = line.match(/(\d+)\s*[\/|\\]\s*(\d+)/);
-      if (!fracMatch && i + 1 < lines.length) {
-        const nextLine = lines[i + 1];
-        if (!findCatalogSubject(nextLine)) {
-          fracMatch = nextLine.match(/(\d+)\s*[\/|\\]\s*(\d+)/);
-        }
-      }
+      // Dynamic Fraction & Digit Detection:
+      // Format 1: "10/14", "10 / 14", "10|14", "10\14", "10-14"
+      let att = null;
+      let del = null;
 
-      if (fracMatch && activeSubject) {
-        const att = parseInt(fracMatch[1], 10);
-        const del = parseInt(fracMatch[2], 10);
-
-        // Reject junk lines or full semester totals (> 50 delivered for a single component)
-        if (del > 0 && del <= 50 && del >= att && !line.toLowerCase().includes("total")) {
-          const sub = subjectsMap.get(activeSubject.subjectName);
-          if (sub) {
-            sub.detectedFromImage = true;
-            let comp = sub.components.find((c) => c.type === activeCompType);
-            if (!comp) {
-              comp = { type: activeCompType, attended: 0, delivered: 0, percentage: 0 };
-              sub.components.push(comp);
+      let fracMatch = line.match(/(\d{1,3})\s*[\/|\\|\||\-]\s*(\d{1,3})/);
+      if (fracMatch) {
+        att = parseInt(fracMatch[1], 10);
+        del = parseInt(fracMatch[2], 10);
+      } else {
+        // Format 2: Space separated numbers e.g. "cucs1008 10 14 71.43%"
+        const spaceNums = line.match(/\b(\d{1,2})\s+(\d{1,2})\b/);
+        if (spaceNums) {
+          const a = parseInt(spaceNums[1], 10);
+          const d = parseInt(spaceNums[2], 10);
+          if (d >= a && d > 0 && d <= 50) {
+            att = a;
+            del = d;
+          }
+        } else {
+          // Format 3: 4-digit concatenated e.g. "1014" followed by percentage e.g. "71.43%"
+          const mergedMatch = line.match(/\b(\d{1,2})(\d{2})\b.*?(?:\d+\.?\d*|\d+)%/);
+          if (mergedMatch) {
+            const a = parseInt(mergedMatch[1], 10);
+            const d = parseInt(mergedMatch[2], 10);
+            if (d >= a && d > 0 && d <= 50) {
+              att = a;
+              del = d;
             }
-            comp.attended = att;
-            comp.delivered = del;
-            comp.percentage = Number(((att / del) * 100).toFixed(1));
           }
         }
       }
-    }
 
-    // High-Accuracy Recovery for CUTM Website ERP Table & Mobile Screenshots:
-    // If fewer than 4 subjects have valid nonzero component data, populate verified curriculum breakdown
-    const validSubjectCount = Array.from(subjectsMap.values()).filter((s) =>
-      (s.components || []).some((c) => Number(c.delivered) > 0 && Number(c.delivered) <= 50)
-    ).length;
+      // Check next line if current line had subject name but fraction is on next line
+      if (att === null && i + 1 < lines.length) {
+        const nextLine = lines[i + 1];
+        if (!findCatalogSubject(nextLine) && !nextLine.toLowerCase().startsWith("total")) {
+          const nextFrac = nextLine.match(/(\d{1,3})\s*[\/|\\|\||\-]\s*(\d{1,3})/);
+          if (nextFrac) {
+            att = parseInt(nextFrac[1], 10);
+            del = parseInt(nextFrac[2], 10);
+          } else {
+            const nextSpace = nextLine.match(/\b(\d{1,2})\s+(\d{1,2})\b/);
+            if (nextSpace) {
+              const a = parseInt(nextSpace[1], 10);
+              const d = parseInt(nextSpace[2], 10);
+              if (d >= a && d > 0 && d <= 50) {
+                att = a;
+                del = d;
+              }
+            }
+          }
+        }
+      }
 
-    const hasCutmMarkers =
-      text.toUpperCase().includes("CUTM") ||
-      text.toUpperCase().includes("CUCS") ||
-      text.toUpperCase().includes("COURSE") ||
-      text.toUpperCase().includes("ATTENDANCE") ||
-      text.toUpperCase().includes("ROBOT") ||
-      text.toUpperCase().includes("DATA") ||
-      text.toUpperCase().includes("SECURITY") ||
-      text.toUpperCase().includes("TOC") ||
-      text.toUpperCase().includes("CLOUD") ||
-      text.toUpperCase().includes("PROMPT") ||
-      detectedOverallDelivered > 0 ||
-      validSubjectCount < 4;
-
-    if (validSubjectCount < 4 && hasCutmMarkers) {
-      const getReferenceCompsForSubject = (name, code) => {
-        const lower = (name || "").toLowerCase();
-        const upperCode = (code || "").toUpperCase();
-
-        if (upperCode === "CUTM1020" || lower.includes("robotic") || lower.includes("ros")) {
-          return [
-            { type: "PP", attended: 6, delivered: 7, percentage: 85.7 },
-            { type: "PR", attended: 23, delivered: 25, percentage: 92.0 },
-            { type: "TUT", attended: 3, delivered: 3, percentage: 100.0 },
-          ];
-        }
-        if (upperCode === "CUTM1577" || upperCode === "CUTM1906" || lower.includes("minor")) {
-          return [
-            { type: "TUT", attended: 0, delivered: 0, percentage: 100.0 },
-          ];
-        }
-        if (upperCode === "CUTM3166" || lower.includes("data structure") || lower.includes("algorithm")) {
-          return [
-            { type: "PR", attended: 0, delivered: 4, percentage: 0.0 },
-            { type: "TUT", attended: 2, delivered: 2, percentage: 100.0 },
-          ];
-        }
-        if (upperCode === "CUCS1007" || lower.includes("security") || lower.includes("cisco")) {
-          return [
-            { type: "PP", attended: 3, delivered: 5, percentage: 60.0 },
-            { type: "PR", attended: 10, delivered: 12, percentage: 83.3 },
-            { type: "TUT", attended: 6, delivered: 9, percentage: 66.7 },
-          ];
-        }
-        if (upperCode === "CUCS1006" || lower.includes("network") || lower.includes("iot")) {
-          return [
-            { type: "PP", attended: 6, delivered: 7, percentage: 85.7 },
-            { type: "PR", attended: 12, delivered: 14, percentage: 85.7 },
-          ];
-        }
-        if (upperCode === "CUCS1008" || lower.includes("computation") || lower.includes("compiler") || lower.includes("theory of comp")) {
-          return [
-            { type: "PP", attended: 8, delivered: 10, percentage: 80.0 },
-            { type: "PR", attended: 16, delivered: 20, percentage: 80.0 },
-          ];
-        }
-        if (upperCode === "CUCS1014" || lower.includes("prompt") || lower.includes("chatgpt")) {
-          return [
-            { type: "PP", attended: 1, delivered: 1, percentage: 100.0 },
-            { type: "PR", attended: 0, delivered: 0, percentage: 100.0 },
-          ];
-        }
-        if (upperCode === "CUCS1015" || lower.includes("cloud") || lower.includes("azure")) {
-          return [
-            { type: "PP", attended: 6, delivered: 7, percentage: 85.7 },
-            { type: "PR", attended: 8, delivered: 10, percentage: 80.0 },
-          ];
-        }
-        return null;
-      };
-
-      subjectsMap.forEach((sub, name) => {
-        const refComps = getReferenceCompsForSubject(name, sub.code);
-        if (refComps) {
-          sub.components = refComps;
+      if (att !== null && del !== null && del <= 50 && del >= att && activeSubject) {
+        const sub = subjectsMap.get(activeSubject.subjectName);
+        if (sub) {
           sub.detectedFromImage = true;
+          let comp = sub.components.find((c) => c.type === activeCompType);
+          if (!comp) {
+            comp = { type: activeCompType, attended: 0, delivered: 0, percentage: 0 };
+            sub.components.push(comp);
+          }
+          comp.attended = att;
+          comp.delivered = del;
+          comp.percentage = del > 0 ? Number(((att / del) * 100).toFixed(1)) : 100;
         }
-      });
+      }
     }
 
     return Array.from(subjectsMap.values()).map((s, idx) => {
