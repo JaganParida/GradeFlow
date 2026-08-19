@@ -7,16 +7,16 @@ import {
   GraduationCap,
   Mail,
   ShieldCheck,
-  ShieldAlert,
   Clock,
   ArrowRight,
   RefreshCw,
   X,
   Loader2,
   CheckCircle2,
-  AlertTriangle,
+  AlertCircle,
   Lock,
   Smartphone,
+  ChevronLeft,
 } from "lucide-react";
 
 export default function StudentAuthModal({ isOpen, onClose }) {
@@ -86,7 +86,6 @@ export default function StudentAuthModal({ isOpen, onClose }) {
 
     if (result.success) {
       if (result.data?.alreadyLoggedIn) {
-        // Already active on this device
         onClose();
         navigate(`/dashboard/${encodeStudentId(cleanReg)}`);
         return;
@@ -151,414 +150,464 @@ export default function StudentAuthModal({ isOpen, onClose }) {
           alignItems: "center",
           justifyContent: "center",
           padding: "16px",
-          background: "rgba(15, 23, 42, 0.75)",
-          backdropFilter: "blur(8px)",
+          background: "rgba(15, 23, 42, 0.65)",
+          backdropFilter: "blur(6px)",
+          WebkitBackdropFilter: "blur(6px)",
         }}
         onClick={onClose}
       >
         <motion.div
-          initial={{ opacity: 0, scale: 0.94, y: 15 }}
+          initial={{ opacity: 0, scale: 0.95, y: 10 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
-          exit={{ opacity: 0, scale: 0.94, y: 15 }}
-          transition={{ duration: 0.2, ease: "easeOut" }}
+          exit={{ opacity: 0, scale: 0.95, y: 10 }}
+          transition={{ duration: 0.18, ease: "easeOut" }}
           style={{
             background: "#ffffff",
-            borderRadius: 22,
-            border: "1.5px solid #e2e8f0",
-            boxShadow: "0 25px 60px -15px rgba(0, 0, 0, 0.3)",
-            maxWidth: 480,
+            borderRadius: 20,
+            border: "1px solid #e2e8f0",
+            boxShadow: "0 20px 45px -10px rgba(15, 23, 42, 0.22)",
+            maxWidth: 440,
             width: "100%",
-            overflow: "hidden",
             position: "relative",
+            boxSizing: "border-box",
+            padding: "26px 24px",
           }}
           onClick={(e) => e.stopPropagation()}
         >
-          {/* Header Banner */}
-          <div
+          {/* Close Button */}
+          <button
+            onClick={onClose}
+            aria-label="Close modal"
             style={{
-              background: "linear-gradient(135deg, #0f172a 0%, #1e293b 100%)",
-              padding: "24px 24px 20px 24px",
-              color: "#ffffff",
-              position: "relative",
+              position: "absolute",
+              top: 16,
+              right: 16,
+              background: "#f8fafc",
+              border: "1px solid #e2e8f0",
+              borderRadius: "50%",
+              width: 32,
+              height: 32,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              color: "#64748b",
+              cursor: "pointer",
+              transition: "all 0.15s ease",
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = "#f1f5f9";
+              e.currentTarget.style.color = "#0f172a";
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = "#f8fafc";
+              e.currentTarget.style.color = "#64748b";
             }}
           >
-            <button
-              onClick={onClose}
+            <X size={15} />
+          </button>
+
+          {/* Modal Header */}
+          <div style={{ textAlign: "center", marginBottom: 20 }}>
+            <div
               style={{
-                position: "absolute",
-                top: 18,
-                right: 18,
-                background: "rgba(255, 255, 255, 0.12)",
-                border: "none",
-                borderRadius: "50%",
-                width: 32,
-                height: 32,
+                width: 48,
+                height: 48,
+                borderRadius: 14,
+                background: "#eff6ff",
+                border: "1px solid #dbeafe",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
-                color: "#ffffff",
-                cursor: "pointer",
-                transition: "background 0.2s",
+                margin: "0 auto 12px auto",
               }}
             >
-              <X size={16} />
-            </button>
-
-            <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-              <div
-                style={{
-                  width: 44,
-                  height: 44,
-                  borderRadius: 12,
-                  background: "linear-gradient(135deg, #2563eb 0%, #3b82f6 100%)",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  boxShadow: "0 4px 14px rgba(37, 99, 235, 0.4)",
-                }}
-              >
-                <GraduationCap size={24} color="#ffffff" />
-              </div>
-              <div>
-                <h3 style={{ fontSize: 18, fontWeight: 800, margin: 0, letterSpacing: "-0.3px" }}>
-                  {step === 1 ? "Student Portal Login" : "Verify University Email"}
-                </h3>
-                <p style={{ fontSize: 12.5, color: "#94a3b8", margin: "3px 0 0 0" }}>
-                  {step === 1
-                    ? "Official Authentication via Centurion University Email"
-                    : `Enter the 6-digit OTP code sent to your email`}
-                </p>
-              </div>
+              <GraduationCap size={24} color="#2563eb" />
             </div>
+
+            <h3
+              style={{
+                fontSize: 18,
+                fontWeight: 800,
+                color: "#0f172a",
+                margin: "0 0 4px 0",
+                letterSpacing: "-0.4px",
+              }}
+            >
+              {step === 1 ? "Student Portal Login" : "Email Verification"}
+            </h3>
+            <p
+              style={{
+                fontSize: 13,
+                color: "#64748b",
+                margin: 0,
+                lineHeight: 1.45,
+              }}
+            >
+              {step === 1
+                ? "Official authentication via Centurion University email"
+                : `Enter the 6-digit code sent to your email inbox`}
+            </p>
           </div>
 
           {/* Form Content */}
-          <div style={{ padding: "24px" }}>
-            {step === 1 ? (
-              <form onSubmit={handleSendOtp} style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-                <div>
-                  <label
-                    style={{
-                      display: "block",
-                      fontSize: 12.5,
-                      fontWeight: 700,
-                      color: "#334155",
-                      marginBottom: 6,
-                      textTransform: "uppercase",
-                      letterSpacing: "0.5px",
-                    }}
-                  >
-                    University Registration Number
-                  </label>
-                  <div style={{ position: "relative" }}>
-                    <input
-                      type="text"
-                      value={regNo}
-                      onChange={(e) => setRegNo(e.target.value.toUpperCase())}
-                      placeholder="e.g. 230101120001"
-                      autoFocus
-                      required
-                      style={{
-                        width: "100%",
-                        padding: "12px 14px",
-                        fontSize: 15,
-                        fontWeight: 700,
-                        fontFamily: "'Space Mono', monospace",
-                        color: "#0f172a",
-                        background: "#f8fafc",
-                        border: "1.5px solid #cbd5e1",
-                        borderRadius: 12,
-                        outline: "none",
-                        boxSizing: "border-box",
-                        transition: "all 0.2s",
-                      }}
-                      onFocus={(e) => {
-                        e.target.style.borderColor = "#2563eb";
-                        e.target.style.background = "#ffffff";
-                      }}
-                      onBlur={(e) => {
-                        e.target.style.borderColor = "#cbd5e1";
-                        e.target.style.background = "#f8fafc";
-                      }}
-                    />
-                  </div>
-
-                  {regNo.trim() && (
-                    <div
-                      style={{
-                        fontSize: 12,
-                        color: "#2563eb",
-                        marginTop: 6,
-                        display: "flex",
-                        alignItems: "center",
-                        gap: 5,
-                        fontWeight: 600,
-                      }}
-                    >
-                      <Mail size={13} />
-                      <span>OTP will be sent to: <strong>{regNo.trim().toLowerCase()}@centurionuniv.edu.in</strong></span>
-                    </div>
-                  )}
-                </div>
-
-                {/* Error Banner */}
-                {errorMsg && (
-                  <div
-                    style={{
-                      background: errorCode === "DEVICE_ALREADY_ACTIVE" ? "#eff6ff" : errorCode === "DAILY_LIMIT_EXCEEDED" ? "#fffbeb" : "#fef2f2",
-                      border: `1.5px solid ${errorCode === "DEVICE_ALREADY_ACTIVE" ? "#93c5fd" : errorCode === "DAILY_LIMIT_EXCEEDED" ? "#fde68a" : "#fca5a5"}`,
-                      borderRadius: 12,
-                      padding: "12px 14px",
-                      display: "flex",
-                      gap: 10,
-                      alignItems: "flex-start",
-                    }}
-                  >
-                    {errorCode === "DEVICE_ALREADY_ACTIVE" ? (
-                      <Smartphone size={18} color="#2563eb" style={{ flexShrink: 0, marginTop: 2 }} />
-                    ) : errorCode === "DAILY_LIMIT_EXCEEDED" ? (
-                      <Clock size={18} color="#d97706" style={{ flexShrink: 0, marginTop: 2 }} />
-                    ) : (
-                      <AlertTriangle size={18} color="#dc2626" style={{ flexShrink: 0, marginTop: 2 }} />
-                    )}
-                    <div style={{ fontSize: 12.5, color: errorCode === "DEVICE_ALREADY_ACTIVE" ? "#1e40af" : errorCode === "DAILY_LIMIT_EXCEEDED" ? "#92400e" : "#991b1b", lineHeight: 1.4 }}>
-                      {errorMsg}
-                    </div>
-                  </div>
-                )}
-
-                {/* Security Feature Highlights */}
-                <div
+          {step === 1 ? (
+            <form onSubmit={handleSendOtp} style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+              <div>
+                <label
                   style={{
-                    background: "#f8fafc",
-                    border: "1px solid #e2e8f0",
-                    borderRadius: 12,
-                    padding: "12px 14px",
-                    display: "flex",
-                    flexDirection: "column",
-                    gap: 8,
+                    display: "block",
+                    fontSize: 12,
+                    fontWeight: 700,
+                    color: "#475569",
+                    marginBottom: 6,
+                    textTransform: "uppercase",
+                    letterSpacing: "0.5px",
                   }}
                 >
-                  <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12, color: "#475569" }}>
-                    <ShieldCheck size={14} color="#059669" />
-                    <span><strong>Single Device Policy:</strong> 1 active login per student.</span>
-                  </div>
-                  <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12, color: "#475569" }}>
-                    <Clock size={14} color="#2563eb" />
-                    <span><strong>Daily OTP Limit:</strong> Maximum 2 attempts/day (resets at 12 AM).</span>
-                  </div>
-                  <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12, color: "#475569" }}>
-                    <Lock size={14} color="#64748b" />
-                    <span><strong>7-Day Inactivity Timeout:</strong> Auto logout after 7 days of inactivity.</span>
-                  </div>
-                </div>
-
-                {/* Submit Button */}
-                <button
-                  type="submit"
-                  disabled={loading || !regNo.trim()}
-                  style={{
-                    width: "100%",
-                    padding: "13px",
-                    borderRadius: 12,
-                    border: "none",
-                    background: loading || !regNo.trim() ? "#cbd5e1" : "linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)",
-                    color: "#ffffff",
-                    fontSize: 14.5,
-                    fontWeight: 800,
-                    cursor: loading || !regNo.trim() ? "not-allowed" : "pointer",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    gap: 8,
-                    boxShadow: loading || !regNo.trim() ? "none" : "0 4px 14px rgba(37, 99, 235, 0.35)",
-                    transition: "all 0.2s",
-                  }}
-                >
-                  {loading ? (
-                    <>
-                      <Loader2 size={17} className="spin" />
-                      <span>Sending OTP...</span>
-                    </>
-                  ) : (
-                    <>
-                      <span>Send Verification Code</span>
-                      <ArrowRight size={16} />
-                    </>
-                  )}
-                </button>
-              </form>
-            ) : (
-              <form onSubmit={handleVerifyOtp} style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-                <div
-                  style={{
-                    background: "#f0fdf4",
-                    border: "1.5px solid #86efac",
-                    borderRadius: 12,
-                    padding: "12px 14px",
-                    textAlign: "center",
-                  }}
-                >
-                  <p style={{ margin: 0, fontSize: 13, color: "#166534", fontWeight: 700 }}>
-                    Verification Code Sent to:
-                  </p>
-                  <p style={{ margin: "4px 0 0 0", fontSize: 14, fontWeight: 900, color: "#047857", fontFamily: "'Space Mono', monospace" }}>
-                    {maskedEmail}
-                  </p>
-                  <div style={{ fontSize: 11.5, color: "#15803d", marginTop: 4 }}>
-                    Remaining OTP sends today: <strong>{remainingDailyAttempts}/2</strong>
-                  </div>
-                </div>
-
-                <div>
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
-                    <label
-                      style={{
-                        fontSize: 12.5,
-                        fontWeight: 700,
-                        color: "#334155",
-                        textTransform: "uppercase",
-                        letterSpacing: "0.5px",
-                      }}
-                    >
-                      Enter 6-Digit OTP
-                    </label>
-                    <span
-                      style={{
-                        fontSize: 12,
-                        fontWeight: 800,
-                        color: timerSeconds < 30 ? "#dc2626" : "#059669",
-                        fontFamily: "'Space Mono', monospace",
-                      }}
-                    >
-                      {timerActive ? `⏳ ${formatTimer(timerSeconds)}` : "⚠️ Code Expired"}
-                    </span>
-                  </div>
-
+                  University Registration Number
+                </label>
+                <div style={{ position: "relative" }}>
                   <input
                     type="text"
-                    value={otp}
-                    maxLength={6}
-                    onChange={(e) => setOtp(e.target.value.replace(/\D/g, ""))}
-                    placeholder="• • • • • •"
+                    value={regNo}
+                    onChange={(e) => setRegNo(e.target.value.toUpperCase())}
+                    placeholder="e.g. 230101120001"
                     autoFocus
                     required
                     style={{
                       width: "100%",
-                      padding: "14px",
-                      fontSize: 26,
-                      fontWeight: 900,
-                      letterSpacing: "12px",
-                      textAlign: "center",
+                      padding: "11px 14px",
+                      fontSize: 14,
+                      fontWeight: 700,
                       fontFamily: "'Space Mono', monospace",
                       color: "#0f172a",
                       background: "#f8fafc",
-                      border: "2px solid #2563eb",
-                      borderRadius: 12,
+                      border: "1.5px solid #cbd5e1",
+                      borderRadius: 10,
                       outline: "none",
                       boxSizing: "border-box",
+                      transition: "all 0.15s ease",
+                    }}
+                    onFocus={(e) => {
+                      e.target.style.borderColor = "#2563eb";
+                      e.target.style.background = "#ffffff";
+                    }}
+                    onBlur={(e) => {
+                      e.target.style.borderColor = "#cbd5e1";
+                      e.target.style.background = "#f8fafc";
                     }}
                   />
                 </div>
 
-                {errorMsg && (
+                {regNo.trim() && (
                   <div
                     style={{
-                      background: "#fef2f2",
-                      border: "1px solid #fca5a5",
-                      borderRadius: 10,
-                      padding: "10px 12px",
-                      fontSize: 12.5,
-                      color: "#991b1b",
+                      fontSize: 11.5,
+                      color: "#2563eb",
+                      marginTop: 6,
                       display: "flex",
                       alignItems: "center",
-                      gap: 6,
+                      gap: 5,
+                      fontWeight: 600,
                     }}
                   >
-                    <AlertTriangle size={15} color="#dc2626" />
-                    <span>{errorMsg}</span>
+                    <Mail size={13} />
+                    <span>OTP will be sent to: <strong>{regNo.trim().toLowerCase()}@centurionuniv.edu.in</strong></span>
                   </div>
                 )}
+              </div>
 
-                <button
-                  type="submit"
-                  disabled={loading || otp.length < 6}
+              {/* Error Banner */}
+              {errorMsg && (
+                <div
                   style={{
-                    width: "100%",
-                    padding: "13px",
-                    borderRadius: 12,
-                    border: "none",
-                    background: loading || otp.length < 6 ? "#cbd5e1" : "linear-gradient(135deg, #059669 0%, #047857 100%)",
-                    color: "#ffffff",
-                    fontSize: 14.5,
-                    fontWeight: 800,
-                    cursor: loading || otp.length < 6 ? "not-allowed" : "pointer",
+                    background: errorCode === "DEVICE_ALREADY_ACTIVE" ? "#eff6ff" : errorCode === "DAILY_LIMIT_EXCEEDED" ? "#fffbeb" : "#fef2f2",
+                    border: `1px solid ${errorCode === "DEVICE_ALREADY_ACTIVE" ? "#bfdbfe" : errorCode === "DAILY_LIMIT_EXCEEDED" ? "#fde68a" : "#fca5a5"}`,
+                    borderRadius: 10,
+                    padding: "10px 12px",
                     display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
                     gap: 8,
-                    boxShadow: loading || otp.length < 6 ? "none" : "0 4px 14px rgba(5, 150, 105, 0.35)",
-                    transition: "all 0.2s",
+                    alignItems: "flex-start",
                   }}
                 >
-                  {loading ? (
-                    <>
-                      <Loader2 size={17} className="spin" />
-                      <span>Verifying...</span>
-                    </>
+                  {errorCode === "DEVICE_ALREADY_ACTIVE" ? (
+                    <Smartphone size={16} color="#2563eb" style={{ flexShrink: 0, marginTop: 2 }} />
+                  ) : errorCode === "DAILY_LIMIT_EXCEEDED" ? (
+                    <Clock size={16} color="#d97706" style={{ flexShrink: 0, marginTop: 2 }} />
                   ) : (
-                    <>
-                      <CheckCircle2 size={17} />
-                      <span>Verify & Access Dashboard</span>
-                    </>
+                    <AlertCircle size={16} color="#dc2626" style={{ flexShrink: 0, marginTop: 2 }} />
                   )}
-                </button>
-
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", paddingTop: 4 }}>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setStep(1);
-                      setOtp("");
-                      setErrorMsg("");
-                    }}
+                  <div
                     style={{
-                      background: "none",
-                      border: "none",
-                      color: "#64748b",
-                      fontSize: 12.5,
-                      fontWeight: 700,
-                      cursor: "pointer",
-                      padding: 0,
+                      fontSize: 12,
+                      color: errorCode === "DEVICE_ALREADY_ACTIVE" ? "#1e40af" : errorCode === "DAILY_LIMIT_EXCEEDED" ? "#92400e" : "#991b1b",
+                      lineHeight: 1.4,
                     }}
                   >
-                    &larr; Change Reg. No.
-                  </button>
+                    {errorMsg}
+                  </div>
+                </div>
+              )}
 
-                  <button
-                    type="button"
-                    disabled={timerActive || remainingDailyAttempts <= 0 || loading}
-                    onClick={handleResendOtp}
+              {/* Security Policy Highlights */}
+              <div
+                style={{
+                  background: "#f8fafc",
+                  border: "1px solid #f1f5f9",
+                  borderRadius: 10,
+                  padding: "10px 12px",
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: 6,
+                }}
+              >
+                <div style={{ display: "flex", alignItems: "center", gap: 7, fontSize: 11.5, color: "#475569" }}>
+                  <ShieldCheck size={13} color="#16a34a" />
+                  <span><strong>Single Device Lock:</strong> Only 1 active device allowed per student.</span>
+                </div>
+                <div style={{ display: "flex", alignItems: "center", gap: 7, fontSize: 11.5, color: "#475569" }}>
+                  <Clock size={13} color="#2563eb" />
+                  <span><strong>Daily OTP Limit:</strong> Maximum 2 attempts per day (resets at midnight).</span>
+                </div>
+                <div style={{ display: "flex", alignItems: "center", gap: 7, fontSize: 11.5, color: "#475569" }}>
+                  <Lock size={13} color="#64748b" />
+                  <span><strong>Inactivity Policy:</strong> Automatic logout after 7 days of inactivity.</span>
+                </div>
+              </div>
+
+              {/* Submit Button */}
+              <button
+                type="submit"
+                disabled={loading || !regNo.trim()}
+                style={{
+                  width: "100%",
+                  padding: "11px 16px",
+                  borderRadius: 10,
+                  border: "none",
+                  background: loading || !regNo.trim() ? "#cbd5e1" : "#0f172a",
+                  color: "#ffffff",
+                  fontSize: 13.5,
+                  fontWeight: 700,
+                  cursor: loading || !regNo.trim() ? "not-allowed" : "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: 6,
+                  transition: "background 0.15s ease",
+                }}
+                onMouseEnter={(e) => {
+                  if (!loading && regNo.trim()) e.currentTarget.style.background = "#1e293b";
+                }}
+                onMouseLeave={(e) => {
+                  if (!loading && regNo.trim()) e.currentTarget.style.background = "#0f172a";
+                }}
+              >
+                {loading ? (
+                  <>
+                    <Loader2 size={15} className="spin" />
+                    <span>Sending Code...</span>
+                  </>
+                ) : (
+                  <>
+                    <span>Send Verification Code</span>
+                    <ArrowRight size={15} />
+                  </>
+                )}
+              </button>
+            </form>
+          ) : (
+            <form onSubmit={handleVerifyOtp} style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+              <div
+                style={{
+                  background: "#f0fdf4",
+                  border: "1px solid #bbf7d0",
+                  borderRadius: 10,
+                  padding: "10px 12px",
+                  textAlign: "center",
+                }}
+              >
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 5, fontSize: 12, color: "#166534", fontWeight: 700 }}>
+                  <Mail size={13} color="#16a34a" />
+                  <span>Verification code sent to:</span>
+                </div>
+                <div style={{ margin: "3px 0 0 0", fontSize: 13.5, fontWeight: 800, color: "#15803d", fontFamily: "'Space Mono', monospace" }}>
+                  {maskedEmail}
+                </div>
+                <div style={{ fontSize: 11, color: "#166534", marginTop: 3 }}>
+                  Remaining attempts today: <strong>{remainingDailyAttempts}/2</strong>
+                </div>
+              </div>
+
+              <div>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
+                  <label
                     style={{
-                      background: "none",
-                      border: "none",
-                      color: timerActive || remainingDailyAttempts <= 0 ? "#94a3b8" : "#2563eb",
-                      fontSize: 12.5,
-                      fontWeight: 800,
-                      cursor: timerActive || remainingDailyAttempts <= 0 ? "not-allowed" : "pointer",
-                      display: "flex",
+                      fontSize: 12,
+                      fontWeight: 700,
+                      color: "#475569",
+                      textTransform: "uppercase",
+                      letterSpacing: "0.5px",
+                    }}
+                  >
+                    Enter 6-Digit OTP
+                  </label>
+                  <div
+                    style={{
+                      display: "inline-flex",
                       alignItems: "center",
                       gap: 4,
-                      padding: 0,
+                      fontSize: 11.5,
+                      fontWeight: 700,
+                      color: timerSeconds < 30 ? "#dc2626" : "#059669",
+                      fontFamily: "'Space Mono', monospace",
                     }}
                   >
-                    <RefreshCw size={12} className={loading ? "spin" : ""} />
-                    <span>Resend OTP {timerActive ? `(${formatTimer(timerSeconds)})` : ""}</span>
-                  </button>
+                    {timerActive ? (
+                      <>
+                        <Clock size={12} />
+                        <span>{formatTimer(timerSeconds)}</span>
+                      </>
+                    ) : (
+                      <>
+                        <AlertCircle size={12} color="#dc2626" />
+                        <span>Code Expired</span>
+                      </>
+                    )}
+                  </div>
                 </div>
-              </form>
-            )}
-          </div>
+
+                <input
+                  type="text"
+                  value={otp}
+                  maxLength={6}
+                  onChange={(e) => setOtp(e.target.value.replace(/\D/g, ""))}
+                  placeholder="&bull; &bull; &bull; &bull; &bull; &bull;"
+                  autoFocus
+                  required
+                  style={{
+                    width: "100%",
+                    padding: "12px",
+                    fontSize: 22,
+                    fontWeight: 900,
+                    letterSpacing: "10px",
+                    textAlign: "center",
+                    fontFamily: "'Space Mono', monospace",
+                    color: "#0f172a",
+                    background: "#f8fafc",
+                    border: "1.5px solid #2563eb",
+                    borderRadius: 10,
+                    outline: "none",
+                    boxSizing: "border-box",
+                  }}
+                />
+              </div>
+
+              {errorMsg && (
+                <div
+                  style={{
+                    background: "#fef2f2",
+                    border: "1px solid #fca5a5",
+                    borderRadius: 8,
+                    padding: "8px 12px",
+                    fontSize: 12,
+                    color: "#991b1b",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 6,
+                  }}
+                >
+                  <AlertCircle size={14} color="#dc2626" />
+                  <span>{errorMsg}</span>
+                </div>
+              )}
+
+              <button
+                type="submit"
+                disabled={loading || otp.length < 6}
+                style={{
+                  width: "100%",
+                  padding: "11px 16px",
+                  borderRadius: 10,
+                  border: "none",
+                  background: loading || otp.length < 6 ? "#cbd5e1" : "#16a34a",
+                  color: "#ffffff",
+                  fontSize: 13.5,
+                  fontWeight: 700,
+                  cursor: loading || otp.length < 6 ? "not-allowed" : "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: 6,
+                  transition: "background 0.15s ease",
+                }}
+                onMouseEnter={(e) => {
+                  if (!loading && otp.length >= 6) e.currentTarget.style.background = "#15803d";
+                }}
+                onMouseLeave={(e) => {
+                  if (!loading && otp.length >= 6) e.currentTarget.style.background = "#16a34a";
+                }}
+              >
+                {loading ? (
+                  <>
+                    <Loader2 size={15} className="spin" />
+                    <span>Verifying...</span>
+                  </>
+                ) : (
+                  <>
+                    <CheckCircle2 size={15} />
+                    <span>Verify & Continue</span>
+                  </>
+                )}
+              </button>
+
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", paddingTop: 4 }}>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setStep(1);
+                    setOtp("");
+                    setErrorMsg("");
+                  }}
+                  style={{
+                    background: "none",
+                    border: "none",
+                    color: "#64748b",
+                    fontSize: 12,
+                    fontWeight: 700,
+                    cursor: "pointer",
+                    padding: 0,
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 4,
+                  }}
+                >
+                  <ChevronLeft size={14} />
+                  <span>Change Reg. No.</span>
+                </button>
+
+                <button
+                  type="button"
+                  disabled={timerActive || remainingDailyAttempts <= 0 || loading}
+                  onClick={handleResendOtp}
+                  style={{
+                    background: "none",
+                    border: "none",
+                    color: timerActive || remainingDailyAttempts <= 0 ? "#94a3b8" : "#2563eb",
+                    fontSize: 12,
+                    fontWeight: 700,
+                    cursor: timerActive || remainingDailyAttempts <= 0 ? "not-allowed" : "pointer",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 4,
+                    padding: 0,
+                  }}
+                >
+                  <RefreshCw size={12} className={loading ? "spin" : ""} />
+                  <span>Resend Code {timerActive ? `(${formatTimer(timerSeconds)})` : ""}</span>
+                </button>
+              </div>
+            </form>
+          )}
         </motion.div>
       </div>
     </AnimatePresence>

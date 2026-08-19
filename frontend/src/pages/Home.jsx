@@ -43,6 +43,7 @@ import {
   X,
   Loader2,
   AlertCircle,
+  Lock,
 } from "lucide-react";
 
 /* ─── Social SVG Icons ─────────────────────────────────────────── */
@@ -744,29 +745,41 @@ export default function Home() {
               onClick={openStudentAuthModal}
               style={{
                 width: "100%",
-                padding: "13px 18px",
-                borderRadius: 14,
+                padding: "12px 18px",
+                borderRadius: 12,
                 background: "linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)",
                 color: "#ffffff",
                 border: "none",
-                fontSize: 14,
-                fontWeight: 800,
+                fontSize: 13.5,
+                fontWeight: 700,
                 cursor: "pointer",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
                 gap: 8,
-                boxShadow: "0 4px 14px rgba(37, 99, 235, 0.3)",
-                transition: "all 0.2s ease",
+                boxShadow: "0 4px 14px rgba(37, 99, 235, 0.25)",
+                transition: "all 0.15s ease",
               }}
             >
-              <GraduationCap size={18} />
-              <span>Student Portal Login (Email OTP)</span>
+              <GraduationCap size={17} />
+              <span>Student Portal Login</span>
               <ArrowRight size={15} />
             </button>
-            <p style={{ fontSize: 11.5, color: "#64748b", margin: "6px 0 0 0", textAlign: "center" }}>
-              🔒 Secured via Centurion University Email OTP &middot; Single Active Device
-            </p>
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: 5,
+                fontSize: 11.5,
+                color: "#64748b",
+                marginTop: 6,
+                fontWeight: 500,
+              }}
+            >
+              <Lock size={11} color="#64748b" />
+              <span>Secured via Centurion University Email OTP &middot; Single Active Device</span>
+            </div>
           </div>
         )}
 

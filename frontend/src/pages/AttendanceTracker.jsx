@@ -40,6 +40,7 @@ import {
   Sparkles,
   BarChart3,
   GraduationCap,
+  Lock,
 } from "lucide-react";
 import {
   ALL_SECTIONS,
@@ -989,8 +990,9 @@ export default function AttendanceTracker() {
               </div>
             ) : (
               <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
-                <span style={{ fontSize: 12.5, color: "#64748b", fontWeight: 600 }}>
-                  🔒 Log in to view your personalized attendance and daily routine check-in.
+                <span style={{ fontSize: 12.5, color: "#64748b", fontWeight: 600, display: "inline-flex", alignItems: "center", gap: 5 }}>
+                  <Lock size={13} color="#64748b" />
+                  <span>Log in to view your personalized attendance and daily routine check-in.</span>
                 </span>
                 <button
                   type="button"
