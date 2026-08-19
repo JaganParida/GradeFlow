@@ -20,7 +20,15 @@ import {
 } from "lucide-react";
 
 export default function StudentAuthModal({ isOpen, onClose }) {
-  const { sendStudentOtp, verifyStudentOtp, studentData, studentSession, hasActiveSession } = useApp();
+  const {
+    sendStudentOtp,
+    verifyStudentOtp,
+    studentData,
+    studentSession,
+    hasActiveSession,
+    pendingDestination,
+    setPendingDestination,
+  } = useApp();
   const navigate = useNavigate();
 
   const [step, setStep] = useState(1); // 1 = Enter RegNo, 2 = Enter OTP
@@ -35,28 +43,64 @@ export default function StudentAuthModal({ isOpen, onClose }) {
   const [timerSeconds, setTimerSeconds] = useState(300);
   const [timerActive, setTimerActive] = useState(false);
 
-  // If already authenticated with active session, auto-close modal and navigate to dashboard
+  // Helper to route to intended destination after auth
+  const navigateToDestination = (cleanReg) => {
+    onClose();
+    if (pendingDestination) {
+      const dest = pendingDestination;
+      setPendingDestination(null);
+      if (dest.type === "timetable") {
+        navigate(`/timetable/${encodeStudentId(cleanReg)}`);
+      } else if (dest.type === "attendance") {
+        navigate(`/attendance/${encodeStudentId(cleanReg)}`);
+      } else if (dest.type === "analytics") {
+        const query = dest.tab ? `?tab=${encodeURIComponent(dest.tab)}` : "";
+        navigate(`/analytics/${encodeStudentId(cleanReg)}${query}`);
+      } else if (dest.type === "leaderboard") {
+        navigate("/leaderboard");
+      } else {
+        navigate(`/dashboard/${encodeStudentId(cleanReg)}`);
+      }
+    } else {
+      navigate(`/dashboard/${encodeStudentId(cleanReg)}`);
+    }
+  };
+
+  // If already authenticated with active session, auto-close modal and navigate to destination
   useEffect(() => {
     if (isOpen && hasActiveSession) {
-      onClose();
       const currentReg = studentSession?.regNo || studentData?.regNo || regNo;
       if (currentReg) {
-        navigate(`/dashboard/${encodeStudentId(currentReg)}`);
+        navigateToDestination(currentReg);
+      } else {
+        onClose();
       }
     }
-  }, [isOpen, hasActiveSession, studentSession, studentData, navigate, onClose]);
+  }, [isOpen, hasActiveSession, studentSession, studentData]);
 
-  // Reset state when modal opens
+  // Cleanly reset state whenever modal opens or closes
   useEffect(() => {
     if (isOpen) {
       setErrorMsg("");
       setErrorCode("");
       setOtp("");
-      if (!regNo && (studentSession?.regNo || studentData?.regNo)) {
+      setStep(1);
+      setTimerActive(false);
+      if (hasActiveSession && (studentSession?.regNo || studentData?.regNo)) {
         setRegNo(studentSession?.regNo || studentData?.regNo);
+      } else {
+        setRegNo("");
+        setMaskedEmail("");
+        setStudentName("");
       }
+    } else {
+      setStep(1);
+      setOtp("");
+      setErrorMsg("");
+      setErrorCode("");
+      setTimerActive(false);
     }
-  }, [isOpen]);
+  }, [isOpen, hasActiveSession]);
 
   // Live 3-Minute Countdown Timer for OTP
   useEffect(() => {
@@ -97,8 +141,7 @@ export default function StudentAuthModal({ isOpen, onClose }) {
 
     if (result.success) {
       if (result.data?.alreadyLoggedIn) {
-        onClose();
-        navigate(`/dashboard/${encodeStudentId(cleanReg)}`);
+        navigateToDestination(cleanReg);
         return;
       }
 
@@ -133,8 +176,7 @@ export default function StudentAuthModal({ isOpen, onClose }) {
     setLoading(false);
 
     if (result.success || hasActiveSession) {
-      onClose();
-      navigate(`/dashboard/${encodeStudentId(cleanReg)}`);
+      navigateToDestination(cleanReg);
     } else {
       setErrorMsg(result.error);
       setErrorCode(result.code);

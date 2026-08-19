@@ -126,6 +126,7 @@ export function AppProvider({ children }) {
   };
 
   const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const [pendingDestination, setPendingDestination] = useState(null);
 
   const studentLogout = async () => {
     setIsLoggingOut(true);
@@ -134,12 +135,17 @@ export function AppProvider({ children }) {
     setStudentSession(null);
     setStudentData(null);
     setError("");
+    setPendingDestination(null);
+    setIsAuthModalOpen(false);
 
     try {
       localStorage.removeItem("gf_student_data");
       localStorage.removeItem("gf_student_session");
       localStorage.removeItem("last_regNo");
       localStorage.removeItem("last_studentName");
+      localStorage.removeItem("gf_today_attendance");
+      localStorage.removeItem("gf_timetable_cache");
+      sessionStorage.clear();
     } catch {}
 
     // 2. Clear session on server in background
@@ -149,7 +155,7 @@ export function AppProvider({ children }) {
       console.warn("Student logout server sync:", err);
     } finally {
       setIsLoggingOut(false);
-      navigate("/");
+      navigate("/", { replace: true });
     }
   };
 
@@ -272,6 +278,8 @@ export function AppProvider({ children }) {
         verifyStudentOtp,
         studentLogout,
         isLoggingOut,
+        pendingDestination,
+        setPendingDestination,
         loading,
         error,
         adminToken,

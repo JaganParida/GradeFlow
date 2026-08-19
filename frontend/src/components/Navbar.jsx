@@ -21,7 +21,6 @@ export default function Navbar() {
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [searchModalOpen, setSearchModalOpen] = useState(false);
   const [searchRegNo, setSearchRegNo] = useState("");
-  const [pendingDestination, setPendingDestination] = useState(null);
 
   const location = useLocation();
   const navigate = useNavigate();
@@ -38,6 +37,8 @@ export default function Navbar() {
     isAuthModalOpen,
     openStudentAuthModal,
     closeStudentAuthModal,
+    pendingDestination,
+    setPendingDestination,
   } = useApp();
 
   const analyticsRef = useRef(null);
