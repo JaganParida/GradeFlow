@@ -129,7 +129,7 @@ export default function AttendanceScreenshotModal({
     reader.readAsDataURL(file);
   };
 
-  // Canvas-based image preprocessor for optimal OCR recognition (2.5x upscale, table border removal & high contrast)
+  // Canvas-based image preprocessor for optimal multi-device OCR (Adaptive Bounded Scaling & Dark Mode Inversion)
   const preprocessImageForOcr = (imageSource) => {
     return new Promise((resolve) => {
       try {
@@ -137,8 +137,10 @@ export default function AttendanceScreenshotModal({
         img.crossOrigin = "anonymous";
         img.onload = () => {
           const canvas = document.createElement("canvas");
-          const scale = 2.5; // High resolution upscale for sharp digit & code recognition
-          canvas.width = Math.round(img.width * scale);
+          // Multi-device safe bounded scale (between 1400px and 2400px width to prevent mobile memory limits)
+          const targetWidth = Math.min(2400, Math.max(1400, Math.round(img.width * 2)));
+          const scale = targetWidth / Math.max(1, img.width);
+          canvas.width = targetWidth;
           canvas.height = Math.round(img.height * scale);
           const ctx = canvas.getContext("2d");
           if (!ctx) return resolve(imageSource);
@@ -155,12 +157,27 @@ export default function AttendanceScreenshotModal({
           const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
           const d = imgData.data;
 
-          // Adaptive binarization: Convert dark text (<150) to pure black, and all table lines / pill borders / headers (>155) to pure white
+          // Compute average luminance to detect Dark Mode vs Light Mode screenshots
+          let totalLum = 0;
+          const step = 16;
+          let sampleCount = 0;
+          for (let i = 0; i < d.length; i += 4 * step) {
+            totalLum += 0.299 * d[i] + 0.587 * d[i + 1] + 0.114 * d[i + 2];
+            sampleCount++;
+          }
+          const avgLum = sampleCount > 0 ? totalLum / sampleCount : 200;
+          const isDarkMode = avgLum < 120;
+
+          // Adaptive Threshold Binarization
           for (let i = 0; i < d.length; i += 4) {
             const r = d[i];
             const g = d[i + 1];
             const b = d[i + 2];
-            const lum = 0.299 * r + 0.587 * g + 0.114 * b;
+            let lum = 0.299 * r + 0.587 * g + 0.114 * b;
+
+            if (isDarkMode) {
+              lum = 255 - lum; // Invert dark mode so text is dark on white
+            }
 
             if (lum < 145) {
               d[i] = 0;
