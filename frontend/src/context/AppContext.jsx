@@ -4,8 +4,19 @@ import axios from "axios";
 
 const API_BASE = import.meta.env.VITE_API_URL || "/api";
 
-// Set axios to send cookies with every request
+// Set axios to send cookies with every request and attach Bearer token if admin is authenticated
 axios.defaults.withCredentials = true;
+
+axios.interceptors.request.use((config) => {
+  try {
+    const adminJwt = sessionStorage.getItem("gf_admin_jwt") || localStorage.getItem("gf_admin_jwt");
+    if (adminJwt) {
+      config.headers = config.headers || {};
+      config.headers.Authorization = `Bearer ${adminJwt}`;
+    }
+  } catch {}
+  return config;
+});
 
 const AppCtx = createContext();
 
@@ -26,7 +37,13 @@ export function AppProvider({ children }) {
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const [adminToken, setAdminToken] = useState(false);
+  const [adminToken, setAdminToken] = useState(() => {
+    try {
+      return Boolean(sessionStorage.getItem("gf_admin_jwt") || localStorage.getItem("gf_admin_jwt"));
+    } catch {
+      return false;
+    }
+  });
 
   // ─── Theme Management ────────────────────────────────────────────
   const [theme, setTheme] = useState(() => {
@@ -45,7 +62,7 @@ export function AppProvider({ children }) {
   const [authChecking, setAuthChecking] = useState(true);
   const navigate = useNavigate();
 
-  // ─── Check Auth on Startup (Both Admin & Student from HttpOnly Cookie) ─
+  // ─── Check Auth on Startup (Both Admin & Student from HttpOnly Cookie + Bearer) ─
   useEffect(() => {
     const checkAuth = async () => {
       // 1. Check Admin Auth
@@ -54,10 +71,12 @@ export function AppProvider({ children }) {
         if (resAdmin.data?.success) {
           setAdminToken(true);
         } else {
-          setAdminToken(false);
+          const stored = sessionStorage.getItem("gf_admin_jwt") || localStorage.getItem("gf_admin_jwt");
+          setAdminToken(Boolean(stored));
         }
       } catch {
-        setAdminToken(false);
+        const stored = sessionStorage.getItem("gf_admin_jwt") || localStorage.getItem("gf_admin_jwt");
+        setAdminToken(Boolean(stored));
       }
 
       // 2. Check Student Session (Direct from Server via HttpOnly Cookie)
@@ -166,6 +185,10 @@ export function AppProvider({ children }) {
     try {
       const res = await axios.post(`${API_BASE}/auth/login`, { email, password });
       if (res.data?.success || res.status === 200) {
+        if (res.data?.token) {
+          sessionStorage.setItem("gf_admin_jwt", res.data.token);
+          localStorage.setItem("gf_admin_jwt", res.data.token);
+        }
         setAdminToken(true);
         return { success: true };
       }
@@ -183,6 +206,8 @@ export function AppProvider({ children }) {
 
   const adminLogout = async () => {
     try {
+      sessionStorage.removeItem("gf_admin_jwt");
+      localStorage.removeItem("gf_admin_jwt");
       await axios.post(`${API_BASE}/auth/logout`);
     } catch (err) {
       console.error("Logout error", err);

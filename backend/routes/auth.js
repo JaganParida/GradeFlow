@@ -373,7 +373,7 @@ router.post("/login", validateLoginInput, async (req, res) => {
       return res.status(401).json({ message: "Invalid email or password." });
     }
     const token = jwt.sign(
-      { id: admin._id, email: admin.email },
+      { id: admin._id, email: admin.email, role: "admin" },
       process.env.JWT_SECRET,
       { expiresIn: "1d" },
     );
@@ -387,7 +387,7 @@ router.post("/login", validateLoginInput, async (req, res) => {
     };
     
     res.cookie("jwt", token, options);
-    res.json({ success: true, email: admin.email });
+    res.json({ success: true, email: admin.email, token });
   } catch (err) {
     console.error("Auth login error:", err.message);
     res.status(500).json({ message: "An internal authentication error occurred." });

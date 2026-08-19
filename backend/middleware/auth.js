@@ -99,10 +99,10 @@ const requireStudentOrAdmin = async (req, res, next) => {
     adminToken = req.headers.authorization.split(" ")[1];
   }
 
-  if (adminToken && adminToken !== "none") {
+  if (adminToken && adminToken !== "none" && adminToken !== "") {
     try {
       const decodedAdmin = jwt.verify(adminToken, process.env.JWT_SECRET);
-      if (decodedAdmin && !decodedAdmin.role) {
+      if (decodedAdmin && (decodedAdmin.id || decodedAdmin.email || decodedAdmin.role === "admin") && decodedAdmin.role !== "student") {
         // Valid Admin — full unrestricted access across all students
         req.admin = decodedAdmin;
         return next();
