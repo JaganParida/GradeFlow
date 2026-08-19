@@ -322,6 +322,16 @@ export default function AttendanceTracker() {
     };
   }, [currentRegNo, studentSession?.regNo, studentData?.regNo, API, todayDateKey]);
 
+  // Synchronize componentInputs whenever savedSubjects loads or updates from MongoDB Atlas
+  useEffect(() => {
+    if (selectedSubjectName && savedSubjects.length > 0) {
+      const found = savedSubjects.find((s) => s.subjectName === selectedSubjectName);
+      if (found && Array.isArray(found.components) && found.components.length > 0) {
+        setComponentInputs(found.components);
+      }
+    }
+  }, [savedSubjects, selectedSubjectName]);
+
   // Set default subject on catalog load
   useEffect(() => {
     if (sectionCatalog.length > 0 && !selectedSubjectName) {
@@ -351,8 +361,8 @@ export default function AttendanceTracker() {
       return (
         found || {
           type,
-          attended: 18,
-          delivered: 24,
+          attended: 0,
+          delivered: 0,
         }
       );
     });
@@ -364,7 +374,7 @@ export default function AttendanceTracker() {
       }
     });
 
-    setComponentInputs(mergedComps.length > 0 ? mergedComps : [{ type: "PP", attended: 18, delivered: 24 }]);
+    setComponentInputs(mergedComps.length > 0 ? mergedComps : [{ type: "PP", attended: 0, delivered: 0 }]);
     setSimulateMissCount(0);
     setSimulateAttendCount(0);
   }
@@ -610,15 +620,19 @@ export default function AttendanceTracker() {
     const map = new Map();
 
     sectionCatalog.forEach((catItem) => {
+      const isSelected = selectedSubjectName === catItem.subjectName;
       const saved = savedSubjects.find((s) => s.subjectName === catItem.subjectName);
-      const savedComps = saved?.components || [];
+      const savedComps =
+        isSelected && Array.isArray(componentInputs) && componentInputs.length > 0
+          ? componentInputs
+          : saved?.components || [];
 
       const detectedTypes =
         catItem.components && catItem.components.length > 0 ? catItem.components : ["PP"];
 
       const components = detectedTypes.map((type) => {
         const found = savedComps.find((c) => c.type.toUpperCase() === type.toUpperCase());
-        return found || { type, attended: 18, delivered: 24 };
+        return found || { type, attended: 0, delivered: 0 };
       });
 
       savedComps.forEach((c) => {
@@ -632,15 +646,20 @@ export default function AttendanceTracker() {
         components,
         classesPerWeek: catItem.classesPerWeek,
         weeklyOccurrences: catItem.weeklyOccurrences,
-        isSaved: Boolean(saved),
+        isSaved: Boolean(saved || isSelected),
       });
     });
 
     savedSubjects.forEach((saved) => {
       if (!map.has(saved.subjectName)) {
+        const isSelected = selectedSubjectName === saved.subjectName;
+        const comps =
+          isSelected && Array.isArray(componentInputs) && componentInputs.length > 0
+            ? componentInputs
+            : saved.components || [{ type: "PP", attended: 0, delivered: 0 }];
         map.set(saved.subjectName, {
           subjectName: saved.subjectName,
-          components: saved.components || [{ type: "PP", attended: 18, delivered: 24 }],
+          components: comps,
           classesPerWeek: (saved.weeklyOccurrences || []).length || 3,
           weeklyOccurrences: saved.weeklyOccurrences || [],
           isSaved: true,
@@ -649,7 +668,7 @@ export default function AttendanceTracker() {
     });
 
     return Array.from(map.values());
-  }, [sectionCatalog, savedSubjects]);
+  }, [sectionCatalog, savedSubjects, selectedSubjectName, componentInputs]);
 
   // Overall Aggregate Attendance across all Semester Subjects
   const overallCalculation = useMemo(() => {

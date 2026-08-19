@@ -81,7 +81,7 @@ export default function SmartBunkAnalyzer({
         const cleanName = period.cleanName || cleanSubjectBaseName(period.subject);
         const sub = subjectMap.get(cleanName);
         const comps = sub?.components || [
-          { type: period.type || "PP", attended: 18, delivered: 24 },
+          { type: period.type || "PP", attended: 0, delivered: 0 },
         ];
         const subCode = resolveSubjectCode({ subject: cleanName }, studentData);
         const periodType = (period.type || "PP").toUpperCase();
