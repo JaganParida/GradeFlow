@@ -437,8 +437,9 @@ export default function SmartBunkAnalyzer({
       <div
         style={{
           display: "grid",
-          gridTemplateColumns: "repeat(5, 1fr)",
+          gridTemplateColumns: isMobile ? "repeat(3, 1fr)" : `repeat(${Math.max(1, weeklyBunkAnalysis.length)}, minmax(0, 1fr))`,
           gap: isMobile ? 6 : 10,
+          width: "100%",
         }}
       >
         {weeklyBunkAnalysis.map((dayData) => {
