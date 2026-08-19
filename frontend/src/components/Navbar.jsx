@@ -86,8 +86,7 @@ export default function Navbar() {
 
   const requireAuthFor = (destination) => {
     setPendingDestination(destination);
-    setSearchRegNo("");
-    setShowAuthModal(true);
+    openStudentAuthModal();
   };
 
   const handleDashboardClick = (e) => {
@@ -895,54 +894,56 @@ export default function Navbar() {
                 gap: 14,
               }}
             >
-              {/* Search Bar inside Drawer */}
-              <form onSubmit={handleSearchSubmit} style={{ width: "100%" }}>
-                <div
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    background: "#f8fafc",
-                    border: "1.5px solid #e2e8f0",
-                    borderRadius: 12,
-                    padding: "0 10px",
-                  }}
-                >
-                  <Search size={15} color="#94a3b8" />
-                  <input
-                    type="text"
-                    value={searchRegNo}
-                    onChange={(e) => setSearchRegNo(e.target.value)}
-                    placeholder="Enter Registration No. (e.g. 230301...)"
+              {/* Admin Search Bar inside Drawer (Admin Only) */}
+              {adminToken && (
+                <form onSubmit={handleSearchSubmit} style={{ width: "100%" }}>
+                  <div
                     style={{
-                      width: "100%",
-                      padding: "9px 8px",
-                      border: "none",
-                      background: "transparent",
-                      fontSize: 13,
-                      color: "#0f172a",
-                      outline: "none",
-                      fontFamily: "'DM Sans', sans-serif",
-                    }}
-                  />
-                  <button
-                    type="submit"
-                    disabled={loading}
-                    style={{
-                      background: "#2563eb",
-                      color: "#ffffff",
-                      border: "none",
-                      borderRadius: 8,
-                      padding: "5px 11px",
-                      fontSize: 11.5,
-                      fontWeight: 700,
-                      cursor: "pointer",
-                      fontFamily: "'DM Sans', sans-serif",
+                      display: "flex",
+                      alignItems: "center",
+                      background: "#f8fafc",
+                      border: "1.5px solid #e2e8f0",
+                      borderRadius: 12,
+                      padding: "0 10px",
                     }}
                   >
-                    Go
-                  </button>
-                </div>
-              </form>
+                    <Search size={15} color="#94a3b8" />
+                    <input
+                      type="text"
+                      value={searchRegNo}
+                      onChange={(e) => setSearchRegNo(e.target.value)}
+                      placeholder="Admin: Lookup Reg. No."
+                      style={{
+                        width: "100%",
+                        padding: "9px 8px",
+                        border: "none",
+                        background: "transparent",
+                        fontSize: 13,
+                        color: "#0f172a",
+                        outline: "none",
+                        fontFamily: "'DM Sans', sans-serif",
+                      }}
+                    />
+                    <button
+                      type="submit"
+                      disabled={loading}
+                      style={{
+                        background: "#2563eb",
+                        color: "#ffffff",
+                        border: "none",
+                        borderRadius: 8,
+                        padding: "5px 11px",
+                        fontSize: 11.5,
+                        fontWeight: 700,
+                        cursor: "pointer",
+                        fontFamily: "'DM Sans', sans-serif",
+                      }}
+                    >
+                      Find
+                    </button>
+                  </div>
+                </form>
+              )}
 
               {/* Navigation Links Group */}
               <div style={{ display: "flex", flexDirection: "column", gap: 3 }}>
@@ -1477,7 +1478,7 @@ export default function Navbar() {
 
       {/* Search Modal (Admin Only) */}
       <AnimatePresence>
-        {searchModalOpen && (
+        {adminToken && searchModalOpen && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -1604,195 +1605,6 @@ export default function Navbar() {
                   >
                     {loading ? "Searching..." : "View Dashboard"}
                   </button>
-                </div>
-              </form>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* Direct Search / Auth Required Modal */}
-      <AnimatePresence>
-        {showAuthModal && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            onClick={() => setShowAuthModal(false)}
-            style={{
-              position: "fixed",
-              inset: 0,
-              background: "rgba(15, 23, 42, 0.45)",
-              backdropFilter: "blur(8px)",
-              WebkitBackdropFilter: "blur(8px)",
-              zIndex: 10000,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              padding: 16,
-            }}
-          >
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95, y: 10 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: 10 }}
-              transition={{ type: "spring", stiffness: 320, damping: 26 }}
-              onClick={(e) => e.stopPropagation()}
-              style={{
-                background: "#ffffff",
-                borderRadius: 20,
-                padding: "26px 22px",
-                maxWidth: 430,
-                width: "100%",
-                boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.25)",
-                position: "relative",
-              }}
-            >
-              <button
-                onClick={() => setShowAuthModal(false)}
-                style={{
-                  position: "absolute",
-                  top: 14,
-                  right: 14,
-                  background: "transparent",
-                  border: "none",
-                  color: "#94a3b8",
-                  cursor: "pointer",
-                  padding: 4,
-                  display: "flex",
-                }}
-              >
-                <X size={18} />
-              </button>
-
-              <div style={{ textAlign: "center", marginBottom: 18 }}>
-                <div
-                  style={{
-                    width: 48,
-                    height: 48,
-                    borderRadius: 14,
-                    background: pendingDestination?.type === "attendance"
-                      ? "#ecfdf5"
-                      : pendingDestination?.type === "analytics"
-                      ? "#f5f3ff"
-                      : "#eff6ff",
-                    color: pendingDestination?.type === "attendance"
-                      ? "#059669"
-                      : pendingDestination?.type === "analytics"
-                      ? "#8b5cf6"
-                      : "#2563eb",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    margin: "0 auto 12px auto",
-                  }}
-                >
-                  {pendingDestination?.type === "timetable" ? (
-                    <Clock size={22} />
-                  ) : pendingDestination?.type === "attendance" ? (
-                    <Percent size={22} />
-                  ) : pendingDestination?.type === "analytics" ? (
-                    <BarChart2 size={22} />
-                  ) : (
-                    <Search size={22} />
-                  )}
-                </div>
-                <h3 style={{ fontSize: 18, fontWeight: 800, color: "#0f172a", marginBottom: 4 }}>
-                  {pendingDestination?.type === "timetable"
-                    ? "Open Class Timetable"
-                    : pendingDestination?.type === "attendance"
-                    ? "Open Attendance Tracker"
-                    : pendingDestination?.type === "analytics"
-                    ? "Academic Analytics Suite"
-                    : "Search Academic Record"}
-                </h3>
-                <p style={{ fontSize: 12.5, color: "#64748b", margin: 0, lineHeight: 1.5 }}>
-                  {pendingDestination?.type === "timetable"
-                    ? "Enter your University Registration Number to view your schedule & routine."
-                    : pendingDestination?.type === "attendance"
-                    ? "Enter your University Registration Number to simulate & track your attendance."
-                    : pendingDestination?.type === "analytics"
-                    ? "Enter your University Registration Number to explore in-depth performance analytics."
-                    : "Enter your University Registration Number to continue."}
-                </p>
-              </div>
-
-              <form onSubmit={handleSearchSubmit}>
-                <div style={{ display: "flex", flexDirection: "column", gap: 11 }}>
-                  <input
-                    type="text"
-                    value={searchRegNo}
-                    onChange={(e) => setSearchRegNo(e.target.value)}
-                    placeholder="e.g. 230301120327"
-                    autoFocus
-                    style={{
-                      width: "100%",
-                      padding: "12px 14px",
-                      borderRadius: 12,
-                      border: "1.5px solid #cbd5e1",
-                      fontSize: 14,
-                      color: "#0f172a",
-                      outline: "none",
-                      fontFamily: "'DM Sans', sans-serif",
-                      transition: "border-color 0.2s",
-                      boxSizing: "border-box",
-                    }}
-                    onFocus={(e) => (e.target.style.borderColor = "#2563eb")}
-                    onBlur={(e) => (e.target.style.borderColor = "#cbd5e1")}
-                  />
-
-                  {error && (
-                    <div style={{ color: "#ef4444", fontSize: 12, textAlign: "center" }}>
-                      {error}
-                    </div>
-                  )}
-
-                  <div style={{ display: "flex", gap: 10, marginTop: 4 }}>
-                    <button
-                      type="button"
-                      onClick={() => setShowAuthModal(false)}
-                      style={{
-                        padding: "11px 16px",
-                        borderRadius: 12,
-                        background: "#f1f5f9",
-                        color: "#475569",
-                        border: "none",
-                        fontSize: 13.5,
-                        fontWeight: 700,
-                        cursor: "pointer",
-                        fontFamily: "'DM Sans', sans-serif",
-                      }}
-                    >
-                      Cancel
-                    </button>
-                    <button
-                      type="submit"
-                      disabled={loading}
-                      style={{
-                        flex: 1,
-                        padding: "11px",
-                        borderRadius: 12,
-                        background: pendingDestination?.type === "attendance" ? "#059669" : "#0f172a",
-                        color: "#ffffff",
-                        border: "none",
-                        fontSize: 13.5,
-                        fontWeight: 700,
-                        cursor: loading ? "not-allowed" : "pointer",
-                        fontFamily: "'DM Sans', sans-serif",
-                        transition: "background 0.2s",
-                      }}
-                    >
-                      {loading
-                        ? "Searching..."
-                        : pendingDestination?.type === "timetable"
-                        ? "Open Timetable"
-                        : pendingDestination?.type === "attendance"
-                        ? "Open Attendance Tracker"
-                        : pendingDestination?.type === "analytics"
-                        ? "Open Analytics"
-                        : "View Dashboard"}
-                    </button>
-                  </div>
                 </div>
               </form>
             </motion.div>

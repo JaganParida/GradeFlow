@@ -223,55 +223,63 @@ async function sendOtpEmail({
       <meta charset="UTF-8">
       <meta name="viewport" content="width=device-width, initial-scale=1.0">
       <title>GradeFlow Verification Code</title>
-      <style>
-        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background-color: #f8fafc; margin: 0; padding: 20px; color: #1e293b; }
-        .container { max-width: 520px; margin: 0 auto; background: #ffffff; border-radius: 16px; border: 1px solid #e2e8f0; overflow: hidden; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05); }
-        .header { background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%); padding: 28px 24px; text-align: center; color: #ffffff; }
-        .brand { font-size: 22px; font-weight: 800; letter-spacing: -0.5px; margin: 0; color: #ffffff; }
-        .content { padding: 28px 24px; }
-        .greeting { font-size: 15px; font-weight: 700; color: #0f172a; margin-top: 0; }
-        .text { font-size: 14px; color: #475569; line-height: 1.6; margin-bottom: 20px; }
-        .otp-box { background: #f0fdf4; border: 2px dashed #86efac; border-radius: 12px; padding: 20px; text-align: center; margin: 24px 0; }
-        .otp-code { font-family: 'Courier New', Courier, monospace; font-size: 36px; font-weight: 900; letter-spacing: 8px; color: #059669; margin: 0; }
-        .otp-expiry { font-size: 12px; font-weight: 700; color: #15803d; margin-top: 8px; }
-        .security-badge { background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 10px; padding: 12px 14px; font-size: 12.5px; color: #1e40af; line-height: 1.5; margin-bottom: 20px; }
-        .footer { background: #f8fafc; border-top: 1px solid #e2e8f0; padding: 18px 24px; text-align: center; font-size: 12px; color: #94a3b8; }
-      </style>
     </head>
-    <body>
-      <div class="container">
-        <div class="header">
-          <h1 class="brand">GradeFlow Intelligence</h1>
-          <p style="margin: 4px 0 0 0; font-size: 13px; color: #94a3b8;">Centurion University of Technology and Management</p>
-        </div>
-        <div class="content">
-          <p class="greeting">Hello ${studentName || "Student"},</p>
-          <p class="text">
-            Use the 6-digit verification code below to securely authenticate your GradeFlow student account for <strong>${regNo}</strong>.
-          </p>
-          <div class="otp-box">
-            <div class="otp-code">${otp}</div>
-            <div class="otp-expiry">⏳ Valid for ${expiresInMinutes} minutes only</div>
-          </div>
-          <div class="security-badge">
-            🔒 <strong>Single Device Security:</strong> Only one active device session is allowed. If this was not requested by you, please ignore this email.
-          </div>
-          <p class="text" style="font-size: 12.5px; color: #64748b; margin-bottom: 0;">
-            Note: Maximum 2 OTP verification requests are permitted per calendar day.
-          </p>
-        </div>
-        <div class="footer">
-          &copy; ${new Date().getFullYear()} GradeFlow &middot; Official Student Academic Portal
-        </div>
-      </div>
+    <body style="margin: 0; padding: 32px 16px; background-color: #f8fafc; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #0f172a;">
+      <table align="center" border="0" cellpadding="0" cellspacing="0" width="100%" style="max-width: 460px; margin: 0 auto; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04);">
+        <!-- Top University Header -->
+        <tr>
+          <td style="padding: 28px 32px 20px 32px; border-bottom: 1px solid #f1f5f9;">
+            <div style="font-size: 19px; font-weight: 800; color: #0f172a; letter-spacing: -0.5px;">GradeFlow</div>
+            <div style="font-size: 12px; color: #64748b; margin-top: 2px; font-weight: 500;">Centurion University of Technology and Management</div>
+          </td>
+        </tr>
+
+        <!-- Main Body -->
+        <tr>
+          <td style="padding: 28px 32px;">
+            <div style="font-size: 15px; font-weight: 700; color: #0f172a; margin-bottom: 8px;">
+              Hello ${studentName || "Student"},
+            </div>
+            <div style="font-size: 14px; color: #475569; line-height: 1.6; margin-bottom: 24px;">
+              Here is your single-use verification code to authenticate student account <strong>${regNo}</strong> on GradeFlow:
+            </div>
+
+            <!-- Crisp Monospace OTP Display -->
+            <table align="center" border="0" cellpadding="0" cellspacing="0" width="100%" style="margin-bottom: 24px;">
+              <tr>
+                <td align="center" style="background: #f1f5f9; border-radius: 12px; padding: 18px 24px; border: 1px solid #e2e8f0;">
+                  <div style="font-family: 'SF Mono', 'Space Mono', Monaco, Consolas, monospace; font-size: 34px; font-weight: 900; letter-spacing: 10px; color: #1e293b;">
+                    ${otp}
+                  </div>
+                </td>
+              </tr>
+            </table>
+
+            <div style="font-size: 12.5px; color: #64748b; line-height: 1.5; text-align: center;">
+              ⏳ This verification code expires in <strong>${expiresInMinutes} minutes</strong>.
+            </div>
+
+            <div style="margin-top: 20px; padding-top: 20px; border-top: 1px dashed #e2e8f0; font-size: 11.5px; color: #94a3b8; line-height: 1.5; text-align: center;">
+              🔒 <strong>Single Device Session:</strong> If you did not request this OTP, please ignore this email. Maximum 2 verification attempts allowed per calendar day.
+            </div>
+          </td>
+        </tr>
+
+        <!-- Footer -->
+        <tr>
+          <td align="center" style="padding: 16px 32px; background: #fafafa; border-top: 1px solid #f1f5f9; font-size: 11px; color: #94a3b8;">
+            &copy; ${new Date().getFullYear()} GradeFlow &middot; CUTM Student Academic Portal
+          </td>
+        </tr>
+      </table>
     </body>
     </html>
   `;
 
-  const text = `Hello ${studentName || "Student"},\n\nYour GradeFlow login verification code for registration number ${regNo} is: ${otp}\n\nThis OTP is valid for ${expiresInMinutes} minutes only.\n\nSingle Device Security: Only one active device session is allowed.\n\nGradeFlow Academic Portal`;
+  const text = `Hello ${studentName || "Student"},\n\nYour GradeFlow login verification code for registration number ${regNo} is: ${otp}\n\nThis OTP is valid for ${expiresInMinutes} minutes only.\n\nGradeFlow Academic Portal`;
 
   const mailOptions = {
-    from: `"GradeFlow - Student Security" <${senderEmail}>`,
+    from: `"GradeFlow" <${senderEmail}>`,
     replyTo: senderEmail,
     to: recipientEmail,
     subject,
