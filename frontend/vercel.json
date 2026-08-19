@@ -13,6 +13,10 @@
       "destination": "/api/health.js"
     },
     {
+      "source": "/api/attendance/ocr",
+      "destination": "/api/attendance-ocr.js"
+    },
+    {
       "source": "/api/auth/student/send-otp",
       "destination": "/api/auth.js?action=student-send-otp"
     },

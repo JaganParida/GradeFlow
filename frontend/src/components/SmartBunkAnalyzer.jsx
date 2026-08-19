@@ -206,27 +206,28 @@ export default function SmartBunkAnalyzer({
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
       {/* ═══════════════════════════════════════════════════════════════
-          HERO INTELLIGENCE BANNER
+          HERO INTELLIGENCE BANNER (Clean Modern SaaS Style)
       ═══════════════════════════════════════════════════════════════ */}
       <div
         style={{
-          background: "linear-gradient(135deg, #1e3a8a 0%, #1e40af 100%)",
+          background: "#ffffff",
+          border: "1px solid #e2e8f0",
           borderRadius: 18,
-          padding: isMobile ? "16px 14px" : "22px 26px",
-          color: "#ffffff",
+          padding: isMobile ? "16px 14px" : "20px 24px",
+          color: "#0f172a",
           display: "flex",
           flexDirection: "column",
           gap: 12,
-          boxShadow: "0 4px 16px rgba(30, 58, 138, 0.25)",
+          boxShadow: "0 1px 3px rgba(0, 0, 0, 0.02), 0 10px 24px -6px rgba(15, 23, 42, 0.04)",
         }}
       >
         <div
           style={{
             display: "flex",
             justifyContent: "space-between",
-            alignItems: "flex-start",
+            alignItems: "center",
             flexWrap: "wrap",
-            gap: 10,
+            gap: 12,
           }}
         >
           <div>
@@ -237,7 +238,7 @@ export default function SmartBunkAnalyzer({
                 gap: 6,
                 fontSize: 11.5,
                 fontWeight: 800,
-                opacity: 0.9,
+                color: "#2563eb",
                 textTransform: "uppercase",
                 letterSpacing: "0.5px",
               }}
@@ -249,7 +250,9 @@ export default function SmartBunkAnalyzer({
               style={{
                 fontSize: isMobile ? 18 : 22,
                 fontWeight: 900,
-                margin: "4px 0 0 0",
+                margin: "3px 0 0 0",
+                color: "#0f172a",
+                letterSpacing: "-0.4px",
               }}
             >
               Smart Bunk & Weekly Safe Days Analyzer
@@ -258,14 +261,14 @@ export default function SmartBunkAnalyzer({
 
           <div
             style={{
-              background: "rgba(255, 255, 255, 0.15)",
-              backdropFilter: "blur(8px)",
-              padding: "8px 14px",
+              background: "#eff6ff",
+              border: "1px solid #dbeafe",
+              padding: "8px 16px",
               borderRadius: 12,
               textAlign: "right",
             }}
           >
-            <div style={{ fontSize: 10.5, fontWeight: 700, opacity: 0.85 }}>
+            <div style={{ fontSize: 10.5, fontWeight: 700, color: "#64748b" }}>
               Overall Semester Safe Buffer
             </div>
             <div
@@ -273,6 +276,7 @@ export default function SmartBunkAnalyzer({
                 fontSize: isMobile ? 18 : 22,
                 fontWeight: 900,
                 letterSpacing: "-0.5px",
+                color: "#1d4ed8",
               }}
             >
               {overallCalculation.safeBunks || 0} Classes Safe

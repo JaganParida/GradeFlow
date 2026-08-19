@@ -55,6 +55,7 @@ import {
   estimateTargetReachDate,
 } from "../utils/timetableHelper";
 import SmartBunkAnalyzer from "../components/SmartBunkAnalyzer";
+import AttendanceScreenshotModal from "../components/AttendanceScreenshotModal";
 
 export default function AttendanceTracker() {
   const { studentId: urlParam } = useParams();
@@ -69,7 +70,7 @@ export default function AttendanceTracker() {
     openStudentAuthModal,
   } = useApp();
 
-  // Decode regNo from URL, session, studentData, or localStorage
+  // Decode regNo from URL, session, or studentData
   const decodedParam = urlParam
     ? isEncryptedToken(urlParam)
       ? decodeStudentId(urlParam)
@@ -80,7 +81,6 @@ export default function AttendanceTracker() {
     decodedParam ||
     studentSession?.regNo ||
     studentData?.regNo ||
-    localStorage.getItem("last_regNo") ||
     "";
 
   // Section State
@@ -199,9 +199,34 @@ export default function AttendanceTracker() {
   const [simulateMissCount, setSimulateMissCount] = useState(0);
   const [simulateAttendCount, setSimulateAttendCount] = useState(0);
   const [activeTab, setActiveTab] = useState("studio"); // "studio" | "bunk_analyzer"
+  const [isScreenshotModalOpen, setIsScreenshotModalOpen] = useState(false);
 
   // Saved Subjects (In-Memory React State, synced direct to MongoDB Atlas)
   const [savedSubjects, setSavedSubjects] = useState([]);
+
+  // Handler for applying OCR extracted subjects
+  const handleApplyScreenshotSubjects = (extracted) => {
+    if (!Array.isArray(extracted) || extracted.length === 0) return;
+
+    const formatted = extracted.map((s) => {
+      const cleanName = cleanSubjectBaseName(s.name);
+      return {
+        subjectName: cleanName || s.name,
+        code: s.code || "",
+        components: [
+          {
+            type: "PP",
+            attended: s.attendedClasses || 0,
+            delivered: s.totalClasses || 0,
+          },
+        ],
+      };
+    });
+
+    setSavedSubjects(formatted);
+    syncAttendanceToDb(formatted, dailyAttendanceLogs, targetGoal);
+    setActiveTab("studio");
+  };
 
   // Proactively clean legacy attendance localStorage keys on mount for maximum privacy
   useEffect(() => {
@@ -796,6 +821,30 @@ export default function AttendanceTracker() {
                   </select>
                 </>
               )}
+
+              {/* AI Screenshot Auto-Import Button */}
+              <button
+                type="button"
+                onClick={() => setIsScreenshotModalOpen(true)}
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 6,
+                  padding: "7px 14px",
+                  borderRadius: 10,
+                  background: "#eff6ff",
+                  border: "1px solid #bfdbfe",
+                  color: "#1d4ed8",
+                  fontSize: 12.5,
+                  fontWeight: 700,
+                  cursor: "pointer",
+                  transition: "all 0.15s ease",
+                  boxShadow: "0 1px 3px rgba(37, 99, 235, 0.08)",
+                }}
+              >
+                <Sparkles size={14} color="#2563eb" />
+                <span>Auto-Import via Screenshot</span>
+              </button>
 
               {activeStudentName && (
                 <div
@@ -2785,6 +2834,15 @@ export default function AttendanceTracker() {
         isMobile={isMobile}
       />
     )}
+
+    {/* AI Screenshot Auto-Importer Modal */}
+    <AttendanceScreenshotModal
+      isOpen={isScreenshotModalOpen}
+      onClose={() => setIsScreenshotModalOpen(false)}
+      onApply={handleApplyScreenshotSubjects}
+      currentSection={selectedSection}
+      API={API}
+    />
   </div>
 </div>
 );
