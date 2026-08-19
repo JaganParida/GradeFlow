@@ -3,6 +3,7 @@ const SemesterResult = require("./_lib/models/SemesterResult");
 const InternalMark = require("./_lib/models/InternalMark");
 const Ranking = require("./_lib/models/Ranking");
 const Student = require("./_lib/models/Student");
+const Attendance = require("./_lib/models/Attendance");
 const {
   calculateBacklogs,
   calculateCGPA,
@@ -23,20 +24,19 @@ function calcAcademicHealth(cgpa, sgpa, backlogs, results) {
 const CORS_HEADERS = {
   "Access-Control-Allow-Credentials": "true",
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Methods": "GET,OPTIONS",
-  "Access-Control-Allow-Headers": "X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version, Authorization",
+  "Access-Control-Allow-Methods": "GET,POST,OPTIONS",
+  "Access-Control-Allow-Headers": "X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version, Authorization, Cookie",
 };
 
 module.exports = async function handler(req, res) {
   Object.entries(CORS_HEADERS).forEach(([k, v]) => res.setHeader(k, v));
   if (req.method === "OPTIONS") return res.status(200).end();
-  if (req.method !== "GET") return res.status(405).json({ message: "Method Not Allowed" });
 
   try {
     await connectToDatabase();
 
     const queryRegNo = req.query.regNo || req.query.registrationNumber || req.query.id;
-    const cleanRegNo = String(queryRegNo || "").trim();
+    const cleanRegNo = String(queryRegNo || "").trim().toUpperCase();
 
     if (!cleanRegNo || !/^[a-zA-Z0-9]{5,20}$/.test(cleanRegNo)) {
       return res.status(400).json({ message: "Invalid registration number format. Must be 5-20 alphanumeric characters." });
@@ -44,6 +44,58 @@ module.exports = async function handler(req, res) {
 
     const sem = req.query.sem;
     const action = req.query.action;
+
+    // ── Attendance Tracker Persistence (GET & POST) ──
+    if (action === "attendance") {
+      if (req.method === "GET") {
+        const attendance = await Attendance.findOne({ regNo: cleanRegNo });
+        if (!attendance) {
+          return res.json({
+            success: true,
+            attendance: null,
+            message: "No custom attendance record saved yet.",
+          });
+        }
+        return res.json({
+          success: true,
+          attendance: {
+            regNo: attendance.regNo,
+            section: attendance.section,
+            targetGoal: attendance.targetGoal,
+            savedSubjects: attendance.savedSubjects,
+            dailyLogs: attendance.dailyLogs ? (attendance.dailyLogs instanceof Map ? Object.fromEntries(attendance.dailyLogs) : attendance.dailyLogs) : {},
+            lastSyncedAt: attendance.lastSyncedAt,
+          },
+        });
+      }
+
+      if (req.method === "POST") {
+        const { section, targetGoal, savedSubjects, dailyLogs } = req.body || {};
+        const updatedAttendance = await Attendance.findOneAndUpdate(
+          { regNo: cleanRegNo },
+          {
+            regNo: cleanRegNo,
+            section: section || "CSE-A",
+            targetGoal: Number(targetGoal) || 75,
+            savedSubjects: Array.isArray(savedSubjects) ? savedSubjects : [],
+            dailyLogs: dailyLogs && typeof dailyLogs === "object" ? dailyLogs : {},
+            lastSyncedAt: new Date(),
+          },
+          { upsert: true, new: true, setDefaultsOnInsert: true }
+        );
+        return res.json({
+          success: true,
+          message: "Attendance data saved successfully to database.",
+          attendance: updatedAttendance,
+        });
+      }
+
+      return res.status(405).json({ message: "Method not allowed for attendance" });
+    }
+
+    if (req.method !== "GET") {
+      return res.status(405).json({ message: "Method Not Allowed" });
+    }
 
     // Sub-resource: specific semester result
     if (action === "semester" && sem) {

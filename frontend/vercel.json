@@ -13,6 +13,38 @@
       "destination": "/api/health.js"
     },
     {
+      "source": "/api/auth/student/send-otp",
+      "destination": "/api/auth.js?action=student-send-otp"
+    },
+    {
+      "source": "/api/auth/student/verify-otp",
+      "destination": "/api/auth.js?action=student-verify-otp"
+    },
+    {
+      "source": "/api/auth/student/me",
+      "destination": "/api/auth.js?action=student-me"
+    },
+    {
+      "source": "/api/auth/student/logout",
+      "destination": "/api/auth.js?action=student-logout"
+    },
+    {
+      "source": "/api/auth/login",
+      "destination": "/api/auth.js?action=login"
+    },
+    {
+      "source": "/api/auth/logout",
+      "destination": "/api/auth.js?action=logout"
+    },
+    {
+      "source": "/api/auth/me",
+      "destination": "/api/auth.js?action=me"
+    },
+    {
+      "source": "/api/student/:regNo/attendance",
+      "destination": "/api/student.js?regNo=:regNo&action=attendance"
+    },
+    {
       "source": "/api/student/:regNo/semester/:sem",
       "destination": "/api/student.js?regNo=:regNo&action=semester&sem=:sem"
     },
@@ -39,18 +71,6 @@
     {
       "source": "/api/rankings",
       "destination": "/api/rankings.js"
-    },
-    {
-      "source": "/api/auth/login",
-      "destination": "/api/auth.js?action=login"
-    },
-    {
-      "source": "/api/auth/logout",
-      "destination": "/api/auth.js?action=logout"
-    },
-    {
-      "source": "/api/auth/me",
-      "destination": "/api/auth.js?action=me"
     },
     {
       "source": "/api/feedback/:id/like",
