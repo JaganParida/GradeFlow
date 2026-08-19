@@ -107,7 +107,14 @@ export default function App() {
     const interceptor = axios.interceptors.response.use(
       (response) => response,
       (error) => {
-        if (error.response && error.response.status === 429) {
+        const url = String(error.config?.url || "");
+        const isStudentAuthRoute =
+          url.includes("/auth/student") ||
+          url.includes("student-send-otp") ||
+          url.includes("student-verify-otp") ||
+          url.includes("student-me");
+
+        if (error.response && error.response.status === 429 && !isStudentAuthRoute) {
           setRateLimitError(
             error.response.data?.message ||
               "The server is experiencing high traffic. Please wait a moment and try again.",
