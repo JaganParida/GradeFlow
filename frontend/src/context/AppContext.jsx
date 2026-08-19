@@ -42,6 +42,7 @@ export function AppProvider({ children }) {
     setTheme(prev => prev === 'light' ? 'dark' : 'light');
   };
 
+  const [authChecking, setAuthChecking] = useState(true);
   const navigate = useNavigate();
 
   // ─── Check Auth on Startup (Both Admin & Student from HttpOnly Cookie) ─
@@ -64,7 +65,7 @@ export function AppProvider({ children }) {
         const resStudent = await axios.get(`${API_BASE}/auth/student/me`);
         if (resStudent.data?.success && resStudent.data?.student) {
           setStudentSession(resStudent.data.student);
-          fetchStudent(resStudent.data.student.regNo, 2, 500);
+          await fetchStudent(resStudent.data.student.regNo, 2, 500);
         } else {
           setStudentSession(null);
           setStudentData(null);
@@ -72,6 +73,8 @@ export function AppProvider({ children }) {
       } catch (err) {
         setStudentSession(null);
         setStudentData(null);
+      } finally {
+        setAuthChecking(false);
       }
     };
 
@@ -260,6 +263,7 @@ export function AppProvider({ children }) {
       value={{
         studentData,
         studentSession,
+        authChecking,
         isAuthModalOpen,
         setIsAuthModalOpen,
         openStudentAuthModal: () => setIsAuthModalOpen(true),

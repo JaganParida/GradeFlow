@@ -16,6 +16,7 @@ import Timetable from "./pages/Timetable";
 import AttendanceTracker from "./pages/AttendanceTracker";
 import FeedbackModal from "./components/FeedbackModal";
 import UpgradeModal from "./components/UpgradeModal";
+import { DashboardSkeleton } from "./components/LoadingSpinner";
 import { useApp } from "./context/AppContext";
 import { AlertTriangle, X } from "lucide-react";
 
@@ -62,7 +63,10 @@ function PageTransition({ children }) {
 }
 
 function ProtectedRoute({ children }) {
-  const { hasActiveSession } = useApp();
+  const { hasActiveSession, authChecking } = useApp();
+  if (authChecking) {
+    return <DashboardSkeleton />;
+  }
   if (!hasActiveSession) {
     return <Navigate to="/" replace />;
   }
