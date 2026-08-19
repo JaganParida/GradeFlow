@@ -1630,8 +1630,19 @@ export default function Timetable() {
                 {daySchedule.map((period, idx) => {
                   const slot = TIME_SLOTS[idx] || {};
                   const isToday = formatDateKey(selectedDate) === formatDateKey(currentTime);
-                  const liveStatus = isToday ? getLivePeriodStatus(idx, currentTime) : "REGULAR";
+                  const todayMidnight = new Date(currentTime);
+                  todayMidnight.setHours(0, 0, 0, 0);
+                  const selectedMidnight = new Date(selectedDate);
+                  selectedMidnight.setHours(0, 0, 0, 0);
+                  const isPastDate = selectedMidnight < todayMidnight;
+
+                  const liveStatus = isToday
+                    ? getLivePeriodStatus(idx, currentTime)
+                    : isPastDate
+                    ? "COMPLETED"
+                    : "REGULAR";
                   const isLiveNow = liveStatus === "LIVE_NOW" && !period.isFree;
+                  const isCompleted = (liveStatus === "COMPLETED" || isPastDate) && !period.isFree;
 
                   const isLab = period.type === "PR";
                   const isTut = period.type === "TUT";
@@ -1645,11 +1656,15 @@ export default function Timetable() {
                       style={{
                         background: isLiveNow
                           ? "#f0fdf4"
+                          : isCompleted
+                          ? "#fafafa"
                           : period.isFree
                           ? "#f8fafc"
                           : "#ffffff",
                         border: isLiveNow
                           ? "2px solid #16a34a"
+                          : isCompleted
+                          ? "1px solid #e2e8f0"
                           : "1px solid #e2e8f0",
                         borderRadius: 14,
                         padding: isMobile ? "12px 14px" : "14px 20px",
@@ -1657,6 +1672,7 @@ export default function Timetable() {
                         gridTemplateColumns: isMobile ? "1fr" : "170px 1fr auto",
                         gap: isMobile ? 8 : 16,
                         alignItems: "center",
+                        opacity: isCompleted ? 0.9 : 1,
                         boxShadow: isLiveNow
                           ? "0 4px 14px rgba(22, 163, 74, 0.12)"
                           : "0 1px 3px rgba(0,0,0,0.02)",
@@ -1671,11 +1687,15 @@ export default function Timetable() {
                             borderRadius: 10,
                             background: isLiveNow
                               ? "#dcfce7"
+                              : isCompleted
+                              ? "#f1f5f9"
                               : slot.isBreak
                               ? "#fef3c7"
                               : "#eff6ff",
                             color: isLiveNow
                               ? "#16a34a"
+                              : isCompleted
+                              ? "#64748b"
                               : slot.isBreak
                               ? "#d97706"
                               : "#2563eb",
@@ -1690,7 +1710,7 @@ export default function Timetable() {
                           {idx + 1}
                         </div>
                         <div>
-                          <div style={{ fontSize: 12.5, fontWeight: 800, color: "#0f172a", fontFamily: "'Space Mono', monospace" }}>
+                          <div style={{ fontSize: 12.5, fontWeight: 800, color: isCompleted ? "#475569" : "#0f172a", fontFamily: "'Space Mono', monospace" }}>
                             {slot.startTime} - {slot.endTime}
                           </div>
                           <div style={{ fontSize: 11, color: "#64748b", fontWeight: 600 }}>
@@ -1706,7 +1726,7 @@ export default function Timetable() {
                             style={{
                               fontSize: isMobile ? 14 : 15,
                               fontWeight: 800,
-                              color: period.isFree ? "#94a3b8" : "#0f172a",
+                              color: period.isFree ? "#94a3b8" : isCompleted ? "#334155" : "#0f172a",
                             }}
                           >
                             {cleanSubjectBaseName(period.subject) || period.subject}
@@ -1718,9 +1738,9 @@ export default function Timetable() {
                                 fontSize: 11,
                                 fontFamily: "'Space Mono', monospace",
                                 fontWeight: 800,
-                                color: "#2563eb",
-                                background: "#eff6ff",
-                                border: "1px solid #bfdbfe",
+                                color: isCompleted ? "#475569" : "#2563eb",
+                                background: isCompleted ? "#f1f5f9" : "#eff6ff",
+                                border: `1px solid ${isCompleted ? "#cbd5e1" : "#bfdbfe"}`,
                                 padding: "2px 7px",
                                 borderRadius: 6,
                                 letterSpacing: "0.5px",
@@ -1761,6 +1781,25 @@ export default function Timetable() {
                               }}
                             >
                               <span style={{ width: 5, height: 5, borderRadius: "50%", background: "#ffffff" }} /> LIVE NOW
+                            </span>
+                          )}
+
+                          {isCompleted && !isLiveNow && (
+                            <span
+                              style={{
+                                fontSize: 10,
+                                fontWeight: 800,
+                                background: "#f1f5f9",
+                                color: "#64748b",
+                                border: "1px solid #cbd5e1",
+                                padding: "2px 7px",
+                                borderRadius: 6,
+                                display: "inline-flex",
+                                alignItems: "center",
+                                gap: 4,
+                              }}
+                            >
+                              <CheckCircle2 size={11} color="#64748b" /> COMPLETED
                             </span>
                           )}
                         </div>

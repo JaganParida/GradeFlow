@@ -44,11 +44,35 @@ export default function SmartBunkAnalyzer({
     const totalOverallDel = overallCalculation.totalDelivered || 0;
     const currentOverallPct = overallCalculation.percentage || 100;
 
+    const today = new Date();
+    const currentDayNum = today.getDay(); // 0: Sun, 1: Mon, 2: Tue, 3: Wed, 4: Thu, 5: Fri, 6: Sat
+    const dayMap = { Monday: 1, Tuesday: 2, Wednesday: 3, Thursday: 4, Friday: 5 };
+
     return DAYS.map((day) => {
       const daySchedule = getDaySchedule(selectedSection, day) || [];
       const scheduledPeriods = daySchedule.filter(
         (p) => !p.isFree && p.subject && p.subject !== "No Class / Free"
       );
+
+      // Compute actual calendar date for this day in current week
+      const targetDayNum = dayMap[day];
+      const dayDiff = targetDayNum - (currentDayNum === 0 ? 7 : currentDayNum);
+      const calendarDate = new Date(today);
+      calendarDate.setDate(today.getDate() + dayDiff);
+      const dateFormatted = calendarDate.toLocaleDateString("en-IN", {
+        day: "numeric",
+        month: "short",
+      });
+
+      // Relative Day State
+      let dayRelativeState = "upcoming"; // "past" | "today" | "tomorrow" | "upcoming"
+      if (dayDiff < 0) {
+        dayRelativeState = "past";
+      } else if (dayDiff === 0) {
+        dayRelativeState = "today";
+      } else if (dayDiff === 1) {
+        dayRelativeState = "tomorrow";
+      }
 
       let canBunkAllDay = true;
       let criticalPeriodsCount = 0;
@@ -60,20 +84,37 @@ export default function SmartBunkAnalyzer({
           { type: period.type || "PP", attended: 18, delivered: 24 },
         ];
         const subCode = resolveSubjectCode({ subject: cleanName }, studentData);
+        const periodType = (period.type || "PP").toUpperCase();
 
-        const currentCalc = calculateAttendance({
+        // 1. Subject Impact
+        const subAtt = comps.reduce((acc, c) => acc + (Number(c.attended) || 0), 0);
+        const subDel = comps.reduce((acc, c) => acc + (Number(c.delivered) || 0), 0);
+        const subCurrentPct = subDel > 0 ? (subAtt / subDel) * 100 : 100;
+        const subSkippedPct = subDel + 1 > 0 ? (subAtt / (subDel + 1)) * 100 : subCurrentPct;
+        const subDelta = subSkippedPct - subCurrentPct;
+
+        // 2. Component Impact (PP / PR / TUT)
+        const matchedComp = comps.find((c) => c.type.toUpperCase() === periodType) || comps[0];
+        const compAtt = Number(matchedComp.attended) || 0;
+        const compDel = Number(matchedComp.delivered) || 0;
+        const compCurrentPct = compDel > 0 ? (compAtt / compDel) * 100 : 100;
+        const compSkippedPct = compDel + 1 > 0 ? (compAtt / (compDel + 1)) * 100 : compCurrentPct;
+        const compDelta = compSkippedPct - compCurrentPct;
+
+        // 3. College Semester Aggregate Impact
+        const grandAtt = totalOverallAtt;
+        const grandDel = totalOverallDel;
+        const grandCurrentPct = grandDel > 0 ? (grandAtt / grandDel) * 100 : 100;
+        const grandSkippedPct = grandDel + 1 > 0 ? (grandAtt / (grandDel + 1)) * 100 : grandCurrentPct;
+        const grandDelta = grandSkippedPct - grandCurrentPct;
+
+        // Safe Bunks for Subject
+        const subCalc = calculateAttendance({
           components: comps,
           targetPercentage: 75,
         });
 
-        // Simulate missing this 1 class
-        const simCalc = calculateAttendance({
-          components: comps,
-          simulateAbsent: 1,
-          targetPercentage: 75,
-        });
-
-        const isSafeToMiss = simCalc.currentPercentage >= 75;
+        const isSafeToMiss = subSkippedPct >= 75;
         if (!isSafeToMiss) {
           canBunkAllDay = false;
           criticalPeriodsCount++;
@@ -81,22 +122,30 @@ export default function SmartBunkAnalyzer({
 
         return {
           periodIndex: pIdx + 1,
-          slotNumber:
-            period.slotIndex !== undefined ? period.slotIndex + 1 : pIdx + 1,
+          slotNumber: period.slotIndex !== undefined ? period.slotIndex + 1 : pIdx + 1,
           timeSlot:
             period.timeSlot ||
-            `${TIME_SLOTS[pIdx]?.startTime || ""} - ${
-              TIME_SLOTS[pIdx]?.endTime || ""
-            }`,
+            `${TIME_SLOTS[pIdx]?.startTime || ""} - ${TIME_SLOTS[pIdx]?.endTime || ""}`,
           subjectName: cleanName,
           subCode,
-          type: period.type || "PP",
+          type: periodType,
           room: period.room,
           faculty: period.faculty,
-          currentPercentage: currentCalc.currentPercentage,
-          safeBunks: currentCalc.safeBunks,
-          projectedPercentage:
-            simCalc.simulatedPercentage || simCalc.currentPercentage,
+
+          compType: matchedComp.type,
+          compCurrentPct: Number(compCurrentPct.toFixed(1)),
+          compSkippedPct: Number(compSkippedPct.toFixed(1)),
+          compDelta: Number(compDelta.toFixed(1)),
+
+          currentPercentage: Number(subCurrentPct.toFixed(1)),
+          projectedPercentage: Number(subSkippedPct.toFixed(1)),
+          subjectDelta: Number(subDelta.toFixed(1)),
+
+          grandCurrentPct: Number(grandCurrentPct.toFixed(1)),
+          grandSkippedPct: Number(grandSkippedPct.toFixed(1)),
+          grandDelta: Number(grandDelta.toFixed(1)),
+
+          safeBunks: subCalc.safeBunks,
           isSafeToMiss,
         };
       });
@@ -122,6 +171,8 @@ export default function SmartBunkAnalyzer({
 
       return {
         day,
+        dateFormatted,
+        dayRelativeState,
         totalClasses: scheduledPeriods.length,
         periods,
         canBunkAllDay: canBunkAllDay && isOverallSafeIfAllDayBunked,
@@ -309,6 +360,9 @@ export default function SmartBunkAnalyzer({
       >
         {weeklyBunkAnalysis.map((dayData) => {
           const isSelected = selectedDay === dayData.day;
+          const isPast = dayData.dayRelativeState === "past";
+          const isToday = dayData.dayRelativeState === "today";
+          const isTomorrow = dayData.dayRelativeState === "tomorrow";
           const isSafe = dayData.dayStatus === "SAFE";
           const isWarning = dayData.dayStatus === "WARNING";
 
@@ -318,8 +372,12 @@ export default function SmartBunkAnalyzer({
               type="button"
               onClick={() => setSelectedDay(dayData.day)}
               style={{
-                background: isSelected ? "#0f172a" : "#ffffff",
-                border: isSelected ? "2px solid #0f172a" : "1.5px solid #e2e8f0",
+                background: isSelected ? "#0f172a" : isPast ? "#f8fafc" : "#ffffff",
+                border: isSelected
+                  ? "2px solid #0f172a"
+                  : isToday
+                  ? "2px solid #2563eb"
+                  : "1.5px solid #e2e8f0",
                 borderRadius: 14,
                 padding: isMobile ? "8px 4px" : "12px 14px",
                 display: "flex",
@@ -328,64 +386,95 @@ export default function SmartBunkAnalyzer({
                 gap: 4,
                 cursor: "pointer",
                 transition: "all 0.15s ease",
+                opacity: isPast && !isSelected ? 0.8 : 1,
                 boxShadow: isSelected
                   ? "0 4px 12px rgba(15, 23, 42, 0.2)"
+                  : isToday
+                  ? "0 2px 8px rgba(37, 99, 235, 0.12)"
                   : "0 1px 3px rgba(0,0,0,0.02)",
               }}
             >
-              <span
-                style={{
-                  fontSize: isMobile ? 11 : 13,
-                  fontWeight: 800,
-                  color: isSelected ? "#ffffff" : "#0f172a",
-                }}
-              >
-                {isMobile ? dayData.day.slice(0, 3) : dayData.day}
-              </span>
+              <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                <span
+                  style={{
+                    fontSize: isMobile ? 11 : 13,
+                    fontWeight: 800,
+                    color: isSelected ? "#ffffff" : isPast ? "#64748b" : "#0f172a",
+                  }}
+                >
+                  {isMobile ? dayData.day.slice(0, 3) : dayData.day}
+                </span>
+                {isToday && (
+                  <span
+                    style={{
+                      width: 6,
+                      height: 6,
+                      borderRadius: "50%",
+                      background: isSelected ? "#60a5fa" : "#2563eb",
+                    }}
+                  />
+                )}
+              </div>
 
               <span
                 style={{
                   fontSize: 10,
                   fontWeight: 700,
-                  color: isSelected ? "#94a3b8" : "#64748b",
+                  color: isSelected ? "#94a3b8" : isPast ? "#94a3b8" : "#64748b",
                 }}
               >
-                {dayData.totalClasses}{" "}
-                {dayData.totalClasses === 1 ? "Class" : "Classes"}
+                {dayData.dateFormatted} &bull; {dayData.totalClasses} Cls
               </span>
 
               <span
                 style={{
                   fontSize: 9,
                   fontWeight: 900,
-                  padding: "1px 5px",
+                  padding: "1px 6px",
                   borderRadius: 4,
-                  background: isSafe
-                    ? isSelected
+                  background: isSelected
+                    ? isPast
+                      ? "#334155"
+                      : isSafe
                       ? "#059669"
-                      : "#ecfdf5"
-                    : isWarning
-                    ? isSelected
+                      : isWarning
                       ? "#d97706"
-                      : "#fffbeb"
-                    : isSelected
-                    ? "#dc2626"
-                    : "#fef2f2",
-                  color: isSafe
-                    ? isSelected
-                      ? "#ffffff"
-                      : "#059669"
+                      : "#dc2626"
+                    : isPast
+                    ? "#f1f5f9"
+                    : isToday
+                    ? "#eff6ff"
+                    : isSafe
+                    ? "#ecfdf5"
                     : isWarning
-                    ? isSelected
-                      ? "#ffffff"
-                      : "#d97706"
-                    : isSelected
+                    ? "#fffbeb"
+                    : "#fef2f2",
+                  color: isSelected
                     ? "#ffffff"
+                    : isPast
+                    ? "#64748b"
+                    : isToday
+                    ? "#1d4ed8"
+                    : isSafe
+                    ? "#059669"
+                    : isWarning
+                    ? "#d97706"
                     : "#dc2626",
+                  border: isPast && !isSelected ? "1px solid #cbd5e1" : "none",
                   textTransform: "uppercase",
                 }}
               >
-                {isSafe ? "Safe" : isWarning ? "Caution" : "Critical"}
+                {isPast
+                  ? "Completed"
+                  : isToday
+                  ? "Today"
+                  : isTomorrow
+                  ? "Tomorrow"
+                  : isSafe
+                  ? "Safe"
+                  : isWarning
+                  ? "Caution"
+                  : "Critical"}
               </span>
             </button>
           );
@@ -690,55 +779,142 @@ export default function SmartBunkAnalyzer({
                       </div>
                     </div>
 
-                    {/* Bunk Safety Prediction Pill */}
+                    {/* Bunk Safety Prediction Breakdown Card */}
                     <div
                       style={{
                         background: p.isSafeToMiss ? "#f0fdf4" : "#fef2f2",
-                        border: `1px solid ${
+                        border: `1.5px solid ${
                           p.isSafeToMiss ? "#86efac" : "#fecaca"
                         }`,
-                        borderRadius: 10,
-                        padding: "8px 12px",
+                        borderRadius: 12,
+                        padding: "10px 12px",
                         display: "flex",
-                        justifyContent: "space-between",
-                        alignItems: "center",
+                        flexDirection: "column",
                         gap: 6,
                       }}
                     >
-                      <div>
+                      <div
+                        style={{
+                          display: "flex",
+                          justifyContent: "space-between",
+                          alignItems: "center",
+                        }}
+                      >
                         <div
                           style={{
-                            fontSize: 11,
+                            fontSize: 11.5,
                             fontWeight: 800,
                             color: p.isSafeToMiss ? "#166534" : "#991b1b",
+                            display: "flex",
+                            alignItems: "center",
+                            gap: 5,
                           }}
                         >
-                          {p.isSafeToMiss
-                            ? "SAFE TO BUNK"
-                            : "CRITICAL • MUST ATTEND"}
+                          {p.isSafeToMiss ? (
+                            <CheckCircle2 size={13} color="#16a34a" />
+                          ) : (
+                            <AlertTriangle size={13} color="#dc2626" />
+                          )}
+                          <span>
+                            {p.isSafeToMiss
+                              ? "SAFE TO BUNK"
+                              : "CRITICAL • MUST ATTEND"}
+                          </span>
                         </div>
-                        <div
-                          style={{
-                            fontSize: 10.5,
-                            color: p.isSafeToMiss ? "#15803d" : "#b91c1c",
-                            marginTop: 1,
-                          }}
-                        >
-                          Current: {p.currentPercentage}% &rarr; If Skipped:{" "}
-                          {p.projectedPercentage}%
-                        </div>
-                      </div>
-
-                      <div style={{ textAlign: "right" }}>
                         <span
                           style={{
-                            fontSize: 11,
+                            fontSize: 10.5,
                             fontWeight: 900,
                             color: p.isSafeToMiss ? "#166534" : "#dc2626",
+                            background: p.isSafeToMiss ? "#dcfce7" : "#fee2e2",
+                            padding: "1px 6px",
+                            borderRadius: 4,
                           }}
                         >
                           {p.safeBunks} safe
                         </span>
+                      </div>
+
+                      {/* 3-Tier Granular Skip Breakdown */}
+                      <div
+                        style={{
+                          display: "flex",
+                          flexDirection: "column",
+                          gap: 3,
+                          marginTop: 2,
+                          background: "#ffffff",
+                          padding: "8px 10px",
+                          borderRadius: 8,
+                          border: `1px solid ${
+                            p.isSafeToMiss ? "#bbf7d0" : "#fca5a5"
+                          }`,
+                        }}
+                      >
+                        {/* 1. Component Tier */}
+                        <div
+                          style={{
+                            fontSize: 11,
+                            color: "#334155",
+                            display: "flex",
+                            justifyContent: "space-between",
+                          }}
+                        >
+                          <span>
+                            <strong>{p.type} Component:</strong> {p.compCurrentPct}% &rarr;{" "}
+                            <strong>{p.compSkippedPct}%</strong>
+                          </span>
+                          <span style={{ fontWeight: 700, color: "#dc2626" }}>
+                            {p.compDelta}%
+                          </span>
+                        </div>
+
+                        {/* 2. Subject Tier */}
+                        <div
+                          style={{
+                            fontSize: 11,
+                            color: "#334155",
+                            display: "flex",
+                            justifyContent: "space-between",
+                          }}
+                        >
+                          <span>
+                            <strong>Subject Score:</strong> {p.currentPercentage}% &rarr;{" "}
+                            <strong
+                              style={{
+                                color:
+                                  p.projectedPercentage >= 75
+                                    ? "#059669"
+                                    : "#dc2626",
+                              }}
+                            >
+                              {p.projectedPercentage}%
+                            </strong>
+                          </span>
+                          <span style={{ fontWeight: 700, color: "#dc2626" }}>
+                            {p.subjectDelta}%
+                          </span>
+                        </div>
+
+                        {/* 3. Grand Semester Aggregate Tier */}
+                        <div
+                          style={{
+                            fontSize: 10.5,
+                            color: "#64748b",
+                            display: "flex",
+                            justifyContent: "space-between",
+                            borderTop: "1px dashed #e2e8f0",
+                            paddingTop: 3,
+                            marginTop: 2,
+                          }}
+                        >
+                          <span>
+                            <strong>College Aggregate:</strong> {p.grandCurrentPct}% &rarr;{" "}
+                            {p.grandSkippedPct}%
+                          </span>
+                          <span style={{ fontWeight: 600, color: "#64748b" }}>
+                            {p.grandDelta}%
+                          </span>
+                        </div>
                       </div>
                     </div>
                   </div>
