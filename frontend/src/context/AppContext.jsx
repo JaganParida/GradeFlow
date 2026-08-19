@@ -114,6 +114,15 @@ export function AppProvider({ children }) {
     setError("");
     try {
       const res = await axios.post(`${API_BASE}/auth/student/send-otp`, { regNo });
+      if (res.data?.alreadyLoggedIn && res.data?.student) {
+        setStudentSession(res.data.student);
+        localStorage.setItem("gf_student_session", JSON.stringify(res.data.student));
+        localStorage.setItem("last_regNo", res.data.student.regNo);
+        if (res.data.student.studentName) {
+          localStorage.setItem("last_studentName", res.data.student.studentName);
+        }
+        await fetchStudent(res.data.student.regNo, 3, 500, true);
+      }
       return { success: true, data: res.data };
     } catch (err) {
       const msg = err.response?.data?.message || "Failed to send verification OTP. Please try again.";
