@@ -815,7 +815,7 @@ export function estimateTargetReachDate(classesNeeded, weeklyOccurrences = [], s
 
     // Skip official non-working academic calendar holidays
     const hol = getHolidayInfo(current);
-    if (hol.isHoliday) continue;
+    if (hol?.isHoliday) continue;
 
     const dayIdx = current.getDay();
     const occurrencesOnDay = dayIndices.filter((idx) => idx === dayIdx).length;
