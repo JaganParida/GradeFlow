@@ -425,7 +425,7 @@ function DonutChartComponent() {
    ════════════════════════════════════════════════════════════════ */
 export default function Home() {
   const navigate = useNavigate();
-  const { studentData, hasActiveSession, fetchStudent, openStudentAuthModal } = useApp();
+  const { studentData, studentSession, hasActiveSession, fetchStudent, openStudentAuthModal } = useApp();
   const [emailSub, setEmailSub] = useState("");
   const [subscribed, setSubscribed] = useState(false);
   const [showSearchModal, setShowSearchModal] = useState(false);

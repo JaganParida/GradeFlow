@@ -27,6 +27,7 @@ export default function Navbar() {
   const navigate = useNavigate();
   const {
     studentData,
+    studentSession,
     hasActiveSession,
     leaveSession,
     fetchStudent,

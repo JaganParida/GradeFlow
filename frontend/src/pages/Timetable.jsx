@@ -64,6 +64,7 @@ export default function Timetable() {
   const navigate = useNavigate();
   const {
     studentData,
+    studentSession,
     fetchStudent,
     loading: appLoading,
     hasActiveSession,
