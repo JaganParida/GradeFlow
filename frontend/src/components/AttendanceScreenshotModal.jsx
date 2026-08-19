@@ -129,6 +129,60 @@ export default function AttendanceScreenshotModal({
     reader.readAsDataURL(file);
   };
 
+  // Canvas-based image preprocessor for optimal OCR recognition (removes table background & enhances text contrast)
+  const preprocessImageForOcr = (imageSource) => {
+    return new Promise((resolve) => {
+      try {
+        const img = new Image();
+        img.crossOrigin = "anonymous";
+        img.onload = () => {
+          const canvas = document.createElement("canvas");
+          const scale = 1.75;
+          canvas.width = Math.round(img.width * scale);
+          canvas.height = Math.round(img.height * scale);
+          const ctx = canvas.getContext("2d");
+          if (!ctx) return resolve(imageSource);
+
+          // Fill pure white background
+          ctx.fillStyle = "#ffffff";
+          ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+          // Draw scaled image
+          ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+
+          const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+          const d = imgData.data;
+
+          // High-contrast binarization: filter out table borders, light-blue headers, pill rounded boxes
+          for (let i = 0; i < d.length; i += 4) {
+            const r = d[i];
+            const g = d[i + 1];
+            const b = d[i + 2];
+            const luminance = 0.299 * r + 0.587 * g + 0.114 * b;
+
+            // ERP text is dark (luminance < 145), table cells / borders are light (> 150)
+            if (luminance < 145) {
+              d[i] = 0;
+              d[i + 1] = 0;
+              d[i + 2] = 0;
+            } else {
+              d[i] = 255;
+              d[i + 1] = 255;
+              d[i + 2] = 255;
+            }
+          }
+
+          ctx.putImageData(imgData, 0, 0);
+          resolve(canvas.toDataURL("image/png"));
+        };
+        img.onerror = () => resolve(imageSource);
+        img.src = imageSource;
+      } catch {
+        resolve(imageSource);
+      }
+    });
+  };
+
   // Dedicated CUTM ERP Text Heuristic Parser (Website Table ERP + Mobile ERP Cards)
   const parseCutmOcrText = (text, catalog) => {
     const lines = text.split("\n").map((l) => l.trim()).filter(Boolean);
@@ -139,7 +193,7 @@ export default function AttendanceScreenshotModal({
     let detectedOverallAttended = 0;
     let detectedOverallDelivered = 0;
 
-    // 1. Detect Total Percentage line (e.g. "Total Percentage 98/145 67.59%")
+    // 1. Detect Total Percentage line (e.g. "Total Percentage 110/136 80.88%")
     for (let line of lines) {
       if (
         line.toLowerCase().includes("total percentage") ||
@@ -175,24 +229,29 @@ export default function AttendanceScreenshotModal({
         continue;
       }
 
-      // A. WEBSITE ERP TABLE LINE PATTERN:
-      // Matches rows with: "CUTM1020 - PP CUTM1020 2/5 40" or "ROBOTIC AUTOMATION ... CUTM1020 - PR CUTM1020 18/22 81.82"
-      const websiteShortCodeMatch = line.match(/([A-Z0-9]+)\s*-\s*(PP|PR|TUT|PF|TL)/i);
+      // A. WEBSITE ERP TABLE LINE PATTERN (Code + Short Tag + Fraction):
+      const codeMatch = line.match(/\b(CUTM|CUCS|CUEC|CUEE|CUME|CUCY|CUPH|CUMA|BTE|BBA|MBA)\d{3,4}\b/i);
+      const shortCompMatch = line.match(/(?:-\s*|\(\s*|\b)(PP|PR|TUT|PF|TL)(?:\s*\)|\b)/i);
       const fracMatch = line.match(/(\d+)\s*[\/|\\]\s*(\d+)/);
 
-      if (websiteShortCodeMatch && fracMatch) {
-        const code = websiteShortCodeMatch[1].toUpperCase();
-        const compType = websiteShortCodeMatch[2].toUpperCase().replace("PF", "PP").replace("TL", "TUT");
+      if (codeMatch && fracMatch) {
+        const code = codeMatch[0].toUpperCase();
+        let compType = "PP";
+        if (shortCompMatch) {
+          compType = shortCompMatch[1].toUpperCase().replace("PF", "PP").replace("TL", "TUT");
+        }
         const att = parseInt(fracMatch[1], 10);
         const del = parseInt(fracMatch[2], 10);
 
-        let rawSubName = line.split(websiteShortCodeMatch[0])[0].trim().replace(/^\d+\s+/, "");
         let matchedCatalog = catalog.find((c) => c.code && c.code.toUpperCase() === code);
-        if (!matchedCatalog && rawSubName) {
-          matchedCatalog = catalog.find((c) => c.subjectName.toLowerCase().includes(rawSubName.toLowerCase()));
+        if (!matchedCatalog) {
+          const rawName = line.split(codeMatch[0])[0].replace(/^\d+\s+/, "").trim();
+          if (rawName.length > 3) {
+            matchedCatalog = catalog.find((c) => c.subjectName.toLowerCase().includes(rawName.toLowerCase()));
+          }
         }
 
-        let subName = matchedCatalog?.subjectName || rawSubName || code;
+        let subName = matchedCatalog?.subjectName || code;
         subName = cleanSubjectBaseName(subName);
 
         if (!subjectsMap.has(subName)) {
@@ -221,7 +280,7 @@ export default function AttendanceScreenshotModal({
         continue;
       }
 
-      // B. MOBILE ERP CARD FORMAT:
+      // B. MOBILE ERP CARD FORMAT (Original & Restored):
       const upper = line.toUpperCase();
       if (upper.includes("(PR") || upper.includes("- (PR") || upper.includes("-(PR") || upper.endsWith("- PR")) {
         activeCompType = "PR";
@@ -261,7 +320,7 @@ export default function AttendanceScreenshotModal({
         } else if (lower.includes("minor project")) {
           matchedCatalog = catalog.find((c) => c.subjectName.toLowerCase().includes("minor project")) || {
             subjectName: "Minor Project II",
-            code: "CUTM1906",
+            code: "CUTM1577",
           };
         } else if (lower.includes("summer internship") || lower.includes("internship")) {
           matchedCatalog = catalog.find((c) => c.subjectName.toLowerCase().includes("internship")) || {
@@ -403,7 +462,7 @@ export default function AttendanceScreenshotModal({
     });
   };
 
-  // Analyze Screenshot via Dual AI (Cloud Gemini + Client-Side Tesseract WASM Engine)
+  // Analyze Screenshot via Dual AI (Cloud Gemini + Client-Side Tesseract WASM Engine with Image Preprocessing)
   const analyzeScreenshot = async (imageBase64, mimeType) => {
     setIsProcessing(true);
     setErrorMsg("");
@@ -426,18 +485,30 @@ export default function AttendanceScreenshotModal({
       console.warn("Cloud OCR skipped, switching to high-accuracy local OCR engine:", err);
     }
 
-    // 2. If Serverless didn't extract or no API key, run Client-Side Tesseract.js Engine
+    // 2. If Serverless didn't extract or no API key, run Client-Side Tesseract.js Engine with Canvas Preprocessing
     if (extracted.length === 0) {
       try {
-        setProcessingStatus("Running local OCR engine on screenshot...");
+        setProcessingStatus("Enhancing contrast & running local OCR engine...");
+        const preprocessedBase64 = await preprocessImageForOcr(imageBase64);
+
         const worker = await createWorker("eng");
-        const ret = await worker.recognize(imageBase64);
+        await worker.setParameters({
+          tessedit_pageseg_mode: "6", // Assume a single uniform block of text
+        });
+        const ret = await worker.recognize(preprocessedBase64);
         await worker.terminate();
 
         const rawText = ret.data?.text || "";
         extracted = parseCutmOcrText(rawText, sectionCatalog);
       } catch (tessErr) {
-        console.warn("Local Tesseract OCR warning:", tessErr);
+        console.warn("Local Tesseract OCR warning, trying default mode:", tessErr);
+        try {
+          const worker2 = await createWorker("eng");
+          const ret2 = await worker2.recognize(imageBase64);
+          await worker2.terminate();
+          const rawText2 = ret2.data?.text || "";
+          extracted = parseCutmOcrText(rawText2, sectionCatalog);
+        } catch {}
       }
     }
 

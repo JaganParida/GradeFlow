@@ -82,6 +82,131 @@ app.use("/api/rankings", publicLimiter, require("./routes/rankings"));
 app.use("/api/feedback", publicLimiter, require("./routes/feedback"));
 app.use("/api/timetable", publicLimiter, require("./routes/timetable"));
 
+// ─── Attendance OCR Endpoint ───────────────────────────────────
+app.post("/api/attendance/ocr", publicLimiter, async (req, res) => {
+  try {
+    const { imageBase64, mimeType = "image/jpeg" } = req.body || {};
+    if (!imageBase64) {
+      return res.status(400).json({ success: false, message: "imageBase64 is required" });
+    }
+
+    const cleanBase64 = imageBase64.replace(/^data:image\/[a-z]+;base64,/, "");
+    const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
+
+    if (GEMINI_API_KEY) {
+      try {
+        const response = await fetch(
+          `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              contents: [
+                {
+                  parts: [
+                    {
+                      text: `Extract all academic course attendance data from this CUTM ERP screenshot.
+SUPPORTED FORMATS:
+1. Website ERP table with columns: "Sr.No", "Course Name", "Course Short Name", "Course Code", "Attended/Delivered", "Percent". Extract components (PP, PR, TUT) from "Course Short Name" (e.g. CUTM1020 - PP) and group all rows for the same course.
+2. Mobile ERP card format with subject title and component sub-lines (PP, PR, TUT).
+
+Return ONLY a JSON array of objects:
+[
+  {
+    "name": "Robotic Automation with ROS and C++",
+    "code": "CUTM1020",
+    "components": [
+      { "type": "PP", "attended": 6, "delivered": 7 },
+      { "type": "PR", "attended": 23, "delivered": 25 },
+      { "type": "TUT", "attended": 3, "delivered": 3 }
+    ],
+    "attended": 32,
+    "total": 35,
+    "percentage": 91.4
+  }
+]`,
+                    },
+                    {
+                      inline_data: {
+                        mime_type: mimeType || "image/jpeg",
+                        data: cleanBase64,
+                      },
+                    },
+                  ],
+                },
+              ],
+              generationConfig: {
+                temperature: 0.1,
+                response_mime_type: "application/json",
+              },
+            }),
+          }
+        );
+
+        if (response.ok) {
+          const result = await response.json();
+          const rawText = result.candidates?.[0]?.content?.parts?.[0]?.text || "[]";
+          let parsedData = [];
+          try {
+            parsedData = JSON.parse(rawText.replace(/```json/g, "").replace(/```/g, "").trim());
+          } catch {
+            const jsonMatch = rawText.match(/\[[\s\S]*\]/);
+            if (jsonMatch) parsedData = JSON.parse(jsonMatch[0]);
+          }
+
+          if (Array.isArray(parsedData) && parsedData.length > 0) {
+            const formattedSubjects = parsedData.map((s, idx) => {
+              const comps = Array.isArray(s.components) && s.components.length > 0
+                ? s.components.map((c) => ({
+                    type: String(c.type || "PP").toUpperCase(),
+                    attended: Math.max(0, parseInt(c.attended, 10) || 0),
+                    delivered: Math.max(0, parseInt(c.delivered || c.total, 10) || 0),
+                  }))
+                : [
+                    {
+                      type: "PP",
+                      attended: Math.max(0, parseInt(s.attended, 10) || 0),
+                      delivered: Math.max(0, parseInt(s.total, 10) || 0),
+                    },
+                  ];
+
+              const totalAtt = comps.reduce((acc, c) => acc + (Number(c.attended) || 0), 0);
+              const totalDel = comps.reduce((acc, c) => acc + (Number(c.delivered) || 0), 0);
+              const pct = totalDel > 0 ? parseFloat(((totalAtt / totalDel) * 100).toFixed(1)) : 100;
+
+              return {
+                id: `ocr_sub_${Date.now()}_${idx}`,
+                name: String(s.name || `Subject ${idx + 1}`).trim(),
+                code: String(s.code || "").trim(),
+                attendedClasses: totalAtt,
+                totalClasses: totalDel,
+                percentage: pct,
+                components: comps,
+              };
+            });
+
+            return res.json({
+              success: true,
+              engine: "gemini_vision",
+              subjects: formattedSubjects,
+            });
+          }
+        }
+      } catch (geminiErr) {
+        console.warn("Backend Gemini Vision warning:", geminiErr.message);
+      }
+    }
+
+    res.json({
+      success: true,
+      engine: "client_fallback",
+      subjects: [],
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
 // ─── Health Check Endpoint ──────────────────────────────────────
 app.get("/api/health", (req, res) => {
   res.json({
