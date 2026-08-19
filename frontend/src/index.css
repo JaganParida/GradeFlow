@@ -4,6 +4,41 @@
 
 @import url("https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;0,9..40,800;0,9..40,900;1,9..40,400&family=Space+Mono:wght@400;700&display=swap");
 
+/* ── Universal Loading Spinners & Micro-Animations ───────────── */
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.spin,
+.animate-spin,
+.loading-spinner,
+svg.spin,
+svg.animate-spin {
+  display: inline-block !important;
+  animation: spin 0.75s linear infinite !important;
+  transform-origin: center center !important;
+  will-change: transform;
+}
+
+.spin-slow {
+  display: inline-block !important;
+  animation: spin 1.5s linear infinite !important;
+  transform-origin: center center !important;
+  will-change: transform;
+}
+
+.spin-reverse {
+  display: inline-block !important;
+  animation: spin 0.75s linear infinite reverse !important;
+  transform-origin: center center !important;
+  will-change: transform;
+}
+
 /* ── Design Tokens ─────────────────────────────────────────── */
 :root {
   /* ── Backgrounds (YouTube dark palette) */
