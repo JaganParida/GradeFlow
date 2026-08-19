@@ -37,26 +37,29 @@ module.exports = async function handler(req, res) {
                 {
                   parts: [
                     {
-                      text: `You are an expert OCR parser for university student attendance portals (like CUTM ERP, TCS iON, etc.).
-Extract all academic subject attendance data from this screenshot.
-For each subject in the table, extract:
-- name: The full or clean subject name (e.g., "Database Management Systems", "Computer Networks", "Design and Analysis of Algorithms")
-- code: The subject code if visible (e.g., "CUTM1020", "CS301"), or empty string
-- attended: Total number of classes attended (integer)
-- total: Total number of classes conducted/delivered (integer)
-- percentage: The percentage value (float, e.g. 85.5)
+                      text: `You are an expert OCR parser for university student attendance portals (CUTM ERP, TCS iON, Web & Mobile Apps).
+Extract all academic course attendance data from this screenshot.
+CRITICAL CUTM ERP FORMAT RULES:
+1. In CUTM ERP, each subject card has a main title with a code, e.g. "ROBOTIC AUTOMATION WITH ROS AND C++ (CUTM1020)" and may contain component rows like (PP) 3/4, (PR) 22/24, (TUT) 4/5.
+2. For each subject, SUM UP all component attended classes and all component total/delivered classes to get the total subject attendance! (e.g. 3+22+4 = 29 attended, 4+24+5 = 33 total).
+3. Extract each subject:
+   - name: The clean capitalized subject name (e.g. "Robotic Automation with ROS and C++", "Minor Project II", "Summer Internship I", "Cloud Fundamentals (Azure)")
+   - code: The course code if visible (e.g. "CUTM1020", "CUTM1577", "CUTM1578")
+   - attended: Sum of attended classes (integer)
+   - total: Sum of conducted/delivered classes (integer)
+   - percentage: (attended / total) * 100 as float (e.g. 87.9)
 
-Return ONLY a JSON array of objects with the exact structure:
+Return ONLY a JSON array:
 [
   {
-    "name": "Database Management Systems",
+    "name": "Robotic Automation with ROS and C++",
     "code": "CUTM1020",
-    "attended": 28,
-    "total": 32,
-    "percentage": 87.5
+    "attended": 29,
+    "total": 33,
+    "percentage": 87.9
   }
 ]
-Do not include any explanation or markdown formatting other than the json block.`,
+Do not include markdown ticks or explanation.`,
                     },
                     {
                       inline_data: {

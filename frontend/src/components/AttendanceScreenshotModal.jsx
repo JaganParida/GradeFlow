@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import axios from "axios";
+import { createWorker } from "tesseract.js";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   UploadCloud,
@@ -16,24 +17,32 @@ import {
   Layers,
   ArrowRight,
   Clipboard,
+  BookOpen,
+  ChevronDown,
 } from "lucide-react";
+import { getSectionSubjectCatalog, cleanSubjectBaseName } from "../utils/timetableHelper";
 
 export default function AttendanceScreenshotModal({
   isOpen,
   onClose,
   onApply,
-  currentSection = "CSE-A",
+  currentSection = "CSE-E",
   API = "/api",
 }) {
   const [dragActive, setDragActive] = useState(false);
   const [selectedFile, setSelectedFile] = useState(null);
   const [imagePreview, setImagePreview] = useState(null);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [processingStatus, setProcessingStatus] = useState("Analyzing screenshot...");
   const [parsedSubjects, setParsedSubjects] = useState([]);
   const [errorMsg, setErrorMsg] = useState("");
   const [step, setStep] = useState("upload"); // "upload" | "review"
   const [pasteNotice, setPasteNotice] = useState(false);
+  const [showCatalogDropdown, setShowCatalogDropdown] = useState(false);
   const fileInputRef = useRef(null);
+
+  // Get active section catalog subjects
+  const sectionCatalog = getSectionSubjectCatalog(currentSection) || [];
 
   // Global Clipboard Paste Listener (Ctrl+V support)
   useEffect(() => {
@@ -64,9 +73,11 @@ export default function AttendanceScreenshotModal({
     setSelectedFile(null);
     setImagePreview(null);
     setIsProcessing(false);
+    setProcessingStatus("Analyzing screenshot...");
     setParsedSubjects([]);
     setErrorMsg("");
     setStep("upload");
+    setShowCatalogDropdown(false);
   };
 
   const handleClose = () => {
@@ -118,41 +129,171 @@ export default function AttendanceScreenshotModal({
     reader.readAsDataURL(file);
   };
 
-  // Analyze Screenshot via Backend AI Endpoint
+  // Dedicated CUTM ERP Text Heuristic Parser
+  const parseCutmOcrText = (text, catalog) => {
+    const lines = text.split("\n").map((l) => l.trim()).filter(Boolean);
+    const subjectsMap = new Map();
+    let activeSubjectKey = null;
+
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i];
+
+      // Ignore standard header/footer strings
+      if (
+        line.includes("Attendance Details") ||
+        line.includes("Wise Attendance") ||
+        line.includes("From date") ||
+        line.includes("To date") ||
+        line.includes("Total Percentage") ||
+        line.includes("Course Code") ||
+        line.includes("Attended/Delivered") ||
+        line.includes("Home") ||
+        /^\d{10,14}$/.test(line)
+      ) {
+        continue;
+      }
+
+      // Check if line matches a known catalog subject or has a CUTM code
+      let matchedCatalog = catalog.find(
+        (c) =>
+          line.toLowerCase().includes(c.subjectName.toLowerCase()) ||
+          (c.code && line.toLowerCase().includes(c.code.toLowerCase()))
+      );
+
+      // Fuzzy matching keywords for CUTM curriculum
+      if (!matchedCatalog) {
+        const lower = line.toLowerCase();
+        if (lower.includes("robotic") || lower.includes("ros")) {
+          matchedCatalog = catalog.find((c) => c.subjectName.toLowerCase().includes("robotic")) || {
+            subjectName: "Robotic Automation with ROS and C++",
+            code: "CUTM1020",
+          };
+        } else if (lower.includes("minor project")) {
+          matchedCatalog = catalog.find((c) => c.subjectName.toLowerCase().includes("minor project")) || {
+            subjectName: "Minor Project II",
+            code: "CUTM1577",
+          };
+        } else if (lower.includes("summer internship") || lower.includes("internship")) {
+          matchedCatalog = catalog.find((c) => c.subjectName.toLowerCase().includes("internship")) || {
+            subjectName: "Summer Internship I",
+            code: "CUTM1578",
+          };
+        } else if (lower.includes("cloud") || lower.includes("azure")) {
+          matchedCatalog = catalog.find((c) => c.subjectName.toLowerCase().includes("cloud"));
+        } else if (lower.includes("network") || lower.includes("iot")) {
+          matchedCatalog = catalog.find((c) => c.subjectName.toLowerCase().includes("network"));
+        } else if (lower.includes("compiler") || lower.includes("theory of comp") || lower.includes("toc")) {
+          matchedCatalog = catalog.find((c) => c.subjectName.toLowerCase().includes("theory of computation"));
+        } else if (lower.includes("information security") || lower.includes("cisco")) {
+          matchedCatalog = catalog.find((c) => c.subjectName.toLowerCase().includes("information security"));
+        } else if (lower.includes("prompt")) {
+          matchedCatalog = catalog.find((c) => c.subjectName.toLowerCase().includes("prompt"));
+        } else if (lower.includes("data structure") || lower.includes("dsa") || lower.includes("algorithm")) {
+          matchedCatalog = catalog.find((c) => c.subjectName.toLowerCase().includes("data structure"));
+        }
+      }
+
+      if (matchedCatalog) {
+        activeSubjectKey = matchedCatalog.subjectName;
+        if (!subjectsMap.has(activeSubjectKey)) {
+          subjectsMap.set(activeSubjectKey, {
+            name: matchedCatalog.subjectName,
+            code: matchedCatalog.code || "",
+            attended: 0,
+            total: 0,
+            components: [],
+          });
+        }
+      }
+
+      // Check for fractions e.g. 3/4, 22/24, 4/5, 0/0
+      const fracMatch = line.match(/(\d+)\s*[\/|\\]\s*(\d+)/);
+      if (fracMatch && activeSubjectKey && subjectsMap.has(activeSubjectKey)) {
+        const att = parseInt(fracMatch[1], 10);
+        const del = parseInt(fracMatch[2], 10);
+
+        // Sanity filter (not dates like 2026/2027)
+        if (del < 300 && !line.includes("2026") && !line.includes("2027")) {
+          const sub = subjectsMap.get(activeSubjectKey);
+          sub.attended += att;
+          sub.total += del;
+          sub.components.push({ attended: att, delivered: del, raw: line });
+        }
+      }
+    }
+
+    return Array.from(subjectsMap.values()).map((s, idx) => ({
+      id: `ocr_sub_${Date.now()}_${idx}`,
+      name: s.name,
+      code: s.code,
+      attendedClasses: s.attended,
+      totalClasses: s.total,
+      percentage: s.total > 0 ? Number(((s.attended / s.total) * 100).toFixed(1)) : 0,
+      components: s.components,
+    }));
+  };
+
+  // Analyze Screenshot via Dual AI (Cloud Gemini + Client-Side Tesseract WASM Engine)
   const analyzeScreenshot = async (imageBase64, mimeType) => {
     setIsProcessing(true);
     setErrorMsg("");
+    setProcessingStatus("Initializing AI Vision scanner...");
 
+    let extracted = [];
+
+    // 1. Try Serverless Endpoint
     try {
+      setProcessingStatus("Scanning image layout with Gemini Vision...");
       const res = await axios.post(`${API}/attendance/ocr`, {
         imageBase64,
         mimeType: mimeType || "image/jpeg",
       });
 
       if (res.data?.success && Array.isArray(res.data.subjects) && res.data.subjects.length > 0) {
-        setParsedSubjects(res.data.subjects);
-        setStep("review");
-      } else {
-        // Provide intelligent starter rows if OCR engine did not extract full table
-        const defaultSample = [
-          { id: "sub_1", name: "Operating Systems", attendedClasses: 26, totalClasses: 30, percentage: 86.7 },
-          { id: "sub_2", name: "Computer Networks", attendedClasses: 22, totalClasses: 28, percentage: 78.6 },
-          { id: "sub_3", name: "Database Management Systems", attendedClasses: 24, totalClasses: 32, percentage: 75.0 },
-        ];
-        setParsedSubjects(defaultSample);
-        setStep("review");
+        extracted = res.data.subjects;
       }
     } catch (err) {
-      console.warn("AI OCR Error, initiating review mode:", err);
-      const defaultSample = [
-        { id: "sub_1", name: "Subject 1", attendedClasses: 20, totalClasses: 25, percentage: 80.0 },
-        { id: "sub_2", name: "Subject 2", attendedClasses: 18, totalClasses: 24, percentage: 75.0 },
-      ];
-      setParsedSubjects(defaultSample);
-      setStep("review");
-    } finally {
-      setIsProcessing(false);
+      console.warn("Cloud OCR skipped, switching to high-accuracy local OCR engine:", err);
     }
+
+    // 2. If Serverless didn't extract or no API key, run Client-Side Tesseract.js Engine
+    if (extracted.length === 0) {
+      try {
+        setProcessingStatus("Running local OCR engine on screenshot...");
+        const worker = await createWorker("eng");
+        const ret = await worker.recognize(imageBase64);
+        await worker.terminate();
+
+        const rawText = ret.data?.text || "";
+        extracted = parseCutmOcrText(rawText, sectionCatalog);
+      } catch (tessErr) {
+        console.warn("Local Tesseract OCR warning:", tessErr);
+      }
+    }
+
+    // 3. If still empty, populate with student's actual section catalog subjects for easy manual fill
+    if (extracted.length === 0 && sectionCatalog.length > 0) {
+      extracted = sectionCatalog.map((c, idx) => ({
+        id: `sec_sub_${Date.now()}_${idx}`,
+        name: c.subjectName,
+        code: c.code || "",
+        attendedClasses: 0,
+        totalClasses: 0,
+        percentage: 0,
+        components: [],
+      }));
+    }
+
+    if (extracted.length > 0) {
+      setParsedSubjects(extracted);
+      setStep("review");
+    } else {
+      setErrorMsg("Could not detect subjects automatically. Please add rows manually.");
+      setParsedSubjects([]);
+      setStep("review");
+    }
+
+    setIsProcessing(false);
   };
 
   // Row Modification Handlers
@@ -167,26 +308,27 @@ export default function AttendanceScreenshotModal({
           const tot = Math.max(0, parseInt(field === "totalClasses" ? value : sub.totalClasses, 10) || 0);
           updated.attendedClasses = att;
           updated.totalClasses = tot;
-          updated.percentage = tot > 0 ? parseFloat(((att / tot) * 100).toFixed(1)) : 100;
+          updated.percentage = tot > 0 ? parseFloat(((att / tot) * 100).toFixed(1)) : 0;
         }
         return updated;
       })
     );
   };
 
-  const handleAddRow = () => {
-    const newId = `sub_${Date.now()}`;
+  const handleAddRow = (presetName = "", presetCode = "") => {
+    const newId = `sub_${Date.now()}_${Math.random().toString(36).substring(2, 5)}`;
     setParsedSubjects((prev) => [
       ...prev,
       {
         id: newId,
-        name: `New Subject ${prev.length + 1}`,
-        code: "",
-        attendedClasses: 20,
-        totalClasses: 25,
-        percentage: 80.0,
+        name: presetName || `Subject ${prev.length + 1}`,
+        code: presetCode || "",
+        attendedClasses: 0,
+        totalClasses: 0,
+        percentage: 0,
       },
     ]);
+    setShowCatalogDropdown(false);
   };
 
   const handleDeleteRow = (id) => {
@@ -203,13 +345,13 @@ export default function AttendanceScreenshotModal({
       id: `imported_sub_${Date.now()}_${idx}`,
       name: s.name.trim() || `Subject ${idx + 1}`,
       code: s.code || "",
-      attendedClasses: s.attendedClasses,
-      totalClasses: s.totalClasses,
+      attendedClasses: s.attendedClasses || 0,
+      totalClasses: s.totalClasses || 0,
       components: [
         {
           name: "Theory / Lab",
-          attended: s.attendedClasses,
-          total: s.totalClasses,
+          attended: s.attendedClasses || 0,
+          total: s.totalClasses || 0,
         },
       ],
     }));
@@ -447,30 +589,101 @@ export default function AttendanceScreenshotModal({
                     justifyContent: "space-between",
                     alignItems: "center",
                     marginBottom: 12,
+                    flexWrap: "wrap",
+                    gap: 8,
                   }}
                 >
                   <span style={{ fontSize: 12.5, fontWeight: 700, color: "#334155", textTransform: "uppercase", letterSpacing: "0.5px" }}>
                     Detected Subjects ({parsedSubjects.length})
                   </span>
-                  <button
-                    onClick={handleAddRow}
-                    style={{
-                      background: "#f8fafc",
-                      border: "1px solid #cbd5e1",
-                      borderRadius: 8,
-                      padding: "5px 10px",
-                      fontSize: 12,
-                      fontWeight: 600,
-                      color: "#0f172a",
-                      cursor: "pointer",
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 4,
-                    }}
-                  >
-                    <Plus size={13} />
-                    <span>Add Row</span>
-                  </button>
+
+                  <div style={{ display: "flex", gap: 8, position: "relative" }}>
+                    {/* Add from Section Catalog Button */}
+                    <button
+                      onClick={() => setShowCatalogDropdown(!showCatalogDropdown)}
+                      style={{
+                        background: "#eff6ff",
+                        border: "1px solid #bfdbfe",
+                        borderRadius: 8,
+                        padding: "5px 10px",
+                        fontSize: 12,
+                        fontWeight: 700,
+                        color: "#1d4ed8",
+                        cursor: "pointer",
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 4,
+                      }}
+                    >
+                      <BookOpen size={13} />
+                      <span>+ Add From Section Catalog</span>
+                      <ChevronDown size={12} />
+                    </button>
+
+                    {/* Catalog Dropdown Menu */}
+                    {showCatalogDropdown && (
+                      <div
+                        style={{
+                          position: "absolute",
+                          top: "100%",
+                          right: 0,
+                          marginTop: 4,
+                          background: "#ffffff",
+                          border: "1px solid #e2e8f0",
+                          borderRadius: 10,
+                          boxShadow: "0 10px 25px rgba(0,0,0,0.1)",
+                          zIndex: 100,
+                          minWidth: 260,
+                          maxHeight: 220,
+                          overflowY: "auto",
+                          padding: 4,
+                        }}
+                      >
+                        {sectionCatalog.map((cat, idx) => (
+                          <div
+                            key={idx}
+                            onClick={() => handleAddRow(cat.subjectName, cat.code)}
+                            style={{
+                              padding: "7px 10px",
+                              fontSize: 12,
+                              fontWeight: 600,
+                              color: "#1e293b",
+                              cursor: "pointer",
+                              borderRadius: 6,
+                              display: "flex",
+                              justifyContent: "space-between",
+                              alignItems: "center",
+                            }}
+                            onMouseEnter={(e) => (e.currentTarget.style.background = "#f1f5f9")}
+                            onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
+                          >
+                            <span>{cat.subjectName}</span>
+                            <Plus size={12} color="#2563eb" />
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    <button
+                      onClick={() => handleAddRow()}
+                      style={{
+                        background: "#f8fafc",
+                        border: "1px solid #cbd5e1",
+                        borderRadius: 8,
+                        padding: "5px 10px",
+                        fontSize: 12,
+                        fontWeight: 600,
+                        color: "#0f172a",
+                        cursor: "pointer",
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 4,
+                      }}
+                    >
+                      <Plus size={13} />
+                      <span>Custom Row</span>
+                    </button>
+                  </div>
                 </div>
 
                 <div
