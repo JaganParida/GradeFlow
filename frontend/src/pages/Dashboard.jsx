@@ -499,7 +499,7 @@ export default function Dashboard() {
     }
   }, [tab, selectedSem]);
 
-  if (loading) {
+  if (loading || (!studentData && !error)) {
     return (
       <div style={{ maxWidth: 1280, margin: "0 auto", padding: "32px 24px" }}>
         <DashboardSkeleton />

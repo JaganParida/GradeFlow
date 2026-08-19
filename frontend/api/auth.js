@@ -475,7 +475,7 @@ module.exports = async function handler(req, res) {
         `Path=/`,
         `HttpOnly`,
         `Secure`,
-        `SameSite=None`,
+        `SameSite=Lax`,
         `Max-Age=0`,
       ].join("; ");
       res.setHeader("Set-Cookie", cookieOptions);

@@ -45,10 +45,11 @@ export function decodeStudentId(token) {
   if (!token) return "";
   const clean = String(token).trim();
 
-  // If secure MAGIC_PREFIX token (GF8_...)
-  if (clean.startsWith(`${MAGIC_PREFIX}_`)) {
+  // If secure MAGIC_PREFIX token (GF8_... / Gf8_... / gf8_...)
+  if (/^GF8_/i.test(clean)) {
     try {
-      let b64 = clean.slice(MAGIC_PREFIX.length + 1).replace(/-/g, "+").replace(/_/g, "/");
+      const b64Part = clean.slice(4);
+      let b64 = b64Part.replace(/-/g, "+").replace(/_/g, "/");
       while (b64.length % 4) b64 += "=";
       const binStr = atob(b64);
       
@@ -69,7 +70,7 @@ export function decodeStudentId(token) {
   }
 
   // Legacy GF_ support (for backward compatibility)
-  if (clean.startsWith("GF_")) {
+  if (/^GF_/i.test(clean)) {
     try {
       let b64 = clean.slice(3).replace(/-/g, "+").replace(/_/g, "/");
       while (b64.length % 4) b64 += "=";
@@ -92,5 +93,5 @@ export function decodeStudentId(token) {
 
 export function isEncryptedToken(token) {
   if (!token) return false;
-  return token.startsWith(`${MAGIC_PREFIX}_`) || token.startsWith("GF_");
+  return /^GF8_/i.test(token) || /^GF_/i.test(token);
 }

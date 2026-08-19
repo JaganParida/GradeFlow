@@ -335,7 +335,7 @@ router.post("/student/logout", async (req, res) => {
       expires: new Date(0),
       httpOnly: true,
       secure: true,
-      sameSite: "none",
+      sameSite: "lax",
       path: "/",
     };
 
