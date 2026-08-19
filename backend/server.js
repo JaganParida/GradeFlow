@@ -13,29 +13,55 @@ const app = express();
 // Middleware
 app.set("trust proxy", 1);
 
-// Set security HTTP headers
-app.use(helmet());
+// Set security HTTP headers with explicit Content Security Policy & HSTS
+app.use(
+  helmet({
+    contentSecurityPolicy: {
+      directives: {
+        defaultSrc: ["'self'"],
+        scriptSrc: ["'self'"],
+        styleSrc: ["'self'", "'unsafe-inline'"],
+        imgSrc: ["'self'", "data:", "https:"],
+        connectSrc: ["'self'", process.env.FRONTEND_URL || "https://grade-flow-navy.vercel.app"],
+        objectSrc: ["'none'"],
+        frameAncestors: ["'none'"],
+      },
+    },
+    hsts: {
+      maxAge: 31536000,
+      includeSubDomains: true,
+      preload: true,
+    },
+  })
+);
 
-// Enable CORS with credentials support — whitelist allowed origins
+// Enable CORS with credentials support — whitelist allowed origins (No open *.vercel.app wildcards)
 const ALLOWED_ORIGINS = [
   "http://localhost:5173",
   "http://localhost:3000",
-  process.env.FRONTEND_URL, // Set in .env for production (e.g. https://your-app.vercel.app)
+  "https://grade-flow-navy.vercel.app",
+  process.env.FRONTEND_URL,
 ].filter(Boolean);
+
+const VERCEL_PREVIEW_PREFIX = process.env.VERCEL_PROJECT_PREFIX || "";
 
 app.use(cors({
   origin: function (origin, callback) {
-    // Allow requests with no origin (mobile apps, curl, server-to-server) or from Vercel
-    if (!origin || ALLOWED_ORIGINS.includes(origin) || origin.endsWith(".vercel.app")) {
-      callback(null, true);
-    } else {
-      callback(new Error("Not allowed by CORS"));
+    if (!origin) return callback(null, true);
+    if (ALLOWED_ORIGINS.includes(origin)) return callback(null, true);
+    if (
+      VERCEL_PREVIEW_PREFIX &&
+      origin.startsWith(`https://${VERCEL_PREVIEW_PREFIX}`) &&
+      origin.endsWith(".vercel.app")
+    ) {
+      return callback(null, true);
     }
+    callback(new Error("Not allowed by CORS"));
   },
   credentials: true,
 }));
 
-app.use(express.json());
+app.use(express.json({ limit: "10mb" }));
 app.use(cookieParser());
 
 // Sanitize data to prevent NoSQL Injection

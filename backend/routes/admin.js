@@ -52,6 +52,14 @@ function col(row, ...keys) {
   return undefined;
 }
 
+// Neutralize spreadsheet formula injection: if admin ever re-exports this data
+// to Excel/CSV, a cell starting with =, +, -, or @ could execute as a formula.
+function sanitizeSheetText(value) {
+  const str = String(value ?? "").trim();
+  if (/^[=+\-@]/.test(str)) return `'${str}`;
+  return str;
+}
+
 function getSectionFromRegNo(regNo) {
   if (!regNo) return "J";
   const r = String(regNo).trim();
@@ -341,11 +349,10 @@ router.post(
               "regno",
             ) || "",
           ).trim();
-          const name = String(
-            col(row, "Name", "StudentName", "Student Name", "student_name") ||
-              "",
-          ).trim();
-          const subCode = String(
+          const name = sanitizeSheetText(
+            col(row, "Name", "StudentName", "Student Name", "student_name") || "",
+          );
+          const subCode = sanitizeSheetText(
             col(
               row,
               "Subject_Code",
@@ -354,11 +361,10 @@ router.post(
               "subject_code",
               "Code",
             ) || "",
-          ).trim();
-          const subName = String(
-            col(row, "Subject_Name", "SubName", "Subject", "subject_name") ||
-              "",
-          ).trim();
+          );
+          const subName = sanitizeSheetText(
+            col(row, "Subject_Name", "SubName", "Subject", "subject_name") || "",
+          );
           const type = String(col(row, "Type", "type") || "").trim();
 
           function parseCredit(val) {
@@ -2408,9 +2414,9 @@ router.post(
 
         rows.forEach((row, idx) => {
           const regNo = String(col(row, "Reg_No", "RegNo", "reg_no", "Reg No", "Registration No", "regno") || "").trim();
-          const name = String(col(row, "Name", "StudentName", "Student Name", "student_name") || "").trim();
-          const subCode = String(col(row, "Subject_Code", "SubCode", "Sub Code", "subject_code", "Code") || "").trim();
-          const subName = String(col(row, "Subject_Name", "SubName", "Subject", "subject_name") || "").trim();
+          const name = sanitizeSheetText(col(row, "Name", "StudentName", "Student Name", "student_name") || "");
+          const subCode = sanitizeSheetText(col(row, "Subject_Code", "SubCode", "Sub Code", "subject_code", "Code") || "");
+          const subName = sanitizeSheetText(col(row, "Subject_Name", "SubName", "Subject", "subject_name") || "");
           const type = String(col(row, "Type", "type") || "").trim();
 
           function parseCredit(val) {

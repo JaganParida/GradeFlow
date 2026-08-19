@@ -50,11 +50,45 @@ function getSectionFromRegNo(regNo) {
   return "J";
 }
 
+const jwt = require("jsonwebtoken");
+
+function parseCookies(cookieHeader) {
+  const cookies = {};
+  if (!cookieHeader) return cookies;
+  cookieHeader.split(";").forEach((cookie) => {
+    const [name, ...rest] = cookie.trim().split("=");
+    cookies[name] = rest.join("=");
+  });
+  return cookies;
+}
+
+function verifyAuth(req) {
+  const cookies = parseCookies(req.headers.cookie);
+  const adminToken = cookies.jwt || (req.headers.authorization?.startsWith("Bearer") ? req.headers.authorization.split(" ")[1] : null);
+  const studentToken = cookies.student_jwt || (req.headers.authorization?.startsWith("Bearer") ? req.headers.authorization.split(" ")[1] : null);
+
+  if (adminToken && adminToken !== "none") {
+    try {
+      const decoded = jwt.verify(adminToken, process.env.JWT_SECRET);
+      if (decoded) return { role: "admin", user: decoded };
+    } catch {}
+  }
+
+  if (studentToken && studentToken !== "none") {
+    try {
+      const decoded = jwt.verify(studentToken, process.env.JWT_SECRET);
+      if (decoded && decoded.regNo) return { role: "student", user: decoded };
+    } catch {}
+  }
+
+  return null;
+}
+
 const CORS_HEADERS = {
   "Access-Control-Allow-Credentials": "true",
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Methods": "GET,OPTIONS",
-  "Access-Control-Allow-Headers": "X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version, Authorization",
+  "Access-Control-Allow-Headers": "X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version, Authorization, Cookie",
 };
 
 module.exports = async function handler(req, res) {
@@ -64,6 +98,11 @@ module.exports = async function handler(req, res) {
 
   try {
     await connectToDatabase();
+
+    const auth = verifyAuth(req);
+    if (!auth) {
+      return res.status(401).json({ message: "Authentication required. Please log in to view rankings.", code: "AUTH_REQUIRED" });
+    }
 
     const action = req.query.action;
 

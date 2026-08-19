@@ -3,6 +3,7 @@ const router = express.Router();
 const Ranking = require("../models/Ranking");
 const { sortByScore } = require("../utils/gradeCalculations");
 const { validateAcademicFilters } = require("../middleware/validation");
+const { requireStudentOrAdmin } = require("../middleware/auth");
 
 // Escape special regex characters to prevent ReDoS attacks
 function escapeRegex(str) {
@@ -55,7 +56,7 @@ function getSectionFromRegNo(regNo) {
 }
 
 // Top 50 rankers
-router.get("/top", validateAcademicFilters, async (req, res) => {
+router.get("/top", requireStudentOrAdmin, validateAcademicFilters, async (req, res) => {
   try {
     const { semester, branch, search, limit = 50, sortBy = "sgpa", section, batch } = req.query;
     const query = {};
@@ -160,7 +161,7 @@ router.get("/top", validateAcademicFilters, async (req, res) => {
 });
 
 // Available semesters and branches
-router.get("/meta", async (req, res) => {
+router.get("/meta", requireStudentOrAdmin, async (req, res) => {
   try {
     const semesters = await Ranking.distinct("semester", { sgpa: { $gt: 0 } });
     const batches = await Ranking.distinct("batch", { batch: { $ne: null } });

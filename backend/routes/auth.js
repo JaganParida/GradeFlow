@@ -10,6 +10,7 @@ const StudentSession = require("../models/StudentSession");
 const StudentDailyLimit = require("../models/StudentDailyLimit");
 const { protect, protectStudent } = require("../middleware/auth");
 const { validateLoginInput } = require("../middleware/validation");
+const { otpLimiter } = require("../middleware/rateLimiters");
 const { sendOtpEmail } = require("../utils/emailService");
 const router = express.Router();
 
@@ -190,7 +191,7 @@ router.post("/student/send-otp", async (req, res) => {
 });
 
 // 2. Verify OTP & Issue Single-Device Session Token
-router.post("/student/verify-otp", async (req, res) => {
+router.post("/student/verify-otp", otpLimiter, async (req, res) => {
   try {
     const rawReg = String(req.body.regNo || "").trim().toUpperCase();
     const rawOtp = String(req.body.otp || "").trim();
@@ -282,7 +283,6 @@ router.post("/student/verify-otp", async (req, res) => {
     res.json({
       success: true,
       message: "Authentication successful.",
-      token: studentToken,
       student: {
         regNo: rawReg,
         studentName,
@@ -372,7 +372,7 @@ router.post("/login", validateLoginInput, async (req, res) => {
     };
     
     res.cookie("jwt", token, options);
-    res.json({ success: true, email: admin.email, token });
+    res.json({ success: true, email: admin.email });
   } catch (err) {
     console.error("Auth login error:", err.message);
     res.status(500).json({ message: "An internal authentication error occurred." });

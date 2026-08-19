@@ -377,7 +377,6 @@ module.exports = async function handler(req, res) {
       return res.json({
         success: true,
         message: "Successfully verified and authenticated.",
-        token,
         student: {
           regNo: rawReg,
           studentName: studentRecord?.studentName || "Student",
@@ -503,7 +502,7 @@ module.exports = async function handler(req, res) {
         `Max-Age=${24 * 60 * 60}`,
       ].join("; ");
       res.setHeader("Set-Cookie", cookieOptions);
-      return res.json({ success: true, email: admin.email, token });
+      return res.json({ success: true, email: admin.email });
     }
 
     if (action === "logout" && req.method === "POST") {

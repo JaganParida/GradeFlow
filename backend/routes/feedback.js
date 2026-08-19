@@ -2,13 +2,15 @@ const express = require("express");
 const router = express.Router();
 const Feedback = require("../models/Feedback");
 const { protect } = require("../middleware/auth");
-
+const { publicLimiter } = require("../middleware/rateLimiters");
 const { validateFeedbackInput } = require("../middleware/validation");
 
-// GET /api/feedback - Retrieve all feedbacks (sorted newest first)
+// GET /api/feedback - Retrieve all feedbacks (sorted newest first, regNo projected out for privacy)
 router.get("/", async (req, res) => {
   try {
-    const feedbacks = await Feedback.find().sort({ createdAt: -1 });
+    const feedbacks = await Feedback.find()
+      .select("name rating comment category likes createdAt")
+      .sort({ createdAt: -1 });
     res.json(feedbacks);
   } catch (error) {
     console.error("Error fetching feedbacks:", error);
@@ -41,8 +43,8 @@ router.post("/", validateFeedbackInput, async (req, res) => {
   }
 });
 
-// POST /api/feedback/:id/like - Increment likes on a feedback
-router.post("/:id/like", async (req, res) => {
+// POST /api/feedback/:id/like - Increment likes on a feedback (rate-limited)
+router.post("/:id/like", publicLimiter, async (req, res) => {
   try {
     const feedback = await Feedback.findById(req.params.id);
     if (!feedback) {

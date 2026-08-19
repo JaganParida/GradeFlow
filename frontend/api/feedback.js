@@ -42,7 +42,9 @@ module.exports = async function handler(req, res) {
     const feedbackId = req.query.id;
 
     if (req.method === "GET" && !feedbackId) {
-      const feedbacks = await Feedback.find().sort({ createdAt: -1 });
+      const feedbacks = await Feedback.find()
+        .select("name rating comment category likes createdAt")
+        .sort({ createdAt: -1 });
       return res.json(feedbacks);
     }
 

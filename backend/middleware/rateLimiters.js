@@ -16,7 +16,7 @@ const EMAIL_MAX = Number(process.env.RATE_LIMIT_EMAIL_MAX) || 50;
 // Strict limiter for authentication routes (login, credentials check) with IP+Email key
 const authLimiter = rateLimit({
   windowMs: AUTH_WINDOW_MS,
-  max: AUTH_MAX,
+  max: Number(process.env.RATE_LIMIT_AUTH_MAX) || 8,
   standardHeaders: true,
   legacyHeaders: false,
   message: {
@@ -27,6 +27,18 @@ const authLimiter = rateLimit({
     const ip = req.ip || req.headers["x-forwarded-for"] || "127.0.0.1";
     const email = req.body && req.body.email ? String(req.body.email).trim().toLowerCase() : "";
     return email ? `${ip}_${email}` : ip;
+  },
+});
+
+// Dedicated limiter for student OTP verification attempts (prevents brute-forcing 6-digit codes)
+const otpLimiter = rateLimit({
+  windowMs: 10 * 60 * 1000,
+  max: 5,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: {
+    success: false,
+    message: "Too many OTP verification attempts. Please wait 10 minutes or request a new code.",
   },
 });
 
@@ -68,6 +80,7 @@ const adminLimiter = rateLimit({
 
 module.exports = {
   authLimiter,
+  otpLimiter,
   emailLimiter,
   publicLimiter,
   adminLimiter,
