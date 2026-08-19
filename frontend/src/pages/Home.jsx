@@ -424,7 +424,7 @@ function DonutChartComponent() {
    ════════════════════════════════════════════════════════════════ */
 export default function Home() {
   const navigate = useNavigate();
-  const { studentData, hasActiveSession, fetchStudent } = useApp();
+  const { studentData, hasActiveSession, fetchStudent, openStudentAuthModal } = useApp();
   const [emailSub, setEmailSub] = useState("");
   const [subscribed, setSubscribed] = useState(false);
   const [showSearchModal, setShowSearchModal] = useState(false);
@@ -448,29 +448,28 @@ export default function Home() {
     studentData?.regNo || sessionStorage.getItem("last_regNo") || "";
 
   const handleDashboardAction = () => {
-    if (currentRegNo) {
+    if (hasActiveSession && currentRegNo) {
       navigate(`/dashboard/${encodeStudentId(currentRegNo)}`);
     } else {
-      setShowAuthPromptModal(true);
+      openStudentAuthModal();
     }
   };
 
   const handleLeaderboardAction = () => {
-    if (currentRegNo) {
+    if (hasActiveSession && currentRegNo) {
       navigate("/leaderboard");
     } else {
-      setShowAuthPromptModal(true);
+      openStudentAuthModal();
     }
   };
 
   const handleQuickAction = (act) => {
     if (act.to.startsWith("/analytics")) {
-      if (currentRegNo) {
+      if (hasActiveSession && currentRegNo) {
         const query = act.tab ? `?tab=${act.tab}` : "";
         navigate(`/analytics/${encodeStudentId(currentRegNo)}${query}${act.hash || ""}`);
       } else {
-        setPendingQuickAction(act);
-        setShowAuthPromptModal(true);
+        openStudentAuthModal();
       }
     } else if (act.to.startsWith("/resources")) {
       const query = act.tab ? `?tab=${act.tab}` : "";

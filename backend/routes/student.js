@@ -4,6 +4,8 @@ const SemesterResult = require("../models/SemesterResult");
 const InternalMark = require("../models/InternalMark");
 const Ranking = require("../models/Ranking");
 const Student = require("../models/Student");
+const Attendance = require("../models/Attendance");
+const { requireStudentOrAdmin } = require("../middleware/auth");
 const {
   calculateBacklogs,
   calculateCGPA,
@@ -51,8 +53,8 @@ function clearStudentCache(regNo) {
   }
 }
 
-// GET student full profile
-router.get("/:regNo", validateRegNo, async (req, res) => {
+// GET student full profile (Protected: Student can only view self, Admin can view any)
+router.get("/:regNo", validateRegNo, requireStudentOrAdmin, async (req, res) => {
   try {
     const { regNo } = req.params;
     
@@ -114,7 +116,7 @@ router.get("/:regNo", validateRegNo, async (req, res) => {
         0,
       ),
       academicHealthScore: healthScore,
-      backlogs: backlogs, // Now contains subName, subCode, credit, grade, semester
+      backlogs: backlogs, // Contains subName, subCode, credit, grade, semester
       results,
       ranking: ranking || null,
     };
@@ -127,8 +129,8 @@ router.get("/:regNo", validateRegNo, async (req, res) => {
   }
 });
 
-// GET specific semester result (supports both /semester/:sem and /semesters/:sem)
-router.get(["/:regNo/semester/:sem", "/:regNo/semesters/:sem"], validateRegNo, async (req, res) => {
+// GET specific semester result
+router.get(["/:regNo/semester/:sem", "/:regNo/semesters/:sem"], validateRegNo, requireStudentOrAdmin, async (req, res) => {
   try {
     const semNum = Number(req.params.sem);
     const result = await SemesterResult.findOne({
@@ -144,7 +146,7 @@ router.get(["/:regNo/semester/:sem", "/:regNo/semesters/:sem"], validateRegNo, a
 });
 
 // GET specific semester ranking
-router.get("/:regNo/ranking/:sem", validateRegNo, async (req, res) => {
+router.get("/:regNo/ranking/:sem", validateRegNo, requireStudentOrAdmin, async (req, res) => {
   try {
     const semNum = Number(req.params.sem);
     const ranking = await Ranking.findOne({
@@ -160,7 +162,7 @@ router.get("/:regNo/ranking/:sem", validateRegNo, async (req, res) => {
 });
 
 // GET internal marks
-router.get(["/:regNo/internal/:sem", "/:regNo/internals/:sem"], validateRegNo, async (req, res) => {
+router.get(["/:regNo/internal/:sem", "/:regNo/internals/:sem"], validateRegNo, requireStudentOrAdmin, async (req, res) => {
   try {
     const semNum = Number(req.params.sem);
     const marks = await InternalMark.findOne({
@@ -176,5 +178,73 @@ router.get(["/:regNo/internal/:sem", "/:regNo/internals/:sem"], validateRegNo, a
   }
 });
 
+/* ═══════════════════════════════════════════════════════════════════
+   ATTENDANCE TRACKER PERSISTENCE (MONGODB SYNC)
+═══════════════════════════════════════════════════════════════════ */
+
+// GET student attendance tracker data
+router.get("/:regNo/attendance", validateRegNo, requireStudentOrAdmin, async (req, res) => {
+  try {
+    const { regNo } = req.params;
+    const cleanReg = regNo.toUpperCase();
+
+    const attendance = await Attendance.findOne({ regNo: cleanReg });
+    if (!attendance) {
+      return res.json({
+        success: true,
+        attendance: null,
+        message: "No custom attendance record saved yet.",
+      });
+    }
+
+    res.json({
+      success: true,
+      attendance: {
+        regNo: attendance.regNo,
+        section: attendance.section,
+        targetGoal: attendance.targetGoal,
+        savedSubjects: attendance.savedSubjects,
+        dailyLogs: attendance.dailyLogs ? Object.fromEntries(attendance.dailyLogs) : {},
+        lastSyncedAt: attendance.lastSyncedAt,
+      },
+    });
+  } catch (err) {
+    console.error("Attendance fetch error:", err);
+    res.status(500).json({ message: "Server error fetching attendance data" });
+  }
+});
+
+// POST save/sync student attendance tracker data
+router.post("/:regNo/attendance", validateRegNo, requireStudentOrAdmin, async (req, res) => {
+  try {
+    const { regNo } = req.params;
+    const cleanReg = regNo.toUpperCase();
+    const { section, targetGoal, savedSubjects, dailyLogs } = req.body;
+
+    const updatedAttendance = await Attendance.findOneAndUpdate(
+      { regNo: cleanReg },
+      {
+        regNo: cleanReg,
+        section: section || "CSE-A",
+        targetGoal: Number(targetGoal) || 75,
+        savedSubjects: Array.isArray(savedSubjects) ? savedSubjects : [],
+        dailyLogs: dailyLogs && typeof dailyLogs === "object" ? dailyLogs : {},
+        lastSyncedAt: new Date(),
+      },
+      { upsert: true, new: true, setDefaultsOnInsert: true }
+    );
+
+    res.json({
+      success: true,
+      message: "Attendance data saved successfully to database.",
+      attendance: updatedAttendance,
+    });
+  } catch (err) {
+    console.error("Attendance save error:", err);
+    res.status(500).json({ message: "Server error saving attendance data" });
+  }
+});
+
 module.exports = router;
 module.exports.clearStudentCache = clearStudentCache;
+

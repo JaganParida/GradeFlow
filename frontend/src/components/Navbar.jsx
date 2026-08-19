@@ -3,12 +3,13 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useApp } from "../context/AppContext";
 import { encodeStudentId } from "../utils/studentIdEncoder";
 import { motion, AnimatePresence } from "framer-motion";
+import StudentAuthModal from "./StudentAuthModal";
 import {
   BarChart2, ChevronDown, ChevronRight, Search, LogOut,
   LayoutDashboard, Trophy, BookOpen, MessageSquare,
   TrendingUp, Briefcase, Target, Award, Activity,
   Menu, X, Home as HomeIcon, User, Calculator, ArrowRight,
-  ShieldCheck, Clock, Percent
+  ShieldCheck, Clock, Percent, GraduationCap
 } from "lucide-react";
 import { is2023CSEBatch } from "../utils/timetableHelper";
 
@@ -24,7 +25,18 @@ export default function Navbar() {
 
   const location = useLocation();
   const navigate = useNavigate();
-  const { studentData, hasActiveSession, leaveSession, fetchStudent, loading, error } = useApp();
+  const {
+    studentData,
+    hasActiveSession,
+    leaveSession,
+    fetchStudent,
+    loading,
+    error,
+    adminToken,
+    isAuthModalOpen,
+    openStudentAuthModal,
+    closeStudentAuthModal,
+  } = useApp();
 
   const analyticsRef = useRef(null);
 
@@ -677,35 +689,37 @@ export default function Navbar() {
 
           {/* Right Controls */}
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-            {/* Search button */}
-            <button
-              onClick={() => setSearchModalOpen(true)}
-              aria-label="Search Student"
-              style={{
-                width: 36,
-                height: 36,
-                borderRadius: "50%",
-                background: "#f8fafc",
-                border: "1px solid #e2e8f0",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                color: "#64748b",
-                cursor: "pointer",
-                transition: "all 0.2s ease",
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.background = "#f1f5f9";
-                e.currentTarget.style.color = "#0f172a";
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.background = "#f8fafc";
-                e.currentTarget.style.color = "#64748b";
-              }}
-              title="Search Registration Number"
-            >
-              <Search size={15} />
-            </button>
+            {/* Search button (Accessible ONLY for Admin) */}
+            {adminToken && (
+              <button
+                onClick={() => setSearchModalOpen(true)}
+                aria-label="Search Student (Admin)"
+                style={{
+                  width: 36,
+                  height: 36,
+                  borderRadius: "50%",
+                  background: "#f8fafc",
+                  border: "1px solid #e2e8f0",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  color: "#64748b",
+                  cursor: "pointer",
+                  transition: "all 0.2s ease",
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = "#f1f5f9";
+                  e.currentTarget.style.color = "#0f172a";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = "#f8fafc";
+                  e.currentTarget.style.color = "#64748b";
+                }}
+                title="Search Registration Number (Admin)"
+              >
+                <Search size={15} />
+              </button>
+            )}
 
             {/* Subtle Admin Button (Not Bright / Clean Ghost Pill) */}
             <Link
@@ -785,27 +799,29 @@ export default function Navbar() {
                 </div>
               ) : (
                 <button
-                  onClick={() => setSearchModalOpen(true)}
+                  onClick={openStudentAuthModal}
                   style={{
                     display: "inline-flex",
                     alignItems: "center",
                     justifyContent: "center",
-                    padding: "8px 18px",
+                    gap: 6,
+                    padding: "8px 16px",
                     borderRadius: 10,
-                    background: "#0f172a",
+                    background: "linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)",
                     color: "#ffffff",
                     border: "none",
                     fontSize: 13.5,
-                    fontWeight: 600,
+                    fontWeight: 700,
                     cursor: "pointer",
                     fontFamily: "'DM Sans', sans-serif",
-                    transition: "background 0.2s ease",
-                    boxShadow: "0 2px 8px rgba(15, 23, 42, 0.1)",
+                    transition: "all 0.2s ease",
+                    boxShadow: "0 2px 8px rgba(37, 99, 235, 0.25)",
                   }}
-                  onMouseEnter={(e) => (e.currentTarget.style.background = "#1e293b")}
-                  onMouseLeave={(e) => (e.currentTarget.style.background = "#0f172a")}
+                  onMouseEnter={(e) => (e.currentTarget.style.filter = "brightness(1.08)")}
+                  onMouseLeave={(e) => (e.currentTarget.style.filter = "none")}
                 >
-                  Login
+                  <GraduationCap size={15} />
+                  <span>Student Login</span>
                 </button>
               )}
             </div>
@@ -1427,13 +1443,13 @@ export default function Navbar() {
                   <button
                     onClick={() => {
                       setMobileMenuOpen(false);
-                      setSearchModalOpen(true);
+                      openStudentAuthModal();
                     }}
                     style={{
                       width: "100%",
                       padding: "12px",
                       borderRadius: 12,
-                      background: "#0f172a",
+                      background: "linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)",
                       color: "#ffffff",
                       border: "none",
                       fontSize: 14,
@@ -1444,9 +1460,10 @@ export default function Navbar() {
                       justifyContent: "center",
                       gap: 8,
                       fontFamily: "'DM Sans', sans-serif",
+                      boxShadow: "0 4px 14px rgba(37, 99, 235, 0.3)",
                     }}
                   >
-                    <Search size={15} /> Look Up Registration Number
+                    <GraduationCap size={16} /> Student Portal Login
                   </button>
                 )}
               </div>
@@ -1455,7 +1472,10 @@ export default function Navbar() {
         )}
       </AnimatePresence>
 
-      {/* Search Modal */}
+      {/* Official Student OTP Authentication Modal */}
+      <StudentAuthModal isOpen={isAuthModalOpen} onClose={closeStudentAuthModal} />
+
+      {/* Search Modal (Admin Only) */}
       <AnimatePresence>
         {searchModalOpen && (
           <motion.div

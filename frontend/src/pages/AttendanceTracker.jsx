@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
+import axios from "axios";
 import { useApp } from "../context/AppContext";
 import { encodeStudentId, decodeStudentId, isEncryptedToken } from "../utils/studentIdEncoder";
 import { motion, AnimatePresence } from "framer-motion";
@@ -55,7 +56,7 @@ import {
 export default function AttendanceTracker() {
   const { studentId: urlParam } = useParams();
   const navigate = useNavigate();
-  const { studentData, fetchStudent, loading: appLoading } = useApp();
+  const { studentData, fetchStudent, loading: appLoading, API } = useApp();
 
   // Decode regNo from URL or context
   const decodedParam = urlParam
@@ -177,6 +178,55 @@ export default function AttendanceTracker() {
       console.error("Failed to persist attendance data:", e);
     }
   }, [savedSubjects, storageKey]);
+
+  // Sync to MongoDB helper
+  const syncAttendanceToDb = async (updatedSaved = savedSubjects, updatedDaily = dailyAttendanceLogs, goal = targetGoal) => {
+    if (!currentRegNo) return;
+    try {
+      await axios.post(`${API}/student/${currentRegNo}/attendance`, {
+        section: selectedSection,
+        targetGoal: goal,
+        savedSubjects: updatedSaved,
+        dailyLogs: { [todayDateKey]: updatedDaily },
+      });
+    } catch (err) {
+      console.warn("Background attendance sync to MongoDB:", err.message);
+    }
+  };
+
+  // Load saved Attendance from MongoDB on startup
+  useEffect(() => {
+    if (!currentRegNo) return;
+    let isMounted = true;
+
+    async function loadDbAttendance() {
+      try {
+        const res = await axios.get(`${API}/student/${currentRegNo}/attendance`);
+        if (res.data?.success && res.data.attendance && isMounted) {
+          const att = res.data.attendance;
+          if (Array.isArray(att.savedSubjects) && att.savedSubjects.length > 0) {
+            setSavedSubjects(att.savedSubjects);
+          }
+          if (att.targetGoal) {
+            setTargetGoal(att.targetGoal);
+          }
+          if (att.dailyLogs && typeof att.dailyLogs === "object") {
+            const todayLogs = att.dailyLogs[todayDateKey];
+            if (todayLogs) {
+              setDailyAttendanceLogs(todayLogs);
+            }
+          }
+        }
+      } catch (err) {
+        console.warn("Could not load attendance from MongoDB:", err.message);
+      }
+    }
+
+    loadDbAttendance();
+    return () => {
+      isMounted = false;
+    };
+  }, [currentRegNo, API, todayDateKey]);
 
   // Set default subject on catalog load
   useEffect(() => {
@@ -357,64 +407,61 @@ export default function AttendanceTracker() {
     const deltaDelivered = isCurrentlyPresent ? -1 : 1;
 
     // Update dailyAttendanceLogs
-    setDailyAttendanceLogs((prev) => {
-      const updated = { ...prev };
-      if (!isCurrentlyPresent) {
-        updated[slotIdx] = "present";
-      } else {
-        delete updated[slotIdx];
-      }
-      return updated;
-    });
+    const nextDailyLogs = { ...dailyAttendanceLogs };
+    if (!isCurrentlyPresent) {
+      nextDailyLogs[slotIdx] = "present";
+    } else {
+      delete nextDailyLogs[slotIdx];
+    }
+    setDailyAttendanceLogs(nextDailyLogs);
 
     // Update savedSubjects store
-    setSavedSubjects((prev) => {
-      const existingIdx = prev.findIndex((s) => s.subjectName === cleanName);
-      let updatedList = [...prev];
+    let nextSavedList = [...savedSubjects];
+    const existingIdx = nextSavedList.findIndex((s) => s.subjectName === cleanName);
 
-      if (existingIdx !== -1) {
-        const sub = { ...updatedList[existingIdx] };
-        let matchedComp = false;
-        const components = (sub.components || []).map((c) => {
-          if (c.type.toUpperCase() === compType) {
-            matchedComp = true;
-            return {
-              ...c,
-              attended: Math.max(0, (c.attended || 0) + deltaAttended),
-              delivered: Math.max(0, (c.delivered || 0) + deltaDelivered),
-            };
-          }
-          return c;
+    if (existingIdx !== -1) {
+      const sub = { ...nextSavedList[existingIdx] };
+      let matchedComp = false;
+      const components = (sub.components || []).map((c) => {
+        if (c.type.toUpperCase() === compType) {
+          matchedComp = true;
+          return {
+            ...c,
+            attended: Math.max(0, (c.attended || 0) + deltaAttended),
+            delivered: Math.max(0, (c.delivered || 0) + deltaDelivered),
+          };
+        }
+        return c;
+      });
+
+      if (!matchedComp) {
+        components.push({
+          type: compType,
+          attended: Math.max(0, 18 + deltaAttended),
+          delivered: Math.max(0, 24 + deltaDelivered),
         });
+      }
 
-        if (!matchedComp) {
-          components.push({
+      sub.components = components;
+      sub.lastUpdated = new Date().toISOString();
+      nextSavedList[existingIdx] = sub;
+    } else {
+      nextSavedList.push({
+        subjectName: cleanName,
+        components: [
+          {
             type: compType,
             attended: Math.max(0, 18 + deltaAttended),
             delivered: Math.max(0, 24 + deltaDelivered),
-          });
-        }
-
-        sub.components = components;
-        sub.lastUpdated = new Date().toISOString();
-        updatedList[existingIdx] = sub;
-      } else {
-        updatedList.push({
-          subjectName: cleanName,
-          components: [
-            {
-              type: compType,
-              attended: Math.max(0, 18 + deltaAttended),
-              delivered: Math.max(0, 24 + deltaDelivered),
-            },
-          ],
-          section: selectedSection,
-          lastUpdated: new Date().toISOString(),
-          weeklyOccurrences: [],
-        });
-      }
-      return updatedList;
-    });
+          },
+        ],
+        section: selectedSection,
+        lastUpdated: new Date().toISOString(),
+        weeklyOccurrences: [],
+      });
+    }
+    setSavedSubjects(nextSavedList);
+    syncAttendanceToDb(nextSavedList, nextDailyLogs, targetGoal);
 
     // If currently inspecting this subject in the studio, update componentInputs in real time
     if (selectedSubjectName === cleanName) {
@@ -461,25 +508,28 @@ export default function AttendanceTracker() {
   function handleSaveActiveSubject() {
     if (!selectedSubjectName) return;
 
-    setSavedSubjects((prev) => {
-      const filtered = prev.filter((s) => s.subjectName !== selectedSubjectName);
-      return [
-        ...filtered,
-        {
-          subjectName: selectedSubjectName,
-          components: componentInputs,
-          lastUpdated: new Date().toISOString(),
-          section: selectedSection,
-          weeklyOccurrences: activeCatalogItem?.weeklyOccurrences || [],
-        },
-      ];
-    });
+    const filtered = savedSubjects.filter((s) => s.subjectName !== selectedSubjectName);
+    const updatedList = [
+      ...filtered,
+      {
+        subjectName: selectedSubjectName,
+        components: componentInputs,
+        lastUpdated: new Date().toISOString(),
+        section: selectedSection,
+        weeklyOccurrences: activeCatalogItem?.weeklyOccurrences || [],
+      },
+    ];
+
+    setSavedSubjects(updatedList);
+    syncAttendanceToDb(updatedList, dailyAttendanceLogs, targetGoal);
     setSaveSuccessAlert(true);
     setTimeout(() => setSaveSuccessAlert(false), 3500);
   }
 
   function handleDeleteSavedSubject(subjectName) {
-    setSavedSubjects((prev) => prev.filter((s) => s.subjectName !== subjectName));
+    const updatedList = savedSubjects.filter((s) => s.subjectName !== subjectName);
+    setSavedSubjects(updatedList);
+    syncAttendanceToDb(updatedList, dailyAttendanceLogs, targetGoal);
   }
 
   // Complete List of Section Subjects with Detected Components & Saved Overrides
