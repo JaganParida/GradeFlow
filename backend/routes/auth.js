@@ -205,6 +205,20 @@ router.post("/student/verify-otp", otpLimiter, async (req, res) => {
     const otpRecord = await OtpVerification.findOne({ regNo: rawReg });
     if (!otpRecord || new Date() > new Date(otpRecord.expiresAt)) {
       if (otpRecord) await OtpVerification.deleteOne({ _id: otpRecord._id });
+      // If session is already created and authenticated, return success
+      const existingSession = await StudentSession.findOne({ regNo: rawReg, isActive: true });
+      if (existingSession) {
+        const studentRecord = await SemesterResult.findOne({ regNo: rawReg }).sort({ semester: -1 });
+        return res.json({
+          success: true,
+          message: "Student already verified and authenticated.",
+          student: {
+            regNo: rawReg,
+            studentName: studentRecord?.studentName || "Student",
+            section: studentRecord?.branch || "CSE-A",
+          },
+        });
+      }
       return res.status(400).json({
         message: "The OTP code has expired or is invalid. Please request a new code.",
         code: "OTP_EXPIRED",

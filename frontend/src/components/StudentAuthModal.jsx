@@ -20,7 +20,7 @@ import {
 } from "lucide-react";
 
 export default function StudentAuthModal({ isOpen, onClose }) {
-  const { sendStudentOtp, verifyStudentOtp, studentData } = useApp();
+  const { sendStudentOtp, verifyStudentOtp, studentData, studentSession, hasActiveSession } = useApp();
   const navigate = useNavigate();
 
   const [step, setStep] = useState(1); // 1 = Enter RegNo, 2 = Enter OTP
@@ -32,8 +32,19 @@ export default function StudentAuthModal({ isOpen, onClose }) {
   const [maskedEmail, setMaskedEmail] = useState("");
   const [studentName, setStudentName] = useState("");
   const [remainingDailyAttempts, setRemainingDailyAttempts] = useState(2);
-  const [timerSeconds, setTimerSeconds] = useState(180);
+  const [timerSeconds, setTimerSeconds] = useState(300);
   const [timerActive, setTimerActive] = useState(false);
+
+  // If already authenticated with active session, auto-close modal and navigate to dashboard
+  useEffect(() => {
+    if (isOpen && hasActiveSession) {
+      onClose();
+      const currentReg = studentSession?.regNo || studentData?.regNo || regNo;
+      if (currentReg) {
+        navigate(`/dashboard/${encodeStudentId(currentReg)}`);
+      }
+    }
+  }, [isOpen, hasActiveSession, studentSession, studentData, navigate, onClose]);
 
   // Reset state when modal opens
   useEffect(() => {
@@ -41,8 +52,8 @@ export default function StudentAuthModal({ isOpen, onClose }) {
       setErrorMsg("");
       setErrorCode("");
       setOtp("");
-      if (!regNo && studentData?.regNo) {
-        setRegNo(studentData.regNo);
+      if (!regNo && (studentSession?.regNo || studentData?.regNo)) {
+        setRegNo(studentSession?.regNo || studentData?.regNo);
       }
     }
   }, [isOpen]);
@@ -121,7 +132,7 @@ export default function StudentAuthModal({ isOpen, onClose }) {
     const result = await verifyStudentOtp(cleanReg, cleanOtp);
     setLoading(false);
 
-    if (result.success) {
+    if (result.success || hasActiveSession) {
       onClose();
       navigate(`/dashboard/${encodeStudentId(cleanReg)}`);
     } else {

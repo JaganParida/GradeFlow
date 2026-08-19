@@ -298,6 +298,20 @@ module.exports = async function handler(req, res) {
 
       const otpRecord = await OtpVerification.findOne({ regNo: rawReg });
       if (!otpRecord) {
+        // If session is already created and authenticated, return success
+        const existingSession = await StudentSession.findOne({ regNo: rawReg, isActive: true });
+        if (existingSession) {
+          const studentRecord = await SemesterResult.findOne({ regNo: rawReg }).sort({ semester: -1 });
+          return res.json({
+            success: true,
+            message: "Student already verified and authenticated.",
+            student: {
+              regNo: rawReg,
+              studentName: studentRecord?.studentName || "Student",
+              section: studentRecord?.branch || "CSE-A",
+            },
+          });
+        }
         return res.status(400).json({
           message: "No active verification code found or code has expired. Please request a new code.",
           code: "OTP_EXPIRED",
@@ -307,7 +321,7 @@ module.exports = async function handler(req, res) {
       if (new Date() > new Date(otpRecord.expiresAt)) {
         await OtpVerification.deleteOne({ _id: otpRecord._id });
         return res.status(400).json({
-          message: "The verification code has expired (validity is strictly 3 minutes). Please request a new code.",
+          message: "The verification code has expired (validity is 5 minutes). Please request a new code.",
           code: "OTP_EXPIRED",
         });
       }
