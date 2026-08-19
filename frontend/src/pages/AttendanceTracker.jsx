@@ -363,7 +363,7 @@ export default function AttendanceTracker() {
     });
   }, [componentInputs, targetGoal, simulateMissCount, simulateAttendCount]);
 
-  // Timetable Calendar Date Projection
+  // Timetable Calendar Date Projection (Deficit -> Reach Target Date)
   const dateProjection = useMemo(() => {
     if (!activeCatalogItem || activeCalculation.classesNeeded <= 0) return null;
     return estimateTargetReachDate(
@@ -371,6 +371,15 @@ export default function AttendanceTracker() {
       activeCatalogItem.weeklyOccurrences || []
     );
   }, [activeCalculation.classesNeeded, activeCatalogItem]);
+
+  // Timetable Calendar Safe Bunk Date Projection (Safe Zone -> Buffer Date Span)
+  const bunkDateProjection = useMemo(() => {
+    if (!activeCatalogItem || activeCalculation.safeBunks <= 0) return null;
+    return estimateTargetReachDate(
+      activeCalculation.safeBunks,
+      activeCatalogItem.weeklyOccurrences || []
+    );
+  }, [activeCalculation.safeBunks, activeCatalogItem]);
 
   // Update a component's attended or delivered value
   function handleComponentChange(index, field, value) {
@@ -589,13 +598,16 @@ export default function AttendanceTracker() {
   }, [sectionCatalog, savedSubjects]);
 
   // Overall Aggregate Attendance across all Semester Subjects
-  const overallAggregate = useMemo(() => {
+  const overallCalculation = useMemo(() => {
     const list = allSectionSubjects.length > 0 ? allSectionSubjects : savedSubjects;
     if (list.length === 0) {
       return {
         totalAttended: activeCalculation.totalAttended,
         totalDelivered: activeCalculation.totalDelivered,
         percentage: activeCalculation.currentPercentage,
+        classesNeeded: activeCalculation.classesNeeded,
+        safeBunks: activeCalculation.safeBunks,
+        isEligible: activeCalculation.currentPercentage >= 75,
         subjectsCount: 1,
       };
     }
@@ -611,13 +623,34 @@ export default function AttendanceTracker() {
     });
 
     const percentage = totDel > 0 ? (totAtt / totDel) * 100 : 100;
+    const target = Math.min(100, Math.max(1, Number(targetGoal) || 75));
+
+    let classesNeeded = 0;
+    let safeBunks = 0;
+
+    if (percentage < target) {
+      const numerator = target * totDel - 100 * totAtt;
+      const denominator = 100 - target;
+      classesNeeded = Math.ceil(numerator / denominator);
+      safeBunks = 0;
+    } else {
+      classesNeeded = 0;
+      const numerator = 100 * totAtt - target * totDel;
+      safeBunks = Math.floor(numerator / target);
+    }
+
     return {
       totalAttended: totAtt,
       totalDelivered: totDel,
       percentage: Number(percentage.toFixed(2)),
+      classesNeeded: Number.isFinite(classesNeeded) ? classesNeeded : 0,
+      safeBunks: Math.max(0, safeBunks),
+      isEligible: percentage >= 75,
       subjectsCount: list.length,
     };
-  }, [allSectionSubjects, savedSubjects, activeCalculation]);
+  }, [allSectionSubjects, savedSubjects, targetGoal, activeCalculation]);
+
+  const overallAggregate = overallCalculation;
 
   const activeStudentName = studentData?.studentName || "";
 
@@ -1218,15 +1251,15 @@ export default function AttendanceTracker() {
           >
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
               <span style={{ fontSize: isMobile ? 11 : 12, fontWeight: 700, color: "#64748b" }}>
-                {activeCalculation.classesNeeded > 0 ? "Deficit Classes" : "Safe Bunk Margin"}
+                {overallCalculation.classesNeeded > 0 ? "Deficit Classes" : "Safe Bunk Margin"}
               </span>
               <div
                 style={{
                   width: 26,
                   height: 26,
                   borderRadius: 7,
-                  background: activeCalculation.classesNeeded > 0 ? "#fef3c7" : "#f0fdf4",
-                  color: activeCalculation.classesNeeded > 0 ? "#d97706" : "#16a34a",
+                  background: overallCalculation.classesNeeded > 0 ? "#fef3c7" : "#f0fdf4",
+                  color: overallCalculation.classesNeeded > 0 ? "#d97706" : "#16a34a",
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
@@ -1240,16 +1273,16 @@ export default function AttendanceTracker() {
                 style={{
                   fontSize: isMobile ? 20 : 24,
                   fontWeight: 900,
-                  color: activeCalculation.classesNeeded > 0 ? "#d97706" : "#16a34a",
+                  color: overallCalculation.classesNeeded > 0 ? "#d97706" : "#16a34a",
                   letterSpacing: "-0.5px",
                 }}
               >
-                {activeCalculation.classesNeeded > 0
-                  ? `${activeCalculation.classesNeeded} Req`
-                  : `${activeCalculation.safeBunks} Classes`}
+                {overallCalculation.classesNeeded > 0
+                  ? `${overallCalculation.classesNeeded} Req`
+                  : `${overallCalculation.safeBunks} Classes`}
               </div>
               <div style={{ fontSize: 10.5, color: "#64748b", marginTop: 2 }}>
-                {activeCalculation.classesNeeded > 0 ? `To reach ${targetGoal}%` : `Can miss & stay >= ${targetGoal}%`}
+                {overallCalculation.classesNeeded > 0 ? `To reach ${targetGoal}%` : `Can miss & stay >= ${targetGoal}%`}
               </div>
             </div>
           </div>
@@ -1276,8 +1309,8 @@ export default function AttendanceTracker() {
                   width: 26,
                   height: 26,
                   borderRadius: 7,
-                  background: activeCalculation.currentPercentage >= 75 ? "#ecfdf5" : "#fef2f2",
-                  color: activeCalculation.currentPercentage >= 75 ? "#059669" : "#dc2626",
+                  background: overallCalculation.isEligible ? "#ecfdf5" : "#fef2f2",
+                  color: overallCalculation.isEligible ? "#059669" : "#dc2626",
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
@@ -1291,10 +1324,10 @@ export default function AttendanceTracker() {
                 style={{
                   fontSize: isMobile ? 17 : 20,
                   fontWeight: 900,
-                  color: activeCalculation.currentPercentage >= 75 ? "#059669" : "#dc2626",
+                  color: overallCalculation.isEligible ? "#059669" : "#dc2626",
                 }}
               >
-                {activeCalculation.currentPercentage >= 75 ? "ELIGIBLE" : "DEBARRED"}
+                {overallCalculation.isEligible ? "ELIGIBLE" : "DEBARRED"}
               </div>
               <div style={{ fontSize: 10.5, color: "#64748b", marginTop: 2 }}>
                 Criteria: 75%
@@ -2360,11 +2393,20 @@ export default function AttendanceTracker() {
                 ) : (
                   <>
                     <div style={{ fontSize: 13.5, fontWeight: 800, color: "#166534" }}>
-                      Safe Zone! You can safely miss up to <strong>{activeCalculation.safeBunks} classes</strong> and maintain &ge; {targetGoal}%
+                      Safe Zone! You can safely miss up to <strong>{activeCalculation.safeBunks} {activeCalculation.safeBunks === 1 ? "class" : "classes"}</strong> and maintain &ge; {targetGoal}%
                     </div>
-                    <div style={{ fontSize: 11.5, color: "#15803d" }}>
-                      Current attendance is well above your {targetGoal}% target goal.
-                    </div>
+                    {bunkDateProjection ? (
+                      <div style={{ fontSize: 11.5, color: "#15803d", display: "flex", alignItems: "center", gap: 5 }}>
+                        <CalendarIcon size={13} />
+                        <span>
+                          Your {targetGoal}% safe buffer spans through <strong>{bunkDateProjection.estimatedDate}</strong> based on {bunkDateProjection.classesPerWeek} classes/week timetable schedule.
+                        </span>
+                      </div>
+                    ) : (
+                      <div style={{ fontSize: 11.5, color: "#15803d" }}>
+                        Current attendance is well above your {targetGoal}% target goal.
+                      </div>
+                    )}
                   </>
                 )}
               </div>
@@ -2574,18 +2616,18 @@ export default function AttendanceTracker() {
                               Need {subCalc.classesNeeded} more classes for 75.0%
                             </span>
                           </>
-                        ) : subCalc80.classesNeeded > 0 ? (
+                        ) : subCalc.safeBunks > 0 ? (
                           <>
-                            <TrendingUp size={13} color="#2563eb" />
-                            <span style={{ fontWeight: 800, color: "#1e40af" }}>
-                              Attend {subCalc80.classesNeeded} more classes for 80.0%
+                            <Sparkles size={13} color="#16a34a" />
+                            <span style={{ fontWeight: 800, color: "#166534" }}>
+                              Safe buffer: Can miss {subCalc.safeBunks} {subCalc.safeBunks === 1 ? "class" : "classes"} (stays &ge; 75%)
                             </span>
                           </>
                         ) : (
                           <>
-                            <Sparkles size={13} color="#16a34a" />
-                            <span style={{ fontWeight: 800, color: "#166534" }}>
-                              Safe to miss {subCalc.safeBunks} classes
+                            <CheckCircle2 size={13} color="#2563eb" />
+                            <span style={{ fontWeight: 800, color: "#1e40af" }}>
+                              At 75.0% threshold &mdash; Maintain regular attendance
                             </span>
                           </>
                         )}

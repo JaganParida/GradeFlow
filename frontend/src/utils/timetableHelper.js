@@ -793,7 +793,7 @@ export function calculateAttendance({
 }
 
 /**
- * Estimate target reach date based on weekly timetable schedule
+ * Estimate target reach date based on weekly timetable schedule & academic calendar
  */
 export function estimateTargetReachDate(classesNeeded, weeklyOccurrences = [], startDate = new Date()) {
   if (!classesNeeded || classesNeeded <= 0 || !weeklyOccurrences || weeklyOccurrences.length === 0) {
@@ -813,6 +813,10 @@ export function estimateTargetReachDate(classesNeeded, weeklyOccurrences = [], s
     current.setDate(current.getDate() + 1);
     daysAdded++;
 
+    // Skip official non-working academic calendar holidays
+    const hol = getHolidayInfo(current);
+    if (hol.isHoliday) continue;
+
     const dayIdx = current.getDay();
     const occurrencesOnDay = dayIndices.filter((idx) => idx === dayIdx).length;
     if (occurrencesOnDay > 0) {
@@ -831,6 +835,7 @@ export function estimateTargetReachDate(classesNeeded, weeklyOccurrences = [], s
     }),
     estimatedWeeks: Number(weeksCount),
     classesPerWeek: weeklyOccurrences.length,
+    classesNeeded,
   };
 }
 
