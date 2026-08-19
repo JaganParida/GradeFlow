@@ -41,6 +41,10 @@ import {
   BarChart3,
   GraduationCap,
   Lock,
+  Smartphone,
+  CloudUpload,
+  HelpCircle,
+  Upload,
 } from "lucide-react";
 import {
   ALL_SECTIONS,
@@ -669,6 +673,16 @@ export default function AttendanceTracker() {
 
     return Array.from(map.values());
   }, [sectionCatalog, savedSubjects, selectedSubjectName, componentInputs]);
+
+  // Check if student has actual non-zero saved attendance data in DB
+  const hasSavedAttendance = useMemo(() => {
+    return (
+      savedSubjects.length > 0 &&
+      savedSubjects.some((s) =>
+        (s.components || []).some((c) => (Number(c.delivered) || 0) > 0)
+      )
+    );
+  }, [savedSubjects]);
 
   // Overall Aggregate Attendance across all Semester Subjects
   const overallCalculation = useMemo(() => {
@@ -1556,20 +1570,235 @@ export default function AttendanceTracker() {
               transition={{ duration: 0.18, ease: "easeOut" }}
               style={{ display: "flex", flexDirection: "column", gap: 16, width: "100%" }}
             >
+              {/* ═══════════════════════════════════════════════════════════════
+                  FIRST-TIME STUDENT ONBOARDING & GUIDED SETUP HUB
+              ═══════════════════════════════════════════════════════════════ */}
+              {!hasSavedAttendance && (
+                <div
+                  style={{
+                    background: "linear-gradient(135deg, #f0fdf4 0%, #eff6ff 100%)",
+                    border: "1.5px solid #86efac",
+                    borderRadius: 18,
+                    padding: isMobile ? "16px 14px" : "22px 24px",
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: 16,
+                    boxShadow: "0 4px 14px rgba(16, 185, 129, 0.08)",
+                  }}
+                >
+                  {/* Header */}
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 12 }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                      <div
+                        style={{
+                          width: 40,
+                          height: 40,
+                          borderRadius: 12,
+                          background: "linear-gradient(135deg, #059669 0%, #2563eb 100%)",
+                          color: "#ffffff",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          flexShrink: 0,
+                          boxShadow: "0 2px 8px rgba(5, 150, 105, 0.25)",
+                        }}
+                      >
+                        <Sparkles size={20} />
+                      </div>
+                      <div>
+                        <h3 style={{ fontSize: isMobile ? 15.5 : 18, fontWeight: 900, color: "#0f172a", margin: 0, display: "flex", alignItems: "center", gap: 8 }}>
+                          <span>Welcome to Attendance Studio</span>
+                          <span style={{ fontSize: 11, fontWeight: 800, background: "#dcfce7", color: "#15803d", padding: "2px 8px", borderRadius: 999, border: "1px solid #bbf7d0" }}>
+                            Quick Setup Guide
+                          </span>
+                        </h3>
+                        <p style={{ fontSize: 12.5, color: "#475569", margin: "3px 0 0 0", lineHeight: 1.45 }}>
+                          Your enrolled subjects for <strong>Section {selectedSection}</strong> are pre-loaded at <strong>0 / 0</strong>. Choose a method below to sync your attendance in seconds:
+                        </p>
+                      </div>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => setIsScreenshotModalOpen(true)}
+                      style={{
+                        padding: "8px 16px",
+                        borderRadius: 10,
+                        border: "none",
+                        background: "linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)",
+                        color: "#ffffff",
+                        fontSize: 13,
+                        fontWeight: 800,
+                        cursor: "pointer",
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: 6,
+                        boxShadow: "0 2px 8px rgba(37, 99, 235, 0.25)",
+                        transition: "transform 0.15s ease",
+                      }}
+                      onMouseEnter={(e) => (e.currentTarget.style.transform = "translateY(-1px)")}
+                      onMouseLeave={(e) => (e.currentTarget.style.transform = "translateY(0)")}
+                    >
+                      <Sparkles size={15} />
+                      <span>Auto-Import via Screenshot</span>
+                    </button>
+                  </div>
+
+                  {/* 2 Path Columns (Grid) */}
+                  <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: 14 }}>
+                    {/* Path 1: Screenshot Auto-Import */}
+                    <div
+                      style={{
+                        background: "#ffffff",
+                        border: "1.5px solid #bfdbfe",
+                        borderRadius: 14,
+                        padding: "16px 18px",
+                        display: "flex",
+                        flexDirection: "column",
+                        gap: 10,
+                        boxShadow: "0 1px 3px rgba(0,0,0,0.02)",
+                      }}
+                    >
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                          <div style={{ width: 28, height: 28, borderRadius: 8, background: "#eff6ff", color: "#2563eb", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                            <Smartphone size={16} />
+                          </div>
+                          <span style={{ fontSize: 13.5, fontWeight: 800, color: "#0f172a" }}>
+                            Method 1: 1-Click AI Screenshot Import
+                          </span>
+                        </div>
+                        <span style={{ fontSize: 10, fontWeight: 900, background: "#eff6ff", color: "#1d4ed8", padding: "2px 7px", borderRadius: 6, border: "1px solid #bfdbfe" }}>
+                          RECOMMENDED
+                        </span>
+                      </div>
+
+                      <div style={{ display: "flex", flexDirection: "column", gap: 7, fontSize: 12, color: "#475569" }}>
+                        <div style={{ display: "flex", alignItems: "flex-start", gap: 8 }}>
+                          <span style={{ width: 18, height: 18, borderRadius: 999, background: "#eff6ff", color: "#2563eb", fontSize: 10, fontWeight: 900, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, marginTop: 1 }}>1</span>
+                          <span>Open your <strong>Mobile ERP Portal</strong> &rarr; navigate to <strong>Subject-wise Attendance</strong>.</span>
+                        </div>
+                        <div style={{ display: "flex", alignItems: "flex-start", gap: 8 }}>
+                          <span style={{ width: 18, height: 18, borderRadius: 999, background: "#eff6ff", color: "#2563eb", fontSize: 10, fontWeight: 900, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, marginTop: 1 }}>2</span>
+                          <span>Take a long screenshot (or individual subject screenshots) of your attendance page.</span>
+                        </div>
+                        <div style={{ display: "flex", alignItems: "flex-start", gap: 8 }}>
+                          <span style={{ width: 18, height: 18, borderRadius: 999, background: "#eff6ff", color: "#2563eb", fontSize: 10, fontWeight: 900, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, marginTop: 1 }}>3</span>
+                          <span>Click <strong>Auto-Import via Screenshot</strong> or press <strong>Ctrl + V</strong> to paste directly.</span>
+                        </div>
+                        <div style={{ display: "flex", alignItems: "flex-start", gap: 8 }}>
+                          <span style={{ width: 18, height: 18, borderRadius: 999, background: "#eff6ff", color: "#2563eb", fontSize: 10, fontWeight: 900, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, marginTop: 1 }}>4</span>
+                          <span>AI extracts theory (<strong>PP</strong>), practical (<strong>PR</strong>), and tutorial (<strong>TUT</strong>) numbers. Recheck and match with your ERP, then click <strong>Save to Cloud</strong>.</span>
+                        </div>
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={() => setIsScreenshotModalOpen(true)}
+                        style={{
+                          marginTop: 4,
+                          padding: "8px 14px",
+                          borderRadius: 8,
+                          border: "1px solid #bfdbfe",
+                          background: "#eff6ff",
+                          color: "#1d4ed8",
+                          fontSize: 12,
+                          fontWeight: 800,
+                          cursor: "pointer",
+                          display: "inline-flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          gap: 6,
+                        }}
+                      >
+                        <CloudUpload size={14} />
+                        <span>Upload / Paste ERP Screenshot Now</span>
+                      </button>
+                    </div>
+
+                    {/* Path 2: Manual Entry & Daily Check-in */}
+                    <div
+                      style={{
+                        background: "#ffffff",
+                        border: "1.5px solid #bbf7d0",
+                        borderRadius: 14,
+                        padding: "16px 18px",
+                        display: "flex",
+                        flexDirection: "column",
+                        gap: 10,
+                        boxShadow: "0 1px 3px rgba(0,0,0,0.02)",
+                      }}
+                    >
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                          <div style={{ width: 28, height: 28, borderRadius: 8, background: "#f0fdf4", color: "#16a34a", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                            <Sliders size={16} />
+                          </div>
+                          <span style={{ fontSize: 13.5, fontWeight: 800, color: "#0f172a" }}>
+                            Method 2: Manual Entry & Daily Check-in
+                          </span>
+                        </div>
+                        <span style={{ fontSize: 10, fontWeight: 900, background: "#f0fdf4", color: "#15803d", padding: "2px 7px", borderRadius: 6, border: "1px solid #bbf7d0" }}>
+                          MANUAL
+                        </span>
+                      </div>
+
+                      <div style={{ display: "flex", flexDirection: "column", gap: 7, fontSize: 12, color: "#475569" }}>
+                        <div style={{ display: "flex", alignItems: "flex-start", gap: 8 }}>
+                          <span style={{ width: 18, height: 18, borderRadius: 999, background: "#f0fdf4", color: "#16a34a", fontSize: 10, fontWeight: 900, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, marginTop: 1 }}>1</span>
+                          <span>All enrolled subjects for your section are pre-loaded below initialized at <strong>0 / 0</strong>.</span>
+                        </div>
+                        <div style={{ display: "flex", alignItems: "flex-start", gap: 8 }}>
+                          <span style={{ width: 18, height: 18, borderRadius: 999, background: "#f0fdf4", color: "#16a34a", fontSize: 10, fontWeight: 900, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, marginTop: 1 }}>2</span>
+                          <span>Select each subject pill, enter your current <strong>Attended</strong> and <strong>Delivered</strong> counts.</span>
+                        </div>
+                        <div style={{ display: "flex", alignItems: "flex-start", gap: 8 }}>
+                          <span style={{ width: 18, height: 18, borderRadius: 999, background: "#f0fdf4", color: "#16a34a", fontSize: 10, fontWeight: 900, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, marginTop: 1 }}>3</span>
+                          <span>Click <strong>Save Changes</strong> to store your subjects securely in MongoDB Atlas.</span>
+                        </div>
+                        <div style={{ display: "flex", alignItems: "flex-start", gap: 8 }}>
+                          <span style={{ width: 18, height: 18, borderRadius: 999, background: "#f0fdf4", color: "#16a34a", fontSize: 10, fontWeight: 900, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, marginTop: 1 }}>4</span>
+                          <span>Use the <strong>Today's Class Check-in</strong> hub below to mark <strong>Present / Absent</strong> daily in 1 click!</span>
+                        </div>
+                      </div>
+
+                      <div
+                        style={{
+                          marginTop: 4,
+                          padding: "8px 12px",
+                          borderRadius: 8,
+                          background: "#f0fdf4",
+                          border: "1px solid #bbf7d0",
+                          fontSize: 11.5,
+                          color: "#166534",
+                          fontWeight: 700,
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 6,
+                        }}
+                      >
+                        <CheckCircle2 size={14} color="#16a34a" />
+                        <span>Real-time calculations & Bunk Analyzer unlock automatically once saved!</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
               {/* TODAY'S DAILY ROUTINE ATTENDANCE CHECK-IN HUB */}
               <div
-            style={{
-              background: "#ffffff",
-            border: "1.5px solid #e2e8f0",
-            borderRadius: 18,
-            padding: isMobile ? "16px 14px" : "20px 24px",
-            display: "flex",
-            flexDirection: "column",
-            gap: 14,
-            boxShadow: "0 2px 6px rgba(0,0,0,0.02)",
-            overflow: "hidden",
-          }}
-        >
+                style={{
+                  background: "#ffffff",
+                  border: "1.5px solid #e2e8f0",
+                  borderRadius: 18,
+                  padding: isMobile ? "16px 14px" : "20px 24px",
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: 14,
+                  boxShadow: "0 2px 6px rgba(0,0,0,0.02)",
+                  overflow: "hidden",
+                }}
+              >
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 8 }}>
             <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
               <div
