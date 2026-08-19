@@ -445,12 +445,7 @@ export default function Home() {
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
-  const currentRegNo =
-    studentData?.regNo ||
-    studentSession?.regNo ||
-    localStorage.getItem("last_regNo") ||
-    sessionStorage.getItem("last_regNo") ||
-    "";
+  const currentRegNo = studentData?.regNo || studentSession?.regNo || "";
 
   const handleDashboardAction = () => {
     if (hasActiveSession && currentRegNo) {

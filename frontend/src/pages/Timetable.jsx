@@ -78,13 +78,7 @@ export default function Timetable() {
       : urlParam
     : null;
 
-  const currentRegNo =
-    decodedParam ||
-    studentData?.regNo ||
-    studentSession?.regNo ||
-    localStorage.getItem("last_regNo") ||
-    sessionStorage.getItem("last_regNo") ||
-    "";
+  const currentRegNo = decodedParam || studentData?.regNo || studentSession?.regNo || "";
 
   // UI State
   const [selectedSection, setSelectedSection] = useState(() => {

@@ -214,13 +214,7 @@ export default function Analytics() {
   const [searchParams, setSearchParams] = useSearchParams();
   const location = useLocation();
 
-  const regNo =
-    decodedRegNo ||
-    studentData?.regNo ||
-    studentSession?.regNo ||
-    localStorage.getItem("last_regNo") ||
-    sessionStorage.getItem("last_regNo") ||
-    "";
+  const regNo = decodedRegNo || studentData?.regNo || studentSession?.regNo || "";
 
   // Normalize URL to obfuscated token if raw registration number is provided
   useEffect(() => {

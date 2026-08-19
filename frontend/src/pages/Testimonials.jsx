@@ -71,16 +71,8 @@ export default function Testimonials() {
   const [searchParams] = useSearchParams();
   const highlightedId = searchParams.get("highlight");
 
-  const currentRegNo =
-    studentData?.regNo ||
-    (typeof window !== "undefined"
-      ? localStorage.getItem("last_regNo") || sessionStorage.getItem("last_regNo") || ""
-      : "");
-  const currentStudentName =
-    studentData?.studentName ||
-    (typeof window !== "undefined"
-      ? localStorage.getItem("last_studentName") || sessionStorage.getItem("last_studentName") || ""
-      : "");
+  const currentRegNo = studentData?.regNo || "";
+  const currentStudentName = studentData?.studentName || "";
 
   // Form State
   const [rating, setRating] = useState(5);

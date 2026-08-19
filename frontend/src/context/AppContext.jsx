@@ -7,43 +7,22 @@ const API_BASE = import.meta.env.VITE_API_URL || "/api";
 // Set axios to send cookies with every request
 axios.defaults.withCredentials = true;
 
-const STUDENT_CACHE_KEY = "gf_student_data";
-// Bump this version whenever the CGPA/SGPA formula or data shape changes
-// to automatically invalidate stale cached student data in localStorage
-const CACHE_VERSION = "v8";
-const CACHE_VERSION_KEY = "gf_cache_version";
-
-const getCachedStudentData = () => {
-  try {
-    // Invalidate cache if version changed (formula/data updates)
-    const storedVersion = localStorage.getItem(CACHE_VERSION_KEY);
-    if (storedVersion !== CACHE_VERSION) {
-      localStorage.removeItem(STUDENT_CACHE_KEY);
-      localStorage.setItem(CACHE_VERSION_KEY, CACHE_VERSION);
-      return null;
-    }
-    return JSON.parse(localStorage.getItem(STUDENT_CACHE_KEY)) || null;
-  } catch {
-    try {
-      localStorage.removeItem(STUDENT_CACHE_KEY);
-    } catch (e) {
-      // Ignore if localStorage is disabled
-    }
-    return null;
-  }
-};
-
 const AppCtx = createContext();
 
 export function AppProvider({ children }) {
-  const [studentData, setStudentData] = useState(() => getCachedStudentData());
-  const [studentSession, setStudentSession] = useState(() => {
+  // Proactively wipe any legacy sensitive data from localStorage on startup
+  useEffect(() => {
     try {
-      return JSON.parse(localStorage.getItem("gf_student_session") || "null");
-    } catch {
-      return null;
-    }
-  });
+      localStorage.removeItem("gf_student_data");
+      localStorage.removeItem("gf_student_session");
+      localStorage.removeItem("last_regNo");
+      localStorage.removeItem("last_studentName");
+      localStorage.removeItem("gf_cache_version");
+    } catch {}
+  }, []);
+
+  const [studentData, setStudentData] = useState(null);
+  const [studentSession, setStudentSession] = useState(null);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -65,7 +44,7 @@ export function AppProvider({ children }) {
 
   const navigate = useNavigate();
 
-  // ─── Check Auth on Startup (Both Admin & Student) ────────────────
+  // ─── Check Auth on Startup (Both Admin & Student from HttpOnly Cookie) ─
   useEffect(() => {
     const checkAuth = async () => {
       // 1. Check Admin Auth
@@ -80,28 +59,19 @@ export function AppProvider({ children }) {
         setAdminToken(false);
       }
 
-      // 2. Check Student Session
+      // 2. Check Student Session (Direct from Server via HttpOnly Cookie)
       try {
         const resStudent = await axios.get(`${API_BASE}/auth/student/me`);
         if (resStudent.data?.success && resStudent.data?.student) {
           setStudentSession(resStudent.data.student);
-          localStorage.setItem("gf_student_session", JSON.stringify(resStudent.data.student));
-          localStorage.setItem("last_regNo", resStudent.data.student.regNo);
-          if (resStudent.data.student.studentName) {
-            localStorage.setItem("last_studentName", resStudent.data.student.studentName);
-          }
-          if (!studentData || studentData.regNo !== resStudent.data.student.regNo) {
-            fetchStudent(resStudent.data.student.regNo, 2, 500);
-          }
+          fetchStudent(resStudent.data.student.regNo, 2, 500);
         } else {
           setStudentSession(null);
-          localStorage.removeItem("gf_student_session");
+          setStudentData(null);
         }
       } catch (err) {
-        if (err.response?.status === 401 || err.response?.status === 403) {
-          setStudentSession(null);
-          localStorage.removeItem("gf_student_session");
-        }
+        setStudentSession(null);
+        setStudentData(null);
       }
     };
 
@@ -116,11 +86,6 @@ export function AppProvider({ children }) {
       const res = await axios.post(`${API_BASE}/auth/student/send-otp`, { regNo });
       if (res.data?.alreadyLoggedIn && res.data?.student) {
         setStudentSession(res.data.student);
-        localStorage.setItem("gf_student_session", JSON.stringify(res.data.student));
-        localStorage.setItem("last_regNo", res.data.student.regNo);
-        if (res.data.student.studentName) {
-          localStorage.setItem("last_studentName", res.data.student.studentName);
-        }
         await fetchStudent(res.data.student.regNo, 3, 500, true);
       }
       return { success: true, data: res.data };
@@ -142,12 +107,7 @@ export function AppProvider({ children }) {
       const res = await axios.post(`${API_BASE}/auth/student/verify-otp`, { regNo, otp });
       if (res.data?.success && res.data?.student) {
         setStudentSession(res.data.student);
-        localStorage.setItem("gf_student_session", JSON.stringify(res.data.student));
-        localStorage.setItem("last_regNo", res.data.student.regNo);
-        if (res.data.student.studentName) {
-          localStorage.setItem("last_studentName", res.data.student.studentName);
-        }
-        // Fetch student profile
+        // Fetch student profile directly into memory
         await fetchStudent(regNo, 3, 500, true);
         return { success: true, student: res.data.student };
       }
@@ -169,10 +129,14 @@ export function AppProvider({ children }) {
       console.warn("Student logout error:", err);
     } finally {
       setStudentSession(null);
-      clearStudentData();
-      localStorage.removeItem("gf_student_session");
-      localStorage.removeItem("last_regNo");
-      localStorage.removeItem("last_studentName");
+      setStudentData(null);
+      setError("");
+      try {
+        localStorage.removeItem("gf_student_data");
+        localStorage.removeItem("gf_student_session");
+        localStorage.removeItem("last_regNo");
+        localStorage.removeItem("last_studentName");
+      } catch {}
       navigate("/");
     }
   };
@@ -237,27 +201,6 @@ export function AppProvider({ children }) {
     }
     try {
       const res = await axios.get(`${API_BASE}/student/${cleanReg}`);
-
-      try {
-        localStorage.setItem(STUDENT_CACHE_KEY, JSON.stringify(res.data));
-        localStorage.setItem("last_regNo", cleanReg);
-        if (res.data?.studentName) {
-          localStorage.setItem("last_studentName", res.data.studentName);
-        }
-      } catch (storageErr) {
-        console.warn("Could not save to localStorage. Attempting to clear space...", storageErr);
-        try {
-          localStorage.removeItem(STUDENT_CACHE_KEY);
-          localStorage.setItem(CACHE_VERSION_KEY, CACHE_VERSION);
-          localStorage.setItem(STUDENT_CACHE_KEY, JSON.stringify(res.data));
-          localStorage.setItem("last_regNo", cleanReg);
-          if (res.data?.studentName) {
-            localStorage.setItem("last_studentName", res.data.studentName);
-          }
-        } catch (retryErr) {
-          console.error("Local storage still unavailable after clearing.", retryErr);
-        }
-      }
       setStudentData(res.data);
       setLoading(false);
       return res.data;
@@ -276,7 +219,6 @@ export function AppProvider({ children }) {
       if (status === 401) {
         msg = "Session expired or authentication required. Please log in with your registration number.";
         setStudentSession(null);
-        localStorage.removeItem("gf_student_session");
       } else if (status === 403) {
         msg = "Access Denied: You are only authorized to view your own registered student records.";
       } else if (status === 404) {
@@ -299,13 +241,6 @@ export function AppProvider({ children }) {
   };
 
   const clearStudentData = () => {
-    try {
-      localStorage.removeItem(STUDENT_CACHE_KEY);
-      localStorage.removeItem("last_regNo");
-      localStorage.removeItem("last_studentName");
-    } catch (err) {
-      console.warn("Could not remove from localStorage", err);
-    }
     setStudentData(null);
     setError("");
   };
