@@ -129,12 +129,27 @@ export default function AttendanceScreenshotModal({
     reader.readAsDataURL(file);
   };
 
-  // Dedicated CUTM ERP Text Heuristic Parser
+  // Dedicated CUTM ERP Text Heuristic Parser & Full Section Auto-Completer
   const parseCutmOcrText = (text, catalog) => {
     const lines = text.split("\n").map((l) => l.trim()).filter(Boolean);
     const subjectsMap = new Map();
     let activeSubjectKey = null;
 
+    let detectedOverallAttended = 0;
+    let detectedOverallDelivered = 0;
+
+    // 1. Detect Total Percentage line (e.g. "Total Percentage 141/170 82.94 %")
+    for (let line of lines) {
+      if (line.toLowerCase().includes("total percentage") || line.toLowerCase().includes("total percent") || line.toLowerCase().includes("total")) {
+        const match = line.match(/(\d{2,4})\s*[\/|\\]\s*(\d{2,4})/);
+        if (match) {
+          detectedOverallAttended = parseInt(match[1], 10);
+          detectedOverallDelivered = parseInt(match[2], 10);
+        }
+      }
+    }
+
+    // 2. Extract Visible Subjects
     for (let i = 0; i < lines.length; i++) {
       const line = lines[i];
 
@@ -202,6 +217,7 @@ export default function AttendanceScreenshotModal({
             attended: 0,
             total: 0,
             components: [],
+            detectedFromImage: true,
           });
         }
       }
@@ -212,14 +228,64 @@ export default function AttendanceScreenshotModal({
         const att = parseInt(fracMatch[1], 10);
         const del = parseInt(fracMatch[2], 10);
 
-        // Sanity filter (not dates like 2026/2027)
-        if (del < 300 && !line.includes("2026") && !line.includes("2027")) {
+        // Sanity filter (not dates like 2026/2027 or overall total)
+        if (del < 300 && !line.includes("2026") && !line.includes("2027") && !line.includes("Total Percentage")) {
           const sub = subjectsMap.get(activeSubjectKey);
           sub.attended += att;
           sub.total += del;
           sub.components.push({ attended: att, delivered: del, raw: line });
         }
       }
+    }
+
+    // 3. Auto-Include all other section subjects to provide a complete semester curriculum
+    let visibleAttended = 0;
+    let visibleDelivered = 0;
+    subjectsMap.forEach((s) => {
+      visibleAttended += s.attended;
+      visibleDelivered += s.total;
+    });
+
+    const missingCatalog = catalog.filter((c) => !subjectsMap.has(c.subjectName));
+    const activeMissing = missingCatalog.filter(
+      (c) => !c.subjectName.includes("Project") && !c.subjectName.includes("Internship")
+    );
+
+    if (detectedOverallDelivered > visibleDelivered && activeMissing.length > 0) {
+      let remAtt = Math.max(0, detectedOverallAttended - visibleAttended);
+      let remDel = Math.max(0, detectedOverallDelivered - visibleDelivered);
+
+      const count = activeMissing.length;
+      const baseDel = Math.floor(remDel / count);
+      const delRemainder = remDel % count;
+      const baseAtt = Math.floor(remAtt / count);
+      const attRemainder = remAtt % count;
+
+      activeMissing.forEach((c, idx) => {
+        const del = baseDel + (idx < delRemainder ? 1 : 0);
+        const att = Math.min(del, baseAtt + (idx < attRemainder ? 1 : 0));
+
+        subjectsMap.set(c.subjectName, {
+          name: c.subjectName,
+          code: c.code || "",
+          attended: att,
+          total: del,
+          components: [],
+          detectedFromImage: false,
+        });
+      });
+    } else {
+      // Add missing catalog items with 0s for complete visibility
+      missingCatalog.forEach((c) => {
+        subjectsMap.set(c.subjectName, {
+          name: c.subjectName,
+          code: c.code || "",
+          attended: 0,
+          total: 0,
+          components: [],
+          detectedFromImage: false,
+        });
+      });
     }
 
     return Array.from(subjectsMap.values()).map((s, idx) => ({
@@ -230,6 +296,7 @@ export default function AttendanceScreenshotModal({
       totalClasses: s.total,
       percentage: s.total > 0 ? Number(((s.attended / s.total) * 100).toFixed(1)) : 0,
       components: s.components,
+      detectedFromImage: s.detectedFromImage,
     }));
   };
 

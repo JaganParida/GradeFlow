@@ -2359,11 +2359,14 @@ export default function AttendanceTracker() {
                   <div style={{ fontSize: 12, color: "#7f1d1d" }}>
                     If you miss <strong>{simulateMissCount} class(es)</strong>, your score drops from{" "}
                     <strong>{activeCalculation.currentPercentage}%</strong> to{" "}
-                    <strong style={{ color: activeCalculation.simulatedPercentage >= 75 ? "#059669" : "#dc2626" }}>
-                      {activeCalculation.simulatedPercentage}%
-                    </strong>
+                    <strong style={{ color: activeCalculation.simulatedAbsent.projectedPercentage >= 75 ? "#059669" : "#dc2626" }}>
+                      {activeCalculation.simulatedAbsent.projectedPercentage}%
+                    </strong>{" "}
+                    <span style={{ fontSize: 11, color: "#dc2626", fontWeight: 700 }}>
+                      ({activeCalculation.simulatedAbsent.delta > 0 ? "+" : ""}{activeCalculation.simulatedAbsent.delta}%)
+                    </span>
                   </div>
-                  {activeCalculation.simulatedPercentage < 75 && (
+                  {activeCalculation.simulatedAbsent.isBelow75 && (
                     <div style={{ fontSize: 11, fontWeight: 800, color: "#dc2626", marginTop: 4, display: "flex", alignItems: "center", gap: 5 }}>
                       <AlertTriangle size={13} color="#dc2626" />
                       <span>Warning: This drop puts you below the mandatory 75% cutoff!</span>
@@ -2446,8 +2449,11 @@ export default function AttendanceTracker() {
                     Attending <strong>{simulateAttendCount} class(es)</strong> boosts your score from{" "}
                     <strong>{activeCalculation.currentPercentage}%</strong> to{" "}
                     <strong style={{ color: "#059669" }}>
-                      {activeCalculation.simulatedPercentage}%
-                    </strong>
+                      {activeCalculation.simulatedPresent.projectedPercentage}%
+                    </strong>{" "}
+                    <span style={{ fontSize: 11, color: "#16a34a", fontWeight: 700 }}>
+                      (+{activeCalculation.simulatedPresent.delta}%)
+                    </span>
                   </div>
                 </div>
               ) : (
@@ -2510,7 +2516,7 @@ export default function AttendanceTracker() {
                   padding: "12px 14px",
                   display: "flex",
                   flexDirection: "column",
-                  gap: 6,
+                  gap: 8,
                 }}
               >
                 {activeCalculation.classesNeeded > 0 ? (
@@ -2519,11 +2525,43 @@ export default function AttendanceTracker() {
                       Need to attend <strong>{activeCalculation.classesNeeded} more classes</strong> without absence to reach {targetGoal}%
                     </div>
                     {dateProjection && (
-                      <div style={{ fontSize: 11.5, color: "#b45309", display: "flex", alignItems: "center", gap: 5 }}>
-                        <CalendarIcon size={13} />
-                        <span>
-                          Estimated reach date: <strong>{dateProjection.estimatedDate}</strong> (approx {dateProjection.estimatedWeeks} weeks based on {dateProjection.classesPerWeek} classes/week routine)
-                        </span>
+                      <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                        <div style={{ fontSize: 11.5, color: "#b45309", display: "flex", alignItems: "center", gap: 5 }}>
+                          <CalendarIcon size={13} />
+                          <span>
+                            Estimated reach date: <strong>{dateProjection.estimatedDate}</strong> (approx {dateProjection.estimatedWeeks} weeks based on {dateProjection.classesPerWeek} classes/week routine)
+                          </span>
+                        </div>
+
+                        {dateProjection.upcomingSessions && dateProjection.upcomingSessions.length > 0 && (
+                          <div style={{ marginTop: 4 }}>
+                            <div style={{ fontSize: 11, fontWeight: 800, color: "#78350f", marginBottom: 4 }}>
+                              Upcoming Lectures to Attend:
+                            </div>
+                            <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                              {dateProjection.upcomingSessions.map((ses, sIdx) => (
+                                <div
+                                  key={sIdx}
+                                  style={{
+                                    fontSize: 11,
+                                    background: "#ffffff",
+                                    padding: "4px 8px",
+                                    borderRadius: 6,
+                                    border: "1px solid #fde68a",
+                                    display: "flex",
+                                    justifyContent: "space-between",
+                                    alignItems: "center",
+                                    color: "#92400e",
+                                    fontWeight: 600,
+                                  }}
+                                >
+                                  <span>{ses.dateStr} ({ses.day})</span>
+                                  <span>{ses.timeSlot} &bull; {ses.room}</span>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
                       </div>
                     )}
                   </>
@@ -2533,11 +2571,43 @@ export default function AttendanceTracker() {
                       Safe Zone! You can safely miss up to <strong>{activeCalculation.safeBunks} {activeCalculation.safeBunks === 1 ? "class" : "classes"}</strong> and maintain &ge; {targetGoal}%
                     </div>
                     {bunkDateProjection ? (
-                      <div style={{ fontSize: 11.5, color: "#15803d", display: "flex", alignItems: "center", gap: 5 }}>
-                        <CalendarIcon size={13} />
-                        <span>
-                          Your {targetGoal}% safe buffer spans through <strong>{bunkDateProjection.estimatedDate}</strong> based on {bunkDateProjection.classesPerWeek} classes/week timetable schedule.
-                        </span>
+                      <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                        <div style={{ fontSize: 11.5, color: "#15803d", display: "flex", alignItems: "center", gap: 5 }}>
+                          <CalendarIcon size={13} />
+                          <span>
+                            Your {targetGoal}% safe buffer spans through <strong>{bunkDateProjection.estimatedDate}</strong> based on {bunkDateProjection.classesPerWeek} classes/week timetable schedule.
+                          </span>
+                        </div>
+
+                        {bunkDateProjection.upcomingSessions && bunkDateProjection.upcomingSessions.length > 0 && (
+                          <div style={{ marginTop: 4 }}>
+                            <div style={{ fontSize: 11, fontWeight: 800, color: "#14532d", marginBottom: 4 }}>
+                              Safe Days Window:
+                            </div>
+                            <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                              {bunkDateProjection.upcomingSessions.map((ses, sIdx) => (
+                                <div
+                                  key={sIdx}
+                                  style={{
+                                    fontSize: 11,
+                                    background: "#ffffff",
+                                    padding: "4px 8px",
+                                    borderRadius: 6,
+                                    border: "1px solid #bbf7d0",
+                                    display: "flex",
+                                    justifyContent: "space-between",
+                                    alignItems: "center",
+                                    color: "#166534",
+                                    fontWeight: 600,
+                                  }}
+                                >
+                                  <span>{ses.dateStr} ({ses.day})</span>
+                                  <span>{ses.timeSlot} &bull; {ses.room}</span>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
                       </div>
                     ) : (
                       <div style={{ fontSize: 11.5, color: "#15803d" }}>

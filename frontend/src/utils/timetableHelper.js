@@ -808,8 +808,9 @@ export function estimateTargetReachDate(classesNeeded, weeklyOccurrences = [], s
   let remaining = classesNeeded;
   const current = new Date(startDate);
   let daysAdded = 0;
+  const upcomingSessions = [];
 
-  while (remaining > 0 && daysAdded < 365) {
+  while (remaining > 0 && daysAdded < 180) {
     current.setDate(current.getDate() + 1);
     daysAdded++;
 
@@ -818,10 +819,25 @@ export function estimateTargetReachDate(classesNeeded, weeklyOccurrences = [], s
     if (hol?.isHoliday) continue;
 
     const dayIdx = current.getDay();
-    const occurrencesOnDay = dayIndices.filter((idx) => idx === dayIdx).length;
-    if (occurrencesOnDay > 0) {
-      remaining -= occurrencesOnDay;
-    }
+    const dayName = daysOfWeek[dayIdx];
+    const matchingOccurrences = weeklyOccurrences.filter((occ) => occ.day === dayName);
+
+    matchingOccurrences.forEach((occ) => {
+      if (remaining > 0) {
+        remaining--;
+        upcomingSessions.push({
+          dateStr: current.toLocaleDateString("en-IN", {
+            weekday: "short",
+            day: "numeric",
+            month: "short",
+          }),
+          day: occ.day,
+          timeSlot: occ.timeSlot,
+          room: occ.room || "Classroom",
+          type: occ.type || "Lecture",
+        });
+      }
+    });
   }
 
   const weeksCount = (classesNeeded / weeklyOccurrences.length).toFixed(1);
@@ -836,6 +852,7 @@ export function estimateTargetReachDate(classesNeeded, weeklyOccurrences = [], s
     estimatedWeeks: Number(weeksCount),
     classesPerWeek: weeklyOccurrences.length,
     classesNeeded,
+    upcomingSessions: upcomingSessions.slice(0, 4), // Next 4 upcoming sessions
   };
 }
 
