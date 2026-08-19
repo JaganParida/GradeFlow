@@ -25,7 +25,7 @@ const CORS_HEADERS = {
   "Access-Control-Allow-Credentials": "true",
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Methods": "GET,POST,OPTIONS",
-  "Access-Control-Allow-Headers": "X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version, Authorization, Cookie",
+  "Access-Control-Allow-Headers": "X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version, Authorization, Cookie, x-admin-token",
 };
 
 const jwt = require("jsonwebtoken");
@@ -59,16 +59,22 @@ module.exports = async function handler(req, res) {
 
     // ── Strict JWT Authentication & Data Isolation Guard ──
     const cookies = parseCookies(req.headers.cookie);
-    let adminToken = cookies.jwt;
-    if (!adminToken && req.headers.authorization && req.headers.authorization.startsWith("Bearer")) {
+
+    // Check Bearer header FIRST (highest precedence), then x-admin-token, then cookie
+    let adminToken = null;
+    if (req.headers.authorization && req.headers.authorization.startsWith("Bearer")) {
       adminToken = req.headers.authorization.split(" ")[1];
+    } else if (req.headers["x-admin-token"]) {
+      adminToken = req.headers["x-admin-token"];
+    } else if (cookies.jwt && cookies.jwt !== "none") {
+      adminToken = cookies.jwt;
     }
 
     let isAdmin = false;
     if (adminToken && adminToken !== "none") {
       try {
         const decodedAdmin = jwt.verify(adminToken, process.env.JWT_SECRET);
-        if (decodedAdmin && !decodedAdmin.role) {
+        if (decodedAdmin && (decodedAdmin.role === "admin" || decodedAdmin.id || decodedAdmin.email) && decodedAdmin.role !== "student") {
           isAdmin = true;
         }
       } catch {}

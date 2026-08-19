@@ -170,7 +170,10 @@ export function AppProvider({ children }) {
       localStorage.removeItem("last_studentName");
       localStorage.removeItem("gf_today_attendance");
       localStorage.removeItem("gf_timetable_cache");
+      // Preserve admin token — only remove student-specific sessionStorage keys
+      const adminJwt = sessionStorage.getItem("gf_admin_jwt");
       sessionStorage.clear();
+      if (adminJwt) sessionStorage.setItem("gf_admin_jwt", adminJwt);
     } catch {}
 
     // 2. Clear session on server in background

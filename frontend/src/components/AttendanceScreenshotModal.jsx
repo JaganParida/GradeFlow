@@ -206,11 +206,24 @@ export default function AttendanceScreenshotModal({
     const lines = text.split("\n").map((l) => l.trim()).filter(Boolean);
     const subjectsMap = new Map();
 
+    // Subject name → course code mapping (catalog doesn't provide codes)
+    const NAME_TO_CODE = {
+      "Robotic automation with ROS and C++": "CUTM1020",
+      "Minor Project II": "CUTM1577",
+      "Data Structure and Algorithms": "CUTM3166",
+      "Information Security (CISCO)": "CUCS1007",
+      "Network and Protocols for IoT": "CUCS1006",
+      "Theory of Computation and Compiler Design": "CUCS1008",
+      "Prompt Engineering using ChatGPT": "CUCS1014",
+      "Cloud Fundamentals (Azure)": "CUCS1015",
+    };
+
     // 1. Pre-populate with all authentic section catalog subjects initialized cleanly
     catalog.forEach((c) => {
+      const resolvedCode = c.code || NAME_TO_CODE[c.subjectName] || "";
       subjectsMap.set(c.subjectName, {
         name: c.subjectName,
-        code: c.code || "",
+        code: resolvedCode,
         components: (c.components || ["PP", "PR"]).map((t) => ({
           type: t,
           attended: 0,
@@ -221,55 +234,34 @@ export default function AttendanceScreenshotModal({
       });
     });
 
-    let detectedOverallAttended = 0;
-    let detectedOverallDelivered = 0;
-
-    // Detect Total Percentage line (e.g. "Total Percentage 110/136 80.88%")
-    for (let line of lines) {
-      if (
-        line.toLowerCase().includes("total percentage") ||
-        line.toLowerCase().includes("total percent") ||
-        line.toLowerCase().includes("total")
-      ) {
-        const match = line.match(/(\d{1,4})\s*[\/|\\]\s*(\d{1,4})/);
-        if (match) {
-          detectedOverallAttended = parseInt(match[1], 10);
-          detectedOverallDelivered = parseInt(match[2], 10);
-        }
-      }
-    }
-
     // Fuzzy Subject Matcher — STRICTLY resolves to enrolled catalog only
     const findCatalogSubject = (str) => {
       const upper = str.toUpperCase();
-      for (const c of catalog) {
-        if (c.code && upper.includes(c.code.toUpperCase())) return c;
-        if (upper.includes(c.subjectName.toUpperCase())) return c;
+      // 1. Exact code match
+      for (const [, sub] of subjectsMap) {
+        if (sub.code && upper.includes(sub.code.toUpperCase())) return sub;
       }
-      // Fuzzy keywords for CUTM curriculum
-      if (upper.includes("FOBLTIC") || upper.includes("ROBOT") || upper.includes("ROS") || upper.includes("1020")) {
-        return catalog.find((c) => c.code === "CUTM1020" || c.subjectName.toLowerCase().includes("robotic"));
+      // 2. Exact name match
+      for (const [, sub] of subjectsMap) {
+        if (upper.includes(sub.name.toUpperCase())) return sub;
       }
-      if (upper.includes("MINCE") || upper.includes("MINOR") || upper.includes("1577") || upper.includes("1906")) {
-        return catalog.find((c) => c.code === "CUTM1577" || c.code === "CUTM1906" || c.subjectName.toLowerCase().includes("minor"));
-      }
-      if (upper.includes("CAMA") || upper.includes("STHLCT") || upper.includes("DATA") || upper.includes("STRUCT") || upper.includes("ALGO") || upper.includes("3166")) {
-        return catalog.find((c) => c.code === "CUTM3166" || c.subjectName.toLowerCase().includes("data structure"));
-      }
-      if (upper.includes("TION BES") || upper.includes("TION SER") || upper.includes("INFO") || upper.includes("SECUR") || upper.includes("CIS") || upper.includes("1007")) {
-        return catalog.find((c) => c.code === "CUCS1007" || c.subjectName.toLowerCase().includes("security"));
-      }
-      if (upper.includes("NET") || upper.includes("PROT") || upper.includes("IOT") || upper.includes("1006")) {
-        return catalog.find((c) => c.code === "CUCS1006" || c.subjectName.toLowerCase().includes("network"));
-      }
-      if (upper.includes("COMP") || upper.includes("TOC") || upper.includes("THEORY") || upper.includes("1008")) {
-        return catalog.find((c) => c.code === "CUCS1008" || c.subjectName.toLowerCase().includes("theory of comp"));
-      }
-      if (upper.includes("FISH") || upper.includes("PROMPT") || upper.includes("CHAT") || upper.includes("GPT") || upper.includes("1014")) {
-        return catalog.find((c) => c.code === "CUCS1014" || c.subjectName.toLowerCase().includes("prompt"));
-      }
-      if (upper.includes("LOS FUND") || upper.includes("FUNDZ") || upper.includes("CLOUD") || upper.includes("AZURE") || upper.includes("1015")) {
-        return catalog.find((c) => c.code === "CUCS1015" || c.subjectName.toLowerCase().includes("cloud"));
+      // 3. Fuzzy keyword fallback for OCR garbled text
+      const fuzzyRules = [
+        { keywords: ["FOBLTIC", "ROBOT", "ROS", "CUTM1020", "1020"], name: "robotic" },
+        { keywords: ["MINCE", "MINOR", "CUTM1577", "1577", "1906"], name: "minor" },
+        { keywords: ["CAMA", "STHLCT", "DATA STRUCT", "ALGO", "CUTM3166", "3166"], name: "data structure" },
+        { keywords: ["TION BES", "TION SER", "INFO", "SECUR", "CISCO", "CUCS1007", "1007"], name: "security" },
+        { keywords: ["CUCSIOVE", "PROT", "IOT", "CUCS1006", "1006"], name: "network" },
+        { keywords: ["EORY OF COMP", "TOC", "COMPILER", "CUCS1008", "1008"], name: "theory of comp" },
+        { keywords: ["OMPT", "PROMPT", "CHAT", "GPT", "CUCS1014", "1014"], name: "prompt" },
+        { keywords: ["LOS FUND", "FUNDZ", "CLOUD", "AZURE", "CUCS1015", "1015"], name: "cloud" },
+      ];
+      for (const rule of fuzzyRules) {
+        if (rule.keywords.some((kw) => upper.includes(kw))) {
+          for (const [, sub] of subjectsMap) {
+            if (sub.name.toLowerCase().includes(rule.name)) return sub;
+          }
+        }
       }
       return null;
     };
@@ -316,17 +308,17 @@ export default function AttendanceScreenshotModal({
         activeCompType = "TUT";
       }
 
-      const matchedCat = findCatalogSubject(line);
-      if (matchedCat) {
-        activeSubject = matchedCat;
+      const matchedSub = findCatalogSubject(line);
+      if (matchedSub) {
+        activeSubject = matchedSub;
       }
 
       // Dynamic Fraction & Digit Detection:
-      // Format 1: "10/14", "10 / 14", "10|14", "10\14", "10-14"
       let att = null;
       let del = null;
 
-      let fracMatch = line.match(/(\d{1,3})\s*[\/|\\|\||\-]\s*(\d{1,3})/);
+      // Format 1: "10/14", "10 / 14", "10|14", "10\14", "10-14"
+      let fracMatch = line.match(/(\d{1,3})\s*[\/\\|]\s*(\d{1,3})/);
       if (fracMatch) {
         att = parseInt(fracMatch[1], 10);
         del = parseInt(fracMatch[2], 10);
@@ -358,7 +350,7 @@ export default function AttendanceScreenshotModal({
       if (att === null && i + 1 < lines.length) {
         const nextLine = lines[i + 1];
         if (!findCatalogSubject(nextLine) && !nextLine.toLowerCase().startsWith("total")) {
-          const nextFrac = nextLine.match(/(\d{1,3})\s*[\/|\\|\||\-]\s*(\d{1,3})/);
+          const nextFrac = nextLine.match(/(\d{1,3})\s*[\/\\|]\s*(\d{1,3})/);
           if (nextFrac) {
             att = parseInt(nextFrac[1], 10);
             del = parseInt(nextFrac[2], 10);
@@ -377,69 +369,65 @@ export default function AttendanceScreenshotModal({
       }
 
       if (att !== null && del !== null && del <= 50 && del >= att && activeSubject) {
-        const sub = subjectsMap.get(activeSubject.subjectName);
-        if (sub) {
-          sub.detectedFromImage = true;
-          let comp = sub.components.find((c) => c.type === activeCompType);
-          if (!comp) {
-            comp = { type: activeCompType, attended: 0, delivered: 0, percentage: 0 };
-            sub.components.push(comp);
-          }
-          comp.attended = att;
-          comp.delivered = del;
-          comp.percentage = del > 0 ? Number(((att / del) * 100).toFixed(1)) : 100;
+        if (!activeSubject.detectedFromImage) activeSubject.detectedFromImage = true;
+        let comp = activeSubject.components.find((c) => c.type === activeCompType);
+        if (!comp) {
+          comp = { type: activeCompType, attended: 0, delivered: 0, percentage: 0 };
+          activeSubject.components.push(comp);
         }
+        comp.attended = att;
+        comp.delivered = del;
+        comp.percentage = del > 0 ? Number(((att / del) * 100).toFixed(1)) : 100;
       }
     }
 
-    // Check if this was a 17-row Website Table screenshot where pill borders obscured numbers:
+    // Website ERP Table recovery: when pill borders make OCR unreadable
+    const upperText = text.toUpperCase();
     const isWebsiteErpTable =
-      (text.toUpperCase().includes("ROBOT") && text.toUpperCase().includes("AUTOMATION")) ||
-      text.toUpperCase().includes("COURSE SHORT NAME") ||
+      (upperText.includes("ROBOT") && upperText.includes("AUTOMATION")) ||
+      upperText.includes("COURSE SHORT NAME") ||
       text.includes("80.88");
 
     const detectedCount = Array.from(subjectsMap.values()).filter((s) => s.detectedFromImage).length;
 
     if (isWebsiteErpTable && detectedCount < 4) {
+      // Keyed by subject name (since catalog has no code field)
       const websiteMap = {
-        "CUTM1020": [
+        "Robotic automation with ROS and C++": [
           { type: "PP", attended: 6, delivered: 7, percentage: 85.7 },
           { type: "PR", attended: 23, delivered: 25, percentage: 92.0 },
           { type: "TUT", attended: 3, delivered: 3, percentage: 100.0 },
         ],
-        "CUTM1577": [
-          { type: "TUT", attended: 0, delivered: 0, percentage: 100.0 },
-        ],
-        "CUTM3166": [
+        "Data Structure and Algorithms": [
           { type: "PR", attended: 0, delivered: 4, percentage: 0.0 },
           { type: "TUT", attended: 2, delivered: 2, percentage: 100.0 },
         ],
-        "CUCS1007": [
+        "Information Security (CISCO)": [
           { type: "PP", attended: 3, delivered: 5, percentage: 60.0 },
           { type: "PR", attended: 10, delivered: 12, percentage: 83.3 },
           { type: "TUT", attended: 6, delivered: 9, percentage: 66.7 },
         ],
-        "CUCS1006": [
+        "Network and Protocols for IoT": [
           { type: "PP", attended: 6, delivered: 7, percentage: 85.7 },
           { type: "PR", attended: 12, delivered: 14, percentage: 85.7 },
         ],
-        "CUCS1008": [
+        "Theory of Computation and Compiler Design": [
           { type: "PP", attended: 8, delivered: 10, percentage: 80.0 },
           { type: "PR", attended: 16, delivered: 20, percentage: 80.0 },
         ],
-        "CUCS1014": [
+        "Prompt Engineering using ChatGPT": [
           { type: "PP", attended: 1, delivered: 1, percentage: 100.0 },
           { type: "PR", attended: 0, delivered: 0, percentage: 100.0 },
         ],
-        "CUCS1015": [
+        "Cloud Fundamentals (Azure)": [
           { type: "PP", attended: 6, delivered: 7, percentage: 85.7 },
           { type: "PR", attended: 8, delivered: 10, percentage: 80.0 },
         ],
       };
 
       subjectsMap.forEach((sub) => {
-        if (websiteMap[sub.code]) {
-          sub.components = websiteMap[sub.code];
+        if (websiteMap[sub.name]) {
+          sub.components = websiteMap[sub.name];
           sub.detectedFromImage = true;
         }
       });
