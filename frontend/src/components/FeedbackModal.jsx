@@ -43,12 +43,12 @@ export default function FeedbackModal() {
   const currentRegNo =
     studentData?.regNo ||
     (typeof window !== "undefined"
-      ? sessionStorage.getItem("last_regNo") || ""
+      ? localStorage.getItem("last_regNo") || sessionStorage.getItem("last_regNo") || ""
       : "");
   const currentStudentName =
     studentData?.studentName ||
     (typeof window !== "undefined"
-      ? sessionStorage.getItem("last_studentName") || ""
+      ? localStorage.getItem("last_studentName") || sessionStorage.getItem("last_studentName") || ""
       : "");
 
   // Prefill student details whenever available

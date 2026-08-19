@@ -274,7 +274,7 @@ router.post("/student/verify-otp", otpLimiter, async (req, res) => {
       expires: expiresAt,
       httpOnly: true,
       secure: true,
-      sameSite: "none",
+      sameSite: "lax",
       path: "/",
     };
 

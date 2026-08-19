@@ -61,6 +61,7 @@ export default function AttendanceTracker() {
   const navigate = useNavigate();
   const {
     studentData,
+    studentSession,
     fetchStudent,
     loading: appLoading,
     API,
@@ -68,14 +69,19 @@ export default function AttendanceTracker() {
     openStudentAuthModal,
   } = useApp();
 
-  // Decode regNo from URL or context
+  // Decode regNo from URL, session, studentData, or localStorage
   const decodedParam = urlParam
     ? isEncryptedToken(urlParam)
       ? decodeStudentId(urlParam)
       : urlParam
     : null;
 
-  const currentRegNo = decodedParam || studentData?.regNo || sessionStorage.getItem("last_regNo") || "";
+  const currentRegNo =
+    decodedParam ||
+    studentSession?.regNo ||
+    studentData?.regNo ||
+    localStorage.getItem("last_regNo") ||
+    "";
 
   // Section State
   const [selectedSection, setSelectedSection] = useState(() => {
@@ -209,7 +215,7 @@ export default function AttendanceTracker() {
   const [simulateAttendCount, setSimulateAttendCount] = useState(0);
   const [activeTab, setActiveTab] = useState("studio"); // "studio" | "bunk_analyzer"
 
-  // Saved Subjects LocalStorage Store
+  // Saved Subjects LocalStorage Store Key
   const storageKey = `gradeflow_attendance_${currentRegNo || selectedSection}`;
   const [savedSubjects, setSavedSubjects] = useState(() => {
     try {
@@ -220,20 +226,49 @@ export default function AttendanceTracker() {
     }
   });
 
+  // Re-sync local storage whenever currentRegNo resolves
+  useEffect(() => {
+    if (!currentRegNo) return;
+    try {
+      const studentStorage = localStorage.getItem(`gradeflow_attendance_${currentRegNo}`);
+      if (studentStorage) {
+        const parsed = JSON.parse(studentStorage);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          setSavedSubjects(parsed);
+        }
+      }
+    } catch (e) {
+      console.warn("Local storage parse error:", e);
+    }
+  }, [currentRegNo]);
+
   // Save to LocalStorage whenever savedSubjects changes
   useEffect(() => {
     try {
       localStorage.setItem(storageKey, JSON.stringify(savedSubjects));
+      if (currentRegNo) {
+        localStorage.setItem(`gradeflow_attendance_${currentRegNo}`, JSON.stringify(savedSubjects));
+      }
     } catch (e) {
       console.error("Failed to persist attendance data:", e);
     }
-  }, [savedSubjects, storageKey]);
+  }, [savedSubjects, storageKey, currentRegNo]);
 
   // Sync to MongoDB helper
-  const syncAttendanceToDb = async (updatedSaved = savedSubjects, updatedDaily = dailyAttendanceLogs, goal = targetGoal) => {
-    if (!currentRegNo) return;
+  const syncAttendanceToDb = async (
+    updatedSaved = savedSubjects,
+    updatedDaily = dailyAttendanceLogs,
+    goal = targetGoal
+  ) => {
+    const regToSync =
+      currentRegNo ||
+      studentSession?.regNo ||
+      studentData?.regNo ||
+      localStorage.getItem("last_regNo");
+
+    if (!regToSync) return;
     try {
-      await axios.post(`${API}/student/${currentRegNo}/attendance`, {
+      await axios.post(`${API}/student/${regToSync}/attendance`, {
         section: selectedSection,
         targetGoal: goal,
         savedSubjects: updatedSaved,
@@ -244,18 +279,27 @@ export default function AttendanceTracker() {
     }
   };
 
-  // Load saved Attendance from MongoDB on startup
+  // Load saved Attendance from MongoDB on startup or when student resolves
   useEffect(() => {
-    if (!currentRegNo) return;
+    const regToLoad =
+      currentRegNo ||
+      studentSession?.regNo ||
+      studentData?.regNo ||
+      localStorage.getItem("last_regNo");
+
+    if (!regToLoad) return;
     let isMounted = true;
 
     async function loadDbAttendance() {
       try {
-        const res = await axios.get(`${API}/student/${currentRegNo}/attendance`);
+        const res = await axios.get(`${API}/student/${regToLoad}/attendance`);
         if (res.data?.success && res.data.attendance && isMounted) {
           const att = res.data.attendance;
           if (Array.isArray(att.savedSubjects) && att.savedSubjects.length > 0) {
             setSavedSubjects(att.savedSubjects);
+            try {
+              localStorage.setItem(`gradeflow_attendance_${regToLoad}`, JSON.stringify(att.savedSubjects));
+            } catch {}
           }
           if (att.targetGoal) {
             setTargetGoal(att.targetGoal);
@@ -276,7 +320,7 @@ export default function AttendanceTracker() {
     return () => {
       isMounted = false;
     };
-  }, [currentRegNo, API, todayDateKey]);
+  }, [currentRegNo, studentSession?.regNo, studentData?.regNo, API, todayDateKey]);
 
   // Set default subject on catalog load
   useEffect(() => {

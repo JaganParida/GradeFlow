@@ -9,25 +9,25 @@ axios.defaults.withCredentials = true;
 
 const STUDENT_CACHE_KEY = "gf_student_data";
 // Bump this version whenever the CGPA/SGPA formula or data shape changes
-// to automatically invalidate stale cached student data in sessionStorage
+// to automatically invalidate stale cached student data in localStorage
 const CACHE_VERSION = "v8";
 const CACHE_VERSION_KEY = "gf_cache_version";
 
 const getCachedStudentData = () => {
   try {
     // Invalidate cache if version changed (formula/data updates)
-    const storedVersion = sessionStorage.getItem(CACHE_VERSION_KEY);
+    const storedVersion = localStorage.getItem(CACHE_VERSION_KEY);
     if (storedVersion !== CACHE_VERSION) {
-      sessionStorage.removeItem(STUDENT_CACHE_KEY);
-      sessionStorage.setItem(CACHE_VERSION_KEY, CACHE_VERSION);
+      localStorage.removeItem(STUDENT_CACHE_KEY);
+      localStorage.setItem(CACHE_VERSION_KEY, CACHE_VERSION);
       return null;
     }
-    return JSON.parse(sessionStorage.getItem(STUDENT_CACHE_KEY)) || null;
+    return JSON.parse(localStorage.getItem(STUDENT_CACHE_KEY)) || null;
   } catch {
     try {
-      sessionStorage.removeItem(STUDENT_CACHE_KEY);
+      localStorage.removeItem(STUDENT_CACHE_KEY);
     } catch (e) {
-      // Ignore if sessionStorage is completely disabled
+      // Ignore if localStorage is disabled
     }
     return null;
   }
@@ -39,7 +39,7 @@ export function AppProvider({ children }) {
   const [studentData, setStudentData] = useState(() => getCachedStudentData());
   const [studentSession, setStudentSession] = useState(() => {
     try {
-      return JSON.parse(sessionStorage.getItem("gf_student_session") || "null");
+      return JSON.parse(localStorage.getItem("gf_student_session") || "null");
     } catch {
       return null;
     }
@@ -85,18 +85,22 @@ export function AppProvider({ children }) {
         const resStudent = await axios.get(`${API_BASE}/auth/student/me`);
         if (resStudent.data?.success && resStudent.data?.student) {
           setStudentSession(resStudent.data.student);
-          sessionStorage.setItem("gf_student_session", JSON.stringify(resStudent.data.student));
+          localStorage.setItem("gf_student_session", JSON.stringify(resStudent.data.student));
+          localStorage.setItem("last_regNo", resStudent.data.student.regNo);
+          if (resStudent.data.student.studentName) {
+            localStorage.setItem("last_studentName", resStudent.data.student.studentName);
+          }
           if (!studentData || studentData.regNo !== resStudent.data.student.regNo) {
             fetchStudent(resStudent.data.student.regNo, 2, 500);
           }
         } else {
           setStudentSession(null);
-          sessionStorage.removeItem("gf_student_session");
+          localStorage.removeItem("gf_student_session");
         }
       } catch (err) {
-        if (err.response?.status === 401) {
+        if (err.response?.status === 401 || err.response?.status === 403) {
           setStudentSession(null);
-          sessionStorage.removeItem("gf_student_session");
+          localStorage.removeItem("gf_student_session");
         }
       }
     };
@@ -129,7 +133,11 @@ export function AppProvider({ children }) {
       const res = await axios.post(`${API_BASE}/auth/student/verify-otp`, { regNo, otp });
       if (res.data?.success && res.data?.student) {
         setStudentSession(res.data.student);
-        sessionStorage.setItem("gf_student_session", JSON.stringify(res.data.student));
+        localStorage.setItem("gf_student_session", JSON.stringify(res.data.student));
+        localStorage.setItem("last_regNo", res.data.student.regNo);
+        if (res.data.student.studentName) {
+          localStorage.setItem("last_studentName", res.data.student.studentName);
+        }
         // Fetch student profile
         await fetchStudent(regNo, 3, 500, true);
         return { success: true, student: res.data.student };
@@ -153,7 +161,9 @@ export function AppProvider({ children }) {
     } finally {
       setStudentSession(null);
       clearStudentData();
-      sessionStorage.removeItem("gf_student_session");
+      localStorage.removeItem("gf_student_session");
+      localStorage.removeItem("last_regNo");
+      localStorage.removeItem("last_studentName");
       navigate("/");
     }
   };
@@ -220,20 +230,20 @@ export function AppProvider({ children }) {
       const res = await axios.get(`${API_BASE}/student/${cleanReg}`);
 
       try {
-        sessionStorage.setItem(STUDENT_CACHE_KEY, JSON.stringify(res.data));
-        sessionStorage.setItem("last_regNo", cleanReg);
+        localStorage.setItem(STUDENT_CACHE_KEY, JSON.stringify(res.data));
+        localStorage.setItem("last_regNo", cleanReg);
         if (res.data?.studentName) {
-          sessionStorage.setItem("last_studentName", res.data.studentName);
+          localStorage.setItem("last_studentName", res.data.studentName);
         }
       } catch (storageErr) {
-        console.warn("Could not save to sessionStorage. Attempting to clear space...", storageErr);
+        console.warn("Could not save to localStorage. Attempting to clear space...", storageErr);
         try {
-          sessionStorage.clear();
-          sessionStorage.setItem(CACHE_VERSION_KEY, CACHE_VERSION);
-          sessionStorage.setItem(STUDENT_CACHE_KEY, JSON.stringify(res.data));
-          sessionStorage.setItem("last_regNo", cleanReg);
+          localStorage.removeItem(STUDENT_CACHE_KEY);
+          localStorage.setItem(CACHE_VERSION_KEY, CACHE_VERSION);
+          localStorage.setItem(STUDENT_CACHE_KEY, JSON.stringify(res.data));
+          localStorage.setItem("last_regNo", cleanReg);
           if (res.data?.studentName) {
-            sessionStorage.setItem("last_studentName", res.data.studentName);
+            localStorage.setItem("last_studentName", res.data.studentName);
           }
         } catch (retryErr) {
           console.error("Local storage still unavailable after clearing.", retryErr);
@@ -257,7 +267,7 @@ export function AppProvider({ children }) {
       if (status === 401) {
         msg = "Session expired or authentication required. Please log in with your registration number.";
         setStudentSession(null);
-        sessionStorage.removeItem("gf_student_session");
+        localStorage.removeItem("gf_student_session");
       } else if (status === 403) {
         msg = "Access Denied: You are only authorized to view your own registered student records.";
       } else if (status === 404) {
@@ -281,10 +291,11 @@ export function AppProvider({ children }) {
 
   const clearStudentData = () => {
     try {
-      sessionStorage.removeItem(STUDENT_CACHE_KEY);
-      sessionStorage.removeItem("last_regNo");
+      localStorage.removeItem(STUDENT_CACHE_KEY);
+      localStorage.removeItem("last_regNo");
+      localStorage.removeItem("last_studentName");
     } catch (err) {
-      console.warn("Could not remove from sessionStorage", err);
+      console.warn("Could not remove from localStorage", err);
     }
     setStudentData(null);
     setError("");

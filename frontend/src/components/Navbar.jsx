@@ -78,9 +78,12 @@ export default function Navbar() {
     };
   }, [mobileMenuOpen]);
 
-  const currentRegNo = studentData?.regNo 
-    || sessionStorage.getItem("last_regNo") 
-    || "";
+  const currentRegNo =
+    studentData?.regNo ||
+    studentSession?.regNo ||
+    localStorage.getItem("last_regNo") ||
+    sessionStorage.getItem("last_regNo") ||
+    "";
 
   const isEligibleForTimetable = is2023CSEBatch(studentData, currentRegNo);
 

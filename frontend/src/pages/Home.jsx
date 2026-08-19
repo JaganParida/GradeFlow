@@ -446,7 +446,11 @@ export default function Home() {
   }, []);
 
   const currentRegNo =
-    studentData?.regNo || sessionStorage.getItem("last_regNo") || "";
+    studentData?.regNo ||
+    studentSession?.regNo ||
+    localStorage.getItem("last_regNo") ||
+    sessionStorage.getItem("last_regNo") ||
+    "";
 
   const handleDashboardAction = () => {
     if (hasActiveSession && currentRegNo) {

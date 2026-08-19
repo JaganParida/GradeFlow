@@ -367,7 +367,7 @@ module.exports = async function handler(req, res) {
         `Path=/`,
         `HttpOnly`,
         `Secure`,
-        `SameSite=None`,
+        `SameSite=Lax`,
         `Max-Age=${7 * 24 * 60 * 60}`,
       ].join("; ");
       res.setHeader("Set-Cookie", cookieOptions);
@@ -395,13 +395,13 @@ module.exports = async function handler(req, res) {
       }
 
       if (!token) {
-        return res.status(401).json({ authenticated: false, message: "No active student session." });
+        return res.status(401).json({ authenticated: false, success: false, message: "No active student session." });
       }
 
       try {
         const decoded = jwt.verify(token, process.env.JWT_SECRET);
         if (decoded.role !== "student") {
-          return res.status(403).json({ authenticated: false, message: "Invalid session role." });
+          return res.status(403).json({ authenticated: false, success: false, message: "Invalid session role." });
         }
 
         const session = await StudentSession.findOne({
@@ -413,6 +413,7 @@ module.exports = async function handler(req, res) {
         if (!session) {
           return res.status(401).json({
             authenticated: false,
+            success: false,
             message: "Session ended or logged in from another device.",
             code: "SESSION_TERMINATED",
           });
@@ -423,6 +424,7 @@ module.exports = async function handler(req, res) {
           await StudentSession.deleteOne({ _id: session._id });
           return res.status(401).json({
             authenticated: false,
+            success: false,
             message: "Session expired due to 7 days of inactivity.",
             code: "SESSION_INACTIVE_EXPIRED",
           });
@@ -434,6 +436,7 @@ module.exports = async function handler(req, res) {
         const studentRecord = await SemesterResult.findOne({ regNo: decoded.regNo }).sort({ semester: -1 });
 
         return res.json({
+          success: true,
           authenticated: true,
           student: {
             regNo: decoded.regNo,
