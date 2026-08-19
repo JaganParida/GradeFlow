@@ -257,7 +257,15 @@ export default function SmartBunkAnalyzer({
         const subTotAtt = (sub.components || []).reduce((a, c) => a + (Number(c.attended) || 0), 0);
         const subTotDel = (sub.components || []).reduce((a, c) => a + (Number(c.delivered) || 0), 0);
         const subSimDel = subTotDel + info.missedCount;
-        const isSafe = sim.simulatedPercentage >= 75;
+        
+        const currentPct = sim.currentPercentage;
+        const projectedPct =
+          sim.simulatedAbsent?.projectedPercentage ??
+          (subSimDel > 0 ? Number(((subTotAtt / subSimDel) * 100).toFixed(2)) : currentPct);
+        const delta =
+          sim.simulatedAbsent?.delta ??
+          Number((projectedPct - currentPct).toFixed(2));
+        const isSafe = projectedPct >= 75;
 
         // Classes needed to recover to 75% after leave
         let classesToRecover = 0;
@@ -285,9 +293,9 @@ export default function SmartBunkAnalyzer({
           subCode,
           missedCount: info.missedCount,
           componentsMissed: info.componentsMissed,
-          currentPct: sim.currentPercentage,
-          projectedPct: sim.simulatedPercentage,
-          delta: Number((sim.simulatedPercentage - sim.currentPercentage).toFixed(1)),
+          currentPct,
+          projectedPct,
+          delta,
           isSafe,
           classesToRecover,
           recoveryReachDate: recoveryProjection?.estimatedDate || null,
@@ -1059,9 +1067,13 @@ export default function SmartBunkAnalyzer({
                     fontSize: 11,
                     fontWeight: 700,
                     cursor: "pointer",
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 5,
                   }}
                 >
-                  🌴 Long Weekend (Fri+Sat)
+                  <Sun size={12} />
+                  <span>Long Weekend (Fri+Sat)</span>
                 </button>
                 <button
                   type="button"
@@ -1075,9 +1087,13 @@ export default function SmartBunkAnalyzer({
                     fontSize: 11,
                     fontWeight: 700,
                     cursor: "pointer",
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 5,
                   }}
                 >
-                  🗓️ 3-Day Break (Thu-Sat)
+                  <CalendarIcon size={12} />
+                  <span>3-Day Break (Thu-Sat)</span>
                 </button>
                 <button
                   type="button"
@@ -1091,9 +1107,13 @@ export default function SmartBunkAnalyzer({
                     fontSize: 11,
                     fontWeight: 700,
                     cursor: "pointer",
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 5,
                   }}
                 >
-                  ✈️ Full Week Off
+                  <Clock size={12} />
+                  <span>Full Week Off</span>
                 </button>
               </div>
             </div>
@@ -1416,9 +1436,22 @@ export default function SmartBunkAnalyzer({
                                 padding: "2px 7px",
                                 borderRadius: 6,
                                 whiteSpace: "nowrap",
+                                display: "inline-flex",
+                                alignItems: "center",
+                                gap: 4,
                               }}
                             >
-                              {subItem.isSafe ? "SAFE (>75%)" : "SHORTFALL"}
+                              {subItem.isSafe ? (
+                                <>
+                                  <CheckCircle2 size={11} color="#16a34a" />
+                                  <span>SAFE (&ge;75%)</span>
+                                </>
+                              ) : (
+                                <>
+                                  <AlertTriangle size={11} color="#dc2626" />
+                                  <span>SHORTFALL</span>
+                                </>
+                              )}
                             </span>
                           </div>
 
@@ -1435,12 +1468,15 @@ export default function SmartBunkAnalyzer({
 
                           {/* Recovery roadmap if below 75 */}
                           {!subItem.isSafe && subItem.classesToRecover > 0 && (
-                            <div style={{ fontSize: 11, background: "#fef2f2", border: "1px solid #fecaca", padding: "6px 8px", borderRadius: 6, color: "#991b1b" }}>
-                              <span style={{ fontWeight: 800 }}>⚡ Recovery Action:</span> Need to attend{" "}
-                              <strong>{subItem.classesToRecover} consecutive classes</strong> after returning to restore &ge;75%
-                              {subItem.recoveryReachDate && (
-                                <span> (est. by <strong>{subItem.recoveryReachDate}</strong>)</span>
-                              )}
+                            <div style={{ fontSize: 11, background: "#fef2f2", border: "1px solid #fecaca", padding: "6px 8px", borderRadius: 6, color: "#991b1b", display: "flex", alignItems: "flex-start", gap: 5 }}>
+                              <Zap size={13} color="#dc2626" style={{ flexShrink: 0, marginTop: 1 }} />
+                              <div>
+                                <span style={{ fontWeight: 800 }}>Recovery Action:</span> Need to attend{" "}
+                                <strong>{subItem.classesToRecover} consecutive classes</strong> after returning to restore &ge;75%
+                                {subItem.recoveryReachDate && (
+                                  <span> (est. by <strong>{subItem.recoveryReachDate}</strong>)</span>
+                                )}
+                              </div>
                             </div>
                           )}
                         </div>
