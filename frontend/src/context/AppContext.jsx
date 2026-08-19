@@ -75,12 +75,14 @@ export function AppProvider({ children }) {
           }
           setAdminToken(true);
         } else {
-          const stored = sessionStorage.getItem("gf_admin_jwt") || localStorage.getItem("gf_admin_jwt");
-          setAdminToken(Boolean(stored));
+          sessionStorage.removeItem("gf_admin_jwt");
+          localStorage.removeItem("gf_admin_jwt");
+          setAdminToken(false);
         }
       } catch {
-        const stored = sessionStorage.getItem("gf_admin_jwt") || localStorage.getItem("gf_admin_jwt");
-        setAdminToken(Boolean(stored));
+        sessionStorage.removeItem("gf_admin_jwt");
+        localStorage.removeItem("gf_admin_jwt");
+        setAdminToken(false);
       }
 
       // 2. Check Student Session (Direct from Server via HttpOnly Cookie)
@@ -241,7 +243,14 @@ export function AppProvider({ children }) {
       setError("");
     }
     try {
-      const res = await axios.get(`${API_BASE}/student/${cleanReg}`);
+      const adminJwt = sessionStorage.getItem("gf_admin_jwt") || localStorage.getItem("gf_admin_jwt");
+      const reqHeaders = adminJwt
+        ? { Authorization: `Bearer ${adminJwt}`, "x-admin-token": adminJwt }
+        : {};
+      const res = await axios.get(`${API_BASE}/student/${cleanReg}`, {
+        headers: reqHeaders,
+        withCredentials: true,
+      });
       setStudentData(res.data);
       setLoading(false);
       return res.data;
