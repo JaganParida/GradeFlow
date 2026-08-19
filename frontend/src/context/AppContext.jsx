@@ -192,16 +192,10 @@ export function AppProvider({ children }) {
     if (!regNo) return null;
     const cleanReg = regNo.trim().toUpperCase();
 
-    // Reuse existing in-memory/sessionStorage student data instantly to prevent tab switch loading spinners
+    // Reuse existing in-memory student data instantly to prevent tab switch loading spinners
     if (!forceRefresh && studentData && studentData.regNo === cleanReg) {
       setLoading(false);
       return studentData;
-    }
-    const cached = getCachedStudentData();
-    if (!forceRefresh && cached && cached.regNo === cleanReg) {
-      setStudentData(cached);
-      setLoading(false);
-      return cached;
     }
 
     if (backoffMs === 1000) {
