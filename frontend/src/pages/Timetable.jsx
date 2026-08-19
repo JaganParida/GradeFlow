@@ -61,7 +61,14 @@ export default function Timetable() {
   const { studentId: urlParam } = useParams();
   const location = useLocation();
   const navigate = useNavigate();
-  const { studentData, fetchStudent, loading: appLoading, hasActiveSession } = useApp();
+  const {
+    studentData,
+    fetchStudent,
+    loading: appLoading,
+    hasActiveSession,
+    adminToken,
+    openStudentAuthModal,
+  } = useApp();
 
   // Decode regNo from URL or context
   const decodedParam = urlParam
@@ -705,73 +712,121 @@ export default function Timetable() {
               gap: 12,
             }}
           >
-            {/* Student Search Form */}
-            <form
-              onSubmit={handleSearchStudent}
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 8,
-                maxWidth: 400,
-                width: "100%",
-              }}
-            >
-              <div
+            {/* Admin Search OR Verified Student Lock Badge */}
+            {adminToken ? (
+              <form
+                onSubmit={handleSearchStudent}
                 style={{
-                  position: "relative",
-                  flex: 1,
                   display: "flex",
                   alignItems: "center",
+                  gap: 8,
+                  maxWidth: 400,
+                  width: "100%",
                 }}
               >
-                <Search
-                  size={15}
-                  color="#94a3b8"
-                  style={{ position: "absolute", left: 12, pointerEvents: "none" }}
-                />
-                <input
-                  type="text"
-                  placeholder="Lookup Reg No (e.g. 210301120001)"
-                  value={searchRegInput}
-                  onChange={(e) => setSearchRegInput(e.target.value)}
+                <div
                   style={{
-                    width: "100%",
-                    padding: "8px 12px 8px 36px",
-                    borderRadius: 10,
-                    border: "1px solid #cbd5e1",
-                    fontSize: 12.5,
-                    color: "#0f172a",
-                    fontWeight: 600,
-                    outline: "none",
-                    background: "#ffffff",
-                    boxSizing: "border-box",
+                    position: "relative",
+                    flex: 1,
+                    display: "flex",
+                    alignItems: "center",
                   }}
-                />
-              </div>
+                >
+                  <Search
+                    size={15}
+                    color="#94a3b8"
+                    style={{ position: "absolute", left: 12, pointerEvents: "none" }}
+                  />
+                  <input
+                    type="text"
+                    placeholder="Admin: Lookup Reg No (e.g. 230301120001)"
+                    value={searchRegInput}
+                    onChange={(e) => setSearchRegInput(e.target.value)}
+                    style={{
+                      width: "100%",
+                      padding: "8px 12px 8px 36px",
+                      borderRadius: 10,
+                      border: "1px solid #cbd5e1",
+                      fontSize: 12.5,
+                      color: "#0f172a",
+                      fontWeight: 600,
+                      outline: "none",
+                      background: "#ffffff",
+                      boxSizing: "border-box",
+                    }}
+                  />
+                </div>
 
-              <button
-                type="submit"
-                disabled={isSearching}
+                <button
+                  type="submit"
+                  disabled={isSearching}
+                  style={{
+                    padding: "8px 16px",
+                    borderRadius: 10,
+                    border: "none",
+                    background: "#0f172a",
+                    color: "#ffffff",
+                    fontSize: 12.5,
+                    fontWeight: 700,
+                    cursor: isSearching ? "not-allowed" : "pointer",
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 5,
+                    whiteSpace: "nowrap",
+                    transition: "background 0.2s",
+                  }}
+                >
+                  <span>{isSearching ? "Searching..." : "Find"}</span>
+                  <ArrowRight size={13} />
+                </button>
+              </form>
+            ) : currentRegNo ? (
+              <div
                 style={{
-                  padding: "8px 16px",
-                  borderRadius: 10,
-                  border: "none",
-                  background: "#0f172a",
-                  color: "#ffffff",
-                  fontSize: 12.5,
-                  fontWeight: 700,
-                  cursor: isSearching ? "not-allowed" : "pointer",
                   display: "inline-flex",
                   alignItems: "center",
-                  gap: 5,
-                  whiteSpace: "nowrap",
-                  transition: "background 0.2s",
+                  gap: 8,
+                  padding: "7px 14px",
+                  borderRadius: 10,
+                  background: "#f0fdf4",
+                  border: "1px solid #bbf7d0",
+                  color: "#166534",
+                  fontSize: 12.5,
+                  fontWeight: 700,
                 }}
               >
-                <span>{isSearching ? "Searching..." : "Find"}</span>
-                <ArrowRight size={13} />
-              </button>
-            </form>
+                <ShieldCheck size={16} color="#16a34a" />
+                <span>
+                  Authorized Student: <strong>{currentRegNo}</strong> &middot; Section <strong>{selectedSection}</strong>
+                </span>
+              </div>
+            ) : (
+              <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+                <span style={{ fontSize: 12.5, color: "#64748b", fontWeight: 600 }}>
+                  🔒 Log in to view your personalized class timetable.
+                </span>
+                <button
+                  type="button"
+                  onClick={openStudentAuthModal}
+                  style={{
+                    padding: "7px 14px",
+                    borderRadius: 9,
+                    border: "none",
+                    background: "linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)",
+                    color: "#ffffff",
+                    fontSize: 12.5,
+                    fontWeight: 700,
+                    cursor: "pointer",
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 6,
+                  }}
+                >
+                  <GraduationCap size={14} />
+                  <span>Student Login</span>
+                </button>
+              </div>
+            )}
 
             {/* View Mode Switcher Pills with Arrow Scroll Buttons */}
             <div style={{ display: "flex", alignItems: "center", gap: 4, maxWidth: "100%", position: "relative" }}>

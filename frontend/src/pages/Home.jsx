@@ -690,96 +690,85 @@ export default function Home() {
           Real-time GPA tracking, university rankings, placement insights, and simulation tools.
         </p>
 
-        {/* 1-Tap Search Box inside Hero */}
-        <form
-          onSubmit={handleSearchModalSubmit}
-          style={{
-            display: "flex",
-            flexDirection: "column",
-            gap: 6,
-            marginTop: 4,
-          }}
-        >
+        {/* Student Session Card or Login CTA */}
+        {hasActiveSession && currentRegNo ? (
           <div
             style={{
               display: "flex",
               alignItems: "center",
-              gap: 6,
-              background: "#ffffff",
-              border: searchError ? "1.5px solid #ef4444" : "1.5px solid #cbd5e1",
-              borderRadius: 12,
-              padding: "4px 6px 4px 10px",
-              boxShadow: "0 2px 8px rgba(15, 23, 42, 0.04)",
-              transition: "border-color 0.15s ease",
+              justifyContent: "space-between",
+              background: "#f0fdf4",
+              border: "1.5px solid #bbf7d0",
+              borderRadius: 14,
+              padding: "12px 14px",
+              marginTop: 4,
+              boxShadow: "0 2px 8px rgba(16, 185, 129, 0.08)",
             }}
           >
-            <Search size={16} color="#64748b" style={{ flexShrink: 0 }} />
-            <input
-              type="text"
-              value={searchRegInput}
-              onChange={(e) => {
-                setSearchRegInput(e.target.value);
-                if (searchError) setSearchError("");
-              }}
-              placeholder="Enter Reg. No. (e.g. 230301120042)"
-              style={{
-                flex: 1,
-                border: "none",
-                outline: "none",
-                background: "transparent",
-                fontSize: 13,
-                fontWeight: 600,
-                color: "#0f172a",
-                fontFamily: "'Space Mono', monospace",
-                minWidth: 0,
-              }}
-            />
-            {searchRegInput && (
-              <button
-                type="button"
-                onClick={() => setSearchRegInput("")}
-                style={{
-                  background: "transparent",
-                  border: "none",
-                  padding: 2,
-                  cursor: "pointer",
-                  color: "#94a3b8",
-                  display: "flex",
-                  alignItems: "center",
-                }}
-              >
-                <X size={14} />
-              </button>
-            )}
+            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+              <ShieldCheck size={22} color="#16a34a" />
+              <div>
+                <div style={{ fontSize: 13.5, fontWeight: 800, color: "#166534" }}>
+                  Active Student Session
+                </div>
+                <div style={{ fontSize: 12, color: "#15803d", fontWeight: 700, fontFamily: "'Space Mono', monospace" }}>
+                  {currentRegNo}
+                </div>
+              </div>
+            </div>
             <button
-              type="submit"
-              disabled={isSearching}
+              onClick={handleDashboardAction}
               style={{
                 padding: "8px 14px",
-                borderRadius: 8,
-                background: "#2563eb",
+                borderRadius: 10,
+                background: "linear-gradient(135deg, #16a34a 0%, #15803d 100%)",
                 color: "#ffffff",
                 border: "none",
                 fontSize: 12.5,
                 fontWeight: 700,
-                cursor: isSearching ? "not-allowed" : "pointer",
+                cursor: "pointer",
                 display: "inline-flex",
                 alignItems: "center",
                 gap: 5,
-                fontFamily: "'DM Sans', sans-serif",
-                whiteSpace: "nowrap",
-                flexShrink: 0,
+                boxShadow: "0 2px 6px rgba(22, 163, 74, 0.3)",
               }}
             >
-              {isSearching ? <Loader2 size={13} className="animate-spin" /> : <span>Search</span>}
+              <span>Dashboard</span>
+              <ArrowRight size={13} />
             </button>
           </div>
-          {searchError && (
-            <span style={{ fontSize: 11.5, color: "#ef4444", fontWeight: 600, paddingLeft: 4 }}>
-              {searchError}
-            </span>
-          )}
-        </form>
+        ) : (
+          <div style={{ marginTop: 4 }}>
+            <button
+              type="button"
+              onClick={openStudentAuthModal}
+              style={{
+                width: "100%",
+                padding: "13px 18px",
+                borderRadius: 14,
+                background: "linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)",
+                color: "#ffffff",
+                border: "none",
+                fontSize: 14,
+                fontWeight: 800,
+                cursor: "pointer",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: 8,
+                boxShadow: "0 4px 14px rgba(37, 99, 235, 0.3)",
+                transition: "all 0.2s ease",
+              }}
+            >
+              <GraduationCap size={18} />
+              <span>Student Portal Login (Email OTP)</span>
+              <ArrowRight size={15} />
+            </button>
+            <p style={{ fontSize: 11.5, color: "#64748b", margin: "6px 0 0 0", textAlign: "center" }}>
+              🔒 Secured via Centurion University Email OTP &middot; Single Active Device
+            </p>
+          </div>
+        )}
 
         {/* Action Buttons Row */}
         <div style={{ display: "flex", gap: 8, marginTop: 2 }}>
@@ -2262,15 +2251,10 @@ export default function Home() {
               }}
             >
               The statistics above show a <strong>sample demo preview</strong>.
-              Enter your registration number to load your official results and
-              rank.
+              Log in with your official university email OTP to load your personal results and ranking.
             </p>
             <button
-              onClick={() => {
-                setShowSearchModal(true);
-                setSearchError("");
-                setSearchRegInput("");
-              }}
+              onClick={openStudentAuthModal}
               style={{
                 width: "100%",
                 padding: "10px",
@@ -2288,7 +2272,7 @@ export default function Home() {
                 boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
               }}
             >
-              <Search size={15} /> Search Your Registration Number
+              <GraduationCap size={16} /> Student Portal Login (Email OTP)
             </button>
           </div>
         )}
