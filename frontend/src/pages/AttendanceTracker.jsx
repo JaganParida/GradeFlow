@@ -56,6 +56,7 @@ import {
 } from "../utils/timetableHelper";
 import SmartBunkAnalyzer from "../components/SmartBunkAnalyzer";
 import AttendanceScreenshotModal from "../components/AttendanceScreenshotModal";
+import { AttendanceSkeleton } from "../components/LoadingSpinner";
 
 export default function AttendanceTracker() {
   const { studentId: urlParam } = useParams();
@@ -275,14 +276,21 @@ export default function AttendanceTracker() {
     }
   };
 
+  // Loading States
+  const [isAttendanceLoading, setIsAttendanceLoading] = useState(true);
+
   // Load saved Attendance from MongoDB on startup or when student resolves
   useEffect(() => {
     const regToLoad = currentRegNo || studentSession?.regNo || studentData?.regNo;
-    if (!regToLoad) return;
+    if (!regToLoad) {
+      setIsAttendanceLoading(false);
+      return;
+    }
     let isMounted = true;
 
     async function loadDbAttendance() {
       try {
+        setIsAttendanceLoading(true);
         const res = await axios.get(`${API}/student/${regToLoad}/attendance`);
         if (res.data?.success && res.data.attendance && isMounted) {
           const att = res.data.attendance;
@@ -301,6 +309,10 @@ export default function AttendanceTracker() {
         }
       } catch (err) {
         console.warn("Could not load attendance from MongoDB:", err.message);
+      } finally {
+        if (isMounted) {
+          setIsAttendanceLoading(false);
+        }
       }
     }
 
@@ -687,6 +699,24 @@ export default function AttendanceTracker() {
   const overallAggregate = overallCalculation;
 
   const activeStudentName = studentData?.studentName || "";
+
+  if (appLoading || isSearching || isAttendanceLoading) {
+    return (
+      <div
+        style={{
+          background: "#f8fafc",
+          minHeight: "100vh",
+          color: "#0f172a",
+          fontFamily: "'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif",
+          paddingBottom: 90,
+          width: "100%",
+          boxSizing: "border-box",
+        }}
+      >
+        <AttendanceSkeleton />
+      </div>
+    );
+  }
 
   return (
     <div

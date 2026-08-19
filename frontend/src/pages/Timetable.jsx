@@ -57,6 +57,7 @@ import {
   resolveSubjectCode,
   cleanSubjectBaseName,
 } from "../utils/timetableHelper";
+import { TimetableSkeleton } from "../components/LoadingSpinner";
 
 export default function Timetable() {
   const { studentId: urlParam } = useParams();
@@ -432,6 +433,24 @@ export default function Timetable() {
     }
     return false;
   }, [studentData, currentRegNo, dynamicSchedules]);
+
+  if (appLoading || isSearching) {
+    return (
+      <div
+        style={{
+          background: "#f8fafc",
+          minHeight: "100vh",
+          color: "#0f172a",
+          fontFamily: "'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif",
+          paddingBottom: 90,
+          width: "100%",
+          boxSizing: "border-box",
+        }}
+      >
+        <TimetableSkeleton />
+      </div>
+    );
+  }
 
   return (
     <div
