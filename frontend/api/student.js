@@ -28,6 +28,21 @@ const CORS_HEADERS = {
   "Access-Control-Allow-Headers": "X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version, Authorization, Cookie",
 };
 
+const jwt = require("jsonwebtoken");
+const StudentSession = require("./_lib/models/StudentSession");
+
+function parseCookies(cookieHeader) {
+  const cookies = {};
+  if (!cookieHeader) return cookies;
+  cookieHeader.split(";").forEach((cookie) => {
+    let [name, ...rest] = cookie.trim().split("=");
+    name = name?.trim();
+    if (!name) return;
+    cookies[name] = rest.join("=");
+  });
+  return cookies;
+}
+
 module.exports = async function handler(req, res) {
   Object.entries(CORS_HEADERS).forEach(([k, v]) => res.setHeader(k, v));
   if (req.method === "OPTIONS") return res.status(200).end();
@@ -40,6 +55,69 @@ module.exports = async function handler(req, res) {
 
     if (!cleanRegNo || !/^[a-zA-Z0-9]{5,20}$/.test(cleanRegNo)) {
       return res.status(400).json({ message: "Invalid registration number format. Must be 5-20 alphanumeric characters." });
+    }
+
+    // ── Strict JWT Authentication & Data Isolation Guard ──
+    const cookies = parseCookies(req.headers.cookie);
+    let adminToken = cookies.jwt;
+    if (!adminToken && req.headers.authorization && req.headers.authorization.startsWith("Bearer")) {
+      adminToken = req.headers.authorization.split(" ")[1];
+    }
+
+    let isAdmin = false;
+    if (adminToken && adminToken !== "none") {
+      try {
+        const decodedAdmin = jwt.verify(adminToken, process.env.JWT_SECRET);
+        if (decodedAdmin && !decodedAdmin.role) {
+          isAdmin = true;
+        }
+      } catch {}
+    }
+
+    if (!isAdmin) {
+      let studentToken = cookies.student_jwt;
+      if (!studentToken && req.headers.authorization && req.headers.authorization.startsWith("Bearer")) {
+        studentToken = req.headers.authorization.split(" ")[1];
+      }
+
+      if (!studentToken || studentToken === "none") {
+        return res.status(401).json({
+          message: "Authentication required. Please log in to view student records.",
+          code: "AUTH_REQUIRED",
+        });
+      }
+
+      let decodedStudent;
+      try {
+        decodedStudent = jwt.verify(studentToken, process.env.JWT_SECRET);
+      } catch (err) {
+        return res.status(401).json({ message: "Session token invalid or expired. Please log in again." });
+      }
+
+      if (!decodedStudent.regNo || !decodedStudent.sessionId) {
+        return res.status(401).json({ message: "Invalid session token." });
+      }
+
+      const activeSession = await StudentSession.findOne({
+        regNo: decodedStudent.regNo,
+        sessionId: decodedStudent.sessionId,
+        isActive: true,
+      });
+
+      if (!activeSession) {
+        return res.status(401).json({
+          message: "Your session has ended because this account was logged in on another device or logged out.",
+          code: "SESSION_TERMINATED",
+        });
+      }
+
+      // Check strict data isolation
+      if (decodedStudent.regNo.toUpperCase() !== cleanRegNo) {
+        return res.status(403).json({
+          message: "Access Denied: You are only authorized to view your own student records.",
+          code: "DATA_ISOLATION_FORBIDDEN",
+        });
+      }
     }
 
     const sem = req.query.sem;
