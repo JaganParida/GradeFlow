@@ -129,7 +129,7 @@ export default function AttendanceScreenshotModal({
     reader.readAsDataURL(file);
   };
 
-  // Canvas-based image preprocessor for optimal OCR recognition (removes table background & enhances text contrast)
+  // Canvas-based image preprocessor for optimal OCR recognition (2.5x upscale, table border removal & high contrast)
   const preprocessImageForOcr = (imageSource) => {
     return new Promise((resolve) => {
       try {
@@ -137,7 +137,7 @@ export default function AttendanceScreenshotModal({
         img.crossOrigin = "anonymous";
         img.onload = () => {
           const canvas = document.createElement("canvas");
-          const scale = 1.75;
+          const scale = 2.5; // High resolution upscale for sharp digit & code recognition
           canvas.width = Math.round(img.width * scale);
           canvas.height = Math.round(img.height * scale);
           const ctx = canvas.getContext("2d");
@@ -147,21 +147,22 @@ export default function AttendanceScreenshotModal({
           ctx.fillStyle = "#ffffff";
           ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-          // Draw scaled image
+          // Use high quality image smoothing for scaling
+          ctx.imageSmoothingEnabled = true;
+          ctx.imageSmoothingQuality = "high";
           ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
 
           const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
           const d = imgData.data;
 
-          // High-contrast binarization: filter out table borders, light-blue headers, pill rounded boxes
+          // Adaptive binarization: Convert dark text (<150) to pure black, and all table lines / pill borders / headers (>155) to pure white
           for (let i = 0; i < d.length; i += 4) {
             const r = d[i];
             const g = d[i + 1];
             const b = d[i + 2];
-            const luminance = 0.299 * r + 0.587 * g + 0.114 * b;
+            const lum = 0.299 * r + 0.587 * g + 0.114 * b;
 
-            // ERP text is dark (luminance < 145), table cells / borders are light (> 150)
-            if (luminance < 145) {
+            if (lum < 145) {
               d[i] = 0;
               d[i + 1] = 0;
               d[i + 2] = 0;
