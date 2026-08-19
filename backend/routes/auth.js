@@ -73,46 +73,65 @@ router.post("/student/send-otp", async (req, res) => {
     const studentName = studentRecord.studentName || "Student";
     const studentEmail = `${rawReg.toLowerCase()}@centurionuniv.edu.in`;
 
-    // ── Single Device Check: Is an active session running on this device? ──
+    // ── Whitelist Check ──
+    const UNLIMITED_REG_NOS = ["230301120327"];
+    const isUnlimited = UNLIMITED_REG_NOS.includes(rawReg);
+
+    // ── Single Device Check: Is an active session running on this or another device? ──
     const existingSession = await StudentSession.findOne({
       regNo: rawReg,
       isActive: true,
     });
 
     if (existingSession) {
-      // Check if current incoming request already has this active session cookie
-      let incomingToken = req.cookies?.student_jwt;
-      if (!incomingToken && req.headers.authorization && req.headers.authorization.startsWith("Bearer")) {
-        incomingToken = req.headers.authorization.split(" ")[1];
-      }
+      // Check if session has expired (> 7 days of inactivity)
+      const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000;
+      const isExpired = Date.now() - new Date(existingSession.lastActiveAt).getTime() > SEVEN_DAYS_MS;
 
-      let isCurrentDevice = false;
-      if (incomingToken) {
-        try {
-          const decoded = jwt.verify(incomingToken, process.env.JWT_SECRET);
-          if (decoded.sessionId === existingSession.sessionId) {
-            isCurrentDevice = true;
-          }
-        } catch {}
-      }
+      if (isExpired) {
+        await StudentSession.deleteOne({ _id: existingSession._id });
+      } else {
+        // Check if current incoming request already has this active session cookie/token
+        let incomingToken = req.cookies?.student_jwt;
+        if (!incomingToken && req.headers.authorization && req.headers.authorization.startsWith("Bearer")) {
+          incomingToken = req.headers.authorization.split(" ")[1];
+        }
 
-      if (isCurrentDevice) {
-        return res.json({
-          success: true,
-          alreadyLoggedIn: true,
-          message: "You are already logged in on this device.",
-          student: {
-            regNo: rawReg,
-            studentName,
-          },
-        });
+        let isCurrentDevice = false;
+        if (incomingToken) {
+          try {
+            const decoded = jwt.verify(incomingToken, process.env.JWT_SECRET);
+            if (decoded.sessionId === existingSession.sessionId) {
+              isCurrentDevice = true;
+            }
+          } catch {}
+        }
+
+        if (isCurrentDevice) {
+          return res.json({
+            success: true,
+            alreadyLoggedIn: true,
+            message: "You are already logged in on this device.",
+            student: {
+              regNo: rawReg,
+              studentName,
+            },
+          });
+        }
+
+        // Another device is trying to request OTP for this account:
+        // DO NOT SEND EMAIL! Strict single-device policy (except whitelisted 230301120327)
+        if (!isUnlimited) {
+          return res.status(409).json({
+            success: false,
+            code: "ALREADY_LOGGED_IN_ANOTHER_DEVICE",
+            message: `This account (${rawReg}) is already logged in on an active device. GradeFlow permits only 1 active device per student. Please log out from that device first before logging in here.`,
+          });
+        }
       }
     }
 
     // ── Daily Limit Check: Max 2 OTP requests per day (bypassed for developer whitelisted regNo) ──
-    const UNLIMITED_REG_NOS = ["230301120327"];
-    const isUnlimited = UNLIMITED_REG_NOS.includes(rawReg);
-
     const dateKey = getIstDateKey();
     let dailyLimit = await StudentDailyLimit.findOne({ regNo: rawReg, dateKey });
 
