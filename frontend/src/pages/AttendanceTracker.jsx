@@ -204,27 +204,43 @@ export default function AttendanceTracker() {
   // Saved Subjects (In-Memory React State, synced direct to MongoDB Atlas)
   const [savedSubjects, setSavedSubjects] = useState([]);
 
-  // Handler for applying OCR extracted subjects
+  // Handler for applying OCR extracted subjects with full PP/PR/TUT components
   const handleApplyScreenshotSubjects = (extracted) => {
     if (!Array.isArray(extracted) || extracted.length === 0) return;
 
     const formatted = extracted.map((s) => {
-      const cleanName = cleanSubjectBaseName(s.name);
+      const cleanName = cleanSubjectBaseName(s.name) || s.name;
+      const comps =
+        Array.isArray(s.components) && s.components.length > 0
+          ? s.components.map((c) => ({
+              type: (c.type || "PP").toUpperCase(),
+              attended: Number(c.attended) || 0,
+              delivered: Number(c.delivered) || 0,
+            }))
+          : [
+              {
+                type: "PP",
+                attended: s.attendedClasses || 0,
+                delivered: s.totalClasses || 0,
+              },
+            ];
+
       return {
-        subjectName: cleanName || s.name,
+        subjectName: cleanName,
         code: s.code || "",
-        components: [
-          {
-            type: "PP",
-            attended: s.attendedClasses || 0,
-            delivered: s.totalClasses || 0,
-          },
-        ],
+        components: comps,
       };
     });
 
     setSavedSubjects(formatted);
     syncAttendanceToDb(formatted, dailyAttendanceLogs, targetGoal);
+
+    // Auto-load the first imported subject into the studio
+    if (formatted.length > 0) {
+      const first = formatted[0];
+      setSelectedSubjectName(first.subjectName);
+      setComponentInputs(first.components);
+    }
     setActiveTab("studio");
   };
 
