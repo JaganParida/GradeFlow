@@ -308,9 +308,13 @@ export default function AttendanceTracker() {
           }
           if (att.dailyLogs && typeof att.dailyLogs === "object") {
             const todayLogs = att.dailyLogs[todayDateKey];
-            if (todayLogs) {
+            if (todayLogs && typeof todayLogs === "object") {
               setDailyAttendanceLogs(todayLogs);
+            } else {
+              setDailyAttendanceLogs({});
             }
+          } else {
+            setDailyAttendanceLogs({});
           }
         }
       } catch (err) {
@@ -577,6 +581,37 @@ export default function AttendanceTracker() {
         return nextComps;
       });
     }
+  }
+
+  // Clear all of today's check-ins and rollback the +1 attended/delivered counts
+  function handleResetTodayCheckins() {
+    let nextSavedList = [...savedSubjects];
+
+    todayClasses.forEach((period) => {
+      if (dailyAttendanceLogs[period.slotIndex] === "present") {
+        const cleanName = period.cleanName || cleanSubjectBaseName(period.subject);
+        const compType = (period.type || "PP").toUpperCase();
+        const existingIdx = nextSavedList.findIndex((s) => s.subjectName === cleanName);
+        if (existingIdx !== -1) {
+          const sub = { ...nextSavedList[existingIdx] };
+          sub.components = (sub.components || []).map((c) => {
+            if (c.type.toUpperCase() === compType) {
+              return {
+                ...c,
+                attended: Math.max(0, (Number(c.attended) || 0) - 1),
+                delivered: Math.max(0, (Number(c.delivered) || 0) - 1),
+              };
+            }
+            return c;
+          });
+          nextSavedList[existingIdx] = sub;
+        }
+      }
+    });
+
+    setDailyAttendanceLogs({});
+    setSavedSubjects(nextSavedList);
+    syncAttendanceToDb(nextSavedList, {}, targetGoal);
   }
 
   const [saveSuccessAlert, setSaveSuccessAlert] = useState(false);
@@ -1838,7 +1873,25 @@ export default function AttendanceTracker() {
               </div>
             </div>
 
-            <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              {Object.keys(dailyAttendanceLogs).length > 0 && (
+                <button
+                  type="button"
+                  onClick={handleResetTodayCheckins}
+                  style={{
+                    fontSize: 11,
+                    fontWeight: 700,
+                    color: "#dc2626",
+                    background: "#fef2f2",
+                    border: "1px solid #fecaca",
+                    padding: "3px 9px",
+                    borderRadius: 7,
+                    cursor: "pointer",
+                  }}
+                >
+                  Reset Today
+                </button>
+              )}
               <span
                 style={{
                   fontSize: 11.5,
