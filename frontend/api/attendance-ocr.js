@@ -39,27 +39,34 @@ module.exports = async function handler(req, res) {
                     {
                       text: `You are an expert OCR parser for university student attendance portals (CUTM ERP, TCS iON, Web & Mobile Apps).
 Extract all academic course attendance data from this screenshot.
-CRITICAL CUTM ERP FORMAT RULES:
-1. In CUTM ERP, each subject card has a main title with a code, e.g. "ROBOTIC AUTOMATION WITH ROS AND C++ (CUTM1020)" and may contain component rows like (PP) 3/4, (PR) 22/24, (TUT) 4/5.
-2. For each subject, SUM UP all component attended classes and all component total/delivered classes to get the total subject attendance! (e.g. 3+22+4 = 29 attended, 4+24+5 = 33 total).
-3. Extract each subject:
-   - name: The clean capitalized subject name (e.g. "Robotic Automation with ROS and C++", "Minor Project II", "Summer Internship I", "Cloud Fundamentals (Azure)")
-   - code: The course code if visible (e.g. "CUTM1020", "CUTM1577", "CUTM1578")
-   - attended: Sum of attended classes (integer)
-   - total: Sum of conducted/delivered classes (integer)
-   - percentage: (attended / total) * 100 as float (e.g. 87.9)
 
-Return ONLY a JSON array:
+SUPPORTED UNIVERSITY ERP FORMATS:
+1. CUTM WEBSITE ERP TABLE FORMAT:
+   - Columns: "Sr.No", "Course Name", "Course Short Name", "Course Code", "Attended/Delivered", "Percent"
+   - In "Course Short Name", the component type is attached to the code (e.g. "CUTM1020 - PP", "CUTM1020 - PR", "CUTM1020 - TUT", "CUCS1007 - PP", "CUTM3166 - PR").
+   - Extract component types: "PP" (Theory), "PR" (Practical/Practice/Lab), "TUT" (Tutorial).
+   - Group all component rows belonging to the same Course Name / Course Code under that subject!
+
+2. CUTM MOBILE ERP CARD FORMAT:
+   - Each subject card has a main title with a code, e.g. "ROBOTIC AUTOMATION WITH ROS AND C++ (CUTM1020)" and contains sub-component rows like "(PP) 2/5", "(PR) 18/22", "(TUT) 3/6".
+
+OUTPUT FORMAT:
+Return ONLY a valid JSON array of objects for each unique course:
 [
   {
     "name": "Robotic Automation with ROS and C++",
     "code": "CUTM1020",
-    "attended": 29,
+    "components": [
+      { "type": "PP", "attended": 2, "delivered": 5 },
+      { "type": "PR", "attended": 18, "delivered": 22 },
+      { "type": "TUT", "attended": 3, "delivered": 6 }
+    ],
+    "attended": 23,
     "total": 33,
-    "percentage": 87.9
+    "percentage": 69.7
   }
 ]
-Do not include markdown ticks or explanation.`,
+Do not include markdown ticks, preamble, or explanation.`,
                     },
                     {
                       inline_data: {
@@ -91,25 +98,33 @@ Do not include markdown ticks or explanation.`,
 
           if (Array.isArray(parsedData) && parsedData.length > 0) {
             const formattedSubjects = parsedData.map((s, idx) => {
-              const attended = Math.max(0, parseInt(s.attended, 10) || 0);
-              const total = Math.max(attended, parseInt(s.total, 10) || attended);
-              const calculatedPct = total > 0 ? parseFloat(((attended / total) * 100).toFixed(1)) : 100;
+              const comps = Array.isArray(s.components) && s.components.length > 0
+                ? s.components.map((c) => ({
+                    type: String(c.type || "PP").toUpperCase(),
+                    attended: Math.max(0, parseInt(c.attended, 10) || 0),
+                    delivered: Math.max(0, parseInt(c.delivered || c.total, 10) || 0),
+                  }))
+                : [
+                    {
+                      type: "PP",
+                      attended: Math.max(0, parseInt(s.attended, 10) || 0),
+                      delivered: Math.max(0, parseInt(s.total, 10) || 0),
+                    },
+                  ];
+
+              const totalAtt = comps.reduce((acc, c) => acc + (Number(c.attended) || 0), 0);
+              const totalDel = comps.reduce((acc, c) => acc + (Number(c.delivered) || 0), 0);
+              const calculatedPct = totalDel > 0 ? parseFloat(((totalAtt / totalDel) * 100).toFixed(1)) : 100;
               const pct = typeof s.percentage === "number" ? parseFloat(s.percentage.toFixed(1)) : calculatedPct;
 
               return {
                 id: `ocr_sub_${Date.now()}_${idx}`,
                 name: String(s.name || `Subject ${idx + 1}`).trim(),
                 code: String(s.code || "").trim(),
-                attendedClasses: attended,
-                totalClasses: total,
+                attendedClasses: totalAtt,
+                totalClasses: totalDel,
                 percentage: pct,
-                components: [
-                  {
-                    name: "Theory / Lab",
-                    attended,
-                    total,
-                  },
-                ],
+                components: comps,
               };
             });
 

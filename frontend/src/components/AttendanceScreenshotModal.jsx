@@ -129,7 +129,7 @@ export default function AttendanceScreenshotModal({
     reader.readAsDataURL(file);
   };
 
-  // Dedicated CUTM ERP Text Heuristic Parser & Full Section Auto-Completer
+  // Dedicated CUTM ERP Text Heuristic Parser (Website Table ERP + Mobile ERP Cards)
   const parseCutmOcrText = (text, catalog) => {
     const lines = text.split("\n").map((l) => l.trim()).filter(Boolean);
     const subjectsMap = new Map();
@@ -139,14 +139,14 @@ export default function AttendanceScreenshotModal({
     let detectedOverallAttended = 0;
     let detectedOverallDelivered = 0;
 
-    // 1. Detect Total Percentage line (e.g. "Total Percentage 141/170 82.94 %")
+    // 1. Detect Total Percentage line (e.g. "Total Percentage 98/145 67.59%")
     for (let line of lines) {
       if (
         line.toLowerCase().includes("total percentage") ||
         line.toLowerCase().includes("total percent") ||
         line.toLowerCase().includes("total")
       ) {
-        const match = line.match(/(\d{2,4})\s*[\/|\\]\s*(\d{2,4})/);
+        const match = line.match(/(\d{1,4})\s*[\/|\\]\s*(\d{1,4})/);
         if (match) {
           detectedOverallAttended = parseInt(match[1], 10);
           detectedOverallDelivered = parseInt(match[2], 10);
@@ -154,49 +154,96 @@ export default function AttendanceScreenshotModal({
       }
     }
 
-    // 2. Extract Visible Subjects & Components
+    // 2. Multi-Format Line Scanner
     for (let i = 0; i < lines.length; i++) {
       const line = lines[i];
 
-      // Ignore standard header/footer strings
+      // Ignore header strings
       if (
+        line.includes("Sr.No") ||
+        line.includes("Course Name") ||
+        line.includes("Course Short Name") ||
+        line.includes("Course Code") ||
+        line.includes("Attended/Delivered") ||
         line.includes("Attendance Details") ||
         line.includes("Wise Attendance") ||
         line.includes("From date") ||
         line.includes("To date") ||
-        line.includes("Total Percentage") ||
-        line.includes("Course Code") ||
-        line.includes("CourseCode") ||
-        line.includes("Attended/Delivered") ||
-        line.includes("Attended Delivered") ||
-        line.includes("Home") ||
+        line.toLowerCase().startsWith("total percentage") ||
         /^\d{10,14}$/.test(line)
       ) {
         continue;
       }
 
-      const upper = line.toUpperCase();
+      // A. WEBSITE ERP TABLE LINE PATTERN:
+      // Matches rows with: "CUTM1020 - PP CUTM1020 2/5 40" or "ROBOTIC AUTOMATION ... CUTM1020 - PR CUTM1020 18/22 81.82"
+      const websiteShortCodeMatch = line.match(/([A-Z0-9]+)\s*-\s*(PP|PR|TUT|PF|TL)/i);
+      const fracMatch = line.match(/(\d+)\s*[\/|\\]\s*(\d+)/);
 
-      // Flexible component tag detector (PP, PR, TUT, Project)
-      if (upper.includes("(PR") || upper.includes("- (PR") || upper.includes("-(PR")) {
+      if (websiteShortCodeMatch && fracMatch) {
+        const code = websiteShortCodeMatch[1].toUpperCase();
+        const compType = websiteShortCodeMatch[2].toUpperCase().replace("PF", "PP").replace("TL", "TUT");
+        const att = parseInt(fracMatch[1], 10);
+        const del = parseInt(fracMatch[2], 10);
+
+        let rawSubName = line.split(websiteShortCodeMatch[0])[0].trim().replace(/^\d+\s+/, "");
+        let matchedCatalog = catalog.find((c) => c.code && c.code.toUpperCase() === code);
+        if (!matchedCatalog && rawSubName) {
+          matchedCatalog = catalog.find((c) => c.subjectName.toLowerCase().includes(rawSubName.toLowerCase()));
+        }
+
+        let subName = matchedCatalog?.subjectName || rawSubName || code;
+        subName = cleanSubjectBaseName(subName);
+
+        if (!subjectsMap.has(subName)) {
+          subjectsMap.set(subName, {
+            name: subName,
+            code,
+            components: [],
+            detectedFromImage: true,
+          });
+        }
+
+        const sub = subjectsMap.get(subName);
+        const existingComp = sub.components.find((c) => c.type === compType);
+        if (existingComp) {
+          existingComp.attended = att;
+          existingComp.delivered = del;
+          existingComp.percentage = del > 0 ? Number(((att / del) * 100).toFixed(1)) : 100;
+        } else {
+          sub.components.push({
+            type: compType,
+            attended: att,
+            delivered: del,
+            percentage: del > 0 ? Number(((att / del) * 100).toFixed(1)) : 100,
+          });
+        }
+        continue;
+      }
+
+      // B. MOBILE ERP CARD FORMAT:
+      const upper = line.toUpperCase();
+      if (upper.includes("(PR") || upper.includes("- (PR") || upper.includes("-(PR") || upper.endsWith("- PR")) {
         activeCompType = "PR";
       } else if (
         upper.includes("(PP") ||
         upper.includes("- (PP") ||
-        upper.includes("(PF") ||
-        upper.includes("- (PF")
+        upper.includes("-(PP") ||
+        upper.endsWith("- PP") ||
+        upper.includes("(PF")
       ) {
         activeCompType = "PP";
       } else if (
         upper.includes("(TUT") ||
         upper.includes("- (TUT") ||
-        upper.includes("(TL") ||
-        upper.includes("- (TL")
+        upper.includes("-(TUT") ||
+        upper.endsWith("- TUT") ||
+        upper.includes("(TL")
       ) {
         activeCompType = "TUT";
       }
 
-      // Check if line matches a known catalog subject or has a CUTM code
+      const mobileTitleMatch = line.match(/^([^(]+?)(?:\s*\(([A-Z0-9]+)\))?$/);
       let matchedCatalog = catalog.find(
         (c) =>
           line.toLowerCase().includes(c.subjectName.toLowerCase()) ||
@@ -214,7 +261,7 @@ export default function AttendanceScreenshotModal({
         } else if (lower.includes("minor project")) {
           matchedCatalog = catalog.find((c) => c.subjectName.toLowerCase().includes("minor project")) || {
             subjectName: "Minor Project II",
-            code: "CUTM1577",
+            code: "CUTM1906",
           };
         } else if (lower.includes("summer internship") || lower.includes("internship")) {
           matchedCatalog = catalog.find((c) => c.subjectName.toLowerCase().includes("internship")) || {
@@ -243,26 +290,25 @@ export default function AttendanceScreenshotModal({
 
       if (matchedCatalog) {
         activeSubjectKey = matchedCatalog.subjectName;
-        if (!subjectsMap.has(activeSubjectKey)) {
-          subjectsMap.set(activeSubjectKey, {
-            name: matchedCatalog.subjectName,
-            code: matchedCatalog.code || "",
-            components: [],
-            detectedFromImage: true,
-          });
-        }
+      } else if (mobileTitleMatch && mobileTitleMatch[1].length > 4 && !mobileTitleMatch[1].includes("/")) {
+        activeSubjectKey = cleanSubjectBaseName(mobileTitleMatch[1]);
       }
 
-      // Check for fractions e.g. 3/4, 22/24, 4/5, 0/0, 5/6, 6/6
-      const fracMatch = line.match(/(\d+)\s*[\/|\\]\s*(\d+)/);
+      if (activeSubjectKey && !subjectsMap.has(activeSubjectKey)) {
+        subjectsMap.set(activeSubjectKey, {
+          name: activeSubjectKey,
+          code: matchedCatalog?.code || "",
+          components: [],
+          detectedFromImage: true,
+        });
+      }
+
       if (fracMatch && activeSubjectKey && subjectsMap.has(activeSubjectKey)) {
         const att = parseInt(fracMatch[1], 10);
         const del = parseInt(fracMatch[2], 10);
 
-        // Sanity filter (not dates like 2026/2027 or overall total)
-        if (del < 300 && !line.includes("2026") && !line.includes("2027") && !line.includes("Total Percentage")) {
+        if (del < 300 && !line.includes("2026") && !line.includes("2027") && !line.toLowerCase().includes("total")) {
           const sub = subjectsMap.get(activeSubjectKey);
-
           const existingComp = sub.components.find((c) => c.type === activeCompType);
           if (existingComp) {
             existingComp.attended = att;
@@ -707,7 +753,7 @@ export default function AttendanceScreenshotModal({
                 >
                   <FileCheck size={16} color="#059669" style={{ flexShrink: 0, marginTop: 2 }} />
                   <div style={{ fontSize: 12, color: "#475569", lineHeight: 1.5 }}>
-                    <strong>Pro Tip:</strong> Open your university ERP attendance page, take a quick screenshot (<kbd style={{ background: "#e2e8f0", padding: "1px 5px", borderRadius: 3 }}>Win+Shift+S</kbd> or <kbd style={{ background: "#e2e8f0", padding: "1px 5px", borderRadius: 3 }}>Cmd+Shift+4</kbd>), and press <kbd style={{ background: "#e2e8f0", padding: "1px 5px", borderRadius: 3 }}>Ctrl+V</kbd> right here.
+                    <strong>Pro Tip:</strong> Supports both <strong>Website ERP Table</strong> (with Course Code &amp; Component rows e.g. <code>CUTM1020 - PP</code>) and <strong>Mobile ERP App</strong> screenshots. Take a quick snip (<kbd style={{ background: "#e2e8f0", padding: "1px 5px", borderRadius: 3 }}>Win+Shift+S</kbd> or <kbd style={{ background: "#e2e8f0", padding: "1px 5px", borderRadius: 3 }}>Cmd+Shift+4</kbd>) and press <kbd style={{ background: "#e2e8f0", padding: "1px 5px", borderRadius: 3 }}>Ctrl+V</kbd> right here.
                   </div>
                 </div>
               </div>

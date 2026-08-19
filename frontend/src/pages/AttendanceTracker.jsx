@@ -1676,11 +1676,11 @@ export default function AttendanceTracker() {
                       <div style={{ display: "flex", flexDirection: "column", gap: 7, fontSize: 12, color: "#475569" }}>
                         <div style={{ display: "flex", alignItems: "flex-start", gap: 8 }}>
                           <span style={{ width: 18, height: 18, borderRadius: 999, background: "#eff6ff", color: "#2563eb", fontSize: 10, fontWeight: 900, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, marginTop: 1 }}>1</span>
-                          <span>Open your <strong>Mobile ERP Portal</strong> &rarr; navigate to <strong>Subject-wise Attendance</strong>.</span>
+                          <span>Open your <strong>Mobile ERP App</strong> or <strong>Website ERP Portal</strong> &rarr; navigate to <strong>Subject-wise Attendance</strong>.</span>
                         </div>
                         <div style={{ display: "flex", alignItems: "flex-start", gap: 8 }}>
                           <span style={{ width: 18, height: 18, borderRadius: 999, background: "#eff6ff", color: "#2563eb", fontSize: 10, fontWeight: 900, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, marginTop: 1 }}>2</span>
-                          <span>Take a long screenshot (or individual subject screenshots) of your attendance page.</span>
+                          <span>Take a screenshot of the attendance table or cards (or copy with <kbd style={{ background: "#e2e8f0", padding: "1px 4px", borderRadius: 3, fontSize: 10.5 }}>Win+Shift+S</kbd>).</span>
                         </div>
                         <div style={{ display: "flex", alignItems: "flex-start", gap: 8 }}>
                           <span style={{ width: 18, height: 18, borderRadius: 999, background: "#eff6ff", color: "#2563eb", fontSize: 10, fontWeight: 900, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, marginTop: 1 }}>3</span>
@@ -1688,7 +1688,7 @@ export default function AttendanceTracker() {
                         </div>
                         <div style={{ display: "flex", alignItems: "flex-start", gap: 8 }}>
                           <span style={{ width: 18, height: 18, borderRadius: 999, background: "#eff6ff", color: "#2563eb", fontSize: 10, fontWeight: 900, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, marginTop: 1 }}>4</span>
-                          <span>AI extracts theory (<strong>PP</strong>), practical (<strong>PR</strong>), and tutorial (<strong>TUT</strong>) numbers. Recheck and match with your ERP, then click <strong>Save to Cloud</strong>.</span>
+                          <span>AI Vision extracts theory (<strong>PP</strong>), practical (<strong>PR</strong>), and tutorial (<strong>TUT</strong>) numbers. Recheck and match with your ERP, then click <strong>Save to Cloud</strong>.</span>
                         </div>
                       </div>
 
