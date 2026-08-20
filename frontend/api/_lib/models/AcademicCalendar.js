@@ -55,4 +55,6 @@ const academicCalendarSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-module.exports = mongoose.model("AcademicCalendar", academicCalendarSchema);
+module.exports =
+  mongoose.models.AcademicCalendar ||
+  mongoose.model("AcademicCalendar", academicCalendarSchema);

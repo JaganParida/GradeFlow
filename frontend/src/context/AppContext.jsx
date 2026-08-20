@@ -13,22 +13,34 @@ axios.interceptors.request.use((config) => {
     const studentJwt = localStorage.getItem("gf_student_jwt") || sessionStorage.getItem("gf_student_jwt");
 
     config.headers = config.headers || {};
-    if (adminJwt) {
-      config.headers["x-admin-token"] = adminJwt;
-    }
-    if (studentJwt) {
-      config.headers["x-student-token"] = studentJwt;
-    }
+    const url = config.url || "";
+    const isAdminUrl = url.includes("/admin") || url.includes("/timetable/admin") || url.includes("/auth/login") || url.includes("/auth/me") || url.includes("/auth/logout");
+    const isStudentAuthUrl = url.includes("/auth/student/");
 
-    // Attach Authorization Bearer targeted by endpoint
-    if (config.url?.includes("/auth/student/")) {
+    if (isAdminUrl) {
+      if (adminJwt) {
+        config.headers["x-admin-token"] = adminJwt;
+        config.headers.Authorization = `Bearer ${adminJwt}`;
+      } else {
+        delete config.headers["x-admin-token"];
+        delete config.headers["x-student-token"];
+        if (config.headers.Authorization && (config.headers.Authorization === "Bearer true" || config.headers.Authorization.startsWith("Bearer " + studentJwt))) {
+          delete config.headers.Authorization;
+        }
+      }
+    } else if (isStudentAuthUrl) {
       if (studentJwt) {
+        config.headers["x-student-token"] = studentJwt;
         config.headers.Authorization = `Bearer ${studentJwt}`;
       }
-    } else if (adminJwt) {
-      config.headers.Authorization = `Bearer ${adminJwt}`;
-    } else if (studentJwt) {
-      config.headers.Authorization = `Bearer ${studentJwt}`;
+    } else {
+      if (adminJwt) {
+        config.headers["x-admin-token"] = adminJwt;
+        config.headers.Authorization = `Bearer ${adminJwt}`;
+      } else if (studentJwt) {
+        config.headers["x-student-token"] = studentJwt;
+        config.headers.Authorization = `Bearer ${studentJwt}`;
+      }
     }
   } catch {}
   return config;
@@ -336,6 +348,13 @@ export function AppProvider({ children }) {
     studentLogout();
   };
 
+  const getAdminAuthHeaders = () => {
+    const token = sessionStorage.getItem("gf_admin_jwt") || localStorage.getItem("gf_admin_jwt");
+    return token
+      ? { headers: { Authorization: `Bearer ${token}`, "x-admin-token": token } }
+      : { headers: {} };
+  };
+
   const hasActiveSession = Boolean(studentData || studentSession);
 
   return (
@@ -366,6 +385,7 @@ export function AppProvider({ children }) {
         adminLogout,
         logoutAdmin,
         authHeaders,
+        getAdminAuthHeaders,
         fetchStudent,
         clearStudentData,
         hasActiveSession,

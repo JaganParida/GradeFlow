@@ -293,6 +293,92 @@ export function LeaderboardSkeleton() {
   );
 }
 
+/* ─── Admin Section Toppers Skeleton ─────────────────────────── */
+export function SectionToppersSkeleton() {
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 14, width: "100%", boxSizing: "border-box" }}>
+      {/* Top 3 Highlights Skeleton */}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 12 }}>
+        {Array(3)
+          .fill(0)
+          .map((_, i) => (
+            <div
+              key={i}
+              style={{
+                background: "#ffffff",
+                border: "1px solid #e2e8f0",
+                borderRadius: 14,
+                padding: "16px",
+                display: "flex",
+                flexDirection: "column",
+                gap: 10,
+              }}
+            >
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <SkeletonBlock w="32px" h="32px" r="50%" />
+                <SkeletonBlock w="60px" h="20px" r="6px" />
+              </div>
+              <SkeletonBlock w="140px" h="16px" r="4px" />
+              <SkeletonBlock w="90px" h="12px" r="3px" />
+              <div style={{ display: "flex", justifyContent: "space-between", paddingTop: 4 }}>
+                <SkeletonBlock w="60px" h="24px" r="6px" />
+                <SkeletonBlock w="70px" h="24px" r="6px" />
+              </div>
+            </div>
+          ))}
+      </div>
+
+      {/* Table Rows Skeleton */}
+      <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+        {Array(6)
+          .fill(0)
+          .map((_, i) => (
+            <SkeletonBlock key={i} w="100%" h="52px" r="10px" />
+          ))}
+      </div>
+    </div>
+  );
+}
+
+/* ─── Admin Backlog Tracker Skeleton ─────────────────────────── */
+export function BacklogTrackerSkeleton() {
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 14, width: "100%", boxSizing: "border-box" }}>
+      {/* Stats Summary Header */}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 12 }}>
+        {Array(4)
+          .fill(0)
+          .map((_, i) => (
+            <div
+              key={i}
+              style={{
+                background: "#ffffff",
+                border: "1px solid #e2e8f0",
+                borderRadius: 12,
+                padding: "14px",
+                display: "flex",
+                flexDirection: "column",
+                gap: 8,
+              }}
+            >
+              <SkeletonBlock w="80px" h="12px" r="4px" />
+              <SkeletonBlock w="60px" h="24px" r="6px" />
+            </div>
+          ))}
+      </div>
+
+      {/* Backlog List Rows */}
+      <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+        {Array(6)
+          .fill(0)
+          .map((_, i) => (
+            <SkeletonBlock key={i} w="100%" h="60px" r="10px" />
+          ))}
+      </div>
+    </div>
+  );
+}
+
 /* ─── Testimonials Page Skeleton ──────────────────────────────── */
 export function TestimonialsSkeleton() {
   return (

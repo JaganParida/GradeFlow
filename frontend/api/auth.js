@@ -654,7 +654,7 @@ module.exports = async function handler(req, res) {
         `Max-Age=${24 * 60 * 60}`,
       ].join("; ");
       res.setHeader("Set-Cookie", cookieOptions);
-      return res.json({ success: true, email: admin.email });
+      return res.json({ success: true, email: admin.email, token });
     }
 
     if (action === "logout" && req.method === "POST") {
@@ -671,7 +671,7 @@ module.exports = async function handler(req, res) {
     }
 
     if (action === "me" && req.method === "GET") {
-      let token = cookies.jwt;
+      let token = req.headers["x-admin-token"] || cookies.jwt;
       if (!token && req.headers.authorization && req.headers.authorization.startsWith("Bearer")) {
         token = req.headers.authorization.split(" ")[1];
       }
@@ -684,7 +684,7 @@ module.exports = async function handler(req, res) {
         if (!admin) {
           return res.json({ success: false, message: "Admin not found" });
         }
-        return res.json({ success: true, admin });
+        return res.json({ success: true, admin, token });
       } catch {
         return res.json({ success: false, message: "Token invalid or expired" });
       }

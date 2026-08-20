@@ -28,6 +28,11 @@ import {
   Info,
 } from "lucide-react";
 import { TIME_SLOTS, DAYS_LIST, ALL_SECTIONS } from "../utils/timetableHelper";
+import {
+  parseAcademicCalendarFile,
+  parseAcademicHolidaysFile,
+  getDayOfWeekFromDate,
+} from "../utils/calendarHolidayParser";
 
 const DEFAULT_SLOTS = [
   { index: 0, time: "09:00 - 10:00 AM" },
@@ -391,41 +396,76 @@ export default function TimetableAdminManager({ authHeaders, API }) {
   // 2. ACADEMIC CALENDAR UPLOADER & HANDLERS
   // ═════════════════════════════════════════════════════════════════
 
-  function handleCalendarFileUpload(e) {
+  async function handleCalendarFileUpload(e) {
     const file = e.target.files?.[0];
     if (!file) return;
     setCalendarFileName(file.name);
+    setStatusMsg({ text: `Analyzing "${file.name}"...`, type: "info" });
 
-    const reader = new FileReader();
-    reader.onload = (evt) => {
-      try {
-        const data = new Uint8Array(evt.target.result);
-        const workbook = XLSX.read(data, { type: "array" });
-        const sheet = workbook.Sheets[workbook.SheetNames[0]];
-        const json = XLSX.utils.sheet_to_json(sheet);
-
-        const activities = json.map((row, idx) => ({
-          slNo: parseInt(row["Sl No"] || row.slNo || idx + 1, 10),
-          name: String(row["Activity Name"] || row.name || row.Activity || "").trim(),
-          schedule: String(row["Schedule / Dates"] || row.schedule || row.Dates || "").trim(),
-          startDate: String(row["Start Date (YYYY-MM-DD)"] || row.startDate || "").trim(),
-          endDate: String(row["End Date (YYYY-MM-DD)"] || row.endDate || "").trim(),
-          category: String(row["Category (academic/exam/sports/break)"] || row.category || "academic")
-            .toLowerCase()
-            .trim(),
-          location: String(row.Location || row.location || "").trim(),
-        }));
-
-        setCalendarActivities(activities);
+    try {
+      const res = await parseAcademicCalendarFile(file);
+      if (res.success && Array.isArray(res.activities)) {
+        setCalendarActivities(res.activities);
         setStatusMsg({
-          text: `Loaded ${activities.length} calendar activities from "${file.name}".`,
+          text: `Successfully parsed ${res.activities.length} calendar activities from "${file.name}" (${file.type || "file"})! Review/edit below before publishing.`,
           type: "success",
         });
-      } catch (err) {
-        setStatusMsg({ text: "Error parsing calendar file: " + err.message, type: "error" });
       }
-    };
-    reader.readAsArrayBuffer(file);
+    } catch (err) {
+      console.error("Calendar parse error:", err);
+      setStatusMsg({ text: "Error parsing calendar document: " + (err.message || err), type: "error" });
+    }
+  }
+
+  async function loadActiveCalendar() {
+    setStatusMsg({ text: "Fetching live published academic calendar...", type: "info" });
+    try {
+      const { data } = await axios.get(`${API}/timetable/calendar?academicYear=${calendarYear}`);
+      if (data.success && Array.isArray(data.calendars) && data.calendars.length > 0) {
+        const matching = data.calendars.find((c) => c.semesterType === semesterType) || data.calendars[0];
+        if (matching && matching.activities) {
+          setCalendarActivities(matching.activities);
+          setCalendarTitle(matching.title || calendarTitle);
+          setSemestersLabel(matching.semestersLabel || semestersLabel);
+          setStatusMsg({
+            text: `Loaded existing published ${matching.semesterType} semester calendar (${matching.activities.length} activities).`,
+            type: "success",
+          });
+        }
+      } else {
+        setStatusMsg({ text: "No published calendar found in database for this year.", type: "info" });
+      }
+    } catch (e) {
+      console.error("Error loading active calendar:", e);
+      setStatusMsg({ text: "Failed to load active calendar from database.", type: "error" });
+    }
+  }
+
+  function addCalendarActivity() {
+    setCalendarActivities((prev) => [
+      ...prev,
+      {
+        slNo: prev.length + 1,
+        name: "New Academic Event / Activity",
+        schedule: "06.07.2026",
+        startDate: "2026-07-06",
+        endDate: "2026-07-06",
+        category: "academic",
+        location: "CUTM Campus",
+      },
+    ]);
+  }
+
+  function updateCalendarActivity(index, field, value) {
+    setCalendarActivities((prev) => {
+      const updated = [...prev];
+      updated[index] = { ...updated[index], [field]: value };
+      return updated;
+    });
+  }
+
+  function removeCalendarActivity(index) {
+    setCalendarActivities((prev) => prev.filter((_, idx) => idx !== index));
   }
 
   function downloadCalendarTemplate() {
@@ -433,37 +473,46 @@ export default function TimetableAdminManager({ authHeaders, API }) {
       {
         "Sl No": 1,
         "Activity Name": "Commencement of Classes",
-        "Schedule / Dates": "05.01.2026",
-        "Start Date (YYYY-MM-DD)": "2026-01-05",
-        "End Date (YYYY-MM-DD)": "2026-01-05",
-        "Category (academic/exam/sports/break)": "academic",
-        Location: "CUTM Campus",
+        "Schedule / Dates": "06.07.2026",
+        "Start Date (YYYY-MM-DD)": "2026-07-06",
+        "End Date (YYYY-MM-DD)": "2026-07-06",
+        "Category (academic/exam/sports/festival/break)": "academic",
+        Location: "CUTM Bhubaneswar Campus",
       },
       {
         "Sl No": 2,
-        "Activity Name": "Internal Examination - 1",
-        "Schedule / Dates": "16.02.2026 - 21.02.2026",
-        "Start Date (YYYY-MM-DD)": "2026-02-16",
-        "End Date (YYYY-MM-DD)": "2026-02-21",
-        "Category (academic/exam/sports/break)": "exam",
+        "Activity Name": "Mid Semester Examination",
+        "Schedule / Dates": "07.09.2026 - 11.09.2026",
+        "Start Date (YYYY-MM-DD)": "2026-09-07",
+        "End Date (YYYY-MM-DD)": "2026-09-11",
+        "Category (academic/exam/sports/festival/break)": "exam",
         Location: "Exam Halls",
       },
       {
         "Sl No": 3,
-        "Activity Name": "Gajajyoti Annual Cultural Fest",
-        "Schedule / Dates": "05.03.2026 - 07.03.2026",
-        "Start Date (YYYY-MM-DD)": "2026-03-05",
-        "End Date (YYYY-MM-DD)": "2026-03-07",
-        "Category (academic/exam/sports/break)": "event",
-        Location: "Main Auditorium",
+        "Activity Name": "Last Date of Instruction (Teaching Ends)",
+        "Schedule / Dates": "31.10.2026",
+        "Start Date (YYYY-MM-DD)": "2026-10-31",
+        "End Date (YYYY-MM-DD)": "2026-10-31",
+        "Category (academic/exam/sports/festival/break)": "academic",
+        Location: "CUTM Campus",
       },
       {
         "Sl No": 4,
+        "Activity Name": "Gajajyoti Annual University Fest",
+        "Schedule / Dates": "10.02.2027 - 12.02.2027",
+        "Start Date (YYYY-MM-DD)": "2027-02-10",
+        "End Date (YYYY-MM-DD)": "2027-02-12",
+        "Category (academic/exam/sports/festival/break)": "festival",
+        Location: "Main Auditorium",
+      },
+      {
+        "Sl No": 5,
         "Activity Name": "End Semester Theory Examinations",
-        "Schedule / Dates": "11.05.2026 - 23.05.2026",
-        "Start Date (YYYY-MM-DD)": "2026-05-11",
-        "End Date (YYYY-MM-DD)": "2026-05-23",
-        "Category (academic/exam/sports/break)": "exam",
+        "Schedule / Dates": "12.11.2026 - 28.11.2026",
+        "Start Date (YYYY-MM-DD)": "2026-11-12",
+        "End Date (YYYY-MM-DD)": "2026-11-28",
+        "Category (academic/exam/sports/festival/break)": "exam",
         Location: "Exam Centers",
       },
     ];
@@ -492,7 +541,7 @@ export default function TimetableAdminManager({ authHeaders, API }) {
 
       const { data } = await axios.post(`${API}/timetable/admin/calendar/save`, payload, authHeaders);
       if (data.success) {
-        setStatusMsg({ text: "Academic calendar published successfully!", type: "success" });
+        setStatusMsg({ text: "Academic calendar published successfully! Live database updated.", type: "success" });
       }
     } catch (e) {
       setStatusMsg({ text: e.response?.data?.message || "Failed to publish calendar.", type: "error" });
@@ -505,75 +554,124 @@ export default function TimetableAdminManager({ authHeaders, API }) {
   // 3. HOLIDAYS UPLOADER & HANDLERS
   // ═════════════════════════════════════════════════════════════════
 
-  function handleHolidayFileUpload(e) {
+  async function handleHolidayFileUpload(e) {
     const file = e.target.files?.[0];
     if (!file) return;
     setHolidayFileName(file.name);
+    setStatusMsg({ text: `Analyzing "${file.name}"...`, type: "info" });
 
-    const reader = new FileReader();
-    reader.onload = (evt) => {
-      try {
-        const data = new Uint8Array(evt.target.result);
-        const workbook = XLSX.read(data, { type: "array" });
-        const sheet = workbook.Sheets[workbook.SheetNames[0]];
-        const json = XLSX.utils.sheet_to_json(sheet);
-
-        const list = json.map((row, idx) => {
-          const type = String(row["Type (holiday/observation/optional)"] || row.type || "holiday").toLowerCase().trim();
-          return {
-            slNo: parseInt(row["Sl No"] || row.slNo || idx + 1, 10),
-            title: String(row["Holiday Name"] || row.title || row.Name || "").trim(),
-            date: String(row["Date (DD.MM.YYYY)"] || row.date || "").trim(),
-            day: String(row["Day of Week"] || row.day || "").trim(),
-            type: ["holiday", "observation", "optional", "break"].includes(type) ? type : "holiday",
-            isOptional: type === "optional" || String(row.isOptional).toLowerCase() === "true",
-            isObservation: type === "observation" || String(row.isObservation).toLowerCase() === "true",
-            description: String(row.Description || row.description || "").trim(),
-          };
+    try {
+      const res = await parseAcademicHolidaysFile(file);
+      if (res.success && Array.isArray(res.holidays)) {
+        setHolidaysList(res.holidays);
+        setStatusMsg({
+          text: `Successfully parsed ${res.holidays.length} holidays from "${file.name}" (${file.type || "file"})! Review/edit below before publishing.`,
+          type: "success",
         });
-
-        setHolidaysList(list);
-        setStatusMsg({ text: `Loaded ${list.length} holidays from "${file.name}".`, type: "success" });
-      } catch (err) {
-        setStatusMsg({ text: "Error parsing holiday file: " + err.message, type: "error" });
       }
-    };
-    reader.readAsArrayBuffer(file);
+    } catch (err) {
+      console.error("Holiday parse error:", err);
+      setStatusMsg({ text: "Error parsing holiday document: " + (err.message || err), type: "error" });
+    }
+  }
+
+  async function loadActiveHolidays() {
+    setStatusMsg({ text: "Fetching live published academic holidays...", type: "info" });
+    try {
+      const { data } = await axios.get(`${API}/timetable/holidays?academicYear=${holidayYear}`);
+      if (data.success && data.holidayDoc && Array.isArray(data.holidayDoc.holidays)) {
+        setHolidaysList(data.holidayDoc.holidays);
+        setHolidayTitle(data.holidayDoc.title || holidayTitle);
+        setStatusMsg({
+          text: `Loaded existing published holidays list (${data.holidayDoc.holidays.length} holidays).`,
+          type: "success",
+        });
+      } else {
+        setStatusMsg({ text: "No published holidays found in database for this year.", type: "info" });
+      }
+    } catch (e) {
+      console.error("Error loading active holidays:", e);
+      setStatusMsg({ text: "Failed to load active holidays from database.", type: "error" });
+    }
+  }
+
+  function addHolidayItem() {
+    setHolidaysList((prev) => [
+      ...prev,
+      {
+        slNo: prev.length + 1,
+        title: "New University Holiday",
+        date: "2026-08-15",
+        day: "Saturday",
+        type: "holiday",
+        isOptional: false,
+        isObservation: false,
+        description: "Official University Holiday",
+      },
+    ]);
+  }
+
+  function updateHolidayItem(index, field, value) {
+    setHolidaysList((prev) => {
+      const updated = [...prev];
+      const item = { ...updated[index], [field]: value };
+      if (field === "type") {
+        item.isOptional = value === "optional";
+        item.isObservation = value === "observation";
+      }
+      if (field === "date") {
+        item.day = getDayOfWeekFromDate(value) || item.day;
+      }
+      updated[index] = item;
+      return updated;
+    });
+  }
+
+  function removeHolidayItem(index) {
+    setHolidaysList((prev) => prev.filter((_, idx) => idx !== index));
   }
 
   function downloadHolidayTemplate() {
     const rows = [
       {
         "Sl No": 1,
-        "Holiday Name": "Makara Sankranti / Pongal",
-        "Date (DD.MM.YYYY)": "14.01.2026",
-        "Day of Week": "Wednesday",
+        "Holiday Name": "Ratha Yatra",
+        "Date (DD.MM.YYYY)": "16.07.2026",
+        "Day of Week": "Thursday",
         "Type (holiday/observation/optional)": "holiday",
-        Description: "Official University Holiday",
+        Description: "Official University Academic Holiday",
       },
       {
         "Sl No": 2,
-        "Holiday Name": "Republic Day",
-        "Date (DD.MM.YYYY)": "26.01.2026",
-        "Day of Week": "Monday",
+        "Holiday Name": "Independence Day",
+        "Date (DD.MM.YYYY)": "15.08.2026",
+        "Day of Week": "Saturday",
         "Type (holiday/observation/optional)": "observation",
-        Description: "Observation Day - Flag Hoisting at 08:30 AM",
+        Description: "Official University Observation Day - Flag Hoisting at 08:30 AM",
       },
       {
         "Sl No": 3,
-        "Holiday Name": "Maha Shivaratri",
-        "Date (DD.MM.YYYY)": "15.02.2026",
-        "Day of Week": "Sunday",
-        "Type (holiday/observation/optional)": "holiday",
-        Description: "Official University Holiday",
+        "Holiday Name": "Raksha Bandhan (Optional Leave)",
+        "Date (DD.MM.YYYY)": "28.08.2026",
+        "Day of Week": "Friday",
+        "Type (holiday/observation/optional)": "optional",
+        Description: "Optional University Holiday. Classes conduct as scheduled; 2 optional leaves allowed.",
       },
       {
         "Sl No": 4,
-        "Holiday Name": "Easter Saturday (Optional Leave)",
-        "Date (DD.MM.YYYY)": "04.04.2026",
-        "Day of Week": "Saturday",
-        "Type (holiday/observation/optional)": "optional",
-        Description: "University open, max 2 optional leaves allowed per student/faculty",
+        "Holiday Name": "Ganesh Puja",
+        "Date (DD.MM.YYYY)": "14.09.2026",
+        "Day of Week": "Monday",
+        "Type (holiday/observation/optional)": "holiday",
+        Description: "Official University Academic Holiday",
+      },
+      {
+        "Sl No": 5,
+        "Holiday Name": "Durga Puja (Vijaya Dashami)",
+        "Date (DD.MM.YYYY)": "20.10.2026",
+        "Day of Week": "Tuesday",
+        "Type (holiday/observation/optional)": "holiday",
+        Description: "Official University Academic Holiday",
       },
     ];
 
@@ -599,7 +697,7 @@ export default function TimetableAdminManager({ authHeaders, API }) {
 
       const { data } = await axios.post(`${API}/timetable/admin/holidays/save`, payload, authHeaders);
       if (data.success) {
-        setStatusMsg({ text: "Academic holidays list published successfully!", type: "success" });
+        setStatusMsg({ text: "Academic holidays list published successfully! Live database updated.", type: "success" });
       }
     } catch (e) {
       setStatusMsg({ text: e.response?.data?.message || "Failed to publish holidays.", type: "error" });
@@ -1116,33 +1214,56 @@ export default function TimetableAdminManager({ authHeaders, API }) {
               <div>
                 <h3 style={{ fontSize: 16, fontWeight: 800, color: "#0f172a", margin: 0, display: "flex", alignItems: "center", gap: 8 }}>
                   <Calendar size={18} color="#7c3aed" />
-                  Academic Calendar Milestones Ingestion
+                  Academic Calendar Milestones Ingestion & Management
                 </h3>
                 <p style={{ fontSize: 12.5, color: "#64748b", margin: "3px 0 0 0" }}>
-                  Upload official semester milestones (Registration, Internal Exams, Gajajyoti, End Sem Exams).
+                  Upload official semester milestones via <strong>Excel (.xlsx, .xls, .csv)</strong> or <strong>PDF (.pdf)</strong> circulars, or manually edit milestones.
                 </p>
               </div>
 
-              <button
-                type="button"
-                onClick={downloadCalendarTemplate}
-                style={{
-                  padding: "8px 14px",
-                  borderRadius: 10,
-                  border: "1px solid #cbd5e1",
-                  background: "#f8fafc",
-                  color: "#0f172a",
-                  fontSize: 12.5,
-                  fontWeight: 700,
-                  cursor: "pointer",
-                  display: "inline-flex",
-                  alignItems: "center",
-                  gap: 6,
-                }}
-              >
-                <Download size={14} color="#7c3aed" />
-                <span>Download Calendar Template</span>
-              </button>
+              <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                <button
+                  type="button"
+                  onClick={loadActiveCalendar}
+                  style={{
+                    padding: "8px 14px",
+                    borderRadius: 10,
+                    border: "1px solid #cbd5e1",
+                    background: "#f8fafc",
+                    color: "#0f172a",
+                    fontSize: 12.5,
+                    fontWeight: 700,
+                    cursor: "pointer",
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 6,
+                  }}
+                >
+                  <RefreshCw size={13} color="#7c3aed" />
+                  <span>Load from DB</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={downloadCalendarTemplate}
+                  style={{
+                    padding: "8px 14px",
+                    borderRadius: 10,
+                    border: "1px solid #cbd5e1",
+                    background: "#f8fafc",
+                    color: "#0f172a",
+                    fontSize: 12.5,
+                    fontWeight: 700,
+                    cursor: "pointer",
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 6,
+                  }}
+                >
+                  <Download size={13} color="#7c3aed" />
+                  <span>Download Template</span>
+                </button>
+              </div>
             </div>
 
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 14 }}>
@@ -1222,13 +1343,14 @@ export default function TimetableAdminManager({ authHeaders, API }) {
               padding: "36px 20px",
               textAlign: "center",
               cursor: "pointer",
+              transition: "all 0.2s ease",
             }}
             onClick={() => calendarFileRef.current?.click()}
           >
             <input
               ref={calendarFileRef}
               type="file"
-              accept=".xlsx,.xls,.csv"
+              accept=".xlsx,.xls,.csv,.pdf"
               style={{ display: "none" }}
               onChange={handleCalendarFileUpload}
             />
@@ -1250,94 +1372,232 @@ export default function TimetableAdminManager({ authHeaders, API }) {
             </div>
 
             <h4 style={{ fontSize: 16, fontWeight: 800, color: "#0f172a", margin: "0 0 4px 0" }}>
-              {calendarFileName ? calendarFileName : "Upload Academic Calendar Spreadsheet"}
+              {calendarFileName ? calendarFileName : "Upload Academic Calendar (Excel / PDF)"}
             </h4>
             <p style={{ fontSize: 12.5, color: "#64748b", margin: 0 }}>
-              Columns: <strong>Sl No, Activity Name, Schedule / Dates, Start Date, End Date, Category</strong>
+              Accepts <strong>.xlsx, .xls, .csv</strong> spreadsheets &amp; official <strong>.pdf</strong> notifications. Columns auto-mapped with intelligent date parser.
             </p>
           </div>
 
           {/* Preview & Publish */}
-          {calendarActivities.length > 0 && (
-            <div
-              style={{
-                background: "#ffffff",
-                border: "1px solid #e2e8f0",
-                borderRadius: 16,
-                padding: "20px 24px",
-                boxShadow: "0 1px 3px rgba(0,0,0,0.02)",
-              }}
-            >
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
+          <div
+            style={{
+              background: "#ffffff",
+              border: "1px solid #e2e8f0",
+              borderRadius: 16,
+              padding: "20px 24px",
+              boxShadow: "0 1px 3px rgba(0,0,0,0.02)",
+            }}
+          >
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 10, marginBottom: 14 }}>
+              <div>
                 <h4 style={{ fontSize: 15, fontWeight: 800, color: "#0f172a", margin: 0 }}>
-                  Parsed Activities Preview ({calendarActivities.length} Milestones)
+                  Academic Milestones Live Editor ({calendarActivities.length} Items)
                 </h4>
+                <p style={{ fontSize: 12, color: "#64748b", margin: "2px 0 0 0" }}>
+                  Directly edit or fine-tune activity names, start/end dates, and categories before publishing.
+                </p>
+              </div>
+
+              <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                <button
+                  type="button"
+                  onClick={addCalendarActivity}
+                  style={{
+                    padding: "8px 14px",
+                    borderRadius: 10,
+                    border: "1.5px dashed #7c3aed",
+                    background: "#faf5ff",
+                    color: "#7c3aed",
+                    fontSize: 12.5,
+                    fontWeight: 700,
+                    cursor: "pointer",
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 6,
+                  }}
+                >
+                  <Plus size={14} />
+                  <span>Add Activity</span>
+                </button>
 
                 <button
                   type="button"
                   onClick={handlePublishCalendar}
-                  disabled={isPublishing}
+                  disabled={isPublishing || calendarActivities.length === 0}
                   style={{
                     padding: "9px 20px",
                     borderRadius: 10,
-                    background: "#7c3aed",
+                    background: calendarActivities.length > 0 ? "#7c3aed" : "#94a3b8",
                     color: "#ffffff",
                     border: "none",
                     fontSize: 13,
                     fontWeight: 700,
-                    cursor: isPublishing ? "not-allowed" : "pointer",
+                    cursor: isPublishing || calendarActivities.length === 0 ? "not-allowed" : "pointer",
                     display: "inline-flex",
                     alignItems: "center",
                     gap: 6,
                   }}
                 >
                   <Check size={15} />
-                  <span>{isPublishing ? "Publishing..." : "Publish Academic Calendar"}</span>
+                  <span>{isPublishing ? "Publishing..." : "Publish Calendar to Database"}</span>
                 </button>
               </div>
+            </div>
 
+            {calendarActivities.length === 0 ? (
+              <div style={{ textAlign: "center", padding: "30px 10px", color: "#94a3b8", fontSize: 13 }}>
+                No calendar activities loaded yet. Upload an Excel/PDF file above or click <strong>"+ Add Activity"</strong> / <strong>"Load from DB"</strong>.
+              </div>
+            ) : (
               <div style={{ overflowX: "auto" }}>
                 <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12.5 }}>
                   <thead>
                     <tr style={{ background: "#f8fafc", borderBottom: "1.5px solid #cbd5e1" }}>
-                      <th style={{ padding: "8px 10px", textAlign: "left", width: 40 }}>#</th>
-                      <th style={{ padding: "8px 10px", textAlign: "left" }}>Activity Name</th>
-                      <th style={{ padding: "8px 10px", textAlign: "left" }}>Schedule</th>
-                      <th style={{ padding: "8px 10px", textAlign: "left" }}>Dates</th>
-                      <th style={{ padding: "8px 10px", textAlign: "left" }}>Category</th>
+                      <th style={{ padding: "10px 8px", textAlign: "left", width: 40 }}>#</th>
+                      <th style={{ padding: "10px 8px", textAlign: "left", minWidth: 180 }}>Activity Name</th>
+                      <th style={{ padding: "10px 8px", textAlign: "left", minWidth: 120 }}>Schedule / Display</th>
+                      <th style={{ padding: "10px 8px", textAlign: "left", minWidth: 120 }}>Start Date</th>
+                      <th style={{ padding: "10px 8px", textAlign: "left", minWidth: 120 }}>End Date</th>
+                      <th style={{ padding: "10px 8px", textAlign: "left", minWidth: 130 }}>Category</th>
+                      <th style={{ padding: "10px 8px", textAlign: "left", minWidth: 130 }}>Location</th>
+                      <th style={{ padding: "10px 8px", textAlign: "center", width: 50 }}>Action</th>
                     </tr>
                   </thead>
                   <tbody>
                     {calendarActivities.map((act, i) => (
                       <tr key={i} style={{ borderBottom: "1px solid #f1f5f9" }}>
-                        <td style={{ padding: "8px 10px", fontWeight: 700 }}>{act.slNo || i + 1}</td>
-                        <td style={{ padding: "8px 10px", fontWeight: 800, color: "#0f172a" }}>{act.name}</td>
-                        <td style={{ padding: "8px 10px", color: "#64748b" }}>{act.schedule}</td>
-                        <td style={{ padding: "8px 10px", color: "#64748b", fontFamily: "'Space Mono', monospace" }}>
-                          {act.startDate} {act.endDate ? `→ ${act.endDate}` : ""}
-                        </td>
-                        <td style={{ padding: "8px 10px" }}>
-                          <span
+                        <td style={{ padding: "8px", fontWeight: 700, color: "#64748b" }}>{act.slNo || i + 1}</td>
+                        <td style={{ padding: "8px" }}>
+                          <input
+                            type="text"
+                            value={act.name}
+                            onChange={(e) => updateCalendarActivity(i, "name", e.target.value)}
                             style={{
-                              fontSize: 11,
-                              fontWeight: 800,
-                              background: act.category === "exam" ? "#fef2f2" : "#f0fdf4",
-                              color: act.category === "exam" ? "#dc2626" : "#16a34a",
-                              padding: "2px 8px",
+                              width: "100%",
+                              padding: "6px 8px",
                               borderRadius: 6,
-                              textTransform: "uppercase",
+                              border: "1px solid #cbd5e1",
+                              fontSize: 12.5,
+                              fontWeight: 700,
+                              color: "#0f172a",
+                            }}
+                          />
+                        </td>
+                        <td style={{ padding: "8px" }}>
+                          <input
+                            type="text"
+                            value={act.schedule}
+                            onChange={(e) => updateCalendarActivity(i, "schedule", e.target.value)}
+                            placeholder="e.g. 06.07.2026"
+                            style={{
+                              width: "100%",
+                              padding: "6px 8px",
+                              borderRadius: 6,
+                              border: "1px solid #cbd5e1",
+                              fontSize: 12,
+                              color: "#475569",
+                            }}
+                          />
+                        </td>
+                        <td style={{ padding: "8px" }}>
+                          <input
+                            type="text"
+                            value={act.startDate}
+                            onChange={(e) => updateCalendarActivity(i, "startDate", e.target.value)}
+                            placeholder="YYYY-MM-DD"
+                            style={{
+                              width: "100%",
+                              padding: "6px 8px",
+                              borderRadius: 6,
+                              border: "1px solid #cbd5e1",
+                              fontSize: 12,
+                              fontFamily: "'Space Mono', monospace",
+                              color: "#0f172a",
+                            }}
+                          />
+                        </td>
+                        <td style={{ padding: "8px" }}>
+                          <input
+                            type="text"
+                            value={act.endDate}
+                            onChange={(e) => updateCalendarActivity(i, "endDate", e.target.value)}
+                            placeholder="YYYY-MM-DD"
+                            style={{
+                              width: "100%",
+                              padding: "6px 8px",
+                              borderRadius: 6,
+                              border: "1px solid #cbd5e1",
+                              fontSize: 12,
+                              fontFamily: "'Space Mono', monospace",
+                              color: "#0f172a",
+                            }}
+                          />
+                        </td>
+                        <td style={{ padding: "8px" }}>
+                          <select
+                            value={act.category || "academic"}
+                            onChange={(e) => updateCalendarActivity(i, "category", e.target.value)}
+                            style={{
+                              width: "100%",
+                              padding: "6px 8px",
+                              borderRadius: 6,
+                              border: "1px solid #cbd5e1",
+                              fontSize: 12,
+                              fontWeight: 700,
+                              color: act.category === "exam" ? "#dc2626" : act.category === "festival" ? "#7c3aed" : "#16a34a",
+                              background: "#f8fafc",
                             }}
                           >
-                            {act.category}
-                          </span>
+                            <option value="academic">Academic</option>
+                            <option value="exam">Exam</option>
+                            <option value="festival">Festival / Fest</option>
+                            <option value="sports">Sports</option>
+                            <option value="internship">Internship / Project</option>
+                            <option value="break">Break / Vacation</option>
+                            <option value="registration">Registration</option>
+                          </select>
+                        </td>
+                        <td style={{ padding: "8px" }}>
+                          <input
+                            type="text"
+                            value={act.location || ""}
+                            onChange={(e) => updateCalendarActivity(i, "location", e.target.value)}
+                            placeholder="Campus / Center"
+                            style={{
+                              width: "100%",
+                              padding: "6px 8px",
+                              borderRadius: 6,
+                              border: "1px solid #cbd5e1",
+                              fontSize: 12,
+                              color: "#475569",
+                            }}
+                          />
+                        </td>
+                        <td style={{ padding: "8px", textAlign: "center" }}>
+                          <button
+                            type="button"
+                            onClick={() => removeCalendarActivity(i)}
+                            style={{
+                              padding: "6px",
+                              borderRadius: 6,
+                              border: "none",
+                              background: "#fee2e2",
+                              color: "#dc2626",
+                              cursor: "pointer",
+                            }}
+                            title="Remove Activity"
+                          >
+                            <Trash2 size={13} />
+                          </button>
                         </td>
                       </tr>
                     ))}
                   </tbody>
                 </table>
               </div>
-            </div>
-          )}
+            )}
+          </div>
         </div>
       )}
 
@@ -1359,33 +1619,56 @@ export default function TimetableAdminManager({ authHeaders, API }) {
               <div>
                 <h3 style={{ fontSize: 16, fontWeight: 800, color: "#0f172a", margin: 0, display: "flex", alignItems: "center", gap: 8 }}>
                   <Sun size={18} color="#dc2626" />
-                  Academic Holidays & Observances Ingestion
+                  Academic Holidays & Observances Ingestion & Management
                 </h3>
                 <p style={{ fontSize: 12.5, color: "#64748b", margin: "3px 0 0 0" }}>
-                  Upload official university holidays, observation days, optional leave list, and non-instructional Saturdays.
+                  Upload official university holidays via <strong>Excel (.xlsx, .xls, .csv)</strong> or <strong>PDF (.pdf)</strong>, managing official holidays, optional leaves, and observances.
                 </p>
               </div>
 
-              <button
-                type="button"
-                onClick={downloadHolidayTemplate}
-                style={{
-                  padding: "8px 14px",
-                  borderRadius: 10,
-                  border: "1px solid #cbd5e1",
-                  background: "#f8fafc",
-                  color: "#0f172a",
-                  fontSize: 12.5,
-                  fontWeight: 700,
-                  cursor: "pointer",
-                  display: "inline-flex",
-                  alignItems: "center",
-                  gap: 6,
-                }}
-              >
-                <Download size={14} color="#dc2626" />
-                <span>Download Holidays Template</span>
-              </button>
+              <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                <button
+                  type="button"
+                  onClick={loadActiveHolidays}
+                  style={{
+                    padding: "8px 14px",
+                    borderRadius: 10,
+                    border: "1px solid #cbd5e1",
+                    background: "#f8fafc",
+                    color: "#0f172a",
+                    fontSize: 12.5,
+                    fontWeight: 700,
+                    cursor: "pointer",
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 6,
+                  }}
+                >
+                  <RefreshCw size={13} color="#dc2626" />
+                  <span>Load from DB</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={downloadHolidayTemplate}
+                  style={{
+                    padding: "8px 14px",
+                    borderRadius: 10,
+                    border: "1px solid #cbd5e1",
+                    background: "#f8fafc",
+                    color: "#0f172a",
+                    fontSize: 12.5,
+                    fontWeight: 700,
+                    cursor: "pointer",
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 6,
+                  }}
+                >
+                  <Download size={13} color="#dc2626" />
+                  <span>Download Template</span>
+                </button>
+              </div>
             </div>
 
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 14 }}>
@@ -1442,13 +1725,14 @@ export default function TimetableAdminManager({ authHeaders, API }) {
               padding: "36px 20px",
               textAlign: "center",
               cursor: "pointer",
+              transition: "all 0.2s ease",
             }}
             onClick={() => holidayFileRef.current?.click()}
           >
             <input
               ref={holidayFileRef}
               type="file"
-              accept=".xlsx,.xls,.csv"
+              accept=".xlsx,.xls,.csv,.pdf"
               style={{ display: "none" }}
               onChange={handleHolidayFileUpload}
             />
@@ -1470,92 +1754,210 @@ export default function TimetableAdminManager({ authHeaders, API }) {
             </div>
 
             <h4 style={{ fontSize: 16, fontWeight: 800, color: "#0f172a", margin: "0 0 4px 0" }}>
-              {holidayFileName ? holidayFileName : "Upload Academic Holidays Spreadsheet"}
+              {holidayFileName ? holidayFileName : "Upload Academic Holidays (Excel / PDF)"}
             </h4>
             <p style={{ fontSize: 12.5, color: "#64748b", margin: 0 }}>
-              Columns: <strong>Sl No, Holiday Name, Date (DD.MM.YYYY), Day of Week, Type</strong>
+              Accepts <strong>.xlsx, .xls, .csv</strong> spreadsheets &amp; official <strong>.pdf</strong> circulars. Auto-detects dates, days, gazetted holidays, and optional leaves.
             </p>
           </div>
 
           {/* Preview & Publish */}
-          {holidaysList.length > 0 && (
-            <div
-              style={{
-                background: "#ffffff",
-                border: "1px solid #e2e8f0",
-                borderRadius: 16,
-                padding: "20px 24px",
-                boxShadow: "0 1px 3px rgba(0,0,0,0.02)",
-              }}
-            >
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
+          <div
+            style={{
+              background: "#ffffff",
+              border: "1px solid #e2e8f0",
+              borderRadius: 16,
+              padding: "20px 24px",
+              boxShadow: "0 1px 3px rgba(0,0,0,0.02)",
+            }}
+          >
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 10, marginBottom: 14 }}>
+              <div>
                 <h4 style={{ fontSize: 15, fontWeight: 800, color: "#0f172a", margin: 0 }}>
-                  Parsed Holidays Preview ({holidaysList.length} Items)
+                  Academic Holidays Live Editor ({holidaysList.length} Items)
                 </h4>
+                <p style={{ fontSize: 12, color: "#64748b", margin: "2px 0 0 0" }}>
+                  Verify or edit holiday dates, day of week, and leave type (Holiday / Optional / Observation) before publishing.
+                </p>
+              </div>
+
+              <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                <button
+                  type="button"
+                  onClick={addHolidayItem}
+                  style={{
+                    padding: "8px 14px",
+                    borderRadius: 10,
+                    border: "1.5px dashed #dc2626",
+                    background: "#fef2f2",
+                    color: "#dc2626",
+                    fontSize: 12.5,
+                    fontWeight: 700,
+                    cursor: "pointer",
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 6,
+                  }}
+                >
+                  <Plus size={14} />
+                  <span>Add Holiday</span>
+                </button>
 
                 <button
                   type="button"
                   onClick={handlePublishHolidays}
-                  disabled={isPublishing}
+                  disabled={isPublishing || holidaysList.length === 0}
                   style={{
                     padding: "9px 20px",
                     borderRadius: 10,
-                    background: "#dc2626",
+                    background: holidaysList.length > 0 ? "#dc2626" : "#94a3b8",
                     color: "#ffffff",
                     border: "none",
                     fontSize: 13,
                     fontWeight: 700,
-                    cursor: isPublishing ? "not-allowed" : "pointer",
+                    cursor: isPublishing || holidaysList.length === 0 ? "not-allowed" : "pointer",
                     display: "inline-flex",
                     alignItems: "center",
                     gap: 6,
                   }}
                 >
                   <Check size={15} />
-                  <span>{isPublishing ? "Publishing..." : "Publish Holidays List"}</span>
+                  <span>{isPublishing ? "Publishing..." : "Publish Holidays List to Database"}</span>
                 </button>
               </div>
+            </div>
 
+            {holidaysList.length === 0 ? (
+              <div style={{ textAlign: "center", padding: "30px 10px", color: "#94a3b8", fontSize: 13 }}>
+                No holidays loaded yet. Upload an Excel/PDF file above or click <strong>"+ Add Holiday"</strong> / <strong>"Load from DB"</strong>.
+              </div>
+            ) : (
               <div style={{ overflowX: "auto" }}>
                 <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12.5 }}>
                   <thead>
                     <tr style={{ background: "#f8fafc", borderBottom: "1.5px solid #cbd5e1" }}>
-                      <th style={{ padding: "8px 10px", textAlign: "left", width: 40 }}>#</th>
-                      <th style={{ padding: "8px 10px", textAlign: "left" }}>Holiday / Occasion</th>
-                      <th style={{ padding: "8px 10px", textAlign: "left" }}>Date</th>
-                      <th style={{ padding: "8px 10px", textAlign: "left" }}>Day</th>
-                      <th style={{ padding: "8px 10px", textAlign: "left" }}>Type</th>
+                      <th style={{ padding: "10px 8px", textAlign: "left", width: 40 }}>#</th>
+                      <th style={{ padding: "10px 8px", textAlign: "left", minWidth: 180 }}>Holiday / Occasion</th>
+                      <th style={{ padding: "10px 8px", textAlign: "left", minWidth: 120 }}>Date (YYYY-MM-DD)</th>
+                      <th style={{ padding: "10px 8px", textAlign: "left", minWidth: 100 }}>Day of Week</th>
+                      <th style={{ padding: "10px 8px", textAlign: "left", minWidth: 130 }}>Type</th>
+                      <th style={{ padding: "10px 8px", textAlign: "left", minWidth: 180 }}>Description / Rules</th>
+                      <th style={{ padding: "10px 8px", textAlign: "center", width: 50 }}>Action</th>
                     </tr>
                   </thead>
                   <tbody>
                     {holidaysList.map((h, i) => (
                       <tr key={i} style={{ borderBottom: "1px solid #f1f5f9" }}>
-                        <td style={{ padding: "8px 10px", fontWeight: 700 }}>{h.slNo || i + 1}</td>
-                        <td style={{ padding: "8px 10px", fontWeight: 800, color: "#0f172a" }}>{h.title}</td>
-                        <td style={{ padding: "8px 10px", color: "#64748b", fontFamily: "'Space Mono', monospace" }}>{h.date}</td>
-                        <td style={{ padding: "8px 10px", color: "#64748b" }}>{h.day}</td>
-                        <td style={{ padding: "8px 10px" }}>
-                          <span
+                        <td style={{ padding: "8px", fontWeight: 700, color: "#64748b" }}>{h.slNo || i + 1}</td>
+                        <td style={{ padding: "8px" }}>
+                          <input
+                            type="text"
+                            value={h.title}
+                            onChange={(e) => updateHolidayItem(i, "title", e.target.value)}
                             style={{
-                              fontSize: 11,
-                              fontWeight: 800,
-                              background: h.type === "holiday" ? "#fef2f2" : h.type === "optional" ? "#faf5ff" : "#eff6ff",
-                              color: h.type === "holiday" ? "#dc2626" : h.type === "optional" ? "#7c3aed" : "#2563eb",
-                              padding: "2px 8px",
+                              width: "100%",
+                              padding: "6px 8px",
                               borderRadius: 6,
-                              textTransform: "uppercase",
+                              border: "1px solid #cbd5e1",
+                              fontSize: 12.5,
+                              fontWeight: 700,
+                              color: "#0f172a",
+                            }}
+                          />
+                        </td>
+                        <td style={{ padding: "8px" }}>
+                          <input
+                            type="text"
+                            value={h.date}
+                            onChange={(e) => updateHolidayItem(i, "date", e.target.value)}
+                            placeholder="YYYY-MM-DD"
+                            style={{
+                              width: "100%",
+                              padding: "6px 8px",
+                              borderRadius: 6,
+                              border: "1px solid #cbd5e1",
+                              fontSize: 12,
+                              fontFamily: "'Space Mono', monospace",
+                              color: "#0f172a",
+                            }}
+                          />
+                        </td>
+                        <td style={{ padding: "8px" }}>
+                          <input
+                            type="text"
+                            value={h.day}
+                            onChange={(e) => updateHolidayItem(i, "day", e.target.value)}
+                            style={{
+                              width: "100%",
+                              padding: "6px 8px",
+                              borderRadius: 6,
+                              border: "1px solid #cbd5e1",
+                              fontSize: 12,
+                              color: "#475569",
+                            }}
+                          />
+                        </td>
+                        <td style={{ padding: "8px" }}>
+                          <select
+                            value={h.type || "holiday"}
+                            onChange={(e) => updateHolidayItem(i, "type", e.target.value)}
+                            style={{
+                              width: "100%",
+                              padding: "6px 8px",
+                              borderRadius: 6,
+                              border: "1px solid #cbd5e1",
+                              fontSize: 12,
+                              fontWeight: 700,
+                              color: h.type === "holiday" ? "#dc2626" : h.type === "optional" ? "#7c3aed" : "#2563eb",
+                              background: "#f8fafc",
                             }}
                           >
-                            {h.type}
-                          </span>
+                            <option value="holiday">Official Holiday</option>
+                            <option value="optional">Optional Leave</option>
+                            <option value="observation">Observation Day</option>
+                            <option value="break">Break / Recess</option>
+                          </select>
+                        </td>
+                        <td style={{ padding: "8px" }}>
+                          <input
+                            type="text"
+                            value={h.description || ""}
+                            onChange={(e) => updateHolidayItem(i, "description", e.target.value)}
+                            placeholder="Details or leave rules"
+                            style={{
+                              width: "100%",
+                              padding: "6px 8px",
+                              borderRadius: 6,
+                              border: "1px solid #cbd5e1",
+                              fontSize: 12,
+                              color: "#475569",
+                            }}
+                          />
+                        </td>
+                        <td style={{ padding: "8px", textAlign: "center" }}>
+                          <button
+                            type="button"
+                            onClick={() => removeHolidayItem(i)}
+                            style={{
+                              padding: "6px",
+                              borderRadius: 6,
+                              border: "none",
+                              background: "#fee2e2",
+                              color: "#dc2626",
+                              cursor: "pointer",
+                            }}
+                            title="Remove Holiday"
+                          >
+                            <Trash2 size={13} />
+                          </button>
                         </td>
                       </tr>
                     ))}
                   </tbody>
                 </table>
               </div>
-            </div>
-          )}
+            )}
+          </div>
         </div>
       )}
 

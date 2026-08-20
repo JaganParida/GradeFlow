@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, Fragment } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import { useApp } from "../context/AppContext";
-import { Spinner } from "../components/LoadingSpinner";
+import { Spinner, SectionToppersSkeleton, BacklogTrackerSkeleton } from "../components/LoadingSpinner";
 import StudentReportCardEditor from "../components/StudentReportCardEditor";
 import TimetableAdminManager from "../components/TimetableAdminManager";
 import { motion, AnimatePresence } from "framer-motion";
@@ -2089,9 +2089,7 @@ function SectionToppersCard({ authHeaders, API }) {
 
       {/* Toppers Content */}
       {loading ? (
-        <div style={{ textAlign: "center", padding: "30px 0", color: "#64748b" }}>
-          <Spinner size={24} /> Loading toppers list...
-        </div>
+        <SectionToppersSkeleton />
       ) : data.students?.length === 0 ? (
         <div style={{ textAlign: "center", padding: "30px 0", color: "#94a3b8", fontSize: 13 }}>
           No section toppers found matching the current filters.
@@ -2828,9 +2826,7 @@ function BacklogTrackerCard({ authHeaders, API }) {
 
       {/* Backlogs Content */}
       {loading ? (
-        <div style={{ textAlign: "center", padding: "30px 0", color: "#64748b" }}>
-          <Spinner size={24} /> Loading backlog dataset...
-        </div>
+        <BacklogTrackerSkeleton />
       ) : data.students?.length === 0 ? (
         <div style={{ textAlign: "center", padding: "30px 0", color: "#94a3b8", fontSize: 13 }}>
           No backlog records found.
@@ -3547,11 +3543,14 @@ function FeedbackManager({ authHeaders, API }) {
 export default function AdminDashboard() {
   const { adminToken, adminLogout, API: ctxAPI } = useApp();
   const navigate = useNavigate();
-  const API = ctxAPI || import.meta.env.VITE_API_URL || "/api";
-
-  const authHeaders = {
-    headers: { Authorization: `Bearer ${adminToken}` },
+  const getAuthHeaders = () => {
+    const token = sessionStorage.getItem("gf_admin_jwt") || localStorage.getItem("gf_admin_jwt");
+    return token
+      ? { headers: { Authorization: `Bearer ${token}`, "x-admin-token": token } }
+      : { headers: {} };
   };
+
+  const authHeaders = getAuthHeaders();
 
   const [stats, setStats] = useState(null);
   const [rankSem, setRankSem] = useState("");
@@ -3577,7 +3576,8 @@ export default function AdminDashboard() {
   const [purgeLogs, setPurgeLogs] = useState([]);
 
   useEffect(() => {
-    if (!adminToken) {
+    const token = sessionStorage.getItem("gf_admin_jwt") || localStorage.getItem("gf_admin_jwt");
+    if (!adminToken || !token) {
       navigate("/admin");
       return;
     }
@@ -3587,16 +3587,30 @@ export default function AdminDashboard() {
 
   async function fetchStats() {
     try {
-      const { data } = await axios.get(`${API}/admin/stats`, authHeaders);
+      const headers = getAuthHeaders();
+      const { data } = await axios.get(`${API}/admin/stats`, headers);
       setStats(data);
-    } catch {}
+    } catch (err) {
+      if (err.response?.status === 401 || err.response?.status === 403) {
+        sessionStorage.removeItem("gf_admin_jwt");
+        localStorage.removeItem("gf_admin_jwt");
+        navigate("/admin");
+      }
+    }
   }
 
   async function fetchPurgeLogs() {
     try {
-      const { data } = await axios.get(`${API}/admin/purge-logs`, authHeaders);
+      const headers = getAuthHeaders();
+      const { data } = await axios.get(`${API}/admin/purge-logs`, headers);
       setPurgeLogs(data || []);
-    } catch {}
+    } catch (err) {
+      if (err.response?.status === 401 || err.response?.status === 403) {
+        sessionStorage.removeItem("gf_admin_jwt");
+        localStorage.removeItem("gf_admin_jwt");
+        navigate("/admin");
+      }
+    }
   }
 
   async function regenAllRankings() {
