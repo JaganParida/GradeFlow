@@ -570,6 +570,22 @@ export function getLivePeriodStatus(timeSlotIndex, now = new Date()) {
 }
 
 /**
+ * Format minutes into a clean human-readable duration (e.g. "45m", "1h 15m", "6h 43m")
+ */
+export function formatDurationMinutes(minutes = 0) {
+  const m = Math.max(0, Math.round(Number(minutes) || 0));
+  if (m < 60) {
+    return `${m}m`;
+  }
+  const hours = Math.floor(m / 60);
+  const remainingMins = m % 60;
+  if (remainingMins === 0) {
+    return `${hours}h`;
+  }
+  return `${hours}h ${remainingMins}m`;
+}
+
+/**
  * Find Current Active Period & Next Upcoming Period
  */
 export function getLiveScheduleOverview(section, dateObj = new Date()) {
@@ -605,6 +621,7 @@ export function getLiveScheduleOverview(section, dateObj = new Date()) {
         slot,
         status,
         remainingMins,
+        remainingDurationStr: formatDurationMinutes(remainingMins),
       };
     }
 
@@ -617,6 +634,7 @@ export function getLiveScheduleOverview(section, dateObj = new Date()) {
           slot,
           status,
           startsInMins,
+          startsInDurationStr: formatDurationMinutes(startsInMins),
         };
       }
     }

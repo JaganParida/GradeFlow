@@ -56,6 +56,7 @@ import {
   is2023CSEBatch,
   resolveSubjectCode,
   cleanSubjectBaseName,
+  formatDurationMinutes,
 } from "../utils/timetableHelper";
 import { TimetableSkeleton } from "../components/LoadingSpinner";
 
@@ -1081,7 +1082,7 @@ export default function Timetable() {
               <div>
                 <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 11.5, fontWeight: 800, color: "#16a34a" }}>
                   <Radio size={13} color="#16a34a" />
-                  <span>ONGOING CLASS ({liveOverview.activeClass.remainingMins} mins remaining)</span>
+                  <span>ONGOING CLASS ({formatDurationMinutes(liveOverview.activeClass.remainingMins)} remaining)</span>
                 </div>
                 <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", marginTop: 2 }}>
                   <span style={{ fontSize: 15, fontWeight: 800, color: "#0f172a" }}>
@@ -1141,7 +1142,7 @@ export default function Timetable() {
             <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
               <Clock size={18} color="#7c3aed" />
               <span style={{ fontSize: 13, fontWeight: 700, color: "#5b21b6" }}>
-                Next Class in {liveOverview.nextClass.startsInMins}m: <strong>{cleanSubjectBaseName(liveOverview.nextClass.subject) || liveOverview.nextClass.subject}</strong>
+                Next Class in {formatDurationMinutes(liveOverview.nextClass.startsInMins)}: <strong>{cleanSubjectBaseName(liveOverview.nextClass.subject) || liveOverview.nextClass.subject}</strong>
                 {resolveSubjectCode(liveOverview.nextClass, studentData) && (
                   <span
                     style={{
