@@ -319,8 +319,15 @@ export default function AttendanceTracker() {
             setTargetGoal(att.targetGoal);
           }
           if (att.dailyLogs && typeof att.dailyLogs === "object") {
-            setAllDailyLogs(att.dailyLogs);
-            const todayLogs = att.dailyLogs[todayDateKey];
+            const rawLogs = att.dailyLogs;
+            const cleanDailyLogs = {};
+            Object.keys(rawLogs).forEach((key) => {
+              if (/^\d{4}-\d{2}-\d{2}$/.test(key) && typeof rawLogs[key] === "object") {
+                cleanDailyLogs[key] = rawLogs[key];
+              }
+            });
+            setAllDailyLogs(cleanDailyLogs);
+            const todayLogs = cleanDailyLogs[todayDateKey];
             if (todayLogs && typeof todayLogs === "object" && Object.keys(todayLogs).length > 0) {
               setDailyAttendanceLogs(todayLogs);
             } else {
@@ -503,20 +510,51 @@ export default function AttendanceTracker() {
   }
 
 
-  // Handler for marking Present on today's classes (simple toggle, zero auto-absent)
-  function handleToggleDailyAttendance(period) {
+  // Dedicated robust handler for marking Present or Absent on today's classes
+  function handleMarkDailyAttendance(period, targetStatus) {
     const slotIdx = period.slotIndex;
-    const isCurrentlyPresent = dailyAttendanceLogs[slotIdx] === "present";
+    const currentStatus = dailyAttendanceLogs[slotIdx]; // "present" | "absent" | undefined
     const cleanName = period.cleanName || cleanSubjectBaseName(period.subject);
     const compType = (period.type || "PP").toUpperCase();
 
-    const deltaAttended = isCurrentlyPresent ? -1 : 1;
-    const deltaDelivered = isCurrentlyPresent ? -1 : 1;
+    // Determine state transition and math deltas:
+    let nextStatus = targetStatus;
+    let deltaAttended = 0;
+    let deltaDelivered = 0;
+
+    if (currentStatus === targetStatus) {
+      // 1. Toggling off (Un-marking): Revert to unmarked
+      nextStatus = undefined;
+      if (currentStatus === "present") {
+        deltaAttended = -1;
+        deltaDelivered = -1;
+      } else if (currentStatus === "absent") {
+        deltaAttended = 0;
+        deltaDelivered = -1;
+      }
+    } else if (!currentStatus) {
+      // 2. Marking fresh from unmarked:
+      if (targetStatus === "present") {
+        deltaAttended = 1;
+        deltaDelivered = 1;
+      } else if (targetStatus === "absent") {
+        deltaAttended = 0;
+        deltaDelivered = 1;
+      }
+    } else if (currentStatus === "present" && targetStatus === "absent") {
+      // 3. Switching from Present to Absent:
+      deltaAttended = -1;
+      deltaDelivered = 0; // Class was delivered, still delivered
+    } else if (currentStatus === "absent" && targetStatus === "present") {
+      // 4. Switching from Absent to Present:
+      deltaAttended = 1;
+      deltaDelivered = 0; // Class was delivered, still delivered
+    }
 
     // Update dailyAttendanceLogs
     const nextDailyLogs = { ...dailyAttendanceLogs };
-    if (!isCurrentlyPresent) {
-      nextDailyLogs[slotIdx] = "present";
+    if (nextStatus) {
+      nextDailyLogs[slotIdx] = nextStatus;
     } else {
       delete nextDailyLogs[slotIdx];
     }
@@ -534,8 +572,8 @@ export default function AttendanceTracker() {
           matchedComp = true;
           return {
             ...c,
-            attended: Math.max(0, (c.attended || 0) + deltaAttended),
-            delivered: Math.max(0, (c.delivered || 0) + deltaDelivered),
+            attended: Math.max(0, (Number(c.attended) || 0) + deltaAttended),
+            delivered: Math.max(0, (Number(c.delivered) || 0) + deltaDelivered),
           };
         }
         return c;
@@ -579,8 +617,8 @@ export default function AttendanceTracker() {
             hasType = true;
             return {
               ...c,
-              attended: Math.max(0, (c.attended || 0) + deltaAttended),
-              delivered: Math.max(0, (c.delivered || 0) + deltaDelivered),
+              attended: Math.max(0, (Number(c.attended) || 0) + deltaAttended),
+              delivered: Math.max(0, (Number(c.delivered) || 0) + deltaDelivered),
             };
           }
           return c;
@@ -597,14 +635,18 @@ export default function AttendanceTracker() {
     }
   }
 
-  // Clear all of today's check-ins and rollback the +1 attended/delivered counts
+  // Clear all of today's check-ins and rollback all attended/delivered counts
   function handleResetTodayCheckins() {
     let nextSavedList = [...savedSubjects];
 
     todayClasses.forEach((period) => {
-      if (dailyAttendanceLogs[period.slotIndex] === "present") {
+      const status = dailyAttendanceLogs[period.slotIndex];
+      if (status === "present" || status === "absent") {
         const cleanName = period.cleanName || cleanSubjectBaseName(period.subject);
         const compType = (period.type || "PP").toUpperCase();
+        const deltaAttended = status === "present" ? -1 : 0;
+        const deltaDelivered = -1;
+
         const existingIdx = nextSavedList.findIndex((s) => s.subjectName === cleanName);
         if (existingIdx !== -1) {
           const sub = { ...nextSavedList[existingIdx] };
@@ -612,8 +654,8 @@ export default function AttendanceTracker() {
             if (c.type.toUpperCase() === compType) {
               return {
                 ...c,
-                attended: Math.max(0, (Number(c.attended) || 0) - 1),
-                delivered: Math.max(0, (Number(c.delivered) || 0) - 1),
+                attended: Math.max(0, (Number(c.attended) || 0) + deltaAttended),
+                delivered: Math.max(0, (Number(c.delivered) || 0) + deltaDelivered),
               };
             }
             return c;
@@ -1887,7 +1929,7 @@ export default function AttendanceTracker() {
               </div>
             </div>
 
-            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
               {Object.keys(dailyAttendanceLogs).length > 0 && (
                 <button
                   type="button"
@@ -1898,27 +1940,41 @@ export default function AttendanceTracker() {
                     color: "#dc2626",
                     background: "#fef2f2",
                     border: "1px solid #fecaca",
-                    padding: "3px 9px",
-                    borderRadius: 7,
+                    padding: "4px 10px",
+                    borderRadius: 8,
                     cursor: "pointer",
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 4,
                   }}
                 >
-                  Reset Today
+                  <RotateCcw size={12} />
+                  <span>Reset Today</span>
                 </button>
               )}
-              <span
-                style={{
-                  fontSize: 11.5,
-                  fontWeight: 800,
-                  color: "#059669",
-                  background: "#ecfdf5",
-                  border: "1px solid #a7f3d0",
-                  padding: "3px 10px",
-                  borderRadius: 8,
-                }}
-              >
-                {Object.keys(dailyAttendanceLogs).length} / {todayClasses.length} Logged Today
-              </span>
+              {(() => {
+                const presentCount = Object.values(dailyAttendanceLogs).filter((v) => v === "present").length;
+                const absentCount = Object.values(dailyAttendanceLogs).filter((v) => v === "absent").length;
+                const totalLogged = presentCount + absentCount;
+
+                return (
+                  <span
+                    style={{
+                      fontSize: 11.5,
+                      fontWeight: 800,
+                      color: totalLogged > 0 ? "#0f766e" : "#059669",
+                      background: totalLogged > 0 ? "#f0fdfa" : "#ecfdf5",
+                      border: `1px solid ${totalLogged > 0 ? "#99f6e4" : "#a7f3d0"}`,
+                      padding: "3px 10px",
+                      borderRadius: 8,
+                    }}
+                  >
+                    {totalLogged === 0
+                      ? `0 / ${todayClasses.length} Logged Today`
+                      : `${presentCount} Present · ${absentCount} Absent (${totalLogged}/${todayClasses.length})`}
+                  </span>
+                );
+              })()}
             </div>
           </div>
 
@@ -1951,22 +2007,28 @@ export default function AttendanceTracker() {
               }}
             >
               {todayClasses.map((period) => {
-                const isPresent = dailyAttendanceLogs[period.slotIndex] === "present";
+                const status = dailyAttendanceLogs[period.slotIndex]; // "present" | "absent" | undefined
+                const isPresent = status === "present";
+                const isAbsent = status === "absent";
                 const subCode = resolveSubjectCode(period, studentData);
 
                 return (
                   <div
                     key={period.slotIndex}
                     style={{
-                      background: isPresent ? "#f0fdf4" : "#ffffff",
-                      border: `1.5px solid ${isPresent ? "#86efac" : "#e2e8f0"}`,
+                      background: isPresent ? "#f0fdf4" : isAbsent ? "#fff1f2" : "#ffffff",
+                      border: `1.5px solid ${isPresent ? "#86efac" : isAbsent ? "#fecdd3" : "#e2e8f0"}`,
                       borderRadius: 14,
                       padding: "12px 14px",
                       display: "flex",
                       flexDirection: "column",
                       justifyContent: "space-between",
                       gap: 10,
-                      boxShadow: isPresent ? "0 2px 8px rgba(16, 185, 129, 0.08)" : "0 1px 3px rgba(0,0,0,0.02)",
+                      boxShadow: isPresent
+                        ? "0 2px 8px rgba(16, 185, 129, 0.08)"
+                        : isAbsent
+                        ? "0 2px 8px rgba(239, 68, 68, 0.08)"
+                        : "0 1px 3px rgba(0,0,0,0.02)",
                       transition: "all 0.15s ease",
                     }}
                   >
@@ -1975,19 +2037,36 @@ export default function AttendanceTracker() {
                         <span style={{ fontSize: 10.5, fontWeight: 800, color: "#64748b", fontFamily: "'Space Mono', monospace" }}>
                           P{period.slotIndex + 1} · {period.slot?.startTime} - {period.slot?.endTime}
                         </span>
-                        <span
-                          style={{
-                            fontSize: 9.5,
-                            fontWeight: 900,
-                            background: period.type === "PR" ? "#faf5ff" : period.type === "TUT" ? "#fffbeb" : "#eff6ff",
-                            color: period.type === "PR" ? "#7c3aed" : period.type === "TUT" ? "#b45309" : "#2563eb",
-                            padding: "2px 6px",
-                            borderRadius: 6,
-                            border: `1px solid ${period.type === "PR" ? "#ddd6fe" : period.type === "TUT" ? "#fde68a" : "#bfdbfe"}`,
-                          }}
-                        >
-                          {period.type || "PP"}
-                        </span>
+                        <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                          {status && (
+                            <span
+                              style={{
+                                fontSize: 9.5,
+                                fontWeight: 900,
+                                background: isPresent ? "#dcfce7" : "#fee2e2",
+                                color: isPresent ? "#15803d" : "#b91c1c",
+                                padding: "2px 6px",
+                                borderRadius: 6,
+                                border: `1px solid ${isPresent ? "#bbf7d0" : "#fecaca"}`,
+                              }}
+                            >
+                              {isPresent ? "✓ +1 Attended" : "✕ +1 Conducted"}
+                            </span>
+                          )}
+                          <span
+                            style={{
+                              fontSize: 9.5,
+                              fontWeight: 900,
+                              background: period.type === "PR" ? "#faf5ff" : period.type === "TUT" ? "#fffbeb" : "#eff6ff",
+                              color: period.type === "PR" ? "#7c3aed" : period.type === "TUT" ? "#b45309" : "#2563eb",
+                              padding: "2px 6px",
+                              borderRadius: 6,
+                              border: `1px solid ${period.type === "PR" ? "#ddd6fe" : period.type === "TUT" ? "#fde68a" : "#bfdbfe"}`,
+                            }}
+                          >
+                            {period.type || "PP"}
+                          </span>
+                        </div>
                       </div>
 
                       <div style={{ marginTop: 4 }}>
@@ -2015,40 +2094,56 @@ export default function AttendanceTracker() {
                       </div>
                     </div>
 
-                    {/* Single Clean Interactive Mark Present Check-in Button */}
-                    <div style={{ paddingTop: 4 }}>
+                    {/* Dual Action Buttons: Present & Absent */}
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6, paddingTop: 4 }}>
+                      {/* Mark Present Button */}
                       <button
                         type="button"
-                        onClick={() => handleToggleDailyAttendance(period)}
+                        onClick={() => handleMarkDailyAttendance(period, "present")}
                         style={{
-                          width: "100%",
-                          padding: "8px 12px",
-                          borderRadius: 9,
-                          border: isPresent ? "1.5px solid #059669" : "1px solid #cbd5e1",
-                          background: isPresent ? "linear-gradient(135deg, #059669 0%, #047857 100%)" : "#ffffff",
-                          color: isPresent ? "#ffffff" : "#334155",
-                          fontSize: 12,
+                          padding: "7px 10px",
+                          borderRadius: 8,
+                          border: isPresent ? "1.5px solid #059669" : "1px solid #86efac",
+                          background: isPresent ? "linear-gradient(135deg, #059669 0%, #047857 100%)" : "#f0fdf4",
+                          color: isPresent ? "#ffffff" : "#166534",
+                          fontSize: 11.5,
                           fontWeight: 800,
                           cursor: "pointer",
                           display: "flex",
                           alignItems: "center",
                           justifyContent: "center",
-                          gap: 6,
+                          gap: 5,
                           transition: "all 0.15s ease",
                           boxShadow: isPresent ? "0 2px 6px rgba(5, 150, 105, 0.25)" : "none",
                         }}
                       >
-                        {isPresent ? (
-                          <>
-                            <CheckCircle2 size={14} color="#ffffff" />
-                            <span>Attended (Present)</span>
-                          </>
-                        ) : (
-                          <>
-                            <Check size={14} color="#64748b" />
-                            <span>Mark Present</span>
-                          </>
-                        )}
+                        {isPresent ? <CheckCircle2 size={13} color="#ffffff" /> : <Check size={13} color="#166534" />}
+                        <span>Present</span>
+                      </button>
+
+                      {/* Mark Absent Button */}
+                      <button
+                        type="button"
+                        onClick={() => handleMarkDailyAttendance(period, "absent")}
+                        style={{
+                          padding: "7px 10px",
+                          borderRadius: 8,
+                          border: isAbsent ? "1.5px solid #dc2626" : "1px solid #fca5a5",
+                          background: isAbsent ? "linear-gradient(135deg, #dc2626 0%, #b91c1c 100%)" : "#fef2f2",
+                          color: isAbsent ? "#ffffff" : "#991b1b",
+                          fontSize: 11.5,
+                          fontWeight: 800,
+                          cursor: "pointer",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          gap: 5,
+                          transition: "all 0.15s ease",
+                          boxShadow: isAbsent ? "0 2px 6px rgba(220, 38, 38, 0.25)" : "none",
+                        }}
+                      >
+                        {isAbsent ? <X size={13} color="#ffffff" strokeWidth={3} /> : <X size={13} color="#991b1b" />}
+                        <span>Absent</span>
                       </button>
                     </div>
                   </div>
