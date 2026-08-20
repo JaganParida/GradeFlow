@@ -228,7 +228,7 @@ export default function Navbar() {
               textDecoration: "none",
               display: "flex",
               alignItems: "center",
-              gap: 2,
+              gap: 0,
               flexShrink: 0,
               marginRight: 6,
               zIndex: 1001,
@@ -244,7 +244,7 @@ export default function Navbar() {
                 objectFit: "contain",
                 flexShrink: 0,
                 display: "block",
-                marginRight: -2,
+                marginRight: -10,
               }}
             />
             <span
@@ -2054,7 +2054,7 @@ export default function Navbar() {
           }
           .gf-logo-img {
             height: 46px !important;
-            margin-right: -2px !important;
+            margin-right: -8px !important;
           }
         }
         @media (max-width: 480px) {
@@ -2085,7 +2085,7 @@ export default function Navbar() {
           }
           .gf-logo-img {
             height: 40px !important;
-            margin-right: -2px !important;
+            margin-right: -7px !important;
           }
         }
         @media (max-width: 360px) {
@@ -2107,7 +2107,7 @@ export default function Navbar() {
           }
           .gf-logo-img {
             height: 35px !important;
-            margin-right: -2px !important;
+            margin-right: -6px !important;
           }
         }
       `}</style>
