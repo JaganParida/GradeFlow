@@ -780,31 +780,95 @@ export default function AttendanceTargetPredictor({
               </div>
             </div>
 
-            {/* Slider Input */}
-            <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+            {/* Manual & Slider Input Controls */}
+            <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
               <input
                 type="range"
                 min="1"
-                max="12"
+                max="20"
                 value={simulateMissCount}
-                onChange={(e) => setSimulateMissCount(parseInt(e.target.value, 10))}
-                style={{ flex: 1, accentColor: "#ea580c", height: 6, cursor: "pointer" }}
+                onChange={(e) => setSimulateMissCount(Math.max(1, parseInt(e.target.value, 10) || 1))}
+                style={{ flex: 1, minWidth: 140, accentColor: "#ea580c", height: 6, cursor: "pointer" }}
               />
-              <span
+
+              {/* Direct Manual Stepper & Typing Box */}
+              <div
                 style={{
-                  fontSize: 14,
-                  fontWeight: 900,
-                  color: "#ea580c",
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 4,
                   background: "#fff7ed",
                   border: "1.5px solid #fed7aa",
-                  padding: "4px 12px",
                   borderRadius: 10,
-                  minWidth: 90,
-                  textAlign: "center",
+                  padding: "3px 6px",
                 }}
               >
-                {simulateMissCount} {simulateMissCount === 1 ? "Class" : "Classes"} Missed
-              </span>
+                <button
+                  type="button"
+                  onClick={() => setSimulateMissCount(Math.max(1, simulateMissCount - 1))}
+                  style={{
+                    width: 26,
+                    height: 26,
+                    borderRadius: 6,
+                    border: "none",
+                    background: "#fed7aa",
+                    color: "#c2410c",
+                    fontSize: 14,
+                    fontWeight: 900,
+                    cursor: "pointer",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}
+                  title="Decrease missed count"
+                >
+                  -
+                </button>
+                <input
+                  type="number"
+                  min="1"
+                  max="40"
+                  value={simulateMissCount}
+                  onChange={(e) => {
+                    const val = parseInt(e.target.value, 10);
+                    setSimulateMissCount(isNaN(val) ? 1 : Math.max(1, Math.min(40, val)));
+                  }}
+                  style={{
+                    width: 44,
+                    textAlign: "center",
+                    border: "none",
+                    background: "transparent",
+                    fontSize: 14,
+                    fontWeight: 900,
+                    color: "#ea580c",
+                    outline: "none",
+                  }}
+                />
+                <button
+                  type="button"
+                  onClick={() => setSimulateMissCount(Math.min(40, simulateMissCount + 1))}
+                  style={{
+                    width: 26,
+                    height: 26,
+                    borderRadius: 6,
+                    border: "none",
+                    background: "#fed7aa",
+                    color: "#c2410c",
+                    fontSize: 14,
+                    fontWeight: 900,
+                    cursor: "pointer",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}
+                  title="Increase missed count"
+                >
+                  +
+                </button>
+                <span style={{ fontSize: 12, fontWeight: 800, color: "#c2410c", paddingRight: 4 }}>
+                  {simulateMissCount === 1 ? "Class" : "Classes"} Missed
+                </span>
+              </div>
             </div>
 
             {/* Impact Calculation Cards */}
@@ -820,19 +884,46 @@ export default function AttendanceTargetPredictor({
                 <div style={{ background: "#fff7ed", border: "1px solid #ffedd5", borderRadius: 12, padding: "10px 12px" }}>
                   <div style={{ fontSize: 10.5, fontWeight: 800, color: "#9a3412", textTransform: "uppercase" }}>Original Requirement</div>
                   <div style={{ fontSize: 16, fontWeight: 900, color: "#c2410c" }}>{missPenaltyData.baseNeeded} Classes</div>
-                  <div style={{ fontSize: 11, color: "#9a3412" }}>Date: {missPenaltyData.baseProjection?.estimatedDate || "N/A"}</div>
+                  <div style={{ fontSize: 11, color: "#9a3412", marginTop: 2 }}>
+                    Date: <strong>{missPenaltyData.baseProjection?.estimatedDate || "Attainable"}</strong>
+                  </div>
                 </div>
 
-                <div style={{ background: "#fef2f2", border: "1px solid #fecaca", borderRadius: 12, padding: "10px 12px" }}>
+                <div
+                  style={{
+                    background: missPenaltyData.delayedProjection?.isAttainable === false ? "#fef2f2" : "#fff7ed",
+                    border: `1px solid ${missPenaltyData.delayedProjection?.isAttainable === false ? "#fecaca" : "#fed7aa"}`,
+                    borderRadius: 12,
+                    padding: "10px 12px",
+                  }}
+                >
                   <div style={{ fontSize: 10.5, fontWeight: 800, color: "#991b1b", textTransform: "uppercase" }}>New Requirement After Miss</div>
-                  <div style={{ fontSize: 16, fontWeight: 900, color: "#dc2626" }}>{missPenaltyData.newNeeded} Classes (+{missPenaltyData.extraClassesNeeded} extra)</div>
-                  <div style={{ fontSize: 11, color: "#991b1b" }}>New Date: {missPenaltyData.delayedProjection?.estimatedDate || "N/A"}</div>
+                  <div style={{ fontSize: 16, fontWeight: 900, color: "#dc2626" }}>
+                    {missPenaltyData.newNeeded} Classes (+{missPenaltyData.extraClassesNeeded} extra)
+                  </div>
+                  <div style={{ fontSize: 11, color: "#991b1b", marginTop: 2 }}>
+                    {missPenaltyData.delayedProjection?.isAttainable === false ? (
+                      <span style={{ color: "#dc2626", fontWeight: 800, display: "inline-flex", alignItems: "center", gap: 3 }}>
+                        <AlertTriangle size={11} color="#dc2626" /> Exceeds Semester (Max: {missPenaltyData.delayedProjection?.maxAttainablePercentage || 0}%)
+                      </span>
+                    ) : (
+                      <>New Date: <strong>{missPenaltyData.delayedProjection?.estimatedDate || "Attainable"}</strong></>
+                    )}
+                  </div>
                 </div>
 
                 <div style={{ background: "#faf5ff", border: "1px solid #f3e8ff", borderRadius: 12, padding: "10px 12px" }}>
                   <div style={{ fontSize: 10.5, fontWeight: 800, color: "#6b21a8", textTransform: "uppercase" }}>Calendar Delay</div>
-                  <div style={{ fontSize: 16, fontWeight: 900, color: "#7c3aed" }}>+{missPenaltyData.delayInDays} Days Delay</div>
-                  <div style={{ fontSize: 11, color: "#6b21a8" }}>Due to holidays &amp; timetable gaps</div>
+                  <div style={{ fontSize: 16, fontWeight: 900, color: "#7c3aed" }}>
+                    {missPenaltyData.delayedProjection?.isAttainable === false
+                      ? "Beyond 31 Oct"
+                      : `+${missPenaltyData.delayInDays} Days Delay`}
+                  </div>
+                  <div style={{ fontSize: 11, color: "#6b21a8", marginTop: 2 }}>
+                    {missPenaltyData.delayedProjection?.isAttainable === false
+                      ? `Exceeds ${missPenaltyData.delayedProjection?.totalRemainingSemClasses || 0} remaining classes`
+                      : "Due to holidays & timetable gaps"}
+                  </div>
                 </div>
               </div>
             )}
@@ -1051,21 +1142,54 @@ export default function AttendanceTargetPredictor({
               >
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 6 }}>
                   <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                    <span style={{ fontSize: 11, fontWeight: 900, background: "#2563eb", color: "#ffffff", padding: "2px 8px", borderRadius: 6 }}>
+                    <span
+                      style={{
+                        fontSize: 11,
+                        fontWeight: 900,
+                        background: multiPhaseData.phase1.isAttainable ? "#2563eb" : "#ea580c",
+                        color: "#ffffff",
+                        padding: "2px 8px",
+                        borderRadius: 6,
+                      }}
+                    >
                       STEP 1
                     </span>
                     <span style={{ fontSize: 13.5, fontWeight: 800, color: "#0f172a" }}>
                       Sprint from {currentPct}% to {multiPhaseData.primaryTarget}% Target
                     </span>
                   </div>
-                  <span style={{ fontSize: 12, fontWeight: 800, color: "#2563eb" }}>
-                    Reach Date: {multiPhaseData.phase1.reachDateStr}
+                  <span
+                    style={{
+                      fontSize: 12,
+                      fontWeight: 800,
+                      color: multiPhaseData.phase1.isAttainable ? "#2563eb" : "#dc2626",
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: 4,
+                    }}
+                  >
+                    {multiPhaseData.phase1.isAttainable ? (
+                      <>
+                        <CheckCircle2 size={13} color="#2563eb" /> Reach Date: {multiPhaseData.phase1.reachDateStr}
+                      </>
+                    ) : (
+                      <>
+                        <AlertTriangle size={13} color="#dc2626" /> {multiPhaseData.phase1.reachDateStr}
+                      </>
+                    )}
                   </span>
                 </div>
 
-                <div style={{ fontSize: 12, color: "#475569" }}>
-                  Attend <strong>{multiPhaseData.phase1.classesNeeded} consecutive classes</strong> without absence.
-                  Attendance will reach <strong>{multiPhaseData.phase1.projectedPercentage}%</strong> ({multiPhaseData.phase1.totalAttended}/{multiPhaseData.phase1.totalDelivered}).
+                <div style={{ fontSize: 12, color: "#475569", lineHeight: 1.45 }}>
+                  {multiPhaseData.phase1.isAttainable ? (
+                    <>
+                      Attend <strong>{multiPhaseData.phase1.classesNeeded} consecutive classes</strong> without absence. Attendance will reach <strong>{multiPhaseData.phase1.projectedPercentage}%</strong> ({multiPhaseData.phase1.totalAttended}/{multiPhaseData.phase1.totalDelivered}).
+                    </>
+                  ) : (
+                    <div style={{ color: "#991b1b", background: "#fef2f2", border: "1px solid #fecaca", padding: "6px 10px", borderRadius: 8, marginTop: 4 }}>
+                      <strong>Teaching Semester Limit Exceeded:</strong> Only <strong>{multiPhaseData.phase1.totalSemesterClassesRemaining} classes</strong> remain before 31 Oct 2026. Attending all remaining classes achieves <strong>{multiPhaseData.phase1.maxAttainablePercentage}%</strong> max.
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -1142,8 +1266,8 @@ export default function AttendanceTargetPredictor({
               {/* Step 3: Post-Bunk Recovery Roadmap */}
               <div
                 style={{
-                  background: "#f0fdf4",
-                  border: "1.5px solid #86efac",
+                  background: multiPhaseData.phase3.isAttainable === false ? "#fff7ed" : "#f0fdf4",
+                  border: `1.5px solid ${multiPhaseData.phase3.isAttainable === false ? "#fed7aa" : "#86efac"}`,
                   borderRadius: 14,
                   padding: "14px 16px",
                   display: "flex",
@@ -1153,23 +1277,62 @@ export default function AttendanceTargetPredictor({
               >
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 6 }}>
                   <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                    <span style={{ fontSize: 11, fontWeight: 900, background: "#16a34a", color: "#ffffff", padding: "2px 8px", borderRadius: 6 }}>
+                    <span
+                      style={{
+                        fontSize: 11,
+                        fontWeight: 900,
+                        background: multiPhaseData.phase3.isAttainable === false ? "#ea580c" : "#16a34a",
+                        color: "#ffffff",
+                        padding: "2px 8px",
+                        borderRadius: 6,
+                      }}
+                    >
                       STEP 3
                     </span>
-                    <span style={{ fontSize: 13.5, fontWeight: 800, color: "#065f46" }}>
+                    <span
+                      style={{
+                        fontSize: 13.5,
+                        fontWeight: 800,
+                        color: multiPhaseData.phase3.isAttainable === false ? "#9a3412" : "#065f46",
+                      }}
+                    >
                       Post-Bunk Recovery Roadmap to {multiPhaseData.recoveryTarget}%
                     </span>
                   </div>
-                  <span style={{ fontSize: 12, fontWeight: 800, color: "#16a34a" }}>
-                    Recovery Date: {multiPhaseData.phase3.recoveryReachDateStr}
+                  <span
+                    style={{
+                      fontSize: 12,
+                      fontWeight: 800,
+                      color: multiPhaseData.phase3.isAttainable === false ? "#dc2626" : "#16a34a",
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: 4,
+                    }}
+                  >
+                    {multiPhaseData.phase3.isAttainable ? (
+                      <>
+                        <CheckCircle2 size={13} color="#16a34a" /> Recovery Date: {multiPhaseData.phase3.recoveryReachDateStr}
+                      </>
+                    ) : (
+                      <>
+                        <AlertTriangle size={13} color="#dc2626" /> {multiPhaseData.phase3.recoveryReachDateStr}
+                      </>
+                    )}
                   </span>
                 </div>
 
                 {multiPhaseData.phase3.classesNeeded > 0 ? (
-                  <div style={{ fontSize: 12, color: "#166534" }}>
-                    Must attend <strong>{multiPhaseData.phase3.classesNeeded} more consecutive classes</strong> post-absence starting from <strong>{multiPhaseData.phase2.lastBunkDateStr}</strong> onwards to recover back to {multiPhaseData.recoveryTarget}%.
-                    Final attendance will become <strong>{multiPhaseData.phase3.finalPercentage}%</strong> ({multiPhaseData.phase3.finalAttended}/{multiPhaseData.phase3.finalDelivered}).
-                  </div>
+                  multiPhaseData.phase3.isAttainable ? (
+                    <div style={{ fontSize: 12, color: "#166534", lineHeight: 1.45 }}>
+                      Must attend <strong>{multiPhaseData.phase3.classesNeeded} more consecutive classes</strong> post-absence starting from <strong>{multiPhaseData.phase2.lastBunkDateStr}</strong> onwards to recover back to {multiPhaseData.recoveryTarget}%.
+                      Final attendance will become <strong>{multiPhaseData.phase3.finalPercentage}%</strong> ({multiPhaseData.phase3.finalAttended}/{multiPhaseData.phase3.finalDelivered}).
+                    </div>
+                  ) : (
+                    <div style={{ fontSize: 12, color: "#991b1b", background: "#fef2f2", border: "1px solid #fecaca", padding: "8px 12px", borderRadius: 8, lineHeight: 1.45 }}>
+                      <strong>Teaching Semester Limit Exceeded:</strong> Only <strong>{multiPhaseData.phase3.totalSemesterClassesRemaining} classes</strong> remain before the Last Date of Instruction (31 Oct 2026).
+                      Even if you attend 100% of all remaining classes, max possible attendance is <strong>{multiPhaseData.phase3.maxAttainablePercentage}%</strong> (cannot reach {multiPhaseData.recoveryTarget}% without special extra makeup classes).
+                    </div>
+                  )
                 ) : (
                   <div style={{ fontSize: 12, color: "#166534", display: "flex", alignItems: "flex-start", gap: 6 }}>
                     <CheckCircle2 size={15} color="#16a34a" style={{ flexShrink: 0, marginTop: 2 }} />
@@ -1182,8 +1345,8 @@ export default function AttendanceTargetPredictor({
                 {/* List of Recovery Class Dates */}
                 {multiPhaseData.phase3.recoverySessions.length > 0 && (
                   <div style={{ marginTop: 4 }}>
-                    <div style={{ fontSize: 11, fontWeight: 800, color: "#166534", marginBottom: 4 }}>
-                      Exact Recovery Class Dates to Attend:
+                    <div style={{ fontSize: 11, fontWeight: 800, color: multiPhaseData.phase3.isAttainable ? "#166534" : "#9a3412", marginBottom: 4 }}>
+                      {multiPhaseData.phase3.isAttainable ? "Exact Recovery Class Dates to Attend:" : "All Remaining Semester Class Dates (Up to 31 Oct 2026):"}
                     </div>
                     <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
                       {multiPhaseData.phase3.recoverySessions.map((rec, rIdx) => (
@@ -1193,8 +1356,8 @@ export default function AttendanceTargetPredictor({
                             fontSize: 10.5,
                             fontWeight: 700,
                             background: "#ffffff",
-                            color: "#15803d",
-                            border: "1px solid #bbf7d0",
+                            color: multiPhaseData.phase3.isAttainable ? "#15803d" : "#c2410c",
+                            border: `1px solid ${multiPhaseData.phase3.isAttainable ? "#bbf7d0" : "#fed7aa"}`,
                             padding: "2px 7px",
                             borderRadius: 6,
                           }}

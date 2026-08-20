@@ -1127,13 +1127,21 @@ export function simulateMultiPhaseAttendance({
     // Phase 1 summary
     phase1: {
       classesNeeded: p1ClassesNeeded,
-      reachDateStr: phase1Projection?.estimatedDate || (p1ClassesNeeded === 0 ? "Already Achieved" : "N/A"),
+      reachDateStr:
+        phase1Projection?.estimatedDate ||
+        (p1ClassesNeeded === 0
+          ? "Already Achieved"
+          : phase1Projection?.isAttainable === false
+          ? `Exceeds Semester (Max: ${phase1Projection?.maxAttainablePercentage || 0}% by 31 Oct)`
+          : "Not Attainable within Semester"),
       rawReachDate: p1ReachDate,
       totalAttended: p1Attended,
       totalDelivered: p1Delivered,
       projectedPercentage: Number(p1Percentage.toFixed(2)),
       sessions: phase1Projection?.requiredSessions || [],
       isAttainable: phase1Projection?.isAttainable ?? true,
+      maxAttainablePercentage: phase1Projection?.maxAttainablePercentage || 0,
+      totalSemesterClassesRemaining: phase1Projection?.totalRemainingSemClasses || 0,
     },
     // Phase 2 summary (The planned absent classes)
     phase2: {
@@ -1156,13 +1164,20 @@ export function simulateMultiPhaseAttendance({
     phase3: {
       classesNeeded: recoveryClassesNeeded,
       safeBunksRemaining,
-      recoveryReachDateStr: recoveryProjection?.estimatedDate || (recoveryClassesNeeded === 0 ? "Maintained Safely" : "N/A"),
+      recoveryReachDateStr:
+        recoveryProjection?.estimatedDate ||
+        (recoveryClassesNeeded === 0
+          ? "Maintained Safely"
+          : recoveryProjection?.isAttainable === false
+          ? `Exceeds Semester (Max: ${recoveryProjection?.maxAttainablePercentage || 0}% by 31 Oct)`
+          : "Not Attainable within Semester"),
       rawRecoveryDate: recoveryProjection?.rawReachDate || null,
       recoverySessions: recoveryProjection?.requiredSessions || [],
       finalAttended,
       finalDelivered,
       finalPercentage: Number(finalPercentage.toFixed(2)),
-      isAttainable: recoveryProjection?.isAttainable ?? true,
+      isAttainable: recoveryProjection ? recoveryProjection.isAttainable : true,
+      maxAttainablePercentage: recoveryProjection?.maxAttainablePercentage || 0,
       totalSemesterClassesRemaining: recoveryProjection?.totalRemainingSemClasses || 0,
     },
   };
