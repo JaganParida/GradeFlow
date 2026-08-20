@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   UploadCloud,
   Image as ImageIcon,
-  Sparkles,
+  Camera,
   CheckCircle2,
   AlertCircle,
   Trash2,
@@ -658,7 +658,7 @@ export default function AttendanceScreenshotModal({
                   border: "1px solid #dbeafe",
                 }}
               >
-                <Sparkles size={20} />
+                <Camera size={20} />
               </div>
               <div>
                 <h3 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: "#0f172a" }}>

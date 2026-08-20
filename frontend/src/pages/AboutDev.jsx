@@ -9,7 +9,6 @@ import {
   Globe,
   Code,
   BarChart2,
-  Sparkles,
   Heart,
   Quote,
   MessageCircle,

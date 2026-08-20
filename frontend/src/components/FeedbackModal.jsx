@@ -6,7 +6,6 @@ import {
   MessageSquare,
   CheckCircle2,
   Send,
-  Sparkles,
   AlertCircle,
   Lock,
   Search,

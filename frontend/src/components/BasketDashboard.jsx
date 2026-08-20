@@ -26,7 +26,6 @@ import {
   FileText,
   FileSpreadsheet,
   Layers,
-  Sparkles,
   Info,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -708,7 +707,7 @@ export default function BasketDashboard({ results, studentData }) {
                   justifyContent: "center",
                 }}
               >
-                <Sparkles size={18} />
+                <Award size={18} />
               </div>
               <div>
                 <div

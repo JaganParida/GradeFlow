@@ -43,7 +43,6 @@ import {
   CheckCheck,
   Loader2,
   ShieldCheck,
-  Sparkles,
   RefreshCw,
   Award,
   Layers,

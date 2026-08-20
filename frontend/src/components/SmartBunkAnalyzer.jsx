@@ -5,7 +5,7 @@ import {
   AlertTriangle,
   Clock,
   Calendar as CalendarIcon,
-  Sparkles,
+  CalendarCheck,
   TrendingDown,
   TrendingUp,
   Info,
@@ -1241,7 +1241,7 @@ export default function SmartBunkAnalyzer({
                       flexShrink: 0,
                     }}
                   >
-                    <Sparkles size={18} />
+                    <CalendarCheck size={18} />
                   </div>
                   <div>
                     <h5 style={{ margin: 0, fontSize: 13.5, fontWeight: 800, color: "#0f172a" }}>

@@ -15,7 +15,6 @@ import {
   ChevronRight,
   Filter,
   CheckCircle,
-  Sparkles,
   Layers,
   GraduationCap,
   X,

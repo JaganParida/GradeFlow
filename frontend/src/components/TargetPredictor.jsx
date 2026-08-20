@@ -6,7 +6,6 @@ import {
   AlertTriangle,
   CheckCircle,
   XCircle,
-  Sparkles,
   BookOpen,
   Cpu,
   Layers,

@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  Sparkles,
   Zap,
+  Award,
   BarChart2,
   ShieldCheck,
   Star,
@@ -165,8 +165,8 @@ export default function UpgradeModal() {
                 style={{
                   display: "inline-flex",
                   alignItems: "center",
-                  gap: 5,
-                  padding: isMobile ? "2px 8px" : "3px 10px",
+                  gap: 6,
+                  padding: isMobile ? "3px 8px" : "4px 10px",
                   borderRadius: 16,
                   background: "#eff6ff",
                   border: "1px solid #bfdbfe",
@@ -177,7 +177,7 @@ export default function UpgradeModal() {
                   marginBottom: isMobile ? 6 : 10,
                 }}
               >
-                <Sparkles size={isMobile ? 12 : 13} color="#2563eb" />
+                <Zap size={isMobile ? 12 : 13} color="#2563eb" />
                 <span>MAJOR UPGRADE • GRADEFLOW 2.0</span>
               </div>
 
@@ -198,7 +198,7 @@ export default function UpgradeModal() {
                 }}
               >
                 <span>Welcome to the All-New Look of GradeFlow!</span>
-                <Sparkles size={20} color="#2563eb" style={{ flexShrink: 0 }} />
+                <Award size={20} color="#2563eb" style={{ flexShrink: 0 }} />
               </h2>
               <p
                 style={{

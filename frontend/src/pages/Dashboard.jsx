@@ -45,7 +45,6 @@ import {
   Crown,
   Activity,
   ArrowRight,
-  Sparkles,
   ExternalLink,
   BookOpen,
   GraduationCap,

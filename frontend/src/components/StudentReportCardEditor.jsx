@@ -14,7 +14,6 @@ import {
   TrendingUp,
   Layers,
   GraduationCap,
-  Sparkles,
   Info,
   Calendar,
   User,

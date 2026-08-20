@@ -11,7 +11,6 @@ import {
   Layers,
   CheckCircle2,
   ChevronDown,
-  Sparkles,
   GraduationCap,
   Scale,
   Calendar,
