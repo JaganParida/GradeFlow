@@ -426,6 +426,7 @@ export default function Home() {
     studentData,
     studentSession,
     hasActiveSession,
+    authChecking,
     fetchStudent,
     openStudentAuthModal,
   } = useApp();
@@ -451,22 +452,25 @@ export default function Home() {
   const currentRegNo = studentData?.regNo || studentSession?.regNo || "";
 
   const handleDashboardAction = () => {
+    if (authChecking) return;
     if (hasActiveSession && currentRegNo) {
       navigate(`/dashboard/${encodeStudentId(currentRegNo)}`);
     } else {
-      openStudentAuthModal();
+      openStudentAuthModal({ type: "dashboard" });
     }
   };
 
   const handleLeaderboardAction = () => {
+    if (authChecking) return;
     if (hasActiveSession && currentRegNo) {
       navigate("/leaderboard");
     } else {
-      openStudentAuthModal();
+      openStudentAuthModal({ type: "leaderboard" });
     }
   };
 
   const handleQuickAction = (act) => {
+    if (authChecking) return;
     if (act.to.startsWith("/analytics")) {
       if (hasActiveSession && currentRegNo) {
         const query = act.tab ? `?tab=${act.tab}` : "";
@@ -736,7 +740,27 @@ export default function Home() {
         </p>
 
         {/* Student Session Card or Login CTA */}
-        {hasActiveSession && currentRegNo ? (
+        {authChecking ? (
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              background: "#f8fafc",
+              border: "1px solid #e2e8f0",
+              borderRadius: 14,
+              padding: "14px 16px",
+              marginTop: 4,
+              color: "#64748b",
+              gap: 8,
+              fontSize: 13,
+              fontWeight: 600,
+            }}
+          >
+            <Loader2 size={16} className="spin" />
+            <span>Verifying session...</span>
+          </div>
+        ) : hasActiveSession && currentRegNo ? (
           <div
             style={{
               display: "flex",

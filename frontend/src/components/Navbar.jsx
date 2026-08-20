@@ -48,6 +48,7 @@ export default function Navbar() {
     studentData,
     studentSession,
     hasActiveSession,
+    authChecking,
     leaveSession,
     isLoggingOut,
     fetchStudent,
@@ -106,12 +107,14 @@ export default function Navbar() {
   const isEligibleForTimetable = is2023CSEBatch(studentData, currentRegNo);
 
   const requireAuthFor = (destination) => {
+    if (authChecking) return;
     setPendingDestination(destination);
     openStudentAuthModal();
   };
 
   const handleDashboardClick = (e) => {
     if (e) e.preventDefault();
+    if (authChecking) return;
     if (!hasActiveSession && !currentRegNo) {
       requireAuthFor({ type: "dashboard" });
     } else {
@@ -121,6 +124,7 @@ export default function Navbar() {
 
   const handleTimetableClick = (e) => {
     if (e) e.preventDefault();
+    if (authChecking) return;
     if (!hasActiveSession && !currentRegNo) {
       requireAuthFor({ type: "timetable" });
     } else {
@@ -130,6 +134,7 @@ export default function Navbar() {
 
   const handleAttendanceClick = (e) => {
     if (e) e.preventDefault();
+    if (authChecking) return;
     if (!hasActiveSession && !currentRegNo) {
       requireAuthFor({ type: "attendance" });
     } else {
@@ -139,6 +144,7 @@ export default function Navbar() {
 
   const handleAnalyticsClick = (e, targetTab = "") => {
     if (e) e.preventDefault();
+    if (authChecking) return;
     if (!hasActiveSession && !currentRegNo) {
       requireAuthFor({ type: "analytics", tab: targetTab });
     } else {
@@ -149,6 +155,7 @@ export default function Navbar() {
 
   const handleRankingsClick = (e) => {
     if (e) e.preventDefault();
+    if (authChecking) return;
     if (!hasActiveSession && !currentRegNo) {
       requireAuthFor({ type: "leaderboard" });
     } else {
@@ -846,7 +853,28 @@ export default function Navbar() {
 
             {/* Desktop Auth Button */}
             <div className="gf-desktop-auth">
-              {hasActiveSession ? (
+              {authChecking ? (
+                <div
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: 6,
+                    padding: "7px 16px",
+                    borderRadius: 10,
+                    background: "#f8fafc",
+                    border: "1px solid #e2e8f0",
+                    color: "#94a3b8",
+                    fontSize: 13,
+                    fontWeight: 600,
+                    cursor: "default",
+                    userSelect: "none",
+                  }}
+                >
+                  <Loader2 size={14} className="spin" />
+                  <span>Loading...</span>
+                </div>
+              ) : hasActiveSession ? (
                 <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                   <Link
                     to={`/dashboard/${encodeStudentId(currentRegNo)}`}
@@ -894,7 +922,7 @@ export default function Navbar() {
                 </div>
               ) : (
                 <button
-                  onClick={openStudentAuthModal}
+                  onClick={() => openStudentAuthModal()}
                   style={{
                     display: "inline-flex",
                     alignItems: "center",
@@ -918,8 +946,7 @@ export default function Navbar() {
                   }
                   onMouseLeave={(e) => (e.currentTarget.style.filter = "none")}
                 >
-                  <GraduationCap size={15} />
-                  <span>Student Login</span>
+                  <GraduationCap size={15} /> Student Portal Login
                 </button>
               )}
             </div>
@@ -1777,6 +1804,26 @@ export default function Navbar() {
                       )}
                       <span>{isLoggingOut ? "Exiting..." : "Exit"}</span>
                     </button>
+                  </div>
+                ) : authChecking ? (
+                  <div
+                    style={{
+                      width: "100%",
+                      padding: "12px",
+                      borderRadius: 12,
+                      background: "#f8fafc",
+                      border: "1px solid #e2e8f0",
+                      color: "#94a3b8",
+                      fontSize: 13.5,
+                      fontWeight: 600,
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      gap: 8,
+                    }}
+                  >
+                    <Loader2 size={16} className="spin" />
+                    <span>Checking student session...</span>
                   </div>
                 ) : (
                   <button
