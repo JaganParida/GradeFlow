@@ -204,6 +204,7 @@ export default function AttendanceTracker() {
   const [simulateAttendCount, setSimulateAttendCount] = useState(0);
   const [activeTab, setActiveTab] = useState("matrix"); // "studio" | "bunk_analyzer"
   const [isScreenshotModalOpen, setIsScreenshotModalOpen] = useState(false);
+  const [isVerifiedDisclaimerChecked, setIsVerifiedDisclaimerChecked] = useState(false);
 
   // Saved Subjects (In-Memory React State, synced direct to MongoDB Atlas)
   const [savedSubjects, setSavedSubjects] = useState([]);
@@ -976,7 +977,8 @@ export default function AttendanceTracker() {
                       color: "#047857",
                       fontSize: 13,
                       fontWeight: 800,
-                      cursor: "pointer",
+                      cursor: isVerifiedDisclaimerChecked ? "pointer" : "not-allowed",
+                  opacity: isVerifiedDisclaimerChecked ? 1 : 0.7,
                       outline: "none",
                       boxShadow: "0 1px 3px rgba(16, 185, 129, 0.1)",
                     }}
@@ -3016,18 +3018,71 @@ export default function AttendanceTracker() {
               })}
             </div>
 
+            {/* ERP Verification Disclaimer & Checkbox */}
+            <div
+              style={{
+                background: isVerifiedDisclaimerChecked ? "#f0fdf4" : "#fffbeb",
+                border: `1.5px solid ${isVerifiedDisclaimerChecked ? "#86efac" : "#fde68a"}`,
+                borderRadius: 12,
+                padding: "10px 14px",
+                display: "flex",
+                flexDirection: "column",
+                gap: 8,
+                marginTop: 4,
+                transition: "all 0.2s ease",
+              }}
+            >
+              <div style={{ display: "flex", alignItems: "flex-start", gap: 8 }}>
+                <ShieldCheck
+                  size={16}
+                  color={isVerifiedDisclaimerChecked ? "#059669" : "#d97706"}
+                  style={{ flexShrink: 0, marginTop: 2 }}
+                />
+                <div style={{ fontSize: 11.5, color: isVerifiedDisclaimerChecked ? "#166534" : "#92400e", lineHeight: 1.45 }}>
+                  <strong>ERP Verification Disclaimer:</strong> Please recheck that all Theory (PP), Lab (PR), and Tutorial (TUT) counts match your official ERP portal attendance before saving.
+                </div>
+              </div>
+
+              <label
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 8,
+                  cursor: "pointer",
+                  fontSize: 12,
+                  fontWeight: 700,
+                  color: isVerifiedDisclaimerChecked ? "#15803d" : "#78350f",
+                  userSelect: "none",
+                }}
+              >
+                <input
+                  type="checkbox"
+                  checked={isVerifiedDisclaimerChecked}
+                  onChange={(e) => setIsVerifiedDisclaimerChecked(e.target.checked)}
+                  style={{
+                    width: 16,
+                    height: 16,
+                    accentColor: "#059669",
+                    cursor: "pointer",
+                  }}
+                />
+                <span>I have verified that all component numbers are correct</span>
+              </label>
+            </div>
+
             {/* Save to My Subjects Button */}
             <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 4 }}>
               <button
                 type="button"
                 onClick={handleSaveActiveSubject}
+                disabled={!isVerifiedDisclaimerChecked}
                 style={{
                   flex: 1,
                   padding: isMobile ? "10px 14px" : "13px 20px",
                   borderRadius: 12,
                   border: "none",
-                  background: "linear-gradient(135deg, #059669 0%, #047857 100%)",
-                  color: "#ffffff",
+                  background: isVerifiedDisclaimerChecked ? "linear-gradient(135deg, #059669 0%, #047857 100%)" : "#cbd5e1",
+                  color: isVerifiedDisclaimerChecked ? "#ffffff" : "#64748b",
                   fontSize: isMobile ? 13 : 14.5,
                   fontWeight: 800,
                   cursor: "pointer",

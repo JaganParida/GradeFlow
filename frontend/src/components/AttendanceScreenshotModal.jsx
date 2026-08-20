@@ -7,6 +7,7 @@ import {
   Image as ImageIcon,
   Camera,
   CheckCircle2,
+  ShieldCheck,
   AlertCircle,
   Trash2,
   Plus,
@@ -39,6 +40,7 @@ export default function AttendanceScreenshotModal({
   const [step, setStep] = useState("upload"); // "upload" | "review"
   const [pasteNotice, setPasteNotice] = useState(false);
   const [showCatalogDropdown, setShowCatalogDropdown] = useState(false);
+  const [isScreenshotVerified, setIsScreenshotVerified] = useState(false);
   const fileInputRef = useRef(null);
 
   // Get active section catalog subjects
@@ -78,6 +80,7 @@ export default function AttendanceScreenshotModal({
     setErrorMsg("");
     setStep("upload");
     setShowCatalogDropdown(false);
+    setIsScreenshotVerified(false);
   };
 
   const handleClose = () => {
@@ -777,6 +780,58 @@ export default function AttendanceScreenshotModal({
                   )}
                 </div>
 
+                {/* Verification Disclaimer & Checkbox */}
+                <div
+                  style={{
+                    marginTop: 14,
+                    background: isScreenshotVerified ? "#f0fdf4" : "#fffbeb",
+                    border: `1.5px solid ${isScreenshotVerified ? "#86efac" : "#fde68a"}`,
+                    borderRadius: 12,
+                    padding: "10px 14px",
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: 8,
+                    transition: "all 0.2s ease",
+                  }}
+                >
+                  <div style={{ display: "flex", alignItems: "flex-start", gap: 8 }}>
+                    <ShieldCheck
+                      size={16}
+                      color={isScreenshotVerified ? "#059669" : "#d97706"}
+                      style={{ flexShrink: 0, marginTop: 2 }}
+                    />
+                    <div style={{ fontSize: 11.5, color: isScreenshotVerified ? "#166534" : "#92400e", lineHeight: 1.45 }}>
+                      <strong>ERP Verification Disclaimer:</strong> Please double-check that all detected Theory (PP), Lab (PR), and Tutorial (TUT) values match your official ERP attendance records before confirming.
+                    </div>
+                  </div>
+
+                  <label
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 8,
+                      cursor: "pointer",
+                      fontSize: 12,
+                      fontWeight: 700,
+                      color: isScreenshotVerified ? "#15803d" : "#78350f",
+                      userSelect: "none",
+                    }}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={isScreenshotVerified}
+                      onChange={(e) => setIsScreenshotVerified(e.target.checked)}
+                      style={{
+                        width: 16,
+                        height: 16,
+                        accentColor: "#059669",
+                        cursor: "pointer",
+                      }}
+                    />
+                    <span>I have verified that the extracted ERP component attendance values are accurate</span>
+                  </label>
+                </div>
+
                 {errorMsg && (
                   <div
                     style={{
@@ -1096,6 +1151,58 @@ export default function AttendanceScreenshotModal({
                   </table>
                 </div>
 
+                {/* Verification Disclaimer & Checkbox */}
+                <div
+                  style={{
+                    marginTop: 14,
+                    background: isScreenshotVerified ? "#f0fdf4" : "#fffbeb",
+                    border: `1.5px solid ${isScreenshotVerified ? "#86efac" : "#fde68a"}`,
+                    borderRadius: 12,
+                    padding: "10px 14px",
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: 8,
+                    transition: "all 0.2s ease",
+                  }}
+                >
+                  <div style={{ display: "flex", alignItems: "flex-start", gap: 8 }}>
+                    <ShieldCheck
+                      size={16}
+                      color={isScreenshotVerified ? "#059669" : "#d97706"}
+                      style={{ flexShrink: 0, marginTop: 2 }}
+                    />
+                    <div style={{ fontSize: 11.5, color: isScreenshotVerified ? "#166534" : "#92400e", lineHeight: 1.45 }}>
+                      <strong>ERP Verification Disclaimer:</strong> Please double-check that all detected Theory (PP), Lab (PR), and Tutorial (TUT) values match your official ERP attendance records before confirming.
+                    </div>
+                  </div>
+
+                  <label
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 8,
+                      cursor: "pointer",
+                      fontSize: 12,
+                      fontWeight: 700,
+                      color: isScreenshotVerified ? "#15803d" : "#78350f",
+                      userSelect: "none",
+                    }}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={isScreenshotVerified}
+                      onChange={(e) => setIsScreenshotVerified(e.target.checked)}
+                      style={{
+                        width: 16,
+                        height: 16,
+                        accentColor: "#059669",
+                        cursor: "pointer",
+                      }}
+                    />
+                    <span>I have verified that the extracted ERP component attendance values are accurate</span>
+                  </label>
+                </div>
+
                 {errorMsg && (
                   <div
                     style={{
@@ -1170,7 +1277,10 @@ export default function AttendanceScreenshotModal({
               {step === "review" && (
                 <button
                   onClick={handleConfirmAndApply}
+                  disabled={!isScreenshotVerified}
                   style={{
+                    opacity: isScreenshotVerified ? 1 : 0.6,
+                    cursor: isScreenshotVerified ? "pointer" : "not-allowed",
                     background: "#0f172a",
                     border: "none",
                     borderRadius: 10,
@@ -1178,7 +1288,6 @@ export default function AttendanceScreenshotModal({
                     fontSize: 13,
                     fontWeight: 700,
                     color: "#ffffff",
-                    cursor: "pointer",
                     display: "flex",
                     alignItems: "center",
                     gap: 6,
