@@ -7,6 +7,7 @@ import {
   Image as ImageIcon,
   Camera,
   CheckCircle2,
+  Check,
   ShieldCheck,
   AlertCircle,
   Trash2,
@@ -806,28 +807,38 @@ export default function AttendanceScreenshotModal({
                   </div>
 
                   <label
+                    onClick={() => setIsScreenshotVerified(!isScreenshotVerified)}
                     style={{
                       display: "flex",
                       alignItems: "center",
-                      gap: 8,
+                      gap: 10,
                       cursor: "pointer",
-                      fontSize: 12,
+                      fontSize: 12.5,
                       fontWeight: 700,
                       color: isScreenshotVerified ? "#15803d" : "#78350f",
                       userSelect: "none",
                     }}
                   >
-                    <input
-                      type="checkbox"
-                      checked={isScreenshotVerified}
-                      onChange={(e) => setIsScreenshotVerified(e.target.checked)}
+                    <div
                       style={{
-                        width: 16,
-                        height: 16,
-                        accentColor: "#059669",
+                        width: 20,
+                        height: 20,
+                        borderRadius: 6,
+                        border: `2px solid ${isScreenshotVerified ? "#059669" : "#cbd5e1"}`,
+                        background: isScreenshotVerified ? "#059669" : "#ffffff",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
                         cursor: "pointer",
+                        flexShrink: 0,
+                        transition: "all 0.15s ease",
+                        boxShadow: isScreenshotVerified ? "0 2px 6px rgba(5, 150, 105, 0.35)" : "none",
                       }}
-                    />
+                    >
+                      {isScreenshotVerified && (
+                        <Check size={14} color="#ffffff" strokeWidth={3.5} />
+                      )}
+                    </div>
                     <span>I have verified that the extracted ERP component attendance values are accurate</span>
                   </label>
                 </div>
@@ -1177,28 +1188,38 @@ export default function AttendanceScreenshotModal({
                   </div>
 
                   <label
+                    onClick={() => setIsScreenshotVerified(!isScreenshotVerified)}
                     style={{
                       display: "flex",
                       alignItems: "center",
-                      gap: 8,
+                      gap: 10,
                       cursor: "pointer",
-                      fontSize: 12,
+                      fontSize: 12.5,
                       fontWeight: 700,
                       color: isScreenshotVerified ? "#15803d" : "#78350f",
                       userSelect: "none",
                     }}
                   >
-                    <input
-                      type="checkbox"
-                      checked={isScreenshotVerified}
-                      onChange={(e) => setIsScreenshotVerified(e.target.checked)}
+                    <div
                       style={{
-                        width: 16,
-                        height: 16,
-                        accentColor: "#059669",
+                        width: 20,
+                        height: 20,
+                        borderRadius: 6,
+                        border: `2px solid ${isScreenshotVerified ? "#059669" : "#cbd5e1"}`,
+                        background: isScreenshotVerified ? "#059669" : "#ffffff",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
                         cursor: "pointer",
+                        flexShrink: 0,
+                        transition: "all 0.15s ease",
+                        boxShadow: isScreenshotVerified ? "0 2px 6px rgba(5, 150, 105, 0.35)" : "none",
                       }}
-                    />
+                    >
+                      {isScreenshotVerified && (
+                        <Check size={14} color="#ffffff" strokeWidth={3.5} />
+                      )}
+                    </div>
                     <span>I have verified that the extracted ERP component attendance values are accurate</span>
                   </label>
                 </div>

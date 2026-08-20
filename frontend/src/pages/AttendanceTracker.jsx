@@ -2267,7 +2267,7 @@ export default function AttendanceTracker() {
                       </div>
                       <div>
                         <h3 style={{ fontSize: isMobile ? 15.5 : 18, fontWeight: 900, color: "#0f172a", margin: 0, display: "flex", alignItems: "center", gap: 8 }}>
-                          <span>Welcome to Attendance Studio</span>
+                          <span>Welcome to Attendance Predictor</span>
                           <span style={{ fontSize: 11, fontWeight: 800, background: "#dcfce7", color: "#15803d", padding: "2px 8px", borderRadius: 999, border: "1px solid #bbf7d0" }}>
                             Quick Setup Guide
                           </span>
@@ -2358,7 +2358,7 @@ export default function AttendanceTracker() {
                         </div>
                         <div style={{ display: "flex", alignItems: "flex-start", gap: 8 }}>
                           <span style={{ width: 18, height: 18, borderRadius: 999, background: "#eff6ff", color: "#2563eb", fontSize: 10, fontWeight: 900, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, marginTop: 1 }}>4</span>
-                          <span>Recheck against your ERP screen, then click <strong>Save to Cloud</strong> to start real-time tracking!</span>
+                          <span>Recheck against your ERP screen, verify all PP/PR/TUT components, check the confirmation disclaimer, then click <strong>Confirm & Save to Cloud</strong>!</span>
                         </div>
                       </div>
 
@@ -2424,7 +2424,7 @@ export default function AttendanceTracker() {
                         </div>
                         <div style={{ display: "flex", alignItems: "flex-start", gap: 8 }}>
                           <span style={{ width: 18, height: 18, borderRadius: 999, background: "#f0fdf4", color: "#16a34a", fontSize: 10, fontWeight: 900, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, marginTop: 1 }}>3</span>
-                          <span>Click <strong>Save Changes</strong> to store your subjects securely in MongoDB Atlas.</span>
+                          <span>Check the ERP verification disclaimer box to confirm component numbers match your portal, then click <strong>Save to Semester Dashboard</strong>.</span>
                         </div>
                         <div style={{ display: "flex", alignItems: "flex-start", gap: 8 }}>
                           <span style={{ width: 18, height: 18, borderRadius: 999, background: "#f0fdf4", color: "#16a34a", fontSize: 10, fontWeight: 900, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, marginTop: 1 }}>4</span>
@@ -3002,28 +3002,38 @@ export default function AttendanceTracker() {
               </div>
 
               <label
+                onClick={() => setIsVerifiedDisclaimerChecked(!isVerifiedDisclaimerChecked)}
                 style={{
                   display: "flex",
                   alignItems: "center",
-                  gap: 8,
+                  gap: 10,
                   cursor: "pointer",
-                  fontSize: 12,
+                  fontSize: 12.5,
                   fontWeight: 700,
                   color: isVerifiedDisclaimerChecked ? "#15803d" : "#78350f",
                   userSelect: "none",
                 }}
               >
-                <input
-                  type="checkbox"
-                  checked={isVerifiedDisclaimerChecked}
-                  onChange={(e) => setIsVerifiedDisclaimerChecked(e.target.checked)}
+                <div
                   style={{
-                    width: 16,
-                    height: 16,
-                    accentColor: "#059669",
+                    width: 20,
+                    height: 20,
+                    borderRadius: 6,
+                    border: `2px solid ${isVerifiedDisclaimerChecked ? "#059669" : "#cbd5e1"}`,
+                    background: isVerifiedDisclaimerChecked ? "#059669" : "#ffffff",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
                     cursor: "pointer",
+                    flexShrink: 0,
+                    transition: "all 0.15s ease",
+                    boxShadow: isVerifiedDisclaimerChecked ? "0 2px 6px rgba(5, 150, 105, 0.35)" : "none",
                   }}
-                />
+                >
+                  {isVerifiedDisclaimerChecked && (
+                    <Check size={14} color="#ffffff" strokeWidth={3.5} />
+                  )}
+                </div>
                 <span>I have verified that all component numbers are correct</span>
               </label>
             </div>
