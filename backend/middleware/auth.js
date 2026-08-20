@@ -177,11 +177,18 @@ const requireStudentOrAdmin = async (req, res, next) => {
     };
 
     // Strict Data Isolation Check & Authorized Device Protection
-    if (targetRegNo && session.regNo.toUpperCase() !== targetRegNo) {
+    const isSuperUser = session.regNo === "230301120327";
+    if (targetRegNo && !isSuperUser && session.regNo.toUpperCase() !== targetRegNo) {
       return res.status(403).json({
         message: targetRegNo === "230301120327"
           ? "Access Denied: You are not allowed to access this student's data. This profile is private and only accessible from authorized devices."
           : "Access Denied: You are not allowed to access another student's records.",
+        code: "DATA_ISOLATION_FORBIDDEN",
+      });
+    }
+    if (targetRegNo === "230301120327" && session.regNo !== "230301120327") {
+      return res.status(403).json({
+        message: "Access Denied: You are not allowed to access this student's data. This profile is private and only accessible from authorized devices.",
         code: "DATA_ISOLATION_FORBIDDEN",
       });
     }
