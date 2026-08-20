@@ -228,7 +228,7 @@ export default function Navbar() {
               textDecoration: "none",
               display: "flex",
               alignItems: "center",
-              gap: 10,
+              gap: 2,
               flexShrink: 0,
               marginRight: 6,
               zIndex: 1001,
@@ -239,11 +239,12 @@ export default function Navbar() {
               alt="GradeFlow Logo"
               className="gf-logo-img"
               style={{
-                height: 48,
+                height: 52,
                 width: "auto",
                 objectFit: "contain",
                 flexShrink: 0,
                 display: "block",
+                marginRight: -2,
               }}
             />
             <span
@@ -251,7 +252,7 @@ export default function Navbar() {
               style={{
                 fontFamily: "'DM Sans', sans-serif",
                 fontWeight: 800,
-                fontSize: 22.5,
+                fontSize: 23.5,
                 color: "#0f172a",
                 letterSpacing: "-0.5px",
                 whiteSpace: "nowrap",
@@ -2049,10 +2050,11 @@ export default function Navbar() {
             white-space: nowrap !important;
           }
           .gf-logo-text {
-            font-size: 20.5px !important;
+            font-size: 21.5px !important;
           }
           .gf-logo-img {
-            height: 42px !important;
+            height: 46px !important;
+            margin-right: -2px !important;
           }
         }
         @media (max-width: 480px) {
@@ -2079,10 +2081,11 @@ export default function Navbar() {
             white-space: nowrap !important;
           }
           .gf-logo-text {
-            font-size: 18.5px !important;
+            font-size: 19.5px !important;
           }
           .gf-logo-img {
-            height: 36px !important;
+            height: 40px !important;
+            margin-right: -2px !important;
           }
         }
         @media (max-width: 360px) {
@@ -2100,10 +2103,11 @@ export default function Navbar() {
             height: 32px !important;
           }
           .gf-logo-text {
-            font-size: 17px !important;
+            font-size: 17.5px !important;
           }
           .gf-logo-img {
-            height: 32px !important;
+            height: 35px !important;
+            margin-right: -2px !important;
           }
         }
       `}</style>

@@ -3813,21 +3813,22 @@ export default function Home() {
                   maxWidth: 460,
                 }}
               >
-                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 2 }}>
                   <img
                     src="/webisteLogo.png"
                     alt="GradeFlow Logo"
                     style={{
-                      height: 44,
+                      height: 48,
                       width: "auto",
-                      maxHeight: 48,
+                      maxHeight: 52,
                       objectFit: "contain",
+                      marginRight: -2,
                     }}
                   />
                   <span
                     style={{
                       fontFamily: "'DM Sans', sans-serif",
-                      fontSize: 22.5,
+                      fontSize: 23.5,
                       fontWeight: 800,
                       color: "#0f172a",
                       letterSpacing: "-0.5px",
