@@ -316,6 +316,7 @@ router.post("/student/verify-otp", otpLimiter, async (req, res) => {
 
     res.json({
       success: true,
+      token: studentToken,
       message: "Authentication successful.",
       student: {
         regNo: rawReg,

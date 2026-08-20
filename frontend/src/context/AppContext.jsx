@@ -10,9 +10,25 @@ axios.defaults.withCredentials = true;
 axios.interceptors.request.use((config) => {
   try {
     const adminJwt = sessionStorage.getItem("gf_admin_jwt") || localStorage.getItem("gf_admin_jwt");
+    const studentJwt = localStorage.getItem("gf_student_jwt") || sessionStorage.getItem("gf_student_jwt");
+
+    config.headers = config.headers || {};
     if (adminJwt) {
-      config.headers = config.headers || {};
+      config.headers["x-admin-token"] = adminJwt;
+    }
+    if (studentJwt) {
+      config.headers["x-student-token"] = studentJwt;
+    }
+
+    // Attach Authorization Bearer targeted by endpoint
+    if (config.url?.includes("/auth/student/")) {
+      if (studentJwt) {
+        config.headers.Authorization = `Bearer ${studentJwt}`;
+      }
+    } else if (adminJwt) {
       config.headers.Authorization = `Bearer ${adminJwt}`;
+    } else if (studentJwt) {
+      config.headers.Authorization = `Bearer ${studentJwt}`;
     }
   } catch {}
   return config;
@@ -21,13 +37,9 @@ axios.interceptors.request.use((config) => {
 const AppCtx = createContext();
 
 export function AppProvider({ children }) {
-  // Proactively wipe any legacy sensitive data from localStorage on startup
+  // Proactively wipe any legacy temporary keys from localStorage on startup
   useEffect(() => {
     try {
-      localStorage.removeItem("gf_student_data");
-      localStorage.removeItem("gf_student_session");
-      localStorage.removeItem("last_regNo");
-      localStorage.removeItem("last_studentName");
       localStorage.removeItem("gf_cache_version");
     } catch {}
   }, []);
@@ -62,7 +74,7 @@ export function AppProvider({ children }) {
   const [authChecking, setAuthChecking] = useState(true);
   const navigate = useNavigate();
 
-  // ─── Check Auth on Startup (Both Admin & Student from HttpOnly Cookie + Bearer) ─
+  // ─── Check Auth on Startup (Both Admin & Student from HttpOnly Cookie + Token) ─
   useEffect(() => {
     const checkAuth = async () => {
       // 1. Check Admin Auth
@@ -85,19 +97,35 @@ export function AppProvider({ children }) {
         setAdminToken(false);
       }
 
-      // 2. Check Student Session (Direct from Server via HttpOnly Cookie)
+      // 2. Check Student Session (Persistent across 7 days)
       try {
-        const resStudent = await axios.get(`${API_BASE}/auth/student/me`);
+        const studentJwt = localStorage.getItem("gf_student_jwt") || sessionStorage.getItem("gf_student_jwt");
+        const headers = studentJwt ? { "x-student-token": studentJwt, Authorization: `Bearer ${studentJwt}` } : {};
+        const resStudent = await axios.get(`${API_BASE}/auth/student/me`, { headers, withCredentials: true });
         if (resStudent.data?.success && resStudent.data?.student) {
+          if (resStudent.data?.token) {
+            localStorage.setItem("gf_student_jwt", resStudent.data.token);
+          }
           setStudentSession(resStudent.data.student);
           await fetchStudent(resStudent.data.student.regNo, 2, 500);
         } else {
+          // Only wipe if server confirmed session expired/terminated
+          const code = resStudent.data?.code;
+          if (code === "SESSION_TERMINATED" || code === "INACTIVITY_LOGOUT" || code === "SESSION_INACTIVE_EXPIRED") {
+            localStorage.removeItem("gf_student_jwt");
+            sessionStorage.removeItem("gf_student_jwt");
+            setStudentSession(null);
+            setStudentData(null);
+          }
+        }
+      } catch (err) {
+        const code = err.response?.data?.code;
+        if (code === "SESSION_TERMINATED" || code === "INACTIVITY_LOGOUT" || code === "SESSION_INACTIVE_EXPIRED") {
+          localStorage.removeItem("gf_student_jwt");
+          sessionStorage.removeItem("gf_student_jwt");
           setStudentSession(null);
           setStudentData(null);
         }
-      } catch (err) {
-        setStudentSession(null);
-        setStudentData(null);
       } finally {
         setAuthChecking(false);
       }
@@ -134,6 +162,10 @@ export function AppProvider({ children }) {
     try {
       const res = await axios.post(`${API_BASE}/auth/student/verify-otp`, { regNo, otp });
       if (res.data?.success && res.data?.student) {
+        if (res.data?.token) {
+          localStorage.setItem("gf_student_jwt", res.data.token);
+          sessionStorage.setItem("gf_student_jwt", res.data.token);
+        }
         setStudentSession(res.data.student);
         // Fetch student profile directly into memory
         await fetchStudent(regNo, 3, 500, true);
@@ -164,6 +196,7 @@ export function AppProvider({ children }) {
     setIsAuthModalOpen(false);
 
     try {
+      localStorage.removeItem("gf_student_jwt");
       localStorage.removeItem("gf_student_data");
       localStorage.removeItem("gf_student_session");
       localStorage.removeItem("last_regNo");

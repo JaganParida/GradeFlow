@@ -32,10 +32,10 @@ const protectAdmin = protect;
 
 // Student Protection Middleware (Enforces Single Device & 7-Day Inactivity Check)
 const protectStudent = async (req, res, next) => {
-  let token;
-  if (req.cookies && req.cookies.student_jwt) {
+  let token = req.headers["x-student-token"];
+  if (!token && req.cookies && req.cookies.student_jwt) {
     token = req.cookies.student_jwt;
-  } else if (req.headers.authorization && req.headers.authorization.startsWith("Bearer")) {
+  } else if (!token && req.headers.authorization && req.headers.authorization.startsWith("Bearer")) {
     token = req.headers.authorization.split(" ")[1];
   }
 

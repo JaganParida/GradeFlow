@@ -391,6 +391,7 @@ module.exports = async function handler(req, res) {
 
       return res.json({
         success: true,
+        token,
         message: "Successfully verified and authenticated.",
         student: {
           regNo: rawReg,
@@ -404,19 +405,22 @@ module.exports = async function handler(req, res) {
        3. STUDENT ME (CURRENT SESSION STATUS)
     ───────────────────────────────────────────────────────────── */
     if ((action === "student-me" || action === "me-student") && req.method === "GET") {
-      let token = cookies.student_jwt;
+      let token = req.headers["x-student-token"];
+      if (!token && cookies.student_jwt && cookies.student_jwt !== "none") {
+        token = cookies.student_jwt;
+      }
       if (!token && req.headers.authorization && req.headers.authorization.startsWith("Bearer")) {
         token = req.headers.authorization.split(" ")[1];
       }
 
-      if (!token) {
+      if (!token || token === "none") {
         return res.status(401).json({ authenticated: false, success: false, message: "No active student session." });
       }
 
       try {
         const decoded = jwt.verify(token, process.env.JWT_SECRET);
-        if (decoded.role !== "student") {
-          return res.status(403).json({ authenticated: false, success: false, message: "Invalid session role." });
+        if (!decoded.regNo || !decoded.sessionId) {
+          return res.status(401).json({ authenticated: false, success: false, message: "Invalid session token." });
         }
 
         const session = await StudentSession.findOne({
@@ -435,7 +439,10 @@ module.exports = async function handler(req, res) {
         }
 
         const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000;
-        if (Date.now() - new Date(session.lastActiveAt).getTime() > SEVEN_DAYS_MS) {
+        const now = Date.now();
+        const lastActive = new Date(session.lastActiveAt).getTime();
+
+        if (now - lastActive > SEVEN_DAYS_MS) {
           await StudentSession.deleteOne({ _id: session._id });
           return res.status(401).json({
             authenticated: false,
@@ -445,7 +452,9 @@ module.exports = async function handler(req, res) {
           });
         }
 
+        // Refresh last active timestamp & extend expiration by 7 days
         session.lastActiveAt = new Date();
+        session.expiresAt = new Date(now + SEVEN_DAYS_MS);
         await session.save();
 
         const studentRecord = await SemesterResult.findOne({ regNo: decoded.regNo }).sort({ semester: -1 });
@@ -453,6 +462,7 @@ module.exports = async function handler(req, res) {
         return res.json({
           success: true,
           authenticated: true,
+          token,
           student: {
             regNo: decoded.regNo,
             studentName: studentRecord?.studentName || "Student",
