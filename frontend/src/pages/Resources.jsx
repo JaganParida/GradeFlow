@@ -824,7 +824,7 @@ export default function Resources() {
                         { num: "1", text: "Multiply each subject's credit by its grade point" },
                         { num: "2", text: "Sum all weighted values together" },
                         { num: "3", text: "Divide by total credits registered that semester" },
-                        { num: "★", text: "All grades (incl. F=2, R=0, S=0, M=0) are counted", accent: true },
+                        { num: "star", text: "All grades (incl. F=2, R=0, S=0, M=0) are counted", accent: true },
                       ].map((step, idx) => (
                         <div key={idx} style={{ display: "flex", alignItems: "center", gap: 8 }}>
                           <span
@@ -842,7 +842,7 @@ export default function Resources() {
                               flexShrink: 0,
                             }}
                           >
-                            {step.num === "★" ? <Sparkles size={10} /> : step.num}
+                            {step.num === "star" ? <CheckCircle2 size={10} /> : step.num}
                           </span>
                           <span style={{ fontSize: isMobile ? 11.5 : 13, color: step.accent ? "#2563eb" : "#475569", fontWeight: step.accent ? 700 : 500, lineHeight: 1.3 }}>
                             {step.text}
@@ -910,7 +910,7 @@ export default function Resources() {
                         { num: "1", text: "Calculate SGPA for each completed semester" },
                         { num: "2", text: "Multiply each SGPA by that semester's total credits" },
                         { num: "3", text: "Sum all products, then divide by cumulative credits" },
-                        { num: "★", text: "Weighted average — more credits = more influence", accent: true },
+                        { num: "star", text: "Weighted average — more credits = more influence", accent: true },
                       ].map((step, idx) => (
                         <div key={idx} style={{ display: "flex", alignItems: "center", gap: 10 }}>
                           <span
@@ -928,7 +928,7 @@ export default function Resources() {
                               flexShrink: 0,
                             }}
                           >
-                            {step.num === "★" ? <Sparkles size={11} /> : step.num}
+                            {step.num === "star" ? <CheckCircle2 size={11} /> : step.num}
                           </span>
                           <span style={{ fontSize: isMobile ? 12 : 13, color: step.accent ? "#7c3aed" : "#475569", fontWeight: step.accent ? 700 : 500, lineHeight: 1.35 }}>
                             {step.text}

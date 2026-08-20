@@ -1606,7 +1606,7 @@ export default function Timetable() {
                   >
                     <GraduationCap size={22} color="#2563eb" style={{ flexShrink: 0 }} />
                     <div style={{ fontSize: 13, fontWeight: 700 }}>
-                      <strong>🎯 Last Date of Instruction (Odd Semester): </strong>
+                      <strong>Last Date of Instruction (Odd Semester): </strong>
                       Today (31st October 2026) is the final day of semester teaching. Practical &amp; Theory exams commence next week.
                     </div>
                   </motion.div>

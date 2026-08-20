@@ -8,7 +8,7 @@ import {
   CheckCircle2,
   TrendingUp,
   TrendingDown,
-  Sparkles,
+  Activity,
   Layers,
   ChevronDown,
   ChevronUp,
@@ -128,7 +128,7 @@ export default function AttendanceTargetPredictor({
 
   // All required sessions to display
   const allSessions = baseProjection?.requiredSessions || [];
-  const visibleSessions = showAllDates ? allSessions : allSessions.slice(0, 6);
+  const visibleSessions = showAllDates ? allSessions : (allSessions.length <= 15 ? allSessions : allSessions.slice(0, 15));
 
   return (
     <div
@@ -174,7 +174,7 @@ export default function AttendanceTargetPredictor({
                 letterSpacing: "0.5px",
               }}
             >
-              <Sparkles size={13} color="#16a34a" /> Live Predictive Intelligence
+              <Activity size={13} color="#16a34a" /> Live Predictive Intelligence
             </span>
             {subCode && (
               <span
@@ -356,8 +356,16 @@ export default function AttendanceTargetPredictor({
           <div style={{ fontSize: 11, fontWeight: 800, color: "#7c3aed", textTransform: "uppercase", display: "flex", alignItems: "center", gap: 5 }}>
             <Compass size={13} /> Semester Timeline
           </div>
-          <div style={{ fontSize: 18, fontWeight: 900, color: "#6b21a8" }}>
-            {baseProjection?.isAttainable ? "Attainable ✅" : "Warning ⚠️"}
+          <div style={{ fontSize: 18, fontWeight: 900, color: "#6b21a8", display: "flex", alignItems: "center", gap: 6 }}>
+            {baseProjection?.isAttainable ? (
+              <>
+                <span>Attainable</span> <CheckCircle2 size={16} color="#16a34a" />
+              </>
+            ) : (
+              <>
+                <span>Warning</span> <AlertTriangle size={16} color="#ea580c" />
+              </>
+            )}
           </div>
           <div style={{ fontSize: 11, color: "#7c3aed", fontWeight: 700 }}>
             Max attainable: <strong>{baseProjection?.maxAttainablePercentage || 100}%</strong> (End: 31 Oct)
@@ -477,7 +485,7 @@ export default function AttendanceTargetPredictor({
               </p>
             </div>
 
-            {allSessions.length > 6 && (
+            {allSessions.length > 15 && (
               <button
                 type="button"
                 onClick={() => setShowAllDates(!showAllDates)}
@@ -497,7 +505,7 @@ export default function AttendanceTargetPredictor({
               >
                 {showAllDates ? (
                   <>
-                    <ChevronUp size={14} /> Collapse List (Show First 6)
+                    <ChevronUp size={14} /> Collapse List (Show First 15)
                   </>
                 ) : (
                   <>
@@ -832,8 +840,8 @@ export default function AttendanceTargetPredictor({
             {/* Appended sessions preview */}
             {missPenaltyData?.appendedSessions && missPenaltyData.appendedSessions.length > 0 && (
               <div style={{ marginTop: 8 }}>
-                <div style={{ fontSize: 11.5, fontWeight: 800, color: "#9a3412", marginBottom: 6 }}>
-                  ⚠️ Additional Class Dates You Will Be Forced to Attend:
+                <div style={{ fontSize: 11.5, fontWeight: 800, color: "#9a3412", marginBottom: 6, display: "flex", alignItems: "center", gap: 5 }}>
+                  <AlertTriangle size={13} color="#c2410c" /> Additional Class Dates You Will Be Forced to Attend:
                 </div>
                 <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
                   {missPenaltyData.appendedSessions.map((ses, idx) => (
@@ -1163,8 +1171,11 @@ export default function AttendanceTargetPredictor({
                     Final attendance will become <strong>{multiPhaseData.phase3.finalPercentage}%</strong> ({multiPhaseData.phase3.finalAttended}/{multiPhaseData.phase3.finalDelivered}).
                   </div>
                 ) : (
-                  <div style={{ fontSize: 12, color: "#166534" }}>
-                    🎉 No extra classes needed! Even after missing {multiPhaseData.phase2.bunkCount} classes, your attendance remains at <strong>{multiPhaseData.phase2.postBunkPercentage}%</strong> which is safely &ge; {multiPhaseData.recoveryTarget}%. You still have <strong>{multiPhaseData.phase3.safeBunksRemaining} additional safe bunks</strong> remaining!
+                  <div style={{ fontSize: 12, color: "#166534", display: "flex", alignItems: "flex-start", gap: 6 }}>
+                    <CheckCircle2 size={15} color="#16a34a" style={{ flexShrink: 0, marginTop: 2 }} />
+                    <div>
+                      No extra classes needed! Even after missing {multiPhaseData.phase2.bunkCount} classes, your attendance remains at <strong>{multiPhaseData.phase2.postBunkPercentage}%</strong> which is safely &ge; {multiPhaseData.recoveryTarget}%. You still have <strong>{multiPhaseData.phase3.safeBunksRemaining} additional safe bunks</strong> remaining!
+                    </div>
                   </div>
                 )}
 

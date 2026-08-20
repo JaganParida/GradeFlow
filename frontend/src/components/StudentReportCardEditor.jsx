@@ -538,7 +538,7 @@ export default function StudentReportCardEditor({ authHeaders, API, onSuccess })
                     fontWeight: 700,
                   }}
                 >
-                  ✕
+                  &times;
                 </button>
               )}
             </div>

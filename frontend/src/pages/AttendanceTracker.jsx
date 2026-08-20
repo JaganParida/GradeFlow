@@ -37,7 +37,8 @@ import {
   Sun,
   Check,
   X,
-  Sparkles,
+  Camera,
+  Activity,
   BarChart3,
   GraduationCap,
   Lock,
@@ -1009,7 +1010,7 @@ export default function AttendanceTracker() {
                   boxShadow: "0 1px 3px rgba(37, 99, 235, 0.08)",
                 }}
               >
-                <Sparkles size={14} color="#2563eb" />
+                <Camera size={14} color="#2563eb" />
                 <span>Auto-Import via Screenshot</span>
               </button>
 
@@ -1616,7 +1617,7 @@ export default function AttendanceTracker() {
                   : "none",
             }}
           >
-            <Sparkles size={16} />
+            <Zap size={16} />
             <span>Smart Bunk & Safe Days Analyzer</span>
             <span
               style={{
@@ -1683,7 +1684,7 @@ export default function AttendanceTracker() {
                           boxShadow: "0 2px 8px rgba(5, 150, 105, 0.25)",
                         }}
                       >
-                        <Sparkles size={20} />
+                        <Zap size={20} />
                       </div>
                       <div>
                         <h3 style={{ fontSize: isMobile ? 15.5 : 18, fontWeight: 900, color: "#0f172a", margin: 0, display: "flex", alignItems: "center", gap: 8 }}>
@@ -1719,7 +1720,7 @@ export default function AttendanceTracker() {
                       onMouseEnter={(e) => (e.currentTarget.style.transform = "translateY(-1px)")}
                       onMouseLeave={(e) => (e.currentTarget.style.transform = "translateY(0)")}
                     >
-                      <Sparkles size={15} />
+                      <Camera size={15} />
                       <span>Auto-Import via Screenshot</span>
                     </button>
                   </div>
@@ -2035,9 +2036,20 @@ export default function AttendanceTracker() {
                                 padding: "2px 6px",
                                 borderRadius: 6,
                                 border: `1px solid ${isPresent ? "#bbf7d0" : "#fecaca"}`,
+                                display: "inline-flex",
+                                alignItems: "center",
+                                gap: 3,
                               }}
                             >
-                              {isPresent ? "✓ +1 Attended" : "✕ +1 Conducted"}
+                              {isPresent ? (
+                                <>
+                                  <Check size={10} strokeWidth={3} /> +1 Attended
+                                </>
+                              ) : (
+                                <>
+                                  <X size={10} strokeWidth={3} /> +1 Conducted
+                                </>
+                              )}
                             </span>
                           )}
                           <span
@@ -3337,7 +3349,7 @@ export default function AttendanceTracker() {
                           </>
                         ) : subCalc.safeBunks > 0 ? (
                           <>
-                            <Sparkles size={13} color="#16a34a" />
+                            <ShieldCheck size={13} color="#16a34a" />
                             <span style={{ fontWeight: 800, color: "#166534" }}>
                               Safe buffer: Can miss {subCalc.safeBunks} {subCalc.safeBunks === 1 ? "class" : "classes"} (stays &ge; 75%)
                             </span>

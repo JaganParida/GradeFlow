@@ -1094,15 +1094,18 @@ export default function Home() {
           }}
         >
           {[
-            { id: "tracker", label: "📈 Performance" },
-            { id: "rankings", label: "🏆 Rankings" },
-            { id: "career", label: "💼 Placement" },
-            { id: "simulator", label: "🎛️ Simulator" },
+            { id: "tracker", label: "Performance", icon: <TrendingUp size={12} /> },
+            { id: "rankings", label: "Rankings", icon: <Trophy size={12} /> },
+            { id: "career", label: "Placement", icon: <Briefcase size={12} /> },
+            { id: "simulator", label: "Simulator", icon: <Sliders size={12} /> },
           ].map((t) => (
             <button
               key={t.id}
               onClick={() => setMobileShowcaseTab(t.id)}
               style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 5,
                 padding: "6px 11px",
                 borderRadius: 99,
                 border:
@@ -1119,7 +1122,8 @@ export default function Home() {
                 transition: "all 0.15s ease",
               }}
             >
-              {t.label}
+              {t.icon}
+              <span>{t.label}</span>
             </button>
           ))}
         </div>

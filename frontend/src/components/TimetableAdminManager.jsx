@@ -1172,12 +1172,12 @@ export default function TimetableAdminManager({ authHeaders, API }) {
                                     </div>
                                     {p.room && (
                                       <div style={{ fontSize: 10, color: "#64748b", marginTop: 2 }}>
-                                        📍 {p.room}
+                                        <span style={{ display: "inline-flex", alignItems: "center", gap: 3 }}><MapPin size={10} color="#64748b" /> {p.room}</span>
                                       </div>
                                     )}
                                     {p.faculty && (
                                       <div style={{ fontSize: 10, color: "#64748b" }}>
-                                        👤 {p.faculty}
+                                        <span style={{ display: "inline-flex", alignItems: "center", gap: 3 }}><User size={10} color="#64748b" /> {p.faculty}</span>
                                       </div>
                                     )}
                                   </div>
@@ -2243,7 +2243,7 @@ export default function TimetableAdminManager({ authHeaders, API }) {
                                         <div style={{ fontWeight: 800, color: p.type === "PR" ? "#7c3aed" : "#1d4ed8" }}>
                                           {p.subject}
                                         </div>
-                                        {p.room && <div style={{ fontSize: 9.5, color: "#64748b" }}>📍 {p.room}</div>}
+                                        {p.room && <div style={{ fontSize: 9.5, color: "#64748b", display: "flex", alignItems: "center", gap: 3 }}><MapPin size={9.5} color="#64748b" /> {p.room}</div>}
                                       </div>
                                     )}
                                   </td>

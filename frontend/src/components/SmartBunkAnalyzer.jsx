@@ -1171,7 +1171,7 @@ export default function SmartBunkAnalyzer({
                         fontWeight: 900,
                       }}
                     >
-                      {isChecked ? "✓" : ""}
+                      {isChecked ? "•" : ""}
                     </span>
                     <span>{dName}</span>
                     <span

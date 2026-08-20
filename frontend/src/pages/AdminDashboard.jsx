@@ -943,7 +943,7 @@ function MissingUploadCard({
                           )}
                           <td style={{ padding: "6px 8px" }}>
                             <span style={{ background: "#ecfdf5", color: "#065f46", padding: "2px 5px", borderRadius: 4, fontSize: 10, fontWeight: 700 }}>
-                              ✅ Ingested
+                              Ingested
                             </span>
                           </td>
                         </tr>
