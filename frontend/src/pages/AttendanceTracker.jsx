@@ -1263,66 +1263,24 @@ export default function AttendanceTracker() {
               </div>
             )}
 
-            {/* Mode Switcher Bar */}
+            {/* Attendance Tracker Header Pill */}
             <div
               style={{
                 display: "inline-flex",
-                background: "#f1f5f9",
-                padding: 4,
+                background: "#f0fdf4",
+                padding: "6px 14px",
                 borderRadius: 12,
-                gap: 3,
-                border: "1px solid #e2e8f0",
-                overflowX: "auto",
-                maxWidth: "100%",
+                border: "1px solid #bbf7d0",
+                alignItems: "center",
+                gap: 6,
+                color: "#059669",
+                fontSize: 12,
+                fontWeight: 800,
+                boxShadow: "0 1px 3px rgba(0,0,0,0.02)",
               }}
             >
-              <button
-                type="button"
-                style={{
-                  padding: isMobile ? "6px 10px" : "7px 14px",
-                  borderRadius: 9,
-                  border: "none",
-                  background: "#ffffff",
-                  color: "#059669",
-                  fontSize: 12,
-                  fontWeight: 800,
-                  cursor: "pointer",
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 6,
-                  boxShadow: "0 1px 4px rgba(0,0,0,0.08)",
-                  whiteSpace: "nowrap",
-                }}
-              >
-                <Percent size={14} />
-                <span>Attendance Tracker</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => {
-                  const target = currentRegNo ? `/timetable/${encodeStudentId(currentRegNo)}` : "/timetable";
-                  navigate(target);
-                }}
-                style={{
-                  padding: isMobile ? "6px 10px" : "7px 14px",
-                  borderRadius: 9,
-                  border: "none",
-                  background: "transparent",
-                  color: "#2563eb",
-                  fontSize: 12,
-                  fontWeight: 800,
-                  cursor: "pointer",
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 6,
-                  whiteSpace: "nowrap",
-                  transition: "background 0.15s ease",
-                }}
-              >
-                <Clock size={14} />
-                <span>Class Timetable</span>
-              </button>
+              <Percent size={14} color="#059669" />
+              <span>Attendance Tracker</span>
             </div>
           </div>
 
