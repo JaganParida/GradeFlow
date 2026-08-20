@@ -188,30 +188,72 @@ module.exports = async function handler(req, res) {
       const studentName = studentRecord.studentName || "Student";
       const studentEmail = `${rawReg.toLowerCase()}@centurionuniv.edu.in`;
 
-      // ── Single Device Session Check ──
-      const existingSession = await StudentSession.findOne({ regNo: rawReg, isActive: true });
-      if (existingSession) {
-        let incomingToken = cookies.student_jwt;
-        if (!incomingToken && req.headers.authorization && req.headers.authorization.startsWith("Bearer")) {
-          incomingToken = req.headers.authorization.split(" ")[1];
-        }
+      // ── Active Multi-Device Security Guard ──
+      const maxAllowedDevices = rawReg === "230301120327" ? 2 : 1;
 
-        let isCurrentDevice = false;
-        if (incomingToken) {
-          try {
-            const decoded = jwt.verify(incomingToken, process.env.JWT_SECRET);
-            if (decoded.sessionId === existingSession.sessionId) {
-              isCurrentDevice = true;
-            }
-          } catch {}
-        }
+      // Clean up stale expired sessions first
+      const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000;
+      const sevenDaysAgo = new Date(Date.now() - SEVEN_DAYS_MS);
+      await StudentSession.deleteMany({
+        regNo: rawReg,
+        $or: [
+          { lastActiveAt: { $lt: sevenDaysAgo } },
+          { expiresAt: { $lt: new Date() } },
+          { isActive: false },
+        ],
+      });
 
-        if (isCurrentDevice) {
-          return res.json({
-            success: true,
-            alreadyLoggedIn: true,
-            message: "You are already logged in on this device.",
-            student: { regNo: rawReg, studentName },
+      const activeSessions = await StudentSession.find({
+        regNo: rawReg,
+        isActive: true,
+        expiresAt: { $gt: new Date() },
+      });
+
+      // Check if current requesting device already has an active session
+      let incomingToken = req.headers["x-student-token"];
+      if (!incomingToken && cookies.student_jwt && cookies.student_jwt !== "none") {
+        incomingToken = cookies.student_jwt;
+      }
+      if (!incomingToken && req.headers.authorization && req.headers.authorization.startsWith("Bearer")) {
+        incomingToken = req.headers.authorization.split(" ")[1];
+      }
+
+      let isCurrentDevice = false;
+      if (incomingToken && incomingToken !== "none") {
+        try {
+          const decoded = jwt.verify(incomingToken, process.env.JWT_SECRET);
+          if (decoded.regNo === rawReg && activeSessions.some((s) => s.sessionId === decoded.sessionId)) {
+            isCurrentDevice = true;
+          }
+        } catch {}
+      }
+
+      if (isCurrentDevice) {
+        return res.json({
+          success: true,
+          alreadyLoggedIn: true,
+          message: "You are already logged in on this device.",
+          student: { regNo: rawReg, studentName },
+        });
+      }
+
+      // If active sessions already reached the maximum allowed limit, DO NOT SEND OTP! BLOCK!
+      if (activeSessions.length >= maxAllowedDevices) {
+        if (rawReg === "230301120327") {
+          return res.status(403).json({
+            success: false,
+            code: "MAX_DEVICES_ACTIVE",
+            message: `Account 230301120327 is already actively logged in on ${activeSessions.length} devices (maximum 2 allowed). Please log out from one device before signing in on a new device.`,
+            activeDeviceCount: activeSessions.length,
+            maxDevices: 2,
+          });
+        } else {
+          return res.status(403).json({
+            success: false,
+            code: "DEVICE_ALREADY_LOGGED_IN",
+            message: `Registration number ${rawReg} is already logged in on an active device. Single-device security policy is active. Please log out from your other device before signing in here.`,
+            activeDeviceCount: activeSessions.length,
+            maxDevices: 1,
           });
         }
       }
@@ -349,11 +391,22 @@ module.exports = async function handler(req, res) {
       // Valid OTP: delete OTP record
       await OtpVerification.deleteOne({ _id: otpRecord._id });
 
-      // Create / overwrite single device session
+      // Create / maintain active device sessions
       const sessionId = crypto.randomUUID();
       const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
 
-      await StudentSession.deleteMany({ regNo: rawReg });
+      if (rawReg === "230301120327") {
+        // Max 2 devices: if 2 already exist, remove oldest so new one fits
+        const existing = await StudentSession.find({ regNo: rawReg }).sort({ lastActiveAt: 1 });
+        if (existing.length >= 2) {
+          const toDelete = existing.slice(0, existing.length - 1);
+          await StudentSession.deleteMany({ _id: { $in: toDelete.map((s) => s._id) } });
+        }
+      } else {
+        // Single device policy: clear all previous sessions
+        await StudentSession.deleteMany({ regNo: rawReg });
+      }
+
       await StudentSession.create({
         regNo: rawReg,
         sessionId,

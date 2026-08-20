@@ -2,7 +2,7 @@ const mongoose = require("mongoose");
 
 const studentSessionSchema = new mongoose.Schema(
   {
-    regNo: { type: String, required: true, unique: true, index: true },
+    regNo: { type: String, required: true, index: true },
     sessionId: { type: String, required: true, unique: true, index: true },
     deviceInfo: {
       userAgent: { type: String, default: "" },
