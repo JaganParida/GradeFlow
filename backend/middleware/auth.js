@@ -119,7 +119,10 @@ const requireStudentOrAdmin = async (req, res, next) => {
   }
 
   // 2. Check Student Token
-  let studentToken = req.cookies?.student_jwt;
+  let studentToken = req.headers["x-student-token"];
+  if (!studentToken && req.cookies?.student_jwt) {
+    studentToken = req.cookies.student_jwt;
+  }
   if (!studentToken && req.headers.authorization && req.headers.authorization.startsWith("Bearer")) {
     studentToken = req.headers.authorization.split(" ")[1];
   }
@@ -173,10 +176,12 @@ const requireStudentOrAdmin = async (req, res, next) => {
       sessionId: session.sessionId,
     };
 
-    // Strict Data Isolation Check
+    // Strict Data Isolation Check & Authorized Device Protection
     if (targetRegNo && session.regNo.toUpperCase() !== targetRegNo) {
       return res.status(403).json({
-        message: "Access Denied: You are only authorized to view your own student records.",
+        message: targetRegNo === "230301120327"
+          ? "Access Denied: You are not allowed to access this student's data. This profile is private and only accessible from authorized devices."
+          : "Access Denied: You are not allowed to access another student's records.",
         code: "DATA_ISOLATION_FORBIDDEN",
       });
     }

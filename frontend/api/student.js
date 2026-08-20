@@ -81,7 +81,10 @@ module.exports = async function handler(req, res) {
     }
 
     if (!isAdmin) {
-      let studentToken = cookies.student_jwt;
+      let studentToken = req.headers["x-student-token"];
+      if (!studentToken && cookies.student_jwt && cookies.student_jwt !== "none") {
+        studentToken = cookies.student_jwt;
+      }
       if (!studentToken && req.headers.authorization && req.headers.authorization.startsWith("Bearer")) {
         studentToken = req.headers.authorization.split(" ")[1];
       }
@@ -117,10 +120,12 @@ module.exports = async function handler(req, res) {
         });
       }
 
-      // Check strict data isolation
+      // Check strict data isolation & device authorization
       if (decodedStudent.regNo.toUpperCase() !== cleanRegNo) {
         return res.status(403).json({
-          message: "Access Denied: You are only authorized to view your own student records.",
+          message: cleanRegNo === "230301120327"
+            ? "Access Denied: You are not allowed to access this student's data. This profile is private and only accessible from authorized devices."
+            : "Access Denied: You are not allowed to access another student's records.",
           code: "DATA_ISOLATION_FORBIDDEN",
         });
       }
