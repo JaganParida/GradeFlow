@@ -1554,18 +1554,19 @@ export default function AttendanceTracker() {
             background: "#ffffff",
             border: "1px solid #e2e8f0",
             borderRadius: 14,
-            padding: 5,
+            padding: 4,
             display: "grid",
-            gridTemplateColumns: "1fr 1fr",
-            gap: 6,
+            gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
+            gap: isMobile ? 4 : 6,
             boxShadow: "0 1px 3px rgba(0,0,0,0.02)",
+            width: "100%",
           }}
         >
           <button
             type="button"
             onClick={() => setActiveTab("matrix")}
             style={{
-              padding: isMobile ? "9px 12px" : "11px 18px",
+              padding: isMobile ? "8px 4px" : "10px 14px",
               borderRadius: 10,
               border: "none",
               background:
@@ -1573,33 +1574,39 @@ export default function AttendanceTracker() {
                   ? "linear-gradient(135deg, #059669 0%, #047857 100%)"
                   : "transparent",
               color: activeTab === "matrix" ? "#ffffff" : "#475569",
-              fontSize: isMobile ? 12.5 : 13.5,
+              fontSize: isMobile ? 11.5 : 13,
               fontWeight: 800,
               cursor: "pointer",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
-              gap: 8,
+              gap: isMobile ? 4 : 6,
               transition: "all 0.15s ease",
+              whiteSpace: "nowrap",
+              overflow: "hidden",
+              textOverflow: "ellipsis",
               boxShadow:
                 activeTab === "matrix"
                   ? "0 2px 8px rgba(5,150,105,0.25)"
                   : "none",
             }}
           >
-            <Layers size={16} />
-            <span>Subject-Wise Matrix</span>
+            <Layers size={isMobile ? 13 : 15} style={{ flexShrink: 0 }} />
+            <span style={{ overflow: "hidden", textOverflow: "ellipsis" }}>
+              {isMobile ? "Matrix" : "Subject Matrix"}
+            </span>
             <span
               style={{
-                fontSize: 10,
+                fontSize: 9.5,
                 fontWeight: 900,
-                padding: "2px 6px",
+                padding: "1px 5px",
                 borderRadius: 999,
                 background:
                   activeTab === "matrix"
                     ? "rgba(255,255,255,0.25)"
                     : "#ecfdf5",
                 color: activeTab === "matrix" ? "#ffffff" : "#059669",
+                flexShrink: 0,
               }}
             >
               {allSectionSubjects.length}
@@ -1610,7 +1617,7 @@ export default function AttendanceTracker() {
             type="button"
             onClick={() => setActiveTab("studio")}
             style={{
-              padding: isMobile ? "9px 12px" : "11px 18px",
+              padding: isMobile ? "8px 4px" : "10px 14px",
               borderRadius: 10,
               border: "none",
               background:
@@ -1618,29 +1625,34 @@ export default function AttendanceTracker() {
                   ? "linear-gradient(135deg, #4f46e5 0%, #4338ca 100%)"
                   : "transparent",
               color: activeTab === "studio" ? "#ffffff" : "#475569",
-              fontSize: isMobile ? 12.5 : 13.5,
+              fontSize: isMobile ? 11.5 : 13,
               fontWeight: 800,
               cursor: "pointer",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
-              gap: 8,
+              gap: isMobile ? 4 : 6,
               transition: "all 0.15s ease",
+              whiteSpace: "nowrap",
+              overflow: "hidden",
+              textOverflow: "ellipsis",
               boxShadow:
                 activeTab === "studio"
                   ? "0 2px 8px rgba(79,70,229,0.25)"
                   : "none",
             }}
           >
-            <Sliders size={16} />
-            <span>Attendance Studio</span>
+            <Sliders size={isMobile ? 13 : 15} style={{ flexShrink: 0 }} />
+            <span style={{ overflow: "hidden", textOverflow: "ellipsis" }}>
+              {isMobile ? "Studio" : "Attendance Studio"}
+            </span>
           </button>
 
           <button
             type="button"
             onClick={() => setActiveTab("bunk_analyzer")}
             style={{
-              padding: isMobile ? "9px 12px" : "11px 18px",
+              padding: isMobile ? "8px 4px" : "10px 14px",
               borderRadius: 10,
               border: "none",
               background:
@@ -1648,38 +1660,46 @@ export default function AttendanceTracker() {
                   ? "linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)"
                   : "transparent",
               color: activeTab === "bunk_analyzer" ? "#ffffff" : "#475569",
-              fontSize: isMobile ? 12.5 : 13.5,
+              fontSize: isMobile ? 11.5 : 13,
               fontWeight: 800,
               cursor: "pointer",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
-              gap: 8,
+              gap: isMobile ? 4 : 6,
               transition: "all 0.15s ease",
+              whiteSpace: "nowrap",
+              overflow: "hidden",
+              textOverflow: "ellipsis",
               boxShadow:
                 activeTab === "bunk_analyzer"
                   ? "0 2px 8px rgba(37,99,235,0.25)"
                   : "none",
             }}
           >
-            <Zap size={16} />
-            <span>Smart Bunk & Safe Days Analyzer</span>
-            <span
-              style={{
-                fontSize: 10,
-                fontWeight: 900,
-                padding: "2px 6px",
-                borderRadius: 999,
-                background:
-                  activeTab === "bunk_analyzer"
-                    ? "rgba(255,255,255,0.25)"
-                    : "#eff6ff",
-                color: activeTab === "bunk_analyzer" ? "#ffffff" : "#2563eb",
-                textTransform: "uppercase",
-              }}
-            >
-              Intelligence
+            <Zap size={isMobile ? 13 : 15} style={{ flexShrink: 0 }} />
+            <span style={{ overflow: "hidden", textOverflow: "ellipsis" }}>
+              {isMobile ? "Bunk Analyzer" : "Safe Bunk Analyzer"}
             </span>
+            {!isMobile && (
+              <span
+                style={{
+                  fontSize: 9.5,
+                  fontWeight: 900,
+                  padding: "1px 5px",
+                  borderRadius: 999,
+                  background:
+                    activeTab === "bunk_analyzer"
+                      ? "rgba(255,255,255,0.25)"
+                      : "#eff6ff",
+                  color: activeTab === "bunk_analyzer" ? "#ffffff" : "#2563eb",
+                  textTransform: "uppercase",
+                  flexShrink: 0,
+                }}
+              >
+                AI
+              </span>
+            )}
           </button>
         </div>
 
@@ -1699,7 +1719,283 @@ export default function AttendanceTracker() {
             transition={{ duration: 0.18, ease: "easeOut" }}
             style={{ display: "flex", flexDirection: "column", gap: 16, width: "100%" }}
           >
-            {/* ═══════════════════════════════════════════════════════════════
+            {/* TODAY'S DAILY ROUTINE ATTENDANCE CHECK-IN HUB */}
+              <div
+                style={{
+                  background: "#ffffff",
+                  border: "1.5px solid #e2e8f0",
+                  borderRadius: 18,
+                  padding: isMobile ? "16px 14px" : "20px 24px",
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: 14,
+                  boxShadow: "0 2px 6px rgba(0,0,0,0.02)",
+                  overflow: "hidden",
+                }}
+              >
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 8 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+              <div
+                style={{
+                  width: 36,
+                  height: 36,
+                  borderRadius: 10,
+                  background: "linear-gradient(135deg, #059669 0%, #10b981 100%)",
+                  color: "#ffffff",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  flexShrink: 0,
+                }}
+              >
+                <CalendarIcon size={18} />
+              </div>
+              <div>
+                <h3 style={{ fontSize: isMobile ? 15 : 17, fontWeight: 800, color: "#0f172a", margin: 0 }}>
+                  Today's Class Check-in ({todayDayName})
+                </h3>
+                <p style={{ fontSize: 12, color: "#64748b", margin: "2px 0 0 0" }}>
+                  Mark attendance as each class ends to auto-increment your saved records in real time.
+                </p>
+              </div>
+            </div>
+
+            <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+              {Object.keys(dailyAttendanceLogs).length > 0 && (
+                <button
+                  type="button"
+                  onClick={handleResetTodayCheckins}
+                  style={{
+                    fontSize: 11,
+                    fontWeight: 700,
+                    color: "#dc2626",
+                    background: "#fef2f2",
+                    border: "1px solid #fecaca",
+                    padding: "4px 10px",
+                    borderRadius: 8,
+                    cursor: "pointer",
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 4,
+                  }}
+                >
+                  <RotateCcw size={12} />
+                  <span>Reset Today</span>
+                </button>
+              )}
+              {(() => {
+                const presentCount = Object.values(dailyAttendanceLogs).filter((v) => v === "present").length;
+                const absentCount = Object.values(dailyAttendanceLogs).filter((v) => v === "absent").length;
+                const totalLogged = presentCount + absentCount;
+
+                return (
+                  <span
+                    style={{
+                      fontSize: 11.5,
+                      fontWeight: 800,
+                      color: totalLogged > 0 ? "#0f766e" : "#059669",
+                      background: totalLogged > 0 ? "#f0fdfa" : "#ecfdf5",
+                      border: `1px solid ${totalLogged > 0 ? "#99f6e4" : "#a7f3d0"}`,
+                      padding: "3px 10px",
+                      borderRadius: 8,
+                    }}
+                  >
+                    {totalLogged === 0
+                      ? `0 / ${todayClasses.length} Logged Today`
+                      : `${presentCount} Present · ${absentCount} Absent (${totalLogged}/${todayClasses.length})`}
+                  </span>
+                );
+              })()}
+            </div>
+          </div>
+
+          {todayClasses.length === 0 ? (
+            <div
+              style={{
+                background: "#f8fafc",
+                border: "1px dashed #cbd5e1",
+                borderRadius: 12,
+                padding: "16px 20px",
+                textAlign: "center",
+                color: "#64748b",
+                fontSize: 13,
+                fontWeight: 600,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: 8,
+              }}
+            >
+              <Info size={16} color="#64748b" />
+              <span>No classes scheduled for {todayDayName} (Section {selectedSection}). Enjoy your day.</span>
+            </div>
+          ) : (
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: isMobile ? "1fr" : "repeat(auto-fill, minmax(280px, 1fr))",
+                gap: 10,
+              }}
+            >
+              {todayClasses.map((period) => {
+                const status = dailyAttendanceLogs[period.slotIndex]; // "present" | "absent" | undefined
+                const isPresent = status === "present";
+                const isAbsent = status === "absent";
+                const subCode = resolveSubjectCode(period, studentData);
+
+                return (
+                  <div
+                    key={period.slotIndex}
+                    style={{
+                      background: isPresent ? "#f0fdf4" : isAbsent ? "#fff1f2" : "#ffffff",
+                      border: `1.5px solid ${isPresent ? "#86efac" : isAbsent ? "#fecdd3" : "#e2e8f0"}`,
+                      borderRadius: 14,
+                      padding: "12px 14px",
+                      display: "flex",
+                      flexDirection: "column",
+                      justifyContent: "space-between",
+                      gap: 10,
+                      boxShadow: isPresent
+                        ? "0 2px 8px rgba(16, 185, 129, 0.08)"
+                        : isAbsent
+                        ? "0 2px 8px rgba(239, 68, 68, 0.08)"
+                        : "0 1px 3px rgba(0,0,0,0.02)",
+                      transition: "all 0.15s ease",
+                    }}
+                  >
+                    <div>
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 6 }}>
+                        <span style={{ fontSize: 10.5, fontWeight: 800, color: "#64748b", fontFamily: "'Space Mono', monospace" }}>
+                          P{period.slotIndex + 1} · {period.slot?.startTime} - {period.slot?.endTime}
+                        </span>
+                        <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                          {status && (
+                            <span
+                              style={{
+                                fontSize: 9.5,
+                                fontWeight: 900,
+                                background: isPresent ? "#dcfce7" : "#fee2e2",
+                                color: isPresent ? "#15803d" : "#b91c1c",
+                                padding: "2px 6px",
+                                borderRadius: 6,
+                                border: `1px solid ${isPresent ? "#bbf7d0" : "#fecaca"}`,
+                                display: "inline-flex",
+                                alignItems: "center",
+                                gap: 3,
+                              }}
+                            >
+                              {isPresent ? (
+                                <>
+                                  <Check size={10} strokeWidth={3} /> +1 Attended
+                                </>
+                              ) : (
+                                <>
+                                  <X size={10} strokeWidth={3} /> +1 Conducted
+                                </>
+                              )}
+                            </span>
+                          )}
+                          <span
+                            style={{
+                              fontSize: 9.5,
+                              fontWeight: 900,
+                              background: period.type === "PR" ? "#faf5ff" : period.type === "TUT" ? "#fffbeb" : "#eff6ff",
+                              color: period.type === "PR" ? "#7c3aed" : period.type === "TUT" ? "#b45309" : "#2563eb",
+                              padding: "2px 6px",
+                              borderRadius: 6,
+                              border: `1px solid ${period.type === "PR" ? "#ddd6fe" : period.type === "TUT" ? "#fde68a" : "#bfdbfe"}`,
+                            }}
+                          >
+                            {period.type || "PP"}
+                          </span>
+                        </div>
+                      </div>
+
+                      <div style={{ marginTop: 4 }}>
+                        <div style={{ fontSize: 13.5, fontWeight: 800, color: "#0f172a", lineHeight: 1.3 }}>
+                          {period.cleanName}
+                        </div>
+                        {subCode && (
+                          <span
+                            style={{
+                              fontSize: 10,
+                              fontFamily: "'Space Mono', monospace",
+                              fontWeight: 800,
+                              color: "#2563eb",
+                              background: "#eff6ff",
+                              border: "1px solid #bfdbfe",
+                              padding: "1px 5px",
+                              borderRadius: 4,
+                              display: "inline-block",
+                              marginTop: 3,
+                            }}
+                          >
+                            {subCode}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Dual Action Buttons: Present & Absent */}
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6, paddingTop: 4 }}>
+                      {/* Mark Present Button */}
+                      <button
+                        type="button"
+                        onClick={() => handleMarkDailyAttendance(period, "present")}
+                        style={{
+                          padding: "7px 10px",
+                          borderRadius: 8,
+                          border: isPresent ? "1.5px solid #059669" : "1px solid #86efac",
+                          background: isPresent ? "linear-gradient(135deg, #059669 0%, #047857 100%)" : "#f0fdf4",
+                          color: isPresent ? "#ffffff" : "#166534",
+                          fontSize: 11.5,
+                          fontWeight: 800,
+                          cursor: "pointer",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          gap: 5,
+                          transition: "all 0.15s ease",
+                          boxShadow: isPresent ? "0 2px 6px rgba(5, 150, 105, 0.25)" : "none",
+                        }}
+                      >
+                        {isPresent ? <CheckCircle2 size={13} color="#ffffff" /> : <Check size={13} color="#166534" />}
+                        <span>Present</span>
+                      </button>
+
+                      {/* Mark Absent Button */}
+                      <button
+                        type="button"
+                        onClick={() => handleMarkDailyAttendance(period, "absent")}
+                        style={{
+                          padding: "7px 10px",
+                          borderRadius: 8,
+                          border: isAbsent ? "1.5px solid #dc2626" : "1px solid #fca5a5",
+                          background: isAbsent ? "linear-gradient(135deg, #dc2626 0%, #b91c1c 100%)" : "#fef2f2",
+                          color: isAbsent ? "#ffffff" : "#991b1b",
+                          fontSize: 11.5,
+                          fontWeight: 800,
+                          cursor: "pointer",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          gap: 5,
+                          transition: "all 0.15s ease",
+                          boxShadow: isAbsent ? "0 2px 6px rgba(220, 38, 38, 0.25)" : "none",
+                        }}
+                      >
+                        {isAbsent ? <X size={13} color="#ffffff" strokeWidth={3} /> : <X size={13} color="#991b1b" />}
+                        <span>Absent</span>
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+
+        {/* ═══════════════════════════════════════════════════════════════
             ALL SEMESTER SUBJECTS MATRIX & TARGET PREDICTOR
         ═══════════════════════════════════════════════════════════════ */}
         {allSectionSubjects.length > 0 && (
@@ -2199,281 +2495,7 @@ export default function AttendanceTracker() {
                 </div>
               )}
 
-              {/* TODAY'S DAILY ROUTINE ATTENDANCE CHECK-IN HUB */}
-              <div
-                style={{
-                  background: "#ffffff",
-                  border: "1.5px solid #e2e8f0",
-                  borderRadius: 18,
-                  padding: isMobile ? "16px 14px" : "20px 24px",
-                  display: "flex",
-                  flexDirection: "column",
-                  gap: 14,
-                  boxShadow: "0 2px 6px rgba(0,0,0,0.02)",
-                  overflow: "hidden",
-                }}
-              >
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 8 }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-              <div
-                style={{
-                  width: 36,
-                  height: 36,
-                  borderRadius: 10,
-                  background: "linear-gradient(135deg, #059669 0%, #10b981 100%)",
-                  color: "#ffffff",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  flexShrink: 0,
-                }}
-              >
-                <CalendarIcon size={18} />
-              </div>
-              <div>
-                <h3 style={{ fontSize: isMobile ? 15 : 17, fontWeight: 800, color: "#0f172a", margin: 0 }}>
-                  Today's Class Check-in ({todayDayName})
-                </h3>
-                <p style={{ fontSize: 12, color: "#64748b", margin: "2px 0 0 0" }}>
-                  Mark attendance as each class ends to auto-increment your saved records in real time.
-                </p>
-              </div>
-            </div>
-
-            <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-              {Object.keys(dailyAttendanceLogs).length > 0 && (
-                <button
-                  type="button"
-                  onClick={handleResetTodayCheckins}
-                  style={{
-                    fontSize: 11,
-                    fontWeight: 700,
-                    color: "#dc2626",
-                    background: "#fef2f2",
-                    border: "1px solid #fecaca",
-                    padding: "4px 10px",
-                    borderRadius: 8,
-                    cursor: "pointer",
-                    display: "inline-flex",
-                    alignItems: "center",
-                    gap: 4,
-                  }}
-                >
-                  <RotateCcw size={12} />
-                  <span>Reset Today</span>
-                </button>
-              )}
-              {(() => {
-                const presentCount = Object.values(dailyAttendanceLogs).filter((v) => v === "present").length;
-                const absentCount = Object.values(dailyAttendanceLogs).filter((v) => v === "absent").length;
-                const totalLogged = presentCount + absentCount;
-
-                return (
-                  <span
-                    style={{
-                      fontSize: 11.5,
-                      fontWeight: 800,
-                      color: totalLogged > 0 ? "#0f766e" : "#059669",
-                      background: totalLogged > 0 ? "#f0fdfa" : "#ecfdf5",
-                      border: `1px solid ${totalLogged > 0 ? "#99f6e4" : "#a7f3d0"}`,
-                      padding: "3px 10px",
-                      borderRadius: 8,
-                    }}
-                  >
-                    {totalLogged === 0
-                      ? `0 / ${todayClasses.length} Logged Today`
-                      : `${presentCount} Present · ${absentCount} Absent (${totalLogged}/${todayClasses.length})`}
-                  </span>
-                );
-              })()}
-            </div>
-          </div>
-
-          {todayClasses.length === 0 ? (
-            <div
-              style={{
-                background: "#f8fafc",
-                border: "1px dashed #cbd5e1",
-                borderRadius: 12,
-                padding: "16px 20px",
-                textAlign: "center",
-                color: "#64748b",
-                fontSize: 13,
-                fontWeight: 600,
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                gap: 8,
-              }}
-            >
-              <Info size={16} color="#64748b" />
-              <span>No classes scheduled for {todayDayName} (Section {selectedSection}). Enjoy your day.</span>
-            </div>
-          ) : (
-            <div
-              style={{
-                display: "grid",
-                gridTemplateColumns: isMobile ? "1fr" : "repeat(auto-fill, minmax(280px, 1fr))",
-                gap: 10,
-              }}
-            >
-              {todayClasses.map((period) => {
-                const status = dailyAttendanceLogs[period.slotIndex]; // "present" | "absent" | undefined
-                const isPresent = status === "present";
-                const isAbsent = status === "absent";
-                const subCode = resolveSubjectCode(period, studentData);
-
-                return (
-                  <div
-                    key={period.slotIndex}
-                    style={{
-                      background: isPresent ? "#f0fdf4" : isAbsent ? "#fff1f2" : "#ffffff",
-                      border: `1.5px solid ${isPresent ? "#86efac" : isAbsent ? "#fecdd3" : "#e2e8f0"}`,
-                      borderRadius: 14,
-                      padding: "12px 14px",
-                      display: "flex",
-                      flexDirection: "column",
-                      justifyContent: "space-between",
-                      gap: 10,
-                      boxShadow: isPresent
-                        ? "0 2px 8px rgba(16, 185, 129, 0.08)"
-                        : isAbsent
-                        ? "0 2px 8px rgba(239, 68, 68, 0.08)"
-                        : "0 1px 3px rgba(0,0,0,0.02)",
-                      transition: "all 0.15s ease",
-                    }}
-                  >
-                    <div>
-                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 6 }}>
-                        <span style={{ fontSize: 10.5, fontWeight: 800, color: "#64748b", fontFamily: "'Space Mono', monospace" }}>
-                          P{period.slotIndex + 1} · {period.slot?.startTime} - {period.slot?.endTime}
-                        </span>
-                        <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
-                          {status && (
-                            <span
-                              style={{
-                                fontSize: 9.5,
-                                fontWeight: 900,
-                                background: isPresent ? "#dcfce7" : "#fee2e2",
-                                color: isPresent ? "#15803d" : "#b91c1c",
-                                padding: "2px 6px",
-                                borderRadius: 6,
-                                border: `1px solid ${isPresent ? "#bbf7d0" : "#fecaca"}`,
-                                display: "inline-flex",
-                                alignItems: "center",
-                                gap: 3,
-                              }}
-                            >
-                              {isPresent ? (
-                                <>
-                                  <Check size={10} strokeWidth={3} /> +1 Attended
-                                </>
-                              ) : (
-                                <>
-                                  <X size={10} strokeWidth={3} /> +1 Conducted
-                                </>
-                              )}
-                            </span>
-                          )}
-                          <span
-                            style={{
-                              fontSize: 9.5,
-                              fontWeight: 900,
-                              background: period.type === "PR" ? "#faf5ff" : period.type === "TUT" ? "#fffbeb" : "#eff6ff",
-                              color: period.type === "PR" ? "#7c3aed" : period.type === "TUT" ? "#b45309" : "#2563eb",
-                              padding: "2px 6px",
-                              borderRadius: 6,
-                              border: `1px solid ${period.type === "PR" ? "#ddd6fe" : period.type === "TUT" ? "#fde68a" : "#bfdbfe"}`,
-                            }}
-                          >
-                            {period.type || "PP"}
-                          </span>
-                        </div>
-                      </div>
-
-                      <div style={{ marginTop: 4 }}>
-                        <div style={{ fontSize: 13.5, fontWeight: 800, color: "#0f172a", lineHeight: 1.3 }}>
-                          {period.cleanName}
-                        </div>
-                        {subCode && (
-                          <span
-                            style={{
-                              fontSize: 10,
-                              fontFamily: "'Space Mono', monospace",
-                              fontWeight: 800,
-                              color: "#2563eb",
-                              background: "#eff6ff",
-                              border: "1px solid #bfdbfe",
-                              padding: "1px 5px",
-                              borderRadius: 4,
-                              display: "inline-block",
-                              marginTop: 3,
-                            }}
-                          >
-                            {subCode}
-                          </span>
-                        )}
-                      </div>
-                    </div>
-
-                    {/* Dual Action Buttons: Present & Absent */}
-                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6, paddingTop: 4 }}>
-                      {/* Mark Present Button */}
-                      <button
-                        type="button"
-                        onClick={() => handleMarkDailyAttendance(period, "present")}
-                        style={{
-                          padding: "7px 10px",
-                          borderRadius: 8,
-                          border: isPresent ? "1.5px solid #059669" : "1px solid #86efac",
-                          background: isPresent ? "linear-gradient(135deg, #059669 0%, #047857 100%)" : "#f0fdf4",
-                          color: isPresent ? "#ffffff" : "#166534",
-                          fontSize: 11.5,
-                          fontWeight: 800,
-                          cursor: "pointer",
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                          gap: 5,
-                          transition: "all 0.15s ease",
-                          boxShadow: isPresent ? "0 2px 6px rgba(5, 150, 105, 0.25)" : "none",
-                        }}
-                      >
-                        {isPresent ? <CheckCircle2 size={13} color="#ffffff" /> : <Check size={13} color="#166534" />}
-                        <span>Present</span>
-                      </button>
-
-                      {/* Mark Absent Button */}
-                      <button
-                        type="button"
-                        onClick={() => handleMarkDailyAttendance(period, "absent")}
-                        style={{
-                          padding: "7px 10px",
-                          borderRadius: 8,
-                          border: isAbsent ? "1.5px solid #dc2626" : "1px solid #fca5a5",
-                          background: isAbsent ? "linear-gradient(135deg, #dc2626 0%, #b91c1c 100%)" : "#fef2f2",
-                          color: isAbsent ? "#ffffff" : "#991b1b",
-                          fontSize: 11.5,
-                          fontWeight: 800,
-                          cursor: "pointer",
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                          gap: 5,
-                          transition: "all 0.15s ease",
-                          boxShadow: isAbsent ? "0 2px 6px rgba(220, 38, 38, 0.25)" : "none",
-                        }}
-                      >
-                        {isAbsent ? <X size={13} color="#ffffff" strokeWidth={3} /> : <X size={13} color="#991b1b" />}
-                        <span>Absent</span>
-                      </button>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </div>
+              
 
         {/* ═══════════════════════════════════════════════════════════════
             MAIN INTERACTIVE ATTENDANCE SIMULATOR STUDIO
