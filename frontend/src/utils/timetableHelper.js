@@ -801,7 +801,8 @@ export function estimateTargetReachDate(
   startDate = new Date(),
   currentAttended = 0,
   currentDelivered = 0,
-  targetPercentage = 75
+  targetPercentage = 75,
+  maxSessionsLimit = 200
 ) {
   if (!classesNeeded || classesNeeded <= 0 || !Array.isArray(weeklyOccurrences) || weeklyOccurrences.length === 0) {
     return null;
@@ -816,12 +817,13 @@ export function estimateTargetReachDate(
   const lastInstructionDate = new Date("2026-10-31T23:59:59");
 
   let remaining = classesNeeded;
-  const current = new Date(startDate);
-  const upcomingSessions = [];
+  const requiredSessions = [];
   let totalRemainingSemClasses = 0;
   let reachDate = null;
 
   const simCurrent = new Date(startDate);
+  let curAtt = Number(currentAttended) || 0;
+  let curDel = Number(currentDelivered) || 0;
 
   // Scan until Last Date of Instruction
   while (simCurrent <= lastInstructionDate) {
@@ -845,24 +847,41 @@ export function estimateTargetReachDate(
 
       if (remaining > 0) {
         remaining--;
+        curAtt += 1;
+        curDel += 1;
+        const runningPct = curDel > 0 ? (curAtt / curDel) * 100 : 100;
+
         if (remaining === 0 && !reachDate) {
           reachDate = new Date(simCurrent);
         }
-      }
 
-      if (upcomingSessions.length < 5) {
-        upcomingSessions.push({
-          dateStr: simCurrent.toLocaleDateString("en-IN", {
-            weekday: "short",
-            day: "numeric",
-            month: "short",
-          }),
-          day: occ.day,
-          timeSlot: occ.timeSlot,
-          room: occ.room || "Classroom",
-          type: occ.type || "Lecture",
-          faculty: occ.faculty || "",
-        });
+        if (requiredSessions.length < maxSessionsLimit) {
+          requiredSessions.push({
+            sessionNumber: requiredSessions.length + 1,
+            date: new Date(simCurrent),
+            dateKey: formatDateKey(simCurrent),
+            dateStr: simCurrent.toLocaleDateString("en-IN", {
+              weekday: "short",
+              day: "numeric",
+              month: "short",
+            }),
+            fullDateStr: simCurrent.toLocaleDateString("en-IN", {
+              weekday: "short",
+              day: "numeric",
+              month: "short",
+              year: "numeric",
+            }),
+            day: occ.day,
+            timeSlot: occ.timeSlot,
+            room: occ.room || "Classroom",
+            type: occ.type || "Lecture",
+            faculty: occ.faculty || "",
+            runningAttended: curAtt,
+            runningDelivered: curDel,
+            runningPercentage: Number(runningPct.toFixed(1)),
+            isMilestoneTarget: remaining === 0,
+          });
+        }
       }
     });
   }
@@ -887,13 +906,265 @@ export function estimateTargetReachDate(
           year: "numeric",
         })
       : null,
+    rawReachDate: reachDate,
     estimatedWeeks: Number(weeksCount),
     classesPerWeek: weeklyOccurrences.length,
     classesNeeded,
     totalRemainingSemClasses,
     maxAttainablePercentage,
     lastInstructionDateStr: "31 Oct 2026",
-    upcomingSessions,
+    requiredSessions,
+    upcomingSessions: requiredSessions.slice(0, 5),
+  };
+}
+
+/**
+ * Simulate what happens if a student misses M classes during their sprint to target
+ * Calculates the exact compounded penalty: M missed classes require (T / (100 - T)) * M extra classes
+ */
+export function simulateMissPenalty({
+  currentAttended = 0,
+  currentDelivered = 0,
+  targetPercentage = 75,
+  missedCount = 1,
+  weeklyOccurrences = [],
+  startDate = new Date(),
+}) {
+  const target = Math.min(99.9, Math.max(1, Number(targetPercentage) || 75));
+  const att = Math.max(0, Number(currentAttended) || 0);
+  const del = Math.max(att, Number(currentDelivered) || 0);
+  const miss = Math.max(0, Number(missedCount) || 0);
+
+  // Base requirement without missing classes
+  const baseNumerator = target * del - 100 * att;
+  const denominator = 100 - target;
+  const baseNeeded = baseNumerator > 0 ? Math.ceil(baseNumerator / denominator) : 0;
+
+  // Requirement if `miss` classes are missed
+  const newDel = del + miss;
+  const newNumerator = target * newDel - 100 * att;
+  const newNeeded = newNumerator > 0 ? Math.ceil(newNumerator / denominator) : 0;
+
+  const extraClassesNeeded = Math.max(0, newNeeded - baseNeeded);
+  const recoveryMultiplier = Number((target / denominator).toFixed(2));
+
+  // Calendar projections
+  const baseProjection = estimateTargetReachDate(
+    baseNeeded,
+    weeklyOccurrences,
+    startDate,
+    att,
+    del,
+    target
+  );
+
+  const delayedProjection = estimateTargetReachDate(
+    newNeeded,
+    weeklyOccurrences,
+    startDate,
+    att,
+    newDel,
+    target
+  );
+
+  // Calculate day difference if both reach dates exist
+  let delayInDays = 0;
+  if (baseProjection?.rawReachDate && delayedProjection?.rawReachDate) {
+    const diffMs = delayedProjection.rawReachDate.getTime() - baseProjection.rawReachDate.getTime();
+    delayInDays = Math.max(0, Math.round(diffMs / (1000 * 60 * 60 * 24)));
+  }
+
+  // Find newly appended sessions that weren't in base projection
+  const appendedSessions = (delayedProjection?.requiredSessions || []).slice(baseNeeded);
+
+  return {
+    missedCount: miss,
+    targetPercentage: target,
+    baseNeeded,
+    newNeeded,
+    extraClassesNeeded,
+    recoveryMultiplier,
+    delayInDays,
+    baseProjection,
+    delayedProjection,
+    appendedSessions,
+  };
+}
+
+/**
+ * Multi-Phase Attendance Goal & Future Bunk Strategy Simulator:
+ * Phase 1: Attend consecutively to reach primary Target Goal T1% (e.g. 80%) on Date D1.
+ * Phase 2: Take B planned absent classes (e.g. 6 bunks for fest/leave) from Date D1 -> Date D_bunk.
+ * Phase 3: Calculate post-bunk recovery extra classes & exact class dates required to recover back to Target T2%.
+ */
+export function simulateMultiPhaseAttendance({
+  currentAttended = 0,
+  currentDelivered = 0,
+  targetGoal = 80,
+  plannedBunksAfterTarget = 6,
+  recoveryTarget = 75,
+  weeklyOccurrences = [],
+  startDate = new Date(),
+}) {
+  const t1 = Math.min(99.9, Math.max(1, Number(targetGoal) || 80));
+  const t2 = Math.min(99.9, Math.max(1, Number(recoveryTarget) || 75));
+  const bunks = Math.max(0, Number(plannedBunksAfterTarget) || 0);
+  const att0 = Math.max(0, Number(currentAttended) || 0);
+  const del0 = Math.max(att0, Number(currentDelivered) || 0);
+
+  const daysOfWeek = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+  const lastInstructionDate = new Date("2026-10-31T23:59:59");
+
+  // ── PHASE 1: Reach Primary Target T1 ────────────────────────────────────────
+  const p1Numerator = t1 * del0 - 100 * att0;
+  const p1Denominator = 100 - t1;
+  const p1ClassesNeeded = p1Numerator > 0 ? Math.ceil(p1Numerator / p1Denominator) : 0;
+
+  const phase1Projection = estimateTargetReachDate(
+    p1ClassesNeeded > 0 ? p1ClassesNeeded : 1,
+    weeklyOccurrences,
+    startDate,
+    att0,
+    del0,
+    t1
+  );
+
+  const p1Attended = att0 + p1ClassesNeeded;
+  const p1Delivered = del0 + p1ClassesNeeded;
+  const p1Percentage = p1Delivered > 0 ? (p1Attended / p1Delivered) * 100 : 100;
+  const p1ReachDate = p1ClassesNeeded === 0 ? new Date(startDate) : (phase1Projection?.rawReachDate || new Date(startDate));
+
+  // ── PHASE 2: Simulate Planned Bunks (Miss next B classes) ───────────────────
+  let bunksRemaining = bunks;
+  const bunkSessions = [];
+  let lastBunkDate = new Date(p1ReachDate);
+  const simCurrent = new Date(p1ReachDate);
+
+  while (simCurrent <= lastInstructionDate && bunksRemaining > 0) {
+    simCurrent.setDate(simCurrent.getDate() + 1);
+    if (simCurrent > lastInstructionDate) break;
+
+    const hol = getHolidayInfo(simCurrent);
+    if (hol?.isHoliday) continue;
+
+    const acStatus = getAcademicCalendarDateStatus(simCurrent);
+    if (acStatus?.classesSuspended || acStatus?.isExam) continue;
+
+    const dayIdx = simCurrent.getDay();
+    const dayName = daysOfWeek[dayIdx];
+    const matchingOccurrences = weeklyOccurrences.filter((occ) => occ.day === dayName);
+
+    matchingOccurrences.forEach((occ) => {
+      if (bunksRemaining > 0) {
+        bunksRemaining--;
+        lastBunkDate = new Date(simCurrent);
+        bunkSessions.push({
+          bunkNumber: bunkSessions.length + 1,
+          date: new Date(simCurrent),
+          dateKey: formatDateKey(simCurrent),
+          dateStr: simCurrent.toLocaleDateString("en-IN", {
+            weekday: "short",
+            day: "numeric",
+            month: "short",
+          }),
+          fullDateStr: simCurrent.toLocaleDateString("en-IN", {
+            weekday: "short",
+            day: "numeric",
+            month: "short",
+            year: "numeric",
+          }),
+          day: occ.day,
+          timeSlot: occ.timeSlot,
+          room: occ.room || "Classroom",
+          type: occ.type || "Lecture",
+          faculty: occ.faculty || "",
+        });
+      }
+    });
+  }
+
+  const p2Attended = p1Attended;
+  const p2Delivered = p1Delivered + bunks;
+  const p2Percentage = p2Delivered > 0 ? (p2Attended / p2Delivered) * 100 : 100;
+  const isBelowRecoveryTarget = p2Percentage < t2;
+  const isBelow75 = p2Percentage < 75;
+
+  // ── PHASE 3: Recovery Roadmap post-bunk ─────────────────────────────────────
+  let recoveryClassesNeeded = 0;
+  let safeBunksRemaining = 0;
+
+  if (p2Percentage < t2) {
+    const recNum = t2 * p2Delivered - 100 * p2Attended;
+    const recDen = 100 - t2;
+    recoveryClassesNeeded = Math.ceil(recNum / recDen);
+    safeBunksRemaining = 0;
+  } else {
+    recoveryClassesNeeded = 0;
+    const safeNum = 100 * p2Attended - t2 * p2Delivered;
+    safeBunksRemaining = Math.floor(safeNum / t2);
+  }
+
+  const recoveryProjection =
+    recoveryClassesNeeded > 0
+      ? estimateTargetReachDate(
+          recoveryClassesNeeded,
+          weeklyOccurrences,
+          lastBunkDate,
+          p2Attended,
+          p2Delivered,
+          t2
+        )
+      : null;
+
+  const finalAttended = p2Attended + recoveryClassesNeeded;
+  const finalDelivered = p2Delivered + recoveryClassesNeeded;
+  const finalPercentage = finalDelivered > 0 ? (finalAttended / finalDelivered) * 100 : 100;
+
+  return {
+    primaryTarget: t1,
+    recoveryTarget: t2,
+    plannedBunks: bunks,
+    // Phase 1 summary
+    phase1: {
+      classesNeeded: p1ClassesNeeded,
+      reachDateStr: phase1Projection?.estimatedDate || (p1ClassesNeeded === 0 ? "Already Achieved" : "N/A"),
+      rawReachDate: p1ReachDate,
+      totalAttended: p1Attended,
+      totalDelivered: p1Delivered,
+      projectedPercentage: Number(p1Percentage.toFixed(2)),
+      sessions: phase1Projection?.requiredSessions || [],
+      isAttainable: phase1Projection?.isAttainable ?? true,
+    },
+    // Phase 2 summary (The planned absent classes)
+    phase2: {
+      bunkCount: bunks,
+      bunkSessions,
+      lastBunkDateStr: lastBunkDate.toLocaleDateString("en-IN", {
+        weekday: "short",
+        day: "numeric",
+        month: "short",
+        year: "numeric",
+      }),
+      postBunkAttended: p2Attended,
+      postBunkDelivered: p2Delivered,
+      postBunkPercentage: Number(p2Percentage.toFixed(2)),
+      percentageDrop: Number((p1Percentage - p2Percentage).toFixed(2)),
+      isBelowRecoveryTarget,
+      isBelow75,
+    },
+    // Phase 3 summary (Recovery roadmap)
+    phase3: {
+      classesNeeded: recoveryClassesNeeded,
+      safeBunksRemaining,
+      recoveryReachDateStr: recoveryProjection?.estimatedDate || (recoveryClassesNeeded === 0 ? "Maintained Safely" : "N/A"),
+      rawRecoveryDate: recoveryProjection?.rawReachDate || null,
+      recoverySessions: recoveryProjection?.requiredSessions || [],
+      finalAttended,
+      finalDelivered,
+      finalPercentage: Number(finalPercentage.toFixed(2)),
+      isAttainable: recoveryProjection?.isAttainable ?? true,
+      totalSemesterClassesRemaining: recoveryProjection?.totalRemainingSemClasses || 0,
+    },
   };
 }
 
@@ -1018,6 +1289,8 @@ export default {
   getSectionSubjectCatalog,
   calculateAttendance,
   estimateTargetReachDate,
+  simulateMissPenalty,
+  simulateMultiPhaseAttendance,
   is2023CSEBatch,
   resolveSubjectCode,
   formatDateKey,

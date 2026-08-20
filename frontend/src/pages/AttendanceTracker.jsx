@@ -61,6 +61,7 @@ import {
   estimateTargetReachDate,
 } from "../utils/timetableHelper";
 import SmartBunkAnalyzer from "../components/SmartBunkAnalyzer";
+import AttendanceTargetPredictor from "../components/AttendanceTargetPredictor";
 import AttendanceScreenshotModal from "../components/AttendanceScreenshotModal";
 import { AttendanceSkeleton } from "../components/LoadingSpinner";
 
@@ -3078,74 +3079,11 @@ export default function AttendanceTracker() {
                       Need to attend <strong>{activeCalculation.classesNeeded} more classes</strong> without absence to reach {targetGoal}%
                     </div>
                     {dateProjection && (
-                      <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-                        <div style={{ fontSize: 11.5, color: "#b45309", display: "flex", alignItems: "center", gap: 5 }}>
-                          <CalendarIcon size={13} />
-                          <span>
-                            Estimated reach date: <strong>{dateProjection.estimatedDate}</strong> (approx {dateProjection.estimatedWeeks} weeks based on {dateProjection.classesPerWeek} classes/week routine)
-                          </span>
-                        </div>
-
-                        {dateProjection.upcomingSessions && dateProjection.upcomingSessions.length > 0 && (
-                          <div style={{ marginTop: 4 }}>
-                            <div style={{ fontSize: 11, fontWeight: 800, color: "#78350f", marginBottom: 4 }}>
-                              Upcoming Lectures to Attend:
-                            </div>
-                            <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-                              {dateProjection.upcomingSessions.map((ses, sIdx) => (
-                                <div
-                                  key={sIdx}
-                                  style={{
-                                    fontSize: 11,
-                                    background: "#ffffff",
-                                    padding: "5px 9px",
-                                    borderRadius: 6,
-                                    border: "1px solid #fde68a",
-                                    display: "flex",
-                                    justifyContent: "space-between",
-                                    alignItems: "center",
-                                    color: "#92400e",
-                                    fontWeight: 600,
-                                  }}
-                                >
-                                  <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                                    <span>{ses.dateStr} ({ses.day})</span>
-                                    <span
-                                      style={{
-                                        fontSize: 9.5,
-                                        fontWeight: 900,
-                                        background:
-                                          ses.type === "PR"
-                                            ? "#faf5ff"
-                                            : ses.type === "TUT"
-                                            ? "#fffbeb"
-                                            : "#eff6ff",
-                                        color:
-                                          ses.type === "PR"
-                                            ? "#7c3aed"
-                                            : ses.type === "TUT"
-                                            ? "#b45309"
-                                            : "#1e40af",
-                                        border: `1px solid ${
-                                          ses.type === "PR"
-                                            ? "#ddd6fe"
-                                            : ses.type === "TUT"
-                                            ? "#fde68a"
-                                            : "#bfdbfe"
-                                        }`,
-                                        padding: "1px 5px",
-                                        borderRadius: 4,
-                                      }}
-                                    >
-                                      {ses.type}
-                                    </span>
-                                  </div>
-                                  <span>{ses.timeSlot} &bull; {ses.room}</span>
-                                </div>
-                              ))}
-                            </div>
-                          </div>
-                        )}
+                      <div style={{ fontSize: 11.5, color: "#b45309", display: "flex", alignItems: "center", gap: 5 }}>
+                        <CalendarIcon size={13} />
+                        <span>
+                          Estimated reach date: <strong>{dateProjection.estimatedDate}</strong> (approx {dateProjection.estimatedWeeks} weeks based on {dateProjection.classesPerWeek} classes/week routine)
+                        </span>
                       </div>
                     )}
                   </div>
@@ -3166,74 +3104,11 @@ export default function AttendanceTracker() {
                     Safe Zone! You can safely miss up to <strong>{activeCalculation.safeBunks} {activeCalculation.safeBunks === 1 ? "class" : "classes"}</strong> and maintain &ge; {targetGoal}%
                   </div>
                   {bunkDateProjection ? (
-                    <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-                      <div style={{ fontSize: 11.5, color: "#15803d", display: "flex", alignItems: "center", gap: 5 }}>
-                        <CalendarIcon size={13} />
-                        <span>
-                          Your {targetGoal}% safe buffer spans through <strong>{bunkDateProjection.estimatedDate}</strong> based on {bunkDateProjection.classesPerWeek} classes/week timetable schedule.
-                        </span>
-                      </div>
-
-                      {bunkDateProjection.upcomingSessions && bunkDateProjection.upcomingSessions.length > 0 && (
-                        <div style={{ marginTop: 4 }}>
-                          <div style={{ fontSize: 11, fontWeight: 800, color: "#14532d", marginBottom: 4 }}>
-                            Safe Days Window:
-                          </div>
-                          <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-                            {bunkDateProjection.upcomingSessions.map((ses, sIdx) => (
-                              <div
-                                key={sIdx}
-                                style={{
-                                  fontSize: 11,
-                                  background: "#ffffff",
-                                  padding: "5px 9px",
-                                  borderRadius: 6,
-                                  border: "1px solid #bbf7d0",
-                                  display: "flex",
-                                  justifyContent: "space-between",
-                                  alignItems: "center",
-                                  color: "#166534",
-                                  fontWeight: 600,
-                                }}
-                              >
-                                <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                                  <span>{ses.dateStr} ({ses.day})</span>
-                                  <span
-                                    style={{
-                                      fontSize: 9.5,
-                                      fontWeight: 900,
-                                      background:
-                                        ses.type === "PR"
-                                          ? "#faf5ff"
-                                          : ses.type === "TUT"
-                                          ? "#fffbeb"
-                                          : "#eff6ff",
-                                      color:
-                                        ses.type === "PR"
-                                          ? "#7c3aed"
-                                          : ses.type === "TUT"
-                                          ? "#b45309"
-                                          : "#1e40af",
-                                      border: `1px solid ${
-                                        ses.type === "PR"
-                                          ? "#ddd6fe"
-                                          : ses.type === "TUT"
-                                          ? "#fde68a"
-                                          : "#bfdbfe"
-                                      }`,
-                                      padding: "1px 5px",
-                                      borderRadius: 4,
-                                    }}
-                                  >
-                                    {ses.type}
-                                  </span>
-                                </div>
-                                <span>{ses.timeSlot} &bull; {ses.room}</span>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      )}
+                    <div style={{ fontSize: 11.5, color: "#15803d", display: "flex", alignItems: "center", gap: 5 }}>
+                      <CalendarIcon size={13} />
+                      <span>
+                        Your {targetGoal}% safe buffer spans through <strong>{bunkDateProjection.estimatedDate}</strong> based on {bunkDateProjection.classesPerWeek} classes/week timetable schedule.
+                      </span>
                     </div>
                   ) : (
                     <div style={{ fontSize: 11.5, color: "#15803d" }}>
@@ -3245,6 +3120,18 @@ export default function AttendanceTracker() {
             </div>
           </div>
         </div>
+
+        {/* Enhanced Interactive Attendance Target Predictor & Class Calendar */}
+        <AttendanceTargetPredictor
+          activeCatalogItem={activeCatalogItem}
+          activeCalculation={activeCalculation}
+          targetGoal={targetGoal}
+          setTargetGoal={setTargetGoal}
+          componentInputs={componentInputs}
+          selectedSection={selectedSection}
+          studentData={studentData}
+          isMobile={isMobile}
+        />
 
         {/* ═══════════════════════════════════════════════════════════════
             ALL SEMESTER SUBJECTS MATRIX & TARGET PREDICTOR
