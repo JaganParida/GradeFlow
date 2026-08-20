@@ -228,40 +228,62 @@ export default function Timetable() {
     return () => clearInterval(timer);
   }, []);
 
-  // Sync student section when studentData changes
-  useEffect(() => {
-    if (studentData) {
-      const detected = normalizeSection(studentData.section || studentData.branch, studentData.regNo);
-      setSelectedSection(detected);
-    }
-  }, [studentData]);
+  // Unified Loading State (Single smooth continuous loader, zero flicker)
+  const [pageLoading, setPageLoading] = useState(true);
 
-  // Load student data if URL param provided and not loaded yet
-  useEffect(() => {
-    if (decodedParam && (!studentData || studentData.regNo !== decodedParam)) {
-      fetchStudent(decodedParam);
-    }
-  }, [decodedParam, studentData, fetchStudent]);
+  // Dynamic custom schedules from server
+  const [dynamicSchedules, setDynamicSchedules] = useState([]);
 
-  // Normalize URL token
+  // Normalize URL token if plain regNo was passed in route
   useEffect(() => {
     if (decodedParam && urlParam && !isEncryptedToken(urlParam)) {
       navigate(`/timetable/${encodeStudentId(decodedParam)}`, { replace: true });
     }
   }, [decodedParam, urlParam, navigate]);
 
-  // Dynamic custom schedules from server
-  const [dynamicSchedules, setDynamicSchedules] = useState([]);
-
+  // Load student profile and timetable schedules in one smooth pass
   useEffect(() => {
-    const API = import.meta.env.VITE_API_URL || "/api";
-    axios
-      .get(`${API}/timetable/active-all`)
-      .then(({ data }) => {
-        if (data?.schedules) setDynamicSchedules(data.schedules);
-      })
-      .catch(() => {});
-  }, []);
+    const targetReg = decodedParam || studentSession?.regNo || studentData?.regNo;
+    if (!targetReg) {
+      setPageLoading(false);
+      return;
+    }
+    let isMounted = true;
+    setPageLoading(true);
+
+    async function loadAllTimetableData() {
+      try {
+        // 1. Fetch student profile if not already in memory
+        let sData = studentData;
+        if (!studentData || studentData.regNo !== targetReg) {
+          sData = await fetchStudent(targetReg, 2, 800);
+        }
+        if (sData && isMounted) {
+          const detected = normalizeSection(sData.section || sData.branch, sData.regNo);
+          setSelectedSection(detected);
+        }
+
+        // 2. Fetch dynamic active schedules
+        const API = import.meta.env.VITE_API_URL || "/api";
+        const { data } = await axios.get(`${API}/timetable/active-all`);
+        if (data?.schedules && isMounted) {
+          setDynamicSchedules(data.schedules);
+        }
+      } catch (err) {
+        console.warn("Could not load timetable data:", err.message);
+      } finally {
+        if (isMounted) {
+          setPageLoading(false);
+          setIsSearching(false);
+        }
+      }
+    }
+
+    loadAllTimetableData();
+    return () => {
+      isMounted = false;
+    };
+  }, [decodedParam, studentSession?.regNo]);
 
   const activeCustomSchedule = useMemo(() => {
     if (!dynamicSchedules.length) return null;
@@ -314,29 +336,16 @@ export default function Timetable() {
     });
   }
 
-  // Handle in-page student search
+  // Handle in-page student search (seamless transition)
   async function handleSearchStudent(e) {
-    e.preventDefault();
+    if (e) e.preventDefault();
     const cleanReg = searchRegInput.trim().toUpperCase();
     if (!cleanReg) return;
 
     setIsSearching(true);
     setSearchError("");
-    try {
-      const success = await fetchStudent(cleanReg);
-      if (success) {
-        setSearchRegInput("");
-        const newSec = normalizeSection("CSE-A", cleanReg);
-        setSelectedSection(newSec);
-        navigate(`/timetable/${encodeStudentId(cleanReg)}`);
-      } else {
-        setSearchError(`Registration number "${cleanReg}" not found in university records.`);
-      }
-    } catch (err) {
-      setSearchError("Failed to lookup student. Please check registration number.");
-    } finally {
-      setIsSearching(false);
-    }
+    setSearchRegInput("");
+    navigate(`/timetable/${encodeStudentId(cleanReg)}`);
   }
 
   // Academic activity status calculation
@@ -434,7 +443,7 @@ export default function Timetable() {
     return false;
   }, [studentData, currentRegNo, dynamicSchedules]);
 
-  if (appLoading || isSearching) {
+  if (pageLoading || isSearching) {
     return (
       <div
         style={{

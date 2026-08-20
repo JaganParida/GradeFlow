@@ -182,22 +182,7 @@ export default function AttendanceTracker() {
     setTimeout(checkSectionScroll, 250);
   }
 
-  // Sync student section when studentData changes
-  useEffect(() => {
-    if (studentData) {
-      const detected = normalizeSection(studentData.section || studentData.branch, studentData.regNo);
-      setSelectedSection(detected);
-    }
-  }, [studentData]);
-
-  // Load student data if URL param provided and not loaded yet
-  useEffect(() => {
-    if (decodedParam && (!studentData || studentData.regNo !== decodedParam)) {
-      fetchStudent(decodedParam);
-    }
-  }, [decodedParam, studentData, fetchStudent]);
-
-  // Normalize URL token
+  // Normalize URL token if plain regNo was passed in route
   useEffect(() => {
     if (decodedParam && urlParam && !isEncryptedToken(urlParam)) {
       navigate(`/attendance/${encodeStudentId(decodedParam)}`, { replace: true });
@@ -294,26 +279,39 @@ export default function AttendanceTracker() {
     }
   };
 
-  // Loading States
-  const [isAttendanceLoading, setIsAttendanceLoading] = useState(true);
+  // Unified Loading State (Single smooth continuous loader, zero flicker)
+  const [pageLoading, setPageLoading] = useState(true);
 
-  // Load saved Attendance from MongoDB on startup or when student resolves
+  // Load student profile & saved Attendance from MongoDB Atlas in one smooth pass
   useEffect(() => {
-    const regToLoad = currentRegNo || studentSession?.regNo || studentData?.regNo;
-    if (!regToLoad) {
-      setIsAttendanceLoading(false);
+    const targetReg = decodedParam || studentSession?.regNo || studentData?.regNo;
+    if (!targetReg) {
+      setPageLoading(false);
       return;
     }
     let isMounted = true;
+    setPageLoading(true);
 
-    async function loadDbAttendance() {
+    async function loadAllStudentData() {
       try {
-        setIsAttendanceLoading(true);
-        const res = await axios.get(`${API}/student/${regToLoad}/attendance`);
+        // 1. Fetch student profile if not already in memory
+        let sData = studentData;
+        if (!studentData || studentData.regNo !== targetReg) {
+          sData = await fetchStudent(targetReg, 2, 800);
+        }
+        if (sData && isMounted) {
+          const detected = normalizeSection(sData.section || sData.branch, sData.regNo);
+          setSelectedSection(detected);
+        }
+
+        // 2. Fetch saved attendance from MongoDB
+        const res = await axios.get(`${API}/student/${targetReg}/attendance`);
         if (res.data?.success && res.data.attendance && isMounted) {
           const att = res.data.attendance;
           if (Array.isArray(att.savedSubjects) && att.savedSubjects.length > 0) {
             setSavedSubjects(att.savedSubjects);
+          } else {
+            setSavedSubjects([]);
           }
           if (att.targetGoal) {
             setTargetGoal(att.targetGoal);
@@ -339,19 +337,20 @@ export default function AttendanceTracker() {
           }
         }
       } catch (err) {
-        console.warn("Could not load attendance from MongoDB:", err.message);
+        console.warn("Could not load student attendance:", err.message);
       } finally {
         if (isMounted) {
-          setIsAttendanceLoading(false);
+          setPageLoading(false);
+          setIsSearching(false);
         }
       }
     }
 
-    loadDbAttendance();
+    loadAllStudentData();
     return () => {
       isMounted = false;
     };
-  }, [currentRegNo, studentSession?.regNo, studentData?.regNo, API, todayDateKey]);
+  }, [decodedParam, studentSession?.regNo, API, todayDateKey]);
 
   // Synchronize componentInputs whenever savedSubjects loads or updates from MongoDB Atlas
   useEffect(() => {
@@ -410,29 +409,16 @@ export default function AttendanceTracker() {
     setSimulateAttendCount(0);
   }
 
-  // Handle in-page student search
+  // Handle in-page student search (seamless transition)
   async function handleSearchStudent(e) {
-    e.preventDefault();
+    if (e) e.preventDefault();
     const cleanReg = searchRegInput.trim().toUpperCase();
     if (!cleanReg) return;
 
     setIsSearching(true);
     setSearchError("");
-    try {
-      const success = await fetchStudent(cleanReg);
-      if (success) {
-        setSearchRegInput("");
-        const newSec = normalizeSection("CSE-A", cleanReg);
-        setSelectedSection(newSec);
-        navigate(`/attendance/${encodeStudentId(cleanReg)}`);
-      } else {
-        setSearchError(`Registration number "${cleanReg}" not found.`);
-      }
-    } catch {
-      setSearchError("Failed to lookup student. Please check registration number.");
-    } finally {
-      setIsSearching(false);
-    }
+    setSearchRegInput("");
+    navigate(`/attendance/${encodeStudentId(cleanReg)}`);
   }
 
   // Active Subject Catalog Metadata
@@ -834,7 +820,7 @@ export default function AttendanceTracker() {
 
   const activeStudentName = studentData?.studentName || "";
 
-  if (appLoading || isSearching || isAttendanceLoading) {
+  if (pageLoading || isSearching) {
     return (
       <div
         style={{
