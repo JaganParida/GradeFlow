@@ -54,6 +54,78 @@ function getTimeUntilIstMidnight() {
    STUDENT AUTHENTICATION (EMAIL OTP & SINGLE-DEVICE LOCK)
 ═══════════════════════════════════════════════════════════════════ */
 
+// 0. Student Live Device Status Check (/api/auth/student/check-status)
+router.get("/student/check-status", async (req, res) => {
+  try {
+    const rawReg = String(req.query.regNo || "").trim().toUpperCase();
+    if (!rawReg) {
+      return res.status(400).json({ message: "Registration number required." });
+    }
+
+    const studentRecord = await SemesterResult.findOne({ regNo: rawReg }).sort({ semester: -1 });
+    if (!studentRecord) {
+      return res.json({ success: true, exists: false });
+    }
+
+    const maxAllowedDevices = rawReg === "230301120327" ? 2 : 1;
+
+    // Clean up stale expired sessions first
+    const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000;
+    const sevenDaysAgo = new Date(Date.now() - SEVEN_DAYS_MS);
+    await StudentSession.deleteMany({
+      regNo: rawReg,
+      $or: [
+        { lastActiveAt: { $lt: sevenDaysAgo } },
+        { expiresAt: { $lt: new Date() } },
+        { isActive: false },
+      ],
+    });
+
+    const activeSessions = await StudentSession.find({
+      regNo: rawReg,
+      isActive: true,
+      expiresAt: { $gt: new Date() },
+    });
+
+    let incomingToken = req.headers["x-student-token"];
+    if (!incomingToken && req.cookies?.student_jwt) {
+      incomingToken = req.cookies.student_jwt;
+    }
+    if (!incomingToken && req.headers.authorization && req.headers.authorization.startsWith("Bearer")) {
+      incomingToken = req.headers.authorization.split(" ")[1];
+    }
+
+    let isCurrentDevice = false;
+    if (incomingToken) {
+      try {
+        const decoded = jwt.verify(incomingToken, process.env.JWT_SECRET);
+        if (decoded.regNo === rawReg && activeSessions.some((s) => s.sessionId === decoded.sessionId)) {
+          isCurrentDevice = true;
+        }
+      } catch {}
+    }
+
+    const isBlocked = activeSessions.length >= maxAllowedDevices && !isCurrentDevice;
+
+    return res.json({
+      success: true,
+      exists: true,
+      studentName: studentRecord.studentName || "Student",
+      isCurrentDevice,
+      activeDeviceCount: activeSessions.length,
+      maxAllowedDevices,
+      isBlocked,
+      blockMessage: isBlocked
+        ? rawReg === "230301120327"
+          ? `Account 230301120327 is already actively logged in on 2 devices (maximum 2 allowed). Log out from one device to sign in here.`
+          : `Registration number ${rawReg} is already logged in on an active device. Single-device security policy is active. Please log out from that device first.`
+        : null,
+    });
+  } catch (err) {
+    return res.status(500).json({ message: "Server error checking status." });
+  }
+});
+
 // 1. Send OTP to student university email
 router.post("/student/send-otp", async (req, res) => {
   try {

@@ -2,7 +2,7 @@ import { createContext, useContext, useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 
-const API_BASE = import.meta.env.VITE_API_URL || "/api";
+export const API_BASE = import.meta.env.VITE_API_URL || "/api";
 
 // Set axios to send cookies with every request and attach Bearer token if admin is authenticated
 axios.defaults.withCredentials = true;

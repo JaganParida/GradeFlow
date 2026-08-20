@@ -169,6 +169,76 @@ module.exports = async function handler(req, res) {
     const cookies = parseCookies(req.headers.cookie);
 
     /* ─────────────────────────────────────────────────────────────
+       0. STUDENT LIVE DEVICE STATUS CHECK (Instant UI Pre-Check)
+    ───────────────────────────────────────────────────────────── */
+    if ((action === "student-check-status" || action === "check-status") && req.method === "GET") {
+      const rawReg = String(req.query.regNo || "").trim().toUpperCase();
+      if (!rawReg) {
+        return res.status(400).json({ message: "Registration number required." });
+      }
+
+      const studentRecord = await SemesterResult.findOne({ regNo: rawReg }).sort({ semester: -1 });
+      if (!studentRecord) {
+        return res.json({ success: true, exists: false });
+      }
+
+      const maxAllowedDevices = rawReg === "230301120327" ? 2 : 1;
+
+      // Clean up stale expired sessions first
+      const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000;
+      const sevenDaysAgo = new Date(Date.now() - SEVEN_DAYS_MS);
+      await StudentSession.deleteMany({
+        regNo: rawReg,
+        $or: [
+          { lastActiveAt: { $lt: sevenDaysAgo } },
+          { expiresAt: { $lt: new Date() } },
+          { isActive: false },
+        ],
+      });
+
+      const activeSessions = await StudentSession.find({
+        regNo: rawReg,
+        isActive: true,
+        expiresAt: { $gt: new Date() },
+      });
+
+      let incomingToken = req.headers["x-student-token"];
+      if (!incomingToken && cookies.student_jwt && cookies.student_jwt !== "none") {
+        incomingToken = cookies.student_jwt;
+      }
+      if (!incomingToken && req.headers.authorization && req.headers.authorization.startsWith("Bearer")) {
+        incomingToken = req.headers.authorization.split(" ")[1];
+      }
+
+      let isCurrentDevice = false;
+      if (incomingToken && incomingToken !== "none") {
+        try {
+          const decoded = jwt.verify(incomingToken, process.env.JWT_SECRET);
+          if (decoded.regNo === rawReg && activeSessions.some((s) => s.sessionId === decoded.sessionId)) {
+            isCurrentDevice = true;
+          }
+        } catch {}
+      }
+
+      const isBlocked = activeSessions.length >= maxAllowedDevices && !isCurrentDevice;
+
+      return res.json({
+        success: true,
+        exists: true,
+        studentName: studentRecord.studentName || "Student",
+        isCurrentDevice,
+        activeDeviceCount: activeSessions.length,
+        maxAllowedDevices,
+        isBlocked,
+        blockMessage: isBlocked
+          ? rawReg === "230301120327"
+            ? `Account 230301120327 is already actively logged in on 2 devices (maximum 2 allowed). Log out from one device to sign in here.`
+            : `Registration number ${rawReg} is already logged in on an active device. Single-device security policy is active. Please log out from that device first.`
+          : null,
+      });
+    }
+
+    /* ─────────────────────────────────────────────────────────────
        1. STUDENT SEND OTP
     ───────────────────────────────────────────────────────────── */
     if ((action === "student-send-otp" || action === "send-otp") && req.method === "POST") {

@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate } from "react-router-dom";
-import { useApp } from "../context/AppContext";
+import { useApp, API_BASE } from "../context/AppContext";
+import axios from "axios";
 import { encodeStudentId } from "../utils/studentIdEncoder";
 import {
   GraduationCap,
@@ -42,6 +43,7 @@ export default function StudentAuthModal({ isOpen, onClose }) {
   const [remainingDailyAttempts, setRemainingDailyAttempts] = useState(2);
   const [timerSeconds, setTimerSeconds] = useState(300);
   const [timerActive, setTimerActive] = useState(false);
+  const [deviceStatus, setDeviceStatus] = useState(null); // { isBlocked, isCurrentDevice, message }
 
   // Helper to route to intended destination after auth
   const navigateToDestination = (cleanReg) => {
@@ -86,6 +88,7 @@ export default function StudentAuthModal({ isOpen, onClose }) {
       setOtp("");
       setStep(1);
       setTimerActive(false);
+      setDeviceStatus(null);
       if (hasActiveSession && (studentSession?.regNo || studentData?.regNo)) {
         setRegNo(studentSession?.regNo || studentData?.regNo);
       } else {
@@ -99,8 +102,52 @@ export default function StudentAuthModal({ isOpen, onClose }) {
       setErrorMsg("");
       setErrorCode("");
       setTimerActive(false);
+      setDeviceStatus(null);
     }
   }, [isOpen, hasActiveSession]);
+
+  // Live Pre-Check for active device limit (Debounced by 280ms)
+  useEffect(() => {
+    const clean = regNo.trim().toUpperCase();
+    if (!isOpen || step !== 1 || clean.length < 8) {
+      setDeviceStatus(null);
+      return;
+    }
+
+    const timer = setTimeout(async () => {
+      try {
+        const studentJwt = localStorage.getItem("gf_student_jwt") || sessionStorage.getItem("gf_student_jwt");
+        const headers = studentJwt ? { "x-student-token": studentJwt, Authorization: `Bearer ${studentJwt}` } : {};
+        const res = await axios.get(`${API_BASE}/auth/student/check-status?regNo=${encodeURIComponent(clean)}`, {
+          headers,
+          withCredentials: true,
+        });
+        if (res.data?.success && res.data?.exists) {
+          if (res.data.isBlocked) {
+            setDeviceStatus({ isBlocked: true, message: res.data.blockMessage });
+            setErrorMsg(res.data.blockMessage);
+            setErrorCode("DEVICE_ALREADY_LOGGED_IN");
+          } else if (res.data.isCurrentDevice) {
+            setDeviceStatus({ isCurrentDevice: true });
+            setErrorMsg("");
+            setErrorCode("");
+          } else {
+            setDeviceStatus({ isBlocked: false });
+            if (errorCode === "DEVICE_ALREADY_LOGGED_IN" || errorCode === "MAX_DEVICES_ACTIVE") {
+              setErrorMsg("");
+              setErrorCode("");
+            }
+          }
+        } else {
+          setDeviceStatus(null);
+        }
+      } catch {
+        setDeviceStatus(null);
+      }
+    }, 280);
+
+    return () => clearTimeout(timer);
+  }, [regNo, isOpen, step]);
 
   // Live 3-Minute Countdown Timer for OTP
   useEffect(() => {
@@ -125,10 +172,17 @@ export default function StudentAuthModal({ isOpen, onClose }) {
   // Step 1: Send OTP
   const handleSendOtp = async (e) => {
     if (e) e.preventDefault();
+    if (deviceStatus?.isBlocked) return;
+
     const cleanReg = regNo.trim().toUpperCase();
     if (!cleanReg) {
       setErrorMsg("Please enter your university registration number.");
       setErrorCode("EMPTY_REG");
+      return;
+    }
+
+    if (deviceStatus?.isCurrentDevice) {
+      navigateToDestination(cleanReg);
       return;
     }
 
@@ -448,34 +502,54 @@ export default function StudentAuthModal({ isOpen, onClose }) {
               {/* Submit Button */}
               <button
                 type="submit"
-                disabled={loading || !regNo.trim()}
+                disabled={loading || !regNo.trim() || deviceStatus?.isBlocked}
                 style={{
                   width: "100%",
                   padding: "11px 16px",
                   borderRadius: 10,
-                  border: "none",
-                  background: loading || !regNo.trim() ? "#cbd5e1" : "#0f172a",
-                  color: "#ffffff",
+                  border: deviceStatus?.isBlocked ? "1.5px solid #fca5a5" : "none",
+                  background: deviceStatus?.isBlocked
+                    ? "#fee2e2"
+                    : deviceStatus?.isCurrentDevice
+                    ? "#16a34a"
+                    : loading || !regNo.trim()
+                    ? "#cbd5e1"
+                    : "#0f172a",
+                  color: deviceStatus?.isBlocked ? "#991b1b" : "#ffffff",
                   fontSize: 13.5,
                   fontWeight: 700,
-                  cursor: loading || !regNo.trim() ? "not-allowed" : "pointer",
+                  cursor: loading || !regNo.trim() || deviceStatus?.isBlocked ? "not-allowed" : "pointer",
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
                   gap: 6,
-                  transition: "background 0.15s ease",
+                  transition: "all 0.15s ease",
                 }}
                 onMouseEnter={(e) => {
-                  if (!loading && regNo.trim()) e.currentTarget.style.background = "#1e293b";
+                  if (!loading && regNo.trim() && !deviceStatus?.isBlocked) {
+                    e.currentTarget.style.background = deviceStatus?.isCurrentDevice ? "#15803d" : "#1e293b";
+                  }
                 }}
                 onMouseLeave={(e) => {
-                  if (!loading && regNo.trim()) e.currentTarget.style.background = "#0f172a";
+                  if (!loading && regNo.trim() && !deviceStatus?.isBlocked) {
+                    e.currentTarget.style.background = deviceStatus?.isCurrentDevice ? "#16a34a" : "#0f172a";
+                  }
                 }}
               >
                 {loading ? (
                   <>
                     <Loader2 size={15} className="spin" />
                     <span>Sending Code...</span>
+                  </>
+                ) : deviceStatus?.isBlocked ? (
+                  <>
+                    <Lock size={15} color="#991b1b" />
+                    <span>Login Blocked (Active on Device)</span>
+                  </>
+                ) : deviceStatus?.isCurrentDevice ? (
+                  <>
+                    <CheckCircle2 size={15} />
+                    <span>Already Active — Continue</span>
                   </>
                 ) : (
                   <>
