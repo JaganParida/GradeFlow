@@ -3818,16 +3818,16 @@ export default function Home() {
                     src="/webisteLogo.png"
                     alt="GradeFlow Logo"
                     style={{
-                      height: 32,
+                      height: 44,
                       width: "auto",
-                      maxHeight: 36,
+                      maxHeight: 48,
                       objectFit: "contain",
                     }}
                   />
                   <span
                     style={{
                       fontFamily: "'DM Sans', sans-serif",
-                      fontSize: 21,
+                      fontSize: 22.5,
                       fontWeight: 800,
                       color: "#0f172a",
                       letterSpacing: "-0.5px",

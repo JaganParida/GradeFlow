@@ -228,7 +228,7 @@ export default function Navbar() {
               textDecoration: "none",
               display: "flex",
               alignItems: "center",
-              gap: 9,
+              gap: 10,
               flexShrink: 0,
               marginRight: 6,
               zIndex: 1001,
@@ -239,7 +239,7 @@ export default function Navbar() {
               alt="GradeFlow Logo"
               className="gf-logo-img"
               style={{
-                height: 38,
+                height: 48,
                 width: "auto",
                 objectFit: "contain",
                 flexShrink: 0,
@@ -251,7 +251,7 @@ export default function Navbar() {
               style={{
                 fontFamily: "'DM Sans', sans-serif",
                 fontWeight: 800,
-                fontSize: 21,
+                fontSize: 22.5,
                 color: "#0f172a",
                 letterSpacing: "-0.5px",
                 whiteSpace: "nowrap",
@@ -2049,10 +2049,10 @@ export default function Navbar() {
             white-space: nowrap !important;
           }
           .gf-logo-text {
-            font-size: 19px !important;
+            font-size: 20.5px !important;
           }
           .gf-logo-img {
-            height: 33px !important;
+            height: 42px !important;
           }
         }
         @media (max-width: 480px) {
@@ -2079,10 +2079,10 @@ export default function Navbar() {
             white-space: nowrap !important;
           }
           .gf-logo-text {
-            font-size: 17.5px !important;
+            font-size: 18.5px !important;
           }
           .gf-logo-img {
-            height: 30px !important;
+            height: 36px !important;
           }
         }
         @media (max-width: 360px) {
@@ -2100,10 +2100,10 @@ export default function Navbar() {
             height: 32px !important;
           }
           .gf-logo-text {
-            font-size: 16px !important;
+            font-size: 17px !important;
           }
           .gf-logo-img {
-            height: 26px !important;
+            height: 32px !important;
           }
         }
       `}</style>
