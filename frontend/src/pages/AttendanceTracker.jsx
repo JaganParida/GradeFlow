@@ -202,7 +202,7 @@ export default function AttendanceTracker() {
   const [targetGoal, setTargetGoal] = useState(75);
   const [simulateMissCount, setSimulateMissCount] = useState(0);
   const [simulateAttendCount, setSimulateAttendCount] = useState(0);
-  const [activeTab, setActiveTab] = useState("studio"); // "studio" | "bunk_analyzer"
+  const [activeTab, setActiveTab] = useState("matrix"); // "studio" | "bunk_analyzer"
   const [isScreenshotModalOpen, setIsScreenshotModalOpen] = useState(false);
 
   // Saved Subjects (In-Memory React State, synced direct to MongoDB Atlas)
@@ -1563,6 +1563,51 @@ export default function AttendanceTracker() {
         >
           <button
             type="button"
+            onClick={() => setActiveTab("matrix")}
+            style={{
+              padding: isMobile ? "9px 12px" : "11px 18px",
+              borderRadius: 10,
+              border: "none",
+              background:
+                activeTab === "matrix"
+                  ? "linear-gradient(135deg, #059669 0%, #047857 100%)"
+                  : "transparent",
+              color: activeTab === "matrix" ? "#ffffff" : "#475569",
+              fontSize: isMobile ? 12.5 : 13.5,
+              fontWeight: 800,
+              cursor: "pointer",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: 8,
+              transition: "all 0.15s ease",
+              boxShadow:
+                activeTab === "matrix"
+                  ? "0 2px 8px rgba(5,150,105,0.25)"
+                  : "none",
+            }}
+          >
+            <Layers size={16} />
+            <span>Subject-Wise Matrix</span>
+            <span
+              style={{
+                fontSize: 10,
+                fontWeight: 900,
+                padding: "2px 6px",
+                borderRadius: 999,
+                background:
+                  activeTab === "matrix"
+                    ? "rgba(255,255,255,0.25)"
+                    : "#ecfdf5",
+                color: activeTab === "matrix" ? "#ffffff" : "#059669",
+              }}
+            >
+              {allSectionSubjects.length}
+            </span>
+          </button>
+
+          <button
+            type="button"
             onClick={() => setActiveTab("studio")}
             style={{
               padding: isMobile ? "9px 12px" : "11px 18px",
@@ -1570,7 +1615,7 @@ export default function AttendanceTracker() {
               border: "none",
               background:
                 activeTab === "studio"
-                  ? "linear-gradient(135deg, #059669 0%, #047857 100%)"
+                  ? "linear-gradient(135deg, #4f46e5 0%, #4338ca 100%)"
                   : "transparent",
               color: activeTab === "studio" ? "#ffffff" : "#475569",
               fontSize: isMobile ? 12.5 : 13.5,
@@ -1583,12 +1628,12 @@ export default function AttendanceTracker() {
               transition: "all 0.15s ease",
               boxShadow:
                 activeTab === "studio"
-                  ? "0 2px 8px rgba(5,150,105,0.25)"
+                  ? "0 2px 8px rgba(79,70,229,0.25)"
                   : "none",
             }}
           >
             <Sliders size={16} />
-            <span>Attendance Studio & Matrix</span>
+            <span>Attendance Studio</span>
           </button>
 
           <button
@@ -1642,7 +1687,285 @@ export default function AttendanceTracker() {
             TAB SWITCHER CONTAINER (AnimatePresence smooth fade-in/fade-out)
         ═══════════════════════════════════════════════════════════════ */}
         <AnimatePresence mode="wait">
-          {activeTab === "studio" && (
+                  {/* ═══════════════════════════════════════════════════════════════
+            TAB 1: SUBJECT-WISE ATTENDANCE MATRIX ({allSectionSubjects.length})
+        ═══════════════════════════════════════════════════════════════ */}
+        {activeTab === "matrix" && (
+          <motion.div
+            key="matrix"
+            initial={{ opacity: 0, y: 6 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -6 }}
+            transition={{ duration: 0.18, ease: "easeOut" }}
+            style={{ display: "flex", flexDirection: "column", gap: 16, width: "100%" }}
+          >
+            {/* ═══════════════════════════════════════════════════════════════
+            ALL SEMESTER SUBJECTS MATRIX & TARGET PREDICTOR
+        ═══════════════════════════════════════════════════════════════ */}
+        {allSectionSubjects.length > 0 && (
+          <div
+            style={{
+              background: "#ffffff",
+              border: "1.5px solid #e2e8f0",
+              borderRadius: 18,
+              padding: isMobile ? "16px 14px" : "22px 24px",
+              display: "flex",
+              flexDirection: "column",
+              gap: 16,
+              boxShadow: "0 2px 6px rgba(0,0,0,0.02)",
+            }}
+          >
+            {/* Header */}
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 10 }}>
+              <div>
+                <h3 style={{ fontSize: isMobile ? 16 : 18, fontWeight: 800, color: "#0f172a", margin: 0, display: "flex", alignItems: "center", gap: 8 }}>
+                  <Layers size={18} color="#059669" />
+                  Semester Subjects Attendance & Target Matrix ({allSectionSubjects.length})
+                </h3>
+                <p style={{ fontSize: 12, color: "#64748b", margin: "3px 0 0 0" }}>
+                  Full multi-component breakdown (theory PP, practical PR, tutorial TUT) with target prediction for Section {selectedSection}.
+                </p>
+              </div>
+
+              <div
+                style={{
+                  background: "linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%)",
+                  border: "1.5px solid #a7f3d0",
+                  borderRadius: 12,
+                  padding: "8px 14px",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 10,
+                }}
+              >
+                <div>
+                  <div style={{ fontSize: 10.5, fontWeight: 800, color: "#065f46", textTransform: "uppercase" }}>Overall Semester Score</div>
+                  <div style={{ fontSize: 18, fontWeight: 900, color: overallAggregate.percentage >= 75 ? "#059669" : "#dc2626" }}>
+                    {overallAggregate.percentage}% <span style={{ fontSize: 12, fontWeight: 700, color: "#065f46" }}>({overallAggregate.totalAttended}/{overallAggregate.totalDelivered})</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Subject Cards Grid */}
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: isMobile ? "1fr" : "repeat(auto-fit, minmax(320px, 1fr))",
+                gap: 14,
+              }}
+            >
+              {allSectionSubjects.map((sub, idx) => {
+                const subCalc = calculateAttendance({
+                  components: sub.components,
+                  targetPercentage: 75,
+                });
+                const subCalc80 = calculateAttendance({
+                  components: sub.components,
+                  targetPercentage: 80,
+                });
+                const subCode = resolveSubjectCode({ subject: sub.subjectName }, studentData);
+                const isPassing = subCalc.currentPercentage >= 75;
+
+                return (
+                  <div
+                    key={idx}
+                    onClick={() => {
+                      setSelectedSubjectName(sub.subjectName); setComponentInputs(sub.components || []); setActiveTab("studio"); window.scrollTo({ top: 400, behavior: "smooth" });
+                    }}
+                    style={{
+                      background: "#ffffff",
+                      border: `1.5px solid ${isPassing ? "#e2e8f0" : "#fecaca"}`,
+                      borderRadius: 16,
+                      padding: "16px 18px",
+                      display: "flex",
+                      flexDirection: "column",
+                      justifyContent: "space-between",
+                      gap: 12,
+                      cursor: "pointer",
+                      boxShadow: "0 1px 3px rgba(0,0,0,0.02)",
+                      transition: "transform 0.15s, box-shadow 0.15s, border-color 0.15s",
+                    }}
+                  >
+                    <div>
+                      {/* Card Header: Name + Code + Overall % */}
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 10 }}>
+                        <div>
+                          <h4 style={{ fontSize: 14.5, fontWeight: 800, color: "#0f172a", margin: 0, lineHeight: 1.3 }}>
+                            {sub.subjectName}
+                          </h4>
+                          <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 4, flexWrap: "wrap" }}>
+                            {subCode && (
+                              <span
+                                style={{
+                                  fontSize: 10,
+                                  fontFamily: "'Space Mono', monospace",
+                                  fontWeight: 800,
+                                  color: "#2563eb",
+                                  background: "#eff6ff",
+                                  border: "1px solid #bfdbfe",
+                                  padding: "1px 5px",
+                                  borderRadius: 4,
+                                }}
+                              >
+                                {subCode}
+                              </span>
+                            )}
+                            <span style={{ fontSize: 11, color: "#64748b", fontWeight: 700 }}>
+                              {subCalc.totalAttended} / {subCalc.totalDelivered} classes
+                            </span>
+                          </div>
+                        </div>
+
+                        <div style={{ textAlign: "right" }}>
+                          <div
+                            style={{
+                              fontSize: 18,
+                              fontWeight: 900,
+                              color: isPassing ? "#059669" : "#dc2626",
+                            }}
+                          >
+                            {subCalc.currentPercentage}%
+                          </div>
+                          <span
+                            style={{
+                              fontSize: 9.5,
+                              fontWeight: 900,
+                              background: isPassing ? "#ecfdf5" : "#fef2f2",
+                              color: isPassing ? "#059669" : "#dc2626",
+                              padding: "1px 6px",
+                              borderRadius: 4,
+                            }}
+                          >
+                            {isPassing ? "ELIGIBLE" : "SHORTAGE"}
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Progress Bar */}
+                      <div style={{ width: "100%", height: 5, background: "#f1f5f9", borderRadius: 999, margin: "10px 0 8px 0", overflow: "hidden" }}>
+                        <div
+                          style={{
+                            width: `${Math.min(100, Math.max(0, subCalc.currentPercentage))}%`,
+                            height: "100%",
+                            background: isPassing ? "linear-gradient(90deg, #10b981, #059669)" : "linear-gradient(90deg, #f87171, #dc2626)",
+                            borderRadius: 999,
+                          }}
+                        />
+                      </div>
+
+                      {/* Component breakdown list */}
+                      <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 4 }}>
+                        {(sub.components || []).map((c, cIdx) => {
+                          const cPct = c.delivered > 0 ? ((c.attended / c.delivered) * 100).toFixed(1) : "100.0";
+                          return (
+                            <span
+                              key={cIdx}
+                              style={{
+                                fontSize: 11,
+                                fontWeight: 700,
+                                background: c.type === "PR" ? "#faf5ff" : c.type === "TUT" ? "#fffbeb" : "#eff6ff",
+                                color: c.type === "PR" ? "#7c3aed" : c.type === "TUT" ? "#b45309" : "#1e40af",
+                                border: `1px solid ${c.type === "PR" ? "#ddd6fe" : c.type === "TUT" ? "#fde68a" : "#bfdbfe"}`,
+                                padding: "2px 8px",
+                                borderRadius: 6,
+                              }}
+                            >
+                              {c.type === "PR" ? "PR (Practice)" : c.type === "TUT" ? "TUT (Project)" : "PP (Theory)"}: {c.attended}/{c.delivered} ({cPct}%)
+                            </span>
+                          );
+                        })}
+                      </div>
+                    </div>
+
+                    {/* Smart Target & Safe Bunk Prediction Footer */}
+                    <div
+                      style={{
+                        background: subCalc.classesNeeded > 0 ? "#fffbeb" : "#f0fdf4",
+                        border: `1px solid ${subCalc.classesNeeded > 0 ? "#fde68a" : "#bbf7d0"}`,
+                        borderRadius: 10,
+                        padding: "8px 10px",
+                        display: "flex",
+                        justifyContent: "space-between",
+                        alignItems: "center",
+                        gap: 8,
+                      }}
+                    >
+                      <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 11.5 }}>
+                        {subCalc.classesNeeded > 0 ? (
+                          <>
+                            <AlertTriangle size={13} color="#d97706" />
+                            <span style={{ fontWeight: 800, color: "#92400e" }}>
+                              Need {subCalc.classesNeeded} more classes for 75.0%
+                            </span>
+                          </>
+                        ) : subCalc.safeBunks > 0 ? (
+                          <>
+                            <ShieldCheck size={13} color="#16a34a" />
+                            <span style={{ fontWeight: 800, color: "#166534" }}>
+                              Safe buffer: Can miss {subCalc.safeBunks} {subCalc.safeBunks === 1 ? "class" : "classes"} (stays &ge; 75%)
+                            </span>
+                          </>
+                        ) : (
+                          <>
+                            <CheckCircle2 size={13} color="#2563eb" />
+                            <span style={{ fontWeight: 800, color: "#1e40af" }}>
+                              At 75.0% threshold &mdash; Maintain regular attendance
+                            </span>
+                          </>
+                        )}
+                      </div>
+
+                      <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setSelectedSubjectName(sub.subjectName); setComponentInputs(sub.components || []); setActiveTab("studio"); window.scrollTo({ top: 400, behavior: "smooth" });
+                          }}
+                          style={{
+                            border: "none",
+                            background: "transparent",
+                            color: "#2563eb",
+                            fontSize: 11,
+                            fontWeight: 800,
+                            cursor: "pointer",
+                            padding: "2px 4px",
+                          }}
+                        >
+                          Simulate &rarr;
+                        </button>
+                        {sub.isSaved && (
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleDeleteSavedSubject(sub.subjectName);
+                            }}
+                            style={{
+                              border: "none",
+                              background: "transparent",
+                              color: "#94a3b8",
+                              cursor: "pointer",
+                              padding: 2,
+                            }}
+                            title="Reset Subject to Default"
+                          >
+                            <Trash2 size={13} />
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+          </motion.div>
+        )}
+
+{activeTab === "studio" && (
             <motion.div
               key="studio"
               initial={{ opacity: 0, y: 6 }}
@@ -3145,273 +3468,8 @@ export default function AttendanceTracker() {
           isMobile={isMobile}
         />
 
-        {/* ═══════════════════════════════════════════════════════════════
-            ALL SEMESTER SUBJECTS MATRIX & TARGET PREDICTOR
-        ═══════════════════════════════════════════════════════════════ */}
-        {allSectionSubjects.length > 0 && (
-          <div
-            style={{
-              background: "#ffffff",
-              border: "1.5px solid #e2e8f0",
-              borderRadius: 18,
-              padding: isMobile ? "16px 14px" : "22px 24px",
-              display: "flex",
-              flexDirection: "column",
-              gap: 16,
-              boxShadow: "0 2px 6px rgba(0,0,0,0.02)",
-            }}
-          >
-            {/* Header */}
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 10 }}>
-              <div>
-                <h3 style={{ fontSize: isMobile ? 16 : 18, fontWeight: 800, color: "#0f172a", margin: 0, display: "flex", alignItems: "center", gap: 8 }}>
-                  <Layers size={18} color="#059669" />
-                  Semester Subjects Attendance & Target Matrix ({allSectionSubjects.length})
-                </h3>
-                <p style={{ fontSize: 12, color: "#64748b", margin: "3px 0 0 0" }}>
-                  Full multi-component breakdown (theory PP, practical PR, tutorial TUT) with target prediction for Section {selectedSection}.
-                </p>
-              </div>
-
-              <div
-                style={{
-                  background: "linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%)",
-                  border: "1.5px solid #a7f3d0",
-                  borderRadius: 12,
-                  padding: "8px 14px",
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 10,
-                }}
-              >
-                <div>
-                  <div style={{ fontSize: 10.5, fontWeight: 800, color: "#065f46", textTransform: "uppercase" }}>Overall Semester Score</div>
-                  <div style={{ fontSize: 18, fontWeight: 900, color: overallAggregate.percentage >= 75 ? "#059669" : "#dc2626" }}>
-                    {overallAggregate.percentage}% <span style={{ fontSize: 12, fontWeight: 700, color: "#065f46" }}>({overallAggregate.totalAttended}/{overallAggregate.totalDelivered})</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Subject Cards Grid */}
-            <div
-              style={{
-                display: "grid",
-                gridTemplateColumns: isMobile ? "1fr" : "repeat(auto-fit, minmax(320px, 1fr))",
-                gap: 14,
-              }}
-            >
-              {allSectionSubjects.map((sub, idx) => {
-                const subCalc = calculateAttendance({
-                  components: sub.components,
-                  targetPercentage: 75,
-                });
-                const subCalc80 = calculateAttendance({
-                  components: sub.components,
-                  targetPercentage: 80,
-                });
-                const subCode = resolveSubjectCode({ subject: sub.subjectName }, studentData);
-                const isPassing = subCalc.currentPercentage >= 75;
-
-                return (
-                  <div
-                    key={idx}
-                    onClick={() => {
-                      setSelectedSubjectName(sub.subjectName);
-                      setComponentInputs(sub.components || []);
-                      window.scrollTo({ top: 400, behavior: "smooth" });
-                    }}
-                    style={{
-                      background: "#ffffff",
-                      border: `1.5px solid ${isPassing ? "#e2e8f0" : "#fecaca"}`,
-                      borderRadius: 16,
-                      padding: "16px 18px",
-                      display: "flex",
-                      flexDirection: "column",
-                      justifyContent: "space-between",
-                      gap: 12,
-                      cursor: "pointer",
-                      boxShadow: "0 1px 3px rgba(0,0,0,0.02)",
-                      transition: "transform 0.15s, box-shadow 0.15s, border-color 0.15s",
-                    }}
-                  >
-                    <div>
-                      {/* Card Header: Name + Code + Overall % */}
-                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 10 }}>
-                        <div>
-                          <h4 style={{ fontSize: 14.5, fontWeight: 800, color: "#0f172a", margin: 0, lineHeight: 1.3 }}>
-                            {sub.subjectName}
-                          </h4>
-                          <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 4, flexWrap: "wrap" }}>
-                            {subCode && (
-                              <span
-                                style={{
-                                  fontSize: 10,
-                                  fontFamily: "'Space Mono', monospace",
-                                  fontWeight: 800,
-                                  color: "#2563eb",
-                                  background: "#eff6ff",
-                                  border: "1px solid #bfdbfe",
-                                  padding: "1px 5px",
-                                  borderRadius: 4,
-                                }}
-                              >
-                                {subCode}
-                              </span>
-                            )}
-                            <span style={{ fontSize: 11, color: "#64748b", fontWeight: 700 }}>
-                              {subCalc.totalAttended} / {subCalc.totalDelivered} classes
-                            </span>
-                          </div>
-                        </div>
-
-                        <div style={{ textAlign: "right" }}>
-                          <div
-                            style={{
-                              fontSize: 18,
-                              fontWeight: 900,
-                              color: isPassing ? "#059669" : "#dc2626",
-                            }}
-                          >
-                            {subCalc.currentPercentage}%
-                          </div>
-                          <span
-                            style={{
-                              fontSize: 9.5,
-                              fontWeight: 900,
-                              background: isPassing ? "#ecfdf5" : "#fef2f2",
-                              color: isPassing ? "#059669" : "#dc2626",
-                              padding: "1px 6px",
-                              borderRadius: 4,
-                            }}
-                          >
-                            {isPassing ? "ELIGIBLE" : "SHORTAGE"}
-                          </span>
-                        </div>
-                      </div>
-
-                      {/* Progress Bar */}
-                      <div style={{ width: "100%", height: 5, background: "#f1f5f9", borderRadius: 999, margin: "10px 0 8px 0", overflow: "hidden" }}>
-                        <div
-                          style={{
-                            width: `${Math.min(100, Math.max(0, subCalc.currentPercentage))}%`,
-                            height: "100%",
-                            background: isPassing ? "linear-gradient(90deg, #10b981, #059669)" : "linear-gradient(90deg, #f87171, #dc2626)",
-                            borderRadius: 999,
-                          }}
-                        />
-                      </div>
-
-                      {/* Component breakdown list */}
-                      <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 4 }}>
-                        {(sub.components || []).map((c, cIdx) => {
-                          const cPct = c.delivered > 0 ? ((c.attended / c.delivered) * 100).toFixed(1) : "100.0";
-                          return (
-                            <span
-                              key={cIdx}
-                              style={{
-                                fontSize: 11,
-                                fontWeight: 700,
-                                background: c.type === "PR" ? "#faf5ff" : c.type === "TUT" ? "#fffbeb" : "#eff6ff",
-                                color: c.type === "PR" ? "#7c3aed" : c.type === "TUT" ? "#b45309" : "#1e40af",
-                                border: `1px solid ${c.type === "PR" ? "#ddd6fe" : c.type === "TUT" ? "#fde68a" : "#bfdbfe"}`,
-                                padding: "2px 8px",
-                                borderRadius: 6,
-                              }}
-                            >
-                              {c.type === "PR" ? "PR (Practice)" : c.type === "TUT" ? "TUT (Project)" : "PP (Theory)"}: {c.attended}/{c.delivered} ({cPct}%)
-                            </span>
-                          );
-                        })}
-                      </div>
-                    </div>
-
-                    {/* Smart Target & Safe Bunk Prediction Footer */}
-                    <div
-                      style={{
-                        background: subCalc.classesNeeded > 0 ? "#fffbeb" : "#f0fdf4",
-                        border: `1px solid ${subCalc.classesNeeded > 0 ? "#fde68a" : "#bbf7d0"}`,
-                        borderRadius: 10,
-                        padding: "8px 10px",
-                        display: "flex",
-                        justifyContent: "space-between",
-                        alignItems: "center",
-                        gap: 8,
-                      }}
-                    >
-                      <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 11.5 }}>
-                        {subCalc.classesNeeded > 0 ? (
-                          <>
-                            <AlertTriangle size={13} color="#d97706" />
-                            <span style={{ fontWeight: 800, color: "#92400e" }}>
-                              Need {subCalc.classesNeeded} more classes for 75.0%
-                            </span>
-                          </>
-                        ) : subCalc.safeBunks > 0 ? (
-                          <>
-                            <ShieldCheck size={13} color="#16a34a" />
-                            <span style={{ fontWeight: 800, color: "#166534" }}>
-                              Safe buffer: Can miss {subCalc.safeBunks} {subCalc.safeBunks === 1 ? "class" : "classes"} (stays &ge; 75%)
-                            </span>
-                          </>
-                        ) : (
-                          <>
-                            <CheckCircle2 size={13} color="#2563eb" />
-                            <span style={{ fontWeight: 800, color: "#1e40af" }}>
-                              At 75.0% threshold &mdash; Maintain regular attendance
-                            </span>
-                          </>
-                        )}
-                      </div>
-
-                      <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setSelectedSubjectName(sub.subjectName);
-                            setComponentInputs(sub.components || []);
-                            window.scrollTo({ top: 400, behavior: "smooth" });
-                          }}
-                          style={{
-                            border: "none",
-                            background: "transparent",
-                            color: "#2563eb",
-                            fontSize: 11,
-                            fontWeight: 800,
-                            cursor: "pointer",
-                            padding: "2px 4px",
-                          }}
-                        >
-                          Simulate &rarr;
-                        </button>
-                        {sub.isSaved && (
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleDeleteSavedSubject(sub.subjectName);
-                            }}
-                            style={{
-                              border: "none",
-                              background: "transparent",
-                              color: "#94a3b8",
-                              cursor: "pointer",
-                              padding: 2,
-                            }}
-                            title="Reset Subject to Default"
-                          >
-                            <Trash2 size={13} />
-                          </button>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        )}
+        
+        
       </motion.div>
     )}
 
