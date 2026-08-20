@@ -306,7 +306,7 @@ export default function Resources() {
         fontFamily: "'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif",
         paddingBottom: isMobile ? 40 : 70,
         width: "100%",
-        maxWidth: "100vw",
+        maxWidth: "100%",
         overflowX: "hidden",
         boxSizing: "border-box",
       }}
@@ -317,12 +317,14 @@ export default function Resources() {
           style={{
             background: "#ffffff",
             borderBottom: "1px solid #f1f5f9",
-            padding: "8px 10px 6px 10px",
+            padding: "8px 8px 6px 8px",
             display: "flex",
             alignItems: "center",
             gap: 6,
             width: "100%",
+            maxWidth: "100%",
             boxSizing: "border-box",
+            overflowX: "hidden",
           }}
         >
           {/* Compact Left Arrow */}
@@ -434,13 +436,14 @@ export default function Resources() {
         style={{
           maxWidth: 1380,
           margin: "0 auto",
-          padding: isMobile ? "12px 14px 36px" : "24px 24px 70px",
+          padding: isMobile ? "12px 10px 36px" : "24px 24px 70px",
           display: "grid",
-          gridTemplateColumns: isMobile ? "minmax(0, 1fr)" : "270px minmax(0, 1fr)",
+          gridTemplateColumns: isMobile ? "100%" : "270px minmax(0, 1fr)",
           gap: isMobile ? 12 : 28,
           alignItems: "start",
           width: "100%",
           boxSizing: "border-box",
+          overflowX: "hidden",
         }}
         className="gf-resources-layout"
       >
@@ -998,7 +1001,7 @@ export default function Resources() {
                       <p style={{ fontSize: isMobile ? 11.5 : 12.5, color: "#64748b", margin: "0 0 12px 0" }}>Standard university grade point mapping</p>
 
                       {isMobile ? (
-                        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 7 }}>
+                        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(125px, 1fr))", gap: 6, width: "100%", boxSizing: "border-box" }}>
                           {GRADE_SCALE.slice(0, 6).map((g, idx) => (
                             <div
                               key={idx}
@@ -1006,36 +1009,38 @@ export default function Resources() {
                                 display: "flex",
                                 alignItems: "center",
                                 justifyContent: "space-between",
-                                padding: "7px 9px",
+                                padding: "6px 8px",
                                 borderRadius: 8,
                                 background: "#f8fafc",
                                 border: "1px solid #edf2f7",
-                                gap: 6,
+                                gap: 4,
+                                minWidth: 0,
+                                boxSizing: "border-box",
                               }}
                             >
-                              <div style={{ display: "flex", alignItems: "center", gap: 6, minWidth: 0 }}>
+                              <div style={{ display: "flex", alignItems: "center", gap: 5, minWidth: 0, overflow: "hidden" }}>
                                 <span
                                   style={{
                                     display: "inline-block",
-                                    width: 22,
-                                    height: 22,
-                                    lineHeight: "22px",
+                                    width: 20,
+                                    height: 20,
+                                    lineHeight: "20px",
                                     textAlign: "center",
-                                    borderRadius: 6,
+                                    borderRadius: 5,
                                     background: g.bg,
                                     color: g.color,
                                     fontWeight: 900,
-                                    fontSize: 11,
+                                    fontSize: 10.5,
                                     flexShrink: 0,
                                   }}
                                 >
                                   {g.grade}
                                 </span>
-                                <span style={{ fontSize: 11, fontWeight: 700, color: "#334155", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                                <span style={{ fontSize: 10.5, fontWeight: 700, color: "#334155", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
                                   {g.qual}
                                 </span>
                               </div>
-                              <span style={{ fontSize: 11, fontWeight: 800, color: g.color, fontFamily: "'Space Mono', monospace", flexShrink: 0 }}>
+                              <span style={{ fontSize: 10.5, fontWeight: 800, color: g.color, fontFamily: "'Space Mono', monospace", flexShrink: 0 }}>
                                 {g.pts}p
                               </span>
                             </div>

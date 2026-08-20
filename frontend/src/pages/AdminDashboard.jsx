@@ -2,7 +2,13 @@ import React, { useState, useEffect, useRef, Fragment } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import { useApp } from "../context/AppContext";
-import { Spinner, SectionToppersSkeleton, BacklogTrackerSkeleton } from "../components/LoadingSpinner";
+import {
+  Spinner,
+  SectionToppersSkeleton,
+  BacklogTrackerSkeleton,
+  AdminStatsSkeleton,
+  AdminFeedbackSkeleton,
+} from "../components/LoadingSpinner";
 import StudentReportCardEditor from "../components/StudentReportCardEditor";
 import TimetableAdminManager from "../components/TimetableAdminManager";
 import { motion, AnimatePresence } from "framer-motion";
@@ -3472,7 +3478,9 @@ function FeedbackManager({ authHeaders, API }) {
       </div>
 
       <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-        {feedbacks.length === 0 ? (
+        {loading ? (
+          <AdminFeedbackSkeleton />
+        ) : feedbacks.length === 0 ? (
           <p style={{ color: "#94a3b8", fontSize: 13 }}>No student feedback submitted yet.</p>
         ) : (
           feedbacks.map((fb) => (
@@ -3778,7 +3786,7 @@ export default function AdminDashboard() {
         </div>
 
         {/* ── 4 Top Metrics Stats Grid ── */}
-        {stats && (
+        {stats ? (
           <div
             style={{
               display: "grid",
@@ -3853,11 +3861,15 @@ export default function AdminDashboard() {
                     {stat.label}
                   </div>
                   <div style={{ fontSize: 22, fontWeight: 800, color: "#0f172a", marginTop: 2 }}>
-                    {stat.value}
+                    {stat.value || "0"}
                   </div>
                 </div>
               </motion.div>
             ))}
+          </div>
+        ) : (
+          <div style={{ marginBottom: 24 }}>
+            <AdminStatsSkeleton />
           </div>
         )}
 
@@ -3906,8 +3918,16 @@ export default function AdminDashboard() {
           })}
         </div>
 
-        {/* ── TAB 1: UPLOAD RESULTS & INTERNAL MARKS ── */}
-        {tab === "overview" && (
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={tab}
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -8 }}
+            transition={{ duration: 0.2, ease: "easeOut" }}
+          >
+            {/* ── TAB 1: UPLOAD RESULTS & INTERNAL MARKS ── */}
+            {tab === "overview" && (
           <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
             <div
               style={{
@@ -4558,6 +4578,8 @@ export default function AdminDashboard() {
 
         {/* ── TAB 5: STUDENT FEEDBACK ── */}
         {tab === "feedback" && <FeedbackManager authHeaders={authHeaders} API={API} />}
+          </motion.div>
+        </AnimatePresence>
       </div>
 
       <style>{`

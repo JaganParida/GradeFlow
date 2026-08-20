@@ -379,6 +379,94 @@ export function BacklogTrackerSkeleton() {
   );
 }
 
+/* ─── Admin Dashboard Stats Cards Skeleton ───────────────────── */
+export function AdminStatsSkeleton() {
+  return (
+    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 14, width: "100%", boxSizing: "border-box" }}>
+      {Array(4)
+        .fill(0)
+        .map((_, i) => (
+          <div
+            key={i}
+            style={{
+              background: "#ffffff",
+              border: "1px solid #e2e8f0",
+              borderRadius: 16,
+              padding: "20px",
+              display: "flex",
+              alignItems: "center",
+              gap: 14,
+              boxShadow: "0 2px 10px rgba(15, 23, 42, 0.02)",
+            }}
+          >
+            <SkeletonBlock w="44px" h="44px" r="12px" />
+            <div style={{ display: "flex", flexDirection: "column", gap: 6, flex: 1 }}>
+              <SkeletonBlock w="110px" h="11px" r="4px" />
+              <SkeletonBlock w="70px" h="24px" r="6px" />
+            </div>
+          </div>
+        ))}
+    </div>
+  );
+}
+
+/* ─── Admin Feedback Skeleton ────────────────────────────────── */
+export function AdminFeedbackSkeleton() {
+  return (
+    <div
+      style={{
+        display: "grid",
+        gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
+        gap: 14,
+        width: "100%",
+        boxSizing: "border-box",
+      }}
+    >
+      {Array(6)
+        .fill(0)
+        .map((_, i) => (
+          <div
+            key={i}
+            style={{
+              background: "#ffffff",
+              border: "1px solid #e2e8f0",
+              borderRadius: 16,
+              padding: 18,
+              display: "flex",
+              flexDirection: "column",
+              gap: 12,
+              boxShadow: "0 1px 3px rgba(0,0,0,0.02)",
+            }}
+          >
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                <SkeletonBlock w="36px" h="36px" r="50%" />
+                <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                  <SkeletonBlock w="110px" h="14px" r="4px" />
+                  <SkeletonBlock w="70px" h="10px" r="3px" />
+                </div>
+              </div>
+              <SkeletonBlock w="30px" h="30px" r="8px" />
+            </div>
+
+            <div style={{ display: "flex", gap: 3 }}>
+              {Array(5)
+                .fill(0)
+                .map((_, j) => (
+                  <SkeletonBlock key={j} w="14px" h="14px" r="3px" />
+                ))}
+            </div>
+
+            <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+              <SkeletonBlock w="100%" h="12px" r="3px" />
+              <SkeletonBlock w="85%" h="12px" r="3px" />
+            </div>
+          </div>
+        ))}
+    </div>
+  );
+}
+
 /* ─── Testimonials Page Skeleton ──────────────────────────────── */
 export function TestimonialsSkeleton() {
   return (
