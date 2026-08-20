@@ -346,8 +346,13 @@ export function AppProvider({ children }) {
         authChecking,
         isAuthModalOpen,
         setIsAuthModalOpen,
-        openStudentAuthModal: () => setIsAuthModalOpen(true),
-        closeStudentAuthModal: () => setIsAuthModalOpen(false),
+        openStudentAuthModal: (dest = null) => {
+          if (dest) setPendingDestination(dest);
+          setIsAuthModalOpen(true);
+        },
+        closeStudentAuthModal: () => {
+          setIsAuthModalOpen(false);
+        },
         sendStudentOtp,
         verifyStudentOtp,
         studentLogout,

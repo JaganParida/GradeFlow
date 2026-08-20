@@ -44,6 +44,7 @@ import {
   Loader2,
   AlertCircle,
   Lock,
+  Calendar,
 } from "lucide-react";
 
 /* ─── Social SVG Icons ─────────────────────────────────────────── */
@@ -209,20 +210,16 @@ const QUICK_ACTIONS_ITEMS = [
     hash: "#target-predictor",
   },
   {
-    label: "Placement Insights",
-    icon: <Briefcase size={20} color="#06b6d4" />,
+    label: "Attendance Tracker",
+    icon: <CheckCircle2 size={20} color="#06b6d4" />,
     bg: "#ecfeff",
-    to: "/analytics",
-    tab: "placement",
-    hash: "#placement",
+    to: "/attendance",
   },
   {
-    label: "Compare Scores",
-    icon: <GitCompare size={20} color="#ec4899" />,
+    label: "Timetable",
+    icon: <Calendar size={20} color="#ec4899" />,
     bg: "#fdf2f8",
-    to: "/analytics",
-    tab: "overview",
-    hash: "#overview",
+    to: "/timetable",
   },
 ];
 
@@ -477,7 +474,19 @@ export default function Home() {
           `/analytics/${encodeStudentId(currentRegNo)}${query}${act.hash || ""}`,
         );
       } else {
-        openStudentAuthModal();
+        openStudentAuthModal({ type: "analytics", tab: act.tab });
+      }
+    } else if (act.to.startsWith("/attendance")) {
+      if (hasActiveSession && currentRegNo) {
+        navigate(`/attendance/${encodeStudentId(currentRegNo)}`);
+      } else {
+        openStudentAuthModal({ type: "attendance" });
+      }
+    } else if (act.to.startsWith("/timetable")) {
+      if (hasActiveSession && currentRegNo) {
+        navigate(`/timetable/${encodeStudentId(currentRegNo)}`);
+      } else {
+        openStudentAuthModal({ type: "timetable" });
       }
     } else if (act.to.startsWith("/resources")) {
       const query = act.tab ? `?tab=${act.tab}` : "";
