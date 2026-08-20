@@ -663,7 +663,7 @@ export default function AttendanceTargetPredictor({
             </div>
           )}
 
-          {allSessions.length > 6 && !showAllDates && (
+          {allSessions.length > 15 && !showAllDates && (
             <div style={{ textAlign: "center", marginTop: 4 }}>
               <button
                 type="button"
@@ -679,7 +679,7 @@ export default function AttendanceTargetPredictor({
                   cursor: "pointer",
                 }}
               >
-                + Show remaining {allSessions.length - 6} class dates until target
+                + Show remaining {allSessions.length - 15} class dates until target
               </button>
             </div>
           )}
