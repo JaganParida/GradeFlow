@@ -5,11 +5,31 @@ import { encodeStudentId } from "../utils/studentIdEncoder";
 import { motion, AnimatePresence } from "framer-motion";
 import StudentAuthModal from "./StudentAuthModal";
 import {
-  BarChart2, ChevronDown, ChevronRight, Search, LogOut,
-  LayoutDashboard, Trophy, BookOpen, MessageSquare,
-  TrendingUp, Briefcase, Target, Award, Activity,
-  Menu, X, Home as HomeIcon, User, Calculator, ArrowRight,
-  ShieldCheck, Clock, Percent, GraduationCap, Loader2
+  BarChart2,
+  ChevronDown,
+  ChevronRight,
+  Search,
+  LogOut,
+  LayoutDashboard,
+  Trophy,
+  BookOpen,
+  MessageSquare,
+  TrendingUp,
+  Briefcase,
+  Target,
+  Award,
+  Activity,
+  Menu,
+  X,
+  Home as HomeIcon,
+  User,
+  Calculator,
+  ArrowRight,
+  ShieldCheck,
+  Clock,
+  Percent,
+  GraduationCap,
+  Loader2,
 } from "lucide-react";
 import { is2023CSEBatch } from "../utils/timetableHelper";
 
@@ -208,9 +228,9 @@ export default function Navbar() {
               textDecoration: "none",
               display: "flex",
               alignItems: "center",
-              gap: 10,
+              gap: 9,
               flexShrink: 0,
-              marginRight: 10,
+              marginRight: 6,
               zIndex: 1001,
             }}
           >
@@ -219,10 +239,11 @@ export default function Navbar() {
               alt="GradeFlow Logo"
               className="gf-logo-img"
               style={{
-                height: 32,
+                height: 38,
                 width: "auto",
                 objectFit: "contain",
                 flexShrink: 0,
+                display: "block",
               }}
             />
             <span
@@ -230,10 +251,11 @@ export default function Navbar() {
               style={{
                 fontFamily: "'DM Sans', sans-serif",
                 fontWeight: 800,
-                fontSize: 20.5,
+                fontSize: 21,
                 color: "#0f172a",
                 letterSpacing: "-0.5px",
                 whiteSpace: "nowrap",
+                lineHeight: 1,
               }}
             >
               GradeFlow
@@ -289,8 +311,12 @@ export default function Navbar() {
                 border: "none",
                 textDecoration: "none",
                 fontSize: 14,
-                fontWeight: location.pathname.startsWith("/dashboard") ? 700 : 500,
-                color: location.pathname.startsWith("/dashboard") ? "#0f172a" : "#64748b",
+                fontWeight: location.pathname.startsWith("/dashboard")
+                  ? 700
+                  : 500,
+                color: location.pathname.startsWith("/dashboard")
+                  ? "#0f172a"
+                  : "#64748b",
                 cursor: "pointer",
                 padding: "8px 0",
                 position: "relative",
@@ -324,8 +350,12 @@ export default function Navbar() {
                   border: "none",
                   textDecoration: "none",
                   fontSize: 14,
-                  fontWeight: location.pathname.startsWith("/timetable") ? 700 : 500,
-                  color: location.pathname.startsWith("/timetable") ? "#0f172a" : "#64748b",
+                  fontWeight: location.pathname.startsWith("/timetable")
+                    ? 700
+                    : 500,
+                  color: location.pathname.startsWith("/timetable")
+                    ? "#0f172a"
+                    : "#64748b",
                   cursor: "pointer",
                   padding: "8px 0",
                   position: "relative",
@@ -359,8 +389,12 @@ export default function Navbar() {
                 border: "none",
                 textDecoration: "none",
                 fontSize: 14,
-                fontWeight: location.pathname.startsWith("/attendance") ? 700 : 500,
-                color: location.pathname.startsWith("/attendance") ? "#0f172a" : "#64748b",
+                fontWeight: location.pathname.startsWith("/attendance")
+                  ? 700
+                  : 500,
+                color: location.pathname.startsWith("/attendance")
+                  ? "#0f172a"
+                  : "#64748b",
                 cursor: "pointer",
                 padding: "8px 0",
                 position: "relative",
@@ -407,8 +441,12 @@ export default function Navbar() {
                   alignItems: "center",
                   gap: 4,
                   fontSize: 14,
-                  fontWeight: location.pathname.startsWith("/analytics") ? 700 : 500,
-                  color: location.pathname.startsWith("/analytics") ? "#0f172a" : "#64748b",
+                  fontWeight: location.pathname.startsWith("/analytics")
+                    ? 700
+                    : 500,
+                  color: location.pathname.startsWith("/analytics")
+                    ? "#0f172a"
+                    : "#64748b",
                   cursor: "pointer",
                   padding: "8px 0",
                   fontFamily: "'DM Sans', sans-serif",
@@ -416,7 +454,14 @@ export default function Navbar() {
                   position: "relative",
                 }}
               >
-                Analytics <ChevronDown size={13} style={{ transition: "transform 0.2s", transform: analyticsDropdown ? "rotate(180deg)" : "none" }} />
+                Analytics{" "}
+                <ChevronDown
+                  size={13}
+                  style={{
+                    transition: "transform 0.2s",
+                    transform: analyticsDropdown ? "rotate(180deg)" : "none",
+                  }}
+                />
                 {location.pathname.startsWith("/analytics") && (
                   <motion.div
                     layoutId="nav-indicator"
@@ -474,10 +519,15 @@ export default function Navbar() {
                         cursor: "pointer",
                         transition: "background 0.15s",
                       }}
-                      onMouseEnter={(e) => (e.currentTarget.style.background = "#f8fafc")}
-                      onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
+                      onMouseEnter={(e) =>
+                        (e.currentTarget.style.background = "#f8fafc")
+                      }
+                      onMouseLeave={(e) =>
+                        (e.currentTarget.style.background = "transparent")
+                      }
                     >
-                      <TrendingUp size={15} color="#2563eb" /> Performance Trajectory
+                      <TrendingUp size={15} color="#2563eb" /> Performance
+                      Trajectory
                     </button>
 
                     <button
@@ -501,8 +551,12 @@ export default function Navbar() {
                         cursor: "pointer",
                         transition: "background 0.15s",
                       }}
-                      onMouseEnter={(e) => (e.currentTarget.style.background = "#f8fafc")}
-                      onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
+                      onMouseEnter={(e) =>
+                        (e.currentTarget.style.background = "#f8fafc")
+                      }
+                      onMouseLeave={(e) =>
+                        (e.currentTarget.style.background = "transparent")
+                      }
                     >
                       <BarChart2 size={15} color="#8b5cf6" /> Grade Distribution
                     </button>
@@ -528,10 +582,15 @@ export default function Navbar() {
                         cursor: "pointer",
                         transition: "background 0.15s",
                       }}
-                      onMouseEnter={(e) => (e.currentTarget.style.background = "#f8fafc")}
-                      onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
+                      onMouseEnter={(e) =>
+                        (e.currentTarget.style.background = "#f8fafc")
+                      }
+                      onMouseLeave={(e) =>
+                        (e.currentTarget.style.background = "transparent")
+                      }
                     >
-                      <Briefcase size={15} color="#10b981" /> Placement & Companies
+                      <Briefcase size={15} color="#10b981" /> Placement &
+                      Companies
                     </button>
 
                     <button
@@ -555,10 +614,15 @@ export default function Navbar() {
                         cursor: "pointer",
                         transition: "background 0.15s",
                       }}
-                      onMouseEnter={(e) => (e.currentTarget.style.background = "#f8fafc")}
-                      onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
+                      onMouseEnter={(e) =>
+                        (e.currentTarget.style.background = "#f8fafc")
+                      }
+                      onMouseLeave={(e) =>
+                        (e.currentTarget.style.background = "transparent")
+                      }
                     >
-                      <Target size={15} color="#d97706" /> Subject Mastery & Insights
+                      <Target size={15} color="#d97706" /> Subject Mastery &
+                      Insights
                     </button>
                   </motion.div>
                 )}
@@ -573,7 +637,8 @@ export default function Navbar() {
                 textDecoration: "none",
                 fontSize: 14,
                 fontWeight: location.pathname === "/leaderboard" ? 700 : 500,
-                color: location.pathname === "/leaderboard" ? "#0f172a" : "#64748b",
+                color:
+                  location.pathname === "/leaderboard" ? "#0f172a" : "#64748b",
                 position: "relative",
                 padding: "8px 0",
                 transition: "color 0.2s ease",
@@ -603,7 +668,8 @@ export default function Navbar() {
                 textDecoration: "none",
                 fontSize: 14,
                 fontWeight: location.pathname === "/resources" ? 700 : 500,
-                color: location.pathname === "/resources" ? "#0f172a" : "#64748b",
+                color:
+                  location.pathname === "/resources" ? "#0f172a" : "#64748b",
                 position: "relative",
                 padding: "8px 0",
                 transition: "color 0.2s ease",
@@ -633,7 +699,8 @@ export default function Navbar() {
                 textDecoration: "none",
                 fontSize: 14,
                 fontWeight: location.pathname === "/testimonials" ? 700 : 500,
-                color: location.pathname === "/testimonials" ? "#0f172a" : "#64748b",
+                color:
+                  location.pathname === "/testimonials" ? "#0f172a" : "#64748b",
                 position: "relative",
                 padding: "8px 0",
                 transition: "color 0.2s ease",
@@ -662,15 +729,24 @@ export default function Navbar() {
               style={{
                 textDecoration: "none",
                 fontSize: 14,
-                fontWeight: (location.pathname === "/about-dev" || location.pathname === "/about") ? 700 : 500,
-                color: (location.pathname === "/about-dev" || location.pathname === "/about") ? "#0f172a" : "#64748b",
+                fontWeight:
+                  location.pathname === "/about-dev" ||
+                  location.pathname === "/about"
+                    ? 700
+                    : 500,
+                color:
+                  location.pathname === "/about-dev" ||
+                  location.pathname === "/about"
+                    ? "#0f172a"
+                    : "#64748b",
                 position: "relative",
                 padding: "8px 0",
                 transition: "color 0.2s ease",
               }}
             >
               About Dev
-              {(location.pathname === "/about-dev" || location.pathname === "/about") && (
+              {(location.pathname === "/about-dev" ||
+                location.pathname === "/about") && (
                 <motion.div
                   layoutId="nav-indicator"
                   style={{
@@ -734,8 +810,12 @@ export default function Navbar() {
                 padding: "6px 10px",
                 borderRadius: 8,
                 border: "1px solid #e2e8f0",
-                background: location.pathname.startsWith("/admin") ? "#f1f5f9" : "transparent",
-                color: location.pathname.startsWith("/admin") ? "#0f172a" : "#64748b",
+                background: location.pathname.startsWith("/admin")
+                  ? "#f1f5f9"
+                  : "transparent",
+                color: location.pathname.startsWith("/admin")
+                  ? "#0f172a"
+                  : "#64748b",
                 fontSize: 12.5,
                 fontWeight: 600,
                 transition: "all 0.15s ease",
@@ -746,8 +826,16 @@ export default function Navbar() {
                 e.currentTarget.style.borderColor = "#cbd5e1";
               }}
               onMouseLeave={(e) => {
-                e.currentTarget.style.background = location.pathname.startsWith("/admin") ? "#f1f5f9" : "transparent";
-                e.currentTarget.style.color = location.pathname.startsWith("/admin") ? "#0f172a" : "#64748b";
+                e.currentTarget.style.background = location.pathname.startsWith(
+                  "/admin",
+                )
+                  ? "#f1f5f9"
+                  : "transparent";
+                e.currentTarget.style.color = location.pathname.startsWith(
+                  "/admin",
+                )
+                  ? "#0f172a"
+                  : "#64748b";
                 e.currentTarget.style.borderColor = "#e2e8f0";
               }}
             >
@@ -796,7 +884,11 @@ export default function Navbar() {
                     }}
                     title="Logout"
                   >
-                    {isLoggingOut ? <Loader2 size={13} className="spin" /> : <LogOut size={13} />}
+                    {isLoggingOut ? (
+                      <Loader2 size={13} className="spin" />
+                    ) : (
+                      <LogOut size={13} />
+                    )}
                   </button>
                 </div>
               ) : (
@@ -809,7 +901,8 @@ export default function Navbar() {
                     gap: 6,
                     padding: "8px 16px",
                     borderRadius: 10,
-                    background: "linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)",
+                    background:
+                      "linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)",
                     color: "#ffffff",
                     border: "none",
                     fontSize: 13.5,
@@ -819,7 +912,9 @@ export default function Navbar() {
                     transition: "all 0.2s ease",
                     boxShadow: "0 2px 8px rgba(37, 99, 235, 0.25)",
                   }}
-                  onMouseEnter={(e) => (e.currentTarget.style.filter = "brightness(1.08)")}
+                  onMouseEnter={(e) =>
+                    (e.currentTarget.style.filter = "brightness(1.08)")
+                  }
                   onMouseLeave={(e) => (e.currentTarget.style.filter = "none")}
                 >
                   <GraduationCap size={15} />
@@ -832,13 +927,19 @@ export default function Navbar() {
             <button
               className="gf-mobile-toggle"
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              aria-label={mobileMenuOpen ? "Close navigation menu" : "Open navigation menu"}
+              aria-label={
+                mobileMenuOpen
+                  ? "Close navigation menu"
+                  : "Open navigation menu"
+              }
               style={{
                 width: 36,
                 height: 36,
                 borderRadius: 10,
                 background: mobileMenuOpen ? "#eff6ff" : "#f8fafc",
-                border: mobileMenuOpen ? "1px solid #bfdbfe" : "1px solid #e2e8f0",
+                border: mobileMenuOpen
+                  ? "1px solid #bfdbfe"
+                  : "1px solid #e2e8f0",
                 display: "none",
                 alignItems: "center",
                 justifyContent: "center",
@@ -961,18 +1062,31 @@ export default function Navbar() {
                     padding: "11px 12px",
                     borderRadius: 10,
                     textDecoration: "none",
-                    background: location.pathname === "/" ? "#eff6ff" : "transparent",
+                    background:
+                      location.pathname === "/" ? "#eff6ff" : "transparent",
                     color: location.pathname === "/" ? "#2563eb" : "#1e293b",
                     fontSize: 14.5,
                     fontWeight: location.pathname === "/" ? 700 : 600,
                   }}
                 >
-                  <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                    <HomeIcon size={17} color={location.pathname === "/" ? "#2563eb" : "#64748b"} />
+                  <div
+                    style={{ display: "flex", alignItems: "center", gap: 10 }}
+                  >
+                    <HomeIcon
+                      size={17}
+                      color={location.pathname === "/" ? "#2563eb" : "#64748b"}
+                    />
                     <span>Home</span>
                   </div>
                   {location.pathname === "/" && (
-                    <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#2563eb" }} />
+                    <span
+                      style={{
+                        width: 6,
+                        height: 6,
+                        borderRadius: "50%",
+                        background: "#2563eb",
+                      }}
+                    />
                   )}
                 </Link>
 
@@ -993,18 +1107,40 @@ export default function Navbar() {
                     textAlign: "left",
                     cursor: "pointer",
                     fontFamily: "'DM Sans', sans-serif",
-                    background: location.pathname.startsWith("/dashboard") ? "#eff6ff" : "transparent",
-                    color: location.pathname.startsWith("/dashboard") ? "#2563eb" : "#1e293b",
+                    background: location.pathname.startsWith("/dashboard")
+                      ? "#eff6ff"
+                      : "transparent",
+                    color: location.pathname.startsWith("/dashboard")
+                      ? "#2563eb"
+                      : "#1e293b",
                     fontSize: 14.5,
-                    fontWeight: location.pathname.startsWith("/dashboard") ? 700 : 600,
+                    fontWeight: location.pathname.startsWith("/dashboard")
+                      ? 700
+                      : 600,
                   }}
                 >
-                  <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                    <LayoutDashboard size={17} color={location.pathname.startsWith("/dashboard") ? "#2563eb" : "#64748b"} />
+                  <div
+                    style={{ display: "flex", alignItems: "center", gap: 10 }}
+                  >
+                    <LayoutDashboard
+                      size={17}
+                      color={
+                        location.pathname.startsWith("/dashboard")
+                          ? "#2563eb"
+                          : "#64748b"
+                      }
+                    />
                     <span>Dashboard</span>
                   </div>
                   {location.pathname.startsWith("/dashboard") ? (
-                    <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#2563eb" }} />
+                    <span
+                      style={{
+                        width: 6,
+                        height: 6,
+                        borderRadius: "50%",
+                        background: "#2563eb",
+                      }}
+                    />
                   ) : (
                     <ChevronRight size={15} color="#cbd5e1" />
                   )}
@@ -1039,7 +1175,9 @@ export default function Navbar() {
                       textAlign: "left",
                     }}
                   >
-                    <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                    <div
+                      style={{ display: "flex", alignItems: "center", gap: 10 }}
+                    >
                       <Clock
                         size={17}
                         color={
@@ -1093,7 +1231,9 @@ export default function Navbar() {
                     textAlign: "left",
                   }}
                 >
-                  <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                  <div
+                    style={{ display: "flex", alignItems: "center", gap: 10 }}
+                  >
                     <Percent
                       size={17}
                       color={
@@ -1133,14 +1273,29 @@ export default function Navbar() {
                       textAlign: "left",
                       cursor: "pointer",
                       fontFamily: "'DM Sans', sans-serif",
-                      background: location.pathname.startsWith("/analytics") ? "#eff6ff" : "transparent",
-                      color: location.pathname.startsWith("/analytics") ? "#2563eb" : "#1e293b",
+                      background: location.pathname.startsWith("/analytics")
+                        ? "#eff6ff"
+                        : "transparent",
+                      color: location.pathname.startsWith("/analytics")
+                        ? "#2563eb"
+                        : "#1e293b",
                       fontSize: 14.5,
-                      fontWeight: location.pathname.startsWith("/analytics") ? 700 : 600,
+                      fontWeight: location.pathname.startsWith("/analytics")
+                        ? 700
+                        : 600,
                     }}
                   >
-                    <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                      <BarChart2 size={17} color={location.pathname.startsWith("/analytics") ? "#2563eb" : "#64748b"} />
+                    <div
+                      style={{ display: "flex", alignItems: "center", gap: 10 }}
+                    >
+                      <BarChart2
+                        size={17}
+                        color={
+                          location.pathname.startsWith("/analytics")
+                            ? "#2563eb"
+                            : "#64748b"
+                        }
+                      />
                       <span>Analytics</span>
                     </div>
                     <ChevronDown
@@ -1148,7 +1303,9 @@ export default function Navbar() {
                       color="#64748b"
                       style={{
                         transition: "transform 0.2s",
-                        transform: mobileAnalyticsOpen ? "rotate(180deg)" : "none",
+                        transform: mobileAnalyticsOpen
+                          ? "rotate(180deg)"
+                          : "none",
                       }}
                     />
                   </button>
@@ -1211,7 +1368,8 @@ export default function Navbar() {
                             textAlign: "left",
                           }}
                         >
-                          <BarChart2 size={14} color="#8b5cf6" /> Grade Distribution
+                          <BarChart2 size={14} color="#8b5cf6" /> Grade
+                          Distribution
                         </button>
 
                         <button
@@ -1234,7 +1392,8 @@ export default function Navbar() {
                             textAlign: "left",
                           }}
                         >
-                          <Briefcase size={14} color="#10b981" /> Placement Insights
+                          <Briefcase size={14} color="#10b981" /> Placement
+                          Insights
                         </button>
                         <button
                           onClick={(e) => {
@@ -1282,18 +1441,41 @@ export default function Navbar() {
                     padding: "11px 12px",
                     borderRadius: 10,
                     textDecoration: "none",
-                    background: location.pathname === "/leaderboard" ? "#eff6ff" : "transparent",
-                    color: location.pathname === "/leaderboard" ? "#2563eb" : "#1e293b",
+                    background:
+                      location.pathname === "/leaderboard"
+                        ? "#eff6ff"
+                        : "transparent",
+                    color:
+                      location.pathname === "/leaderboard"
+                        ? "#2563eb"
+                        : "#1e293b",
                     fontSize: 14.5,
-                    fontWeight: location.pathname === "/leaderboard" ? 700 : 600,
+                    fontWeight:
+                      location.pathname === "/leaderboard" ? 700 : 600,
                   }}
                 >
-                  <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                    <Trophy size={17} color={location.pathname === "/leaderboard" ? "#2563eb" : "#64748b"} />
+                  <div
+                    style={{ display: "flex", alignItems: "center", gap: 10 }}
+                  >
+                    <Trophy
+                      size={17}
+                      color={
+                        location.pathname === "/leaderboard"
+                          ? "#2563eb"
+                          : "#64748b"
+                      }
+                    />
                     <span>University Rankings</span>
                   </div>
                   {location.pathname === "/leaderboard" && (
-                    <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#2563eb" }} />
+                    <span
+                      style={{
+                        width: 6,
+                        height: 6,
+                        borderRadius: "50%",
+                        background: "#2563eb",
+                      }}
+                    />
                   )}
                 </Link>
 
@@ -1308,18 +1490,40 @@ export default function Navbar() {
                     padding: "11px 12px",
                     borderRadius: 10,
                     textDecoration: "none",
-                    background: location.pathname === "/resources" ? "#eff6ff" : "transparent",
-                    color: location.pathname === "/resources" ? "#2563eb" : "#1e293b",
+                    background:
+                      location.pathname === "/resources"
+                        ? "#eff6ff"
+                        : "transparent",
+                    color:
+                      location.pathname === "/resources"
+                        ? "#2563eb"
+                        : "#1e293b",
                     fontSize: 14.5,
                     fontWeight: location.pathname === "/resources" ? 700 : 600,
                   }}
                 >
-                  <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                    <Calculator size={17} color={location.pathname === "/resources" ? "#2563eb" : "#64748b"} />
+                  <div
+                    style={{ display: "flex", alignItems: "center", gap: 10 }}
+                  >
+                    <Calculator
+                      size={17}
+                      color={
+                        location.pathname === "/resources"
+                          ? "#2563eb"
+                          : "#64748b"
+                      }
+                    />
                     <span>Calculators & Resources</span>
                   </div>
                   {location.pathname === "/resources" && (
-                    <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#2563eb" }} />
+                    <span
+                      style={{
+                        width: 6,
+                        height: 6,
+                        borderRadius: "50%",
+                        background: "#2563eb",
+                      }}
+                    />
                   )}
                 </Link>
 
@@ -1334,18 +1538,41 @@ export default function Navbar() {
                     padding: "11px 12px",
                     borderRadius: 10,
                     textDecoration: "none",
-                    background: location.pathname === "/testimonials" ? "#eff6ff" : "transparent",
-                    color: location.pathname === "/testimonials" ? "#2563eb" : "#1e293b",
+                    background:
+                      location.pathname === "/testimonials"
+                        ? "#eff6ff"
+                        : "transparent",
+                    color:
+                      location.pathname === "/testimonials"
+                        ? "#2563eb"
+                        : "#1e293b",
                     fontSize: 14.5,
-                    fontWeight: location.pathname === "/testimonials" ? 700 : 600,
+                    fontWeight:
+                      location.pathname === "/testimonials" ? 700 : 600,
                   }}
                 >
-                  <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                    <MessageSquare size={17} color={location.pathname === "/testimonials" ? "#2563eb" : "#64748b"} />
+                  <div
+                    style={{ display: "flex", alignItems: "center", gap: 10 }}
+                  >
+                    <MessageSquare
+                      size={17}
+                      color={
+                        location.pathname === "/testimonials"
+                          ? "#2563eb"
+                          : "#64748b"
+                      }
+                    />
                     <span>Student Reviews</span>
                   </div>
                   {location.pathname === "/testimonials" && (
-                    <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#2563eb" }} />
+                    <span
+                      style={{
+                        width: 6,
+                        height: 6,
+                        borderRadius: "50%",
+                        background: "#2563eb",
+                      }}
+                    />
                   )}
                 </Link>
 
@@ -1360,18 +1587,48 @@ export default function Navbar() {
                     padding: "11px 12px",
                     borderRadius: 10,
                     textDecoration: "none",
-                    background: (location.pathname === "/about-dev" || location.pathname === "/about") ? "#eff6ff" : "transparent",
-                    color: (location.pathname === "/about-dev" || location.pathname === "/about") ? "#2563eb" : "#1e293b",
+                    background:
+                      location.pathname === "/about-dev" ||
+                      location.pathname === "/about"
+                        ? "#eff6ff"
+                        : "transparent",
+                    color:
+                      location.pathname === "/about-dev" ||
+                      location.pathname === "/about"
+                        ? "#2563eb"
+                        : "#1e293b",
                     fontSize: 14.5,
-                    fontWeight: (location.pathname === "/about-dev" || location.pathname === "/about") ? 700 : 600,
+                    fontWeight:
+                      location.pathname === "/about-dev" ||
+                      location.pathname === "/about"
+                        ? 700
+                        : 600,
                   }}
                 >
-                  <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                    <User size={17} color={(location.pathname === "/about-dev" || location.pathname === "/about") ? "#2563eb" : "#64748b"} />
+                  <div
+                    style={{ display: "flex", alignItems: "center", gap: 10 }}
+                  >
+                    <User
+                      size={17}
+                      color={
+                        location.pathname === "/about-dev" ||
+                        location.pathname === "/about"
+                          ? "#2563eb"
+                          : "#64748b"
+                      }
+                    />
                     <span>About Developer</span>
                   </div>
-                  {(location.pathname === "/about-dev" || location.pathname === "/about") && (
-                    <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#2563eb" }} />
+                  {(location.pathname === "/about-dev" ||
+                    location.pathname === "/about") && (
+                    <span
+                      style={{
+                        width: 6,
+                        height: 6,
+                        borderRadius: "50%",
+                        background: "#2563eb",
+                      }}
+                    />
                   )}
                 </Link>
 
@@ -1386,34 +1643,105 @@ export default function Navbar() {
                     padding: "11px 12px",
                     borderRadius: 10,
                     textDecoration: "none",
-                    background: location.pathname.startsWith("/admin") ? "#eff6ff" : "transparent",
-                    color: location.pathname.startsWith("/admin") ? "#2563eb" : "#1e293b",
+                    background: location.pathname.startsWith("/admin")
+                      ? "#eff6ff"
+                      : "transparent",
+                    color: location.pathname.startsWith("/admin")
+                      ? "#2563eb"
+                      : "#1e293b",
                     fontSize: 14.5,
-                    fontWeight: location.pathname.startsWith("/admin") ? 700 : 600,
+                    fontWeight: location.pathname.startsWith("/admin")
+                      ? 700
+                      : 600,
                   }}
                 >
-                  <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                    <ShieldCheck size={17} color={location.pathname.startsWith("/admin") ? "#2563eb" : "#64748b"} />
+                  <div
+                    style={{ display: "flex", alignItems: "center", gap: 10 }}
+                  >
+                    <ShieldCheck
+                      size={17}
+                      color={
+                        location.pathname.startsWith("/admin")
+                          ? "#2563eb"
+                          : "#64748b"
+                      }
+                    />
                     <span>Admin Portal</span>
                   </div>
                   {location.pathname.startsWith("/admin") ? (
-                    <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#2563eb" }} />
+                    <span
+                      style={{
+                        width: 6,
+                        height: 6,
+                        borderRadius: "50%",
+                        background: "#2563eb",
+                      }}
+                    />
                   ) : (
-                    <span style={{ fontSize: 10, fontWeight: 700, background: "#f1f5f9", color: "#64748b", padding: "2px 6px", borderRadius: 4 }}>Gate</span>
+                    <span
+                      style={{
+                        fontSize: 10,
+                        fontWeight: 700,
+                        background: "#f1f5f9",
+                        color: "#64748b",
+                        padding: "2px 6px",
+                        borderRadius: 4,
+                      }}
+                    >
+                      Gate
+                    </span>
                   )}
                 </Link>
               </div>
 
               {/* Mobile Drawer Bottom Action */}
-              <div style={{ borderTop: "1px solid #f1f5f9", paddingTop: 12, marginTop: 2 }}>
+              <div
+                style={{
+                  borderTop: "1px solid #f1f5f9",
+                  paddingTop: 12,
+                  marginTop: 2,
+                }}
+              >
                 {hasActiveSession ? (
-                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", background: "#f8fafc", padding: "10px 12px", borderRadius: 12 }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: 9 }}>
-                      <div style={{ width: 32, height: 32, borderRadius: "50%", background: "#eff6ff", color: "#2563eb", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700, fontSize: 12 }}>
-                        {studentData?.name ? studentData.name.charAt(0).toUpperCase() : "ST"}
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                      background: "#f8fafc",
+                      padding: "10px 12px",
+                      borderRadius: 12,
+                    }}
+                  >
+                    <div
+                      style={{ display: "flex", alignItems: "center", gap: 9 }}
+                    >
+                      <div
+                        style={{
+                          width: 32,
+                          height: 32,
+                          borderRadius: "50%",
+                          background: "#eff6ff",
+                          color: "#2563eb",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          fontWeight: 700,
+                          fontSize: 12,
+                        }}
+                      >
+                        {studentData?.name
+                          ? studentData.name.charAt(0).toUpperCase()
+                          : "ST"}
                       </div>
                       <div>
-                        <div style={{ fontSize: 13, fontWeight: 700, color: "#0f172a" }}>
+                        <div
+                          style={{
+                            fontSize: 13,
+                            fontWeight: 700,
+                            color: "#0f172a",
+                          }}
+                        >
                           {studentData?.name || "Active Student"}
                         </div>
                         <div style={{ fontSize: 11, color: "#64748b" }}>
@@ -1441,7 +1769,11 @@ export default function Navbar() {
                         gap: 4,
                       }}
                     >
-                      {isLoggingOut ? <Loader2 size={12} className="spin" /> : <LogOut size={12} />}
+                      {isLoggingOut ? (
+                        <Loader2 size={12} className="spin" />
+                      ) : (
+                        <LogOut size={12} />
+                      )}
                       <span>{isLoggingOut ? "Exiting..." : "Exit"}</span>
                     </button>
                   </div>
@@ -1455,7 +1787,8 @@ export default function Navbar() {
                       width: "100%",
                       padding: "12px",
                       borderRadius: 12,
-                      background: "linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)",
+                      background:
+                        "linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)",
                       color: "#ffffff",
                       border: "none",
                       fontSize: 14,
@@ -1479,7 +1812,10 @@ export default function Navbar() {
       </AnimatePresence>
 
       {/* Official Student OTP Authentication Modal */}
-      <StudentAuthModal isOpen={isAuthModalOpen} onClose={closeStudentAuthModal} />
+      <StudentAuthModal
+        isOpen={isAuthModalOpen}
+        onClose={closeStudentAuthModal}
+      />
 
       {/* Search Modal (Admin Only) */}
       <AnimatePresence>
@@ -1551,16 +1887,26 @@ export default function Navbar() {
                 >
                   <Search size={20} />
                 </div>
-                <h3 style={{ fontSize: 18, fontWeight: 800, color: "#0f172a", marginBottom: 4 }}>
+                <h3
+                  style={{
+                    fontSize: 18,
+                    fontWeight: 800,
+                    color: "#0f172a",
+                    marginBottom: 4,
+                  }}
+                >
                   Search Academic Record
                 </h3>
                 <p style={{ fontSize: 12.5, color: "#64748b", margin: 0 }}>
-                  Enter your University Registration Number to view your dashboard.
+                  Enter your University Registration Number to view your
+                  dashboard.
                 </p>
               </div>
 
               <form onSubmit={handleSearchSubmit}>
-                <div style={{ display: "flex", flexDirection: "column", gap: 11 }}>
+                <div
+                  style={{ display: "flex", flexDirection: "column", gap: 11 }}
+                >
                   <input
                     type="text"
                     value={searchRegNo}
@@ -1584,7 +1930,13 @@ export default function Navbar() {
                   />
 
                   {error && (
-                    <div style={{ color: "#ef4444", fontSize: 12, textAlign: "center" }}>
+                    <div
+                      style={{
+                        color: "#ef4444",
+                        fontSize: 12,
+                        textAlign: "center",
+                      }}
+                    >
                       {error}
                     </div>
                   )}
@@ -1605,8 +1957,12 @@ export default function Navbar() {
                       fontFamily: "'DM Sans', sans-serif",
                       transition: "background 0.2s",
                     }}
-                    onMouseEnter={(e) => !loading && (e.currentTarget.style.background = "#1e293b")}
-                    onMouseLeave={(e) => !loading && (e.currentTarget.style.background = "#0f172a")}
+                    onMouseEnter={(e) =>
+                      !loading && (e.currentTarget.style.background = "#1e293b")
+                    }
+                    onMouseLeave={(e) =>
+                      !loading && (e.currentTarget.style.background = "#0f172a")
+                    }
                   >
                     {loading ? "Searching..." : "View Dashboard"}
                   </button>
@@ -1693,10 +2049,10 @@ export default function Navbar() {
             white-space: nowrap !important;
           }
           .gf-logo-text {
-            font-size: 18px !important;
+            font-size: 19px !important;
           }
           .gf-logo-img {
-            height: 28px !important;
+            height: 33px !important;
           }
         }
         @media (max-width: 480px) {
@@ -1723,10 +2079,10 @@ export default function Navbar() {
             white-space: nowrap !important;
           }
           .gf-logo-text {
-            font-size: 16px !important;
+            font-size: 17.5px !important;
           }
           .gf-logo-img {
-            height: 25px !important;
+            height: 30px !important;
           }
         }
         @media (max-width: 360px) {
@@ -1744,10 +2100,10 @@ export default function Navbar() {
             height: 32px !important;
           }
           .gf-logo-text {
-            font-size: 14.5px !important;
+            font-size: 16px !important;
           }
           .gf-logo-img {
-            height: 23px !important;
+            height: 26px !important;
           }
         }
       `}</style>
