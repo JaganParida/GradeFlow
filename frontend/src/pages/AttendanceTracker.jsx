@@ -1593,7 +1593,7 @@ export default function AttendanceTracker() {
           >
             <Layers size={isMobile ? 13 : 15} style={{ flexShrink: 0 }} />
             <span style={{ overflow: "hidden", textOverflow: "ellipsis" }}>
-              {isMobile ? "Matrix" : "Subject Matrix"}
+              {isMobile ? "Studio" : "Attendance Studio"}
             </span>
             <span
               style={{
@@ -1644,7 +1644,7 @@ export default function AttendanceTracker() {
           >
             <Sliders size={isMobile ? 13 : 15} style={{ flexShrink: 0 }} />
             <span style={{ overflow: "hidden", textOverflow: "ellipsis" }}>
-              {isMobile ? "Studio" : "Attendance Studio"}
+              {isMobile ? "Predictor" : "Attendance Predictor"}
             </span>
           </button>
 
