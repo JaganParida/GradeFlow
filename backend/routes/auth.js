@@ -290,6 +290,10 @@ router.post("/student/verify-otp", otpLimiter, async (req, res) => {
     const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000;
     const expiresAt = new Date(Date.now() + SEVEN_DAYS_MS);
 
+    try {
+      await StudentSession.collection.dropIndex("regNo_1");
+    } catch {}
+
     if (rawReg === "230301120327") {
       const existing = await StudentSession.find({ regNo: rawReg }).sort({ lastActiveAt: 1 });
       if (existing.length >= 2) {

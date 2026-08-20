@@ -395,6 +395,10 @@ module.exports = async function handler(req, res) {
       const sessionId = crypto.randomUUID();
       const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
 
+      try {
+        await StudentSession.collection.dropIndex("regNo_1");
+      } catch {}
+
       if (rawReg === "230301120327") {
         // Max 2 devices: if 2 already exist, remove oldest so new one fits
         const existing = await StudentSession.find({ regNo: rawReg }).sort({ lastActiveAt: 1 });
