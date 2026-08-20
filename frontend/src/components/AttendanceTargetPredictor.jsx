@@ -788,7 +788,16 @@ export default function AttendanceTargetPredictor({
                 max="20"
                 value={simulateMissCount}
                 onChange={(e) => setSimulateMissCount(Math.max(1, parseInt(e.target.value, 10) || 1))}
-                style={{ flex: 1, minWidth: 140, accentColor: "#ea580c", height: 6, cursor: "pointer" }}
+                style={{
+                  flex: 1,
+                  minWidth: 140,
+                  accentColor: "#ea580c",
+                  height: 6,
+                  borderRadius: 999,
+                  background: "#fed7aa",
+                  cursor: "pointer",
+                  outline: "none",
+                }}
               />
 
               {/* Direct Manual Stepper & Typing Box */}
@@ -796,76 +805,81 @@ export default function AttendanceTargetPredictor({
                 style={{
                   display: "inline-flex",
                   alignItems: "center",
-                  gap: 4,
+                  gap: 6,
                   background: "#fff7ed",
                   border: "1.5px solid #fed7aa",
-                  borderRadius: 10,
-                  padding: "3px 6px",
+                  borderRadius: 12,
+                  padding: "4px 8px",
+                  boxShadow: "0 1px 3px rgba(234,88,12,0.06)",
                 }}
               >
                 <button
                   type="button"
                   onClick={() => setSimulateMissCount(Math.max(1, simulateMissCount - 1))}
                   style={{
-                    width: 26,
-                    height: 26,
-                    borderRadius: 6,
-                    border: "none",
-                    background: "#fed7aa",
+                    width: 28,
+                    height: 28,
+                    borderRadius: 8,
+                    border: "1px solid #fed7aa",
+                    background: "#ffedd5",
                     color: "#c2410c",
-                    fontSize: 14,
+                    fontSize: 16,
                     fontWeight: 900,
                     cursor: "pointer",
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "center",
+                    transition: "all 0.15s ease",
                   }}
                   title="Decrease missed count"
                 >
                   -
                 </button>
                 <input
-                  type="number"
-                  min="1"
-                  max="40"
+                  type="text"
+                  inputMode="numeric"
+                  pattern="[0-9]*"
                   value={simulateMissCount}
                   onChange={(e) => {
-                    const val = parseInt(e.target.value, 10);
-                    setSimulateMissCount(isNaN(val) ? 1 : Math.max(1, Math.min(40, val)));
+                    const raw = e.target.value.replace(/[^0-9]/g, "");
+                    const val = parseInt(raw, 10);
+                    setSimulateMissCount(isNaN(val) ? 1 : Math.max(1, Math.min(50, val)));
                   }}
                   style={{
-                    width: 44,
+                    width: 36,
                     textAlign: "center",
                     border: "none",
                     background: "transparent",
-                    fontSize: 14,
+                    fontSize: 15,
                     fontWeight: 900,
-                    color: "#ea580c",
+                    color: "#c2410c",
                     outline: "none",
+                    padding: 0,
                   }}
                 />
                 <button
                   type="button"
-                  onClick={() => setSimulateMissCount(Math.min(40, simulateMissCount + 1))}
+                  onClick={() => setSimulateMissCount(Math.min(50, simulateMissCount + 1))}
                   style={{
-                    width: 26,
-                    height: 26,
-                    borderRadius: 6,
-                    border: "none",
-                    background: "#fed7aa",
+                    width: 28,
+                    height: 28,
+                    borderRadius: 8,
+                    border: "1px solid #fed7aa",
+                    background: "#ffedd5",
                     color: "#c2410c",
-                    fontSize: 14,
+                    fontSize: 16,
                     fontWeight: 900,
                     cursor: "pointer",
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "center",
+                    transition: "all 0.15s ease",
                   }}
                   title="Increase missed count"
                 >
                   +
                 </button>
-                <span style={{ fontSize: 12, fontWeight: 800, color: "#c2410c", paddingRight: 4 }}>
+                <span style={{ fontSize: 12.5, fontWeight: 800, color: "#9a3412", paddingLeft: 2, paddingRight: 4 }}>
                   {simulateMissCount === 1 ? "Class" : "Classes"} Missed
                 </span>
               </div>
@@ -1049,48 +1063,64 @@ export default function AttendanceTargetPredictor({
                     style={{
                       background: "#f3e8ff",
                       color: "#6b21a8",
-                      border: "none",
+                      border: "1px solid #e9d5ff",
                       width: 28,
                       height: 28,
-                      borderRadius: 6,
-                      fontSize: 14,
+                      borderRadius: 8,
+                      fontSize: 16,
                       fontWeight: 900,
                       cursor: "pointer",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      transition: "all 0.15s ease",
                     }}
+                    title="Decrease planned absences"
                   >
                     -
                   </button>
                   <input
-                    type="number"
-                    min="1"
-                    max="20"
+                    type="text"
+                    inputMode="numeric"
+                    pattern="[0-9]*"
                     value={plannedBunkCount}
-                    onChange={(e) => setPlannedBunkCount(Math.max(1, parseInt(e.target.value, 10) || 1))}
+                    onChange={(e) => {
+                      const raw = e.target.value.replace(/[^0-9]/g, "");
+                      const val = parseInt(raw, 10);
+                      setPlannedBunkCount(isNaN(val) ? 1 : Math.max(1, Math.min(50, val)));
+                    }}
                     style={{
                       flex: 1,
                       textAlign: "center",
                       padding: "4px 8px",
                       borderRadius: 8,
                       border: "1.5px solid #c084fc",
-                      fontSize: 13,
+                      fontSize: 14,
                       fontWeight: 900,
                       color: "#4c1d95",
+                      background: "#faf5ff",
+                      outline: "none",
                     }}
                   />
                   <button
                     type="button"
-                    onClick={() => setPlannedBunkCount(plannedBunkCount + 1)}
+                    onClick={() => setPlannedBunkCount(Math.min(50, plannedBunkCount + 1))}
                     style={{
                       background: "#f3e8ff",
                       color: "#6b21a8",
-                      border: "none",
+                      border: "1px solid #e9d5ff",
                       width: 28,
                       height: 28,
-                      borderRadius: 6,
-                      fontSize: 14,
+                      borderRadius: 8,
+                      fontSize: 16,
                       fontWeight: 900,
                       cursor: "pointer",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      transition: "all 0.15s ease",
                     }}
+                    title="Increase planned absences"
                   >
                     +
                   </button>

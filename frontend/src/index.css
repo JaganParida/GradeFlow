@@ -2690,3 +2690,52 @@ input[type="number"].no-spin-button {
     gap: 16px;
   }
 }
+
+/* ── Custom Stepper & Range Input Normalization ─────────── */
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+input[type="number"] {
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
+
+input[type="range"] {
+  -webkit-appearance: none;
+  appearance: none;
+  background: #fed7aa;
+  border-radius: 999px;
+  height: 6px;
+  outline: none;
+}
+
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #ea580c;
+  cursor: pointer;
+  box-shadow: 0 1px 4px rgba(234, 88, 12, 0.4);
+  border: 2px solid #ffffff;
+  transition: transform 0.1s ease;
+}
+
+input[type="range"]::-webkit-slider-thumb:hover {
+  transform: scale(1.15);
+}
+
+input[type="range"]::-moz-range-thumb {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #ea580c;
+  cursor: pointer;
+  box-shadow: 0 1px 4px rgba(234, 88, 12, 0.4);
+  border: 2px solid #ffffff;
+  transition: transform 0.1s ease;
+}
