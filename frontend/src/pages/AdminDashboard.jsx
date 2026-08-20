@@ -34,6 +34,7 @@ import {
   Mail,
   Send,
   Check,
+  CheckCheck,
   Loader2,
   ShieldCheck,
   Sparkles,
@@ -3541,7 +3542,7 @@ function FeedbackManager({ authHeaders, API }) {
    7. MAIN ADMIN DASHBOARD SHELL
    ════════════════════════════════════════════════════════════════ */
 export default function AdminDashboard() {
-  const { adminToken, adminLogout, API: ctxAPI } = useApp();
+  const { adminToken, adminLogout, API = "/api" } = useApp();
   const navigate = useNavigate();
   const getAuthHeaders = () => {
     const token = sessionStorage.getItem("gf_admin_jwt") || localStorage.getItem("gf_admin_jwt");

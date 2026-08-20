@@ -86,6 +86,7 @@ export default function StudentReportCardEditor({ authHeaders, API, onSuccess })
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [successMsg, setSuccessMsg] = useState("");
+  const [errorMsg, setErrorMsg] = useState("");
   const [searchDebounceTimer, setSearchDebounceTimer] = useState(null);
   const [isMobile, setIsMobile] = useState(() => (typeof window !== "undefined" ? window.innerWidth < 768 : false));
 

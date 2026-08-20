@@ -30,7 +30,8 @@ export function encodeStudentId(regNo) {
     
     // Convert to URL-safe base64
     const binStr = String.fromCharCode(...xorBytes);
-    const b64 = btoa(binStr)
+    const rawB64 = typeof btoa !== "undefined" ? btoa(binStr) : Buffer.from(binStr, "binary").toString("base64");
+    const b64 = rawB64
       .replace(/\+/g, "-")
       .replace(/\//g, "_")
       .replace(/=+$/, "");
@@ -51,7 +52,7 @@ export function decodeStudentId(token) {
       const b64Part = clean.slice(4);
       let b64 = b64Part.replace(/-/g, "+").replace(/_/g, "/");
       while (b64.length % 4) b64 += "=";
-      const binStr = atob(b64);
+      const binStr = typeof atob !== "undefined" ? atob(b64) : Buffer.from(b64, "base64").toString("binary");
       
       const chars = [];
       for (let i = 0; i < binStr.length; i++) {
@@ -74,7 +75,7 @@ export function decodeStudentId(token) {
     try {
       let b64 = clean.slice(3).replace(/-/g, "+").replace(/_/g, "/");
       while (b64.length % 4) b64 += "=";
-      const decoded = atob(b64);
+      const decoded = typeof atob !== "undefined" ? atob(b64) : Buffer.from(b64, "base64").toString("binary");
       if (decoded.startsWith("GF:")) {
         return decoded.slice(3);
       }
