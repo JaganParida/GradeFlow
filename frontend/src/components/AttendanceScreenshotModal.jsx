@@ -44,6 +44,17 @@ export default function AttendanceScreenshotModal({
   const [isScreenshotVerified, setIsScreenshotVerified] = useState(false);
   const fileInputRef = useRef(null);
 
+  // Responsive device width tracking
+  const [windowWidth, setWindowWidth] = useState(typeof window !== "undefined" ? window.innerWidth : 1200);
+  useEffect(() => {
+    function handleResize() {
+      setWindowWidth(window.innerWidth);
+    }
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+  const isMobile = windowWidth < 640;
+
   // Get active section catalog subjects
   const sectionCatalog = getSectionSubjectCatalog(currentSection) || [];
 
@@ -715,7 +726,7 @@ export default function AttendanceScreenshotModal({
           )}
 
           {/* Body */}
-          <div style={{ padding: "20px 24px", overflowY: "auto", flex: 1 }}>
+          <div style={{ padding: isMobile ? "14px 12px" : "20px 24px", overflowY: "auto", flex: 1 }}>
             {step === "upload" ? (
               <div>
                 {/* Drag & Drop Area */}
@@ -988,179 +999,347 @@ export default function AttendanceScreenshotModal({
                   </div>
                 </div>
 
-                <div
-                  style={{
-                    border: "1px solid #e2e8f0",
-                    borderRadius: 12,
-                    overflow: "hidden",
-                    background: "#ffffff",
-                  }}
-                >
-                  <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
-                    <thead>
-                      <tr style={{ background: "#f8fafc", borderBottom: "1px solid #e2e8f0", textAlign: "left" }}>
-                        <th style={{ padding: "10px 14px", color: "#475569", fontWeight: 700, fontSize: 11.5, textTransform: "uppercase" }}>Subject Name</th>
-                        <th style={{ padding: "10px 10px", color: "#475569", fontWeight: 700, fontSize: 11.5, textTransform: "uppercase", width: 90, textAlign: "center" }}>Attended</th>
-                        <th style={{ padding: "10px 10px", color: "#475569", fontWeight: 700, fontSize: 11.5, textTransform: "uppercase", width: 90, textAlign: "center" }}>Total</th>
-                        <th style={{ padding: "10px 12px", color: "#475569", fontWeight: 700, fontSize: 11.5, textTransform: "uppercase", width: 90, textAlign: "center" }}>Status %</th>
-                        <th style={{ padding: "10px 10px", width: 44, textAlign: "center" }}></th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {parsedSubjects.map((sub, idx) => {
-                        const isSafe = sub.percentage >= 75;
-                        return (
-                          <tr
-                            key={sub.id || idx}
-                            style={{
-                              borderBottom: idx === parsedSubjects.length - 1 ? "none" : "1px solid #f1f5f9",
-                            }}
-                          >
-                            <td style={{ padding: "8px 14px" }}>
-                              <input
-                                type="text"
-                                value={sub.name}
-                                onChange={(e) => handleUpdateField(sub.id, "name", e.target.value)}
-                                style={{
-                                  width: "100%",
-                                  padding: "6px 10px",
-                                  borderRadius: 6,
-                                  border: "1px solid #e2e8f0",
-                                  fontSize: 13,
-                                  fontWeight: 600,
-                                  color: "#0f172a",
-                                  outline: "none",
-                                  background: "#fafafa",
-                                }}
-                              />
-                              {sub.components && sub.components.length > 0 && (
-                                <div
+{isMobile ? (
+                  /* Mobile-First Spacious Card List (Zero clipping & full subject names) */
+                  <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                    {parsedSubjects.map((sub, idx) => {
+                      const isSafe = sub.percentage >= 75;
+                      return (
+                        <div
+                          key={sub.id || idx}
+                          style={{
+                            background: "#ffffff",
+                            border: "1.5px solid #e2e8f0",
+                            borderRadius: 14,
+                            padding: "12px 14px",
+                            display: "flex",
+                            flexDirection: "column",
+                            gap: 8,
+                            boxShadow: "0 1px 3px rgba(0,0,0,0.02)",
+                          }}
+                        >
+                          {/* Subject Name & Delete Button */}
+                          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                            <input
+                              type="text"
+                              value={sub.name}
+                              onChange={(e) => handleUpdateField(sub.id, "name", e.target.value)}
+                              placeholder="Subject Name"
+                              style={{
+                                flex: 1,
+                                padding: "7px 10px",
+                                borderRadius: 8,
+                                border: "1.5px solid #cbd5e1",
+                                fontSize: 13,
+                                fontWeight: 700,
+                                color: "#0f172a",
+                                outline: "none",
+                                background: "#f8fafc",
+                              }}
+                            />
+                            <button
+                              type="button"
+                              onClick={() => handleDeleteRow(sub.id)}
+                              style={{
+                                background: "#fef2f2",
+                                border: "1px solid #fecaca",
+                                color: "#dc2626",
+                                cursor: "pointer",
+                                padding: "7px 9px",
+                                borderRadius: 8,
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "center",
+                              }}
+                              title="Remove Subject"
+                            >
+                              <Trash2 size={15} />
+                            </button>
+                          </div>
+
+                          {/* Component Badges (PP, PR, TUT) */}
+                          {sub.components && sub.components.length > 0 && (
+                            <div style={{ display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center" }}>
+                              {sub.components.map((comp, cIdx) => (
+                                <span
+                                  key={cIdx}
                                   style={{
-                                    display: "flex",
-                                    gap: 6,
-                                    marginTop: 4,
-                                    flexWrap: "wrap",
-                                    alignItems: "center",
+                                    fontSize: 11,
+                                    fontWeight: 800,
+                                    background: comp.type === "PR" ? "#faf5ff" : comp.type === "TUT" ? "#fffbeb" : "#eff6ff",
+                                    color: comp.type === "PR" ? "#7c3aed" : comp.type === "TUT" ? "#b45309" : "#1e40af",
+                                    border: `1px solid ${comp.type === "PR" ? "#ddd6fe" : comp.type === "TUT" ? "#fde68a" : "#bfdbfe"}`,
+                                    padding: "2px 8px",
+                                    borderRadius: 6,
                                   }}
                                 >
-                                  {sub.components.map((comp, cIdx) => (
-                                    <span
-                                      key={cIdx}
-                                      style={{
-                                        fontSize: 10,
-                                        fontWeight: 800,
-                                        background:
-                                          comp.type === "PR"
-                                            ? "#faf5ff"
-                                            : comp.type === "TUT"
-                                            ? "#fffbeb"
-                                            : "#eff6ff",
-                                        color:
-                                          comp.type === "PR"
-                                            ? "#7c3aed"
-                                            : comp.type === "TUT"
-                                            ? "#b45309"
-                                            : "#1e40af",
-                                        border: `1px solid ${
-                                          comp.type === "PR"
-                                            ? "#ddd6fe"
-                                            : comp.type === "TUT"
-                                            ? "#fde68a"
-                                            : "#bfdbfe"
-                                        }`,
-                                        padding: "1px 6px",
-                                        borderRadius: 4,
-                                      }}
-                                    >
-                                      {comp.type}: {comp.attended}/{comp.delivered || comp.total} ({comp.percentage || (comp.delivered > 0 ? ((comp.attended / comp.delivered) * 100).toFixed(0) : 0)}%)
-                                    </span>
-                                  ))}
-                                </div>
-                              )}
-                            </td>
-                            <td style={{ padding: "8px 10px", textAlign: "center" }}>
+                                  {comp.type}: {comp.attended}/{comp.delivered || comp.total} ({comp.percentage || (comp.delivered > 0 ? ((comp.attended / comp.delivered) * 100).toFixed(0) : 0)}%)
+                                </span>
+                              ))}
+                            </div>
+                          )}
+
+                          {/* Attended, Total, Status Percentage Controls */}
+                          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr auto", gap: 10, alignItems: "center", paddingTop: 6, borderTop: "1px solid #f1f5f9" }}>
+                            <div>
+                              <label style={{ display: "block", fontSize: 11, fontWeight: 700, color: "#64748b", marginBottom: 3 }}>
+                                Attended:
+                              </label>
                               <input
                                 type="number"
                                 min="0"
                                 value={sub.attendedClasses}
                                 onChange={(e) => handleUpdateField(sub.id, "attendedClasses", e.target.value)}
                                 style={{
-                                  width: 70,
+                                  width: "100%",
                                   padding: "6px 8px",
-                                  borderRadius: 6,
-                                  border: "1px solid #e2e8f0",
-                                  fontSize: 13,
-                                  fontWeight: 700,
+                                  borderRadius: 8,
+                                  border: "1.5px solid #cbd5e1",
+                                  fontSize: 13.5,
+                                  fontWeight: 800,
                                   textAlign: "center",
                                   color: "#0f172a",
                                   outline: "none",
-                                  background: "#fafafa",
+                                  background: "#ffffff",
+                                  boxSizing: "border-box",
                                 }}
                               />
-                            </td>
-                            <td style={{ padding: "8px 10px", textAlign: "center" }}>
+                            </div>
+
+                            <div>
+                              <label style={{ display: "block", fontSize: 11, fontWeight: 700, color: "#64748b", marginBottom: 3 }}>
+                                Total Classes:
+                              </label>
                               <input
                                 type="number"
                                 min="0"
                                 value={sub.totalClasses}
                                 onChange={(e) => handleUpdateField(sub.id, "totalClasses", e.target.value)}
                                 style={{
-                                  width: 70,
+                                  width: "100%",
                                   padding: "6px 8px",
-                                  borderRadius: 6,
-                                  border: "1px solid #e2e8f0",
-                                  fontSize: 13,
-                                  fontWeight: 700,
+                                  borderRadius: 8,
+                                  border: "1.5px solid #cbd5e1",
+                                  fontSize: 13.5,
+                                  fontWeight: 800,
                                   textAlign: "center",
                                   color: "#0f172a",
                                   outline: "none",
-                                  background: "#fafafa",
+                                  background: "#ffffff",
+                                  boxSizing: "border-box",
                                 }}
                               />
-                            </td>
-                            <td style={{ padding: "8px 12px", textAlign: "center" }}>
+                            </div>
+
+                            <div>
+                              <label style={{ display: "block", fontSize: 11, fontWeight: 700, color: "#64748b", marginBottom: 3 }}>
+                                Score:
+                              </label>
                               <span
                                 style={{
                                   display: "inline-flex",
                                   alignItems: "center",
                                   justifyContent: "center",
-                                  padding: "4px 8px",
-                                  borderRadius: 6,
-                                  fontSize: 12,
-                                  fontWeight: 700,
+                                  padding: "6px 10px",
+                                  borderRadius: 8,
+                                  fontSize: 13,
+                                  fontWeight: 800,
                                   background: isSafe ? "#ecfdf5" : "#fffbeb",
                                   color: isSafe ? "#059669" : "#d97706",
                                   border: `1px solid ${isSafe ? "#a7f3d0" : "#fde68a"}`,
+                                  boxSizing: "border-box",
+                                  minWidth: 54,
                                 }}
                               >
                                 {sub.percentage}%
                               </span>
-                            </td>
-                            <td style={{ padding: "8px 10px", textAlign: "center" }}>
-                              <button
-                                onClick={() => handleDeleteRow(sub.id)}
-                                style={{
-                                  background: "transparent",
-                                  border: "none",
-                                  color: "#94a3b8",
-                                  cursor: "pointer",
-                                  padding: 4,
-                                  borderRadius: 6,
-                                  display: "flex",
-                                  alignItems: "center",
-                                  justifyContent: "center",
-                                }}
-                                title="Remove Subject"
-                              >
-                                <Trash2 size={15} />
-                              </button>
-                            </td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-                </div>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  /* Desktop / Tablet Spacious Table */
+                  <div
+                    style={{
+                      border: "1px solid #e2e8f0",
+                      borderRadius: 12,
+                      overflow: "hidden",
+                      background: "#ffffff",
+                    }}
+                  >
+                    <table style={{ width: "100%", tableLayout: "fixed", borderCollapse: "collapse", fontSize: 13 }}>
+                      <thead>
+                        <tr style={{ background: "#f8fafc", borderBottom: "1px solid #e2e8f0", textAlign: "left" }}>
+                          <th style={{ padding: "10px 14px", color: "#475569", fontWeight: 700, fontSize: 11.5, textTransform: "uppercase", width: "48%" }}>Subject Name</th>
+                          <th style={{ padding: "10px 8px", color: "#475569", fontWeight: 700, fontSize: 11.5, textTransform: "uppercase", width: "15%", textAlign: "center" }}>Attended</th>
+                          <th style={{ padding: "10px 8px", color: "#475569", fontWeight: 700, fontSize: 11.5, textTransform: "uppercase", width: "15%", textAlign: "center" }}>Total</th>
+                          <th style={{ padding: "10px 8px", color: "#475569", fontWeight: 700, fontSize: 11.5, textTransform: "uppercase", width: "14%", textAlign: "center" }}>Status %</th>
+                          <th style={{ padding: "10px 8px", width: "8%", textAlign: "center" }}></th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {parsedSubjects.map((sub, idx) => {
+                          const isSafe = sub.percentage >= 75;
+                          return (
+                            <tr
+                              key={sub.id || idx}
+                              style={{
+                                borderBottom: idx === parsedSubjects.length - 1 ? "none" : "1px solid #f1f5f9",
+                              }}
+                            >
+                              <td style={{ padding: "8px 14px" }}>
+                                <input
+                                  type="text"
+                                  value={sub.name}
+                                  onChange={(e) => handleUpdateField(sub.id, "name", e.target.value)}
+                                  style={{
+                                    width: "100%",
+                                    padding: "6px 10px",
+                                    borderRadius: 6,
+                                    border: "1px solid #e2e8f0",
+                                    fontSize: 13,
+                                    fontWeight: 600,
+                                    color: "#0f172a",
+                                    outline: "none",
+                                    background: "#fafafa",
+                                    boxSizing: "border-box",
+                                  }}
+                                />
+                                {sub.components && sub.components.length > 0 && (
+                                  <div
+                                    style={{
+                                      display: "flex",
+                                      gap: 6,
+                                      marginTop: 4,
+                                      flexWrap: "wrap",
+                                      alignItems: "center",
+                                    }}
+                                  >
+                                    {sub.components.map((comp, cIdx) => (
+                                      <span
+                                        key={cIdx}
+                                        style={{
+                                          fontSize: 10,
+                                          fontWeight: 800,
+                                          background:
+                                            comp.type === "PR"
+                                              ? "#faf5ff"
+                                              : comp.type === "TUT"
+                                              ? "#fffbeb"
+                                              : "#eff6ff",
+                                          color:
+                                            comp.type === "PR"
+                                              ? "#7c3aed"
+                                              : comp.type === "TUT"
+                                              ? "#b45309"
+                                              : "#1e40af",
+                                          border: `1px solid ${
+                                            comp.type === "PR"
+                                              ? "#ddd6fe"
+                                              : comp.type === "TUT"
+                                              ? "#fde68a"
+                                              : "#bfdbfe"
+                                          }`,
+                                          padding: "1px 6px",
+                                          borderRadius: 4,
+                                        }}
+                                      >
+                                        {comp.type}: {comp.attended}/{comp.delivered || comp.total} ({comp.percentage || (comp.delivered > 0 ? ((comp.attended / comp.delivered) * 100).toFixed(0) : 0)}%)
+                                      </span>
+                                    ))}
+                                  </div>
+                                )}
+                              </td>
+                              <td style={{ padding: "8px 8px", textAlign: "center" }}>
+                                <input
+                                  type="number"
+                                  min="0"
+                                  value={sub.attendedClasses}
+                                  onChange={(e) => handleUpdateField(sub.id, "attendedClasses", e.target.value)}
+                                  style={{
+                                    width: "80%",
+                                    padding: "6px 6px",
+                                    borderRadius: 6,
+                                    border: "1px solid #e2e8f0",
+                                    fontSize: 13,
+                                    fontWeight: 700,
+                                    textAlign: "center",
+                                    color: "#0f172a",
+                                    outline: "none",
+                                    background: "#fafafa",
+                                    boxSizing: "border-box",
+                                  }}
+                                />
+                              </td>
+                              <td style={{ padding: "8px 8px", textAlign: "center" }}>
+                                <input
+                                  type="number"
+                                  min="0"
+                                  value={sub.totalClasses}
+                                  onChange={(e) => handleUpdateField(sub.id, "totalClasses", e.target.value)}
+                                  style={{
+                                    width: "80%",
+                                    padding: "6px 6px",
+                                    borderRadius: 6,
+                                    border: "1px solid #e2e8f0",
+                                    fontSize: 13,
+                                    fontWeight: 700,
+                                    textAlign: "center",
+                                    color: "#0f172a",
+                                    outline: "none",
+                                    background: "#fafafa",
+                                    boxSizing: "border-box",
+                                  }}
+                                />
+                              </td>
+                              <td style={{ padding: "8px 8px", textAlign: "center" }}>
+                                <span
+                                  style={{
+                                    display: "inline-flex",
+                                    alignItems: "center",
+                                    justifyContent: "center",
+                                    padding: "4px 8px",
+                                    borderRadius: 6,
+                                    fontSize: 12,
+                                    fontWeight: 700,
+                                    background: isSafe ? "#ecfdf5" : "#fffbeb",
+                                    color: isSafe ? "#059669" : "#d97706",
+                                    border: `1px solid ${isSafe ? "#a7f3d0" : "#fde68a"}`,
+                                  }}
+                                >
+                                  {sub.percentage}%
+                                </span>
+                              </td>
+                              <td style={{ padding: "8px 8px", textAlign: "center" }}>
+                                <button
+                                  type="button"
+                                  onClick={() => handleDeleteRow(sub.id)}
+                                  style={{
+                                    background: "transparent",
+                                    border: "none",
+                                    color: "#94a3b8",
+                                    cursor: "pointer",
+                                    padding: 4,
+                                    borderRadius: 6,
+                                    display: "flex",
+                                    alignItems: "center",
+                                    justifyContent: "center",
+                                    margin: "0 auto",
+                                  }}
+                                  title="Remove Subject"
+                                >
+                                  <Trash2 size={15} />
+                                </button>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
 
                 {/* Verification Disclaimer & Checkbox */}
                 <div
@@ -1247,49 +1426,56 @@ export default function AttendanceScreenshotModal({
             )}
           </div>
 
-          {/* Footer */}
+          {/* Footer (Clean Responsive Stacking) */}
           <div
             style={{
-              padding: "14px 24px",
+              padding: isMobile ? "12px 14px" : "14px 24px",
               borderTop: "1px solid #f1f5f9",
               background: "#fafafa",
               display: "flex",
+              flexDirection: isMobile ? "column" : "row",
               justifyContent: "space-between",
-              alignItems: "center",
+              alignItems: isMobile ? "stretch" : "center",
+              gap: isMobile ? 8 : 10,
             }}
           >
             {step === "review" ? (
               <button
+                type="button"
                 onClick={() => setStep("upload")}
                 style={{
                   background: "transparent",
                   border: "1px solid #cbd5e1",
                   borderRadius: 10,
-                  padding: "8px 16px",
-                  fontSize: 13,
-                  fontWeight: 600,
+                  padding: "8px 14px",
+                  fontSize: 12.5,
+                  fontWeight: 700,
                   color: "#475569",
                   cursor: "pointer",
+                  textAlign: "center",
                 }}
               >
                 Scan Another Image
               </button>
             ) : (
-              <span style={{ fontSize: 12, color: "#94a3b8" }}>Ready for instant upload</span>
+              <span style={{ fontSize: 12, color: "#94a3b8", display: isMobile ? "none" : "inline" }}>Ready for instant upload</span>
             )}
 
-            <div style={{ display: "flex", gap: 10 }}>
+            <div style={{ display: "flex", gap: 8, width: isMobile ? "100%" : "auto" }}>
               <button
+                type="button"
                 onClick={handleClose}
                 style={{
-                  background: "transparent",
+                  flex: isMobile ? 1 : "none",
+                  background: "#ffffff",
                   border: "1px solid #cbd5e1",
                   borderRadius: 10,
-                  padding: "8px 16px",
-                  fontSize: 13,
+                  padding: "8px 14px",
+                  fontSize: 12.5,
                   fontWeight: 600,
                   color: "#475569",
                   cursor: "pointer",
+                  textAlign: "center",
                 }}
               >
                 Cancel
@@ -1297,20 +1483,23 @@ export default function AttendanceScreenshotModal({
 
               {step === "review" && (
                 <button
+                  type="button"
                   onClick={handleConfirmAndApply}
                   disabled={!isScreenshotVerified}
                   style={{
+                    flex: isMobile ? 2 : "none",
                     opacity: isScreenshotVerified ? 1 : 0.6,
                     cursor: isScreenshotVerified ? "pointer" : "not-allowed",
                     background: "#0f172a",
                     border: "none",
                     borderRadius: 10,
-                    padding: "8px 20px",
-                    fontSize: 13,
-                    fontWeight: 700,
+                    padding: "8px 16px",
+                    fontSize: 12.5,
+                    fontWeight: 800,
                     color: "#ffffff",
                     display: "flex",
                     alignItems: "center",
+                    justifyContent: "center",
                     gap: 6,
                     boxShadow: "0 2px 6px rgba(15, 23, 42, 0.15)",
                   }}
