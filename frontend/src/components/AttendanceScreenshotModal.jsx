@@ -50,17 +50,39 @@ export default function AttendanceScreenshotModal({
   const [isScreenshotVerified, setIsScreenshotVerified] = useState(false);
   const [editingSubject, setEditingSubject] = useState(null); // Sub-modal for editing components (PP, PR, TUT)
   const [scanStepIndex, setScanStepIndex] = useState(0);
+  const [scanProgress, setScanProgress] = useState(15);
 
-  // Cycling timer for AI OCR scanning stages & patience disclaimers
+  // Monotonic progressive stepper for AI OCR scanning (Never loops back to 0)
   useEffect(() => {
     if (!isProcessing) {
       setScanStepIndex(0);
+      setScanProgress(0);
       return;
     }
-    const timer = setInterval(() => {
-      setScanStepIndex((prev) => (prev + 1) % SCAN_MESSAGES.length);
-    }, 1800);
-    return () => clearInterval(timer);
+
+    setScanStepIndex(0);
+    setScanProgress(20);
+
+    const t1 = setTimeout(() => {
+      setScanStepIndex(1);
+      setScanProgress(50);
+    }, 1100);
+
+    const t2 = setTimeout(() => {
+      setScanStepIndex(2);
+      setScanProgress(78);
+    }, 2400);
+
+    const t3 = setTimeout(() => {
+      setScanStepIndex(3);
+      setScanProgress(94);
+    }, 3800);
+
+    return () => {
+      clearTimeout(t1);
+      clearTimeout(t2);
+      clearTimeout(t3);
+    };
   }, [isProcessing]);
   const fileInputRef = useRef(null);
 
@@ -255,27 +277,37 @@ export default function AttendanceScreenshotModal({
     });
   };
 
-  // Animated Scanning Stages for AI Vision OCR with Patience Disclaimers
+// Progressive Monotonic Scanning Stages for AI Vision OCR with Real-time Progress
 const SCAN_MESSAGES = [
   {
     title: "Analyzing Image Structure & Table Grid",
-    desc: "Preprocessing image pixels, auto-detecting orientation and high-contrast ERP borders...",
+    desc: "Preprocessing image pixels, detecting orientation and normalizing table borders...",
     badge: "Stage 1/4: Preprocessing",
+    pct: 20,
   },
   {
     title: "Extracting Theory (PP), Lab (PR) & Tutorial (TUT) Breakdown",
     desc: "AI is reading multi-component attendance rows and resolving course codes...",
     badge: "Stage 2/4: Component OCR",
+    pct: 50,
   },
   {
     title: "Reading Attended & Delivered Session Counts",
-    desc: "Extracting attended lectures, total conducted classes, and live percentage scores...",
+    desc: "Extracting attended lectures, total conducted classes, and percentage scores...",
     badge: "Stage 3/4: Number Verification",
+    pct: 78,
   },
   {
     title: "Cross-Matching with Enrolled Section Catalog",
-    desc: "Verifying subject names and preparing final editable review matrix...",
+    desc: "Verifying subject names and assembling full review matrix...",
     badge: "Stage 4/4: Finalizing",
+    pct: 94,
+  },
+  {
+    title: "Extraction & Calculations Complete!",
+    desc: "All subjects verified successfully. Loading your review dashboard...",
+    badge: "Complete: 100%",
+    pct: 100,
   },
 ];
 
@@ -590,6 +622,11 @@ const SCAN_MESSAGES = [
         components: [],
       }));
     }
+
+    // Final 100% completion milestone with smooth transition
+    setScanStepIndex(4);
+    setScanProgress(100);
+    await new Promise((r) => setTimeout(r, 450));
 
     if (extracted.length > 0) {
       setParsedSubjects(extracted);
@@ -912,41 +949,53 @@ const SCAN_MESSAGES = [
 
                   {isProcessing ? (
                     <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 14, width: "100%", maxWidth: 440, margin: "0 auto" }}>
-                      {/* Pulsing AI Spinner Icon */}
+                      {/* Pulsing AI Spinner Icon / Completed Check */}
                       <div
                         style={{
                           width: 56,
                           height: 56,
                           borderRadius: 16,
-                          background: "linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%)",
-                          border: "1.5px solid #bfdbfe",
+                          background: scanProgress >= 100
+                            ? "linear-gradient(135deg, #dcfce7 0%, #bbf7d0 100%)"
+                            : "linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%)",
+                          border: `1.5px solid ${scanProgress >= 100 ? "#86efac" : "#bfdbfe"}`,
                           display: "flex",
                           alignItems: "center",
                           justifyContent: "center",
-                          color: "#2563eb",
-                          boxShadow: "0 4px 16px rgba(37, 99, 235, 0.2)",
+                          color: scanProgress >= 100 ? "#16a34a" : "#2563eb",
+                          boxShadow: scanProgress >= 100 ? "0 4px 16px rgba(22, 163, 74, 0.25)" : "0 4px 16px rgba(37, 99, 235, 0.2)",
+                          transition: "all 0.3s ease",
                         }}
                       >
-                        <Sparkles size={28} className="spin" />
+                        {scanProgress >= 100 ? (
+                          <CheckCircle2 size={30} color="#16a34a" />
+                        ) : (
+                          <Sparkles size={28} className="spin" />
+                        )}
                       </div>
 
                       {/* Live Scanning Stage Info */}
                       <div style={{ textAlign: "center", display: "flex", flexDirection: "column", gap: 4, width: "100%" }}>
-                        <span
-                          style={{
-                            fontSize: 10.5,
-                            fontWeight: 800,
-                            color: "#1d4ed8",
-                            background: "#dbeafe",
-                            padding: "2px 10px",
-                            borderRadius: 999,
-                            alignSelf: "center",
-                            textTransform: "uppercase",
-                            letterSpacing: "0.5px",
-                          }}
-                        >
-                          {SCAN_MESSAGES[scanStepIndex]?.badge || "AI OCR Processing"}
-                        </span>
+                        <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}>
+                          <span
+                            style={{
+                              fontSize: 10.5,
+                              fontWeight: 800,
+                              color: scanProgress >= 100 ? "#15803d" : "#1d4ed8",
+                              background: scanProgress >= 100 ? "#dcfce7" : "#dbeafe",
+                              padding: "2px 10px",
+                              borderRadius: 999,
+                              textTransform: "uppercase",
+                              letterSpacing: "0.5px",
+                            }}
+                          >
+                            {SCAN_MESSAGES[scanStepIndex]?.badge || "AI OCR Processing"}
+                          </span>
+                          <span style={{ fontSize: 11, fontWeight: 900, color: scanProgress >= 100 ? "#16a34a" : "#2563eb" }}>
+                            {scanProgress}%
+                          </span>
+                        </div>
+
                         <div style={{ fontSize: 15, fontWeight: 800, color: "#0f172a", marginTop: 2 }}>
                           {SCAN_MESSAGES[scanStepIndex]?.title || "Scanning Attendance Screenshot..."}
                         </div>
@@ -955,11 +1004,11 @@ const SCAN_MESSAGES = [
                         </div>
                       </div>
 
-                      {/* Animated Progress Bar */}
+                      {/* Monotonic Smooth Progress Bar */}
                       <div
                         style={{
                           width: "100%",
-                          height: 6,
+                          height: 7,
                           borderRadius: 999,
                           background: "#e2e8f0",
                           overflow: "hidden",
@@ -968,11 +1017,13 @@ const SCAN_MESSAGES = [
                       >
                         <div
                           style={{
-                            width: `${((scanStepIndex + 1) / SCAN_MESSAGES.length) * 100}%`,
+                            width: `${scanProgress}%`,
                             height: "100%",
-                            background: "linear-gradient(90deg, #2563eb 0%, #3b82f6 100%)",
+                            background: scanProgress >= 100
+                              ? "linear-gradient(90deg, #10b981 0%, #059669 100%)"
+                              : "linear-gradient(90deg, #2563eb 0%, #3b82f6 100%)",
                             borderRadius: 999,
-                            transition: "width 0.6s ease",
+                            transition: "width 0.45s cubic-bezier(0.4, 0, 0.2, 1)",
                           }}
                         />
                       </div>
@@ -980,8 +1031,8 @@ const SCAN_MESSAGES = [
                       {/* Prominent Patience Disclaimer Banner */}
                       <div
                         style={{
-                          background: "#fffbeb",
-                          border: "1px solid #fde68a",
+                          background: scanProgress >= 100 ? "#f0fdf4" : "#fffbeb",
+                          border: `1px solid ${scanProgress >= 100 ? "#bbf7d0" : "#fde68a"}`,
                           borderRadius: 12,
                           padding: "10px 14px",
                           display: "flex",
@@ -990,11 +1041,20 @@ const SCAN_MESSAGES = [
                           textAlign: "left",
                           width: "100%",
                           boxSizing: "border-box",
+                          transition: "all 0.3s ease",
                         }}
                       >
-                        <Clock size={16} color="#d97706" style={{ flexShrink: 0, marginTop: 2 }} />
-                        <div style={{ fontSize: 11.5, color: "#92400e", lineHeight: 1.45 }}>
-                          <strong>Please be patient:</strong> High-precision AI OCR scanning accurately detects multi-component Theory, Lab, and Tutorial breakdowns. This takes <strong>3–6 seconds</strong>—please do not close or refresh this modal.
+                        <Clock size={16} color={scanProgress >= 100 ? "#16a34a" : "#d97706"} style={{ flexShrink: 0, marginTop: 2 }} />
+                        <div style={{ fontSize: 11.5, color: scanProgress >= 100 ? "#166534" : "#92400e", lineHeight: 1.45 }}>
+                          {scanProgress >= 100 ? (
+                            <>
+                              <strong>Verification complete!</strong> All detected subject calculations loaded successfully.
+                            </>
+                          ) : (
+                            <>
+                              <strong>Please be patient:</strong> High-precision AI OCR scanning accurately detects multi-component Theory, Lab, and Tutorial breakdowns. This takes <strong>3–5 seconds</strong>—please do not close or refresh this modal.
+                            </>
+                          )}
                         </div>
                       </div>
                     </div>
