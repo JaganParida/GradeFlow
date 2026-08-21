@@ -33,6 +33,9 @@ import {
   Sparkles,
   Coffee,
   Utensils,
+  Zap,
+  List,
+  Grid,
 } from "lucide-react";
 import timetableData from "../data/timetableData.json";
 import {
@@ -86,6 +89,22 @@ const DEFAULT_SLOTS = [
 
 export default function TimetableAdminManager({ authHeaders, API }) {
   const [activeSubTab, setActiveSubTab] = useState("editor"); // "editor" | "excel_upload" | "calendar" | "holidays" | "published"
+
+  // Responsive device width tracking
+  const [windowWidth, setWindowWidth] = useState(typeof window !== "undefined" ? window.innerWidth : 1200);
+  useEffect(() => {
+    function handleResize() {
+      setWindowWidth(window.innerWidth);
+    }
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+  const isMobile = windowWidth < 768;
+  const isTablet = windowWidth >= 768 && windowWidth < 1024;
+
+  // Mobile View Switcher: "matrix" or "day_view"
+  const [mobileLayoutMode, setMobileLayoutMode] = useState("matrix");
+  const [mobileActiveDay, setMobileActiveDay] = useState("Monday");
 
   // ── Section-Wise Timetable Interactive Editor State ──
   const [batch, setBatch] = useState("2023");
@@ -403,7 +422,7 @@ export default function TimetableAdminManager({ authHeaders, API }) {
         setHasUnsavedChanges(false);
         setIsLiveCustomPublished(true);
         setStatusMsg({
-          text: `✅ Successfully published & synced live timetable for ${branch} Section ${section} (Batch ${batch})! All student pages and Attendance Trackers are now dynamically updated.`,
+          text: `Successfully published & synced live timetable for ${branch} Section ${section} (Batch ${batch})! All student pages and Attendance Trackers are now dynamically updated.`,
           type: "success",
         });
 
@@ -468,7 +487,7 @@ export default function TimetableAdminManager({ authHeaders, API }) {
 
       if (data.success) {
         setStatusMsg({
-          text: `✅ Successfully cloned timetable from ${section} to ${cloneModal.targetSection}! Target section is now live.`,
+          text: `Successfully cloned timetable from ${section} to ${cloneModal.targetSection}! Target section is now live.`,
           type: "success",
         });
         setCloneModal({ isOpen: false, targetSection: "CSE-B", isCloning: false });
@@ -800,7 +819,7 @@ export default function TimetableAdminManager({ authHeaders, API }) {
   // ═════════════════════════════════════════════════════════════════
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: isMobile ? 14 : 20, width: "100%", maxWidth: "100%" }}>
       {/* ── Sub Navigation Tabs ── */}
       <div
         style={{
@@ -813,6 +832,8 @@ export default function TimetableAdminManager({ authHeaders, API }) {
           border: "1px solid #e2e8f0",
           boxShadow: "0 1px 3px rgba(0,0,0,0.02)",
           overflowX: "auto",
+          WebkitOverflowScrolling: "touch",
+          scrollbarWidth: "none",
         }}
       >
         <button
@@ -999,12 +1020,14 @@ export default function TimetableAdminManager({ authHeaders, API }) {
                   <Clock size={19} color="#2563eb" />
                   <span>Section-Wise Timetable Live Editor</span>
                   {isLiveCustomPublished ? (
-                    <span style={{ fontSize: 11, fontWeight: 800, background: "#ecfdf5", color: "#059669", padding: "2px 8px", borderRadius: 999, border: "1px solid #a7f3d0" }}>
-                      🟢 Live Custom Published
+                    <span style={{ fontSize: 11, fontWeight: 800, background: "#ecfdf5", color: "#059669", padding: "2px 8px", borderRadius: 999, border: "1px solid #a7f3d0", display: "inline-flex", alignItems: "center", gap: 4 }}>
+                      <CheckCircle2 size={11} color="#059669" />
+                      Live Custom Published
                     </span>
                   ) : (
-                    <span style={{ fontSize: 11, fontWeight: 800, background: "#eff6ff", color: "#2563eb", padding: "2px 8px", borderRadius: 999, border: "1px solid #bfdbfe" }}>
-                      🔵 Standard Curriculum Template
+                    <span style={{ fontSize: 11, fontWeight: 800, background: "#eff6ff", color: "#2563eb", padding: "2px 8px", borderRadius: 999, border: "1px solid #bfdbfe", display: "inline-flex", alignItems: "center", gap: 4 }}>
+                      <BookOpen size={11} color="#2563eb" />
+                      Standard Curriculum Template
                     </span>
                   )}
                 </h3>
@@ -1118,7 +1141,7 @@ export default function TimetableAdminManager({ authHeaders, API }) {
             </div>
 
             {/* Selector Inputs */}
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: 12 }}>
+            <div style={{ display: "grid", gridTemplateColumns: isMobile ? "repeat(2, 1fr)" : "repeat(auto-fit, minmax(150px, 1fr))", gap: 10 }}>
               {/* Batch */}
               <div>
                 <label style={{ display: "block", fontSize: 11.5, fontWeight: 700, color: "#475569", marginBottom: 4 }}>
@@ -1232,7 +1255,7 @@ export default function TimetableAdminManager({ authHeaders, API }) {
               </div>
 
               {/* Title / Description */}
-              <div style={{ gridColumn: "span 2" }}>
+              <div style={{ gridColumn: "1 / -1" }}>
                 <label style={{ display: "block", fontSize: 11.5, fontWeight: 700, color: "#475569", marginBottom: 4 }}>
                   Timetable Display Title
                 </label>
@@ -1291,12 +1314,13 @@ export default function TimetableAdminManager({ authHeaders, API }) {
               background: "#ffffff",
               border: "1px solid #e2e8f0",
               borderRadius: 16,
-              padding: "16px 20px",
+              padding: isMobile ? "12px 10px" : "16px 20px",
               boxShadow: "0 1px 3px rgba(0,0,0,0.02)",
               overflowX: "auto",
+              WebkitOverflowScrolling: "touch",
             }}
           >
-            <table style={{ width: "100%", borderCollapse: "separate", borderSpacing: "6px 8px" }}>
+            <table style={{ width: "100%", minWidth: 1040, borderCollapse: "separate", borderSpacing: "6px 8px" }}>
               <thead>
                 <tr>
                   <th
@@ -2035,7 +2059,7 @@ export default function TimetableAdminManager({ authHeaders, API }) {
               style={{
                 background: "#ffffff",
                 borderRadius: 18,
-                maxWidth: 480,
+                maxWidth: "min(480px, 95vw)", maxHeight: "90vh",
                 width: "100%",
                 boxShadow: "0 20px 40px rgba(0,0,0,0.2)",
                 overflow: "hidden",
@@ -2075,7 +2099,7 @@ export default function TimetableAdminManager({ authHeaders, API }) {
                 {/* Quick Subject Autocomplete Dropdown */}
                 <div>
                   <label style={{ display: "block", fontSize: 11.5, fontWeight: 800, color: "#475569", marginBottom: 4 }}>
-                    ⚡ Quick Select from Enrolled Subjects
+                    <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}><Zap size={13} color="#2563eb" /> Quick Select from Enrolled Subjects</span>
                   </label>
                   <select
                     onChange={(e) => {
@@ -2367,7 +2391,7 @@ export default function TimetableAdminManager({ authHeaders, API }) {
               style={{
                 background: "#ffffff",
                 borderRadius: 18,
-                maxWidth: 420,
+                maxWidth: "min(420px, 95vw)",
                 width: "100%",
                 boxShadow: "0 20px 40px rgba(0,0,0,0.2)",
                 overflow: "hidden",
