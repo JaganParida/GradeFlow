@@ -722,7 +722,7 @@ export function getLiveScheduleOverview(section, dateObj = new Date()) {
  * Extract clean base name from raw subject string
  */
 export function cleanSubjectBaseName(rawSubject) {
-  if (!rawSubject || rawSubject === "No Class / Free") return "";
+  if (!rawSubject || rawSubject === "No Class / Free" || /lunch\s*break|recess/i.test(rawSubject)) return "";
   return String(rawSubject)
     .replace(/\s*\((PP|PR|TUT|Theory|Practice|Project|Lab|T\+P|P\+P|PP\s*\+\s*PR|PR\s*\+\s*PP|PP\/PR|TUT\s*\+\s*PP)\)\s*$/i, "")
     .replace(/\((PP|PR|TUT|Theory|Practice|Project|Lab|T\+P|P\+P|PP\s*\+\s*PR|PR\s*\+\s*PP|PP\/PR|TUT\s*\+\s*PP)\)$/i, "")

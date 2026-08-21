@@ -6,7 +6,7 @@ const periodSlotSchema = new mongoose.Schema(
     time: { type: String, default: "" },
     subject: { type: String, default: "Free Time" },
     code: { type: String, default: "" },
-    type: { type: String, enum: ["TH", "PR", "TUT", "FREE", "OTHER"], default: "TH" },
+    type: { type: String, default: "PP", trim: true },
     faculty: { type: String, default: "" },
     room: { type: String, default: "" },
     isFree: { type: Boolean, default: false },

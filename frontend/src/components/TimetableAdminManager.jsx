@@ -31,6 +31,8 @@ import {
   Sliders,
   ChevronDown,
   Sparkles,
+  Coffee,
+  Utensils,
 } from "lucide-react";
 import timetableData from "../data/timetableData.json";
 import {
@@ -49,27 +51,37 @@ import {
 
 // Known CUTM subjects catalog for quick 1-click autocomplete in slot editor
 const KNOWN_SUBJECTS = [
-  { name: "Cloud Fundamentals (Azure)", code: "CUCS1015", type: "PP", defaultRoom: "Room 204" },
-  { name: "Data Structure and Algorithms", code: "CUTM3166", type: "PP", defaultRoom: "Room 204" },
-  { name: "Information Security (CISCO)", code: "CUCS1007", type: "PP", defaultRoom: "Room 204" },
-  { name: "Network and Protocols for IoT", code: "CUCS1006", type: "PP", defaultRoom: "Room 204" },
-  { name: "Theory of Computation and Compiler Design", code: "CUCS1008", type: "PP", defaultRoom: "Room 204" },
-  { name: "Prompt Engineering using ChatGPT", code: "CUCS1014", type: "PP", defaultRoom: "Room 204" },
-  { name: "Robotic automation with ROS and C++", code: "CUTM1020", type: "PP", defaultRoom: "Room 204" },
+  { name: "Cloud Fundamentals (Azure)", code: "CUCS1015", type: "PP", defaultRoom: "CSE-F-AR-317" },
+  { name: "Data Structure and Algorithms", code: "CUTM3166", type: "PP", defaultRoom: "CSE-F-AR-317" },
+  { name: "Information Security (CISCO)", code: "CUCS1007", type: "PP", defaultRoom: "CSE-F-AR-317" },
+  { name: "Network and Protocols for IoT", code: "CUCS1006", type: "PP", defaultRoom: "CSE-F-AR-317" },
+  { name: "Theory of Computation and Compiler Design", code: "CUCS1008", type: "PP", defaultRoom: "CSE-F-AR-317" },
+  { name: "Prompt Engineering using ChatGPT", code: "CUCS1014", type: "PP", defaultRoom: "CSE-F-AR-317" },
+  { name: "Robotic automation with ROS and C++", code: "CUTM1020", type: "PP", defaultRoom: "CSE-F-AR-317" },
   { name: "Minor Project II", code: "CUTM1577", type: "PR", defaultRoom: "LAB-03" },
   { name: "Cloud Fundamentals (Azure) Lab", code: "CUCS1015", type: "PR", defaultRoom: "LAB-01" },
-  { name: "Data Structure and Algorithms Lab", code: "CUTM3166", type: "PR", defaultRoom: "LAB-02" },
-  { name: "IoT & Protocols Lab", code: "CUCS1006", type: "PR", defaultRoom: "LAB-IoT" },
+  { name: "Data Structure and Algorithms (PR)", code: "CUTM3166", type: "PR", defaultRoom: "CSE-F-AR-317" },
+  { name: "Data Structure and Algorithms (TUT)", code: "CUTM3166", type: "TUT", defaultRoom: "CSE-F-AR-317" },
+  { name: "Network and Protocols for IoT (PR)", code: "CUCS1006", type: "PR", defaultRoom: "CSE-F-AR-317" },
+  { name: "Network and Protocols for IoT (TUT)", code: "CUCS1006", type: "TUT", defaultRoom: "CSE-F-AR-317" },
+  { name: "Information Security (CISCO) (PR)", code: "CUCS1007", type: "PR", defaultRoom: "CSE-F-AR-317" },
+  { name: "Information Security (CISCO) (TUT)", code: "CUCS1007", type: "TUT", defaultRoom: "CSE-F-AR-317" },
+  { name: "Theory of Computation and Compiler Design (TUT)", code: "CUCS1008", type: "TUT", defaultRoom: "CSE-F-AR-317" },
+  { name: "Prompt Engineering using ChatGPT (PR)", code: "CUCS1014", type: "PR", defaultRoom: "CSE-F-AR-317" },
+  { name: "Robotic automation with ROS and C++ (PR)", code: "CUTM1020", type: "PR", defaultRoom: "CSE-F-AR-317" },
+  { name: "Robotic automation with ROS and C++ (TUT)", code: "CUTM1020", type: "TUT", defaultRoom: "CSE-F-AR-317" },
 ];
 
+// All 8 standard daily slots matching CUTM routine with Lunch Break at index 3
 const DEFAULT_SLOTS = [
-  { index: 0, time: "09:30 - 10:30 AM" },
-  { index: 1, time: "10:30 - 11:30 AM" },
-  { index: 2, time: "11:30 - 12:30 PM" },
-  { index: 3, time: "01:30 - 02:30 PM" },
-  { index: 4, time: "02:30 - 03:30 PM" },
-  { index: 5, time: "03:30 - 04:30 PM" },
-  { index: 6, time: "04:30 - 05:30 PM" },
+  { index: 0, slotName: "P1", time: "09:30 - 10:30 AM", isBreak: false },
+  { index: 1, slotName: "P2", time: "10:30 - 11:30 AM", isBreak: false },
+  { index: 2, slotName: "P3", time: "11:30 - 12:30 PM", isBreak: false },
+  { index: 3, slotName: "LUNCH", time: "12:30 - 01:30 PM", isBreak: true },
+  { index: 4, slotName: "P4", time: "01:30 - 02:30 PM", isBreak: false },
+  { index: 5, slotName: "P5", time: "02:30 - 03:30 PM", isBreak: false },
+  { index: 6, slotName: "P6", time: "03:30 - 04:30 PM", isBreak: false },
+  { index: 7, slotName: "P7", time: "04:30 - 05:30 PM", isBreak: false },
 ];
 
 export default function TimetableAdminManager({ authHeaders, API }) {
@@ -80,7 +92,7 @@ export default function TimetableAdminManager({ authHeaders, API }) {
   const [branch, setBranch] = useState("CSE");
   const [year, setYear] = useState("3");
   const [semester, setSemester] = useState("6");
-  const [section, setSection] = useState("CSE-A");
+  const [section, setSection] = useState("CSE-F");
   const [customTitle, setCustomTitle] = useState("");
   const [currentMatrix, setCurrentMatrix] = useState({});
   const [isMatrixLoading, setIsMatrixLoading] = useState(false);
@@ -121,7 +133,6 @@ export default function TimetableAdminManager({ authHeaders, API }) {
   // ── Published Schedules ──
   const [publishedList, setPublishedList] = useState([]);
   const [isLoadingList, setIsLoadingList] = useState(false);
-  const [inspectedSchedule, setInspectedSchedule] = useState(null);
 
   // ── Academic Calendar State ──
   const [calendarYear, setCalendarYear] = useState("2026-27");
@@ -179,15 +190,13 @@ export default function TimetableAdminManager({ authHeaders, API }) {
       );
 
       if (data.success && data.found && data.schedule && data.schedule.schedule) {
-        // Deep clone schedule from MongoDB
         const dbSchedule = JSON.parse(JSON.stringify(data.schedule.schedule));
         setCurrentMatrix(normalizeMatrixStructure(dbSchedule));
         setCustomTitle(data.schedule.title || `${brn} Sec ${sec} (Batch ${bch})`);
         setIsLiveCustomPublished(true);
       } else {
-        // Fallback to bundled JSON template
         const norm = normalizeSection(sec);
-        const jsonTemplate = timetableData[norm] || timetableData["CSE-A"] || {};
+        const jsonTemplate = timetableData[norm] || timetableData["CSE-F"] || {};
         setCurrentMatrix(normalizeMatrixStructure(JSON.parse(JSON.stringify(jsonTemplate))));
         setCustomTitle(`${brn} Sec ${sec} (Batch ${bch})`);
         setIsLiveCustomPublished(false);
@@ -195,7 +204,7 @@ export default function TimetableAdminManager({ authHeaders, API }) {
     } catch (err) {
       console.warn("Could not fetch schedule from API, falling back to JSON:", err);
       const norm = normalizeSection(sec);
-      const jsonTemplate = timetableData[norm] || timetableData["CSE-A"] || {};
+      const jsonTemplate = timetableData[norm] || timetableData["CSE-F"] || {};
       setCurrentMatrix(normalizeMatrixStructure(JSON.parse(JSON.stringify(jsonTemplate))));
       setIsLiveCustomPublished(false);
     } finally {
@@ -203,38 +212,56 @@ export default function TimetableAdminManager({ authHeaders, API }) {
     }
   }
 
-  // Ensure matrix has all 6 days with 7 periods each
+  // Ensure matrix has all 6 days with exactly 8 slots (including Lunch Break at index 3)
   function normalizeMatrixStructure(rawMatrix) {
     const normalized = {};
     DAYS_LIST.forEach((day) => {
       const periods = Array.isArray(rawMatrix[day]) ? rawMatrix[day] : [];
       const safePeriods = [];
 
-      for (let i = 0; i < 7; i++) {
-        const slot = TIME_SLOTS[i] || DEFAULT_SLOTS[i] || {};
+      for (let i = 0; i < 8; i++) {
+        const slotMeta = DEFAULT_SLOTS[i] || {};
         const p = periods[i];
 
-        if (p && p.subject && p.subject !== "No Class / Free" && !p.isFree) {
+        if (slotMeta.isBreak || i === 3) {
+          // Lunch Break slot (Index 3: 12:30 - 01:30 PM)
+          safePeriods.push({
+            slotIndex: 3,
+            time: "12:30 - 01:30 PM",
+            subject: "Lunch Break / Recess",
+            code: "",
+            type: "BREAK",
+            faculty: "",
+            room: "",
+            isFree: true,
+            isBreak: true,
+          });
+          continue;
+        }
+
+        if (p && p.subject && p.subject !== "No Class / Free" && p.subject !== "Lunch Break / Recess" && !p.isFree && !p.isBreak) {
           safePeriods.push({
             slotIndex: i,
-            time: p.time || p.timeSlot || `${slot.startTime || "09:00"} - ${slot.endTime || "10:00"}`,
+            time: p.time || p.timeSlot || slotMeta.time || "09:30 - 10:30 AM",
             subject: p.subject,
             code: p.code || "",
             type: (p.type || "PP").toUpperCase(),
             faculty: p.faculty || "",
             room: p.room || "",
             isFree: false,
+            isBreak: false,
           });
         } else {
           safePeriods.push({
             slotIndex: i,
-            time: `${slot.startTime || "09:00"} - ${slot.endTime || "10:00"}`,
+            time: p?.time || p?.timeSlot || slotMeta.time || "09:30 - 10:30 AM",
             subject: "No Class / Free",
             code: "",
             type: "FREE",
             faculty: "",
             room: "",
             isFree: true,
+            isBreak: false,
           });
         }
       }
@@ -248,6 +275,8 @@ export default function TimetableAdminManager({ authHeaders, API }) {
   // ═════════════════════════════════════════════════════════════════
 
   function openEditSlotModal(day, slotIndex) {
+    if (slotIndex === 3) return; // Lunch break is fixed
+
     const period = currentMatrix[day]?.[slotIndex] || {
       subject: "",
       code: "",
@@ -287,6 +316,7 @@ export default function TimetableAdminManager({ authHeaders, API }) {
       faculty: isFree ? "" : (period.faculty || "").trim(),
       room: isFree ? "" : (period.room || "").trim(),
       isFree,
+      isBreak: false,
     };
 
     setCurrentMatrix((prev) => {
@@ -302,16 +332,18 @@ export default function TimetableAdminManager({ authHeaders, API }) {
   }
 
   function handleClearPeriodSlot(day, slotIndex) {
-    const slot = TIME_SLOTS[slotIndex] || DEFAULT_SLOTS[slotIndex] || {};
+    if (slotIndex === 3) return;
+    const slot = DEFAULT_SLOTS[slotIndex] || {};
     const clearedPeriod = {
       slotIndex,
-      time: `${slot.startTime || "09:00"} - ${slot.endTime || "10:00"}`,
+      time: slot.time || "09:30 - 10:30 AM",
       subject: "No Class / Free",
       code: "",
       type: "FREE",
       faculty: "",
       room: "",
       isFree: true,
+      isBreak: false,
     };
 
     setCurrentMatrix((prev) => {
@@ -326,11 +358,12 @@ export default function TimetableAdminManager({ authHeaders, API }) {
   }
 
   function handleQuickTypeToggle(day, slotIndex) {
+    if (slotIndex === 3) return;
     setCurrentMatrix((prev) => {
       const next = { ...prev };
       const dayPeriods = [...(next[day] || [])];
       const currentPeriod = dayPeriods[slotIndex];
-      if (!currentPeriod || currentPeriod.isFree) return prev;
+      if (!currentPeriod || currentPeriod.isFree || currentPeriod.isBreak) return prev;
 
       let nextType = "PP";
       if (currentPeriod.type === "PP") nextType = "PR";
@@ -402,7 +435,7 @@ export default function TimetableAdminManager({ authHeaders, API }) {
   // Reset current matrix to default JSON
   function handleResetToSectionDefault() {
     const norm = normalizeSection(section);
-    const jsonTemplate = timetableData[norm] || timetableData["CSE-A"] || {};
+    const jsonTemplate = timetableData[norm] || timetableData["CSE-F"] || {};
     setCurrentMatrix(normalizeMatrixStructure(JSON.parse(JSON.stringify(jsonTemplate))));
     setHasUnsavedChanges(true);
     setStatusMsg({
@@ -450,7 +483,7 @@ export default function TimetableAdminManager({ authHeaders, API }) {
     }
   }
 
-  // Calculate live matrix statistics
+  // Calculate live matrix statistics (excluding Lunch Break)
   const matrixStats = useMemo(() => {
     let totalClasses = 0;
     let theoryCount = 0;
@@ -460,8 +493,9 @@ export default function TimetableAdminManager({ authHeaders, API }) {
 
     DAYS_LIST.forEach((day) => {
       const periods = currentMatrix[day] || [];
-      periods.forEach((p) => {
-        if (!p.isFree && p.subject && p.subject !== "No Class / Free") {
+      periods.forEach((p, idx) => {
+        if (idx === 3 || p.isBreak || p.type === "BREAK") return;
+        if (!p.isFree && p.subject && p.subject !== "No Class / Free" && p.subject !== "Lunch Break / Recess") {
           totalClasses++;
           uniqueSubjects.add(cleanSubjectBaseName(p.subject));
           if (p.type === "PR") labCount++;
@@ -541,9 +575,24 @@ export default function TimetableAdminManager({ authHeaders, API }) {
         if (!days.includes(dayName)) continue;
 
         const slots = [];
-        for (let i = 1; i <= 7; i++) {
+        for (let i = 1; i <= 8; i++) {
           const cellVal = row[i] ? String(row[i]).trim() : "";
           const slotMeta = DEFAULT_SLOTS[i - 1] || {};
+
+          if (i === 4 || slotMeta.isBreak) {
+            slots.push({
+              slotIndex: 3,
+              time: "12:30 - 01:30 PM",
+              subject: "Lunch Break / Recess",
+              code: "",
+              type: "BREAK",
+              faculty: "",
+              room: "",
+              isFree: true,
+              isBreak: true,
+            });
+            continue;
+          }
 
           if (!cellVal || cellVal.toLowerCase() === "free" || cellVal.toLowerCase() === "nil" || cellVal === "-") {
             slots.push({
@@ -555,6 +604,7 @@ export default function TimetableAdminManager({ authHeaders, API }) {
               faculty: "",
               room: "",
               isFree: true,
+              isBreak: false,
             });
           } else {
             slots.push(parseCellString(cellVal, i - 1, slotMeta.time));
@@ -587,7 +637,7 @@ export default function TimetableAdminManager({ authHeaders, API }) {
       const roomMatch = raw.match(/room[:s]*([a-zA-Z0-9-]+)/i);
       if (roomMatch) room = roomMatch[1];
 
-      const codeMatch = raw.match(/(CU[A-Z]{2,4}d{4}|CUTMd{4})/i);
+      const codeMatch = raw.match(/\b(CU[A-Z]{2,4}\d{4}|CUTM\d{4})\b/i);
       if (codeMatch) code = codeMatch[1].toUpperCase();
     }
 
@@ -600,6 +650,7 @@ export default function TimetableAdminManager({ authHeaders, API }) {
       faculty,
       room,
       isFree: false,
+      isBreak: false,
     };
   }
 
@@ -607,63 +658,25 @@ export default function TimetableAdminManager({ authHeaders, API }) {
     const rows = [
       {
         Day: "Monday",
-        "P1 (09:30-10:30)": "Cloud Fundamentals (Azure) | Room 204 | Dr. Sujata | PP",
-        "P2 (10:30-11:30)": "Data Structure and Algorithms | Room 204 | Prof. S. Panda | PP",
-        "P3 (11:30-12:30)": "Theory of Computation | Room 204 | Prof. M. Nayak | PP",
-        "P4 (01:30-02:30)": "Information Security (CISCO) | Room 204 | Prof. K. Jena | PP",
-        "P5 (02:30-03:30)": "Free",
-        "P6 (03:30-04:30)": "Free",
-        "P7 (04:30-05:30)": "Free",
+        "P1 (09:30-10:30)": "Data Structure and Algorithms (PR) | CSE-F-AR-317 | Baddigam Siddardhareddy | PR",
+        "P2 (10:30-11:30)": "Data Structure and Algorithms (PR) | CSE-F-AR-317 | Baddigam Siddardhareddy | PR",
+        "P3 (11:30-12:30)": "Network and Protocols for IoT(PP) | CSE-F-AR-317 | Dr. Prabin Kumar Panigrahi | PP",
+        "Lunch (12:30-01:30)": "Lunch Break",
+        "P4 (01:30-02:30)": "Robotic automation with ROS and C++(PR) | CSE-F-AR-317 | Biswajit Mallik | PR",
+        "P5 (02:30-03:30)": "Robotic automation with ROS and C++(PR) | CSE-F-AR-317 | Biswajit Mallik | PR",
+        "P6 (03:30-04:30)": "Information Security (CISCO)(PR) | CSE-F-AR-317 | Smita Patra | PR",
+        "P7 (04:30-05:30)": "Information Security (CISCO)(PR) | CSE-F-AR-317 | Smita Patra | PR",
       },
       {
         Day: "Tuesday",
-        "P1 (09:30-10:30)": "Prompt Engineering | Room 204 | Dr. P. Mishra | PP",
-        "P2 (10:30-11:30)": "Robotic Automation | Room 204 | Dr. A. Behera | PP",
-        "P3 (11:30-12:30)": "Cloud Fundamentals (Azure) | Room 204 | Dr. Sujata | PP",
-        "P4 (01:30-02:30)": "Data Structure and Algorithms | Room 204 | Prof. S. Panda | PP",
-        "P5 (02:30-03:30)": "Free",
-        "P6 (03:30-04:30)": "Free",
-        "P7 (04:30-05:30)": "Free",
-      },
-      {
-        Day: "Wednesday",
-        "P1 (09:30-10:30)": "Network & Protocols for IoT | Room 204 | Prof. R. Rout | PP",
-        "P2 (10:30-11:30)": "Information Security (CISCO) | Room 204 | Prof. K. Jena | PP",
-        "P3 (11:30-12:30)": "Minor Project II | LAB-03 | Project Coordinator | PR",
-        "P4 (01:30-02:30)": "Minor Project II | LAB-03 | Project Coordinator | PR",
-        "P5 (02:30-03:30)": "Minor Project II | LAB-03 | Project Coordinator | PR",
-        "P6 (03:30-04:30)": "Free",
-        "P7 (04:30-05:30)": "Free",
-      },
-      {
-        Day: "Thursday",
-        "P1 (09:30-10:30)": "Theory of Computation | Room 204 | Prof. M. Nayak | PP",
-        "P2 (10:30-11:30)": "Prompt Engineering | Room 204 | Dr. P. Mishra | PP",
-        "P3 (11:30-12:30)": "Robotic Automation | Room 204 | Dr. A. Behera | PP",
-        "P4 (01:30-02:30)": "Network & Protocols for IoT | Room 204 | Prof. R. Rout | PP",
-        "P5 (02:30-03:30)": "Free",
-        "P6 (03:30-04:30)": "Free",
-        "P7 (04:30-05:30)": "Free",
-      },
-      {
-        Day: "Friday",
-        "P1 (09:30-10:30)": "Cloud Fundamentals (Azure) | Room 204 | Dr. Sujata | PP",
-        "P2 (10:30-11:30)": "Data Structure and Algorithms | Room 204 | Prof. S. Panda | PP",
-        "P3 (11:30-12:30)": "Information Security (CISCO) | Room 204 | Prof. K. Jena | PP",
-        "P4 (01:30-02:30)": "Theory of Computation | Room 204 | Prof. M. Nayak | PP",
-        "P5 (02:30-03:30)": "Free",
-        "P6 (03:30-04:30)": "Free",
-        "P7 (04:30-05:30)": "Free",
-      },
-      {
-        Day: "Saturday",
-        "P1 (09:30-10:30)": "Prompt Engineering | Room 204 | Dr. P. Mishra | PP",
-        "P2 (10:30-11:30)": "Robotic Automation | Room 204 | Dr. A. Behera | PP",
-        "P3 (11:30-12:30)": "Network & Protocols for IoT | Room 204 | Prof. R. Rout | PP",
-        "P4 (01:30-02:30)": "Free",
-        "P5 (02:30-03:30)": "Free",
-        "P6 (03:30-04:30)": "Free",
-        "P7 (04:30-05:30)": "Free",
+        "P1 (09:30-10:30)": "Cloud Fundamentals (Azure)(PP) | CSE-F-AR-317 | Partha Sarathi Pradhan | PP",
+        "P2 (10:30-11:30)": "Theory of Computation and Compiler Design(PP) | CSE-F-AR-317 | Sasmita Tripathy | PP",
+        "P3 (11:30-12:30)": "Theory of Computation and Compiler Design(PP) | CSE-F-AR-317 | Sasmita Tripathy | PP",
+        "Lunch (12:30-01:30)": "Lunch Break",
+        "P4 (01:30-02:30)": "Data Structure and Algorithms (PR) | CSE-F-AR-317 | Baddigam Siddardhareddy | PR",
+        "P5 (02:30-03:30)": "Data Structure and Algorithms (PR) | CSE-F-AR-317 | Baddigam Siddardhareddy | PR",
+        "P6 (03:30-04:30)": "Robotic automation with ROS and C++(PR) | CSE-F-AR-317 | Biswajit Mallik | PR",
+        "P7 (04:30-05:30)": "Robotic automation with ROS and C++(PR) | CSE-F-AR-317 | Biswajit Mallik | PR",
       },
     ];
 
@@ -671,17 +684,6 @@ export default function TimetableAdminManager({ authHeaders, API }) {
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Timetable");
     XLSX.writeFile(wb, `GradeFlow_Section_${section}_Timetable_Template.xlsx`);
-  }
-
-  // Export currently active matrix as JSON
-  function exportCurrentMatrixJSON() {
-    const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(currentMatrix, null, 2));
-    const downloadAnchor = document.createElement("a");
-    downloadAnchor.setAttribute("href", dataStr);
-    downloadAnchor.setAttribute("download", `${branch}_Sec_${section}_Timetable.json`);
-    document.body.appendChild(downloadAnchor);
-    downloadAnchor.click();
-    downloadAnchor.remove();
   }
 
   // ═════════════════════════════════════════════════════════════════
@@ -1007,7 +1009,7 @@ export default function TimetableAdminManager({ authHeaders, API }) {
                   )}
                 </h3>
                 <p style={{ fontSize: 12.5, color: "#64748b", margin: "3px 0 0 0" }}>
-                  Select batch, branch, and section to edit period slots, assign faculty & rooms, clear slots, or clone routines.
+                  Select batch, branch, and section to edit period slots, assign faculty & rooms, or clone routines.
                 </p>
               </div>
 
@@ -1304,10 +1306,10 @@ export default function TimetableAdminManager({ authHeaders, API }) {
                       fontSize: 12,
                       fontWeight: 800,
                       color: "#475569",
-                      width: 90,
+                      width: 80,
                     }}
                   >
-                    Day
+                    DAY
                   </th>
                   {DEFAULT_SLOTS.map((slot) => (
                     <th
@@ -1317,16 +1319,24 @@ export default function TimetableAdminManager({ authHeaders, API }) {
                         textAlign: "left",
                         fontSize: 11.5,
                         fontWeight: 800,
-                        color: "#334155",
-                        background: "#f8fafc",
+                        color: slot.isBreak ? "#9a3412" : "#334155",
+                        background: slot.isBreak
+                          ? "linear-gradient(135deg, #fff7ed 0%, #ffedd5 100%)"
+                          : "#f8fafc",
                         borderRadius: 8,
-                        border: "1px solid #e2e8f0",
-                        minWidth: 140,
+                        border: `1px solid ${slot.isBreak ? "#fed7aa" : "#e2e8f0"}`,
+                        minWidth: slot.isBreak ? 100 : 145,
+                        maxWidth: slot.isBreak ? 110 : 180,
                       }}
                     >
                       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                        <span>P{slot.index + 1}</span>
-                        <span style={{ fontSize: 10, color: "#64748b", fontWeight: 600 }}>{slot.time}</span>
+                        <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
+                          {slot.isBreak ? <Utensils size={12} color="#ea580c" /> : null}
+                          {slot.slotName}
+                        </span>
+                        <span style={{ fontSize: 10, color: slot.isBreak ? "#c2410c" : "#64748b", fontWeight: 600 }}>
+                          {slot.time}
+                        </span>
                       </div>
                     </th>
                   ))}
@@ -1351,8 +1361,44 @@ export default function TimetableAdminManager({ authHeaders, API }) {
                         {day}
                       </td>
 
-                      {/* 7 Period Slots for this day */}
+                      {/* 8 Period Slots for this day (including Lunch Break at index 3) */}
                       {DEFAULT_SLOTS.map((slot, pIdx) => {
+                        if (slot.isBreak || pIdx === 3) {
+                          // Lunch Break Column Cell
+                          return (
+                            <td
+                              key={pIdx}
+                              style={{
+                                verticalAlign: "middle",
+                                minWidth: 100,
+                                maxWidth: 110,
+                              }}
+                            >
+                              <div
+                                style={{
+                                  background: "linear-gradient(135deg, #fff7ed 0%, #ffedd5 100%)",
+                                  border: "1px dashed #fed7aa",
+                                  borderRadius: 10,
+                                  padding: "10px 6px",
+                                  display: "flex",
+                                  flexDirection: "column",
+                                  alignItems: "center",
+                                  justifyContent: "center",
+                                  gap: 4,
+                                  minHeight: 74,
+                                  color: "#c2410c",
+                                }}
+                              >
+                                <Utensils size={14} color="#ea580c" />
+                                <span style={{ fontSize: 10.5, fontWeight: 800, textAlign: "center", lineHeight: 1.2 }}>
+                                  Lunch Break
+                                </span>
+                                <span style={{ fontSize: 9.5, color: "#9a3412" }}>12:30–1:30</span>
+                              </div>
+                            </td>
+                          );
+                        }
+
                         const period = periods[pIdx] || { isFree: true, subject: "No Class / Free", type: "FREE" };
                         const isFree = period.isFree || period.type === "FREE" || !period.subject || period.subject === "No Class / Free";
                         const isLab = period.type === "PR";
@@ -1363,7 +1409,7 @@ export default function TimetableAdminManager({ authHeaders, API }) {
                             key={pIdx}
                             style={{
                               verticalAlign: "top",
-                              minWidth: 140,
+                              minWidth: 145,
                               maxWidth: 180,
                             }}
                           >
@@ -1614,7 +1660,7 @@ export default function TimetableAdminManager({ authHeaders, API }) {
                 {fileName ? fileName : "Upload Timetable Excel Spreadsheet"}
               </h4>
               <p style={{ fontSize: 12.5, color: "#64748b", margin: 0 }}>
-                Supports <strong>.xlsx</strong>, <strong>.xls</strong>, and <strong>.csv</strong> files with 7 period slots across Monday–Saturday.
+                Supports <strong>.xlsx</strong>, <strong>.xls</strong>, and <strong>.csv</strong> files with 8 slots across Monday–Saturday.
               </p>
             </div>
           </div>
@@ -2009,10 +2055,10 @@ export default function TimetableAdminManager({ authHeaders, API }) {
               >
                 <div>
                   <h4 style={{ fontSize: 15, fontWeight: 900, color: "#0f172a", margin: 0 }}>
-                    Edit Period — {slotModal.day}, P{slotModal.slotIndex + 1}
+                    Edit Period — {slotModal.day}, {DEFAULT_SLOTS[slotModal.slotIndex]?.slotName} ({DEFAULT_SLOTS[slotModal.slotIndex]?.time})
                   </h4>
                   <span style={{ fontSize: 11.5, color: "#64748b" }}>
-                    {DEFAULT_SLOTS[slotModal.slotIndex]?.time} • Section {section}
+                    Section {section}
                   </span>
                 </div>
                 <button
@@ -2064,9 +2110,9 @@ export default function TimetableAdminManager({ authHeaders, API }) {
                     <option value="" disabled>
                       Choose a subject to auto-fill details...
                     </option>
-                    {KNOWN_SUBJECTS.map((s) => (
-                      <option key={s.name} value={s.name}>
-                        {s.name} ({s.code}) — {s.type === "PR" ? "Lab" : "Theory"}
+                    {KNOWN_SUBJECTS.map((s, idx) => (
+                      <option key={idx} value={s.name}>
+                        {s.name} ({s.code}) — {s.type === "PR" ? "Lab (PR)" : s.type === "TUT" ? "Tutorial (TUT)" : "Theory (PP)"}
                       </option>
                     ))}
                   </select>
