@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useMemo } from "react";
 import axios from "axios";
 import * as XLSX from "xlsx";
 import { motion, AnimatePresence } from "framer-motion";
@@ -26,34 +26,92 @@ import {
   X,
   FileText,
   Info,
+  Copy,
+  Save,
+  Sliders,
+  ChevronDown,
+  Sparkles,
 } from "lucide-react";
-import { TIME_SLOTS, DAYS_LIST, ALL_SECTIONS } from "../utils/timetableHelper";
+import timetableData from "../data/timetableData.json";
+import {
+  TIME_SLOTS,
+  DAYS_LIST,
+  ALL_SECTIONS,
+  normalizeSection,
+  setCustomSchedulesStore,
+  cleanSubjectBaseName,
+} from "../utils/timetableHelper";
 import {
   parseAcademicCalendarFile,
   parseAcademicHolidaysFile,
   getDayOfWeekFromDate,
 } from "../utils/calendarHolidayParser";
 
+// Known CUTM subjects catalog for quick 1-click autocomplete in slot editor
+const KNOWN_SUBJECTS = [
+  { name: "Cloud Fundamentals (Azure)", code: "CUCS1015", type: "PP", defaultRoom: "Room 204" },
+  { name: "Data Structure and Algorithms", code: "CUTM3166", type: "PP", defaultRoom: "Room 204" },
+  { name: "Information Security (CISCO)", code: "CUCS1007", type: "PP", defaultRoom: "Room 204" },
+  { name: "Network and Protocols for IoT", code: "CUCS1006", type: "PP", defaultRoom: "Room 204" },
+  { name: "Theory of Computation and Compiler Design", code: "CUCS1008", type: "PP", defaultRoom: "Room 204" },
+  { name: "Prompt Engineering using ChatGPT", code: "CUCS1014", type: "PP", defaultRoom: "Room 204" },
+  { name: "Robotic automation with ROS and C++", code: "CUTM1020", type: "PP", defaultRoom: "Room 204" },
+  { name: "Minor Project II", code: "CUTM1577", type: "PR", defaultRoom: "LAB-03" },
+  { name: "Cloud Fundamentals (Azure) Lab", code: "CUCS1015", type: "PR", defaultRoom: "LAB-01" },
+  { name: "Data Structure and Algorithms Lab", code: "CUTM3166", type: "PR", defaultRoom: "LAB-02" },
+  { name: "IoT & Protocols Lab", code: "CUCS1006", type: "PR", defaultRoom: "LAB-IoT" },
+];
+
 const DEFAULT_SLOTS = [
-  { index: 0, time: "09:00 - 10:00 AM" },
-  { index: 1, time: "10:00 - 11:00 AM" },
-  { index: 2, time: "11:15 - 12:15 PM" },
-  { index: 3, time: "12:15 - 01:15 PM" },
-  { index: 4, time: "02:00 - 03:00 PM" },
-  { index: 5, time: "03:00 - 04:00 PM" },
-  { index: 6, time: "04:00 - 05:00 PM" },
+  { index: 0, time: "09:30 - 10:30 AM" },
+  { index: 1, time: "10:30 - 11:30 AM" },
+  { index: 2, time: "11:30 - 12:30 PM" },
+  { index: 3, time: "01:30 - 02:30 PM" },
+  { index: 4, time: "02:30 - 03:30 PM" },
+  { index: 5, time: "03:30 - 04:30 PM" },
+  { index: 6, time: "04:30 - 05:30 PM" },
 ];
 
 export default function TimetableAdminManager({ authHeaders, API }) {
-  const [activeSubTab, setActiveSubTab] = useState("timetable"); // "timetable" | "calendar" | "holidays" | "published"
+  const [activeSubTab, setActiveSubTab] = useState("editor"); // "editor" | "excel_upload" | "calendar" | "holidays" | "published"
 
-  // ── Timetable Matrix State ──
+  // ── Section-Wise Timetable Interactive Editor State ──
   const [batch, setBatch] = useState("2023");
   const [branch, setBranch] = useState("CSE");
   const [year, setYear] = useState("3");
   const [semester, setSemester] = useState("6");
   const [section, setSection] = useState("CSE-A");
   const [customTitle, setCustomTitle] = useState("");
+  const [currentMatrix, setCurrentMatrix] = useState({});
+  const [isMatrixLoading, setIsMatrixLoading] = useState(false);
+  const [isSavingMatrix, setIsSavingMatrix] = useState(false);
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  const [isLiveCustomPublished, setIsLiveCustomPublished] = useState(false);
+
+  // ── Period Slot Edit Modal ──
+  const [slotModal, setSlotModal] = useState({
+    isOpen: false,
+    day: "Monday",
+    slotIndex: 0,
+    period: {
+      subject: "",
+      code: "",
+      type: "PP",
+      faculty: "",
+      room: "",
+      timeSlot: "",
+      isFree: false,
+    },
+  });
+
+  // ── Clone Matrix Modal ──
+  const [cloneModal, setCloneModal] = useState({
+    isOpen: false,
+    targetSection: "CSE-B",
+    isCloning: false,
+  });
+
+  // ── Excel Upload / Parser State ──
   const [parsedMatrix, setParsedMatrix] = useState(null);
   const [fileName, setFileName] = useState("");
   const [isPublishing, setIsPublishing] = useState(false);
@@ -81,9 +139,17 @@ export default function TimetableAdminManager({ authHeaders, API }) {
   const [holidayFileName, setHolidayFileName] = useState("");
   const holidayFileRef = useRef(null);
 
+  // ═════════════════════════════════════════════════════════════════
+  // INITIAL DATA FETCH & SECTION SCHEDULE SYNC
+  // ═════════════════════════════════════════════════════════════════
+
   useEffect(() => {
     fetchPublishedSchedules();
   }, []);
+
+  useEffect(() => {
+    loadSectionTimetable(section, batch, branch);
+  }, [section, batch, branch]);
 
   async function fetchPublishedSchedules() {
     setIsLoadingList(true);
@@ -91,6 +157,8 @@ export default function TimetableAdminManager({ authHeaders, API }) {
       const { data } = await axios.get(`${API}/timetable/admin/schedule/list`, authHeaders);
       if (data.success) {
         setPublishedList(data.schedules || []);
+        // Update local helper cache
+        setCustomSchedulesStore(data.schedules || []);
       }
     } catch (e) {
       console.error("Error fetching published schedules:", e);
@@ -99,8 +167,321 @@ export default function TimetableAdminManager({ authHeaders, API }) {
     }
   }
 
+  // Load schedule for specific section (checks MongoDB published schedule first, fallback to JSON)
+  async function loadSectionTimetable(sec, bch, brn) {
+    setIsMatrixLoading(true);
+    setHasUnsavedChanges(false);
+
+    try {
+      const { data } = await axios.get(
+        `${API}/timetable/schedule?batch=${bch}&branch=${brn}&section=${sec}`,
+        authHeaders
+      );
+
+      if (data.success && data.found && data.schedule && data.schedule.schedule) {
+        // Deep clone schedule from MongoDB
+        const dbSchedule = JSON.parse(JSON.stringify(data.schedule.schedule));
+        setCurrentMatrix(normalizeMatrixStructure(dbSchedule));
+        setCustomTitle(data.schedule.title || `${brn} Sec ${sec} (Batch ${bch})`);
+        setIsLiveCustomPublished(true);
+      } else {
+        // Fallback to bundled JSON template
+        const norm = normalizeSection(sec);
+        const jsonTemplate = timetableData[norm] || timetableData["CSE-A"] || {};
+        setCurrentMatrix(normalizeMatrixStructure(JSON.parse(JSON.stringify(jsonTemplate))));
+        setCustomTitle(`${brn} Sec ${sec} (Batch ${bch})`);
+        setIsLiveCustomPublished(false);
+      }
+    } catch (err) {
+      console.warn("Could not fetch schedule from API, falling back to JSON:", err);
+      const norm = normalizeSection(sec);
+      const jsonTemplate = timetableData[norm] || timetableData["CSE-A"] || {};
+      setCurrentMatrix(normalizeMatrixStructure(JSON.parse(JSON.stringify(jsonTemplate))));
+      setIsLiveCustomPublished(false);
+    } finally {
+      setIsMatrixLoading(false);
+    }
+  }
+
+  // Ensure matrix has all 6 days with 7 periods each
+  function normalizeMatrixStructure(rawMatrix) {
+    const normalized = {};
+    DAYS_LIST.forEach((day) => {
+      const periods = Array.isArray(rawMatrix[day]) ? rawMatrix[day] : [];
+      const safePeriods = [];
+
+      for (let i = 0; i < 7; i++) {
+        const slot = TIME_SLOTS[i] || DEFAULT_SLOTS[i] || {};
+        const p = periods[i];
+
+        if (p && p.subject && p.subject !== "No Class / Free" && !p.isFree) {
+          safePeriods.push({
+            slotIndex: i,
+            time: p.time || p.timeSlot || `${slot.startTime || "09:00"} - ${slot.endTime || "10:00"}`,
+            subject: p.subject,
+            code: p.code || "",
+            type: (p.type || "PP").toUpperCase(),
+            faculty: p.faculty || "",
+            room: p.room || "",
+            isFree: false,
+          });
+        } else {
+          safePeriods.push({
+            slotIndex: i,
+            time: `${slot.startTime || "09:00"} - ${slot.endTime || "10:00"}`,
+            subject: "No Class / Free",
+            code: "",
+            type: "FREE",
+            faculty: "",
+            room: "",
+            isFree: true,
+          });
+        }
+      }
+      normalized[day] = safePeriods;
+    });
+    return normalized;
+  }
+
   // ═════════════════════════════════════════════════════════════════
-  // 1. TIMETABLE EXCEL PARSER & TEMPLATE BUILDER
+  // SECTION TIMETABLE EDITING HANDLERS
+  // ═════════════════════════════════════════════════════════════════
+
+  function openEditSlotModal(day, slotIndex) {
+    const period = currentMatrix[day]?.[slotIndex] || {
+      subject: "",
+      code: "",
+      type: "PP",
+      faculty: "",
+      room: "",
+      timeSlot: "",
+      isFree: true,
+    };
+
+    setSlotModal({
+      isOpen: true,
+      day,
+      slotIndex,
+      period: {
+        subject: period.isFree ? "" : period.subject,
+        code: period.code || "",
+        type: period.type === "FREE" ? "PP" : period.type || "PP",
+        faculty: period.faculty || "",
+        room: period.room || "",
+        timeSlot: period.time || period.timeSlot || DEFAULT_SLOTS[slotIndex]?.time || "",
+        isFree: !!period.isFree,
+      },
+    });
+  }
+
+  function handleSaveSlotModal() {
+    const { day, slotIndex, period } = slotModal;
+    const isFree = !period.subject || period.subject.trim() === "" || period.type === "FREE";
+
+    const updatedPeriod = {
+      slotIndex,
+      time: period.timeSlot || DEFAULT_SLOTS[slotIndex]?.time || "",
+      subject: isFree ? "No Class / Free" : period.subject.trim(),
+      code: isFree ? "" : (period.code || "").trim(),
+      type: isFree ? "FREE" : (period.type || "PP").toUpperCase(),
+      faculty: isFree ? "" : (period.faculty || "").trim(),
+      room: isFree ? "" : (period.room || "").trim(),
+      isFree,
+    };
+
+    setCurrentMatrix((prev) => {
+      const next = { ...prev };
+      const dayPeriods = [...(next[day] || [])];
+      dayPeriods[slotIndex] = updatedPeriod;
+      next[day] = dayPeriods;
+      return next;
+    });
+
+    setHasUnsavedChanges(true);
+    setSlotModal((prev) => ({ ...prev, isOpen: false }));
+  }
+
+  function handleClearPeriodSlot(day, slotIndex) {
+    const slot = TIME_SLOTS[slotIndex] || DEFAULT_SLOTS[slotIndex] || {};
+    const clearedPeriod = {
+      slotIndex,
+      time: `${slot.startTime || "09:00"} - ${slot.endTime || "10:00"}`,
+      subject: "No Class / Free",
+      code: "",
+      type: "FREE",
+      faculty: "",
+      room: "",
+      isFree: true,
+    };
+
+    setCurrentMatrix((prev) => {
+      const next = { ...prev };
+      const dayPeriods = [...(next[day] || [])];
+      dayPeriods[slotIndex] = clearedPeriod;
+      next[day] = dayPeriods;
+      return next;
+    });
+
+    setHasUnsavedChanges(true);
+  }
+
+  function handleQuickTypeToggle(day, slotIndex) {
+    setCurrentMatrix((prev) => {
+      const next = { ...prev };
+      const dayPeriods = [...(next[day] || [])];
+      const currentPeriod = dayPeriods[slotIndex];
+      if (!currentPeriod || currentPeriod.isFree) return prev;
+
+      let nextType = "PP";
+      if (currentPeriod.type === "PP") nextType = "PR";
+      else if (currentPeriod.type === "PR") nextType = "TUT";
+      else if (currentPeriod.type === "TUT") nextType = "PP";
+
+      dayPeriods[slotIndex] = { ...currentPeriod, type: nextType };
+      next[day] = dayPeriods;
+      return next;
+    });
+    setHasUnsavedChanges(true);
+  }
+
+  // 1-Click Save and Publish to MongoDB Atlas (Dynamic Global Sync)
+  async function handleSaveLiveMatrix() {
+    setIsSavingMatrix(true);
+    setStatusMsg({ text: "", type: "" });
+
+    try {
+      const payload = {
+        batch: String(batch).trim(),
+        branch: String(branch).trim().toUpperCase(),
+        year: String(year).trim(),
+        semester: String(semester).trim(),
+        section: String(section).trim().toUpperCase(),
+        title: customTitle || `${branch} Sec ${section} (Batch ${batch})`,
+        schedule: currentMatrix,
+      };
+
+      const { data } = await axios.post(
+        `${API}/timetable/admin/schedule/save`,
+        payload,
+        authHeaders
+      );
+
+      if (data.success) {
+        setHasUnsavedChanges(false);
+        setIsLiveCustomPublished(true);
+        setStatusMsg({
+          text: `✅ Successfully published & synced live timetable for ${branch} Section ${section} (Batch ${batch})! All student pages and Attendance Trackers are now dynamically updated.`,
+          type: "success",
+        });
+
+        // Update local memory & storage cache
+        setCustomSchedulesStore([
+          {
+            batch,
+            branch,
+            section,
+            schedule: currentMatrix,
+          },
+        ]);
+
+        fetchPublishedSchedules();
+      } else {
+        setStatusMsg({ text: data.message || "Failed to save timetable.", type: "error" });
+      }
+    } catch (err) {
+      console.error("Save matrix error:", err);
+      setStatusMsg({
+        text: err.response?.data?.message || "Server error while saving timetable schedule.",
+        type: "error",
+      });
+    } finally {
+      setIsSavingMatrix(false);
+    }
+  }
+
+  // Reset current matrix to default JSON
+  function handleResetToSectionDefault() {
+    const norm = normalizeSection(section);
+    const jsonTemplate = timetableData[norm] || timetableData["CSE-A"] || {};
+    setCurrentMatrix(normalizeMatrixStructure(JSON.parse(JSON.stringify(jsonTemplate))));
+    setHasUnsavedChanges(true);
+    setStatusMsg({
+      text: `Reset matrix for Section ${section} to default curriculum template. Click "Save & Publish" to update the live cloud database.`,
+      type: "info",
+    });
+  }
+
+  // Clone / Replicate current matrix to another target section
+  async function handleCloneScheduleToTarget() {
+    if (!cloneModal.targetSection) return;
+    setCloneModal((prev) => ({ ...prev, isCloning: true }));
+
+    try {
+      const payload = {
+        batch: String(batch).trim(),
+        branch: String(branch).trim().toUpperCase(),
+        year: String(year).trim(),
+        semester: String(semester).trim(),
+        section: String(cloneModal.targetSection).trim().toUpperCase(),
+        title: `${branch} Sec ${cloneModal.targetSection} (Batch ${batch}) - Cloned from ${section}`,
+        schedule: currentMatrix,
+      };
+
+      const { data } = await axios.post(
+        `${API}/timetable/admin/schedule/save`,
+        payload,
+        authHeaders
+      );
+
+      if (data.success) {
+        setStatusMsg({
+          text: `✅ Successfully cloned timetable from ${section} to ${cloneModal.targetSection}! Target section is now live.`,
+          type: "success",
+        });
+        setCloneModal({ isOpen: false, targetSection: "CSE-B", isCloning: false });
+        fetchPublishedSchedules();
+      }
+    } catch (e) {
+      setStatusMsg({
+        text: e.response?.data?.message || "Failed to clone timetable.",
+        type: "error",
+      });
+      setCloneModal((prev) => ({ ...prev, isCloning: false }));
+    }
+  }
+
+  // Calculate live matrix statistics
+  const matrixStats = useMemo(() => {
+    let totalClasses = 0;
+    let theoryCount = 0;
+    let labCount = 0;
+    let tutCount = 0;
+    const uniqueSubjects = new Set();
+
+    DAYS_LIST.forEach((day) => {
+      const periods = currentMatrix[day] || [];
+      periods.forEach((p) => {
+        if (!p.isFree && p.subject && p.subject !== "No Class / Free") {
+          totalClasses++;
+          uniqueSubjects.add(cleanSubjectBaseName(p.subject));
+          if (p.type === "PR") labCount++;
+          else if (p.type === "TUT") tutCount++;
+          else theoryCount++;
+        }
+      });
+    });
+
+    return {
+      totalClasses,
+      theoryCount,
+      labCount,
+      tutCount,
+      uniqueSubjectCount: uniqueSubjects.size,
+    };
+  }, [currentMatrix]);
+
+  // ═════════════════════════════════════════════════════════════════
+  // EXCEL & SPREADSHEET IMPORT / EXPORT
   // ═════════════════════════════════════════════════════════════════
 
   function handleTimetableFileUpload(e) {
@@ -120,9 +501,10 @@ export default function TimetableAdminManager({ authHeaders, API }) {
 
         const parsed = parseTimetableSheet(rawJson);
         if (parsed) {
-          setParsedMatrix(parsed);
+          setCurrentMatrix(normalizeMatrixStructure(parsed));
+          setHasUnsavedChanges(true);
           setStatusMsg({
-            text: `Successfully parsed timetable from "${file.name}"! Review the preview below before publishing.`,
+            text: `Successfully parsed timetable from "${file.name}"! Loaded into the Interactive Matrix Editor below. Review & click "Save & Publish" when ready.`,
             type: "success",
           });
         } else {
@@ -141,18 +523,9 @@ export default function TimetableAdminManager({ authHeaders, API }) {
 
   function parseTimetableSheet(rows) {
     if (!rows || rows.length < 2) return null;
-
     const days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
-    const scheduleMap = {
-      Monday: [],
-      Tuesday: [],
-      Wednesday: [],
-      Thursday: [],
-      Friday: [],
-      Saturday: [],
-    };
+    const scheduleMap = { Monday: [], Tuesday: [], Wednesday: [], Thursday: [], Friday: [], Saturday: [] };
 
-    // Check if format is Matrix (Day in Col 0, Slots in Col 1..7)
     let isMatrix = false;
     for (const row of rows) {
       if (row && row[0] && days.includes(String(row[0]).trim())) {
@@ -170,13 +543,13 @@ export default function TimetableAdminManager({ authHeaders, API }) {
         const slots = [];
         for (let i = 1; i <= 7; i++) {
           const cellVal = row[i] ? String(row[i]).trim() : "";
-          const slotMeta = DEFAULT_SLOTS[i - 1];
+          const slotMeta = DEFAULT_SLOTS[i - 1] || {};
 
           if (!cellVal || cellVal.toLowerCase() === "free" || cellVal.toLowerCase() === "nil" || cellVal === "-") {
             slots.push({
               slotIndex: i - 1,
               time: slotMeta.time,
-              subject: "Free Time / Self Study",
+              subject: "No Class / Free",
               code: "",
               type: "FREE",
               faculty: "",
@@ -184,216 +557,135 @@ export default function TimetableAdminManager({ authHeaders, API }) {
               isFree: true,
             });
           } else {
-            // Parse cell e.g. "Cloud Computing | CS-204 | Dr. Sujata | TH" OR "Cloud Computing (CUTM1020) Room: 204"
-            const parsedCell = parseCellString(cellVal, i - 1, slotMeta.time);
-            slots.push(parsedCell);
+            slots.push(parseCellString(cellVal, i - 1, slotMeta.time));
           }
         }
         scheduleMap[dayName] = slots;
       }
       return scheduleMap;
     }
-
-    // Format 2: Tabular List Format (Day, Slot, Subject, Code, Type, Faculty, Room)
-    let hasHeader = false;
-    for (let r = 0; r < rows.length; r++) {
-      const row = rows[r];
-      if (!row || row.length < 3) continue;
-      const day = String(row[0]).trim();
-      if (days.includes(day)) {
-        const slotIdx = parseInt(row[1], 10) || scheduleMap[day].length;
-        const subject = String(row[2] || "Free").trim();
-        const code = String(row[3] || "").trim();
-        const type = String(row[4] || "TH").toUpperCase();
-        const faculty = String(row[5] || "").trim();
-        const room = String(row[6] || "").trim();
-        const isFree = subject.toLowerCase().includes("free") || !subject;
-
-        scheduleMap[day].push({
-          slotIndex: slotIdx,
-          time: DEFAULT_SLOTS[slotIdx]?.time || `Period ${slotIdx + 1}`,
-          subject: isFree ? "Free Time / Self Study" : subject,
-          code: isFree ? "" : code,
-          type: isFree ? "FREE" : ["PR", "TUT", "TH"].includes(type) ? type : "TH",
-          faculty: isFree ? "" : faculty,
-          room: isFree ? "" : room,
-          isFree,
-        });
-      }
-    }
-
-    return scheduleMap;
+    return null;
   }
 
-  function parseCellString(text, slotIndex, timeSlot) {
-    if (text.includes("|")) {
-      const parts = text.split("|").map((p) => p.trim());
-      const subject = parts[0] || "Lecture";
-      const room = parts[1] || "";
-      const faculty = parts[2] || "";
-      let type = parts[3] ? parts[3].toUpperCase() : "TH";
-      if (!["TH", "PR", "TUT", "FREE"].includes(type)) {
-        type = subject.toLowerCase().includes("lab") || subject.toLowerCase().includes("practice") ? "PR" : "TH";
-      }
+  function parseCellString(raw, slotIndex, timeStr) {
+    let subject = raw;
+    let code = "";
+    let type = "PP";
+    let room = "";
+    let faculty = "";
 
-      return {
-        slotIndex,
-        time: timeSlot,
-        subject,
-        code: "",
-        type,
-        faculty,
-        room,
-        isFree: false,
-      };
+    const parts = raw.split("|").map((s) => s.trim());
+    if (parts.length >= 2) {
+      subject = parts[0];
+      room = parts[1] || "";
+      if (parts[2]) faculty = parts[2];
+      if (parts[3]) type = parts[3].toUpperCase().includes("PR") ? "PR" : parts[3].toUpperCase().includes("TUT") ? "TUT" : "PP";
+    } else {
+      if (/lab|practical|pr/i.test(raw)) type = "PR";
+      else if (/tut|tutorial/i.test(raw)) type = "TUT";
+
+      const roomMatch = raw.match(/room[:s]*([a-zA-Z0-9-]+)/i);
+      if (roomMatch) room = roomMatch[1];
+
+      const codeMatch = raw.match(/(CU[A-Z]{2,4}d{4}|CUTMd{4})/i);
+      if (codeMatch) code = codeMatch[1].toUpperCase();
     }
 
-    // Fallback simple title
-    const isLab = text.toLowerCase().includes("lab") || text.toLowerCase().includes("practice");
-    const isTut = text.toLowerCase().includes("tutorial") || text.toLowerCase().includes("tut");
     return {
       slotIndex,
-      time: timeSlot,
-      subject: text,
-      code: "",
-      type: isLab ? "PR" : isTut ? "TUT" : "TH",
-      faculty: "",
-      room: "",
+      time: timeStr || "",
+      subject: cleanSubjectBaseName(subject) || subject,
+      code,
+      type,
+      faculty,
+      room,
       isFree: false,
     };
   }
 
   function downloadTimetableTemplate() {
-    const matrixData = [
-      [
-        "Day",
-        "09:00 - 10:00 AM",
-        "10:00 - 11:00 AM",
-        "11:15 - 12:15 PM",
-        "12:15 - 01:15 PM",
-        "02:00 - 03:00 PM",
-        "03:00 - 04:00 PM",
-        "04:00 - 05:00 PM",
-      ],
-      [
-        "Monday",
-        "Compiler Design | Room 204 | Dr. Sujata | TH",
-        "Computer Networks | Room 204 | Prof. Debasish | TH",
-        "Web Technologies | CS Lab 3 | Dr. R. K. Mishra | PR",
-        "Web Technologies | CS Lab 3 | Dr. R. K. Mishra | PR",
-        "Soft Skills & Aptitude | Room 102 | Ms. Ananya | TUT",
-        "FREE",
-        "FREE",
-      ],
-      [
-        "Tuesday",
-        "Software Engineering | Room 205 | Dr. Smita | TH",
-        "Machine Learning | Room 205 | Prof. Priyabrata | TH",
-        "FREE",
-        "Compiler Design | Room 204 | Dr. Sujata | TH",
-        "Cloud Computing Lab | Cloud Lab 2 | Dr. Rajesh | PR",
-        "Cloud Computing Lab | Cloud Lab 2 | Dr. Rajesh | PR",
-        "FREE",
-      ],
-      [
-        "Wednesday",
-        "Machine Learning | Room 205 | Prof. Priyabrata | TH",
-        "Software Engineering | Room 205 | Dr. Smita | TH",
-        "Computer Networks | Room 204 | Prof. Debasish | TH",
-        "Soft Skills & Aptitude | Room 102 | Ms. Ananya | TUT",
-        "FREE",
-        "FREE",
-        "FREE",
-      ],
-      [
-        "Thursday",
-        "Computer Networks Lab | Net Lab 1 | Prof. Debasish | PR",
-        "Computer Networks Lab | Net Lab 1 | Prof. Debasish | PR",
-        "Compiler Design | Room 204 | Dr. Sujata | TH",
-        "Software Engineering | Room 205 | Dr. Smita | TH",
-        "Web Technologies | Room 204 | Dr. R. K. Mishra | TH",
-        "FREE",
-        "FREE",
-      ],
-      [
-        "Friday",
-        "Machine Learning Lab | AI Lab | Prof. Priyabrata | PR",
-        "Machine Learning Lab | AI Lab | Prof. Priyabrata | PR",
-        "Web Technologies | Room 204 | Dr. R. K. Mishra | TH",
-        "Cloud Computing | Room 204 | Dr. Rajesh | TH",
-        "Mini Project Review | Project Lab | Mentor | PR",
-        "Mini Project Review | Project Lab | Mentor | PR",
-        "FREE",
-      ],
-      [
-        "Saturday",
-        "Seminar & Technical Presentation | Aud-1 | Faculty Panel | OTHER",
-        "Seminar & Technical Presentation | Aud-1 | Faculty Panel | OTHER",
-        "FREE",
-        "FREE",
-        "FREE",
-        "FREE",
-        "FREE",
-      ],
+    const rows = [
+      {
+        Day: "Monday",
+        "P1 (09:30-10:30)": "Cloud Fundamentals (Azure) | Room 204 | Dr. Sujata | PP",
+        "P2 (10:30-11:30)": "Data Structure and Algorithms | Room 204 | Prof. S. Panda | PP",
+        "P3 (11:30-12:30)": "Theory of Computation | Room 204 | Prof. M. Nayak | PP",
+        "P4 (01:30-02:30)": "Information Security (CISCO) | Room 204 | Prof. K. Jena | PP",
+        "P5 (02:30-03:30)": "Free",
+        "P6 (03:30-04:30)": "Free",
+        "P7 (04:30-05:30)": "Free",
+      },
+      {
+        Day: "Tuesday",
+        "P1 (09:30-10:30)": "Prompt Engineering | Room 204 | Dr. P. Mishra | PP",
+        "P2 (10:30-11:30)": "Robotic Automation | Room 204 | Dr. A. Behera | PP",
+        "P3 (11:30-12:30)": "Cloud Fundamentals (Azure) | Room 204 | Dr. Sujata | PP",
+        "P4 (01:30-02:30)": "Data Structure and Algorithms | Room 204 | Prof. S. Panda | PP",
+        "P5 (02:30-03:30)": "Free",
+        "P6 (03:30-04:30)": "Free",
+        "P7 (04:30-05:30)": "Free",
+      },
+      {
+        Day: "Wednesday",
+        "P1 (09:30-10:30)": "Network & Protocols for IoT | Room 204 | Prof. R. Rout | PP",
+        "P2 (10:30-11:30)": "Information Security (CISCO) | Room 204 | Prof. K. Jena | PP",
+        "P3 (11:30-12:30)": "Minor Project II | LAB-03 | Project Coordinator | PR",
+        "P4 (01:30-02:30)": "Minor Project II | LAB-03 | Project Coordinator | PR",
+        "P5 (02:30-03:30)": "Minor Project II | LAB-03 | Project Coordinator | PR",
+        "P6 (03:30-04:30)": "Free",
+        "P7 (04:30-05:30)": "Free",
+      },
+      {
+        Day: "Thursday",
+        "P1 (09:30-10:30)": "Theory of Computation | Room 204 | Prof. M. Nayak | PP",
+        "P2 (10:30-11:30)": "Prompt Engineering | Room 204 | Dr. P. Mishra | PP",
+        "P3 (11:30-12:30)": "Robotic Automation | Room 204 | Dr. A. Behera | PP",
+        "P4 (01:30-02:30)": "Network & Protocols for IoT | Room 204 | Prof. R. Rout | PP",
+        "P5 (02:30-03:30)": "Free",
+        "P6 (03:30-04:30)": "Free",
+        "P7 (04:30-05:30)": "Free",
+      },
+      {
+        Day: "Friday",
+        "P1 (09:30-10:30)": "Cloud Fundamentals (Azure) | Room 204 | Dr. Sujata | PP",
+        "P2 (10:30-11:30)": "Data Structure and Algorithms | Room 204 | Prof. S. Panda | PP",
+        "P3 (11:30-12:30)": "Information Security (CISCO) | Room 204 | Prof. K. Jena | PP",
+        "P4 (01:30-02:30)": "Theory of Computation | Room 204 | Prof. M. Nayak | PP",
+        "P5 (02:30-03:30)": "Free",
+        "P6 (03:30-04:30)": "Free",
+        "P7 (04:30-05:30)": "Free",
+      },
+      {
+        Day: "Saturday",
+        "P1 (09:30-10:30)": "Prompt Engineering | Room 204 | Dr. P. Mishra | PP",
+        "P2 (10:30-11:30)": "Robotic Automation | Room 204 | Dr. A. Behera | PP",
+        "P3 (11:30-12:30)": "Network & Protocols for IoT | Room 204 | Prof. R. Rout | PP",
+        "P4 (01:30-02:30)": "Free",
+        "P5 (02:30-03:30)": "Free",
+        "P6 (03:30-04:30)": "Free",
+        "P7 (04:30-05:30)": "Free",
+      },
     ];
 
-    const ws = XLSX.utils.aoa_to_sheet(matrixData);
+    const ws = XLSX.utils.json_to_sheet(rows);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Timetable");
-    XLSX.writeFile(wb, `GradeFlow_${branch}_${section}_Batch${batch}_Template.xlsx`);
+    XLSX.writeFile(wb, `GradeFlow_Section_${section}_Timetable_Template.xlsx`);
   }
 
-  async function handlePublishTimetable() {
-    if (!parsedMatrix) {
-      setStatusMsg({ text: "Please upload a timetable spreadsheet first.", type: "error" });
-      return;
-    }
-
-    setIsPublishing(true);
-    setStatusMsg({ text: "", type: "" });
-    try {
-      const payload = {
-        batch,
-        branch,
-        year,
-        semester,
-        section,
-        title: customTitle || `${branch} Section ${section} (Batch ${batch})`,
-        schedule: parsedMatrix,
-      };
-
-      const { data } = await axios.post(`${API}/timetable/admin/schedule/save`, payload, authHeaders);
-      if (data.success) {
-        setStatusMsg({
-          text: `Timetable successfully published! Students of ${branch} Sec ${section} (Batch ${batch}) will now see this schedule live.`,
-          type: "success",
-        });
-        fetchPublishedSchedules();
-      }
-    } catch (e) {
-      setStatusMsg({
-        text: e.response?.data?.message || "Failed to publish timetable.",
-        type: "error",
-      });
-    } finally {
-      setIsPublishing(false);
-    }
-  }
-
-  async function handleDeleteSchedule(id) {
-    if (!window.confirm("Are you sure you want to delete this published timetable?")) return;
-    try {
-      const { data } = await axios.delete(`${API}/timetable/admin/schedule/${id}`, authHeaders);
-      if (data.success) {
-        fetchPublishedSchedules();
-      }
-    } catch (e) {
-      alert(e.response?.data?.message || "Failed to delete schedule.");
-    }
+  // Export currently active matrix as JSON
+  function exportCurrentMatrixJSON() {
+    const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(currentMatrix, null, 2));
+    const downloadAnchor = document.createElement("a");
+    downloadAnchor.setAttribute("href", dataStr);
+    downloadAnchor.setAttribute("download", `${branch}_Sec_${section}_Timetable.json`);
+    document.body.appendChild(downloadAnchor);
+    downloadAnchor.click();
+    downloadAnchor.remove();
   }
 
   // ═════════════════════════════════════════════════════════════════
-  // 2. ACADEMIC CALENDAR UPLOADER & HANDLERS
+  // CALENDAR & HOLIDAY HANDLERS
   // ═════════════════════════════════════════════════════════════════
 
   async function handleCalendarFileUpload(e) {
@@ -407,120 +699,14 @@ export default function TimetableAdminManager({ authHeaders, API }) {
       if (res.success && Array.isArray(res.activities)) {
         setCalendarActivities(res.activities);
         setStatusMsg({
-          text: `Successfully parsed ${res.activities.length} calendar activities from "${file.name}" (${file.type || "file"})! Review/edit below before publishing.`,
+          text: `Successfully parsed ${res.activities.length} calendar events from "${file.name}"! Review below before publishing.`,
           type: "success",
         });
       }
     } catch (err) {
       console.error("Calendar parse error:", err);
-      setStatusMsg({ text: "Error parsing calendar document: " + (err.message || err), type: "error" });
+      setStatusMsg({ text: "Error parsing calendar file: " + (err.message || err), type: "error" });
     }
-  }
-
-  async function loadActiveCalendar() {
-    setStatusMsg({ text: "Fetching live published academic calendar...", type: "info" });
-    try {
-      const { data } = await axios.get(`${API}/timetable/calendar?academicYear=${calendarYear}`);
-      if (data.success && Array.isArray(data.calendars) && data.calendars.length > 0) {
-        const matching = data.calendars.find((c) => c.semesterType === semesterType) || data.calendars[0];
-        if (matching && matching.activities) {
-          setCalendarActivities(matching.activities);
-          setCalendarTitle(matching.title || calendarTitle);
-          setSemestersLabel(matching.semestersLabel || semestersLabel);
-          setStatusMsg({
-            text: `Loaded existing published ${matching.semesterType} semester calendar (${matching.activities.length} activities).`,
-            type: "success",
-          });
-        }
-      } else {
-        setStatusMsg({ text: "No published calendar found in database for this year.", type: "info" });
-      }
-    } catch (e) {
-      console.error("Error loading active calendar:", e);
-      setStatusMsg({ text: "Failed to load active calendar from database.", type: "error" });
-    }
-  }
-
-  function addCalendarActivity() {
-    setCalendarActivities((prev) => [
-      ...prev,
-      {
-        slNo: prev.length + 1,
-        name: "New Academic Event / Activity",
-        schedule: "06.07.2026",
-        startDate: "2026-07-06",
-        endDate: "2026-07-06",
-        category: "academic",
-        location: "CUTM Campus",
-      },
-    ]);
-  }
-
-  function updateCalendarActivity(index, field, value) {
-    setCalendarActivities((prev) => {
-      const updated = [...prev];
-      updated[index] = { ...updated[index], [field]: value };
-      return updated;
-    });
-  }
-
-  function removeCalendarActivity(index) {
-    setCalendarActivities((prev) => prev.filter((_, idx) => idx !== index));
-  }
-
-  function downloadCalendarTemplate() {
-    const rows = [
-      {
-        "Sl No": 1,
-        "Activity Name": "Commencement of Classes",
-        "Schedule / Dates": "06.07.2026",
-        "Start Date (YYYY-MM-DD)": "2026-07-06",
-        "End Date (YYYY-MM-DD)": "2026-07-06",
-        "Category (academic/exam/sports/festival/break)": "academic",
-        Location: "CUTM Bhubaneswar Campus",
-      },
-      {
-        "Sl No": 2,
-        "Activity Name": "Mid Semester Examination",
-        "Schedule / Dates": "07.09.2026 - 11.09.2026",
-        "Start Date (YYYY-MM-DD)": "2026-09-07",
-        "End Date (YYYY-MM-DD)": "2026-09-11",
-        "Category (academic/exam/sports/festival/break)": "exam",
-        Location: "Exam Halls",
-      },
-      {
-        "Sl No": 3,
-        "Activity Name": "Last Date of Instruction (Teaching Ends)",
-        "Schedule / Dates": "31.10.2026",
-        "Start Date (YYYY-MM-DD)": "2026-10-31",
-        "End Date (YYYY-MM-DD)": "2026-10-31",
-        "Category (academic/exam/sports/festival/break)": "academic",
-        Location: "CUTM Campus",
-      },
-      {
-        "Sl No": 4,
-        "Activity Name": "Gajajyoti Annual University Fest",
-        "Schedule / Dates": "10.02.2027 - 12.02.2027",
-        "Start Date (YYYY-MM-DD)": "2027-02-10",
-        "End Date (YYYY-MM-DD)": "2027-02-12",
-        "Category (academic/exam/sports/festival/break)": "festival",
-        Location: "Main Auditorium",
-      },
-      {
-        "Sl No": 5,
-        "Activity Name": "End Semester Theory Examinations",
-        "Schedule / Dates": "12.11.2026 - 28.11.2026",
-        "Start Date (YYYY-MM-DD)": "2026-11-12",
-        "End Date (YYYY-MM-DD)": "2026-11-28",
-        "Category (academic/exam/sports/festival/break)": "exam",
-        Location: "Exam Centers",
-      },
-    ];
-
-    const ws = XLSX.utils.json_to_sheet(rows);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "AcademicCalendar");
-    XLSX.writeFile(wb, `GradeFlow_Academic_Calendar_Template.xlsx`);
   }
 
   async function handlePublishCalendar() {
@@ -528,7 +714,6 @@ export default function TimetableAdminManager({ authHeaders, API }) {
       setStatusMsg({ text: "Please upload or add calendar activities first.", type: "error" });
       return;
     }
-
     setIsPublishing(true);
     try {
       const payload = {
@@ -550,10 +735,6 @@ export default function TimetableAdminManager({ authHeaders, API }) {
     }
   }
 
-  // ═════════════════════════════════════════════════════════════════
-  // 3. HOLIDAYS UPLOADER & HANDLERS
-  // ═════════════════════════════════════════════════════════════════
-
   async function handleHolidayFileUpload(e) {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -565,7 +746,7 @@ export default function TimetableAdminManager({ authHeaders, API }) {
       if (res.success && Array.isArray(res.holidays)) {
         setHolidaysList(res.holidays);
         setStatusMsg({
-          text: `Successfully parsed ${res.holidays.length} holidays from "${file.name}" (${file.type || "file"})! Review/edit below before publishing.`,
+          text: `Successfully parsed ${res.holidays.length} holidays from "${file.name}"! Review below before publishing.`,
           type: "success",
         });
       }
@@ -575,118 +756,11 @@ export default function TimetableAdminManager({ authHeaders, API }) {
     }
   }
 
-  async function loadActiveHolidays() {
-    setStatusMsg({ text: "Fetching live published academic holidays...", type: "info" });
-    try {
-      const { data } = await axios.get(`${API}/timetable/holidays?academicYear=${holidayYear}`);
-      if (data.success && data.holidayDoc && Array.isArray(data.holidayDoc.holidays)) {
-        setHolidaysList(data.holidayDoc.holidays);
-        setHolidayTitle(data.holidayDoc.title || holidayTitle);
-        setStatusMsg({
-          text: `Loaded existing published holidays list (${data.holidayDoc.holidays.length} holidays).`,
-          type: "success",
-        });
-      } else {
-        setStatusMsg({ text: "No published holidays found in database for this year.", type: "info" });
-      }
-    } catch (e) {
-      console.error("Error loading active holidays:", e);
-      setStatusMsg({ text: "Failed to load active holidays from database.", type: "error" });
-    }
-  }
-
-  function addHolidayItem() {
-    setHolidaysList((prev) => [
-      ...prev,
-      {
-        slNo: prev.length + 1,
-        title: "New University Holiday",
-        date: "2026-08-15",
-        day: "Saturday",
-        type: "holiday",
-        isOptional: false,
-        isObservation: false,
-        description: "Official University Holiday",
-      },
-    ]);
-  }
-
-  function updateHolidayItem(index, field, value) {
-    setHolidaysList((prev) => {
-      const updated = [...prev];
-      const item = { ...updated[index], [field]: value };
-      if (field === "type") {
-        item.isOptional = value === "optional";
-        item.isObservation = value === "observation";
-      }
-      if (field === "date") {
-        item.day = getDayOfWeekFromDate(value) || item.day;
-      }
-      updated[index] = item;
-      return updated;
-    });
-  }
-
-  function removeHolidayItem(index) {
-    setHolidaysList((prev) => prev.filter((_, idx) => idx !== index));
-  }
-
-  function downloadHolidayTemplate() {
-    const rows = [
-      {
-        "Sl No": 1,
-        "Holiday Name": "Ratha Yatra",
-        "Date (DD.MM.YYYY)": "16.07.2026",
-        "Day of Week": "Thursday",
-        "Type (holiday/observation/optional)": "holiday",
-        Description: "Official University Academic Holiday",
-      },
-      {
-        "Sl No": 2,
-        "Holiday Name": "Independence Day",
-        "Date (DD.MM.YYYY)": "15.08.2026",
-        "Day of Week": "Saturday",
-        "Type (holiday/observation/optional)": "observation",
-        Description: "Official University Observation Day - Flag Hoisting at 08:30 AM",
-      },
-      {
-        "Sl No": 3,
-        "Holiday Name": "Raksha Bandhan (Optional Leave)",
-        "Date (DD.MM.YYYY)": "28.08.2026",
-        "Day of Week": "Friday",
-        "Type (holiday/observation/optional)": "optional",
-        Description: "Optional University Holiday. Classes conduct as scheduled; 2 optional leaves allowed.",
-      },
-      {
-        "Sl No": 4,
-        "Holiday Name": "Ganesh Puja",
-        "Date (DD.MM.YYYY)": "14.09.2026",
-        "Day of Week": "Monday",
-        "Type (holiday/observation/optional)": "holiday",
-        Description: "Official University Academic Holiday",
-      },
-      {
-        "Sl No": 5,
-        "Holiday Name": "Durga Puja (Vijaya Dashami)",
-        "Date (DD.MM.YYYY)": "20.10.2026",
-        "Day of Week": "Tuesday",
-        "Type (holiday/observation/optional)": "holiday",
-        Description: "Official University Academic Holiday",
-      },
-    ];
-
-    const ws = XLSX.utils.json_to_sheet(rows);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "AcademicHolidays");
-    XLSX.writeFile(wb, `GradeFlow_Academic_Holidays_Template.xlsx`);
-  }
-
   async function handlePublishHolidays() {
     if (!holidaysList.length) {
       setStatusMsg({ text: "Please upload or add holidays first.", type: "error" });
       return;
     }
-
     setIsPublishing(true);
     try {
       const payload = {
@@ -703,6 +777,19 @@ export default function TimetableAdminManager({ authHeaders, API }) {
       setStatusMsg({ text: e.response?.data?.message || "Failed to publish holidays.", type: "error" });
     } finally {
       setIsPublishing(false);
+    }
+  }
+
+  async function handleDeletePublishedSchedule(id) {
+    if (!window.confirm("Are you sure you want to delete this published timetable schedule?")) return;
+    try {
+      const { data } = await axios.delete(`${API}/timetable/admin/schedule/${id}`, authHeaders);
+      if (data.success) {
+        setStatusMsg({ text: "Timetable schedule deleted successfully.", type: "success" });
+        fetchPublishedSchedules();
+      }
+    } catch (e) {
+      setStatusMsg({ text: "Failed to delete schedule.", type: "error" });
     }
   }
 
@@ -728,13 +815,13 @@ export default function TimetableAdminManager({ authHeaders, API }) {
       >
         <button
           type="button"
-          onClick={() => setActiveSubTab("timetable")}
+          onClick={() => setActiveSubTab("editor")}
           style={{
             padding: "8px 16px",
             borderRadius: 10,
             border: "none",
-            background: activeSubTab === "timetable" ? "#0f172a" : "transparent",
-            color: activeSubTab === "timetable" ? "#ffffff" : "#475569",
+            background: activeSubTab === "editor" ? "#0f172a" : "transparent",
+            color: activeSubTab === "editor" ? "#ffffff" : "#475569",
             fontSize: 13,
             fontWeight: 700,
             cursor: "pointer",
@@ -746,7 +833,33 @@ export default function TimetableAdminManager({ authHeaders, API }) {
           }}
         >
           <Clock size={15} />
-          <span>Class Timetable Matrix</span>
+          <span>Section Timetable Editor</span>
+          {hasUnsavedChanges && (
+            <span style={{ width: 8, height: 8, borderRadius: 999, background: "#f59e0b" }} />
+          )}
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setActiveSubTab("excel_upload")}
+          style={{
+            padding: "8px 16px",
+            borderRadius: 10,
+            border: "none",
+            background: activeSubTab === "excel_upload" ? "#0f172a" : "transparent",
+            color: activeSubTab === "excel_upload" ? "#ffffff" : "#475569",
+            fontSize: 13,
+            fontWeight: 700,
+            cursor: "pointer",
+            display: "inline-flex",
+            alignItems: "center",
+            gap: 7,
+            whiteSpace: "nowrap",
+            transition: "all 0.15s ease",
+          }}
+        >
+          <FileSpreadsheet size={15} />
+          <span>Excel / CSV Importer</span>
         </button>
 
         <button
@@ -828,9 +941,13 @@ export default function TimetableAdminManager({ authHeaders, API }) {
           style={{
             padding: "12px 18px",
             borderRadius: 12,
-            background: statusMsg.type === "success" ? "#f0fdf4" : "#fef2f2",
-            border: `1px solid ${statusMsg.type === "success" ? "#bbf7d0" : "#fecaca"}`,
-            color: statusMsg.type === "success" ? "#15803d" : "#b91c1c",
+            background:
+              statusMsg.type === "success" ? "#f0fdf4" : statusMsg.type === "info" ? "#eff6ff" : "#fef2f2",
+            border: `1px solid ${
+              statusMsg.type === "success" ? "#bbf7d0" : statusMsg.type === "info" ? "#bfdbfe" : "#fecaca"
+            }`,
+            color:
+              statusMsg.type === "success" ? "#15803d" : statusMsg.type === "info" ? "#1d4ed8" : "#b91c1c",
             fontSize: 13.5,
             fontWeight: 600,
             display: "flex",
@@ -838,17 +955,583 @@ export default function TimetableAdminManager({ authHeaders, API }) {
             gap: 10,
           }}
         >
-          {statusMsg.type === "success" ? <CheckCircle2 size={18} /> : <AlertCircle size={18} />}
-          <span>{statusMsg.text}</span>
+          {statusMsg.type === "success" ? (
+            <CheckCircle2 size={18} />
+          ) : statusMsg.type === "info" ? (
+            <Info size={18} />
+          ) : (
+            <AlertCircle size={18} />
+          )}
+          <span style={{ flex: 1 }}>{statusMsg.text}</span>
+          <button
+            type="button"
+            onClick={() => setStatusMsg({ text: "", type: "" })}
+            style={{ background: "transparent", border: "none", cursor: "pointer", color: "inherit" }}
+          >
+            <X size={15} />
+          </button>
         </div>
       )}
 
       {/* ═════════════════════════════════════════════════════════════
-          SUB-TAB 1: CLASS TIMETABLE MATRIX
+          SUB-TAB 1: SECTION-WISE TIMETABLE INTERACTIVE EDITOR
       ═════════════════════════════════════════════════════════════ */}
-      {activeSubTab === "timetable" && (
+      {activeSubTab === "editor" && (
         <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
-          {/* Target Filter Configuration Card */}
+          {/* Target Filter & Control Bar */}
+          <div
+            style={{
+              background: "#ffffff",
+              border: "1px solid #e2e8f0",
+              borderRadius: 16,
+              padding: "20px 24px",
+              boxShadow: "0 1px 3px rgba(0,0,0,0.02)",
+              display: "flex",
+              flexDirection: "column",
+              gap: 16,
+            }}
+          >
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 12 }}>
+              <div>
+                <h3 style={{ fontSize: 16.5, fontWeight: 800, color: "#0f172a", margin: 0, display: "flex", alignItems: "center", gap: 8 }}>
+                  <Clock size={19} color="#2563eb" />
+                  <span>Section-Wise Timetable Live Editor</span>
+                  {isLiveCustomPublished ? (
+                    <span style={{ fontSize: 11, fontWeight: 800, background: "#ecfdf5", color: "#059669", padding: "2px 8px", borderRadius: 999, border: "1px solid #a7f3d0" }}>
+                      🟢 Live Custom Published
+                    </span>
+                  ) : (
+                    <span style={{ fontSize: 11, fontWeight: 800, background: "#eff6ff", color: "#2563eb", padding: "2px 8px", borderRadius: 999, border: "1px solid #bfdbfe" }}>
+                      🔵 Standard Curriculum Template
+                    </span>
+                  )}
+                </h3>
+                <p style={{ fontSize: 12.5, color: "#64748b", margin: "3px 0 0 0" }}>
+                  Select batch, branch, and section to edit period slots, assign faculty & rooms, clear slots, or clone routines.
+                </p>
+              </div>
+
+              {/* Action Toolbar */}
+              <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                <button
+                  type="button"
+                  onClick={handleResetToSectionDefault}
+                  title="Reset to default template"
+                  style={{
+                    padding: "8px 12px",
+                    borderRadius: 9,
+                    border: "1px solid #cbd5e1",
+                    background: "#f8fafc",
+                    color: "#334155",
+                    fontSize: 12.5,
+                    fontWeight: 700,
+                    cursor: "pointer",
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 6,
+                  }}
+                >
+                  <RefreshCw size={14} />
+                  <span>Reset to Template</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setCloneModal({ isOpen: true, targetSection: "CSE-B", isCloning: false })}
+                  title="Clone to another section"
+                  style={{
+                    padding: "8px 12px",
+                    borderRadius: 9,
+                    border: "1px solid #bfdbfe",
+                    background: "#eff6ff",
+                    color: "#1d4ed8",
+                    fontSize: 12.5,
+                    fontWeight: 700,
+                    cursor: "pointer",
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 6,
+                  }}
+                >
+                  <Copy size={14} />
+                  <span>Clone to Section...</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={downloadTimetableTemplate}
+                  title="Export Excel template"
+                  style={{
+                    padding: "8px 12px",
+                    borderRadius: 9,
+                    border: "1px solid #cbd5e1",
+                    background: "#ffffff",
+                    color: "#475569",
+                    fontSize: 12.5,
+                    fontWeight: 700,
+                    cursor: "pointer",
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 6,
+                  }}
+                >
+                  <Download size={14} />
+                  <span>Export Template</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handleSaveLiveMatrix}
+                  disabled={isSavingMatrix}
+                  style={{
+                    padding: "9px 20px",
+                    borderRadius: 10,
+                    border: "none",
+                    background: hasUnsavedChanges
+                      ? "linear-gradient(135deg, #ea580c 0%, #c2410c 100%)"
+                      : "linear-gradient(135deg, #059669 0%, #047857 100%)",
+                    color: "#ffffff",
+                    fontSize: 13,
+                    fontWeight: 800,
+                    cursor: isSavingMatrix ? "not-allowed" : "pointer",
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 7,
+                    boxShadow: hasUnsavedChanges
+                      ? "0 4px 12px rgba(234, 88, 12, 0.3)"
+                      : "0 4px 12px rgba(5, 150, 105, 0.25)",
+                    transition: "all 0.15s ease",
+                  }}
+                >
+                  <Save size={15} />
+                  <span>
+                    {isSavingMatrix
+                      ? "Saving & Publishing..."
+                      : hasUnsavedChanges
+                      ? "Save & Publish Changes *"
+                      : "Save & Publish Live Timetable"}
+                  </span>
+                </button>
+              </div>
+            </div>
+
+            {/* Selector Inputs */}
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: 12 }}>
+              {/* Batch */}
+              <div>
+                <label style={{ display: "block", fontSize: 11.5, fontWeight: 700, color: "#475569", marginBottom: 4 }}>
+                  Batch Year
+                </label>
+                <select
+                  value={batch}
+                  onChange={(e) => setBatch(e.target.value)}
+                  style={{
+                    width: "100%",
+                    padding: "8px 10px",
+                    borderRadius: 9,
+                    border: "1.5px solid #cbd5e1",
+                    fontSize: 13,
+                    fontWeight: 700,
+                    color: "#0f172a",
+                    outline: "none",
+                  }}
+                >
+                  <option value="2023">2023 Batch (6th Sem)</option>
+                  <option value="2024">2024 Batch (4th Sem)</option>
+                  <option value="2025">2025 Batch (2nd Sem)</option>
+                  <option value="2026">2026 Batch</option>
+                  <option value="2022">2022 Batch</option>
+                  <option value="ALL">All Batches</option>
+                </select>
+              </div>
+
+              {/* Branch */}
+              <div>
+                <label style={{ display: "block", fontSize: 11.5, fontWeight: 700, color: "#475569", marginBottom: 4 }}>
+                  Branch / Program
+                </label>
+                <select
+                  value={branch}
+                  onChange={(e) => setBranch(e.target.value)}
+                  style={{
+                    width: "100%",
+                    padding: "8px 10px",
+                    borderRadius: 9,
+                    border: "1.5px solid #cbd5e1",
+                    fontSize: 13,
+                    fontWeight: 700,
+                    color: "#0f172a",
+                    outline: "none",
+                  }}
+                >
+                  <option value="CSE">Computer Science &amp; Engg (CSE)</option>
+                  <option value="ECE">Electronics &amp; Comm Engg (ECE)</option>
+                  <option value="MECH">Mechanical Engineering (MECH)</option>
+                  <option value="CIVIL">Civil Engineering (CIVIL)</option>
+                  <option value="EEE">Electrical &amp; Electronics (EEE)</option>
+                  <option value="BCA">Bachelor of Comp Apps (BCA)</option>
+                  <option value="MCA">Master of Comp Apps (MCA)</option>
+                </select>
+              </div>
+
+              {/* Semester */}
+              <div>
+                <label style={{ display: "block", fontSize: 11.5, fontWeight: 700, color: "#475569", marginBottom: 4 }}>
+                  Semester
+                </label>
+                <select
+                  value={semester}
+                  onChange={(e) => setSemester(e.target.value)}
+                  style={{
+                    width: "100%",
+                    padding: "8px 10px",
+                    borderRadius: 9,
+                    border: "1.5px solid #cbd5e1",
+                    fontSize: 13,
+                    fontWeight: 700,
+                    color: "#0f172a",
+                    outline: "none",
+                  }}
+                >
+                  {[1, 2, 3, 4, 5, 6, 7, 8].map((s) => (
+                    <option key={s} value={s}>
+                      Semester {s}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Section */}
+              <div>
+                <label style={{ display: "block", fontSize: 11.5, fontWeight: 700, color: "#475569", marginBottom: 4 }}>
+                  Class Section
+                </label>
+                <select
+                  value={section}
+                  onChange={(e) => setSection(e.target.value)}
+                  style={{
+                    width: "100%",
+                    padding: "8px 10px",
+                    borderRadius: 9,
+                    border: "2px solid #2563eb",
+                    fontSize: 13,
+                    fontWeight: 800,
+                    color: "#1d4ed8",
+                    background: "#eff6ff",
+                    outline: "none",
+                  }}
+                >
+                  {ALL_SECTIONS.map((sec) => (
+                    <option key={sec} value={sec}>
+                      Section {sec}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Title / Description */}
+              <div style={{ gridColumn: "span 2" }}>
+                <label style={{ display: "block", fontSize: 11.5, fontWeight: 700, color: "#475569", marginBottom: 4 }}>
+                  Timetable Display Title
+                </label>
+                <input
+                  type="text"
+                  value={customTitle}
+                  onChange={(e) => {
+                    setCustomTitle(e.target.value);
+                    setHasUnsavedChanges(true);
+                  }}
+                  placeholder={`e.g. ${branch} Sec ${section} Routine (Batch ${batch})`}
+                  style={{
+                    width: "100%",
+                    padding: "8px 10px",
+                    borderRadius: 9,
+                    border: "1.5px solid #cbd5e1",
+                    fontSize: 13,
+                    color: "#0f172a",
+                    outline: "none",
+                    boxSizing: "border-box",
+                  }}
+                />
+              </div>
+            </div>
+
+            {/* Summary Statistics Strip */}
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 12,
+                flexWrap: "wrap",
+                background: "#f8fafc",
+                padding: "8px 14px",
+                borderRadius: 10,
+                fontSize: 12,
+                color: "#475569",
+              }}
+            >
+              <span style={{ fontWeight: 800, color: "#0f172a" }}>Section {section} Summary:</span>
+              <span><strong>{matrixStats.totalClasses}</strong> Total Classes / Week</span>
+              <span>•</span>
+              <span style={{ color: "#2563eb" }}><strong>{matrixStats.theoryCount}</strong> Theory (PP)</span>
+              <span>•</span>
+              <span style={{ color: "#7c3aed" }}><strong>{matrixStats.labCount}</strong> Practical (PR)</span>
+              <span>•</span>
+              <span style={{ color: "#b45309" }}><strong>{matrixStats.tutCount}</strong> Tutorial (TUT)</span>
+              <span>•</span>
+              <span><strong>{matrixStats.uniqueSubjectCount}</strong> Unique Subjects</span>
+            </div>
+          </div>
+
+          {/* Interactive Timetable Grid Table */}
+          <div
+            style={{
+              background: "#ffffff",
+              border: "1px solid #e2e8f0",
+              borderRadius: 16,
+              padding: "16px 20px",
+              boxShadow: "0 1px 3px rgba(0,0,0,0.02)",
+              overflowX: "auto",
+            }}
+          >
+            <table style={{ width: "100%", borderCollapse: "separate", borderSpacing: "6px 8px" }}>
+              <thead>
+                <tr>
+                  <th
+                    style={{
+                      padding: "8px 10px",
+                      textAlign: "left",
+                      fontSize: 12,
+                      fontWeight: 800,
+                      color: "#475569",
+                      width: 90,
+                    }}
+                  >
+                    Day
+                  </th>
+                  {DEFAULT_SLOTS.map((slot) => (
+                    <th
+                      key={slot.index}
+                      style={{
+                        padding: "8px 10px",
+                        textAlign: "left",
+                        fontSize: 11.5,
+                        fontWeight: 800,
+                        color: "#334155",
+                        background: "#f8fafc",
+                        borderRadius: 8,
+                        border: "1px solid #e2e8f0",
+                        minWidth: 140,
+                      }}
+                    >
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                        <span>P{slot.index + 1}</span>
+                        <span style={{ fontSize: 10, color: "#64748b", fontWeight: 600 }}>{slot.time}</span>
+                      </div>
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+
+              <tbody>
+                {DAYS_LIST.map((day) => {
+                  const periods = currentMatrix[day] || [];
+                  return (
+                    <tr key={day}>
+                      {/* Day Label Column */}
+                      <td
+                        style={{
+                          padding: "10px 12px",
+                          fontWeight: 900,
+                          fontSize: 13,
+                          color: "#0f172a",
+                          verticalAlign: "middle",
+                        }}
+                      >
+                        {day}
+                      </td>
+
+                      {/* 7 Period Slots for this day */}
+                      {DEFAULT_SLOTS.map((slot, pIdx) => {
+                        const period = periods[pIdx] || { isFree: true, subject: "No Class / Free", type: "FREE" };
+                        const isFree = period.isFree || period.type === "FREE" || !period.subject || period.subject === "No Class / Free";
+                        const isLab = period.type === "PR";
+                        const isTut = period.type === "TUT";
+
+                        return (
+                          <td
+                            key={pIdx}
+                            style={{
+                              verticalAlign: "top",
+                              minWidth: 140,
+                              maxWidth: 180,
+                            }}
+                          >
+                            {isFree ? (
+                              /* Empty / Free Slot Card */
+                              <div
+                                style={{
+                                  background: "#f8fafc",
+                                  border: "1.5px dashed #cbd5e1",
+                                  borderRadius: 10,
+                                  padding: "10px 8px",
+                                  display: "flex",
+                                  flexDirection: "column",
+                                  alignItems: "center",
+                                  justifyContent: "center",
+                                  gap: 6,
+                                  minHeight: 74,
+                                  transition: "all 0.15s ease",
+                                }}
+                              >
+                                <span style={{ fontSize: 11, color: "#94a3b8", fontWeight: 600 }}>
+                                  Free Slot
+                                </span>
+                                <button
+                                  type="button"
+                                  onClick={() => openEditSlotModal(day, pIdx)}
+                                  style={{
+                                    border: "1px solid #cbd5e1",
+                                    background: "#ffffff",
+                                    color: "#2563eb",
+                                    borderRadius: 6,
+                                    padding: "3px 8px",
+                                    fontSize: 11,
+                                    fontWeight: 700,
+                                    cursor: "pointer",
+                                    display: "inline-flex",
+                                    alignItems: "center",
+                                    gap: 3,
+                                  }}
+                                >
+                                  <Plus size={12} />
+                                  <span>Add Class</span>
+                                </button>
+                              </div>
+                            ) : (
+                              /* Active Scheduled Period Card */
+                              <div
+                                style={{
+                                  background: isLab ? "#faf5ff" : isTut ? "#fffbeb" : "#eff6ff",
+                                  border: `1.5px solid ${isLab ? "#d8b4fe" : isTut ? "#fde68a" : "#bfdbfe"}`,
+                                  borderRadius: 10,
+                                  padding: "8px 10px",
+                                  display: "flex",
+                                  flexDirection: "column",
+                                  gap: 5,
+                                  minHeight: 74,
+                                  position: "relative",
+                                  boxShadow: "0 1px 3px rgba(0,0,0,0.02)",
+                                }}
+                              >
+                                {/* Period Header Badge & Type */}
+                                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                                  <span
+                                    onClick={() => handleQuickTypeToggle(day, pIdx)}
+                                    title="Click to toggle Theory (PP) / Lab (PR) / Tutorial (TUT)"
+                                    style={{
+                                      fontSize: 9.5,
+                                      fontWeight: 900,
+                                      padding: "1px 5px",
+                                      borderRadius: 4,
+                                      background: isLab ? "#7c3aed" : isTut ? "#b45309" : "#2563eb",
+                                      color: "#ffffff",
+                                      cursor: "pointer",
+                                      letterSpacing: "0.02em",
+                                    }}
+                                  >
+                                    {period.type || "PP"}
+                                  </span>
+
+                                  {/* Action buttons */}
+                                  <div style={{ display: "flex", alignItems: "center", gap: 3 }}>
+                                    <button
+                                      type="button"
+                                      onClick={() => openEditSlotModal(day, pIdx)}
+                                      title="Edit slot details"
+                                      style={{
+                                        border: "none",
+                                        background: "transparent",
+                                        color: "#475569",
+                                        cursor: "pointer",
+                                        padding: 2,
+                                        borderRadius: 4,
+                                        display: "flex",
+                                      }}
+                                    >
+                                      <Edit2 size={12} />
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={() => handleClearPeriodSlot(day, pIdx)}
+                                      title="Clear / make free"
+                                      style={{
+                                        border: "none",
+                                        background: "transparent",
+                                        color: "#dc2626",
+                                        cursor: "pointer",
+                                        padding: 2,
+                                        borderRadius: 4,
+                                        display: "flex",
+                                      }}
+                                    >
+                                      <Trash2 size={12} />
+                                    </button>
+                                  </div>
+                                </div>
+
+                                {/* Subject Name */}
+                                <div
+                                  onClick={() => openEditSlotModal(day, pIdx)}
+                                  title="Click to edit"
+                                  style={{
+                                    fontSize: 12,
+                                    fontWeight: 800,
+                                    color: isLab ? "#6b21a8" : isTut ? "#78350f" : "#1e40af",
+                                    lineHeight: 1.25,
+                                    cursor: "pointer",
+                                  }}
+                                >
+                                  {period.subject}
+                                </div>
+
+                                {/* Code / Room / Faculty info */}
+                                <div style={{ fontSize: 10, color: "#64748b", display: "flex", flexDirection: "column", gap: 2, marginTop: 2 }}>
+                                  {period.code && (
+                                    <span style={{ fontWeight: 700, color: "#475569" }}>
+                                      {period.code}
+                                    </span>
+                                  )}
+                                  {period.room && (
+                                    <span style={{ display: "inline-flex", alignItems: "center", gap: 3 }}>
+                                      <MapPin size={9} color="#64748b" /> {period.room}
+                                    </span>
+                                  )}
+                                  {period.faculty && (
+                                    <span style={{ display: "inline-flex", alignItems: "center", gap: 3 }}>
+                                      <User size={9} color="#64748b" /> {period.faculty}
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+                            )}
+                          </td>
+                        );
+                      })}
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {/* ═════════════════════════════════════════════════════════════
+          SUB-TAB 2: EXCEL / CSV BULK SPREADSHEET IMPORTER
+      ═════════════════════════════════════════════════════════════ */}
+      {activeSubTab === "excel_upload" && (
+        <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
           <div
             style={{
               background: "#ffffff",
@@ -861,11 +1544,11 @@ export default function TimetableAdminManager({ authHeaders, API }) {
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 12, marginBottom: 18 }}>
               <div>
                 <h3 style={{ fontSize: 16, fontWeight: 800, color: "#0f172a", margin: 0, display: "flex", alignItems: "center", gap: 8 }}>
-                  <Clock size={18} color="#2563eb" />
-                  Target Batch & Section Routing
+                  <FileSpreadsheet size={18} color="#2563eb" />
+                  Excel Spreadsheet Timetable Uploader
                 </h3>
                 <p style={{ fontSize: 12.5, color: "#64748b", margin: "3px 0 0 0" }}>
-                  Select which cohort will automatically see this timetable in their routine dashboard.
+                  Upload an existing Excel routine file to parse into Section {section}.
                 </p>
               </div>
 
@@ -884,7 +1567,6 @@ export default function TimetableAdminManager({ authHeaders, API }) {
                   display: "inline-flex",
                   alignItems: "center",
                   gap: 6,
-                  transition: "all 0.15s ease",
                 }}
               >
                 <Download size={14} color="#2563eb" />
@@ -892,312 +1574,55 @@ export default function TimetableAdminManager({ authHeaders, API }) {
               </button>
             </div>
 
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 14 }}>
-              {/* Batch */}
-              <div>
-                <label style={{ display: "block", fontSize: 12, fontWeight: 700, color: "#475569", marginBottom: 5 }}>
-                  Batch Admission Year
-                </label>
-                <select
-                  value={batch}
-                  onChange={(e) => setBatch(e.target.value)}
-                  style={{
-                    width: "100%",
-                    padding: "9px 12px",
-                    borderRadius: 10,
-                    border: "1.5px solid #cbd5e1",
-                    fontSize: 13.5,
-                    fontWeight: 600,
-                    color: "#0f172a",
-                    outline: "none",
-                  }}
-                >
-                  <option value="2023">2023 Batch (Current 6th Sem)</option>
-                  <option value="2024">2024 Batch (Current 4th Sem)</option>
-                  <option value="2025">2025 Batch (Current 2nd Sem)</option>
-                  <option value="2026">2026 Batch</option>
-                  <option value="2022">2022 Batch</option>
-                  <option value="ALL">All Batches (Global)</option>
-                </select>
-              </div>
-
-              {/* Branch */}
-              <div>
-                <label style={{ display: "block", fontSize: 12, fontWeight: 700, color: "#475569", marginBottom: 5 }}>
-                  Branch / Department
-                </label>
-                <select
-                  value={branch}
-                  onChange={(e) => setBranch(e.target.value)}
-                  style={{
-                    width: "100%",
-                    padding: "9px 12px",
-                    borderRadius: 10,
-                    border: "1.5px solid #cbd5e1",
-                    fontSize: 13.5,
-                    fontWeight: 600,
-                    color: "#0f172a",
-                    outline: "none",
-                  }}
-                >
-                  <option value="CSE">Computer Science & Engg (CSE)</option>
-                  <option value="ECE">Electronics & Comm Engg (ECE)</option>
-                  <option value="MECH">Mechanical Engineering (MECH)</option>
-                  <option value="CIVIL">Civil Engineering (CIVIL)</option>
-                  <option value="EEE">Electrical & Electronics (EEE)</option>
-                  <option value="BCA">Bachelor of Comp Apps (BCA)</option>
-                  <option value="MCA">Master of Comp Apps (MCA)</option>
-                  <option value="ALL">All Branches</option>
-                </select>
-              </div>
-
-              {/* Semester */}
-              <div>
-                <label style={{ display: "block", fontSize: 12, fontWeight: 700, color: "#475569", marginBottom: 5 }}>
-                  Semester
-                </label>
-                <select
-                  value={semester}
-                  onChange={(e) => setSemester(e.target.value)}
-                  style={{
-                    width: "100%",
-                    padding: "9px 12px",
-                    borderRadius: 10,
-                    border: "1.5px solid #cbd5e1",
-                    fontSize: 13.5,
-                    fontWeight: 600,
-                    color: "#0f172a",
-                    outline: "none",
-                  }}
-                >
-                  {[1, 2, 3, 4, 5, 6, 7, 8].map((s) => (
-                    <option key={s} value={s}>
-                      Semester {s}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              {/* Section */}
-              <div>
-                <label style={{ display: "block", fontSize: 12, fontWeight: 700, color: "#475569", marginBottom: 5 }}>
-                  Class Section
-                </label>
-                <select
-                  value={section}
-                  onChange={(e) => setSection(e.target.value)}
-                  style={{
-                    width: "100%",
-                    padding: "9px 12px",
-                    borderRadius: 10,
-                    border: "1.5px solid #cbd5e1",
-                    fontSize: 13.5,
-                    fontWeight: 600,
-                    color: "#0f172a",
-                    outline: "none",
-                  }}
-                >
-                  {ALL_SECTIONS.map((sec) => (
-                    <option key={sec} value={sec}>
-                      Section {sec}
-                    </option>
-                  ))}
-                  <option value="ALL">All Sections (Shared)</option>
-                </select>
-              </div>
-            </div>
-
-            {/* Custom Title Input */}
-            <div style={{ marginTop: 14 }}>
-              <label style={{ display: "block", fontSize: 12, fontWeight: 700, color: "#475569", marginBottom: 5 }}>
-                Custom Timetable Title (Optional)
-              </label>
+            {/* Upload Dropzone */}
+            <div
+              style={{
+                background: "#f8fafc",
+                border: "2px dashed #cbd5e1",
+                borderRadius: 16,
+                padding: "36px 20px",
+                textAlign: "center",
+                cursor: "pointer",
+              }}
+              onClick={() => timetableFileRef.current?.click()}
+            >
               <input
-                type="text"
-                value={customTitle}
-                onChange={(e) => setCustomTitle(e.target.value)}
-                placeholder={`e.g. ${branch} Sec ${section} Routine (Batch ${batch})`}
-                style={{
-                  width: "100%",
-                  padding: "9px 12px",
-                  borderRadius: 10,
-                  border: "1.5px solid #cbd5e1",
-                  fontSize: 13.5,
-                  color: "#0f172a",
-                  outline: "none",
-                  boxSizing: "border-box",
-                }}
+                ref={timetableFileRef}
+                type="file"
+                accept=".xlsx,.xls,.csv,.json"
+                style={{ display: "none" }}
+                onChange={handleTimetableFileUpload}
               />
-            </div>
-          </div>
 
-          {/* Upload Dropzone */}
-          <div
-            style={{
-              background: "#ffffff",
-              border: "2px dashed #cbd5e1",
-              borderRadius: 16,
-              padding: "36px 20px",
-              textAlign: "center",
-              cursor: "pointer",
-              transition: "border-color 0.2s",
-            }}
-            onClick={() => timetableFileRef.current?.click()}
-          >
-            <input
-              ref={timetableFileRef}
-              type="file"
-              accept=".xlsx,.xls,.csv,.json"
-              style={{ display: "none" }}
-              onChange={handleTimetableFileUpload}
-            />
-
-            <div
-              style={{
-                width: 52,
-                height: 52,
-                borderRadius: 16,
-                background: "#eff6ff",
-                color: "#2563eb",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                margin: "0 auto 12px auto",
-              }}
-            >
-              <Upload size={24} />
-            </div>
-
-            <h4 style={{ fontSize: 16, fontWeight: 800, color: "#0f172a", margin: "0 0 4px 0" }}>
-              {fileName ? fileName : "Upload Timetable Excel Spreadsheet"}
-            </h4>
-            <p style={{ fontSize: 12.5, color: "#64748b", margin: 0 }}>
-              Supports <strong>.xlsx</strong>, <strong>.xls</strong>, and <strong>.csv</strong> files with 7 period slots across Monday–Saturday.
-            </p>
-          </div>
-
-          {/* Interactive Live Matrix Preview */}
-          {parsedMatrix && (
-            <div
-              style={{
-                background: "#ffffff",
-                border: "1px solid #e2e8f0",
-                borderRadius: 16,
-                padding: "20px 24px",
-                boxShadow: "0 1px 3px rgba(0,0,0,0.02)",
-              }}
-            >
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 10, marginBottom: 16 }}>
-                <div>
-                  <h4 style={{ fontSize: 15, fontWeight: 800, color: "#0f172a", margin: 0 }}>
-                    Parsed Schedule Matrix Preview ({branch} - Sec {section})
-                  </h4>
-                  <p style={{ fontSize: 12, color: "#64748b", margin: "2px 0 0 0" }}>
-                    Verify the period mapping and room allocations before publishing.
-                  </p>
-                </div>
-
-                <button
-                  type="button"
-                  onClick={handlePublishTimetable}
-                  disabled={isPublishing}
-                  style={{
-                    padding: "10px 22px",
-                    borderRadius: 12,
-                    background: "#16a34a",
-                    color: "#ffffff",
-                    border: "none",
-                    fontSize: 13.5,
-                    fontWeight: 800,
-                    cursor: isPublishing ? "not-allowed" : "pointer",
-                    display: "inline-flex",
-                    alignItems: "center",
-                    gap: 8,
-                    boxShadow: "0 4px 12px rgba(22, 163, 74, 0.25)",
-                    transition: "all 0.15s ease",
-                  }}
-                >
-                  <Check size={16} />
-                  <span>{isPublishing ? "Publishing Schedule..." : `Publish for ${branch} Sec ${section}`}</span>
-                </button>
+              <div
+                style={{
+                  width: 52,
+                  height: 52,
+                  borderRadius: 16,
+                  background: "#eff6ff",
+                  color: "#2563eb",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  margin: "0 auto 12px auto",
+                }}
+              >
+                <Upload size={24} />
               </div>
 
-              {/* Matrix Table */}
-              <div style={{ overflowX: "auto" }}>
-                <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
-                  <thead>
-                    <tr style={{ background: "#f8fafc", borderBottom: "1.5px solid #cbd5e1" }}>
-                      <th style={{ padding: "10px 12px", textAlign: "left", color: "#475569", fontWeight: 800, width: 100 }}>
-                        Day
-                      </th>
-                      {DEFAULT_SLOTS.map((slot) => (
-                        <th key={slot.index} style={{ padding: "10px 12px", textAlign: "left", color: "#475569", fontWeight: 700 }}>
-                          <div>P{slot.index + 1}</div>
-                          <div style={{ fontSize: 10.5, color: "#94a3b8", fontWeight: 500 }}>{slot.time}</div>
-                        </th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {DAYS_LIST.map((day) => {
-                      const periods = parsedMatrix[day] || [];
-                      return (
-                        <tr key={day} style={{ borderBottom: "1px solid #f1f5f9" }}>
-                          <td style={{ padding: "10px 12px", fontWeight: 800, color: "#0f172a" }}>
-                            {day}
-                          </td>
-                          {DEFAULT_SLOTS.map((slot, idx) => {
-                            const p = periods[idx] || { isFree: true, subject: "Free" };
-                            const isLab = p.type === "PR";
-                            const isTut = p.type === "TUT";
-
-                            return (
-                              <td key={idx} style={{ padding: "8px 10px", verticalAlign: "top" }}>
-                                {p.isFree ? (
-                                  <span style={{ fontSize: 11, color: "#94a3b8", fontStyle: "italic" }}>
-                                    Free
-                                  </span>
-                                ) : (
-                                  <div
-                                    style={{
-                                      background: isLab ? "#faf5ff" : isTut ? "#fffbeb" : "#eff6ff",
-                                      border: `1px solid ${isLab ? "#e9d5ff" : isTut ? "#fde68a" : "#bfdbfe"}`,
-                                      borderRadius: 8,
-                                      padding: "6px 8px",
-                                      fontSize: 11.5,
-                                    }}
-                                  >
-                                    <div style={{ fontWeight: 800, color: isLab ? "#7c3aed" : isTut ? "#b45309" : "#1d4ed8" }}>
-                                      {p.subject}
-                                    </div>
-                                    {p.room && (
-                                      <div style={{ fontSize: 10, color: "#64748b", marginTop: 2 }}>
-                                        <span style={{ display: "inline-flex", alignItems: "center", gap: 3 }}><MapPin size={10} color="#64748b" /> {p.room}</span>
-                                      </div>
-                                    )}
-                                    {p.faculty && (
-                                      <div style={{ fontSize: 10, color: "#64748b" }}>
-                                        <span style={{ display: "inline-flex", alignItems: "center", gap: 3 }}><User size={10} color="#64748b" /> {p.faculty}</span>
-                                      </div>
-                                    )}
-                                  </div>
-                                )}
-                              </td>
-                            );
-                          })}
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
+              <h4 style={{ fontSize: 16, fontWeight: 800, color: "#0f172a", margin: "0 0 4px 0" }}>
+                {fileName ? fileName : "Upload Timetable Excel Spreadsheet"}
+              </h4>
+              <p style={{ fontSize: 12.5, color: "#64748b", margin: 0 }}>
+                Supports <strong>.xlsx</strong>, <strong>.xls</strong>, and <strong>.csv</strong> files with 7 period slots across Monday–Saturday.
+              </p>
             </div>
-          )}
+          </div>
         </div>
       )}
 
       {/* ═════════════════════════════════════════════════════════════
-          SUB-TAB 2: ACADEMIC CALENDAR MILESTONES
+          SUB-TAB 3: ACADEMIC CALENDAR
       ═════════════════════════════════════════════════════════════ */}
       {activeSubTab === "calendar" && (
         <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
@@ -1213,396 +1638,80 @@ export default function TimetableAdminManager({ authHeaders, API }) {
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 12, marginBottom: 18 }}>
               <div>
                 <h3 style={{ fontSize: 16, fontWeight: 800, color: "#0f172a", margin: 0, display: "flex", alignItems: "center", gap: 8 }}>
-                  <Calendar size={18} color="#7c3aed" />
-                  Academic Calendar Milestones Ingestion & Management
+                  <Calendar size={18} color="#2563eb" />
+                  Academic Calendar Configuration
                 </h3>
                 <p style={{ fontSize: 12.5, color: "#64748b", margin: "3px 0 0 0" }}>
-                  Upload official semester milestones via <strong>Excel (.xlsx, .xls, .csv)</strong> or <strong>PDF (.pdf)</strong> circulars, or manually edit milestones.
+                  Upload official semester circular milestones (instruction end dates, exam dates).
                 </p>
               </div>
 
-              <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                <button
-                  type="button"
-                  onClick={loadActiveCalendar}
-                  style={{
-                    padding: "8px 14px",
-                    borderRadius: 10,
-                    border: "1px solid #cbd5e1",
-                    background: "#f8fafc",
-                    color: "#0f172a",
-                    fontSize: 12.5,
-                    fontWeight: 700,
-                    cursor: "pointer",
-                    display: "inline-flex",
-                    alignItems: "center",
-                    gap: 6,
-                  }}
-                >
-                  <RefreshCw size={13} color="#7c3aed" />
-                  <span>Load from DB</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={downloadCalendarTemplate}
-                  style={{
-                    padding: "8px 14px",
-                    borderRadius: 10,
-                    border: "1px solid #cbd5e1",
-                    background: "#f8fafc",
-                    color: "#0f172a",
-                    fontSize: 12.5,
-                    fontWeight: 700,
-                    cursor: "pointer",
-                    display: "inline-flex",
-                    alignItems: "center",
-                    gap: 6,
-                  }}
-                >
-                  <Download size={13} color="#7c3aed" />
-                  <span>Download Template</span>
-                </button>
-              </div>
+              <button
+                type="button"
+                onClick={handlePublishCalendar}
+                disabled={isPublishing}
+                style={{
+                  padding: "9px 18px",
+                  borderRadius: 10,
+                  border: "none",
+                  background: "#16a34a",
+                  color: "#ffffff",
+                  fontSize: 13,
+                  fontWeight: 800,
+                  cursor: isPublishing ? "not-allowed" : "pointer",
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 6,
+                }}
+              >
+                <Check size={15} />
+                <span>{isPublishing ? "Publishing..." : "Publish Academic Calendar"}</span>
+              </button>
             </div>
-
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 14 }}>
-              <div>
-                <label style={{ display: "block", fontSize: 12, fontWeight: 700, color: "#475569", marginBottom: 5 }}>
-                  Academic Session
-                </label>
-                <input
-                  type="text"
-                  value={calendarYear}
-                  onChange={(e) => setCalendarYear(e.target.value)}
-                  placeholder="e.g. 2026-27"
-                  style={{
-                    width: "100%",
-                    padding: "9px 12px",
-                    borderRadius: 10,
-                    border: "1.5px solid #cbd5e1",
-                    fontSize: 13.5,
-                    color: "#0f172a",
-                    boxSizing: "border-box",
-                  }}
-                />
-              </div>
-
-              <div>
-                <label style={{ display: "block", fontSize: 12, fontWeight: 700, color: "#475569", marginBottom: 5 }}>
-                  Semester Type
-                </label>
-                <select
-                  value={semesterType}
-                  onChange={(e) => setSemesterType(e.target.value)}
-                  style={{
-                    width: "100%",
-                    padding: "9px 12px",
-                    borderRadius: 10,
-                    border: "1.5px solid #cbd5e1",
-                    fontSize: 13.5,
-                    fontWeight: 600,
-                    color: "#0f172a",
-                  }}
-                >
-                  <option value="even">Even Semester (Sem 2, 4, 6, 8)</option>
-                  <option value="odd">Odd Semester (Sem 1, 3, 5, 7)</option>
-                  <option value="general">Annual / General University Events</option>
-                </select>
-              </div>
-
-              <div>
-                <label style={{ display: "block", fontSize: 12, fontWeight: 700, color: "#475569", marginBottom: 5 }}>
-                  Applicable Semesters Label
-                </label>
-                <input
-                  type="text"
-                  value={semestersLabel}
-                  onChange={(e) => setSemestersLabel(e.target.value)}
-                  placeholder="e.g. 2nd, 4th, 6th, 8th Semester"
-                  style={{
-                    width: "100%",
-                    padding: "9px 12px",
-                    borderRadius: 10,
-                    border: "1.5px solid #cbd5e1",
-                    fontSize: 13.5,
-                    color: "#0f172a",
-                    boxSizing: "border-box",
-                  }}
-                />
-              </div>
-            </div>
-          </div>
-
-          {/* Upload Dropzone */}
-          <div
-            style={{
-              background: "#ffffff",
-              border: "2px dashed #cbd5e1",
-              borderRadius: 16,
-              padding: "36px 20px",
-              textAlign: "center",
-              cursor: "pointer",
-              transition: "all 0.2s ease",
-            }}
-            onClick={() => calendarFileRef.current?.click()}
-          >
-            <input
-              ref={calendarFileRef}
-              type="file"
-              accept=".xlsx,.xls,.csv,.pdf"
-              style={{ display: "none" }}
-              onChange={handleCalendarFileUpload}
-            />
 
             <div
               style={{
-                width: 52,
-                height: 52,
+                background: "#f8fafc",
+                border: "2px dashed #cbd5e1",
                 borderRadius: 16,
-                background: "#faf5ff",
-                color: "#7c3aed",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                margin: "0 auto 12px auto",
+                padding: "36px 20px",
+                textAlign: "center",
+                cursor: "pointer",
               }}
+              onClick={() => calendarFileRef.current?.click()}
             >
-              <Calendar size={24} />
+              <input
+                ref={calendarFileRef}
+                type="file"
+                accept=".xlsx,.xls,.csv,.pdf,.json"
+                style={{ display: "none" }}
+                onChange={handleCalendarFileUpload}
+              />
+              <div
+                style={{
+                  width: 48,
+                  height: 48,
+                  borderRadius: 14,
+                  background: "#eff6ff",
+                  color: "#2563eb",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  margin: "0 auto 10px auto",
+                }}
+              >
+                <Upload size={22} />
+              </div>
+              <h4 style={{ fontSize: 15, fontWeight: 800, color: "#0f172a", margin: "0 0 4px 0" }}>
+                {calendarFileName ? calendarFileName : "Upload Academic Calendar Spreadsheet / Circular"}
+              </h4>
             </div>
-
-            <h4 style={{ fontSize: 16, fontWeight: 800, color: "#0f172a", margin: "0 0 4px 0" }}>
-              {calendarFileName ? calendarFileName : "Upload Academic Calendar (Excel / PDF)"}
-            </h4>
-            <p style={{ fontSize: 12.5, color: "#64748b", margin: 0 }}>
-              Accepts <strong>.xlsx, .xls, .csv</strong> spreadsheets &amp; official <strong>.pdf</strong> notifications. Columns auto-mapped with intelligent date parser.
-            </p>
-          </div>
-
-          {/* Preview & Publish */}
-          <div
-            style={{
-              background: "#ffffff",
-              border: "1px solid #e2e8f0",
-              borderRadius: 16,
-              padding: "20px 24px",
-              boxShadow: "0 1px 3px rgba(0,0,0,0.02)",
-            }}
-          >
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 10, marginBottom: 14 }}>
-              <div>
-                <h4 style={{ fontSize: 15, fontWeight: 800, color: "#0f172a", margin: 0 }}>
-                  Academic Milestones Live Editor ({calendarActivities.length} Items)
-                </h4>
-                <p style={{ fontSize: 12, color: "#64748b", margin: "2px 0 0 0" }}>
-                  Directly edit or fine-tune activity names, start/end dates, and categories before publishing.
-                </p>
-              </div>
-
-              <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-                <button
-                  type="button"
-                  onClick={addCalendarActivity}
-                  style={{
-                    padding: "8px 14px",
-                    borderRadius: 10,
-                    border: "1.5px dashed #7c3aed",
-                    background: "#faf5ff",
-                    color: "#7c3aed",
-                    fontSize: 12.5,
-                    fontWeight: 700,
-                    cursor: "pointer",
-                    display: "inline-flex",
-                    alignItems: "center",
-                    gap: 6,
-                  }}
-                >
-                  <Plus size={14} />
-                  <span>Add Activity</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={handlePublishCalendar}
-                  disabled={isPublishing || calendarActivities.length === 0}
-                  style={{
-                    padding: "9px 20px",
-                    borderRadius: 10,
-                    background: calendarActivities.length > 0 ? "#7c3aed" : "#94a3b8",
-                    color: "#ffffff",
-                    border: "none",
-                    fontSize: 13,
-                    fontWeight: 700,
-                    cursor: isPublishing || calendarActivities.length === 0 ? "not-allowed" : "pointer",
-                    display: "inline-flex",
-                    alignItems: "center",
-                    gap: 6,
-                  }}
-                >
-                  <Check size={15} />
-                  <span>{isPublishing ? "Publishing..." : "Publish Calendar to Database"}</span>
-                </button>
-              </div>
-            </div>
-
-            {calendarActivities.length === 0 ? (
-              <div style={{ textAlign: "center", padding: "30px 10px", color: "#94a3b8", fontSize: 13 }}>
-                No calendar activities loaded yet. Upload an Excel/PDF file above or click <strong>"+ Add Activity"</strong> / <strong>"Load from DB"</strong>.
-              </div>
-            ) : (
-              <div style={{ overflowX: "auto" }}>
-                <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12.5 }}>
-                  <thead>
-                    <tr style={{ background: "#f8fafc", borderBottom: "1.5px solid #cbd5e1" }}>
-                      <th style={{ padding: "10px 8px", textAlign: "left", width: 40 }}>#</th>
-                      <th style={{ padding: "10px 8px", textAlign: "left", minWidth: 180 }}>Activity Name</th>
-                      <th style={{ padding: "10px 8px", textAlign: "left", minWidth: 120 }}>Schedule / Display</th>
-                      <th style={{ padding: "10px 8px", textAlign: "left", minWidth: 120 }}>Start Date</th>
-                      <th style={{ padding: "10px 8px", textAlign: "left", minWidth: 120 }}>End Date</th>
-                      <th style={{ padding: "10px 8px", textAlign: "left", minWidth: 130 }}>Category</th>
-                      <th style={{ padding: "10px 8px", textAlign: "left", minWidth: 130 }}>Location</th>
-                      <th style={{ padding: "10px 8px", textAlign: "center", width: 50 }}>Action</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {calendarActivities.map((act, i) => (
-                      <tr key={i} style={{ borderBottom: "1px solid #f1f5f9" }}>
-                        <td style={{ padding: "8px", fontWeight: 700, color: "#64748b" }}>{act.slNo || i + 1}</td>
-                        <td style={{ padding: "8px" }}>
-                          <input
-                            type="text"
-                            value={act.name}
-                            onChange={(e) => updateCalendarActivity(i, "name", e.target.value)}
-                            style={{
-                              width: "100%",
-                              padding: "6px 8px",
-                              borderRadius: 6,
-                              border: "1px solid #cbd5e1",
-                              fontSize: 12.5,
-                              fontWeight: 700,
-                              color: "#0f172a",
-                            }}
-                          />
-                        </td>
-                        <td style={{ padding: "8px" }}>
-                          <input
-                            type="text"
-                            value={act.schedule}
-                            onChange={(e) => updateCalendarActivity(i, "schedule", e.target.value)}
-                            placeholder="e.g. 06.07.2026"
-                            style={{
-                              width: "100%",
-                              padding: "6px 8px",
-                              borderRadius: 6,
-                              border: "1px solid #cbd5e1",
-                              fontSize: 12,
-                              color: "#475569",
-                            }}
-                          />
-                        </td>
-                        <td style={{ padding: "8px" }}>
-                          <input
-                            type="text"
-                            value={act.startDate}
-                            onChange={(e) => updateCalendarActivity(i, "startDate", e.target.value)}
-                            placeholder="YYYY-MM-DD"
-                            style={{
-                              width: "100%",
-                              padding: "6px 8px",
-                              borderRadius: 6,
-                              border: "1px solid #cbd5e1",
-                              fontSize: 12,
-                              fontFamily: "'Space Mono', monospace",
-                              color: "#0f172a",
-                            }}
-                          />
-                        </td>
-                        <td style={{ padding: "8px" }}>
-                          <input
-                            type="text"
-                            value={act.endDate}
-                            onChange={(e) => updateCalendarActivity(i, "endDate", e.target.value)}
-                            placeholder="YYYY-MM-DD"
-                            style={{
-                              width: "100%",
-                              padding: "6px 8px",
-                              borderRadius: 6,
-                              border: "1px solid #cbd5e1",
-                              fontSize: 12,
-                              fontFamily: "'Space Mono', monospace",
-                              color: "#0f172a",
-                            }}
-                          />
-                        </td>
-                        <td style={{ padding: "8px" }}>
-                          <select
-                            value={act.category || "academic"}
-                            onChange={(e) => updateCalendarActivity(i, "category", e.target.value)}
-                            style={{
-                              width: "100%",
-                              padding: "6px 8px",
-                              borderRadius: 6,
-                              border: "1px solid #cbd5e1",
-                              fontSize: 12,
-                              fontWeight: 700,
-                              color: act.category === "exam" ? "#dc2626" : act.category === "festival" ? "#7c3aed" : "#16a34a",
-                              background: "#f8fafc",
-                            }}
-                          >
-                            <option value="academic">Academic</option>
-                            <option value="exam">Exam</option>
-                            <option value="festival">Festival / Fest</option>
-                            <option value="sports">Sports</option>
-                            <option value="internship">Internship / Project</option>
-                            <option value="break">Break / Vacation</option>
-                            <option value="registration">Registration</option>
-                          </select>
-                        </td>
-                        <td style={{ padding: "8px" }}>
-                          <input
-                            type="text"
-                            value={act.location || ""}
-                            onChange={(e) => updateCalendarActivity(i, "location", e.target.value)}
-                            placeholder="Campus / Center"
-                            style={{
-                              width: "100%",
-                              padding: "6px 8px",
-                              borderRadius: 6,
-                              border: "1px solid #cbd5e1",
-                              fontSize: 12,
-                              color: "#475569",
-                            }}
-                          />
-                        </td>
-                        <td style={{ padding: "8px", textAlign: "center" }}>
-                          <button
-                            type="button"
-                            onClick={() => removeCalendarActivity(i)}
-                            style={{
-                              padding: "6px",
-                              borderRadius: 6,
-                              border: "none",
-                              background: "#fee2e2",
-                              color: "#dc2626",
-                              cursor: "pointer",
-                            }}
-                            title="Remove Activity"
-                          >
-                            <Trash2 size={13} />
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
           </div>
         </div>
       )}
 
       {/* ═════════════════════════════════════════════════════════════
-          SUB-TAB 3: ACADEMIC HOLIDAYS & BREAKS
+          SUB-TAB 4: ACADEMIC HOLIDAYS
       ═════════════════════════════════════════════════════════════ */}
       {activeSubTab === "holidays" && (
         <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
@@ -1618,150 +1727,83 @@ export default function TimetableAdminManager({ authHeaders, API }) {
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 12, marginBottom: 18 }}>
               <div>
                 <h3 style={{ fontSize: 16, fontWeight: 800, color: "#0f172a", margin: 0, display: "flex", alignItems: "center", gap: 8 }}>
-                  <Sun size={18} color="#dc2626" />
-                  Academic Holidays & Observances Ingestion & Management
+                  <Sun size={18} color="#ea580c" />
+                  Academic Holidays Configuration
                 </h3>
                 <p style={{ fontSize: 12.5, color: "#64748b", margin: "3px 0 0 0" }}>
-                  Upload official university holidays via <strong>Excel (.xlsx, .xls, .csv)</strong> or <strong>PDF (.pdf)</strong>, managing official holidays, optional leaves, and observances.
+                  Official university holidays, puja leaves, and gazetted observation dates.
                 </p>
               </div>
 
-              <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                <button
-                  type="button"
-                  onClick={loadActiveHolidays}
-                  style={{
-                    padding: "8px 14px",
-                    borderRadius: 10,
-                    border: "1px solid #cbd5e1",
-                    background: "#f8fafc",
-                    color: "#0f172a",
-                    fontSize: 12.5,
-                    fontWeight: 700,
-                    cursor: "pointer",
-                    display: "inline-flex",
-                    alignItems: "center",
-                    gap: 6,
-                  }}
-                >
-                  <RefreshCw size={13} color="#dc2626" />
-                  <span>Load from DB</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={downloadHolidayTemplate}
-                  style={{
-                    padding: "8px 14px",
-                    borderRadius: 10,
-                    border: "1px solid #cbd5e1",
-                    background: "#f8fafc",
-                    color: "#0f172a",
-                    fontSize: 12.5,
-                    fontWeight: 700,
-                    cursor: "pointer",
-                    display: "inline-flex",
-                    alignItems: "center",
-                    gap: 6,
-                  }}
-                >
-                  <Download size={13} color="#dc2626" />
-                  <span>Download Template</span>
-                </button>
-              </div>
+              <button
+                type="button"
+                onClick={handlePublishHolidays}
+                disabled={isPublishing}
+                style={{
+                  padding: "9px 18px",
+                  borderRadius: 10,
+                  border: "none",
+                  background: "#ea580c",
+                  color: "#ffffff",
+                  fontSize: 13,
+                  fontWeight: 800,
+                  cursor: isPublishing ? "not-allowed" : "pointer",
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 6,
+                }}
+              >
+                <Check size={15} />
+                <span>{isPublishing ? "Publishing..." : "Publish Holidays List"}</span>
+              </button>
             </div>
-
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 14 }}>
-              <div>
-                <label style={{ display: "block", fontSize: 12, fontWeight: 700, color: "#475569", marginBottom: 5 }}>
-                  Academic Session Year
-                </label>
-                <input
-                  type="text"
-                  value={holidayYear}
-                  onChange={(e) => setHolidayYear(e.target.value)}
-                  placeholder="e.g. 2026-27"
-                  style={{
-                    width: "100%",
-                    padding: "9px 12px",
-                    borderRadius: 10,
-                    border: "1.5px solid #cbd5e1",
-                    fontSize: 13.5,
-                    color: "#0f172a",
-                    boxSizing: "border-box",
-                  }}
-                />
-              </div>
-
-              <div>
-                <label style={{ display: "block", fontSize: 12, fontWeight: 700, color: "#475569", marginBottom: 5 }}>
-                  Document Title
-                </label>
-                <input
-                  type="text"
-                  value={holidayTitle}
-                  onChange={(e) => setHolidayTitle(e.target.value)}
-                  placeholder="e.g. CUTM Academic Session 2026–27 Holidays List"
-                  style={{
-                    width: "100%",
-                    padding: "9px 12px",
-                    borderRadius: 10,
-                    border: "1.5px solid #cbd5e1",
-                    fontSize: 13.5,
-                    color: "#0f172a",
-                    boxSizing: "border-box",
-                  }}
-                />
-              </div>
-            </div>
-          </div>
-
-          {/* Upload Dropzone */}
-          <div
-            style={{
-              background: "#ffffff",
-              border: "2px dashed #cbd5e1",
-              borderRadius: 16,
-              padding: "36px 20px",
-              textAlign: "center",
-              cursor: "pointer",
-              transition: "all 0.2s ease",
-            }}
-            onClick={() => holidayFileRef.current?.click()}
-          >
-            <input
-              ref={holidayFileRef}
-              type="file"
-              accept=".xlsx,.xls,.csv,.pdf"
-              style={{ display: "none" }}
-              onChange={handleHolidayFileUpload}
-            />
 
             <div
               style={{
-                width: 52,
-                height: 52,
+                background: "#fff7ed",
+                border: "2px dashed #fed7aa",
                 borderRadius: 16,
-                background: "#fef2f2",
-                color: "#dc2626",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                margin: "0 auto 12px auto",
+                padding: "36px 20px",
+                textAlign: "center",
+                cursor: "pointer",
               }}
+              onClick={() => holidayFileRef.current?.click()}
             >
-              <Sun size={24} />
+              <input
+                ref={holidayFileRef}
+                type="file"
+                accept=".xlsx,.xls,.csv,.pdf,.json"
+                style={{ display: "none" }}
+                onChange={handleHolidayFileUpload}
+              />
+              <div
+                style={{
+                  width: 48,
+                  height: 48,
+                  borderRadius: 14,
+                  background: "#ffedd5",
+                  color: "#ea580c",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  margin: "0 auto 10px auto",
+                }}
+              >
+                <Upload size={22} />
+              </div>
+              <h4 style={{ fontSize: 15, fontWeight: 800, color: "#0f172a", margin: "0 0 4px 0" }}>
+                {holidayFileName ? holidayFileName : "Upload Holidays List Circular / Spreadsheet"}
+              </h4>
             </div>
-
-            <h4 style={{ fontSize: 16, fontWeight: 800, color: "#0f172a", margin: "0 0 4px 0" }}>
-              {holidayFileName ? holidayFileName : "Upload Academic Holidays (Excel / PDF)"}
-            </h4>
-            <p style={{ fontSize: 12.5, color: "#64748b", margin: 0 }}>
-              Accepts <strong>.xlsx, .xls, .csv</strong> spreadsheets &amp; official <strong>.pdf</strong> circulars. Auto-detects dates, days, gazetted holidays, and optional leaves.
-            </p>
           </div>
+        </div>
+      )}
 
-          {/* Preview & Publish */}
+      {/* ═════════════════════════════════════════════════════════════
+          SUB-TAB 5: PUBLISHED SCHEDULES
+      ═════════════════════════════════════════════════════════════ */}
+      {activeSubTab === "published" && (
+        <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
           <div
             style={{
               background: "#ffffff",
@@ -1771,190 +1813,150 @@ export default function TimetableAdminManager({ authHeaders, API }) {
               boxShadow: "0 1px 3px rgba(0,0,0,0.02)",
             }}
           >
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 10, marginBottom: 14 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
               <div>
-                <h4 style={{ fontSize: 15, fontWeight: 800, color: "#0f172a", margin: 0 }}>
-                  Academic Holidays Live Editor ({holidaysList.length} Items)
-                </h4>
-                <p style={{ fontSize: 12, color: "#64748b", margin: "2px 0 0 0" }}>
-                  Verify or edit holiday dates, day of week, and leave type (Holiday / Optional / Observation) before publishing.
+                <h3 style={{ fontSize: 16, fontWeight: 800, color: "#0f172a", margin: 0, display: "flex", alignItems: "center", gap: 8 }}>
+                  <Layers size={18} color="#2563eb" />
+                  Live Published Timetable Schedules ({publishedList.length})
+                </h3>
+                <p style={{ fontSize: 12.5, color: "#64748b", margin: "3px 0 0 0" }}>
+                  All section timetables stored on MongoDB Atlas and actively serving student routines.
                 </p>
               </div>
 
-              <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+              <button
+                type="button"
+                onClick={fetchPublishedSchedules}
+                style={{
+                  padding: "7px 14px",
+                  borderRadius: 8,
+                  border: "1px solid #cbd5e1",
+                  background: "#f8fafc",
+                  fontSize: 12.5,
+                  fontWeight: 700,
+                  cursor: "pointer",
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 6,
+                }}
+              >
+                <RefreshCw size={13} />
+                <span>Refresh List</span>
+              </button>
+            </div>
+
+            {isLoadingList ? (
+              <div style={{ textAlign: "center", padding: "30px", color: "#64748b", fontSize: 13 }}>
+                Loading published schedules from cloud...
+              </div>
+            ) : publishedList.length === 0 ? (
+              <div style={{ textAlign: "center", padding: "40px 20px", color: "#64748b" }}>
+                <p style={{ fontSize: 14, fontWeight: 700, color: "#0f172a", margin: 0 }}>No custom schedules published yet.</p>
+                <p style={{ fontSize: 12.5, margin: "4px 0 12px 0" }}>
+                  All sections currently use the default curriculum templates. Edit and publish a section to make it live.
+                </p>
                 <button
                   type="button"
-                  onClick={addHolidayItem}
+                  onClick={() => setActiveSubTab("editor")}
                   style={{
-                    padding: "8px 14px",
-                    borderRadius: 10,
-                    border: "1.5px dashed #dc2626",
-                    background: "#fef2f2",
-                    color: "#dc2626",
+                    padding: "8px 16px",
+                    borderRadius: 9,
+                    border: "none",
+                    background: "#2563eb",
+                    color: "#ffffff",
                     fontSize: 12.5,
                     fontWeight: 700,
                     cursor: "pointer",
-                    display: "inline-flex",
-                    alignItems: "center",
-                    gap: 6,
                   }}
                 >
-                  <Plus size={14} />
-                  <span>Add Holiday</span>
+                  Open Section Timetable Editor
                 </button>
-
-                <button
-                  type="button"
-                  onClick={handlePublishHolidays}
-                  disabled={isPublishing || holidaysList.length === 0}
-                  style={{
-                    padding: "9px 20px",
-                    borderRadius: 10,
-                    background: holidaysList.length > 0 ? "#dc2626" : "#94a3b8",
-                    color: "#ffffff",
-                    border: "none",
-                    fontSize: 13,
-                    fontWeight: 700,
-                    cursor: isPublishing || holidaysList.length === 0 ? "not-allowed" : "pointer",
-                    display: "inline-flex",
-                    alignItems: "center",
-                    gap: 6,
-                  }}
-                >
-                  <Check size={15} />
-                  <span>{isPublishing ? "Publishing..." : "Publish Holidays List to Database"}</span>
-                </button>
-              </div>
-            </div>
-
-            {holidaysList.length === 0 ? (
-              <div style={{ textAlign: "center", padding: "30px 10px", color: "#94a3b8", fontSize: 13 }}>
-                No holidays loaded yet. Upload an Excel/PDF file above or click <strong>"+ Add Holiday"</strong> / <strong>"Load from DB"</strong>.
               </div>
             ) : (
-              <div style={{ overflowX: "auto" }}>
-                <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12.5 }}>
-                  <thead>
-                    <tr style={{ background: "#f8fafc", borderBottom: "1.5px solid #cbd5e1" }}>
-                      <th style={{ padding: "10px 8px", textAlign: "left", width: 40 }}>#</th>
-                      <th style={{ padding: "10px 8px", textAlign: "left", minWidth: 180 }}>Holiday / Occasion</th>
-                      <th style={{ padding: "10px 8px", textAlign: "left", minWidth: 120 }}>Date (YYYY-MM-DD)</th>
-                      <th style={{ padding: "10px 8px", textAlign: "left", minWidth: 100 }}>Day of Week</th>
-                      <th style={{ padding: "10px 8px", textAlign: "left", minWidth: 130 }}>Type</th>
-                      <th style={{ padding: "10px 8px", textAlign: "left", minWidth: 180 }}>Description / Rules</th>
-                      <th style={{ padding: "10px 8px", textAlign: "center", width: 50 }}>Action</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {holidaysList.map((h, i) => (
-                      <tr key={i} style={{ borderBottom: "1px solid #f1f5f9" }}>
-                        <td style={{ padding: "8px", fontWeight: 700, color: "#64748b" }}>{h.slNo || i + 1}</td>
-                        <td style={{ padding: "8px" }}>
-                          <input
-                            type="text"
-                            value={h.title}
-                            onChange={(e) => updateHolidayItem(i, "title", e.target.value)}
-                            style={{
-                              width: "100%",
-                              padding: "6px 8px",
-                              borderRadius: 6,
-                              border: "1px solid #cbd5e1",
-                              fontSize: 12.5,
-                              fontWeight: 700,
-                              color: "#0f172a",
-                            }}
-                          />
-                        </td>
-                        <td style={{ padding: "8px" }}>
-                          <input
-                            type="text"
-                            value={h.date}
-                            onChange={(e) => updateHolidayItem(i, "date", e.target.value)}
-                            placeholder="YYYY-MM-DD"
-                            style={{
-                              width: "100%",
-                              padding: "6px 8px",
-                              borderRadius: 6,
-                              border: "1px solid #cbd5e1",
-                              fontSize: 12,
-                              fontFamily: "'Space Mono', monospace",
-                              color: "#0f172a",
-                            }}
-                          />
-                        </td>
-                        <td style={{ padding: "8px" }}>
-                          <input
-                            type="text"
-                            value={h.day}
-                            onChange={(e) => updateHolidayItem(i, "day", e.target.value)}
-                            style={{
-                              width: "100%",
-                              padding: "6px 8px",
-                              borderRadius: 6,
-                              border: "1px solid #cbd5e1",
-                              fontSize: 12,
-                              color: "#475569",
-                            }}
-                          />
-                        </td>
-                        <td style={{ padding: "8px" }}>
-                          <select
-                            value={h.type || "holiday"}
-                            onChange={(e) => updateHolidayItem(i, "type", e.target.value)}
-                            style={{
-                              width: "100%",
-                              padding: "6px 8px",
-                              borderRadius: 6,
-                              border: "1px solid #cbd5e1",
-                              fontSize: 12,
-                              fontWeight: 700,
-                              color: h.type === "holiday" ? "#dc2626" : h.type === "optional" ? "#7c3aed" : "#2563eb",
-                              background: "#f8fafc",
-                            }}
-                          >
-                            <option value="holiday">Official Holiday</option>
-                            <option value="optional">Optional Leave</option>
-                            <option value="observation">Observation Day</option>
-                            <option value="break">Break / Recess</option>
-                          </select>
-                        </td>
-                        <td style={{ padding: "8px" }}>
-                          <input
-                            type="text"
-                            value={h.description || ""}
-                            onChange={(e) => updateHolidayItem(i, "description", e.target.value)}
-                            placeholder="Details or leave rules"
-                            style={{
-                              width: "100%",
-                              padding: "6px 8px",
-                              borderRadius: 6,
-                              border: "1px solid #cbd5e1",
-                              fontSize: 12,
-                              color: "#475569",
-                            }}
-                          />
-                        </td>
-                        <td style={{ padding: "8px", textAlign: "center" }}>
-                          <button
-                            type="button"
-                            onClick={() => removeHolidayItem(i)}
-                            style={{
-                              padding: "6px",
-                              borderRadius: 6,
-                              border: "none",
-                              background: "#fee2e2",
-                              color: "#dc2626",
-                              cursor: "pointer",
-                            }}
-                            title="Remove Holiday"
-                          >
-                            <Trash2 size={13} />
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: 14 }}>
+                {publishedList.map((sch) => (
+                  <div
+                    key={sch._id}
+                    style={{
+                      background: "#f8fafc",
+                      border: "1px solid #e2e8f0",
+                      borderRadius: 12,
+                      padding: "14px 16px",
+                      display: "flex",
+                      flexDirection: "column",
+                      gap: 8,
+                    }}
+                  >
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+                      <div>
+                        <span style={{ fontSize: 11, fontWeight: 900, background: "#dbeafe", color: "#1d4ed8", padding: "2px 7px", borderRadius: 5 }}>
+                          Batch {sch.batch} • {sch.branch}
+                        </span>
+                        <h4 style={{ fontSize: 15, fontWeight: 800, color: "#0f172a", margin: "4px 0 0 0" }}>
+                          Section {sch.section}
+                        </h4>
+                      </div>
+                      <span style={{ fontSize: 10, fontWeight: 800, background: "#ecfdf5", color: "#059669", padding: "2px 6px", borderRadius: 4 }}>
+                        ACTIVE
+                      </span>
+                    </div>
+
+                    <div style={{ fontSize: 12, color: "#475569" }}>
+                      {sch.title || `${sch.branch} Sec ${sch.section}`}
+                    </div>
+
+                    <div style={{ fontSize: 11, color: "#94a3b8" }}>
+                      Last updated: {new Date(sch.updatedAt || sch.uploadedAt).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" })}
+                    </div>
+
+                    <div style={{ display: "flex", gap: 8, marginTop: 4 }}>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSection(sch.section);
+                          setBatch(sch.batch || "2023");
+                          setBranch(sch.branch || "CSE");
+                          setActiveSubTab("editor");
+                        }}
+                        style={{
+                          flex: 1,
+                          padding: "6px 10px",
+                          borderRadius: 7,
+                          border: "1px solid #bfdbfe",
+                          background: "#eff6ff",
+                          color: "#1d4ed8",
+                          fontSize: 12,
+                          fontWeight: 700,
+                          cursor: "pointer",
+                          display: "inline-flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          gap: 4,
+                        }}
+                      >
+                        <Edit2 size={12} />
+                        <span>Edit in Editor</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => handleDeletePublishedSchedule(sch._id)}
+                        style={{
+                          padding: "6px 10px",
+                          borderRadius: 7,
+                          border: "1px solid #fecaca",
+                          background: "#fef2f2",
+                          color: "#dc2626",
+                          fontSize: 12,
+                          fontWeight: 700,
+                          cursor: "pointer",
+                        }}
+                      >
+                        <Trash2 size={13} />
+                      </button>
+                    </div>
+                  </div>
+                ))}
               </div>
             )}
           </div>
@@ -1962,305 +1964,458 @@ export default function TimetableAdminManager({ authHeaders, API }) {
       )}
 
       {/* ═════════════════════════════════════════════════════════════
-          SUB-TAB 4: PUBLISHED SCHEDULES REPOSITORY
+          MODAL 1: PERIOD SLOT EDIT MODAL
       ═════════════════════════════════════════════════════════════ */}
-      {activeSubTab === "published" && (
-        <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+      <AnimatePresence>
+        {slotModal.isOpen && (
           <div
             style={{
-              background: "#ffffff",
-              border: "1px solid #e2e8f0",
-              borderRadius: 16,
-              padding: "16px 20px",
+              position: "fixed",
+              inset: 0,
+              zIndex: 9999,
+              background: "rgba(15, 23, 42, 0.6)",
+              backdropFilter: "blur(4px)",
               display: "flex",
-              justifyContent: "space-between",
               alignItems: "center",
+              justifyContent: "center",
+              padding: 16,
             }}
           >
-            <div>
-              <h4 style={{ fontSize: 15, fontWeight: 800, color: "#0f172a", margin: 0 }}>
-                Live Published Schedules ({publishedList.length})
-              </h4>
-              <p style={{ fontSize: 12, color: "#64748b", margin: "2px 0 0 0" }}>
-                Students matching these batches and sections receive their customized routine dynamically.
-              </p>
-            </div>
-
-            <button
-              type="button"
-              onClick={fetchPublishedSchedules}
-              style={{
-                padding: "7px 12px",
-                borderRadius: 8,
-                background: "#f1f5f9",
-                border: "none",
-                fontSize: 12,
-                fontWeight: 700,
-                color: "#475569",
-                cursor: "pointer",
-                display: "inline-flex",
-                alignItems: "center",
-                gap: 5,
-              }}
-            >
-              <RefreshCw size={13} />
-              <span>Refresh</span>
-            </button>
-          </div>
-
-          {isLoadingList ? (
-            <div style={{ padding: "40px", textAlign: "center", color: "#64748b" }}>
-              Loading published schedules...
-            </div>
-          ) : publishedList.length === 0 ? (
-            <div
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              transition={{ duration: 0.15 }}
               style={{
                 background: "#ffffff",
+                borderRadius: 18,
+                maxWidth: 480,
+                width: "100%",
+                boxShadow: "0 20px 40px rgba(0,0,0,0.2)",
+                overflow: "hidden",
                 border: "1px solid #e2e8f0",
-                borderRadius: 16,
-                padding: "50px 20px",
-                textAlign: "center",
               }}
             >
+              {/* Modal Header */}
               <div
                 style={{
-                  width: 48,
-                  height: 48,
-                  borderRadius: 14,
-                  background: "#f1f5f9",
-                  color: "#94a3b8",
+                  padding: "16px 20px",
+                  background: "#f8fafc",
+                  borderBottom: "1px solid #e2e8f0",
                   display: "flex",
+                  justifyContent: "space-between",
                   alignItems: "center",
-                  justifyContent: "center",
-                  margin: "0 auto 10px auto",
                 }}
               >
-                <Clock size={22} />
-              </div>
-              <h4 style={{ fontSize: 15, fontWeight: 800, color: "#0f172a", margin: "0 0 4px 0" }}>
-                No Custom Schedules Published Yet
-              </h4>
-              <p style={{ fontSize: 12.5, color: "#64748b", margin: 0 }}>
-                Upload an Excel timetable from the "Class Timetable Matrix" tab to publish custom schedules for any batch or branch.
-              </p>
-            </div>
-          ) : (
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))", gap: 14 }}>
-              {publishedList.map((sched) => (
-                <div
-                  key={sched._id}
-                  style={{
-                    background: "#ffffff",
-                    border: "1px solid #e2e8f0",
-                    borderRadius: 14,
-                    padding: "16px 18px",
-                    boxShadow: "0 1px 3px rgba(0,0,0,0.02)",
-                    display: "flex",
-                    flexDirection: "column",
-                    justifyContent: "space-between",
-                    gap: 12,
-                  }}
+                <div>
+                  <h4 style={{ fontSize: 15, fontWeight: 900, color: "#0f172a", margin: 0 }}>
+                    Edit Period — {slotModal.day}, P{slotModal.slotIndex + 1}
+                  </h4>
+                  <span style={{ fontSize: 11.5, color: "#64748b" }}>
+                    {DEFAULT_SLOTS[slotModal.slotIndex]?.time} • Section {section}
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setSlotModal((prev) => ({ ...prev, isOpen: false }))}
+                  style={{ border: "none", background: "transparent", cursor: "pointer", color: "#64748b" }}
                 >
+                  <X size={18} />
+                </button>
+              </div>
+
+              {/* Modal Body */}
+              <div style={{ padding: "18px 20px", display: "flex", flexDirection: "column", gap: 14 }}>
+                {/* Quick Subject Autocomplete Dropdown */}
+                <div>
+                  <label style={{ display: "block", fontSize: 11.5, fontWeight: 800, color: "#475569", marginBottom: 4 }}>
+                    ⚡ Quick Select from Enrolled Subjects
+                  </label>
+                  <select
+                    onChange={(e) => {
+                      const selected = KNOWN_SUBJECTS.find((s) => s.name === e.target.value);
+                      if (selected) {
+                        setSlotModal((prev) => ({
+                          ...prev,
+                          period: {
+                            ...prev.period,
+                            subject: selected.name,
+                            code: selected.code,
+                            type: selected.type,
+                            room: prev.period.room || selected.defaultRoom,
+                            isFree: false,
+                          },
+                        }));
+                      }
+                    }}
+                    defaultValue=""
+                    style={{
+                      width: "100%",
+                      padding: "8px 10px",
+                      borderRadius: 8,
+                      border: "1.5px solid #cbd5e1",
+                      fontSize: 12.5,
+                      fontWeight: 600,
+                      color: "#0f172a",
+                      outline: "none",
+                      background: "#f8fafc",
+                    }}
+                  >
+                    <option value="" disabled>
+                      Choose a subject to auto-fill details...
+                    </option>
+                    {KNOWN_SUBJECTS.map((s) => (
+                      <option key={s.name} value={s.name}>
+                        {s.name} ({s.code}) — {s.type === "PR" ? "Lab" : "Theory"}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Subject Title */}
+                <div>
+                  <label style={{ display: "block", fontSize: 11.5, fontWeight: 800, color: "#475569", marginBottom: 4 }}>
+                    Subject Name
+                  </label>
+                  <input
+                    type="text"
+                    value={slotModal.period.subject}
+                    onChange={(e) =>
+                      setSlotModal((prev) => ({
+                        ...prev,
+                        period: { ...prev.period, subject: e.target.value, isFree: !e.target.value },
+                      }))
+                    }
+                    placeholder="e.g. Cloud Fundamentals (Azure)"
+                    style={{
+                      width: "100%",
+                      padding: "9px 12px",
+                      borderRadius: 8,
+                      border: "1.5px solid #cbd5e1",
+                      fontSize: 13,
+                      fontWeight: 700,
+                      color: "#0f172a",
+                      outline: "none",
+                      boxSizing: "border-box",
+                    }}
+                  />
+                </div>
+
+                {/* Course Code & Component Type */}
+                <div style={{ display: "grid", gridTemplateColumns: "1.2fr 1fr", gap: 10 }}>
                   <div>
-                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8 }}>
-                      <span
-                        style={{
-                          fontSize: 11,
-                          fontWeight: 800,
-                          background: "#eff6ff",
-                          color: "#2563eb",
-                          padding: "2px 8px",
-                          borderRadius: 6,
-                        }}
-                      >
-                        BATCH {sched.batch}
-                      </span>
-                      <span
-                        style={{
-                          fontSize: 11,
-                          fontWeight: 800,
-                          background: "#f0fdf4",
-                          color: "#16a34a",
-                          padding: "2px 8px",
-                          borderRadius: 6,
-                        }}
-                      >
-                        {sched.branch} • SEC {sched.section}
-                      </span>
-                    </div>
-
-                    <h4 style={{ fontSize: 14.5, fontWeight: 800, color: "#0f172a", margin: "8px 0 2px 0" }}>
-                      {sched.title || `${sched.branch} Section ${sched.section}`}
-                    </h4>
-                    <div style={{ fontSize: 11.5, color: "#64748b" }}>
-                      Semester {sched.semester} (Year {sched.year}) • Uploaded {new Date(sched.uploadedAt).toLocaleDateString()}
-                    </div>
-                  </div>
-
-                  <div style={{ display: "flex", gap: 8, borderTop: "1px solid #f1f5f9", paddingTop: 10 }}>
-                    <button
-                      type="button"
-                      onClick={() => setInspectedSchedule(sched)}
+                    <label style={{ display: "block", fontSize: 11.5, fontWeight: 800, color: "#475569", marginBottom: 4 }}>
+                      Course Code (e.g. CUCS1015)
+                    </label>
+                    <input
+                      type="text"
+                      value={slotModal.period.code}
+                      onChange={(e) =>
+                        setSlotModal((prev) => ({
+                          ...prev,
+                          period: { ...prev.period, code: e.target.value.toUpperCase() },
+                        }))
+                      }
+                      placeholder="CUCS1015"
                       style={{
-                        flex: 1,
-                        padding: "7px 10px",
+                        width: "100%",
+                        padding: "8px 10px",
                         borderRadius: 8,
-                        background: "#f8fafc",
-                        border: "1px solid #cbd5e1",
-                        fontSize: 12,
+                        border: "1.5px solid #cbd5e1",
+                        fontSize: 12.5,
                         fontWeight: 700,
                         color: "#0f172a",
-                        cursor: "pointer",
-                        display: "inline-flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        gap: 5,
+                        outline: "none",
+                        boxSizing: "border-box",
                       }}
-                    >
-                      <Eye size={13} />
-                      <span>Inspect Matrix</span>
-                    </button>
+                    />
+                  </div>
 
-                    <button
-                      type="button"
-                      onClick={() => handleDeleteSchedule(sched._id)}
+                  <div>
+                    <label style={{ display: "block", fontSize: 11.5, fontWeight: 800, color: "#475569", marginBottom: 4 }}>
+                      Component Type
+                    </label>
+                    <select
+                      value={slotModal.period.type}
+                      onChange={(e) =>
+                        setSlotModal((prev) => ({
+                          ...prev,
+                          period: { ...prev.period, type: e.target.value },
+                        }))
+                      }
                       style={{
-                        padding: "7px 10px",
+                        width: "100%",
+                        padding: "8px 10px",
                         borderRadius: 8,
-                        background: "#fef2f2",
-                        border: "1px solid #fecaca",
-                        fontSize: 12,
+                        border: "1.5px solid #cbd5e1",
+                        fontSize: 12.5,
                         fontWeight: 700,
-                        color: "#dc2626",
-                        cursor: "pointer",
-                        display: "inline-flex",
-                        alignItems: "center",
-                        gap: 5,
+                        color: "#0f172a",
+                        outline: "none",
                       }}
                     >
-                      <Trash2 size={13} />
-                    </button>
+                      <option value="PP">Theory (PP)</option>
+                      <option value="PR">Practical / Lab (PR)</option>
+                      <option value="TUT">Tutorial (TUT)</option>
+                      <option value="FREE">Free Time / No Class</option>
+                    </select>
                   </div>
                 </div>
-              ))}
-            </div>
-          )}
 
-          {/* Inspected Schedule Modal */}
-          <AnimatePresence>
-            {inspectedSchedule && (
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                onClick={() => setInspectedSchedule(null)}
+                {/* Faculty & Room */}
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+                  <div>
+                    <label style={{ display: "block", fontSize: 11.5, fontWeight: 800, color: "#475569", marginBottom: 4 }}>
+                      Faculty Name
+                    </label>
+                    <input
+                      type="text"
+                      value={slotModal.period.faculty}
+                      onChange={(e) =>
+                        setSlotModal((prev) => ({
+                          ...prev,
+                          period: { ...prev.period, faculty: e.target.value },
+                        }))
+                      }
+                      placeholder="Dr. / Prof. Name"
+                      style={{
+                        width: "100%",
+                        padding: "8px 10px",
+                        borderRadius: 8,
+                        border: "1.5px solid #cbd5e1",
+                        fontSize: 12.5,
+                        color: "#0f172a",
+                        outline: "none",
+                        boxSizing: "border-box",
+                      }}
+                    />
+                  </div>
+
+                  <div>
+                    <label style={{ display: "block", fontSize: 11.5, fontWeight: 800, color: "#475569", marginBottom: 4 }}>
+                      Room / Lab Location
+                    </label>
+                    <input
+                      type="text"
+                      value={slotModal.period.room}
+                      onChange={(e) =>
+                        setSlotModal((prev) => ({
+                          ...prev,
+                          period: { ...prev.period, room: e.target.value },
+                        }))
+                      }
+                      placeholder="Room 204 / LAB-03"
+                      style={{
+                        width: "100%",
+                        padding: "8px 10px",
+                        borderRadius: 8,
+                        border: "1.5px solid #cbd5e1",
+                        fontSize: 12.5,
+                        color: "#0f172a",
+                        outline: "none",
+                        boxSizing: "border-box",
+                      }}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Modal Footer */}
+              <div
                 style={{
-                  position: "fixed",
-                  inset: 0,
-                  background: "rgba(15, 23, 42, 0.45)",
-                  backdropFilter: "blur(6px)",
-                  zIndex: 10000,
+                  padding: "14px 20px",
+                  background: "#f8fafc",
+                  borderTop: "1px solid #e2e8f0",
                   display: "flex",
+                  justifyContent: "space-between",
                   alignItems: "center",
-                  justifyContent: "center",
-                  padding: 16,
                 }}
               >
-                <motion.div
-                  initial={{ scale: 0.95, y: 10 }}
-                  animate={{ scale: 1, y: 0 }}
-                  exit={{ scale: 0.95, y: 10 }}
-                  onClick={(e) => e.stopPropagation()}
+                <button
+                  type="button"
+                  onClick={() => {
+                    handleClearPeriodSlot(slotModal.day, slotModal.slotIndex);
+                    setSlotModal((prev) => ({ ...prev, isOpen: false }));
+                  }}
                   style={{
-                    background: "#ffffff",
-                    borderRadius: 20,
-                    padding: "24px",
-                    maxWidth: 900,
-                    width: "100%",
-                    maxHeight: "85vh",
-                    overflowY: "auto",
-                    boxShadow: "0 25px 50px -12px rgba(0,0,0,0.25)",
+                    padding: "7px 12px",
+                    borderRadius: 8,
+                    border: "1px solid #fecaca",
+                    background: "#fef2f2",
+                    color: "#dc2626",
+                    fontSize: 12,
+                    fontWeight: 700,
+                    cursor: "pointer",
                   }}
                 >
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
-                    <div>
-                      <h3 style={{ fontSize: 17, fontWeight: 800, color: "#0f172a", margin: 0 }}>
-                        {inspectedSchedule.title}
-                      </h3>
-                      <div style={{ fontSize: 12, color: "#64748b", marginTop: 2 }}>
-                        Batch {inspectedSchedule.batch} • {inspectedSchedule.branch} Section {inspectedSchedule.section} • Semester {inspectedSchedule.semester}
-                      </div>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => setInspectedSchedule(null)}
-                      style={{
-                        background: "transparent",
-                        border: "none",
-                        cursor: "pointer",
-                        color: "#94a3b8",
-                        padding: 4,
-                      }}
-                    >
-                      <X size={20} />
-                    </button>
-                  </div>
+                  Clear Slot (Make Free)
+                </button>
 
-                  <div style={{ overflowX: "auto" }}>
-                    <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 11.5 }}>
-                      <thead>
-                        <tr style={{ background: "#f8fafc", borderBottom: "1px solid #cbd5e1" }}>
-                          <th style={{ padding: "8px 10px", textAlign: "left", width: 80 }}>Day</th>
-                          {DEFAULT_SLOTS.map((s) => (
-                            <th key={s.index} style={{ padding: "8px 10px", textAlign: "left" }}>
-                              <div>P{s.index + 1}</div>
-                              <div style={{ fontSize: 9.5, color: "#94a3b8" }}>{s.time}</div>
-                            </th>
-                          ))}
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {DAYS_LIST.map((day) => {
-                          const periods = inspectedSchedule.schedule?.[day] || [];
-                          return (
-                            <tr key={day} style={{ borderBottom: "1px solid #f1f5f9" }}>
-                              <td style={{ padding: "8px 10px", fontWeight: 800, color: "#0f172a" }}>{day}</td>
-                              {DEFAULT_SLOTS.map((s, idx) => {
-                                const p = periods[idx] || { isFree: true };
-                                return (
-                                  <td key={idx} style={{ padding: "6px 8px", verticalAlign: "top" }}>
-                                    {p.isFree ? (
-                                      <span style={{ color: "#cbd5e1" }}>—</span>
-                                    ) : (
-                                      <div
-                                        style={{
-                                          background: p.type === "PR" ? "#faf5ff" : "#eff6ff",
-                                          border: `1px solid ${p.type === "PR" ? "#e9d5ff" : "#bfdbfe"}`,
-                                          borderRadius: 6,
-                                          padding: "4px 6px",
-                                        }}
-                                      >
-                                        <div style={{ fontWeight: 800, color: p.type === "PR" ? "#7c3aed" : "#1d4ed8" }}>
-                                          {p.subject}
-                                        </div>
-                                        {p.room && <div style={{ fontSize: 9.5, color: "#64748b", display: "flex", alignItems: "center", gap: 3 }}><MapPin size={9.5} color="#64748b" /> {p.room}</div>}
-                                      </div>
-                                    )}
-                                  </td>
-                                );
-                              })}
-                            </tr>
-                          );
-                        })}
-                      </tbody>
-                    </table>
-                  </div>
-                </motion.div>
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </div>
-      )}
+                <div style={{ display: "flex", gap: 8 }}>
+                  <button
+                    type="button"
+                    onClick={() => setSlotModal((prev) => ({ ...prev, isOpen: false }))}
+                    style={{
+                      padding: "7px 14px",
+                      borderRadius: 8,
+                      border: "1px solid #cbd5e1",
+                      background: "#ffffff",
+                      color: "#475569",
+                      fontSize: 12.5,
+                      fontWeight: 600,
+                      cursor: "pointer",
+                    }}
+                  >
+                    Cancel
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={handleSaveSlotModal}
+                    style={{
+                      padding: "7px 18px",
+                      borderRadius: 8,
+                      border: "none",
+                      background: "#2563eb",
+                      color: "#ffffff",
+                      fontSize: 12.5,
+                      fontWeight: 800,
+                      cursor: "pointer",
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: 5,
+                    }}
+                  >
+                    <Check size={14} />
+                    <span>Apply to Slot</span>
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* ═════════════════════════════════════════════════════════════
+          MODAL 2: CLONE TIMETABLE TO TARGET SECTION MODAL
+      ═════════════════════════════════════════════════════════════ */}
+      <AnimatePresence>
+        {cloneModal.isOpen && (
+          <div
+            style={{
+              position: "fixed",
+              inset: 0,
+              zIndex: 9999,
+              background: "rgba(15, 23, 42, 0.6)",
+              backdropFilter: "blur(4px)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              padding: 16,
+            }}
+          >
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              style={{
+                background: "#ffffff",
+                borderRadius: 18,
+                maxWidth: 420,
+                width: "100%",
+                boxShadow: "0 20px 40px rgba(0,0,0,0.2)",
+                overflow: "hidden",
+                border: "1px solid #e2e8f0",
+                padding: "20px 24px",
+                display: "flex",
+                flexDirection: "column",
+                gap: 16,
+              }}
+            >
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <h4 style={{ fontSize: 16, fontWeight: 800, color: "#0f172a", margin: 0, display: "flex", alignItems: "center", gap: 7 }}>
+                  <Copy size={17} color="#2563eb" />
+                  <span>Clone Timetable to Section</span>
+                </h4>
+                <button
+                  type="button"
+                  onClick={() => setCloneModal({ isOpen: false, targetSection: "CSE-B", isCloning: false })}
+                  style={{ border: "none", background: "transparent", cursor: "pointer", color: "#64748b" }}
+                >
+                  <X size={18} />
+                </button>
+              </div>
+
+              <p style={{ fontSize: 12.5, color: "#64748b", margin: 0 }}>
+                This will duplicate the current timetable matrix of <strong>Section {section}</strong> and publish it as the active schedule for the target section below.
+              </p>
+
+              <div>
+                <label style={{ display: "block", fontSize: 12, fontWeight: 700, color: "#475569", marginBottom: 5 }}>
+                  Select Target Destination Section:
+                </label>
+                <select
+                  value={cloneModal.targetSection}
+                  onChange={(e) => setCloneModal((prev) => ({ ...prev, targetSection: e.target.value }))}
+                  style={{
+                    width: "100%",
+                    padding: "9px 12px",
+                    borderRadius: 9,
+                    border: "1.5px solid #cbd5e1",
+                    fontSize: 13,
+                    fontWeight: 700,
+                    color: "#0f172a",
+                    outline: "none",
+                  }}
+                >
+                  {ALL_SECTIONS.filter((s) => s !== section).map((sec) => (
+                    <option key={sec} value={sec}>
+                      Section {sec}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, marginTop: 4 }}>
+                <button
+                  type="button"
+                  onClick={() => setCloneModal({ isOpen: false, targetSection: "CSE-B", isCloning: false })}
+                  style={{
+                    padding: "8px 14px",
+                    borderRadius: 8,
+                    border: "1px solid #cbd5e1",
+                    background: "#ffffff",
+                    color: "#475569",
+                    fontSize: 12.5,
+                    fontWeight: 600,
+                    cursor: "pointer",
+                  }}
+                >
+                  Cancel
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handleCloneScheduleToTarget}
+                  disabled={cloneModal.isCloning}
+                  style={{
+                    padding: "8px 18px",
+                    borderRadius: 8,
+                    border: "none",
+                    background: "#2563eb",
+                    color: "#ffffff",
+                    fontSize: 12.5,
+                    fontWeight: 800,
+                    cursor: cloneModal.isCloning ? "not-allowed" : "pointer",
+                  }}
+                >
+                  {cloneModal.isCloning ? "Cloning..." : `Clone to ${cloneModal.targetSection}`}
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

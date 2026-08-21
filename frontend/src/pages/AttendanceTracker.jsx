@@ -54,6 +54,7 @@ import {
   DAYS_LIST,
   TIME_SLOTS,
   normalizeSection,
+  setCustomSchedulesStore,
   getSectionSubjectCatalog,
   getDaySchedule,
   resolveSubjectCode,
@@ -108,6 +109,28 @@ export default function AttendanceTracker() {
     return `${year}-${month}-${day}`;
   }
 
+  // ── Live Timetable Dynamic Sync from MongoDB Cloud ─────────────────────
+  const [timetableVersion, setTimetableVersion] = useState(0);
+
+  useEffect(() => {
+    let isMounted = true;
+    async function fetchLiveTimetableSchedules() {
+      try {
+        const { data } = await axios.get(`${API}/timetable/active-all`);
+        if (data && data.success && Array.isArray(data.schedules) && isMounted) {
+          setCustomSchedulesStore(data.schedules);
+          setTimetableVersion((v) => v + 1);
+        }
+      } catch (err) {
+        console.warn("Could not fetch live timetable schedules:", err.message);
+      }
+    }
+    fetchLiveTimetableSchedules();
+    return () => {
+      isMounted = false;
+    };
+  }, [API]);
+
   // ── Daily Timetable Check-in State & Keys ──────────────────────────────
   const todayDateObj = useMemo(() => new Date(), []);
   const todayDateKey = useMemo(() => getLocalCalendarDateKey(todayDateObj), [todayDateObj]);
@@ -116,7 +139,7 @@ export default function AttendanceTracker() {
 
   const todayScheduleRaw = useMemo(() => {
     return getDaySchedule(selectedSection, todayDayName);
-  }, [selectedSection, todayDayName]);
+  }, [selectedSection, todayDayName, timetableVersion]);
 
   const todayClasses = useMemo(() => {
     return (todayScheduleRaw || [])
@@ -194,7 +217,7 @@ export default function AttendanceTracker() {
   // Section Subjects Catalog from Timetable Database
   const sectionCatalog = useMemo(() => {
     return getSectionSubjectCatalog(selectedSection);
-  }, [selectedSection]);
+  }, [selectedSection, timetableVersion]);
 
   // Active Subject Simulation State
   const [selectedSubjectName, setSelectedSubjectName] = useState("");

@@ -10,6 +10,74 @@ import {
   isMatch,
 } from "./basketLogic";
 
+// ── Custom Dynamic Timetable Schedules Store (Synced with MongoDB Atlas) ────
+let customSchedulesStore = {};
+
+// Auto-hydrate from localStorage if running in browser
+if (typeof window !== "undefined" && window.localStorage) {
+  try {
+    const cached = window.localStorage.getItem("gradeflow_custom_schedules");
+    if (cached) {
+      customSchedulesStore = JSON.parse(cached) || {};
+    }
+  } catch (e) {
+    console.warn("Failed to load cached custom schedules:", e);
+  }
+}
+
+/**
+ * Set and cache active published schedules from backend API
+ */
+export function setCustomSchedulesStore(schedules) {
+  if (!schedules) return;
+  const store = {};
+
+  if (Array.isArray(schedules)) {
+    schedules.forEach((s) => {
+      if (s && s.section && s.schedule) {
+        const norm = normalizeSection(s.section);
+        store[norm] = s.schedule;
+        if (s.section !== norm) {
+          store[s.section.toUpperCase()] = s.schedule;
+        }
+      }
+    });
+  } else if (typeof schedules === "object") {
+    Object.keys(schedules).forEach((k) => {
+      const norm = normalizeSection(k);
+      store[norm] = schedules[k];
+    });
+  }
+
+  customSchedulesStore = { ...customSchedulesStore, ...store };
+
+  if (typeof window !== "undefined" && window.localStorage) {
+    try {
+      window.localStorage.setItem("gradeflow_custom_schedules", JSON.stringify(customSchedulesStore));
+    } catch (e) {
+      console.warn("Failed to cache custom schedules:", e);
+    }
+  }
+}
+
+/**
+ * Retrieve the active section schedule (Custom Published -> fallback to Default JSON)
+ */
+export function getActiveSectionSchedule(sectionName = "CSE-A") {
+  const normSec = normalizeSection(sectionName);
+  
+  // 1. Check in-memory / cached custom published schedule
+  if (customSchedulesStore[normSec]) {
+    return customSchedulesStore[normSec];
+  }
+  if (customSchedulesStore[String(sectionName).toUpperCase()]) {
+    return customSchedulesStore[String(sectionName).toUpperCase()];
+  }
+
+  // 2. Fallback to bundled standard JSON timetable
+  return timetableData[normSec] || timetableData["CSE-A"] || {};
+}
+
 // ── Time Slot Configuration with Exact Minute Offsets ───────────────────────
 export const TIME_SLOTS = [
   { id: "slot-1", label: "9.30AM-10.30AM", startMin: 570, endMin: 630, startTime: "09:30", endTime: "10:30" },
@@ -546,8 +614,7 @@ export function normalizeSection(rawSection, regNo = "") {
  * Get Section Schedule for a specific Day from parsed database
  */
 export function getDaySchedule(section, dayName) {
-  const normSec = normalizeSection(section);
-  const secData = timetableData[normSec] || timetableData["CSE-A"];
+  const secData = getActiveSectionSchedule(section);
   if (!secData) return [];
   return secData[dayName] || [];
 }
@@ -667,8 +734,7 @@ export function cleanSubjectBaseName(rawSubject) {
  * Scan section schedule and return all unique subjects with components, weekly frequency, and slots
  */
 export function getSectionSubjectCatalog(sectionName = "CSE-A") {
-  const normSec = normalizeSection(sectionName);
-  const secData = timetableData[normSec] || timetableData["CSE-A"];
+  const secData = getActiveSectionSchedule(sectionName);
   if (!secData) return [];
 
   const catalogMap = new Map();

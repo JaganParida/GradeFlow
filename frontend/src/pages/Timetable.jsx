@@ -52,6 +52,7 @@ import {
   getLivePeriodStatus,
   getLiveScheduleOverview,
   normalizeSection,
+  setCustomSchedulesStore,
   formatDateKey,
   is2023CSEBatch,
   resolveSubjectCode,
@@ -269,6 +270,7 @@ export default function Timetable() {
         const { data } = await axios.get(`${API}/timetable/active-all`);
         if (data?.schedules && isMounted) {
           setDynamicSchedules(data.schedules);
+          setCustomSchedulesStore(data.schedules);
         }
       } catch (err) {
         console.warn("Could not load timetable data:", err.message);
