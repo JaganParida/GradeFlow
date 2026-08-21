@@ -20,6 +20,8 @@ import {
   Loader2,
   FileCheck,
   Percent,
+  Sparkles,
+  Clock,
   Layers,
   ArrowRight,
   Clipboard,
@@ -47,6 +49,19 @@ export default function AttendanceScreenshotModal({
   const [showCatalogDropdown, setShowCatalogDropdown] = useState(false);
   const [isScreenshotVerified, setIsScreenshotVerified] = useState(false);
   const [editingSubject, setEditingSubject] = useState(null); // Sub-modal for editing components (PP, PR, TUT)
+  const [scanStepIndex, setScanStepIndex] = useState(0);
+
+  // Cycling timer for AI OCR scanning stages & patience disclaimers
+  useEffect(() => {
+    if (!isProcessing) {
+      setScanStepIndex(0);
+      return;
+    }
+    const timer = setInterval(() => {
+      setScanStepIndex((prev) => (prev + 1) % SCAN_MESSAGES.length);
+    }, 1800);
+    return () => clearInterval(timer);
+  }, [isProcessing]);
   const fileInputRef = useRef(null);
 
   // Responsive device width tracking
@@ -240,7 +255,31 @@ export default function AttendanceScreenshotModal({
     });
   };
 
-  // Dedicated CUTM ERP Text Parser (Strictly Maps to Enrolled Section Catalog Subjects)
+  // Animated Scanning Stages for AI Vision OCR with Patience Disclaimers
+const SCAN_MESSAGES = [
+  {
+    title: "Analyzing Image Structure & Table Grid",
+    desc: "Preprocessing image pixels, auto-detecting orientation and high-contrast ERP borders...",
+    badge: "Stage 1/4: Preprocessing",
+  },
+  {
+    title: "Extracting Theory (PP), Lab (PR) & Tutorial (TUT) Breakdown",
+    desc: "AI is reading multi-component attendance rows and resolving course codes...",
+    badge: "Stage 2/4: Component OCR",
+  },
+  {
+    title: "Reading Attended & Delivered Session Counts",
+    desc: "Extracting attended lectures, total conducted classes, and live percentage scores...",
+    badge: "Stage 3/4: Number Verification",
+  },
+  {
+    title: "Cross-Matching with Enrolled Section Catalog",
+    desc: "Verifying subject names and preparing final editable review matrix...",
+    badge: "Stage 4/4: Finalizing",
+  },
+];
+
+// Dedicated CUTM ERP Text Parser (Strictly Maps to Enrolled Section Catalog Subjects)
   const parseCutmOcrText = (text, catalog = []) => {
     const lines = text.split("\n").map((l) => l.trim()).filter(Boolean);
     const subjectsMap = new Map();
@@ -872,13 +911,91 @@ export default function AttendanceScreenshotModal({
                   />
 
                   {isProcessing ? (
-                    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 12 }}>
-                      <Loader2 size={36} color="#2563eb" className="spin" />
-                      <div style={{ fontSize: 14, fontWeight: 700, color: "#0f172a" }}>
-                        Scanning Attendance Screenshot...
+                    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 14, width: "100%", maxWidth: 440, margin: "0 auto" }}>
+                      {/* Pulsing AI Spinner Icon */}
+                      <div
+                        style={{
+                          width: 56,
+                          height: 56,
+                          borderRadius: 16,
+                          background: "linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%)",
+                          border: "1.5px solid #bfdbfe",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          color: "#2563eb",
+                          boxShadow: "0 4px 16px rgba(37, 99, 235, 0.2)",
+                        }}
+                      >
+                        <Sparkles size={28} className="spin" />
                       </div>
-                      <div style={{ fontSize: 12, color: "#64748b" }}>
-                        Extracting subjects, attended classes, and total count with AI Vision
+
+                      {/* Live Scanning Stage Info */}
+                      <div style={{ textAlign: "center", display: "flex", flexDirection: "column", gap: 4, width: "100%" }}>
+                        <span
+                          style={{
+                            fontSize: 10.5,
+                            fontWeight: 800,
+                            color: "#1d4ed8",
+                            background: "#dbeafe",
+                            padding: "2px 10px",
+                            borderRadius: 999,
+                            alignSelf: "center",
+                            textTransform: "uppercase",
+                            letterSpacing: "0.5px",
+                          }}
+                        >
+                          {SCAN_MESSAGES[scanStepIndex]?.badge || "AI OCR Processing"}
+                        </span>
+                        <div style={{ fontSize: 15, fontWeight: 800, color: "#0f172a", marginTop: 2 }}>
+                          {SCAN_MESSAGES[scanStepIndex]?.title || "Scanning Attendance Screenshot..."}
+                        </div>
+                        <div style={{ fontSize: 12, color: "#64748b", lineHeight: 1.45, minHeight: 34 }}>
+                          {SCAN_MESSAGES[scanStepIndex]?.desc || "Extracting subjects, attended classes, and total counts with AI Vision..."}
+                        </div>
+                      </div>
+
+                      {/* Animated Progress Bar */}
+                      <div
+                        style={{
+                          width: "100%",
+                          height: 6,
+                          borderRadius: 999,
+                          background: "#e2e8f0",
+                          overflow: "hidden",
+                          position: "relative",
+                        }}
+                      >
+                        <div
+                          style={{
+                            width: `${((scanStepIndex + 1) / SCAN_MESSAGES.length) * 100}%`,
+                            height: "100%",
+                            background: "linear-gradient(90deg, #2563eb 0%, #3b82f6 100%)",
+                            borderRadius: 999,
+                            transition: "width 0.6s ease",
+                          }}
+                        />
+                      </div>
+
+                      {/* Prominent Patience Disclaimer Banner */}
+                      <div
+                        style={{
+                          background: "#fffbeb",
+                          border: "1px solid #fde68a",
+                          borderRadius: 12,
+                          padding: "10px 14px",
+                          display: "flex",
+                          alignItems: "flex-start",
+                          gap: 10,
+                          textAlign: "left",
+                          width: "100%",
+                          boxSizing: "border-box",
+                        }}
+                      >
+                        <Clock size={16} color="#d97706" style={{ flexShrink: 0, marginTop: 2 }} />
+                        <div style={{ fontSize: 11.5, color: "#92400e", lineHeight: 1.45 }}>
+                          <strong>Please be patient:</strong> High-precision AI OCR scanning accurately detects multi-component Theory, Lab, and Tutorial breakdowns. This takes <strong>3–6 seconds</strong>—please do not close or refresh this modal.
+                        </div>
                       </div>
                     </div>
                   ) : (
@@ -1283,27 +1400,59 @@ export default function AttendanceScreenshotModal({
                             </button>
                           </div>
 
-                          {/* Component Badges (PP, PR, TUT) */}
-                          {sub.components && sub.components.length > 0 && (
+                          {/* Component Badges (Click any badge or Edit button to modify) */}
+                          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 6 }}>
                             <div style={{ display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center" }}>
-                              {sub.components.map((comp, cIdx) => (
-                                <span
-                                  key={cIdx}
-                                  style={{
-                                    fontSize: 11,
-                                    fontWeight: 800,
-                                    background: comp.type === "PR" ? "#faf5ff" : comp.type === "TUT" ? "#fffbeb" : "#eff6ff",
-                                    color: comp.type === "PR" ? "#7c3aed" : comp.type === "TUT" ? "#b45309" : "#1e40af",
-                                    border: `1px solid ${comp.type === "PR" ? "#ddd6fe" : comp.type === "TUT" ? "#fde68a" : "#bfdbfe"}`,
-                                    padding: "2px 8px",
-                                    borderRadius: 6,
-                                  }}
-                                >
-                                  {comp.type}: {comp.attended}/{comp.delivered || comp.total} ({comp.percentage || (comp.delivered > 0 ? ((comp.attended / comp.delivered) * 100).toFixed(0) : 0)}%)
-                                </span>
-                              ))}
+                              {sub.components && sub.components.length > 0 ? (
+                                sub.components.map((comp, cIdx) => (
+                                  <span
+                                    key={cIdx}
+                                    onClick={() => handleOpenEditSubject(sub)}
+                                    title="Click to edit this component"
+                                    style={{
+                                      fontSize: 11,
+                                      fontWeight: 800,
+                                      background: comp.type === "PR" ? "#faf5ff" : comp.type === "TUT" ? "#fffbeb" : "#eff6ff",
+                                      color: comp.type === "PR" ? "#7c3aed" : comp.type === "TUT" ? "#b45309" : "#1e40af",
+                                      border: `1.5px solid ${comp.type === "PR" ? "#ddd6fe" : comp.type === "TUT" ? "#fde68a" : "#bfdbfe"}`,
+                                      padding: "3px 8px",
+                                      borderRadius: 6,
+                                      cursor: "pointer",
+                                      display: "inline-flex",
+                                      alignItems: "center",
+                                      gap: 4,
+                                    }}
+                                  >
+                                    <span>{comp.type}: {comp.attended}/{comp.delivered || comp.total}</span>
+                                    <span style={{ fontSize: 10, opacity: 0.85 }}>({comp.percentage || (comp.delivered > 0 ? ((comp.attended / comp.delivered) * 100).toFixed(0) : 0)}%)</span>
+                                  </span>
+                                ))
+                              ) : (
+                                <span style={{ fontSize: 11, color: "#94a3b8", fontStyle: "italic" }}>No components detected</span>
+                              )}
                             </div>
-                          )}
+
+                            <button
+                              type="button"
+                              onClick={() => handleOpenEditSubject(sub)}
+                              style={{
+                                background: "#eff6ff",
+                                border: "1px solid #bfdbfe",
+                                color: "#1d4ed8",
+                                cursor: "pointer",
+                                padding: "4px 8px",
+                                borderRadius: 6,
+                                fontSize: 11,
+                                fontWeight: 800,
+                                display: "inline-flex",
+                                alignItems: "center",
+                                gap: 3,
+                              }}
+                            >
+                              <Edit2 size={11} />
+                              <span>Edit Components</span>
+                            </button>
+                          </div>
 
                           {/* Attended, Total, Status Percentage Controls */}
                           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr auto", gap: 10, alignItems: "center", paddingTop: 6, borderTop: "1px solid #f1f5f9" }}>
