@@ -1308,291 +1308,419 @@ export default function TimetableAdminManager({ authHeaders, API }) {
             </div>
           </div>
 
-          {/* Interactive Timetable Grid Table */}
+          {/* Interactive Timetable Grid Table (Clean Modern Professional UI/UX) */}
           <div
             style={{
               background: "#ffffff",
               border: "1px solid #e2e8f0",
-              borderRadius: 16,
-              padding: isMobile ? "12px 10px" : "16px 20px",
-              boxShadow: "0 1px 3px rgba(0,0,0,0.02)",
+              borderRadius: 18,
+              padding: isMobile ? "14px 12px" : "20px 24px",
+              boxShadow: "0 4px 20px rgba(0,0,0,0.03)",
               overflowX: "auto",
               WebkitOverflowScrolling: "touch",
             }}
           >
-            <table style={{ width: "100%", minWidth: 1040, borderCollapse: "separate", borderSpacing: "6px 8px" }}>
-              <thead>
-                <tr>
-                  <th
-                    style={{
-                      padding: "8px 10px",
-                      textAlign: "left",
-                      fontSize: 12,
-                      fontWeight: 800,
-                      color: "#475569",
-                      width: 80,
-                    }}
-                  >
-                    DAY
-                  </th>
-                  {DEFAULT_SLOTS.map((slot) => (
+            <div style={{ minWidth: 1380 }}>
+              <table
+                style={{
+                  width: "100%",
+                  tableLayout: "fixed",
+                  borderCollapse: "separate",
+                  borderSpacing: "8px 10px",
+                }}
+              >
+                <thead>
+                  <tr>
+                    {/* Day Column Header */}
                     <th
-                      key={slot.index}
                       style={{
-                        padding: "8px 10px",
-                        textAlign: "left",
-                        fontSize: 11.5,
-                        fontWeight: 800,
-                        color: slot.isBreak ? "#9a3412" : "#334155",
-                        background: slot.isBreak
-                          ? "linear-gradient(135deg, #fff7ed 0%, #ffedd5 100%)"
-                          : "#f8fafc",
-                        borderRadius: 8,
-                        border: `1px solid ${slot.isBreak ? "#fed7aa" : "#e2e8f0"}`,
-                        minWidth: slot.isBreak ? 100 : 145,
-                        maxWidth: slot.isBreak ? 110 : 180,
+                        padding: "10px 12px",
+                        textAlign: "center",
+                        fontSize: 12,
+                        fontWeight: 900,
+                        color: "#475569",
+                        width: 100,
+                        minWidth: 100,
+                        background: "#f8fafc",
+                        borderRadius: 10,
+                        border: "1px solid #e2e8f0",
+                        letterSpacing: "0.05em",
                       }}
                     >
-                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                        <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
-                          {slot.isBreak ? <Utensils size={12} color="#ea580c" /> : null}
-                          {slot.slotName}
-                        </span>
-                        <span style={{ fontSize: 10, color: slot.isBreak ? "#c2410c" : "#64748b", fontWeight: 600 }}>
-                          {slot.time}
-                        </span>
-                      </div>
+                      DAY
                     </th>
-                  ))}
-                </tr>
-              </thead>
 
-              <tbody>
-                {DAYS_LIST.map((day) => {
-                  const periods = currentMatrix[day] || [];
-                  return (
-                    <tr key={day}>
-                      {/* Day Label Column */}
-                      <td
-                        style={{
-                          padding: "10px 12px",
-                          fontWeight: 900,
-                          fontSize: 13,
-                          color: "#0f172a",
-                          verticalAlign: "middle",
-                        }}
-                      >
-                        {day}
-                      </td>
+                    {/* 8 Period Slot Headers */}
+                    {DEFAULT_SLOTS.map((slot) => {
+                      if (slot.isBreak || slot.index === 3) {
+                        return (
+                          <th
+                            key={slot.index}
+                            style={{
+                              padding: "8px 10px",
+                              textAlign: "center",
+                              background: "linear-gradient(135deg, #fff7ed 0%, #ffedd5 100%)",
+                              borderRadius: 10,
+                              border: "1px solid #fed7aa",
+                              width: 125,
+                              minWidth: 125,
+                            }}
+                          >
+                            <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 3 }}>
+                              <div style={{ display: "inline-flex", alignItems: "center", gap: 5, color: "#c2410c", fontWeight: 900, fontSize: 11.5 }}>
+                                <Utensils size={13} color="#ea580c" />
+                                <span>LUNCH</span>
+                              </div>
+                              <span style={{ fontSize: 10, fontWeight: 700, color: "#9a3412", background: "rgba(255,255,255,0.7)", padding: "1px 6px", borderRadius: 4 }}>
+                                12:30 – 1:30 PM
+                              </span>
+                            </div>
+                          </th>
+                        );
+                      }
 
-                      {/* 8 Period Slots for this day (including Lunch Break at index 3) */}
-                      {DEFAULT_SLOTS.map((slot, pIdx) => {
-                        if (slot.isBreak || pIdx === 3) {
-                          // Lunch Break Column Cell
+                      return (
+                        <th
+                          key={slot.index}
+                          style={{
+                            padding: "8px 12px",
+                            textAlign: "left",
+                            background: "#f8fafc",
+                            borderRadius: 10,
+                            border: "1px solid #e2e8f0",
+                            width: 165,
+                            minWidth: 165,
+                          }}
+                        >
+                          <div style={{ display: "flex", flexDirection: "column", gap: 3 }}>
+                            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                              <span style={{ fontSize: 13, fontWeight: 900, color: "#0f172a" }}>{slot.slotName}</span>
+                              <span style={{ fontSize: 10, fontWeight: 700, color: "#475569", background: "#ffffff", padding: "1px 6px", borderRadius: 5, border: "1px solid #e2e8f0" }}>
+                                {slot.time.split(" - ")[0]}
+                              </span>
+                            </div>
+                            <span style={{ fontSize: 10, color: "#64748b", fontWeight: 600 }}>{slot.time}</span>
+                          </div>
+                        </th>
+                      );
+                    })}
+                  </tr>
+                </thead>
+
+                <tbody>
+                  {DAYS_LIST.map((day) => {
+                    const periods = currentMatrix[day] || [];
+                    return (
+                      <tr key={day}>
+                        {/* Day Label Column Cell */}
+                        <td
+                          style={{
+                            padding: "6px 4px",
+                            verticalAlign: "middle",
+                            width: 100,
+                            minWidth: 100,
+                          }}
+                        >
+                          <div
+                            style={{
+                              background: "#f8fafc",
+                              border: "1px solid #e2e8f0",
+                              borderRadius: 12,
+                              padding: "14px 8px",
+                              textAlign: "center",
+                              fontWeight: 900,
+                              fontSize: 13,
+                              color: "#0f172a",
+                              letterSpacing: "0.02em",
+                              boxShadow: "0 1px 3px rgba(0,0,0,0.02)",
+                            }}
+                          >
+                            {day}
+                          </div>
+                        </td>
+
+                        {/* 8 Period Slots for this day */}
+                        {DEFAULT_SLOTS.map((slot, pIdx) => {
+                          if (slot.isBreak || pIdx === 3) {
+                            // Dedicated Lunch Break Recess Card
+                            return (
+                              <td
+                                key={pIdx}
+                                style={{
+                                  verticalAlign: "middle",
+                                  width: 125,
+                                  minWidth: 125,
+                                }}
+                              >
+                                <div
+                                  style={{
+                                    background: "linear-gradient(135deg, #fff7ed 0%, #ffedd5 100%)",
+                                    border: "1.5px dashed #fed7aa",
+                                    borderRadius: 12,
+                                    padding: "12px 6px",
+                                    display: "flex",
+                                    flexDirection: "column",
+                                    alignItems: "center",
+                                    justifyContent: "center",
+                                    gap: 6,
+                                    minHeight: 112,
+                                    color: "#c2410c",
+                                    boxSizing: "border-box",
+                                  }}
+                                >
+                                  <div
+                                    style={{
+                                      width: 28,
+                                      height: 28,
+                                      borderRadius: 999,
+                                      background: "#ffedd5",
+                                      border: "1px solid #fed7aa",
+                                      display: "flex",
+                                      alignItems: "center",
+                                      justifyContent: "center",
+                                    }}
+                                  >
+                                    <Utensils size={14} color="#ea580c" />
+                                  </div>
+                                  <span style={{ fontSize: 11, fontWeight: 900, textAlign: "center", lineHeight: 1.2 }}>
+                                    Lunch Break
+                                  </span>
+                                  <span style={{ fontSize: 9.5, fontWeight: 700, color: "#9a3412", background: "rgba(255,255,255,0.7)", padding: "1px 6px", borderRadius: 4 }}>
+                                    12:30–1:30 PM
+                                  </span>
+                                </div>
+                              </td>
+                            );
+                          }
+
+                          const period = periods[pIdx] || { isFree: true, subject: "No Class / Free", type: "FREE" };
+                          const isFree = period.isFree || period.type === "FREE" || !period.subject || period.subject === "No Class / Free";
+                          const isLab = period.type === "PR";
+                          const isTut = period.type === "TUT";
+
                           return (
                             <td
                               key={pIdx}
                               style={{
-                                verticalAlign: "middle",
-                                minWidth: 100,
-                                maxWidth: 110,
+                                verticalAlign: "top",
+                                width: 165,
+                                minWidth: 165,
                               }}
                             >
-                              <div
-                                style={{
-                                  background: "linear-gradient(135deg, #fff7ed 0%, #ffedd5 100%)",
-                                  border: "1px dashed #fed7aa",
-                                  borderRadius: 10,
-                                  padding: "10px 6px",
-                                  display: "flex",
-                                  flexDirection: "column",
-                                  alignItems: "center",
-                                  justifyContent: "center",
-                                  gap: 4,
-                                  minHeight: 74,
-                                  color: "#c2410c",
-                                }}
-                              >
-                                <Utensils size={14} color="#ea580c" />
-                                <span style={{ fontSize: 10.5, fontWeight: 800, textAlign: "center", lineHeight: 1.2 }}>
-                                  Lunch Break
-                                </span>
-                                <span style={{ fontSize: 9.5, color: "#9a3412" }}>12:30–1:30</span>
-                              </div>
-                            </td>
-                          );
-                        }
-
-                        const period = periods[pIdx] || { isFree: true, subject: "No Class / Free", type: "FREE" };
-                        const isFree = period.isFree || period.type === "FREE" || !period.subject || period.subject === "No Class / Free";
-                        const isLab = period.type === "PR";
-                        const isTut = period.type === "TUT";
-
-                        return (
-                          <td
-                            key={pIdx}
-                            style={{
-                              verticalAlign: "top",
-                              minWidth: 145,
-                              maxWidth: 180,
-                            }}
-                          >
-                            {isFree ? (
-                              /* Empty / Free Slot Card */
-                              <div
-                                style={{
-                                  background: "#f8fafc",
-                                  border: "1.5px dashed #cbd5e1",
-                                  borderRadius: 10,
-                                  padding: "10px 8px",
-                                  display: "flex",
-                                  flexDirection: "column",
-                                  alignItems: "center",
-                                  justifyContent: "center",
-                                  gap: 6,
-                                  minHeight: 74,
-                                  transition: "all 0.15s ease",
-                                }}
-                              >
-                                <span style={{ fontSize: 11, color: "#94a3b8", fontWeight: 600 }}>
-                                  Free Slot
-                                </span>
-                                <button
-                                  type="button"
-                                  onClick={() => openEditSlotModal(day, pIdx)}
+                              {isFree ? (
+                                /* Clean Empty / Free Slot Card */
+                                <div
                                   style={{
-                                    border: "1px solid #cbd5e1",
-                                    background: "#ffffff",
-                                    color: "#2563eb",
-                                    borderRadius: 6,
-                                    padding: "3px 8px",
-                                    fontSize: 11,
-                                    fontWeight: 700,
-                                    cursor: "pointer",
-                                    display: "inline-flex",
+                                    background: "#f8fafc",
+                                    border: "1.5px dashed #cbd5e1",
+                                    borderRadius: 12,
+                                    padding: "12px 10px",
+                                    display: "flex",
+                                    flexDirection: "column",
                                     alignItems: "center",
-                                    gap: 3,
+                                    justifyContent: "center",
+                                    gap: 8,
+                                    minHeight: 112,
+                                    boxSizing: "border-box",
+                                    transition: "all 0.15s ease",
                                   }}
                                 >
-                                  <Plus size={12} />
-                                  <span>Add Class</span>
-                                </button>
-                              </div>
-                            ) : (
-                              /* Active Scheduled Period Card */
-                              <div
-                                style={{
-                                  background: isLab ? "#faf5ff" : isTut ? "#fffbeb" : "#eff6ff",
-                                  border: `1.5px solid ${isLab ? "#d8b4fe" : isTut ? "#fde68a" : "#bfdbfe"}`,
-                                  borderRadius: 10,
-                                  padding: "8px 10px",
-                                  display: "flex",
-                                  flexDirection: "column",
-                                  gap: 5,
-                                  minHeight: 74,
-                                  position: "relative",
-                                  boxShadow: "0 1px 3px rgba(0,0,0,0.02)",
-                                }}
-                              >
-                                {/* Period Header Badge & Type */}
-                                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                                  <span
-                                    onClick={() => handleQuickTypeToggle(day, pIdx)}
-                                    title="Click to toggle Theory (PP) / Lab (PR) / Tutorial (TUT)"
+                                  <span style={{ fontSize: 11.5, color: "#94a3b8", fontWeight: 600 }}>
+                                    Free Slot
+                                  </span>
+                                  <button
+                                    type="button"
+                                    onClick={() => openEditSlotModal(day, pIdx)}
                                     style={{
-                                      fontSize: 9.5,
-                                      fontWeight: 900,
-                                      padding: "1px 5px",
-                                      borderRadius: 4,
-                                      background: isLab ? "#7c3aed" : isTut ? "#b45309" : "#2563eb",
-                                      color: "#ffffff",
+                                      border: "1px solid #cbd5e1",
+                                      background: "#ffffff",
+                                      color: "#2563eb",
+                                      borderRadius: 7,
+                                      padding: "4px 9px",
+                                      fontSize: 11,
+                                      fontWeight: 700,
                                       cursor: "pointer",
-                                      letterSpacing: "0.02em",
+                                      display: "inline-flex",
+                                      alignItems: "center",
+                                      gap: 4,
+                                      boxShadow: "0 1px 2px rgba(0,0,0,0.03)",
                                     }}
                                   >
-                                    {period.type || "PP"}
-                                  </span>
-
-                                  {/* Action buttons */}
-                                  <div style={{ display: "flex", alignItems: "center", gap: 3 }}>
-                                    <button
-                                      type="button"
-                                      onClick={() => openEditSlotModal(day, pIdx)}
-                                      title="Edit slot details"
-                                      style={{
-                                        border: "none",
-                                        background: "transparent",
-                                        color: "#475569",
-                                        cursor: "pointer",
-                                        padding: 2,
-                                        borderRadius: 4,
-                                        display: "flex",
-                                      }}
-                                    >
-                                      <Edit2 size={12} />
-                                    </button>
-                                    <button
-                                      type="button"
-                                      onClick={() => handleClearPeriodSlot(day, pIdx)}
-                                      title="Clear / make free"
-                                      style={{
-                                        border: "none",
-                                        background: "transparent",
-                                        color: "#dc2626",
-                                        cursor: "pointer",
-                                        padding: 2,
-                                        borderRadius: 4,
-                                        display: "flex",
-                                      }}
-                                    >
-                                      <Trash2 size={12} />
-                                    </button>
-                                  </div>
+                                    <Plus size={12} />
+                                    <span>Add Class</span>
+                                  </button>
                                 </div>
-
-                                {/* Subject Name */}
+                              ) : (
+                                /* Professional Active Period Card */
                                 <div
-                                  onClick={() => openEditSlotModal(day, pIdx)}
-                                  title="Click to edit"
                                   style={{
-                                    fontSize: 12,
-                                    fontWeight: 800,
-                                    color: isLab ? "#6b21a8" : isTut ? "#78350f" : "#1e40af",
-                                    lineHeight: 1.25,
-                                    cursor: "pointer",
+                                    background: isLab ? "#faf5ff" : isTut ? "#fffbeb" : "#eff6ff",
+                                    border: `1.5px solid ${isLab ? "#d8b4fe" : isTut ? "#fde68a" : "#bfdbfe"}`,
+                                    borderRadius: 12,
+                                    padding: "10px 11px",
+                                    display: "flex",
+                                    flexDirection: "column",
+                                    gap: 6,
+                                    minHeight: 112,
+                                    boxSizing: "border-box",
+                                    position: "relative",
+                                    boxShadow: "0 1px 3px rgba(0,0,0,0.03)",
+                                    transition: "all 0.15s ease",
                                   }}
                                 >
-                                  {period.subject}
-                                </div>
+                                  {/* Period Card Header: Type Pill & Quick Actions */}
+                                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                                    <span
+                                      onClick={() => handleQuickTypeToggle(day, pIdx)}
+                                      title="Click to toggle Theory (PP) / Lab (PR) / Tutorial (TUT)"
+                                      style={{
+                                        fontSize: 10,
+                                        fontWeight: 900,
+                                        padding: "2px 6px",
+                                        borderRadius: 5,
+                                        background: isLab ? "#7c3aed" : isTut ? "#b45309" : "#2563eb",
+                                        color: "#ffffff",
+                                        cursor: "pointer",
+                                        letterSpacing: "0.03em",
+                                        boxShadow: "0 1px 3px rgba(0,0,0,0.1)",
+                                      }}
+                                    >
+                                      {period.type || "PP"}
+                                    </span>
 
-                                {/* Code / Room / Faculty info */}
-                                <div style={{ fontSize: 10, color: "#64748b", display: "flex", flexDirection: "column", gap: 2, marginTop: 2 }}>
-                                  {period.code && (
-                                    <span style={{ fontWeight: 700, color: "#475569" }}>
-                                      {period.code}
-                                    </span>
-                                  )}
-                                  {period.room && (
-                                    <span style={{ display: "inline-flex", alignItems: "center", gap: 3 }}>
-                                      <MapPin size={9} color="#64748b" /> {period.room}
-                                    </span>
-                                  )}
-                                  {period.faculty && (
-                                    <span style={{ display: "inline-flex", alignItems: "center", gap: 3 }}>
-                                      <User size={9} color="#64748b" /> {period.faculty}
-                                    </span>
-                                  )}
+                                    {/* Action Buttons */}
+                                    <div style={{ display: "flex", alignItems: "center", gap: 3 }}>
+                                      <button
+                                        type="button"
+                                        onClick={() => openEditSlotModal(day, pIdx)}
+                                        title="Edit slot details"
+                                        style={{
+                                          border: "1px solid rgba(0,0,0,0.08)",
+                                          background: "#ffffff",
+                                          color: "#475569",
+                                          cursor: "pointer",
+                                          padding: "3px 4px",
+                                          borderRadius: 5,
+                                          display: "flex",
+                                          alignItems: "center",
+                                          justifyContent: "center",
+                                        }}
+                                      >
+                                        <Edit2 size={11} />
+                                      </button>
+                                      <button
+                                        type="button"
+                                        onClick={() => handleClearPeriodSlot(day, pIdx)}
+                                        title="Clear / make free"
+                                        style={{
+                                          border: "1px solid rgba(220,38,38,0.15)",
+                                          background: "#ffffff",
+                                          color: "#dc2626",
+                                          cursor: "pointer",
+                                          padding: "3px 4px",
+                                          borderRadius: 5,
+                                          display: "flex",
+                                          alignItems: "center",
+                                          justifyContent: "center",
+                                        }}
+                                      >
+                                        <Trash2 size={11} />
+                                      </button>
+                                    </div>
+                                  </div>
+
+                                  {/* Subject Title */}
+                                  <div
+                                    onClick={() => openEditSlotModal(day, pIdx)}
+                                    title={period.subject}
+                                    style={{
+                                      fontSize: 12,
+                                      fontWeight: 800,
+                                      color: isLab ? "#6b21a8" : isTut ? "#78350f" : "#1e40af",
+                                      lineHeight: 1.3,
+                                      cursor: "pointer",
+                                      minHeight: 31,
+                                      display: "-webkit-box",
+                                      WebkitLineClamp: 2,
+                                      WebkitBoxOrient: "vertical",
+                                      overflow: "hidden",
+                                      wordBreak: "break-word",
+                                    }}
+                                  >
+                                    {period.subject}
+                                  </div>
+
+                                  {/* Room & Faculty Details */}
+                                  <div
+                                    style={{
+                                      display: "flex",
+                                      flexDirection: "column",
+                                      gap: 3,
+                                      marginTop: "auto",
+                                      paddingTop: 4,
+                                      borderTop: "1px solid rgba(0,0,0,0.06)",
+                                    }}
+                                  >
+                                    {period.room ? (
+                                      <div
+                                        style={{
+                                          display: "flex",
+                                          alignItems: "center",
+                                          gap: 5,
+                                          fontSize: 10.5,
+                                          color: "#475569",
+                                        }}
+                                      >
+                                        <MapPin size={11} color="#64748b" style={{ flexShrink: 0 }} />
+                                        <span
+                                          style={{
+                                            fontWeight: 700,
+                                            overflow: "hidden",
+                                            textOverflow: "ellipsis",
+                                            whiteSpace: "nowrap",
+                                          }}
+                                        >
+                                          {period.room}
+                                        </span>
+                                      </div>
+                                    ) : null}
+
+                                    {period.faculty ? (
+                                      <div
+                                        style={{
+                                          display: "flex",
+                                          alignItems: "center",
+                                          gap: 5,
+                                          fontSize: 10.5,
+                                          color: "#475569",
+                                        }}
+                                        title={period.faculty}
+                                      >
+                                        <User size={11} color="#64748b" style={{ flexShrink: 0 }} />
+                                        <span
+                                          style={{
+                                            fontWeight: 600,
+                                            overflow: "hidden",
+                                            textOverflow: "ellipsis",
+                                            whiteSpace: "nowrap",
+                                          }}
+                                        >
+                                          {period.faculty}
+                                        </span>
+                                      </div>
+                                    ) : null}
+                                  </div>
                                 </div>
-                              </div>
-                            )}
-                          </td>
-                        );
-                      })}
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+                              )}
+                            </td>
+                          );
+                        })}
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
           </div>
         </div>
       )}
