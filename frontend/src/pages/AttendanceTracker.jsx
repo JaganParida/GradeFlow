@@ -149,7 +149,7 @@ export default function AttendanceTracker() {
         slot: TIME_SLOTS[idx],
         cleanName: cleanSubjectBaseName(period.subject),
       }))
-      .filter((p) => !p.isFree && p.subject && p.subject !== "No Class / Free");
+      .filter((p) => !p.isFree && !p.isBreak && p.subject && p.subject !== "No Class / Free" && !/lunch\s*break|recess/i.test(p.subject));
   }, [todayScheduleRaw]);
 
   // Full calendar dailyLogs store map (Date -> { slotIndex: "present" | "absent" })
