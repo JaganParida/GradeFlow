@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useMemo } from "react";
 import axios from "axios";
 import { createWorker } from "tesseract.js";
 import { motion, AnimatePresence } from "framer-motion";
@@ -11,6 +11,9 @@ import {
   ShieldCheck,
   AlertCircle,
   Trash2,
+  Edit2,
+  Sliders,
+  Award,
   Plus,
   X,
   Loader2,
@@ -42,6 +45,7 @@ export default function AttendanceScreenshotModal({
   const [pasteNotice, setPasteNotice] = useState(false);
   const [showCatalogDropdown, setShowCatalogDropdown] = useState(false);
   const [isScreenshotVerified, setIsScreenshotVerified] = useState(false);
+  const [editingSubject, setEditingSubject] = useState(null); // Sub-modal for editing components (PP, PR, TUT)
   const fileInputRef = useRef(null);
 
   // Responsive device width tracking
@@ -57,6 +61,25 @@ export default function AttendanceScreenshotModal({
 
   // Get active section catalog subjects
   const sectionCatalog = getSectionSubjectCatalog(currentSection) || [];
+
+  // Live Overall Aggregate Score across all detected subjects in modal
+  const liveOverall = useMemo(() => {
+    let totalAtt = 0;
+    let totalDel = 0;
+    parsedSubjects.forEach((s) => {
+      totalAtt += Number(s.attendedClasses) || 0;
+      totalDel += Number(s.totalClasses) || 0;
+    });
+    const pct = totalDel > 0 ? (totalAtt / totalDel) * 100 : 100;
+    const isEligible = pct >= 75;
+    return {
+      totalAtt,
+      totalDel,
+      percentage: Number(pct.toFixed(2)),
+      isEligible,
+      count: parsedSubjects.length,
+    };
+  }, [parsedSubjects]);
 
   // Global Clipboard Paste Listener (Ctrl+V support)
   useEffect(() => {
@@ -579,6 +602,99 @@ export default function AttendanceScreenshotModal({
     setParsedSubjects((prev) => prev.filter((s) => s.id !== id));
   };
 
+  // ── Open Component Breakdown & Subject Details Sub-Modal ──
+  const handleOpenEditSubject = (sub) => {
+    setEditingSubject({
+      id: sub.id,
+      name: sub.name || "",
+      code: sub.code || "",
+      components: Array.isArray(sub.components) && sub.components.length > 0
+        ? JSON.parse(JSON.stringify(sub.components))
+        : [
+            { type: "PP", attended: sub.attendedClasses || 0, delivered: sub.totalClasses || 0, percentage: sub.percentage || 0 }
+          ],
+    });
+  };
+
+  // ── Add new component row inside editing sub-modal ──
+  const handleAddComponentRow = (type = "PP") => {
+    if (!editingSubject) return;
+    setEditingSubject((prev) => ({
+      ...prev,
+      components: [
+        ...(prev.components || []),
+        { type, attended: 0, delivered: 0, percentage: 0 },
+      ],
+    }));
+  };
+
+  // ── Update a component inside editing sub-modal ──
+  const handleUpdateComponentField = (idx, field, value) => {
+    if (!editingSubject) return;
+    setEditingSubject((prev) => {
+      const nextComps = [...(prev.components || [])];
+      const comp = { ...nextComps[idx] };
+
+      if (field === "type") {
+        comp.type = value;
+      } else {
+        const numVal = Math.max(0, parseInt(value, 10) || 0);
+        comp[field] = numVal;
+        const att = field === "attended" ? numVal : comp.attended || 0;
+        const del = field === "delivered" ? numVal : comp.delivered || 0;
+        comp.percentage = del > 0 ? Number(((att / del) * 100).toFixed(1)) : 0;
+      }
+
+      nextComps[idx] = comp;
+      return { ...prev, components: nextComps };
+    });
+  };
+
+  // ── Delete a component row inside editing sub-modal ──
+  const handleDeleteComponentRow = (idx) => {
+    if (!editingSubject) return;
+    setEditingSubject((prev) => ({
+      ...prev,
+      components: (prev.components || []).filter((_, i) => i !== idx),
+    }));
+  };
+
+  // ── Save edited subject details & components back to parsedSubjects ──
+  const handleSaveEditedSubject = () => {
+    if (!editingSubject) return;
+
+    let totAtt = 0;
+    let totDel = 0;
+    const comps = editingSubject.components || [];
+
+    comps.forEach((c) => {
+      totAtt += Number(c.attended) || 0;
+      totDel += Number(c.delivered) || 0;
+    });
+
+    // If no components were specified, fallback to 0
+    const finalPct = totDel > 0 ? Number(((totAtt / totDel) * 100).toFixed(1)) : 0;
+
+    setParsedSubjects((prev) =>
+      prev.map((s) => {
+        if (s.id === editingSubject.id) {
+          return {
+            ...s,
+            name: editingSubject.name.trim() || s.name,
+            code: (editingSubject.code || s.code || "").trim(),
+            components: comps,
+            attendedClasses: totAtt,
+            totalClasses: totDel,
+            percentage: finalPct,
+          };
+        }
+        return s;
+      })
+    );
+
+    setEditingSubject(null);
+  };
+
   const handleConfirmAndApply = () => {
     if (parsedSubjects.length === 0) {
       setErrorMsg("Please add at least one subject before applying.");
@@ -896,6 +1012,93 @@ export default function AttendanceScreenshotModal({
             ) : (
               /* Review Step */
               <div>
+                {/* ── LIVE OVERALL AGGREGATE SUMMARY CARD (TOP OF MODAL) ── */}
+                <div
+                  style={{
+                    background: liveOverall.isEligible
+                      ? "linear-gradient(135deg, #f0fdf4 0%, #ecfdf5 100%)"
+                      : "linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%)",
+                    border: `1.5px solid ${liveOverall.isEligible ? "#86efac" : "#fde68a"}`,
+                    borderRadius: 14,
+                    padding: isMobile ? "12px 14px" : "14px 18px",
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                    marginBottom: 14,
+                    boxShadow: "0 2px 8px rgba(0,0,0,0.03)",
+                  }}
+                >
+                  <div style={{ display: "flex", alignItems: "center", gap: isMobile ? 10 : 14 }}>
+                    <div
+                      style={{
+                        width: isMobile ? 40 : 46,
+                        height: isMobile ? 40 : 46,
+                        borderRadius: 12,
+                        background: liveOverall.isEligible ? "#059669" : "#d97706",
+                        color: "#ffffff",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        flexShrink: 0,
+                        boxShadow: liveOverall.isEligible
+                          ? "0 3px 10px rgba(5,150,105,0.3)"
+                          : "0 3px 10px rgba(217,119,6,0.3)",
+                      }}
+                    >
+                      <Percent size={isMobile ? 20 : 24} />
+                    </div>
+                    <div>
+                      <div
+                        style={{
+                          fontSize: 11,
+                          fontWeight: 800,
+                          color: liveOverall.isEligible ? "#166534" : "#92400e",
+                          textTransform: "uppercase",
+                          letterSpacing: "0.5px",
+                        }}
+                      >
+                        Overall Live Attendance Score
+                      </div>
+                      <div
+                        style={{
+                          fontSize: isMobile ? 19 : 23,
+                          fontWeight: 900,
+                          color: liveOverall.isEligible ? "#059669" : "#d97706",
+                          letterSpacing: "-0.5px",
+                        }}
+                      >
+                        {liveOverall.percentage}%{" "}
+                        <span style={{ fontSize: isMobile ? 12 : 13.5, color: "#64748b", fontWeight: 700 }}>
+                          ({liveOverall.totalAtt} / {liveOverall.totalDel} classes)
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div
+                    style={{
+                      fontSize: isMobile ? 11 : 12,
+                      fontWeight: 900,
+                      background: liveOverall.isEligible ? "#dcfce7" : "#fef3c7",
+                      color: liveOverall.isEligible ? "#15803d" : "#b45309",
+                      padding: isMobile ? "4px 8px" : "6px 12px",
+                      borderRadius: 8,
+                      border: `1px solid ${liveOverall.isEligible ? "#bbf7d0" : "#fde68a"}`,
+                      textAlign: "center",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 4,
+                    }}
+                  >
+                    {liveOverall.isEligible ? (
+                      <CheckCircle2 size={13} color="#16a34a" />
+                    ) : (
+                      <AlertCircle size={13} color="#d97706" />
+                    )}
+                    <span>{liveOverall.isEligible ? "ELIGIBLE" : "BELOW 75%"}</span>
+                  </div>
+                </div>
+
                 <div
                   style={{
                     display: "flex",
@@ -1037,6 +1240,28 @@ export default function AttendanceScreenshotModal({
                                 background: "#f8fafc",
                               }}
                             />
+                            <button
+                              type="button"
+                              onClick={() => handleOpenEditSubject(sub)}
+                              style={{
+                                background: "#eff6ff",
+                                border: "1px solid #bfdbfe",
+                                color: "#1d4ed8",
+                                cursor: "pointer",
+                                padding: "7px 9px",
+                                borderRadius: 8,
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "center",
+                                gap: 4,
+                                fontSize: 11.5,
+                                fontWeight: 700,
+                              }}
+                              title="Edit Components & Details"
+                            >
+                              <Edit2 size={14} />
+                              <span>Edit</span>
+                            </button>
                             <button
                               type="button"
                               onClick={() => handleDeleteRow(sub.id)}
@@ -1313,25 +1538,44 @@ export default function AttendanceScreenshotModal({
                                 </span>
                               </td>
                               <td style={{ padding: "8px 8px", textAlign: "center" }}>
-                                <button
-                                  type="button"
-                                  onClick={() => handleDeleteRow(sub.id)}
-                                  style={{
-                                    background: "transparent",
-                                    border: "none",
-                                    color: "#94a3b8",
-                                    cursor: "pointer",
-                                    padding: 4,
-                                    borderRadius: 6,
-                                    display: "flex",
-                                    alignItems: "center",
-                                    justifyContent: "center",
-                                    margin: "0 auto",
-                                  }}
-                                  title="Remove Subject"
-                                >
-                                  <Trash2 size={15} />
-                                </button>
+                                <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 4 }}>
+                                  <button
+                                    type="button"
+                                    onClick={() => handleOpenEditSubject(sub)}
+                                    style={{
+                                      background: "#eff6ff",
+                                      border: "1px solid #bfdbfe",
+                                      color: "#1d4ed8",
+                                      cursor: "pointer",
+                                      padding: "4px 6px",
+                                      borderRadius: 6,
+                                      display: "flex",
+                                      alignItems: "center",
+                                      justifyContent: "center",
+                                    }}
+                                    title="Edit Subject Components"
+                                  >
+                                    <Edit2 size={13} />
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => handleDeleteRow(sub.id)}
+                                    style={{
+                                      background: "transparent",
+                                      border: "none",
+                                      color: "#dc2626",
+                                      cursor: "pointer",
+                                      padding: 4,
+                                      borderRadius: 6,
+                                      display: "flex",
+                                      alignItems: "center",
+                                      justifyContent: "center",
+                                    }}
+                                    title="Remove Subject"
+                                  >
+                                    <Trash2 size={14} />
+                                  </button>
+                                </div>
                               </td>
                             </tr>
                           );
@@ -1512,6 +1756,360 @@ export default function AttendanceScreenshotModal({
           </div>
         </motion.div>
       </div>
+
+      {/* ═════════════════════════════════════════════════════════════
+          SUB-MODAL: COMPONENT BREAKDOWN & DETAILS EDITOR (PP, PR, TUT)
+      ═════════════════════════════════════════════════════════════ */}
+      <AnimatePresence>
+        {editingSubject && (
+          <div
+            style={{
+              position: "fixed",
+              inset: 0,
+              zIndex: 10000,
+              background: "rgba(15, 23, 42, 0.7)",
+              backdropFilter: "blur(4px)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              padding: isMobile ? 12 : 16,
+            }}
+          >
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              style={{
+                background: "#ffffff",
+                borderRadius: 18,
+                maxWidth: "min(500px, 95vw)",
+                width: "100%",
+                maxHeight: "90vh",
+                overflowY: "auto",
+                boxShadow: "0 25px 50px rgba(0,0,0,0.25)",
+                border: "1px solid #e2e8f0",
+                display: "flex",
+                flexDirection: "column",
+              }}
+            >
+              {/* Sub-Modal Header */}
+              <div
+                style={{
+                  padding: "16px 20px",
+                  background: "#f8fafc",
+                  borderBottom: "1px solid #e2e8f0",
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                }}
+              >
+                <div>
+                  <h4 style={{ fontSize: 15, fontWeight: 900, color: "#0f172a", margin: 0, display: "flex", alignItems: "center", gap: 6 }}>
+                    <Edit2 size={16} color="#2563eb" />
+                    <span>Edit Subject & Components</span>
+                  </h4>
+                  <span style={{ fontSize: 11.5, color: "#64748b" }}>
+                    Configure Theory (PP), Lab (PR), and Tutorial (TUT) breakdowns
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setEditingSubject(null)}
+                  style={{ border: "none", background: "transparent", cursor: "pointer", color: "#64748b", padding: 4 }}
+                >
+                  <X size={18} />
+                </button>
+              </div>
+
+              {/* Sub-Modal Body */}
+              <div style={{ padding: "16px 20px", display: "flex", flexDirection: "column", gap: 14 }}>
+                {/* Subject Title & Code */}
+                <div>
+                  <label style={{ display: "block", fontSize: 11.5, fontWeight: 800, color: "#475569", marginBottom: 4 }}>
+                    Subject Name
+                  </label>
+                  <input
+                    type="text"
+                    value={editingSubject.name}
+                    onChange={(e) => setEditingSubject((prev) => ({ ...prev, name: e.target.value }))}
+                    style={{
+                      width: "100%",
+                      padding: "8px 12px",
+                      borderRadius: 8,
+                      border: "1.5px solid #cbd5e1",
+                      fontSize: 13,
+                      fontWeight: 700,
+                      color: "#0f172a",
+                      outline: "none",
+                      boxSizing: "border-box",
+                    }}
+                  />
+                </div>
+
+                {/* Component Breakdown Rows */}
+                <div>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+                    <label style={{ fontSize: 12, fontWeight: 800, color: "#0f172a" }}>
+                      Component Breakdown ({editingSubject.components?.length || 0})
+                    </label>
+                    <div style={{ display: "flex", gap: 6 }}>
+                      <button
+                        type="button"
+                        onClick={() => handleAddComponentRow("PP")}
+                        style={{
+                          background: "#eff6ff",
+                          border: "1px solid #bfdbfe",
+                          color: "#1d4ed8",
+                          padding: "4px 8px",
+                          borderRadius: 6,
+                          fontSize: 11,
+                          fontWeight: 700,
+                          cursor: "pointer",
+                          display: "inline-flex",
+                          alignItems: "center",
+                          gap: 3,
+                        }}
+                      >
+                        <Plus size={11} /> + Theory (PP)
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleAddComponentRow("PR")}
+                        style={{
+                          background: "#faf5ff",
+                          border: "1px solid #ddd6fe",
+                          color: "#7c3aed",
+                          padding: "4px 8px",
+                          borderRadius: 6,
+                          fontSize: 11,
+                          fontWeight: 700,
+                          cursor: "pointer",
+                          display: "inline-flex",
+                          alignItems: "center",
+                          gap: 3,
+                        }}
+                      >
+                        <Plus size={11} /> + Lab (PR)
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleAddComponentRow("TUT")}
+                        style={{
+                          background: "#fffbeb",
+                          border: "1px solid #fde68a",
+                          color: "#b45309",
+                          padding: "4px 8px",
+                          borderRadius: 6,
+                          fontSize: 11,
+                          fontWeight: 700,
+                          cursor: "pointer",
+                          display: "inline-flex",
+                          alignItems: "center",
+                          gap: 3,
+                        }}
+                      >
+                        <Plus size={11} /> + Tutorial (TUT)
+                      </button>
+                    </div>
+                  </div>
+
+                  {editingSubject.components?.length === 0 ? (
+                    <div style={{ padding: "16px", textAlign: "center", background: "#f8fafc", borderRadius: 10, border: "1px dashed #cbd5e1", color: "#64748b", fontSize: 12 }}>
+                      No components added yet. Click one of the buttons above to add Theory, Lab, or Tutorial.
+                    </div>
+                  ) : (
+                    <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                      {editingSubject.components.map((comp, cIdx) => (
+                        <div
+                          key={cIdx}
+                          style={{
+                            background: comp.type === "PR" ? "#faf5ff" : comp.type === "TUT" ? "#fffbeb" : "#eff6ff",
+                            border: `1.5px solid ${comp.type === "PR" ? "#ddd6fe" : comp.type === "TUT" ? "#fde68a" : "#bfdbfe"}`,
+                            borderRadius: 10,
+                            padding: "8px 10px",
+                            display: "grid",
+                            gridTemplateColumns: "1.2fr 1fr 1fr auto auto",
+                            gap: 8,
+                            alignItems: "center",
+                          }}
+                        >
+                          {/* Component Type Selector */}
+                          <div>
+                            <label style={{ display: "block", fontSize: 9.5, fontWeight: 700, color: "#64748b", marginBottom: 2 }}>
+                              Type:
+                            </label>
+                            <select
+                              value={comp.type}
+                              onChange={(e) => handleUpdateComponentField(cIdx, "type", e.target.value)}
+                              style={{
+                                width: "100%",
+                                padding: "4px 6px",
+                                borderRadius: 6,
+                                border: "1px solid #cbd5e1",
+                                fontSize: 11.5,
+                                fontWeight: 800,
+                                color: comp.type === "PR" ? "#7c3aed" : comp.type === "TUT" ? "#b45309" : "#1d4ed8",
+                                background: "#ffffff",
+                                outline: "none",
+                              }}
+                            >
+                              <option value="PP">Theory (PP)</option>
+                              <option value="PR">Practical (PR)</option>
+                              <option value="TUT">Tutorial (TUT)</option>
+                            </select>
+                          </div>
+
+                          {/* Attended Classes */}
+                          <div>
+                            <label style={{ display: "block", fontSize: 9.5, fontWeight: 700, color: "#64748b", marginBottom: 2 }}>
+                              Attended:
+                            </label>
+                            <input
+                              type="number"
+                              min="0"
+                              value={comp.attended}
+                              onChange={(e) => handleUpdateComponentField(cIdx, "attended", e.target.value)}
+                              style={{
+                                width: "100%",
+                                padding: "4px 6px",
+                                borderRadius: 6,
+                                border: "1px solid #cbd5e1",
+                                fontSize: 12,
+                                fontWeight: 800,
+                                textAlign: "center",
+                                outline: "none",
+                                background: "#ffffff",
+                                boxSizing: "border-box",
+                              }}
+                            />
+                          </div>
+
+                          {/* Delivered Classes */}
+                          <div>
+                            <label style={{ display: "block", fontSize: 9.5, fontWeight: 700, color: "#64748b", marginBottom: 2 }}>
+                              Delivered:
+                            </label>
+                            <input
+                              type="number"
+                              min="0"
+                              value={comp.delivered}
+                              onChange={(e) => handleUpdateComponentField(cIdx, "delivered", e.target.value)}
+                              style={{
+                                width: "100%",
+                                padding: "4px 6px",
+                                borderRadius: 6,
+                                border: "1px solid #cbd5e1",
+                                fontSize: 12,
+                                fontWeight: 800,
+                                textAlign: "center",
+                                outline: "none",
+                                background: "#ffffff",
+                                boxSizing: "border-box",
+                              }}
+                            />
+                          </div>
+
+                          {/* Live Component Percentage */}
+                          <div style={{ textAlign: "center" }}>
+                            <label style={{ display: "block", fontSize: 9.5, fontWeight: 700, color: "#64748b", marginBottom: 2 }}>
+                              Score:
+                            </label>
+                            <span
+                              style={{
+                                display: "inline-block",
+                                fontSize: 11,
+                                fontWeight: 800,
+                                padding: "3px 6px",
+                                borderRadius: 5,
+                                background: (comp.percentage || 0) >= 75 ? "#ecfdf5" : "#fffbeb",
+                                color: (comp.percentage || 0) >= 75 ? "#059669" : "#d97706",
+                                border: `1px solid ${(comp.percentage || 0) >= 75 ? "#a7f3d0" : "#fde68a"}`,
+                              }}
+                            >
+                              {comp.percentage || 0}%
+                            </span>
+                          </div>
+
+                          {/* Delete Component Button */}
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteComponentRow(cIdx)}
+                            style={{
+                              background: "#fef2f2",
+                              border: "1px solid #fecaca",
+                              color: "#dc2626",
+                              cursor: "pointer",
+                              padding: "4px 6px",
+                              borderRadius: 6,
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                              marginTop: 14,
+                            }}
+                            title="Delete Component"
+                          >
+                            <Trash2 size={13} />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Sub-Modal Footer */}
+              <div
+                style={{
+                  padding: "12px 20px",
+                  background: "#f8fafc",
+                  borderTop: "1px solid #e2e8f0",
+                  display: "flex",
+                  justifyContent: "flex-end",
+                  gap: 8,
+                }}
+              >
+                <button
+                  type="button"
+                  onClick={() => setEditingSubject(null)}
+                  style={{
+                    padding: "7px 14px",
+                    borderRadius: 8,
+                    border: "1px solid #cbd5e1",
+                    background: "#ffffff",
+                    color: "#475569",
+                    fontSize: 12.5,
+                    fontWeight: 600,
+                    cursor: "pointer",
+                  }}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={handleSaveEditedSubject}
+                  style={{
+                    padding: "7px 18px",
+                    borderRadius: 8,
+                    border: "none",
+                    background: "#2563eb",
+                    color: "#ffffff",
+                    fontSize: 12.5,
+                    fontWeight: 800,
+                    cursor: "pointer",
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 5,
+                    boxShadow: "0 2px 6px rgba(37,99,235,0.25)",
+                  }}
+                >
+                  <Check size={14} />
+                  <span>Apply & Update Subject</span>
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </AnimatePresence>
   );
 }
