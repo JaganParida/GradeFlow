@@ -7,6 +7,7 @@ import {
   Image as ImageIcon,
   Camera,
   CheckCircle2,
+  XCircle,
   Check,
   ShieldCheck,
   AlertCircle,
@@ -963,7 +964,7 @@ export default function AttendanceScreenshotModal({
                       }}
                     >
                       {isScreenshotVerified && (
-                        <Check size={14} color="#ffffff" strokeWidth={3.5} />
+                        <Check size={13} color="#ffffff" strokeWidth={2.5} />
                       )}
                     </div>
                     <span>I have verified that the extracted ERP component attendance values are accurate</span>
@@ -1640,7 +1641,7 @@ export default function AttendanceScreenshotModal({
                       }}
                     >
                       {isScreenshotVerified && (
-                        <Check size={14} color="#ffffff" strokeWidth={3.5} />
+                        <Check size={13} color="#ffffff" strokeWidth={2.5} />
                       )}
                     </div>
                     <span>I have verified that the extracted ERP component attendance values are accurate</span>

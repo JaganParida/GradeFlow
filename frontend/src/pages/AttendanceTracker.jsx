@@ -7,6 +7,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   Percent,
   CheckCircle2,
+  XCircle,
   AlertTriangle,
   TrendingUp,
   TrendingDown,
@@ -1869,11 +1870,11 @@ export default function AttendanceTracker() {
                             >
                               {isPresent ? (
                                 <>
-                                  <Check size={10} strokeWidth={3} /> +1 Attended
+                                  <CheckCircle2 size={11} color="#15803d" /> <span>+1 Attended</span>
                                 </>
                               ) : (
                                 <>
-                                  <X size={10} strokeWidth={3} /> +1 Conducted
+                                  <XCircle size={11} color="#b91c1c" /> <span>+1 Conducted</span>
                                 </>
                               )}
                             </span>
@@ -1942,7 +1943,7 @@ export default function AttendanceTracker() {
                           boxShadow: isPresent ? "0 2px 6px rgba(5, 150, 105, 0.25)" : "none",
                         }}
                       >
-                        {isPresent ? <CheckCircle2 size={13} color="#ffffff" /> : <Check size={13} color="#166534" />}
+                        <CheckCircle2 size={14} color={isPresent ? "#ffffff" : "#059669"} />
                         <span>Present</span>
                       </button>
 
@@ -1967,7 +1968,7 @@ export default function AttendanceTracker() {
                           boxShadow: isAbsent ? "0 2px 6px rgba(220, 38, 38, 0.25)" : "none",
                         }}
                       >
-                        {isAbsent ? <X size={13} color="#ffffff" strokeWidth={3} /> : <X size={13} color="#991b1b" />}
+                        <XCircle size={14} color={isAbsent ? "#ffffff" : "#dc2626"} />
                         <span>Absent</span>
                       </button>
                     </div>
@@ -3054,7 +3055,7 @@ export default function AttendanceTracker() {
                   }}
                 >
                   {isVerifiedDisclaimerChecked && (
-                    <Check size={14} color="#ffffff" strokeWidth={3.5} />
+                    <Check size={13} color="#ffffff" strokeWidth={2.5} />
                   )}
                 </div>
                 <span>I have verified that all component numbers are correct</span>

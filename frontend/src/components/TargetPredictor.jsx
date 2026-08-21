@@ -161,7 +161,7 @@ export default function TargetPredictor() {
                         flexShrink: 0,
                       }}
                     >
-                      <Check size={11} strokeWidth={3} />
+                      <Check size={11} strokeWidth={2.2} />
                     </div>
                   )}
                 </button>
