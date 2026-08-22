@@ -66,7 +66,7 @@ export default function Testimonials() {
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
-  const { API, studentData, fetchStudent } = useApp();
+  const { API, studentData, fetchStudent, openStudentAuthModal } = useApp();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const highlightedId = searchParams.get("highlight");
@@ -87,13 +87,9 @@ export default function Testimonials() {
   const [submittedSuccess, setSubmittedSuccess] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
 
-  // Auth / Lock state
+  // Auth / Privacy Lock state
+  const [showPrivacyLockModal, setShowPrivacyLockModal] = useState(false);
   const [showAuthPromptModal, setShowAuthPromptModal] = useState(false);
-  const [showSearchModal, setShowSearchModal] = useState(false);
-  const [searchRegInput, setSearchRegInput] = useState("");
-  const [searchLoading, setSearchLoading] = useState(false);
-  const [searchError, setSearchError] = useState("");
-  const [showLockTooltip, setShowLockTooltip] = useState(false);
 
   const [likedFeedbacks, setLikedFeedbacks] = useState(() => {
     try {
@@ -175,7 +171,11 @@ export default function Testimonials() {
   // ─── Scroll to Review Form ───────────────────────────────────────
   const scrollToForm = () => {
     if (!currentRegNo) {
-      setShowAuthPromptModal(true);
+      if (typeof openStudentAuthModal === "function") {
+        openStudentAuthModal();
+      } else {
+        setShowAuthPromptModal(true);
+      }
       return;
     }
     const el = document.getElementById("write-review-card");
@@ -184,67 +184,15 @@ export default function Testimonials() {
     }
   };
 
-  // ─── Handle Registration Search Submission ──────────────────────
-  async function handleRegSearchSubmit(e) {
-    if (e) e.preventDefault();
-    setSearchError("");
-    const cleanInput = searchRegInput.trim();
-    if (!cleanInput) {
-      setSearchError("Please enter your registration number.");
-      return;
-    }
-    setSearchLoading(true);
-    try {
-      const data = await fetchStudent(cleanInput);
-      let studentObj = data && typeof data === "object" ? data : null;
-      if (!studentObj) {
-        try {
-          studentObj = JSON.parse(sessionStorage.getItem("gf_student_data"));
-        } catch {}
-      }
-      if (
-        data &&
-        (studentObj?.studentName || studentObj?.regNo || data === true)
-      ) {
-        const foundName = studentObj?.studentName || "";
-        const foundReg = studentObj?.regNo || cleanInput;
-        setName(foundName);
-        setRegNo(foundReg);
-        try {
-          sessionStorage.setItem("last_regNo", foundReg);
-          sessionStorage.setItem("last_studentName", foundName);
-        } catch {}
-        setShowSearchModal(false);
-        setShowAuthPromptModal(false);
-        setTimeout(() => {
-          const formEl = document.getElementById("write-review-card");
-          if (formEl)
-            formEl.scrollIntoView({ behavior: "smooth", block: "center" });
-          const commentInput = document.getElementById(
-            "review-comment-textarea",
-          );
-          if (commentInput) commentInput.focus();
-        }, 300);
-      } else {
-        setSearchError(
-          "Student record not found. Please verify your registration number.",
-        );
-      }
-    } catch (err) {
-      setSearchError(
-        err?.response?.data?.message ||
-          "Failed to find student. Please verify your registration number.",
-      );
-    } finally {
-      setSearchLoading(false);
-    }
-  }
-
   // ─── Handle Real Feedback Submission ─────────────────────────────
   async function handleSubmit(e) {
     e.preventDefault();
     if (!currentRegNo && !regNo.trim()) {
-      setShowAuthPromptModal(true);
+      if (typeof openStudentAuthModal === "function") {
+        openStudentAuthModal();
+      } else {
+        setShowAuthPromptModal(true);
+      }
       return;
     }
     const finalName = (name || currentStudentName).trim();
@@ -1643,11 +1591,12 @@ export default function Testimonials() {
                       value={name || currentStudentName}
                       readOnly={Boolean(currentRegNo)}
                       onClick={() => {
-                        if (!currentRegNo) setShowAuthPromptModal(true);
-                        else setShowLockTooltip(true);
-                      }}
-                      onMouseEnter={() => {
-                        if (currentRegNo) setShowLockTooltip(true);
+                        if (!currentRegNo) {
+                          if (typeof openStudentAuthModal === "function") openStudentAuthModal();
+                          else setShowAuthPromptModal(true);
+                        } else {
+                          setShowPrivacyLockModal(true);
+                        }
                       }}
                       placeholder="Your Full Name *"
                       required
@@ -1668,8 +1617,9 @@ export default function Testimonials() {
                         boxSizing: "border-box",
                         background: currentRegNo ? "#f8fafc" : "#ffffff",
                         color: "#0f172a",
-                        cursor: currentRegNo ? "default" : "pointer",
+                        cursor: currentRegNo ? "pointer" : "text",
                       }}
+                      title={currentRegNo ? "Profile locked — click to view info" : ""}
                     />
                     {currentRegNo && (
                       <Lock
@@ -1693,11 +1643,12 @@ export default function Testimonials() {
                       value={regNo || currentRegNo}
                       readOnly={Boolean(currentRegNo)}
                       onClick={() => {
-                        if (!currentRegNo) setShowAuthPromptModal(true);
-                        else setShowLockTooltip(true);
-                      }}
-                      onMouseEnter={() => {
-                        if (currentRegNo) setShowLockTooltip(true);
+                        if (!currentRegNo) {
+                          if (typeof openStudentAuthModal === "function") openStudentAuthModal();
+                          else setShowAuthPromptModal(true);
+                        } else {
+                          setShowPrivacyLockModal(true);
+                        }
                       }}
                       placeholder="Registration Number *"
                       required
@@ -1718,8 +1669,9 @@ export default function Testimonials() {
                         boxSizing: "border-box",
                         background: currentRegNo ? "#f8fafc" : "#ffffff",
                         color: "#0f172a",
-                        cursor: currentRegNo ? "default" : "pointer",
+                        cursor: currentRegNo ? "pointer" : "text",
                       }}
+                      title={currentRegNo ? "Profile locked — click to view info" : ""}
                     />
                     {currentRegNo && (
                       <Lock
@@ -1739,115 +1691,60 @@ export default function Testimonials() {
                   {/* Locked / Verified Badge Indicator */}
                   {currentRegNo ? (
                     <div
-                      onClick={() => setShowLockTooltip(!showLockTooltip)}
+                      onClick={() => setShowPrivacyLockModal(true)}
                       style={{
                         display: "flex",
                         alignItems: "center",
                         justifyContent: "space-between",
-                        padding: "6px 9px",
+                        padding: "7px 10px",
                         background: "#eff6ff",
                         border: "1px solid #dbeafe",
-                        borderRadius: 7,
-                        fontSize: 11,
+                        borderRadius: 8,
+                        fontSize: 11.5,
                         color: "#1e40af",
                         cursor: "pointer",
+                        transition: "all 0.15s ease",
                       }}
+                      title="Click to view verification & privacy details"
                     >
-                      <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
-                        <ShieldCheck size={13} color="#2563eb" />
+                      <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                        <ShieldCheck size={14} color="#2563eb" />
                         <span>
-                          Verified Student: <strong>{currentRegNo}</strong>
+                          Verified Profile: <strong>{currentRegNo}</strong>
                         </span>
                       </div>
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setShowSearchModal(true);
-                          setSearchError("");
-                          setSearchRegInput("");
-                        }}
-                        style={{
-                          background: "none",
-                          border: "none",
-                          color: "#2563eb",
-                          fontWeight: 700,
-                          fontSize: 11,
-                          cursor: "pointer",
-                          padding: 0,
-                          textDecoration: "underline",
-                        }}
-                      >
-                        Change
-                      </button>
+                      <Lock size={12} color="#60a5fa" />
                     </div>
                   ) : (
                     <button
                       type="button"
                       onClick={() => {
-                        setShowAuthPromptModal(true);
+                        if (typeof openStudentAuthModal === "function") {
+                          openStudentAuthModal();
+                        } else {
+                          setShowAuthPromptModal(true);
+                        }
                       }}
                       style={{
                         display: "flex",
                         alignItems: "center",
                         justifyContent: "center",
                         gap: 6,
-                        padding: "7px 10px",
-                        background: "#fffbeb",
-                        border: "1px dashed #fde68a",
-                        borderRadius: 7,
+                        padding: "8px 10px",
+                        background: "#eff6ff",
+                        border: "1px dashed #bfdbfe",
+                        borderRadius: 8,
                         fontSize: 11.5,
                         fontWeight: 700,
-                        color: "#b45309",
+                        color: "#2563eb",
                         cursor: "pointer",
                         width: "100%",
                       }}
                     >
-                      <Search size={12} color="#b45309" />
-                      <span>Search Registration Number to Verify</span>
+                      <Lock size={12} color="#2563eb" />
+                      <span>Student Portal Login to Review</span>
                     </button>
                   )}
-
-                  {/* Lock Tooltip Banner */}
-                  <AnimatePresence>
-                    {showLockTooltip && currentRegNo && (
-                      <motion.div
-                        initial={{ opacity: 0, y: -4 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: -4 }}
-                        style={{
-                          background: "#0f172a",
-                          color: "#ffffff",
-                          borderRadius: 8,
-                          padding: "7px 10px",
-                          fontSize: 11,
-                          lineHeight: 1.35,
-                          display: "flex",
-                          alignItems: "flex-start",
-                          gap: 6,
-                          boxShadow: "0 4px 12px rgba(0,0,0,0.15)",
-                        }}
-                      >
-                        <Info size={13} color="#60a5fa" style={{ flexShrink: 0, marginTop: 1 }} />
-                        <span style={{ flex: 1 }}>
-                          Locked to verified profile. If this is not your registration number, search your registration number to submit your review.
-                        </span>
-                        <button
-                          type="button"
-                          onClick={() => setShowLockTooltip(false)}
-                          style={{
-                            background: "none",
-                            border: "none",
-                            color: "#94a3b8",
-                            cursor: "pointer",
-                            padding: 0,
-                          }}
-                        >
-                          <X size={12} />
-                        </button>
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
                 </div>
 
                 {/* Category Dropdown */}
@@ -2163,7 +2060,7 @@ export default function Testimonials() {
         </section>
       </div>
 
-      {/* ─── Auth Prompt Modal (Registration Number Required) ─────────── */}
+      {/* ─── Auth Prompt Modal (Login with Student Portal Required) ─── */}
       <AnimatePresence>
         {showAuthPromptModal && (
           <motion.div
@@ -2197,12 +2094,13 @@ export default function Testimonials() {
                 width: "100%",
                 textAlign: "center",
                 boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.25)",
+                fontFamily: "'DM Sans', sans-serif",
               }}
             >
               <div
                 style={{
-                  width: 46,
-                  height: 46,
+                  width: 48,
+                  height: 48,
                   borderRadius: 14,
                   background: "#eff6ff",
                   color: "#2563eb",
@@ -2212,27 +2110,27 @@ export default function Testimonials() {
                   margin: "0 auto 12px auto",
                 }}
               >
-                <Search size={20} />
+                <Lock size={22} />
               </div>
               <h3
                 style={{
                   fontSize: 18,
                   fontWeight: 800,
                   color: "#0f172a",
-                  marginBottom: 4,
+                  marginBottom: 6,
                 }}
               >
-                Registration Number Required
+                Student Login Required
               </h3>
               <p
                 style={{
                   fontSize: 12.5,
                   color: "#64748b",
-                  marginBottom: 18,
+                  marginBottom: 20,
                   lineHeight: 1.5,
                 }}
               >
-                Please enter your registration number to continue.
+                Please log in with your Student Portal to share a verified review on GradeFlow.
               </p>
               <div style={{ display: "flex", gap: 10 }}>
                 <button
@@ -2264,12 +2162,12 @@ export default function Testimonials() {
                   type="button"
                   onClick={() => {
                     setShowAuthPromptModal(false);
-                    setShowSearchModal(true);
-                    setSearchError("");
-                    setSearchRegInput("");
+                    if (typeof openStudentAuthModal === "function") {
+                      openStudentAuthModal();
+                    }
                   }}
                   style={{
-                    flex: 1.2,
+                    flex: 1.4,
                     padding: "10px",
                     borderRadius: 10,
                     background: "#2563eb",
@@ -2283,7 +2181,7 @@ export default function Testimonials() {
                     alignItems: "center",
                     justifyContent: "center",
                     gap: 6,
-                    boxShadow: "0 4px 12px rgba(37, 99, 235, 0.2)",
+                    boxShadow: "0 4px 12px rgba(37, 99, 235, 0.25)",
                     transition: "background 0.15s ease",
                   }}
                   onMouseEnter={(e) =>
@@ -2293,8 +2191,8 @@ export default function Testimonials() {
                     (e.currentTarget.style.background = "#2563eb")
                   }
                 >
-                  <Search size={14} />
-                  <span>Search Now</span>
+                  <Lock size={13} />
+                  <span>Student Login</span>
                 </button>
               </div>
             </motion.div>
@@ -2302,21 +2200,21 @@ export default function Testimonials() {
         )}
       </AnimatePresence>
 
-      {/* ─── Search Registration Modal ──────────────────────────────── */}
+      {/* ─── Profile Privacy & Authenticity Modal ─── */}
       <AnimatePresence>
-        {showSearchModal && (
+        {showPrivacyLockModal && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            onClick={() => setShowSearchModal(false)}
+            onClick={() => setShowPrivacyLockModal(false)}
             style={{
               position: "fixed",
               inset: 0,
-              background: "rgba(15, 23, 42, 0.5)",
+              background: "rgba(15, 23, 42, 0.45)",
               backdropFilter: "blur(8px)",
               WebkitBackdropFilter: "blur(8px)",
-              zIndex: 10001,
+              zIndex: 10000,
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
@@ -2324,179 +2222,77 @@ export default function Testimonials() {
             }}
           >
             <motion.div
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.95 }}
+              initial={{ opacity: 0, scale: 0.95, y: 8 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 8 }}
               onClick={(e) => e.stopPropagation()}
               style={{
                 background: "#ffffff",
                 borderRadius: 20,
-                padding: "24px 22px",
+                padding: "26px 22px",
                 maxWidth: 420,
                 width: "100%",
+                textAlign: "center",
                 boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.25)",
                 fontFamily: "'DM Sans', sans-serif",
               }}
             >
               <div
                 style={{
+                  width: 48,
+                  height: 48,
+                  borderRadius: 14,
+                  background: "#eff6ff",
+                  color: "#2563eb",
                   display: "flex",
                   alignItems: "center",
-                  justifyContent: "space-between",
-                  marginBottom: 14,
+                  justifyContent: "center",
+                  margin: "0 auto 12px auto",
                 }}
               >
-                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                  <div
-                    style={{
-                      width: 36,
-                      height: 36,
-                      borderRadius: 10,
-                      background: "#eff6ff",
-                      color: "#2563eb",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                    }}
-                  >
-                    <Search size={18} />
-                  </div>
-                  <div>
-                    <h3
-                      style={{
-                        fontSize: 16,
-                        fontWeight: 800,
-                        color: "#0f172a",
-                        margin: 0,
-                      }}
-                    >
-                      Verify Student Profile
-                    </h3>
-                    <p style={{ fontSize: 11.5, color: "#64748b", margin: 0 }}>
-                      Enter your registration number to submit your review
-                    </p>
-                  </div>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setShowSearchModal(false)}
-                  style={{
-                    background: "none",
-                    border: "none",
-                    color: "#94a3b8",
-                    cursor: "pointer",
-                    padding: 4,
-                  }}
-                >
-                  <X size={18} />
-                </button>
+                <ShieldCheck size={24} />
               </div>
-
-              <form onSubmit={handleRegSearchSubmit}>
-                <div style={{ marginBottom: 12 }}>
-                  <label
-                    style={{
-                      display: "block",
-                      fontSize: 11,
-                      fontWeight: 800,
-                      color: "#475569",
-                      marginBottom: 5,
-                      textTransform: "uppercase",
-                      letterSpacing: "0.4px",
-                    }}
-                  >
-                    Registration Number *
-                  </label>
-                  <input
-                    type="text"
-                    autoFocus
-                    value={searchRegInput}
-                    onChange={(e) => {
-                      setSearchRegInput(e.target.value);
-                      setSearchError("");
-                    }}
-                    placeholder="e.g. 230301120450"
-                    style={{
-                      width: "100%",
-                      boxSizing: "border-box",
-                      padding: "10px 12px",
-                      borderRadius: 10,
-                      border: searchError
-                        ? "1px solid #ef4444"
-                        : "1px solid #cbd5e1",
-                      fontSize: 14,
-                      outline: "none",
-                      fontFamily: "inherit",
-                    }}
-                  />
-                  {searchError && (
-                    <p
-                      style={{
-                        fontSize: 11.5,
-                        color: "#dc2626",
-                        marginTop: 4,
-                        marginBottom: 0,
-                        fontWeight: 600,
-                      }}
-                    >
-                      {searchError}
-                    </p>
-                  )}
-                </div>
-
-                <div style={{ display: "flex", gap: 8 }}>
-                  <button
-                    type="button"
-                    onClick={() => setShowSearchModal(false)}
-                    style={{
-                      flex: 1,
-                      padding: "10px",
-                      borderRadius: 10,
-                      background: "#f1f5f9",
-                      color: "#475569",
-                      border: "none",
-                      fontWeight: 600,
-                      fontSize: 13,
-                      cursor: "pointer",
-                      fontFamily: "inherit",
-                    }}
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="submit"
-                    disabled={searchLoading}
-                    style={{
-                      flex: 1.3,
-                      padding: "10px",
-                      borderRadius: 10,
-                      background: "#2563eb",
-                      color: "#ffffff",
-                      border: "none",
-                      fontWeight: 700,
-                      fontSize: 13,
-                      cursor: searchLoading ? "not-allowed" : "pointer",
-                      fontFamily: "inherit",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      gap: 6,
-                    }}
-                  >
-                    {searchLoading ? (
-                      <>
-                        <Loader2 size={14} className="animate-spin" />
-                        <span>Verifying...</span>
-                      </>
-                    ) : (
-                      <>
-                        <BadgeCheck size={14} />
-                        <span>Verify & Review</span>
-                      </>
-                    )}
-                  </button>
-                </div>
-              </form>
+              <h3
+                style={{
+                  fontSize: 17.5,
+                  fontWeight: 800,
+                  color: "#0f172a",
+                  marginBottom: 6,
+                }}
+              >
+                Verified Profile Locked
+              </h3>
+              <p
+                style={{
+                  fontSize: 13,
+                  color: "#475569",
+                  lineHeight: 1.5,
+                  marginBottom: 18,
+                }}
+              >
+                You are currently logged in as{" "}
+                <strong style={{ color: "#0f172a" }}>{currentRegNo}</strong>
+                {currentStudentName ? ` (${currentStudentName})` : ""}. For student privacy and to maintain 100% genuine reviews, your feedback is permanently tied to your verified profile and cannot be changed.
+              </p>
+              <button
+                type="button"
+                onClick={() => setShowPrivacyLockModal(false)}
+                style={{
+                  width: "100%",
+                  padding: "10px 16px",
+                  borderRadius: 10,
+                  background: "#2563eb",
+                  color: "#ffffff",
+                  border: "none",
+                  fontSize: 13,
+                  fontWeight: 700,
+                  cursor: "pointer",
+                  fontFamily: "inherit",
+                  boxShadow: "0 4px 12px rgba(37, 99, 235, 0.25)",
+                }}
+              >
+                Got It
+              </button>
             </motion.div>
           </motion.div>
         )}
