@@ -1696,8 +1696,9 @@ export default function AdminManagement({ API, authHeaders, isMobile }) {
                   </div>
                   <div style={{ fontSize: 12, color: "#15803d", lineHeight: 1.6 }}>
                     {selectedRoutes.length === 0 ? (
-                      <span style={{ color: "#b91c1c", fontWeight: 700 }}>
-                        ⛔ Default Deny: Sub-Admin will have 0 route or action access upon login.
+                      <span style={{ color: "#b91c1c", fontWeight: 700, display: "inline-flex", alignItems: "center", gap: 5 }}>
+                        <ShieldAlert size={14} color="#dc2626" />
+                        Default Deny: Sub-Admin will have 0 route or action access upon login.
                       </span>
                     ) : (
                       <span>
