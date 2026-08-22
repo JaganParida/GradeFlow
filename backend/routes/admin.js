@@ -3,6 +3,7 @@ const router = express.Router();
 const multer = require("multer");
 const XLSX = require("xlsx");
 const { protect } = require("../middleware/auth");
+const { requirePermission } = require("../middleware/rbac");
 const { emailLimiter } = require("../middleware/rateLimiters");
 const { sendBacklogEmailNotification } = require("../utils/emailService");
 const SemesterResult = require("../models/SemesterResult");
@@ -264,6 +265,7 @@ async function generateRankingForSemester(semester, preloadedAllResults = null) 
 router.post(
   "/upload/results",
   protect,
+  requirePermission("results.upload", "overview", "overview.upload-results"),
   upload.single("file"),
   validateFileBuffer,
   async (req, res) => {
@@ -627,6 +629,7 @@ router.post(
 router.post(
   "/upload/internal",
   protect,
+  requirePermission("results.upload", "overview", "overview.upload-internal"),
   upload.single("file"),
   validateFileBuffer,
   async (req, res) => {
@@ -1096,7 +1099,7 @@ router.post(
 );
 
 // Generate rankings for a semester
-router.post("/rankings/generate", protect, async (req, res) => {
+router.post("/rankings/generate", protect, requirePermission("rankings.regenerate", "manage", "manage.regenerate-rankings"), async (req, res) => {
   try {
     const { semester } = req.body;
     const results = await SemesterResult.find({ semester: Number(semester) });
@@ -1116,7 +1119,7 @@ router.post("/rankings/generate", protect, async (req, res) => {
 });
 
 // Regenerate ALL rankings for ALL semesters (recalculates SGPA & CGPA live)
-router.post("/rankings/regenerate-all", protect, async (req, res) => {
+router.post("/rankings/regenerate-all", protect, requirePermission("rankings.regenerate", "manage", "manage.regenerate-rankings"), async (req, res) => {
   try {
     const allSemesterResults = await SemesterResult.find({}).lean();
     if (!allSemesterResults.length)
@@ -1143,7 +1146,7 @@ router.post("/rankings/regenerate-all", protect, async (req, res) => {
 });
 
 // Search/List registered students for dropdown/autocomplete (Super Fast & Light)
-router.get("/students/search", protect, async (req, res) => {
+router.get("/students/search", protect, requirePermission("students.view", "report-card", "report-card.view-grades"), async (req, res) => {
   try {
     const q = String(req.query.q || "").trim();
     if (!q || q.length < 2) {
@@ -1177,7 +1180,7 @@ router.get("/students/search", protect, async (req, res) => {
 });
 
 // Get full semester & subject details for a specific student
-router.get("/student/details/:regNo", protect, async (req, res) => {
+router.get("/student/details/:regNo", protect, requirePermission("students.view", "report-card", "report-card.view-grades"), async (req, res) => {
   try {
     const regNo = String(req.params.regNo || "").trim();
     if (!regNo) return res.status(400).json({ message: "Registration number required" });
@@ -1213,7 +1216,7 @@ router.get("/student/details/:regNo", protect, async (req, res) => {
 });
 
 // Update individual grade for a student's subject manually
-router.post("/student/update-grade", validateGradeUpdateInput, async (req, res) => {
+router.post("/student/update-grade", protect, requirePermission("students.update", "report-card", "report-card.update-grade"), validateGradeUpdateInput, async (req, res) => {
   try {
     const { regNo, semester, subCode, newGrade } = req.body;
 
@@ -1311,7 +1314,7 @@ router.post("/student/update-grade", validateGradeUpdateInput, async (req, res) 
 });
 
 // Fetch full semester report card details for a student & semester
-router.get("/student/semester-record/:regNo/:semester", protect, async (req, res) => {
+router.get("/student/semester-record/:regNo/:semester", protect, requirePermission("students.view", "report-card", "report-card.view-grades"), async (req, res) => {
   try {
     const cleanRegNo = String(req.params.regNo || "").trim();
     const semNum = Number(req.params.semester);
@@ -1359,7 +1362,7 @@ router.get("/student/semester-record/:regNo/:semester", protect, async (req, res
 });
 
 // Full update / save of a student's semester report card (subjects, credits, grades, recalculations)
-router.post("/student/update-semester-record", protect, async (req, res) => {
+router.post("/student/update-semester-record", protect, requirePermission("students.update", "report-card", "report-card.update-semester-record"), async (req, res) => {
   try {
     const { regNo, semester, studentName, branch, batch, subjects } = req.body;
 
@@ -1530,7 +1533,7 @@ router.post("/student/update-semester-record", protect, async (req, res) => {
 });
 
 // Delete individual semester result record
-router.delete("/results/:regNo/:semester", protect, async (req, res) => {
+router.delete("/results/:regNo/:semester", protect, requirePermission("results.delete", "manage", "manage.delete-result"), async (req, res) => {
   try {
     const cleanRegNo = String(req.params.regNo || "").trim();
     const semNum = Number(req.params.semester);
@@ -1597,7 +1600,7 @@ router.delete("/results/:regNo/:semester", protect, async (req, res) => {
 });
 
 // Get backlog students breakdown & leaderboard for admin
-router.get("/backlogs", validateAcademicFilters, async (req, res) => {
+router.get("/backlogs", protect, requirePermission("backlogs.view", "backlogs", "backlogs.view"), validateAcademicFilters, async (req, res) => {
   try {
     const { batch, branch, section, semester, search, page = 1, limit = 50 } = req.query;
 
@@ -1785,7 +1788,7 @@ router.get("/backlogs", validateAcademicFilters, async (req, res) => {
 });
 
 // Send backlog notification email to student
-router.post("/backlogs/send-email", emailLimiter, validateEmailRequest, async (req, res) => {
+router.post("/backlogs/send-email", protect, requirePermission("emails.send", "backlogs", "backlogs.send-email"), emailLimiter, validateEmailRequest, async (req, res) => {
   try {
     const { regNo, registrationNumber, studentId, customEmail, email } = req.body;
     const cleanRegNo = String(regNo || registrationNumber || studentId || "").trim();
@@ -1899,7 +1902,7 @@ router.post("/backlogs/send-email", emailLimiter, validateEmailRequest, async (r
 });
 
 // Update email status from frontend
-router.post("/backlogs/email-status", protect, async (req, res) => {
+router.post("/backlogs/email-status", protect, requirePermission("backlogs.view", "backlogs", "backlogs.view"), async (req, res) => {
   try {
     const { regNo, status, error } = req.body;
     const cleanRegNo = String(regNo || "").trim();
@@ -2058,7 +2061,7 @@ router.get("/stats", protect, async (req, res) => {
 });
 
 // Fetch recent 5-Year Batch Data Retention Purge Audit Logs
-router.get("/purge-logs", protect, async (req, res) => {
+router.get("/purge-logs", protect, requirePermission("manage.purge-batches", "manage", "manage.purge-batches"), async (req, res) => {
   try {
     const logs = await BatchPurgeLog.find({}).sort({ purgedAt: -1 }).limit(20).lean();
     res.json(logs);
@@ -2069,7 +2072,7 @@ router.get("/purge-logs", protect, async (req, res) => {
 });
 
 // Manual trigger for Expired Batch Purge (> 5 Years Old)
-router.post("/purge-expired", protect, async (req, res) => {
+router.post("/purge-expired", protect, requirePermission("manage.purge-batches", "manage", "manage.purge-batches"), async (req, res) => {
   try {
     const result = await purgeExpiredBatches();
     clearStudentCache();
@@ -2084,7 +2087,7 @@ router.post("/purge-expired", protect, async (req, res) => {
 });
 
 // Delete a specific Purge Audit Log notification
-router.delete("/purge-logs/:id", protect, async (req, res) => {
+router.delete("/purge-logs/:id", protect, requirePermission("manage.purge-batches", "manage", "manage.purge-batches"), async (req, res) => {
   try {
     await BatchPurgeLog.findByIdAndDelete(req.params.id);
     res.json({ message: "Notification deleted" });
@@ -2095,7 +2098,7 @@ router.delete("/purge-logs/:id", protect, async (req, res) => {
 });
 
 // Delete all Purge Audit Log notifications
-router.delete("/purge-logs", protect, async (req, res) => {
+router.delete("/purge-logs", protect, requirePermission("manage.purge-batches", "manage", "manage.purge-batches"), async (req, res) => {
   try {
     await BatchPurgeLog.deleteMany({});
     res.json({ message: "All notifications cleared" });
@@ -2106,7 +2109,7 @@ router.delete("/purge-logs", protect, async (req, res) => {
 });
 
 // Get section toppers (Top 10 rankers per section/branch) - Queries pre-calculated rankings
-router.get("/section-toppers", validateAcademicFilters, async (req, res) => {
+router.get("/section-toppers", protect, requirePermission("toppers.view", "toppers", "toppers.view"), validateAcademicFilters, async (req, res) => {
   try {
     const { batch = "2023", branch = "CSE", section = "Sec A", semester, search, limit = 10 } = req.query;
 
@@ -2237,7 +2240,7 @@ router.get("/section-toppers", validateAcademicFilters, async (req, res) => {
 });
 
 // Update topper email status in Student model
-router.post("/section-toppers/topper-email-status", protect, async (req, res) => {
+router.post("/section-toppers/topper-email-status", protect, requirePermission("toppers.view", "toppers", "toppers.view"), async (req, res) => {
   try {
     const { regNo, status, errorMsg } = req.body;
     const cleanRegNo = String(regNo || "").trim();
@@ -2263,7 +2266,7 @@ router.post("/section-toppers/topper-email-status", protect, async (req, res) =>
 });
 
 // Send congratulatory topper email to student (Backend fallback)
-router.post("/section-toppers/send-email", emailLimiter, validateEmailRequest, async (req, res) => {
+router.post("/section-toppers/send-email", protect, requirePermission("emails.send", "toppers", "toppers.send-email"), emailLimiter, validateEmailRequest, async (req, res) => {
   try {
     const { regNo, customEmail, studentName: bodyName, cgpa: bodyCgpa, sgpa: bodySgpa, semester: bodySem, batch: bodyBatch, branch: bodyBranch, section: bodySection, sectionCgpaRank: bodySecRank, sectionSgpaRank: bodySgpaRank, universityRank: bodyUniRank } = req.body;
     const cleanRegNo = String(regNo || "").trim();
@@ -2363,6 +2366,7 @@ router.post("/section-toppers/send-email", emailLimiter, validateEmailRequest, a
 router.post(
   "/upload-missing-results",
   protect,
+  requirePermission("results.upload", "missing-uploader", "missing-uploader.upload-missing"),
   upload.single("file"),
   validateFileBuffer,
   async (req, res) => {
@@ -2590,6 +2594,7 @@ router.post(
 router.post(
   "/upload-missing-internal",
   protect,
+  requirePermission("results.upload", "missing-uploader", "missing-uploader.upload-missing"),
   upload.single("file"),
   validateFileBuffer,
   async (req, res) => {

@@ -2,6 +2,7 @@ const express = require("express");
 const router = express.Router();
 const Feedback = require("../models/Feedback");
 const { protect } = require("../middleware/auth");
+const { requirePermission } = require("../middleware/rbac");
 const { publicLimiter } = require("../middleware/rateLimiters");
 const { validateFeedbackInput } = require("../middleware/validation");
 
@@ -62,7 +63,7 @@ router.post("/:id/like", publicLimiter, async (req, res) => {
 });
 
 // PUT /api/feedback/:id - Update a feedback (admin only)
-router.put("/:id", protect, async (req, res) => {
+router.put("/:id", protect, requirePermission("feedback.view", "feedback"), async (req, res) => {
   try {
     const { name, regNo, rating, comment } = req.body;
     const feedback = await Feedback.findById(req.params.id);
@@ -84,7 +85,7 @@ router.put("/:id", protect, async (req, res) => {
 });
 
 // DELETE /api/feedback/:id - Delete a feedback (admin only)
-router.delete("/:id", protect, async (req, res) => {
+router.delete("/:id", protect, requirePermission("feedback.view", "feedback"), async (req, res) => {
   try {
     const feedback = await Feedback.findById(req.params.id);
     if (!feedback) {

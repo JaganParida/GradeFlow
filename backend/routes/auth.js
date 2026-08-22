@@ -5,6 +5,9 @@ const jwt = require("jsonwebtoken");
 const Admin = require("../models/Admin");
 const AdminSession = require("../models/AdminSession");
 const AdminOtpVerification = require("../models/AdminOtpVerification");
+const SubAdmin = require("../models/SubAdmin");
+const SubAdminSession = require("../models/SubAdminSession");
+const AdminAuditLog = require("../models/AdminAuditLog");
 const SemesterResult = require("../models/SemesterResult");
 const Student = require("../models/Student");
 const OtpVerification = require("../models/OtpVerification");
@@ -777,7 +780,110 @@ router.post("/admin/verify-otp", async (req, res) => {
   }
 });
 
-// 3. Admin Current Session Check (/api/auth/me or /api/auth/admin/me)
+// 3. Sub-Admin Login Endpoint (/api/auth/subadmin/login)
+router.post("/subadmin/login", async (req, res) => {
+  try {
+    const { email, password } = req.body || {};
+    const cleanEmail = String(email || "").trim().toLowerCase();
+    const candidatePassword = String(password || "");
+
+    if (!cleanEmail || !candidatePassword) {
+      return res.status(400).json({
+        success: false,
+        message: "Email and password are required.",
+        code: "CREDENTIALS_REQUIRED",
+      });
+    }
+
+    const subAdmin = await SubAdmin.findOne({ email: cleanEmail });
+    if (!subAdmin) {
+      return res.status(401).json({
+        success: false,
+        message: "Invalid email or password.",
+        code: "INVALID_CREDENTIALS",
+      });
+    }
+
+    const isMatch = await subAdmin.comparePassword(candidatePassword);
+    if (!isMatch) {
+      return res.status(401).json({
+        success: false,
+        message: "Invalid email or password.",
+        code: "INVALID_CREDENTIALS",
+      });
+    }
+
+    if (subAdmin.status !== "active") {
+      return res.status(403).json({
+        success: false,
+        message: `Your Sub-Admin account is currently ${subAdmin.status}. Please contact the Main Administrator.`,
+        code: `SUBADMIN_${subAdmin.status.toUpperCase()}`,
+      });
+    }
+
+    // Create SubAdminSession
+    const sessionId = crypto.randomUUID();
+    const now = new Date();
+    const expiresAt = new Date(Date.now() + SEVEN_DAYS_MS);
+
+    const userAgent = req.headers["user-agent"] || "Unknown";
+    const ip = req.ip || req.connection?.remoteAddress || "";
+    const platform = req.headers["sec-ch-ua-platform"] || "Web";
+
+    await SubAdminSession.create({
+      subAdminId: subAdmin._id,
+      sessionId,
+      deviceInfo: { userAgent, ip, platform },
+      loggedInAt: now,
+      lastActiveAt: now,
+      expiresAt,
+      isActive: true,
+    });
+
+    subAdmin.lastLoginAt = now;
+    subAdmin.lastActiveAt = now;
+    await subAdmin.save();
+
+    const token = jwt.sign(
+      {
+        role: "admin",
+        adminType: "subadmin",
+        subAdminId: subAdmin._id,
+        name: subAdmin.name,
+        email: subAdmin.email,
+        sessionId,
+        loggedInAt: now,
+      },
+      process.env.JWT_SECRET,
+      { expiresIn: "7d" }
+    );
+
+    const options = {
+      expires: expiresAt,
+      httpOnly: true,
+      secure: true,
+      sameSite: "none",
+      path: "/",
+    };
+
+    res.cookie("jwt", token, options);
+
+    return res.json({
+      success: true,
+      token,
+      adminType: "subadmin",
+      name: subAdmin.name,
+      email: subAdmin.email,
+      permissions: subAdmin.permissions || { routes: [], sections: [], actions: [] },
+      message: `Welcome, ${subAdmin.name}!`,
+    });
+  } catch (err) {
+    console.error("SubAdmin login error:", err);
+    return res.status(500).json({ success: false, message: "Server error during sub-admin login." });
+  }
+});
+
+// 4. Admin Current Session Check (/api/auth/me or /api/auth/admin/me)
 const handleAdminMe = async (req, res) => {
   try {
     let token = req.headers["x-admin-token"];
@@ -797,6 +903,60 @@ const handleAdminMe = async (req, res) => {
       return res.status(403).json({ message: "Forbidden: Admin privileges required" });
     }
 
+    if (decoded.adminType === "subadmin") {
+      // Validate SubAdmin Session
+      if (decoded.sessionId) {
+        const session = await SubAdminSession.findOne({
+          sessionId: decoded.sessionId,
+          isActive: true,
+        });
+
+        if (!session) {
+          return res.status(401).json({
+            success: false,
+            code: "ADMIN_SESSION_TERMINATED",
+            message: "Sub-Admin session ended because this device was logged out.",
+          });
+        }
+
+        if (session.expiresAt && session.expiresAt < new Date()) {
+          await SubAdminSession.deleteOne({ _id: session._id });
+          return res.status(401).json({
+            success: false,
+            code: "INACTIVITY_LOGOUT",
+            message: "Sub-Admin session expired due to 7 continuous days of inactivity.",
+          });
+        }
+
+        // Rolling activity update
+        session.lastActiveAt = new Date();
+        session.expiresAt = new Date(Date.now() + SEVEN_DAYS_MS);
+        await session.save();
+      }
+
+      const subAdmin = await SubAdmin.findById(decoded.subAdminId);
+      if (!subAdmin || subAdmin.status !== "active") {
+        return res.status(403).json({
+          success: false,
+          code: "SUBADMIN_INACTIVE",
+          message: "Sub-Admin account is inactive or revoked.",
+        });
+      }
+
+      return res.json({
+        success: true,
+        role: "admin",
+        adminType: "subadmin",
+        subAdminId: subAdmin._id,
+        name: subAdmin.name,
+        email: subAdmin.email,
+        permissions: subAdmin.permissions || { routes: [], sections: [], actions: [] },
+        sessionId: decoded.sessionId,
+        token,
+      });
+    }
+
+    // Main Admin Validation
     if (decoded.sessionId) {
       const session = await AdminSession.findOne({
         sessionId: decoded.sessionId,
@@ -826,12 +986,22 @@ const handleAdminMe = async (req, res) => {
       return res.json({
         success: true,
         role: "admin",
+        adminType: "main",
+        name: "Main Administrator",
+        email: decoded.email || process.env.ADMIN_EMAIL,
         sessionId: session.sessionId,
         token,
       });
     }
 
-    return res.json({ success: true, role: "admin", token });
+    return res.json({
+      success: true,
+      role: "admin",
+      adminType: "main",
+      name: "Main Administrator",
+      email: decoded.email || process.env.ADMIN_EMAIL,
+      token,
+    });
   } catch (err) {
     return res.json({ success: false, message: "Token invalid or expired" });
   }
@@ -840,7 +1010,7 @@ const handleAdminMe = async (req, res) => {
 router.get("/me", handleAdminMe);
 router.get("/admin/me", handleAdminMe);
 
-// 4. Admin Single-Device Logout (/api/auth/logout or /api/auth/admin/logout)
+// 5. Admin Single-Device Logout (/api/auth/logout or /api/auth/admin/logout)
 const handleAdminLogout = async (req, res) => {
   try {
     let token = req.headers["x-admin-token"];
@@ -855,8 +1025,11 @@ const handleAdminLogout = async (req, res) => {
       try {
         const decoded = jwt.verify(token, process.env.JWT_SECRET);
         if (decoded?.sessionId) {
-          // REVOKE ONLY THE CALLING DEVICE'S SESSION! OTHER ADMIN DEVICES REMAIN ACTIVE!
-          await AdminSession.deleteOne({ sessionId: decoded.sessionId });
+          if (decoded.adminType === "subadmin") {
+            await SubAdminSession.deleteOne({ sessionId: decoded.sessionId });
+          } else {
+            await AdminSession.deleteOne({ sessionId: decoded.sessionId });
+          }
         }
       } catch (tokenErr) {
         console.warn("Admin logout token decode warning:", tokenErr.message);
@@ -870,7 +1043,7 @@ const handleAdminLogout = async (req, res) => {
       path: "/",
     };
     res.clearCookie("jwt", options);
-    return res.status(200).json({ success: true, message: "Admin logged out successfully from this device." });
+    return res.status(200).json({ success: true, message: "Logged out successfully from this device." });
   } catch (err) {
     console.error("Admin logout error:", err);
     return res.status(500).json({ message: "Server error during logout." });

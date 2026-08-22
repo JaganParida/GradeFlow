@@ -17,6 +17,42 @@
       "destination": "/api/attendance-ocr.js"
     },
     {
+      "source": "/api/admin/subadmins/audit/logs",
+      "destination": "/api/subadmins.js?action=logs"
+    },
+    {
+      "source": "/api/admin/subadmins/logs",
+      "destination": "/api/subadmins.js?action=logs"
+    },
+    {
+      "source": "/api/admin/subadmins/:id/permissions",
+      "destination": "/api/subadmins.js?id=:id&action=permissions"
+    },
+    {
+      "source": "/api/admin/subadmins/:id/status",
+      "destination": "/api/subadmins.js?id=:id&action=status"
+    },
+    {
+      "source": "/api/admin/subadmins/:id/revoke",
+      "destination": "/api/subadmins.js?id=:id&action=revoke"
+    },
+    {
+      "source": "/api/admin/subadmins/:id/sessions/:sessionId",
+      "destination": "/api/subadmins.js?id=:id&sessionId=:sessionId&action=revoke-session"
+    },
+    {
+      "source": "/api/admin/subadmins/:id",
+      "destination": "/api/subadmins.js?id=:id"
+    },
+    {
+      "source": "/api/admin/subadmins",
+      "destination": "/api/subadmins.js"
+    },
+    {
+      "source": "/api/auth/subadmin/login",
+      "destination": "/api/auth.js?action=subadmin-login"
+    },
+    {
       "source": "/api/auth/admin/login-password",
       "destination": "/api/auth.js?action=admin-login-password"
     },

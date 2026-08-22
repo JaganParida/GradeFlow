@@ -11,6 +11,7 @@ import {
 } from "../components/LoadingSpinner";
 import StudentReportCardEditor from "../components/StudentReportCardEditor";
 import TimetableAdminManager from "../components/TimetableAdminManager";
+import AdminManagement from "../components/AdminManagement";
 import { motion, AnimatePresence } from "framer-motion";
 import { formatDistanceToNow } from "date-fns";
 import {
@@ -3560,6 +3561,7 @@ export default function AdminDashboard() {
 
   const authHeaders = getAuthHeaders();
 
+  const [adminProfile, setAdminProfile] = useState(null);
   const [stats, setStats] = useState(null);
   const [rankSem, setRankSem] = useState("");
   const [rankMsg, setRankMsg] = useState("");
@@ -3589,9 +3591,58 @@ export default function AdminDashboard() {
       navigate("/admin");
       return;
     }
+    fetchAdminProfile();
     fetchStats();
     fetchPurgeLogs();
   }, [adminToken]);
+
+  async function fetchAdminProfile() {
+    try {
+      const headers = getAuthHeaders();
+      const { data } = await axios.get(`${API}/auth/admin/me`, headers);
+      if (data.success) {
+        setAdminProfile(data);
+      }
+    } catch (err) {
+      console.warn("Failed to fetch admin profile:", err.message);
+    }
+  }
+
+  const isMainAdmin = adminProfile?.adminType === "main" || !adminProfile?.adminType;
+
+  // Build granular tab list based on authenticated identity
+  const ALL_ADMIN_TABS = [
+    { id: "overview", label: "Upload Results", icon: <CloudUpload size={15} /> },
+    { id: "timetable", label: "Timetable & Calendar", icon: <Clock size={15} /> },
+    { id: "report-card", label: "Report Card Editor", icon: <FileText size={15} /> },
+    { id: "missing-uploader", label: "Missing Students Ingestion", icon: <UserPlus size={15} /> },
+    { id: "toppers", label: "Section Toppers", icon: <Trophy size={15} /> },
+    { id: "backlogs", label: "Backlog Tracker", icon: <AlertTriangle size={15} /> },
+    { id: "manage", label: "Manage Records", icon: <Database size={15} /> },
+    { id: "feedback", label: "Student Feedback", icon: <MessageSquare size={15} /> },
+  ];
+
+  if (isMainAdmin) {
+    ALL_ADMIN_TABS.push({
+      id: "admin-management",
+      label: "Admin Management",
+      icon: <Sliders size={15} />,
+    });
+  }
+
+  const ADMIN_TABS = isMainAdmin
+    ? ALL_ADMIN_TABS
+    : ALL_ADMIN_TABS.filter((t) => (adminProfile?.permissions?.routes || []).includes(t.id));
+
+  // Fallback if current tab is not permitted for this Sub-Admin
+  useEffect(() => {
+    if (adminProfile && !isMainAdmin) {
+      const permittedRoutes = adminProfile.permissions?.routes || [];
+      if (tab === "admin-management" || (!permittedRoutes.includes(tab) && permittedRoutes.length > 0)) {
+        setTab(permittedRoutes[0] || "overview");
+      }
+    }
+  }, [adminProfile, tab, isMainAdmin]);
 
   async function fetchStats() {
     try {
@@ -3664,17 +3715,6 @@ export default function AdminDashboard() {
     }
   }
 
-  const ADMIN_TABS = [
-    { id: "overview", label: "Upload Results", icon: <CloudUpload size={15} /> },
-    { id: "timetable", label: "Timetable & Calendar", icon: <Clock size={15} /> },
-    { id: "report-card", label: "Report Card Editor", icon: <FileText size={15} /> },
-    { id: "missing-uploader", label: "Missing Students Ingestion", icon: <UserPlus size={15} /> },
-    { id: "toppers", label: "Section Toppers", icon: <Trophy size={15} /> },
-    { id: "backlogs", label: "Backlog Tracker", icon: <AlertTriangle size={15} /> },
-    { id: "manage", label: "Manage Records", icon: <Database size={15} /> },
-    { id: "feedback", label: "Student Feedback", icon: <MessageSquare size={15} /> },
-  ];
-
   return (
     <motion.div
       initial={{ opacity: 0 }}
@@ -3727,12 +3767,24 @@ export default function AdminDashboard() {
                 <h1 style={{ fontSize: 20, fontWeight: 800, color: "#0f172a", margin: 0, letterSpacing: "-0.4px" }}>
                   Admin Control Console
                 </h1>
-                <span style={{ fontSize: 10.5, fontWeight: 700, background: "#ecfdf5", color: "#059669", padding: "2px 8px", borderRadius: 99 }}>
-                  Active
+                <span
+                  style={{
+                    fontSize: 10.5,
+                    fontWeight: 700,
+                    background: isMainAdmin ? "#eff6ff" : "#f5f3ff",
+                    color: isMainAdmin ? "#2563eb" : "#7c3aed",
+                    border: isMainAdmin ? "1px solid #dbeafe" : "1px solid #ede9fe",
+                    padding: "2px 8px",
+                    borderRadius: 99,
+                  }}
+                >
+                  {isMainAdmin ? "Master Administrator" : `Sub-Admin (${adminProfile?.name || "Scoped"})`}
                 </span>
               </div>
               <p style={{ fontSize: 12.5, color: "#64748b", margin: "2px 0 0 0" }}>
-                Manage institutional results, batch rankings, student grades, and server state.
+                {isMainAdmin
+                  ? "Full administrative control — manage institutional results, granular sub-admins, and server state."
+                  : "Authorized Sub-Admin Console — access restricted to assigned academic modules."}
               </p>
             </div>
           </div>
@@ -4577,6 +4629,11 @@ export default function AdminDashboard() {
 
         {/* ── TAB 5: STUDENT FEEDBACK ── */}
         {tab === "feedback" && <FeedbackManager authHeaders={authHeaders} API={API} />}
+
+        {/* ── TAB 6: ADMIN MANAGEMENT (MAIN ADMIN EXCLUSIVE) ── */}
+        {tab === "admin-management" && isMainAdmin && (
+          <AdminManagement API={API} authHeaders={authHeaders} isMobile={isMobile} />
+        )}
           </motion.div>
         </AnimatePresence>
       </div>

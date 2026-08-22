@@ -1,6 +1,8 @@
 const jwt = require("jsonwebtoken");
 const StudentSession = require("../models/StudentSession");
 const AdminSession = require("../models/AdminSession");
+const SubAdminSession = require("../models/SubAdminSession");
+const SubAdmin = require("../models/SubAdmin");
 const {
   isSessionValid,
   touchSession,
@@ -8,7 +10,7 @@ const {
   touchAdminSession,
 } = require("../utils/sessionManager");
 
-// Admin Protection Middleware
+// Admin Protection Middleware (Supports Main Admin and Sub-Admin)
 const protect = async (req, res, next) => {
   let token = null;
   if (req.headers.authorization && req.headers.authorization.startsWith("Bearer")) {
@@ -20,44 +22,113 @@ const protect = async (req, res, next) => {
   }
 
   if (!token || token === "none") {
-    return res.status(401).json({ message: "Not authorized, no admin token" });
+    return res.status(401).json({ success: false, message: "Not authorized, no admin token" });
   }
 
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     if (decoded.role === "student") {
-      return res.status(403).json({ message: "Forbidden: Admin privileges required" });
+      return res.status(403).json({ success: false, message: "Forbidden: Admin privileges required" });
     }
 
-    if (decoded.sessionId) {
-      const session = await AdminSession.findOne({
+    if (decoded.adminType === "subadmin") {
+      // ── Sub-Admin Session & Account Validation ──
+      if (decoded.sessionId) {
+        const session = await SubAdminSession.findOne({
+          sessionId: decoded.sessionId,
+          isActive: true,
+        });
+
+        if (!session) {
+          return res.status(401).json({
+            success: false,
+            message: "Sub-Admin session ended because this device was logged out.",
+            code: "ADMIN_SESSION_TERMINATED",
+          });
+        }
+
+        if (session.expiresAt && session.expiresAt < new Date()) {
+          await SubAdminSession.deleteOne({ _id: session._id });
+          return res.status(401).json({
+            success: false,
+            message: "Sub-Admin session expired due to 7 continuous days of inactivity. Please log in again.",
+            code: "INACTIVITY_LOGOUT",
+          });
+        }
+
+        // Rolling 7-day inactivity update
+        const now = new Date();
+        session.lastActiveAt = now;
+        session.expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+        await session.save();
+      }
+
+      const subAdmin = await SubAdmin.findById(decoded.subAdminId);
+      if (!subAdmin) {
+        return res.status(403).json({
+          success: false,
+          message: "Sub-Admin account not found.",
+          code: "SUBADMIN_NOT_FOUND",
+        });
+      }
+
+      if (subAdmin.status !== "active") {
+        return res.status(403).json({
+          success: false,
+          message: `Sub-Admin account is currently ${subAdmin.status}. Access denied.`,
+          code: `SUBADMIN_${subAdmin.status.toUpperCase()}`,
+        });
+      }
+
+      req.admin = {
+        role: "admin",
+        adminType: "subadmin",
+        subAdminId: subAdmin._id,
+        name: subAdmin.name,
+        email: subAdmin.email,
+        permissions: subAdmin.permissions || { routes: [], sections: [], actions: [] },
         sessionId: decoded.sessionId,
-        isActive: true,
-      });
-
-      if (!session) {
-        return res.status(401).json({
-          message: "Admin session ended because this device was logged out.",
-          code: "ADMIN_SESSION_TERMINATED",
+      };
+    } else {
+      // ── Main Admin Session Validation ──
+      if (decoded.sessionId) {
+        const session = await AdminSession.findOne({
+          sessionId: decoded.sessionId,
+          isActive: true,
         });
+
+        if (!session) {
+          return res.status(401).json({
+            success: false,
+            message: "Admin session ended because this device was logged out.",
+            code: "ADMIN_SESSION_TERMINATED",
+          });
+        }
+
+        if (!isAdminSessionValid(session)) {
+          await AdminSession.deleteOne({ _id: session._id });
+          return res.status(401).json({
+            success: false,
+            message: "Admin session expired due to 7 continuous days of inactivity. Please log in again.",
+            code: "INACTIVITY_LOGOUT",
+          });
+        }
+
+        // Rolling 7-day inactivity update
+        await touchAdminSession(session);
       }
 
-      if (!isAdminSessionValid(session)) {
-        await AdminSession.deleteOne({ _id: session._id });
-        return res.status(401).json({
-          message: "Admin session expired due to 7 continuous days of inactivity. Please log in again.",
-          code: "INACTIVITY_LOGOUT",
-        });
-      }
-
-      // Rolling 7-day inactivity update
-      await touchAdminSession(session);
+      req.admin = {
+        ...decoded,
+        role: "admin",
+        adminType: "main",
+        email: decoded.email || process.env.ADMIN_EMAIL,
+      };
     }
 
-    req.admin = decoded;
     next();
   } catch {
-    res.status(401).json({ message: "Not authorized, token invalid or expired" });
+    res.status(401).json({ success: false, message: "Not authorized, token invalid or expired" });
   }
 };
 

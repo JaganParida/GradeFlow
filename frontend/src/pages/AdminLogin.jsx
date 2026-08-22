@@ -37,8 +37,13 @@ export default function AdminLogin() {
   // OTP Expiration Timer
   const [otpTimeLeft, setOtpTimeLeft] = useState(300); // 5 minutes (300s)
 
+  const [authMode, setAuthMode] = useState("MAIN"); // "MAIN" | "SUBADMIN"
+  const [subAdminEmail, setSubAdminEmail] = useState("");
+  const [subAdminPassword, setSubAdminPassword] = useState("");
+  const [showSubPassword, setShowSubPassword] = useState(false);
+
   const otpInputsRef = useRef([]);
-  const { adminLoginPassword, adminVerifyOtp, adminToken } = useApp();
+  const { adminLoginPassword, adminVerifyOtp, subAdminLogin, adminToken } = useApp();
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -165,6 +170,71 @@ export default function AdminLogin() {
       });
     }
     setPassword("");
+  }
+
+  // ─── Step 1B: Submit Sub-Admin Login ─────────────────────────────
+  async function handleSubAdminSubmit(e) {
+    e.preventDefault();
+    if (lockCountdown > 0) return;
+
+    const cleanEmail = String(subAdminEmail || "").trim().toLowerCase();
+    const cleanPassword = String(subAdminPassword || "").trim();
+
+    if (!cleanEmail || !cleanPassword) {
+      setErrorInfo({
+        title: "Credentials Required",
+        message: "Please enter your assigned Sub-Admin email and password.",
+        badge: null,
+        type: "error",
+      });
+      return;
+    }
+
+    setLoading(true);
+    setErrorInfo(null);
+    setStatusNotice("");
+
+    try {
+      const res = await subAdminLogin(cleanEmail, cleanPassword);
+      if (res && res.success) {
+        navigate("/admin/dashboard", { replace: true });
+        return;
+      }
+
+      const nextFailed = failedAttempts + 1;
+      setFailedAttempts(nextFailed);
+
+      if (res?.code?.includes("DISABLED") || res?.code?.includes("REVOKED")) {
+        setErrorInfo({
+          title: "Account Inactive",
+          message: res.error || "Your Sub-Admin account is currently inactive or revoked.",
+          badge: "Access Denied",
+          type: "lockout",
+        });
+        return;
+      }
+
+      if (nextFailed >= 5) {
+        setLockCountdown(60);
+      } else {
+        const remaining = 5 - nextFailed;
+        setErrorInfo({
+          title: "Authentication Failed",
+          message: "The email address or password provided is incorrect.",
+          badge: `${remaining} attempt${remaining > 1 ? "s" : ""} left`,
+          type: "error",
+        });
+      }
+    } catch {
+      setErrorInfo({
+        title: "Authentication Error",
+        message: "An unexpected error occurred during sub-admin authentication.",
+        badge: null,
+        type: "error",
+      });
+    } finally {
+      setLoading(false);
+    }
   }
 
   // ─── Step 2: Handle OTP Input ────────────────────────────────────
@@ -484,313 +554,550 @@ export default function AdminLogin() {
             }}
             onContextMenu={(e) => e.preventDefault()}
           >
-            {/* ─── STEP 1: PASSWORD ONLY ─────────────────────────── */}
+            {/* ─── STEP 1: AUTHENTICATION SELECTION ─────────────────────────── */}
             {step === "PASSWORD" ? (
               <div>
-                {/* Form Header */}
-                <div style={{ textAlign: "center", marginBottom: 24 }}>
-                  <div
+                {/* Mode Selector Toggle */}
+                <div
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: "1fr 1fr",
+                    background: "#f1f5f9",
+                    padding: 4,
+                    borderRadius: 12,
+                    marginBottom: 20,
+                    gap: 4,
+                  }}
+                >
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setAuthMode("MAIN");
+                      setErrorInfo(null);
+                    }}
                     style={{
-                      width: 48,
-                      height: 48,
-                      background: "#eff6ff",
-                      borderRadius: 12,
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      margin: "0 auto 14px",
-                      border: "1px solid #dbeafe",
-                      color: "#2563eb",
+                      padding: "8px 12px",
+                      borderRadius: 8,
+                      border: "none",
+                      background: authMode === "MAIN" ? "#ffffff" : "transparent",
+                      color: authMode === "MAIN" ? "#2563eb" : "#64748b",
+                      fontWeight: 700,
+                      fontSize: 12.5,
+                      cursor: "pointer",
+                      boxShadow: authMode === "MAIN" ? "0 1px 3px rgba(0,0,0,0.06)" : "none",
+                      transition: "all 0.15s ease",
                     }}
                   >
-                    <KeyRound size={22} />
-                  </div>
-                  <h2 style={{ fontSize: 21, fontWeight: 800, letterSpacing: "-0.4px", margin: "0 0 6px 0", color: "#0f172a" }}>
-                    Admin Access Gateway
-                  </h2>
-                  <p style={{ color: "#64748b", fontSize: 13, margin: 0 }}>
-                    Enter administrative master password to receive institutional OTP
-                  </p>
+                    Master Admin
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setAuthMode("SUBADMIN");
+                      setErrorInfo(null);
+                    }}
+                    style={{
+                      padding: "8px 12px",
+                      borderRadius: 8,
+                      border: "none",
+                      background: authMode === "SUBADMIN" ? "#ffffff" : "transparent",
+                      color: authMode === "SUBADMIN" ? "#4f46e5" : "#64748b",
+                      fontWeight: 700,
+                      fontSize: 12.5,
+                      cursor: "pointer",
+                      boxShadow: authMode === "SUBADMIN" ? "0 1px 3px rgba(0,0,0,0.06)" : "none",
+                      transition: "all 0.15s ease",
+                    }}
+                  >
+                    Sub-Admin Portal
+                  </button>
                 </div>
 
-                <form onSubmit={handlePasswordSubmit} autoComplete="off">
-                  {/* Password Input (ONLY FIELD - NO EMAIL INPUT) */}
-                  <div style={{ marginBottom: 20 }}>
-                    <label
-                      style={{
-                        display: "block",
-                        fontSize: 11.5,
-                        color: "#475569",
-                        marginBottom: 6,
-                        fontWeight: 700,
-                        textTransform: "uppercase",
-                        letterSpacing: "0.5px",
-                      }}
-                    >
-                      Master Password
-                    </label>
-                    <div style={{ position: "relative" }}>
-                      <Lock
-                        size={16}
-                        color="#94a3b8"
+                {authMode === "MAIN" ? (
+                  <>
+                    {/* Form Header */}
+                    <div style={{ textAlign: "center", marginBottom: 20 }}>
+                      <div
                         style={{
-                          position: "absolute",
-                          left: 14,
-                          top: "50%",
-                          transform: "translateY(-50%)",
-                          pointerEvents: "none",
-                        }}
-                      />
-                      <input
-                        type={showPassword ? "text" : "password"}
-                        value={password}
-                        onChange={(e) => setPassword(e.target.value)}
-                        placeholder="••••••••••••"
-                        required
-                        disabled={loading || lockCountdown > 0}
-                        autoComplete="current-password"
-                        spellCheck="false"
-                        autoFocus
-                        style={{
-                          width: "100%",
-                          background: "#f8fafc",
-                          border: "1.5px solid #e2e8f0",
-                          padding: "11px 40px 11px 40px",
-                          fontSize: 14,
-                          borderRadius: 10,
-                          color: "#0f172a",
-                          letterSpacing: showPassword ? "normal" : "2px",
-                          transition: "all 0.15s ease",
-                          outline: "none",
-                          boxSizing: "border-box",
-                          fontFamily: "'DM Sans', sans-serif",
-                        }}
-                        onFocus={(e) => {
-                          e.target.style.borderColor = "#2563eb";
-                          e.target.style.background = "#ffffff";
-                        }}
-                        onBlur={(e) => {
-                          e.target.style.borderColor = "#e2e8f0";
-                          e.target.style.background = "#f8fafc";
-                        }}
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setShowPassword(!showPassword)}
-                        disabled={loading || lockCountdown > 0}
-                        style={{
-                          position: "absolute",
-                          right: 12,
-                          top: "50%",
-                          transform: "translateY(-50%)",
-                          background: "none",
-                          border: "none",
-                          color: "#94a3b8",
-                          cursor: "pointer",
-                          padding: 4,
+                          width: 48,
+                          height: 48,
+                          background: "#eff6ff",
+                          borderRadius: 12,
                           display: "flex",
                           alignItems: "center",
                           justifyContent: "center",
+                          margin: "0 auto 14px",
+                          border: "1px solid #dbeafe",
+                          color: "#2563eb",
                         }}
                       >
-                        {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
-                      </button>
+                        <KeyRound size={22} />
+                      </div>
+                      <h2 style={{ fontSize: 21, fontWeight: 800, letterSpacing: "-0.4px", margin: "0 0 6px 0", color: "#0f172a" }}>
+                        Master Admin Gateway
+                      </h2>
+                      <p style={{ color: "#64748b", fontSize: 13, margin: 0 }}>
+                        Enter administrative master password to receive institutional OTP
+                      </p>
                     </div>
-                  </div>
 
-                  {/* Device Limit Security Highlight */}
-                  <div
-                    style={{
-                      background: "#f8fafc",
-                      border: "1px solid #e2e8f0",
-                      borderRadius: 8,
-                      padding: "8px 12px",
-                      fontSize: 11.5,
-                      color: "#64748b",
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 8,
-                      marginBottom: 18,
-                    }}
-                  >
-                    <Smartphone size={15} color="#2563eb" style={{ flexShrink: 0 }} />
-                    <span>Device Limit: Maximum 2 active admin devices allowed simultaneously.</span>
-                  </div>
-
-                  {/* Professional Institutional Security Alert */}
-                  <AnimatePresence>
-                    {errorInfo && (
-                      <motion.div
-                        initial={{ opacity: 0, y: -6, scale: 0.98 }}
-                        animate={{ opacity: 1, y: 0, scale: 1 }}
-                        exit={{ opacity: 0, y: -6, scale: 0.98 }}
-                        transition={{ duration: 0.2 }}
-                        style={{
-                          background:
-                            errorInfo.type === "warning"
-                              ? "#fffbeb"
-                              : errorInfo.type === "lockout"
-                              ? "#fff1f2"
-                              : "#fef2f2",
-                          border: `1px solid ${
-                            errorInfo.type === "warning"
-                              ? "#fef3c7"
-                              : errorInfo.type === "lockout"
-                              ? "#ffe4e6"
-                              : "#fee2e2"
-                          }`,
-                          borderRadius: 12,
-                          padding: "12px 14px",
-                          marginBottom: 18,
-                          display: "flex",
-                          alignItems: "flex-start",
-                          gap: 12,
-                          boxShadow: "0 2px 6px rgba(0, 0, 0, 0.02)",
-                        }}
-                      >
-                        <div
+                    <form onSubmit={handlePasswordSubmit} autoComplete="off">
+                      {/* Password Input (ONLY FIELD - NO EMAIL INPUT) */}
+                      <div style={{ marginBottom: 20 }}>
+                        <label
                           style={{
-                            width: 28,
-                            height: 28,
-                            borderRadius: 8,
-                            background:
-                              errorInfo.type === "warning"
-                                ? "#fef3c7"
-                                : errorInfo.type === "lockout"
-                                ? "#ffe4e6"
-                                : "#fee2e2",
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "center",
-                            flexShrink: 0,
-                            marginTop: 1,
+                            display: "block",
+                            fontSize: 11.5,
+                            color: "#475569",
+                            marginBottom: 6,
+                            fontWeight: 700,
+                            textTransform: "uppercase",
+                            letterSpacing: "0.5px",
                           }}
                         >
-                          {errorInfo.type === "warning" ? (
-                            <Smartphone size={15} color="#d97706" />
-                          ) : errorInfo.type === "lockout" ? (
-                            <ShieldAlert size={15} color="#e11d48" />
-                          ) : (
-                            <AlertTriangle size={15} color="#dc2626" />
-                          )}
-                        </div>
-
-                        <div style={{ flex: 1 }}>
-                          <div
+                          Master Password
+                        </label>
+                        <div style={{ position: "relative" }}>
+                          <Lock
+                            size={16}
+                            color="#94a3b8"
                             style={{
+                              position: "absolute",
+                              left: 14,
+                              top: "50%",
+                              transform: "translateY(-50%)",
+                              pointerEvents: "none",
+                            }}
+                          />
+                          <input
+                            type={showPassword ? "text" : "password"}
+                            value={password}
+                            onChange={(e) => setPassword(e.target.value)}
+                            placeholder="••••••••••••"
+                            required
+                            disabled={loading || lockCountdown > 0}
+                            autoComplete="current-password"
+                            spellCheck="false"
+                            autoFocus
+                            style={{
+                              width: "100%",
+                              background: "#f8fafc",
+                              border: "1.5px solid #e2e8f0",
+                              padding: "11px 40px 11px 40px",
+                              fontSize: 14,
+                              borderRadius: 10,
+                              color: "#0f172a",
+                              letterSpacing: showPassword ? "normal" : "2px",
+                              transition: "all 0.15s ease",
+                              outline: "none",
+                              boxSizing: "border-box",
+                              fontFamily: "'DM Sans', sans-serif",
+                            }}
+                            onFocus={(e) => {
+                              e.target.style.borderColor = "#2563eb";
+                              e.target.style.background = "#ffffff";
+                            }}
+                            onBlur={(e) => {
+                              e.target.style.borderColor = "#e2e8f0";
+                              e.target.style.background = "#f8fafc";
+                            }}
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setShowPassword(!showPassword)}
+                            disabled={loading || lockCountdown > 0}
+                            style={{
+                              position: "absolute",
+                              right: 12,
+                              top: "50%",
+                              transform: "translateY(-50%)",
+                              background: "none",
+                              border: "none",
+                              color: "#94a3b8",
+                              cursor: "pointer",
+                              padding: 4,
                               display: "flex",
                               alignItems: "center",
-                              justifyContent: "space-between",
-                              gap: 8,
-                              marginBottom: 2,
+                              justifyContent: "center",
                             }}
                           >
-                            <span
+                            {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Device Limit Security Highlight */}
+                      <div
+                        style={{
+                          background: "#f8fafc",
+                          border: "1px solid #e2e8f0",
+                          borderRadius: 8,
+                          padding: "8px 12px",
+                          fontSize: 11.5,
+                          color: "#64748b",
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 8,
+                          marginBottom: 18,
+                        }}
+                      >
+                        <Smartphone size={15} color="#2563eb" style={{ flexShrink: 0 }} />
+                        <span>Device Limit: Maximum 2 active admin devices allowed simultaneously.</span>
+                      </div>
+
+                      {/* Professional Institutional Security Alert */}
+                      <AnimatePresence>
+                        {errorInfo && (
+                          <motion.div
+                            initial={{ opacity: 0, y: -6, scale: 0.98 }}
+                            animate={{ opacity: 1, y: 0, scale: 1 }}
+                            exit={{ opacity: 0, y: -6, scale: 0.98 }}
+                            transition={{ duration: 0.2 }}
+                            style={{
+                              background:
+                                errorInfo.type === "warning"
+                                  ? "#fffbeb"
+                                  : errorInfo.type === "lockout"
+                                  ? "#fff1f2"
+                                  : "#fef2f2",
+                              border: `1px solid ${
+                                errorInfo.type === "warning"
+                                  ? "#fef3c7"
+                                  : errorInfo.type === "lockout"
+                                  ? "#ffe4e6"
+                                  : "#fee2e2"
+                              }`,
+                              borderRadius: 12,
+                              padding: "12px 14px",
+                              marginBottom: 18,
+                              display: "flex",
+                              alignItems: "flex-start",
+                              gap: 12,
+                              boxShadow: "0 2px 6px rgba(0, 0, 0, 0.02)",
+                            }}
+                          >
+                            <div
                               style={{
-                                fontSize: 13,
-                                fontWeight: 700,
-                                color:
+                                width: 28,
+                                height: 28,
+                                borderRadius: 8,
+                                background:
                                   errorInfo.type === "warning"
-                                    ? "#92400e"
+                                    ? "#fef3c7"
                                     : errorInfo.type === "lockout"
-                                    ? "#9f1239"
-                                    : "#991b1b",
-                                letterSpacing: "-0.2px",
+                                    ? "#ffe4e6"
+                                    : "#fee2e2",
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "center",
+                                flexShrink: 0,
+                                marginTop: 1,
                               }}
                             >
-                              {errorInfo.title}
-                            </span>
-                            {errorInfo.badge && (
-                              <span
+                              {errorInfo.type === "warning" ? (
+                                <Smartphone size={15} color="#d97706" />
+                              ) : errorInfo.type === "lockout" ? (
+                                <ShieldAlert size={15} color="#e11d48" />
+                              ) : (
+                                <AlertTriangle size={15} color="#dc2626" />
+                              )}
+                            </div>
+
+                            <div style={{ flex: 1 }}>
+                              <div
                                 style={{
-                                  fontSize: 10.5,
-                                  fontWeight: 700,
-                                  padding: "2px 7px",
-                                  borderRadius: 99,
-                                  background:
-                                    errorInfo.type === "warning"
-                                      ? "#fde68a"
-                                      : errorInfo.type === "lockout"
-                                      ? "#fecdd3"
-                                      : "#fecaca",
-                                  color:
-                                    errorInfo.type === "warning"
-                                      ? "#78350f"
-                                      : errorInfo.type === "lockout"
-                                      ? "#881337"
-                                      : "#7f1d1d",
+                                  display: "flex",
+                                  alignItems: "center",
+                                  justifyContent: "space-between",
+                                  gap: 8,
+                                  marginBottom: 2,
                                 }}
                               >
-                                {errorInfo.badge}
-                              </span>
-                            )}
-                          </div>
-                          <p
+                                <span
+                                  style={{
+                                    fontSize: 13,
+                                    fontWeight: 700,
+                                    color:
+                                      errorInfo.type === "warning"
+                                        ? "#92400e"
+                                        : errorInfo.type === "lockout"
+                                        ? "#9f1239"
+                                        : "#991b1b",
+                                  }}
+                                >
+                                  {errorInfo.title}
+                                </span>
+                                {errorInfo.badge && (
+                                  <span
+                                    style={{
+                                      fontSize: 10.5,
+                                      fontWeight: 700,
+                                      background:
+                                        errorInfo.type === "warning"
+                                          ? "#fde68a"
+                                          : errorInfo.type === "lockout"
+                                          ? "#fecdd3"
+                                          : "#fecaca",
+                                      color:
+                                        errorInfo.type === "warning"
+                                          ? "#78350f"
+                                          : errorInfo.type === "lockout"
+                                          ? "#881337"
+                                          : "#7f1d1d",
+                                      padding: "1px 6px",
+                                      borderRadius: 4,
+                                      letterSpacing: "0.2px",
+                                    }}
+                                  >
+                                    {errorInfo.badge}
+                                  </span>
+                                )}
+                              </div>
+                              <p
+                                style={{
+                                  fontSize: 12,
+                                  lineHeight: 1.5,
+                                  color:
+                                    errorInfo.type === "warning"
+                                      ? "#b45309"
+                                      : errorInfo.type === "lockout"
+                                      ? "#be123c"
+                                      : "#b91c1c",
+                                  margin: 0,
+                                }}
+                              >
+                                {errorInfo.message}
+                              </p>
+                            </div>
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
+
+                      {/* Submit Password Button */}
+                      <button
+                        type="submit"
+                        disabled={loading || lockCountdown > 0}
+                        style={{
+                          width: "100%",
+                          padding: "12px",
+                          fontSize: 14,
+                          fontWeight: 700,
+                          background:
+                            lockCountdown > 0
+                              ? "#f1f5f9"
+                              : "linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)",
+                          border: "none",
+                          borderRadius: 10,
+                          color: lockCountdown > 0 ? "#94a3b8" : "#ffffff",
+                          cursor: lockCountdown > 0 ? "not-allowed" : "pointer",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          gap: 8,
+                          transition: "all 0.2s ease",
+                          boxShadow: lockCountdown === 0 ? "0 4px 12px rgba(37, 99, 235, 0.25)" : "none",
+                          fontFamily: "'DM Sans', sans-serif",
+                        }}
+                      >
+                        {loading ? (
+                          <>
+                            <Loader2 size={16} className="spin" /> Verifying Password...
+                          </>
+                        ) : lockCountdown > 0 ? (
+                          `Access Locked (${lockCountdown}s)`
+                        ) : (
+                          <>
+                            <ShieldCheck size={16} /> Authenticate &amp; Request OTP
+                          </>
+                        )}
+                      </button>
+                    </form>
+                  </>
+                ) : (
+                  /* ─── SUB-ADMIN PORTAL LOGIN FORM ─── */
+                  <>
+                    <div style={{ textAlign: "center", marginBottom: 20 }}>
+                      <div
+                        style={{
+                          width: 48,
+                          height: 48,
+                          background: "#eef2ff",
+                          borderRadius: 12,
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          margin: "0 auto 14px",
+                          border: "1px solid #c7d2fe",
+                          color: "#4f46e5",
+                        }}
+                      >
+                        <ShieldCheck size={22} />
+                      </div>
+                      <h2 style={{ fontSize: 21, fontWeight: 800, letterSpacing: "-0.4px", margin: "0 0 6px 0", color: "#0f172a" }}>
+                        Sub-Admin Portal
+                      </h2>
+                      <p style={{ color: "#64748b", fontSize: 13, margin: 0 }}>
+                        Log in with your delegated administrative credentials
+                      </p>
+                    </div>
+
+                    <form onSubmit={handleSubAdminSubmit} autoComplete="off">
+                      {/* Email Input */}
+                      <div style={{ marginBottom: 14 }}>
+                        <label
+                          style={{
+                            display: "block",
+                            fontSize: 11.5,
+                            color: "#475569",
+                            marginBottom: 6,
+                            fontWeight: 700,
+                            textTransform: "uppercase",
+                            letterSpacing: "0.5px",
+                          }}
+                        >
+                          Email Address
+                        </label>
+                        <input
+                          type="email"
+                          required
+                          value={subAdminEmail}
+                          onChange={(e) => setSubAdminEmail(e.target.value)}
+                          placeholder="subadmin@institution.edu"
+                          disabled={loading || lockCountdown > 0}
+                          style={{
+                            width: "100%",
+                            background: "#f8fafc",
+                            border: "1.5px solid #e2e8f0",
+                            padding: "11px 14px",
+                            fontSize: 13.5,
+                            borderRadius: 10,
+                            color: "#0f172a",
+                            outline: "none",
+                            boxSizing: "border-box",
+                            fontFamily: "'DM Sans', sans-serif",
+                          }}
+                        />
+                      </div>
+
+                      {/* Password Input */}
+                      <div style={{ marginBottom: 18 }}>
+                        <label
+                          style={{
+                            display: "block",
+                            fontSize: 11.5,
+                            color: "#475569",
+                            marginBottom: 6,
+                            fontWeight: 700,
+                            textTransform: "uppercase",
+                            letterSpacing: "0.5px",
+                          }}
+                        >
+                          Password
+                        </label>
+                        <div style={{ position: "relative" }}>
+                          <input
+                            type={showSubPassword ? "text" : "password"}
+                            required
+                            value={subAdminPassword}
+                            onChange={(e) => setSubAdminPassword(e.target.value)}
+                            placeholder="••••••••••••"
+                            disabled={loading || lockCountdown > 0}
                             style={{
-                              fontSize: 12,
-                              color:
-                                errorInfo.type === "warning"
-                                  ? "#78350f"
-                                  : errorInfo.type === "lockout"
-                                  ? "#881337"
-                                  : "#7f1d1d",
-                              lineHeight: 1.45,
-                              margin: 0,
-                              opacity: 0.92,
+                              width: "100%",
+                              background: "#f8fafc",
+                              border: "1.5px solid #e2e8f0",
+                              padding: "11px 40px 11px 14px",
+                              fontSize: 13.5,
+                              borderRadius: 10,
+                              color: "#0f172a",
+                              outline: "none",
+                              boxSizing: "border-box",
+                              fontFamily: "'DM Sans', sans-serif",
+                            }}
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setShowSubPassword(!showSubPassword)}
+                            disabled={loading || lockCountdown > 0}
+                            style={{
+                              position: "absolute",
+                              right: 12,
+                              top: "50%",
+                              transform: "translateY(-50%)",
+                              background: "none",
+                              border: "none",
+                              color: "#94a3b8",
+                              cursor: "pointer",
+                              padding: 4,
                             }}
                           >
-                            {errorInfo.message}
-                          </p>
+                            {showSubPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                          </button>
                         </div>
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
+                      </div>
 
-                  {/* Submit Button */}
-                  <button
-                    type="submit"
-                    disabled={loading || lockCountdown > 0}
-                    style={{
-                      width: "100%",
-                      padding: "12px",
-                      fontSize: 14,
-                      fontWeight: 700,
-                      background:
-                        lockCountdown > 0
-                          ? "#f1f5f9"
-                          : "linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)",
-                      border: "none",
-                      borderRadius: 10,
-                      color: lockCountdown > 0 ? "#94a3b8" : "#ffffff",
-                      cursor: lockCountdown > 0 ? "not-allowed" : "pointer",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      gap: 8,
-                      transition: "all 0.2s ease",
-                      boxShadow: lockCountdown === 0 ? "0 4px 12px rgba(37, 99, 235, 0.25)" : "none",
-                      fontFamily: "'DM Sans', sans-serif",
-                    }}
-                    onMouseEnter={(e) => {
-                      if (!loading && lockCountdown === 0) e.currentTarget.style.filter = "brightness(1.08)";
-                    }}
-                    onMouseLeave={(e) => {
-                      if (!loading && lockCountdown === 0) e.currentTarget.style.filter = "none";
-                    }}
-                  >
-                    {loading ? (
-                      <>
-                        <Loader2 size={16} className="spin" /> Verifying Password...
-                      </>
-                    ) : lockCountdown > 0 ? (
-                      `Access Locked (${lockCountdown}s)`
-                    ) : (
-                      <>
-                        <ShieldCheck size={16} /> Authenticate &amp; Request OTP
-                      </>
-                    )}
-                  </button>
-                </form>
+                      {/* Professional Security Alert */}
+                      <AnimatePresence>
+                        {errorInfo && (
+                          <motion.div
+                            initial={{ opacity: 0, y: -6 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: -6 }}
+                            style={{
+                              background: "#fef2f2",
+                              border: "1px solid #fee2e2",
+                              borderRadius: 10,
+                              padding: "10px 14px",
+                              marginBottom: 16,
+                              fontSize: 12.5,
+                              color: "#991b1b",
+                              display: "flex",
+                              alignItems: "center",
+                              gap: 8,
+                            }}
+                          >
+                            <AlertTriangle size={15} color="#dc2626" />
+                            <span>{errorInfo.message}</span>
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
+
+                      <button
+                        type="submit"
+                        disabled={loading || lockCountdown > 0}
+                        style={{
+                          width: "100%",
+                          padding: "12px",
+                          fontSize: 14,
+                          fontWeight: 700,
+                          background:
+                            lockCountdown > 0
+                              ? "#f1f5f9"
+                              : "linear-gradient(135deg, #4f46e5 0%, #3730a3 100%)",
+                          border: "none",
+                          borderRadius: 10,
+                          color: lockCountdown > 0 ? "#94a3b8" : "#ffffff",
+                          cursor: lockCountdown > 0 ? "not-allowed" : "pointer",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          gap: 8,
+                          boxShadow: "0 4px 12px rgba(79, 70, 229, 0.25)",
+                        }}
+                      >
+                        {loading ? (
+                          <>
+                            <Loader2 size={16} className="spin" /> Authenticating...
+                          </>
+                        ) : (
+                          <>
+                            <ShieldCheck size={16} /> Sign In as Sub-Admin
+                          </>
+                        )}
+                      </button>
+                    </form>
+                  </>
+                )}
               </div>
             ) : (
               /* ─── STEP 2: 6-DIGIT OTP VERIFICATION ───────────────── */

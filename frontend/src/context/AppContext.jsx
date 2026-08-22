@@ -303,6 +303,28 @@ export function AppProvider({ children }) {
     return adminLoginPassword(password);
   };
 
+  const subAdminLogin = async (email, password) => {
+    setLoading(true);
+    setError("");
+    try {
+      const res = await axios.post(`${API_BASE}/auth/subadmin/login`, { email, password }, { withCredentials: true });
+      if (res.data?.success && res.data?.token) {
+        sessionStorage.setItem("gf_admin_jwt", res.data.token);
+        localStorage.setItem("gf_admin_jwt", res.data.token);
+        setAdminToken(true);
+        return { success: true, subAdmin: res.data };
+      }
+      return { success: false, message: res.data?.message || "Sub-Admin login failed" };
+    } catch (err) {
+      const msg = err.response?.data?.message || "Invalid Sub-Admin credentials.";
+      const code = err.response?.data?.code || "SUBADMIN_AUTH_ERROR";
+      setError(msg);
+      return { success: false, error: msg, code };
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const adminLogout = async () => {
     try {
       const adminJwt = sessionStorage.getItem("gf_admin_jwt") || localStorage.getItem("gf_admin_jwt");
@@ -431,6 +453,7 @@ export function AppProvider({ children }) {
         adminLogin,
         adminLoginPassword,
         adminVerifyOtp,
+        subAdminLogin,
         adminLogout,
         logoutAdmin,
         authHeaders,

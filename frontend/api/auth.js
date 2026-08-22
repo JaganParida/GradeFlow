@@ -2,6 +2,8 @@ const connectToDatabase = require("./_lib/db");
 const Admin = require("./_lib/models/Admin");
 const AdminSession = require("./_lib/models/AdminSession");
 const AdminOtpVerification = require("./_lib/models/AdminOtpVerification");
+const SubAdmin = require("./_lib/models/SubAdmin");
+const SubAdminSession = require("./_lib/models/SubAdminSession");
 const SemesterResult = require("./_lib/models/SemesterResult");
 const OtpVerification = require("./_lib/models/OtpVerification");
 const StudentSession = require("./_lib/models/StudentSession");
@@ -272,7 +274,8 @@ module.exports = async function handler(req, res) {
     let action = req.query.action;
     if (!action && req.url) {
       const cleanUrl = req.url.split("?")[0];
-      if (cleanUrl.includes("admin/login-password") || cleanUrl.endsWith("/login")) action = "admin-login-password";
+      if (cleanUrl.includes("subadmin/login")) action = "subadmin-login";
+      else if (cleanUrl.includes("admin/login-password") || cleanUrl.endsWith("/login")) action = "admin-login-password";
       else if (cleanUrl.includes("admin/verify-otp")) action = "admin-verify-otp";
       else if (cleanUrl.includes("admin/check-status")) action = "admin-check-status";
       else if (cleanUrl.includes("admin/me") || cleanUrl.endsWith("/me")) action = "admin-me";
@@ -976,6 +979,101 @@ module.exports = async function handler(req, res) {
     }
 
     /* ─────────────────────────────────────────────────────────────
+       7.5. SUB-ADMIN LOGIN (/api/auth/subadmin/login)
+    ───────────────────────────────────────────────────────────── */
+    if (action === "subadmin-login" && req.method === "POST") {
+      const { email, password } = req.body || {};
+      const cleanEmail = String(email || "").trim().toLowerCase();
+      const candidatePassword = String(password || "");
+
+      if (!cleanEmail || !candidatePassword) {
+        return res.status(400).json({
+          success: false,
+          message: "Email and password are required.",
+          code: "CREDENTIALS_REQUIRED",
+        });
+      }
+
+      const subAdmin = await SubAdmin.findOne({ email: cleanEmail });
+      if (!subAdmin) {
+        return res.status(401).json({
+          success: false,
+          message: "Invalid email or password.",
+          code: "INVALID_CREDENTIALS",
+        });
+      }
+
+      const isMatch = await subAdmin.comparePassword(candidatePassword);
+      if (!isMatch) {
+        return res.status(401).json({
+          success: false,
+          message: "Invalid email or password.",
+          code: "INVALID_CREDENTIALS",
+        });
+      }
+
+      if (subAdmin.status !== "active") {
+        return res.status(403).json({
+          success: false,
+          message: `Your Sub-Admin account is currently ${subAdmin.status}. Please contact the Main Administrator.`,
+          code: `SUBADMIN_${subAdmin.status.toUpperCase()}`,
+        });
+      }
+
+      const sessionId = crypto.randomUUID();
+      const now = new Date();
+      const expiresAt = new Date(Date.now() + SEVEN_DAYS_MS);
+
+      const userAgent = req.headers["user-agent"] || "Unknown";
+      const ip = req.headers["x-forwarded-for"] || req.connection?.remoteAddress || "";
+      const platform = req.headers["sec-ch-ua-platform"] || "Web";
+
+      await SubAdminSession.create({
+        subAdminId: subAdmin._id,
+        sessionId,
+        deviceInfo: { userAgent, ip, platform },
+        loggedInAt: now,
+        lastActiveAt: now,
+        expiresAt,
+        isActive: true,
+      });
+
+      subAdmin.lastLoginAt = now;
+      subAdmin.lastActiveAt = now;
+      await subAdmin.save();
+
+      const token = jwt.sign(
+        {
+          role: "admin",
+          adminType: "subadmin",
+          subAdminId: subAdmin._id,
+          name: subAdmin.name,
+          email: subAdmin.email,
+          sessionId,
+          loggedInAt: now,
+        },
+        process.env.JWT_SECRET,
+        { expiresIn: "7d" }
+      );
+
+      const maxAge = 7 * 24 * 60 * 60;
+      res.setHeader("Set-Cookie", [
+        `jwt=${token}; Path=/; HttpOnly; Secure; SameSite=None; Max-Age=${maxAge}`,
+        `jwt=${token}; Path=/; HttpOnly; SameSite=None; Max-Age=${maxAge}`,
+      ]);
+
+      return res.json({
+        success: true,
+        token,
+        adminType: "subadmin",
+        name: subAdmin.name,
+        email: subAdmin.email,
+        permissions: subAdmin.permissions || { routes: [], sections: [], actions: [] },
+        message: `Welcome, ${subAdmin.name}!`,
+      });
+    }
+
+    /* ─────────────────────────────────────────────────────────────
        8. ADMIN CURRENT SESSION CHECK (/me or /admin/me)
     ───────────────────────────────────────────────────────────── */
     if ((action === "me" || action === "admin-me") && req.method === "GET") {
@@ -995,6 +1093,57 @@ module.exports = async function handler(req, res) {
         const decoded = jwt.verify(token, process.env.JWT_SECRET);
         if (decoded.role === "student") {
           return res.status(403).json({ message: "Forbidden: Admin privileges required" });
+        }
+
+        if (decoded.adminType === "subadmin") {
+          if (decoded.sessionId) {
+            const session = await SubAdminSession.findOne({
+              sessionId: decoded.sessionId,
+              isActive: true,
+            });
+
+            if (!session) {
+              return res.status(401).json({
+                success: false,
+                code: "ADMIN_SESSION_TERMINATED",
+                message: "Sub-Admin session ended because this device was logged out.",
+              });
+            }
+
+            if (session.expiresAt && session.expiresAt < new Date()) {
+              await SubAdminSession.deleteOne({ _id: session._id });
+              return res.status(401).json({
+                success: false,
+                code: "INACTIVITY_LOGOUT",
+                message: "Sub-Admin session expired due to 7 continuous days of inactivity.",
+              });
+            }
+
+            session.lastActiveAt = new Date();
+            session.expiresAt = new Date(Date.now() + SEVEN_DAYS_MS);
+            await session.save();
+          }
+
+          const subAdmin = await SubAdmin.findById(decoded.subAdminId);
+          if (!subAdmin || subAdmin.status !== "active") {
+            return res.status(403).json({
+              success: false,
+              code: "SUBADMIN_INACTIVE",
+              message: "Sub-Admin account is inactive or revoked.",
+            });
+          }
+
+          return res.json({
+            success: true,
+            role: "admin",
+            adminType: "subadmin",
+            subAdminId: subAdmin._id,
+            name: subAdmin.name,
+            email: subAdmin.email,
+            permissions: subAdmin.permissions || { routes: [], sections: [], actions: [] },
+            sessionId: decoded.sessionId,
+            token,
+          });
         }
 
         if (decoded.sessionId) {
@@ -1025,12 +1174,22 @@ module.exports = async function handler(req, res) {
           return res.json({
             success: true,
             role: "admin",
+            adminType: "main",
+            name: "Main Administrator",
+            email: decoded.email || process.env.ADMIN_EMAIL,
             sessionId: session.sessionId,
             token,
           });
         }
 
-        return res.json({ success: true, role: "admin", token });
+        return res.json({
+          success: true,
+          role: "admin",
+          adminType: "main",
+          name: "Main Administrator",
+          email: decoded.email || process.env.ADMIN_EMAIL,
+          token,
+        });
       } catch (err) {
         return res.json({ success: false, message: "Token invalid or expired" });
       }
@@ -1052,7 +1211,11 @@ module.exports = async function handler(req, res) {
         try {
           const decoded = jwt.verify(token, process.env.JWT_SECRET);
           if (decoded?.sessionId) {
-            await AdminSession.deleteOne({ sessionId: decoded.sessionId });
+            if (decoded.adminType === "subadmin") {
+              await SubAdminSession.deleteOne({ sessionId: decoded.sessionId });
+            } else {
+              await AdminSession.deleteOne({ sessionId: decoded.sessionId });
+            }
           }
         } catch {}
       }
@@ -1062,7 +1225,7 @@ module.exports = async function handler(req, res) {
         `jwt=; Path=/; HttpOnly; SameSite=None; Max-Age=0; Expires=Thu, 01 Jan 1970 00:00:00 GMT`,
       ]);
 
-      return res.status(200).json({ success: true, message: "Admin logged out successfully from this device." });
+      return res.status(200).json({ success: true, message: "Logged out successfully from this device." });
     }
 
     return res.status(404).json({ message: `Unknown auth action: ${action}` });
