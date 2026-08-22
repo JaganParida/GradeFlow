@@ -876,8 +876,8 @@ export default function Navbar() {
                     style={{
                       display: "inline-flex",
                       alignItems: "center",
-                      gap: 6,
-                      padding: "8px 16px",
+                      justifyContent: "center",
+                      padding: "8px 18px",
                       borderRadius: 10,
                       background: "linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)",
                       color: "#ffffff",
@@ -891,7 +891,6 @@ export default function Navbar() {
                     onMouseEnter={(e) => (e.currentTarget.style.filter = "brightness(1.08)")}
                     onMouseLeave={(e) => (e.currentTarget.style.filter = "none")}
                   >
-                    <LayoutDashboard size={14} color="#ffffff" />
                     <span>Dashboard</span>
                   </Link>
                   <button
