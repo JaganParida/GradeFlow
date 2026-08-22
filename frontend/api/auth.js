@@ -1,5 +1,7 @@
 const connectToDatabase = require("./_lib/db");
 const Admin = require("./_lib/models/Admin");
+const AdminSession = require("./_lib/models/AdminSession");
+const AdminOtpVerification = require("./_lib/models/AdminOtpVerification");
 const SemesterResult = require("./_lib/models/SemesterResult");
 const OtpVerification = require("./_lib/models/OtpVerification");
 const StudentSession = require("./_lib/models/StudentSession");
@@ -10,11 +12,16 @@ const crypto = require("crypto");
 const nodemailer = require("nodemailer");
 const {
   SEVEN_DAYS_MS,
+  MAX_ADMIN_DEVICES,
   getMaxAllowedDevices,
   cleanExpiredSessions,
   getActiveSessions,
   isSessionValid,
   touchSession,
+  cleanExpiredAdminSessions,
+  getActiveAdminSessions,
+  isAdminSessionValid,
+  touchAdminSession,
 } = require("./_lib/sessionManager");
 
 const CORS_HEADERS = {
@@ -160,6 +167,64 @@ async function sendOtpEmail({ to, studentName = "Student", regNo, otp, expiresIn
     replyTo: senderEmail,
     to,
     subject: `Your GradeFlow Verification Code: ${otp}`,
+    text,
+    html,
+  };
+
+  return transporter.sendMail(mailOptions);
+}
+
+async function sendAdminOtpEmail({ to, otp, expiresInMinutes = 5 }) {
+  const transporter = createTransporter();
+  const senderEmail = process.env.EMAIL_FROM || "jaganparida9154@gmail.com";
+
+  const html = `
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+      <meta charset="UTF-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>GradeFlow Institutional Admin Code</title>
+    </head>
+    <body style="margin: 0; padding: 40px 20px; background-color: #0f172a; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #f8fafc; -webkit-font-smoothing: antialiased;">
+      <table align="center" border="0" cellpadding="0" cellspacing="0" width="100%" style="max-width: 520px; margin: 0 auto; text-align: left; background: #1e293b; border-radius: 16px; border: 1px solid #334155; padding: 32px 28px;">
+        <tr>
+          <td style="padding-bottom: 20px;">
+            <div style="font-size: 20px; font-weight: 800; color: #38bdf8; letter-spacing: -0.5px;">GradeFlow Admin Security</div>
+            <div style="font-size: 12px; color: #94a3b8; margin-top: 4px;">Institutional Administration Gateway</div>
+          </td>
+        </tr>
+        <tr>
+          <td style="border-top: 1px solid #334155; padding-top: 24px;">
+            <div style="font-size: 20px; font-weight: 700; color: #f8fafc; margin-bottom: 12px;">Admin Verification Code</div>
+            <div style="font-size: 14px; color: #cbd5e1; line-height: 1.6; margin-bottom: 24px;">
+              An administrative login attempt has been initiated with the correct master password. Use the single-use verification code below to authorize this session:
+            </div>
+            <div style="font-size: 38px; font-weight: 800; letter-spacing: 8px; color: #38bdf8; font-family: monospace; background: #0f172a; padding: 16px; border-radius: 12px; text-align: center; border: 1px solid #334155; margin-bottom: 24px;">
+              ${otp}
+            </div>
+            <div style="font-size: 13px; color: #94a3b8; line-height: 1.5; margin-bottom: 20px;">
+              This code will expire in ${expiresInMinutes} minutes. If you did not initiate this login request, please inspect your server security immediately.
+            </div>
+          </td>
+        </tr>
+        <tr>
+          <td style="border-top: 1px solid #334155; padding-top: 18px; font-size: 11px; color: #64748b;">
+            GradeFlow Enterprise Security Gateway &bull; Max 2 Authorized Active Devices
+          </td>
+        </tr>
+      </table>
+    </body>
+    </html>
+  `;
+
+  const text = `GradeFlow Institutional Admin Security Code:\n\n${otp}\n\nThis code will expire in ${expiresInMinutes} minutes.\n\nGradeFlow Enterprise Security Gateway`;
+
+  const mailOptions = {
+    from: `"GradeFlow Admin Gateway" <${senderEmail}>`,
+    replyTo: senderEmail,
+    to,
+    subject: `GradeFlow Institutional Admin Security Code: ${otp}`,
     text,
     html,
   };
@@ -607,48 +672,252 @@ module.exports = async function handler(req, res) {
     }
 
     /* ─────────────────────────────────────────────────────────────
-       5. ADMIN LOGIN
+       5. ADMIN STATUS CHECK (/admin/check-status)
     ───────────────────────────────────────────────────────────── */
-    if (action === "login" && req.method === "POST") {
-      const { email, password } = req.body;
-      if (!email || !password) {
-        return res.status(400).json({ message: "Email and password are required" });
+    if ((action === "admin-check-status" || action === "check-admin-status") && req.method === "GET") {
+      const activeSessions = await getActiveAdminSessions(AdminSession);
+
+      let incomingToken = cookies.jwt;
+      if (!incomingToken && req.headers["x-admin-token"]) {
+        incomingToken = req.headers["x-admin-token"];
+      }
+      if (!incomingToken && req.headers.authorization && req.headers.authorization.startsWith("Bearer")) {
+        incomingToken = req.headers.authorization.split(" ")[1];
       }
 
-      const admin = await Admin.findOne({ email });
-      if (!admin || !(await admin.comparePassword(password))) {
-        return res.status(401).json({ message: "Invalid email or password" });
+      let isCurrentDevice = false;
+      let currentSessionId = null;
+      if (incomingToken && incomingToken !== "none") {
+        try {
+          const decoded = jwt.verify(incomingToken, process.env.JWT_SECRET);
+          if (decoded.role === "admin" && decoded.sessionId) {
+            if (activeSessions.some((s) => s.sessionId === decoded.sessionId)) {
+              isCurrentDevice = true;
+              currentSessionId = decoded.sessionId;
+            }
+          }
+        } catch {}
       }
+
+      const isBlocked = activeSessions.length >= MAX_ADMIN_DEVICES && !isCurrentDevice;
+
+      return res.json({
+        success: true,
+        isCurrentDevice,
+        activeDeviceCount: activeSessions.length,
+        maxAllowedDevices: MAX_ADMIN_DEVICES,
+        isBlocked,
+        otpAllowed: !isBlocked,
+        loginAllowed: !isBlocked,
+        blockReason: isBlocked ? "ADMIN_DEVICE_LIMIT_REACHED" : null,
+      });
+    }
+
+    /* ─────────────────────────────────────────────────────────────
+       6. ADMIN PASSWORD LOGIN -> SEND OTP
+    ───────────────────────────────────────────────────────────── */
+    if ((action === "admin-login-password" || action === "login") && req.method === "POST") {
+      const adminEmail = process.env.ADMIN_EMAIL;
+      const adminPassword = process.env.ADMIN_PASSWORD;
+
+      if (!adminEmail || !adminPassword) {
+        return res.status(500).json({
+          message: "Admin authentication is temporarily unavailable due to server configuration.",
+          code: "ADMIN_CONFIG_MISSING",
+        });
+      }
+
+      const candidatePassword = String(req.body.password || "");
+      if (!candidatePassword) {
+        return res.status(400).json({
+          message: "Please enter your administrative password.",
+          code: "PASSWORD_REQUIRED",
+        });
+      }
+
+      // Secure timing-safe string comparison
+      const candidateBuf = Buffer.from(candidatePassword, "utf8");
+      const adminPassBuf = Buffer.from(adminPassword, "utf8");
+
+      let isPasswordCorrect = false;
+      if (candidateBuf.length === adminPassBuf.length) {
+        isPasswordCorrect = crypto.timingSafeEqual(candidateBuf, adminPassBuf);
+      }
+
+      if (!isPasswordCorrect) {
+        const adminDoc = await Admin.findOne({ email: adminEmail });
+        if (adminDoc && typeof adminDoc.comparePassword === "function") {
+          isPasswordCorrect = await adminDoc.comparePassword(candidatePassword);
+        }
+      }
+
+      if (!isPasswordCorrect) {
+        return res.status(401).json({
+          message: "Invalid password. Access denied.",
+          code: "INVALID_PASSWORD",
+        });
+      }
+
+      // Check active admin devices
+      const activeSessions = await getActiveAdminSessions(AdminSession);
+
+      let incomingToken = cookies.jwt;
+      if (!incomingToken && req.headers["x-admin-token"]) {
+        incomingToken = req.headers["x-admin-token"];
+      }
+      if (!incomingToken && req.headers.authorization && req.headers.authorization.startsWith("Bearer")) {
+        incomingToken = req.headers.authorization.split(" ")[1];
+      }
+
+      let isCurrentDevice = false;
+      if (incomingToken && incomingToken !== "none") {
+        try {
+          const decoded = jwt.verify(incomingToken, process.env.JWT_SECRET);
+          if (decoded.role === "admin" && decoded.sessionId) {
+            const matching = activeSessions.find((s) => s.sessionId === decoded.sessionId);
+            if (matching && isAdminSessionValid(matching)) {
+              await touchAdminSession(matching);
+              isCurrentDevice = true;
+              return res.json({
+                success: true,
+                alreadyLoggedIn: true,
+                token: incomingToken,
+                message: "Admin is already actively authenticated on this device.",
+              });
+            }
+          }
+        } catch {}
+      }
+
+      // CRITICAL GUARD: Strict 2-Device Limit Check BEFORE generating or sending OTP
+      if (activeSessions.length >= MAX_ADMIN_DEVICES && !isCurrentDevice) {
+        return res.status(403).json({
+          message: `Admin portal is currently active on ${activeSessions.length} authorized devices (maximum limit: ${MAX_ADMIN_DEVICES}). Please log out from another device before logging in here.`,
+          code: "ADMIN_DEVICE_LIMIT_REACHED",
+          activeDeviceCount: activeSessions.length,
+          maxAllowedDevices: MAX_ADMIN_DEVICES,
+        });
+      }
+
+      // Generate 6-digit OTP
+      const otp = crypto.randomInt(100000, 1000000).toString();
+      const otpHash = await bcrypt.hash(otp, 10);
+      const expiresAt = new Date(Date.now() + 5 * 60 * 1000);
+
+      await AdminOtpVerification.deleteMany({});
+      await AdminOtpVerification.create({
+        otpHash,
+        expiresAt,
+        attempts: 0,
+      });
+
+      await sendAdminOtpEmail({
+        to: adminEmail,
+        otp,
+        expiresInMinutes: 5,
+      });
+
+      return res.json({
+        success: true,
+        step: "OTP_REQUIRED",
+        expiresInSeconds: 300,
+        message: "A 6-digit verification code has been dispatched to the authorized institutional administrator email.",
+      });
+    }
+
+    /* ─────────────────────────────────────────────────────────────
+       7. ADMIN VERIFY OTP (/admin/verify-otp)
+    ───────────────────────────────────────────────────────────── */
+    if (action === "admin-verify-otp" && req.method === "POST") {
+      const rawOtp = String(req.body.otp || "").trim();
+      if (!rawOtp || rawOtp.length !== 6) {
+        return res.status(400).json({
+          message: "Please enter a valid 6-digit verification code.",
+          code: "INVALID_FORMAT",
+        });
+      }
+
+      const otpRecord = await AdminOtpVerification.findOne({
+        expiresAt: { $gt: new Date() },
+      }).sort({ createdAt: -1 });
+
+      if (!otpRecord) {
+        return res.status(400).json({
+          message: "Verification code has expired or is invalid. Please request a new code.",
+          code: "OTP_EXPIRED",
+        });
+      }
+
+      if (otpRecord.attempts >= 5) {
+        await AdminOtpVerification.deleteMany({});
+        return res.status(429).json({
+          message: "Maximum verification attempts exceeded. Please enter your password to request a new code.",
+          code: "MAX_ATTEMPTS_EXCEEDED",
+        });
+      }
+
+      const isMatch = await bcrypt.compare(rawOtp, otpRecord.otpHash);
+      if (!isMatch) {
+        otpRecord.attempts += 1;
+        await otpRecord.save();
+        const remaining = 5 - otpRecord.attempts;
+        return res.status(400).json({
+          message: `Invalid verification code. ${remaining} attempt${remaining > 1 ? "s" : ""} remaining.`,
+          code: "INVALID_OTP",
+          remainingAttempts: remaining,
+        });
+      }
+
+      await AdminOtpVerification.deleteMany({});
+
+      const activeSessions = await getActiveAdminSessions(AdminSession);
+      if (activeSessions.length >= MAX_ADMIN_DEVICES) {
+        return res.status(403).json({
+          message: `Admin device limit reached (${MAX_ADMIN_DEVICES} devices active). Please log out from another device.`,
+          code: "ADMIN_DEVICE_LIMIT_REACHED",
+        });
+      }
+
+      const sessionId = crypto.randomUUID();
+      const now = new Date();
+      const expiresAt = new Date(Date.now() + SEVEN_DAYS_MS);
+
+      const userAgent = req.headers["user-agent"] || "Unknown";
+      const ip = req.headers["x-forwarded-for"] || req.connection?.remoteAddress || "";
+      const platform = req.headers["sec-ch-ua-platform"] || "Web";
+
+      await AdminSession.create({
+        sessionId,
+        deviceInfo: { userAgent, ip, platform },
+        loggedInAt: now,
+        lastActiveAt: now,
+        expiresAt,
+        isActive: true,
+      });
 
       const token = jwt.sign(
-        { id: admin._id, email: admin.email, role: "admin" },
+        { role: "admin", sessionId, loggedInAt: now },
         process.env.JWT_SECRET,
-        { expiresIn: "1d" }
+        { expiresIn: "7d" }
       );
 
+      const maxAge = 7 * 24 * 60 * 60;
       res.setHeader("Set-Cookie", [
-        `jwt=${token}; Path=/; HttpOnly; Secure; SameSite=None; Max-Age=${24 * 60 * 60}`,
-        `jwt=${token}; Path=/; HttpOnly; SameSite=None; Max-Age=${24 * 60 * 60}`,
+        `jwt=${token}; Path=/; HttpOnly; Secure; SameSite=None; Max-Age=${maxAge}`,
+        `jwt=${token}; Path=/; HttpOnly; SameSite=None; Max-Age=${maxAge}`,
       ]);
 
-      return res.json({ success: true, email: admin.email, token });
+      return res.json({
+        success: true,
+        token,
+        message: "Admin authenticated successfully.",
+      });
     }
 
     /* ─────────────────────────────────────────────────────────────
-       6. ADMIN LOGOUT
+       8. ADMIN CURRENT SESSION CHECK (/me or /admin/me)
     ───────────────────────────────────────────────────────────── */
-    if (action === "logout" && req.method === "POST") {
-      res.setHeader("Set-Cookie", [
-        `jwt=; Path=/; HttpOnly; Secure; SameSite=None; Max-Age=0; Expires=Thu, 01 Jan 1970 00:00:00 GMT`,
-        `jwt=; Path=/; HttpOnly; SameSite=None; Max-Age=0; Expires=Thu, 01 Jan 1970 00:00:00 GMT`,
-      ]);
-      return res.status(200).json({ success: true, message: "Logged out successfully" });
-    }
-
-    /* ─────────────────────────────────────────────────────────────
-       7. ADMIN CURRENT SESSION CHECK
-    ───────────────────────────────────────────────────────────── */
-    if (action === "me" && req.method === "GET") {
+    if ((action === "me" || action === "admin-me") && req.method === "GET") {
       let token = cookies.jwt;
       if (!token && req.headers["x-admin-token"]) {
         token = req.headers["x-admin-token"];
@@ -657,20 +926,82 @@ module.exports = async function handler(req, res) {
         token = req.headers.authorization.split(" ")[1];
       }
 
-      if (!token || token === "none") {
+      if (!token || token === "none" || token === "") {
         return res.json({ success: false, message: "Not logged in" });
       }
 
       try {
         const decoded = jwt.verify(token, process.env.JWT_SECRET);
-        const admin = await Admin.findById(decoded.id).select("-password");
-        if (!admin) {
-          return res.json({ success: false, message: "Admin not found" });
+        if (decoded.role === "student") {
+          return res.status(403).json({ message: "Forbidden: Admin privileges required" });
         }
-        return res.json({ success: true, admin, token });
+
+        if (decoded.sessionId) {
+          const session = await AdminSession.findOne({
+            sessionId: decoded.sessionId,
+            isActive: true,
+          });
+
+          if (!session) {
+            return res.json({
+              success: false,
+              code: "ADMIN_SESSION_TERMINATED",
+              message: "Admin session ended because this device was logged out.",
+            });
+          }
+
+          if (!isAdminSessionValid(session)) {
+            await AdminSession.deleteOne({ _id: session._id });
+            return res.json({
+              success: false,
+              code: "INACTIVITY_LOGOUT",
+              message: "Admin session expired due to 7 continuous days of inactivity.",
+            });
+          }
+
+          await touchAdminSession(session);
+
+          return res.json({
+            success: true,
+            role: "admin",
+            sessionId: session.sessionId,
+            token,
+          });
+        }
+
+        return res.json({ success: true, role: "admin", token });
       } catch (err) {
         return res.json({ success: false, message: "Token invalid or expired" });
       }
+    }
+
+    /* ─────────────────────────────────────────────────────────────
+       9. ADMIN LOGOUT (/logout or /admin/logout) - ONLY CALLING DEVICE
+    ───────────────────────────────────────────────────────────── */
+    if ((action === "logout" || action === "admin-logout") && req.method === "POST") {
+      let token = cookies.jwt;
+      if (!token && req.headers["x-admin-token"]) {
+        token = req.headers["x-admin-token"];
+      }
+      if (!token && req.headers.authorization && req.headers.authorization.startsWith("Bearer")) {
+        token = req.headers.authorization.split(" ")[1];
+      }
+
+      if (token && token !== "none") {
+        try {
+          const decoded = jwt.verify(token, process.env.JWT_SECRET);
+          if (decoded?.sessionId) {
+            await AdminSession.deleteOne({ sessionId: decoded.sessionId });
+          }
+        } catch {}
+      }
+
+      res.setHeader("Set-Cookie", [
+        `jwt=; Path=/; HttpOnly; Secure; SameSite=None; Max-Age=0; Expires=Thu, 01 Jan 1970 00:00:00 GMT`,
+        `jwt=; Path=/; HttpOnly; SameSite=None; Max-Age=0; Expires=Thu, 01 Jan 1970 00:00:00 GMT`,
+      ]);
+
+      return res.status(200).json({ success: true, message: "Admin logged out successfully from this device." });
     }
 
     return res.status(404).json({ message: `Unknown auth action: ${action}` });

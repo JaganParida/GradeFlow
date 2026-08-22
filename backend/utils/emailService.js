@@ -298,10 +298,78 @@ async function sendOtpEmail({
   return sendMailWithRetry(mailOptions);
 }
 
+/**
+ * Sends a 6-digit Admin Security Verification Code to the authorized institutional ADMIN_EMAIL.
+ */
+async function sendAdminOtpEmail({ to, otp, expiresInMinutes = 5 }) {
+  const recipientEmail = String(to || "").trim().toLowerCase();
+
+  if (!recipientEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(recipientEmail)) {
+    throw new Error(`Invalid recipient email address`);
+  }
+
+  const subject = `GradeFlow Institutional Admin Security Code: ${otp}`;
+  const senderEmail = process.env.EMAIL_FROM || "jaganparida9154@gmail.com";
+
+  const html = `
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+      <meta charset="UTF-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>GradeFlow Institutional Admin Code</title>
+    </head>
+    <body style="margin: 0; padding: 40px 20px; background-color: #0f172a; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #f8fafc; -webkit-font-smoothing: antialiased;">
+      <table align="center" border="0" cellpadding="0" cellspacing="0" width="100%" style="max-width: 520px; margin: 0 auto; text-align: left; background: #1e293b; border-radius: 16px; border: 1px solid #334155; padding: 32px 28px;">
+        <tr>
+          <td style="padding-bottom: 20px;">
+            <div style="font-size: 20px; font-weight: 800; color: #38bdf8; letter-spacing: -0.5px;">GradeFlow Admin Security</div>
+            <div style="font-size: 12px; color: #94a3b8; margin-top: 4px;">Institutional Administration Gateway</div>
+          </td>
+        </tr>
+        <tr>
+          <td style="border-top: 1px solid #334155; padding-top: 24px;">
+            <div style="font-size: 20px; font-weight: 700; color: #f8fafc; margin-bottom: 12px;">Admin Verification Code</div>
+            <div style="font-size: 14px; color: #cbd5e1; line-height: 1.6; margin-bottom: 24px;">
+              An administrative login attempt has been initiated with the correct master password. Use the single-use verification code below to authorize this session:
+            </div>
+            <div style="font-size: 38px; font-weight: 800; letter-spacing: 8px; color: #38bdf8; font-family: monospace; background: #0f172a; padding: 16px; border-radius: 12px; text-align: center; border: 1px solid #334155; margin-bottom: 24px;">
+              ${otp}
+            </div>
+            <div style="font-size: 13px; color: #94a3b8; line-height: 1.5; margin-bottom: 20px;">
+              This code will expire in ${expiresInMinutes} minutes. If you did not initiate this login request, please inspect your server security immediately.
+            </div>
+          </td>
+        </tr>
+        <tr>
+          <td style="border-top: 1px solid #334155; padding-top: 18px; font-size: 11px; color: #64748b;">
+            GradeFlow Enterprise Security Gateway &bull; Max 2 Authorized Active Devices
+          </td>
+        </tr>
+      </table>
+    </body>
+    </html>
+  `;
+
+  const text = `GradeFlow Institutional Admin Security Code:\n\n${otp}\n\nThis code will expire in ${expiresInMinutes} minutes.\n\nGradeFlow Enterprise Security Gateway`;
+
+  const mailOptions = {
+    from: `"GradeFlow Admin Gateway" <${senderEmail}>`,
+    replyTo: senderEmail,
+    to: recipientEmail,
+    subject,
+    text,
+    html,
+  };
+
+  return sendMailWithRetry(mailOptions);
+}
+
 module.exports = {
   createTransporter,
   sendBacklogEmailNotification,
   sendTopperEmailNotification,
   sendOtpEmail,
+  sendAdminOtpEmail,
 };
 

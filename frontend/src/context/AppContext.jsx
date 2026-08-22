@@ -89,9 +89,11 @@ export function AppProvider({ children }) {
   // ─── Check Auth on Startup (Both Admin & Student from HttpOnly Cookie + Token) ─
   useEffect(() => {
     const checkAuth = async () => {
-      // 1. Check Admin Auth
+      // 1. Check Admin Auth (Persistent across 7 continuous days)
       try {
-        const resAdmin = await axios.get(`${API_BASE}/auth/me`);
+        const adminJwt = sessionStorage.getItem("gf_admin_jwt") || localStorage.getItem("gf_admin_jwt");
+        const headers = adminJwt ? { "x-admin-token": adminJwt, Authorization: `Bearer ${adminJwt}` } : {};
+        const resAdmin = await axios.get(`${API_BASE}/auth/admin/me`, { headers, withCredentials: true });
         if (resAdmin.data?.success) {
           if (resAdmin.data?.token) {
             sessionStorage.setItem("gf_admin_jwt", resAdmin.data.token);
@@ -99,14 +101,20 @@ export function AppProvider({ children }) {
           }
           setAdminToken(true);
         } else {
+          const code = resAdmin.data?.code;
+          if (code === "ADMIN_SESSION_TERMINATED" || code === "INACTIVITY_LOGOUT") {
+            sessionStorage.removeItem("gf_admin_jwt");
+            localStorage.removeItem("gf_admin_jwt");
+            setAdminToken(false);
+          }
+        }
+      } catch (err) {
+        const code = err.response?.data?.code;
+        if (code === "ADMIN_SESSION_TERMINATED" || code === "INACTIVITY_LOGOUT") {
           sessionStorage.removeItem("gf_admin_jwt");
           localStorage.removeItem("gf_admin_jwt");
           setAdminToken(false);
         }
-      } catch {
-        sessionStorage.removeItem("gf_admin_jwt");
-        localStorage.removeItem("gf_admin_jwt");
-        setAdminToken(false);
       }
 
       // 2. Check Student Session (Persistent across 7 days)
@@ -232,39 +240,78 @@ export function AppProvider({ children }) {
     }
   };
 
-  // ─── Admin Auth ────────────────────────────────────────────────
-  const adminLogin = async (email, password) => {
+  // ─── Admin Auth (Password-Only Step 1 -> Server OTP -> Step 2) ───
+  const adminLoginPassword = async (password) => {
     setLoading(true);
     setError("");
     try {
-      const res = await axios.post(`${API_BASE}/auth/login`, { email, password });
-      if (res.data?.success || res.status === 200) {
+      const res = await axios.post(`${API_BASE}/auth/admin/login-password`, { password });
+      if (res.data?.alreadyLoggedIn) {
         if (res.data?.token) {
           sessionStorage.setItem("gf_admin_jwt", res.data.token);
           localStorage.setItem("gf_admin_jwt", res.data.token);
         }
         setAdminToken(true);
-        return { success: true };
+        return { success: true, alreadyLoggedIn: true };
       }
-      const msg = res.data?.message || "Invalid credentials";
-      setError(msg);
-      return { success: false, error: msg };
+      if (res.data?.step === "OTP_REQUIRED") {
+        return {
+          success: true,
+          step: "OTP_REQUIRED",
+          expiresInSeconds: res.data.expiresInSeconds || 300,
+          message: res.data.message,
+        };
+      }
+      return { success: true };
     } catch (err) {
-      const msg = err.response?.data?.message || "Invalid email or password. Please try again.";
+      const msg = err.response?.data?.message || "Invalid administrative password. Access denied.";
+      const code = err.response?.data?.code || "AUTH_ERROR";
+      const details = err.response?.data || {};
       setError(msg);
-      return { success: false, error: msg };
+      return { success: false, error: msg, code, details };
     } finally {
       setLoading(false);
     }
   };
 
+  const adminVerifyOtp = async (otp) => {
+    setLoading(true);
+    setError("");
+    try {
+      const res = await axios.post(`${API_BASE}/auth/admin/verify-otp`, { otp });
+      if (res.data?.success && res.data?.token) {
+        sessionStorage.setItem("gf_admin_jwt", res.data.token);
+        localStorage.setItem("gf_admin_jwt", res.data.token);
+        setAdminToken(true);
+        return { success: true };
+      }
+      const msg = res.data?.message || "OTP verification failed.";
+      setError(msg);
+      return { success: false, error: msg };
+    } catch (err) {
+      const msg = err.response?.data?.message || "Invalid or expired verification code.";
+      const code = err.response?.data?.code || "VERIFY_ERROR";
+      setError(msg);
+      return { success: false, error: msg, code };
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const adminLogin = async (arg1, arg2) => {
+    const password = arg2 !== undefined ? arg2 : arg1;
+    return adminLoginPassword(password);
+  };
+
   const adminLogout = async () => {
     try {
+      const adminJwt = sessionStorage.getItem("gf_admin_jwt") || localStorage.getItem("gf_admin_jwt");
       sessionStorage.removeItem("gf_admin_jwt");
       localStorage.removeItem("gf_admin_jwt");
-      await axios.post(`${API_BASE}/auth/logout`);
+      const headers = adminJwt ? { "x-admin-token": adminJwt, Authorization: `Bearer ${adminJwt}` } : {};
+      await axios.post(`${API_BASE}/auth/admin/logout`, {}, { headers, withCredentials: true });
     } catch (err) {
-      console.error("Logout error", err);
+      console.warn("Logout error:", err.message);
     } finally {
       setAdminToken(false);
       navigate("/admin");
@@ -382,6 +429,8 @@ export function AppProvider({ children }) {
         error,
         adminToken,
         adminLogin,
+        adminLoginPassword,
+        adminVerifyOtp,
         adminLogout,
         logoutAdmin,
         authHeaders,

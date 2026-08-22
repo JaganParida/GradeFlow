@@ -225,6 +225,10 @@ const server = http.createServer(app);
 
 // Seed or update admin on first run
 async function seedAdmin() {
+  if (!process.env.ADMIN_EMAIL || !process.env.ADMIN_PASSWORD) {
+    console.warn("⚠️ ADMIN_EMAIL or ADMIN_PASSWORD not configured in environment.");
+    return;
+  }
   const Admin = require("./models/Admin");
   const exists = await Admin.findOne({ email: process.env.ADMIN_EMAIL });
   if (!exists) {
@@ -232,12 +236,12 @@ async function seedAdmin() {
       email: process.env.ADMIN_EMAIL,
       password: process.env.ADMIN_PASSWORD,
     });
-    console.log("✅ Admin seeded:", process.env.ADMIN_EMAIL);
+    console.log("✅ Admin account initialized securely.");
   } else {
     // Ensure the password stays in sync with the .env file
     exists.password = process.env.ADMIN_PASSWORD;
     await exists.save();
-    console.log("✅ Admin credentials synced with .env");
+    console.log("✅ Admin credentials synchronized with environment.");
   }
 }
 

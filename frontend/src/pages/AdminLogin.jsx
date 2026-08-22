@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { useApp } from "../context/AppContext";
 import { motion, AnimatePresence } from "framer-motion";
@@ -12,29 +12,38 @@ import {
   Zap,
   BarChart3,
   CheckCircle2,
-  Mail,
   KeyRound,
   ShieldAlert,
   Server,
-  ArrowLeft
+  ArrowLeft,
+  RotateCw,
+  Loader2,
+  Smartphone,
 } from "lucide-react";
 
 export default function AdminLogin() {
-  const [form, setForm] = useState({ email: "", password: "" });
+  const [step, setStep] = useState("PASSWORD"); // "PASSWORD" | "OTP"
+  const [password, setPassword] = useState("");
+  const [otp, setOtp] = useState(["", "", "", "", "", ""]);
+  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const [showPassword, setShowPassword] = useState(false);
-  
+  const [statusNotice, setStatusNotice] = useState("");
+
   // Advanced Security: Client-Side Attempt Counter & Lockout Timer
   const [failedAttempts, setFailedAttempts] = useState(0);
   const [lockCountdown, setLockCountdown] = useState(0);
 
-  const { adminLogin, adminToken } = useApp();
+  // OTP Expiration Timer
+  const [otpTimeLeft, setOtpTimeLeft] = useState(300); // 5 minutes (300s)
+
+  const otpInputsRef = useRef([]);
+  const { adminLoginPassword, adminVerifyOtp, adminToken } = useApp();
   const navigate = useNavigate();
 
   useEffect(() => {
     if (adminToken) {
-      navigate("/admin/dashboard");
+      navigate("/admin/dashboard", { replace: true });
     }
   }, [adminToken, navigate]);
 
@@ -46,25 +55,141 @@ export default function AdminLogin() {
         setLockCountdown((prev) => prev - 1);
       }, 1000);
     } else if (lockCountdown === 0 && failedAttempts >= 5) {
-      setFailedAttempts(0); // Reset attempts after cooldown
+      setFailedAttempts(0);
     }
     return () => clearInterval(timer);
   }, [lockCountdown, failedAttempts]);
 
-  // Sanitize Input Fields
-  function sanitizeInput(val) {
-    return String(val || "").trim().replace(/['"<>]/g, "");
-  }
+  // Handle OTP Expiration Countdown Timer
+  useEffect(() => {
+    let timer;
+    if (step === "OTP" && otpTimeLeft > 0) {
+      timer = setInterval(() => {
+        setOtpTimeLeft((prev) => Math.max(0, prev - 1));
+      }, 1000);
+    }
+    return () => clearInterval(timer);
+  }, [step, otpTimeLeft]);
 
-  async function handleSubmit(e) {
+  // Format seconds to MM:SS
+  const formatTimer = (seconds) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
+  };
+
+  // ─── Step 1: Submit Password ─────────────────────────────────────
+  async function handlePasswordSubmit(e) {
     e.preventDefault();
     if (lockCountdown > 0) return;
 
-    const cleanEmail = sanitizeInput(form.email);
-    const cleanPassword = form.password;
+    const cleanPassword = String(password || "").trim();
+    if (!cleanPassword) {
+      setError("Please enter the institutional administration password.");
+      return;
+    }
 
-    if (!cleanEmail || !cleanPassword) {
-      setError("Please fill in all required credentials.");
+    setLoading(true);
+    setError("");
+    setStatusNotice("");
+
+    try {
+      const res = await adminLoginPassword(cleanPassword);
+      if (res && res.alreadyLoggedIn) {
+        navigate("/admin/dashboard", { replace: true });
+        return;
+      }
+
+      if (res && res.step === "OTP_REQUIRED") {
+        setStep("OTP");
+        setOtp(["", "", "", "", "", ""]);
+        setOtpTimeLeft(res.expiresInSeconds || 300);
+        setStatusNotice("A 6-digit security code has been dispatched to the institutional administrator email.");
+        setTimeout(() => {
+          if (otpInputsRef.current[0]) {
+            otpInputsRef.current[0].focus();
+          }
+        }, 150);
+      } else if (!res?.success) {
+        handleAuthFailure(res);
+      }
+    } catch (err) {
+      handleAuthFailure(err.response?.data || { error: "Authentication failed" });
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  function handleAuthFailure(errData) {
+    const nextAttempts = failedAttempts + 1;
+    setFailedAttempts(nextAttempts);
+
+    const code = errData?.code;
+    if (code === "ADMIN_DEVICE_LIMIT_REACHED") {
+      setError(
+        "Device Limit Reached: The admin portal is currently active on 2 authorized devices (maximum limit: 2). Please log out from another device before logging in."
+      );
+      return;
+    }
+
+    if (nextAttempts >= 5) {
+      setLockCountdown(60);
+      setError("Security Alert: Too many failed password attempts. Access temporarily locked for 60 seconds.");
+    } else {
+      const remaining = 5 - nextAttempts;
+      const serverMsg = errData?.error || errData?.message || "Invalid administrative password.";
+      setError(`${serverMsg} (${remaining} attempt${remaining > 1 ? "s" : ""} remaining before temporary lockout)`);
+    }
+    setPassword("");
+  }
+
+  // ─── Step 2: Handle OTP Input ────────────────────────────────────
+  const handleOtpChange = (index, value) => {
+    if (!/^\d*$/.test(value)) return;
+
+    const newOtp = [...otp];
+    if (value.length > 1) {
+      // Handle paste
+      const pasted = value.slice(0, 6).split("");
+      pasted.forEach((char, i) => {
+        if (i < 6) newOtp[i] = char;
+      });
+      setOtp(newOtp);
+      const nextFocus = Math.min(pasted.length, 5);
+      if (otpInputsRef.current[nextFocus]) {
+        otpInputsRef.current[nextFocus].focus();
+      }
+      return;
+    }
+
+    newOtp[index] = value;
+    setOtp(newOtp);
+
+    // Auto focus next input
+    if (value && index < 5 && otpInputsRef.current[index + 1]) {
+      otpInputsRef.current[index + 1].focus();
+    }
+  };
+
+  const handleOtpKeyDown = (index, e) => {
+    if (e.key === "Backspace" && !otp[index] && index > 0) {
+      if (otpInputsRef.current[index - 1]) {
+        otpInputsRef.current[index - 1].focus();
+      }
+    }
+  };
+
+  async function handleOtpSubmit(e) {
+    e.preventDefault();
+    const fullOtp = otp.join("").trim();
+
+    if (fullOtp.length !== 6) {
+      setError("Please enter the complete 6-digit verification code.");
+      return;
+    }
+
+    if (otpTimeLeft === 0) {
+      setError("Verification code has expired. Please enter your password to request a new code.");
       return;
     }
 
@@ -72,45 +197,37 @@ export default function AdminLogin() {
     setError("");
 
     try {
-      const res = await adminLogin(cleanEmail, cleanPassword);
+      const res = await adminVerifyOtp(fullOtp);
       if (res && res.success) {
-        setForm({ email: "", password: "" });
-        navigate("/admin/dashboard");
+        navigate("/admin/dashboard", { replace: true });
       } else {
-        const nextAttempts = failedAttempts + 1;
-        setFailedAttempts(nextAttempts);
-
-        if (nextAttempts >= 5) {
-          setLockCountdown(45);
-          setError("Security Alert: Too many failed attempts. Login locked for 45 seconds.");
-        } else {
-          const remaining = 5 - nextAttempts;
-          const serverMsg = res?.error || "Invalid email or password.";
-          setError(
-            `${serverMsg} (${remaining} attempt${remaining > 1 ? "s" : ""} remaining before temporary lockout)`
-          );
-        }
-        setForm((prev) => ({ ...prev, password: "" }));
+        setError(res?.error || "Invalid verification code. Please try again.");
       }
     } catch (err) {
-      const nextAttempts = failedAttempts + 1;
-      setFailedAttempts(nextAttempts);
-
-      if (nextAttempts >= 5) {
-        setLockCountdown(45);
-        setError("Security Alert: Too many failed attempts. Login locked for 45 seconds.");
-      } else {
-        const remaining = 5 - nextAttempts;
-        setError(
-          err.response?.data?.message ||
-            `Invalid credentials. (${remaining} attempt${remaining > 1 ? "s" : ""} remaining before lockout)`
-        );
-      }
-      setForm((prev) => ({ ...prev, password: "" }));
+      setError(err.response?.data?.message || "Invalid or expired verification code.");
     } finally {
       setLoading(false);
     }
   }
+
+  const handleResendOtp = async () => {
+    if (loading || lockCountdown > 0) return;
+    setLoading(true);
+    setError("");
+    try {
+      const res = await adminLoginPassword(password);
+      if (res && res.step === "OTP_REQUIRED") {
+        setOtp(["", "", "", "", "", ""]);
+        setOtpTimeLeft(300);
+        setStatusNotice("A fresh 6-digit verification code has been dispatched.");
+        if (otpInputsRef.current[0]) otpInputsRef.current[0].focus();
+      }
+    } catch {
+      setError("Unable to resend verification code. Please sign in again.");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <motion.div
@@ -145,7 +262,7 @@ export default function AdminLogin() {
         }}
         className="gf-admin-container"
       >
-        {/* LEFT SPLIT: PROFESSIONAL BRANDING & TECHNICAL SUMMARY */}
+        {/* LEFT SPLIT: BRANDING & TECHNICAL SUMMARY */}
         <div
           style={{
             display: "flex",
@@ -198,7 +315,7 @@ export default function AdminLogin() {
                 marginBottom: 28,
               }}
             >
-              Enterprise portal for university grade management, branch ranking verification, and real-time student intelligence.
+              Secure management portal with server-side credentials, two-factor OTP verification, and multi-device session governance.
             </p>
           </div>
 
@@ -209,22 +326,22 @@ export default function AdminLogin() {
                 icon: <Lock size={16} color="#2563eb" />,
                 bg: "#eff6ff",
                 border: "#dbeafe",
-                title: "Zero-Trust Session Isolation",
-                desc: "HMAC JWT authentication with isolated token sandbox and attempt rate limiting.",
+                title: "Server-Side Credential Guard",
+                desc: "Admin credentials are exclusively managed server-side with no client exposure.",
+              },
+              {
+                icon: <Smartphone size={16} color="#10b981" />,
+                bg: "#ecfdf5",
+                border: "#d1fae5",
+                title: "Multi-Device Governance",
+                desc: "Strict policy limit of maximum 2 active authorized admin devices with sliding 7-day session validity.",
               },
               {
                 icon: <BarChart3 size={16} color="#8b5cf6" />,
                 bg: "#f5f3ff",
                 border: "#ede9fe",
-                title: "Real-Time Ranking Engine",
-                desc: "Instant SGPA/CGPA competition rank generation across university & branch levels.",
-              },
-              {
-                icon: <Zap size={16} color="#10b981" />,
-                bg: "#ecfdf5",
-                border: "#d1fae5",
-                title: "Automated Backlog Tracking",
-                desc: "Live Excel sync evaluating uncleared backlogs, recheckings, and clearance.",
+                title: "Real-Time Academic Engine",
+                desc: "Instant SGPA/CGPA competition rank verification and backlog tracking.",
               },
             ].map((feat) => (
               <div
@@ -282,16 +399,16 @@ export default function AdminLogin() {
           >
             <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
               <CheckCircle2 size={14} color="#10b981" />
-              <span>AES-256 TLS Encrypted</span>
+              <span>TLS Encrypted Admin Channel</span>
             </div>
             <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
               <Server size={14} color="#2563eb" />
-              <span>v2.4 Production Gateway</span>
+              <span>Max 2 Active Admin Devices</span>
             </div>
           </div>
         </div>
 
-        {/* RIGHT SPLIT: CLEAN LIGHT PROFESSIONAL FORM CARD */}
+        {/* RIGHT SPLIT: AUTHENTICATION FORM CARD */}
         <div
           style={{
             display: "flex",
@@ -306,7 +423,7 @@ export default function AdminLogin() {
             transition={{ duration: 0.3 }}
             style={{
               width: "100%",
-              maxWidth: 420,
+              maxWidth: 430,
               padding: "36px 32px",
               background: "#ffffff",
               border: "1px solid #e2e8f0",
@@ -316,259 +433,455 @@ export default function AdminLogin() {
             }}
             onContextMenu={(e) => e.preventDefault()}
           >
-            {/* Form Header */}
-            <div style={{ textAlign: "center", marginBottom: 24 }}>
-              <div
-                style={{
-                  width: 48,
-                  height: 48,
-                  background: "#eff6ff",
-                  borderRadius: 12,
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  margin: "0 auto 14px",
-                  border: "1px solid #dbeafe",
-                  color: "#2563eb",
-                }}
-              >
-                <KeyRound size={22} />
-              </div>
-              <h2 style={{ fontSize: 21, fontWeight: 800, letterSpacing: "-0.4px", margin: "0 0 6px 0", color: "#0f172a" }}>
-                Admin Sign In
-              </h2>
-              <p style={{ color: "#64748b", fontSize: 13, margin: 0 }}>
-                Enter authorized credentials to continue
-              </p>
-            </div>
-
-            {/* FORM */}
-            <form onSubmit={handleSubmit} autoComplete="off">
-              {/* Email Input */}
-              <div style={{ marginBottom: 18 }}>
-                <label
-                  style={{
-                    display: "block",
-                    fontSize: 11.5,
-                    color: "#475569",
-                    marginBottom: 6,
-                    fontWeight: 700,
-                    textTransform: "uppercase",
-                    letterSpacing: "0.5px",
-                  }}
-                >
-                  Admin Email Address
-                </label>
-                <div style={{ position: "relative" }}>
-                  <Mail
-                    size={16}
-                    color="#94a3b8"
+            {/* ─── STEP 1: PASSWORD ONLY ─────────────────────────── */}
+            {step === "PASSWORD" ? (
+              <div>
+                {/* Form Header */}
+                <div style={{ textAlign: "center", marginBottom: 24 }}>
+                  <div
                     style={{
-                      position: "absolute",
-                      left: 14,
-                      top: "50%",
-                      transform: "translateY(-50%)",
-                      pointerEvents: "none",
-                    }}
-                  />
-                  <input
-                    type="email"
-                    value={form.email}
-                    onChange={(e) => setForm({ ...form, email: e.target.value })}
-                    placeholder="admin@gradeflow.com"
-                    required
-                    disabled={lockCountdown > 0}
-                    autoComplete="off"
-                    spellCheck="false"
-                    style={{
-                      width: "100%",
-                      background: "#f8fafc",
-                      border: "1.5px solid #e2e8f0",
-                      padding: "11px 14px 11px 40px",
-                      fontSize: 13.5,
-                      borderRadius: 10,
-                      color: "#0f172a",
-                      transition: "all 0.15s ease",
-                      outline: "none",
-                      boxSizing: "border-box",
-                      fontFamily: "'DM Sans', sans-serif",
-                    }}
-                    onFocus={(e) => {
-                      e.target.style.borderColor = "#2563eb";
-                      e.target.style.background = "#ffffff";
-                    }}
-                    onBlur={(e) => {
-                      e.target.style.borderColor = "#e2e8f0";
-                      e.target.style.background = "#f8fafc";
-                    }}
-                  />
-                </div>
-              </div>
-
-              {/* Password Input */}
-              <div style={{ marginBottom: 20 }}>
-                <label
-                  style={{
-                    display: "block",
-                    fontSize: 11.5,
-                    color: "#475569",
-                    marginBottom: 6,
-                    fontWeight: 700,
-                    textTransform: "uppercase",
-                    letterSpacing: "0.5px",
-                  }}
-                >
-                  Password
-                </label>
-                <div style={{ position: "relative" }}>
-                  <Lock
-                    size={16}
-                    color="#94a3b8"
-                    style={{
-                      position: "absolute",
-                      left: 14,
-                      top: "50%",
-                      transform: "translateY(-50%)",
-                      pointerEvents: "none",
-                    }}
-                  />
-                  <input
-                    type={showPassword ? "text" : "password"}
-                    value={form.password}
-                    onChange={(e) => setForm({ ...form, password: e.target.value })}
-                    placeholder="••••••••••••"
-                    required
-                    disabled={lockCountdown > 0}
-                    autoComplete="off"
-                    spellCheck="false"
-                    style={{
-                      width: "100%",
-                      background: "#f8fafc",
-                      border: "1.5px solid #e2e8f0",
-                      padding: "11px 40px 11px 40px",
-                      fontSize: 13.5,
-                      borderRadius: 10,
-                      color: "#0f172a",
-                      letterSpacing: showPassword ? "normal" : "2px",
-                      transition: "all 0.15s ease",
-                      outline: "none",
-                      boxSizing: "border-box",
-                      fontFamily: "'DM Sans', sans-serif",
-                    }}
-                    onFocus={(e) => {
-                      e.target.style.borderColor = "#2563eb";
-                      e.target.style.background = "#ffffff";
-                    }}
-                    onBlur={(e) => {
-                      e.target.style.borderColor = "#e2e8f0";
-                      e.target.style.background = "#f8fafc";
-                    }}
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    disabled={lockCountdown > 0}
-                    style={{
-                      position: "absolute",
-                      right: 12,
-                      top: "50%",
-                      transform: "translateY(-50%)",
-                      background: "none",
-                      border: "none",
-                      color: "#94a3b8",
-                      cursor: "pointer",
-                      padding: 4,
+                      width: 48,
+                      height: 48,
+                      background: "#eff6ff",
+                      borderRadius: 12,
                       display: "flex",
                       alignItems: "center",
                       justifyContent: "center",
+                      margin: "0 auto 14px",
+                      border: "1px solid #dbeafe",
+                      color: "#2563eb",
                     }}
                   >
-                    {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
-                  </button>
+                    <KeyRound size={22} />
+                  </div>
+                  <h2 style={{ fontSize: 21, fontWeight: 800, letterSpacing: "-0.4px", margin: "0 0 6px 0", color: "#0f172a" }}>
+                    Admin Access Gateway
+                  </h2>
+                  <p style={{ color: "#64748b", fontSize: 13, margin: 0 }}>
+                    Enter administrative master password to receive institutional OTP
+                  </p>
                 </div>
-              </div>
 
-              {/* Error Banner */}
-              <AnimatePresence>
-                {error && (
-                  <motion.div
-                    initial={{ opacity: 0, y: -6 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -6 }}
+                <form onSubmit={handlePasswordSubmit} autoComplete="off">
+                  {/* Password Input (ONLY FIELD - NO EMAIL INPUT) */}
+                  <div style={{ marginBottom: 20 }}>
+                    <label
+                      style={{
+                        display: "block",
+                        fontSize: 11.5,
+                        color: "#475569",
+                        marginBottom: 6,
+                        fontWeight: 700,
+                        textTransform: "uppercase",
+                        letterSpacing: "0.5px",
+                      }}
+                    >
+                      Master Password
+                    </label>
+                    <div style={{ position: "relative" }}>
+                      <Lock
+                        size={16}
+                        color="#94a3b8"
+                        style={{
+                          position: "absolute",
+                          left: 14,
+                          top: "50%",
+                          transform: "translateY(-50%)",
+                          pointerEvents: "none",
+                        }}
+                      />
+                      <input
+                        type={showPassword ? "text" : "password"}
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        placeholder="••••••••••••"
+                        required
+                        disabled={loading || lockCountdown > 0}
+                        autoComplete="current-password"
+                        spellCheck="false"
+                        autoFocus
+                        style={{
+                          width: "100%",
+                          background: "#f8fafc",
+                          border: "1.5px solid #e2e8f0",
+                          padding: "11px 40px 11px 40px",
+                          fontSize: 14,
+                          borderRadius: 10,
+                          color: "#0f172a",
+                          letterSpacing: showPassword ? "normal" : "2px",
+                          transition: "all 0.15s ease",
+                          outline: "none",
+                          boxSizing: "border-box",
+                          fontFamily: "'DM Sans', sans-serif",
+                        }}
+                        onFocus={(e) => {
+                          e.target.style.borderColor = "#2563eb";
+                          e.target.style.background = "#ffffff";
+                        }}
+                        onBlur={(e) => {
+                          e.target.style.borderColor = "#e2e8f0";
+                          e.target.style.background = "#f8fafc";
+                        }}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword(!showPassword)}
+                        disabled={loading || lockCountdown > 0}
+                        style={{
+                          position: "absolute",
+                          right: 12,
+                          top: "50%",
+                          transform: "translateY(-50%)",
+                          background: "none",
+                          border: "none",
+                          color: "#94a3b8",
+                          cursor: "pointer",
+                          padding: 4,
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                        }}
+                      >
+                        {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Device Limit Security Highlight */}
+                  <div
                     style={{
-                      color: "#991b1b",
-                      background: "#fef2f2",
-                      border: "1px solid #fecaca",
-                      borderLeft: "3.5px solid #ef4444",
-                      padding: "10px 12px",
+                      background: "#f8fafc",
+                      border: "1px solid #e2e8f0",
                       borderRadius: 8,
-                      fontSize: 12,
-                      marginBottom: 18,
+                      padding: "8px 12px",
+                      fontSize: 11.5,
+                      color: "#64748b",
                       display: "flex",
                       alignItems: "center",
                       gap: 8,
+                      marginBottom: 18,
                     }}
                   >
-                    {lockCountdown > 0 ? (
-                      <ShieldAlert size={16} color="#ef4444" style={{ flexShrink: 0 }} />
-                    ) : (
-                      <AlertTriangle size={16} color="#ef4444" style={{ flexShrink: 0 }} />
-                    )}
-                    <div>
-                      {error}
-                      {lockCountdown > 0 && (
-                        <div style={{ fontWeight: 700, marginTop: 2, color: "#b91c1c" }}>
-                          Unlock in: {lockCountdown}s
-                        </div>
-                      )}
-                    </div>
-                  </motion.div>
-                )}
-              </AnimatePresence>
+                    <Smartphone size={15} color="#2563eb" style={{ flexShrink: 0 }} />
+                    <span>Device Limit: Maximum 2 active admin devices allowed simultaneously.</span>
+                  </div>
 
-              {/* Submit Button */}
-              <button
-                type="submit"
-                disabled={loading || lockCountdown > 0}
-                style={{
-                  width: "100%",
-                  padding: "12px",
-                  fontSize: 14,
-                  fontWeight: 700,
-                  background:
-                    lockCountdown > 0
-                      ? "#f1f5f9"
-                      : "#0f172a",
-                  border: "none",
-                  borderRadius: 10,
-                  color: lockCountdown > 0 ? "#94a3b8" : "#ffffff",
-                  cursor: lockCountdown > 0 ? "not-allowed" : "pointer",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  gap: 8,
-                  transition: "all 0.2s ease",
-                  boxShadow: lockCountdown === 0 ? "0 4px 12px rgba(15, 23, 42, 0.12)" : "none",
-                  fontFamily: "'DM Sans', sans-serif",
-                }}
-                onMouseEnter={(e) => {
-                  if (!loading && lockCountdown === 0) e.currentTarget.style.background = "#1e293b";
-                }}
-                onMouseLeave={(e) => {
-                  if (!loading && lockCountdown === 0) e.currentTarget.style.background = "#0f172a";
-                }}
-              >
-                {loading ? (
-                  "Authenticating..."
-                ) : lockCountdown > 0 ? (
-                  `Access Locked (${lockCountdown}s)`
-                ) : (
-                  <>
-                    <ShieldCheck size={16} /> Authenticate Admin
-                  </>
+                  {/* Error Banner */}
+                  <AnimatePresence>
+                    {error && (
+                      <motion.div
+                        initial={{ opacity: 0, y: -6 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -6 }}
+                        style={{
+                          color: "#991b1b",
+                          background: "#fef2f2",
+                          border: "1px solid #fecaca",
+                          borderLeft: "3.5px solid #ef4444",
+                          padding: "10px 12px",
+                          borderRadius: 8,
+                          fontSize: 12,
+                          marginBottom: 18,
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 8,
+                        }}
+                      >
+                        {lockCountdown > 0 ? (
+                          <ShieldAlert size={16} color="#ef4444" style={{ flexShrink: 0 }} />
+                        ) : (
+                          <AlertTriangle size={16} color="#ef4444" style={{ flexShrink: 0 }} />
+                        )}
+                        <div>
+                          {error}
+                          {lockCountdown > 0 && (
+                            <div style={{ fontWeight: 700, marginTop: 2, color: "#b91c1c" }}>
+                              Unlock in: {lockCountdown}s
+                            </div>
+                          )}
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+
+                  {/* Submit Button */}
+                  <button
+                    type="submit"
+                    disabled={loading || lockCountdown > 0}
+                    style={{
+                      width: "100%",
+                      padding: "12px",
+                      fontSize: 14,
+                      fontWeight: 700,
+                      background:
+                        lockCountdown > 0
+                          ? "#f1f5f9"
+                          : "linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)",
+                      border: "none",
+                      borderRadius: 10,
+                      color: lockCountdown > 0 ? "#94a3b8" : "#ffffff",
+                      cursor: lockCountdown > 0 ? "not-allowed" : "pointer",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      gap: 8,
+                      transition: "all 0.2s ease",
+                      boxShadow: lockCountdown === 0 ? "0 4px 12px rgba(37, 99, 235, 0.25)" : "none",
+                      fontFamily: "'DM Sans', sans-serif",
+                    }}
+                    onMouseEnter={(e) => {
+                      if (!loading && lockCountdown === 0) e.currentTarget.style.filter = "brightness(1.08)";
+                    }}
+                    onMouseLeave={(e) => {
+                      if (!loading && lockCountdown === 0) e.currentTarget.style.filter = "none";
+                    }}
+                  >
+                    {loading ? (
+                      <>
+                        <Loader2 size={16} className="spin" /> Verifying Password...
+                      </>
+                    ) : lockCountdown > 0 ? (
+                      `Access Locked (${lockCountdown}s)`
+                    ) : (
+                      <>
+                        <ShieldCheck size={16} /> Authenticate &amp; Request OTP
+                      </>
+                    )}
+                  </button>
+                </form>
+              </div>
+            ) : (
+              /* ─── STEP 2: 6-DIGIT OTP VERIFICATION ───────────────── */
+              <div>
+                {/* Form Header */}
+                <div style={{ textAlign: "center", marginBottom: 20 }}>
+                  <div
+                    style={{
+                      width: 48,
+                      height: 48,
+                      background: "#ecfdf5",
+                      borderRadius: 12,
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      margin: "0 auto 14px",
+                      border: "1px solid #a7f3d0",
+                      color: "#059669",
+                    }}
+                  >
+                    <ShieldCheck size={24} />
+                  </div>
+                  <h2 style={{ fontSize: 21, fontWeight: 800, letterSpacing: "-0.4px", margin: "0 0 6px 0", color: "#0f172a" }}>
+                    Security Code Verification
+                  </h2>
+                  <p style={{ color: "#64748b", fontSize: 12.5, margin: 0, lineHeight: 1.5 }}>
+                    Enter the 6-digit code dispatched to the authorized institutional administrator email.
+                  </p>
+                </div>
+
+                {/* Status Notice */}
+                {statusNotice && (
+                  <div
+                    style={{
+                      background: "#f0fdf4",
+                      border: "1px solid #bbf7d0",
+                      borderRadius: 8,
+                      padding: "8px 12px",
+                      fontSize: 12,
+                      color: "#166534",
+                      marginBottom: 16,
+                      textAlign: "center",
+                    }}
+                  >
+                    {statusNotice}
+                  </div>
                 )}
-              </button>
-            </form>
+
+                <form onSubmit={handleOtpSubmit} autoComplete="off">
+                  {/* 6-Digit OTP Boxes */}
+                  <div style={{ marginBottom: 18 }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", gap: 6, marginBottom: 8 }}>
+                      {otp.map((digit, idx) => (
+                        <input
+                          key={idx}
+                          ref={(el) => (otpInputsRef.current[idx] = el)}
+                          type="text"
+                          inputMode="numeric"
+                          pattern="[0-9]*"
+                          maxLength={6}
+                          value={digit}
+                          onChange={(e) => handleOtpChange(idx, e.target.value)}
+                          onKeyDown={(e) => handleOtpKeyDown(idx, e)}
+                          disabled={loading || otpTimeLeft === 0}
+                          style={{
+                            width: 48,
+                            height: 52,
+                            textAlign: "center",
+                            fontSize: 22,
+                            fontWeight: 800,
+                            fontFamily: "'Space Mono', monospace",
+                            borderRadius: 10,
+                            border: "1.5px solid #cbd5e1",
+                            background: "#f8fafc",
+                            color: "#0f172a",
+                            outline: "none",
+                            transition: "all 0.15s ease",
+                            boxSizing: "border-box",
+                          }}
+                          onFocus={(e) => {
+                            e.target.style.borderColor = "#2563eb";
+                            e.target.style.background = "#ffffff";
+                            e.target.select();
+                          }}
+                          onBlur={(e) => {
+                            e.target.style.borderColor = "#cbd5e1";
+                            e.target.style.background = "#f8fafc";
+                          }}
+                        />
+                      ))}
+                    </div>
+
+                    {/* Timer & Resend Controls */}
+                    <div
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "space-between",
+                        fontSize: 12,
+                        color: "#64748b",
+                        marginTop: 10,
+                      }}
+                    >
+                      <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
+                        <span
+                          style={{
+                            display: "inline-block",
+                            width: 6,
+                            height: 6,
+                            borderRadius: "50%",
+                            background: otpTimeLeft > 60 ? "#10b981" : "#ef4444",
+                          }}
+                        />
+                        <span>Expires in: <strong>{formatTimer(otpTimeLeft)}</strong></span>
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={handleResendOtp}
+                        disabled={loading || otpTimeLeft > 240}
+                        style={{
+                          background: "none",
+                          border: "none",
+                          color: otpTimeLeft > 240 ? "#94a3b8" : "#2563eb",
+                          cursor: otpTimeLeft > 240 ? "not-allowed" : "pointer",
+                          fontSize: 12,
+                          fontWeight: 700,
+                          display: "inline-flex",
+                          alignItems: "center",
+                          gap: 4,
+                          padding: 0,
+                        }}
+                      >
+                        <RotateCw size={12} className={loading ? "spin" : ""} />
+                        <span>Resend Code</span>
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Error Banner */}
+                  <AnimatePresence>
+                    {error && (
+                      <motion.div
+                        initial={{ opacity: 0, y: -6 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -6 }}
+                        style={{
+                          color: "#991b1b",
+                          background: "#fef2f2",
+                          border: "1px solid #fecaca",
+                          borderLeft: "3.5px solid #ef4444",
+                          padding: "10px 12px",
+                          borderRadius: 8,
+                          fontSize: 12,
+                          marginBottom: 16,
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 8,
+                        }}
+                      >
+                        <AlertTriangle size={16} color="#ef4444" style={{ flexShrink: 0 }} />
+                        <div>{error}</div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+
+                  {/* Submit OTP Button */}
+                  <button
+                    type="submit"
+                    disabled={loading || otp.join("").length !== 6 || otpTimeLeft === 0}
+                    style={{
+                      width: "100%",
+                      padding: "12px",
+                      fontSize: 14,
+                      fontWeight: 700,
+                      background:
+                        otp.join("").length !== 6 || otpTimeLeft === 0
+                          ? "#f1f5f9"
+                          : "linear-gradient(135deg, #16a34a 0%, #15803d 100%)",
+                      border: "none",
+                      borderRadius: 10,
+                      color: otp.join("").length !== 6 || otpTimeLeft === 0 ? "#94a3b8" : "#ffffff",
+                      cursor: otp.join("").length !== 6 || otpTimeLeft === 0 ? "not-allowed" : "pointer",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      gap: 8,
+                      transition: "all 0.2s ease",
+                      boxShadow:
+                        otp.join("").length === 6 && otpTimeLeft > 0
+                          ? "0 4px 12px rgba(22, 163, 74, 0.25)"
+                          : "none",
+                      fontFamily: "'DM Sans', sans-serif",
+                    }}
+                  >
+                    {loading ? (
+                      <>
+                        <Loader2 size={16} className="spin" /> Verifying Code...
+                      </>
+                    ) : (
+                      <>
+                        <ShieldCheck size={16} /> Authorize Admin Session
+                      </>
+                    )}
+                  </button>
+
+                  {/* Change Password / Back Button */}
+                  <div style={{ textAlign: "center", marginTop: 14 }}>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setStep("PASSWORD");
+                        setError("");
+                        setStatusNotice("");
+                      }}
+                      style={{
+                        background: "none",
+                        border: "none",
+                        color: "#64748b",
+                        fontSize: 12.5,
+                        fontWeight: 600,
+                        cursor: "pointer",
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: 4,
+                      }}
+                    >
+                      <ArrowLeft size={13} /> Re-enter Password
+                    </button>
+                  </div>
+                </form>
+              </div>
+            )}
 
             {/* Back to Student Portal Link */}
             <div style={{ marginTop: 20, textAlign: "center" }}>
@@ -615,7 +928,7 @@ export default function AdminLogin() {
                   background: "#10b981",
                 }}
               />
-              Security Gateway: Operational
+              Security Gateway: Operational &bull; 7-Day Session Sliding Lock
             </div>
           </motion.div>
         </div>
