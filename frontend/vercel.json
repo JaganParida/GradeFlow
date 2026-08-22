@@ -17,12 +17,36 @@
       "destination": "/api/attendance-ocr.js"
     },
     {
+      "source": "/api/auth/admin/login-password",
+      "destination": "/api/auth.js?action=admin-login-password"
+    },
+    {
+      "source": "/api/auth/admin/verify-otp",
+      "destination": "/api/auth.js?action=admin-verify-otp"
+    },
+    {
+      "source": "/api/auth/admin/check-status",
+      "destination": "/api/auth.js?action=admin-check-status"
+    },
+    {
+      "source": "/api/auth/admin/me",
+      "destination": "/api/auth.js?action=admin-me"
+    },
+    {
+      "source": "/api/auth/admin/logout",
+      "destination": "/api/auth.js?action=admin-logout"
+    },
+    {
       "source": "/api/auth/student/send-otp",
       "destination": "/api/auth.js?action=student-send-otp"
     },
     {
       "source": "/api/auth/student/verify-otp",
       "destination": "/api/auth.js?action=student-verify-otp"
+    },
+    {
+      "source": "/api/auth/student/check-status",
+      "destination": "/api/auth.js?action=student-check-status"
     },
     {
       "source": "/api/auth/student/me",
@@ -34,15 +58,15 @@
     },
     {
       "source": "/api/auth/login",
-      "destination": "/api/auth.js?action=login"
+      "destination": "/api/auth.js?action=admin-login-password"
     },
     {
       "source": "/api/auth/logout",
-      "destination": "/api/auth.js?action=logout"
+      "destination": "/api/auth.js?action=admin-logout"
     },
     {
       "source": "/api/auth/me",
-      "destination": "/api/auth.js?action=me"
+      "destination": "/api/auth.js?action=admin-me"
     },
     {
       "source": "/api/student/:regNo/attendance",

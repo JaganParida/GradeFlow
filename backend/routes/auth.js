@@ -542,13 +542,23 @@ router.get("/admin/check-status", async (req, res) => {
 // 1. Admin Password Login -> Trigger OTP (/api/auth/admin/login-password or /api/auth/login)
 const handleAdminPasswordLogin = async (req, res) => {
   try {
-    const adminEmail = process.env.ADMIN_EMAIL;
-    const adminPassword = process.env.ADMIN_PASSWORD;
+    let adminEmail = process.env.ADMIN_EMAIL;
+    let adminPassword = process.env.ADMIN_PASSWORD;
 
+    let adminDoc = null;
     if (!adminEmail || !adminPassword) {
+      adminDoc = await Admin.findOne().sort({ createdAt: -1 });
+      if (adminDoc && !adminEmail) {
+        adminEmail = adminDoc.email;
+      }
+    } else {
+      adminDoc = await Admin.findOne({ email: adminEmail });
+    }
+
+    if (!adminEmail && !adminDoc) {
       console.error("Admin authentication configuration error: ADMIN_EMAIL or ADMIN_PASSWORD missing from server environment.");
       return res.status(500).json({
-        message: "Admin authentication is temporarily unavailable due to server configuration.",
+        message: "Admin authentication is temporarily unavailable due to server configuration. Please ensure ADMIN_EMAIL and ADMIN_PASSWORD are set.",
         code: "ADMIN_CONFIG_MISSING",
       });
     }
@@ -561,21 +571,18 @@ const handleAdminPasswordLogin = async (req, res) => {
       });
     }
 
-    // Secure timing-safe string comparison between submitted password and environment ADMIN_PASSWORD
-    const candidateBuf = Buffer.from(candidatePassword, "utf8");
-    const adminPassBuf = Buffer.from(adminPassword, "utf8");
-
+    // Secure timing-safe string comparison between submitted password and environment ADMIN_PASSWORD or Admin model
     let isPasswordCorrect = false;
-    if (candidateBuf.length === adminPassBuf.length) {
-      isPasswordCorrect = crypto.timingSafeEqual(candidateBuf, adminPassBuf);
+    if (adminPassword) {
+      const candidateBuf = Buffer.from(candidatePassword, "utf8");
+      const adminPassBuf = Buffer.from(adminPassword, "utf8");
+      if (candidateBuf.length === adminPassBuf.length) {
+        isPasswordCorrect = crypto.timingSafeEqual(candidateBuf, adminPassBuf);
+      }
     }
 
-    // Secondary fallback to Admin database record comparison if synced
-    if (!isPasswordCorrect) {
-      const adminDoc = await Admin.findOne({ email: adminEmail });
-      if (adminDoc && typeof adminDoc.comparePassword === "function") {
-        isPasswordCorrect = await adminDoc.comparePassword(candidatePassword);
-      }
+    if (!isPasswordCorrect && adminDoc && typeof adminDoc.comparePassword === "function") {
+      isPasswordCorrect = await adminDoc.comparePassword(candidatePassword);
     }
 
     if (!isPasswordCorrect) {
@@ -640,12 +647,21 @@ const handleAdminPasswordLogin = async (req, res) => {
       attempts: 0,
     });
 
-    // Dispatch OTP email to ADMIN_EMAIL securely on server-side
-    await sendAdminOtpEmail({
-      to: adminEmail,
-      otp,
-      expiresInMinutes: 5,
-    });
+    // Dispatch OTP email to admin email securely on server-side
+    const recipientEmail = adminEmail || adminDoc?.email;
+    try {
+      await sendAdminOtpEmail({
+        to: recipientEmail,
+        otp,
+        expiresInMinutes: 5,
+      });
+    } catch (emailErr) {
+      console.error("Admin OTP email dispatch error:", emailErr.message);
+      return res.status(500).json({
+        message: "Failed to dispatch verification code to administrator email. Please check server email configuration.",
+        code: "EMAIL_DISPATCH_FAILED",
+      });
+    }
 
     return res.json({
       success: true,

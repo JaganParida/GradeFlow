@@ -238,7 +238,20 @@ module.exports = async function handler(req, res) {
 
   try {
     await connectToDatabase();
-    const action = req.query.action;
+    let action = req.query.action;
+    if (!action && req.url) {
+      const cleanUrl = req.url.split("?")[0];
+      if (cleanUrl.includes("admin/login-password") || cleanUrl.endsWith("/login")) action = "admin-login-password";
+      else if (cleanUrl.includes("admin/verify-otp")) action = "admin-verify-otp";
+      else if (cleanUrl.includes("admin/check-status")) action = "admin-check-status";
+      else if (cleanUrl.includes("admin/me") || cleanUrl.endsWith("/me")) action = "admin-me";
+      else if (cleanUrl.includes("admin/logout") || cleanUrl.endsWith("/logout")) action = "admin-logout";
+      else if (cleanUrl.includes("student/send-otp")) action = "student-send-otp";
+      else if (cleanUrl.includes("student/verify-otp")) action = "student-verify-otp";
+      else if (cleanUrl.includes("student/check-status")) action = "student-check-status";
+      else if (cleanUrl.includes("student/me")) action = "student-me";
+      else if (cleanUrl.includes("student/logout")) action = "student-logout";
+    }
     const cookies = parseCookies(req.headers.cookie);
 
     /* ─────────────────────────────────────────────────────────────
@@ -717,12 +730,22 @@ module.exports = async function handler(req, res) {
        6. ADMIN PASSWORD LOGIN -> SEND OTP
     ───────────────────────────────────────────────────────────── */
     if ((action === "admin-login-password" || action === "login") && req.method === "POST") {
-      const adminEmail = process.env.ADMIN_EMAIL;
-      const adminPassword = process.env.ADMIN_PASSWORD;
+      let adminEmail = process.env.ADMIN_EMAIL;
+      let adminPassword = process.env.ADMIN_PASSWORD;
 
+      let adminDoc = null;
       if (!adminEmail || !adminPassword) {
+        adminDoc = await Admin.findOne().sort({ createdAt: -1 });
+        if (adminDoc && !adminEmail) {
+          adminEmail = adminDoc.email;
+        }
+      } else {
+        adminDoc = await Admin.findOne({ email: adminEmail });
+      }
+
+      if (!adminEmail && !adminDoc) {
         return res.status(500).json({
-          message: "Admin authentication is temporarily unavailable due to server configuration.",
+          message: "Admin authentication is temporarily unavailable due to server configuration. Please ensure ADMIN_EMAIL and ADMIN_PASSWORD are set.",
           code: "ADMIN_CONFIG_MISSING",
         });
       }
@@ -735,20 +758,18 @@ module.exports = async function handler(req, res) {
         });
       }
 
-      // Secure timing-safe string comparison
-      const candidateBuf = Buffer.from(candidatePassword, "utf8");
-      const adminPassBuf = Buffer.from(adminPassword, "utf8");
-
+      // Secure comparison against environment ADMIN_PASSWORD or MongoDB Admin record
       let isPasswordCorrect = false;
-      if (candidateBuf.length === adminPassBuf.length) {
-        isPasswordCorrect = crypto.timingSafeEqual(candidateBuf, adminPassBuf);
+      if (adminPassword) {
+        const candidateBuf = Buffer.from(candidatePassword, "utf8");
+        const adminPassBuf = Buffer.from(adminPassword, "utf8");
+        if (candidateBuf.length === adminPassBuf.length) {
+          isPasswordCorrect = crypto.timingSafeEqual(candidateBuf, adminPassBuf);
+        }
       }
 
-      if (!isPasswordCorrect) {
-        const adminDoc = await Admin.findOne({ email: adminEmail });
-        if (adminDoc && typeof adminDoc.comparePassword === "function") {
-          isPasswordCorrect = await adminDoc.comparePassword(candidatePassword);
-        }
+      if (!isPasswordCorrect && adminDoc && typeof adminDoc.comparePassword === "function") {
+        isPasswordCorrect = await adminDoc.comparePassword(candidatePassword);
       }
 
       if (!isPasswordCorrect) {
@@ -811,11 +832,20 @@ module.exports = async function handler(req, res) {
         attempts: 0,
       });
 
-      await sendAdminOtpEmail({
-        to: adminEmail,
-        otp,
-        expiresInMinutes: 5,
-      });
+      const recipientEmail = adminEmail || adminDoc?.email;
+      try {
+        await sendAdminOtpEmail({
+          to: recipientEmail,
+          otp,
+          expiresInMinutes: 5,
+        });
+      } catch (emailErr) {
+        console.error("Admin OTP email dispatch error:", emailErr.message);
+        return res.status(500).json({
+          message: "Failed to dispatch verification code to administrator email. Please verify SMTP server settings.",
+          code: "EMAIL_DISPATCH_FAILED",
+        });
+      }
 
       return res.json({
         success: true,
