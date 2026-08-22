@@ -425,9 +425,10 @@ export default function AdminManagement({ API, authHeaders, isMobile }) {
     <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
       {/* ── Top Header & KPI Summary Cards ── */}
       <div
+        className="gf-kpi-grid"
         style={{
           display: "grid",
-          gridTemplateColumns: isMobile ? "1fr 1fr" : "repeat(4, 1fr)",
+          gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))",
           gap: 12,
         }}
       >
@@ -1942,6 +1943,21 @@ export default function AdminManagement({ API, authHeaders, isMobile }) {
           </div>
         )}
       </AnimatePresence>
+
+      <style>{`
+        @media (max-width: 768px) {
+          .gf-kpi-grid {
+            grid-template-columns: repeat(2, 1fr) !important;
+            gap: 10px !important;
+          }
+        }
+        @media (max-width: 480px) {
+          .gf-kpi-grid {
+            grid-template-columns: 1fr 1fr !important;
+            gap: 8px !important;
+          }
+        }
+      `}</style>
     </div>
   );
 }

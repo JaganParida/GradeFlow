@@ -542,6 +542,7 @@ export default function AdminLogin() {
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.3 }}
+            className="gf-auth-card"
             style={{
               width: "100%",
               maxWidth: 430,
@@ -559,6 +560,7 @@ export default function AdminLogin() {
               <div>
                 {/* Mode Selector Toggle */}
                 <div
+                  className="gf-mode-toggle"
                   style={{
                     display: "grid",
                     gridTemplateColumns: "1fr 1fr",
@@ -571,6 +573,7 @@ export default function AdminLogin() {
                 >
                   <button
                     type="button"
+                    className="gf-mode-btn"
                     onClick={() => {
                       setAuthMode("MAIN");
                       setErrorInfo(null);
@@ -586,12 +589,14 @@ export default function AdminLogin() {
                       cursor: "pointer",
                       boxShadow: authMode === "MAIN" ? "0 1px 3px rgba(0,0,0,0.06)" : "none",
                       transition: "all 0.15s ease",
+                      whiteSpace: "nowrap",
                     }}
                   >
                     Master Admin
                   </button>
                   <button
                     type="button"
+                    className="gf-mode-btn"
                     onClick={() => {
                       setAuthMode("SUBADMIN");
                       setErrorInfo(null);
@@ -607,6 +612,7 @@ export default function AdminLogin() {
                       cursor: "pointer",
                       boxShadow: authMode === "SUBADMIN" ? "0 1px 3px rgba(0,0,0,0.06)" : "none",
                       transition: "all 0.15s ease",
+                      whiteSpace: "nowrap",
                     }}
                   >
                     Sub-Admin Portal
@@ -1149,7 +1155,7 @@ export default function AdminLogin() {
                 <form onSubmit={handleOtpSubmit} autoComplete="off">
                   {/* 6-Digit OTP Boxes */}
                   <div style={{ marginBottom: 18 }}>
-                    <div style={{ display: "flex", justifyContent: "space-between", gap: 6, marginBottom: 8 }}>
+                    <div className="gf-otp-row">
                       {otp.map((digit, idx) => (
                         <input
                           key={idx}
@@ -1162,21 +1168,7 @@ export default function AdminLogin() {
                           onChange={(e) => handleOtpChange(idx, e.target.value)}
                           onKeyDown={(e) => handleOtpKeyDown(idx, e)}
                           disabled={loading || otpTimeLeft === 0}
-                          style={{
-                            width: 48,
-                            height: 52,
-                            textAlign: "center",
-                            fontSize: 22,
-                            fontWeight: 800,
-                            fontFamily: "'Space Mono', monospace",
-                            borderRadius: 10,
-                            border: "1.5px solid #cbd5e1",
-                            background: "#f8fafc",
-                            color: "#0f172a",
-                            outline: "none",
-                            transition: "all 0.15s ease",
-                            boxSizing: "border-box",
-                          }}
+                          className="gf-otp-box"
                           onFocus={(e) => {
                             e.target.style.borderColor = "#2563eb";
                             e.target.style.background = "#ffffff";
@@ -1199,6 +1191,8 @@ export default function AdminLogin() {
                         fontSize: 12,
                         color: "#64748b",
                         marginTop: 10,
+                        flexWrap: "wrap",
+                        gap: 6,
                       }}
                     >
                       <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
@@ -1386,7 +1380,7 @@ export default function AdminLogin() {
                       type="button"
                       onClick={() => {
                         setStep("PASSWORD");
-                        setError("");
+                        setErrorInfo(null);
                         setStatusNotice("");
                       }}
                       style={{
@@ -1460,6 +1454,31 @@ export default function AdminLogin() {
       </div>
 
       <style>{`
+        .gf-otp-row {
+          display: flex;
+          justify-content: space-between;
+          gap: 6px;
+          margin-bottom: 8px;
+          width: 100%;
+        }
+        .gf-otp-box {
+          flex: 1;
+          min-width: 0;
+          max-width: 48px;
+          height: 52px;
+          text-align: center;
+          font-size: 22px;
+          font-weight: 800;
+          font-family: 'Space Mono', monospace;
+          border-radius: 10px;
+          border: 1.5px solid #cbd5e1;
+          background: #f8fafc;
+          color: #0f172a;
+          outline: none;
+          transition: all 0.15s ease;
+          box-sizing: border-box;
+        }
+
         @media (max-width: 768px) {
           .gf-admin-container {
             padding: 16px 14px 40px !important;
@@ -1467,6 +1486,51 @@ export default function AdminLogin() {
           }
           .gf-admin-left {
             padding: 10px 4px !important;
+          }
+          .gf-auth-card {
+            padding: 26px 20px !important;
+            border-radius: 16px !important;
+          }
+          .gf-mode-btn {
+            font-size: 12px !important;
+            padding: 7px 8px !important;
+          }
+        }
+
+        @media (max-width: 480px) {
+          .gf-admin-container {
+            padding: 12px 10px 30px !important;
+            gap: 18px !important;
+          }
+          .gf-auth-card {
+            padding: 22px 14px !important;
+            border-radius: 14px !important;
+          }
+          .gf-otp-row {
+            gap: 4px !important;
+          }
+          .gf-otp-box {
+            height: 46px !important;
+            font-size: 18px !important;
+            border-radius: 8px !important;
+          }
+          .gf-mode-btn {
+            font-size: 11.5px !important;
+            padding: 6px 4px !important;
+          }
+        }
+
+        @media (max-width: 360px) {
+          .gf-auth-card {
+            padding: 18px 10px !important;
+          }
+          .gf-otp-row {
+            gap: 3px !important;
+          }
+          .gf-otp-box {
+            height: 42px !important;
+            font-size: 16px !important;
+            border-radius: 7px !important;
           }
         }
       `}</style>
