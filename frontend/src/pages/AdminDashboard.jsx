@@ -58,6 +58,7 @@ import {
   SearchCode,
   Calendar,
   Clock,
+  Sliders,
 } from "lucide-react";
 
 function getDynamicSessionOptions(bStr, semVal, yStr) {
