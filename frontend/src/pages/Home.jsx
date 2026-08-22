@@ -1896,6 +1896,133 @@ export default function Home() {
                 academic excellence.
               </p>
 
+              {/* Active Student Session Card (Desktop & Large screens when Logged In) */}
+              {authChecking ? (
+                <div
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    background: "#f8fafc",
+                    border: "1px solid #e2e8f0",
+                    borderRadius: 14,
+                    padding: "12px 16px",
+                    marginTop: 6,
+                    color: "#64748b",
+                    gap: 8,
+                    fontSize: 13,
+                    fontWeight: 600,
+                    maxWidth: 480,
+                    width: "100%",
+                    boxSizing: "border-box",
+                  }}
+                >
+                  <Loader2 size={16} className="spin" />
+                  <span>Verifying active session...</span>
+                </div>
+              ) : hasActiveSession && currentRegNo ? (
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    background: "#f0fdf4",
+                    border: "1.5px solid #bbf7d0",
+                    borderRadius: 14,
+                    padding: "12px 18px",
+                    marginTop: 6,
+                    boxShadow: "0 2px 10px rgba(16, 185, 129, 0.08)",
+                    maxWidth: 480,
+                    width: "100%",
+                    boxSizing: "border-box",
+                  }}
+                >
+                  <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                    <div
+                      style={{
+                        width: 40,
+                        height: 40,
+                        borderRadius: 10,
+                        background: "#dcfce7",
+                        color: "#16a34a",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        flexShrink: 0,
+                      }}
+                    >
+                      <ShieldCheck size={24} />
+                    </div>
+                    <div>
+                      <div
+                        style={{
+                          fontSize: 13.5,
+                          fontWeight: 800,
+                          color: "#166534",
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 6,
+                        }}
+                      >
+                        <span>Active Student Session</span>
+                        <span
+                          style={{
+                            width: 6,
+                            height: 6,
+                            borderRadius: "50%",
+                            background: "#16a34a",
+                            display: "inline-block",
+                            boxShadow: "0 0 6px rgba(22, 163, 74, 0.6)",
+                          }}
+                        />
+                      </div>
+                      <div
+                        style={{
+                          fontSize: 12.5,
+                          color: "#15803d",
+                          fontWeight: 700,
+                          fontFamily: "'Space Mono', monospace",
+                          marginTop: 1,
+                        }}
+                      >
+                        {currentRegNo}{" "}
+                        {studentData?.studentName
+                          ? `• ${studentData.studentName}`
+                          : ""}
+                      </div>
+                    </div>
+                  </div>
+                  <button
+                    onClick={handleDashboardAction}
+                    style={{
+                      padding: "9px 15px",
+                      borderRadius: 10,
+                      background:
+                        "linear-gradient(135deg, #16a34a 0%, #15803d 100%)",
+                      color: "#ffffff",
+                      border: "none",
+                      fontSize: 13,
+                      fontWeight: 700,
+                      cursor: "pointer",
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: 6,
+                      boxShadow: "0 2px 6px rgba(22, 163, 74, 0.3)",
+                      whiteSpace: "nowrap",
+                      transition: "transform 0.15s ease",
+                    }}
+                    onMouseEnter={(e) =>
+                      (e.currentTarget.style.transform = "scale(1.02)")
+                    }
+                    onMouseLeave={(e) =>
+                      (e.currentTarget.style.transform = "scale(1)")
+                    }
+                  >
+                    <span>Dashboard</span>
+                    <ArrowRight size={13} />
+                  </button>
+                </div>
+              ) : null}
+
               {/* Action Buttons */}
               <div
                 className="gf-hero-actions"
@@ -1903,7 +2030,7 @@ export default function Home() {
                   display: "flex",
                   alignItems: "center",
                   gap: 12,
-                  marginTop: 4,
+                  marginTop: 6,
                   flexWrap: "wrap",
                 }}
               >
@@ -1917,41 +2044,48 @@ export default function Home() {
                     gap: 8,
                     padding: "12px 24px",
                     borderRadius: 10,
-                    background: "#2563eb",
+                    background: currentRegNo ? "#0f172a" : "#2563eb",
                     color: "#ffffff",
                     border: "none",
                     fontSize: 14.5,
                     fontWeight: 700,
                     cursor: "pointer",
                     fontFamily: "'DM Sans', sans-serif",
-                    boxShadow: "0 4px 14px rgba(37, 99, 235, 0.25)",
+                    boxShadow: currentRegNo
+                      ? "0 4px 14px rgba(15, 23, 42, 0.2)"
+                      : "0 4px 14px rgba(37, 99, 235, 0.25)",
                     transition: "all 0.2s ease",
                     minHeight: 46,
                   }}
                   onMouseEnter={(e) =>
-                    (e.currentTarget.style.background = "#1d4ed8")
+                    (e.currentTarget.style.background = currentRegNo
+                      ? "#1e293b"
+                      : "#1d4ed8")
                   }
                   onMouseLeave={(e) =>
-                    (e.currentTarget.style.background = "#2563eb")
+                    (e.currentTarget.style.background = currentRegNo
+                      ? "#0f172a"
+                      : "#2563eb")
                   }
                 >
-                  Go to Dashboard <ArrowRight size={15} />
+                  <span>{currentRegNo ? "My Dashboard" : "Go to Dashboard"}</span>
+                  <ArrowRight size={15} />
                 </button>
 
                 <button
                   type="button"
-                  onClick={() => navigate("/resources")}
+                  onClick={handleLeaderboardAction}
                   className="gf-btn-secondary"
                   style={{
                     display: "inline-flex",
                     alignItems: "center",
                     justifyContent: "center",
-                    gap: 6,
+                    gap: 7,
                     padding: "12px 20px",
                     borderRadius: 10,
                     background: "#ffffff",
                     color: "#1e293b",
-                    border: "1.5px solid #e2e8f0",
+                    border: "1.5px solid #cbd5e1",
                     fontSize: 14,
                     fontWeight: 600,
                     cursor: "pointer",
@@ -1961,15 +2095,15 @@ export default function Home() {
                   }}
                   onMouseEnter={(e) => {
                     e.currentTarget.style.background = "#f8fafc";
-                    e.currentTarget.style.borderColor = "#cbd5e1";
+                    e.currentTarget.style.borderColor = "#94a3b8";
                   }}
                   onMouseLeave={(e) => {
                     e.currentTarget.style.background = "#ffffff";
-                    e.currentTarget.style.borderColor = "#e2e8f0";
+                    e.currentTarget.style.borderColor = "#cbd5e1";
                   }}
                 >
-                  <span>Explore Features</span>
-                  <ArrowRight size={13} style={{ color: "#64748b" }} />
+                  <Trophy size={15} color="#f59e0b" />
+                  <span>Leaderboard</span>
                 </button>
               </div>
 
@@ -2180,8 +2314,8 @@ export default function Home() {
                         width: 28,
                         height: 28,
                         borderRadius: "50%",
-                        background: "#dbeafe",
-                        color: "#2563eb",
+                        background: currentRegNo ? "#dcfce7" : "#dbeafe",
+                        color: currentRegNo ? "#16a34a" : "#2563eb",
                         fontSize: 11,
                         fontWeight: 800,
                         display: "flex",
@@ -2189,7 +2323,13 @@ export default function Home() {
                         justifyContent: "center",
                       }}
                     >
-                      S
+                      {(
+                        studentData?.studentName ||
+                        currentRegNo ||
+                        "S"
+                      )
+                        .charAt(0)
+                        .toUpperCase()}
                     </div>
                     <span
                       style={{
@@ -2248,23 +2388,34 @@ export default function Home() {
                             gap: 6,
                           }}
                         >
-                          <span>Alex Kumar (Sample Student)</span>
-                          <CheckCircle2 size={13} color="#2563eb" />
+                          <span>
+                            {studentData?.studentName
+                              ? `${studentData.studentName} (${currentRegNo})`
+                              : currentRegNo
+                                ? `Student (${currentRegNo})`
+                                : "Alex Kumar (Sample Student)"}
+                          </span>
+                          <CheckCircle2
+                            size={14}
+                            color={currentRegNo ? "#10b981" : "#2563eb"}
+                          />
                         </h3>
                         <span
                           style={{
                             fontSize: 9.5,
                             fontWeight: 800,
-                            background: "#eff6ff",
-                            color: "#2563eb",
-                            border: "1px solid #dbeafe",
+                            background: currentRegNo ? "#ecfdf5" : "#eff6ff",
+                            color: currentRegNo ? "#059669" : "#2563eb",
+                            border: currentRegNo
+                              ? "1px solid #a7f3d0"
+                              : "1px solid #dbeafe",
                             padding: "2px 6px",
                             borderRadius: 4,
                             textTransform: "uppercase",
                             letterSpacing: "0.4px",
                           }}
                         >
-                          Sample Preview
+                          {currentRegNo ? "Verified Profile" : "Sample Preview"}
                         </span>
                       </div>
                       <p
@@ -2274,7 +2425,9 @@ export default function Home() {
                           margin: "2px 0 0 0",
                         }}
                       >
-                        Sample academic overview • Centurion University
+                        {currentRegNo
+                          ? "Verified academic record • Centurion University"
+                          : "Sample academic overview • Centurion University"}
                       </p>
                     </div>
                     <div
