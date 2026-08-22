@@ -772,7 +772,7 @@ export default function Navbar() {
           </div>
 
           {/* Right Controls */}
-          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          <div className="gf-navbar-right" style={{ display: "flex", alignItems: "center", gap: 10 }}>
             {/* Search button (Accessible ONLY for Admin) */}
             {adminToken && (
               <button
@@ -2074,8 +2074,11 @@ export default function Navbar() {
         }
         @media (max-width: 768px) {
           .gf-navbar-inner {
-            height: 56px !important;
-            padding: 0 12px !important;
+            height: 58px !important;
+            padding: 0 16px !important;
+            gap: 10px !important;
+          }
+          .gf-navbar-right {
             gap: 8px !important;
           }
           .gf-admin-text {
@@ -2087,7 +2090,7 @@ export default function Navbar() {
             display: inline-flex !important;
             align-items: center !important;
             gap: 4px !important;
-            padding: 5px 9px !important;
+            padding: 5px 10px !important;
             border-radius: 8px !important;
             height: 34px !important;
             background: #f8fafc !important;
@@ -2106,8 +2109,11 @@ export default function Navbar() {
         }
         @media (max-width: 480px) {
           .gf-navbar-inner {
-            padding: 0 8px !important;
-            gap: 5px !important;
+            padding: 0 16px !important;
+            gap: 8px !important;
+          }
+          .gf-navbar-right {
+            gap: 6px !important;
           }
           .gf-admin-text {
             display: inline-block !important;
@@ -2118,7 +2124,7 @@ export default function Navbar() {
             display: inline-flex !important;
             align-items: center !important;
             gap: 4px !important;
-            padding: 4px 8px !important;
+            padding: 4px 9px !important;
             border-radius: 8px !important;
             height: 34px !important;
             background: #f8fafc !important;
@@ -2137,8 +2143,11 @@ export default function Navbar() {
         }
         @media (max-width: 360px) {
           .gf-navbar-inner {
-            padding: 0 6px !important;
-            gap: 4px !important;
+            padding: 0 12px !important;
+            gap: 6px !important;
+          }
+          .gf-navbar-right {
+            gap: 5px !important;
           }
           .gf-admin-text {
             display: inline-block !important;
@@ -2146,7 +2155,7 @@ export default function Navbar() {
             font-weight: 700 !important;
           }
           .gf-admin-link {
-            padding: 4px 6px !important;
+            padding: 4px 7px !important;
             height: 32px !important;
           }
           .gf-logo-text {
