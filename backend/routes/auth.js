@@ -781,6 +781,14 @@ router.post("/admin/verify-otp", async (req, res) => {
   }
 });
 
+function maskEmail(email) {
+  if (!email || !email.includes("@")) return email;
+  const [local, domain] = email.split("@");
+  if (local.length <= 2) return `${local[0]}*@${domain}`;
+  const maskedLocal = local[0] + "*".repeat(Math.max(1, local.length - 2)) + local[local.length - 1];
+  return `${maskedLocal}@${domain}`;
+}
+
 // 3. Sub-Admin Login Endpoint: Password Verification & OTP Dispatch (/api/auth/subadmin/login)
 router.post("/subadmin/login", async (req, res) => {
   try {
@@ -788,30 +796,49 @@ router.post("/subadmin/login", async (req, res) => {
     const cleanEmail = String(email || "").trim().toLowerCase();
     const candidatePassword = String(password || "");
 
-    if (!cleanEmail || !candidatePassword) {
+    if (!candidatePassword) {
       return res.status(400).json({
         success: false,
-        message: "Email and password are required.",
+        message: "Password is required.",
         code: "CREDENTIALS_REQUIRED",
       });
     }
 
-    const subAdmin = await SubAdmin.findOne({ email: cleanEmail });
-    if (!subAdmin) {
-      return res.status(401).json({
-        success: false,
-        message: "Invalid email or password.",
-        code: "INVALID_CREDENTIALS",
-      });
-    }
-
-    const isMatch = await subAdmin.comparePassword(candidatePassword);
-    if (!isMatch) {
-      return res.status(401).json({
-        success: false,
-        message: "Invalid email or password.",
-        code: "INVALID_CREDENTIALS",
-      });
+    let subAdmin = null;
+    if (cleanEmail) {
+      subAdmin = await SubAdmin.findOne({ email: cleanEmail });
+      if (!subAdmin) {
+        return res.status(401).json({
+          success: false,
+          message: "Invalid Sub-Admin credentials.",
+          code: "INVALID_CREDENTIALS",
+        });
+      }
+      const isMatch = await subAdmin.comparePassword(candidatePassword);
+      if (!isMatch) {
+        return res.status(401).json({
+          success: false,
+          message: "Invalid Sub-Admin password.",
+          code: "INVALID_CREDENTIALS",
+        });
+      }
+    } else {
+      // Find active subadmin by password match
+      const activeSubAdmins = await SubAdmin.find({ status: "active" });
+      for (const sa of activeSubAdmins) {
+        const isMatch = await sa.comparePassword(candidatePassword);
+        if (isMatch) {
+          subAdmin = sa;
+          break;
+        }
+      }
+      if (!subAdmin) {
+        return res.status(401).json({
+          success: false,
+          message: "The Sub-Admin password entered does not match institutional records.",
+          code: "INVALID_CREDENTIALS",
+        });
+      }
     }
 
     if (subAdmin.status !== "active") {
@@ -878,9 +905,9 @@ router.post("/subadmin/login", async (req, res) => {
     const expiresAt = new Date(Date.now() + 5 * 60 * 1000); // 5 minutes TTL
 
     // Store in SubAdminOtpVerification (replace any existing pending OTPs for this email)
-    await SubAdminOtpVerification.deleteMany({ email: cleanEmail });
+    await SubAdminOtpVerification.deleteMany({ email: subAdmin.email });
     await SubAdminOtpVerification.create({
-      email: cleanEmail,
+      email: subAdmin.email,
       otpHash,
       expiresAt,
       attempts: 0,
@@ -907,8 +934,10 @@ router.post("/subadmin/login", async (req, res) => {
       success: true,
       step: "OTP_REQUIRED",
       email: subAdmin.email,
+      maskedEmail: maskEmail(subAdmin.email),
+      name: subAdmin.name,
       expiresInSeconds: 300,
-      message: "A 6-digit verification code has been dispatched to your registered Sub-Admin email address.",
+      message: `A 6-digit verification code has been dispatched to ${maskEmail(subAdmin.email)}.`,
     });
   } catch (err) {
     console.error("SubAdmin login error:", err);

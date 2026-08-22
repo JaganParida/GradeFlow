@@ -57,7 +57,8 @@ export const AVAILABLE_PERMISSIONS = {
     { id: "feedback", label: "Student Feedback", desc: "Access to student suggestions and feedback" },
   ],
   actions: [
-    { id: "students.view", label: "View Student Records", route: "report-card", desc: "Search and inspect student grades and report cards" },
+    { id: "students.search", label: "Search Student Records", route: "report-card", desc: "Search and inspect any student grades, report cards, and details" },
+    { id: "students.view", label: "View Student Records", route: "report-card", desc: "View loaded student semester records and grade sheets" },
     { id: "students.update", label: "Update Grades & Records", route: "report-card", desc: "Manually modify grades, subjects, and report cards" },
     { id: "results.upload", label: "Upload Result Spreadsheets", route: "overview", desc: "Upload and parse Excel sheets for semester and internal marks" },
     { id: "results.delete", label: "Delete Semester Results", route: "manage", desc: "Delete individual student semester result records" },
@@ -86,11 +87,11 @@ export const ROLE_PRESETS = [
   {
     id: "full",
     label: "Full Access",
-    desc: "All 8 routes & 11 actions",
+    desc: "All 8 routes & 12 actions",
     icon: Zap,
     routes: ["overview", "timetable", "report-card", "missing-uploader", "toppers", "backlogs", "manage", "feedback"],
     actions: [
-      "students.view", "students.update", "results.upload", "results.delete",
+      "students.search", "students.view", "students.update", "results.upload", "results.delete",
       "toppers.view", "backlogs.view", "emails.send", "rankings.regenerate",
       "manage.purge-batches", "timetable.manage", "feedback.view"
     ],
@@ -101,7 +102,7 @@ export const ROLE_PRESETS = [
     desc: "Results, Report Card, Toppers, Backlogs",
     icon: Trophy,
     routes: ["overview", "report-card", "missing-uploader", "toppers", "backlogs"],
-    actions: ["students.view", "students.update", "results.upload", "toppers.view", "backlogs.view", "emails.send"],
+    actions: ["students.search", "students.view", "students.update", "results.upload", "toppers.view", "backlogs.view", "emails.send"],
   },
   {
     id: "academic_coordinator",
@@ -109,7 +110,7 @@ export const ROLE_PRESETS = [
     desc: "Timetable, Feedback, Report Cards",
     icon: Calendar,
     routes: ["timetable", "report-card", "feedback"],
-    actions: ["students.view", "timetable.manage", "feedback.view"],
+    actions: ["students.search", "students.view", "timetable.manage", "feedback.view"],
   },
   {
     id: "auditor",
@@ -117,7 +118,7 @@ export const ROLE_PRESETS = [
     desc: "View grades, rankers & backlogs",
     icon: Eye,
     routes: ["report-card", "toppers", "backlogs", "feedback"],
-    actions: ["students.view", "toppers.view", "backlogs.view", "feedback.view"],
+    actions: ["students.search", "students.view", "toppers.view", "backlogs.view", "feedback.view"],
   },
   {
     id: "zero_trust",

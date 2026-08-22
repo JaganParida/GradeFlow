@@ -41,6 +41,8 @@ export default function AdminLogin() {
   const [subAdminEmail, setSubAdminEmail] = useState("");
   const [subAdminPassword, setSubAdminPassword] = useState("");
   const [showSubPassword, setShowSubPassword] = useState(false);
+  const [subAdminVerifiedEmail, setSubAdminVerifiedEmail] = useState("");
+  const [subAdminMaskedEmail, setSubAdminMaskedEmail] = useState("");
 
   const otpInputsRef = useRef([]);
   const { adminLoginPassword, adminVerifyOtp, subAdminLogin, subAdminVerifyOtp, adminToken } = useApp();
@@ -187,13 +189,12 @@ export default function AdminLogin() {
     e.preventDefault();
     if (lockCountdown > 0) return;
 
-    const cleanEmail = String(subAdminEmail || "").trim().toLowerCase();
     const cleanPassword = String(subAdminPassword || "").trim();
 
-    if (!cleanEmail || !cleanPassword) {
+    if (!cleanPassword) {
       setErrorInfo({
-        title: "Credentials Required",
-        message: "Please enter your assigned Sub-Admin email and password.",
+        title: "Password Required",
+        message: "Please enter your assigned Sub-Admin password.",
         badge: null,
         type: "error",
       });
@@ -205,17 +206,19 @@ export default function AdminLogin() {
     setStatusNotice("");
 
     try {
-      const res = await subAdminLogin(cleanEmail, cleanPassword);
+      const res = await subAdminLogin(cleanPassword, subAdminEmail);
       if (res && res.alreadyLoggedIn) {
         navigate("/admin/dashboard", { replace: true });
         return;
       }
 
       if (res && res.step === "OTP_REQUIRED") {
+        setSubAdminVerifiedEmail(res.email || "");
+        setSubAdminMaskedEmail(res.maskedEmail || res.email || "");
         setStep("OTP");
         setOtp(["", "", "", "", "", ""]);
         setOtpTimeLeft(res.expiresInSeconds || 300);
-        setStatusNotice(`A 6-digit verification code has been dispatched to ${cleanEmail}.`);
+        setStatusNotice(`A 6-digit verification code has been dispatched to ${res.maskedEmail || res.email}.`);
         setTimeout(() => {
           if (otpInputsRef.current[0]) {
             otpInputsRef.current[0].focus();
@@ -264,7 +267,7 @@ export default function AdminLogin() {
         const remaining = 5 - nextFailed;
         setErrorInfo({
           title: "Authentication Failed",
-          message: res?.error || "The email address or password provided is incorrect.",
+          message: res?.error || "The Sub-Admin password provided is incorrect.",
           badge: remaining > 0 ? `${remaining} attempt${remaining > 1 ? "s" : ""} left` : null,
           type: "error",
         });
@@ -334,7 +337,7 @@ export default function AdminLogin() {
     if (otpTimeLeft === 0) {
       setErrorInfo({
         title: "Code Expired",
-        message: "Verification code has expired. Please enter your credentials to request a new code.",
+        message: "Verification code has expired. Please enter your password to request a new code.",
         badge: "Expired",
         type: "error",
       });
@@ -347,7 +350,7 @@ export default function AdminLogin() {
     try {
       const res =
         authMode === "SUBADMIN"
-          ? await subAdminVerifyOtp(String(subAdminEmail).trim().toLowerCase(), fullOtp)
+          ? await subAdminVerifyOtp(String(subAdminVerifiedEmail || subAdminEmail).trim().toLowerCase(), fullOtp)
           : await adminVerifyOtp(fullOtp);
 
       if (res && res.success) {
@@ -356,7 +359,7 @@ export default function AdminLogin() {
         const remaining = res?.remainingAttempts;
         setErrorInfo({
           title: "Verification Failed",
-          message: res?.error || "The verification code is incorrect. Please try again.",
+          message: res?.error || res?.message || "The verification code is incorrect. Please try again.",
           badge: remaining ? `${remaining} attempts left` : null,
           type: "error",
         });
@@ -382,13 +385,13 @@ export default function AdminLogin() {
     try {
       const res =
         authMode === "SUBADMIN"
-          ? await subAdminLogin(String(subAdminEmail).trim().toLowerCase(), String(subAdminPassword).trim())
+          ? await subAdminLogin(String(subAdminPassword).trim(), String(subAdminVerifiedEmail || subAdminEmail).trim().toLowerCase())
           : await adminLoginPassword(password);
 
       if (res && res.step === "OTP_REQUIRED") {
         setOtp(["", "", "", "", "", ""]);
         setOtpTimeLeft(300);
-        setStatusNotice("A fresh 6-digit verification code has been dispatched.");
+        setStatusNotice(`A fresh 6-digit verification code has been dispatched to ${res.maskedEmail || res.email}.`);
         if (otpInputsRef.current[0]) otpInputsRef.current[0].focus();
       } else if (res && (res.code === "SUBADMIN_DEVICE_LIMIT_REACHED" || res.details?.code === "SUBADMIN_DEVICE_LIMIT_REACHED")) {
         setErrorInfo({
@@ -1000,51 +1003,14 @@ export default function AdminLogin() {
                         <ShieldCheck size={22} />
                       </div>
                       <h2 style={{ fontSize: 21, fontWeight: 800, letterSpacing: "-0.4px", margin: "0 0 6px 0", color: "#0f172a" }}>
-                        Sub-Admin Portal
+                        Sub-Admin Security Portal
                       </h2>
-                      <p style={{ color: "#64748b", fontSize: 13, margin: 0 }}>
-                        Log in with your delegated administrative credentials
+                      <p style={{ color: "#64748b", fontSize: 12.5, margin: 0, lineHeight: 1.5 }}>
+                        Enter your assigned Sub-Admin password to receive your 2FA verification code.
                       </p>
                     </div>
 
                     <form onSubmit={handleSubAdminSubmit} autoComplete="off">
-                      {/* Email Input */}
-                      <div style={{ marginBottom: 14 }}>
-                        <label
-                          style={{
-                            display: "block",
-                            fontSize: 11.5,
-                            color: "#475569",
-                            marginBottom: 6,
-                            fontWeight: 700,
-                            textTransform: "uppercase",
-                            letterSpacing: "0.5px",
-                          }}
-                        >
-                          Email Address
-                        </label>
-                        <input
-                          type="email"
-                          required
-                          value={subAdminEmail}
-                          onChange={(e) => setSubAdminEmail(e.target.value)}
-                          placeholder="subadmin@institution.edu"
-                          disabled={loading || lockCountdown > 0}
-                          style={{
-                            width: "100%",
-                            background: "#f8fafc",
-                            border: "1.5px solid #e2e8f0",
-                            padding: "11px 14px",
-                            fontSize: 13.5,
-                            borderRadius: 10,
-                            color: "#0f172a",
-                            outline: "none",
-                            boxSizing: "border-box",
-                            fontFamily: "'DM Sans', sans-serif",
-                          }}
-                        />
-                      </div>
-
                       {/* Password Input */}
                       <div style={{ marginBottom: 18 }}>
                         <label
@@ -1058,7 +1024,7 @@ export default function AdminLogin() {
                             letterSpacing: "0.5px",
                           }}
                         >
-                          Password
+                          Sub-Admin Password
                         </label>
                         <div style={{ position: "relative" }}>
                           <input
@@ -1191,7 +1157,7 @@ export default function AdminLogin() {
                   </h2>
                   <p style={{ color: "#64748b", fontSize: 12.5, margin: 0, lineHeight: 1.5 }}>
                     {authMode === "SUBADMIN"
-                      ? `Enter the 6-digit code dispatched to ${subAdminEmail}`
+                      ? `Enter the 6-digit code dispatched to ${subAdminMaskedEmail || subAdminVerifiedEmail || "your assigned email"}`
                       : "Enter the 6-digit code dispatched to the authorized institutional administrator email."}
                   </p>
                 </div>

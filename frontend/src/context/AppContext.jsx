@@ -303,11 +303,12 @@ export function AppProvider({ children }) {
     return adminLoginPassword(password);
   };
 
-  const subAdminLogin = async (email, password) => {
+  const subAdminLogin = async (password, email = "") => {
     setLoading(true);
     setError("");
     try {
-      const res = await axios.post(`${API_BASE}/auth/subadmin/login`, { email, password }, { withCredentials: true });
+      const payload = email ? { email, password } : { password };
+      const res = await axios.post(`${API_BASE}/auth/subadmin/login`, payload, { withCredentials: true });
       if (res.data?.alreadyLoggedIn && res.data?.token) {
         sessionStorage.setItem("gf_admin_jwt", res.data.token);
         localStorage.setItem("gf_admin_jwt", res.data.token);
@@ -319,6 +320,8 @@ export function AppProvider({ children }) {
           success: true,
           step: "OTP_REQUIRED",
           email: res.data.email,
+          maskedEmail: res.data.maskedEmail,
+          name: res.data.name,
           expiresInSeconds: res.data.expiresInSeconds || 300,
           message: res.data.message,
         };

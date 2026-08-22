@@ -1074,30 +1074,48 @@ module.exports = async function handler(req, res) {
       const cleanEmail = String(email || "").trim().toLowerCase();
       const candidatePassword = String(password || "");
 
-      if (!cleanEmail || !candidatePassword) {
+      if (!candidatePassword) {
         return res.status(400).json({
           success: false,
-          message: "Email and password are required.",
+          message: "Password is required.",
           code: "CREDENTIALS_REQUIRED",
         });
       }
 
-      const subAdmin = await SubAdmin.findOne({ email: cleanEmail });
-      if (!subAdmin) {
-        return res.status(401).json({
-          success: false,
-          message: "Invalid email or password.",
-          code: "INVALID_CREDENTIALS",
-        });
-      }
-
-      const isMatch = await subAdmin.comparePassword(candidatePassword);
-      if (!isMatch) {
-        return res.status(401).json({
-          success: false,
-          message: "Invalid email or password.",
-          code: "INVALID_CREDENTIALS",
-        });
+      let subAdmin = null;
+      if (cleanEmail) {
+        subAdmin = await SubAdmin.findOne({ email: cleanEmail });
+        if (!subAdmin) {
+          return res.status(401).json({
+            success: false,
+            message: "Invalid Sub-Admin credentials.",
+            code: "INVALID_CREDENTIALS",
+          });
+        }
+        const isMatch = await subAdmin.comparePassword(candidatePassword);
+        if (!isMatch) {
+          return res.status(401).json({
+            success: false,
+            message: "Invalid Sub-Admin password.",
+            code: "INVALID_CREDENTIALS",
+          });
+        }
+      } else {
+        const activeSubAdmins = await SubAdmin.find({ status: "active" });
+        for (const sa of activeSubAdmins) {
+          const isMatch = await sa.comparePassword(candidatePassword);
+          if (isMatch) {
+            subAdmin = sa;
+            break;
+          }
+        }
+        if (!subAdmin) {
+          return res.status(401).json({
+            success: false,
+            message: "The Sub-Admin password entered does not match institutional records.",
+            code: "INVALID_CREDENTIALS",
+          });
+        }
       }
 
       if (subAdmin.status !== "active") {
@@ -1160,9 +1178,9 @@ module.exports = async function handler(req, res) {
       const expiresAt = new Date(Date.now() + 5 * 60 * 1000); // 5 minutes TTL
 
       // Store in SubAdminOtpVerification
-      await SubAdminOtpVerification.deleteMany({ email: cleanEmail });
+      await SubAdminOtpVerification.deleteMany({ email: subAdmin.email });
       await SubAdminOtpVerification.create({
-        email: cleanEmail,
+        email: subAdmin.email,
         otpHash,
         expiresAt,
         attempts: 0,
@@ -1185,12 +1203,21 @@ module.exports = async function handler(req, res) {
         });
       }
 
+      function maskEmail(e) {
+        if (!e || !e.includes("@")) return e;
+        const [l, d] = e.split("@");
+        if (l.length <= 2) return `${l[0]}*@${d}`;
+        return `${l[0]}${"*".repeat(Math.max(1, l.length - 2))}${l[l.length - 1]}@${d}`;
+      }
+
       return res.json({
         success: true,
         step: "OTP_REQUIRED",
         email: subAdmin.email,
+        maskedEmail: maskEmail(subAdmin.email),
+        name: subAdmin.name,
         expiresInSeconds: 300,
-        message: "A 6-digit verification code has been dispatched to your registered Sub-Admin email address.",
+        message: `A 6-digit verification code has been dispatched to ${maskEmail(subAdmin.email)}.`,
       });
     }
 
