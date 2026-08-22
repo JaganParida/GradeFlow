@@ -53,6 +53,10 @@
       "destination": "/api/auth.js?action=subadmin-login"
     },
     {
+      "source": "/api/auth/subadmin/verify-otp",
+      "destination": "/api/auth.js?action=subadmin-verify-otp"
+    },
+    {
       "source": "/api/auth/admin/login-password",
       "destination": "/api/auth.js?action=admin-login-password"
     },

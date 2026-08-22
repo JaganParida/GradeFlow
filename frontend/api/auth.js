@@ -4,6 +4,7 @@ const AdminSession = require("./_lib/models/AdminSession");
 const AdminOtpVerification = require("./_lib/models/AdminOtpVerification");
 const SubAdmin = require("./_lib/models/SubAdmin");
 const SubAdminSession = require("./_lib/models/SubAdminSession");
+const SubAdminOtpVerification = require("./_lib/models/SubAdminOtpVerification");
 const SemesterResult = require("./_lib/models/SemesterResult");
 const OtpVerification = require("./_lib/models/OtpVerification");
 const StudentSession = require("./_lib/models/StudentSession");
@@ -265,6 +266,92 @@ async function sendAdminOtpEmail({ to, otp, expiresInMinutes = 5 }) {
   return transporter.sendMail(mailOptions);
 }
 
+async function sendSubAdminOtpEmail({ to, name = "Administrator", otp, expiresInMinutes = 5 }) {
+  const transporter = createTransporter();
+  const senderEmail = process.env.EMAIL_FROM || "jaganparida9154@gmail.com";
+
+  const html = `
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+      <meta charset="UTF-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>Sub-Admin Verification Code</title>
+    </head>
+    <body style="margin: 0; padding: 40px 20px; background-color: #ffffff; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #202124; -webkit-font-smoothing: antialiased;">
+      <table align="center" border="0" cellpadding="0" cellspacing="0" width="100%" style="max-width: 520px; margin: 0 auto; text-align: left;">
+        <!-- Brand Header -->
+        <tr>
+          <td style="padding-bottom: 24px;">
+            <table border="0" cellpadding="0" cellspacing="0">
+              <tr>
+                <td style="vertical-align: middle;">
+                  <div style="font-size: 20px; font-weight: 700; color: #1a73e8; letter-spacing: -0.5px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">GradeFlow</div>
+                </td>
+              </tr>
+            </table>
+            <div style="font-size: 12px; color: #5f6368; margin-top: 4px; font-weight: 400;">
+              Centurion University of Technology and Management
+            </div>
+          </td>
+        </tr>
+
+        <!-- Divider Line -->
+        <tr>
+          <td style="border-top: 1px solid #dadce0; padding-top: 28px;">
+            <div style="font-size: 22px; font-weight: 600; color: #202124; margin-bottom: 16px; letter-spacing: -0.3px;">
+              Sub-Admin verification code
+            </div>
+            <div style="font-size: 14px; color: #3c4043; line-height: 1.6; margin-bottom: 28px;">
+              Hi ${name},<br><br>
+              Please use the verification code below to securely sign in to your GradeFlow Sub-Admin portal:
+            </div>
+
+            <!-- OTP Code Display -->
+            <div style="margin: 28px 0; text-align: left;">
+              <span style="font-family: 'Roboto Mono', Menlo, Consolas, Monaco, monospace; font-size: 38px; font-weight: 700; color: #1a73e8; letter-spacing: 8px; line-height: 1; display: inline-block;">
+                ${otp}
+              </span>
+            </div>
+
+            <div style="font-size: 13px; color: #5f6368; line-height: 1.6; margin-bottom: 16px;">
+              This code will expire in ${expiresInMinutes} minutes. For security reasons, do not share this code with anyone.
+            </div>
+
+            <div style="font-size: 13px; color: #5f6368; line-height: 1.6; margin-bottom: 32px;">
+              If you did not attempt to sign in to GradeFlow Sub-Admin portal, please contact the Master Administrator immediately.
+            </div>
+          </td>
+        </tr>
+
+        <!-- Footer -->
+        <tr>
+          <td style="border-top: 1px solid #dadce0; padding-top: 20px; font-size: 12px; color: #70757a; line-height: 1.5;">
+            <div>GradeFlow Enterprise Security &bull; Centurion University</div>
+            <div style="margin-top: 4px; color: #80868b; font-size: 11px;">
+              This is an automated authentication message. Please do not reply directly to this email.
+            </div>
+          </td>
+        </tr>
+      </table>
+    </body>
+    </html>
+  `;
+
+  const text = `Hi ${name},\n\nYour GradeFlow Sub-Admin verification code is:\n\n${otp}\n\nThis code will expire in ${expiresInMinutes} minutes. If you did not request this code, please inform the Master Administrator immediately.\n\nGradeFlow Enterprise Security\nCenturion University of Technology and Management`;
+
+  const mailOptions = {
+    from: `"GradeFlow" <${senderEmail}>`,
+    replyTo: senderEmail,
+    to,
+    subject: `Your GradeFlow Sub-Admin Verification Code: ${otp}`,
+    text,
+    html,
+  };
+
+  return transporter.sendMail(mailOptions);
+}
+
 module.exports = async function handler(req, res) {
   Object.entries(CORS_HEADERS).forEach(([k, v]) => res.setHeader(k, v));
   if (req.method === "OPTIONS") return res.status(200).end();
@@ -274,7 +361,8 @@ module.exports = async function handler(req, res) {
     let action = req.query.action;
     if (!action && req.url) {
       const cleanUrl = req.url.split("?")[0];
-      if (cleanUrl.includes("subadmin/login")) action = "subadmin-login";
+      if (cleanUrl.includes("subadmin/verify-otp")) action = "subadmin-verify-otp";
+      else if (cleanUrl.includes("subadmin/login")) action = "subadmin-login";
       else if (cleanUrl.includes("admin/login-password") || cleanUrl.endsWith("/login")) action = "admin-login-password";
       else if (cleanUrl.includes("admin/verify-otp")) action = "admin-verify-otp";
       else if (cleanUrl.includes("admin/check-status")) action = "admin-check-status";
@@ -1020,6 +1108,169 @@ module.exports = async function handler(req, res) {
         });
       }
 
+      // STRICT 1-DEVICE POLICY CHECK:
+      const activeSessions = await SubAdminSession.find({
+        subAdminId: subAdmin._id,
+        isActive: true,
+        expiresAt: { $gt: new Date() },
+      });
+
+      let incomingToken = req.headers["x-admin-token"] || cookies.jwt;
+      if (!incomingToken && req.headers.authorization && req.headers.authorization.startsWith("Bearer")) {
+        incomingToken = req.headers.authorization.split(" ")[1];
+      }
+
+      let isCurrentDevice = false;
+      if (incomingToken && incomingToken !== "none") {
+        try {
+          const decoded = jwt.verify(incomingToken, process.env.JWT_SECRET);
+          if (decoded.adminType === "subadmin" && decoded.sessionId) {
+            const matching = activeSessions.find((s) => s.sessionId === decoded.sessionId);
+            if (matching && matching.isActive) {
+              isCurrentDevice = true;
+              return res.json({
+                success: true,
+                alreadyLoggedIn: true,
+                token: incomingToken,
+                adminType: "subadmin",
+                name: subAdmin.name,
+                email: subAdmin.email,
+                permissions: subAdmin.permissions || { routes: [], sections: [], actions: [] },
+                message: "Sub-Admin is already actively authenticated on this device.",
+              });
+            }
+          }
+        } catch {}
+      }
+
+      // CRITICAL GUARD: Max 1 active device session
+      if (activeSessions.length >= 1 && !isCurrentDevice) {
+        return res.status(403).json({
+          success: false,
+          message: `Your Sub-Admin portal is currently active on another device (maximum limit: 1 device). Please log out from that device to sign in here.`,
+          code: "SUBADMIN_DEVICE_LIMIT_REACHED",
+          activeDeviceCount: activeSessions.length,
+          maxAllowedDevices: 1,
+        });
+      }
+
+      // Generate secure 6-digit OTP code
+      const otp = crypto.randomInt(100000, 1000000).toString();
+      const otpHash = await bcrypt.hash(otp, 10);
+      const expiresAt = new Date(Date.now() + 5 * 60 * 1000); // 5 minutes TTL
+
+      // Store in SubAdminOtpVerification
+      await SubAdminOtpVerification.deleteMany({ email: cleanEmail });
+      await SubAdminOtpVerification.create({
+        email: cleanEmail,
+        otpHash,
+        expiresAt,
+        attempts: 0,
+      });
+
+      // Dispatch OTP email to Sub-Admin's registered email
+      try {
+        await sendSubAdminOtpEmail({
+          to: subAdmin.email,
+          name: subAdmin.name,
+          otp,
+          expiresInMinutes: 5,
+        });
+      } catch (emailErr) {
+        console.error("Sub-Admin OTP email dispatch error:", emailErr.message);
+        return res.status(500).json({
+          success: false,
+          message: "Failed to dispatch verification code to Sub-Admin email. Please check server email configuration.",
+          code: "EMAIL_DISPATCH_FAILED",
+        });
+      }
+
+      return res.json({
+        success: true,
+        step: "OTP_REQUIRED",
+        email: subAdmin.email,
+        expiresInSeconds: 300,
+        message: "A 6-digit verification code has been dispatched to your registered Sub-Admin email address.",
+      });
+    }
+
+    /* ─────────────────────────────────────────────────────────────
+       7.6. SUB-ADMIN VERIFY OTP (/api/auth/subadmin/verify-otp)
+    ───────────────────────────────────────────────────────────── */
+    if (action === "subadmin-verify-otp" && req.method === "POST") {
+      const cleanEmail = String(req.body?.email || "").trim().toLowerCase();
+      const rawOtp = String(req.body?.otp || "").trim();
+
+      if (!cleanEmail || !rawOtp || rawOtp.length !== 6) {
+        return res.status(400).json({
+          success: false,
+          message: "Please provide your registered Sub-Admin email and 6-digit verification code.",
+          code: "INVALID_FORMAT",
+        });
+      }
+
+      const subAdmin = await SubAdmin.findOne({ email: cleanEmail });
+      if (!subAdmin) {
+        return res.status(404).json({
+          success: false,
+          message: "Sub-Admin account not found.",
+          code: "SUBADMIN_NOT_FOUND",
+        });
+      }
+
+      if (subAdmin.status !== "active") {
+        return res.status(403).json({
+          success: false,
+          message: `Your Sub-Admin account is currently ${subAdmin.status}. Access blocked.`,
+          code: `SUBADMIN_${subAdmin.status.toUpperCase()}`,
+        });
+      }
+
+      const otpRecord = await SubAdminOtpVerification.findOne({
+        email: cleanEmail,
+        expiresAt: { $gt: new Date() },
+      }).sort({ createdAt: -1 });
+
+      if (!otpRecord) {
+        return res.status(400).json({
+          success: false,
+          message: "Verification code has expired or is invalid. Please request a new code.",
+          code: "OTP_EXPIRED",
+        });
+      }
+
+      if (otpRecord.attempts >= 5) {
+        await SubAdminOtpVerification.deleteMany({ email: cleanEmail });
+        return res.status(429).json({
+          success: false,
+          message: "Maximum verification attempts exceeded. Please enter your password to request a new code.",
+          code: "MAX_ATTEMPTS_EXCEEDED",
+        });
+      }
+
+      const isMatch = await bcrypt.compare(rawOtp, otpRecord.otpHash);
+      if (!isMatch) {
+        otpRecord.attempts += 1;
+        await otpRecord.save();
+        const remaining = 5 - otpRecord.attempts;
+        return res.status(400).json({
+          success: false,
+          message: `Invalid verification code. ${remaining} attempt${remaining > 1 ? "s" : ""} remaining.`,
+          code: "INVALID_OTP",
+          remainingAttempts: remaining,
+        });
+      }
+
+      // OTP is valid! Delete used OTP records
+      await SubAdminOtpVerification.deleteMany({ email: cleanEmail });
+
+      // Strict 1-Device Limit: Invalidate any previous active sessions for this Sub-Admin
+      await SubAdminSession.updateMany(
+        { subAdminId: subAdmin._id, isActive: true },
+        { isActive: false }
+      );
+
+      // Create new Sub-Admin Session
       const sessionId = crypto.randomUUID();
       const now = new Date();
       const expiresAt = new Date(Date.now() + SEVEN_DAYS_MS);
@@ -1069,7 +1320,7 @@ module.exports = async function handler(req, res) {
         name: subAdmin.name,
         email: subAdmin.email,
         permissions: subAdmin.permissions || { routes: [], sections: [], actions: [] },
-        message: `Welcome, ${subAdmin.name}!`,
+        message: `Welcome back, ${subAdmin.name}!`,
       });
     }
 
