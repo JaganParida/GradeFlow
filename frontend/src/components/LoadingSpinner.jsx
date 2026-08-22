@@ -37,93 +37,202 @@ export function SkeletonGrid({ count = 4, h = 100 }) {
   );
 }
 
-/* ─── Dashboard Full-Page Skeleton ─────────────────────────────── */
+/* ─── Dashboard Full-Page Skeleton (100% Pixel Match to Dashboard Page Layout) ─── */
 export function DashboardSkeleton() {
   return (
-    <div
-      style={{
-        maxWidth: 1320,
-        margin: "0 auto",
-        padding: "24px 16px 60px",
-        display: "flex",
-        flexDirection: "column",
-        gap: 24,
-        width: "100%",
-        boxSizing: "border-box",
-      }}
-    >
-      {/* Top Banner Card Skeleton */}
-      <div
-        style={{
-          background: "#ffffff",
-          border: "1px solid #e2e8f0",
-          borderRadius: 20,
-          padding: 24,
-          display: "flex",
-          flexDirection: "column",
-          gap: 16,
-          boxShadow: "0 1px 3px rgba(0,0,0,0.02)",
-        }}
-      >
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 16 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-            <SkeletonBlock w="54px" h="54px" r="16px" />
-            <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-              <SkeletonBlock w="180px" h="22px" r="6px" />
-              <SkeletonBlock w="120px" h="14px" r="4px" />
-            </div>
-          </div>
-          <div style={{ display: "flex", gap: 10 }}>
-            <SkeletonBlock w="110px" h="38px" r="10px" />
-            <SkeletonBlock w="100px" h="38px" r="10px" />
+    <div className="gf-dashboard-skeleton-wrap">
+      {/* ── Left / Mobile-Top Profile Card Skeleton ── */}
+      <div className="gf-dashboard-skeleton-sidebar">
+        {/* Student Avatar + Name + Reg No */}
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          <SkeletonBlock w="40px" h="40px" r="12px" />
+          <div style={{ display: "flex", flexDirection: "column", gap: 6, flex: 1 }}>
+            <SkeletonBlock w="60%" h="18px" r="6px" />
+            <SkeletonBlock w="40%" h="14px" r="4px" />
           </div>
         </div>
 
-        {/* 4 Metadata Badges */}
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(120px, 1fr))", gap: 10, marginTop: 4 }}>
-          {Array(4)
-            .fill(0)
-            .map((_, i) => (
-              <SkeletonBlock key={i} h="44px" r="10px" />
-            ))}
+        {/* Branch / Section / Batch 3-Column Pill Grid */}
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 6, marginTop: 2 }}>
+          <SkeletonBlock h="46px" r="10px" />
+          <SkeletonBlock h="46px" r="10px" />
+          <SkeletonBlock h="46px" r="10px" />
+        </div>
+
+        {/* Semester Selector Grid (6 Pills) */}
+        <div style={{ display: "flex", flexDirection: "column", gap: 6, marginTop: 4 }}>
+          <SkeletonBlock w="70px" h="12px" r="4px" />
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 6 }}>
+            {Array(6)
+              .fill(0)
+              .map((_, i) => (
+                <SkeletonBlock key={i} h="34px" r="8px" />
+              ))}
+          </div>
+        </div>
+
+        {/* Tools Action Row (3 Buttons) */}
+        <div style={{ display: "flex", flexDirection: "column", gap: 6, marginTop: 4 }}>
+          <SkeletonBlock w="50px" h="12px" r="4px" />
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 6 }}>
+            <SkeletonBlock h="50px" r="8px" />
+            <SkeletonBlock h="50px" r="8px" />
+            <SkeletonBlock h="50px" r="8px" />
+          </div>
         </div>
       </div>
 
-      {/* GPA & Stats Row */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: 14 }}>
-        {Array(4)
-          .fill(0)
-          .map((_, i) => (
-            <div
-              key={i}
-              style={{
-                background: "#ffffff",
-                border: "1px solid #e2e8f0",
-                borderRadius: 16,
-                padding: 18,
-                display: "flex",
-                flexDirection: "column",
-                gap: 10,
-              }}
-            >
-              <SkeletonBlock w="90px" h="14px" r="4px" />
-              <SkeletonBlock w="130px" h="32px" r="8px" />
-              <SkeletonBlock w="70%" h="12px" r="4px" />
+      {/* ── Right / Main Content Area Skeleton ── */}
+      <div className="gf-dashboard-skeleton-main">
+        {/* Top Header Row & Badges */}
+        <div
+          style={{
+            background: "#ffffff",
+            border: "1px solid #cbd5e1",
+            borderRadius: 16,
+            padding: "14px 16px",
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            flexWrap: "wrap",
+            gap: 10,
+          }}
+        >
+          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <SkeletonBlock w="160px" h="22px" r="6px" />
+            <SkeletonBlock w="60px" h="24px" r="6px" />
+          </div>
+          <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+            <SkeletonBlock w="110px" h="26px" r="999px" />
+            <SkeletonBlock w="130px" h="26px" r="999px" />
+          </div>
+        </div>
+
+        {/* SGPA & CGPA Cards Grid */}
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 12 }}>
+          {/* Card 1: Semester SGPA */}
+          <div
+            style={{
+              background: "#ffffff",
+              border: "1px solid #cbd5e1",
+              borderRadius: 16,
+              padding: "14px 16px",
+              display: "flex",
+              flexDirection: "column",
+              gap: 8,
+            }}
+          >
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <SkeletonBlock w="100px" h="14px" r="4px" />
+              <SkeletonBlock w="50px" h="20px" r="6px" />
             </div>
-          ))}
+            <SkeletonBlock w="80px" h="32px" r="8px" />
+            <SkeletonBlock w="140px" h="12px" r="4px" />
+          </div>
+
+          {/* Card 2: Cumulative CGPA */}
+          <div
+            style={{
+              background: "#ffffff",
+              border: "1px solid #cbd5e1",
+              borderRadius: 16,
+              padding: "14px 16px",
+              display: "flex",
+              flexDirection: "column",
+              gap: 8,
+            }}
+          >
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <SkeletonBlock w="110px" h="14px" r="4px" />
+              <SkeletonBlock w="55px" h="20px" r="6px" />
+            </div>
+            <SkeletonBlock w="80px" h="32px" r="8px" />
+            <SkeletonBlock w="150px" h="12px" r="4px" />
+          </div>
+        </div>
+
+        {/* Navigation Tabs Pill Bar */}
+        <div style={{ display: "flex", gap: 8, overflowX: "hidden", paddingBottom: 2 }}>
+          <SkeletonBlock w="140px" h="38px" r="999px" />
+          <SkeletonBlock w="130px" h="38px" r="999px" />
+          <SkeletonBlock w="140px" h="38px" r="999px" />
+        </div>
+
+        {/* Grade Sheet Table Card */}
+        <div
+          style={{
+            background: "#ffffff",
+            border: "1px solid #cbd5e1",
+            borderRadius: 16,
+            padding: "16px 16px",
+            display: "flex",
+            flexDirection: "column",
+            gap: 12,
+            boxShadow: "0 1px 3px rgba(0,0,0,0.02)",
+          }}
+        >
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <SkeletonBlock w="180px" h="20px" r="6px" />
+            <SkeletonBlock w="90px" h="30px" r="8px" />
+          </div>
+
+          {/* Table Header Bar */}
+          <SkeletonBlock w="100%" h="38px" r="8px" />
+
+          {/* 6 Subject Rows */}
+          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+            {Array(6)
+              .fill(0)
+              .map((_, i) => (
+                <SkeletonBlock key={i} w="100%" h="44px" r="8px" />
+              ))}
+          </div>
+        </div>
       </div>
 
-      {/* Semester Tab Switcher */}
-      <div style={{ display: "flex", gap: 8, overflowX: "hidden", paddingBottom: 4 }}>
-        {Array(6)
-          .fill(0)
-          .map((_, i) => (
-            <SkeletonBlock key={i} w="100px" h="38px" r="10px" />
-          ))}
-      </div>
-
-      {/* Grade Report Card Skeleton */}
-      <ReportCardSkeleton />
+      <style>{`
+        .gf-dashboard-skeleton-wrap {
+          max-width: 1440px;
+          margin: 0 auto;
+          padding: 24px 32px;
+          display: grid;
+          grid-template-columns: 280px minmax(0, 1fr);
+          gap: 24px;
+          align-items: start;
+          box-sizing: border-box;
+          width: 100%;
+        }
+        .gf-dashboard-skeleton-sidebar {
+          background: "#ffffff";
+          border: 1px solid #cbd5e1;
+          border-radius: 16px;
+          padding: 16px 14px;
+          display: flex;
+          flex-direction: column;
+          gap: 14px;
+          box-sizing: border-box;
+          width: 100%;
+        }
+        .gf-dashboard-skeleton-main {
+          display: flex;
+          flex-direction: column;
+          gap: 14px;
+          min-width: 0;
+          width: 100%;
+          box-sizing: border-box;
+        }
+        @media (max-width: 768px) {
+          .gf-dashboard-skeleton-wrap {
+            padding: 12px 10px !important;
+            grid-template-columns: 1fr !important;
+            gap: 14px !important;
+          }
+          .gf-dashboard-skeleton-sidebar {
+            padding: 14px 14px !important;
+            gap: 10px !important;
+          }
+        }
+      `}</style>
     </div>
   );
 }

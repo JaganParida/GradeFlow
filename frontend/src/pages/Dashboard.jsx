@@ -500,7 +500,17 @@ export default function Dashboard() {
 
   if (loading || (!studentData && !error)) {
     return (
-      <div style={{ maxWidth: 1280, margin: "0 auto", padding: "32px 24px" }}>
+      <div
+        style={{
+          background: "#f1f5f9",
+          minHeight: "100vh",
+          fontFamily: "'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif",
+          paddingBottom: 80,
+          width: "100%",
+          boxSizing: "border-box",
+          overflowX: "hidden",
+        }}
+      >
         <DashboardSkeleton />
       </div>
     );
