@@ -940,13 +940,16 @@ export default function Navbar() {
                     fontFamily: "'DM Sans', sans-serif",
                     transition: "all 0.2s ease",
                     boxShadow: "0 2px 8px rgba(37, 99, 235, 0.25)",
+                    whiteSpace: "nowrap",
+                    flexShrink: 0,
                   }}
                   onMouseEnter={(e) =>
                     (e.currentTarget.style.filter = "brightness(1.08)")
                   }
                   onMouseLeave={(e) => (e.currentTarget.style.filter = "none")}
                 >
-                  <GraduationCap size={15} /> Student Portal Login
+                  <GraduationCap size={15} style={{ flexShrink: 0 }} />
+                  <span style={{ whiteSpace: "nowrap" }}>Student Portal Login</span>
                 </button>
               )}
             </div>
@@ -2026,20 +2029,40 @@ export default function Navbar() {
           display: flex;
           align-items: center;
           gap: 24px !important;
+          flex-shrink: 1;
+          min-width: 0;
         }
         .gf-desktop-nav a, .gf-desktop-nav button {
           white-space: nowrap !important;
           font-size: 13.5px !important;
           padding: 6px 2px !important;
+          flex-shrink: 0;
+        }
+        .gf-navbar-right {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          flex-shrink: 0 !important;
+          white-space: nowrap !important;
+        }
+        .gf-desktop-auth {
+          display: flex;
+          align-items: center;
+          flex-shrink: 0 !important;
+          white-space: nowrap !important;
+        }
+        .gf-desktop-auth button, .gf-desktop-auth a {
+          white-space: nowrap !important;
+          flex-shrink: 0 !important;
         }
         @media (max-width: 1400px) {
           .gf-desktop-nav {
-            gap: 20px !important;
+            gap: 18px !important;
           }
         }
         @media (max-width: 1280px) {
           .gf-desktop-nav {
-            gap: 16px !important;
+            gap: 14px !important;
           }
           .gf-desktop-nav a, .gf-desktop-nav button {
             font-size: 13px !important;
@@ -2047,15 +2070,15 @@ export default function Navbar() {
         }
         @media (max-width: 1160px) {
           .gf-desktop-nav {
-            gap: 12px !important;
+            gap: 10px !important;
           }
           .gf-desktop-nav a, .gf-desktop-nav button {
             font-size: 12.5px !important;
           }
         }
-        @media (max-width: 1040px) {
+        @media (max-width: 1060px) {
           .gf-desktop-nav {
-            gap: 8px !important;
+            gap: 7px !important;
           }
           .gf-desktop-nav a, .gf-desktop-nav button {
             font-size: 12px !important;
