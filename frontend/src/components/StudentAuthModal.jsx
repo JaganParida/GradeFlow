@@ -429,13 +429,13 @@ export default function StudentAuthModal({ isOpen, onClose }) {
                 <div
                   style={{
                     background:
-                      errorCode === "DEVICE_ALREADY_LOGGED_IN" || errorCode === "MAX_DEVICES_ACTIVE" || errorCode === "ALREADY_LOGGED_IN_ANOTHER_DEVICE"
+                      errorCode === "DEVICE_LIMIT_REACHED" || errorCode === "DEVICE_ALREADY_LOGGED_IN" || errorCode === "MAX_DEVICES_ACTIVE" || errorCode === "ALREADY_LOGGED_IN_ANOTHER_DEVICE"
                         ? "#fef2f2"
                         : errorCode === "DAILY_LIMIT_EXCEEDED"
                         ? "#fffbeb"
                         : "#fef2f2",
                     border: `1.5px solid ${
-                      errorCode === "DEVICE_ALREADY_LOGGED_IN" || errorCode === "MAX_DEVICES_ACTIVE" || errorCode === "ALREADY_LOGGED_IN_ANOTHER_DEVICE"
+                      errorCode === "DEVICE_LIMIT_REACHED" || errorCode === "DEVICE_ALREADY_LOGGED_IN" || errorCode === "MAX_DEVICES_ACTIVE" || errorCode === "ALREADY_LOGGED_IN_ANOTHER_DEVICE"
                         ? "#fca5a5"
                         : errorCode === "DAILY_LIMIT_EXCEEDED"
                         ? "#fde68a"
@@ -448,7 +448,7 @@ export default function StudentAuthModal({ isOpen, onClose }) {
                     alignItems: "flex-start",
                   }}
                 >
-                  {errorCode === "DEVICE_ALREADY_LOGGED_IN" || errorCode === "MAX_DEVICES_ACTIVE" || errorCode === "ALREADY_LOGGED_IN_ANOTHER_DEVICE" ? (
+                  {errorCode === "DEVICE_LIMIT_REACHED" || errorCode === "DEVICE_ALREADY_LOGGED_IN" || errorCode === "MAX_DEVICES_ACTIVE" || errorCode === "ALREADY_LOGGED_IN_ANOTHER_DEVICE" ? (
                     <Smartphone size={18} color="#dc2626" style={{ flexShrink: 0, marginTop: 1 }} />
                   ) : errorCode === "DAILY_LIMIT_EXCEEDED" ? (
                     <Clock size={18} color="#d97706" style={{ flexShrink: 0, marginTop: 1 }} />
@@ -460,7 +460,7 @@ export default function StudentAuthModal({ isOpen, onClose }) {
                       fontSize: 12.5,
                       fontWeight: 600,
                       color:
-                        errorCode === "DEVICE_ALREADY_LOGGED_IN" || errorCode === "MAX_DEVICES_ACTIVE" || errorCode === "ALREADY_LOGGED_IN_ANOTHER_DEVICE"
+                        errorCode === "DEVICE_LIMIT_REACHED" || errorCode === "DEVICE_ALREADY_LOGGED_IN" || errorCode === "MAX_DEVICES_ACTIVE" || errorCode === "ALREADY_LOGGED_IN_ANOTHER_DEVICE"
                           ? "#991b1b"
                           : errorCode === "DAILY_LIMIT_EXCEEDED"
                           ? "#92400e"
@@ -487,15 +487,20 @@ export default function StudentAuthModal({ isOpen, onClose }) {
               >
                 <div style={{ display: "flex", alignItems: "center", gap: 7, fontSize: 11.5, color: "#475569" }}>
                   <ShieldCheck size={13} color="#16a34a" />
-                  <span><strong>Single Device Lock:</strong> Only 1 active device allowed per student.</span>
+                  <span>
+                    <strong>{regNo.trim().toUpperCase() === "230301120327" ? "Multi-Device Lock:" : "Single Device Lock:"}</strong>{" "}
+                    {regNo.trim().toUpperCase() === "230301120327" ? "Maximum 2 active devices allowed." : "Only 1 active device allowed per student."}
+                  </span>
                 </div>
                 <div style={{ display: "flex", alignItems: "center", gap: 7, fontSize: 11.5, color: "#475569" }}>
                   <Clock size={13} color="#2563eb" />
-                  <span><strong>Daily OTP Limit:</strong> Maximum 2 attempts per day (resets at midnight).</span>
+                  <span>
+                    <strong>Daily OTP Limit:</strong> {regNo.trim().toUpperCase() === "230301120327" ? "Developer bypass active." : "Maximum 2 attempts per day (resets at midnight)."}
+                  </span>
                 </div>
                 <div style={{ display: "flex", alignItems: "center", gap: 7, fontSize: 11.5, color: "#475569" }}>
                   <Lock size={13} color="#64748b" />
-                  <span><strong>Inactivity Policy:</strong> Automatic logout after 7 days of inactivity.</span>
+                  <span><strong>Inactivity Policy:</strong> Automatic logout after 7 days of continuous inactivity.</span>
                 </div>
               </div>
 

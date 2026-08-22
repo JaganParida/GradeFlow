@@ -4,6 +4,8 @@ const InternalMark = require("./_lib/models/InternalMark");
 const Ranking = require("./_lib/models/Ranking");
 const Student = require("./_lib/models/Student");
 const Attendance = require("./_lib/models/Attendance");
+const StudentSession = require("./_lib/models/StudentSession");
+const { isSessionValid, touchSession } = require("./_lib/sessionManager");
 const {
   calculateBacklogs,
   calculateCGPA,
@@ -29,7 +31,6 @@ const CORS_HEADERS = {
 };
 
 const jwt = require("jsonwebtoken");
-const StudentSession = require("./_lib/models/StudentSession");
 
 function parseCookies(cookieHeader) {
   const cookies = {};
@@ -115,10 +116,21 @@ module.exports = async function handler(req, res) {
 
       if (!activeSession) {
         return res.status(401).json({
-          message: "Your session has ended because this account was logged in on another device or logged out.",
+          message: "Your session has ended because this device was logged out.",
           code: "SESSION_TERMINATED",
         });
       }
+
+      if (!isSessionValid(activeSession)) {
+        await StudentSession.deleteOne({ _id: activeSession._id });
+        return res.status(401).json({
+          message: "Session expired due to 7 continuous days of inactivity. Please log in again.",
+          code: "INACTIVITY_LOGOUT",
+        });
+      }
+
+      // Rolling activity update
+      await touchSession(activeSession);
 
       // Check strict data isolation & device authorization
       const isSuperUser = decodedStudent.regNo === "230301120327";

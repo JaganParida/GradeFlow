@@ -8,12 +8,20 @@ const jwt = require("jsonwebtoken");
 const bcrypt = require("bcryptjs");
 const crypto = require("crypto");
 const nodemailer = require("nodemailer");
+const {
+  SEVEN_DAYS_MS,
+  getMaxAllowedDevices,
+  cleanExpiredSessions,
+  getActiveSessions,
+  isSessionValid,
+  touchSession,
+} = require("./_lib/sessionManager");
 
 const CORS_HEADERS = {
   "Access-Control-Allow-Credentials": "true",
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Methods": "GET,POST,OPTIONS",
-  "Access-Control-Allow-Headers": "X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version, Authorization, Cookie",
+  "Access-Control-Allow-Headers": "X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version, Authorization, Cookie, x-student-token, x-admin-token",
 };
 
 function parseCookies(cookieHeader) {
@@ -82,7 +90,7 @@ function getTimeUntilIstMidnight() {
   return { hours, mins, totalSeconds };
 }
 
-async function sendOtpEmail({ to, studentName = "Student", regNo, otp, expiresInMinutes = 3 }) {
+async function sendOtpEmail({ to, studentName = "Student", regNo, otp, expiresInMinutes = 5 }) {
   const transporter = createTransporter();
   const senderEmail = process.env.EMAIL_FROM || "jaganparida9154@gmail.com";
 
@@ -182,25 +190,8 @@ module.exports = async function handler(req, res) {
         return res.json({ success: true, exists: false });
       }
 
-      const maxAllowedDevices = rawReg === "230301120327" ? 2 : 1;
-
-      // Clean up stale expired sessions first
-      const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000;
-      const sevenDaysAgo = new Date(Date.now() - SEVEN_DAYS_MS);
-      await StudentSession.deleteMany({
-        regNo: rawReg,
-        $or: [
-          { lastActiveAt: { $lt: sevenDaysAgo } },
-          { expiresAt: { $lt: new Date() } },
-          { isActive: false },
-        ],
-      });
-
-      const activeSessions = await StudentSession.find({
-        regNo: rawReg,
-        isActive: true,
-        expiresAt: { $gt: new Date() },
-      });
+      const maxAllowedDevices = getMaxAllowedDevices(rawReg);
+      const activeSessions = await getActiveSessions(StudentSession, rawReg);
 
       let incomingToken = req.headers["x-student-token"];
       if (!incomingToken && cookies.student_jwt && cookies.student_jwt !== "none") {
@@ -211,16 +202,31 @@ module.exports = async function handler(req, res) {
       }
 
       let isCurrentDevice = false;
+      let currentSessionId = null;
       if (incomingToken && incomingToken !== "none") {
         try {
           const decoded = jwt.verify(incomingToken, process.env.JWT_SECRET);
           if (decoded.regNo === rawReg && activeSessions.some((s) => s.sessionId === decoded.sessionId)) {
             isCurrentDevice = true;
+            currentSessionId = decoded.sessionId;
           }
         } catch {}
       }
 
       const isBlocked = activeSessions.length >= maxAllowedDevices && !isCurrentDevice;
+
+      const sessionDetails = activeSessions.map((s, idx) => ({
+        deviceIndex: idx + 1,
+        sessionId: s.sessionId,
+        isCurrentDevice: s.sessionId === currentSessionId,
+        platform: s.deviceInfo?.platform || "Unknown",
+        userAgent: s.deviceInfo?.userAgent || "Unknown",
+        ip: s.deviceInfo?.ip || "",
+        loggedInAt: s.loggedInAt,
+        lastActiveAt: s.lastActiveAt,
+        expiresAt: s.expiresAt,
+        status: "ACTIVE",
+      }));
 
       return res.json({
         success: true,
@@ -230,11 +236,16 @@ module.exports = async function handler(req, res) {
         activeDeviceCount: activeSessions.length,
         maxAllowedDevices,
         isBlocked,
+        loginAllowed: !isBlocked,
+        otpAllowed: !isBlocked,
+        verificationAllowed: !isBlocked,
+        blockReason: isBlocked ? "DEVICE_LIMIT_REACHED" : null,
         blockMessage: isBlocked
           ? rawReg === "230301120327"
-            ? `Account 230301120327 is already actively logged in on 2 devices (maximum 2 allowed). Log out from one device to sign in here.`
+            ? `Account 230301120327 is already actively logged in on 2 devices (maximum 2 allowed). Please log out from one device before signing in on a new device.`
             : `Registration number ${rawReg} is already logged in on an active device. Single-device security policy is active. Please log out from that device first.`
           : null,
+        sessions: sessionDetails,
       });
     }
 
@@ -247,7 +258,6 @@ module.exports = async function handler(req, res) {
         return res.status(400).json({ message: "Registration number is required." });
       }
 
-      // Verify student exists in records
       const studentRecord = await SemesterResult.findOne({ regNo: rawReg }).sort({ semester: -1 });
       if (!studentRecord) {
         return res.status(404).json({
@@ -259,25 +269,10 @@ module.exports = async function handler(req, res) {
       const studentEmail = `${rawReg.toLowerCase()}@centurionuniv.edu.in`;
 
       // ── Active Multi-Device Security Guard ──
-      const maxAllowedDevices = rawReg === "230301120327" ? 2 : 1;
+      const maxAllowedDevices = getMaxAllowedDevices(rawReg);
+      const isUnlimited = rawReg === "230301120327";
 
-      // Clean up stale expired sessions first
-      const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000;
-      const sevenDaysAgo = new Date(Date.now() - SEVEN_DAYS_MS);
-      await StudentSession.deleteMany({
-        regNo: rawReg,
-        $or: [
-          { lastActiveAt: { $lt: sevenDaysAgo } },
-          { expiresAt: { $lt: new Date() } },
-          { isActive: false },
-        ],
-      });
-
-      const activeSessions = await StudentSession.find({
-        regNo: rawReg,
-        isActive: true,
-        expiresAt: { $gt: new Date() },
-      });
+      const activeSessions = await getActiveSessions(StudentSession, rawReg);
 
       // Check if current requesting device already has an active session
       let incomingToken = req.headers["x-student-token"];
@@ -307,31 +302,21 @@ module.exports = async function handler(req, res) {
         });
       }
 
-      // If active sessions already reached the maximum allowed limit, DO NOT SEND OTP! BLOCK!
+      // CRITICAL: Block OTP Generation if device limit is already reached!
       if (activeSessions.length >= maxAllowedDevices) {
-        if (rawReg === "230301120327") {
-          return res.status(403).json({
-            success: false,
-            code: "MAX_DEVICES_ACTIVE",
-            message: `Account 230301120327 is already actively logged in on ${activeSessions.length} devices (maximum 2 allowed). Please log out from one device before signing in on a new device.`,
-            activeDeviceCount: activeSessions.length,
-            maxDevices: 2,
-          });
-        } else {
-          return res.status(403).json({
-            success: false,
-            code: "DEVICE_ALREADY_LOGGED_IN",
-            message: `Registration number ${rawReg} is already logged in on an active device. Single-device security policy is active. Please log out from your other device before signing in here.`,
-            activeDeviceCount: activeSessions.length,
-            maxDevices: 1,
-          });
-        }
+        return res.status(403).json({
+          success: false,
+          code: "DEVICE_LIMIT_REACHED",
+          message: rawReg === "230301120327"
+            ? `Account 230301120327 is already active on ${activeSessions.length} devices (maximum limit: 2). Please log out from one device before logging in on a new device.`
+            : `Registration number ${rawReg} is already logged in on an active device (maximum limit: 1). Single-device security policy is active. Please log out from your other device before signing in here.`,
+          activeDeviceCount: activeSessions.length,
+          maxAllowedDevices,
+          isBlocked: true,
+        });
       }
 
-      // ── Daily Limit Check (Max 2 attempts/day, bypassed for developer whitelisted regNo) ──
-      const UNLIMITED_REG_NOS = ["230301120327"];
-      const isUnlimited = UNLIMITED_REG_NOS.includes(rawReg);
-
+      // ── Daily Limit Check (Max 2 attempts/day, bypassed for 230301120327) ──
       const dateKey = getIstDateKey();
       let dailyLimit = await StudentDailyLimit.findOne({ regNo: rawReg, dateKey });
       if (!dailyLimit) {
@@ -410,9 +395,8 @@ module.exports = async function handler(req, res) {
 
       const otpRecord = await OtpVerification.findOne({ regNo: rawReg });
       if (!otpRecord) {
-        // If session is already created and authenticated, return success
-        const existingSession = await StudentSession.findOne({ regNo: rawReg, isActive: true });
-        if (existingSession) {
+        const activeSessions = await getActiveSessions(StudentSession, rawReg);
+        if (activeSessions.length > 0) {
           const studentRecord = await SemesterResult.findOne({ regNo: rawReg }).sort({ semester: -1 });
           return res.json({
             success: true,
@@ -450,7 +434,7 @@ module.exports = async function handler(req, res) {
       if (!isMatch) {
         otpRecord.attempts += 1;
         await otpRecord.save();
-        const remainingAttempts = 5 - otpRecord.attempts;
+        const remainingAttempts = Math.max(0, 5 - otpRecord.attempts);
         return res.status(400).json({
           message: `Invalid verification code. ${remainingAttempts} attempt(s) remaining.`,
           code: "INVALID_OTP",
@@ -461,25 +445,31 @@ module.exports = async function handler(req, res) {
       // Valid OTP: delete OTP record
       await OtpVerification.deleteOne({ _id: otpRecord._id });
 
-      // Create / maintain active device sessions
-      const sessionId = crypto.randomUUID();
-      const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+      // Atomic Device Limit Check before creating session
+      const maxAllowedDevices = getMaxAllowedDevices(rawReg);
+      const activeSessions = await getActiveSessions(StudentSession, rawReg);
 
-      try {
-        await StudentSession.collection.dropIndex("regNo_1");
-      } catch {}
-
-      if (rawReg === "230301120327") {
-        // Max 2 devices: if 2 already exist, remove oldest so new one fits
-        const existing = await StudentSession.find({ regNo: rawReg }).sort({ lastActiveAt: 1 });
-        if (existing.length >= 2) {
-          const toDelete = existing.slice(0, existing.length - 1);
-          await StudentSession.deleteMany({ _id: { $in: toDelete.map((s) => s._id) } });
-        }
-      } else {
-        // Single device policy: clear all previous sessions
-        await StudentSession.deleteMany({ regNo: rawReg });
+      if (activeSessions.length >= maxAllowedDevices) {
+        return res.status(403).json({
+          success: false,
+          code: "DEVICE_LIMIT_REACHED",
+          message: rawReg === "230301120327"
+            ? `Account 230301120327 is already active on ${activeSessions.length} devices (maximum limit: 2). Please log out from one device before logging in on a new device.`
+            : `Registration number ${rawReg} is already logged in on an active device (maximum limit: 1). Single-device security policy is active. Please log out from your other device first.`,
+          activeDeviceCount: activeSessions.length,
+          maxAllowedDevices,
+          isBlocked: true,
+        });
       }
+
+      // Fetch student profile info
+      const studentRecord = await SemesterResult.findOne({ regNo: rawReg }).sort({ semester: -1 });
+      const studentName = studentRecord?.studentName || "Student";
+
+      // Create new session document for this device (WITHOUT deleting/evicting existing valid sessions)
+      const sessionId = crypto.randomUUID();
+      const now = Date.now();
+      const expiresAt = new Date(now + SEVEN_DAYS_MS);
 
       await StudentSession.create({
         regNo: rawReg,
@@ -488,8 +478,8 @@ module.exports = async function handler(req, res) {
           userAgent: req.headers["user-agent"] || "",
           ip: req.headers["x-forwarded-for"] || req.socket?.remoteAddress || "",
         },
-        loggedInAt: new Date(),
-        lastActiveAt: new Date(),
+        loggedInAt: new Date(now),
+        lastActiveAt: new Date(now),
         expiresAt,
         isActive: true,
       });
@@ -504,32 +494,25 @@ module.exports = async function handler(req, res) {
         { expiresIn: "7d" }
       );
 
-      const cookieOptions = [
-        `student_jwt=${token}`,
-        `Path=/`,
-        `HttpOnly`,
-        `Secure`,
-        `SameSite=Lax`,
-        `Max-Age=${7 * 24 * 60 * 60}`,
-      ].join("; ");
-      res.setHeader("Set-Cookie", cookieOptions);
-
-      const studentRecord = await SemesterResult.findOne({ regNo: rawReg }).sort({ semester: -1 });
+      res.setHeader("Set-Cookie", [
+        `student_jwt=${token}; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=${7 * 24 * 60 * 60}`,
+        `student_jwt=${token}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${7 * 24 * 60 * 60}`,
+      ]);
 
       return res.json({
         success: true,
         token,
-        message: "Successfully verified and authenticated.",
+        message: "Authentication successful.",
         student: {
           regNo: rawReg,
-          studentName: studentRecord?.studentName || "Student",
-          section: studentRecord?.branch || "CSE-A",
+          studentName,
+          sessionId,
         },
       });
     }
 
     /* ─────────────────────────────────────────────────────────────
-       3. STUDENT ME (CURRENT SESSION STATUS)
+       3. CURRENT AUTHENTICATED STUDENT CHECK (/student/me)
     ───────────────────────────────────────────────────────────── */
     if ((action === "student-me" || action === "me-student") && req.method === "GET") {
       let token = req.headers["x-student-token"];
@@ -541,84 +524,76 @@ module.exports = async function handler(req, res) {
       }
 
       if (!token || token === "none") {
-        return res.status(401).json({ authenticated: false, success: false, message: "No active student session." });
+        return res.status(401).json({ success: false, message: "Not authenticated" });
       }
 
+      let decoded;
       try {
-        const decoded = jwt.verify(token, process.env.JWT_SECRET);
-        if (!decoded.regNo || !decoded.sessionId) {
-          return res.status(401).json({ authenticated: false, success: false, message: "Invalid session token." });
-        }
-
-        const session = await StudentSession.findOne({
-          regNo: decoded.regNo,
-          sessionId: decoded.sessionId,
-          isActive: true,
-        });
-
-        if (!session) {
-          return res.status(401).json({
-            authenticated: false,
-            success: false,
-            message: "Session ended or logged in from another device.",
-            code: "SESSION_TERMINATED",
-          });
-        }
-
-        const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000;
-        const now = Date.now();
-        const lastActive = new Date(session.lastActiveAt).getTime();
-
-        if (now - lastActive > SEVEN_DAYS_MS) {
-          await StudentSession.deleteOne({ _id: session._id });
-          return res.status(401).json({
-            authenticated: false,
-            success: false,
-            message: "Session expired due to 7 days of inactivity.",
-            code: "SESSION_INACTIVE_EXPIRED",
-          });
-        }
-
-        // Refresh last active timestamp & extend expiration by 7 days
-        session.lastActiveAt = new Date();
-        session.expiresAt = new Date(now + SEVEN_DAYS_MS);
-        await session.save();
-
-        const studentRecord = await SemesterResult.findOne({ regNo: decoded.regNo }).sort({ semester: -1 });
-
-        return res.json({
-          success: true,
-          authenticated: true,
-          token,
-          student: {
-            regNo: decoded.regNo,
-            studentName: studentRecord?.studentName || "Student",
-            section: studentRecord?.branch || "CSE-A",
-          },
-          session: {
-            loggedInAt: session.loggedInAt,
-            lastActiveAt: session.lastActiveAt,
-          },
-        });
+        decoded = jwt.verify(token, process.env.JWT_SECRET);
       } catch (err) {
-        return res.status(401).json({ authenticated: false, message: "Invalid or expired session token." });
+        return res.status(401).json({ success: false, message: "Token invalid or expired" });
       }
+
+      if (!decoded.regNo || !decoded.sessionId) {
+        return res.status(401).json({ success: false, message: "Invalid session token" });
+      }
+
+      const session = await StudentSession.findOne({
+        regNo: decoded.regNo,
+        sessionId: decoded.sessionId,
+        isActive: true,
+      });
+
+      if (!session) {
+        return res.status(401).json({
+          success: false,
+          code: "SESSION_TERMINATED",
+          message: "Session terminated or logged out from this device.",
+        });
+      }
+
+      if (!isSessionValid(session)) {
+        await StudentSession.deleteOne({ _id: session._id });
+        return res.status(401).json({
+          success: false,
+          code: "INACTIVITY_LOGOUT",
+          message: "Session expired due to 7 continuous days of inactivity.",
+        });
+      }
+
+      // Rolling activity update
+      await touchSession(session);
+
+      const studentRecord = await SemesterResult.findOne({ regNo: decoded.regNo }).sort({ semester: -1 });
+
+      return res.json({
+        success: true,
+        student: {
+          regNo: decoded.regNo,
+          studentName: studentRecord?.studentName || "Student",
+          sessionId: decoded.sessionId,
+        },
+      });
     }
 
     /* ─────────────────────────────────────────────────────────────
-       4. STUDENT LOGOUT
+       4. STUDENT LOGOUT (/student/logout) - ONLY CURRENT DEVICE
     ───────────────────────────────────────────────────────────── */
     if ((action === "student-logout" || action === "logout-student") && req.method === "POST") {
       let token = cookies.student_jwt;
+      if (!token && req.headers["x-student-token"]) {
+        token = req.headers["x-student-token"];
+      }
       if (!token && req.headers.authorization && req.headers.authorization.startsWith("Bearer")) {
         token = req.headers.authorization.split(" ")[1];
       }
 
-      if (token) {
+      if (token && token !== "none") {
         try {
           const decoded = jwt.verify(token, process.env.JWT_SECRET);
-          if (decoded?.regNo) {
-            await StudentSession.deleteMany({ regNo: decoded.regNo });
+          if (decoded && decoded.sessionId) {
+            // ONLY REVOKE THE SPECIFIC DEVICE'S SESSION!
+            await StudentSession.deleteOne({ sessionId: decoded.sessionId });
           }
         } catch {}
       }
@@ -628,56 +603,64 @@ module.exports = async function handler(req, res) {
         `student_jwt=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0; Expires=Thu, 01 Jan 1970 00:00:00 GMT`,
       ]);
 
-      return res.json({ success: true, message: "Student logged out successfully." });
+      return res.json({ success: true, message: "Logged out successfully from this device." });
     }
 
     /* ─────────────────────────────────────────────────────────────
-       5. ADMIN LOGIN, LOGOUT & ME
+       5. ADMIN LOGIN
     ───────────────────────────────────────────────────────────── */
     if (action === "login" && req.method === "POST") {
-      const { email, password } = req.body || {};
+      const { email, password } = req.body;
+      if (!email || !password) {
+        return res.status(400).json({ message: "Email and password are required" });
+      }
+
       const admin = await Admin.findOne({ email });
       if (!admin || !(await admin.comparePassword(password))) {
-        return res.status(401).json({ message: "Invalid credentials" });
+        return res.status(401).json({ message: "Invalid email or password" });
       }
+
       const token = jwt.sign(
         { id: admin._id, email: admin.email, role: "admin" },
         process.env.JWT_SECRET,
         { expiresIn: "1d" }
       );
-      const cookieOptions = [
-        `jwt=${token}`,
-        `Path=/`,
-        `HttpOnly`,
-        `Secure`,
-        `SameSite=None`,
-        `Max-Age=${24 * 60 * 60}`,
-      ].join("; ");
-      res.setHeader("Set-Cookie", cookieOptions);
+
+      res.setHeader("Set-Cookie", [
+        `jwt=${token}; Path=/; HttpOnly; Secure; SameSite=None; Max-Age=${24 * 60 * 60}`,
+        `jwt=${token}; Path=/; HttpOnly; SameSite=None; Max-Age=${24 * 60 * 60}`,
+      ]);
+
       return res.json({ success: true, email: admin.email, token });
     }
 
+    /* ─────────────────────────────────────────────────────────────
+       6. ADMIN LOGOUT
+    ───────────────────────────────────────────────────────────── */
     if (action === "logout" && req.method === "POST") {
-      const cookieOptions = [
-        `jwt=`,
-        `Path=/`,
-        `HttpOnly`,
-        `Secure`,
-        `SameSite=None`,
-        `Max-Age=0`,
-      ].join("; ");
-      res.setHeader("Set-Cookie", cookieOptions);
-      return res.status(200).json({ success: true, message: "Admin logged out" });
+      res.setHeader("Set-Cookie", [
+        `jwt=; Path=/; HttpOnly; Secure; SameSite=None; Max-Age=0; Expires=Thu, 01 Jan 1970 00:00:00 GMT`,
+        `jwt=; Path=/; HttpOnly; SameSite=None; Max-Age=0; Expires=Thu, 01 Jan 1970 00:00:00 GMT`,
+      ]);
+      return res.status(200).json({ success: true, message: "Logged out successfully" });
     }
 
+    /* ─────────────────────────────────────────────────────────────
+       7. ADMIN CURRENT SESSION CHECK
+    ───────────────────────────────────────────────────────────── */
     if (action === "me" && req.method === "GET") {
-      let token = req.headers["x-admin-token"] || cookies.jwt;
+      let token = cookies.jwt;
+      if (!token && req.headers["x-admin-token"]) {
+        token = req.headers["x-admin-token"];
+      }
       if (!token && req.headers.authorization && req.headers.authorization.startsWith("Bearer")) {
         token = req.headers.authorization.split(" ")[1];
       }
-      if (!token || token === "none" || token === "") {
+
+      if (!token || token === "none") {
         return res.json({ success: false, message: "Not logged in" });
       }
+
       try {
         const decoded = jwt.verify(token, process.env.JWT_SECRET);
         const admin = await Admin.findById(decoded.id).select("-password");
@@ -685,14 +668,14 @@ module.exports = async function handler(req, res) {
           return res.json({ success: false, message: "Admin not found" });
         }
         return res.json({ success: true, admin, token });
-      } catch {
+      } catch (err) {
         return res.json({ success: false, message: "Token invalid or expired" });
       }
     }
 
-    return res.status(404).json({ message: "Auth action not found" });
-  } catch (err) {
-    console.error("Vercel Serverless Auth Error:", err);
-    return res.status(500).json({ message: err.message || "Server error", error: err.toString() });
+    return res.status(404).json({ message: `Unknown auth action: ${action}` });
+  } catch (error) {
+    console.error("Auth handler error:", error);
+    return res.status(500).json({ message: "Internal server error", error: error.message });
   }
 };

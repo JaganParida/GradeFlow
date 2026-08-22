@@ -11,10 +11,13 @@ const studentSessionSchema = new mongoose.Schema(
     },
     loggedInAt: { type: Date, default: Date.now },
     lastActiveAt: { type: Date, default: Date.now },
-    expiresAt: { type: Date, required: true, index: { expires: 0 } }, // Inactivity expiration (7 days)
+    expiresAt: { type: Date, required: true, index: { expires: 0 } }, // Inactivity expiration (7 days TTL)
     isActive: { type: Boolean, default: true },
   },
   { timestamps: true }
 );
+
+// Ensure regNo has non-unique index to support multiple active sessions per student
+studentSessionSchema.index({ regNo: 1 });
 
 module.exports = mongoose.model("StudentSession", studentSessionSchema);

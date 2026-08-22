@@ -1,5 +1,6 @@
 const jwt = require("jsonwebtoken");
 const StudentSession = require("../models/StudentSession");
+const { isSessionValid, touchSession } = require("../utils/sessionManager");
 
 // Admin Protection Middleware
 const protect = (req, res, next) => {
@@ -30,7 +31,7 @@ const protect = (req, res, next) => {
 
 const protectAdmin = protect;
 
-// Student Protection Middleware (Enforces Single Device & 7-Day Inactivity Check)
+// Student Protection Middleware (Enforces Multi/Single Device Session & 7-Day Inactivity Check)
 const protectStudent = async (req, res, next) => {
   let token = req.headers["x-student-token"];
   if (!token && req.cookies && req.cookies.student_jwt) {
@@ -49,7 +50,6 @@ const protectStudent = async (req, res, next) => {
       return res.status(401).json({ message: "Invalid session token. Please log in again." });
     }
 
-    // Check Single Device Active Session in MongoDB
     const session = await StudentSession.findOne({
       regNo: decoded.regNo,
       sessionId: decoded.sessionId,
@@ -58,28 +58,21 @@ const protectStudent = async (req, res, next) => {
 
     if (!session) {
       return res.status(401).json({
-        message: "Your session has ended because this account was logged in on another device or logged out.",
+        message: "Your session has ended because this device was logged out.",
         code: "SESSION_TERMINATED",
       });
     }
 
-    // Check 7 Days Continuous Inactivity (7 * 24 * 60 * 60 * 1000 = 604,800,000 ms)
-    const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000;
-    const now = Date.now();
-    const lastActive = new Date(session.lastActiveAt).getTime();
-
-    if (now - lastActive > SEVEN_DAYS_MS) {
+    if (!isSessionValid(session)) {
       await StudentSession.deleteOne({ _id: session._id });
       return res.status(401).json({
-        message: "Session expired due to 7 days of inactivity. Please log in again.",
+        message: "Session expired due to 7 continuous days of inactivity. Please log in again.",
         code: "INACTIVITY_LOGOUT",
       });
     }
 
-    // Refresh last active timestamp & extend expiration
-    session.lastActiveAt = new Date();
-    session.expiresAt = new Date(now + SEVEN_DAYS_MS);
-    await session.save();
+    // Refresh last active timestamp & extend expiration by 7 days
+    await touchSession(session);
 
     req.student = {
       regNo: session.regNo,
@@ -95,7 +88,7 @@ const protectStudent = async (req, res, next) => {
 const requireStudentOrAdmin = async (req, res, next) => {
   const targetRegNo = (req.params.regNo || "").trim().toUpperCase();
 
-  // 1. Check if valid Admin Token (Bearer header takes highest precedence)
+  // 1. Check if valid Admin Token (Bearer header / x-admin-token / cookie)
   let adminToken = null;
   if (req.headers.authorization && req.headers.authorization.startsWith("Bearer")) {
     adminToken = req.headers.authorization.split(" ")[1];
@@ -109,7 +102,6 @@ const requireStudentOrAdmin = async (req, res, next) => {
     try {
       const decodedAdmin = jwt.verify(adminToken, process.env.JWT_SECRET);
       if (decodedAdmin && (decodedAdmin.id || decodedAdmin.email || decodedAdmin.role === "admin") && decodedAdmin.role !== "student") {
-        // Valid Admin — full unrestricted access across all students
         req.admin = decodedAdmin;
         return next();
       }
@@ -148,28 +140,21 @@ const requireStudentOrAdmin = async (req, res, next) => {
 
     if (!session) {
       return res.status(401).json({
-        message: "Your session has ended because this account was logged in on another device or logged out.",
+        message: "Your session has ended because this device was logged out.",
         code: "SESSION_TERMINATED",
       });
     }
 
-    // Check 7 days inactivity
-    const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000;
-    const now = Date.now();
-    const lastActive = new Date(session.lastActiveAt).getTime();
-
-    if (now - lastActive > SEVEN_DAYS_MS) {
+    if (!isSessionValid(session)) {
       await StudentSession.deleteOne({ _id: session._id });
       return res.status(401).json({
-        message: "Session expired due to 7 days of inactivity. Please log in again.",
+        message: "Session expired due to 7 continuous days of inactivity. Please log in again.",
         code: "INACTIVITY_LOGOUT",
       });
     }
 
-    // Refresh last active
-    session.lastActiveAt = new Date();
-    session.expiresAt = new Date(now + SEVEN_DAYS_MS);
-    await session.save();
+    // Refresh last active timestamp & extend expiration by 7 days
+    await touchSession(session);
 
     req.student = {
       regNo: session.regNo,
@@ -205,4 +190,3 @@ module.exports = {
   protectStudent,
   requireStudentOrAdmin,
 };
-

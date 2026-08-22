@@ -17,4 +17,6 @@ const studentSessionSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
+studentSessionSchema.index({ regNo: 1 });
+
 module.exports = mongoose.models.StudentSession || mongoose.model("StudentSession", studentSessionSchema);
