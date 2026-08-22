@@ -66,15 +66,18 @@ function calculateSemesterMetrics(subjects = [], semester) {
 
     if (credit > 0 && gradePoint !== undefined) {
       totalCredits += credit;
+      creditsForDivisor += credit; // Every registered course credit is added to Denominator
 
-      if (grade === "F") {
-        totalWeighted += credit * 2; // F has 2 points per credit (2 * credit)
-        creditsForDivisor += credit; // Included in SGPA total credits divisor
-        // NOT cleared (creditsCleared not incremented, treated as active backlog)
-      } else if (!NON_PASSING_GRADES.includes(grade)) {
+      if (PASSING_GRADES.includes(grade)) {
         totalWeighted += credit * gradePoint;
         creditsCleared += credit;
-        creditsForDivisor += credit;
+      } else if (grade === "F") {
+        totalWeighted += credit * 2; // F has 2 points per credit (2 * credit)
+        // NOT cleared (creditsCleared not incremented, treated as active backlog)
+      } else {
+        // S, R, M have 0 points per credit (0 * credit = 0)
+        totalWeighted += credit * 0;
+        // NOT cleared (treated as backlog)
       }
     }
   });
