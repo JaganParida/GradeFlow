@@ -515,6 +515,7 @@ export default function AdminManagement({ API, authHeaders, isMobile }) {
 
       {/* ── Sub-Navigation & Actions Bar ── */}
       <div
+        className="gf-management-action-bar"
         style={{
           background: "#ffffff",
           border: "1px solid #e2e8f0",
@@ -527,12 +528,13 @@ export default function AdminManagement({ API, authHeaders, isMobile }) {
           gap: 12,
         }}
       >
-        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+        <div className="gf-mgmt-tabs" style={{ display: "flex", alignItems: "center", gap: 8 }}>
           <button
             onClick={() => setActiveTab("accounts")}
+            className={`gf-mgmt-tab-btn ${activeTab === "accounts" ? "active" : ""}`}
             style={{
-              padding: "7px 14px",
-              borderRadius: 8,
+              padding: "8px 14px",
+              borderRadius: 10,
               border: "none",
               background: activeTab === "accounts" ? "#eff6ff" : "transparent",
               color: activeTab === "accounts" ? "#2563eb" : "#64748b",
@@ -541,7 +543,9 @@ export default function AdminManagement({ API, authHeaders, isMobile }) {
               cursor: "pointer",
               display: "flex",
               alignItems: "center",
+              justifyContent: "center",
               gap: 6,
+              transition: "all 0.15s ease",
             }}
           >
             <Users size={15} />
@@ -550,9 +554,10 @@ export default function AdminManagement({ API, authHeaders, isMobile }) {
 
           <button
             onClick={() => setActiveTab("audit-logs")}
+            className={`gf-mgmt-tab-btn ${activeTab === "audit-logs" ? "active" : ""}`}
             style={{
-              padding: "7px 14px",
-              borderRadius: 8,
+              padding: "8px 14px",
+              borderRadius: 10,
               border: "none",
               background: activeTab === "audit-logs" ? "#eff6ff" : "transparent",
               color: activeTab === "audit-logs" ? "#2563eb" : "#64748b",
@@ -561,7 +566,9 @@ export default function AdminManagement({ API, authHeaders, isMobile }) {
               cursor: "pointer",
               display: "flex",
               alignItems: "center",
+              justifyContent: "center",
               gap: 6,
+              transition: "all 0.15s ease",
             }}
           >
             <Activity size={15} />
@@ -572,9 +579,11 @@ export default function AdminManagement({ API, authHeaders, isMobile }) {
         {activeTab === "accounts" && (
           <button
             onClick={openCreateModal}
+            className="gf-create-subadmin-btn"
             style={{
               display: "flex",
               alignItems: "center",
+              justifyContent: "center",
               gap: 6,
               padding: "9px 18px",
               borderRadius: 10,
@@ -593,7 +602,7 @@ export default function AdminManagement({ API, authHeaders, isMobile }) {
         )}
       </div>
 
-      {/* ── TAB 1: SUB-ADMIN ACCOUNTS TABLE ── */}
+      {/* ── TAB 1: SUB-ADMIN ACCOUNTS ── */}
       {activeTab === "accounts" && (
         <div
           style={{
@@ -606,6 +615,7 @@ export default function AdminManagement({ API, authHeaders, isMobile }) {
         >
           {/* Table Search & Filter Toolbar */}
           <div
+            className="gf-search-filter-toolbar"
             style={{
               padding: "14px 18px",
               borderBottom: "1px solid #f1f5f9",
@@ -616,7 +626,7 @@ export default function AdminManagement({ API, authHeaders, isMobile }) {
               gap: 12,
             }}
           >
-            <div style={{ position: "relative", minWidth: 260 }}>
+            <div className="gf-search-input-wrap" style={{ position: "relative", minWidth: 260, flex: 1 }}>
               <Search
                 size={15}
                 color="#94a3b8"
@@ -639,7 +649,7 @@ export default function AdminManagement({ API, authHeaders, isMobile }) {
               />
             </div>
 
-            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <div className="gf-filter-select-wrap" style={{ display: "flex", alignItems: "center", gap: 8 }}>
               <span style={{ fontSize: 12.5, fontWeight: 600, color: "#64748b" }}>Status:</span>
               <select
                 value={statusFilter}
@@ -663,8 +673,8 @@ export default function AdminManagement({ API, authHeaders, isMobile }) {
             </div>
           </div>
 
-          {/* Table Header & Rows */}
-          <div style={{ overflowX: "auto" }}>
+          {/* 1A. DESKTOP VIEW: Table */}
+          <div className="gf-subadmin-desktop-table" style={{ overflowX: "auto" }}>
             <table style={{ width: "100%", borderCollapse: "collapse", textAlign: "left", fontSize: 13 }}>
               <thead>
                 <tr style={{ background: "#f8fafc", borderBottom: "1px solid #e2e8f0", color: "#64748b", fontWeight: 700, fontSize: 11.5, textTransform: "uppercase", letterSpacing: "0.5px" }}>
@@ -695,7 +705,6 @@ export default function AdminManagement({ API, authHeaders, isMobile }) {
                 ) : (
                   filteredSubAdmins.map((subAdmin) => {
                     const routes = subAdmin.permissions?.routes || [];
-                    const actions = subAdmin.permissions?.actions || [];
 
                     return (
                       <tr
@@ -918,6 +927,266 @@ export default function AdminManagement({ API, authHeaders, isMobile }) {
               </tbody>
             </table>
           </div>
+
+          {/* 1B. MOBILE VIEW: Responsive Cards */}
+          <div className="gf-subadmin-mobile-cards" style={{ display: "none", flexDirection: "column", padding: "12px", gap: 12 }}>
+            {loading ? (
+              <div style={{ padding: "30px", textAlign: "center", color: "#64748b" }}>
+                <RefreshCw size={20} className="animate-spin" style={{ margin: "0 auto 8px" }} />
+                Loading Sub-Admins...
+              </div>
+            ) : filteredSubAdmins.length === 0 ? (
+              <div style={{ padding: "30px", textAlign: "center", color: "#64748b" }}>
+                <Users size={32} color="#cbd5e1" style={{ margin: "0 auto 8px" }} />
+                <div style={{ fontWeight: 700, color: "#334155" }}>No Sub-Admins Found</div>
+                <div style={{ fontSize: 12, marginTop: 2 }}>Click "Create Sub-Admin" above to configure your first delegated administrator.</div>
+              </div>
+            ) : (
+              filteredSubAdmins.map((subAdmin) => {
+                const routes = subAdmin.permissions?.routes || [];
+                return (
+                  <div
+                    key={subAdmin._id}
+                    className="gf-mobile-card"
+                    style={{
+                      background: "#ffffff",
+                      border: "1px solid #e2e8f0",
+                      borderRadius: 14,
+                      padding: "14px",
+                      boxShadow: "0 1px 3px rgba(0,0,0,0.03)",
+                      display: "flex",
+                      flexDirection: "column",
+                      gap: 12,
+                    }}
+                  >
+                    {/* Header: Avatar, Name/Email, Status */}
+                    <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 8 }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                        <div
+                          style={{
+                            width: 36,
+                            height: 36,
+                            borderRadius: 10,
+                            background: "#eff6ff",
+                            color: "#2563eb",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            fontWeight: 800,
+                            fontSize: 14,
+                            flexShrink: 0,
+                          }}
+                        >
+                          {subAdmin.name.charAt(0).toUpperCase()}
+                        </div>
+                        <div>
+                          <div style={{ fontWeight: 700, color: "#0f172a", fontSize: 14 }}>{subAdmin.name}</div>
+                          <div style={{ fontSize: 12, color: "#64748b", marginTop: 1 }}>{subAdmin.email}</div>
+                        </div>
+                      </div>
+
+                      <span
+                        style={{
+                          display: "inline-flex",
+                          alignItems: "center",
+                          gap: 4,
+                          fontSize: 10.5,
+                          fontWeight: 700,
+                          textTransform: "uppercase",
+                          padding: "3px 8px",
+                          borderRadius: 99,
+                          background:
+                            subAdmin.status === "active"
+                              ? "#ecfdf5"
+                              : subAdmin.status === "disabled"
+                              ? "#fffbeb"
+                              : "#fef2f2",
+                          color:
+                            subAdmin.status === "active"
+                              ? "#059669"
+                              : subAdmin.status === "disabled"
+                              ? "#d97706"
+                              : "#dc2626",
+                        }}
+                      >
+                        <span
+                          style={{
+                            width: 5,
+                            height: 5,
+                            borderRadius: "50%",
+                            background:
+                              subAdmin.status === "active"
+                                ? "#10b981"
+                                : subAdmin.status === "disabled"
+                                ? "#f59e0b"
+                                : "#ef4444",
+                          }}
+                        />
+                        {subAdmin.status}
+                      </span>
+                    </div>
+
+                    {/* Quick Stats: Active Devices & Last Active */}
+                    <div
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "space-between",
+                        padding: "8px 10px",
+                        background: "#f8fafc",
+                        borderRadius: 8,
+                        fontSize: 11.5,
+                      }}
+                    >
+                      <button
+                        onClick={() => openSessionsDrawer(subAdmin)}
+                        style={{
+                          background: "none",
+                          border: "none",
+                          padding: 0,
+                          display: "inline-flex",
+                          alignItems: "center",
+                          gap: 4,
+                          fontWeight: 700,
+                          color: subAdmin.activeSessionCount > 0 ? "#2563eb" : "#64748b",
+                          cursor: "pointer",
+                        }}
+                      >
+                        <Smartphone size={13} color={subAdmin.activeSessionCount > 0 ? "#2563eb" : "#94a3b8"} />
+                        <span>{subAdmin.activeSessionCount || 0} Device(s)</span>
+                      </button>
+
+                      <div style={{ display: "inline-flex", alignItems: "center", gap: 4, color: "#64748b" }}>
+                        <Clock size={12} />
+                        <span>{formatTimeAgo(subAdmin.lastActiveAt || subAdmin.lastLoginAt)}</span>
+                      </div>
+                    </div>
+
+                    {/* Permissions Chips */}
+                    <div>
+                      <div style={{ fontSize: 11, fontWeight: 700, color: "#64748b", marginBottom: 5, textTransform: "uppercase" }}>
+                        Assigned Modules:
+                      </div>
+                      <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
+                        {routes.length === 0 ? (
+                          <span style={{ fontSize: 11, color: "#94a3b8", fontStyle: "italic" }}>
+                            Default Deny (0 Permissions)
+                          </span>
+                        ) : (
+                          routes.map((rId) => {
+                            const matched = AVAILABLE_PERMISSIONS.routes.find((r) => r.id === rId);
+                            return (
+                              <span
+                                key={rId}
+                                style={{
+                                  fontSize: 10.5,
+                                  fontWeight: 600,
+                                  background: "#eff6ff",
+                                  color: "#1d4ed8",
+                                  padding: "2px 6px",
+                                  borderRadius: 5,
+                                }}
+                              >
+                                {matched?.label || rId}
+                              </span>
+                            );
+                          })
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Actions Bar */}
+                    <div
+                      style={{
+                        display: "grid",
+                        gridTemplateColumns: "1fr auto auto auto",
+                        gap: 6,
+                        paddingTop: 10,
+                        borderTop: "1px solid #f1f5f9",
+                        alignItems: "center",
+                      }}
+                    >
+                      <button
+                        onClick={() => openPermissionsEditor(subAdmin)}
+                        style={{
+                          padding: "7px 10px",
+                          borderRadius: 8,
+                          border: "1px solid #e0e7ff",
+                          background: "#eef2ff",
+                          color: "#4f46e5",
+                          fontSize: 12,
+                          fontWeight: 700,
+                          cursor: "pointer",
+                          display: "inline-flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          gap: 4,
+                        }}
+                      >
+                        <Sliders size={13} />
+                        Permissions
+                      </button>
+
+                      <button
+                        onClick={() => openInfoEditor(subAdmin)}
+                        title="Edit Info"
+                        style={{
+                          padding: "7px 10px",
+                          borderRadius: 8,
+                          border: "1px solid #e2e8f0",
+                          background: "#ffffff",
+                          color: "#475569",
+                          cursor: "pointer",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                        }}
+                      >
+                        <Edit3 size={13} />
+                      </button>
+
+                      <select
+                        value={subAdmin.status}
+                        onChange={(e) => handleToggleStatus(subAdmin, e.target.value)}
+                        style={{
+                          padding: "6px 8px",
+                          borderRadius: 8,
+                          border: "1px solid #e2e8f0",
+                          fontSize: 11.5,
+                          fontWeight: 600,
+                          background: "#ffffff",
+                          color: "#334155",
+                          cursor: "pointer",
+                        }}
+                      >
+                        <option value="active">Active</option>
+                        <option value="disabled">Disable</option>
+                        <option value="revoked">Revoke</option>
+                      </select>
+
+                      <button
+                        onClick={() => handleDeleteSubAdmin(subAdmin)}
+                        title="Delete Sub-Admin"
+                        style={{
+                          padding: "7px 10px",
+                          borderRadius: 8,
+                          border: "1px solid #fee2e2",
+                          background: "#fff5f5",
+                          color: "#ef4444",
+                          cursor: "pointer",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                        }}
+                      >
+                        <Trash2 size={13} />
+                      </button>
+                    </div>
+                  </div>
+                );
+              })
+            )}
+          </div>
         </div>
       )}
 
@@ -933,6 +1202,7 @@ export default function AdminManagement({ API, authHeaders, isMobile }) {
           }}
         >
           <div
+            className="gf-audit-toolbar"
             style={{
               padding: "14px 18px",
               borderBottom: "1px solid #f1f5f9",
@@ -989,7 +1259,8 @@ export default function AdminManagement({ API, authHeaders, isMobile }) {
             </div>
           </div>
 
-          <div style={{ overflowX: "auto" }}>
+          {/* 2A. DESKTOP AUDIT TABLE */}
+          <div className="gf-audit-desktop-table" style={{ overflowX: "auto" }}>
             <table style={{ width: "100%", borderCollapse: "collapse", textAlign: "left", fontSize: 12.5 }}>
               <thead>
                 <tr style={{ background: "#f8fafc", borderBottom: "1px solid #e2e8f0", color: "#64748b", fontWeight: 700, fontSize: 11, textTransform: "uppercase" }}>
@@ -1052,6 +1323,66 @@ export default function AdminManagement({ API, authHeaders, isMobile }) {
                 )}
               </tbody>
             </table>
+          </div>
+
+          {/* 2B. MOBILE AUDIT CARDS */}
+          <div className="gf-audit-mobile-cards" style={{ display: "none", flexDirection: "column", padding: "12px", gap: 10 }}>
+            {logsLoading ? (
+              <div style={{ padding: "30px", textAlign: "center", color: "#64748b" }}>
+                Loading audit logs...
+              </div>
+            ) : auditLogs.length === 0 ? (
+              <div style={{ padding: "30px", textAlign: "center", color: "#64748b" }}>
+                No audit events found.
+              </div>
+            ) : (
+              auditLogs.map((log) => (
+                <div
+                  key={log._id}
+                  style={{
+                    background: "#f8fafc",
+                    border: "1px solid #e2e8f0",
+                    borderRadius: 12,
+                    padding: "12px 14px",
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: 6,
+                  }}
+                >
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
+                    <span style={{ fontSize: 11, color: "#64748b", fontWeight: 600 }}>
+                      {new Date(log.timestamp).toLocaleString("en-IN", { timeZone: "Asia/Kolkata" })}
+                    </span>
+                    <span
+                      style={{
+                        fontSize: 10,
+                        fontWeight: 700,
+                        padding: "2px 6px",
+                        borderRadius: 4,
+                        background: log.result === "SUCCESS" ? "#ecfdf5" : "#fef2f2",
+                        color: log.result === "SUCCESS" ? "#059669" : "#dc2626",
+                      }}
+                    >
+                      {log.result}
+                    </span>
+                  </div>
+
+                  <div style={{ fontSize: 13, fontWeight: 700, color: "#0f172a" }}>
+                    {log.action}
+                  </div>
+
+                  <div style={{ fontSize: 11.5, color: "#475569" }}>
+                    <strong>Actor:</strong> {log.actorEmail} ({log.actorType})
+                  </div>
+
+                  {log.route && (
+                    <div style={{ fontSize: 11, color: "#64748b", fontFamily: "monospace" }}>
+                      Target: {log.route}
+                    </div>
+                  )}
+                </div>
+              ))
+            )}
           </div>
         </div>
       )}
@@ -1946,6 +2277,49 @@ export default function AdminManagement({ API, authHeaders, isMobile }) {
 
       <style>{`
         @media (max-width: 768px) {
+          .gf-subadmin-desktop-table,
+          .gf-audit-desktop-table {
+            display: none !important;
+          }
+          .gf-subadmin-mobile-cards,
+          .gf-audit-mobile-cards {
+            display: flex !important;
+          }
+          .gf-management-action-bar {
+            flex-direction: column !important;
+            align-items: stretch !important;
+            gap: 10px !important;
+            padding: 12px 14px !important;
+          }
+          .gf-mgmt-tabs {
+            width: 100% !important;
+          }
+          .gf-mgmt-tab-btn {
+            flex: 1 !important;
+            text-align: center !important;
+            font-size: 12px !important;
+            padding: 8px 6px !important;
+          }
+          .gf-create-subadmin-btn {
+            width: 100% !important;
+          }
+          .gf-search-filter-toolbar,
+          .gf-audit-toolbar {
+            flex-direction: column !important;
+            align-items: stretch !important;
+            padding: 12px 14px !important;
+            gap: 10px !important;
+          }
+          .gf-search-input-wrap {
+            min-width: 100% !important;
+          }
+          .gf-filter-select-wrap {
+            width: 100% !important;
+            justify-content: space-between !important;
+          }
+          .gf-filter-select-wrap select {
+            flex: 1 !important;
+          }
           .gf-kpi-grid {
             grid-template-columns: repeat(2, 1fr) !important;
             gap: 10px !important;
