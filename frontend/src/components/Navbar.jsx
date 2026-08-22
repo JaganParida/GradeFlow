@@ -805,50 +805,81 @@ export default function Navbar() {
               </button>
             )}
 
-            {/* Subtle Admin Button (Not Bright / Clean Ghost Pill) */}
+            {/* Subtle Admin Button (Professional Active State when Logged In) */}
             <Link
               to="/admin"
-              className="gf-admin-link"
-              title="Admin Portal"
+              className={`gf-admin-link ${adminToken ? "gf-admin-logged-in" : ""}`}
+              title={adminToken ? "Admin Portal (Authenticated)" : "Admin Portal"}
               style={{
                 textDecoration: "none",
                 display: "inline-flex",
                 alignItems: "center",
                 gap: 5,
-                padding: "6px 10px",
+                padding: "6px 11px",
                 borderRadius: 8,
-                border: "1px solid #e2e8f0",
-                background: location.pathname.startsWith("/admin")
-                  ? "#f1f5f9"
-                  : "transparent",
-                color: location.pathname.startsWith("/admin")
+                border: adminToken
+                  ? "1px solid #1e293b"
+                  : "1px solid #e2e8f0",
+                background: adminToken
                   ? "#0f172a"
-                  : "#64748b",
+                  : location.pathname.startsWith("/admin")
+                    ? "#f1f5f9"
+                    : "transparent",
+                color: adminToken
+                  ? "#ffffff"
+                  : location.pathname.startsWith("/admin")
+                    ? "#0f172a"
+                    : "#64748b",
                 fontSize: 12.5,
-                fontWeight: 600,
+                fontWeight: 700,
                 transition: "all 0.15s ease",
+                boxShadow: adminToken ? "0 2px 8px rgba(15, 23, 42, 0.2)" : "none",
               }}
               onMouseEnter={(e) => {
-                e.currentTarget.style.background = "#f8fafc";
-                e.currentTarget.style.color = "#0f172a";
-                e.currentTarget.style.borderColor = "#cbd5e1";
+                if (!adminToken) {
+                  e.currentTarget.style.background = "#f8fafc";
+                  e.currentTarget.style.color = "#0f172a";
+                  e.currentTarget.style.borderColor = "#cbd5e1";
+                } else {
+                  e.currentTarget.style.background = "#1e293b";
+                }
               }}
               onMouseLeave={(e) => {
-                e.currentTarget.style.background = location.pathname.startsWith(
-                  "/admin",
-                )
-                  ? "#f1f5f9"
-                  : "transparent";
-                e.currentTarget.style.color = location.pathname.startsWith(
-                  "/admin",
-                )
-                  ? "#0f172a"
-                  : "#64748b";
-                e.currentTarget.style.borderColor = "#e2e8f0";
+                if (!adminToken) {
+                  e.currentTarget.style.background = location.pathname.startsWith(
+                    "/admin",
+                  )
+                    ? "#f1f5f9"
+                    : "transparent";
+                  e.currentTarget.style.color = location.pathname.startsWith(
+                    "/admin",
+                  )
+                    ? "#0f172a"
+                    : "#64748b";
+                  e.currentTarget.style.borderColor = "#e2e8f0";
+                } else {
+                  e.currentTarget.style.background = "#0f172a";
+                }
               }}
             >
-              <ShieldCheck size={14} color="#64748b" />
+              <ShieldCheck
+                size={14}
+                color={adminToken ? "#34d399" : "#64748b"}
+              />
               <span className="gf-admin-text">Admin</span>
+              {adminToken && (
+                <span
+                  style={{
+                    width: 6,
+                    height: 6,
+                    borderRadius: "50%",
+                    background: "#10b981",
+                    boxShadow: "0 0 6px rgba(16, 185, 129, 0.8)",
+                    display: "inline-block",
+                    marginLeft: 1,
+                  }}
+                />
+              )}
             </Link>
 
             {/* Desktop Auth Button */}
@@ -2122,6 +2153,12 @@ export default function Navbar() {
             box-sizing: border-box !important;
             white-space: nowrap !important;
           }
+          .gf-admin-link.gf-admin-logged-in {
+            background: #0f172a !important;
+            border: 1px solid #1e293b !important;
+            color: #ffffff !important;
+            box-shadow: 0 2px 8px rgba(15, 23, 42, 0.25) !important;
+          }
           .gf-logo-text {
             font-size: 21.5px !important;
           }
@@ -2156,6 +2193,12 @@ export default function Navbar() {
             box-sizing: border-box !important;
             white-space: nowrap !important;
           }
+          .gf-admin-link.gf-admin-logged-in {
+            background: #0f172a !important;
+            border: 1px solid #1e293b !important;
+            color: #ffffff !important;
+            box-shadow: 0 2px 8px rgba(15, 23, 42, 0.25) !important;
+          }
           .gf-logo-text {
             font-size: 19.5px !important;
           }
@@ -2180,6 +2223,11 @@ export default function Navbar() {
           .gf-admin-link {
             padding: 4px 7px !important;
             height: 32px !important;
+          }
+          .gf-admin-link.gf-admin-logged-in {
+            background: #0f172a !important;
+            border: 1px solid #1e293b !important;
+            color: #ffffff !important;
           }
           .gf-logo-text {
             font-size: 17.5px !important;
