@@ -1940,17 +1940,23 @@ export default function AdminManagement({ API, authHeaders, isMobile }) {
                             {relatedActions.length > 0 && isRouteChecked && (
                               <div
                                 style={{
-                                  marginTop: 10,
-                                  paddingTop: 10,
+                                  marginTop: 12,
+                                  paddingTop: 12,
                                   borderTop: "1px solid #dbeafe",
                                   display: "flex",
                                   flexDirection: "column",
-                                  gap: 6,
+                                  gap: 8,
                                 }}
                               >
-                                <div style={{ fontSize: 10.5, fontWeight: 800, color: "#1e40af", textTransform: "uppercase", letterSpacing: "0.4px" }}>
-                                  Granular Actions for this Module:
+                                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 2 }}>
+                                  <div style={{ fontSize: 11, fontWeight: 800, color: "#1e40af", textTransform: "uppercase", letterSpacing: "0.5px" }}>
+                                    Granular Actions for this Module:
+                                  </div>
+                                  <span style={{ fontSize: 10.5, fontWeight: 700, color: "#2563eb", background: "#dbeafe", padding: "1px 7px", borderRadius: 10 }}>
+                                    {relatedActions.filter((a) => selectedActions.includes(a.id)).length} of {relatedActions.length} Granted
+                                  </span>
                                 </div>
+
                                 {relatedActions.map((action) => {
                                   const isActionChecked = selectedActions.includes(action.id);
                                   return (
@@ -1958,48 +1964,91 @@ export default function AdminManagement({ API, authHeaders, isMobile }) {
                                       key={action.id}
                                       onClick={() => handleActionToggle(action.id, route.id)}
                                       style={{
-                                        background: "#ffffff",
-                                        border: isActionChecked ? "1px solid #bfdbfe" : "1px solid #e2e8f0",
-                                        borderRadius: 8,
-                                        padding: "7px 12px",
+                                        background: isActionChecked ? "#ffffff" : "#f8fafc",
+                                        border: isActionChecked ? "1.5px solid #93c5fd" : "1.5px solid #e2e8f0",
+                                        borderRadius: 10,
+                                        padding: "9px 12px",
                                         display: "flex",
                                         alignItems: "center",
                                         justifyContent: "space-between",
-                                        gap: 8,
+                                        gap: 10,
                                         cursor: "pointer",
+                                        boxShadow: isActionChecked ? "0 1px 3px rgba(37, 99, 235, 0.08)" : "none",
+                                        transition: "all 0.15s ease",
                                       }}
                                     >
-                                      <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
-                                        <input
-                                          type="checkbox"
-                                          checked={isActionChecked}
-                                          onChange={() => {}}
-                                          style={{ accentColor: "#2563eb", width: 14, height: 14, cursor: "pointer" }}
-                                        />
-                                        <div style={{ minWidth: 0 }}>
-                                          <div style={{ fontSize: 12, fontWeight: 700, color: "#1e293b" }}>
-                                            {action.label}{" "}
-                                            <code style={{ fontSize: 10, background: "#f1f5f9", color: "#475569", padding: "1px 4px", borderRadius: 3 }}>
+                                      <div style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0, flex: 1 }}>
+                                        <div
+                                          style={{
+                                            width: 22,
+                                            height: 22,
+                                            borderRadius: 6,
+                                            border: isActionChecked ? "1.5px solid #2563eb" : "1.5px solid #cbd5e1",
+                                            background: isActionChecked ? "#2563eb" : "#ffffff",
+                                            display: "flex",
+                                            alignItems: "center",
+                                            justifyContent: "center",
+                                            color: "#ffffff",
+                                            flexShrink: 0,
+                                            boxShadow: isActionChecked ? "0 1px 3px rgba(37, 99, 235, 0.25)" : "none",
+                                            transition: "all 0.15s ease",
+                                          }}
+                                        >
+                                          {isActionChecked && <Check size={14} strokeWidth={3.5} />}
+                                        </div>
+
+                                        <div style={{ minWidth: 0, flex: 1 }}>
+                                          <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+                                            <span style={{ fontSize: 12.5, fontWeight: 800, color: "#0f172a" }}>
+                                              {action.label}
+                                            </span>
+                                            <code
+                                              style={{
+                                                fontSize: 10.5,
+                                                fontWeight: 700,
+                                                background: isActionChecked ? "#eff6ff" : "#f1f5f9",
+                                                color: isActionChecked ? "#1d4ed8" : "#475569",
+                                                border: isActionChecked ? "1px solid #bfdbfe" : "1px solid #e2e8f0",
+                                                padding: "1px 5px",
+                                                borderRadius: 4,
+                                              }}
+                                            >
                                               {action.id}
                                             </code>
                                           </div>
-                                          <div style={{ fontSize: 11, color: "#64748b" }}>{action.desc}</div>
+                                          <div style={{ fontSize: 11.5, color: "#475569", marginTop: 2, lineHeight: 1.4 }}>
+                                            {action.desc}
+                                          </div>
                                         </div>
                                       </div>
 
-                                      <span
+                                      <div
                                         style={{
-                                          fontSize: 10,
+                                          display: "inline-flex",
+                                          alignItems: "center",
+                                          gap: 4,
+                                          fontSize: 10.5,
                                           fontWeight: 800,
-                                          padding: "2px 7px",
-                                          borderRadius: 4,
+                                          padding: "4px 9px",
+                                          borderRadius: 6,
                                           background: isActionChecked ? "#ecfdf5" : "#f1f5f9",
-                                          color: isActionChecked ? "#059669" : "#94a3b8",
+                                          color: isActionChecked ? "#059669" : "#64748b",
+                                          border: isActionChecked ? "1px solid #a7f3d0" : "1px solid #e2e8f0",
                                           flexShrink: 0,
                                         }}
                                       >
-                                        {isActionChecked ? "ALLOW" : "DENY"}
-                                      </span>
+                                        {isActionChecked ? (
+                                          <>
+                                            <CheckCircle2 size={12} color="#059669" />
+                                            ALLOW
+                                          </>
+                                        ) : (
+                                          <>
+                                            <Lock size={11} color="#94a3b8" />
+                                            DENY
+                                          </>
+                                        )}
+                                      </div>
                                     </div>
                                   );
                                 })}
@@ -2417,17 +2466,23 @@ export default function AdminManagement({ API, authHeaders, isMobile }) {
                         {relatedActions.length > 0 && isRouteChecked && (
                           <div
                             style={{
-                              marginTop: 10,
-                              paddingTop: 10,
+                              marginTop: 12,
+                              paddingTop: 12,
                               borderTop: "1px solid #dbeafe",
                               display: "flex",
                               flexDirection: "column",
-                              gap: 6,
+                              gap: 8,
                             }}
                           >
-                            <div style={{ fontSize: 10.5, fontWeight: 800, color: "#1e40af", textTransform: "uppercase", letterSpacing: "0.4px" }}>
-                              Granular Actions for this Module:
+                            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 2 }}>
+                              <div style={{ fontSize: 11, fontWeight: 800, color: "#1e40af", textTransform: "uppercase", letterSpacing: "0.5px" }}>
+                                Granular Actions for this Module:
+                              </div>
+                              <span style={{ fontSize: 10.5, fontWeight: 700, color: "#2563eb", background: "#dbeafe", padding: "1px 7px", borderRadius: 10 }}>
+                                {relatedActions.filter((a) => selectedActions.includes(a.id)).length} of {relatedActions.length} Granted
+                              </span>
                             </div>
+
                             {relatedActions.map((action) => {
                               const isActionChecked = selectedActions.includes(action.id);
                               return (
@@ -2435,48 +2490,91 @@ export default function AdminManagement({ API, authHeaders, isMobile }) {
                                   key={action.id}
                                   onClick={() => handleActionToggle(action.id, route.id)}
                                   style={{
-                                    background: "#ffffff",
-                                    border: isActionChecked ? "1px solid #bfdbfe" : "1px solid #e2e8f0",
-                                    borderRadius: 8,
-                                    padding: "7px 12px",
+                                    background: isActionChecked ? "#ffffff" : "#f8fafc",
+                                    border: isActionChecked ? "1.5px solid #93c5fd" : "1.5px solid #e2e8f0",
+                                    borderRadius: 10,
+                                    padding: "9px 12px",
                                     display: "flex",
                                     alignItems: "center",
                                     justifyContent: "space-between",
-                                    gap: 8,
+                                    gap: 10,
                                     cursor: "pointer",
+                                    boxShadow: isActionChecked ? "0 1px 3px rgba(37, 99, 235, 0.08)" : "none",
+                                    transition: "all 0.15s ease",
                                   }}
                                 >
-                                  <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
-                                    <input
-                                      type="checkbox"
-                                      checked={isActionChecked}
-                                      onChange={() => {}}
-                                      style={{ accentColor: "#2563eb", width: 14, height: 14, cursor: "pointer" }}
-                                    />
-                                    <div style={{ minWidth: 0 }}>
-                                      <div style={{ fontSize: 12, fontWeight: 700, color: "#1e293b" }}>
-                                        {action.label}{" "}
-                                        <code style={{ fontSize: 10, background: "#f1f5f9", color: "#475569", padding: "1px 4px", borderRadius: 3 }}>
+                                  <div style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0, flex: 1 }}>
+                                    <div
+                                      style={{
+                                        width: 22,
+                                        height: 22,
+                                        borderRadius: 6,
+                                        border: isActionChecked ? "1.5px solid #2563eb" : "1.5px solid #cbd5e1",
+                                        background: isActionChecked ? "#2563eb" : "#ffffff",
+                                        display: "flex",
+                                        alignItems: "center",
+                                        justifyContent: "center",
+                                        color: "#ffffff",
+                                        flexShrink: 0,
+                                        boxShadow: isActionChecked ? "0 1px 3px rgba(37, 99, 235, 0.25)" : "none",
+                                        transition: "all 0.15s ease",
+                                      }}
+                                    >
+                                      {isActionChecked && <Check size={14} strokeWidth={3.5} />}
+                                    </div>
+
+                                    <div style={{ minWidth: 0, flex: 1 }}>
+                                      <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+                                        <span style={{ fontSize: 12.5, fontWeight: 800, color: "#0f172a" }}>
+                                          {action.label}
+                                        </span>
+                                        <code
+                                          style={{
+                                            fontSize: 10.5,
+                                            fontWeight: 700,
+                                            background: isActionChecked ? "#eff6ff" : "#f1f5f9",
+                                            color: isActionChecked ? "#1d4ed8" : "#475569",
+                                            border: isActionChecked ? "1px solid #bfdbfe" : "1px solid #e2e8f0",
+                                            padding: "1px 5px",
+                                            borderRadius: 4,
+                                          }}
+                                        >
                                           {action.id}
                                         </code>
                                       </div>
-                                      <div style={{ fontSize: 11, color: "#64748b" }}>{action.desc}</div>
+                                      <div style={{ fontSize: 11.5, color: "#475569", marginTop: 2, lineHeight: 1.4 }}>
+                                        {action.desc}
+                                      </div>
                                     </div>
                                   </div>
 
-                                  <span
+                                  <div
                                     style={{
-                                      fontSize: 10,
+                                      display: "inline-flex",
+                                      alignItems: "center",
+                                      gap: 4,
+                                      fontSize: 10.5,
                                       fontWeight: 800,
-                                      padding: "2px 7px",
-                                      borderRadius: 4,
+                                      padding: "4px 9px",
+                                      borderRadius: 6,
                                       background: isActionChecked ? "#ecfdf5" : "#f1f5f9",
-                                      color: isActionChecked ? "#059669" : "#94a3b8",
+                                      color: isActionChecked ? "#059669" : "#64748b",
+                                      border: isActionChecked ? "1px solid #a7f3d0" : "1px solid #e2e8f0",
                                       flexShrink: 0,
                                     }}
                                   >
-                                    {isActionChecked ? "ALLOW" : "DENY"}
-                                  </span>
+                                    {isActionChecked ? (
+                                      <>
+                                        <CheckCircle2 size={12} color="#059669" />
+                                        ALLOW
+                                      </>
+                                    ) : (
+                                      <>
+                                        <Lock size={11} color="#94a3b8" />
+                                        DENY
+                                      </>
+                                    )}
+                                  </div>
                                 </div>
                               );
                             })}
