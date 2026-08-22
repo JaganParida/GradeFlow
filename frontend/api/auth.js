@@ -184,33 +184,64 @@ async function sendAdminOtpEmail({ to, otp, expiresInMinutes = 5 }) {
     <head>
       <meta charset="UTF-8">
       <meta name="viewport" content="width=device-width, initial-scale=1.0">
-      <title>GradeFlow Institutional Admin Code</title>
+      <title>GradeFlow Admin Verification Code</title>
     </head>
-    <body style="margin: 0; padding: 40px 20px; background-color: #0f172a; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #f8fafc; -webkit-font-smoothing: antialiased;">
-      <table align="center" border="0" cellpadding="0" cellspacing="0" width="100%" style="max-width: 520px; margin: 0 auto; text-align: left; background: #1e293b; border-radius: 16px; border: 1px solid #334155; padding: 32px 28px;">
+    <body style="margin: 0; padding: 40px 20px; background-color: #f8fafc; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #1e293b; -webkit-font-smoothing: antialiased;">
+      <table align="center" border="0" cellpadding="0" cellspacing="0" width="100%" style="max-width: 520px; margin: 0 auto; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 16px; padding: 36px 32px; box-shadow: 0 4px 12px rgba(15, 23, 42, 0.03);">
+        <!-- Brand Header -->
         <tr>
           <td style="padding-bottom: 20px;">
-            <div style="font-size: 20px; font-weight: 800; color: #38bdf8; letter-spacing: -0.5px;">GradeFlow Admin Security</div>
-            <div style="font-size: 12px; color: #94a3b8; margin-top: 4px;">Institutional Administration Gateway</div>
+            <table border="0" cellpadding="0" cellspacing="0" width="100%">
+              <tr>
+                <td>
+                  <div style="font-size: 20px; font-weight: 800; color: #2563eb; letter-spacing: -0.5px;">GradeFlow</div>
+                  <div style="font-size: 12px; color: #64748b; margin-top: 2px;">Institutional Administration Gateway &bull; Centurion University</div>
+                </td>
+                <td align="right">
+                  <span style="display: inline-block; padding: 4px 10px; background: #eff6ff; border: 1px solid #dbeafe; border-radius: 99px; font-size: 11px; font-weight: 700; color: #2563eb; letter-spacing: 0.3px;">ADMIN SECURITY</span>
+                </td>
+              </tr>
+            </table>
           </td>
         </tr>
+
+        <!-- Divider Line -->
         <tr>
-          <td style="border-top: 1px solid #334155; padding-top: 24px;">
-            <div style="font-size: 20px; font-weight: 700; color: #f8fafc; margin-bottom: 12px;">Admin Verification Code</div>
-            <div style="font-size: 14px; color: #cbd5e1; line-height: 1.6; margin-bottom: 24px;">
+          <td style="border-top: 1px solid #e2e8f0; padding-top: 24px;">
+            <div style="font-size: 22px; font-weight: 700; color: #0f172a; margin-bottom: 12px; letter-spacing: -0.4px;">
+              Admin Verification Code
+            </div>
+            <div style="font-size: 14px; color: #334155; line-height: 1.6; margin-bottom: 8px;">
+              Dear Administrator,
+            </div>
+            <div style="font-size: 14px; color: #475569; line-height: 1.6; margin-bottom: 24px;">
               An administrative login attempt has been initiated with the correct master password. Use the single-use verification code below to authorize this session:
             </div>
-            <div style="font-size: 38px; font-weight: 800; letter-spacing: 8px; color: #38bdf8; font-family: monospace; background: #0f172a; padding: 16px; border-radius: 12px; text-align: center; border: 1px solid #334155; margin-bottom: 24px;">
-              ${otp}
+
+            <!-- Crisp OTP Box -->
+            <div style="background: #f8fafc; border: 1.5px solid #cbd5e1; border-radius: 12px; padding: 20px; text-align: center; margin-bottom: 24px;">
+              <div style="font-size: 38px; font-weight: 800; letter-spacing: 8px; color: #0f172a; font-family: 'Space Mono', 'SF Pro Display', monospace;">
+                ${otp}
+              </div>
             </div>
-            <div style="font-size: 13px; color: #94a3b8; line-height: 1.5; margin-bottom: 20px;">
-              This code will expire in ${expiresInMinutes} minutes. If you did not initiate this login request, please inspect your server security immediately.
+
+            <div style="font-size: 13px; color: #64748b; line-height: 1.6; margin-bottom: 12px;">
+              This code will expire in <strong>${expiresInMinutes} minutes</strong>. For security reasons, do not share this code with anyone.
+            </div>
+
+            <div style="font-size: 12.5px; color: #94a3b8; line-height: 1.6; margin-bottom: 28px;">
+              If you did not initiate this login request, someone may be attempting to access the administration portal. Please verify your credentials immediately.
             </div>
           </td>
         </tr>
+
+        <!-- Footer -->
         <tr>
-          <td style="border-top: 1px solid #334155; padding-top: 18px; font-size: 11px; color: #64748b;">
-            GradeFlow Enterprise Security Gateway &bull; Max 2 Authorized Active Devices
+          <td style="border-top: 1px solid #f1f5f9; padding-top: 20px; font-size: 11.5px; color: #64748b; line-height: 1.5;">
+            <div>GradeFlow Enterprise Security &bull; Max 2 Authorized Active Devices</div>
+            <div style="margin-top: 4px; color: #94a3b8; font-size: 11px;">
+              This is an automated administrative authentication message. Please do not reply directly to this email.
+            </div>
           </td>
         </tr>
       </table>
@@ -218,13 +249,13 @@ async function sendAdminOtpEmail({ to, otp, expiresInMinutes = 5 }) {
     </html>
   `;
 
-  const text = `GradeFlow Institutional Admin Security Code:\n\n${otp}\n\nThis code will expire in ${expiresInMinutes} minutes.\n\nGradeFlow Enterprise Security Gateway`;
+  const text = `GradeFlow Institutional Admin Verification Code:\n\n${otp}\n\nThis code will expire in ${expiresInMinutes} minutes. If you did not initiate this login request, please verify your credentials immediately.\n\nGradeFlow Institutional Administration Gateway\nCenturion University of Technology and Management`;
 
   const mailOptions = {
-    from: `"GradeFlow Admin Gateway" <${senderEmail}>`,
+    from: `"GradeFlow Admin Security" <${senderEmail}>`,
     replyTo: senderEmail,
     to,
-    subject: `GradeFlow Institutional Admin Security Code: ${otp}`,
+    subject: `GradeFlow Admin Verification Code: ${otp}`,
     text,
     html,
   };
