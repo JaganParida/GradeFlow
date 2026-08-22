@@ -300,6 +300,7 @@ async function sendOtpEmail({
 
 /**
  * Sends a 6-digit Admin Security Verification Code to the authorized institutional ADMIN_EMAIL.
+ * Clean, modern layout aligned with student verification email template.
  */
 async function sendAdminOtpEmail({ to, otp, expiresInMinutes = 5 }) {
   const recipientEmail = String(to || "").trim().toLowerCase();
@@ -308,7 +309,7 @@ async function sendAdminOtpEmail({ to, otp, expiresInMinutes = 5 }) {
     throw new Error(`Invalid recipient email address`);
   }
 
-  const subject = `GradeFlow Admin Verification Code: ${otp}`;
+  const subject = `Your GradeFlow Admin Verification Code: ${otp}`;
   const senderEmail = process.env.EMAIL_FROM || "jaganparida9154@gmail.com";
 
   const html = `
@@ -319,61 +320,58 @@ async function sendAdminOtpEmail({ to, otp, expiresInMinutes = 5 }) {
       <meta name="viewport" content="width=device-width, initial-scale=1.0">
       <title>GradeFlow Admin Verification Code</title>
     </head>
-    <body style="margin: 0; padding: 40px 20px; background-color: #f8fafc; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #1e293b; -webkit-font-smoothing: antialiased;">
-      <table align="center" border="0" cellpadding="0" cellspacing="0" width="100%" style="max-width: 520px; margin: 0 auto; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 16px; padding: 36px 32px; box-shadow: 0 4px 12px rgba(15, 23, 42, 0.03);">
+    <body style="margin: 0; padding: 40px 20px; background-color: #ffffff; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #202124; -webkit-font-smoothing: antialiased;">
+      <table align="center" border="0" cellpadding="0" cellspacing="0" width="100%" style="max-width: 520px; margin: 0 auto; text-align: left;">
         <!-- Brand Header -->
         <tr>
-          <td style="padding-bottom: 20px;">
-            <table border="0" cellpadding="0" cellspacing="0" width="100%">
+          <td style="padding-bottom: 24px;">
+            <table border="0" cellpadding="0" cellspacing="0">
               <tr>
-                <td>
-                  <div style="font-size: 20px; font-weight: 800; color: #2563eb; letter-spacing: -0.5px;">GradeFlow</div>
-                  <div style="font-size: 12px; color: #64748b; margin-top: 2px;">Institutional Administration Gateway &bull; Centurion University</div>
-                </td>
-                <td align="right">
-                  <span style="display: inline-block; padding: 4px 10px; background: #eff6ff; border: 1px solid #dbeafe; border-radius: 99px; font-size: 11px; font-weight: 700; color: #2563eb; letter-spacing: 0.3px;">ADMIN SECURITY</span>
+                <td style="vertical-align: middle;">
+                  <div style="font-size: 20px; font-weight: 700; color: #1a73e8; letter-spacing: -0.5px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">GradeFlow</div>
                 </td>
               </tr>
             </table>
+            <div style="font-size: 12px; color: #5f6368; margin-top: 4px; font-weight: 400;">
+              Centurion University of Technology and Management
+            </div>
           </td>
         </tr>
 
         <!-- Divider Line -->
         <tr>
-          <td style="border-top: 1px solid #e2e8f0; padding-top: 24px;">
-            <div style="font-size: 22px; font-weight: 700; color: #0f172a; margin-bottom: 12px; letter-spacing: -0.4px;">
-              Admin Verification Code
+          <td style="border-top: 1px solid #dadce0; padding-top: 28px;">
+            <div style="font-size: 22px; font-weight: 600; color: #202124; margin-bottom: 16px; letter-spacing: -0.3px;">
+              Verification code
             </div>
-            <div style="font-size: 14px; color: #334155; line-height: 1.6; margin-bottom: 8px;">
-              Dear Administrator,
+            <div style="font-size: 14px; color: #3c4043; line-height: 1.6; margin-bottom: 12px;">
+              Hi Administrator,
             </div>
-            <div style="font-size: 14px; color: #475569; line-height: 1.6; margin-bottom: 24px;">
-              An administrative login attempt has been initiated with the correct master password. Use the single-use verification code below to authorize this session:
-            </div>
-
-            <!-- Crisp OTP Box -->
-            <div style="background: #f8fafc; border: 1.5px solid #cbd5e1; border-radius: 12px; padding: 20px; text-align: center; margin-bottom: 24px;">
-              <div style="font-size: 38px; font-weight: 800; letter-spacing: 8px; color: #0f172a; font-family: 'Space Mono', 'SF Pro Display', monospace;">
-                ${otp}
-              </div>
+            <div style="font-size: 14px; color: #3c4043; line-height: 1.6; margin-bottom: 28px;">
+              Please use the verification code below to sign in to your GradeFlow Master Admin account:
             </div>
 
-            <div style="font-size: 13px; color: #64748b; line-height: 1.6; margin-bottom: 12px;">
-              This code will expire in <strong>${expiresInMinutes} minutes</strong>. For security reasons, do not share this code with anyone.
+            <!-- Crisp Blue OTP Code -->
+            <div style="font-size: 38px; font-weight: 700; letter-spacing: 8px; color: #1a73e8; font-family: 'SF Pro Display', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, monospace; margin-bottom: 28px;">
+              ${otp}
             </div>
 
-            <div style="font-size: 12.5px; color: #94a3b8; line-height: 1.6; margin-bottom: 28px;">
-              If you did not initiate this login request, someone may be attempting to access the administration portal. Please verify your credentials immediately.
+            <div style="font-size: 13px; color: #5f6368; line-height: 1.6; margin-bottom: 14px;">
+              This code will expire in ${expiresInMinutes} minutes. For security reasons, do not share this code with anyone.
+            </div>
+
+            <div style="font-size: 13px; color: #5f6368; line-height: 1.6; margin-bottom: 32px;">
+              If you did not request this verification code, you can safely ignore this email. Someone may have entered your administrative email by mistake.
             </div>
           </td>
         </tr>
 
         <!-- Footer -->
         <tr>
-          <td style="border-top: 1px solid #f1f5f9; padding-top: 20px; font-size: 11.5px; color: #64748b; line-height: 1.5;">
-            <div>GradeFlow Enterprise Security &bull; Max 2 Authorized Active Devices</div>
-            <div style="margin-top: 4px; color: #94a3b8; font-size: 11px;">
-              This is an automated administrative authentication message. Please do not reply directly to this email.
+          <td style="border-top: 1px solid #dadce0; padding-top: 20px; font-size: 12px; color: #70757a; line-height: 1.5;">
+            <div>GradeFlow Enterprise Security &bull; Centurion University</div>
+            <div style="margin-top: 4px; color: #80868b; font-size: 11px;">
+              This is an automated authentication message. Please do not reply directly to this email.
             </div>
           </td>
         </tr>
@@ -382,10 +380,128 @@ async function sendAdminOtpEmail({ to, otp, expiresInMinutes = 5 }) {
     </html>
   `;
 
-  const text = `GradeFlow Institutional Admin Verification Code:\n\n${otp}\n\nThis code will expire in ${expiresInMinutes} minutes. If you did not initiate this login request, please verify your credentials immediately.\n\nGradeFlow Institutional Administration Gateway\nCenturion University of Technology and Management`;
+  const text = `Hi Administrator,\n\nYour GradeFlow Admin verification code is:\n\n${otp}\n\nThis code will expire in ${expiresInMinutes} minutes. If you did not request this code, you can safely ignore this email.\n\nGradeFlow Enterprise Security\nCenturion University of Technology and Management`;
 
   const mailOptions = {
-    from: `"GradeFlow Admin Security" <${senderEmail}>`,
+    from: `"GradeFlow" <${senderEmail}>`,
+    replyTo: senderEmail,
+    to: recipientEmail,
+    subject,
+    text,
+    html,
+  };
+
+  return sendMailWithRetry(mailOptions);
+}
+
+/**
+ * Sends a clean welcome email to newly created Sub-Admin with login details.
+ */
+async function sendSubAdminWelcomeEmail({
+  to,
+  name = "Administrator",
+  email,
+  password,
+  assignedModules = [],
+  loginUrl = "https://grade-flow-navy.vercel.app/admin",
+}) {
+  const recipientEmail = String(to || "").trim().toLowerCase();
+
+  if (!recipientEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(recipientEmail)) {
+    throw new Error(`Invalid recipient email address`);
+  }
+
+  const subject = `Your GradeFlow Sub-Admin Account Details`;
+  const senderEmail = process.env.EMAIL_FROM || "jaganparida9154@gmail.com";
+  const modulesList = assignedModules.length > 0 ? assignedModules.join(", ") : "Default Deny (0 Modules Assigned)";
+
+  const html = `
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+      <meta charset="UTF-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>Your GradeFlow Sub-Admin Account</title>
+    </head>
+    <body style="margin: 0; padding: 40px 20px; background-color: #ffffff; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #202124; -webkit-font-smoothing: antialiased;">
+      <table align="center" border="0" cellpadding="0" cellspacing="0" width="100%" style="max-width: 520px; margin: 0 auto; text-align: left;">
+        <!-- Brand Header -->
+        <tr>
+          <td style="padding-bottom: 24px;">
+            <table border="0" cellpadding="0" cellspacing="0">
+              <tr>
+                <td style="vertical-align: middle;">
+                  <div style="font-size: 20px; font-weight: 700; color: #1a73e8; letter-spacing: -0.5px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">GradeFlow</div>
+                </td>
+              </tr>
+            </table>
+            <div style="font-size: 12px; color: #5f6368; margin-top: 4px; font-weight: 400;">
+              Centurion University of Technology and Management
+            </div>
+          </td>
+        </tr>
+
+        <!-- Divider Line -->
+        <tr>
+          <td style="border-top: 1px solid #dadce0; padding-top: 28px;">
+            <div style="font-size: 22px; font-weight: 600; color: #202124; margin-bottom: 16px; letter-spacing: -0.3px;">
+              Sub-Admin account access
+            </div>
+            <div style="font-size: 14px; color: #3c4043; line-height: 1.6; margin-bottom: 12px;">
+              Hi ${name},
+            </div>
+            <div style="font-size: 14px; color: #3c4043; line-height: 1.6; margin-bottom: 24px;">
+              A delegated Sub-Admin account has been created for you on the GradeFlow Institutional Portal. Please use the credentials below to sign in:
+            </div>
+
+            <!-- Credentials Box -->
+            <div style="background-color: #f8f9fa; border: 1px solid #dadce0; border-radius: 8px; padding: 18px 20px; margin-bottom: 24px;">
+              <div style="font-size: 13px; color: #5f6368; margin-bottom: 8px;">
+                Email: <strong style="color: #202124; font-size: 14px;">${email}</strong>
+              </div>
+              <div style="font-size: 13px; color: #5f6368; margin-bottom: 8px;">
+                Password: <strong style="color: #1a73e8; font-size: 14px; font-family: monospace;">${password}</strong>
+              </div>
+              <div style="font-size: 13px; color: #5f6368;">
+                Assigned Modules: <strong style="color: #202124; font-size: 13px;">${modulesList}</strong>
+              </div>
+            </div>
+
+            <!-- Sign In Button CTA -->
+            <div style="margin-bottom: 28px;">
+              <a href="${loginUrl}" target="_blank" style="display: inline-block; background-color: #1a73e8; color: #ffffff; text-decoration: none; padding: 11px 24px; border-radius: 6px; font-size: 14px; font-weight: 600; letter-spacing: 0.2px;">
+                Sign In to Sub-Admin Portal
+              </a>
+            </div>
+
+            <div style="font-size: 13px; color: #5f6368; line-height: 1.6; margin-bottom: 14px;">
+              For security reasons, do not share these credentials with anyone. Your access is strictly scoped according to institutional policies.
+            </div>
+
+            <div style="font-size: 13px; color: #5f6368; line-height: 1.6; margin-bottom: 32px;">
+              If you have any questions regarding your assigned capabilities, please contact the Institutional Main Administrator.
+            </div>
+          </td>
+        </tr>
+
+        <!-- Footer -->
+        <tr>
+          <td style="border-top: 1px solid #dadce0; padding-top: 20px; font-size: 12px; color: #70757a; line-height: 1.5;">
+            <div>GradeFlow Academic Intelligence &bull; Centurion University</div>
+            <div style="margin-top: 4px; color: #80868b; font-size: 11px;">
+              This is an automated administrative notification. Please do not reply directly to this email.
+            </div>
+          </td>
+        </tr>
+      </table>
+    </body>
+    </html>
+  `;
+
+  const text = `Hi ${name},\n\nYour GradeFlow Sub-Admin account credentials:\n\nEmail: ${email}\nPassword: ${password}\nAssigned Modules: ${modulesList}\n\nSign in at: ${loginUrl}\n\nGradeFlow Academic Intelligence\nCenturion University of Technology and Management`;
+
+  const mailOptions = {
+    from: `"GradeFlow" <${senderEmail}>`,
     replyTo: senderEmail,
     to: recipientEmail,
     subject,
@@ -402,5 +518,6 @@ module.exports = {
   sendTopperEmailNotification,
   sendOtpEmail,
   sendAdminOtpEmail,
+  sendSubAdminWelcomeEmail,
 };
 

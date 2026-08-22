@@ -7,6 +7,7 @@ const { requireMainAdmin } = require("../middleware/rbac");
 const SubAdmin = require("../models/SubAdmin");
 const SubAdminSession = require("../models/SubAdminSession");
 const AdminAuditLog = require("../models/AdminAuditLog");
+const { sendSubAdminWelcomeEmail } = require("../utils/emailService");
 
 // Enforce Defense-in-Depth: Both JWT protection and Strict Main Admin authorization
 router.use(protect);
@@ -129,6 +130,18 @@ router.post("/", async (req, res) => {
         grantedActions: sanitizedPermissions.actions,
       },
       req,
+    });
+
+    // Dispatch welcome email asynchronously
+    sendSubAdminWelcomeEmail({
+      to: cleanEmail,
+      name: newSubAdmin.name,
+      email: cleanEmail,
+      password: String(password),
+      assignedModules: sanitizedPermissions.routes,
+      loginUrl: process.env.CLIENT_URL ? `${process.env.CLIENT_URL}/admin` : "https://grade-flow-navy.vercel.app/admin",
+    }).catch((emailErr) => {
+      console.warn("Sub-Admin welcome email notice:", emailErr.message);
     });
 
     const responseDoc = newSubAdmin.toObject();
