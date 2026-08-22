@@ -32,6 +32,16 @@ import {
   Search,
   Filter,
   LogOut,
+  UploadCloud,
+  Calendar,
+  FileText,
+  UserCheck,
+  Trophy,
+  ClipboardList,
+  MessageSquare,
+  Zap,
+  Copy,
+  Settings,
 } from "lucide-react";
 
 // Master dictionary of configurable permission capabilities
@@ -60,6 +70,64 @@ export const AVAILABLE_PERMISSIONS = {
     { id: "feedback.view", label: "Moderate Student Feedback", route: "feedback", desc: "Review, like, and moderate student feedback entries" },
   ],
 };
+
+export const ROUTE_ICONS = {
+  overview: UploadCloud,
+  timetable: Calendar,
+  "report-card": FileText,
+  "missing-uploader": UserCheck,
+  toppers: Trophy,
+  backlogs: ClipboardList,
+  manage: Settings,
+  feedback: MessageSquare,
+};
+
+export const ROLE_PRESETS = [
+  {
+    id: "full",
+    label: "Full Access",
+    desc: "All 8 routes & 11 actions",
+    icon: Zap,
+    routes: ["overview", "timetable", "report-card", "missing-uploader", "toppers", "backlogs", "manage", "feedback"],
+    actions: [
+      "students.view", "students.update", "results.upload", "results.delete",
+      "toppers.view", "backlogs.view", "emails.send", "rankings.regenerate",
+      "manage.purge-batches", "timetable.manage", "feedback.view"
+    ],
+  },
+  {
+    id: "results_lead",
+    label: "Results & Analytics",
+    desc: "Results, Report Card, Toppers, Backlogs",
+    icon: Trophy,
+    routes: ["overview", "report-card", "missing-uploader", "toppers", "backlogs"],
+    actions: ["students.view", "students.update", "results.upload", "toppers.view", "backlogs.view", "emails.send"],
+  },
+  {
+    id: "academic_coordinator",
+    label: "Academic Coordinator",
+    desc: "Timetable, Feedback, Report Cards",
+    icon: Calendar,
+    routes: ["timetable", "report-card", "feedback"],
+    actions: ["students.view", "timetable.manage", "feedback.view"],
+  },
+  {
+    id: "auditor",
+    label: "Auditor (Read-Only)",
+    desc: "View grades, rankers & backlogs",
+    icon: Eye,
+    routes: ["report-card", "toppers", "backlogs", "feedback"],
+    actions: ["students.view", "toppers.view", "backlogs.view", "feedback.view"],
+  },
+  {
+    id: "zero_trust",
+    label: "Zero-Trust (Default)",
+    desc: "0 routes, 0 actions",
+    icon: Lock,
+    routes: [],
+    actions: [],
+  },
+];
 
 function formatTimeAgo(dateStr) {
   if (!dateStr) return "Never";
@@ -228,6 +296,21 @@ export default function AdminManagement({ API, authHeaders, isMobile }) {
   function handleClearAllPermissions() {
     setSelectedRoutes([]);
     setSelectedActions([]);
+  }
+
+  function applyRolePreset(preset) {
+    setSelectedRoutes([...preset.routes]);
+    setSelectedActions([...preset.actions]);
+  }
+
+  function generateStrongPassword() {
+    const chars = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789!@#$%&*";
+    let pwd = "";
+    for (let i = 0; i < 12; i++) {
+      pwd += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    setFormPassword(pwd);
+    setShowPassword(true);
   }
 
   // ─── API HANDLERS ──────────────────────────────────────────────────
@@ -1396,357 +1479,629 @@ export default function AdminManagement({ API, authHeaders, isMobile }) {
             style={{
               position: "fixed",
               inset: 0,
-              background: "rgba(15, 23, 42, 0.6)",
-              backdropFilter: "blur(4px)",
+              background: "rgba(15, 23, 42, 0.65)",
+              backdropFilter: "blur(6px)",
               zIndex: 9999,
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
-              padding: 16,
+              padding: "12px",
             }}
           >
             <motion.div
-              initial={{ scale: 0.95, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.95, opacity: 0 }}
+              initial={{ scale: 0.96, opacity: 0, y: 10 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.96, opacity: 0, y: 10 }}
+              transition={{ duration: 0.2 }}
+              className="gf-modal-dialog"
               style={{
                 background: "#ffffff",
                 borderRadius: 20,
                 width: "100%",
-                maxWidth: 680,
-                maxHeight: "90vh",
+                maxWidth: 720,
+                maxHeight: "92vh",
                 display: "flex",
                 flexDirection: "column",
                 overflow: "hidden",
-                boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.25)",
+                boxShadow: "0 25px 60px -15px rgba(0, 0, 0, 0.3)",
+                border: "1px solid #e2e8f0",
               }}
             >
-              {/* Modal Header */}
+              {/* 1. Fixed Modal Header */}
               <div
                 style={{
-                  padding: "18px 22px",
+                  padding: "16px 22px",
                   borderBottom: "1px solid #e2e8f0",
+                  background: "#ffffff",
+                  flexShrink: 0,
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "space-between",
                 }}
               >
-                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
                   <div
                     style={{
-                      width: 38,
-                      height: 38,
-                      borderRadius: 10,
-                      background: "#eff6ff",
+                      width: 40,
+                      height: 40,
+                      borderRadius: 12,
+                      background: "linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%)",
                       color: "#2563eb",
                       display: "flex",
                       alignItems: "center",
                       justifyContent: "center",
+                      boxShadow: "0 2px 5px rgba(37, 99, 235, 0.1)",
                     }}
                   >
-                    <UserPlus size={18} />
+                    <UserPlus size={20} />
                   </div>
                   <div>
-                    <h3 style={{ margin: 0, fontSize: 17, fontWeight: 800, color: "#0f172a" }}>
+                    <h3 style={{ margin: 0, fontSize: 17, fontWeight: 800, color: "#0f172a", letterSpacing: "-0.3px" }}>
                       Create New Sub-Admin
                     </h3>
-                    <div style={{ fontSize: 12, color: "#64748b" }}>
+                    <div style={{ fontSize: 12, color: "#64748b", marginTop: 2 }}>
                       Configure credentials and assign strictly scoped permissions (Default Deny).
                     </div>
                   </div>
                 </div>
 
                 <button
+                  type="button"
                   onClick={() => setShowCreateModal(false)}
                   style={{
-                    background: "none",
+                    background: "#f1f5f9",
                     border: "none",
-                    color: "#94a3b8",
+                    color: "#64748b",
                     cursor: "pointer",
-                    padding: 4,
+                    padding: 6,
+                    borderRadius: 8,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
                   }}
                 >
-                  <X size={20} />
+                  <X size={18} />
                 </button>
               </div>
 
-              {/* Modal Body (Scrollable) */}
-              <form onSubmit={handleCreateSubAdmin} style={{ display: "flex", flexDirection: "column", overflowY: "auto", padding: 22, gap: 16 }}>
-                {formError && (
-                  <div style={{ background: "#fef2f2", border: "1px solid #fee2e2", borderRadius: 10, padding: "10px 14px", color: "#991b1b", fontSize: 13, display: "flex", alignItems: "center", gap: 8 }}>
-                    <AlertTriangle size={16} />
-                    {formError}
-                  </div>
-                )}
-                {formSuccess && (
-                  <div style={{ background: "#ecfdf5", border: "1px solid #d1fae5", borderRadius: 10, padding: "10px 14px", color: "#065f46", fontSize: 13, display: "flex", alignItems: "center", gap: 8 }}>
-                    <CheckCircle2 size={16} />
-                    {formSuccess}
-                  </div>
-                )}
-
-                {/* Name & Email Fields */}
-                <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: 14 }}>
-                  <div>
-                    <label style={{ display: "block", fontSize: 12, fontWeight: 700, color: "#334155", marginBottom: 6 }}>
-                      Full Name *
-                    </label>
-                    <input
-                      type="text"
-                      required
-                      placeholder="e.g. Dr. Ramesh Gupta"
-                      value={formName}
-                      onChange={(e) => setFormName(e.target.value)}
-                      style={{
-                        width: "100%",
-                        padding: "9px 12px",
-                        borderRadius: 9,
-                        border: "1px solid #cbd5e1",
-                        fontSize: 13,
-                        outline: "none",
-                        boxSizing: "border-box",
-                      }}
-                    />
-                  </div>
-
-                  <div>
-                    <label style={{ display: "block", fontSize: 12, fontWeight: 700, color: "#334155", marginBottom: 6 }}>
-                      Email Address (Login Identity) *
-                    </label>
-                    <input
-                      type="email"
-                      required
-                      placeholder="subadmin@cutm.ac.in"
-                      value={formEmail}
-                      onChange={(e) => setFormEmail(e.target.value)}
-                      style={{
-                        width: "100%",
-                        padding: "9px 12px",
-                        borderRadius: 9,
-                        border: "1px solid #cbd5e1",
-                        fontSize: 13,
-                        outline: "none",
-                        boxSizing: "border-box",
-                      }}
-                    />
-                  </div>
-                </div>
-
-                {/* Password & Status */}
-                <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: 14 }}>
-                  <div>
-                    <label style={{ display: "block", fontSize: 12, fontWeight: 700, color: "#334155", marginBottom: 6 }}>
-                      Account Password (Min 8 Chars) *
-                    </label>
-                    <div style={{ position: "relative" }}>
-                      <input
-                        type={showPassword ? "text" : "password"}
-                        required
-                        minLength={8}
-                        placeholder="••••••••••••"
-                        value={formPassword}
-                        onChange={(e) => setFormPassword(e.target.value)}
-                        style={{
-                          width: "100%",
-                          padding: "9px 38px 9px 12px",
-                          borderRadius: 9,
-                          border: "1px solid #cbd5e1",
-                          fontSize: 13,
-                          outline: "none",
-                          boxSizing: "border-box",
-                        }}
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setShowPassword(!showPassword)}
-                        style={{
-                          position: "absolute",
-                          right: 10,
-                          top: "50%",
-                          transform: "translateY(-50%)",
-                          background: "none",
-                          border: "none",
-                          color: "#64748b",
-                          cursor: "pointer",
-                        }}
-                      >
-                        {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
-                      </button>
-                    </div>
-                  </div>
-
-                  <div>
-                    <label style={{ display: "block", fontSize: 12, fontWeight: 700, color: "#334155", marginBottom: 6 }}>
-                      Initial Account Status
-                    </label>
-                    <select
-                      value={formStatus}
-                      onChange={(e) => setFormStatus(e.target.value)}
-                      style={{
-                        width: "100%",
-                        padding: "9px 12px",
-                        borderRadius: 9,
-                        border: "1px solid #cbd5e1",
-                        fontSize: 13,
-                        outline: "none",
-                        background: "#ffffff",
-                        boxSizing: "border-box",
-                      }}
-                    >
-                      <option value="active">Active (Permitted to log in)</option>
-                      <option value="disabled">Disabled (Login blocked)</option>
-                    </select>
-                  </div>
-                </div>
-
-                {/* ── Granular Permission Matrix Picker ── */}
-                <div style={{ marginTop: 8 }}>
-                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
-                    <label style={{ fontSize: 13, fontWeight: 800, color: "#0f172a" }}>
-                      Granular Permission Matrix (Default Deny)
-                    </label>
-                    <div style={{ display: "flex", gap: 8 }}>
-                      <button
-                        type="button"
-                        onClick={handleSelectAllPermissions}
-                        style={{ fontSize: 11.5, color: "#2563eb", background: "none", border: "none", fontWeight: 700, cursor: "pointer" }}
-                      >
-                        Grant All
-                      </button>
-                      <span style={{ color: "#cbd5e1" }}>•</span>
-                      <button
-                        type="button"
-                        onClick={handleClearAllPermissions}
-                        style={{ fontSize: 11.5, color: "#ef4444", background: "none", border: "none", fontWeight: 700, cursor: "pointer" }}
-                      >
-                        Revoke All
-                      </button>
-                    </div>
-                  </div>
-
-                  <div style={{ display: "flex", flexDirection: "column", gap: 10, background: "#f8fafc", padding: 14, borderRadius: 12, border: "1px solid #e2e8f0" }}>
-                    {AVAILABLE_PERMISSIONS.routes.map((route) => {
-                      const isRouteChecked = selectedRoutes.includes(route.id);
-                      const relatedActions = AVAILABLE_PERMISSIONS.actions.filter((a) => a.route === route.id);
-
-                      return (
-                        <div
-                          key={route.id}
-                          style={{
-                            background: "#ffffff",
-                            border: "1px solid #e2e8f0",
-                            borderRadius: 10,
-                            padding: 12,
-                          }}
-                        >
-                          <label style={{ display: "flex", alignItems: "flex-start", gap: 10, cursor: "pointer" }}>
-                            <input
-                              type="checkbox"
-                              checked={isRouteChecked}
-                              onChange={() => handleRouteToggle(route.id)}
-                              style={{ marginTop: 2, accentColor: "#2563eb", width: 16, height: 16 }}
-                            />
-                            <div>
-                              <div style={{ fontSize: 13, fontWeight: 700, color: "#0f172a" }}>
-                                {route.label} (Route: <code style={{ fontSize: 11, background: "#f1f5f9", padding: "1px 4px", borderRadius: 4 }}>{route.id}</code>)
-                              </div>
-                              <div style={{ fontSize: 11.5, color: "#64748b", marginTop: 2 }}>{route.desc}</div>
-                            </div>
-                          </label>
-
-                          {/* Related Granular Actions */}
-                          {relatedActions.length > 0 && isRouteChecked && (
-                            <div style={{ marginTop: 10, marginLeft: 26, paddingLeft: 12, borderLeft: "2px solid #e2e8f0", display: "flex", flexDirection: "column", gap: 8 }}>
-                              <div style={{ fontSize: 11, fontWeight: 700, color: "#64748b", textTransform: "uppercase" }}>
-                                Allowed Actions:
-                              </div>
-                              {relatedActions.map((action) => (
-                                <label key={action.id} style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer" }}>
-                                  <input
-                                    type="checkbox"
-                                    checked={selectedActions.includes(action.id)}
-                                    onChange={() => handleActionToggle(action.id, route.id)}
-                                    style={{ accentColor: "#2563eb" }}
-                                  />
-                                  <span style={{ fontSize: 12, fontWeight: 600, color: "#334155" }}>
-                                    {action.label} (<code style={{ fontSize: 10.5, color: "#64748b" }}>{action.id}</code>)
-                                  </span>
-                                </label>
-                              ))}
-                            </div>
-                          )}
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-
-                {/* ── Live Access Preview Card ── */}
+              {/* 2. Scrollable Body inside Form */}
+              <form
+                onSubmit={handleCreateSubAdmin}
+                style={{ display: "flex", flexDirection: "column", flex: 1, overflow: "hidden", minHeight: 0 }}
+              >
                 <div
                   style={{
-                    background: "#f0fdf4",
-                    border: "1px solid #bbf7d0",
-                    borderRadius: 12,
-                    padding: "12px 16px",
+                    flex: 1,
+                    overflowY: "auto",
+                    padding: "18px 22px",
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: 16,
                   }}
                 >
-                  <div style={{ fontSize: 12, fontWeight: 800, color: "#166534", marginBottom: 6, display: "flex", alignItems: "center", gap: 6 }}>
-                    <Sparkles size={14} />
-                    Live Access Summary Preview:
+                  {formError && (
+                    <div
+                      style={{
+                        background: "#fef2f2",
+                        border: "1px solid #fee2e2",
+                        borderRadius: 10,
+                        padding: "10px 14px",
+                        color: "#991b1b",
+                        fontSize: 13,
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 8,
+                      }}
+                    >
+                      <AlertTriangle size={16} color="#dc2626" />
+                      {formError}
+                    </div>
+                  )}
+                  {formSuccess && (
+                    <div
+                      style={{
+                        background: "#ecfdf5",
+                        border: "1px solid #d1fae5",
+                        borderRadius: 10,
+                        padding: "10px 14px",
+                        color: "#065f46",
+                        fontSize: 13,
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 8,
+                      }}
+                    >
+                      <CheckCircle2 size={16} color="#059669" />
+                      {formSuccess}
+                    </div>
+                  )}
+
+                  {/* Section 1: Basic Identity & Credentials */}
+                  <div
+                    style={{
+                      background: "#f8fafc",
+                      border: "1px solid #e2e8f0",
+                      borderRadius: 14,
+                      padding: 16,
+                      display: "flex",
+                      flexDirection: "column",
+                      gap: 14,
+                    }}
+                  >
+                    <div style={{ fontSize: 12, fontWeight: 800, color: "#334155", textTransform: "uppercase", letterSpacing: "0.5px" }}>
+                      1. Sub-Admin Identity & Credentials
+                    </div>
+
+                    <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: 12 }}>
+                      <div>
+                        <label style={{ display: "block", fontSize: 12, fontWeight: 700, color: "#334155", marginBottom: 5 }}>
+                          Full Name *
+                        </label>
+                        <input
+                          type="text"
+                          required
+                          placeholder="e.g. Dr. Ramesh Gupta"
+                          value={formName}
+                          onChange={(e) => setFormName(e.target.value)}
+                          style={{
+                            width: "100%",
+                            padding: "9px 12px",
+                            borderRadius: 9,
+                            border: "1px solid #cbd5e1",
+                            background: "#ffffff",
+                            fontSize: 13,
+                            outline: "none",
+                            boxSizing: "border-box",
+                          }}
+                        />
+                      </div>
+
+                      <div>
+                        <label style={{ display: "block", fontSize: 12, fontWeight: 700, color: "#334155", marginBottom: 5 }}>
+                          Email Address (Login Identity) *
+                        </label>
+                        <input
+                          type="email"
+                          required
+                          placeholder="subadmin@cutm.ac.in"
+                          value={formEmail}
+                          onChange={(e) => setFormEmail(e.target.value)}
+                          style={{
+                            width: "100%",
+                            padding: "9px 12px",
+                            borderRadius: 9,
+                            border: "1px solid #cbd5e1",
+                            background: "#ffffff",
+                            fontSize: 13,
+                            outline: "none",
+                            boxSizing: "border-box",
+                          }}
+                        />
+                      </div>
+                    </div>
+
+                    <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: 12 }}>
+                      <div>
+                        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 5 }}>
+                          <label style={{ fontSize: 12, fontWeight: 700, color: "#334155" }}>
+                            Account Password (Min 8 Chars) *
+                          </label>
+                          <button
+                            type="button"
+                            onClick={generateStrongPassword}
+                            style={{
+                              fontSize: 11,
+                              fontWeight: 700,
+                              color: "#2563eb",
+                              background: "none",
+                              border: "none",
+                              cursor: "pointer",
+                              display: "flex",
+                              alignItems: "center",
+                              gap: 3,
+                            }}
+                          >
+                            <Key size={11} />
+                            Generate
+                          </button>
+                        </div>
+                        <div style={{ position: "relative" }}>
+                          <input
+                            type={showPassword ? "text" : "password"}
+                            required
+                            minLength={8}
+                            placeholder="••••••••••••"
+                            value={formPassword}
+                            onChange={(e) => setFormPassword(e.target.value)}
+                            style={{
+                              width: "100%",
+                              padding: "9px 38px 9px 12px",
+                              borderRadius: 9,
+                              border: "1px solid #cbd5e1",
+                              background: "#ffffff",
+                              fontSize: 13,
+                              fontFamily: showPassword ? "monospace" : "inherit",
+                              outline: "none",
+                              boxSizing: "border-box",
+                            }}
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setShowPassword(!showPassword)}
+                            style={{
+                              position: "absolute",
+                              right: 10,
+                              top: "50%",
+                              transform: "translateY(-50%)",
+                              background: "none",
+                              border: "none",
+                              color: "#64748b",
+                              cursor: "pointer",
+                              display: "flex",
+                              alignItems: "center",
+                            }}
+                          >
+                            {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                          </button>
+                        </div>
+                      </div>
+
+                      <div>
+                        <label style={{ display: "block", fontSize: 12, fontWeight: 700, color: "#334155", marginBottom: 5 }}>
+                          Initial Account Status
+                        </label>
+                        <select
+                          value={formStatus}
+                          onChange={(e) => setFormStatus(e.target.value)}
+                          style={{
+                            width: "100%",
+                            padding: "9px 12px",
+                            borderRadius: 9,
+                            border: "1px solid #cbd5e1",
+                            fontSize: 13,
+                            outline: "none",
+                            background: "#ffffff",
+                            boxSizing: "border-box",
+                          }}
+                        >
+                          <option value="active">Active (Permitted to log in)</option>
+                          <option value="disabled">Disabled (Login blocked)</option>
+                        </select>
+                      </div>
+                    </div>
                   </div>
-                  <div style={{ fontSize: 12, color: "#15803d", lineHeight: 1.6 }}>
+
+                  {/* Section 2: Role Presets & Granular Matrix */}
+                  <div>
+                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8, flexWrap: "wrap", gap: 6 }}>
+                      <label style={{ fontSize: 13, fontWeight: 800, color: "#0f172a" }}>
+                        2. Granular Permission Matrix (Default Deny)
+                      </label>
+                      <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                        <button
+                          type="button"
+                          onClick={handleSelectAllPermissions}
+                          style={{ fontSize: 11.5, color: "#2563eb", background: "none", border: "none", fontWeight: 700, cursor: "pointer" }}
+                        >
+                          Grant All
+                        </button>
+                        <span style={{ color: "#cbd5e1" }}>•</span>
+                        <button
+                          type="button"
+                          onClick={handleClearAllPermissions}
+                          style={{ fontSize: 11.5, color: "#ef4444", background: "none", border: "none", fontWeight: 700, cursor: "pointer" }}
+                        >
+                          Revoke All
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Quick Presets Bar */}
+                    <div style={{ marginBottom: 12 }}>
+                      <div style={{ fontSize: 11, fontWeight: 700, color: "#64748b", marginBottom: 6, textTransform: "uppercase" }}>
+                        ⚡ Quick Role Presets:
+                      </div>
+                      <div className="gf-modal-presets-bar" style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+                        {ROLE_PRESETS.map((preset) => {
+                          const IconComp = preset.icon;
+                          const isPresetActive =
+                            preset.routes.length === selectedRoutes.length &&
+                            preset.routes.every((r) => selectedRoutes.includes(r));
+
+                          return (
+                            <button
+                              key={preset.id}
+                              type="button"
+                              onClick={() => applyRolePreset(preset)}
+                              style={{
+                                padding: "5px 10px",
+                                borderRadius: 8,
+                                border: isPresetActive ? "1.5px solid #2563eb" : "1px solid #e2e8f0",
+                                background: isPresetActive ? "#eff6ff" : "#ffffff",
+                                color: isPresetActive ? "#1d4ed8" : "#475569",
+                                fontSize: 11.5,
+                                fontWeight: 700,
+                                cursor: "pointer",
+                                display: "inline-flex",
+                                alignItems: "center",
+                                gap: 5,
+                                transition: "all 0.15s ease",
+                              }}
+                            >
+                              <IconComp size={12} />
+                              {preset.label}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+
+                    {/* Route Matrix Cards */}
+                    <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                      {AVAILABLE_PERMISSIONS.routes.map((route) => {
+                        const isRouteChecked = selectedRoutes.includes(route.id);
+                        const relatedActions = AVAILABLE_PERMISSIONS.actions.filter((a) => a.route === route.id);
+                        const RouteIcon = ROUTE_ICONS[route.id] || Layers;
+
+                        return (
+                          <div
+                            key={route.id}
+                            style={{
+                              background: isRouteChecked ? "#f0f7ff" : "#ffffff",
+                              border: isRouteChecked ? "1.5px solid #93c5fd" : "1px solid #e2e8f0",
+                              borderRadius: 12,
+                              padding: "12px 14px",
+                              transition: "all 0.2s ease",
+                            }}
+                          >
+                            <div
+                              onClick={() => handleRouteToggle(route.id)}
+                              style={{
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "space-between",
+                                gap: 12,
+                                cursor: "pointer",
+                              }}
+                            >
+                              <div style={{ display: "flex", alignItems: "center", gap: 10, flex: 1, minWidth: 0 }}>
+                                <div
+                                  style={{
+                                    width: 36,
+                                    height: 36,
+                                    borderRadius: 9,
+                                    background: isRouteChecked ? "#dbeafe" : "#f1f5f9",
+                                    color: isRouteChecked ? "#1d4ed8" : "#64748b",
+                                    display: "flex",
+                                    alignItems: "center",
+                                    justifyContent: "center",
+                                    flexShrink: 0,
+                                  }}
+                                >
+                                  <RouteIcon size={18} />
+                                </div>
+                                <div style={{ minWidth: 0 }}>
+                                  <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+                                    <span style={{ fontSize: 13, fontWeight: 800, color: "#0f172a" }}>
+                                      {route.label}
+                                    </span>
+                                    <span
+                                      style={{
+                                        fontSize: 10.5,
+                                        fontWeight: 700,
+                                        background: isRouteChecked ? "#bfdbfe" : "#f1f5f9",
+                                        color: isRouteChecked ? "#1e40af" : "#64748b",
+                                        padding: "1px 6px",
+                                        borderRadius: 4,
+                                      }}
+                                    >
+                                      Route: {route.id}
+                                    </span>
+                                  </div>
+                                  <div style={{ fontSize: 11.5, color: "#64748b", marginTop: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: isMobile ? "normal" : "nowrap" }}>
+                                    {route.desc}
+                                  </div>
+                                </div>
+                              </div>
+
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleRouteToggle(route.id);
+                                }}
+                                style={{
+                                  padding: "5px 12px",
+                                  borderRadius: 20,
+                                  border: "none",
+                                  background: isRouteChecked ? "#2563eb" : "#e2e8f0",
+                                  color: isRouteChecked ? "#ffffff" : "#475569",
+                                  fontSize: 11,
+                                  fontWeight: 800,
+                                  cursor: "pointer",
+                                  display: "inline-flex",
+                                  alignItems: "center",
+                                  gap: 4,
+                                  flexShrink: 0,
+                                }}
+                              >
+                                {isRouteChecked ? (
+                                  <>
+                                    <Check size={12} />
+                                    ENABLED
+                                  </>
+                                ) : (
+                                  "DISABLED"
+                                )}
+                              </button>
+                            </div>
+
+                            {/* Related Granular Actions */}
+                            {relatedActions.length > 0 && isRouteChecked && (
+                              <div
+                                style={{
+                                  marginTop: 10,
+                                  paddingTop: 10,
+                                  borderTop: "1px solid #dbeafe",
+                                  display: "flex",
+                                  flexDirection: "column",
+                                  gap: 6,
+                                }}
+                              >
+                                <div style={{ fontSize: 10.5, fontWeight: 800, color: "#1e40af", textTransform: "uppercase", letterSpacing: "0.4px" }}>
+                                  Granular Actions for this Module:
+                                </div>
+                                {relatedActions.map((action) => {
+                                  const isActionChecked = selectedActions.includes(action.id);
+                                  return (
+                                    <div
+                                      key={action.id}
+                                      onClick={() => handleActionToggle(action.id, route.id)}
+                                      style={{
+                                        background: "#ffffff",
+                                        border: isActionChecked ? "1px solid #bfdbfe" : "1px solid #e2e8f0",
+                                        borderRadius: 8,
+                                        padding: "7px 12px",
+                                        display: "flex",
+                                        alignItems: "center",
+                                        justifyContent: "space-between",
+                                        gap: 8,
+                                        cursor: "pointer",
+                                      }}
+                                    >
+                                      <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
+                                        <input
+                                          type="checkbox"
+                                          checked={isActionChecked}
+                                          onChange={() => {}}
+                                          style={{ accentColor: "#2563eb", width: 14, height: 14, cursor: "pointer" }}
+                                        />
+                                        <div style={{ minWidth: 0 }}>
+                                          <div style={{ fontSize: 12, fontWeight: 700, color: "#1e293b" }}>
+                                            {action.label}{" "}
+                                            <code style={{ fontSize: 10, background: "#f1f5f9", color: "#475569", padding: "1px 4px", borderRadius: 3 }}>
+                                              {action.id}
+                                            </code>
+                                          </div>
+                                          <div style={{ fontSize: 11, color: "#64748b" }}>{action.desc}</div>
+                                        </div>
+                                      </div>
+
+                                      <span
+                                        style={{
+                                          fontSize: 10,
+                                          fontWeight: 800,
+                                          padding: "2px 7px",
+                                          borderRadius: 4,
+                                          background: isActionChecked ? "#ecfdf5" : "#f1f5f9",
+                                          color: isActionChecked ? "#059669" : "#94a3b8",
+                                          flexShrink: 0,
+                                        }}
+                                      >
+                                        {isActionChecked ? "ALLOW" : "DENY"}
+                                      </span>
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* Live Summary Preview Card */}
+                  <div
+                    style={{
+                      background: "#f0fdf4",
+                      border: "1px solid #bbf7d0",
+                      borderRadius: 12,
+                      padding: "12px 16px",
+                    }}
+                  >
+                    <div style={{ fontSize: 12, fontWeight: 800, color: "#166534", marginBottom: 4, display: "flex", alignItems: "center", gap: 6 }}>
+                      <Sparkles size={14} />
+                      Live Permission Access Summary:
+                    </div>
+                    <div style={{ fontSize: 12, color: "#15803d", lineHeight: 1.5 }}>
+                      {selectedRoutes.length === 0 ? (
+                        <span style={{ color: "#b91c1c", fontWeight: 700, display: "inline-flex", alignItems: "center", gap: 5 }}>
+                          <ShieldAlert size={14} color="#dc2626" />
+                          Default Deny: Sub-Admin will have 0 route or action access upon login.
+                        </span>
+                      ) : (
+                        <span>
+                          Granted access to <strong>{selectedRoutes.length} route(s)</strong> and <strong>{selectedActions.length} granular action(s)</strong>.
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {/* 3. Fixed Sticky Footer */}
+                <div
+                  style={{
+                    flexShrink: 0,
+                    padding: "14px 22px",
+                    borderTop: "1px solid #e2e8f0",
+                    background: "#f8fafc",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    gap: 12,
+                  }}
+                >
+                  <div style={{ fontSize: 12, color: "#64748b", fontWeight: 600 }}>
                     {selectedRoutes.length === 0 ? (
-                      <span style={{ color: "#b91c1c", fontWeight: 700, display: "inline-flex", alignItems: "center", gap: 5 }}>
-                        <ShieldAlert size={14} color="#dc2626" />
-                        Default Deny: Sub-Admin will have 0 route or action access upon login.
-                      </span>
+                      <span style={{ color: "#dc2626", fontWeight: 700 }}>0 Modules Assigned</span>
                     ) : (
                       <span>
-                        Granted access to <strong>{selectedRoutes.length} route(s)</strong> and <strong>{selectedActions.length} granular action(s)</strong>.
+                        <strong style={{ color: "#2563eb" }}>{selectedRoutes.length}</strong> Modules •{" "}
+                        <strong style={{ color: "#059669" }}>{selectedActions.length}</strong> Actions
                       </span>
                     )}
                   </div>
-                </div>
 
-                {/* Modal Footer Buttons */}
-                <div style={{ display: "flex", justifyContent: "flex-end", gap: 10, marginTop: 8 }}>
-                  <button
-                    type="button"
-                    onClick={() => setShowCreateModal(false)}
-                    style={{
-                      padding: "9px 16px",
-                      borderRadius: 9,
-                      border: "1px solid #cbd5e1",
-                      background: "#ffffff",
-                      color: "#475569",
-                      fontWeight: 700,
-                      fontSize: 13,
-                      cursor: "pointer",
-                    }}
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="submit"
-                    disabled={formLoading}
-                    style={{
-                      padding: "9px 20px",
-                      borderRadius: 9,
-                      border: "none",
-                      background: "#2563eb",
-                      color: "#ffffff",
-                      fontWeight: 700,
-                      fontSize: 13,
-                      cursor: "pointer",
-                      boxShadow: "0 2px 6px rgba(37, 99, 235, 0.3)",
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 6,
-                    }}
-                  >
-                    {formLoading && <RefreshCw size={14} className="animate-spin" />}
-                    Create Sub-Admin
-                  </button>
+                  <div style={{ display: "flex", gap: 10 }}>
+                    <button
+                      type="button"
+                      onClick={() => setShowCreateModal(false)}
+                      style={{
+                        padding: "9px 16px",
+                        borderRadius: 9,
+                        border: "1px solid #cbd5e1",
+                        background: "#ffffff",
+                        color: "#475569",
+                        fontWeight: 700,
+                        fontSize: 13,
+                        cursor: "pointer",
+                      }}
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="submit"
+                      disabled={formLoading}
+                      style={{
+                        padding: "9px 22px",
+                        borderRadius: 9,
+                        border: "none",
+                        background: "linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)",
+                        color: "#ffffff",
+                        fontWeight: 700,
+                        fontSize: 13,
+                        cursor: "pointer",
+                        boxShadow: "0 2px 6px rgba(37, 99, 235, 0.3)",
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 6,
+                      }}
+                    >
+                      {formLoading && <RefreshCw size={14} className="animate-spin" />}
+                      Create Sub-Admin Account
+                    </button>
+                  </div>
                 </div>
               </form>
             </motion.div>
@@ -1763,92 +2118,144 @@ export default function AdminManagement({ API, authHeaders, isMobile }) {
             style={{
               position: "fixed",
               inset: 0,
-              background: "rgba(15, 23, 42, 0.6)",
-              backdropFilter: "blur(4px)",
+              background: "rgba(15, 23, 42, 0.65)",
+              backdropFilter: "blur(6px)",
               zIndex: 9999,
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
-              padding: 16,
+              padding: "12px",
             }}
           >
             <motion.div
-              initial={{ scale: 0.95, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.95, opacity: 0 }}
+              initial={{ scale: 0.96, opacity: 0, y: 10 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.96, opacity: 0, y: 10 }}
+              transition={{ duration: 0.2 }}
+              className="gf-modal-dialog"
               style={{
                 background: "#ffffff",
                 borderRadius: 20,
                 width: "100%",
-                maxWidth: 680,
-                maxHeight: "90vh",
+                maxWidth: 720,
+                maxHeight: "92vh",
                 display: "flex",
                 flexDirection: "column",
                 overflow: "hidden",
-                boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.25)",
+                boxShadow: "0 25px 60px -15px rgba(0, 0, 0, 0.3)",
+                border: "1px solid #e2e8f0",
               }}
             >
-              {/* Header */}
+              {/* 1. Fixed Header */}
               <div
                 style={{
-                  padding: "18px 22px",
+                  padding: "16px 22px",
                   borderBottom: "1px solid #e2e8f0",
+                  background: "#ffffff",
+                  flexShrink: 0,
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "space-between",
                 }}
               >
-                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
                   <div
                     style={{
-                      width: 38,
-                      height: 38,
-                      borderRadius: 10,
-                      background: "#eef2ff",
+                      width: 40,
+                      height: 40,
+                      borderRadius: 12,
+                      background: "linear-gradient(135deg, #eef2ff 0%, #e0e7ff 100%)",
                       color: "#4f46e5",
                       display: "flex",
                       alignItems: "center",
                       justifyContent: "center",
+                      boxShadow: "0 2px 5px rgba(79, 70, 229, 0.1)",
                     }}
                   >
-                    <Sliders size={18} />
+                    <Sliders size={20} />
                   </div>
                   <div>
-                    <h3 style={{ margin: 0, fontSize: 17, fontWeight: 800, color: "#0f172a" }}>
+                    <h3 style={{ margin: 0, fontSize: 17, fontWeight: 800, color: "#0f172a", letterSpacing: "-0.3px" }}>
                       Edit Permissions: {editingPermissionsSubAdmin.name}
                     </h3>
-                    <div style={{ fontSize: 12, color: "#64748b" }}>
+                    <div style={{ fontSize: 12, color: "#64748b", marginTop: 2 }}>
                       Instant propagation — modifications apply immediately on the next API request.
                     </div>
                   </div>
                 </div>
 
                 <button
+                  type="button"
                   onClick={() => setEditingPermissionsSubAdmin(null)}
-                  style={{ background: "none", border: "none", color: "#94a3b8", cursor: "pointer", padding: 4 }}
+                  style={{
+                    background: "#f1f5f9",
+                    border: "none",
+                    color: "#64748b",
+                    cursor: "pointer",
+                    padding: 6,
+                    borderRadius: 8,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}
                 >
-                  <X size={20} />
+                  <X size={18} />
                 </button>
               </div>
 
-              {/* Body */}
-              <div style={{ display: "flex", flexDirection: "column", overflowY: "auto", padding: 22, gap: 16 }}>
+              {/* 2. Scrollable Body */}
+              <div
+                style={{
+                  flex: 1,
+                  overflowY: "auto",
+                  padding: "18px 22px",
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: 16,
+                }}
+              >
                 {formError && (
-                  <div style={{ background: "#fef2f2", border: "1px solid #fee2e2", borderRadius: 10, padding: "10px 14px", color: "#991b1b", fontSize: 13 }}>
+                  <div
+                    style={{
+                      background: "#fef2f2",
+                      border: "1px solid #fee2e2",
+                      borderRadius: 10,
+                      padding: "10px 14px",
+                      color: "#991b1b",
+                      fontSize: 13,
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 8,
+                    }}
+                  >
+                    <AlertTriangle size={16} color="#dc2626" />
                     {formError}
                   </div>
                 )}
                 {formSuccess && (
-                  <div style={{ background: "#ecfdf5", border: "1px solid #d1fae5", borderRadius: 10, padding: "10px 14px", color: "#065f46", fontSize: 13 }}>
+                  <div
+                    style={{
+                      background: "#ecfdf5",
+                      border: "1px solid #d1fae5",
+                      borderRadius: 10,
+                      padding: "10px 14px",
+                      color: "#065f46",
+                      fontSize: 13,
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 8,
+                    }}
+                  >
+                    <CheckCircle2 size={16} color="#059669" />
                     {formSuccess}
                   </div>
                 )}
 
-                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                  <span style={{ fontSize: 12.5, fontWeight: 700, color: "#475569" }}>
-                    Select Allowed Routes and Actions:
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 6 }}>
+                  <span style={{ fontSize: 13, fontWeight: 800, color: "#0f172a" }}>
+                    Select Allowed Routes and Granular Actions:
                   </span>
-                  <div style={{ display: "flex", gap: 8 }}>
+                  <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
                     <button
                       type="button"
                       onClick={handleSelectAllPermissions}
@@ -1867,54 +2274,212 @@ export default function AdminManagement({ API, authHeaders, isMobile }) {
                   </div>
                 </div>
 
-                <div style={{ display: "flex", flexDirection: "column", gap: 10, background: "#f8fafc", padding: 14, borderRadius: 12, border: "1px solid #e2e8f0" }}>
+                {/* Role Presets */}
+                <div>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: "#64748b", marginBottom: 6, textTransform: "uppercase" }}>
+                    ⚡ Quick Role Presets:
+                  </div>
+                  <div className="gf-modal-presets-bar" style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+                    {ROLE_PRESETS.map((preset) => {
+                      const IconComp = preset.icon;
+                      const isPresetActive =
+                        preset.routes.length === selectedRoutes.length &&
+                        preset.routes.every((r) => selectedRoutes.includes(r));
+
+                      return (
+                        <button
+                          key={preset.id}
+                          type="button"
+                          onClick={() => applyRolePreset(preset)}
+                          style={{
+                            padding: "5px 10px",
+                            borderRadius: 8,
+                            border: isPresetActive ? "1.5px solid #4f46e5" : "1px solid #e2e8f0",
+                            background: isPresetActive ? "#eef2ff" : "#ffffff",
+                            color: isPresetActive ? "#4338ca" : "#475569",
+                            fontSize: 11.5,
+                            fontWeight: 700,
+                            cursor: "pointer",
+                            display: "inline-flex",
+                            alignItems: "center",
+                            gap: 5,
+                            transition: "all 0.15s ease",
+                          }}
+                        >
+                          <IconComp size={12} />
+                          {preset.label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Route Cards */}
+                <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
                   {AVAILABLE_PERMISSIONS.routes.map((route) => {
                     const isRouteChecked = selectedRoutes.includes(route.id);
                     const relatedActions = AVAILABLE_PERMISSIONS.actions.filter((a) => a.route === route.id);
+                    const RouteIcon = ROUTE_ICONS[route.id] || Layers;
 
                     return (
                       <div
                         key={route.id}
                         style={{
-                          background: "#ffffff",
-                          border: "1px solid #e2e8f0",
-                          borderRadius: 10,
-                          padding: 12,
+                          background: isRouteChecked ? "#f0f7ff" : "#ffffff",
+                          border: isRouteChecked ? "1.5px solid #93c5fd" : "1px solid #e2e8f0",
+                          borderRadius: 12,
+                          padding: "12px 14px",
+                          transition: "all 0.2s ease",
                         }}
                       >
-                        <label style={{ display: "flex", alignItems: "flex-start", gap: 10, cursor: "pointer" }}>
-                          <input
-                            type="checkbox"
-                            checked={isRouteChecked}
-                            onChange={() => handleRouteToggle(route.id)}
-                            style={{ marginTop: 2, accentColor: "#2563eb", width: 16, height: 16 }}
-                          />
-                          <div>
-                            <div style={{ fontSize: 13, fontWeight: 700, color: "#0f172a" }}>
-                              {route.label}
+                        <div
+                          onClick={() => handleRouteToggle(route.id)}
+                          style={{
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "space-between",
+                            gap: 12,
+                            cursor: "pointer",
+                          }}
+                        >
+                          <div style={{ display: "flex", alignItems: "center", gap: 10, flex: 1, minWidth: 0 }}>
+                            <div
+                              style={{
+                                width: 36,
+                                height: 36,
+                                borderRadius: 9,
+                                background: isRouteChecked ? "#dbeafe" : "#f1f5f9",
+                                color: isRouteChecked ? "#1d4ed8" : "#64748b",
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "center",
+                                flexShrink: 0,
+                              }}
+                            >
+                              <RouteIcon size={18} />
                             </div>
-                            <div style={{ fontSize: 11.5, color: "#64748b", marginTop: 2 }}>{route.desc}</div>
+                            <div style={{ minWidth: 0 }}>
+                              <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+                                <span style={{ fontSize: 13, fontWeight: 800, color: "#0f172a" }}>
+                                  {route.label}
+                                </span>
+                                <span
+                                  style={{
+                                    fontSize: 10.5,
+                                    fontWeight: 700,
+                                    background: isRouteChecked ? "#bfdbfe" : "#f1f5f9",
+                                    color: isRouteChecked ? "#1e40af" : "#64748b",
+                                    padding: "1px 6px",
+                                    borderRadius: 4,
+                                  }}
+                                >
+                                  Route: {route.id}
+                                </span>
+                              </div>
+                              <div style={{ fontSize: 11.5, color: "#64748b", marginTop: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: isMobile ? "normal" : "nowrap" }}>
+                                {route.desc}
+                              </div>
+                            </div>
                           </div>
-                        </label>
+
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleRouteToggle(route.id);
+                            }}
+                            style={{
+                              padding: "5px 12px",
+                              borderRadius: 20,
+                              border: "none",
+                              background: isRouteChecked ? "#2563eb" : "#e2e8f0",
+                              color: isRouteChecked ? "#ffffff" : "#475569",
+                              fontSize: 11,
+                              fontWeight: 800,
+                              cursor: "pointer",
+                              display: "inline-flex",
+                              alignItems: "center",
+                              gap: 4,
+                              flexShrink: 0,
+                            }}
+                          >
+                            {isRouteChecked ? (
+                              <>
+                                <Check size={12} />
+                                ENABLED
+                              </>
+                            ) : (
+                              "DISABLED"
+                            )}
+                          </button>
+                        </div>
 
                         {relatedActions.length > 0 && isRouteChecked && (
-                          <div style={{ marginTop: 10, marginLeft: 26, paddingLeft: 12, borderLeft: "2px solid #e2e8f0", display: "flex", flexDirection: "column", gap: 8 }}>
-                            <div style={{ fontSize: 11, fontWeight: 700, color: "#64748b", textTransform: "uppercase" }}>
-                              Granular Actions:
+                          <div
+                            style={{
+                              marginTop: 10,
+                              paddingTop: 10,
+                              borderTop: "1px solid #dbeafe",
+                              display: "flex",
+                              flexDirection: "column",
+                              gap: 6,
+                            }}
+                          >
+                            <div style={{ fontSize: 10.5, fontWeight: 800, color: "#1e40af", textTransform: "uppercase", letterSpacing: "0.4px" }}>
+                              Granular Actions for this Module:
                             </div>
-                            {relatedActions.map((action) => (
-                              <label key={action.id} style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer" }}>
-                                <input
-                                  type="checkbox"
-                                  checked={selectedActions.includes(action.id)}
-                                  onChange={() => handleActionToggle(action.id, route.id)}
-                                  style={{ accentColor: "#2563eb" }}
-                                />
-                                <span style={{ fontSize: 12, fontWeight: 600, color: "#334155" }}>
-                                  {action.label} (<code style={{ fontSize: 10.5, color: "#64748b" }}>{action.id}</code>)
-                                </span>
-                              </label>
-                            ))}
+                            {relatedActions.map((action) => {
+                              const isActionChecked = selectedActions.includes(action.id);
+                              return (
+                                <div
+                                  key={action.id}
+                                  onClick={() => handleActionToggle(action.id, route.id)}
+                                  style={{
+                                    background: "#ffffff",
+                                    border: isActionChecked ? "1px solid #bfdbfe" : "1px solid #e2e8f0",
+                                    borderRadius: 8,
+                                    padding: "7px 12px",
+                                    display: "flex",
+                                    alignItems: "center",
+                                    justifyContent: "space-between",
+                                    gap: 8,
+                                    cursor: "pointer",
+                                  }}
+                                >
+                                  <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
+                                    <input
+                                      type="checkbox"
+                                      checked={isActionChecked}
+                                      onChange={() => {}}
+                                      style={{ accentColor: "#2563eb", width: 14, height: 14, cursor: "pointer" }}
+                                    />
+                                    <div style={{ minWidth: 0 }}>
+                                      <div style={{ fontSize: 12, fontWeight: 700, color: "#1e293b" }}>
+                                        {action.label}{" "}
+                                        <code style={{ fontSize: 10, background: "#f1f5f9", color: "#475569", padding: "1px 4px", borderRadius: 3 }}>
+                                          {action.id}
+                                        </code>
+                                      </div>
+                                      <div style={{ fontSize: 11, color: "#64748b" }}>{action.desc}</div>
+                                    </div>
+                                  </div>
+
+                                  <span
+                                    style={{
+                                      fontSize: 10,
+                                      fontWeight: 800,
+                                      padding: "2px 7px",
+                                      borderRadius: 4,
+                                      background: isActionChecked ? "#ecfdf5" : "#f1f5f9",
+                                      color: isActionChecked ? "#059669" : "#94a3b8",
+                                      flexShrink: 0,
+                                    }}
+                                  >
+                                    {isActionChecked ? "ALLOW" : "DENY"}
+                                  </span>
+                                </div>
+                              );
+                            })}
                           </div>
                         )}
                       </div>
@@ -1931,16 +2496,35 @@ export default function AdminManagement({ API, authHeaders, isMobile }) {
                     padding: "12px 16px",
                   }}
                 >
-                  <div style={{ fontSize: 12, fontWeight: 800, color: "#166534", marginBottom: 4 }}>
+                  <div style={{ fontSize: 12, fontWeight: 800, color: "#166534", marginBottom: 4, display: "flex", alignItems: "center", gap: 6 }}>
+                    <Sparkles size={14} />
                     Live Preview Before Saving:
                   </div>
                   <div style={{ fontSize: 12, color: "#15803d" }}>
                     Granted: <strong>{selectedRoutes.length} route(s)</strong> and <strong>{selectedActions.length} action(s)</strong>.
                   </div>
                 </div>
+              </div>
 
-                {/* Footer */}
-                <div style={{ display: "flex", justifyContent: "flex-end", gap: 10, marginTop: 8 }}>
+              {/* 3. Fixed Sticky Footer */}
+              <div
+                style={{
+                  flexShrink: 0,
+                  padding: "14px 22px",
+                  borderTop: "1px solid #e2e8f0",
+                  background: "#f8fafc",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  gap: 12,
+                }}
+              >
+                <div style={{ fontSize: 12, color: "#64748b", fontWeight: 600 }}>
+                  <strong style={{ color: "#4f46e5" }}>{selectedRoutes.length}</strong> Modules •{" "}
+                  <strong style={{ color: "#059669" }}>{selectedActions.length}</strong> Actions
+                </div>
+
+                <div style={{ display: "flex", gap: 10 }}>
                   <button
                     type="button"
                     onClick={() => setEditingPermissionsSubAdmin(null)}
@@ -1962,10 +2546,10 @@ export default function AdminManagement({ API, authHeaders, isMobile }) {
                     onClick={handleSavePermissions}
                     disabled={formLoading}
                     style={{
-                      padding: "9px 20px",
+                      padding: "9px 22px",
                       borderRadius: 9,
                       border: "none",
-                      background: "#4f46e5",
+                      background: "linear-gradient(135deg, #4f46e5 0%, #4338ca 100%)",
                       color: "#ffffff",
                       fontWeight: 700,
                       fontSize: 13,
@@ -2278,6 +2862,11 @@ export default function AdminManagement({ API, authHeaders, isMobile }) {
 
       <style>{`
         @media (max-width: 768px) {
+          .gf-modal-dialog {
+            max-width: 96vw !important;
+            max-height: 94vh !important;
+            border-radius: 16px !important;
+          }
           .gf-subadmin-desktop-table,
           .gf-audit-desktop-table {
             display: none !important;
@@ -2325,11 +2914,22 @@ export default function AdminManagement({ API, authHeaders, isMobile }) {
             grid-template-columns: repeat(2, 1fr) !important;
             gap: 10px !important;
           }
+          .gf-modal-presets-bar {
+            overflow-x: auto !important;
+            flex-wrap: nowrap !important;
+            padding-bottom: 4px !important;
+            -webkit-overflow-scrolling: touch !important;
+          }
         }
         @media (max-width: 480px) {
           .gf-kpi-grid {
             grid-template-columns: 1fr 1fr !important;
             gap: 8px !important;
+          }
+          .gf-modal-dialog {
+            max-width: 98vw !important;
+            max-height: 96vh !important;
+            border-radius: 14px !important;
           }
         }
       `}</style>
