@@ -59,6 +59,7 @@ import {
   Calendar,
   Clock,
   Sliders,
+  ShieldAlert,
 } from "lucide-react";
 
 function getDynamicSessionOptions(bStr, semVal, yStr) {
@@ -3594,7 +3595,6 @@ export default function AdminDashboard() {
     }
     fetchAdminProfile();
     fetchStats();
-    fetchPurgeLogs();
   }, [adminToken]);
 
   async function fetchAdminProfile() {
@@ -3603,9 +3603,30 @@ export default function AdminDashboard() {
       const { data } = await axios.get(`${API}/auth/admin/me`, headers);
       if (data.success) {
         setAdminProfile(data);
+        const isMain = data.adminType === "main" || !data.adminType;
+        const permittedRoutes = data.permissions?.routes || [];
+        if (!isMain && permittedRoutes.length > 0 && !permittedRoutes.includes(tab)) {
+          setTab(permittedRoutes[0]);
+        }
+        if (isMain || (data.permissions?.actions || []).includes("manage.purge-batches")) {
+          fetchPurgeLogs();
+        }
+      } else {
+        const code = data.code;
+        if (code === "ADMIN_SESSION_TERMINATED" || code === "INACTIVITY_LOGOUT" || code === "SUBADMIN_INACTIVE") {
+          sessionStorage.removeItem("gf_admin_jwt");
+          localStorage.removeItem("gf_admin_jwt");
+          navigate("/admin");
+        }
       }
     } catch (err) {
       console.warn("Failed to fetch admin profile:", err.message);
+      const code = err.response?.data?.code;
+      if (code === "ADMIN_SESSION_TERMINATED" || code === "INACTIVITY_LOGOUT" || code === "SUBADMIN_INACTIVE") {
+        sessionStorage.removeItem("gf_admin_jwt");
+        localStorage.removeItem("gf_admin_jwt");
+        navigate("/admin");
+      }
     }
   }
 
@@ -3651,11 +3672,7 @@ export default function AdminDashboard() {
       const { data } = await axios.get(`${API}/admin/stats`, headers);
       setStats(data);
     } catch (err) {
-      if (err.response?.status === 401 || err.response?.status === 403) {
-        sessionStorage.removeItem("gf_admin_jwt");
-        localStorage.removeItem("gf_admin_jwt");
-        navigate("/admin");
-      }
+      console.warn("fetchStats notice:", err.message);
     }
   }
 
@@ -3665,11 +3682,7 @@ export default function AdminDashboard() {
       const { data } = await axios.get(`${API}/admin/purge-logs`, headers);
       setPurgeLogs(data || []);
     } catch (err) {
-      if (err.response?.status === 401 || err.response?.status === 403) {
-        sessionStorage.removeItem("gf_admin_jwt");
-        localStorage.removeItem("gf_admin_jwt");
-        navigate("/admin");
-      }
+      console.warn("fetchPurgeLogs notice:", err.message);
     }
   }
 
@@ -3926,49 +3939,51 @@ export default function AdminDashboard() {
         )}
 
         {/* ── Segmented Navigation Tabs ── */}
-        <div
-          style={{
-            background: "#f1f5f9",
-            borderRadius: 14,
-            padding: 4,
-            marginBottom: 24,
-            display: "flex",
-            alignItems: "center",
-            gap: 4,
-            overflowX: "auto",
-            scrollbarWidth: "none",
-          }}
-        >
-          {ADMIN_TABS.map((t) => {
-            const isActive = tab === t.id;
-            return (
-              <button
-                key={t.id}
-                onClick={() => setTab(t.id)}
-                style={{
-                  display: "inline-flex",
-                  alignItems: "center",
-                  gap: 6,
-                  padding: "9px 16px",
-                  borderRadius: 10,
-                  border: "none",
-                  background: isActive ? "#ffffff" : "transparent",
-                  color: isActive ? "#0f172a" : "#64748b",
-                  fontSize: 13,
-                  fontWeight: isActive ? 800 : 600,
-                  cursor: "pointer",
-                  whiteSpace: "nowrap",
-                  boxShadow: isActive ? "0 2px 6px rgba(0,0,0,0.06)" : "none",
-                  transition: "all 0.15s ease",
-                  fontFamily: "'DM Sans', sans-serif",
-                }}
-              >
-                <span style={{ color: isActive ? "#2563eb" : "#64748b" }}>{t.icon}</span>
-                <span>{t.label}</span>
-              </button>
-            );
-          })}
-        </div>
+        {ADMIN_TABS.length > 0 && (
+          <div
+            style={{
+              background: "#f1f5f9",
+              borderRadius: 14,
+              padding: 4,
+              marginBottom: 24,
+              display: "flex",
+              alignItems: "center",
+              gap: 4,
+              overflowX: "auto",
+              scrollbarWidth: "none",
+            }}
+          >
+            {ADMIN_TABS.map((t) => {
+              const isActive = tab === t.id;
+              return (
+                <button
+                  key={t.id}
+                  onClick={() => setTab(t.id)}
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 6,
+                    padding: "9px 16px",
+                    borderRadius: 10,
+                    border: "none",
+                    background: isActive ? "#ffffff" : "transparent",
+                    color: isActive ? "#0f172a" : "#64748b",
+                    fontSize: 13,
+                    fontWeight: isActive ? 800 : 600,
+                    cursor: "pointer",
+                    whiteSpace: "nowrap",
+                    boxShadow: isActive ? "0 2px 6px rgba(0,0,0,0.06)" : "none",
+                    transition: "all 0.15s ease",
+                    fontFamily: "'DM Sans', sans-serif",
+                  }}
+                >
+                  <span style={{ color: isActive ? "#2563eb" : "#64748b" }}>{t.icon}</span>
+                  <span>{t.label}</span>
+                </button>
+              );
+            })}
+          </div>
+        )}
 
         <AnimatePresence mode="wait">
           <motion.div

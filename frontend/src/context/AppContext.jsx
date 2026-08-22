@@ -308,6 +308,21 @@ export function AppProvider({ children }) {
     setError("");
     try {
       const res = await axios.post(`${API_BASE}/auth/subadmin/login`, { email, password }, { withCredentials: true });
+      if (res.data?.alreadyLoggedIn && res.data?.token) {
+        sessionStorage.setItem("gf_admin_jwt", res.data.token);
+        localStorage.setItem("gf_admin_jwt", res.data.token);
+        setAdminToken(true);
+        return { success: true, alreadyLoggedIn: true, subAdmin: res.data };
+      }
+      if (res.data?.step === "OTP_REQUIRED") {
+        return {
+          success: true,
+          step: "OTP_REQUIRED",
+          email: res.data.email,
+          expiresInSeconds: res.data.expiresInSeconds || 300,
+          message: res.data.message,
+        };
+      }
       if (res.data?.success && res.data?.token) {
         sessionStorage.setItem("gf_admin_jwt", res.data.token);
         localStorage.setItem("gf_admin_jwt", res.data.token);
@@ -318,8 +333,34 @@ export function AppProvider({ children }) {
     } catch (err) {
       const msg = err.response?.data?.message || "Invalid Sub-Admin credentials.";
       const code = err.response?.data?.code || "SUBADMIN_AUTH_ERROR";
+      const details = err.response?.data || {};
       setError(msg);
-      return { success: false, error: msg, code };
+      return { success: false, error: msg, code, details };
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const subAdminVerifyOtp = async (email, otp) => {
+    setLoading(true);
+    setError("");
+    try {
+      const res = await axios.post(`${API_BASE}/auth/subadmin/verify-otp`, { email, otp }, { withCredentials: true });
+      if (res.data?.success && res.data?.token) {
+        sessionStorage.setItem("gf_admin_jwt", res.data.token);
+        localStorage.setItem("gf_admin_jwt", res.data.token);
+        setAdminToken(true);
+        return { success: true, subAdmin: res.data };
+      }
+      const msg = res.data?.message || "Sub-Admin OTP verification failed.";
+      setError(msg);
+      return { success: false, error: msg };
+    } catch (err) {
+      const msg = err.response?.data?.message || "Invalid or expired verification code.";
+      const code = err.response?.data?.code || "VERIFY_ERROR";
+      const remainingAttempts = err.response?.data?.remainingAttempts;
+      setError(msg);
+      return { success: false, error: msg, code, remainingAttempts };
     } finally {
       setLoading(false);
     }
@@ -454,6 +495,7 @@ export function AppProvider({ children }) {
         adminLoginPassword,
         adminVerifyOtp,
         subAdminLogin,
+        subAdminVerifyOtp,
         adminLogout,
         logoutAdmin,
         authHeaders,

@@ -512,12 +512,109 @@ async function sendSubAdminWelcomeEmail({
   return sendMailWithRetry(mailOptions);
 }
 
+/**
+ * Sends a clean Google/Apple-grade 2FA OTP verification code to a Sub-Admin's registered email.
+ */
+async function sendSubAdminOtpEmail({ to, name = "Administrator", otp, expiresInMinutes = 5 }) {
+  const recipientEmail = String(to || "").trim().toLowerCase();
+
+  if (!recipientEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(recipientEmail)) {
+    throw new Error(`Invalid recipient email address`);
+  }
+
+  const subject = `Your GradeFlow Sub-Admin Verification Code: ${otp}`;
+  const senderEmail = process.env.EMAIL_FROM || "jaganparida9154@gmail.com";
+
+  const html = `
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+      <meta charset="UTF-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>Sub-Admin Verification Code</title>
+    </head>
+    <body style="margin: 0; padding: 40px 20px; background-color: #ffffff; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #202124; -webkit-font-smoothing: antialiased;">
+      <table align="center" border="0" cellpadding="0" cellspacing="0" width="100%" style="max-width: 520px; margin: 0 auto; text-align: left;">
+        <!-- Brand Header -->
+        <tr>
+          <td style="padding-bottom: 24px;">
+            <table border="0" cellpadding="0" cellspacing="0">
+              <tr>
+                <td style="vertical-align: middle;">
+                  <div style="font-size: 20px; font-weight: 700; color: #1a73e8; letter-spacing: -0.5px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">GradeFlow</div>
+                </td>
+              </tr>
+            </table>
+            <div style="font-size: 12px; color: #5f6368; margin-top: 4px; font-weight: 400;">
+              Centurion University of Technology and Management
+            </div>
+          </td>
+        </tr>
+
+        <!-- Divider Line -->
+        <tr>
+          <td style="border-top: 1px solid #dadce0; padding-top: 28px;">
+            <div style="font-size: 22px; font-weight: 600; color: #202124; margin-bottom: 16px; letter-spacing: -0.3px;">
+              Sub-Admin verification code
+            </div>
+            <div style="font-size: 14px; color: #3c4043; line-height: 1.6; margin-bottom: 28px;">
+              Hi ${name},<br><br>
+              Please use the verification code below to securely sign in to your GradeFlow Sub-Admin portal:
+            </div>
+
+            <!-- OTP Code Display -->
+            <div style="margin: 28px 0; text-align: left;">
+              <span style="font-family: 'Roboto Mono', Menlo, Consolas, Monaco, monospace; font-size: 38px; font-weight: 700; color: #1a73e8; letter-spacing: 8px; line-height: 1; display: inline-block;">
+                ${otp}
+              </span>
+            </div>
+
+            <div style="font-size: 13px; color: #5f6368; line-height: 1.6; margin-bottom: 16px;">
+              This code will expire in ${expiresInMinutes} minutes. For security reasons, do not share this code with anyone.
+            </div>
+
+            <div style="font-size: 13px; color: #5f6368; line-height: 1.6; margin-bottom: 32px;">
+              If you did not attempt to sign in to GradeFlow Sub-Admin portal, please contact the Master Administrator immediately.
+            </div>
+          </td>
+        </tr>
+
+        <!-- Footer -->
+        <tr>
+          <td style="border-top: 1px solid #dadce0; padding-top: 20px; font-size: 12px; color: #70757a; line-height: 1.5;">
+            <div>GradeFlow Enterprise Security &bull; Centurion University</div>
+            <div style="margin-top: 4px; color: #80868b; font-size: 11px;">
+              This is an automated authentication message. Please do not reply directly to this email.
+            </div>
+          </td>
+        </tr>
+      </table>
+    </body>
+    </html>
+  `;
+
+  const text = `Hi ${name},\n\nYour GradeFlow Sub-Admin verification code is:\n\n${otp}\n\nThis code will expire in ${expiresInMinutes} minutes. If you did not request this code, please inform the Master Administrator immediately.\n\nGradeFlow Enterprise Security\nCenturion University of Technology and Management`;
+
+  const mailOptions = {
+    from: `"GradeFlow" <${senderEmail}>`,
+    replyTo: senderEmail,
+    to: recipientEmail,
+    subject,
+    text,
+    html,
+  };
+
+  return sendMailWithRetry(mailOptions);
+}
+
 module.exports = {
   createTransporter,
   sendBacklogEmailNotification,
   sendTopperEmailNotification,
   sendOtpEmail,
   sendAdminOtpEmail,
+  sendSubAdminOtpEmail,
   sendSubAdminWelcomeEmail,
 };
+
 

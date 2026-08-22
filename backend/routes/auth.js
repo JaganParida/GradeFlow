@@ -7,6 +7,7 @@ const AdminSession = require("../models/AdminSession");
 const AdminOtpVerification = require("../models/AdminOtpVerification");
 const SubAdmin = require("../models/SubAdmin");
 const SubAdminSession = require("../models/SubAdminSession");
+const SubAdminOtpVerification = require("../models/SubAdminOtpVerification");
 const AdminAuditLog = require("../models/AdminAuditLog");
 const SemesterResult = require("../models/SemesterResult");
 const Student = require("../models/Student");
@@ -16,7 +17,7 @@ const StudentDailyLimit = require("../models/StudentDailyLimit");
 const { protect, protectStudent } = require("../middleware/auth");
 const { validateLoginInput } = require("../middleware/validation");
 const { otpLimiter } = require("../middleware/rateLimiters");
-const { sendOtpEmail, sendAdminOtpEmail } = require("../utils/emailService");
+const { sendOtpEmail, sendAdminOtpEmail, sendSubAdminOtpEmail } = require("../utils/emailService");
 const {
   SEVEN_DAYS_MS,
   MAX_ADMIN_DEVICES,
@@ -780,7 +781,7 @@ router.post("/admin/verify-otp", async (req, res) => {
   }
 });
 
-// 3. Sub-Admin Login Endpoint (/api/auth/subadmin/login)
+// 3. Sub-Admin Login Endpoint: Password Verification & OTP Dispatch (/api/auth/subadmin/login)
 router.post("/subadmin/login", async (req, res) => {
   try {
     const { email, password } = req.body || {};
@@ -821,7 +822,176 @@ router.post("/subadmin/login", async (req, res) => {
       });
     }
 
-    // Create SubAdminSession
+    // STRICT 1-DEVICE POLICY CHECK:
+    // Check if Sub-Admin currently has an active session on another device
+    const activeSessions = await SubAdminSession.find({
+      subAdminId: subAdmin._id,
+      isActive: true,
+      expiresAt: { $gt: new Date() },
+    });
+
+    let incomingToken = req.headers["x-admin-token"];
+    if (!incomingToken && req.cookies?.jwt) {
+      incomingToken = req.cookies.jwt;
+    }
+    if (!incomingToken && req.headers.authorization && req.headers.authorization.startsWith("Bearer")) {
+      incomingToken = req.headers.authorization.split(" ")[1];
+    }
+
+    let isCurrentDevice = false;
+    if (incomingToken && incomingToken !== "none") {
+      try {
+        const decoded = jwt.verify(incomingToken, process.env.JWT_SECRET);
+        if (decoded.adminType === "subadmin" && decoded.sessionId) {
+          const matching = activeSessions.find((s) => s.sessionId === decoded.sessionId);
+          if (matching && matching.isActive) {
+            isCurrentDevice = true;
+            return res.json({
+              success: true,
+              alreadyLoggedIn: true,
+              token: incomingToken,
+              adminType: "subadmin",
+              name: subAdmin.name,
+              email: subAdmin.email,
+              permissions: subAdmin.permissions || { routes: [], sections: [], actions: [] },
+              message: "Sub-Admin is already actively authenticated on this device.",
+            });
+          }
+        }
+      } catch {}
+    }
+
+    // CRITICAL GUARD: Sub-Admin is strictly allowed maximum 1 active device session
+    if (activeSessions.length >= 1 && !isCurrentDevice) {
+      return res.status(403).json({
+        success: false,
+        message: `Your Sub-Admin portal is currently active on another device (maximum limit: 1 device). Please log out from that device to sign in here.`,
+        code: "SUBADMIN_DEVICE_LIMIT_REACHED",
+        activeDeviceCount: activeSessions.length,
+        maxAllowedDevices: 1,
+      });
+    }
+
+    // Generate secure 6-digit OTP code
+    const otp = crypto.randomInt(100000, 1000000).toString();
+    const otpHash = await bcrypt.hash(otp, 10);
+    const expiresAt = new Date(Date.now() + 5 * 60 * 1000); // 5 minutes TTL
+
+    // Store in SubAdminOtpVerification (replace any existing pending OTPs for this email)
+    await SubAdminOtpVerification.deleteMany({ email: cleanEmail });
+    await SubAdminOtpVerification.create({
+      email: cleanEmail,
+      otpHash,
+      expiresAt,
+      attempts: 0,
+    });
+
+    // Dispatch OTP email to Sub-Admin's registered email address
+    try {
+      await sendSubAdminOtpEmail({
+        to: subAdmin.email,
+        name: subAdmin.name,
+        otp,
+        expiresInMinutes: 5,
+      });
+    } catch (emailErr) {
+      console.error("Sub-Admin OTP email dispatch error:", emailErr.message);
+      return res.status(500).json({
+        success: false,
+        message: "Failed to dispatch verification code to Sub-Admin email. Please check server email configuration.",
+        code: "EMAIL_DISPATCH_FAILED",
+      });
+    }
+
+    return res.json({
+      success: true,
+      step: "OTP_REQUIRED",
+      email: subAdmin.email,
+      expiresInSeconds: 300,
+      message: "A 6-digit verification code has been dispatched to your registered Sub-Admin email address.",
+    });
+  } catch (err) {
+    console.error("SubAdmin login error:", err);
+    return res.status(500).json({ success: false, message: "Server error during sub-admin login." });
+  }
+});
+
+// 3B. Sub-Admin Verify OTP Endpoint (/api/auth/subadmin/verify-otp)
+router.post("/subadmin/verify-otp", async (req, res) => {
+  try {
+    const cleanEmail = String(req.body.email || "").trim().toLowerCase();
+    const rawOtp = String(req.body.otp || "").trim();
+
+    if (!cleanEmail || !rawOtp || rawOtp.length !== 6) {
+      return res.status(400).json({
+        success: false,
+        message: "Please provide your registered Sub-Admin email and 6-digit verification code.",
+        code: "INVALID_FORMAT",
+      });
+    }
+
+    const subAdmin = await SubAdmin.findOne({ email: cleanEmail });
+    if (!subAdmin) {
+      return res.status(404).json({
+        success: false,
+        message: "Sub-Admin account not found.",
+        code: "SUBADMIN_NOT_FOUND",
+      });
+    }
+
+    if (subAdmin.status !== "active") {
+      return res.status(403).json({
+        success: false,
+        message: `Your Sub-Admin account is currently ${subAdmin.status}. Access blocked.`,
+        code: `SUBADMIN_${subAdmin.status.toUpperCase()}`,
+      });
+    }
+
+    const otpRecord = await SubAdminOtpVerification.findOne({
+      email: cleanEmail,
+      expiresAt: { $gt: new Date() },
+    }).sort({ createdAt: -1 });
+
+    if (!otpRecord) {
+      return res.status(400).json({
+        success: false,
+        message: "Verification code has expired or is invalid. Please request a new code.",
+        code: "OTP_EXPIRED",
+      });
+    }
+
+    if (otpRecord.attempts >= 5) {
+      await SubAdminOtpVerification.deleteMany({ email: cleanEmail });
+      return res.status(429).json({
+        success: false,
+        message: "Maximum verification attempts exceeded. Please enter your password to request a new code.",
+        code: "MAX_ATTEMPTS_EXCEEDED",
+      });
+    }
+
+    const isMatch = await bcrypt.compare(rawOtp, otpRecord.otpHash);
+    if (!isMatch) {
+      otpRecord.attempts += 1;
+      await otpRecord.save();
+      const remaining = 5 - otpRecord.attempts;
+      return res.status(400).json({
+        success: false,
+        message: `Invalid verification code. ${remaining} attempt${remaining > 1 ? "s" : ""} remaining.`,
+        code: "INVALID_OTP",
+        remainingAttempts: remaining,
+      });
+    }
+
+    // OTP is valid! Delete used OTP records
+    await SubAdminOtpVerification.deleteMany({ email: cleanEmail });
+
+    // Strict 1-Device Limit: Invalidate any previous active sessions for this Sub-Admin
+    await SubAdminSession.updateMany(
+      { subAdminId: subAdmin._id, isActive: true },
+      { isActive: false }
+    );
+
+    // Create new Sub-Admin Session
     const sessionId = crypto.randomUUID();
     const now = new Date();
     const expiresAt = new Date(Date.now() + SEVEN_DAYS_MS);
@@ -875,11 +1045,11 @@ router.post("/subadmin/login", async (req, res) => {
       name: subAdmin.name,
       email: subAdmin.email,
       permissions: subAdmin.permissions || { routes: [], sections: [], actions: [] },
-      message: `Welcome, ${subAdmin.name}!`,
+      message: `Welcome back, ${subAdmin.name}!`,
     });
   } catch (err) {
-    console.error("SubAdmin login error:", err);
-    return res.status(500).json({ success: false, message: "Server error during sub-admin login." });
+    console.error("Sub-Admin OTP verify error:", err);
+    return res.status(500).json({ success: false, message: "Server error during Sub-Admin OTP verification." });
   }
 });
 

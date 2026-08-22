@@ -43,7 +43,7 @@ export default function AdminLogin() {
   const [showSubPassword, setShowSubPassword] = useState(false);
 
   const otpInputsRef = useRef([]);
-  const { adminLoginPassword, adminVerifyOtp, subAdminLogin, adminToken } = useApp();
+  const { adminLoginPassword, adminVerifyOtp, subAdminLogin, subAdminVerifyOtp, adminToken } = useApp();
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -90,7 +90,7 @@ export default function AdminLogin() {
     return `${mins.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
   };
 
-  // ─── Step 1: Submit Password ─────────────────────────────────────
+  // ─── Step 1: Submit Password (Main Admin) ─────────────────────────
   async function handlePasswordSubmit(e) {
     e.preventDefault();
     if (lockCountdown > 0) return;
@@ -152,6 +152,16 @@ export default function AdminLogin() {
       return;
     }
 
+    if (code === "SUBADMIN_DEVICE_LIMIT_REACHED") {
+      setErrorInfo({
+        title: "Device Authorization Limit",
+        message: "Sub-Admin portal is currently active on another device (maximum limit: 1 device). Please log out from that device to continue.",
+        badge: "Max 1 Device",
+        type: "warning",
+      });
+      return;
+    }
+
     if (nextAttempts >= 5) {
       setLockCountdown(60);
       setErrorInfo({
@@ -196,6 +206,24 @@ export default function AdminLogin() {
 
     try {
       const res = await subAdminLogin(cleanEmail, cleanPassword);
+      if (res && res.alreadyLoggedIn) {
+        navigate("/admin/dashboard", { replace: true });
+        return;
+      }
+
+      if (res && res.step === "OTP_REQUIRED") {
+        setStep("OTP");
+        setOtp(["", "", "", "", "", ""]);
+        setOtpTimeLeft(res.expiresInSeconds || 300);
+        setStatusNotice(`A 6-digit verification code has been dispatched to ${cleanEmail}.`);
+        setTimeout(() => {
+          if (otpInputsRef.current[0]) {
+            otpInputsRef.current[0].focus();
+          }
+        }, 150);
+        return;
+      }
+
       if (res && res.success) {
         navigate("/admin/dashboard", { replace: true });
         return;
@@ -204,7 +232,17 @@ export default function AdminLogin() {
       const nextFailed = failedAttempts + 1;
       setFailedAttempts(nextFailed);
 
-      if (res?.code?.includes("DISABLED") || res?.code?.includes("REVOKED")) {
+      if (res?.code === "SUBADMIN_DEVICE_LIMIT_REACHED" || res?.details?.code === "SUBADMIN_DEVICE_LIMIT_REACHED") {
+        setErrorInfo({
+          title: "Device Authorization Limit",
+          message: "Sub-Admin portal is currently active on another authorized device (maximum limit: 1 device). Please log out from that device to continue.",
+          badge: "Max 1 Device",
+          type: "warning",
+        });
+        return;
+      }
+
+      if (res?.code?.includes("DISABLED") || res?.code?.includes("REVOKED") || res?.code?.includes("INACTIVE")) {
         setErrorInfo({
           title: "Account Inactive",
           message: res.error || "Your Sub-Admin account is currently inactive or revoked.",
@@ -216,19 +254,25 @@ export default function AdminLogin() {
 
       if (nextFailed >= 5) {
         setLockCountdown(60);
+        setErrorInfo({
+          title: "Access Temporarily Locked",
+          message: "Multiple failed attempts detected. Access is paused for security.",
+          badge: "Cooldown 60s",
+          type: "lockout",
+        });
       } else {
         const remaining = 5 - nextFailed;
         setErrorInfo({
           title: "Authentication Failed",
-          message: "The email address or password provided is incorrect.",
-          badge: `${remaining} attempt${remaining > 1 ? "s" : ""} left`,
+          message: res?.error || "The email address or password provided is incorrect.",
+          badge: remaining > 0 ? `${remaining} attempt${remaining > 1 ? "s" : ""} left` : null,
           type: "error",
         });
       }
-    } catch {
+    } catch (err) {
       setErrorInfo({
         title: "Authentication Error",
-        message: "An unexpected error occurred during sub-admin authentication.",
+        message: err?.response?.data?.message || "An unexpected error occurred during sub-admin authentication.",
         badge: null,
         type: "error",
       });
@@ -290,7 +334,7 @@ export default function AdminLogin() {
     if (otpTimeLeft === 0) {
       setErrorInfo({
         title: "Code Expired",
-        message: "Verification code has expired. Please enter your password to request a new code.",
+        message: "Verification code has expired. Please enter your credentials to request a new code.",
         badge: "Expired",
         type: "error",
       });
@@ -301,14 +345,19 @@ export default function AdminLogin() {
     setErrorInfo(null);
 
     try {
-      const res = await adminVerifyOtp(fullOtp);
+      const res =
+        authMode === "SUBADMIN"
+          ? await subAdminVerifyOtp(String(subAdminEmail).trim().toLowerCase(), fullOtp)
+          : await adminVerifyOtp(fullOtp);
+
       if (res && res.success) {
         navigate("/admin/dashboard", { replace: true });
       } else {
+        const remaining = res?.remainingAttempts;
         setErrorInfo({
           title: "Verification Failed",
           message: res?.error || "The verification code is incorrect. Please try again.",
-          badge: null,
+          badge: remaining ? `${remaining} attempts left` : null,
           type: "error",
         });
       }
@@ -331,12 +380,23 @@ export default function AdminLogin() {
     setLoading(true);
     setErrorInfo(null);
     try {
-      const res = await adminLoginPassword(password);
+      const res =
+        authMode === "SUBADMIN"
+          ? await subAdminLogin(String(subAdminEmail).trim().toLowerCase(), String(subAdminPassword).trim())
+          : await adminLoginPassword(password);
+
       if (res && res.step === "OTP_REQUIRED") {
         setOtp(["", "", "", "", "", ""]);
         setOtpTimeLeft(300);
         setStatusNotice("A fresh 6-digit verification code has been dispatched.");
         if (otpInputsRef.current[0]) otpInputsRef.current[0].focus();
+      } else if (res && (res.code === "SUBADMIN_DEVICE_LIMIT_REACHED" || res.details?.code === "SUBADMIN_DEVICE_LIMIT_REACHED")) {
+        setErrorInfo({
+          title: "Device Limit Reached",
+          message: "Sub-Admin portal is currently active on another device (maximum limit: 1 device).",
+          badge: "Max 1 Device",
+          type: "warning",
+        });
       }
     } catch {
       setErrorInfo({
@@ -1130,7 +1190,9 @@ export default function AdminLogin() {
                     Security Code Verification
                   </h2>
                   <p style={{ color: "#64748b", fontSize: 12.5, margin: 0, lineHeight: 1.5 }}>
-                    Enter the 6-digit code dispatched to the authorized institutional administrator email.
+                    {authMode === "SUBADMIN"
+                      ? `Enter the 6-digit code dispatched to ${subAdminEmail}`
+                      : "Enter the 6-digit code dispatched to the authorized institutional administrator email."}
                   </p>
                 </div>
 
@@ -1369,7 +1431,7 @@ export default function AdminLogin() {
                       </>
                     ) : (
                       <>
-                        <ShieldCheck size={16} /> Authorize Admin Session
+                        <ShieldCheck size={16} /> {authMode === "SUBADMIN" ? "Authorize Sub-Admin Session" : "Authorize Admin Session"}
                       </>
                     )}
                   </button>
@@ -1395,7 +1457,7 @@ export default function AdminLogin() {
                         gap: 4,
                       }}
                     >
-                      <ArrowLeft size={13} /> Re-enter Password
+                      <ArrowLeft size={13} /> {authMode === "SUBADMIN" ? "Re-enter Credentials" : "Re-enter Password"}
                     </button>
                   </div>
                 </form>
