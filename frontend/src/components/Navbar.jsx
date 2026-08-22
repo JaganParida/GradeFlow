@@ -805,7 +805,7 @@ export default function Navbar() {
               </button>
             )}
 
-            {/* Subtle Admin Button (Professional Active State when Logged In) */}
+            {/* Admin Portal Button (Clean Professional Security Styling - No Glowing Dot) */}
             <Link
               to="/admin"
               className={`gf-admin-link ${adminToken ? "gf-admin-logged-in" : ""}`}
@@ -814,72 +814,59 @@ export default function Navbar() {
                 textDecoration: "none",
                 display: "inline-flex",
                 alignItems: "center",
-                gap: 5,
-                padding: "6px 11px",
-                borderRadius: 8,
+                gap: 6,
+                padding: "7px 12px",
+                borderRadius: 9,
                 border: adminToken
-                  ? "1px solid #1e293b"
-                  : "1px solid #e2e8f0",
+                  ? "1.5px solid #86efac"
+                  : location.pathname.startsWith("/admin")
+                    ? "1.5px solid #cbd5e1"
+                    : "1px solid #cbd5e1",
                 background: adminToken
-                  ? "#0f172a"
+                  ? "#f0fdf4"
                   : location.pathname.startsWith("/admin")
                     ? "#f1f5f9"
-                    : "transparent",
+                    : "#ffffff",
                 color: adminToken
-                  ? "#ffffff"
+                  ? "#166534"
                   : location.pathname.startsWith("/admin")
                     ? "#0f172a"
-                    : "#64748b",
+                    : "#475569",
                 fontSize: 12.5,
                 fontWeight: 700,
-                transition: "all 0.15s ease",
-                boxShadow: adminToken ? "0 2px 8px rgba(15, 23, 42, 0.2)" : "none",
+                transition: "all 0.18s ease",
+                boxShadow: adminToken ? "0 1px 3px rgba(22, 163, 74, 0.12)" : "none",
               }}
               onMouseEnter={(e) => {
                 if (!adminToken) {
                   e.currentTarget.style.background = "#f8fafc";
                   e.currentTarget.style.color = "#0f172a";
-                  e.currentTarget.style.borderColor = "#cbd5e1";
+                  e.currentTarget.style.borderColor = "#94a3b8";
                 } else {
-                  e.currentTarget.style.background = "#1e293b";
+                  e.currentTarget.style.background = "#dcfce7";
+                  e.currentTarget.style.borderColor = "#4ade80";
                 }
               }}
               onMouseLeave={(e) => {
                 if (!adminToken) {
-                  e.currentTarget.style.background = location.pathname.startsWith(
-                    "/admin",
-                  )
+                  e.currentTarget.style.background = location.pathname.startsWith("/admin")
                     ? "#f1f5f9"
-                    : "transparent";
-                  e.currentTarget.style.color = location.pathname.startsWith(
-                    "/admin",
-                  )
+                    : "#ffffff";
+                  e.currentTarget.style.color = location.pathname.startsWith("/admin")
                     ? "#0f172a"
-                    : "#64748b";
-                  e.currentTarget.style.borderColor = "#e2e8f0";
+                    : "#475569";
+                  e.currentTarget.style.borderColor = "#cbd5e1";
                 } else {
-                  e.currentTarget.style.background = "#0f172a";
+                  e.currentTarget.style.background = "#f0fdf4";
+                  e.currentTarget.style.borderColor = "#86efac";
                 }
               }}
             >
               <ShieldCheck
-                size={14}
-                color={adminToken ? "#34d399" : "#64748b"}
+                size={15}
+                color={adminToken ? "#16a34a" : "#64748b"}
               />
               <span className="gf-admin-text">Admin</span>
-              {adminToken && (
-                <span
-                  style={{
-                    width: 6,
-                    height: 6,
-                    borderRadius: "50%",
-                    background: "#10b981",
-                    boxShadow: "0 0 6px rgba(16, 185, 129, 0.8)",
-                    display: "inline-block",
-                    marginLeft: 1,
-                  }}
-                />
-              )}
             </Link>
 
             {/* Desktop Auth Button */}
@@ -913,27 +900,32 @@ export default function Navbar() {
                       display: "inline-flex",
                       alignItems: "center",
                       gap: 6,
-                      padding: "7px 15px",
+                      padding: "8px 16px",
                       borderRadius: 10,
-                      background: "#0f172a",
+                      background: "linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)",
                       color: "#ffffff",
                       textDecoration: "none",
                       fontSize: 13.5,
-                      fontWeight: 600,
-                      transition: "background 0.2s ease",
+                      fontWeight: 700,
+                      boxShadow: "0 2px 8px rgba(37, 99, 235, 0.25)",
+                      transition: "all 0.18s ease",
+                      whiteSpace: "nowrap",
                     }}
+                    onMouseEnter={(e) => (e.currentTarget.style.filter = "brightness(1.08)")}
+                    onMouseLeave={(e) => (e.currentTarget.style.filter = "none")}
                   >
-                    Dashboard
+                    <LayoutDashboard size={14} color="#ffffff" />
+                    <span>Dashboard</span>
                   </Link>
                   <button
                     onClick={() => leaveSession()}
                     disabled={isLoggingOut}
                     style={{
-                      background: "transparent",
-                      border: "1px solid #fecaca",
-                      color: "#ef4444",
+                      background: "#fff1f2",
+                      border: "1px solid #fecdd3",
+                      color: "#e11d48",
                       borderRadius: 10,
-                      padding: "6px 9px",
+                      padding: "7px 10px",
                       cursor: isLoggingOut ? "not-allowed" : "pointer",
                       fontSize: 12,
                       fontWeight: 600,
@@ -941,6 +933,18 @@ export default function Navbar() {
                       alignItems: "center",
                       gap: 4,
                       transition: "all 0.15s ease",
+                    }}
+                    onMouseEnter={(e) => {
+                      if (!isLoggingOut) {
+                        e.currentTarget.style.background = "#ffe4e6";
+                        e.currentTarget.style.borderColor = "#fda4af";
+                      }
+                    }}
+                    onMouseLeave={(e) => {
+                      if (!isLoggingOut) {
+                        e.currentTarget.style.background = "#fff1f2";
+                        e.currentTarget.style.borderColor = "#fecdd3";
+                      }
                     }}
                     title="Logout"
                   >
@@ -2147,17 +2151,17 @@ export default function Navbar() {
             padding: 5px 10px !important;
             border-radius: 8px !important;
             height: 34px !important;
-            background: #f8fafc !important;
-            border: 1px solid #e2e8f0 !important;
-            color: #334155 !important;
+            background: #ffffff !important;
+            border: 1px solid #cbd5e1 !important;
+            color: #475569 !important;
             box-sizing: border-box !important;
             white-space: nowrap !important;
           }
           .gf-admin-link.gf-admin-logged-in {
-            background: #0f172a !important;
-            border: 1px solid #1e293b !important;
-            color: #ffffff !important;
-            box-shadow: 0 2px 8px rgba(15, 23, 42, 0.25) !important;
+            background: #f0fdf4 !important;
+            border: 1.5px solid #86efac !important;
+            color: #166534 !important;
+            box-shadow: 0 1px 3px rgba(22, 163, 74, 0.12) !important;
           }
           .gf-logo-text {
             font-size: 21.5px !important;
@@ -2187,17 +2191,17 @@ export default function Navbar() {
             padding: 4px 9px !important;
             border-radius: 8px !important;
             height: 34px !important;
-            background: #f8fafc !important;
-            border: 1px solid #e2e8f0 !important;
-            color: #334155 !important;
+            background: #ffffff !important;
+            border: 1px solid #cbd5e1 !important;
+            color: #475569 !important;
             box-sizing: border-box !important;
             white-space: nowrap !important;
           }
           .gf-admin-link.gf-admin-logged-in {
-            background: #0f172a !important;
-            border: 1px solid #1e293b !important;
-            color: #ffffff !important;
-            box-shadow: 0 2px 8px rgba(15, 23, 42, 0.25) !important;
+            background: #f0fdf4 !important;
+            border: 1.5px solid #86efac !important;
+            color: #166534 !important;
+            box-shadow: 0 1px 3px rgba(22, 163, 74, 0.12) !important;
           }
           .gf-logo-text {
             font-size: 19.5px !important;
@@ -2225,9 +2229,9 @@ export default function Navbar() {
             height: 32px !important;
           }
           .gf-admin-link.gf-admin-logged-in {
-            background: #0f172a !important;
-            border: 1px solid #1e293b !important;
-            color: #ffffff !important;
+            background: #f0fdf4 !important;
+            border: 1.5px solid #86efac !important;
+            color: #166534 !important;
           }
           .gf-logo-text {
             font-size: 17.5px !important;

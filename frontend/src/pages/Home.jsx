@@ -1964,16 +1964,6 @@ export default function Home() {
                         }}
                       >
                         <span>Active Student Session</span>
-                        <span
-                          style={{
-                            width: 6,
-                            height: 6,
-                            borderRadius: "50%",
-                            background: "#16a34a",
-                            display: "inline-block",
-                            boxShadow: "0 0 6px rgba(22, 163, 74, 0.6)",
-                          }}
-                        />
                       </div>
                       <div
                         style={{
@@ -2314,35 +2304,17 @@ export default function Home() {
                         width: 28,
                         height: 28,
                         borderRadius: "50%",
-                        background: currentRegNo ? "#dcfce7" : "#dbeafe",
-                        color: currentRegNo ? "#16a34a" : "#2563eb",
-                        fontSize: 11,
+                        background: "#eff6ff",
+                        color: "#2563eb",
+                        fontSize: 11.5,
                         fontWeight: 800,
                         display: "flex",
                         alignItems: "center",
                         justifyContent: "center",
                       }}
                     >
-                      {(
-                        studentData?.studentName ||
-                        currentRegNo ||
-                        "S"
-                      )
-                        .charAt(0)
-                        .toUpperCase()}
+                      A
                     </div>
-                    <span
-                      style={{
-                        position: "absolute",
-                        bottom: -1,
-                        right: -1,
-                        width: 8,
-                        height: 8,
-                        borderRadius: "50%",
-                        background: "#22c55e",
-                        border: "1.5px solid #ffffff",
-                      }}
-                    />
                   </div>
                 </div>
 
@@ -2388,34 +2360,26 @@ export default function Home() {
                             gap: 6,
                           }}
                         >
-                          <span>
-                            {studentData?.studentName
-                              ? `${studentData.studentName} (${currentRegNo})`
-                              : currentRegNo
-                                ? `Student (${currentRegNo})`
-                                : "Alex Kumar (Sample Student)"}
-                          </span>
+                          <span>Alex Kumar (210101120042)</span>
                           <CheckCircle2
                             size={14}
-                            color={currentRegNo ? "#10b981" : "#2563eb"}
+                            color="#2563eb"
                           />
                         </h3>
                         <span
                           style={{
                             fontSize: 9.5,
                             fontWeight: 800,
-                            background: currentRegNo ? "#ecfdf5" : "#eff6ff",
-                            color: currentRegNo ? "#059669" : "#2563eb",
-                            border: currentRegNo
-                              ? "1px solid #a7f3d0"
-                              : "1px solid #dbeafe",
+                            background: "#eff6ff",
+                            color: "#2563eb",
+                            border: "1px solid #dbeafe",
                             padding: "2px 6px",
                             borderRadius: 4,
                             textTransform: "uppercase",
                             letterSpacing: "0.4px",
                           }}
                         >
-                          {currentRegNo ? "Verified Profile" : "Sample Preview"}
+                          Sample Preview
                         </span>
                       </div>
                       <p
@@ -2425,9 +2389,7 @@ export default function Home() {
                           margin: "2px 0 0 0",
                         }}
                       >
-                        {currentRegNo
-                          ? "Verified academic record • Centurion University"
-                          : "Sample academic overview • Centurion University"}
+                        Sample academic overview • Centurion University
                       </p>
                     </div>
                     <div
