@@ -271,16 +271,7 @@ export default function Navbar() {
           </Link>
 
           {/* Center Nav Links (Desktop) */}
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 24,
-              flexShrink: 1,
-              flexWrap: "nowrap",
-            }}
-            className="gf-desktop-nav"
-          >
+          <div className="gf-desktop-nav">
             {/* Home */}
             <Link
               to="/"
@@ -778,27 +769,7 @@ export default function Navbar() {
               <button
                 onClick={() => setSearchModalOpen(true)}
                 aria-label="Search Student (Admin)"
-                style={{
-                  width: 36,
-                  height: 36,
-                  borderRadius: "50%",
-                  background: "#f8fafc",
-                  border: "1px solid #e2e8f0",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  color: "#64748b",
-                  cursor: "pointer",
-                  transition: "all 0.2s ease",
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.background = "#f1f5f9";
-                  e.currentTarget.style.color = "#0f172a";
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.background = "#f8fafc";
-                  e.currentTarget.style.color = "#64748b";
-                }}
+                className="gf-search-btn"
                 title="Search Registration Number (Admin)"
               >
                 <Search size={15} />
@@ -990,7 +961,8 @@ export default function Navbar() {
                   onMouseLeave={(e) => (e.currentTarget.style.filter = "none")}
                 >
                   <GraduationCap size={15} style={{ flexShrink: 0 }} />
-                  <span style={{ whiteSpace: "nowrap" }}>Student Portal Login</span>
+                  <span className="gf-portal-full-text">Student Portal Login</span>
+                  <span className="gf-portal-short-text">Portal Login</span>
                 </button>
               )}
             </div>
@@ -2088,18 +2060,32 @@ export default function Navbar() {
       </AnimatePresence>
 
       <style>{`
+        .gf-navbar-inner {
+          max-width: 1440px !important;
+          margin: 0 auto !important;
+          padding: 0 24px !important;
+          display: flex !important;
+          align-items: center !important;
+          justify-content: space-between !important;
+          gap: 16px !important;
+          height: 66px !important;
+          box-sizing: border-box !important;
+          width: 100% !important;
+        }
         .gf-desktop-nav {
           display: flex;
           align-items: center;
-          gap: 24px !important;
+          gap: 20px !important;
           flex-shrink: 1;
           min-width: 0;
+          margin: 0 auto;
         }
         .gf-desktop-nav a, .gf-desktop-nav button {
           white-space: nowrap !important;
           font-size: 13.5px !important;
-          padding: 6px 2px !important;
+          padding: 6px 3px !important;
           flex-shrink: 0;
+          text-decoration: none;
         }
         .gf-navbar-right {
           display: flex;
@@ -2107,6 +2093,26 @@ export default function Navbar() {
           gap: 10px;
           flex-shrink: 0 !important;
           white-space: nowrap !important;
+          margin-left: auto;
+        }
+        .gf-search-btn {
+          width: 36px;
+          height: 36px;
+          border-radius: 9px;
+          background: #f8fafc;
+          border: 1px solid #e2e8f0;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          color: #64748b;
+          cursor: pointer;
+          transition: all 0.2s ease;
+          flex-shrink: 0 !important;
+        }
+        .gf-search-btn:hover {
+          background: #f1f5f9;
+          color: #0f172a;
+          border-color: #cbd5e1;
         }
         .gf-desktop-auth {
           display: flex;
@@ -2118,36 +2124,51 @@ export default function Navbar() {
           white-space: nowrap !important;
           flex-shrink: 0 !important;
         }
-        @media (max-width: 1400px) {
+        .gf-portal-full-text {
+          display: inline;
+          white-space: nowrap;
+        }
+        .gf-portal-short-text {
+          display: none;
+          white-space: nowrap;
+        }
+
+        /* Large screens fluid scaling */
+        @media (max-width: 1440px) {
           .gf-desktop-nav {
-            gap: 18px !important;
+            gap: 15px !important;
           }
         }
-        @media (max-width: 1280px) {
+        @media (max-width: 1360px) {
           .gf-desktop-nav {
-            gap: 14px !important;
+            gap: 11px !important;
           }
           .gf-desktop-nav a, .gf-desktop-nav button {
             font-size: 13px !important;
+            padding: 5px 2px !important;
+          }
+          .gf-portal-full-text {
+            display: none !important;
+          }
+          .gf-portal-short-text {
+            display: inline !important;
+          }
+          .gf-navbar-right {
+            gap: 8px !important;
           }
         }
-        @media (max-width: 1160px) {
+        @media (max-width: 1240px) {
           .gf-desktop-nav {
-            gap: 10px !important;
+            gap: 8px !important;
           }
           .gf-desktop-nav a, .gf-desktop-nav button {
             font-size: 12.5px !important;
+            padding: 4px 1px !important;
           }
         }
-        @media (max-width: 1060px) {
-          .gf-desktop-nav {
-            gap: 7px !important;
-          }
-          .gf-desktop-nav a, .gf-desktop-nav button {
-            font-size: 12px !important;
-          }
-        }
-        @media (max-width: 1024px) {
+
+        /* Seamless switch to mobile navigation drawer */
+        @media (max-width: 1180px) {
           .gf-desktop-nav {
             display: none !important;
           }
@@ -2158,14 +2179,21 @@ export default function Navbar() {
             display: flex !important;
           }
         }
+
+        /* Tablet & Mobile responsive styling */
         @media (max-width: 768px) {
           .gf-navbar-inner {
             height: 58px !important;
             padding: 0 16px !important;
-            gap: 10px !important;
+            gap: 8px !important;
           }
           .gf-navbar-right {
             gap: 8px !important;
+          }
+          .gf-search-btn {
+            width: 34px !important;
+            height: 34px !important;
+            border-radius: 8px !important;
           }
           .gf-admin-text {
             display: inline-block !important;
@@ -2191,21 +2219,33 @@ export default function Navbar() {
             color: #065f46 !important;
             box-shadow: 0 2px 6px rgba(16, 185, 129, 0.18) !important;
           }
+          .gf-mobile-toggle {
+            width: 34px !important;
+            height: 34px !important;
+            border-radius: 8px !important;
+          }
           .gf-logo-text {
             font-size: 21.5px !important;
           }
           .gf-logo-img {
-            height: 46px !important;
+            height: 44px !important;
             margin-right: -8px !important;
           }
         }
+
         @media (max-width: 480px) {
           .gf-navbar-inner {
-            padding: 0 16px !important;
-            gap: 8px !important;
+            height: 56px !important;
+            padding: 0 14px !important;
+            gap: 6px !important;
           }
           .gf-navbar-right {
             gap: 6px !important;
+          }
+          .gf-search-btn {
+            width: 33px !important;
+            height: 33px !important;
+            border-radius: 8px !important;
           }
           .gf-admin-text {
             display: inline-block !important;
@@ -2215,10 +2255,10 @@ export default function Navbar() {
           .gf-admin-link {
             display: inline-flex !important;
             align-items: center !important;
-            gap: 4px !important;
-            padding: 4px 9px !important;
+            gap: 3px !important;
+            padding: 4px 8px !important;
             border-radius: 8px !important;
-            height: 34px !important;
+            height: 33px !important;
             background: #ffffff !important;
             border: 1px solid #cbd5e1 !important;
             color: #475569 !important;
@@ -2231,41 +2271,57 @@ export default function Navbar() {
             color: #065f46 !important;
             box-shadow: 0 2px 6px rgba(16, 185, 129, 0.18) !important;
           }
+          .gf-mobile-toggle {
+            width: 33px !important;
+            height: 33px !important;
+            border-radius: 8px !important;
+          }
           .gf-logo-text {
-            font-size: 19.5px !important;
+            font-size: 19px !important;
           }
           .gf-logo-img {
-            height: 40px !important;
+            height: 38px !important;
             margin-right: -7px !important;
           }
         }
+
         @media (max-width: 360px) {
           .gf-navbar-inner {
-            padding: 0 12px !important;
-            gap: 6px !important;
+            height: 54px !important;
+            padding: 0 10px !important;
+            gap: 4px !important;
           }
           .gf-navbar-right {
-            gap: 5px !important;
+            gap: 4px !important;
+          }
+          .gf-search-btn {
+            width: 30px !important;
+            height: 30px !important;
+            border-radius: 7px !important;
           }
           .gf-admin-text {
-            display: inline-block !important;
-            font-size: 11px !important;
-            font-weight: 750 !important;
+            display: none !important;
           }
           .gf-admin-link {
-            padding: 4px 7px !important;
-            height: 32px !important;
+            padding: 0 6px !important;
+            height: 30px !important;
+            border-radius: 7px !important;
           }
           .gf-admin-link.gf-admin-logged-in {
             background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%) !important;
             border: 1.5px solid #10b981 !important;
             color: #065f46 !important;
           }
+          .gf-mobile-toggle {
+            width: 30px !important;
+            height: 30px !important;
+            border-radius: 7px !important;
+          }
           .gf-logo-text {
-            font-size: 17.5px !important;
+            font-size: 17px !important;
           }
           .gf-logo-img {
-            height: 35px !important;
+            height: 32px !important;
             margin-right: -6px !important;
           }
         }
