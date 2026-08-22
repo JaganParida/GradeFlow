@@ -424,7 +424,7 @@ export default function StudentAuthModal({ isOpen, onClose }) {
                 )}
               </div>
 
-              {/* Error Banner */}
+              {/* Professional Institutional Security Alert */}
               {errorMsg && (
                 <div
                   style={{
@@ -434,41 +434,95 @@ export default function StudentAuthModal({ isOpen, onClose }) {
                         : errorCode === "DAILY_LIMIT_EXCEEDED"
                         ? "#fffbeb"
                         : "#fef2f2",
-                    border: `1.5px solid ${
+                    border: `1px solid ${
                       errorCode === "DEVICE_LIMIT_REACHED" || errorCode === "DEVICE_ALREADY_LOGGED_IN" || errorCode === "MAX_DEVICES_ACTIVE" || errorCode === "ALREADY_LOGGED_IN_ANOTHER_DEVICE"
-                        ? "#fca5a5"
+                        ? "#fee2e2"
                         : errorCode === "DAILY_LIMIT_EXCEEDED"
-                        ? "#fde68a"
-                        : "#fca5a5"
+                        ? "#fef3c7"
+                        : "#fee2e2"
                     }`,
-                    borderRadius: 10,
-                    padding: "11px 13px",
+                    borderRadius: 12,
+                    padding: "12px 14px",
                     display: "flex",
-                    gap: 10,
+                    gap: 12,
                     alignItems: "flex-start",
+                    boxShadow: "0 2px 6px rgba(0, 0, 0, 0.02)",
                   }}
                 >
-                  {errorCode === "DEVICE_LIMIT_REACHED" || errorCode === "DEVICE_ALREADY_LOGGED_IN" || errorCode === "MAX_DEVICES_ACTIVE" || errorCode === "ALREADY_LOGGED_IN_ANOTHER_DEVICE" ? (
-                    <Smartphone size={18} color="#dc2626" style={{ flexShrink: 0, marginTop: 1 }} />
-                  ) : errorCode === "DAILY_LIMIT_EXCEEDED" ? (
-                    <Clock size={18} color="#d97706" style={{ flexShrink: 0, marginTop: 1 }} />
-                  ) : (
-                    <AlertCircle size={18} color="#dc2626" style={{ flexShrink: 0, marginTop: 1 }} />
-                  )}
                   <div
                     style={{
-                      fontSize: 12.5,
-                      fontWeight: 600,
-                      color:
+                      width: 28,
+                      height: 28,
+                      borderRadius: 8,
+                      background:
                         errorCode === "DEVICE_LIMIT_REACHED" || errorCode === "DEVICE_ALREADY_LOGGED_IN" || errorCode === "MAX_DEVICES_ACTIVE" || errorCode === "ALREADY_LOGGED_IN_ANOTHER_DEVICE"
-                          ? "#991b1b"
+                          ? "#fee2e2"
                           : errorCode === "DAILY_LIMIT_EXCEEDED"
-                          ? "#92400e"
-                          : "#991b1b",
-                      lineHeight: 1.45,
+                          ? "#fef3c7"
+                          : "#fee2e2",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      flexShrink: 0,
+                      marginTop: 1,
                     }}
                   >
-                    {errorMsg}
+                    {errorCode === "DEVICE_LIMIT_REACHED" || errorCode === "DEVICE_ALREADY_LOGGED_IN" || errorCode === "MAX_DEVICES_ACTIVE" || errorCode === "ALREADY_LOGGED_IN_ANOTHER_DEVICE" ? (
+                      <Smartphone size={15} color="#dc2626" />
+                    ) : errorCode === "DAILY_LIMIT_EXCEEDED" ? (
+                      <Clock size={15} color="#d97706" />
+                    ) : (
+                      <AlertCircle size={15} color="#dc2626" />
+                    )}
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, marginBottom: 2 }}>
+                      <span
+                        style={{
+                          fontSize: 13,
+                          fontWeight: 700,
+                          color:
+                            errorCode === "DEVICE_LIMIT_REACHED" || errorCode === "DEVICE_ALREADY_LOGGED_IN" || errorCode === "MAX_DEVICES_ACTIVE" || errorCode === "ALREADY_LOGGED_IN_ANOTHER_DEVICE"
+                              ? "#991b1b"
+                              : errorCode === "DAILY_LIMIT_EXCEEDED"
+                              ? "#92400e"
+                              : "#991b1b",
+                          letterSpacing: "-0.2px",
+                        }}
+                      >
+                        {errorCode === "DEVICE_LIMIT_REACHED" || errorCode === "DEVICE_ALREADY_LOGGED_IN"
+                          ? "Device Limit Reached"
+                          : errorCode === "DAILY_LIMIT_EXCEEDED"
+                          ? "Daily Limit Exceeded"
+                          : "Verification Notice"}
+                      </span>
+                      <span
+                        style={{
+                          fontSize: 10.5,
+                          fontWeight: 700,
+                          padding: "2px 7px",
+                          borderRadius: 99,
+                          background:
+                            errorCode === "DAILY_LIMIT_EXCEEDED" ? "#fde68a" : "#fecaca",
+                          color:
+                            errorCode === "DAILY_LIMIT_EXCEEDED" ? "#78350f" : "#7f1d1d",
+                        }}
+                      >
+                        {errorCode === "DEVICE_LIMIT_REACHED" ? "1 Active Device" : errorCode === "DAILY_LIMIT_EXCEEDED" ? "Max 2 Attempts" : "Attention"}
+                      </span>
+                    </div>
+                    <p
+                      style={{
+                        fontSize: 12,
+                        color:
+                          errorCode === "DAILY_LIMIT_EXCEEDED" ? "#78350f" : "#7f1d1d",
+                        lineHeight: 1.45,
+                        margin: 0,
+                        opacity: 0.92,
+                      }}
+                    >
+                      {errorMsg}
+                    </p>
                   </div>
                 </div>
               )}
@@ -659,18 +713,32 @@ export default function StudentAuthModal({ isOpen, onClose }) {
                 <div
                   style={{
                     background: "#fef2f2",
-                    border: "1px solid #fca5a5",
-                    borderRadius: 8,
-                    padding: "8px 12px",
-                    fontSize: 12,
-                    color: "#991b1b",
+                    border: "1px solid #fee2e2",
+                    borderRadius: 12,
+                    padding: "10px 14px",
                     display: "flex",
                     alignItems: "center",
-                    gap: 6,
+                    gap: 10,
+                    boxShadow: "0 2px 6px rgba(0, 0, 0, 0.02)",
                   }}
                 >
-                  <AlertCircle size={14} color="#dc2626" />
-                  <span>{errorMsg}</span>
+                  <div
+                    style={{
+                      width: 26,
+                      height: 26,
+                      borderRadius: 7,
+                      background: "#fee2e2",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      flexShrink: 0,
+                    }}
+                  >
+                    <AlertCircle size={14} color="#dc2626" />
+                  </div>
+                  <span style={{ fontSize: 12, color: "#991b1b", fontWeight: 600, lineHeight: 1.4 }}>
+                    {errorMsg}
+                  </span>
                 </div>
               )}
 

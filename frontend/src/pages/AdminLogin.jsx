@@ -27,7 +27,7 @@ export default function AdminLogin() {
   const [otp, setOtp] = useState(["", "", "", "", "", ""]);
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
+  const [errorInfo, setErrorInfo] = useState(null); // { title, message, badge, type }
   const [statusNotice, setStatusNotice] = useState("");
 
   // Advanced Security: Client-Side Attempt Counter & Lockout Timer
@@ -51,11 +51,18 @@ export default function AdminLogin() {
   useEffect(() => {
     let timer;
     if (lockCountdown > 0) {
+      setErrorInfo({
+        title: "Access Temporarily Locked",
+        message: "Multiple failed attempts detected. Administrative access is paused for security.",
+        badge: `Cooldown ${lockCountdown}s`,
+        type: "lockout",
+      });
       timer = setInterval(() => {
         setLockCountdown((prev) => prev - 1);
       }, 1000);
     } else if (lockCountdown === 0 && failedAttempts >= 5) {
       setFailedAttempts(0);
+      setErrorInfo(null);
     }
     return () => clearInterval(timer);
   }, [lockCountdown, failedAttempts]);
@@ -85,12 +92,17 @@ export default function AdminLogin() {
 
     const cleanPassword = String(password || "").trim();
     if (!cleanPassword) {
-      setError("Please enter the institutional administration password.");
+      setErrorInfo({
+        title: "Password Required",
+        message: "Please enter your administrative master password.",
+        badge: null,
+        type: "error",
+      });
       return;
     }
 
     setLoading(true);
-    setError("");
+    setErrorInfo(null);
     setStatusNotice("");
 
     try {
@@ -104,7 +116,7 @@ export default function AdminLogin() {
         setStep("OTP");
         setOtp(["", "", "", "", "", ""]);
         setOtpTimeLeft(res.expiresInSeconds || 300);
-        setStatusNotice("A 6-digit security code has been dispatched to the institutional administrator email.");
+        setStatusNotice("A 6-digit security code has been dispatched to your administrator email.");
         setTimeout(() => {
           if (otpInputsRef.current[0]) {
             otpInputsRef.current[0].focus();
@@ -126,19 +138,31 @@ export default function AdminLogin() {
 
     const code = errData?.code;
     if (code === "ADMIN_DEVICE_LIMIT_REACHED") {
-      setError(
-        "Device Limit Reached: The admin portal is currently active on 2 authorized devices (maximum limit: 2). Please log out from another device before logging in."
-      );
+      setErrorInfo({
+        title: "Device Authorization Limit",
+        message: "Admin portal is active on 2 authorized devices (maximum limit: 2). Please log out from another device to continue.",
+        badge: "Max 2 Devices",
+        type: "warning",
+      });
       return;
     }
 
     if (nextAttempts >= 5) {
       setLockCountdown(60);
-      setError("Security Alert: Too many failed password attempts. Access temporarily locked for 60 seconds.");
+      setErrorInfo({
+        title: "Access Temporarily Locked",
+        message: "Multiple failed attempts detected. Administrative access is paused for security.",
+        badge: "Cooldown 60s",
+        type: "lockout",
+      });
     } else {
       const remaining = 5 - nextAttempts;
-      const serverMsg = errData?.error || errData?.message || "Invalid administrative password.";
-      setError(`${serverMsg} (${remaining} attempt${remaining > 1 ? "s" : ""} remaining before temporary lockout)`);
+      setErrorInfo({
+        title: "Authentication Failed",
+        message: "The master password entered does not match administrative records.",
+        badge: remaining > 0 ? `${remaining} attempt${remaining > 1 ? "s" : ""} left` : null,
+        type: "error",
+      });
     }
     setPassword("");
   }
@@ -184,27 +208,49 @@ export default function AdminLogin() {
     const fullOtp = otp.join("").trim();
 
     if (fullOtp.length !== 6) {
-      setError("Please enter the complete 6-digit verification code.");
+      setErrorInfo({
+        title: "Incomplete Code",
+        message: "Please enter the complete 6-digit verification code.",
+        badge: null,
+        type: "error",
+      });
       return;
     }
 
     if (otpTimeLeft === 0) {
-      setError("Verification code has expired. Please enter your password to request a new code.");
+      setErrorInfo({
+        title: "Code Expired",
+        message: "Verification code has expired. Please enter your password to request a new code.",
+        badge: "Expired",
+        type: "error",
+      });
       return;
     }
 
     setLoading(true);
-    setError("");
+    setErrorInfo(null);
 
     try {
       const res = await adminVerifyOtp(fullOtp);
       if (res && res.success) {
         navigate("/admin/dashboard", { replace: true });
       } else {
-        setError(res?.error || "Invalid verification code. Please try again.");
+        setErrorInfo({
+          title: "Verification Failed",
+          message: res?.error || "The verification code is incorrect. Please try again.",
+          badge: null,
+          type: "error",
+        });
       }
     } catch (err) {
-      setError(err.response?.data?.message || "Invalid or expired verification code.");
+      const msg = err.response?.data?.message || "Invalid or expired verification code.";
+      const isExpired = err.response?.data?.code === "OTP_EXPIRED";
+      setErrorInfo({
+        title: isExpired ? "Code Expired" : "Verification Failed",
+        message: msg,
+        badge: isExpired ? "Expired" : null,
+        type: "error",
+      });
     } finally {
       setLoading(false);
     }
@@ -213,7 +259,7 @@ export default function AdminLogin() {
   const handleResendOtp = async () => {
     if (loading || lockCountdown > 0) return;
     setLoading(true);
-    setError("");
+    setErrorInfo(null);
     try {
       const res = await adminLoginPassword(password);
       if (res && res.step === "OTP_REQUIRED") {
@@ -223,7 +269,12 @@ export default function AdminLogin() {
         if (otpInputsRef.current[0]) otpInputsRef.current[0].focus();
       }
     } catch {
-      setError("Unable to resend verification code. Please sign in again.");
+      setErrorInfo({
+        title: "Resend Failed",
+        message: "Unable to dispatch a new verification code. Please sign in again.",
+        badge: null,
+        type: "error",
+      });
     } finally {
       setLoading(false);
     }
@@ -566,39 +617,130 @@ export default function AdminLogin() {
                     <span>Device Limit: Maximum 2 active admin devices allowed simultaneously.</span>
                   </div>
 
-                  {/* Error Banner */}
+                  {/* Professional Institutional Security Alert */}
                   <AnimatePresence>
-                    {error && (
+                    {errorInfo && (
                       <motion.div
-                        initial={{ opacity: 0, y: -6 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: -6 }}
+                        initial={{ opacity: 0, y: -6, scale: 0.98 }}
+                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                        exit={{ opacity: 0, y: -6, scale: 0.98 }}
+                        transition={{ duration: 0.2 }}
                         style={{
-                          color: "#991b1b",
-                          background: "#fef2f2",
-                          border: "1px solid #fecaca",
-                          borderLeft: "3.5px solid #ef4444",
-                          padding: "10px 12px",
-                          borderRadius: 8,
-                          fontSize: 12,
+                          background:
+                            errorInfo.type === "warning"
+                              ? "#fffbeb"
+                              : errorInfo.type === "lockout"
+                              ? "#fff1f2"
+                              : "#fef2f2",
+                          border: `1px solid ${
+                            errorInfo.type === "warning"
+                              ? "#fef3c7"
+                              : errorInfo.type === "lockout"
+                              ? "#ffe4e6"
+                              : "#fee2e2"
+                          }`,
+                          borderRadius: 12,
+                          padding: "12px 14px",
                           marginBottom: 18,
                           display: "flex",
-                          alignItems: "center",
-                          gap: 8,
+                          alignItems: "flex-start",
+                          gap: 12,
+                          boxShadow: "0 2px 6px rgba(0, 0, 0, 0.02)",
                         }}
                       >
-                        {lockCountdown > 0 ? (
-                          <ShieldAlert size={16} color="#ef4444" style={{ flexShrink: 0 }} />
-                        ) : (
-                          <AlertTriangle size={16} color="#ef4444" style={{ flexShrink: 0 }} />
-                        )}
-                        <div>
-                          {error}
-                          {lockCountdown > 0 && (
-                            <div style={{ fontWeight: 700, marginTop: 2, color: "#b91c1c" }}>
-                              Unlock in: {lockCountdown}s
-                            </div>
+                        <div
+                          style={{
+                            width: 28,
+                            height: 28,
+                            borderRadius: 8,
+                            background:
+                              errorInfo.type === "warning"
+                                ? "#fef3c7"
+                                : errorInfo.type === "lockout"
+                                ? "#ffe4e6"
+                                : "#fee2e2",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            flexShrink: 0,
+                            marginTop: 1,
+                          }}
+                        >
+                          {errorInfo.type === "warning" ? (
+                            <Smartphone size={15} color="#d97706" />
+                          ) : errorInfo.type === "lockout" ? (
+                            <ShieldAlert size={15} color="#e11d48" />
+                          ) : (
+                            <AlertTriangle size={15} color="#dc2626" />
                           )}
+                        </div>
+
+                        <div style={{ flex: 1 }}>
+                          <div
+                            style={{
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "space-between",
+                              gap: 8,
+                              marginBottom: 2,
+                            }}
+                          >
+                            <span
+                              style={{
+                                fontSize: 13,
+                                fontWeight: 700,
+                                color:
+                                  errorInfo.type === "warning"
+                                    ? "#92400e"
+                                    : errorInfo.type === "lockout"
+                                    ? "#9f1239"
+                                    : "#991b1b",
+                                letterSpacing: "-0.2px",
+                              }}
+                            >
+                              {errorInfo.title}
+                            </span>
+                            {errorInfo.badge && (
+                              <span
+                                style={{
+                                  fontSize: 10.5,
+                                  fontWeight: 700,
+                                  padding: "2px 7px",
+                                  borderRadius: 99,
+                                  background:
+                                    errorInfo.type === "warning"
+                                      ? "#fde68a"
+                                      : errorInfo.type === "lockout"
+                                      ? "#fecdd3"
+                                      : "#fecaca",
+                                  color:
+                                    errorInfo.type === "warning"
+                                      ? "#78350f"
+                                      : errorInfo.type === "lockout"
+                                      ? "#881337"
+                                      : "#7f1d1d",
+                                }}
+                              >
+                                {errorInfo.badge}
+                              </span>
+                            )}
+                          </div>
+                          <p
+                            style={{
+                              fontSize: 12,
+                              color:
+                                errorInfo.type === "warning"
+                                  ? "#78350f"
+                                  : errorInfo.type === "lockout"
+                                  ? "#881337"
+                                  : "#7f1d1d",
+                              lineHeight: 1.45,
+                              margin: 0,
+                              opacity: 0.92,
+                            }}
+                          >
+                            {errorInfo.message}
+                          </p>
                         </div>
                       </motion.div>
                     )}
@@ -788,29 +930,105 @@ export default function AdminLogin() {
                     </div>
                   </div>
 
-                  {/* Error Banner */}
+                  {/* Professional Institutional Security Alert */}
                   <AnimatePresence>
-                    {error && (
+                    {errorInfo && (
                       <motion.div
-                        initial={{ opacity: 0, y: -6 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: -6 }}
+                        initial={{ opacity: 0, y: -6, scale: 0.98 }}
+                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                        exit={{ opacity: 0, y: -6, scale: 0.98 }}
+                        transition={{ duration: 0.2 }}
                         style={{
-                          color: "#991b1b",
-                          background: "#fef2f2",
-                          border: "1px solid #fecaca",
-                          borderLeft: "3.5px solid #ef4444",
-                          padding: "10px 12px",
-                          borderRadius: 8,
-                          fontSize: 12,
+                          background:
+                            errorInfo.type === "warning"
+                              ? "#fffbeb"
+                              : errorInfo.type === "lockout"
+                              ? "#fff1f2"
+                              : "#fef2f2",
+                          border: `1px solid ${
+                            errorInfo.type === "warning"
+                              ? "#fef3c7"
+                              : errorInfo.type === "lockout"
+                              ? "#ffe4e6"
+                              : "#fee2e2"
+                          }`,
+                          borderRadius: 12,
+                          padding: "12px 14px",
                           marginBottom: 16,
                           display: "flex",
-                          alignItems: "center",
-                          gap: 8,
+                          alignItems: "flex-start",
+                          gap: 12,
+                          boxShadow: "0 2px 6px rgba(0, 0, 0, 0.02)",
                         }}
                       >
-                        <AlertTriangle size={16} color="#ef4444" style={{ flexShrink: 0 }} />
-                        <div>{error}</div>
+                        <div
+                          style={{
+                            width: 28,
+                            height: 28,
+                            borderRadius: 8,
+                            background:
+                              errorInfo.type === "warning"
+                                ? "#fef3c7"
+                                : errorInfo.type === "lockout"
+                                ? "#ffe4e6"
+                                : "#fee2e2",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            flexShrink: 0,
+                            marginTop: 1,
+                          }}
+                        >
+                          <AlertTriangle size={15} color="#dc2626" />
+                        </div>
+
+                        <div style={{ flex: 1 }}>
+                          <div
+                            style={{
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "space-between",
+                              gap: 8,
+                              marginBottom: 2,
+                            }}
+                          >
+                            <span
+                              style={{
+                                fontSize: 13,
+                                fontWeight: 700,
+                                color: "#991b1b",
+                                letterSpacing: "-0.2px",
+                              }}
+                            >
+                              {errorInfo.title}
+                            </span>
+                            {errorInfo.badge && (
+                              <span
+                                style={{
+                                  fontSize: 10.5,
+                                  fontWeight: 700,
+                                  padding: "2px 7px",
+                                  borderRadius: 99,
+                                  background: "#fecaca",
+                                  color: "#7f1d1d",
+                                }}
+                              >
+                                {errorInfo.badge}
+                              </span>
+                            )}
+                          </div>
+                          <p
+                            style={{
+                              fontSize: 12,
+                              color: "#7f1d1d",
+                              lineHeight: 1.45,
+                              margin: 0,
+                              opacity: 0.92,
+                            }}
+                          >
+                            {errorInfo.message}
+                          </p>
+                        </div>
                       </motion.div>
                     )}
                   </AnimatePresence>
