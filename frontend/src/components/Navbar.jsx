@@ -805,37 +805,40 @@ export default function Navbar() {
               </button>
             )}
 
-            {/* Admin Portal Button (Clean Professional Security Styling - No Glowing Dot) */}
+            {/* Admin Portal Button (Clean Professional Security Styling - Distinct Color When Logged In) */}
             <Link
               to="/admin"
               className={`gf-admin-link ${adminToken ? "gf-admin-logged-in" : ""}`}
-              title={adminToken ? "Admin Portal (Authenticated)" : "Admin Portal"}
+              title={adminToken ? "Admin Portal (Logged In & Authenticated)" : "Admin Portal"}
               style={{
                 textDecoration: "none",
                 display: "inline-flex",
                 alignItems: "center",
                 gap: 6,
-                padding: "7px 12px",
+                padding: "7px 13px",
                 borderRadius: 9,
                 border: adminToken
-                  ? "1.5px solid #86efac"
+                  ? "1.5px solid #10b981"
                   : location.pathname.startsWith("/admin")
                     ? "1.5px solid #cbd5e1"
                     : "1px solid #cbd5e1",
                 background: adminToken
-                  ? "#f0fdf4"
+                  ? "linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%)"
                   : location.pathname.startsWith("/admin")
                     ? "#f1f5f9"
                     : "#ffffff",
                 color: adminToken
-                  ? "#166534"
+                  ? "#065f46"
                   : location.pathname.startsWith("/admin")
                     ? "#0f172a"
                     : "#475569",
                 fontSize: 12.5,
-                fontWeight: 700,
+                fontWeight: 750,
+                letterSpacing: "0.2px",
                 transition: "all 0.18s ease",
-                boxShadow: adminToken ? "0 1px 3px rgba(22, 163, 74, 0.12)" : "none",
+                boxShadow: adminToken
+                  ? "0 2px 6px rgba(16, 185, 129, 0.18)"
+                  : "none",
               }}
               onMouseEnter={(e) => {
                 if (!adminToken) {
@@ -843,8 +846,9 @@ export default function Navbar() {
                   e.currentTarget.style.color = "#0f172a";
                   e.currentTarget.style.borderColor = "#94a3b8";
                 } else {
-                  e.currentTarget.style.background = "#dcfce7";
-                  e.currentTarget.style.borderColor = "#4ade80";
+                  e.currentTarget.style.background = "linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%)";
+                  e.currentTarget.style.borderColor = "#059669";
+                  e.currentTarget.style.color = "#064e3b";
                 }
               }}
               onMouseLeave={(e) => {
@@ -857,14 +861,16 @@ export default function Navbar() {
                     : "#475569";
                   e.currentTarget.style.borderColor = "#cbd5e1";
                 } else {
-                  e.currentTarget.style.background = "#f0fdf4";
-                  e.currentTarget.style.borderColor = "#86efac";
+                  e.currentTarget.style.background = "linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%)";
+                  e.currentTarget.style.borderColor = "#10b981";
+                  e.currentTarget.style.color = "#065f46";
                 }
               }}
             >
               <ShieldCheck
                 size={15}
-                color={adminToken ? "#16a34a" : "#64748b"}
+                color={adminToken ? "#059669" : "#64748b"}
+                strokeWidth={adminToken ? 2.4 : 2}
               />
               <span className="gf-admin-text">Admin</span>
             </Link>
@@ -1709,14 +1715,19 @@ export default function Navbar() {
                     padding: "11px 12px",
                     borderRadius: 10,
                     textDecoration: "none",
-                    background: location.pathname.startsWith("/admin")
-                      ? "#eff6ff"
-                      : "transparent",
-                    color: location.pathname.startsWith("/admin")
-                      ? "#2563eb"
-                      : "#1e293b",
+                    background: adminToken
+                      ? "#f0fdf4"
+                      : location.pathname.startsWith("/admin")
+                        ? "#eff6ff"
+                        : "transparent",
+                    border: adminToken ? "1px solid #bbf7d0" : "1px solid transparent",
+                    color: adminToken
+                      ? "#065f46"
+                      : location.pathname.startsWith("/admin")
+                        ? "#2563eb"
+                        : "#1e293b",
                     fontSize: 14.5,
-                    fontWeight: location.pathname.startsWith("/admin")
+                    fontWeight: adminToken || location.pathname.startsWith("/admin")
                       ? 700
                       : 600,
                   }}
@@ -1727,14 +1738,31 @@ export default function Navbar() {
                     <ShieldCheck
                       size={17}
                       color={
-                        location.pathname.startsWith("/admin")
-                          ? "#2563eb"
-                          : "#64748b"
+                        adminToken
+                          ? "#059669"
+                          : location.pathname.startsWith("/admin")
+                            ? "#2563eb"
+                            : "#64748b"
                       }
+                      strokeWidth={adminToken ? 2.4 : 2}
                     />
                     <span>Admin Portal</span>
                   </div>
-                  {location.pathname.startsWith("/admin") ? (
+                  {adminToken ? (
+                    <span
+                      style={{
+                        fontSize: 10.5,
+                        fontWeight: 700,
+                        background: "#dcfce7",
+                        color: "#065f46",
+                        padding: "2px 8px",
+                        borderRadius: 6,
+                        border: "1px solid #86efac",
+                      }}
+                    >
+                      Logged In
+                    </span>
+                  ) : location.pathname.startsWith("/admin") ? (
                     <span
                       style={{
                         width: 6,
@@ -2158,10 +2186,10 @@ export default function Navbar() {
             white-space: nowrap !important;
           }
           .gf-admin-link.gf-admin-logged-in {
-            background: #f0fdf4 !important;
-            border: 1.5px solid #86efac !important;
-            color: #166534 !important;
-            box-shadow: 0 1px 3px rgba(22, 163, 74, 0.12) !important;
+            background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%) !important;
+            border: 1.5px solid #10b981 !important;
+            color: #065f46 !important;
+            box-shadow: 0 2px 6px rgba(16, 185, 129, 0.18) !important;
           }
           .gf-logo-text {
             font-size: 21.5px !important;
@@ -2182,7 +2210,7 @@ export default function Navbar() {
           .gf-admin-text {
             display: inline-block !important;
             font-size: 11.5px !important;
-            font-weight: 700 !important;
+            font-weight: 750 !important;
           }
           .gf-admin-link {
             display: inline-flex !important;
@@ -2198,10 +2226,10 @@ export default function Navbar() {
             white-space: nowrap !important;
           }
           .gf-admin-link.gf-admin-logged-in {
-            background: #f0fdf4 !important;
-            border: 1.5px solid #86efac !important;
-            color: #166534 !important;
-            box-shadow: 0 1px 3px rgba(22, 163, 74, 0.12) !important;
+            background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%) !important;
+            border: 1.5px solid #10b981 !important;
+            color: #065f46 !important;
+            box-shadow: 0 2px 6px rgba(16, 185, 129, 0.18) !important;
           }
           .gf-logo-text {
             font-size: 19.5px !important;
@@ -2222,16 +2250,16 @@ export default function Navbar() {
           .gf-admin-text {
             display: inline-block !important;
             font-size: 11px !important;
-            font-weight: 700 !important;
+            font-weight: 750 !important;
           }
           .gf-admin-link {
             padding: 4px 7px !important;
             height: 32px !important;
           }
           .gf-admin-link.gf-admin-logged-in {
-            background: #f0fdf4 !important;
-            border: 1.5px solid #86efac !important;
-            color: #166534 !important;
+            background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%) !important;
+            border: 1.5px solid #10b981 !important;
+            color: #065f46 !important;
           }
           .gf-logo-text {
             font-size: 17.5px !important;
