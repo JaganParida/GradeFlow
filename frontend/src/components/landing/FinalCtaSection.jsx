@@ -103,41 +103,39 @@ export default function FinalCtaSection({
                   display: "inline-flex",
                   alignItems: "center",
                   justifyContent: "center",
-                  gap: 10,
-                  padding: "13px 24px",
+                  gap: 8,
+                  padding: "13px 22px",
                   borderRadius: 10,
-                  background: "#0f172a",
+                  background: "#2563eb",
                   color: "#ffffff",
-                  fontSize: 14.5,
+                  fontSize: "clamp(13px, 3.2vw, 15px)",
                   fontWeight: 700,
-                  border: "1px solid #1e293b",
+                  border: "none",
                   cursor: "pointer",
-                  boxShadow: "0 4px 14px rgba(15, 23, 42, 0.18)",
+                  boxShadow: "0 4px 14px rgba(37, 99, 235, 0.28)",
                   transition: "all 0.15s ease",
-                  flexWrap: "wrap",
+                  whiteSpace: "nowrap",
+                  flexWrap: "nowrap",
                 }}
                 onMouseEnter={(e) => {
-                  e.currentTarget.style.background = "#1e293b";
-                  e.currentTarget.style.boxShadow = "0 6px 20px rgba(15, 23, 42, 0.25)";
+                  e.currentTarget.style.background = "#1d4ed8";
+                  e.currentTarget.style.boxShadow = "0 6px 20px rgba(37, 99, 235, 0.35)";
                 }}
                 onMouseLeave={(e) => {
-                  e.currentTarget.style.background = "#0f172a";
-                  e.currentTarget.style.boxShadow = "0 4px 14px rgba(15, 23, 42, 0.18)";
+                  e.currentTarget.style.background = "#2563eb";
+                  e.currentTarget.style.boxShadow = "0 4px 14px rgba(37, 99, 235, 0.28)";
                 }}
               >
-                <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                  <span style={{ width: 8, height: 8, borderRadius: "50%", background: "#22c55e", boxShadow: "0 0 8px rgba(34, 197, 94, 0.6)", flexShrink: 0 }} />
-                  <span>Continue to Dashboard</span>
-                </div>
+                <span>Continue to Dashboard</span>
                 {currentRegNo && (
                   <span
                     style={{
-                      fontSize: 12,
+                      fontSize: "clamp(11px, 2.7vw, 12px)",
                       fontFamily: "'Space Mono', monospace",
                       fontWeight: 700,
-                      background: "rgba(255, 255, 255, 0.12)",
-                      color: "#93c5fd",
-                      padding: "2px 8px",
+                      background: "rgba(255, 255, 255, 0.22)",
+                      color: "#ffffff",
+                      padding: "2px 7px",
                       borderRadius: 6,
                       letterSpacing: "0.02em",
                       flexShrink: 0,
@@ -146,7 +144,7 @@ export default function FinalCtaSection({
                     {currentRegNo}
                   </span>
                 )}
-                <ArrowRight size={15} color="#93c5fd" style={{ flexShrink: 0 }} />
+                <ArrowRight size={15} style={{ flexShrink: 0 }} />
               </button>
             ) : (
               <>
