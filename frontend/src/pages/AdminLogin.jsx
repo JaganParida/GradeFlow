@@ -20,6 +20,7 @@ import {
   Loader2,
   Smartphone,
 } from "lucide-react";
+import BlockedLoginDeviceModal from "../components/BlockedLoginDeviceModal";
 
 export default function AdminLogin() {
   const [step, setStep] = useState("PASSWORD"); // "PASSWORD" | "OTP"
@@ -43,6 +44,11 @@ export default function AdminLogin() {
   const [showSubPassword, setShowSubPassword] = useState(false);
   const [subAdminVerifiedEmail, setSubAdminVerifiedEmail] = useState("");
   const [subAdminMaskedEmail, setSubAdminMaskedEmail] = useState("");
+
+  // Blocked Device Popup State
+  const [isBlockedModalOpen, setIsBlockedModalOpen] = useState(false);
+  const [blockedDevicesData, setBlockedDevicesData] = useState([]);
+  const [maxAllowedDevices, setMaxAllowedDevices] = useState(2);
 
   const otpInputsRef = useRef([]);
   const { adminLoginPassword, adminVerifyOtp, subAdminLogin, subAdminVerifyOtp, adminToken } = useApp();
@@ -145,6 +151,10 @@ export default function AdminLogin() {
 
     const code = errData?.code;
     if (code === "ADMIN_DEVICE_LIMIT_REACHED") {
+      const devs = errData?.details?.activeDevices || errData?.activeDevices || [];
+      setBlockedDevicesData(devs);
+      setMaxAllowedDevices(2);
+      setIsBlockedModalOpen(true);
       setErrorInfo({
         title: "Device Authorization Limit",
         message: "Admin portal is active on 2 authorized devices (maximum limit: 2). Please log out from another device to continue.",
@@ -155,6 +165,10 @@ export default function AdminLogin() {
     }
 
     if (code === "SUBADMIN_DEVICE_LIMIT_REACHED") {
+      const devs = errData?.details?.activeDevices || errData?.activeDevices || [];
+      setBlockedDevicesData(devs);
+      setMaxAllowedDevices(1);
+      setIsBlockedModalOpen(true);
       setErrorInfo({
         title: "Device Authorization Limit",
         message: "Sub-Admin portal is currently active on another device (maximum limit: 1 device). Please log out from that device to continue.",
@@ -236,6 +250,10 @@ export default function AdminLogin() {
       setFailedAttempts(nextFailed);
 
       if (res?.code === "SUBADMIN_DEVICE_LIMIT_REACHED" || res?.details?.code === "SUBADMIN_DEVICE_LIMIT_REACHED") {
+        const devs = res?.details?.activeDevices || res?.activeDevices || [];
+        setBlockedDevicesData(devs);
+        setMaxAllowedDevices(1);
+        setIsBlockedModalOpen(true);
         setErrorInfo({
           title: "Device Authorization Limit",
           message: "Sub-Admin portal is currently active on another authorized device (maximum limit: 1 device). Please log out from that device to continue.",
@@ -937,6 +955,33 @@ export default function AdminLogin() {
                               >
                                 {errorInfo.message}
                               </p>
+
+                              {errorInfo.title === "Device Authorization Limit" && (
+                                <button
+                                  type="button"
+                                  onClick={() => setIsBlockedModalOpen(true)}
+                                  style={{
+                                    marginTop: "8px",
+                                    background: "#fef3c7",
+                                    border: "1px solid #fcd34d",
+                                    color: "#92400e",
+                                    borderRadius: "8px",
+                                    padding: "5px 12px",
+                                    fontSize: "11.5px",
+                                    fontWeight: "800",
+                                    cursor: "pointer",
+                                    display: "inline-flex",
+                                    alignItems: "center",
+                                    gap: "6px",
+                                    transition: "background 0.15s ease",
+                                  }}
+                                  onMouseEnter={(e) => (e.currentTarget.style.background = "#fde68a")}
+                                  onMouseLeave={(e) => (e.currentTarget.style.background = "#fef3c7")}
+                                >
+                                  <Smartphone size={13} color="#d97706" />
+                                  <span>View Active Device Info</span>
+                                </button>
+                              )}
                             </div>
                           </motion.div>
                         )}
@@ -1562,6 +1607,15 @@ export default function AdminLogin() {
           }
         }
       `}</style>
+
+      {/* Blocked Login Device Information Modal */}
+      <BlockedLoginDeviceModal
+        isOpen={isBlockedModalOpen}
+        onClose={() => setIsBlockedModalOpen(false)}
+        activeDevices={blockedDevicesData}
+        accountIdentifier={authMode === "SUBADMIN" ? (subAdminVerifiedEmail || subAdminEmail || "Sub-Admin") : "Main Administrator"}
+        maxAllowed={maxAllowedDevices}
+      />
     </motion.div>
   );
 }

@@ -19,6 +19,7 @@ import {
   Smartphone,
   ChevronLeft,
 } from "lucide-react";
+import BlockedLoginDeviceModal from "./BlockedLoginDeviceModal";
 
 export default function StudentAuthModal({ isOpen, onClose }) {
   const {
@@ -44,6 +45,8 @@ export default function StudentAuthModal({ isOpen, onClose }) {
   const [timerSeconds, setTimerSeconds] = useState(300);
   const [timerActive, setTimerActive] = useState(false);
   const [deviceStatus, setDeviceStatus] = useState(null); // { isBlocked, isCurrentDevice, message }
+  const [isBlockedModalOpen, setIsBlockedModalOpen] = useState(false);
+  const [blockedDevicesData, setBlockedDevicesData] = useState([]);
 
   // Helper to route to intended destination after auth
   const navigateToDestination = (cleanReg) => {
@@ -124,16 +127,18 @@ export default function StudentAuthModal({ isOpen, onClose }) {
         });
         if (res.data?.success && res.data?.exists) {
           if (res.data.isBlocked) {
-            setDeviceStatus({ isBlocked: true, message: res.data.blockMessage });
+            const devices = res.data.activeDevices || res.data.sessions || [];
+            setDeviceStatus({ isBlocked: true, message: res.data.blockMessage, devices });
+            setBlockedDevicesData(devices);
             setErrorMsg(res.data.blockMessage);
-            setErrorCode("DEVICE_ALREADY_LOGGED_IN");
+            setErrorCode("DEVICE_LIMIT_REACHED");
           } else if (res.data.isCurrentDevice) {
             setDeviceStatus({ isCurrentDevice: true });
             setErrorMsg("");
             setErrorCode("");
           } else {
             setDeviceStatus({ isBlocked: false });
-            if (errorCode === "DEVICE_ALREADY_LOGGED_IN" || errorCode === "MAX_DEVICES_ACTIVE") {
+            if (errorCode === "DEVICE_LIMIT_REACHED" || errorCode === "DEVICE_ALREADY_LOGGED_IN" || errorCode === "MAX_DEVICES_ACTIVE") {
               setErrorMsg("");
               setErrorCode("");
             }
@@ -172,7 +177,13 @@ export default function StudentAuthModal({ isOpen, onClose }) {
   // Step 1: Send OTP
   const handleSendOtp = async (e) => {
     if (e) e.preventDefault();
-    if (deviceStatus?.isBlocked) return;
+    if (deviceStatus?.isBlocked) {
+      if (deviceStatus.devices && deviceStatus.devices.length > 0) {
+        setBlockedDevicesData(deviceStatus.devices);
+      }
+      setIsBlockedModalOpen(true);
+      return;
+    }
 
     const cleanReg = regNo.trim().toUpperCase();
     if (!cleanReg) {
@@ -208,6 +219,15 @@ export default function StudentAuthModal({ isOpen, onClose }) {
     } else {
       setErrorMsg(result.error);
       setErrorCode(result.code);
+      if (
+        result.code === "DEVICE_LIMIT_REACHED" ||
+        result.details?.code === "DEVICE_LIMIT_REACHED" ||
+        result.code === "DEVICE_ALREADY_LOGGED_IN"
+      ) {
+        const devs = result.details?.activeDevices || result.details?.sessions || deviceStatus?.devices || [];
+        setBlockedDevicesData(devs);
+        setIsBlockedModalOpen(true);
+      }
     }
   };
 
@@ -234,6 +254,15 @@ export default function StudentAuthModal({ isOpen, onClose }) {
     } else {
       setErrorMsg(result.error);
       setErrorCode(result.code);
+      if (
+        result.code === "DEVICE_LIMIT_REACHED" ||
+        result.details?.code === "DEVICE_LIMIT_REACHED" ||
+        result.code === "DEVICE_ALREADY_LOGGED_IN"
+      ) {
+        const devs = result.details?.activeDevices || result.details?.sessions || [];
+        setBlockedDevicesData(devs);
+        setIsBlockedModalOpen(true);
+      }
     }
   };
 
@@ -523,6 +552,33 @@ export default function StudentAuthModal({ isOpen, onClose }) {
                     >
                       {errorMsg}
                     </p>
+
+                    {(errorCode === "DEVICE_LIMIT_REACHED" || errorCode === "DEVICE_ALREADY_LOGGED_IN" || errorCode === "MAX_DEVICES_ACTIVE") && (
+                      <button
+                        type="button"
+                        onClick={() => setIsBlockedModalOpen(true)}
+                        style={{
+                          marginTop: "8px",
+                          background: "#fee2e2",
+                          border: "1px solid #fca5a5",
+                          color: "#991b1b",
+                          borderRadius: "8px",
+                          padding: "5px 12px",
+                          fontSize: "11.5px",
+                          fontWeight: "800",
+                          cursor: "pointer",
+                          display: "inline-flex",
+                          alignItems: "center",
+                          gap: "6px",
+                          transition: "background 0.15s ease",
+                        }}
+                        onMouseEnter={(e) => (e.currentTarget.style.background = "#fecaca")}
+                        onMouseLeave={(e) => (e.currentTarget.style.background = "#fee2e2")}
+                      >
+                        <Smartphone size={13} color="#dc2626" />
+                        <span>View Active Device Info</span>
+                      </button>
+                    )}
                   </div>
                 </div>
               )}
@@ -831,6 +887,15 @@ export default function StudentAuthModal({ isOpen, onClose }) {
           )}
         </motion.div>
       </div>
+
+      {/* Blocked Login Device Information Modal */}
+      <BlockedLoginDeviceModal
+        isOpen={isBlockedModalOpen}
+        onClose={() => setIsBlockedModalOpen(false)}
+        activeDevices={blockedDevicesData}
+        accountIdentifier={regNo}
+        maxAllowed={regNo.trim().toUpperCase() === "230301120327" ? 2 : 1}
+      />
     </AnimatePresence>
   );
 }

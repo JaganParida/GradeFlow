@@ -504,6 +504,14 @@ module.exports = async function handler(req, res) {
 
       // CRITICAL: Block OTP Generation if device limit is already reached!
       if (activeSessions.length >= maxAllowedDevices) {
+        const sanitizedDevices = activeSessions.map((s, idx) => ({
+          deviceIndex: idx + 1,
+          platform: s.deviceInfo?.platform || "Unknown",
+          userAgent: s.deviceInfo?.userAgent || "Unknown",
+          loggedInAt: s.loggedInAt,
+          lastActiveAt: s.lastActiveAt,
+          status: "ACTIVE",
+        }));
         return res.status(403).json({
           success: false,
           code: "DEVICE_LIMIT_REACHED",
@@ -513,6 +521,7 @@ module.exports = async function handler(req, res) {
           activeDeviceCount: activeSessions.length,
           maxAllowedDevices,
           isBlocked: true,
+          activeDevices: sanitizedDevices,
         });
       }
 
@@ -650,6 +659,14 @@ module.exports = async function handler(req, res) {
       const activeSessions = await getActiveSessions(StudentSession, rawReg);
 
       if (activeSessions.length >= maxAllowedDevices) {
+        const sanitizedDevices = activeSessions.map((s, idx) => ({
+          deviceIndex: idx + 1,
+          platform: s.deviceInfo?.platform || "Unknown",
+          userAgent: s.deviceInfo?.userAgent || "Unknown",
+          loggedInAt: s.loggedInAt,
+          lastActiveAt: s.lastActiveAt,
+          status: "ACTIVE",
+        }));
         return res.status(403).json({
           success: false,
           code: "DEVICE_LIMIT_REACHED",
@@ -835,6 +852,14 @@ module.exports = async function handler(req, res) {
       }
 
       const isBlocked = activeSessions.length >= MAX_ADMIN_DEVICES && !isCurrentDevice;
+      const sanitizedDevices = activeSessions.map((s, idx) => ({
+        deviceIndex: idx + 1,
+        platform: s.deviceInfo?.platform || "Unknown",
+        userAgent: s.deviceInfo?.userAgent || "Unknown",
+        loggedInAt: s.loggedInAt,
+        lastActiveAt: s.lastActiveAt,
+        status: "ACTIVE",
+      }));
 
       return res.json({
         success: true,
@@ -845,6 +870,7 @@ module.exports = async function handler(req, res) {
         otpAllowed: !isBlocked,
         loginAllowed: !isBlocked,
         blockReason: isBlocked ? "ADMIN_DEVICE_LIMIT_REACHED" : null,
+        activeDevices: sanitizedDevices,
       });
     }
 
@@ -934,11 +960,20 @@ module.exports = async function handler(req, res) {
 
       // CRITICAL GUARD: Strict 2-Device Limit Check BEFORE generating or sending OTP
       if (activeSessions.length >= MAX_ADMIN_DEVICES && !isCurrentDevice) {
+        const sanitizedDevices = activeSessions.map((s, idx) => ({
+          deviceIndex: idx + 1,
+          platform: s.deviceInfo?.platform || "Unknown",
+          userAgent: s.deviceInfo?.userAgent || "Unknown",
+          loggedInAt: s.loggedInAt,
+          lastActiveAt: s.lastActiveAt,
+          status: "ACTIVE",
+        }));
         return res.status(403).json({
           message: `Admin portal is currently active on ${activeSessions.length} authorized devices (maximum limit: ${MAX_ADMIN_DEVICES}). Please log out from another device before logging in here.`,
           code: "ADMIN_DEVICE_LIMIT_REACHED",
           activeDeviceCount: activeSessions.length,
           maxAllowedDevices: MAX_ADMIN_DEVICES,
+          activeDevices: sanitizedDevices,
         });
       }
 
@@ -1024,9 +1059,18 @@ module.exports = async function handler(req, res) {
 
       const activeSessions = await getActiveAdminSessions(AdminSession);
       if (activeSessions.length >= MAX_ADMIN_DEVICES) {
+        const sanitizedDevices = activeSessions.map((s, idx) => ({
+          deviceIndex: idx + 1,
+          platform: s.deviceInfo?.platform || "Unknown",
+          userAgent: s.deviceInfo?.userAgent || "Unknown",
+          loggedInAt: s.loggedInAt,
+          lastActiveAt: s.lastActiveAt,
+          status: "ACTIVE",
+        }));
         return res.status(403).json({
           message: `Admin device limit reached (${MAX_ADMIN_DEVICES} devices active). Please log out from another device.`,
           code: "ADMIN_DEVICE_LIMIT_REACHED",
+          activeDevices: sanitizedDevices,
         });
       }
 
@@ -1163,12 +1207,21 @@ module.exports = async function handler(req, res) {
 
       // CRITICAL GUARD: Max 1 active device session
       if (activeSessions.length >= 1 && !isCurrentDevice) {
+        const sanitizedDevices = activeSessions.map((s, idx) => ({
+          deviceIndex: idx + 1,
+          platform: s.deviceInfo?.platform || "Unknown",
+          userAgent: s.deviceInfo?.userAgent || "Unknown",
+          loggedInAt: s.loggedInAt,
+          lastActiveAt: s.lastActiveAt,
+          status: "ACTIVE",
+        }));
         return res.status(403).json({
           success: false,
           message: `Your Sub-Admin portal is currently active on another device (maximum limit: 1 device). Please log out from that device to sign in here.`,
           code: "SUBADMIN_DEVICE_LIMIT_REACHED",
           activeDeviceCount: activeSessions.length,
           maxAllowedDevices: 1,
+          activeDevices: sanitizedDevices,
         });
       }
 
