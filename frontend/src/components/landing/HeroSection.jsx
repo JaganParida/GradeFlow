@@ -136,23 +136,51 @@ export default function HeroSection({
                 style={{
                   display: "inline-flex",
                   alignItems: "center",
-                  gap: 8,
-                  padding: "14px 28px",
+                  justifyContent: "center",
+                  gap: 10,
+                  padding: "13px 22px",
                   borderRadius: 10,
-                  background: "#2563eb",
+                  background: "#0f172a",
                   color: "#ffffff",
-                  fontSize: 15,
+                  fontSize: 14.5,
                   fontWeight: 700,
-                  border: "none",
+                  border: "1px solid #1e293b",
                   cursor: "pointer",
-                  boxShadow: "0 2px 10px rgba(37, 99, 235, 0.25)",
+                  boxShadow: "0 4px 14px rgba(15, 23, 42, 0.18)",
                   transition: "all 0.15s ease",
+                  flexWrap: "wrap",
                 }}
-                onMouseEnter={(e) => (e.currentTarget.style.filter = "brightness(1.08)")}
-                onMouseLeave={(e) => (e.currentTarget.style.filter = "none")}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = "#1e293b";
+                  e.currentTarget.style.boxShadow = "0 6px 20px rgba(15, 23, 42, 0.25)";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = "#0f172a";
+                  e.currentTarget.style.boxShadow = "0 4px 14px rgba(15, 23, 42, 0.18)";
+                }}
               >
-                <span>Continue to Dashboard ({currentRegNo || "Active"})</span>
-                <ArrowRight size={16} />
+                <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                  <span style={{ width: 8, height: 8, borderRadius: "50%", background: "#22c55e", boxShadow: "0 0 8px rgba(34, 197, 94, 0.6)", flexShrink: 0 }} />
+                  <span>Continue to Dashboard</span>
+                </div>
+                {currentRegNo && (
+                  <span
+                    style={{
+                      fontSize: 12,
+                      fontFamily: "'Space Mono', monospace",
+                      fontWeight: 700,
+                      background: "rgba(255, 255, 255, 0.12)",
+                      color: "#93c5fd",
+                      padding: "2px 8px",
+                      borderRadius: 6,
+                      letterSpacing: "0.02em",
+                      flexShrink: 0,
+                    }}
+                  >
+                    {currentRegNo}
+                  </span>
+                )}
+                <ArrowRight size={15} color="#93c5fd" style={{ flexShrink: 0 }} />
               </button>
             ) : (
               <>
