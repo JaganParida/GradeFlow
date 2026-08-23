@@ -1018,6 +1018,8 @@ export function simulateMissPenalty({
   const att = Math.max(0, Number(currentAttended) || 0);
   const del = Math.max(att, Number(currentDelivered) || 0);
   const miss = Math.max(0, Number(missedCount) || 0);
+  const daysOfWeek = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+  const lastInstructionDate = new Date("2026-10-31T23:59:59");
 
   // Base requirement without missing classes
   const baseNumerator = target * del - 100 * att;
@@ -1032,7 +1034,67 @@ export function simulateMissPenalty({
   const extraClassesNeeded = Math.max(0, newNeeded - baseNeeded);
   const recoveryMultiplier = Number((target / denominator).toFixed(2));
 
-  // Calendar projections
+  // 1. Calculate the exact simulated Missed Sessions (dates, slots, percentage drops)
+  const missedSessions = [];
+  let simMissDate = new Date(startDate);
+  let missesToFind = miss;
+  let runningDelAfterMiss = del;
+
+  while (simMissDate <= lastInstructionDate && missesToFind > 0) {
+    simMissDate.setDate(simMissDate.getDate() + 1);
+    if (simMissDate > lastInstructionDate) break;
+
+    const hol = getHolidayInfo(simMissDate);
+    if (hol?.isHoliday) continue;
+
+    const acStatus = getAcademicCalendarDateStatus(simMissDate);
+    if (acStatus?.classesSuspended || acStatus?.isExam) continue;
+
+    const dayIdx = simMissDate.getDay();
+    const dayName = daysOfWeek[dayIdx];
+    const matchingOccurrences = weeklyOccurrences.filter((occ) => occ.day === dayName);
+
+    matchingOccurrences.forEach((occ) => {
+      if (missesToFind > 0) {
+        missesToFind--;
+        runningDelAfterMiss += 1;
+        const prevPct = ((att / (runningDelAfterMiss - 1 || 1)) * 100);
+        const currPct = (att / runningDelAfterMiss) * 100;
+        const drop = prevPct - currPct;
+
+        missedSessions.push({
+          missNumber: missedSessions.length + 1,
+          date: new Date(simMissDate),
+          dateKey: formatDateKey(simMissDate),
+          dateStr: simMissDate.toLocaleDateString("en-IN", {
+            weekday: "short",
+            day: "numeric",
+            month: "short",
+          }),
+          fullDateStr: simMissDate.toLocaleDateString("en-IN", {
+            weekday: "short",
+            day: "numeric",
+            month: "short",
+            year: "numeric",
+          }),
+          day: occ.day,
+          timeSlot: occ.timeSlot,
+          room: occ.room || "Classroom",
+          type: occ.type || "Lecture",
+          faculty: occ.faculty || "",
+          runningAttended: att,
+          runningDelivered: runningDelAfterMiss,
+          runningPercentage: Number(currPct.toFixed(1)),
+          percentageDrop: Number(drop.toFixed(2)),
+          isBelow75: currPct < 75,
+        });
+      }
+    });
+  }
+
+  const lastMissDate = missedSessions.length > 0 ? missedSessions[missedSessions.length - 1].date : new Date(startDate);
+
+  // 2. Base calendar projection
   const baseProjection = estimateTargetReachDate(
     baseNeeded,
     weeklyOccurrences,
@@ -1042,12 +1104,13 @@ export function simulateMissPenalty({
     target
   );
 
+  // 3. Delayed calendar projection starting post-miss
   const delayedProjection = estimateTargetReachDate(
     newNeeded,
     weeklyOccurrences,
-    startDate,
+    lastMissDate,
     att,
-    newDel,
+    del + miss,
     target
   );
 
@@ -1060,6 +1123,7 @@ export function simulateMissPenalty({
 
   // Find newly appended sessions that weren't in base projection
   const appendedSessions = (delayedProjection?.requiredSessions || []).slice(baseNeeded);
+  const recoverySessions = delayedProjection?.requiredSessions || [];
 
   return {
     missedCount: miss,
@@ -1072,6 +1136,8 @@ export function simulateMissPenalty({
     baseProjection,
     delayedProjection,
     appendedSessions,
+    missedSessions,
+    recoverySessions,
   };
 }
 
@@ -1141,7 +1207,11 @@ export function simulateMultiPhaseAttendance({
     matchingOccurrences.forEach((occ) => {
       if (bunksRemaining > 0) {
         bunksRemaining--;
-        lastBunkDate = new Date(simCurrent);
+        const curBunkDelivered = p1Delivered + (bunkSessions.length + 1);
+        const prevPct = ((p1Attended / (curBunkDelivered - 1 || 1)) * 100);
+        const currPct = (p1Attended / curBunkDelivered) * 100;
+        const drop = prevPct - currPct;
+
         bunkSessions.push({
           bunkNumber: bunkSessions.length + 1,
           date: new Date(simCurrent),
@@ -1162,6 +1232,11 @@ export function simulateMultiPhaseAttendance({
           room: occ.room || "Classroom",
           type: occ.type || "Lecture",
           faculty: occ.faculty || "",
+          runningAttended: p1Attended,
+          runningDelivered: curBunkDelivered,
+          runningPercentage: Number(currPct.toFixed(1)),
+          percentageDrop: Number(drop.toFixed(2)),
+          isBelow75: currPct < 75,
         });
       }
     });
