@@ -2484,9 +2484,12 @@ export default function Home() {
                           color: "#16a34a",
                           fontWeight: 600,
                           marginTop: 2,
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 2,
                         }}
                       >
-                        ↑ 0.42
+                        <TrendingUp size={11} color="#16a34a" /> 0.42
                       </div>
                     </div>
 
@@ -2555,9 +2558,12 @@ export default function Home() {
                           color: "#16a34a",
                           fontWeight: 600,
                           marginTop: 2,
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 2,
                         }}
                       >
-                        ↑ 0.35
+                        <TrendingUp size={11} color="#16a34a" /> 0.35
                       </div>
                     </div>
 
@@ -2626,9 +2632,12 @@ export default function Home() {
                           color: "#16a34a",
                           fontWeight: 600,
                           marginTop: 2,
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 2,
                         }}
                       >
-                        ↑ 4 pts
+                        <TrendingUp size={11} color="#16a34a" /> 4 pts
                       </div>
                     </div>
 
@@ -2688,9 +2697,12 @@ export default function Home() {
                           color: "#16a34a",
                           fontWeight: 600,
                           marginTop: 2,
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 2,
                         }}
                       >
-                        ↑ 12 pos
+                        <TrendingUp size={11} color="#16a34a" /> 12 pos
                       </div>
                     </div>
                   </div>
@@ -3073,9 +3085,12 @@ export default function Home() {
                     fontWeight: 600,
                     color: "#16a34a",
                     marginTop: 2,
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 3,
                   }}
                 >
-                  ↑ 0.42{" "}
+                  <TrendingUp size={12} color="#16a34a" /> 0.42{" "}
                   <span style={{ color: "#64748b", fontWeight: 400 }}>
                     this semester
                   </span>
@@ -3140,9 +3155,12 @@ export default function Home() {
                     fontWeight: 600,
                     color: "#16a34a",
                     marginTop: 2,
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 3,
                   }}
                 >
-                  ↑ 0.35{" "}
+                  <TrendingUp size={12} color="#16a34a" /> 0.35{" "}
                   <span style={{ color: "#64748b", fontWeight: 400 }}>
                     this semester
                   </span>
@@ -3207,9 +3225,12 @@ export default function Home() {
                     fontWeight: 600,
                     color: "#16a34a",
                     marginTop: 2,
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 3,
                   }}
                 >
-                  ↑ 4 pts{" "}
+                  <TrendingUp size={12} color="#16a34a" /> 4 pts{" "}
                   <span style={{ color: "#64748b", fontWeight: 400 }}>
                     Excellent
                   </span>
@@ -3269,9 +3290,12 @@ export default function Home() {
                     fontWeight: 600,
                     color: "#16a34a",
                     marginTop: 2,
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 3,
                   }}
                 >
-                  ↑ 12{" "}
+                  <TrendingUp size={12} color="#16a34a" /> 12{" "}
                   <span style={{ color: "#64748b", fontWeight: 400 }}>
                     positions
                   </span>

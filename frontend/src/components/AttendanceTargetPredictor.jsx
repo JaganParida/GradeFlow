@@ -325,7 +325,15 @@ export default function AttendanceTargetPredictor({
             <Activity size={13} /> Semester Timeline
           </div>
           <div style={{ fontSize: 20, fontWeight: 900, color: baseProjection?.isAttainable ? "#16a34a" : "#dc2626" }}>
-            {baseProjection?.isAttainable ? "Attainable ✓" : "Critical Warning ⚠"}
+            {baseProjection?.isAttainable ? (
+              <span style={{ display: "inline-flex", alignItems: "center", gap: 5 }}>
+                Attainable <CheckCircle2 size={16} color="#16a34a" />
+              </span>
+            ) : (
+              <span style={{ display: "inline-flex", alignItems: "center", gap: 5 }}>
+                Critical Warning <AlertTriangle size={16} color="#dc2626" />
+              </span>
+            )}
           </div>
           <div style={{ fontSize: 11.5, color: "#6b21a8" }}>
             Max attainable: {baseProjection?.maxAttainablePercentage || currentPct}% (End: 31 Oct)
@@ -997,7 +1005,7 @@ export default function AttendanceTargetPredictor({
                             gap: 3,
                           }}
                         >
-                          🔻 -{missSes.percentageDrop}% Drop
+                          <TrendingDown size={11} color="#e11d48" /> -{missSes.percentageDrop}% Drop
                         </span>
                       </div>
 
@@ -1280,7 +1288,7 @@ export default function AttendanceTargetPredictor({
                 </div>
                 <div>
                   <h4 style={{ fontSize: 15, fontWeight: 900, color: "#4c1d95", margin: 0 }}>
-                    Multi-Phase Strategy: Reach Goal → Take Planned Bunks → Post-Bunk Recovery
+                    Multi-Phase Strategy: Reach Goal &gt; Take Planned Bunks &gt; Post-Bunk Recovery
                   </h4>
                   <p style={{ fontSize: 12, color: "#6b21a8", margin: "2px 0 0 0" }}>
                     Simulate: "If I reach {multiPhaseTarget}% attendance, and then miss {plannedBunkCount} classes (for fest/vacation), how many classes and on which exact dates will I have to attend after that to recover back to {recoveryTarget}%?"
@@ -1659,7 +1667,9 @@ export default function AttendanceTargetPredictor({
                           </div>
                           <div style={{ color: "#64748b", marginTop: 2, display: "flex", justifyContent: "space-between" }}>
                             <span>{bunk.timeSlot} ({bunk.type})</span>
-                            <span style={{ color: "#dc2626", fontWeight: 700 }}>🔻 -{bunk.percentageDrop}%</span>
+                            <span style={{ color: "#dc2626", fontWeight: 700, display: "inline-flex", alignItems: "center", gap: 3 }}>
+                              <TrendingDown size={11} color="#dc2626" /> -{bunk.percentageDrop}%
+                            </span>
                           </div>
                         </div>
                       ))}

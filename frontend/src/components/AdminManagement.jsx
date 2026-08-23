@@ -1799,8 +1799,8 @@ export default function AdminManagement({ API, authHeaders, isMobile }) {
 
                     {/* Quick Presets Bar */}
                     <div style={{ marginBottom: 12 }}>
-                      <div style={{ fontSize: 11, fontWeight: 700, color: "#64748b", marginBottom: 6, textTransform: "uppercase" }}>
-                        ⚡ Quick Role Presets:
+                      <div style={{ fontSize: 11, fontWeight: 700, color: "#64748b", marginBottom: 6, textTransform: "uppercase", display: "flex", alignItems: "center", gap: 4 }}>
+                        <Zap size={13} color="#f59e0b" /> Quick Role Presets:
                       </div>
                       <div className="gf-modal-presets-bar" style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
                         {ROLE_PRESETS.map((preset) => {
@@ -2326,8 +2326,8 @@ export default function AdminManagement({ API, authHeaders, isMobile }) {
 
                 {/* Role Presets */}
                 <div>
-                  <div style={{ fontSize: 11, fontWeight: 700, color: "#64748b", marginBottom: 6, textTransform: "uppercase" }}>
-                    ⚡ Quick Role Presets:
+                  <div style={{ fontSize: 11, fontWeight: 700, color: "#64748b", marginBottom: 6, textTransform: "uppercase", display: "flex", alignItems: "center", gap: 4 }}>
+                    <Zap size={13} color="#f59e0b" /> Quick Role Presets:
                   </div>
                   <div className="gf-modal-presets-bar" style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
                     {ROLE_PRESETS.map((preset) => {

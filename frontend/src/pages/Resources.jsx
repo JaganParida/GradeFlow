@@ -992,9 +992,9 @@ export default function Resources() {
                         <button
                           type="button"
                           onClick={() => handleTabChange("grading-scale")}
-                          style={{ background: "none", border: "none", color: "#2563eb", fontSize: 12, fontWeight: 700, cursor: "pointer", padding: 0 }}
+                          style={{ background: "none", border: "none", color: "#2563eb", fontSize: 12, fontWeight: 700, cursor: "pointer", padding: 0, display: "inline-flex", alignItems: "center", gap: 4 }}
                         >
-                          Full Scale →
+                          Full Scale <ArrowRight size={13} />
                         </button>
                       </div>
                       <p style={{ fontSize: isMobile ? 11.5 : 12.5, color: "#64748b", margin: "0 0 12px 0" }}>Standard university grade point mapping</p>
@@ -1106,9 +1106,9 @@ export default function Resources() {
                         <button
                           type="button"
                           onClick={() => handleTabChange("academic-health")}
-                          style={{ background: "none", border: "none", color: "#8b5cf6", fontSize: 12, fontWeight: 700, cursor: "pointer", padding: 0 }}
+                          style={{ background: "none", border: "none", color: "#8b5cf6", fontSize: 12, fontWeight: 700, cursor: "pointer", padding: 0, display: "inline-flex", alignItems: "center", gap: 4 }}
                         >
-                          Live Health Meter →
+                          Live Health Meter <ArrowRight size={13} />
                         </button>
                       </div>
                       <p style={{ fontSize: isMobile ? 11.5 : 12.5, color: "#64748b", margin: "0 0 12px 0" }}>Score calculation out of 100</p>
@@ -1208,9 +1208,9 @@ export default function Resources() {
                     <button
                       type="button"
                       onClick={() => handleTabChange("badges-tab")}
-                      style={{ background: "none", border: "none", color: "#ef4444", fontSize: 12, fontWeight: 700, cursor: "pointer", padding: 0 }}
+                      style={{ background: "none", border: "none", color: "#ef4444", fontSize: 12, fontWeight: 700, cursor: "pointer", padding: 0, display: "inline-flex", alignItems: "center", gap: 4 }}
                     >
-                      All Badges →
+                      All Badges <ArrowRight size={13} />
                     </button>
                   </div>
 
@@ -2382,9 +2382,9 @@ export default function Resources() {
                   <button
                     type="button"
                     onClick={() => navigate("/")}
-                    style={{ padding: "12px 22px", borderRadius: 10, background: "#0f172a", color: "#fff", border: "none", fontWeight: 700, fontSize: 13.5, cursor: "pointer", width: isMobile ? "100%" : "auto" }}
+                    style={{ padding: "12px 22px", borderRadius: 10, background: "#0f172a", color: "#fff", border: "none", fontWeight: 700, fontSize: 13.5, cursor: "pointer", width: isMobile ? "100%" : "auto", display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6 }}
                   >
-                    View Your Official Dashboard →
+                    View Your Official Dashboard <ArrowRight size={15} />
                   </button>
                 </div>
               </motion.div>

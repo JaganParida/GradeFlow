@@ -316,7 +316,7 @@ const SCAN_MESSAGES = [
     const lines = text.split("\n").map((l) => l.trim()).filter(Boolean);
     const subjectsMap = new Map();
 
-    // Subject name → course code mapping (catalog doesn't provide codes)
+    // Subject name -> course code mapping (catalog doesn't provide codes)
     const NAME_TO_CODE = {
       "Robotic automation with ROS and C++": "CUTM1020",
       "Minor Project II": "CUTM1577",
