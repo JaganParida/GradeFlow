@@ -179,6 +179,7 @@ export default function Home() {
         onOpenTimetable={handleTimetable}
         onOpenAttendance={handleAttendance}
         onOpenLeaderboard={handleLeaderboard}
+        onOpenGradeSheet={handleGradeSheet}
       />
 
       {/* Desktop In-Depth Workbenches (Hidden on Mobile to Keep Scroll Fast & Snappy) */}
