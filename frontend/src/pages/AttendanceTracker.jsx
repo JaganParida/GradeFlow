@@ -58,6 +58,8 @@ import {
   setCustomSchedulesStore,
   getSectionSubjectCatalog,
   getDaySchedule,
+  getDayName,
+  isSunday,
   resolveSubjectCode,
   cleanSubjectBaseName,
   calculateAttendance,
@@ -135,12 +137,13 @@ export default function AttendanceTracker() {
   // ── Daily Timetable Check-in State & Keys ──────────────────────────────
   const todayDateObj = useMemo(() => new Date(), []);
   const todayDateKey = useMemo(() => getLocalCalendarDateKey(todayDateObj), [todayDateObj]);
-  const todayDayIndex = todayDateObj.getDay(); // 0 Sun, 1 Mon ... 6 Sat
-  const todayDayName = DAYS_LIST[todayDayIndex === 0 ? 0 : todayDayIndex - 1] || "Monday";
+  const todayDayName = useMemo(() => getDayName(todayDateObj), [todayDateObj]); // Accurately returns "Sunday", "Monday", "Tuesday", etc.
+  const isTodaySunday = useMemo(() => isSunday(todayDateObj), [todayDateObj]);
 
   const todayScheduleRaw = useMemo(() => {
+    if (isTodaySunday) return [];
     return getDaySchedule(selectedSection, todayDayName);
-  }, [selectedSection, todayDayName, timetableVersion]);
+  }, [selectedSection, todayDayName, isTodaySunday, timetableVersion]);
 
   const todayClasses = useMemo(() => {
     return (todayScheduleRaw || [])
@@ -1739,7 +1742,9 @@ export default function AttendanceTracker() {
                   Today's Class Check-in ({todayDayName})
                 </h3>
                 <p style={{ fontSize: 12, color: "#64748b", margin: "2px 0 0 0" }}>
-                  Mark attendance as each class ends to auto-increment your saved records in real time.
+                  {isTodaySunday
+                    ? "Sunday is a scheduled weekend holiday. No attendance check-in is required today."
+                    : "Mark attendance as each class ends to auto-increment your saved records in real time."}
                 </p>
               </div>
             </div>
@@ -1772,6 +1777,24 @@ export default function AttendanceTracker() {
                 const absentCount = Object.values(dailyAttendanceLogs).filter((v) => v === "absent").length;
                 const totalLogged = presentCount + absentCount;
 
+                if (isTodaySunday || todayClasses.length === 0) {
+                  return (
+                    <span
+                      style={{
+                        fontSize: 11.5,
+                        fontWeight: 800,
+                        color: isTodaySunday ? "#d97706" : "#64748b",
+                        background: isTodaySunday ? "#fffbeb" : "#f1f5f9",
+                        border: `1px solid ${isTodaySunday ? "#fde68a" : "#e2e8f0"}`,
+                        padding: "3px 10px",
+                        borderRadius: 8,
+                      }}
+                    >
+                      {isTodaySunday ? "Weekend · No Classes Today" : "No Classes Today"}
+                    </span>
+                  );
+                }
+
                 return (
                   <span
                     style={{
@@ -1796,22 +1819,27 @@ export default function AttendanceTracker() {
           {todayClasses.length === 0 ? (
             <div
               style={{
-                background: "#f8fafc",
-                border: "1px dashed #cbd5e1",
-                borderRadius: 12,
-                padding: "16px 20px",
+                background: isTodaySunday ? "#fffbeb" : "#f8fafc",
+                border: `1.5px dashed ${isTodaySunday ? "#fde68a" : "#cbd5e1"}`,
+                borderRadius: 14,
+                padding: "20px 24px",
                 textAlign: "center",
-                color: "#64748b",
-                fontSize: 13,
+                color: isTodaySunday ? "#92400e" : "#64748b",
+                fontSize: 13.5,
                 fontWeight: 600,
                 display: "flex",
+                flexDirection: isMobile ? "column" : "row",
                 alignItems: "center",
                 justifyContent: "center",
-                gap: 8,
+                gap: 10,
               }}
             >
-              <Info size={16} color="#64748b" />
-              <span>No classes scheduled for {todayDayName} (Section {selectedSection}). Enjoy your day.</span>
+              <Info size={18} color={isTodaySunday ? "#d97706" : "#64748b"} />
+              <span>
+                {isTodaySunday
+                  ? `Today is Sunday — Weekend Holiday. No classes are scheduled for Section ${selectedSection}. Enjoy your weekend!`
+                  : `No academic classes scheduled for ${todayDayName} (Section ${selectedSection}). Enjoy your day.`}
+              </span>
             </div>
           ) : (
             <div
