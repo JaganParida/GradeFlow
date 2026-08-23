@@ -197,10 +197,10 @@ export default function AttendanceTargetPredictor({
           </span>
           <div style={{ display: "flex", gap: 4, background: "#f8fafc", padding: 3, borderRadius: 10, border: "1px solid #e2e8f0" }}>
             {[
-              { val: 75, label: "75% Threshold" },
-              { val: 80, label: "80% Safe" },
-              { val: 85, label: "85% Distinction" },
-              { val: 90, label: "90% Top" },
+              { val: 75, label: isMobile ? "75%" : "75% Threshold" },
+              { val: 80, label: isMobile ? "80%" : "80% Safe" },
+              { val: 85, label: isMobile ? "85%" : "85% Distinction" },
+              { val: 90, label: isMobile ? "90%" : "90% Top" },
             ].map(({ val, label }) => (
               <button
                 key={val}
@@ -211,8 +211,8 @@ export default function AttendanceTargetPredictor({
                   color: targetGoal === val ? "#ffffff" : "#475569",
                   border: "none",
                   borderRadius: 7,
-                  padding: "4px 10px",
-                  fontSize: 12,
+                  padding: isMobile ? "4px 8px" : "4px 10px",
+                  fontSize: isMobile ? 11.5 : 12,
                   fontWeight: 800,
                   cursor: "pointer",
                   transition: "all 0.15s ease",
@@ -230,8 +230,8 @@ export default function AttendanceTargetPredictor({
       <div
         style={{
           display: "grid",
-          gridTemplateColumns: isMobile ? "1fr" : "repeat(auto-fit, minmax(220px, 1fr))",
-          gap: 12,
+          gridTemplateColumns: isMobile ? "repeat(2, 1fr)" : "repeat(auto-fit, minmax(220px, 1fr))",
+          gap: isMobile ? 8 : 12,
         }}
       >
         {/* Card 1: Current Status */}
@@ -344,26 +344,28 @@ export default function AttendanceTargetPredictor({
       {/* ── 3-SECTION NAVIGATION TABS ────────────────────────────────────────── */}
       <div
         style={{
-          display: "flex",
+          display: "grid",
+          gridTemplateColumns: "repeat(3, 1fr)",
           background: "#f1f5f9",
           padding: 4,
           borderRadius: 12,
           gap: 4,
-          flexWrap: isMobile ? "wrap" : "nowrap",
+          width: "100%",
+          boxSizing: "border-box",
         }}
       >
         <button
           type="button"
           onClick={() => setEngineView("all_schedule")}
           style={{
-            flex: 1,
             display: "flex",
+            flexDirection: isMobile ? "column" : "row",
             alignItems: "center",
             justifyContent: "center",
-            gap: 6,
-            padding: "9px 14px",
+            gap: isMobile ? 3 : 6,
+            padding: isMobile ? "8px 4px" : "9px 14px",
             borderRadius: 9,
-            fontSize: 12.5,
+            fontSize: isMobile ? 11 : 12.5,
             fontWeight: 800,
             background: engineView === "all_schedule" ? "#ffffff" : "transparent",
             color: engineView === "all_schedule" ? "#0f172a" : "#64748b",
@@ -371,24 +373,25 @@ export default function AttendanceTargetPredictor({
             boxShadow: engineView === "all_schedule" ? "0 1px 4px rgba(0,0,0,0.06)" : "none",
             cursor: "pointer",
             transition: "all 0.15s",
+            textAlign: "center",
           }}
         >
-          <CalendarCheck size={15} color={engineView === "all_schedule" ? "#2563eb" : "#64748b"} />
-          1. Complete Schedule
+          <CalendarCheck size={isMobile ? 15 : 15} color={engineView === "all_schedule" ? "#2563eb" : "#64748b"} />
+          <span>{isMobile ? "1. Schedule" : "1. Complete Schedule"}</span>
         </button>
 
         <button
           type="button"
           onClick={() => setEngineView("penalty_simulator")}
           style={{
-            flex: 1,
             display: "flex",
+            flexDirection: isMobile ? "column" : "row",
             alignItems: "center",
             justifyContent: "center",
-            gap: 6,
-            padding: "9px 14px",
+            gap: isMobile ? 3 : 6,
+            padding: isMobile ? "8px 4px" : "9px 14px",
             borderRadius: 9,
-            fontSize: 12.5,
+            fontSize: isMobile ? 11 : 12.5,
             fontWeight: 800,
             background: engineView === "penalty_simulator" ? "#ffffff" : "transparent",
             color: engineView === "penalty_simulator" ? "#0f172a" : "#64748b",
@@ -396,24 +399,25 @@ export default function AttendanceTargetPredictor({
             boxShadow: engineView === "penalty_simulator" ? "0 1px 4px rgba(0,0,0,0.06)" : "none",
             cursor: "pointer",
             transition: "all 0.15s",
+            textAlign: "center",
           }}
         >
-          <Flame size={15} color={engineView === "penalty_simulator" ? "#ea580c" : "#64748b"} />
-          2. Miss Penalty Simulator
+          <Flame size={isMobile ? 15 : 15} color={engineView === "penalty_simulator" ? "#ea580c" : "#64748b"} />
+          <span>{isMobile ? "2. Miss Penalty" : "2. Miss Penalty Simulator"}</span>
         </button>
 
         <button
           type="button"
           onClick={() => setEngineView("multiphase_planner")}
           style={{
-            flex: 1,
             display: "flex",
+            flexDirection: isMobile ? "column" : "row",
             alignItems: "center",
             justifyContent: "center",
-            gap: 6,
-            padding: "9px 14px",
+            gap: isMobile ? 3 : 6,
+            padding: isMobile ? "8px 4px" : "9px 14px",
             borderRadius: 9,
-            fontSize: 12.5,
+            fontSize: isMobile ? 11 : 12.5,
             fontWeight: 800,
             background: engineView === "multiphase_planner" ? "#ffffff" : "transparent",
             color: engineView === "multiphase_planner" ? "#0f172a" : "#64748b",
@@ -421,10 +425,11 @@ export default function AttendanceTargetPredictor({
             boxShadow: engineView === "multiphase_planner" ? "0 1px 4px rgba(0,0,0,0.06)" : "none",
             cursor: "pointer",
             transition: "all 0.15s",
+            textAlign: "center",
           }}
         >
-          <Compass size={15} color={engineView === "multiphase_planner" ? "#7c3aed" : "#64748b"} />
-          3. Multi-Phase Roadmap
+          <Compass size={isMobile ? 15 : 15} color={engineView === "multiphase_planner" ? "#7c3aed" : "#64748b"} />
+          <span>{isMobile ? "3. Multi-Phase" : "3. Multi-Phase Roadmap"}</span>
         </button>
       </div>
 
@@ -728,7 +733,7 @@ export default function AttendanceTargetPredictor({
                 gap: 14,
               }}
             >
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 8 }}>
+              <div style={{ display: "flex", flexDirection: isMobile ? "column" : "row", justifyContent: "space-between", alignItems: isMobile ? "stretch" : "center", gap: 10 }}>
                 <div>
                   <h5 style={{ fontSize: 14, fontWeight: 900, color: "#0f172a", margin: 0 }}>
                     Simulate Missing Classes During This Sprint
@@ -738,7 +743,15 @@ export default function AttendanceTargetPredictor({
                   </p>
                 </div>
 
-                <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                <div
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: "repeat(5, 1fr)",
+                    gap: isMobile ? 4 : 6,
+                    width: isMobile ? "100%" : "auto",
+                    boxSizing: "border-box",
+                  }}
+                >
                   {[1, 2, 3, 5, 8].map((num) => (
                     <button
                       key={num}
@@ -748,21 +761,30 @@ export default function AttendanceTargetPredictor({
                         background: simulateMissCount === num ? "#ea580c" : "#f8fafc",
                         color: simulateMissCount === num ? "#ffffff" : "#475569",
                         border: `1px solid ${simulateMissCount === num ? "#ea580c" : "#cbd5e1"}`,
-                        padding: "4px 9px",
+                        padding: isMobile ? "6px 2px" : "5px 8px",
                         borderRadius: 8,
-                        fontSize: 11.5,
+                        fontSize: isMobile ? 11 : 11.5,
                         fontWeight: 800,
                         cursor: "pointer",
+                        textAlign: "center",
+                        whiteSpace: "nowrap",
                       }}
                     >
-                      +{num} Missed
+                      +{num} Miss
                     </button>
                   ))}
                 </div>
               </div>
 
               {/* Manual & Slider Input Controls */}
-              <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
+              <div
+                style={{
+                  display: "flex",
+                  flexDirection: isMobile ? "column" : "row",
+                  alignItems: isMobile ? "stretch" : "center",
+                  gap: 12,
+                }}
+              >
                 <input
                   type="range"
                   min="1"
@@ -771,7 +793,7 @@ export default function AttendanceTargetPredictor({
                   onChange={(e) => setSimulateMissCount(Math.max(1, parseInt(e.target.value, 10) || 1))}
                   style={{
                     flex: 1,
-                    minWidth: 140,
+                    width: "100%",
                     accentColor: "#ea580c",
                     height: 6,
                     borderRadius: 999,
@@ -784,14 +806,17 @@ export default function AttendanceTargetPredictor({
                 {/* Direct Manual Stepper & Typing Box */}
                 <div
                   style={{
-                    display: "inline-flex",
+                    display: "flex",
                     alignItems: "center",
+                    justifyContent: isMobile ? "center" : "flex-start",
                     gap: 6,
                     background: "#fff7ed",
                     border: "1.5px solid #fed7aa",
                     borderRadius: 12,
-                    padding: "4px 8px",
+                    padding: "4px 10px",
                     boxShadow: "0 1px 3px rgba(234,88,12,0.06)",
+                    width: isMobile ? "100%" : "auto",
+                    boxSizing: "border-box",
                   }}
                 >
                   <button
@@ -860,7 +885,7 @@ export default function AttendanceTargetPredictor({
                   >
                     +
                   </button>
-                  <span style={{ fontSize: 12.5, fontWeight: 800, color: "#9a3412", paddingLeft: 2, paddingRight: 4 }}>
+                  <span style={{ fontSize: 12.5, fontWeight: 800, color: "#9a3412", paddingLeft: 4, paddingRight: 4 }}>
                     {simulateMissCount === 1 ? "Class" : "Classes"} Missed
                   </span>
                 </div>
