@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Laptop,
@@ -22,6 +22,24 @@ export default function BlockedLoginDeviceModal({
   accountIdentifier = "",
   maxAllowed = 1,
 }) {
+  const [isMobile, setIsMobile] = useState(
+    typeof window !== "undefined" ? window.innerWidth < 640 : false
+  );
+  const [isTiny, setIsTiny] = useState(
+    typeof window !== "undefined" ? window.innerWidth < 380 : false
+  );
+
+  useEffect(() => {
+    const handleResize = () => {
+      if (typeof window !== "undefined") {
+        setIsMobile(window.innerWidth < 640);
+        setIsTiny(window.innerWidth < 380);
+      }
+    };
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+
   if (!isOpen) return null;
 
   // Normalize device list: fallback if empty
@@ -30,16 +48,17 @@ export default function BlockedLoginDeviceModal({
     : [{ userAgent: "Unknown", platform: "Unknown", loggedInAt: new Date(), lastActiveAt: new Date(), status: "ACTIVE" }];
 
   const getDeviceIcon = (deviceType) => {
+    const iconSize = isMobile ? 18 : 20;
     switch (deviceType?.toLowerCase()) {
       case "mobile":
-        return <Smartphone size={20} color="#2563eb" />;
+        return <Smartphone size={iconSize} color="#2563eb" />;
       case "tablet":
-        return <Tablet size={20} color="#7c3aed" />;
+        return <Tablet size={iconSize} color="#7c3aed" />;
       case "desktop":
-        return <Monitor size={20} color="#059669" />;
+        return <Monitor size={iconSize} color="#059669" />;
       case "laptop":
       default:
-        return <Laptop size={20} color="#2563eb" />;
+        return <Laptop size={iconSize} color="#2563eb" />;
     }
   };
 
@@ -53,10 +72,11 @@ export default function BlockedLoginDeviceModal({
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
-          padding: "16px",
+          padding: isMobile ? "12px 10px" : "16px",
           backgroundColor: "rgba(15, 23, 42, 0.7)",
           backdropFilter: "blur(6px)",
           WebkitBackdropFilter: "blur(6px)",
+          boxSizing: "border-box",
         }}
         onClick={onClose}
       >
@@ -69,33 +89,35 @@ export default function BlockedLoginDeviceModal({
             width: "100%",
             maxWidth: devicesList.length > 1 ? "680px" : "480px",
             backgroundColor: "#ffffff",
-            borderRadius: "20px",
+            borderRadius: isMobile ? "16px" : "20px",
             boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.25), 0 0 0 1px rgba(0, 0, 0, 0.05)",
             overflow: "hidden",
             display: "flex",
             flexDirection: "column",
-            maxHeight: "90vh",
+            maxHeight: "92vh",
+            boxSizing: "border-box",
           }}
           onClick={(e) => e.stopPropagation()}
         >
           {/* Top Header Banner */}
           <div
             style={{
-              padding: "20px 24px",
+              padding: isMobile ? "14px 16px" : "20px 24px",
               background: "linear-gradient(135deg, #fef2f2 0%, #fff1f2 100%)",
               borderBottom: "1px solid #fee2e2",
               display: "flex",
               alignItems: "flex-start",
               justifyContent: "space-between",
-              gap: "16px",
+              gap: isMobile ? "10px" : "16px",
+              boxSizing: "border-box",
             }}
           >
-            <div style={{ display: "flex", alignItems: "flex-start", gap: "14px" }}>
+            <div style={{ display: "flex", alignItems: "flex-start", gap: isMobile ? "10px" : "14px" }}>
               <div
                 style={{
-                  width: "44px",
-                  height: "44px",
-                  borderRadius: "12px",
+                  width: isMobile ? "38px" : "44px",
+                  height: isMobile ? "38px" : "44px",
+                  borderRadius: isMobile ? "10px" : "12px",
                   backgroundColor: "#fee2e2",
                   display: "flex",
                   alignItems: "center",
@@ -104,24 +126,25 @@ export default function BlockedLoginDeviceModal({
                   boxShadow: "0 2px 6px rgba(220, 38, 38, 0.12)",
                 }}
               >
-                <ShieldAlert size={24} color="#dc2626" />
+                <ShieldAlert size={isMobile ? 20 : 24} color="#dc2626" />
               </div>
               <div>
                 <h3
                   style={{
                     margin: 0,
-                    fontSize: "18px",
+                    fontSize: isMobile ? "16px" : "18px",
                     fontWeight: "900",
                     color: "#991b1b",
                     letterSpacing: "-0.3px",
+                    lineHeight: "1.25",
                   }}
                 >
                   Login Not Allowed
                 </h3>
                 <p
                   style={{
-                    margin: "4px 0 0 0",
-                    fontSize: "13px",
+                    margin: "3px 0 0 0",
+                    fontSize: isMobile ? "12px" : "13px",
                     color: "#7f1d1d",
                     lineHeight: "1.4",
                   }}
@@ -147,6 +170,7 @@ export default function BlockedLoginDeviceModal({
                 alignItems: "center",
                 justifyContent: "center",
                 transition: "background 0.15s",
+                flexShrink: 0,
               }}
               onMouseEnter={(e) => (e.currentTarget.style.background = "#fee2e2")}
               onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
@@ -159,22 +183,24 @@ export default function BlockedLoginDeviceModal({
           {/* Modal Body */}
           <div
             style={{
-              padding: "20px 24px",
+              padding: isMobile ? "14px 16px" : "20px 24px",
               overflowY: "auto",
+              WebkitOverflowScrolling: "touch",
               display: "flex",
               flexDirection: "column",
-              gap: "16px",
+              gap: isMobile ? "12px" : "16px",
+              boxSizing: "border-box",
             }}
           >
             <div>
               <div
                 style={{
-                  fontSize: "12px",
+                  fontSize: isMobile ? "11px" : "12px",
                   fontWeight: "800",
                   color: "#475569",
                   textTransform: "uppercase",
                   letterSpacing: "0.5px",
-                  marginBottom: "10px",
+                  marginBottom: isMobile ? "8px" : "10px",
                 }}
               >
                 Currently Logged In:
@@ -183,8 +209,9 @@ export default function BlockedLoginDeviceModal({
               <div
                 style={{
                   display: "grid",
-                  gridTemplateColumns: devicesList.length > 1 ? "repeat(auto-fit, minmax(280px, 1fr))" : "1fr",
-                  gap: "12px",
+                  gridTemplateColumns: devicesList.length > 1 && !isMobile ? "repeat(auto-fit, minmax(280px, 1fr))" : "1fr",
+                  gap: isMobile ? "10px" : "12px",
+                  boxSizing: "border-box",
                 }}
               >
                 {devicesList.map((rawDev, idx) => {
@@ -195,12 +222,13 @@ export default function BlockedLoginDeviceModal({
                       style={{
                         backgroundColor: "#f8fafc",
                         border: "1.5px solid #e2e8f0",
-                        borderRadius: "14px",
-                        padding: "16px",
+                        borderRadius: isMobile ? "12px" : "14px",
+                        padding: isMobile ? "12px 14px" : "16px",
                         display: "flex",
                         flexDirection: "column",
-                        gap: "12px",
+                        gap: isMobile ? "10px" : "12px",
                         boxShadow: "0 2px 4px rgba(0, 0, 0, 0.02)",
+                        boxSizing: "border-box",
                       }}
                     >
                       {/* Device Card Header */}
@@ -210,15 +238,16 @@ export default function BlockedLoginDeviceModal({
                           alignItems: "center",
                           justifyContent: "space-between",
                           borderBottom: "1px solid #e2e8f0",
-                          paddingBottom: "10px",
+                          paddingBottom: isMobile ? "8px" : "10px",
+                          gap: "8px",
                         }}
                       >
-                        <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: isMobile ? "8px" : "10px" }}>
                           <div
                             style={{
-                              width: "34px",
-                              height: "34px",
-                              borderRadius: "10px",
+                              width: isMobile ? "30px" : "34px",
+                              height: isMobile ? "30px" : "34px",
+                              borderRadius: isMobile ? "8px" : "10px",
                               backgroundColor: "#eff6ff",
                               border: "1px solid #dbeafe",
                               display: "flex",
@@ -232,7 +261,7 @@ export default function BlockedLoginDeviceModal({
                           <div>
                             <div
                               style={{
-                                fontSize: "14px",
+                                fontSize: isMobile ? "13px" : "14px",
                                 fontWeight: "800",
                                 color: "#0f172a",
                                 letterSpacing: "-0.2px",
@@ -240,7 +269,7 @@ export default function BlockedLoginDeviceModal({
                             >
                               {dev.displayTitle}
                             </div>
-                            <div style={{ fontSize: "11px", color: "#64748b" }}>
+                            <div style={{ fontSize: isMobile ? "10px" : "11px", color: "#64748b" }}>
                               Device slot {idx + 1} of {maxAllowed}
                             </div>
                           </div>
@@ -252,13 +281,14 @@ export default function BlockedLoginDeviceModal({
                             display: "inline-flex",
                             alignItems: "center",
                             gap: "5px",
-                            padding: "3px 8px",
+                            padding: isMobile ? "2px 7px" : "3px 8px",
                             borderRadius: "999px",
                             backgroundColor: "#dcfce7",
                             color: "#15803d",
-                            fontSize: "11.5px",
+                            fontSize: isMobile ? "10.5px" : "11.5px",
                             fontWeight: "800",
                             border: "1px solid #bbf7d0",
+                            flexShrink: 0,
                           }}
                         >
                           <span
@@ -275,47 +305,47 @@ export default function BlockedLoginDeviceModal({
                       </div>
 
                       {/* Device Information Rows */}
-                      <div style={{ display: "flex", flexDirection: "column", gap: "8px", fontSize: "12.5px" }}>
+                      <div style={{ display: "flex", flexDirection: "column", gap: isMobile ? "6px" : "8px", fontSize: isMobile ? "12px" : "12.5px" }}>
                         {/* Device Type */}
-                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                          <span style={{ color: "#64748b", display: "flex", alignItems: "center", gap: "6px" }}>
-                            <Cpu size={13} color="#94a3b8" /> Device type:
+                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: isTiny ? "flex-start" : "center", flexDirection: isTiny ? "column" : "row", gap: "2px" }}>
+                          <span style={{ color: "#64748b", display: "flex", alignItems: "center", gap: "5px" }}>
+                            <Cpu size={12} color="#94a3b8" /> Device type:
                           </span>
                           <span style={{ fontWeight: "700", color: "#1e293b" }}>{dev.deviceType}</span>
                         </div>
 
                         {/* Operating System */}
-                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                          <span style={{ color: "#64748b", display: "flex", alignItems: "center", gap: "6px" }}>
-                            <Globe size={13} color="#94a3b8" /> Operating system:
+                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: isTiny ? "flex-start" : "center", flexDirection: isTiny ? "column" : "row", gap: "2px" }}>
+                          <span style={{ color: "#64748b", display: "flex", alignItems: "center", gap: "5px" }}>
+                            <Globe size={12} color="#94a3b8" /> Operating system:
                           </span>
                           <span style={{ fontWeight: "700", color: "#1e293b" }}>{dev.os}</span>
                         </div>
 
                         {/* Browser */}
-                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                          <span style={{ color: "#64748b", display: "flex", alignItems: "center", gap: "6px" }}>
-                            <Globe size={13} color="#94a3b8" /> Browser:
+                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: isTiny ? "flex-start" : "center", flexDirection: isTiny ? "column" : "row", gap: "2px" }}>
+                          <span style={{ color: "#64748b", display: "flex", alignItems: "center", gap: "5px" }}>
+                            <Globe size={12} color="#94a3b8" /> Browser:
                           </span>
                           <span style={{ fontWeight: "700", color: "#1e293b" }}>{dev.browser}</span>
                         </div>
 
                         {/* Logged in Date & Time */}
-                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                          <span style={{ color: "#64748b", display: "flex", alignItems: "center", gap: "6px" }}>
-                            <Calendar size={13} color="#94a3b8" /> Logged in:
+                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: isTiny ? "flex-start" : "center", flexDirection: isTiny ? "column" : "row", gap: "2px" }}>
+                          <span style={{ color: "#64748b", display: "flex", alignItems: "center", gap: "5px" }}>
+                            <Calendar size={12} color="#94a3b8" /> Logged in:
                           </span>
-                          <span style={{ fontWeight: "700", color: "#1e293b" }}>
+                          <span style={{ fontWeight: "700", color: "#1e293b", textAlign: isTiny ? "left" : "right" }}>
                             {formatLoginDateTime(dev.loggedInAt)}
                           </span>
                         </div>
 
                         {/* Last Active Time */}
-                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                          <span style={{ color: "#64748b", display: "flex", alignItems: "center", gap: "6px" }}>
-                            <Clock size={13} color="#94a3b8" /> Last active:
+                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: isTiny ? "flex-start" : "center", flexDirection: isTiny ? "column" : "row", gap: "2px" }}>
+                          <span style={{ color: "#64748b", display: "flex", alignItems: "center", gap: "5px" }}>
+                            <Clock size={12} color="#94a3b8" /> Last active:
                           </span>
-                          <span style={{ fontWeight: "700", color: "#1e293b" }}>
+                          <span style={{ fontWeight: "700", color: "#1e293b", textAlign: isTiny ? "left" : "right" }}>
                             {formatLastActiveTime(dev.lastActiveAt, dev.loggedInAt)}
                           </span>
                         </div>
@@ -331,17 +361,18 @@ export default function BlockedLoginDeviceModal({
               style={{
                 backgroundColor: "#f1f5f9",
                 border: "1px solid #e2e8f0",
-                borderRadius: "12px",
-                padding: "12px 14px",
+                borderRadius: isMobile ? "10px" : "12px",
+                padding: isMobile ? "10px 12px" : "12px 14px",
                 display: "flex",
                 alignItems: "flex-start",
-                gap: "10px",
-                fontSize: "12px",
+                gap: "8px",
+                fontSize: isMobile ? "11.5px" : "12px",
                 color: "#475569",
                 lineHeight: "1.45",
+                boxSizing: "border-box",
               }}
             >
-              <Info size={16} color="#64748b" style={{ flexShrink: 0, marginTop: "2px" }} />
+              <Info size={15} color="#64748b" style={{ flexShrink: 0, marginTop: "2px" }} />
               <div>
                 To sign in on this new device, please <strong>log out</strong> from your existing active session first.
                 For institutional data security, concurrent logins beyond the authorized limit are strictly blocked.
@@ -352,26 +383,29 @@ export default function BlockedLoginDeviceModal({
           {/* Modal Footer (Purely Informational Action) */}
           <div
             style={{
-              padding: "14px 24px",
+              padding: isMobile ? "12px 16px" : "14px 24px",
               backgroundColor: "#f8fafc",
               borderTop: "1px solid #e2e8f0",
               display: "flex",
               justifyContent: "flex-end",
+              boxSizing: "border-box",
             }}
           >
             <button
               type="button"
               onClick={onClose}
               style={{
-                padding: "9px 20px",
+                padding: isMobile ? "10px 16px" : "9px 20px",
                 backgroundColor: "#0f172a",
                 color: "#ffffff",
                 border: "none",
                 borderRadius: "10px",
-                fontSize: "13px",
+                fontSize: isMobile ? "13.5px" : "13px",
                 fontWeight: "700",
                 cursor: "pointer",
                 transition: "background 0.15s ease",
+                width: isMobile ? "100%" : "auto",
+                textAlign: "center",
               }}
               onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "#1e293b")}
               onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "#0f172a")}
