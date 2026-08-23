@@ -1481,41 +1481,37 @@ module.exports = async function handler(req, res) {
           });
         }
 
-        if (decoded.sessionId) {
-          const session = await AdminSession.findOne({
-            sessionId: decoded.sessionId,
-            isActive: true,
-          });
-
-          if (!session) {
-            return res.status(401).json({
-              success: false,
-              code: "ADMIN_SESSION_TERMINATED",
-              message: "Admin session ended because this device was logged out.",
-            });
-          }
-
-          if (!isAdminSessionValid(session)) {
-            await AdminSession.deleteOne({ _id: session._id });
-            return res.status(401).json({
-              success: false,
-              code: "INACTIVITY_LOGOUT",
-              message: "Admin session expired due to 7 continuous days of inactivity.",
-            });
-          }
-
-          await touchAdminSession(session);
-
-          return res.json({
-            success: true,
-            authenticated: true,
-            role: "admin",
-            adminType: "main",
-            name: "Main Administrator",
-            email: decoded.email || process.env.ADMIN_EMAIL,
-            permissions: { routes: ["*"], sections: ["*"], actions: ["*"] },
+        if (!decoded.sessionId) {
+          return res.status(401).json({
+            success: false,
+            code: "AUTH_SESSION_INVALID",
+            message: "Administrative session token invalid or missing session identifier.",
           });
         }
+
+        const session = await AdminSession.findOne({
+          sessionId: decoded.sessionId,
+          isActive: true,
+        });
+
+        if (!session) {
+          return res.status(401).json({
+            success: false,
+            code: "ADMIN_SESSION_TERMINATED",
+            message: "Admin session ended because this device was logged out.",
+          });
+        }
+
+        if (!isAdminSessionValid(session)) {
+          await AdminSession.deleteOne({ _id: session._id });
+          return res.status(401).json({
+            success: false,
+            code: "INACTIVITY_LOGOUT",
+            message: "Admin session expired due to 7 continuous days of inactivity.",
+          });
+        }
+
+        await touchAdminSession(session);
 
         return res.json({
           success: true,

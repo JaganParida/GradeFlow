@@ -28,15 +28,31 @@ axios.interceptors.request.use((config) => {
 
 const AppCtx = createContext();
 
+// Explicit list of obsolete legacy auth/session keys to clean up from browser storage
+const OBSOLETE_AUTH_STORAGE_KEYS = [
+  "gf_admin_jwt",
+  "gf_admin_token",
+  "admin_jwt",
+  "adminToken",
+  "gf_admin_session",
+  "gf_cache_version",
+  "jwt",
+  "token",
+  "accessToken",
+  "refreshToken",
+  "authToken",
+  "isAdmin",
+  "isLoggedIn",
+];
+
 export function AppProvider({ children }) {
-  // Proactively wipe any legacy temporary keys & legacy admin JWTs from browser storage on startup
+  // Proactively wipe only confirmed obsolete authentication keys without clearing unrelated application state
   useEffect(() => {
     try {
-      localStorage.removeItem("gf_cache_version");
-      localStorage.removeItem("gf_admin_jwt");
-      localStorage.removeItem("gf_admin_token");
-      sessionStorage.removeItem("gf_admin_jwt");
-      sessionStorage.removeItem("gf_admin_token");
+      OBSOLETE_AUTH_STORAGE_KEYS.forEach((key) => {
+        localStorage.removeItem(key);
+        sessionStorage.removeItem(key);
+      });
     } catch {}
   }, []);
 
@@ -328,10 +344,10 @@ export function AppProvider({ children }) {
 
   const adminLogout = async () => {
     try {
-      localStorage.removeItem("gf_admin_jwt");
-      localStorage.removeItem("gf_admin_token");
-      sessionStorage.removeItem("gf_admin_jwt");
-      sessionStorage.removeItem("gf_admin_token");
+      OBSOLETE_AUTH_STORAGE_KEYS.forEach((key) => {
+        localStorage.removeItem(key);
+        sessionStorage.removeItem(key);
+      });
       await axios.post(`${API_BASE}/auth/admin/logout`, {}, { withCredentials: true });
     } catch (err) {
       console.warn("Logout error:", err.message);

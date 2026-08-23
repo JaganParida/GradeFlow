@@ -92,39 +92,46 @@ const protect = async (req, res, next) => {
         sessionId: decoded.sessionId,
       };
     } else {
-      // ── Main Admin Session Validation ──
-      if (decoded.sessionId) {
-        const session = await AdminSession.findOne({
-          sessionId: decoded.sessionId,
-          isActive: true,
+      // ── Main Admin Session Validation (Mandatory DB Session Check) ──
+      if (!decoded.sessionId) {
+        return res.status(401).json({
+          success: false,
+          message: "Administrative session token invalid or missing session identifier.",
+          code: "AUTH_SESSION_INVALID",
         });
-
-        if (!session) {
-          return res.status(401).json({
-            success: false,
-            message: "Admin session ended because this device was logged out.",
-            code: "ADMIN_SESSION_TERMINATED",
-          });
-        }
-
-        if (!isAdminSessionValid(session)) {
-          await AdminSession.deleteOne({ _id: session._id });
-          return res.status(401).json({
-            success: false,
-            message: "Admin session expired due to 7 continuous days of inactivity. Please log in again.",
-            code: "INACTIVITY_LOGOUT",
-          });
-        }
-
-        // Rolling 7-day inactivity update
-        await touchAdminSession(session);
       }
+
+      const session = await AdminSession.findOne({
+        sessionId: decoded.sessionId,
+        isActive: true,
+      });
+
+      if (!session) {
+        return res.status(401).json({
+          success: false,
+          message: "Admin session ended because this device was logged out.",
+          code: "ADMIN_SESSION_TERMINATED",
+        });
+      }
+
+      if (!isAdminSessionValid(session)) {
+        await AdminSession.deleteOne({ _id: session._id });
+        return res.status(401).json({
+          success: false,
+          message: "Admin session expired due to 7 continuous days of inactivity. Please log in again.",
+          code: "INACTIVITY_LOGOUT",
+        });
+      }
+
+      // Rolling 7-day inactivity update
+      await touchAdminSession(session);
 
       req.admin = {
         ...decoded,
         role: "admin",
         adminType: "main",
         email: decoded.email || process.env.ADMIN_EMAIL,
+        sessionId: session.sessionId,
       };
     }
 
