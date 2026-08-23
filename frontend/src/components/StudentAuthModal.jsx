@@ -44,9 +44,13 @@ export default function StudentAuthModal({ isOpen, onClose }) {
   const [remainingDailyAttempts, setRemainingDailyAttempts] = useState(2);
   const [timerSeconds, setTimerSeconds] = useState(300);
   const [timerActive, setTimerActive] = useState(false);
-  const [deviceStatus, setDeviceStatus] = useState(null); // { isBlocked, isCurrentDevice, message }
+  const [deviceStatus, setDeviceStatus] = useState(null); // { exists, isBlocked, isCurrentDevice, message, studentName }
+  const [isChecking, setIsChecking] = useState(false);
   const [isBlockedModalOpen, setIsBlockedModalOpen] = useState(false);
   const [blockedDevicesData, setBlockedDevicesData] = useState([]);
+
+  const cleanReg = regNo.trim().toUpperCase();
+  const isRegValid = cleanReg.length >= 10 && cleanReg.length <= 16;
 
   // Helper to route to intended destination after auth
   const navigateToDestination = (cleanReg) => {
@@ -92,6 +96,7 @@ export default function StudentAuthModal({ isOpen, onClose }) {
       setStep(1);
       setTimerActive(false);
       setDeviceStatus(null);
+      setIsChecking(false);
       if (hasActiveSession && (studentSession?.regNo || studentData?.regNo)) {
         setRegNo(studentSession?.regNo || studentData?.regNo);
       } else {
@@ -106,17 +111,36 @@ export default function StudentAuthModal({ isOpen, onClose }) {
       setErrorCode("");
       setTimerActive(false);
       setDeviceStatus(null);
+      setIsChecking(false);
     }
   }, [isOpen, hasActiveSession]);
 
-  // Live Pre-Check for active device limit (Debounced by 280ms)
+  // Live Pre-Check for active device limit & student existence (Debounced by 280ms)
   useEffect(() => {
     const clean = regNo.trim().toUpperCase();
-    if (!isOpen || step !== 1 || clean.length < 8) {
+    if (!isOpen || step !== 1) {
       setDeviceStatus(null);
+      setIsChecking(false);
       return;
     }
 
+    if (clean.length < 10) {
+      setDeviceStatus(null);
+      setIsChecking(false);
+      if (
+        errorCode === "DEVICE_LIMIT_REACHED" ||
+        errorCode === "DEVICE_ALREADY_LOGGED_IN" ||
+        errorCode === "MAX_DEVICES_ACTIVE" ||
+        errorCode === "STUDENT_NOT_FOUND" ||
+        errorCode === "EMPTY_REG"
+      ) {
+        setErrorMsg("");
+        setErrorCode("");
+      }
+      return;
+    }
+
+    setIsChecking(true);
     const timer = setTimeout(async () => {
       try {
         const studentJwt = localStorage.getItem("gf_student_jwt") || sessionStorage.getItem("gf_student_jwt");
@@ -125,20 +149,34 @@ export default function StudentAuthModal({ isOpen, onClose }) {
           headers,
           withCredentials: true,
         });
-        if (res.data?.success && res.data?.exists) {
-          if (res.data.isBlocked) {
+
+        if (res.data?.success) {
+          if (!res.data.exists) {
+            setDeviceStatus({ exists: false, isBlocked: false });
+            setErrorMsg(`Registration number ${clean} not found in university student records.`);
+            setErrorCode("STUDENT_NOT_FOUND");
+          } else if (res.data.isBlocked) {
             const devices = res.data.activeDevices || res.data.sessions || [];
-            setDeviceStatus({ isBlocked: true, message: res.data.blockMessage, devices });
+            setDeviceStatus({ exists: true, isBlocked: true, message: res.data.blockMessage, devices });
             setBlockedDevicesData(devices);
             setErrorMsg(res.data.blockMessage);
             setErrorCode("DEVICE_LIMIT_REACHED");
           } else if (res.data.isCurrentDevice) {
-            setDeviceStatus({ isCurrentDevice: true });
+            setDeviceStatus({ exists: true, isCurrentDevice: true, isBlocked: false });
             setErrorMsg("");
             setErrorCode("");
           } else {
-            setDeviceStatus({ isBlocked: false });
-            if (errorCode === "DEVICE_LIMIT_REACHED" || errorCode === "DEVICE_ALREADY_LOGGED_IN" || errorCode === "MAX_DEVICES_ACTIVE") {
+            setDeviceStatus({ exists: true, isBlocked: false, isCurrentDevice: false, studentName: res.data.studentName });
+            if (res.data.studentName) {
+              setStudentName(res.data.studentName);
+            }
+            if (
+              errorCode === "DEVICE_LIMIT_REACHED" ||
+              errorCode === "DEVICE_ALREADY_LOGGED_IN" ||
+              errorCode === "MAX_DEVICES_ACTIVE" ||
+              errorCode === "STUDENT_NOT_FOUND" ||
+              errorCode === "EMPTY_REG"
+            ) {
               setErrorMsg("");
               setErrorCode("");
             }
@@ -148,10 +186,14 @@ export default function StudentAuthModal({ isOpen, onClose }) {
         }
       } catch {
         setDeviceStatus(null);
+      } finally {
+        setIsChecking(false);
       }
     }, 280);
 
-    return () => clearTimeout(timer);
+    return () => {
+      clearTimeout(timer);
+    };
   }, [regNo, isOpen, step]);
 
   // Live 3-Minute Countdown Timer for OTP
@@ -177,18 +219,25 @@ export default function StudentAuthModal({ isOpen, onClose }) {
   // Step 1: Send OTP
   const handleSendOtp = async (e) => {
     if (e) e.preventDefault();
+    if (loading || isChecking) return;
+
+    if (!isRegValid) {
+      setErrorMsg("Please enter your complete university registration number.");
+      setErrorCode("EMPTY_REG");
+      return;
+    }
+
+    if (deviceStatus?.exists === false) {
+      setErrorMsg(`Registration number ${cleanReg} not found in university student records.`);
+      setErrorCode("STUDENT_NOT_FOUND");
+      return;
+    }
+
     if (deviceStatus?.isBlocked) {
       if (deviceStatus.devices && deviceStatus.devices.length > 0) {
         setBlockedDevicesData(deviceStatus.devices);
       }
       setIsBlockedModalOpen(true);
-      return;
-    }
-
-    const cleanReg = regNo.trim().toUpperCase();
-    if (!cleanReg) {
-      setErrorMsg("Please enter your university registration number.");
-      setErrorCode("EMPTY_REG");
       return;
     }
 
@@ -406,7 +455,8 @@ export default function StudentAuthModal({ isOpen, onClose }) {
                   <input
                     type="text"
                     value={regNo}
-                    onChange={(e) => setRegNo(e.target.value.toUpperCase())}
+                    onChange={(e) => setRegNo(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 16))}
+                    maxLength={16}
                     placeholder="e.g. 230101120001"
                     autoFocus
                     required
@@ -435,8 +485,10 @@ export default function StudentAuthModal({ isOpen, onClose }) {
                   />
                 </div>
 
-                {regNo.trim() && (
-                  <div
+                {isRegValid && deviceStatus?.exists !== false && (
+                  <motion.div
+                    initial={{ opacity: 0, y: -4 }}
+                    animate={{ opacity: 1, y: 0 }}
                     style={{
                       fontSize: 11.5,
                       color: "#2563eb",
@@ -448,8 +500,11 @@ export default function StudentAuthModal({ isOpen, onClose }) {
                     }}
                   >
                     <Mail size={13} />
-                    <span>OTP will be sent to: <strong>{regNo.trim().toLowerCase()}@centurionuniv.edu.in</strong></span>
-                  </div>
+                    <span>
+                      OTP will be sent to: <strong>{cleanReg.toLowerCase()}@centurionuniv.edu.in</strong>
+                      {studentName && studentName !== "Student" ? ` (${studentName})` : ""}
+                    </span>
+                  </motion.div>
                 )}
               </div>
 
@@ -617,23 +672,38 @@ export default function StudentAuthModal({ isOpen, onClose }) {
               {/* Submit Button */}
               <button
                 type="submit"
-                disabled={loading || !regNo.trim() || deviceStatus?.isBlocked}
+                disabled={loading || isChecking || !isRegValid || deviceStatus?.isBlocked || deviceStatus?.exists === false}
                 style={{
                   width: "100%",
                   padding: "11px 16px",
                   borderRadius: 10,
-                  border: deviceStatus?.isBlocked ? "1.5px solid #fca5a5" : "none",
-                  background: deviceStatus?.isBlocked
+                  border: deviceStatus?.isBlocked
+                    ? "1.5px solid #fca5a5"
+                    : deviceStatus?.exists === false
+                    ? "1.5px solid #fecaca"
+                    : "none",
+                  background: isChecking
+                    ? "#f1f5f9"
+                    : deviceStatus?.isBlocked
                     ? "#fee2e2"
+                    : deviceStatus?.exists === false
+                    ? "#fef2f2"
                     : deviceStatus?.isCurrentDevice
                     ? "#16a34a"
-                    : loading || !regNo.trim()
+                    : loading || !isRegValid
                     ? "#cbd5e1"
                     : "#0f172a",
-                  color: deviceStatus?.isBlocked ? "#991b1b" : "#ffffff",
+                  color: isChecking
+                    ? "#475569"
+                    : deviceStatus?.isBlocked || deviceStatus?.exists === false
+                    ? "#991b1b"
+                    : "#ffffff",
                   fontSize: 13.5,
                   fontWeight: 700,
-                  cursor: loading || !regNo.trim() || deviceStatus?.isBlocked ? "not-allowed" : "pointer",
+                  cursor:
+                    loading || isChecking || !isRegValid || deviceStatus?.isBlocked || deviceStatus?.exists === false
+                      ? "not-allowed"
+                      : "pointer",
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
@@ -641,12 +711,12 @@ export default function StudentAuthModal({ isOpen, onClose }) {
                   transition: "all 0.15s ease",
                 }}
                 onMouseEnter={(e) => {
-                  if (!loading && regNo.trim() && !deviceStatus?.isBlocked) {
+                  if (!loading && !isChecking && isRegValid && !deviceStatus?.isBlocked && deviceStatus?.exists !== false) {
                     e.currentTarget.style.background = deviceStatus?.isCurrentDevice ? "#15803d" : "#1e293b";
                   }
                 }}
                 onMouseLeave={(e) => {
-                  if (!loading && regNo.trim() && !deviceStatus?.isBlocked) {
+                  if (!loading && !isChecking && isRegValid && !deviceStatus?.isBlocked && deviceStatus?.exists !== false) {
                     e.currentTarget.style.background = deviceStatus?.isCurrentDevice ? "#16a34a" : "#0f172a";
                   }
                 }}
@@ -655,6 +725,21 @@ export default function StudentAuthModal({ isOpen, onClose }) {
                   <>
                     <Loader2 size={15} className="spin" />
                     <span>Sending Code...</span>
+                  </>
+                ) : isChecking ? (
+                  <>
+                    <Loader2 size={15} className="spin" color="#2563eb" />
+                    <span>Verifying Registration Number...</span>
+                  </>
+                ) : !isRegValid ? (
+                  <>
+                    <span>Enter Valid Registration No.</span>
+                    <ArrowRight size={15} />
+                  </>
+                ) : deviceStatus?.exists === false ? (
+                  <>
+                    <AlertCircle size={15} color="#dc2626" />
+                    <span>Student Record Not Found</span>
                   </>
                 ) : deviceStatus?.isBlocked ? (
                   <>
