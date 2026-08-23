@@ -2739,3 +2739,171 @@ input[type="range"]::-moz-range-thumb {
   border: 2px solid #ffffff;
   transition: transform 0.1s ease;
 }
+
+/* ── GradeFlow Landing Page Specific Styles ─────────── */
+html {
+  scroll-behavior: smooth;
+}
+
+.gf-landing-nav-link:hover {
+  color: #0f172a !important;
+  background: #f1f5f9;
+}
+
+@media (max-width: 900px) {
+  .gf-desktop-nav {
+    display: none !important;
+  }
+  .gf-mobile-toggle {
+    display: inline-flex !important;
+  }
+  .gf-editorial-split {
+    grid-template-columns: 1fr !important;
+    gap: 28px !important;
+    width: 100% !important;
+  }
+  .gf-steps-grid {
+    grid-template-columns: 1fr !important;
+    gap: 20px !important;
+  }
+}
+
+@keyframes gfFloatWrapper {
+  0%, 100% {
+    transform: translate3d(0, 0px, 0) rotate(-2deg);
+  }
+  50% {
+    transform: translate3d(0, -6px, 0) rotate(-1.5deg);
+  }
+}
+
+.gf-hero-float-wrapper {
+  animation: gfFloatWrapper 7s ease-in-out infinite;
+  will-change: transform;
+  transform-origin: center center;
+}
+
+.gf-hero-float-wrapper:hover {
+  animation-play-state: paused;
+}
+
+.gf-hero-report-card {
+  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.25s ease;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+
+.gf-hero-float-wrapper:hover .gf-hero-report-card {
+  transform: translate3d(0, -3px, 0) rotate(1.8deg) scale(1.015);
+  box-shadow: 0 30px 60px -12px rgba(15, 23, 42, 0.16), 0 0 1px rgba(15, 23, 42, 0.2);
+}
+
+/* ── Mobile & Small Device Optimization (max-width: 768px) ── */
+@media (max-width: 768px) {
+  .gf-landing-hero {
+    padding-top: 28px !important;
+    padding-bottom: 36px !important;
+    padding-left: 16px !important;
+    padding-right: 16px !important;
+  }
+
+  .gf-hero-overline {
+    font-size: 11px !important;
+    letter-spacing: 0.05em !important;
+    gap: 6px !important;
+    margin-bottom: 12px !important;
+  }
+
+  .gf-hero-heading {
+    font-size: clamp(30px, 8.2vw, 38px) !important;
+    line-height: 1.1 !important;
+    margin-bottom: 14px !important;
+  }
+
+  .gf-hero-subtitle {
+    font-size: 14.5px !important;
+    line-height: 1.55 !important;
+    margin-bottom: 24px !important;
+  }
+
+  .gf-hero-btn-container {
+    gap: 10px !important;
+    margin-bottom: 24px !important;
+  }
+
+  .gf-hero-metrics {
+    gap: 8px !important;
+    font-size: clamp(10.5px, 2.8vw, 12px) !important;
+    padding-top: 14px !important;
+    flex-wrap: nowrap !important;
+    white-space: nowrap !important;
+    justify-content: space-between !important;
+  }
+
+  .gf-hero-float-wrapper {
+    animation: none !important;
+    transform: none !important;
+    width: 100% !important;
+  }
+
+  .gf-hero-report-card {
+    max-width: 390px !important;
+    margin: 0 auto !important;
+    padding: 16px 14px !important;
+    border-radius: 10px !important;
+    box-shadow: 0 4px 20px rgba(15, 23, 42, 0.08), 0 0 1px rgba(15, 23, 42, 0.15) !important;
+  }
+
+  .gf-hero-overlay-banner {
+    transform: translateY(-50%) rotate(-5deg) !important;
+    padding: 6px 10px !important;
+    width: 108% !important;
+    left: -4% !important;
+  }
+
+  .gf-capability-strip {
+    margin: 20px 0 40px !important;
+    padding: 12px 0 !important;
+  }
+
+  .gf-landing-section {
+    padding: 48px 16px !important;
+  }
+
+  .gf-section-header {
+    margin-bottom: 28px !important;
+  }
+
+  .gf-landing-final-cta {
+    margin: 48px auto 32px !important;
+    padding: 0 16px !important;
+  }
+
+  .gf-landing-final-cta > div {
+    padding: 40px 18px !important;
+    border-radius: 16px !important;
+  }
+
+  .gf-landing-footer {
+    padding: 48px 16px 32px !important;
+  }
+
+  .gf-mobile-full-btn {
+    width: 100% !important;
+    justify-content: center !important;
+  }
+
+  .gf-footer-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 28px 16px !important;
+  }
+
+  .gf-footer-brand-col {
+    grid-column: 1 / -1 !important;
+    margin-bottom: 4px !important;
+  }
+
+  .gf-desktop-only {
+    display: none !important;
+  }
+}
