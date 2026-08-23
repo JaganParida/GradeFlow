@@ -12,8 +12,6 @@ import {
   CheckCircle2,
   Calendar,
   LayoutGrid,
-  FileText,
-  Trophy,
 } from "lucide-react";
 
 export default function BentoIntro({
@@ -25,7 +23,6 @@ export default function BentoIntro({
   onOpenTimetable,
   onOpenAttendance,
   onOpenLeaderboard,
-  onOpenGradeSheet,
 }) {
   return (
     <section
@@ -218,60 +215,6 @@ export default function BentoIntro({
               <ChevronRight size={15} />
             </div>
           </div>
-
-          {/* Card 7 (Desktop Enhanced): Official Grade Sheet & Digital Transcript */}
-          <div
-            className="gf-desktop-only"
-            onClick={onOpenGradeSheet || (() => onNavigateSection("gradesheet"))}
-            style={{
-              background: "#ffffff",
-              padding: "24px 22px",
-              borderRadius: 14,
-              border: "1px solid #e2e8f0",
-              cursor: "pointer",
-              transition: "all 0.2s ease",
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.borderColor = "#60a5fa";
-              e.currentTarget.style.background = "#fcfdfe";
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.borderColor = "#e2e8f0";
-              e.currentTarget.style.background = "#ffffff";
-            }}
-          >
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 14 }}>
-              <div style={{ width: 38, height: 38, borderRadius: 10, background: "#eff6ff", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                <FileText size={19} color="#2563eb" />
-              </div>
-              <span style={{ fontSize: 11, fontWeight: 750, color: "#2563eb", background: "#eff6ff", padding: "3px 8px", borderRadius: 6 }}>
-                Verified PDF Export
-              </span>
-            </div>
-
-            <h3 style={{ fontSize: 17, fontWeight: 800, color: "#0f172a", margin: "0 0 6px 0" }}>
-              Official Grade Sheet Engine
-            </h3>
-            <p style={{ fontSize: 13, color: "#64748b", lineHeight: 1.5, margin: "0 0 14px 0" }}>
-              Instant marksheet generation with SGPA/CGPA breakdowns, QR verification seal, and print-ready PDF export.
-            </p>
-
-            {/* Verification Seal Chip */}
-            <div style={{ background: "#f8fafc", padding: "8px 12px", borderRadius: 8, border: "1px solid #f1f5f9", display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 11, fontWeight: 700, color: "#166534" }}>
-                <CheckCircle2 size={13} color="#16a34a" />
-                <span>CUTM QR Authenticated</span>
-              </div>
-              <span style={{ fontSize: 10.5, fontWeight: 800, color: "#2563eb", background: "#dbeafe", padding: "2px 6px", borderRadius: 4 }}>
-                Instant PDF
-              </span>
-            </div>
-
-            <div style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 13, fontWeight: 700, color: "#2563eb" }}>
-              <span>Generate Grade Sheet</span>
-              <ChevronRight size={15} />
-            </div>
-          </div>
         </div>
 
         {/* ── COLUMN 2 ── */}
@@ -380,65 +323,6 @@ export default function BentoIntro({
 
             <div style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 13, fontWeight: 700, color: "#0284c7" }}>
               <span>View Your Timetable</span>
-              <ChevronRight size={15} />
-            </div>
-          </div>
-
-          {/* Card 8 (Desktop Enhanced): Cohort Rankings & Department Standings */}
-          <div
-            className="gf-desktop-only"
-            onClick={onOpenLeaderboard || (() => onNavigateSection("leaderboard"))}
-            style={{
-              background: "#ffffff",
-              padding: "24px 22px",
-              borderRadius: 14,
-              border: "1px solid #e2e8f0",
-              cursor: "pointer",
-              transition: "all 0.2s ease",
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.borderColor = "#fbbf24";
-              e.currentTarget.style.background = "#fcfdfe";
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.borderColor = "#e2e8f0";
-              e.currentTarget.style.background = "#ffffff";
-            }}
-          >
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 14 }}>
-              <div style={{ width: 38, height: 38, borderRadius: 10, background: "#fffbeb", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                <Trophy size={19} color="#d97706" />
-              </div>
-              <span style={{ fontSize: 11, fontWeight: 750, color: "#d97706", background: "#fffbeb", padding: "3px 8px", borderRadius: 6 }}>
-                Live Percentiles
-              </span>
-            </div>
-
-            <h3 style={{ fontSize: 17, fontWeight: 800, color: "#0f172a", margin: "0 0 6px 0" }}>
-              Cohort &amp; Batch Standings
-            </h3>
-            <p style={{ fontSize: 13, color: "#64748b", lineHeight: 1.5, margin: "0 0 14px 0" }}>
-              Real-time university rank percentiles, batch leaderboards, and branch GPA benchmarks.
-            </p>
-
-            {/* Leaderboard Podiums Mini Graphic */}
-            <div style={{ display: "flex", gap: 6, marginBottom: 14 }}>
-              <div style={{ flex: 1, background: "#fef3c7", padding: "6px 8px", borderRadius: 6, textAlign: "center" }}>
-                <div style={{ fontSize: 9.5, color: "#92400e", fontWeight: 700 }}>Top 1%</div>
-                <div style={{ fontSize: 11, fontWeight: 800, color: "#b45309", fontFamily: "'Space Mono', monospace" }}>Rank #1</div>
-              </div>
-              <div style={{ flex: 1, background: "#f1f5f9", padding: "6px 8px", borderRadius: 6, textAlign: "center" }}>
-                <div style={{ fontSize: 9.5, color: "#475569", fontWeight: 700 }}>CSE Dept</div>
-                <div style={{ fontSize: 11, fontWeight: 800, color: "#0f172a", fontFamily: "'Space Mono', monospace" }}>Top 5%</div>
-              </div>
-              <div style={{ flex: 1, background: "#ecfdf5", padding: "6px 8px", borderRadius: 6, textAlign: "center" }}>
-                <div style={{ fontSize: 9.5, color: "#065f46", fontWeight: 700 }}>Peak GPA</div>
-                <div style={{ fontSize: 11, fontWeight: 800, color: "#059669", fontFamily: "'Space Mono', monospace" }}>9.82</div>
-              </div>
-            </div>
-
-            <div style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 13, fontWeight: 700, color: "#d97706" }}>
-              <span>View Leaderboard</span>
               <ChevronRight size={15} />
             </div>
           </div>
