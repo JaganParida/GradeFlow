@@ -21,6 +21,7 @@ export default function BentoIntro({
   onOpenPlacement,
   onOpenDomains,
   onOpenTimetable,
+  onOpenAttendance,
   onOpenLeaderboard,
 }) {
   return (
@@ -389,7 +390,7 @@ export default function BentoIntro({
 
           {/* Card 6: Smart Attendance & Safe Bunk (Compact) */}
           <div
-            onClick={onOpenTimetable || (() => onNavigateSection("timetable-attendance"))}
+            onClick={onOpenAttendance || (() => onNavigateSection("timetable-attendance"))}
             style={{
               background: "#ffffff",
               padding: "24px 22px",

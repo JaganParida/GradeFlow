@@ -92,13 +92,13 @@ export default function Home() {
   const handlePredictor = () => {
     if (authChecking) return;
     if (hasActiveSession && currentRegNo) {
-      navigate("/resources?tab=target-predictor");
+      navigate(`/analytics/${encodeStudentId(currentRegNo)}?tab=predictor`);
     } else {
-      openStudentAuthModal({ type: "predictor" });
+      openStudentAuthModal({ type: "analytics", tab: "predictor" });
     }
   };
 
-  const handleAnalytics = (tab = "") => {
+  const handleAnalytics = (tab = "overview") => {
     if (authChecking) return;
     if (hasActiveSession && currentRegNo) {
       const query = tab ? `?tab=${encodeURIComponent(tab)}` : "";
@@ -111,27 +111,27 @@ export default function Home() {
   const handlePlacement = () => {
     if (authChecking) return;
     if (hasActiveSession && currentRegNo) {
-      navigate(`/dashboard/${encodeStudentId(currentRegNo)}`);
+      navigate(`/analytics/${encodeStudentId(currentRegNo)}?tab=placement`);
     } else {
-      openStudentAuthModal({ type: "placement" });
+      openStudentAuthModal({ type: "analytics", tab: "placement" });
     }
   };
 
   const handleDomains = () => {
     if (authChecking) return;
     if (hasActiveSession && currentRegNo) {
-      navigate(`/analytics/${encodeStudentId(currentRegNo)}?tab=baskets`);
+      navigate(`/analytics/${encodeStudentId(currentRegNo)}?tab=mastery`);
     } else {
-      openStudentAuthModal({ type: "domains" });
+      openStudentAuthModal({ type: "analytics", tab: "mastery" });
     }
   };
 
   const handleGradeSheet = () => {
     if (authChecking) return;
     if (hasActiveSession && currentRegNo) {
-      navigate(`/analytics/${encodeStudentId(currentRegNo)}?tab=transcript`);
+      navigate(`/analytics/${encodeStudentId(currentRegNo)}?tab=grades`);
     } else {
-      openStudentAuthModal({ type: "gradesheet" });
+      openStudentAuthModal({ type: "analytics", tab: "grades" });
     }
   };
 
@@ -172,11 +172,12 @@ export default function Home() {
       {/* 3. Feature Architecture Grid (Pinterest Masonry with Protected Accurate Data Routing) */}
       <BentoIntro
         onNavigateSection={handleNavigateSection}
-        onOpenAnalytics={handleAnalytics}
+        onOpenAnalytics={() => handleAnalytics("overview")}
         onOpenPredictor={handlePredictor}
         onOpenPlacement={handlePlacement}
         onOpenDomains={handleDomains}
         onOpenTimetable={handleTimetable}
+        onOpenAttendance={handleAttendance}
         onOpenLeaderboard={handleLeaderboard}
       />
 

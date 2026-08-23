@@ -66,13 +66,13 @@ export default function StudentAuthModal({ isOpen, onClose }) {
         const query = dest.tab ? `?tab=${encodeURIComponent(dest.tab)}` : "";
         navigate(`/analytics/${encodeStudentId(cleanReg)}${query}`);
       } else if (dest.type === "predictor") {
-        navigate(`/resources?tab=target-predictor`);
+        navigate(`/analytics/${encodeStudentId(cleanReg)}?tab=predictor`);
       } else if (dest.type === "placement") {
-        navigate(`/dashboard/${encodeStudentId(cleanReg)}`);
+        navigate(`/analytics/${encodeStudentId(cleanReg)}?tab=placement`);
       } else if (dest.type === "domains") {
-        navigate(`/analytics/${encodeStudentId(cleanReg)}?tab=baskets`);
+        navigate(`/analytics/${encodeStudentId(cleanReg)}?tab=mastery`);
       } else if (dest.type === "gradesheet") {
-        navigate(`/analytics/${encodeStudentId(cleanReg)}?tab=transcript`);
+        navigate(`/analytics/${encodeStudentId(cleanReg)}?tab=grades`);
       } else if (dest.type === "leaderboard") {
         navigate("/leaderboard");
       } else if (dest.path) {
