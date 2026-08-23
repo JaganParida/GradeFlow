@@ -16,13 +16,13 @@ import {
   Layers,
   CheckCircle2,
   Wrench,
-  Search,
+  Compass,
 } from "lucide-react";
 import { useApp } from "../../context/AppContext";
 
 /**
  * ═══════════════════════════════════════════════════════════════════════════
- * CORE SYSTEM STATE CONTAINER (GradeFlow Unified SaaS Design Language)
+ * CORE MINIMALIST SYSTEM STATE (Google-Style Clean, Frameless, Open Layout)
  * ═══════════════════════════════════════════════════════════════════════════
  */
 export function SystemState({
@@ -34,8 +34,8 @@ export function SystemState({
   badgeBg = "#eff6ff",
   title = "Something went wrong",
   description = "We encountered an issue. Please try again.",
-  primaryAction = null, // { label, onClick, icon, href }
-  secondaryAction = null, // { label, onClick, icon, href }
+  primaryAction = null,
+  secondaryAction = null,
   isFullScreen = false,
   extraContent = null,
   fullViewportBlock = false,
@@ -51,7 +51,7 @@ export function SystemState({
       alignItems: "center",
       justifyContent: "center",
       gap: 8,
-      padding: isPrimary ? "12px 22px" : "11px 18px",
+      padding: isPrimary ? "11px 22px" : "10px 18px",
       borderRadius: 10,
       fontSize: 14,
       fontWeight: isPrimary ? 700 : 600,
@@ -123,7 +123,7 @@ export function SystemState({
     alignItems: "center",
     justifyContent: "center",
     textAlign: "center",
-    padding: isFullScreen ? "60px 24px" : "40px 20px",
+    padding: isFullScreen ? "80px 24px" : "40px 20px",
     width: "100%",
     minHeight: isFullScreen ? "75vh" : "auto",
     boxSizing: "border-box",
@@ -141,139 +141,99 @@ export function SystemState({
 
   return (
     <div style={containerStyle} role="alert" aria-live="polite">
-      {/* Brand Header Mark */}
-      <div style={{ marginBottom: 20, display: "flex", alignItems: "center", gap: 8 }}>
-        <span
-          style={{
-            width: 28,
-            height: 28,
-            borderRadius: 7,
-            background: "linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)",
-            color: "#ffffff",
-            display: "inline-flex",
-            alignItems: "center",
-            justifyContent: "center",
-            fontWeight: 900,
-            fontSize: 14,
-            boxShadow: "0 2px 8px rgba(37, 99, 235, 0.25)",
-          }}
-        >
-          G
-        </span>
-        <span style={{ fontSize: 16, fontWeight: 800, color: "#0f172a", letterSpacing: "-0.02em" }}>
-          GradeFlow
-        </span>
-      </div>
-
-      {/* Main Card Container */}
+      {/* Icon */}
       <div
         style={{
-          background: "#ffffff",
-          border: "1px solid #e2e8f0",
-          borderRadius: 20,
-          padding: "36px 32px",
-          maxWidth: 480,
-          width: "100%",
-          boxShadow: "0 4px 20px rgba(15, 23, 42, 0.04)",
+          width: 58,
+          height: 58,
+          borderRadius: 18,
+          background: iconBg,
           display: "flex",
-          flexDirection: "column",
           alignItems: "center",
-          boxSizing: "border-box",
+          justifyContent: "center",
+          marginBottom: 20,
+          boxShadow: "0 4px 14px rgba(0,0,0,0.04)",
         }}
       >
-        {/* Icon Pill */}
+        <Icon size={28} color={iconColor} strokeWidth={2.2} />
+      </div>
+
+      {/* Optional Badge */}
+      {badgeText && (
+        <span
+          style={{
+            fontSize: 11.5,
+            fontWeight: 750,
+            color: badgeColor,
+            background: badgeBg,
+            padding: "3px 11px",
+            borderRadius: 99,
+            marginBottom: 14,
+            letterSpacing: "0.02em",
+          }}
+        >
+          {badgeText}
+        </span>
+      )}
+
+      {/* Heading */}
+      <h1
+        style={{
+          fontSize: "clamp(22px, 4vw, 28px)",
+          fontWeight: 800,
+          color: "#0f172a",
+          margin: "0 0 10px 0",
+          letterSpacing: "-0.03em",
+          lineHeight: 1.25,
+          maxWidth: 520,
+        }}
+      >
+        {title}
+      </h1>
+
+      {/* Description */}
+      <p
+        style={{
+          fontSize: 15,
+          lineHeight: 1.6,
+          color: "#64748b",
+          margin: "0 0 28px 0",
+          maxWidth: 440,
+        }}
+      >
+        {description}
+      </p>
+
+      {/* Extra Content */}
+      {extraContent && (
+        <div style={{ width: "100%", maxWidth: 440, marginBottom: 24 }}>
+          {extraContent}
+        </div>
+      )}
+
+      {/* Action Buttons */}
+      {(primaryAction || secondaryAction) && (
         <div
           style={{
-            width: 56,
-            height: 56,
-            borderRadius: 16,
-            background: iconBg,
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            marginBottom: 20,
-            boxShadow: "inset 0 1px 2px rgba(0,0,0,0.04)",
+            gap: 12,
+            width: "100%",
+            flexWrap: "wrap",
           }}
         >
-          <Icon size={26} color={iconColor} strokeWidth={2.2} />
+          {secondaryAction && renderButton(secondaryAction, false)}
+          {primaryAction && renderButton(primaryAction, true)}
         </div>
-
-        {/* Optional Badge */}
-        {badgeText && (
-          <span
-            style={{
-              fontSize: 11.5,
-              fontWeight: 750,
-              color: badgeColor,
-              background: badgeBg,
-              padding: "3px 10px",
-              borderRadius: 99,
-              marginBottom: 12,
-              letterSpacing: "0.02em",
-            }}
-          >
-            {badgeText}
-          </span>
-        )}
-
-        {/* Heading */}
-        <h2
-          style={{
-            fontSize: "clamp(20px, 3.5vw, 24px)",
-            fontWeight: 800,
-            color: "#0f172a",
-            margin: "0 0 10px 0",
-            letterSpacing: "-0.02em",
-            lineHeight: 1.25,
-          }}
-        >
-          {title}
-        </h2>
-
-        {/* Description */}
-        <p
-          style={{
-            fontSize: 14.5,
-            lineHeight: 1.55,
-            color: "#64748b",
-            margin: "0 0 24px 0",
-            maxWidth: 380,
-          }}
-        >
-          {description}
-        </p>
-
-        {/* Extra Context / Details */}
-        {extraContent && (
-          <div style={{ width: "100%", marginBottom: 20 }}>
-            {extraContent}
-          </div>
-        )}
-
-        {/* Action Buttons */}
-        {(primaryAction || secondaryAction) && (
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              gap: 12,
-              width: "100%",
-              flexWrap: "wrap",
-            }}
-          >
-            {secondaryAction && renderButton(secondaryAction, false)}
-            {primaryAction && renderButton(primaryAction, true)}
-          </div>
-        )}
-      </div>
+      )}
     </div>
   );
 }
 
 /**
  * ═══════════════════════════════════════════════════════════════════════════
- * 1. 404 — PAGE NOT FOUND
+ * 1. 404 — PAGE NOT FOUND (Google-Style Sleek Minimalist Canvas)
  * ═══════════════════════════════════════════════════════════════════════════
  */
 export function NotFoundState() {
@@ -281,33 +241,110 @@ export function NotFoundState() {
   const navigate = useNavigate();
 
   return (
-    <SystemState
-      icon={FileQuestion}
-      iconColor="#2563eb"
-      iconBg="#eff6ff"
-      badgeText="404 Error"
-      badgeColor="#2563eb"
-      badgeBg="#eff6ff"
-      title="Page not found"
-      description="The page you're looking for doesn't exist or may have been moved to a new address."
-      isFullScreen={true}
-      primaryAction={{
-        label: hasActiveSession ? "Go to Dashboard" : "Go Home",
-        href: hasActiveSession ? `/dashboard/${currentRegNo}` : "/",
-        icon: HomeIcon,
+    <div
+      style={{
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        justifyContent: "center",
+        textAlign: "center",
+        padding: "100px 24px 80px",
+        minHeight: "75vh",
+        boxSizing: "border-box",
+        fontFamily: "'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
       }}
-      secondaryAction={{
-        label: "Go Back",
-        onClick: () => navigate(-1),
-        icon: ArrowLeft,
-      }}
-    />
+    >
+      <div
+        style={{
+          fontSize: "clamp(64px, 12vw, 96px)",
+          fontWeight: 900,
+          letterSpacing: "-0.05em",
+          lineHeight: 1,
+          color: "#0f172a",
+          marginBottom: 8,
+          background: "linear-gradient(135deg, #0f172a 30%, #3b82f6 100%)",
+          WebkitBackgroundClip: "text",
+          WebkitTextFillColor: "transparent",
+        }}
+      >
+        404
+      </div>
+
+      <h1
+        style={{
+          fontSize: "clamp(22px, 3.5vw, 26px)",
+          fontWeight: 800,
+          color: "#0f172a",
+          margin: "0 0 10px 0",
+          letterSpacing: "-0.02em",
+        }}
+      >
+        Page not found
+      </h1>
+
+      <p
+        style={{
+          fontSize: 15,
+          color: "#64748b",
+          lineHeight: 1.55,
+          maxWidth: 420,
+          margin: "0 0 28px 0",
+        }}
+      >
+        The link you followed may be broken, or the page may have been removed.
+      </p>
+
+      <div style={{ display: "flex", gap: 12, flexWrap: "wrap", justifyContent: "center" }}>
+        <button
+          type="button"
+          onClick={() => navigate(-1)}
+          className="gf-state-btn-secondary"
+          style={{
+            display: "inline-flex",
+            alignItems: "center",
+            gap: 8,
+            padding: "10px 18px",
+            borderRadius: 10,
+            fontSize: 14,
+            fontWeight: 600,
+            background: "#ffffff",
+            color: "#334155",
+            border: "1px solid #cbd5e1",
+            cursor: "pointer",
+          }}
+        >
+          <ArrowLeft size={15} />
+          <span>Go Back</span>
+        </button>
+
+        <Link
+          to={hasActiveSession ? `/dashboard/${currentRegNo}` : "/"}
+          className="gf-state-btn-primary"
+          style={{
+            display: "inline-flex",
+            alignItems: "center",
+            gap: 8,
+            padding: "11px 22px",
+            borderRadius: 10,
+            fontSize: 14,
+            fontWeight: 700,
+            background: "#2563eb",
+            color: "#ffffff",
+            textDecoration: "none",
+            boxShadow: "0 2px 10px rgba(37, 99, 235, 0.22)",
+          }}
+        >
+          <HomeIcon size={15} />
+          <span>{hasActiveSession ? "Go to Dashboard" : "Go Home"}</span>
+        </Link>
+      </div>
+    </div>
   );
 }
 
 /**
  * ═══════════════════════════════════════════════════════════════════════════
- * 2. OFFLINE STATE (No Internet Connection)
+ * 2. OFFLINE STATE (Keeps Page Interactive with Top Toast)
  * ═══════════════════════════════════════════════════════════════════════════
  */
 export function OfflineState({ onRetry }) {
@@ -316,11 +353,11 @@ export function OfflineState({ onRetry }) {
       icon={WifiOff}
       iconColor="#b45309"
       iconBg="#fef3c7"
-      badgeText="No Internet Connection"
+      badgeText="Working Offline"
       badgeColor="#b45309"
       badgeBg="#fef3c7"
-      title="You're offline"
-      description="Your internet connection appears to be unavailable. Check your connection and try again."
+      title="You're currently offline"
+      description="Your connection is unavailable. Cached records remain readable. Reconnect to load live updates."
       isFullScreen={true}
       primaryAction={{
         label: "Try Again",
@@ -342,13 +379,13 @@ export function NetworkErrorState({ onRetry, message }) {
       icon={AlertTriangle}
       iconColor="#dc2626"
       iconBg="#fef2f2"
-      badgeText="Network Error"
+      badgeText="Connection Notice"
       badgeColor="#dc2626"
       badgeBg="#fef2f2"
-      title="Something went wrong"
-      description={message || "We couldn't complete that request right now. Please check your connection and try again."}
+      title="Unable to load data"
+      description={message || "We couldn't connect to the server right now. Check your internet connection and try again."}
       primaryAction={{
-        label: "Try Again",
+        label: "Retry",
         onClick: onRetry,
         icon: RefreshCw,
       }}
@@ -365,72 +402,35 @@ export function SlowLoadingState({ onRetry, onKeepWaiting }) {
   return (
     <div
       style={{
-        background: "#ffffff",
+        background: "#fff7ed",
         border: "1px solid #fed7aa",
-        borderRadius: 14,
-        padding: "16px 20px",
+        borderRadius: 12,
+        padding: "12px 18px",
         display: "flex",
         alignItems: "center",
         justifyContent: "space-between",
         gap: 14,
         maxWidth: 580,
-        margin: "16px auto",
-        boxShadow: "0 2px 8px rgba(234, 88, 12, 0.06)",
+        margin: "14px auto",
         boxSizing: "border-box",
         flexWrap: "wrap",
       }}
       role="status"
     >
-      <div style={{ display: "flex", alignItems: "center", gap: 12, minWidth: 200, flex: 1 }}>
-        <div
-          style={{
-            width: 36,
-            height: 36,
-            borderRadius: 10,
-            background: "#fff7ed",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            flexShrink: 0,
-          }}
-        >
-          <Hourglass size={18} color="#ea580c" />
-        </div>
-        <div>
-          <div style={{ fontSize: 13.5, fontWeight: 750, color: "#9a3412" }}>
-            Taking longer than expected
-          </div>
-          <div style={{ fontSize: 12, color: "#7c2d12", opacity: 0.85 }}>
-            Your connection seems slower than usual. We're still loading your data.
-          </div>
-        </div>
+      <div style={{ display: "flex", alignItems: "center", gap: 10, flex: 1, minWidth: 200 }}>
+        <Hourglass size={16} color="#ea580c" />
+        <span style={{ fontSize: 13, fontWeight: 650, color: "#9a3412" }}>
+          Taking longer than expected &bull; Connection is slower than usual
+        </span>
       </div>
 
       <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-        {onKeepWaiting && (
-          <button
-            type="button"
-            onClick={onKeepWaiting}
-            style={{
-              padding: "6px 12px",
-              borderRadius: 8,
-              background: "#ffffff",
-              border: "1px solid #fdba74",
-              color: "#9a3412",
-              fontSize: 12,
-              fontWeight: 650,
-              cursor: "pointer",
-            }}
-          >
-            Keep Waiting
-          </button>
-        )}
         {onRetry && (
           <button
             type="button"
             onClick={onRetry}
             style={{
-              padding: "6px 12px",
+              padding: "5px 12px",
               borderRadius: 8,
               background: "#ea580c",
               border: "none",
@@ -440,7 +440,7 @@ export function SlowLoadingState({ onRetry, onKeepWaiting }) {
               cursor: "pointer",
             }}
           >
-            Try Again
+            Retry
           </button>
         )}
       </div>
@@ -462,8 +462,8 @@ export function TimeoutState({ onRetry }) {
       badgeText="Request Timeout"
       badgeColor="#ea580c"
       badgeBg="#fff7ed"
-      title="That took too long"
-      description="We couldn't complete the request in time. Please verify your connection and try again."
+      title="Request timed out"
+      description="The server took too long to respond. Please verify your connection and try again."
       primaryAction={{
         label: "Try Again",
         onClick: onRetry,
@@ -488,7 +488,7 @@ export function ServerErrorState({ onRetry }) {
       badgeColor="#dc2626"
       badgeBg="#fef2f2"
       title="Something went wrong"
-      description="We're having trouble processing this request right now. Our systems are working to restore it."
+      description="We're having trouble processing this request right now. Please try again shortly."
       isFullScreen={true}
       primaryAction={{
         label: "Try Again",
@@ -519,7 +519,7 @@ export function ServiceUnavailableState({ onRetry }) {
       badgeColor="#b45309"
       badgeBg="#fef3c7"
       title="GradeFlow is temporarily unavailable"
-      description="We're having trouble connecting to the university data service right now. Please try again shortly."
+      description="We're updating or reconnecting our services. Please check back in a moment."
       isFullScreen={true}
       primaryAction={{
         label: "Try Again",
@@ -537,7 +537,7 @@ export function ServiceUnavailableState({ onRetry }) {
 
 /**
  * ═══════════════════════════════════════════════════════════════════════════
- * 8. GLOBAL MAINTENANCE MODE (Full Viewport Blocking Experience)
+ * 8. GLOBAL MAINTENANCE MODE (Clean, Immersive, Non-Boxed Screen)
  * ═══════════════════════════════════════════════════════════════════════════
  */
 export function MaintenanceState({ message, onRetry }) {
@@ -547,13 +547,13 @@ export function MaintenanceState({ message, onRetry }) {
       icon={Wrench}
       iconColor="#2563eb"
       iconBg="#eff6ff"
-      badgeText="Scheduled Maintenance"
+      badgeText="System Maintenance"
       badgeColor="#2563eb"
       badgeBg="#eff6ff"
       title="We're making things better"
       description={
         message ||
-        "GradeFlow is temporarily unavailable while we make improvements behind the scenes. Your academic data remains completely safe and protected."
+        "GradeFlow is currently undergoing scheduled platform improvements. All student records and grades remain safe and protected."
       }
       primaryAction={{
         label: "Check Status & Try Again",
@@ -563,17 +563,15 @@ export function MaintenanceState({ message, onRetry }) {
       extraContent={
         <div
           style={{
-            background: "#f8fafc",
-            border: "1px solid #f1f5f9",
-            borderRadius: 10,
-            padding: "12px 14px",
-            display: "flex",
+            display: "inline-flex",
             alignItems: "center",
-            justifyContent: "center",
             gap: 6,
-            fontSize: 12,
-            color: "#64748b",
-            fontWeight: 600,
+            fontSize: 12.5,
+            color: "#059669",
+            fontWeight: 650,
+            background: "#ecfdf5",
+            padding: "6px 14px",
+            borderRadius: 99,
           }}
         >
           <CheckCircle2 size={14} color="#059669" />
@@ -600,8 +598,8 @@ export function SessionExpiredState({ onSignIn }) {
       badgeText="Session Notice"
       badgeColor="#2563eb"
       badgeBg="#eff6ff"
-      title="Your session has expired"
-      description="For your security and privacy, your authenticated student session has ended. Please sign in again to continue."
+      title="Session expired"
+      description="For your privacy and security, your authenticated session has ended. Sign in to resume."
       isFullScreen={true}
       primaryAction={{
         label: "Sign In",
@@ -634,7 +632,7 @@ export function UnauthorizedState() {
       badgeColor="#dc2626"
       badgeBg="#fef2f2"
       title="Access restricted"
-      description="You don't have permission to access this page or administrative area."
+      description="You don't have permission to access this page."
       isFullScreen={true}
       primaryAction={{
         label: hasActiveSession ? "Go to Dashboard" : "Go Home",
@@ -660,7 +658,7 @@ export function RateLimitState({ message, onRetry }) {
       badgeColor="#ea580c"
       badgeBg="#fff7ed"
       title="Too many attempts"
-      description={message || "Please wait a moment before trying again to protect service performance."}
+      description={message || "Please wait a moment before trying again."}
       primaryAction={{
         label: "Try Again",
         onClick: onRetry || (() => window.location.reload()),
@@ -677,17 +675,14 @@ export function RateLimitState({ message, onRetry }) {
  */
 export function EmptyState({
   icon: Icon = Layers,
-  title = "No academic data yet",
-  description = "Once your academic information is available, you'll see your insights and records here.",
-  action = null, // { label, onClick, href }
+  title = "No data found",
+  description = "There are no records matching your current filter or request.",
+  action = null,
 }) {
   return (
     <div
       style={{
-        background: "#ffffff",
-        border: "1px dashed #cbd5e1",
-        borderRadius: 16,
-        padding: "36px 24px",
+        padding: "48px 20px",
         display: "flex",
         flexDirection: "column",
         alignItems: "center",
@@ -695,7 +690,6 @@ export function EmptyState({
         textAlign: "center",
         width: "100%",
         boxSizing: "border-box",
-        margin: "12px 0",
       }}
       role="status"
     >
@@ -704,12 +698,12 @@ export function EmptyState({
           width: 44,
           height: 44,
           borderRadius: 12,
-          background: "#f8fafc",
+          background: "#f1f5f9",
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
           marginBottom: 14,
-          color: "#94a3b8",
+          color: "#64748b",
         }}
       >
         <Icon size={22} strokeWidth={2} />
@@ -728,7 +722,7 @@ export function EmptyState({
 
       <p
         style={{
-          fontSize: 13.5,
+          fontSize: 14,
           color: "#64748b",
           lineHeight: 1.5,
           margin: action ? "0 0 18px 0" : 0,
@@ -776,10 +770,10 @@ export function UnexpectedErrorState({ onReset }) {
       badgeColor="#dc2626"
       badgeBg="#fef2f2"
       title="Something went wrong"
-      description="GradeFlow couldn't display this page correctly. We've recorded the error and are working on it."
+      description="GradeFlow couldn't display this section. Click below to reload cleanly."
       isFullScreen={true}
       primaryAction={{
-        label: "Try Again",
+        label: "Reload Page",
         onClick: onReset || (() => window.location.reload()),
         icon: RefreshCw,
       }}

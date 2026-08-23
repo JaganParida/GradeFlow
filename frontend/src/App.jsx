@@ -149,43 +149,68 @@ export default function App() {
         <div
           style={{
             position: "fixed",
-            top: 80,
-            left: "50%",
-            transform: "translateX(-50%)",
-            zIndex: 9999,
-            background: "rgba(239, 68, 68, 0.95)",
-            border: "1px solid #ef4444",
-            color: "#fff",
-            padding: "12px 24px",
-            borderRadius: 8,
+            top: 76,
+            left: 0,
+            right: 0,
             display: "flex",
+            justifyContent: "center",
             alignItems: "center",
-            gap: 12,
-            boxShadow: "0 8px 32px rgba(239, 68, 68, 0.3)",
-            backdropFilter: "blur(8px)",
-            maxWidth: "90vw",
-            animation: "slideDown 0.3s ease-out",
+            pointerEvents: "none",
+            zIndex: 99999,
+            padding: "0 16px",
           }}
         >
-          <AlertTriangle size={20} />
-          <span style={{ fontSize: 14, fontWeight: 500 }}>
-            {rateLimitError}
-          </span>
-          <button
-            onClick={() => setRateLimitError(null)}
+          <div
             style={{
-              background: "transparent",
-              border: "none",
-              color: "#fff",
-              cursor: "pointer",
+              pointerEvents: "auto",
+              background: "#0f172a",
+              border: "1px solid rgba(239, 68, 68, 0.4)",
+              color: "#f8fafc",
+              padding: "8px 18px",
+              borderRadius: 999,
               display: "flex",
-              padding: 4,
-              marginLeft: 8,
-              opacity: 0.8,
+              alignItems: "center",
+              gap: 10,
+              boxShadow: "0 10px 30px rgba(0, 0, 0, 0.25)",
+              backdropFilter: "blur(12px)",
+              maxWidth: "92vw",
+              boxSizing: "border-box",
             }}
           >
-            <X size={16} />
-          </button>
+            <span
+              style={{
+                width: 8,
+                height: 8,
+                borderRadius: "50%",
+                background: "#ef4444",
+                boxShadow: "0 0 8px #ef4444",
+                flexShrink: 0,
+              }}
+            />
+            <span style={{ fontSize: 13, fontWeight: 600 }}>
+              {rateLimitError}
+            </span>
+            <button
+              onClick={() => setRateLimitError(null)}
+              style={{
+                background: "rgba(255, 255, 255, 0.12)",
+                border: "none",
+                color: "#ffffff",
+                cursor: "pointer",
+                display: "inline-flex",
+                alignItems: "center",
+                justifyContent: "center",
+                padding: "2px 6px",
+                borderRadius: 999,
+                marginLeft: 4,
+                fontSize: 11,
+                fontWeight: 700,
+                outline: "none",
+              }}
+            >
+              Dismiss
+            </button>
+          </div>
         </div>
       )}
 
