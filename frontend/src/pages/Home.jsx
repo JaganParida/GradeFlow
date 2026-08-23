@@ -7,7 +7,6 @@ import { encodeStudentId } from "../utils/studentIdEncoder";
 import HeroSection from "../components/landing/HeroSection";
 import CapabilityStrip from "../components/landing/CapabilityStrip";
 import BentoIntro from "../components/landing/BentoIntro";
-import AnalyticsSection from "../components/landing/AnalyticsSection";
 import PredictorSection from "../components/landing/PredictorSection";
 import PlacementSection from "../components/landing/PlacementSection";
 import DomainIntelligenceSection from "../components/landing/DomainIntelligenceSection";
@@ -184,16 +183,13 @@ export default function Home() {
 
       {/* Desktop In-Depth Workbenches (Hidden on Mobile to Keep Scroll Fast & Snappy) */}
       <div className="gf-desktop-only">
-        {/* 4. Academic Analytics */}
-        <AnalyticsSection />
-
-        {/* 5. Grade Predictor / What-If */}
+        {/* 4. Grade Predictor / What-If */}
         <PredictorSection onOpenPredictorTool={handlePredictor} />
 
-        {/* 6. Placement Readiness */}
+        {/* 5. Placement Readiness */}
         <PlacementSection />
 
-        {/* 7. Credit / Domain Intelligence */}
+        {/* 6. Credit / Domain Intelligence */}
         <DomainIntelligenceSection />
       </div>
 

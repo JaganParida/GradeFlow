@@ -93,10 +93,10 @@ export default function LandingFooter({ onNavigateSection }) {
               </li>
               <li>
                 <a
-                  href="#analytics"
+                  href="#features"
                   onClick={(e) => {
                     e.preventDefault();
-                    onNavigateSection("analytics");
+                    onNavigateSection("features");
                   }}
                   style={{ color: "#64748b", textDecoration: "none", transition: "color 0.15s" }}
                   onMouseEnter={(e) => (e.target.style.color = "#2563eb")}
