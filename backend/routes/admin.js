@@ -2890,5 +2890,85 @@ router.post(
   }
 );
 
+// ─── GLOBAL MAINTENANCE MODE (Main Admin Only) ──────────────────────────────
+const { getMaintenanceState, setMaintenanceState } = require("../middleware/maintenance");
+const AdminAuditLog = require("../models/AdminAuditLog");
+
+// GET current maintenance mode status
+router.get("/maintenance", async (req, res) => {
+  try {
+    const isMainAdmin = req.user && (req.user.adminType === "main" || !req.user.adminType);
+    if (!isMainAdmin) {
+      return res.status(403).json({
+        success: false,
+        message: "Access restricted. Only Main Admin can view and manage Maintenance Mode.",
+      });
+    }
+
+    const state = await getMaintenanceState(true);
+    return res.json({
+      success: true,
+      maintenance: state,
+    });
+  } catch (err) {
+    console.error("GET /api/admin/maintenance error:", err);
+    return res.status(500).json({ success: false, message: "Failed to retrieve maintenance status." });
+  }
+});
+
+// PUT update maintenance mode status (Toggle ON/OFF)
+router.put("/maintenance", async (req, res) => {
+  try {
+    const isMainAdmin = req.user && (req.user.adminType === "main" || !req.user.adminType);
+    if (!isMainAdmin) {
+      return res.status(403).json({
+        success: false,
+        message: "Access restricted. Only the authorized Main Admin can toggle Maintenance Mode.",
+      });
+    }
+
+    const { enabled, message } = req.body || {};
+    const adminEmail = req.user?.email || "main_admin";
+
+    const updated = await setMaintenanceState({
+      enabled: Boolean(enabled),
+      message: typeof message === "string" ? message : "",
+      adminEmail,
+    });
+
+    // Record in Admin Audit Log
+    try {
+      await AdminAuditLog.create({
+        actorEmail: adminEmail,
+        actorType: "main_admin",
+        action: updated.enabled ? "MAINTENANCE_MODE_ENABLED" : "MAINTENANCE_MODE_DISABLED",
+        actionType: "SYSTEM_CONTROL",
+        route: "admin-management",
+        result: "SUCCESS",
+        details: {
+          enabled: updated.enabled,
+          message: updated.message,
+          enabledAt: updated.enabledAt,
+        },
+        ip: req.ip || "",
+        userAgent: req.headers["user-agent"] || "",
+      });
+    } catch (auditErr) {
+      console.warn("Failed to write maintenance audit log:", auditErr.message);
+    }
+
+    return res.json({
+      success: true,
+      message: updated.enabled
+        ? "Global Maintenance Mode enabled successfully. Student access is now restricted."
+        : "Global Maintenance Mode disabled successfully. Student access has been restored.",
+      maintenance: updated,
+    });
+  } catch (err) {
+    console.error("PUT /api/admin/maintenance error:", err);
+    return res.status(500).json({ success: false, message: "Failed to update maintenance mode status." });
+  }
+});
+
 module.exports = router;
 

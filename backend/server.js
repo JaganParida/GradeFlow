@@ -84,6 +84,31 @@ app.use(["/api/admin", "/api/auth/admin", "/api/auth/subadmin"], (req, res, next
 // ─── Rate Limiting Strategy ────────────────────────────────────────────────
 const { authLimiter, publicLimiter, adminLimiter } = require("./middleware/rateLimiters");
 const errorHandler = require("./middleware/errorHandler");
+const {
+  syncMaintenanceState,
+  getMaintenanceState,
+  maintenanceMiddleware,
+} = require("./middleware/maintenance");
+
+// ─── Public System Maintenance Check Endpoint (No-cache, Fast) ─────────────
+app.get("/api/system/maintenance", async (req, res) => {
+  res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate");
+  res.setHeader("Pragma", "no-cache");
+  try {
+    const state = await getMaintenanceState();
+    res.json({
+      success: true,
+      enabled: Boolean(state.enabled),
+      message: state.message || "",
+      enabledAt: state.enabledAt,
+    });
+  } catch (err) {
+    res.json({ success: true, enabled: false });
+  }
+});
+
+// Enforce Global Maintenance Mode for student/public routes (Main Admin is automatically bypassed)
+app.use(maintenanceMiddleware);
 
 // Routes with Endpoint-Specific Configurable Rate Limiters
 app.use("/api/auth", authLimiter, csrfProtect, require("./routes/auth"));
@@ -263,6 +288,7 @@ mongoose
   .connect(process.env.MONGO_URI)
   .then(async () => {
     console.log("✅ MongoDB connected");
+    await syncMaintenanceState();
     await seedAdmin();
 
     // ─── 5-Year Batch Data Retention Sweep ───────────────────────────

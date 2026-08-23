@@ -2907,3 +2907,46 @@ html {
     display: none !important;
   }
 }
+
+/* ── GradeFlow Unified System States & Error Presentation ─────── */
+.gf-state-btn-primary:hover {
+  background: #1d4ed8 !important;
+  box-shadow: 0 4px 14px rgba(37, 99, 235, 0.32) !important;
+  transform: translateY(-1px);
+}
+.gf-state-btn-primary:active {
+  transform: translateY(0);
+}
+
+.gf-state-btn-secondary:hover {
+  background: #f8fafc !important;
+  border-color: #94a3b8 !important;
+  color: #0f172a !important;
+}
+
+@keyframes gf-spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.gf-spin {
+  animation: gf-spin 1s linear infinite;
+}
+
+@keyframes skeleton-shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+.skeleton {
+  background: linear-gradient(90deg, #f1f5f9 25%, #e2e8f0 37%, #f1f5f9 63%);
+  background-size: 400% 100%;
+  animation: skeleton-shimmer 1.4s ease infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .skeleton,
+  .gf-spin {
+    animation: none !important;
+  }
+}

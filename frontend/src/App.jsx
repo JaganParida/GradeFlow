@@ -19,6 +19,10 @@ import UpgradeModal from "./components/UpgradeModal";
 import { DashboardSkeleton } from "./components/LoadingSpinner";
 import { useApp } from "./context/AppContext";
 import { AlertTriangle, X } from "lucide-react";
+import ErrorBoundary from "./components/system/ErrorBoundary";
+import NetworkStatusListener from "./components/system/NetworkStatusListener";
+import MaintenanceGuard from "./components/system/MaintenanceGuard";
+import { NotFoundState } from "./components/system/SystemState";
 
 function ScrollToTop() {
   const { pathname, hash } = useLocation();
@@ -134,8 +138,9 @@ export default function App() {
   }, []);
 
   return (
-    <>
+    <ErrorBoundary>
       <ScrollToTop />
+      <NetworkStatusListener />
       <Navbar />
       <FeedbackModal />
       <UpgradeModal />
@@ -184,146 +189,157 @@ export default function App() {
         </div>
       )}
 
-      <AnimatePresence mode="wait">
-        <Routes location={location} key={location.pathname}>
-          <Route
-            path="/"
-            element={
-              <PageTransition>
-                <Home />
-              </PageTransition>
-            }
-          />
-          <Route
-            path="/dashboard/:regNo"
-            element={
-              <ProtectedRoute>
+      <MaintenanceGuard>
+        <AnimatePresence mode="wait">
+          <Routes location={location} key={location.pathname}>
+            <Route
+              path="/"
+              element={
                 <PageTransition>
-                  <Dashboard />
+                  <Home />
                 </PageTransition>
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/timetable/:studentId"
-            element={
-              <PageTransition>
-                <Timetable />
-              </PageTransition>
-            }
-          />
-          <Route
-            path="/timetable"
-            element={
-              <PageTransition>
-                <Timetable />
-              </PageTransition>
-            }
-          />
-          <Route
-            path="/attendance/:studentId"
-            element={
-              <PageTransition>
-                <AttendanceTracker />
-              </PageTransition>
-            }
-          />
-          <Route
-            path="/attendance"
-            element={
-              <PageTransition>
-                <AttendanceTracker />
-              </PageTransition>
-            }
-          />
-          <Route
-            path="/analytics/:regNo"
-            element={
-              <ProtectedRoute>
+              }
+            />
+            <Route
+              path="/dashboard/:regNo"
+              element={
+                <ProtectedRoute>
+                  <PageTransition>
+                    <Dashboard />
+                  </PageTransition>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/timetable/:studentId"
+              element={
                 <PageTransition>
-                  <Analytics />
+                  <Timetable />
                 </PageTransition>
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/analytics"
-            element={
-              <ProtectedRoute>
+              }
+            />
+            <Route
+              path="/timetable"
+              element={
                 <PageTransition>
-                  <Analytics />
+                  <Timetable />
                 </PageTransition>
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/leaderboard"
-            element={
-              <ProtectedRoute>
+              }
+            />
+            <Route
+              path="/attendance/:studentId"
+              element={
                 <PageTransition>
-                  <Leaderboard />
+                  <AttendanceTracker />
                 </PageTransition>
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/testimonials"
-            element={
-              <PageTransition>
-                <Testimonials />
-              </PageTransition>
-            }
-          />
-          <Route
-            path="/about-dev"
-            element={
-              <PageTransition>
-                <AboutDev />
-              </PageTransition>
-            }
-          />
-          <Route
-            path="/about"
-            element={
-              <PageTransition>
-                <AboutDev />
-              </PageTransition>
-            }
-          />
-          <Route
-            path="/resources"
-            element={
-              <PageTransition>
-                <Resources />
-              </PageTransition>
-            }
-          />
-          <Route
-            path="/admin"
-            element={
-              <PageTransition>
-                <AdminLogin />
-              </PageTransition>
-            }
-          />
-          <Route
-            path="/admin/login"
-            element={
-              <PageTransition>
-                <AdminLogin />
-              </PageTransition>
-            }
-          />
-          <Route
-            path="/admin/dashboard"
-            element={
-              <PageTransition>
-                <AdminDashboard />
-              </PageTransition>
-            }
-          />
-        </Routes>
-      </AnimatePresence>
-    </>
+              }
+            />
+            <Route
+              path="/attendance"
+              element={
+                <PageTransition>
+                  <AttendanceTracker />
+                </PageTransition>
+              }
+            />
+            <Route
+              path="/analytics/:regNo"
+              element={
+                <ProtectedRoute>
+                  <PageTransition>
+                    <Analytics />
+                  </PageTransition>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/analytics"
+              element={
+                <ProtectedRoute>
+                  <PageTransition>
+                    <Analytics />
+                  </PageTransition>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/leaderboard"
+              element={
+                <ProtectedRoute>
+                  <PageTransition>
+                    <Leaderboard />
+                  </PageTransition>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/testimonials"
+              element={
+                <PageTransition>
+                  <Testimonials />
+                </PageTransition>
+              }
+            />
+            <Route
+              path="/about-dev"
+              element={
+                <PageTransition>
+                  <AboutDev />
+                </PageTransition>
+              }
+            />
+            <Route
+              path="/about"
+              element={
+                <PageTransition>
+                  <AboutDev />
+                </PageTransition>
+              }
+            />
+            <Route
+              path="/resources"
+              element={
+                <PageTransition>
+                  <Resources />
+                </PageTransition>
+              }
+            />
+            <Route
+              path="/admin"
+              element={
+                <PageTransition>
+                  <AdminLogin />
+                </PageTransition>
+              }
+            />
+            <Route
+              path="/admin/login"
+              element={
+                <PageTransition>
+                  <AdminLogin />
+                </PageTransition>
+              }
+            />
+            <Route
+              path="/admin/dashboard"
+              element={
+                <PageTransition>
+                  <AdminDashboard />
+                </PageTransition>
+              }
+            />
+            {/* Catch-All 404 Route */}
+            <Route
+              path="*"
+              element={
+                <PageTransition>
+                  <NotFoundState />
+                </PageTransition>
+              }
+            />
+          </Routes>
+        </AnimatePresence>
+      </MaintenanceGuard>
+    </ErrorBoundary>
   );
 }

@@ -79,12 +79,41 @@ export function AppProvider({ children }) {
     setTheme(prev => prev === 'light' ? 'dark' : 'light');
   };
 
+  // ─── Global Maintenance Mode State ───────────────────────────────
+  const [maintenance, setMaintenance] = useState({
+    enabled: false,
+    message: "",
+    enabledAt: null,
+  });
+
+  const checkMaintenanceStatus = async (force = false) => {
+    try {
+      const res = await axios.get(`${API_BASE}/system/maintenance?t=${Date.now()}`, {
+        headers: { "Cache-Control": "no-cache" },
+      });
+      if (res.data && typeof res.data.enabled === "boolean") {
+        setMaintenance({
+          enabled: res.data.enabled,
+          message: res.data.message || "",
+          enabledAt: res.data.enabledAt || null,
+        });
+        return res.data;
+      }
+    } catch (err) {
+      console.warn("Failed to check maintenance status:", err.message);
+    }
+    return { enabled: false };
+  };
+
   const [authChecking, setAuthChecking] = useState(true);
   const navigate = useNavigate();
 
-  // ─── Check Auth on Startup (Admin via Secure HttpOnly Cookie + Session) ──
+  // ─── Check Auth & Maintenance on Startup ─────────────────────────
   useEffect(() => {
-    const checkAuth = async () => {
+    const checkAuthAndSystem = async () => {
+      // 0. Check Global Maintenance Mode first
+      await checkMaintenanceStatus();
+
       // 1. Check Admin Auth (Server-authoritative HttpOnly cookie verification)
       try {
         const resAdmin = await axios.get(`${API_BASE}/auth/admin/me`, { withCredentials: true });
@@ -134,7 +163,7 @@ export function AppProvider({ children }) {
       }
     };
 
-    checkAuth();
+    checkAuthAndSystem();
   }, []);
 
   // ─── Student OTP Auth Methods ────────────────────────────────────
@@ -474,6 +503,9 @@ export function AppProvider({ children }) {
         leaveSession,
         theme,
         toggleTheme,
+        maintenance,
+        setMaintenance,
+        checkMaintenanceStatus,
         API: API_BASE,
         stats: null,
         queuePosition: null,

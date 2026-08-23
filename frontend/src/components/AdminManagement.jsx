@@ -42,6 +42,7 @@ import {
   Zap,
   Copy,
   Settings,
+  Wrench,
 } from "lucide-react";
 
 // Master dictionary of configurable permission capabilities
@@ -174,15 +175,95 @@ export default function AdminManagement({ API, authHeaders, isMobile }) {
   const [logFilterAction, setLogFilterAction] = useState("");
   const [logFilterResult, setLogFilterResult] = useState("");
 
+  // Global Maintenance Mode state (Main Admin Only)
+  const [maintenanceData, setMaintenanceData] = useState({
+    enabled: false,
+    message: "",
+    enabledAt: null,
+    updatedAt: null,
+    updatedBy: "",
+  });
+  const [maintenanceLoading, setMaintenanceLoading] = useState(false);
+  const [maintenanceUpdating, setMaintenanceUpdating] = useState(false);
+  const [maintenanceMessageInput, setMaintenanceMessageInput] = useState("");
+  const [showEnableConfirmModal, setShowEnableConfirmModal] = useState(false);
+  const [showDisableConfirmModal, setShowDisableConfirmModal] = useState(false);
+  const [maintenanceSuccess, setMaintenanceSuccess] = useState("");
+  const [maintenanceError, setMaintenanceError] = useState("");
+
   useEffect(() => {
     fetchSubAdmins();
+    fetchMaintenanceSettings();
   }, []);
 
   useEffect(() => {
     if (activeTab === "audit-logs") {
       fetchAuditLogs();
+    } else if (activeTab === "maintenance") {
+      fetchMaintenanceSettings();
     }
   }, [activeTab, logFilterAction, logFilterResult]);
+
+  async function fetchMaintenanceSettings() {
+    setMaintenanceLoading(true);
+    try {
+      const { data } = await axios.get(`${API}/admin/maintenance`, authHeaders);
+      if (data.success && data.maintenance) {
+        setMaintenanceData(data.maintenance);
+        setMaintenanceMessageInput(data.maintenance.message || "");
+      }
+    } catch (err) {
+      console.warn("Failed to fetch maintenance settings:", err);
+    } finally {
+      setMaintenanceLoading(false);
+    }
+  }
+
+  async function executeEnableMaintenance() {
+    setMaintenanceUpdating(true);
+    setMaintenanceError("");
+    setMaintenanceSuccess("");
+    try {
+      const { data } = await axios.put(
+        `${API}/admin/maintenance`,
+        { enabled: true, message: maintenanceMessageInput },
+        authHeaders
+      );
+      if (data.success) {
+        setMaintenanceData(data.maintenance);
+        setShowEnableConfirmModal(false);
+        setMaintenanceSuccess("Global Maintenance Mode enabled successfully. Student access is now restricted.");
+        setTimeout(() => setMaintenanceSuccess(""), 5000);
+      }
+    } catch (err) {
+      setMaintenanceError(err.response?.data?.message || "Failed to enable maintenance mode.");
+    } finally {
+      setMaintenanceUpdating(false);
+    }
+  }
+
+  async function executeDisableMaintenance() {
+    setMaintenanceUpdating(true);
+    setMaintenanceError("");
+    setMaintenanceSuccess("");
+    try {
+      const { data } = await axios.put(
+        `${API}/admin/maintenance`,
+        { enabled: false },
+        authHeaders
+      );
+      if (data.success) {
+        setMaintenanceData(data.maintenance);
+        setShowDisableConfirmModal(false);
+        setMaintenanceSuccess("Global Maintenance Mode disabled successfully. Student access has been restored.");
+        setTimeout(() => setMaintenanceSuccess(""), 5000);
+      }
+    } catch (err) {
+      setMaintenanceError(err.response?.data?.message || "Failed to disable maintenance mode.");
+    } finally {
+      setMaintenanceUpdating(false);
+    }
+  }
 
   async function fetchSubAdmins() {
     setLoading(true);
@@ -657,6 +738,40 @@ export default function AdminManagement({ API, authHeaders, isMobile }) {
           >
             <Activity size={15} />
             Security & Audit Logs
+          </button>
+
+          <button
+            onClick={() => setActiveTab("maintenance")}
+            className={`gf-mgmt-tab-btn ${activeTab === "maintenance" ? "active" : ""}`}
+            style={{
+              padding: "8px 14px",
+              borderRadius: 10,
+              border: "none",
+              background: activeTab === "maintenance" ? (maintenanceData.enabled ? "#fef2f2" : "#eff6ff") : "transparent",
+              color: activeTab === "maintenance" ? (maintenanceData.enabled ? "#dc2626" : "#2563eb") : "#64748b",
+              fontWeight: 700,
+              fontSize: 13,
+              cursor: "pointer",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: 6,
+              transition: "all 0.15s ease",
+            }}
+          >
+            <Wrench size={15} />
+            Maintenance Mode
+            {maintenanceData.enabled && (
+              <span
+                style={{
+                  width: 8,
+                  height: 8,
+                  borderRadius: "50%",
+                  background: "#ef4444",
+                  boxShadow: "0 0 6px rgba(239, 68, 68, 0.6)",
+                }}
+              />
+            )}
           </button>
         </div>
 
@@ -1470,6 +1585,516 @@ export default function AdminManagement({ API, authHeaders, isMobile }) {
           </div>
         </div>
       )}
+
+      {/* ── TAB 3: GLOBAL MAINTENANCE MODE (Main Admin Only) ── */}
+      {activeTab === "maintenance" && (
+        <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
+          {/* Status Feedback Banner */}
+          {maintenanceSuccess && (
+            <div
+              style={{
+                background: "#ecfdf5",
+                border: "1px solid #a7f3d0",
+                borderRadius: 12,
+                padding: "12px 16px",
+                display: "flex",
+                alignItems: "center",
+                gap: 10,
+                color: "#065f46",
+                fontSize: 13.5,
+                fontWeight: 600,
+              }}
+            >
+              <CheckCircle2 size={18} color="#059669" />
+              <span>{maintenanceSuccess}</span>
+            </div>
+          )}
+
+          {maintenanceError && (
+            <div
+              style={{
+                background: "#fef2f2",
+                border: "1px solid #fecaca",
+                borderRadius: 12,
+                padding: "12px 16px",
+                display: "flex",
+                alignItems: "center",
+                gap: 10,
+                color: "#991b1b",
+                fontSize: 13.5,
+                fontWeight: 600,
+              }}
+            >
+              <AlertTriangle size={18} color="#dc2626" />
+              <span>{maintenanceError}</span>
+            </div>
+          )}
+
+          {/* Main Control Card */}
+          <div
+            style={{
+              background: "#ffffff",
+              border: "1px solid #e2e8f0",
+              borderRadius: 16,
+              padding: "24px 26px",
+              boxShadow: "0 2px 8px rgba(15, 23, 42, 0.03)",
+              display: "flex",
+              flexDirection: "column",
+              gap: 20,
+            }}
+          >
+            {/* Header & Status */}
+            <div
+              style={{
+                display: "flex",
+                alignItems: "flex-start",
+                justifyContent: "space-between",
+                flexWrap: "wrap",
+                gap: 14,
+                borderBottom: "1px solid #f1f5f9",
+                paddingBottom: 18,
+              }}
+            >
+              <div style={{ display: "flex", alignItems: "flex-start", gap: 14 }}>
+                <div
+                  style={{
+                    width: 44,
+                    height: 44,
+                    borderRadius: 12,
+                    background: maintenanceData.enabled ? "#fef2f2" : "#eff6ff",
+                    color: maintenanceData.enabled ? "#dc2626" : "#2563eb",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    flexShrink: 0,
+                  }}
+                >
+                  <Wrench size={22} />
+                </div>
+                <div>
+                  <h3 style={{ fontSize: 18, fontWeight: 800, color: "#0f172a", margin: "0 0 4px 0" }}>
+                    Global System Maintenance Mode
+                  </h3>
+                  <p style={{ fontSize: 13.5, color: "#64748b", margin: 0, maxWidth: 540 }}>
+                    Temporarily pause student portal access and APIs while making database or system upgrades.
+                    Your Main Admin access remains active at all times.
+                  </p>
+                </div>
+              </div>
+
+              {/* Status Badge */}
+              <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 6 }}>
+                <span
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 6,
+                    padding: "6px 14px",
+                    borderRadius: 999,
+                    fontSize: 12.5,
+                    fontWeight: 800,
+                    background: maintenanceData.enabled ? "#fef2f2" : "#ecfdf5",
+                    color: maintenanceData.enabled ? "#dc2626" : "#059669",
+                    border: `1px solid ${maintenanceData.enabled ? "#fca5a5" : "#a7f3d0"}`,
+                  }}
+                >
+                  <span
+                    style={{
+                      width: 8,
+                      height: 8,
+                      borderRadius: "50%",
+                      background: maintenanceData.enabled ? "#dc2626" : "#059669",
+                      boxShadow: maintenanceData.enabled
+                        ? "0 0 8px rgba(220, 38, 38, 0.6)"
+                        : "0 0 8px rgba(5, 150, 105, 0.4)",
+                    }}
+                  />
+                  {maintenanceData.enabled ? "MAINTENANCE ACTIVE" : "SYSTEM OPERATIONAL"}
+                </span>
+
+                {maintenanceData.enabled && maintenanceData.enabledAt && (
+                  <span style={{ fontSize: 11, color: "#94a3b8" }}>
+                    Active since: {new Date(maintenanceData.enabledAt).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" })}
+                  </span>
+                )}
+              </div>
+            </div>
+
+            {/* Toggle Action Area */}
+            <div
+              style={{
+                background: maintenanceData.enabled ? "#fff1f2" : "#f8fafc",
+                border: `1px solid ${maintenanceData.enabled ? "#fecdd3" : "#e2e8f0"}`,
+                borderRadius: 14,
+                padding: "18px 20px",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                flexWrap: "wrap",
+                gap: 16,
+              }}
+            >
+              <div style={{ flex: 1, minWidth: 260 }}>
+                <div
+                  style={{
+                    fontSize: 14,
+                    fontWeight: 750,
+                    color: maintenanceData.enabled ? "#9f1239" : "#1e293b",
+                    marginBottom: 4,
+                  }}
+                >
+                  {maintenanceData.enabled
+                    ? "Maintenance Mode is currently restricting student access"
+                    : "Student access is fully active"}
+                </div>
+                <div style={{ fontSize: 12.5, color: maintenanceData.enabled ? "#be123c" : "#64748b" }}>
+                  {maintenanceData.enabled
+                    ? "Students visiting GradeFlow will see the maintenance state. Click disable when ready to restore access."
+                    : "Clicking enable will display the maintenance overlay to all non-admin visitors immediately."}
+                </div>
+              </div>
+
+              <div>
+                {maintenanceData.enabled ? (
+                  <button
+                    type="button"
+                    onClick={() => setShowDisableConfirmModal(true)}
+                    disabled={maintenanceUpdating}
+                    style={{
+                      background: "#059669",
+                      color: "#ffffff",
+                      border: "none",
+                      padding: "10px 20px",
+                      borderRadius: 10,
+                      fontSize: 13.5,
+                      fontWeight: 700,
+                      cursor: "pointer",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 8,
+                      boxShadow: "0 2px 8px rgba(5, 150, 105, 0.25)",
+                    }}
+                  >
+                    <CheckCircle2 size={16} />
+                    Disable Maintenance Mode
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => setShowEnableConfirmModal(true)}
+                    disabled={maintenanceUpdating}
+                    style={{
+                      background: "#dc2626",
+                      color: "#ffffff",
+                      border: "none",
+                      padding: "10px 20px",
+                      borderRadius: 10,
+                      fontSize: 13.5,
+                      fontWeight: 700,
+                      cursor: "pointer",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 8,
+                      boxShadow: "0 2px 8px rgba(220, 38, 38, 0.25)",
+                    }}
+                  >
+                    <AlertTriangle size={16} />
+                    Enable Maintenance Mode
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {/* Custom Announcement Message Setting */}
+            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+              <label style={{ fontSize: 13.5, fontWeight: 700, color: "#334155" }}>
+                Custom Broadcast Notice (Optional)
+              </label>
+              <textarea
+                value={maintenanceMessageInput}
+                onChange={(e) => setMaintenanceMessageInput(e.target.value)}
+                placeholder="e.g. We are performing scheduled database improvements. GradeFlow will be back online shortly."
+                rows={3}
+                maxLength={300}
+                style={{
+                  width: "100%",
+                  padding: "10px 14px",
+                  borderRadius: 10,
+                  border: "1px solid #cbd5e1",
+                  fontSize: 13.5,
+                  color: "#0f172a",
+                  fontFamily: "inherit",
+                  resize: "vertical",
+                  boxSizing: "border-box",
+                  outline: "none",
+                }}
+              />
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <span style={{ fontSize: 11.5, color: "#94a3b8" }}>
+                  {maintenanceMessageInput.length}/300 characters &bull; Leave blank for default notice
+                </span>
+                {maintenanceData.enabled && (
+                  <button
+                    type="button"
+                    onClick={executeEnableMaintenance}
+                    disabled={maintenanceUpdating}
+                    style={{
+                      background: "#2563eb",
+                      color: "#ffffff",
+                      border: "none",
+                      padding: "6px 14px",
+                      borderRadius: 8,
+                      fontSize: 12.5,
+                      fontWeight: 700,
+                      cursor: "pointer",
+                    }}
+                  >
+                    {maintenanceUpdating ? "Updating..." : "Save Notice Update"}
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ══════════════════════════════════════════════════════════════
+          MODAL: CONFIRM ENABLE MAINTENANCE MODE
+         ══════════════════════════════════════════════════════════════ */}
+      <AnimatePresence>
+        {showEnableConfirmModal && (
+          <div
+            style={{
+              position: "fixed",
+              inset: 0,
+              background: "rgba(15, 23, 42, 0.65)",
+              backdropFilter: "blur(6px)",
+              zIndex: 9999,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              padding: 16,
+            }}
+          >
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              style={{
+                background: "#ffffff",
+                borderRadius: 18,
+                maxWidth: 440,
+                width: "100%",
+                padding: "24px",
+                boxShadow: "0 20px 40px rgba(0,0,0,0.2)",
+                display: "flex",
+                flexDirection: "column",
+                gap: 16,
+                boxSizing: "border-box",
+              }}
+            >
+              <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                <div
+                  style={{
+                    width: 44,
+                    height: 44,
+                    borderRadius: 12,
+                    background: "#fef2f2",
+                    color: "#dc2626",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    flexShrink: 0,
+                  }}
+                >
+                  <AlertTriangle size={22} />
+                </div>
+                <div>
+                  <h4 style={{ fontSize: 17, fontWeight: 800, color: "#0f172a", margin: 0 }}>
+                    Enable Maintenance Mode?
+                  </h4>
+                  <p style={{ fontSize: 12.5, color: "#64748b", margin: "2px 0 0" }}>
+                    Student access will immediately be blocked
+                  </p>
+                </div>
+              </div>
+
+              <div
+                style={{
+                  background: "#fff1f2",
+                  border: "1px solid #fecdd3",
+                  borderRadius: 10,
+                  padding: "12px 14px",
+                  fontSize: 13,
+                  color: "#9f1239",
+                  lineHeight: 1.5,
+                }}
+              >
+                Students visiting GradeFlow will see a maintenance notice. Your Main Admin portal access will remain fully functional.
+              </div>
+
+              <div style={{ display: "flex", justifyContent: "flex-end", gap: 10, marginTop: 4 }}>
+                <button
+                  type="button"
+                  onClick={() => setShowEnableConfirmModal(false)}
+                  disabled={maintenanceUpdating}
+                  style={{
+                    background: "#ffffff",
+                    border: "1px solid #cbd5e1",
+                    color: "#475569",
+                    padding: "8px 16px",
+                    borderRadius: 8,
+                    fontSize: 13,
+                    fontWeight: 600,
+                    cursor: "pointer",
+                  }}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={executeEnableMaintenance}
+                  disabled={maintenanceUpdating}
+                  style={{
+                    background: "#dc2626",
+                    color: "#ffffff",
+                    border: "none",
+                    padding: "8px 18px",
+                    borderRadius: 8,
+                    fontSize: 13,
+                    fontWeight: 700,
+                    cursor: "pointer",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 6,
+                  }}
+                >
+                  {maintenanceUpdating ? "Enabling..." : "Yes, Enable Maintenance"}
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* ══════════════════════════════════════════════════════════════
+          MODAL: CONFIRM DISABLE MAINTENANCE MODE
+         ══════════════════════════════════════════════════════════════ */}
+      <AnimatePresence>
+        {showDisableConfirmModal && (
+          <div
+            style={{
+              position: "fixed",
+              inset: 0,
+              background: "rgba(15, 23, 42, 0.65)",
+              backdropFilter: "blur(6px)",
+              zIndex: 9999,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              padding: 16,
+            }}
+          >
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              style={{
+                background: "#ffffff",
+                borderRadius: 18,
+                maxWidth: 440,
+                width: "100%",
+                padding: "24px",
+                boxShadow: "0 20px 40px rgba(0,0,0,0.2)",
+                display: "flex",
+                flexDirection: "column",
+                gap: 16,
+                boxSizing: "border-box",
+              }}
+            >
+              <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                <div
+                  style={{
+                    width: 44,
+                    height: 44,
+                    borderRadius: 12,
+                    background: "#ecfdf5",
+                    color: "#059669",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    flexShrink: 0,
+                  }}
+                >
+                  <CheckCircle2 size={22} />
+                </div>
+                <div>
+                  <h4 style={{ fontSize: 17, fontWeight: 800, color: "#0f172a", margin: 0 }}>
+                    Disable Maintenance Mode?
+                  </h4>
+                  <p style={{ fontSize: 12.5, color: "#64748b", margin: "2px 0 0" }}>
+                    Student access will be restored immediately
+                  </p>
+                </div>
+              </div>
+
+              <div
+                style={{
+                  background: "#f0fdf4",
+                  border: "1px solid #bbf7d0",
+                  borderRadius: 10,
+                  padding: "12px 14px",
+                  fontSize: 13,
+                  color: "#166534",
+                  lineHeight: 1.5,
+                }}
+              >
+                All student dashboards, analytics, and portals will become immediately accessible to all users.
+              </div>
+
+              <div style={{ display: "flex", justifyContent: "flex-end", gap: 10, marginTop: 4 }}>
+                <button
+                  type="button"
+                  onClick={() => setShowDisableConfirmModal(false)}
+                  disabled={maintenanceUpdating}
+                  style={{
+                    background: "#ffffff",
+                    border: "1px solid #cbd5e1",
+                    color: "#475569",
+                    padding: "8px 16px",
+                    borderRadius: 8,
+                    fontSize: 13,
+                    fontWeight: 600,
+                    cursor: "pointer",
+                  }}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={executeDisableMaintenance}
+                  disabled={maintenanceUpdating}
+                  style={{
+                    background: "#059669",
+                    color: "#ffffff",
+                    border: "none",
+                    padding: "8px 18px",
+                    borderRadius: 8,
+                    fontSize: 13,
+                    fontWeight: 700,
+                    cursor: "pointer",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 6,
+                  }}
+                >
+                  {maintenanceUpdating ? "Disabling..." : "Yes, Restore Access"}
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
 
       {/* ══════════════════════════════════════════════════════════════
           MODAL 1: CREATE SUB-ADMIN MODAL
