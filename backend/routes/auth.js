@@ -647,7 +647,9 @@ const handleAdminPasswordLogin = async (req, res) => {
             return res.json({
               success: true,
               alreadyLoggedIn: true,
-              token: incomingToken,
+              authenticated: true,
+              role: "admin",
+              adminType: "main",
               message: "Admin is already actively authenticated on this device.",
             });
           }
@@ -805,11 +807,12 @@ router.post("/admin/verify-otp", async (req, res) => {
       { expiresIn: "7d" }
     );
 
+    const isProd = process.env.NODE_ENV === "production";
     const options = {
       expires: expiresAt,
       httpOnly: true,
-      secure: true,
-      sameSite: "none",
+      secure: isProd || req.secure || req.headers["x-forwarded-proto"] === "https",
+      sameSite: isProd ? "none" : "lax",
       path: "/",
     };
 
@@ -817,7 +820,9 @@ router.post("/admin/verify-otp", async (req, res) => {
 
     return res.json({
       success: true,
-      token,
+      authenticated: true,
+      role: "admin",
+      adminType: "main",
       message: "Admin authenticated successfully.",
     });
   } catch (err) {
@@ -921,7 +926,7 @@ router.post("/subadmin/login", async (req, res) => {
             return res.json({
               success: true,
               alreadyLoggedIn: true,
-              token: incomingToken,
+              authenticated: true,
               adminType: "subadmin",
               name: subAdmin.name,
               email: subAdmin.email,
@@ -1111,11 +1116,12 @@ router.post("/subadmin/verify-otp", async (req, res) => {
       { expiresIn: "7d" }
     );
 
+    const isProd = process.env.NODE_ENV === "production";
     const options = {
       expires: expiresAt,
       httpOnly: true,
-      secure: true,
-      sameSite: "none",
+      secure: isProd || req.secure || req.headers["x-forwarded-proto"] === "https",
+      sameSite: isProd ? "none" : "lax",
       path: "/",
     };
 
@@ -1123,7 +1129,8 @@ router.post("/subadmin/verify-otp", async (req, res) => {
 
     return res.json({
       success: true,
-      token,
+      authenticated: true,
+      role: "admin",
       adminType: "subadmin",
       name: subAdmin.name,
       email: subAdmin.email,
@@ -1138,20 +1145,23 @@ router.post("/subadmin/verify-otp", async (req, res) => {
 
 // 4. Admin Current Session Check (/api/auth/me or /api/auth/admin/me)
 const handleAdminMe = async (req, res) => {
+  res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate");
+  res.setHeader("Pragma", "no-cache");
+  res.setHeader("Expires", "0");
+
   try {
-    let token = req.headers["x-admin-token"];
-    if (!token && req.cookies?.jwt) {
-      token = req.cookies.jwt;
-    }
+    let token = req.cookies?.jwt;
     if (!token && req.headers.authorization && req.headers.authorization.startsWith("Bearer")) {
       token = req.headers.authorization.split(" ")[1];
+    } else if (!token && req.headers["x-admin-token"]) {
+      token = req.headers["x-admin-token"];
     }
 
     if (!token || token === "none" || token === "") {
-      return res.json({ success: false, message: "Not logged in" });
+      return res.status(401).json({ success: false, message: "Not logged in" });
     }
 
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const decoded = jwt.verify(token, process.env.JWT_SECRET, { algorithms: ["HS256"] });
     if (decoded.role === "student") {
       return res.status(403).json({ message: "Forbidden: Admin privileges required" });
     }
@@ -1198,14 +1208,13 @@ const handleAdminMe = async (req, res) => {
 
       return res.json({
         success: true,
+        authenticated: true,
         role: "admin",
         adminType: "subadmin",
         subAdminId: subAdmin._id,
         name: subAdmin.name,
         email: subAdmin.email,
         permissions: subAdmin.permissions || { routes: [], sections: [], actions: [] },
-        sessionId: decoded.sessionId,
-        token,
       });
     }
 
@@ -1217,7 +1226,7 @@ const handleAdminMe = async (req, res) => {
       });
 
       if (!session) {
-        return res.json({
+        return res.status(401).json({
           success: false,
           code: "ADMIN_SESSION_TERMINATED",
           message: "Admin session ended because this device was logged out.",
@@ -1226,7 +1235,7 @@ const handleAdminMe = async (req, res) => {
 
       if (!isAdminSessionValid(session)) {
         await AdminSession.deleteOne({ _id: session._id });
-        return res.json({
+        return res.status(401).json({
           success: false,
           code: "INACTIVITY_LOGOUT",
           message: "Admin session expired due to 7 continuous days of inactivity.",
@@ -1238,25 +1247,26 @@ const handleAdminMe = async (req, res) => {
 
       return res.json({
         success: true,
+        authenticated: true,
         role: "admin",
         adminType: "main",
         name: "Main Administrator",
         email: decoded.email || process.env.ADMIN_EMAIL,
-        sessionId: session.sessionId,
-        token,
+        permissions: { routes: ["*"], sections: ["*"], actions: ["*"] },
       });
     }
 
     return res.json({
       success: true,
+      authenticated: true,
       role: "admin",
       adminType: "main",
       name: "Main Administrator",
       email: decoded.email || process.env.ADMIN_EMAIL,
-      token,
+      permissions: { routes: ["*"], sections: ["*"], actions: ["*"] },
     });
   } catch (err) {
-    return res.json({ success: false, message: "Token invalid or expired" });
+    return res.status(401).json({ success: false, message: "Token invalid or expired" });
   }
 };
 
@@ -1265,18 +1275,21 @@ router.get("/admin/me", handleAdminMe);
 
 // 5. Admin Single-Device Logout (/api/auth/logout or /api/auth/admin/logout)
 const handleAdminLogout = async (req, res) => {
+  res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate");
+  res.setHeader("Pragma", "no-cache");
+  res.setHeader("Expires", "0");
+
   try {
-    let token = req.headers["x-admin-token"];
-    if (!token && req.cookies?.jwt) {
-      token = req.cookies.jwt;
-    }
+    let token = req.cookies?.jwt;
     if (!token && req.headers.authorization && req.headers.authorization.startsWith("Bearer")) {
       token = req.headers.authorization.split(" ")[1];
+    } else if (!token && req.headers["x-admin-token"]) {
+      token = req.headers["x-admin-token"];
     }
 
     if (token && token !== "none") {
       try {
-        const decoded = jwt.verify(token, process.env.JWT_SECRET);
+        const decoded = jwt.verify(token, process.env.JWT_SECRET, { algorithms: ["HS256"] });
         if (decoded?.sessionId) {
           if (decoded.adminType === "subadmin") {
             await SubAdminSession.deleteOne({ sessionId: decoded.sessionId });
@@ -1289,10 +1302,11 @@ const handleAdminLogout = async (req, res) => {
       }
     }
 
+    const isProd = process.env.NODE_ENV === "production";
     const options = {
       httpOnly: true,
-      secure: true,
-      sameSite: "none",
+      secure: isProd || req.secure || req.headers["x-forwarded-proto"] === "https",
+      sameSite: isProd ? "none" : "lax",
       path: "/",
     };
     res.clearCookie("jwt", options);

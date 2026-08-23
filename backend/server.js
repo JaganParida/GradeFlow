@@ -70,15 +70,26 @@ app.use(mongoSanitize());
 // Prevent XSS attacks
 app.use(xss());
 
+// ─── CSRF & Cache Protection for Administrative Endpoints ──────────────────
+const { csrfProtect } = require("./middleware/csrf");
+
+// Enforce no-cache on sensitive administrative responses
+app.use(["/api/admin", "/api/auth/admin", "/api/auth/subadmin"], (req, res, next) => {
+  res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate");
+  res.setHeader("Pragma", "no-cache");
+  res.setHeader("Expires", "0");
+  next();
+});
+
 // ─── Rate Limiting Strategy ────────────────────────────────────────────────
 const { authLimiter, publicLimiter, adminLimiter } = require("./middleware/rateLimiters");
 const errorHandler = require("./middleware/errorHandler");
 
 // Routes with Endpoint-Specific Configurable Rate Limiters
-app.use("/api/auth", authLimiter, require("./routes/auth"));
+app.use("/api/auth", authLimiter, csrfProtect, require("./routes/auth"));
 app.use(["/api/student", "/api/students"], publicLimiter, require("./routes/student"));
-app.use("/api/admin/subadmins", adminLimiter, require("./routes/subAdminRoutes"));
-app.use("/api/admin", adminLimiter, require("./routes/admin"));
+app.use("/api/admin/subadmins", adminLimiter, csrfProtect, require("./routes/subAdminRoutes"));
+app.use("/api/admin", adminLimiter, csrfProtect, require("./routes/admin"));
 app.use("/api/rankings", publicLimiter, require("./routes/rankings"));
 app.use("/api/feedback", publicLimiter, require("./routes/feedback"));
 app.use("/api/timetable", publicLimiter, require("./routes/timetable"));

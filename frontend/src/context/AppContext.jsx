@@ -4,43 +4,23 @@ import axios from "axios";
 
 export const API_BASE = import.meta.env.VITE_API_URL || "/api";
 
-// Set axios to send cookies with every request and attach Bearer token if admin is authenticated
+// Set axios to send cookies with every request
 axios.defaults.withCredentials = true;
 
 axios.interceptors.request.use((config) => {
   try {
-    const adminJwt = sessionStorage.getItem("gf_admin_jwt") || localStorage.getItem("gf_admin_jwt");
     const studentJwt = localStorage.getItem("gf_student_jwt") || sessionStorage.getItem("gf_student_jwt");
 
     config.headers = config.headers || {};
-    const url = config.url || "";
-    const isAdminUrl = url.includes("/admin") || url.includes("/timetable/admin") || url.includes("/auth/login") || url.includes("/auth/me") || url.includes("/auth/logout");
-    const isStudentAuthUrl = url.includes("/auth/student/");
+    // Attach CSRF protection header for state-changing browser requests
+    config.headers["X-Requested-With"] = "XMLHttpRequest";
 
-    if (isAdminUrl) {
-      if (adminJwt) {
-        config.headers["x-admin-token"] = adminJwt;
-        config.headers.Authorization = `Bearer ${adminJwt}`;
-      } else {
-        delete config.headers["x-admin-token"];
-        delete config.headers["x-student-token"];
-        if (config.headers.Authorization && (config.headers.Authorization === "Bearer true" || config.headers.Authorization.startsWith("Bearer " + studentJwt))) {
-          delete config.headers.Authorization;
-        }
-      }
-    } else if (isStudentAuthUrl) {
-      if (studentJwt) {
-        config.headers["x-student-token"] = studentJwt;
-        config.headers.Authorization = `Bearer ${studentJwt}`;
-      }
-    } else {
-      if (adminJwt) {
-        config.headers["x-admin-token"] = adminJwt;
-        config.headers.Authorization = `Bearer ${adminJwt}`;
-      } else if (studentJwt) {
-        config.headers["x-student-token"] = studentJwt;
-        config.headers.Authorization = `Bearer ${studentJwt}`;
-      }
+    const url = config.url || "";
+    const isStudentAuthUrl = url.includes("/auth/student/") || url.includes("/student/");
+
+    if (isStudentAuthUrl && studentJwt) {
+      config.headers["x-student-token"] = studentJwt;
+      config.headers.Authorization = `Bearer ${studentJwt}`;
     }
   } catch {}
   return config;
@@ -49,10 +29,14 @@ axios.interceptors.request.use((config) => {
 const AppCtx = createContext();
 
 export function AppProvider({ children }) {
-  // Proactively wipe any legacy temporary keys from localStorage on startup
+  // Proactively wipe any legacy temporary keys & legacy admin JWTs from browser storage on startup
   useEffect(() => {
     try {
       localStorage.removeItem("gf_cache_version");
+      localStorage.removeItem("gf_admin_jwt");
+      localStorage.removeItem("gf_admin_token");
+      sessionStorage.removeItem("gf_admin_jwt");
+      sessionStorage.removeItem("gf_admin_token");
     } catch {}
   }, []);
 
@@ -61,13 +45,9 @@ export function AppProvider({ children }) {
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const [adminToken, setAdminToken] = useState(() => {
-    try {
-      return Boolean(sessionStorage.getItem("gf_admin_jwt") || localStorage.getItem("gf_admin_jwt"));
-    } catch {
-      return false;
-    }
-  });
+  // In-memory administrative authentication state — NOT persisted in localStorage
+  const [adminToken, setAdminToken] = useState(false);
+  const [adminProfile, setAdminProfile] = useState(null);
 
   // ─── Theme Management ────────────────────────────────────────────
   const [theme, setTheme] = useState(() => {
@@ -86,35 +66,22 @@ export function AppProvider({ children }) {
   const [authChecking, setAuthChecking] = useState(true);
   const navigate = useNavigate();
 
-  // ─── Check Auth on Startup (Both Admin & Student from HttpOnly Cookie + Token) ─
+  // ─── Check Auth on Startup (Admin via Secure HttpOnly Cookie + Session) ──
   useEffect(() => {
     const checkAuth = async () => {
-      // 1. Check Admin Auth (Persistent across 7 continuous days)
+      // 1. Check Admin Auth (Server-authoritative HttpOnly cookie verification)
       try {
-        const adminJwt = sessionStorage.getItem("gf_admin_jwt") || localStorage.getItem("gf_admin_jwt");
-        const headers = adminJwt ? { "x-admin-token": adminJwt, Authorization: `Bearer ${adminJwt}` } : {};
-        const resAdmin = await axios.get(`${API_BASE}/auth/admin/me`, { headers, withCredentials: true });
-        if (resAdmin.data?.success) {
-          if (resAdmin.data?.token) {
-            sessionStorage.setItem("gf_admin_jwt", resAdmin.data.token);
-            localStorage.setItem("gf_admin_jwt", resAdmin.data.token);
-          }
+        const resAdmin = await axios.get(`${API_BASE}/auth/admin/me`, { withCredentials: true });
+        if (resAdmin.data?.success && resAdmin.data?.authenticated) {
           setAdminToken(true);
+          setAdminProfile(resAdmin.data);
         } else {
-          const code = resAdmin.data?.code;
-          if (code === "ADMIN_SESSION_TERMINATED" || code === "INACTIVITY_LOGOUT") {
-            sessionStorage.removeItem("gf_admin_jwt");
-            localStorage.removeItem("gf_admin_jwt");
-            setAdminToken(false);
-          }
+          setAdminToken(false);
+          setAdminProfile(null);
         }
       } catch (err) {
-        const code = err.response?.data?.code;
-        if (code === "ADMIN_SESSION_TERMINATED" || code === "INACTIVITY_LOGOUT") {
-          sessionStorage.removeItem("gf_admin_jwt");
-          localStorage.removeItem("gf_admin_jwt");
-          setAdminToken(false);
-        }
+        setAdminToken(false);
+        setAdminProfile(null);
       }
 
       // 2. Check Student Session (Persistent across 7 days)
@@ -223,10 +190,7 @@ export function AppProvider({ children }) {
       localStorage.removeItem("last_studentName");
       localStorage.removeItem("gf_today_attendance");
       localStorage.removeItem("gf_timetable_cache");
-      // Preserve admin token — only remove student-specific sessionStorage keys
-      const adminJwt = sessionStorage.getItem("gf_admin_jwt");
-      sessionStorage.clear();
-      if (adminJwt) sessionStorage.setItem("gf_admin_jwt", adminJwt);
+      sessionStorage.removeItem("gf_student_jwt");
     } catch {}
 
     // 2. Clear session on server in background
@@ -245,13 +209,10 @@ export function AppProvider({ children }) {
     setLoading(true);
     setError("");
     try {
-      const res = await axios.post(`${API_BASE}/auth/admin/login-password`, { password });
+      const res = await axios.post(`${API_BASE}/auth/admin/login-password`, { password }, { withCredentials: true });
       if (res.data?.alreadyLoggedIn) {
-        if (res.data?.token) {
-          sessionStorage.setItem("gf_admin_jwt", res.data.token);
-          localStorage.setItem("gf_admin_jwt", res.data.token);
-        }
         setAdminToken(true);
+        setAdminProfile(res.data);
         return { success: true, alreadyLoggedIn: true };
       }
       if (res.data?.step === "OTP_REQUIRED") {
@@ -278,11 +239,10 @@ export function AppProvider({ children }) {
     setLoading(true);
     setError("");
     try {
-      const res = await axios.post(`${API_BASE}/auth/admin/verify-otp`, { otp });
-      if (res.data?.success && res.data?.token) {
-        sessionStorage.setItem("gf_admin_jwt", res.data.token);
-        localStorage.setItem("gf_admin_jwt", res.data.token);
+      const res = await axios.post(`${API_BASE}/auth/admin/verify-otp`, { otp }, { withCredentials: true });
+      if (res.data?.success && res.data?.authenticated) {
         setAdminToken(true);
+        setAdminProfile(res.data);
         return { success: true };
       }
       const msg = res.data?.message || "OTP verification failed.";
@@ -309,10 +269,9 @@ export function AppProvider({ children }) {
     try {
       const payload = email ? { email, password } : { password };
       const res = await axios.post(`${API_BASE}/auth/subadmin/login`, payload, { withCredentials: true });
-      if (res.data?.alreadyLoggedIn && res.data?.token) {
-        sessionStorage.setItem("gf_admin_jwt", res.data.token);
-        localStorage.setItem("gf_admin_jwt", res.data.token);
+      if (res.data?.alreadyLoggedIn) {
         setAdminToken(true);
+        setAdminProfile(res.data);
         return { success: true, alreadyLoggedIn: true, subAdmin: res.data };
       }
       if (res.data?.step === "OTP_REQUIRED") {
@@ -326,10 +285,9 @@ export function AppProvider({ children }) {
           message: res.data.message,
         };
       }
-      if (res.data?.success && res.data?.token) {
-        sessionStorage.setItem("gf_admin_jwt", res.data.token);
-        localStorage.setItem("gf_admin_jwt", res.data.token);
+      if (res.data?.success && res.data?.authenticated) {
         setAdminToken(true);
+        setAdminProfile(res.data);
         return { success: true, subAdmin: res.data };
       }
       return { success: false, message: res.data?.message || "Sub-Admin login failed" };
@@ -349,10 +307,9 @@ export function AppProvider({ children }) {
     setError("");
     try {
       const res = await axios.post(`${API_BASE}/auth/subadmin/verify-otp`, { email, otp }, { withCredentials: true });
-      if (res.data?.success && res.data?.token) {
-        sessionStorage.setItem("gf_admin_jwt", res.data.token);
-        localStorage.setItem("gf_admin_jwt", res.data.token);
+      if (res.data?.success && res.data?.authenticated) {
         setAdminToken(true);
+        setAdminProfile(res.data);
         return { success: true, subAdmin: res.data };
       }
       const msg = res.data?.message || "Sub-Admin OTP verification failed.";
@@ -371,22 +328,23 @@ export function AppProvider({ children }) {
 
   const adminLogout = async () => {
     try {
-      const adminJwt = sessionStorage.getItem("gf_admin_jwt") || localStorage.getItem("gf_admin_jwt");
-      sessionStorage.removeItem("gf_admin_jwt");
       localStorage.removeItem("gf_admin_jwt");
-      const headers = adminJwt ? { "x-admin-token": adminJwt, Authorization: `Bearer ${adminJwt}` } : {};
-      await axios.post(`${API_BASE}/auth/admin/logout`, {}, { headers, withCredentials: true });
+      localStorage.removeItem("gf_admin_token");
+      sessionStorage.removeItem("gf_admin_jwt");
+      sessionStorage.removeItem("gf_admin_token");
+      await axios.post(`${API_BASE}/auth/admin/logout`, {}, { withCredentials: true });
     } catch (err) {
       console.warn("Logout error:", err.message);
     } finally {
       setAdminToken(false);
+      setAdminProfile(null);
       navigate("/admin");
     }
   };
 
   const logoutAdmin = adminLogout;
 
-  const authHeaders = {};
+  const authHeaders = { "X-Requested-With": "XMLHttpRequest" };
 
   // ─── Student Fetch with Silent Exponential Backoff ────────────────
   const fetchStudent = async (regNo, retries = 4, backoffMs = 1000, forceRefresh = false) => {
@@ -404,12 +362,7 @@ export function AppProvider({ children }) {
       setError("");
     }
     try {
-      const adminJwt = sessionStorage.getItem("gf_admin_jwt") || localStorage.getItem("gf_admin_jwt");
-      const reqHeaders = adminJwt
-        ? { Authorization: `Bearer ${adminJwt}`, "x-admin-token": adminJwt }
-        : {};
       const res = await axios.get(`${API_BASE}/student/${cleanReg}`, {
-        headers: reqHeaders,
         withCredentials: true,
       });
       setStudentData(res.data);
@@ -461,12 +414,7 @@ export function AppProvider({ children }) {
     studentLogout();
   };
 
-  const getAdminAuthHeaders = () => {
-    const token = sessionStorage.getItem("gf_admin_jwt") || localStorage.getItem("gf_admin_jwt");
-    return token
-      ? { headers: { Authorization: `Bearer ${token}`, "x-admin-token": token } }
-      : { headers: {} };
-  };
+  const getAdminAuthHeaders = () => ({ headers: { "X-Requested-With": "XMLHttpRequest" } });
 
   const hasActiveSession = Boolean(studentData || studentSession);
 
@@ -494,6 +442,7 @@ export function AppProvider({ children }) {
         loading,
         error,
         adminToken,
+        adminProfile,
         adminLogin,
         adminLoginPassword,
         adminVerifyOtp,

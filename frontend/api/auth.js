@@ -950,7 +950,9 @@ module.exports = async function handler(req, res) {
               return res.json({
                 success: true,
                 alreadyLoggedIn: true,
-                token: incomingToken,
+                authenticated: true,
+                role: "admin",
+                adminType: "main",
                 message: "Admin is already actively authenticated on this device.",
               });
             }
@@ -1105,7 +1107,9 @@ module.exports = async function handler(req, res) {
 
       return res.json({
         success: true,
-        token,
+        authenticated: true,
+        role: "admin",
+        adminType: "main",
         message: "Admin authenticated successfully.",
       });
     }
@@ -1193,7 +1197,7 @@ module.exports = async function handler(req, res) {
               return res.json({
                 success: true,
                 alreadyLoggedIn: true,
-                token: incomingToken,
+                authenticated: true,
                 adminType: "subadmin",
                 name: subAdmin.name,
                 email: subAdmin.email,
@@ -1395,7 +1399,8 @@ module.exports = async function handler(req, res) {
 
       return res.json({
         success: true,
-        token,
+        authenticated: true,
+        role: "admin",
         adminType: "subadmin",
         name: subAdmin.name,
         email: subAdmin.email,
@@ -1466,14 +1471,13 @@ module.exports = async function handler(req, res) {
 
           return res.json({
             success: true,
+            authenticated: true,
             role: "admin",
             adminType: "subadmin",
             subAdminId: subAdmin._id,
             name: subAdmin.name,
             email: subAdmin.email,
             permissions: subAdmin.permissions || { routes: [], sections: [], actions: [] },
-            sessionId: decoded.sessionId,
-            token,
           });
         }
 
@@ -1484,7 +1488,7 @@ module.exports = async function handler(req, res) {
           });
 
           if (!session) {
-            return res.json({
+            return res.status(401).json({
               success: false,
               code: "ADMIN_SESSION_TERMINATED",
               message: "Admin session ended because this device was logged out.",
@@ -1493,7 +1497,7 @@ module.exports = async function handler(req, res) {
 
           if (!isAdminSessionValid(session)) {
             await AdminSession.deleteOne({ _id: session._id });
-            return res.json({
+            return res.status(401).json({
               success: false,
               code: "INACTIVITY_LOGOUT",
               message: "Admin session expired due to 7 continuous days of inactivity.",
@@ -1504,25 +1508,26 @@ module.exports = async function handler(req, res) {
 
           return res.json({
             success: true,
+            authenticated: true,
             role: "admin",
             adminType: "main",
             name: "Main Administrator",
             email: decoded.email || process.env.ADMIN_EMAIL,
-            sessionId: session.sessionId,
-            token,
+            permissions: { routes: ["*"], sections: ["*"], actions: ["*"] },
           });
         }
 
         return res.json({
           success: true,
+          authenticated: true,
           role: "admin",
           adminType: "main",
           name: "Main Administrator",
           email: decoded.email || process.env.ADMIN_EMAIL,
-          token,
+          permissions: { routes: ["*"], sections: ["*"], actions: ["*"] },
         });
       } catch (err) {
-        return res.json({ success: false, message: "Token invalid or expired" });
+        return res.status(401).json({ success: false, message: "Token invalid or expired" });
       }
     }
 

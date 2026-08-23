@@ -3554,12 +3554,7 @@ function FeedbackManager({ authHeaders, API }) {
 export default function AdminDashboard() {
   const { adminToken, adminLogout, API = "/api" } = useApp();
   const navigate = useNavigate();
-  const getAuthHeaders = () => {
-    const token = sessionStorage.getItem("gf_admin_jwt") || localStorage.getItem("gf_admin_jwt");
-    return token
-      ? { headers: { Authorization: `Bearer ${token}`, "x-admin-token": token } }
-      : { headers: {} };
-  };
+  const getAuthHeaders = () => ({ headers: { "X-Requested-With": "XMLHttpRequest" } });
 
   const authHeaders = getAuthHeaders();
 
@@ -3588,8 +3583,7 @@ export default function AdminDashboard() {
   const [purgeLogs, setPurgeLogs] = useState([]);
 
   useEffect(() => {
-    const token = sessionStorage.getItem("gf_admin_jwt") || localStorage.getItem("gf_admin_jwt");
-    if (!adminToken || !token) {
+    if (!adminToken) {
       navigate("/admin");
       return;
     }
@@ -3599,9 +3593,8 @@ export default function AdminDashboard() {
 
   async function fetchAdminProfile() {
     try {
-      const headers = getAuthHeaders();
-      const { data } = await axios.get(`${API}/auth/admin/me`, headers);
-      if (data.success) {
+      const { data } = await axios.get(`${API}/auth/admin/me`, { withCredentials: true });
+      if (data.success && data.authenticated) {
         setAdminProfile(data);
         const isMain = data.adminType === "main" || !data.adminType;
         const permittedRoutes = data.permissions?.routes || [];
@@ -3612,21 +3605,11 @@ export default function AdminDashboard() {
           fetchPurgeLogs();
         }
       } else {
-        const code = data.code;
-        if (code === "ADMIN_SESSION_TERMINATED" || code === "INACTIVITY_LOGOUT" || code === "SUBADMIN_INACTIVE") {
-          sessionStorage.removeItem("gf_admin_jwt");
-          localStorage.removeItem("gf_admin_jwt");
-          navigate("/admin");
-        }
+        adminLogout();
       }
     } catch (err) {
       console.warn("Failed to fetch admin profile:", err.message);
-      const code = err.response?.data?.code;
-      if (code === "ADMIN_SESSION_TERMINATED" || code === "INACTIVITY_LOGOUT" || code === "SUBADMIN_INACTIVE") {
-        sessionStorage.removeItem("gf_admin_jwt");
-        localStorage.removeItem("gf_admin_jwt");
-        navigate("/admin");
-      }
+      adminLogout();
     }
   }
 
