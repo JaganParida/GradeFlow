@@ -232,6 +232,14 @@ export default function FinalCtaSection({
               <CheckCircle2 size={14} color="#059669" style={{ flexShrink: 0 }} />
               <span>Verified Engine</span>
             </div>
+            <div className="gf-desktop-only" style={{ display: "flex", alignItems: "center", gap: 5, whiteSpace: "nowrap" }}>
+              <CheckCircle2 size={14} color="#059669" style={{ flexShrink: 0 }} />
+              <span>50+ Cutoffs</span>
+            </div>
+            <div className="gf-desktop-only" style={{ display: "flex", alignItems: "center", gap: 5, whiteSpace: "nowrap" }}>
+              <CheckCircle2 size={14} color="#059669" style={{ flexShrink: 0 }} />
+              <span>100% Private</span>
+            </div>
           </div>
         </div>
       </div>

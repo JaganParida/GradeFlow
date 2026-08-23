@@ -271,6 +271,15 @@ export default function HeroSection({
               <CheckCircle2 size={14} color="#059669" style={{ flexShrink: 0 }} />
               <span>Zero Downtime</span>
             </div>
+            {/* Desktop-Only Additional High-Trust Metrics */}
+            <div className="gf-desktop-only" style={{ display: "flex", alignItems: "center", gap: 5, whiteSpace: "nowrap" }}>
+              <CheckCircle2 size={14} color="#059669" style={{ flexShrink: 0 }} />
+              <span>Verified Engine</span>
+            </div>
+            <div className="gf-desktop-only" style={{ display: "flex", alignItems: "center", gap: 5, whiteSpace: "nowrap" }}>
+              <CheckCircle2 size={14} color="#059669" style={{ flexShrink: 0 }} />
+              <span>100% Private</span>
+            </div>
           </motion.div>
         </div>
 
