@@ -3,7 +3,7 @@ const router = express.Router();
 const multer = require("multer");
 const XLSX = require("xlsx");
 const { protect } = require("../middleware/auth");
-const { requirePermission } = require("../middleware/rbac");
+const { requirePermission, requireMainAdmin } = require("../middleware/rbac");
 const { emailLimiter } = require("../middleware/rateLimiters");
 const { sendBacklogEmailNotification } = require("../utils/emailService");
 const SemesterResult = require("../models/SemesterResult");
@@ -11,6 +11,10 @@ const InternalMark = require("../models/InternalMark");
 const Ranking = require("../models/Ranking");
 const Student = require("../models/Student");
 const BatchPurgeLog = require("../models/BatchPurgeLog");
+const StudentDailyLimit = require("../models/StudentDailyLimit");
+const StudentSession = require("../models/StudentSession");
+const OtpVerification = require("../models/OtpVerification");
+const OtpRequestLog = require("../models/OtpRequestLog");
 const { isBatchExpired, purgeExpiredBatches } = require("../utils/batchLifecycle");
 const { clearStudentCache } = require("./student");
 const {
@@ -2969,6 +2973,243 @@ router.put("/maintenance", async (req, res) => {
   } catch (err) {
     console.error("PUT /api/admin/maintenance error:", err);
     return res.status(500).json({ success: false, message: "Failed to update maintenance mode status." });
+  }
+});
+
+/* ═══════════════════════════════════════════════════════════════════
+   MAIN ADMIN EXCLUSIVE: STUDENT OTP ATTEMPT MANAGEMENT
+═══════════════════════════════════════════════════════════════════ */
+
+function getIstDateKey() {
+  const now = new Date();
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Kolkata",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(now);
+}
+
+// 1. GET Student OTP History & Activity Details
+router.get("/student-otp-management/history/:regNo", requireMainAdmin, async (req, res) => {
+  try {
+    const rawReg = String(req.params.regNo || "").trim().toUpperCase();
+    if (!rawReg || !/^[a-zA-Z0-9_-]{3,30}$/.test(rawReg)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid registration number format. Must be 3-30 alphanumeric characters.",
+      });
+    }
+
+    // Verify student exists in university records
+    const studentRecord = await SemesterResult.findOne({ regNo: rawReg }).sort({ semester: -1 });
+    const studentName = studentRecord?.studentName || "Student";
+    const studentEmail = `${rawReg.toLowerCase()}@centurionuniv.edu.in`;
+    const maskedEmail = `${studentEmail.slice(0, 4)}***@${studentEmail.split("@")[1]}`;
+
+    const todayKey = getIstDateKey();
+    const isUnlimited = rawReg === "230301120327";
+    const maxDailyLimit = isUnlimited ? 99 : (Number(process.env.STUDENT_DAILY_OTP_MAX) || 2);
+
+    // Fetch Daily Limit Record
+    const dailyLimit = await StudentDailyLimit.findOne({ regNo: rawReg, dateKey: todayKey });
+    const todayUsage = dailyLimit ? dailyLimit.otpSendCount : 0;
+
+    // Cooldown State
+    let isCooldownActive = false;
+    let cooldownRemainingSeconds = 0;
+    let cooldownStartedAt = null;
+
+    if (!isUnlimited && dailyLimit && dailyLimit.lastOtpSentAt && dailyLimit.otpSendCount > 0) {
+      const timeSinceLastSend = Date.now() - new Date(dailyLimit.lastOtpSentAt).getTime();
+      if (timeSinceLastSend < 180 * 1000) {
+        isCooldownActive = true;
+        cooldownRemainingSeconds = Math.ceil((180 * 1000 - timeSinceLastSend) / 1000);
+        cooldownStartedAt = dailyLimit.lastOtpSentAt;
+      }
+    }
+
+    // Active Sessions / Devices
+    const activeSessions = await StudentSession.find({
+      regNo: rawReg,
+      status: "ACTIVE",
+      expiresAt: { $gt: new Date() },
+    }).sort({ lastActiveAt: -1 });
+
+    const sanitizedSessions = activeSessions.map((s, idx) => {
+      const ip = String(s.deviceInfo?.ip || "");
+      const maskedIp = ip.includes(".") ? `${ip.split(".").slice(0, 2).join(".")}.***.***` : (ip ? "Hidden" : "Unknown");
+      return {
+        deviceIndex: idx + 1,
+        platform: s.deviceInfo?.platform || "Unknown",
+        userAgent: s.deviceInfo?.userAgent || "Unknown",
+        maskedIp,
+        loggedInAt: s.loggedInAt,
+        lastActiveAt: s.lastActiveAt,
+        status: "ACTIVE",
+      };
+    });
+
+    // Active OTP Status
+    const activeOtp = await OtpVerification.findOne({ regNo: rawReg });
+    let latestOtpStatus = "NONE";
+    if (activeOtp) {
+      latestOtpStatus = new Date(activeOtp.expiresAt) > new Date() ? "ACTIVE" : "EXPIRED";
+    }
+
+    // Fetch Chronological OTP Request Logs
+    const requestLogs = await OtpRequestLog.find({ regNo: rawReg })
+      .sort({ timestamp: -1 })
+      .limit(50)
+      .lean();
+
+    const todayDeliveries = requestLogs.filter(
+      (l) => l.dateKey === todayKey && l.status === "DELIVERED"
+    ).length;
+    const todayFailed = requestLogs.filter(
+      (l) => l.dateKey === todayKey && (l.status === "FAILED" || l.status === "BLOCKED")
+    ).length;
+
+    const formattedHistory = requestLogs.map((log) => {
+      const istFormatter = new Intl.DateTimeFormat("en-IN", {
+        timeZone: "Asia/Kolkata",
+        dateStyle: "medium",
+        timeStyle: "medium",
+      });
+      const formattedTime = istFormatter.format(new Date(log.timestamp));
+      const ip = String(log.deviceInfo?.ip || "");
+      const maskedIp = ip.includes(".") ? `${ip.split(".").slice(0, 2).join(".")}.***.***` : (ip ? "Hidden" : "Unknown");
+
+      return {
+        id: log._id,
+        timestamp: log.timestamp,
+        formattedTime,
+        dateKey: log.dateKey,
+        status: log.status,
+        deliveryStatus: log.deliveryStatus,
+        provider: log.provider,
+        failoverOccurred: log.failoverOccurred,
+        primaryFailureReason: log.primaryFailureReason,
+        reason: log.reason,
+        device: {
+          deviceType: log.deviceInfo?.deviceType || "Desktop",
+          os: log.deviceInfo?.os || "Unknown",
+          browser: log.deviceInfo?.browser || "Unknown",
+          platform: log.deviceInfo?.platform || "Unknown",
+          maskedIp,
+        },
+      };
+    });
+
+    res.set("Cache-Control", "private, no-cache, no-store");
+    return res.json({
+      success: true,
+      studentSummary: {
+        regNo: rawReg,
+        studentName,
+        maskedEmail,
+        isRegistered: Boolean(studentRecord),
+        branch: studentRecord?.branch || "Unknown",
+        batch: studentRecord?.batch || "Unknown",
+        todayDateKey: todayKey,
+        todayUsage,
+        maxDailyLimit,
+        remainingDailyAttempts: isUnlimited ? 99 : Math.max(0, maxDailyLimit - todayUsage),
+        isUnlimited,
+        todayDeliveries,
+        todayFailed,
+        isCooldownActive,
+        cooldownRemainingSeconds,
+        cooldownStartedAt,
+        activeDevicesCount: activeSessions.length,
+        maxAllowedDevices: isUnlimited ? 2 : 1,
+        activeSessions: sanitizedSessions,
+        latestOtpStatus,
+      },
+      historyTimeline: formattedHistory,
+    });
+  } catch (err) {
+    console.error("GET /student-otp-management/history error:", err);
+    return res.status(500).json({ success: false, message: "Failed to retrieve student OTP history." });
+  }
+});
+
+// 2. POST Reset Today's OTP Attempt Counter
+router.post("/student-otp-management/reset/:regNo", requireMainAdmin, async (req, res) => {
+  try {
+    const rawReg = String(req.params.regNo || "").trim().toUpperCase();
+    if (!rawReg || !/^[a-zA-Z0-9_-]{3,30}$/.test(rawReg)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid registration number format. Must be 3-30 alphanumeric characters.",
+      });
+    }
+
+    const todayKey = getIstDateKey();
+    const existingLimit = await StudentDailyLimit.findOne({ regNo: rawReg, dateKey: todayKey });
+    const beforeUsage = existingLimit ? existingLimit.otpSendCount : 0;
+    const beforeCooldown = existingLimit && existingLimit.lastOtpSentAt && existingLimit.otpSendCount > 0 && (Date.now() - new Date(existingLimit.lastOtpSentAt).getTime() < 180 * 1000);
+
+    // Reset today's StudentDailyLimit record
+    if (existingLimit) {
+      existingLimit.otpSendCount = 0;
+      existingLimit.lastOtpSentAt = null;
+      await existingLimit.save();
+    } else {
+      await StudentDailyLimit.create({
+        regNo: rawReg,
+        dateKey: todayKey,
+        otpSendCount: 0,
+        lastOtpSentAt: null,
+      });
+    }
+
+    // Clean any unverified OTPs so student can request cleanly
+    await OtpVerification.deleteMany({ regNo: rawReg });
+
+    const safeReason = req.body?.reason ? String(req.body.reason).trim().slice(0, 200) : "Main Admin OTP Reset";
+    const adminEmail = req.admin?.email || process.env.ADMIN_EMAIL || "main_admin";
+
+    // Write to Admin Audit Log (PRESERVING ALL HISTORICAL RECORDS)
+    try {
+      await AdminAuditLog.create({
+        actorEmail: adminEmail,
+        actorType: "main_admin",
+        action: "STUDENT_OTP_ATTEMPT_RESET",
+        actionType: "MANAGEMENT",
+        targetRegNo: rawReg,
+        result: "SUCCESS",
+        details: {
+          previousUsage: beforeUsage,
+          newUsage: 0,
+          previousCooldown: Boolean(beforeCooldown),
+          newCooldown: false,
+          dateKey: todayKey,
+          reason: safeReason,
+        },
+        ip: req.ip || "",
+        userAgent: req.headers["user-agent"] || "",
+      });
+    } catch (auditErr) {
+      console.warn("Failed to write OTP reset audit log:", auditErr.message);
+    }
+
+    return res.json({
+      success: true,
+      message: `Today's OTP send attempt counter for student ${rawReg} has been reset to 0/2.`,
+      before: {
+        usage: beforeUsage,
+        cooldown: Boolean(beforeCooldown),
+      },
+      after: {
+        usage: 0,
+        cooldown: false,
+        maxDailyLimit: rawReg === "230301120327" ? 99 : (Number(process.env.STUDENT_DAILY_OTP_MAX) || 2),
+      },
+    });
+  } catch (err) {
+    console.error("POST /student-otp-management/reset error:", err);
+    return res.status(500).json({ success: false, message: "Failed to reset student OTP attempts." });
   }
 });
 

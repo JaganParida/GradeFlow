@@ -12,6 +12,7 @@ import {
 import StudentReportCardEditor from "../components/StudentReportCardEditor";
 import TimetableAdminManager from "../components/TimetableAdminManager";
 import AdminManagement from "../components/AdminManagement";
+import StudentOtpManagement from "../components/StudentOtpManagement";
 import { motion, AnimatePresence } from "framer-motion";
 import { formatDistanceToNow } from "date-fns";
 import {
@@ -3629,6 +3630,11 @@ export default function AdminDashboard() {
 
   if (isMainAdmin) {
     ALL_ADMIN_TABS.push({
+      id: "otp-management",
+      label: "Student OTP Management",
+      icon: <ShieldAlert size={15} />,
+    });
+    ALL_ADMIN_TABS.push({
       id: "admin-management",
       label: "Admin Management",
       icon: <Sliders size={15} />,
@@ -3643,7 +3649,11 @@ export default function AdminDashboard() {
   useEffect(() => {
     if (adminProfile && !isMainAdmin) {
       const permittedRoutes = adminProfile.permissions?.routes || [];
-      if (tab === "admin-management" || (!permittedRoutes.includes(tab) && permittedRoutes.length > 0)) {
+      if (
+        tab === "admin-management" ||
+        tab === "otp-management" ||
+        (!permittedRoutes.includes(tab) && permittedRoutes.length > 0)
+      ) {
         setTab(permittedRoutes[0] || "overview");
       }
     }
@@ -4629,7 +4639,12 @@ export default function AdminDashboard() {
         {/* ── TAB 5: STUDENT FEEDBACK ── */}
         {tab === "feedback" && <FeedbackManager authHeaders={authHeaders} API={API} />}
 
-        {/* ── TAB 6: ADMIN MANAGEMENT (MAIN ADMIN EXCLUSIVE) ── */}
+        {/* ── TAB 6: STUDENT OTP ATTEMPT MANAGEMENT (MAIN ADMIN EXCLUSIVE) ── */}
+        {tab === "otp-management" && isMainAdmin && (
+          <StudentOtpManagement API={API} authHeaders={authHeaders} isMobile={isMobile} />
+        )}
+
+        {/* ── TAB 7: ADMIN MANAGEMENT (MAIN ADMIN EXCLUSIVE) ── */}
         {tab === "admin-management" && isMainAdmin && (
           <AdminManagement API={API} authHeaders={authHeaders} isMobile={isMobile} />
         )}

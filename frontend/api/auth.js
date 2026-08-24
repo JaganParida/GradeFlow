@@ -9,6 +9,7 @@ const SemesterResult = require("./_lib/models/SemesterResult");
 const OtpVerification = require("./_lib/models/OtpVerification");
 const StudentSession = require("./_lib/models/StudentSession");
 const StudentDailyLimit = require("./_lib/models/StudentDailyLimit");
+const OtpRequestLog = require("./_lib/models/OtpRequestLog");
 const jwt = require("jsonwebtoken");
 const bcrypt = require("bcryptjs");
 const crypto = require("crypto");
@@ -40,10 +41,49 @@ function parseCookies(cookieHeader) {
   const cookies = {};
   if (!cookieHeader) return cookies;
   cookieHeader.split(";").forEach((cookie) => {
-    const [name, ...rest] = cookie.trim().split("=");
-    cookies[name] = rest.join("=");
+    const parts = cookie.split("=");
+    const name = parts[0].trim();
+    const val = parts.slice(1).join("=").trim();
+    if (name) cookies[name] = decodeURIComponent(val);
   });
   return cookies;
+}
+
+function extractRequestDeviceInfo(req) {
+  const userAgent = String(req.headers["user-agent"] || "");
+  const ip = String(req.headers["x-forwarded-for"] || req.connection?.remoteAddress || req.socket?.remoteAddress || "").split(",")[0].trim();
+
+  let deviceType = "Desktop";
+  if (/mobile|iphone|ipod|android.*mobile|windows phone/i.test(userAgent)) {
+    deviceType = "Mobile";
+  } else if (/tablet|ipad|android(?!.*mobile)/i.test(userAgent)) {
+    deviceType = "Tablet";
+  }
+
+  let os = "Unknown";
+  if (/windows/i.test(userAgent)) os = "Windows";
+  else if (/macintosh|mac os x/i.test(userAgent)) os = "macOS";
+  else if (/android/i.test(userAgent)) os = "Android";
+  else if (/iphone|ipad|ipod/i.test(userAgent)) os = "iOS";
+  else if (/linux/i.test(userAgent)) os = "Linux";
+
+  let browser = "Unknown";
+  if (/edg/i.test(userAgent)) browser = "Edge";
+  else if (/chrome|crios/i.test(userAgent)) browser = "Chrome";
+  else if (/firefox|fxios/i.test(userAgent)) browser = "Firefox";
+  else if (/safari/i.test(userAgent)) browser = "Safari";
+  else if (/opera|opr/i.test(userAgent)) browser = "Opera";
+
+  const platform = `${os} / ${browser}`;
+
+  return {
+    deviceType,
+    os,
+    browser,
+    platform,
+    ip,
+    userAgent: userAgent.slice(0, 150),
+  };
 }
 
 function createTransporter() {
@@ -549,6 +589,19 @@ module.exports = async function handler(req, res) {
           lastActiveAt: s.lastActiveAt,
           status: "ACTIVE",
         }));
+        await OtpRequestLog.create({
+          regNo: rawReg,
+          studentName,
+          dateKey: getIstDateKey(),
+          status: "BLOCKED",
+          deliveryStatus: "NOT_SENT",
+          provider: "NONE",
+          reason: rawReg === "230301120327"
+            ? `Blocked: Maximum 2 devices already active`
+            : `Blocked: Single active device limit reached`,
+          deviceInfo: extractRequestDeviceInfo(req),
+        }).catch(() => {});
+
         return res.status(403).json({
           success: false,
           code: "DEVICE_LIMIT_REACHED",
@@ -575,6 +628,17 @@ module.exports = async function handler(req, res) {
         const timeSinceLastSend = Date.now() - new Date(dailyLimit.lastOtpSentAt).getTime();
         if (timeSinceLastSend < 180 * 1000) {
           const waitSeconds = Math.ceil((180 * 1000 - timeSinceLastSend) / 1000);
+          await OtpRequestLog.create({
+            regNo: rawReg,
+            studentName,
+            dateKey,
+            status: "BLOCKED",
+            deliveryStatus: "NOT_SENT",
+            provider: "NONE",
+            reason: `Blocked: Cooldown active (${waitSeconds}s remaining)`,
+            deviceInfo: extractRequestDeviceInfo(req),
+          }).catch(() => {});
+
           return res.status(429).json({
             success: false,
             code: "OTP_COOLDOWN_ACTIVE",
@@ -587,6 +651,17 @@ module.exports = async function handler(req, res) {
       const maxDailyLimit = Number(process.env.STUDENT_DAILY_OTP_MAX) || 2;
       if (!isUnlimited && dailyLimit.otpSendCount >= maxDailyLimit) {
         const { hours, mins, totalSeconds } = getTimeUntilIstMidnight();
+        await OtpRequestLog.create({
+          regNo: rawReg,
+          studentName,
+          dateKey,
+          status: "BLOCKED",
+          deliveryStatus: "NOT_SENT",
+          provider: "NONE",
+          reason: `Blocked: Daily OTP limit reached (${maxDailyLimit}/${maxDailyLimit} attempts used)`,
+          deviceInfo: extractRequestDeviceInfo(req),
+        }).catch(() => {});
+
         return res.status(429).json({
           message: `Daily OTP limit reached (maximum ${maxDailyLimit} requests per calendar day). Login for ${rawReg} is locked for today. It will automatically reset at 12:00 AM midnight (in ${hours}h ${mins}m).`,
           code: "DAILY_LIMIT_EXCEEDED",
@@ -622,7 +697,8 @@ module.exports = async function handler(req, res) {
           expiresInMinutes: 3,
         });
 
-        if (emailResult.provider === "gmail_fallback") {
+        const isFallback = emailResult.provider === "gmail_fallback";
+        if (isFallback) {
           console.log(`[Vercel Auth] OTP for ${rawReg} sent via Gmail fallback (${emailResult.primaryFailureReason}).`);
         }
 
@@ -630,10 +706,38 @@ module.exports = async function handler(req, res) {
         dailyLimit.otpSendCount += 1;
         dailyLimit.lastOtpSentAt = new Date();
         await globalDbQueue.run(() => dailyLimit.save());
+
+        // Log successful OTP delivery
+        await OtpRequestLog.create({
+          regNo: rawReg,
+          studentName,
+          dateKey,
+          status: "DELIVERED",
+          deliveryStatus: "DELIVERED",
+          provider: isFallback ? "GMAIL" : "BREVO",
+          failoverOccurred: isFallback,
+          primaryFailureReason: emailResult.primaryFailureReason || null,
+          reason: isFallback
+            ? "OTP successfully delivered via Gmail Fallback"
+            : "OTP successfully delivered via Brevo Primary",
+          deviceInfo: extractRequestDeviceInfo(req),
+        }).catch(() => {});
       } catch (emailErr) {
         console.error("[Vercel Auth] All email providers failed for student OTP:", emailErr.message);
         // Clean up unverified OTP on delivery failure
         await globalDbQueue.run(() => OtpVerification.deleteMany({ regNo: rawReg })).catch(() => {});
+
+        await OtpRequestLog.create({
+          regNo: rawReg,
+          studentName,
+          dateKey,
+          status: "FAILED",
+          deliveryStatus: "FAILED",
+          provider: "ALL_FAILED",
+          reason: `Email delivery failed: ${emailErr.message || "Provider error"}`,
+          deviceInfo: extractRequestDeviceInfo(req),
+        }).catch(() => {});
+
         return res.status(503).json({
           message: "OTP delivery is temporarily unavailable. Please try again in a few moments.",
           code: "OTP_DELIVERY_UNAVAILABLE",

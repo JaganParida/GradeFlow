@@ -17,6 +17,14 @@
       "destination": "/api/attendance-ocr.js"
     },
     {
+      "source": "/api/admin/student-otp-management/history/:regNo",
+      "destination": "/api/student-otp-management.js?action=history&regNo=:regNo"
+    },
+    {
+      "source": "/api/admin/student-otp-management/reset/:regNo",
+      "destination": "/api/student-otp-management.js?action=reset&regNo=:regNo"
+    },
+    {
       "source": "/api/admin/subadmins/audit/logs",
       "destination": "/api/subadmins.js?action=logs"
     },
