@@ -16,8 +16,10 @@ const StudentSession = require("../models/StudentSession");
 const StudentDailyLimit = require("../models/StudentDailyLimit");
 const { protect, protectStudent } = require("../middleware/auth");
 const { validateLoginInput } = require("../middleware/validation");
-const { otpLimiter } = require("../middleware/rateLimiters");
+const { otpLimiter, otpSendLimiter, authLimiter } = require("../middleware/rateLimiters");
 const { sendOtpEmail, sendAdminOtpEmail, sendSubAdminOtpEmail } = require("../utils/emailService");
+const { sendStudentOtpEmail } = require("../utils/emailProviderManager");
+const { globalDbQueue } = require("../utils/dbProtection");
 const {
   SEVEN_DAYS_MS,
   MAX_ADMIN_DEVICES,
@@ -227,9 +229,11 @@ router.post("/student/send-otp", async (req, res) => {
       });
     }
 
-    // ── Daily Limit Check: Max 2 OTP requests per day (bypassed for 230301120327) ──
+    // ── Enforce 60-Second Cooldown & Daily Limit Atomically ──
     const dateKey = getIstDateKey();
-    let dailyLimit = await StudentDailyLimit.findOne({ regNo: rawReg, dateKey });
+    let dailyLimit = await globalDbQueue.run(() =>
+      StudentDailyLimit.findOne({ regNo: rawReg, dateKey })
+    );
 
     if (!dailyLimit) {
       dailyLimit = new StudentDailyLimit({
@@ -239,51 +243,72 @@ router.post("/student/send-otp", async (req, res) => {
       });
     }
 
-    if (!isUnlimited && dailyLimit.otpSendCount >= 2) {
+    if (!isUnlimited && dailyLimit.lastOtpSentAt) {
+      const timeSinceLastSend = Date.now() - new Date(dailyLimit.lastOtpSentAt).getTime();
+      if (timeSinceLastSend < 60 * 1000) {
+        const waitSeconds = Math.ceil((60 * 1000 - timeSinceLastSend) / 1000);
+        return res.status(429).json({
+          success: false,
+          code: "OTP_COOLDOWN_ACTIVE",
+          message: `Please wait ${waitSeconds} seconds before requesting a new verification code.`,
+          remainingSeconds: waitSeconds,
+        });
+      }
+    }
+
+    const maxDailyLimit = Number(process.env.STUDENT_DAILY_OTP_MAX) || 3;
+    if (!isUnlimited && dailyLimit.otpSendCount >= maxDailyLimit) {
       const { hours, mins, totalSeconds } = getTimeUntilIstMidnight();
       return res.status(429).json({
-        message: `Daily OTP limit reached (maximum 2 requests per calendar day). Login for ${rawReg} is locked for today. It will automatically reset at 12:00 AM midnight (in ${hours}h ${mins}m).`,
+        message: `Daily OTP limit reached (maximum ${maxDailyLimit} requests per calendar day). Login for ${rawReg} is locked for today. It will automatically reset at 12:00 AM midnight (in ${hours}h ${mins}m).`,
         code: "DAILY_LIMIT_EXCEEDED",
         remainingSeconds: totalSeconds,
       });
     }
 
-    // ── Generate 6-Digit OTP ──
+    // ── Generate 6-Digit Cryptographically Secure OTP ──
     const otpCode = crypto.randomInt(100000, 999999).toString();
     const otpSalt = await bcrypt.genSalt(10);
     const otpHash = await bcrypt.hash(otpCode, otpSalt);
 
     // Delete any old unverified OTP for this regNo
-    await OtpVerification.deleteMany({ regNo: rawReg });
+    await globalDbQueue.run(() => OtpVerification.deleteMany({ regNo: rawReg }));
 
     // Store new OTP valid for 5 minutes (300 seconds)
     const expiresAt = new Date(Date.now() + 5 * 60 * 1000);
-    await OtpVerification.create({
-      regNo: rawReg,
-      email: studentEmail,
-      otpHash,
-      expiresAt,
-      attempts: 0,
-    });
+    await globalDbQueue.run(() =>
+      OtpVerification.create({
+        regNo: rawReg,
+        email: studentEmail,
+        otpHash,
+        expiresAt,
+        attempts: 0,
+      })
+    );
 
-    // Increment daily count
+    // Increment daily count atomically
     dailyLimit.otpSendCount += 1;
     dailyLimit.lastOtpSentAt = new Date();
-    await dailyLimit.save();
+    await globalDbQueue.run(() => dailyLimit.save());
 
-    // ── Dispatch Email via Transporter ──
+    // ── Dispatch Email via Primary Brevo with Gmail Fallback ──
     try {
-      await sendOtpEmail({
+      const emailResult = await sendStudentOtpEmail({
         to: studentEmail,
         studentName,
         regNo: rawReg,
         otp: otpCode,
         expiresInMinutes: 5,
       });
+
+      if (emailResult.provider === "gmail_fallback") {
+        console.log(`[Auth] OTP for ${rawReg} dispatched via Gmail fallback (${emailResult.primaryFailureReason}).`);
+      }
     } catch (emailErr) {
-      console.error("Email dispatch failed:", emailErr.message);
-      return res.status(500).json({
-        message: "Failed to deliver OTP email to your university address. Please try again later.",
+      console.error("[Auth] All email providers failed for student OTP:", emailErr.message);
+      return res.status(503).json({
+        message: "OTP delivery is temporarily unavailable. Please try again in a few moments.",
+        code: "OTP_DELIVERY_UNAVAILABLE",
       });
     }
 

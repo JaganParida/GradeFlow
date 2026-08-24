@@ -6,6 +6,7 @@ const Student = require("./_lib/models/Student");
 const Attendance = require("./_lib/models/Attendance");
 const StudentSession = require("./_lib/models/StudentSession");
 const { isSessionValid, touchSession } = require("./_lib/sessionManager");
+const { globalDbQueue } = require("./_lib/dbProtection");
 const {
   calculateBacklogs,
   calculateCGPA,
@@ -226,8 +227,14 @@ module.exports = async function handler(req, res) {
       return res.json(marks);
     }
 
+    // Enforce strictly private cache-control headers on student academic records
+    res.setHeader("Cache-Control", "private, no-cache, no-store, must-revalidate");
+    res.setHeader("Pragma", "no-cache");
+
     // Full student profile
-    const results = await SemesterResult.find({ regNo: cleanRegNo }).sort({ semester: 1 });
+    const results = await globalDbQueue.run(() =>
+      SemesterResult.find({ regNo: cleanRegNo }).sort({ semester: 1 })
+    );
     if (!results || !results.length) {
       return res.status(404).json({ message: "Student not found" });
     }

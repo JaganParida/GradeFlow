@@ -1,6 +1,7 @@
 const connectToDatabase = require("./_lib/db");
 const Ranking = require("./_lib/models/Ranking");
 const { sortByScore } = require("./_lib/gradeCalculations");
+const { globalDbQueue } = require("./_lib/dbProtection");
 
 function escapeRegex(str) {
   return str.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
@@ -150,7 +151,12 @@ module.exports = async function handler(req, res) {
 
     if (andClauses.length > 0) query.$and = andClauses;
     
-    let rankings = await Ranking.find(query).lean();
+    // Set safe public edge cache headers
+    res.setHeader("Cache-Control", "public, s-maxage=120, stale-while-revalidate=300");
+
+    let rankings = await globalDbQueue.run(() =>
+      Ranking.find(query).lean()
+    );
 
     if (branch === "CSE" && section) {
       rankings = rankings.filter(r => getSectionFromRegNo(r.regNo) === section);

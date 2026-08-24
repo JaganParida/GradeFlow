@@ -5,14 +5,17 @@ const AcademicCalendar = require("../models/AcademicCalendar");
 const AcademicHoliday = require("../models/AcademicHoliday");
 const { protect } = require("../middleware/auth");
 const { requirePermission } = require("../middleware/rbac");
+const { publicLimiter } = require("../middleware/rateLimiters");
+const { globalDbQueue } = require("../utils/dbProtection");
 
 // ═════════════════════════════════════════════════════════════════
 // PUBLIC ENDPOINTS (For students looking up timetable)
 // ═════════════════════════════════════════════════════════════════
 
 // 1. Get Schedule for a specific Batch, Branch, and Section
-router.get("/schedule", async (req, res) => {
+router.get("/schedule", publicLimiter, async (req, res) => {
   try {
+    res.setHeader("Cache-Control", "public, s-maxage=300, stale-while-revalidate=600");
     const { batch, branch, section } = req.query;
 
     const query = { isActive: true };
@@ -20,7 +23,9 @@ router.get("/schedule", async (req, res) => {
     if (branch && branch !== "ALL") query.branch = { $in: [branch.toUpperCase(), "ALL"] };
     if (section && section !== "ALL") query.section = { $in: [section.toUpperCase(), "ALL"] };
 
-    const schedules = await TimetableSchedule.find(query).sort({ updatedAt: -1 });
+    const schedules = await globalDbQueue.run(() =>
+      TimetableSchedule.find(query).sort({ updatedAt: -1 })
+    );
 
     // Find best match (exact section > section ALL)
     let bestMatch = null;
@@ -45,12 +50,15 @@ router.get("/schedule", async (req, res) => {
 });
 
 // 2. Get All Active Schedules (Map of batch/section -> schedule)
-router.get("/active-all", async (req, res) => {
+router.get("/active-all", publicLimiter, async (req, res) => {
   try {
-    const schedules = await TimetableSchedule.find({ isActive: true }).sort({
-      batch: -1,
-      section: 1,
-    });
+    res.setHeader("Cache-Control", "public, s-maxage=300, stale-while-revalidate=600");
+    const schedules = await globalDbQueue.run(() =>
+      TimetableSchedule.find({ isActive: true }).sort({
+        batch: -1,
+        section: 1,
+      })
+    );
     res.json({
       success: true,
       count: schedules.length,

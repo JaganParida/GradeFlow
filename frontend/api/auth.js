@@ -13,6 +13,8 @@ const jwt = require("jsonwebtoken");
 const bcrypt = require("bcryptjs");
 const crypto = require("crypto");
 const nodemailer = require("nodemailer");
+const { sendStudentOtpEmail } = require("./_lib/emailProviderManager");
+const { globalDbQueue } = require("./_lib/dbProtection");
 const {
   SEVEN_DAYS_MS,
   MAX_ADMIN_DEVICES,
@@ -525,56 +527,78 @@ module.exports = async function handler(req, res) {
         });
       }
 
-      // ── Daily Limit Check (Max 2 attempts/day, bypassed for 230301120327) ──
+      // ── Daily Limit & Cooldown Check (Atomically Enforced) ──
       const dateKey = getIstDateKey();
-      let dailyLimit = await StudentDailyLimit.findOne({ regNo: rawReg, dateKey });
+      let dailyLimit = await globalDbQueue.run(() =>
+        StudentDailyLimit.findOne({ regNo: rawReg, dateKey })
+      );
       if (!dailyLimit) {
         dailyLimit = new StudentDailyLimit({ regNo: rawReg, dateKey, otpSendCount: 0 });
       }
 
-      if (!isUnlimited && dailyLimit.otpSendCount >= 2) {
+      if (!isUnlimited && dailyLimit.lastOtpSentAt) {
+        const timeSinceLastSend = Date.now() - new Date(dailyLimit.lastOtpSentAt).getTime();
+        if (timeSinceLastSend < 60 * 1000) {
+          const waitSeconds = Math.ceil((60 * 1000 - timeSinceLastSend) / 1000);
+          return res.status(429).json({
+            success: false,
+            code: "OTP_COOLDOWN_ACTIVE",
+            message: `Please wait ${waitSeconds} seconds before requesting a new verification code.`,
+            remainingSeconds: waitSeconds,
+          });
+        }
+      }
+
+      const maxDailyLimit = Number(process.env.STUDENT_DAILY_OTP_MAX) || 3;
+      if (!isUnlimited && dailyLimit.otpSendCount >= maxDailyLimit) {
         const { hours, mins, totalSeconds } = getTimeUntilIstMidnight();
         return res.status(429).json({
-          message: `Daily OTP limit reached (maximum 2 requests per calendar day). Login for ${rawReg} is locked for today. It will automatically reset at 12:00 AM midnight (in ${hours}h ${mins}m).`,
+          message: `Daily OTP limit reached (maximum ${maxDailyLimit} requests per calendar day). Login for ${rawReg} is locked for today. It will automatically reset at 12:00 AM midnight (in ${hours}h ${mins}m).`,
           code: "DAILY_LIMIT_EXCEEDED",
           remainingSeconds: totalSeconds,
         });
       }
 
-      // ── Generate 6-Digit OTP ──
+      // ── Generate 6-Digit Cryptographically Secure OTP ──
       const otpCode = crypto.randomInt(100000, 999999).toString();
       const otpSalt = await bcrypt.genSalt(10);
       const otpHash = await bcrypt.hash(otpCode, otpSalt);
 
-      await OtpVerification.deleteMany({ regNo: rawReg });
+      await globalDbQueue.run(() => OtpVerification.deleteMany({ regNo: rawReg }));
       const expiresAt = new Date(Date.now() + 5 * 60 * 1000);
 
-      await OtpVerification.create({
-        regNo: rawReg,
-        email: studentEmail,
-        otpHash,
-        expiresAt,
-        attempts: 0,
-      });
+      await globalDbQueue.run(() =>
+        OtpVerification.create({
+          regNo: rawReg,
+          email: studentEmail,
+          otpHash,
+          expiresAt,
+          attempts: 0,
+        })
+      );
 
       dailyLimit.otpSendCount += 1;
       dailyLimit.lastOtpSentAt = new Date();
-      await dailyLimit.save();
+      await globalDbQueue.run(() => dailyLimit.save());
 
-      // ── Dispatch Email via Nodemailer ──
+      // ── Dispatch Email via Primary Brevo with Gmail Fallback ──
       try {
-        await sendOtpEmail({
+        const emailResult = await sendStudentOtpEmail({
           to: studentEmail,
           studentName,
           regNo: rawReg,
           otp: otpCode,
           expiresInMinutes: 5,
         });
+
+        if (emailResult.provider === "gmail_fallback") {
+          console.log(`[Vercel Auth] OTP for ${rawReg} sent via Gmail fallback (${emailResult.primaryFailureReason}).`);
+        }
       } catch (emailErr) {
-        console.error("Vercel Email dispatch error:", emailErr);
-        return res.status(500).json({
-          message: "Failed to deliver OTP email to your university address. Please try again later.",
-          error: emailErr.message,
+        console.error("[Vercel Auth] All email providers failed for student OTP:", emailErr.message);
+        return res.status(503).json({
+          message: "OTP delivery is temporarily unavailable. Please try again in a few moments.",
+          code: "OTP_DELIVERY_UNAVAILABLE",
         });
       }
 

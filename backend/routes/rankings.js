@@ -4,6 +4,8 @@ const Ranking = require("../models/Ranking");
 const { sortByScore } = require("../utils/gradeCalculations");
 const { validateAcademicFilters } = require("../middleware/validation");
 const { requireStudentOrAdmin } = require("../middleware/auth");
+const { publicLimiter } = require("../middleware/rateLimiters");
+const { globalDbQueue } = require("../utils/dbProtection");
 
 // Escape special regex characters to prevent ReDoS attacks
 function escapeRegex(str) {
@@ -56,8 +58,11 @@ function getSectionFromRegNo(regNo) {
 }
 
 // Top 50 rankers
-router.get("/top", requireStudentOrAdmin, validateAcademicFilters, async (req, res) => {
+router.get("/top", publicLimiter, requireStudentOrAdmin, validateAcademicFilters, async (req, res) => {
   try {
+    // Set safe public edge cache headers for ranking aggregations
+    res.setHeader("Cache-Control", "public, s-maxage=120, stale-while-revalidate=300");
+
     const { semester, branch, search, limit = 50, sortBy = "sgpa", section, batch } = req.query;
     const query = {};
     const andClauses = [];
@@ -90,8 +95,9 @@ router.get("/top", requireStudentOrAdmin, validateAcademicFilters, async (req, r
 
     if (andClauses.length > 0) query.$and = andClauses;
     
-    let rankings = await Ranking.find(query)
-      .lean();
+    let rankings = await globalDbQueue.run(() =>
+      Ranking.find(query).lean()
+    );
 
     if (branch === "CSE" && section) {
       rankings = rankings.filter(r => getSectionFromRegNo(r.regNo) === section);

@@ -6,6 +6,8 @@ const Ranking = require("../models/Ranking");
 const Student = require("../models/Student");
 const Attendance = require("../models/Attendance");
 const { requireStudentOrAdmin } = require("../middleware/auth");
+const { studentSearchLimiter } = require("../middleware/rateLimiters");
+const { globalDbQueue } = require("../utils/dbProtection");
 const {
   calculateBacklogs,
   calculateCGPA,
@@ -54,9 +56,13 @@ function clearStudentCache(regNo) {
 }
 
 // GET student full profile (Protected: Student can only view self, Admin can view any)
-router.get("/:regNo", validateRegNo, requireStudentOrAdmin, async (req, res) => {
+router.get("/:regNo", studentSearchLimiter, validateRegNo, requireStudentOrAdmin, async (req, res) => {
   try {
     const { regNo } = req.params;
+
+    // Enforce strictly private headers for student academic records
+    res.setHeader("Cache-Control", "private, no-cache, no-store, must-revalidate");
+    res.setHeader("Pragma", "no-cache");
     
     // Check Cache First! (Zero CPU load, instant response)
     const cachedData = getCache(regNo);
@@ -64,8 +70,10 @@ router.get("/:regNo", validateRegNo, requireStudentOrAdmin, async (req, res) => 
       return res.json(cachedData);
     }
 
-    const results = await SemesterResult.find({ regNo }).sort({ semester: 1 });
-    if (!results.length)
+    const results = await globalDbQueue.run(() =>
+      SemesterResult.find({ regNo }).sort({ semester: 1 })
+    );
+    if (!results || !results.length)
       return res.status(404).json({ message: "Student not found" });
 
     const cgpa = calculateCGPA(results);
