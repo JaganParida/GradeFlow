@@ -65,16 +65,10 @@ function createTransporter() {
   return cachedTransporter;
 }
 
+const { sendMailWithFailover } = require("./emailProviderManager");
+
 async function sendMailWithRetry(mailOptions) {
-  try {
-    const transporter = createTransporter();
-    return await transporter.sendMail(mailOptions);
-  } catch (err) {
-    console.warn("Retrying email dispatch after refreshing connection pool:", err.message);
-    cachedTransporter = null;
-    const freshTransporter = createTransporter();
-    return await freshTransporter.sendMail(mailOptions);
-  }
+  return sendMailWithFailover(mailOptions);
 }
 
 /**
