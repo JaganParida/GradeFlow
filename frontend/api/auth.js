@@ -472,8 +472,8 @@ module.exports = async function handler(req, res) {
 
       const dateKey = getIstDateKey();
       const dailyLimit = await StudentDailyLimit.findOne({ regNo: rawReg, dateKey });
-      const maxDailyLimit = Number(process.env.STUDENT_DAILY_OTP_MAX) || 2;
       const isUnlimited = rawReg === "230301120327";
+      const maxDailyLimit = isUnlimited ? 99 : 2;
 
       let isCooldownActive = false;
       let cooldownRemainingSeconds = 0;
@@ -648,7 +648,7 @@ module.exports = async function handler(req, res) {
         }
       }
 
-      const maxDailyLimit = Number(process.env.STUDENT_DAILY_OTP_MAX) || 2;
+      const maxDailyLimit = isUnlimited ? 99 : 2;
       if (!isUnlimited && dailyLimit.otpSendCount >= maxDailyLimit) {
         const { hours, mins, totalSeconds } = getTimeUntilIstMidnight();
         await OtpRequestLog.create({

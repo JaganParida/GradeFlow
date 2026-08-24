@@ -44,7 +44,7 @@ async function runTests() {
 
   await mongoose.connect(process.env.MONGO_URI);
 
-  const testReg = "230301120137";
+  const testReg = "TEST_ISOLATED_MOCK_STUDENT";
   const todayKey = getIstDateKey();
 
   // ── 1. Setup Tokens ──
