@@ -376,6 +376,55 @@ export default function PredictorSection({ onOpenPredictorTool }) {
               </div>
             </div>
           )}
+
+          {/* Direct Analytics Goal Predictor Handoff */}
+          <div
+            onClick={onOpenPredictorTool}
+            style={{
+              marginTop: 20,
+              padding: "12px 16px",
+              background: "#fffbeb",
+              border: "1px solid #fde68a",
+              borderRadius: 10,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              gap: 12,
+              cursor: "pointer",
+              transition: "all 0.15s ease",
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = "#fef3c7";
+              e.currentTarget.style.borderColor = "#f59e0b";
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = "#fffbeb";
+              e.currentTarget.style.borderColor = "#fde68a";
+            }}
+          >
+            <div style={{ minWidth: 0 }}>
+              <div style={{ fontSize: 13, fontWeight: 750, color: "#92400e", lineHeight: 1.3 }}>
+                Calculate with your verified academic records
+              </div>
+              <div style={{ fontSize: 11.5, color: "#b45309", marginTop: 2 }}>
+                Open your real-time CGPA Goal Predictor in Analytics
+              </div>
+            </div>
+            <div
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 4,
+                fontSize: 12.5,
+                fontWeight: 750,
+                color: "#b45309",
+                flexShrink: 0,
+              }}
+            >
+              <span>Open Predictor</span>
+              <ChevronRight size={15} />
+            </div>
+          </div>
         </div>
       </div>
     </section>

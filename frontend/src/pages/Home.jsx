@@ -191,19 +191,16 @@ export default function Home() {
         onOpenLeaderboard={handleLeaderboard}
       />
 
-      {/* Desktop In-Depth Workbenches (Hidden on Mobile to Keep Scroll Fast & Snappy) */}
-      <div className="gf-desktop-only">
-        {/* 4. Grade Predictor / What-If */}
-        <PredictorSection onOpenPredictorTool={handlePredictor} />
+      {/* 4. Grade Predictor / What-If Simulation Lab */}
+      <PredictorSection onOpenPredictorTool={handlePredictor} />
 
-        {/* 5. Placement Readiness */}
-        <PlacementSection />
+      {/* 5. Placement Intelligence Matrix */}
+      <PlacementSection onOpenPlacement={handlePlacement} />
 
-        {/* 6. Credit / Domain Intelligence */}
-        <DomainIntelligenceSection />
-      </div>
+      {/* 6. 160-Credit Degree Framework & Baskets */}
+      <DomainIntelligenceSection onOpenDegreeProgress={handleDegreeProgress} />
 
-      {/* 8. Class Timetable & Attendance Intelligence (High Daily Value on Mobile) */}
+      {/* 7. Class Timetable & Attendance Intelligence */}
       <TimetableAttendanceSection
         onOpenTimetable={handleTimetable}
         onOpenAttendance={handleAttendance}

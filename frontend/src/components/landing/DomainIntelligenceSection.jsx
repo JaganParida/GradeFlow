@@ -7,6 +7,7 @@ import {
   Cpu,
   Target,
   CheckCircle2,
+  ChevronRight,
 } from "lucide-react";
 
 const BASKET_DATA = [
@@ -72,7 +73,7 @@ const BASKET_DATA = [
   },
 ];
 
-export default function DomainIntelligenceSection() {
+export default function DomainIntelligenceSection({ onOpenDegreeProgress }) {
   const [selectedBasketId, setSelectedBasketId] = useState("B4");
   const activeBasket = BASKET_DATA.find((b) => b.id === selectedBasketId) || BASKET_DATA[0];
 
@@ -280,6 +281,56 @@ export default function DomainIntelligenceSection() {
               ))}
             </div>
           </div>
+        </div>
+      </div>
+
+      {/* Personalized Degree Progress Handoff */}
+      <div
+        onClick={onOpenDegreeProgress}
+        style={{
+          marginTop: 24,
+          padding: "14px 18px",
+          background: "#faf5ff",
+          border: "1px solid #e9d5ff",
+          borderRadius: 10,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          flexWrap: "wrap",
+          gap: 12,
+          cursor: "pointer",
+          transition: "all 0.15s ease",
+        }}
+        onMouseEnter={(e) => {
+          e.currentTarget.style.background = "#f3e8ff";
+          e.currentTarget.style.borderColor = "#c084fc";
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.background = "#faf5ff";
+          e.currentTarget.style.borderColor = "#e9d5ff";
+        }}
+      >
+        <div style={{ minWidth: 0 }}>
+          <div style={{ fontSize: 13, fontWeight: 750, color: "#6b21a8", lineHeight: 1.3 }}>
+            Audit your personalized degree completion & 5 baskets
+          </div>
+          <div style={{ fontSize: 11.5, color: "#7e22ce", marginTop: 2 }}>
+            Review completed credits and remaining graduation requirements in your Dashboard
+          </div>
+        </div>
+        <div
+          style={{
+            display: "inline-flex",
+            alignItems: "center",
+            gap: 4,
+            fontSize: 12.5,
+            fontWeight: 750,
+            color: "#6b21a8",
+            flexShrink: 0,
+          }}
+        >
+          <span>Open Degree Progress</span>
+          <ChevronRight size={15} />
         </div>
       </div>
     </section>

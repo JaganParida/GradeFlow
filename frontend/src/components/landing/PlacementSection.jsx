@@ -8,6 +8,7 @@ import {
   Filter,
   Building,
   ArrowRight,
+  ChevronRight,
   ShieldCheck,
 } from "lucide-react";
 
@@ -71,7 +72,7 @@ const REAL_COMPANY_CRITERIA = {
 
 const BRANCHES = ["CSE", "ECE", "ME", "CIVIL", "EEE", "BIOTECH"];
 
-export default function PlacementSection() {
+export default function PlacementSection({ onOpenPlacement }) {
   const [selectedBranch, setSelectedBranch] = useState("CSE");
   const [selectedCategory, setSelectedCategory] = useState("All");
   const [demoCgpa, setDemoCgpa] = useState(8.2);
@@ -254,6 +255,56 @@ export default function PlacementSection() {
             </div>
           );
         })}
+      </div>
+
+      {/* Personalized Placement Intelligence Handoff */}
+      <div
+        onClick={onOpenPlacement}
+        style={{
+          marginTop: 24,
+          padding: "14px 18px",
+          background: "#f0fdf4",
+          border: "1px solid #bbf7d0",
+          borderRadius: 10,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          flexWrap: "wrap",
+          gap: 12,
+          cursor: "pointer",
+          transition: "all 0.15s ease",
+        }}
+        onMouseEnter={(e) => {
+          e.currentTarget.style.background = "#dcfce7";
+          e.currentTarget.style.borderColor = "#86efac";
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.background = "#f0fdf4";
+          e.currentTarget.style.borderColor = "#bbf7d0";
+        }}
+      >
+        <div style={{ minWidth: 0 }}>
+          <div style={{ fontSize: 13, fontWeight: 750, color: "#166534", lineHeight: 1.3 }}>
+            Check your personalized placement eligibility
+          </div>
+          <div style={{ fontSize: 11.5, color: "#15803d", marginTop: 2 }}>
+            Evaluate your verified CGPA against 50+ company recruitment criteria in Analytics
+          </div>
+        </div>
+        <div
+          style={{
+            display: "inline-flex",
+            alignItems: "center",
+            gap: 4,
+            fontSize: 12.5,
+            fontWeight: 750,
+            color: "#166534",
+            flexShrink: 0,
+          }}
+        >
+          <span>Open Placement Readiness</span>
+          <ChevronRight size={15} />
+        </div>
       </div>
     </section>
   );
