@@ -91,7 +91,6 @@ export default function ServerErrorPage({ onRetry }) {
             alignItems: "center",
             justifyContent: "center",
             color: "#dc2626",
-            boxShadow: "0 6px 16px rgba(220, 38, 38, 0.18)",
           }}
         >
           <AlertTriangle size={20} />
@@ -155,7 +154,6 @@ export default function ServerErrorPage({ onRetry }) {
             color: "#ffffff",
             border: "none",
             cursor: retrying ? "not-allowed" : "pointer",
-            boxShadow: "0 4px 14px rgba(37, 99, 235, 0.28)",
             transition: "all 0.15s ease",
           }}
         >

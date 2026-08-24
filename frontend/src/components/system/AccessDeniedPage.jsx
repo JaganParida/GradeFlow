@@ -75,7 +75,6 @@ export default function AccessDeniedPage() {
             alignItems: "center",
             justifyContent: "center",
             color: "#dc2626",
-            boxShadow: "0 6px 16px rgba(220, 38, 38, 0.15)",
           }}
         >
           <ShieldAlert size={18} />
@@ -135,7 +134,6 @@ export default function AccessDeniedPage() {
             background: "#2563eb",
             color: "#ffffff",
             textDecoration: "none",
-            boxShadow: "0 4px 14px rgba(37, 99, 235, 0.28)",
             transition: "all 0.15s ease",
           }}
         >

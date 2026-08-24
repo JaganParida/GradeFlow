@@ -215,7 +215,6 @@ function OfflineRunnerGame() {
         padding: "18px 22px",
         maxWidth: 580,
         width: "100%",
-        boxShadow: "0 4px 20px rgba(15, 23, 42, 0.04)",
         boxSizing: "border-box",
         margin: "18px 0",
         display: "flex",
@@ -312,7 +311,6 @@ function OfflineRunnerGame() {
                 display: "inline-flex",
                 alignItems: "center",
                 gap: 6,
-                boxShadow: "0 2px 8px rgba(37, 99, 235, 0.3)",
               }}
             >
               {gameOver ? <RotateCcw size={14} /> : <Play size={14} />}
@@ -436,7 +434,6 @@ export default function OfflinePage({ onRetry }) {
             color: "#ffffff",
             border: "none",
             cursor: testing ? "not-allowed" : "pointer",
-            boxShadow: "0 4px 14px rgba(37, 99, 235, 0.28)",
             transition: "all 0.15s ease",
           }}
         >

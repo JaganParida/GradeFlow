@@ -78,7 +78,6 @@ export default function ServiceUnavailablePage({ onRetry }) {
             alignItems: "center",
             justifyContent: "center",
             color: "#d97706",
-            boxShadow: "0 6px 16px rgba(245, 158, 11, 0.18)",
           }}
         >
           <Radio size={20} />
@@ -141,7 +140,6 @@ export default function ServiceUnavailablePage({ onRetry }) {
             color: "#ffffff",
             border: "none",
             cursor: refreshing ? "not-allowed" : "pointer",
-            boxShadow: "0 4px 14px rgba(37, 99, 235, 0.28)",
             transition: "all 0.15s ease",
           }}
         >

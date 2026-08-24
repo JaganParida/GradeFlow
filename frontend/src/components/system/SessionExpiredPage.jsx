@@ -78,7 +78,6 @@ export default function SessionExpiredPage({ onSignIn }) {
             alignItems: "center",
             justifyContent: "center",
             color: "#2563eb",
-            boxShadow: "0 6px 16px rgba(37, 99, 235, 0.15)",
           }}
         >
           <Key size={18} />
@@ -140,7 +139,6 @@ export default function SessionExpiredPage({ onSignIn }) {
             color: "#ffffff",
             border: "none",
             cursor: "pointer",
-            boxShadow: "0 4px 14px rgba(37, 99, 235, 0.28)",
             transition: "all 0.15s ease",
           }}
         >

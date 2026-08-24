@@ -59,7 +59,6 @@ export default function MaintenanceGuard({ children }) {
               justifyContent: "center",
               fontWeight: 900,
               fontSize: 18,
-              boxShadow: "0 4px 14px rgba(37, 99, 235, 0.3)",
             }}
           >
             G

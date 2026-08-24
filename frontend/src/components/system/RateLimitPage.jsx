@@ -102,7 +102,6 @@ export default function RateLimitPage({ message, onRetry }) {
             alignItems: "center",
             justifyContent: "center",
             color: "#ea580c",
-            boxShadow: "0 6px 16px rgba(234, 88, 12, 0.15)",
           }}
         >
           <Hourglass size={18} />
@@ -160,7 +159,6 @@ export default function RateLimitPage({ message, onRetry }) {
           fontWeight: 700,
           color: "#334155",
           marginBottom: 32,
-          boxShadow: "0 2px 6px rgba(15, 23, 42, 0.03)",
         }}
       >
         <span>Cooldown Period:</span>
@@ -192,7 +190,6 @@ export default function RateLimitPage({ message, onRetry }) {
             color: "#ffffff",
             border: "none",
             cursor: retrying ? "not-allowed" : "pointer",
-            boxShadow: "0 4px 14px rgba(37, 99, 235, 0.28)",
             transition: "all 0.15s ease",
           }}
         >

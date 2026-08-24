@@ -527,7 +527,6 @@ export default function Dashboard() {
           borderRadius: 20,
           border: "1px solid #fee2e2",
           textAlign: "center",
-          boxShadow: "0 10px 30px rgba(0,0,0,0.04)",
         }}
       >
         <div
@@ -709,7 +708,6 @@ export default function Dashboard() {
               border: "1px solid #cbd5e1",
               borderRadius: 16,
               padding: isMobile ? "14px 14px" : "16px 14px",
-              boxShadow: "0 1px 3px rgba(0, 0, 0, 0.06), 0 4px 14px rgba(15, 23, 42, 0.04)",
               display: "flex",
               flexDirection: "column",
               gap: isMobile ? 10 : 14,
@@ -731,7 +729,6 @@ export default function Dashboard() {
                     fontSize: isMobile ? 15 : 17,
                     fontWeight: 800,
                     flexShrink: 0,
-                    boxShadow: "0 4px 12px rgba(37, 99, 235, 0.22)",
                   }}
                 >
                   {studentName ? studentName.charAt(0).toUpperCase() : "S"}
@@ -832,7 +829,6 @@ export default function Dashboard() {
                         cursor: "pointer",
                         fontFamily: "'DM Sans', sans-serif",
                         transition: "all 0.15s ease",
-                        boxShadow: isActive ? "0 2px 5px rgba(37, 99, 235, 0.2)" : "none",
                       }}
                     >
                       Sem {r.semester}
@@ -1132,7 +1128,6 @@ export default function Dashboard() {
                   justifyContent: "center",
                   cursor: canScrollLeft ? "pointer" : "default",
                   flexShrink: 0,
-                  boxShadow: canScrollLeft ? "0 1px 4px rgba(0,0,0,0.08)" : "none",
                   opacity: canScrollLeft ? 1 : 0.4,
                   transition: "all 0.15s ease",
                   padding: 0,
@@ -1176,7 +1171,6 @@ export default function Dashboard() {
                         whiteSpace: "nowrap",
                         cursor: "pointer",
                         fontFamily: "'DM Sans', sans-serif",
-                        boxShadow: isActive ? "0 1px 3px rgba(0,0,0,0.06)" : "none",
                         flexShrink: 0,
                       }}
                     >
@@ -1204,7 +1198,6 @@ export default function Dashboard() {
                   justifyContent: "center",
                   cursor: canScrollRight ? "pointer" : "default",
                   flexShrink: 0,
-                  boxShadow: canScrollRight ? "0 1px 4px rgba(0,0,0,0.08)" : "none",
                   opacity: canScrollRight ? 1 : 0.4,
                   transition: "all 0.15s ease",
                   padding: 0,
@@ -1222,7 +1215,6 @@ export default function Dashboard() {
               border: "1px solid #cbd5e1",
               borderRadius: 16,
               padding: isMobile ? "12px 14px" : "20px 24px",
-              boxShadow: "0 1px 3px rgba(0, 0, 0, 0.06), 0 4px 14px rgba(15, 23, 42, 0.04)",
               display: "flex",
               flexDirection: "column",
               gap: isMobile ? 8 : 14,
@@ -1335,7 +1327,6 @@ export default function Dashboard() {
                         fontWeight: 700,
                         cursor: "pointer",
                         fontFamily: "'DM Sans', sans-serif",
-                        boxShadow: "0 2px 8px rgba(37, 99, 235, 0.25)",
                         transition: "all 0.15s",
                       }}
                     >
@@ -1405,7 +1396,6 @@ export default function Dashboard() {
                 border: "1px solid #cbd5e1",
                 borderRadius: 14,
                 padding: isMobile ? "12px 12px" : "18px 18px",
-                boxShadow: "0 1px 3px rgba(0, 0, 0, 0.05), 0 3px 10px rgba(15, 23, 42, 0.03)",
                 display: "flex",
                 flexDirection: "column",
                 gap: 4,
@@ -1434,7 +1424,6 @@ export default function Dashboard() {
                 border: "1px solid #cbd5e1",
                 borderRadius: 14,
                 padding: isMobile ? "12px 12px" : "18px 18px",
-                boxShadow: "0 1px 3px rgba(0, 0, 0, 0.05), 0 3px 10px rgba(15, 23, 42, 0.03)",
                 display: "flex",
                 flexDirection: "column",
                 gap: 4,
@@ -1463,7 +1452,6 @@ export default function Dashboard() {
                 border: "1px solid #cbd5e1",
                 borderRadius: 14,
                 padding: isMobile ? "12px 12px" : "18px 18px",
-                boxShadow: "0 1px 3px rgba(0, 0, 0, 0.05), 0 3px 10px rgba(15, 23, 42, 0.03)",
                 display: "flex",
                 flexDirection: "column",
                 gap: 4,
@@ -1514,7 +1502,6 @@ export default function Dashboard() {
                 border: "1px solid #cbd5e1",
                 borderRadius: 14,
                 padding: isMobile ? "12px 12px" : "18px 18px",
-                boxShadow: "0 1px 3px rgba(0, 0, 0, 0.05), 0 3px 10px rgba(15, 23, 42, 0.03)",
                 display: "flex",
                 flexDirection: "column",
                 gap: 4,
@@ -1542,7 +1529,6 @@ export default function Dashboard() {
                 border: "1.5px solid #fecaca",
                 borderRadius: 16,
                 padding: isMobile ? "14px 14px" : "18px 20px",
-                boxShadow: "0 2px 10px rgba(239, 68, 68, 0.04)",
               }}
             >
               <div
@@ -1643,7 +1629,6 @@ export default function Dashboard() {
                             border: "1px solid #fee2e2",
                             fontSize: 12.5,
                             gap: isMobile ? 8 : 12,
-                            boxShadow: "0 1px 3px rgba(239, 68, 68, 0.02)",
                           }}
                         >
                           <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
@@ -1741,7 +1726,6 @@ export default function Dashboard() {
                           justifyContent: "center",
                           gap: 8,
                           textDecoration: "none",
-                          boxShadow: "0 2px 6px rgba(37, 211, 102, 0.25)",
                           whiteSpace: "nowrap",
                           flexShrink: 0,
                           transition: "all 0.15s ease",
@@ -1770,7 +1754,6 @@ export default function Dashboard() {
                   background: "#ffffff",
                   border: "1px solid #cbd5e1",
                   borderRadius: 16,
-                  boxShadow: "0 1px 3px rgba(0, 0, 0, 0.05), 0 3px 10px rgba(15, 23, 42, 0.03)",
                   overflow: "hidden",
                   width: "100%",
                 }}
@@ -2055,8 +2038,6 @@ export default function Dashboard() {
                         border: "1px solid #cbd5e1",
                         borderRadius: 16,
                         padding: isMobile ? "14px 14px" : "24px 24px",
-                        boxShadow:
-                          "0 1px 3px rgba(0, 0, 0, 0.05), 0 4px 14px rgba(15, 23, 42, 0.03)",
                       }}
                     >
                       <div
@@ -2239,7 +2220,6 @@ export default function Dashboard() {
                               fontWeight: 700,
                               cursor: "pointer",
                               fontFamily: "'DM Sans', sans-serif",
-                              boxShadow: "0 2px 6px rgba(37, 99, 235, 0.2)",
                             }}
                           >
                             <DownloadCloud size={15} /> Download PDF
@@ -2300,7 +2280,6 @@ export default function Dashboard() {
                                         border: "1px solid #e2e8f0",
                                         borderRadius: 14,
                                         padding: "12px 14px",
-                                        boxShadow: "0 1px 3px rgba(0, 0, 0, 0.04)",
                                         display: "flex",
                                         flexDirection: "column",
                                         gap: 10,
@@ -2753,7 +2732,6 @@ export default function Dashboard() {
                       border: "1px solid #cbd5e1",
                       borderRadius: 16,
                       padding: isMobile ? "14px 14px" : "24px 26px",
-                      boxShadow: "0 1px 3px rgba(0, 0, 0, 0.05), 0 4px 14px rgba(15, 23, 42, 0.03)",
                       display: "flex",
                       flexDirection: "column",
                       gap: isMobile ? 12 : 20,
@@ -2816,9 +2794,6 @@ export default function Dashboard() {
                               justifyContent: "space-between",
                               alignItems: "center",
                               transition: "all 0.15s ease",
-                              boxShadow: isSelected
-                                ? "0 4px 14px rgba(37, 99, 235, 0.08)"
-                                : "0 1px 3px rgba(0, 0, 0, 0.03)",
                               gap: 10,
                             }}
                             onMouseEnter={(e) => {

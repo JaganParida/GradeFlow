@@ -5,9 +5,6 @@ import {
   Wrench,
   RefreshCw,
   ShieldCheck,
-  Activity,
-  CheckCircle2,
-  Lock,
   Shield,
   ArrowRight,
 } from "lucide-react";
@@ -70,7 +67,6 @@ export default function MaintenancePage({ message, onRetry }) {
             justifyContent: "center",
             fontWeight: 900,
             fontSize: 16,
-            boxShadow: "0 4px 14px rgba(37, 99, 235, 0.28)",
           }}
         >
           G
@@ -93,13 +89,10 @@ export default function MaintenancePage({ message, onRetry }) {
               <stop offset="0%" stopColor="#1e293b" />
               <stop offset="100%" stopColor="#0f172a" />
             </linearGradient>
-            <filter id="maintShadow" x="-20%" y="-20%" width="140%" height="140%">
-              <feDropShadow dx="0" dy="8" stdDeviation="12" floodColor="#2563eb" floodOpacity="0.18" />
-            </filter>
           </defs>
 
           {/* Tower Chassis */}
-          <rect x="80" y="20" width="140" height="124" rx="16" fill="url(#serverGradMaint)" filter="url(#maintShadow)" />
+          <rect x="80" y="20" width="140" height="124" rx="16" fill="url(#serverGradMaint)" stroke="#334155" strokeWidth="1.5" />
           
           {/* Blade Module 1 */}
           <rect x="94" y="34" width="112" height="24" rx="6" fill="#334155" stroke="#475569" strokeWidth="1" />
@@ -143,7 +136,6 @@ export default function MaintenancePage({ message, onRetry }) {
             alignItems: "center",
             justifyContent: "center",
             color: "#2563eb",
-            boxShadow: "0 6px 16px rgba(37, 99, 235, 0.15)",
           }}
         >
           <Wrench size={20} />
@@ -230,7 +222,6 @@ export default function MaintenancePage({ message, onRetry }) {
             color: "#ffffff",
             border: "none",
             cursor: checking ? "not-allowed" : "pointer",
-            boxShadow: "0 4px 14px rgba(37, 99, 235, 0.28)",
             outline: "none",
             transition: "all 0.15s ease",
           }}
