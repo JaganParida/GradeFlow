@@ -80,11 +80,20 @@ export function AppProvider({ children }) {
   };
 
   // ─── Global Maintenance Mode State ───────────────────────────────
-  const [maintenance, setMaintenance] = useState({
-    enabled: false,
-    message: "",
-    enabledAt: null,
+  const [maintenance, setMaintenance] = useState(() => {
+    try {
+      const cached = sessionStorage.getItem("gf_maintenance_cache");
+      if (cached) {
+        return JSON.parse(cached);
+      }
+    } catch {}
+    return {
+      enabled: false,
+      message: "",
+      enabledAt: null,
+    };
   });
+  const [maintenanceChecked, setMaintenanceChecked] = useState(false);
 
   const checkMaintenanceStatus = async (force = false) => {
     try {
@@ -92,15 +101,22 @@ export function AppProvider({ children }) {
         headers: { "Cache-Control": "no-cache" },
       });
       if (res.data && typeof res.data.enabled === "boolean") {
-        setMaintenance({
+        const updated = {
           enabled: res.data.enabled,
           message: res.data.message || "",
           enabledAt: res.data.enabledAt || null,
-        });
+        };
+        setMaintenance(updated);
+        try {
+          sessionStorage.setItem("gf_maintenance_cache", JSON.stringify(updated));
+        } catch {}
+        setMaintenanceChecked(true);
         return res.data;
       }
     } catch (err) {
       console.warn("Failed to check maintenance status:", err.message);
+    } finally {
+      setMaintenanceChecked(true);
     }
     return { enabled: false };
   };
@@ -504,6 +520,7 @@ export function AppProvider({ children }) {
         theme,
         toggleTheme,
         maintenance,
+        maintenanceChecked,
         setMaintenance,
         checkMaintenanceStatus,
         API: API_BASE,
