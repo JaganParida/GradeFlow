@@ -61,14 +61,16 @@ const authLimiter = rateLimit({
 
 // ── 2. Dedicated OTP Send Limiter ────────────────────────────────────
 const otpSendLimiter = rateLimit({
-  windowMs: 60 * 1000, // 60s per-student cooldown window
-  max: 1, // Max 1 OTP send per minute per identity
+  windowMs: 60 * 1000,
+  max: 6, // 6 attempts per minute flood/DDoS barrier
+  skipFailedRequests: true, // Failed delivery never penalizes the student
+  skipSuccessfulRequests: false,
   standardHeaders: true,
   legacyHeaders: false,
   message: {
     success: false,
-    message: "OTP request cooldown in effect. Please wait 60 seconds before requesting another code.",
-    code: "OTP_COOLDOWN_ACTIVE",
+    message: "Too many OTP requests. Please wait a moment before trying again.",
+    code: "OTP_FLOOD_PROTECTION",
   },
   keyGenerator: (req) => {
     const ip = req.ip || req.headers["x-forwarded-for"] || "127.0.0.1";

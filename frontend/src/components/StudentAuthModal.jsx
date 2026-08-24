@@ -44,6 +44,7 @@ export default function StudentAuthModal({ isOpen, onClose }) {
   const [remainingDailyAttempts, setRemainingDailyAttempts] = useState(2);
   const [timerSeconds, setTimerSeconds] = useState(300);
   const [timerActive, setTimerActive] = useState(false);
+  const [resendCooldown, setResendCooldown] = useState(0);
   const [deviceStatus, setDeviceStatus] = useState(null); // { exists, isBlocked, isCurrentDevice, message, studentName }
   const [isChecking, setIsChecking] = useState(false);
   const [isBlockedModalOpen, setIsBlockedModalOpen] = useState(false);
@@ -217,7 +218,7 @@ export default function StudentAuthModal({ isOpen, onClose }) {
     };
   }, [regNo, isOpen, step]);
 
-  // Live 3-Minute Countdown Timer for OTP
+  // Live 5-Minute Countdown Timer for OTP Expiry
   useEffect(() => {
     let interval = null;
     if (timerActive && timerSeconds > 0) {
@@ -230,6 +231,17 @@ export default function StudentAuthModal({ isOpen, onClose }) {
     }
     return () => clearInterval(interval);
   }, [timerActive, timerSeconds]);
+
+  // Live 60-Second Cooldown Timer for Resend Button
+  useEffect(() => {
+    let interval = null;
+    if (resendCooldown > 0) {
+      interval = setInterval(() => {
+        setResendCooldown((prev) => (prev > 1 ? prev - 1 : 0));
+      }, 1000);
+    }
+    return () => clearInterval(interval);
+  }, [resendCooldown]);
 
   const formatTimer = (seconds) => {
     const m = Math.floor(seconds / 60);
@@ -283,12 +295,17 @@ export default function StudentAuthModal({ isOpen, onClose }) {
       setMaskedEmail(result.data?.maskedEmail || `${cleanReg.toLowerCase()}@centurionuniv.edu.in`);
       setStudentName(result.data?.studentName || "Student");
       setRemainingDailyAttempts(result.data?.remainingDailyAttempts ?? 1);
-      setTimerSeconds(result.data?.expiresInSeconds || 180);
+      setTimerSeconds(result.data?.expiresInSeconds || 300);
       setTimerActive(true);
+      setResendCooldown(60); // 60s cooldown starts strictly upon confirmed success
       setStep(2);
     } else {
       setErrorMsg(result.error);
       setErrorCode(result.code);
+      if (result.code === "OTP_COOLDOWN_ACTIVE") {
+        const wait = result.details?.remainingSeconds || 60;
+        setResendCooldown(wait);
+      }
       if (
         result.code === "DEVICE_LIMIT_REACHED" ||
         result.details?.code === "DEVICE_LIMIT_REACHED" ||
@@ -338,7 +355,7 @@ export default function StudentAuthModal({ isOpen, onClose }) {
 
   // Resend OTP
   const handleResendOtp = async () => {
-    if (timerActive || remainingDailyAttempts <= 0) return;
+    if (resendCooldown > 0 || remainingDailyAttempts <= 0 || loading) return;
     setOtp("");
     await handleSendOtp();
   };
@@ -970,15 +987,15 @@ export default function StudentAuthModal({ isOpen, onClose }) {
 
                 <button
                   type="button"
-                  disabled={timerActive || remainingDailyAttempts <= 0 || loading}
+                  disabled={resendCooldown > 0 || remainingDailyAttempts <= 0 || loading}
                   onClick={handleResendOtp}
                   style={{
                     background: "none",
                     border: "none",
-                    color: timerActive || remainingDailyAttempts <= 0 ? "#94a3b8" : "#2563eb",
+                    color: resendCooldown > 0 || remainingDailyAttempts <= 0 ? "#94a3b8" : "#2563eb",
                     fontSize: 12,
                     fontWeight: 700,
-                    cursor: timerActive || remainingDailyAttempts <= 0 ? "not-allowed" : "pointer",
+                    cursor: resendCooldown > 0 || remainingDailyAttempts <= 0 ? "not-allowed" : "pointer",
                     display: "flex",
                     alignItems: "center",
                     gap: 4,
@@ -986,7 +1003,7 @@ export default function StudentAuthModal({ isOpen, onClose }) {
                   }}
                 >
                   <RefreshCw size={12} className={loading ? "spin" : ""} />
-                  <span>Resend Code {timerActive ? `(${formatTimer(timerSeconds)})` : ""}</span>
+                  <span>Resend Code {resendCooldown > 0 ? `(${resendCooldown}s)` : ""}</span>
                 </button>
               </div>
             </form>
