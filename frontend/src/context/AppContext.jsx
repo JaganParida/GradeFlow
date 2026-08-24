@@ -57,7 +57,15 @@ export function AppProvider({ children }) {
   }, []);
 
   const [studentData, setStudentData] = useState(null);
-  const [studentSession, setStudentSession] = useState(null);
+  const [studentSession, setStudentSession] = useState(() => {
+    try {
+      const cached = localStorage.getItem("gf_student_session_cache");
+      if (cached) {
+        return JSON.parse(cached);
+      }
+    } catch {}
+    return null;
+  });
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -154,6 +162,7 @@ export function AppProvider({ children }) {
           if (resStudent.data?.token) {
             localStorage.setItem("gf_student_jwt", resStudent.data.token);
           }
+          localStorage.setItem("gf_student_session_cache", JSON.stringify(resStudent.data.student));
           setStudentSession(resStudent.data.student);
           await fetchStudent(resStudent.data.student.regNo, 2, 500);
         } else {
@@ -161,6 +170,7 @@ export function AppProvider({ children }) {
           const code = resStudent.data?.code;
           if (code === "SESSION_TERMINATED" || code === "INACTIVITY_LOGOUT" || code === "SESSION_INACTIVE_EXPIRED") {
             localStorage.removeItem("gf_student_jwt");
+            localStorage.removeItem("gf_student_session_cache");
             sessionStorage.removeItem("gf_student_jwt");
             setStudentSession(null);
             setStudentData(null);
@@ -170,6 +180,7 @@ export function AppProvider({ children }) {
         const code = err.response?.data?.code;
         if (code === "SESSION_TERMINATED" || code === "INACTIVITY_LOGOUT" || code === "SESSION_INACTIVE_EXPIRED") {
           localStorage.removeItem("gf_student_jwt");
+          localStorage.removeItem("gf_student_session_cache");
           sessionStorage.removeItem("gf_student_jwt");
           setStudentSession(null);
           setStudentData(null);
@@ -247,6 +258,7 @@ export function AppProvider({ children }) {
       localStorage.removeItem("gf_student_jwt");
       localStorage.removeItem("gf_student_data");
       localStorage.removeItem("gf_student_session");
+      localStorage.removeItem("gf_student_session_cache");
       localStorage.removeItem("last_regNo");
       localStorage.removeItem("last_studentName");
       localStorage.removeItem("gf_today_attendance");

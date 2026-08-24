@@ -131,6 +131,16 @@ export default function App() {
           url.includes("student-verify-otp") ||
           url.includes("student-me");
 
+        // If device lost connection or request failed due to offline network drop
+        if (
+          !navigator.onLine ||
+          error.code === "ERR_NETWORK" ||
+          error.message === "Network Error" ||
+          (error.request && !error.response)
+        ) {
+          window.dispatchEvent(new Event("gradeflow:offline"));
+        }
+
         if (error.response && error.response.status === 429 && !isStudentAuthRoute) {
           setRateLimitError(
             error.response.data?.message ||
