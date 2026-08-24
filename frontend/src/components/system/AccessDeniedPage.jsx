@@ -1,10 +1,7 @@
 import React from "react";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
-import {
-  ShieldAlert,
-  Home as HomeIcon,
-} from "lucide-react";
+import { Home as HomeIcon } from "lucide-react";
 import { useApp } from "../../context/AppContext";
 
 export default function AccessDeniedPage() {
@@ -59,57 +56,38 @@ export default function AccessDeniedPage() {
         </span>
       </motion.div>
 
-      {/* ── Animated Biometric Shield SVG ── */}
-      <div style={{ width: "100%", maxWidth: 280, height: 170, marginBottom: 20, position: "relative" }}>
-        <svg viewBox="0 0 280 170" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ width: "100%", height: "100%" }}>
+      {/* ── Animated Biometric Security Shield Vector Graphic ── */}
+      <motion.div
+        initial={{ opacity: 0, scale: 0.95 }}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={{ duration: 0.45 }}
+        style={{ width: "100%", maxWidth: 300, height: 160, marginBottom: 20 }}
+      >
+        <svg viewBox="0 0 300 160" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ width: "100%", height: "100%" }}>
           <defs>
             <linearGradient id="shieldGrad" x1="0%" y1="0%" x2="100%" y2="100%">
               <stop offset="0%" stopColor="#dc2626" />
               <stop offset="100%" stopColor="#991b1b" />
             </linearGradient>
-            <filter id="shieldGlow" x="-20%" y="-20%" width="140%" height="140%">
-              <feDropShadow dx="0" dy="8" stdDeviation="12" floodColor="#dc2626" floodOpacity="0.22" />
-            </filter>
           </defs>
 
           {/* Holographic Concentric Rings */}
-          <circle cx="140" cy="85" r="68" stroke="#fecaca" strokeWidth="1.5" strokeDasharray="4 4" opacity="0.6" />
-          <circle cx="140" cy="85" r="82" stroke="#fee2e2" strokeWidth="1" opacity="0.4" />
+          <circle cx="150" cy="80" r="64" stroke="#fecaca" strokeWidth="1.5" strokeDasharray="4 4" opacity="0.6" />
+          <circle cx="150" cy="80" r="48" stroke="#fee2e2" strokeWidth="1" />
 
           {/* Security Shield */}
           <path
-            d="M140 20 L190 44 V92 C190 126 140 150 140 150 C140 150 90 126 90 92 V44 Z"
+            d="M150 20 L196 42 V88 C196 120 150 142 150 142 C150 142 104 120 104 88 V42 Z"
             fill="url(#shieldGrad)"
-            filter="url(#shieldGlow)"
+            stroke="#991b1b"
+            strokeWidth="1.5"
           />
 
-          {/* Inner Lock Accent */}
-          <rect x="125" y="80" width="30" height="24" rx="5" fill="#ffffff" />
-          <path d="M130 80 V70 C130 64.5 134.5 60 140 60 C145.5 60 150 64.5 150 70 V80" stroke="#ffffff" strokeWidth="3" strokeLinecap="round" />
+          {/* Inner Cryptographic Lock Accent */}
+          <rect x="136" y="74" width="28" height="22" rx="4" fill="#ffffff" />
+          <path d="M141 74 V66 C141 61 145 57 150 57 C155 57 159 61 159 66 V74" stroke="#ffffff" strokeWidth="3" strokeLinecap="round" />
         </svg>
-
-        {/* Floating Warning Icon */}
-        <motion.div
-          animate={{ scale: [1, 1.1, 1] }}
-          transition={{ duration: 2.5, repeat: Infinity, ease: "easeInOut" }}
-          style={{
-            position: "absolute",
-            bottom: 8,
-            right: 48,
-            width: 38,
-            height: 38,
-            borderRadius: 12,
-            background: "#ffffff",
-            border: "1px solid #fecaca",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            color: "#dc2626",
-          }}
-        >
-          <ShieldAlert size={18} />
-        </motion.div>
-      </div>
+      </motion.div>
 
       {/* ── Headline ── */}
       <motion.h1
@@ -125,7 +103,7 @@ export default function AccessDeniedPage() {
           lineHeight: 1.2,
         }}
       >
-        Access Restricted
+        Access Restricted (403)
       </motion.h1>
 
       {/* ── Subtitle ── */}

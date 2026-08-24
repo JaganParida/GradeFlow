@@ -1,12 +1,7 @@
 import React, { useState } from "react";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
-import {
-  ServerCrash,
-  RefreshCw,
-  Home as HomeIcon,
-  AlertTriangle,
-} from "lucide-react";
+import { RefreshCw, Home as HomeIcon } from "lucide-react";
 
 export default function ServerErrorPage({ onRetry }) {
   const [retrying, setRetrying] = useState(false);
@@ -70,62 +65,48 @@ export default function ServerErrorPage({ onRetry }) {
         </span>
       </motion.div>
 
-      {/* ── Animated Server Glitch & Spark SVG ── */}
-      <div style={{ width: "100%", maxWidth: 280, height: 170, marginBottom: 20, position: "relative" }}>
-        <svg viewBox="0 0 280 170" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ width: "100%", height: "100%" }}>
+      {/* ── Animated Server Diagnostics Vector Graphic ── */}
+      <motion.div
+        initial={{ opacity: 0, scale: 0.95 }}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={{ duration: 0.45 }}
+        style={{ width: "100%", maxWidth: 300, height: 160, marginBottom: 20 }}
+      >
+        <svg viewBox="0 0 300 160" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ width: "100%", height: "100%" }}>
           <defs>
             <linearGradient id="glitchServerGrad" x1="0%" y1="0%" x2="100%" y2="100%">
               <stop offset="0%" stopColor="#1e293b" />
               <stop offset="100%" stopColor="#0f172a" />
             </linearGradient>
-            <filter id="glitchGlow" x="-20%" y="-20%" width="140%" height="140%">
-              <feDropShadow dx="0" dy="6" stdDeviation="10" floodColor="#dc2626" floodOpacity="0.18" />
-            </filter>
           </defs>
 
+          {/* Background Pulse Rings */}
+          <circle cx="150" cy="80" r="64" stroke="#fee2e2" strokeWidth="1.5" strokeDasharray="4 6" />
+          <circle cx="150" cy="80" r="48" stroke="#fecaca" strokeWidth="1.2" />
+
           {/* Server Unit */}
-          <rect x="70" y="30" width="140" height="110" rx="14" fill="url(#glitchServerGrad)" filter="url(#glitchGlow)" />
+          <rect x="80" y="24" width="140" height="112" rx="14" fill="url(#glitchServerGrad)" stroke="#334155" strokeWidth="1.5" />
           
           {/* Top Panel */}
-          <rect x="85" y="44" width="110" height="22" rx="6" fill="#334155" />
-          <circle cx="98" cy="55" r="3" fill="#ef4444">
+          <rect x="94" y="38" width="112" height="22" rx="5" fill="#334155" />
+          <circle cx="106" cy="49" r="3" fill="#ef4444">
             <animate attributeName="opacity" values="1;0.2;1" dur="0.8s" repeatCount="indefinite" />
           </circle>
-          <line x1="110" y1="55" x2="180" y2="55" stroke="#64748b" strokeWidth="2" strokeDasharray="3 3" />
+          <line x1="118" y1="49" x2="194" y2="49" stroke="#64748b" strokeWidth="1.5" strokeDasharray="3 3" />
 
-          {/* Middle Glitch Panel with Zigzag Spark */}
-          <rect x="85" y="74" width="110" height="22" rx="6" fill="#334155" />
-          <circle cx="98" cy="85" r="3" fill="#f59e0b" />
-          <path d="M120 85 L135 78 L145 92 L160 85" stroke="#ef4444" strokeWidth="2" strokeLinecap="round" />
+          {/* Middle Diagnostic Panel with Pulse Circuit */}
+          <rect x="94" y="68" width="112" height="22" rx="5" fill="#334155" stroke="#ef4444" strokeWidth="1" />
+          <circle cx="106" cy="79" r="3" fill="#f59e0b" />
+          <path d="M124 79 L138 72 L148 86 L164 79 L180 79" stroke="#ef4444" strokeWidth="2" strokeLinecap="round">
+            <animate attributeName="stroke-dashoffset" values="20;0" dur="1.2s" repeatCount="indefinite" />
+          </path>
 
           {/* Bottom Panel */}
-          <rect x="85" y="104" width="110" height="22" rx="6" fill="#334155" />
-          <circle cx="98" cy="115" r="3" fill="#10b981" />
-          <line x1="110" y1="115" x2="180" y2="115" stroke="#64748b" strokeWidth="2" strokeDasharray="3 3" />
+          <rect x="94" y="98" width="112" height="22" rx="5" fill="#334155" />
+          <circle cx="106" cy="109" r="3" fill="#10b981" />
+          <line x1="118" y1="109" x2="194" y2="109" stroke="#64748b" strokeWidth="1.5" strokeDasharray="3 3" />
         </svg>
-
-        {/* Floating Warning Prism */}
-        <motion.div
-          animate={{ y: [-6, 6, -6], rotate: [-5, 5, -5] }}
-          transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
-          style={{
-            position: "absolute",
-            top: 10,
-            right: 36,
-            width: 42,
-            height: 42,
-            borderRadius: 12,
-            background: "#fef2f2",
-            border: "1px solid #fecaca",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            color: "#dc2626",
-          }}
-        >
-          <AlertTriangle size={20} />
-        </motion.div>
-      </div>
+      </motion.div>
 
       {/* ── Headline ── */}
       <motion.h1
@@ -141,7 +122,7 @@ export default function ServerErrorPage({ onRetry }) {
           lineHeight: 1.2,
         }}
       >
-        Something Went Wrong
+        Internal Server Error (500)
       </motion.h1>
 
       {/* ── Subtitle ── */}
@@ -157,8 +138,7 @@ export default function ServerErrorPage({ onRetry }) {
           margin: "0 0 32px 0",
         }}
       >
-        Our backend encountered an unexpected error while processing this academic request.
-        Our engineers have been notified automatically.
+        Our backend encountered an unexpected condition while processing this request. Our engineering team has been automatically alerted.
       </motion.p>
 
       {/* ── Actions ── */}
@@ -209,7 +189,7 @@ export default function ServerErrorPage({ onRetry }) {
           }}
         >
           <HomeIcon size={16} />
-          <span>Return Home</span>
+          <span>Return to Home</span>
         </Link>
       </motion.div>
     </div>

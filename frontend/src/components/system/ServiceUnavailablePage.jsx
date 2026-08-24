@@ -1,12 +1,7 @@
 import React, { useState } from "react";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
-import {
-  Server,
-  RefreshCw,
-  Home as HomeIcon,
-  Radio,
-} from "lucide-react";
+import { RefreshCw, Home as HomeIcon } from "lucide-react";
 
 export default function ServiceUnavailablePage({ onRetry }) {
   const [refreshing, setRefreshing] = useState(false);
@@ -70,49 +65,43 @@ export default function ServiceUnavailablePage({ onRetry }) {
         </span>
       </motion.div>
 
-      {/* ── Animated Bridge / Satellite Sync SVG ── */}
-      <div style={{ width: "100%", maxWidth: 280, height: 170, marginBottom: 20, position: "relative" }}>
-        <svg viewBox="0 0 280 170" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ width: "100%", height: "100%" }}>
-          {/* Data Center Icon Left */}
-          <rect x="40" y="60" width="60" height="60" rx="10" fill="#334155" />
-          <rect x="48" y="68" width="44" height="10" rx="3" fill="#10b981" />
-          <rect x="48" y="84" width="44" height="10" rx="3" fill="#3b82f6" />
-          <rect x="48" y="100" width="44" height="10" rx="3" fill="#f59e0b" />
+      {/* ── Animated Cloud & Database Constellation Vector Graphic ── */}
+      <motion.div
+        initial={{ opacity: 0, scale: 0.95 }}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={{ duration: 0.45 }}
+        style={{ width: "100%", maxWidth: 300, height: 160, marginBottom: 20 }}
+      >
+        <svg viewBox="0 0 300 160" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ width: "100%", height: "100%" }}>
+          <defs>
+            <linearGradient id="cloudGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stopColor="#1e293b" />
+              <stop offset="100%" stopColor="#0f172a" />
+            </linearGradient>
+          </defs>
 
-          {/* University Cloud Right */}
-          <rect x="180" y="60" width="60" height="60" rx="10" fill="#1e293b" />
-          <circle cx="210" cy="90" r="14" fill="#3b82f6" opacity="0.3" />
-          <path d="M196 90 Q210 78 224 90" stroke="#60a5fa" strokeWidth="2.5" strokeLinecap="round" />
+          {/* Background Ambient Pulse Rings */}
+          <circle cx="150" cy="80" r="64" stroke="#fef3c7" strokeWidth="1.5" strokeDasharray="4 6" />
+          <circle cx="150" cy="80" r="48" stroke="#fde68a" strokeWidth="1.2" />
 
-          {/* Pulsing Sync Bridge Connecting Both */}
-          <line x1="105" y1="90" x2="175" y2="90" stroke="#f59e0b" strokeWidth="3" strokeDasharray="5 5">
+          {/* Primary Database Left */}
+          <rect x="55" y="50" width="60" height="60" rx="10" fill="url(#cloudGrad)" stroke="#334155" strokeWidth="1.5" />
+          <rect x="63" y="58" width="44" height="10" rx="3" fill="#10b981" />
+          <rect x="63" y="74" width="44" height="10" rx="3" fill="#3b82f6" />
+          <rect x="63" y="90" width="44" height="10" rx="3" fill="#f59e0b" />
+
+          {/* Academic Remote Gateway Right */}
+          <rect x="185" y="50" width="60" height="60" rx="10" fill="url(#cloudGrad)" stroke="#334155" strokeWidth="1.5" />
+          <circle cx="215" cy="80" r="15" fill="#3b82f6" opacity="0.2" />
+          <path d="M201 80 Q215 68 229 80" stroke="#60a5fa" strokeWidth="2.5" strokeLinecap="round" />
+          <circle cx="215" cy="80" r="3" fill="#60a5fa" />
+
+          {/* Flowing Optical Sync Bridge */}
+          <path d="M115 80 L185 80" stroke="#f59e0b" strokeWidth="2.5" strokeDasharray="5 5">
             <animate attributeName="stroke-dashoffset" values="0;20" dur="1s" repeatCount="indefinite" />
-          </line>
+          </path>
         </svg>
-
-        {/* Floating Radio Dish Icon */}
-        <motion.div
-          animate={{ scale: [1, 1.08, 1] }}
-          transition={{ duration: 2.2, repeat: Infinity, ease: "easeInOut" }}
-          style={{
-            position: "absolute",
-            top: 10,
-            left: "50%",
-            transform: "translateX(-50%)",
-            width: 42,
-            height: 42,
-            borderRadius: 12,
-            background: "#fffbeb",
-            border: "1px solid #fde68a",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            color: "#d97706",
-          }}
-        >
-          <Radio size={20} />
-        </motion.div>
-      </div>
+      </motion.div>
 
       {/* ── Headline ── */}
       <motion.h1
@@ -128,7 +117,7 @@ export default function ServiceUnavailablePage({ onRetry }) {
           lineHeight: 1.2,
         }}
       >
-        Connecting to Academic Services
+        Service Unavailable (503)
       </motion.h1>
 
       {/* ── Subtitle ── */}
@@ -195,7 +184,7 @@ export default function ServiceUnavailablePage({ onRetry }) {
           }}
         >
           <HomeIcon size={16} />
-          <span>Return Home</span>
+          <span>Return to Home</span>
         </Link>
       </motion.div>
     </div>

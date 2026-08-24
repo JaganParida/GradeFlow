@@ -1,12 +1,7 @@
 import React from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import {
-  Compass,
-  ArrowLeft,
-  Home as HomeIcon,
-  Sparkles,
-} from "lucide-react";
+import { ArrowLeft, Home as HomeIcon } from "lucide-react";
 import { useApp } from "../../context/AppContext";
 
 export default function NotFoundPage() {
@@ -21,7 +16,7 @@ export default function NotFoundPage() {
         position: "fixed",
         inset: 0,
         zIndex: 999999,
-        background: "radial-gradient(ellipse at 50% 15%, rgba(37, 99, 235, 0.05) 0%, #fcfdfe 80%)",
+        background: "radial-gradient(ellipse at 50% 15%, rgba(37, 99, 235, 0.05) 0%, #fcfdfe 70%)",
         minHeight: "100vh",
         display: "flex",
         flexDirection: "column",
@@ -65,73 +60,59 @@ export default function NotFoundPage() {
         </span>
       </motion.div>
 
-      {/* ── 60fps Hardware-Accelerated Cosmic Compass Vector Art ── */}
+      {/* ── 60fps Cosmic Exploration 404 Vector Graphic ── */}
       <motion.div
         initial={{ opacity: 0, scale: 0.94 }}
         animate={{ opacity: 1, scale: 1 }}
         transition={{ duration: 0.45 }}
-        style={{ width: "100%", maxWidth: 320, height: 160, marginBottom: 20, position: "relative" }}
+        style={{ width: "100%", maxWidth: 340, height: 170, marginBottom: 20 }}
       >
-        <svg viewBox="0 0 320 160" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ width: "100%", height: "100%" }}>
+        <svg viewBox="0 0 340 170" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ width: "100%", height: "100%" }}>
           <defs>
-            <linearGradient id="nfGlow" x1="0%" y1="0%" x2="100%" y2="100%">
-              <stop offset="0%" stopColor="#3b82f6" stopOpacity="0.25" />
-              <stop offset="100%" stopColor="#1d4ed8" stopOpacity="0.05" />
+            <linearGradient id="nfPortalGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stopColor="#3b82f6" stopOpacity="0.2" />
+              <stop offset="100%" stopColor="#1d4ed8" stopOpacity="0.04" />
             </linearGradient>
-            <radialGradient id="planetGlow" cx="50%" cy="50%" r="50%">
-              <stop offset="0%" stopColor="#60a5fa" stopOpacity="0.4" />
-              <stop offset="100%" stopColor="#2563eb" stopOpacity="0" />
-            </radialGradient>
           </defs>
 
-          {/* Background Ambient Cosmic Rings */}
-          <ellipse cx="160" cy="80" rx="120" ry="40" stroke="#e2e8f0" strokeWidth="1.5" strokeDasharray="4 6" opacity="0.8" />
-          <ellipse cx="160" cy="80" rx="80" ry="26" stroke="#bfdbfe" strokeWidth="1.2" opacity="0.6" />
+          {/* Planetary Orbit Rings */}
+          <ellipse cx="170" cy="85" rx="130" ry="44" stroke="#e2e8f0" strokeWidth="1.5" strokeDasharray="5 7" />
+          <ellipse cx="170" cy="85" rx="90" ry="30" stroke="#bfdbfe" strokeWidth="1.5" strokeDasharray="3 4">
+            <animate attributeName="stroke-dashoffset" values="0;28" dur="4s" repeatCount="indefinite" />
+          </ellipse>
 
-          {/* Floating Central Lost Compass Planet */}
-          <circle cx="160" cy="80" r="44" fill="url(#nfGlow)" stroke="#3b82f6" strokeWidth="2" />
-          <circle cx="160" cy="80" r="32" fill="#eff6ff" />
-
-          {/* Compass Needle */}
-          <polygon points="160,56 166,80 160,76 154,80" fill="#2563eb" />
-          <polygon points="160,104 166,80 160,84 154,80" fill="#94a3b8" />
-          <circle cx="160" cy="80" r="3.5" fill="#0f172a" />
-
-          {/* Satellite Orbit Line */}
-          <path d="M134 70 Q160 88 186 70" stroke="#bfdbfe" strokeWidth="2" strokeLinecap="round" opacity="0.6" />
-
-          {/* Left Large Modern Number '4' */}
-          <text x="50" y="112" fill="#0f172a" fontSize="80" fontWeight="900" letterSpacing="-5" opacity="0.92">
+          {/* Left Hero '4' */}
+          <text x="54" y="118" fill="#0f172a" fontSize="88" fontWeight="900" letterSpacing="-5" opacity="0.94">
             4
           </text>
 
-          {/* Right Large Modern Number '4' */}
-          <text x="225" y="112" fill="#0f172a" fontSize="80" fontWeight="900" letterSpacing="-5" opacity="0.92">
+          {/* Center Cosmic Globe / Lost Compass */}
+          <circle cx="170" cy="85" r="48" fill="url(#nfPortalGrad)" stroke="#3b82f6" strokeWidth="2" />
+          <circle cx="170" cy="85" r="36" fill="#ffffff" stroke="#dbeafe" strokeWidth="1.5" />
+          
+          {/* Internal Radar Grid */}
+          <circle cx="170" cy="85" r="22" stroke="#e2e8f0" strokeWidth="1" strokeDasharray="2 2" />
+          <line x1="170" y1="49" x2="170" y2="121" stroke="#f1f5f9" strokeWidth="1" />
+          <line x1="134" y1="85" x2="206" y2="85" stroke="#f1f5f9" strokeWidth="1" />
+
+          {/* Rotating Compass Needles */}
+          <polygon points="170,60 176,85 170,81 164,85" fill="#2563eb" />
+          <polygon points="170,110 176,85 170,89 164,85" fill="#94a3b8" />
+          <circle cx="170" cy="85" r="4" fill="#0f172a" />
+
+          {/* Satellite Orbit Dots */}
+          <circle cx="106" cy="72" r="3.5" fill="#3b82f6">
+            <animate attributeName="opacity" values="0.3;1;0.3" dur="2s" repeatCount="indefinite" />
+          </circle>
+          <circle cx="236" cy="98" r="4" fill="#f59e0b">
+            <animate attributeName="opacity" values="1;0.3;1" dur="2.5s" repeatCount="indefinite" />
+          </circle>
+
+          {/* Right Hero '4' */}
+          <text x="234" y="118" fill="#0f172a" fontSize="88" fontWeight="900" letterSpacing="-5" opacity="0.94">
             4
           </text>
         </svg>
-
-        {/* Floating Sparkle Micro-badge */}
-        <motion.div
-          animate={{ y: [-5, 5, -5], rotate: [-4, 4, -4] }}
-          transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
-          style={{
-            position: "absolute",
-            top: 10,
-            right: 48,
-            width: 38,
-            height: 38,
-            borderRadius: 12,
-            background: "#ffffff",
-            border: "1px solid #e2e8f0",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            color: "#2563eb",
-          }}
-        >
-          <Sparkles size={18} />
-        </motion.div>
       </motion.div>
 
       {/* ── Headline ── */}
@@ -167,11 +148,11 @@ export default function NotFoundPage() {
         The page you are looking for might have been moved, deleted, or doesn't exist in GradeFlow.
       </motion.p>
 
-      {/* ── Primary Action Controls ── */}
+      {/* ── Actions ── */}
       <motion.div
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.35, delay: 0.2 }}
+        transition={{ duration: 0.35, delay: 0.15 }}
         style={{ display: "flex", gap: 12, flexWrap: "wrap", justifyContent: "center" }}
       >
         <button
