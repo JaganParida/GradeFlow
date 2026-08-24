@@ -375,6 +375,36 @@ export default function OfflinePage({ onRetry }) {
       role="alert"
       aria-live="polite"
     >
+      {/* ── Brand Header ── */}
+      <motion.div
+        initial={{ opacity: 0, y: -10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.3 }}
+        style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 20 }}
+      >
+        <img
+          src="/webisteLogo.png"
+          alt="GradeFlow Logo"
+          style={{
+            height: 38,
+            width: "auto",
+            objectFit: "contain",
+            display: "block",
+          }}
+        />
+        <span
+          style={{
+            fontFamily: "'DM Sans', sans-serif",
+            fontSize: 22,
+            fontWeight: 800,
+            color: "#0f172a",
+            letterSpacing: "-0.5px",
+          }}
+        >
+          GradeFlow
+        </span>
+      </motion.div>
+
       {/* ── Headline ── */}
       <motion.h1
         initial={{ opacity: 0, y: 8 }}

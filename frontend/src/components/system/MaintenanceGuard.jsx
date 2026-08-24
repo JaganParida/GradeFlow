@@ -47,22 +47,16 @@ export default function MaintenanceGuard({ children }) {
         }}
       >
         <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 14 }}>
-          <span
+          <img
+            src="/webisteLogo.png"
+            alt="GradeFlow Logo"
             style={{
-              width: 38,
-              height: 38,
-              borderRadius: 11,
-              background: "linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)",
-              color: "#ffffff",
-              display: "inline-flex",
-              alignItems: "center",
-              justifyContent: "center",
-              fontWeight: 900,
-              fontSize: 18,
+              height: 48,
+              width: "auto",
+              objectFit: "contain",
+              display: "block",
             }}
-          >
-            G
-          </span>
+          />
           <div
             className="gf-spin"
             style={{

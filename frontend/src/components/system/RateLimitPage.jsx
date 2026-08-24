@@ -43,14 +43,44 @@ export default function RateLimitPage({ message, onRetry }) {
         padding: "60px 20px",
         boxSizing: "border-box",
         fontFamily: "'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
-        background: "radial-gradient(100% 60% at 50% 10%, rgba(234, 88, 12, 0.04) 0%, #fcfdfe 100%)",
+        background: "radial-gradient(100% 60% at 50% 10%, rgba(234, 88, 12, 0.05) 0%, #fcfdfe 100%)",
         position: "relative",
       }}
       role="alert"
       aria-live="polite"
     >
-      {/* ── Animated Hourglass Vector SVG ── */}
-      <div style={{ width: "100%", maxWidth: 280, height: 170, marginBottom: 20, position: "relative" }}>
+      {/* ── Brand Header ── */}
+      <motion.div
+        initial={{ opacity: 0, y: -10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.3 }}
+        style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 24 }}
+      >
+        <img
+          src="/webisteLogo.png"
+          alt="GradeFlow Logo"
+          style={{
+            height: 38,
+            width: "auto",
+            objectFit: "contain",
+            display: "block",
+          }}
+        />
+        <span
+          style={{
+            fontFamily: "'DM Sans', sans-serif",
+            fontSize: 22,
+            fontWeight: 800,
+            color: "#0f172a",
+            letterSpacing: "-0.5px",
+          }}
+        >
+          GradeFlow
+        </span>
+      </motion.div>
+
+      {/* ── Animated Hourglass Graphic ── */}
+      <div style={{ width: "100%", maxWidth: 280, height: 160, marginBottom: 20, position: "relative" }}>
         <svg viewBox="0 0 280 170" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ width: "100%", height: "100%" }}>
           <defs>
             <linearGradient id="sandGrad" x1="0%" y1="0%" x2="0%" y2="100%">

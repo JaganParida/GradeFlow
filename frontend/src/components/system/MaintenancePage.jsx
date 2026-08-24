@@ -53,25 +53,27 @@ export default function MaintenancePage({ message, onRetry }) {
         initial={{ opacity: 0, y: -10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.3 }}
-        style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 28 }}
+        style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 24 }}
       >
+        <img
+          src="/webisteLogo.png"
+          alt="GradeFlow Logo"
+          style={{
+            height: 38,
+            width: "auto",
+            objectFit: "contain",
+            display: "block",
+          }}
+        />
         <span
           style={{
-            width: 34,
-            height: 34,
-            borderRadius: 10,
-            background: "linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)",
-            color: "#ffffff",
-            display: "inline-flex",
-            alignItems: "center",
-            justifyContent: "center",
-            fontWeight: 900,
-            fontSize: 16,
+            fontFamily: "'DM Sans', sans-serif",
+            fontSize: 22,
+            fontWeight: 800,
+            color: "#0f172a",
+            letterSpacing: "-0.5px",
           }}
         >
-          G
-        </span>
-        <span style={{ fontSize: 19, fontWeight: 800, color: "#0f172a", letterSpacing: "-0.02em" }}>
           GradeFlow
         </span>
       </motion.div>

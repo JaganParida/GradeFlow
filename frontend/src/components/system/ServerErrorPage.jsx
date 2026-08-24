@@ -40,6 +40,36 @@ export default function ServerErrorPage({ onRetry }) {
       role="alert"
       aria-live="polite"
     >
+      {/* ── Brand Header ── */}
+      <motion.div
+        initial={{ opacity: 0, y: -10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.3 }}
+        style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 24 }}
+      >
+        <img
+          src="/webisteLogo.png"
+          alt="GradeFlow Logo"
+          style={{
+            height: 38,
+            width: "auto",
+            objectFit: "contain",
+            display: "block",
+          }}
+        />
+        <span
+          style={{
+            fontFamily: "'DM Sans', sans-serif",
+            fontSize: 22,
+            fontWeight: 800,
+            color: "#0f172a",
+            letterSpacing: "-0.5px",
+          }}
+        >
+          GradeFlow
+        </span>
+      </motion.div>
+
       {/* ── Animated Server Glitch & Spark SVG ── */}
       <div style={{ width: "100%", maxWidth: 280, height: 170, marginBottom: 20, position: "relative" }}>
         <svg viewBox="0 0 280 170" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ width: "100%", height: "100%" }}>
