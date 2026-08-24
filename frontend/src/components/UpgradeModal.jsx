@@ -18,6 +18,17 @@ export default function UpgradeModal() {
   const [isOpen, setIsOpen] = useState(false);
 
   useEffect(() => {
+    if (isOpen) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "";
+    }
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, [isOpen]);
+
+  useEffect(() => {
     if (isMaintenanceBlocked) {
       setIsOpen(false);
       return;
@@ -95,19 +106,20 @@ export default function UpgradeModal() {
             boxSizing: "border-box",
           }}
         >
-          {/* Backdrop */}
+          {/* Backdrop Blur & Full Cover */}
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            transition={{ duration: 0.2 }}
+            transition={{ duration: 0.25 }}
             onClick={handleDismiss}
             style={{
               position: "fixed",
               inset: 0,
-              background: "rgba(15, 23, 42, 0.55)",
-              backdropFilter: "blur(4px)",
-              WebkitBackdropFilter: "blur(4px)",
+              zIndex: 1,
+              background: "rgba(15, 23, 42, 0.65)",
+              backdropFilter: "blur(12px)",
+              WebkitBackdropFilter: "blur(12px)",
             }}
           />
 
