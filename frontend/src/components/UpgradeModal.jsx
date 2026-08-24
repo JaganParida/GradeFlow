@@ -1,14 +1,13 @@
 import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  Zap,
-  Award,
-  BarChart2,
+  BarChart3,
+  Calendar,
+  Compass,
   ShieldCheck,
-  Star,
   ArrowRight,
   X,
-  Layers,
+  MessageSquare,
 } from "lucide-react";
 import { useApp } from "../context/AppContext";
 
@@ -17,29 +16,18 @@ export default function UpgradeModal() {
   const isMaintenanceBlocked = Boolean(maintenance?.enabled && !adminToken);
 
   const [isOpen, setIsOpen] = useState(false);
-  const [isMobile, setIsMobile] = useState(
-    () => (typeof window !== "undefined" ? window.innerWidth < 640 || window.innerHeight < 700 : false)
-  );
-
-  useEffect(() => {
-    const handleResize = () => {
-      setIsMobile(window.innerWidth < 640 || window.innerHeight < 700);
-    };
-    window.addEventListener("resize", handleResize);
-    return () => window.removeEventListener("resize", handleResize);
-  }, []);
 
   useEffect(() => {
     if (isMaintenanceBlocked) {
       setIsOpen(false);
       return;
     }
-    // Check if user has already seen the v2 upgrade announcement on this device
+    // Check if user has already seen the upgrade announcement on this device
     const hasSeen = localStorage.getItem("gf_v2_upgrade_popup_seen");
     if (!hasSeen) {
       const timer = setTimeout(() => {
         setIsOpen(true);
-      }, 600);
+      }, 700);
       return () => clearTimeout(timer);
     }
   }, [isMaintenanceBlocked]);
@@ -53,11 +41,41 @@ export default function UpgradeModal() {
 
   const handleOpenReview = () => {
     handleDismiss();
-    // Dispatch event to open the Feedback & Review modal seamlessly
     window.dispatchEvent(
       new CustomEvent("open-feedback-modal", { detail: { source: "upgrade_popup" } })
     );
   };
+
+  const FEATURES = [
+    {
+      icon: BarChart3,
+      iconBg: "#eff6ff",
+      iconColor: "#2563eb",
+      title: "Academic Intelligence",
+      desc: "Instant SGPA/CGPA breakdowns, letter distributions, and honours tracking.",
+    },
+    {
+      icon: Calendar,
+      iconBg: "#f0fdf4",
+      iconColor: "#16a34a",
+      title: "Smart Timetable",
+      desc: "Live class countdowns, venue routing, and real-time attendance logs.",
+    },
+    {
+      icon: Compass,
+      iconBg: "#faf5ff",
+      iconColor: "#9333ea",
+      title: "Career & Domains",
+      desc: "Skill mastery radar, semester milestones, and placement readiness.",
+    },
+    {
+      icon: ShieldCheck,
+      iconBg: "#fff7ed",
+      iconColor: "#ea580c",
+      title: "Protected Sessions",
+      desc: "Strict session encryption, zero tracking, and fast cached load times.",
+    },
+  ];
 
   return (
     <AnimatePresence>
@@ -73,332 +91,228 @@ export default function UpgradeModal() {
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            padding: isMobile ? "8px" : "16px",
+            padding: "16px",
             boxSizing: "border-box",
           }}
         >
-          {/* Backdrop Blur */}
+          {/* Backdrop */}
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            transition={{ duration: 0.22 }}
+            transition={{ duration: 0.2 }}
             onClick={handleDismiss}
             style={{
               position: "fixed",
               inset: 0,
-              background: "rgba(15, 23, 42, 0.68)",
-              backdropFilter: "blur(8px)",
-              WebkitBackdropFilter: "blur(8px)",
+              background: "rgba(15, 23, 42, 0.55)",
+              backdropFilter: "blur(4px)",
+              WebkitBackdropFilter: "blur(4px)",
             }}
           />
 
           {/* Modal Container */}
           <motion.div
-            initial={{ opacity: 0, scale: 0.94, y: 12 }}
+            initial={{ opacity: 0, scale: 0.96, y: 8 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.94, y: 8 }}
-            transition={{ type: "spring", damping: 28, stiffness: 360 }}
+            exit={{ opacity: 0, scale: 0.96, y: 6 }}
+            transition={{ duration: 0.22, ease: "easeOut" }}
             style={{
               position: "relative",
               width: "100%",
-              maxWidth: 540,
-              maxHeight: "min(92vh, 600px)",
+              maxWidth: 480,
+              maxHeight: "min(90vh, 580px)",
               display: "flex",
               flexDirection: "column",
               background: "#ffffff",
-              borderRadius: isMobile ? 18 : 22,
+              borderRadius: 14,
               border: "1px solid #e2e8f0",
-              boxShadow:
-                "0 25px 50px -12px rgba(15, 23, 42, 0.28), 0 0 0 1px rgba(15, 23, 42, 0.05)",
               overflow: "hidden",
               zIndex: 10,
-              fontFamily: "'DM Sans', sans-serif",
+              fontFamily: "'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
             }}
           >
-            {/* Top Decorative Gradient Ribbon */}
+            {/* Header */}
             <div
               style={{
-                height: 4,
-                width: "100%",
-                background: "linear-gradient(90deg, #2563eb, #8b5cf6, #ec4899, #f59e0b)",
-                flexShrink: 0,
-              }}
-            />
-
-            {/* Close Button */}
-            <button
-              onClick={handleDismiss}
-              aria-label="Close Announcement"
-              style={{
-                position: "absolute",
-                top: isMobile ? 10 : 14,
-                right: isMobile ? 10 : 14,
-                width: isMobile ? 28 : 32,
-                height: isMobile ? 28 : 32,
-                borderRadius: "50%",
-                background: "#f1f5f9",
-                border: "1px solid #e2e8f0",
-                color: "#64748b",
+                padding: "20px 20px 14px 20px",
+                borderBottom: "1px solid #f1f5f9",
                 display: "flex",
                 alignItems: "center",
-                justifyContent: "center",
-                cursor: "pointer",
-                transition: "all 0.15s ease",
-                padding: 0,
-                zIndex: 5,
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.background = "#e2e8f0";
-                e.currentTarget.style.color = "#0f172a";
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.background = "#f1f5f9";
-                e.currentTarget.style.color = "#64748b";
+                justifyContent: "space-between",
+                flexShrink: 0,
               }}
             >
-              <X size={isMobile ? 14 : 16} />
-            </button>
-
-            {/* Scrollable Modal Content */}
-            <div
-              style={{
-                padding: isMobile ? "14px 14px 10px 14px" : "22px 24px 14px 24px",
-                overflowY: "auto",
-                WebkitOverflowScrolling: "touch",
-                scrollbarWidth: "none",
-                flex: 1,
-              }}
-            >
-              {/* Badge */}
-              <div
-                style={{
-                  display: "inline-flex",
-                  alignItems: "center",
-                  gap: 6,
-                  padding: isMobile ? "3px 8px" : "4px 10px",
-                  borderRadius: 16,
-                  background: "#eff6ff",
-                  border: "1px solid #bfdbfe",
-                  color: "#1d4ed8",
-                  fontSize: isMobile ? 10 : 11.5,
-                  fontWeight: 800,
-                  letterSpacing: "0.2px",
-                  marginBottom: isMobile ? 6 : 10,
-                }}
-              >
-                <Zap size={isMobile ? 12 : 13} color="#2563eb" />
-                <span>MAJOR UPGRADE • GRADEFLOW 2.0</span>
+              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                <img
+                  src="/webisteLogo.png"
+                  alt="GradeFlow Logo"
+                  style={{
+                    height: 28,
+                    width: "auto",
+                    objectFit: "contain",
+                    display: "block",
+                  }}
+                />
+                <div>
+                  <h2
+                    id="upgrade-modal-title"
+                    style={{
+                      fontSize: 16,
+                      fontWeight: 800,
+                      color: "#0f172a",
+                      margin: 0,
+                      lineHeight: 1.2,
+                      letterSpacing: "-0.3px",
+                    }}
+                  >
+                    Welcome to GradeFlow
+                  </h2>
+                  <span style={{ fontSize: 12, color: "#64748b", fontWeight: 500 }}>
+                    Academic Intelligence Suite
+                  </span>
+                </div>
               </div>
 
-              {/* Title & Subtitle */}
-              <h2
-                id="upgrade-modal-title"
+              {/* Clean Close Button */}
+              <button
+                type="button"
+                onClick={handleDismiss}
+                aria-label="Close"
                 style={{
-                  fontSize: isMobile ? 17 : 22,
-                  fontWeight: 900,
-                  color: "#0f172a",
-                  lineHeight: 1.25,
-                  margin: "0 0 4px 0",
-                  letterSpacing: "-0.4px",
-                  paddingRight: 24,
+                  width: 30,
+                  height: 30,
+                  borderRadius: 8,
+                  background: "#f8fafc",
+                  border: "1px solid #e2e8f0",
+                  color: "#64748b",
                   display: "flex",
                   alignItems: "center",
-                  gap: 8,
+                  justifyContent: "center",
+                  cursor: "pointer",
+                  transition: "all 0.15s ease",
+                  padding: 0,
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = "#f1f5f9";
+                  e.currentTarget.style.color = "#0f172a";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = "#f8fafc";
+                  e.currentTarget.style.color = "#64748b";
                 }}
               >
-                <span>Welcome to the All-New Look of GradeFlow!</span>
-                <Award size={20} color="#2563eb" style={{ flexShrink: 0 }} />
-              </h2>
+                <X size={15} />
+              </button>
+            </div>
+
+            {/* Scrollable Features Content */}
+            <div
+              style={{
+                padding: "16px 20px",
+                overflowY: "auto",
+                WebkitOverflowScrolling: "touch",
+                flex: 1,
+                display: "flex",
+                flexDirection: "column",
+                gap: 10,
+              }}
+            >
               <p
                 style={{
-                  fontSize: isMobile ? 11.5 : 13,
-                  color: "#64748b",
-                  lineHeight: 1.45,
-                  margin: isMobile ? "0 0 10px 0" : "0 0 16px 0",
+                  fontSize: 13,
+                  color: "#475569",
+                  lineHeight: 1.5,
+                  margin: "0 0 4px 0",
                 }}
               >
-                We've redesigned GradeFlow with a cleaner UI, faster navigation, richer analytics,
-                and silky smooth transitions.
+                Designed to give you deep visibility into your university coursework, attendance,
+                and career trajectory.
               </p>
 
-              {/* Feature Highlights Grid (2 columns on both mobile & desktop) */}
+              {/* Clean Feature List */}
               <div
                 style={{
                   display: "grid",
-                  gridTemplateColumns: "repeat(2, 1fr)",
-                  gap: isMobile ? 6 : 10,
-                  marginBottom: isMobile ? 12 : 18,
+                  gridTemplateColumns: "1fr",
+                  gap: 8,
                 }}
               >
-                {/* Feature 1 */}
-                <div
-                  style={{
-                    display: "flex",
-                    alignItems: "flex-start",
-                    gap: isMobile ? 7 : 9,
-                    padding: isMobile ? "8px 9px" : "10px 12px",
-                    background: "#f8fafc",
-                    border: "1px solid #e2e8f0",
-                    borderRadius: isMobile ? 10 : 12,
-                  }}
-                >
-                  <div
-                    style={{
-                      width: isMobile ? 24 : 28,
-                      height: isMobile ? 24 : 28,
-                      borderRadius: 7,
-                      background: "#dbeafe",
-                      color: "#2563eb",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      flexShrink: 0,
-                      marginTop: 1,
-                    }}
-                  >
-                    <Zap size={isMobile ? 13 : 15} />
-                  </div>
-                  <div>
-                    <div style={{ fontSize: isMobile ? 11 : 12.5, fontWeight: 800, color: "#0f172a", lineHeight: 1.2 }}>
-                      Silky Transitions
+                {FEATURES.map((item, idx) => {
+                  const Icon = item.icon;
+                  return (
+                    <div
+                      key={idx}
+                      style={{
+                        display: "flex",
+                        alignItems: "flex-start",
+                        gap: 12,
+                        padding: "10px 12px",
+                        background: "#f8fafc",
+                        border: "1px solid #f1f5f9",
+                        borderRadius: 10,
+                        transition: "background 0.15s ease",
+                      }}
+                    >
+                      <div
+                        style={{
+                          width: 32,
+                          height: 32,
+                          borderRadius: 8,
+                          background: item.iconBg,
+                          color: item.iconColor,
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          flexShrink: 0,
+                          marginTop: 1,
+                        }}
+                      >
+                        <Icon size={16} />
+                      </div>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div
+                          style={{
+                            fontSize: 13,
+                            fontWeight: 700,
+                            color: "#0f172a",
+                            lineHeight: 1.3,
+                          }}
+                        >
+                          {item.title}
+                        </div>
+                        <div
+                          style={{
+                            fontSize: 11.5,
+                            color: "#64748b",
+                            lineHeight: 1.4,
+                            marginTop: 2,
+                          }}
+                        >
+                          {item.desc}
+                        </div>
+                      </div>
                     </div>
-                    <div style={{ fontSize: isMobile ? 9.5 : 11, color: "#64748b", lineHeight: 1.3, marginTop: 1 }}>
-                      Smooth animated page loads & sub-tabs.
-                    </div>
-                  </div>
-                </div>
-
-                {/* Feature 2 */}
-                <div
-                  style={{
-                    display: "flex",
-                    alignItems: "flex-start",
-                    gap: isMobile ? 7 : 9,
-                    padding: isMobile ? "8px 9px" : "10px 12px",
-                    background: "#f8fafc",
-                    border: "1px solid #e2e8f0",
-                    borderRadius: isMobile ? 10 : 12,
-                  }}
-                >
-                  <div
-                    style={{
-                      width: isMobile ? 24 : 28,
-                      height: isMobile ? 24 : 28,
-                      borderRadius: 7,
-                      background: "#f3e8ff",
-                      color: "#7e22ce",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      flexShrink: 0,
-                      marginTop: 1,
-                    }}
-                  >
-                    <BarChart2 size={isMobile ? 13 : 15} />
-                  </div>
-                  <div>
-                    <div style={{ fontSize: isMobile ? 11 : 12.5, fontWeight: 800, color: "#0f172a", lineHeight: 1.2 }}>
-                      Grade Distribution
-                    </div>
-                    <div style={{ fontSize: isMobile ? 9.5 : 11, color: "#64748b", lineHeight: 1.3, marginTop: 1 }}>
-                      Letter charts, honours ratio & radar.
-                    </div>
-                  </div>
-                </div>
-
-                {/* Feature 3 */}
-                <div
-                  style={{
-                    display: "flex",
-                    alignItems: "flex-start",
-                    gap: isMobile ? 7 : 9,
-                    padding: isMobile ? "8px 9px" : "10px 12px",
-                    background: "#f8fafc",
-                    border: "1px solid #e2e8f0",
-                    borderRadius: isMobile ? 10 : 12,
-                  }}
-                >
-                  <div
-                    style={{
-                      width: isMobile ? 24 : 28,
-                      height: isMobile ? 24 : 28,
-                      borderRadius: 7,
-                      background: "#fef3c7",
-                      color: "#b45309",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      flexShrink: 0,
-                      marginTop: 1,
-                    }}
-                  >
-                    <Layers size={isMobile ? 13 : 15} />
-                  </div>
-                  <div>
-                    <div style={{ fontSize: isMobile ? 11 : 12.5, fontWeight: 800, color: "#0f172a", lineHeight: 1.2 }}>
-                      Refined Modern UI
-                    </div>
-                    <div style={{ fontSize: isMobile ? 9.5 : 11, color: "#64748b", lineHeight: 1.3, marginTop: 1 }}>
-                      Clean typography & responsive stats.
-                    </div>
-                  </div>
-                </div>
-
-                {/* Feature 4 */}
-                <div
-                  style={{
-                    display: "flex",
-                    alignItems: "flex-start",
-                    gap: isMobile ? 7 : 9,
-                    padding: isMobile ? "8px 9px" : "10px 12px",
-                    background: "#f8fafc",
-                    border: "1px solid #e2e8f0",
-                    borderRadius: isMobile ? 10 : 12,
-                  }}
-                >
-                  <div
-                    style={{
-                      width: isMobile ? 24 : 28,
-                      height: isMobile ? 24 : 28,
-                      borderRadius: 7,
-                      background: "#dcfce7",
-                      color: "#15803d",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      flexShrink: 0,
-                      marginTop: 1,
-                    }}
-                  >
-                    <ShieldCheck size={isMobile ? 13 : 15} />
-                  </div>
-                  <div>
-                    <div style={{ fontSize: isMobile ? 11 : 12.5, fontWeight: 800, color: "#0f172a", lineHeight: 1.2 }}>
-                      Hardened Security
-                    </div>
-                    <div style={{ fontSize: isMobile ? 9.5 : 11, color: "#64748b", lineHeight: 1.3, marginTop: 1 }}>
-                      Rate limits & cookie protections.
-                    </div>
-                  </div>
-                </div>
+                  );
+                })}
               </div>
             </div>
 
-            {/* Pinned Bottom Actions Bar */}
+            {/* Bottom Actions Bar */}
             <div
               style={{
-                padding: isMobile ? "10px 14px 12px 14px" : "12px 24px 18px 24px",
+                padding: "12px 20px 16px 20px",
                 background: "#ffffff",
                 borderTop: "1px solid #f1f5f9",
                 display: "flex",
                 alignItems: "center",
-                gap: 8,
+                gap: 10,
                 flexShrink: 0,
               }}
             >
-              {/* Secondary Button: Leave a Review */}
+              {/* Secondary: Leave Feedback */}
               <button
+                type="button"
                 onClick={handleOpenReview}
                 style={{
                   flex: 1,
@@ -406,60 +320,62 @@ export default function UpgradeModal() {
                   alignItems: "center",
                   justifyContent: "center",
                   gap: 6,
-                  padding: isMobile ? "9px 10px" : "11px 16px",
+                  padding: "10px 14px",
                   borderRadius: 10,
-                  background: "#fffbeb",
-                  border: "1.5px solid #fde68a",
-                  color: "#b45309",
-                  fontSize: isMobile ? 12 : 13.5,
-                  fontWeight: 800,
+                  background: "#ffffff",
+                  border: "1px solid #cbd5e1",
+                  color: "#334155",
+                  fontSize: 13,
+                  fontWeight: 650,
                   cursor: "pointer",
                   transition: "all 0.15s ease",
                   whiteSpace: "nowrap",
                 }}
                 onMouseEnter={(e) => {
-                  e.currentTarget.style.background = "#fef3c7";
-                  e.currentTarget.style.borderColor = "#f59e0b";
+                  e.currentTarget.style.background = "#f8fafc";
+                  e.currentTarget.style.borderColor = "#94a3b8";
                 }}
                 onMouseLeave={(e) => {
-                  e.currentTarget.style.background = "#fffbeb";
-                  e.currentTarget.style.borderColor = "#fde68a";
+                  e.currentTarget.style.background = "#ffffff";
+                  e.currentTarget.style.borderColor = "#cbd5e1";
                 }}
               >
-                <Star size={isMobile ? 13 : 15} fill="#f59e0b" color="#f59e0b" />
-                <span>Leave a Review</span>
+                <MessageSquare size={14} />
+                <span>Feedback</span>
               </button>
 
-              {/* Primary Button: Explore Gradeflow */}
+              {/* Primary: Get Started / Explore */}
               <button
+                type="button"
                 onClick={handleDismiss}
                 style={{
-                  flex: 1.2,
+                  flex: 1.4,
                   display: "inline-flex",
                   alignItems: "center",
                   justifyContent: "center",
                   gap: 6,
-                  padding: isMobile ? "9px 12px" : "11px 18px",
+                  padding: "10px 16px",
                   borderRadius: 10,
-                  background: "linear-gradient(135deg, #2563eb, #1d4ed8)",
-                  border: "1px solid #1e40af",
+                  background: "#2563eb",
+                  border: "1px solid #2563eb",
                   color: "#ffffff",
-                  fontSize: isMobile ? 12 : 13.5,
-                  fontWeight: 800,
+                  fontSize: 13,
+                  fontWeight: 700,
                   cursor: "pointer",
                   transition: "all 0.15s ease",
-                  boxShadow: "0 4px 12px rgba(37, 99, 235, 0.22)",
                   whiteSpace: "nowrap",
                 }}
                 onMouseEnter={(e) => {
-                  e.currentTarget.style.background = "linear-gradient(135deg, #1d4ed8, #1e40af)";
+                  e.currentTarget.style.background = "#1d4ed8";
+                  e.currentTarget.style.borderColor = "#1d4ed8";
                 }}
                 onMouseLeave={(e) => {
-                  e.currentTarget.style.background = "linear-gradient(135deg, #2563eb, #1d4ed8)";
+                  e.currentTarget.style.background = "#2563eb";
+                  e.currentTarget.style.borderColor = "#2563eb";
                 }}
               >
-                <span>Explore GradeFlow</span>
-                <ArrowRight size={isMobile ? 13 : 15} />
+                <span>Get Started</span>
+                <ArrowRight size={14} />
               </button>
             </div>
           </motion.div>
