@@ -78,8 +78,8 @@ function getTimeUntilIstMidnight() {
 router.get("/student/check-status", async (req, res) => {
   try {
     const rawReg = String(req.query.regNo || "").trim().toUpperCase();
-    if (!rawReg) {
-      return res.status(400).json({ message: "Registration number required." });
+    if (!rawReg || !/^[a-zA-Z0-9]{5,20}$/.test(rawReg)) {
+      return res.status(400).json({ success: false, message: "Valid registration number required (5-20 alphanumeric characters)." });
     }
 
     const studentRecord = await SemesterResult.findOne({ regNo: rawReg }).sort({ semester: -1 });
@@ -151,11 +151,11 @@ router.get("/student/check-status", async (req, res) => {
 });
 
 // 1. Send OTP to student university email
-router.post("/student/send-otp", async (req, res) => {
+router.post("/student/send-otp", otpSendLimiter, async (req, res) => {
   try {
     const rawReg = String(req.body.regNo || "").trim().toUpperCase();
-    if (!rawReg) {
-      return res.status(400).json({ message: "Registration number is required." });
+    if (!rawReg || !/^[a-zA-Z0-9]{5,20}$/.test(rawReg)) {
+      return res.status(400).json({ success: false, message: "Invalid registration number format. Must be 5-20 alphanumeric characters." });
     }
 
     // Verify student exists in university records
@@ -338,8 +338,11 @@ router.post("/student/verify-otp", otpLimiter, async (req, res) => {
     const rawReg = String(req.body.regNo || "").trim().toUpperCase();
     const rawOtp = String(req.body.otp || "").trim();
 
-    if (!rawReg || !rawOtp) {
-      return res.status(400).json({ message: "Registration number and OTP code are required." });
+    if (!rawReg || !/^[a-zA-Z0-9]{5,20}$/.test(rawReg)) {
+      return res.status(400).json({ success: false, message: "Invalid registration number format." });
+    }
+    if (!rawOtp || !/^\d{6}$/.test(rawOtp)) {
+      return res.status(400).json({ success: false, message: "Invalid OTP format. Must be a 6-digit numeric code." });
     }
 
     // Find active OTP record

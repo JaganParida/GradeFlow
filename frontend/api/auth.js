@@ -383,8 +383,8 @@ module.exports = async function handler(req, res) {
     ───────────────────────────────────────────────────────────── */
     if ((action === "student-check-status" || action === "check-status") && req.method === "GET") {
       const rawReg = String(req.query.regNo || "").trim().toUpperCase();
-      if (!rawReg) {
-        return res.status(400).json({ message: "Registration number required." });
+      if (!rawReg || !/^[a-zA-Z0-9]{5,20}$/.test(rawReg)) {
+        return res.status(400).json({ success: false, message: "Valid registration number required (5-20 alphanumeric characters)." });
       }
 
       const studentRecord = await SemesterResult.findOne({ regNo: rawReg }).sort({ semester: -1 });
@@ -456,8 +456,8 @@ module.exports = async function handler(req, res) {
     ───────────────────────────────────────────────────────────── */
     if ((action === "student-send-otp" || action === "send-otp") && req.method === "POST") {
       const rawReg = String(req.body.regNo || "").trim().toUpperCase();
-      if (!rawReg) {
-        return res.status(400).json({ message: "Registration number is required." });
+      if (!rawReg || !/^[a-zA-Z0-9]{5,20}$/.test(rawReg)) {
+        return res.status(400).json({ success: false, message: "Invalid registration number format. Must be 5-20 alphanumeric characters." });
       }
 
       const studentRecord = await SemesterResult.findOne({ regNo: rawReg }).sort({ semester: -1 });
@@ -625,8 +625,11 @@ module.exports = async function handler(req, res) {
       const rawReg = String(req.body.regNo || "").trim().toUpperCase();
       const rawOtp = String(req.body.otp || "").trim();
 
-      if (!rawReg || !rawOtp) {
-        return res.status(400).json({ message: "Registration number and OTP code are required." });
+      if (!rawReg || !/^[a-zA-Z0-9]{5,20}$/.test(rawReg)) {
+        return res.status(400).json({ success: false, message: "Invalid registration number format." });
+      }
+      if (!rawOtp || !/^\d{6}$/.test(rawOtp)) {
+        return res.status(400).json({ success: false, message: "Invalid OTP format. Must be a 6-digit numeric code." });
       }
 
       const otpRecord = await OtpVerification.findOne({ regNo: rawReg });
