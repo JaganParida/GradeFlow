@@ -299,12 +299,18 @@ export default function Dashboard() {
     }
   }, [urlParam, regNo, navigate]);
 
+  const normalizeTabParam = (raw) => {
+    if (!raw) return "result";
+    const p = String(raw).toLowerCase();
+    if (["baskets", "basket", "degree-progress", "degree", "credits"].includes(p)) return "baskets";
+    if (["result", "timetable", "internal", "history", "predictor"].includes(p)) return p;
+    return "result";
+  };
+
   const [tab, setTab] = useState(() => {
     try {
       const qTab = new URLSearchParams(window.location.search).get("tab");
-      if (qTab && ["result", "timetable", "internal", "history", "baskets", "predictor"].includes(qTab)) {
-        return qTab;
-      }
+      return normalizeTabParam(qTab);
     } catch (_) {}
     return "result";
   });
@@ -312,8 +318,8 @@ export default function Dashboard() {
   useEffect(() => {
     try {
       const qTab = new URLSearchParams(window.location.search).get("tab");
-      if (qTab && ["result", "timetable", "internal", "history", "baskets", "predictor"].includes(qTab)) {
-        setTab(qTab);
+      if (qTab) {
+        setTab(normalizeTabParam(qTab));
       }
     } catch (_) {}
   }, [window.location.search]);

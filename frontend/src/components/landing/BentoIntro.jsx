@@ -20,6 +20,7 @@ export default function BentoIntro({
   onOpenPredictor,
   onOpenPlacement,
   onOpenDomains,
+  onOpenDegreeProgress,
   onOpenTimetable,
   onOpenAttendance,
   onOpenLeaderboard,
@@ -162,7 +163,7 @@ export default function BentoIntro({
 
           {/* Card 4: 5-Basket Degree Framework (Compact) */}
           <div
-            onClick={onOpenDomains || (() => onNavigateSection("domains"))}
+            onClick={onOpenDegreeProgress || onOpenDomains || (() => onNavigateSection("domains"))}
             style={{
               background: "#ffffff",
               padding: "24px 22px",

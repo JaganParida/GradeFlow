@@ -134,6 +134,15 @@ export default function Home() {
     }
   };
 
+  const handleDegreeProgress = () => {
+    if (authChecking) return;
+    if (hasActiveSession && currentRegNo) {
+      navigate(`/dashboard/${encodeStudentId(currentRegNo)}?tab=baskets`);
+    } else {
+      openStudentAuthModal({ type: "dashboard", tab: "baskets" });
+    }
+  };
+
   const handleLeaderboard = () => {
     if (authChecking) return;
     if (hasActiveSession && currentRegNo) {
@@ -176,6 +185,7 @@ export default function Home() {
         onOpenPredictor={handlePredictor}
         onOpenPlacement={handlePlacement}
         onOpenDomains={handleDomains}
+        onOpenDegreeProgress={handleDegreeProgress}
         onOpenTimetable={handleTimetable}
         onOpenAttendance={handleAttendance}
         onOpenLeaderboard={handleLeaderboard}

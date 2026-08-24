@@ -85,6 +85,9 @@ export default function StudentAuthModal({ isOpen, onClose }) {
         navigate("/leaderboard");
       } else if (dest.path) {
         navigate(dest.path.replace(":id", encodeStudentId(cleanReg)));
+      } else if (dest.type === "dashboard") {
+        const query = dest.tab ? `?tab=${encodeURIComponent(dest.tab)}` : "";
+        navigate(`/dashboard/${encodeStudentId(cleanReg)}${query}`);
       } else {
         navigate(`/dashboard/${encodeStudentId(cleanReg)}`);
       }
