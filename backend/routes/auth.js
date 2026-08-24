@@ -125,6 +125,25 @@ router.get("/student/check-status", async (req, res) => {
       status: "ACTIVE",
     }));
 
+    const dateKey = getIstDateKey();
+    const dailyLimit = await StudentDailyLimit.findOne({ regNo: rawReg, dateKey });
+    const maxDailyLimit = Number(process.env.STUDENT_DAILY_OTP_MAX) || 2;
+    const isUnlimited = rawReg === "230301120327";
+
+    let isCooldownActive = false;
+    let cooldownRemainingSeconds = 0;
+    if (!isUnlimited && dailyLimit && dailyLimit.lastOtpSentAt) {
+      const timeSinceLastSend = Date.now() - new Date(dailyLimit.lastOtpSentAt).getTime();
+      if (timeSinceLastSend < 180 * 1000) {
+        isCooldownActive = true;
+        cooldownRemainingSeconds = Math.ceil((180 * 1000 - timeSinceLastSend) / 1000);
+      }
+    }
+
+    const currentDailyCount = dailyLimit ? dailyLimit.otpSendCount : 0;
+    const isDailyLimitReached = !isUnlimited && currentDailyCount >= maxDailyLimit;
+    const remainingDailyAttempts = isUnlimited ? 99 : Math.max(0, maxDailyLimit - currentDailyCount);
+
     return res.json({
       success: true,
       exists: true,
@@ -133,14 +152,30 @@ router.get("/student/check-status", async (req, res) => {
       activeDeviceCount: activeSessions.length,
       maxAllowedDevices,
       isBlocked,
-      loginAllowed: !isBlocked,
-      otpAllowed: !isBlocked,
+      loginAllowed: !isBlocked && !isDailyLimitReached,
+      otpAllowed: !isBlocked && !isDailyLimitReached && !isCooldownActive,
       verificationAllowed: !isBlocked,
-      blockReason: isBlocked ? "DEVICE_LIMIT_REACHED" : null,
+      attemptsUsedToday: currentDailyCount,
+      maxDailyAttempts: maxDailyLimit,
+      remainingDailyAttempts,
+      isCooldownActive,
+      cooldownRemainingSeconds,
+      isDailyLimitReached,
+      blockReason: isBlocked
+        ? "DEVICE_LIMIT_REACHED"
+        : isDailyLimitReached
+        ? "DAILY_LIMIT_EXCEEDED"
+        : isCooldownActive
+        ? "OTP_COOLDOWN_ACTIVE"
+        : null,
       blockMessage: isBlocked
         ? rawReg === "230301120327"
           ? `Account 230301120327 is already actively logged in on 2 devices (maximum 2 allowed). Please log out from one device before signing in on a new device.`
           : `Registration number ${rawReg} is already logged in on an active device. Single-device security policy is active. Please log out from that device first.`
+        : isDailyLimitReached
+        ? `Daily OTP limit reached (${currentDailyCount}/${maxDailyLimit} attempts used). Login for ${rawReg} is locked for today. It will automatically reset at midnight.`
+        : isCooldownActive
+        ? `Please wait ${cooldownRemainingSeconds} seconds before requesting another verification code.`
         : null,
       sessions: sessionDetails,
     });
@@ -324,6 +359,8 @@ router.post("/student/send-otp", otpSendLimiter, async (req, res) => {
       regNo: rawReg,
       expiresInSeconds: 180,
       cooldownSeconds: 180,
+      attemptsUsedToday: dailyLimit.otpSendCount,
+      maxDailyAttempts: maxDailyLimit,
       remainingDailyAttempts: isUnlimited ? 99 : Math.max(0, maxDailyLimit - dailyLimit.otpSendCount),
       isUnlimited,
     });

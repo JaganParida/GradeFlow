@@ -42,6 +42,7 @@ export default function StudentAuthModal({ isOpen, onClose }) {
   const [maskedEmail, setMaskedEmail] = useState("");
   const [studentName, setStudentName] = useState("");
   const [remainingDailyAttempts, setRemainingDailyAttempts] = useState(2);
+  const [attemptsUsed, setAttemptsUsed] = useState(0);
   const [timerSeconds, setTimerSeconds] = useState(180);
   const [timerActive, setTimerActive] = useState(false);
   const [resendCooldown, setResendCooldown] = useState(0);
@@ -117,6 +118,9 @@ export default function StudentAuthModal({ isOpen, onClose }) {
       setOtp("");
       setStep(1);
       setTimerActive(false);
+      setResendCooldown(0);
+      setAttemptsUsed(0);
+      setRemainingDailyAttempts(2);
       setDeviceStatus(null);
       setIsChecking(false);
       if (hasActiveSession && (studentSession?.regNo || studentData?.regNo)) {
@@ -132,6 +136,9 @@ export default function StudentAuthModal({ isOpen, onClose }) {
       setErrorMsg("");
       setErrorCode("");
       setTimerActive(false);
+      setResendCooldown(0);
+      setAttemptsUsed(0);
+      setRemainingDailyAttempts(2);
       setDeviceStatus(null);
       setIsChecking(false);
     }
@@ -183,6 +190,12 @@ export default function StudentAuthModal({ isOpen, onClose }) {
             setBlockedDevicesData(devices);
             setErrorMsg(res.data.blockMessage);
             setErrorCode("DEVICE_LIMIT_REACHED");
+          } else if (res.data.isDailyLimitReached) {
+            setDeviceStatus({ exists: true, isBlocked: true, message: res.data.blockMessage, reason: "DAILY_LIMIT_EXCEEDED" });
+            setErrorMsg(res.data.blockMessage);
+            setErrorCode("DAILY_LIMIT_EXCEEDED");
+            setAttemptsUsed(res.data.attemptsUsedToday || 2);
+            setRemainingDailyAttempts(0);
           } else if (res.data.isCurrentDevice) {
             setDeviceStatus({ exists: true, isCurrentDevice: true, isBlocked: false });
             setErrorMsg("");
@@ -192,12 +205,22 @@ export default function StudentAuthModal({ isOpen, onClose }) {
             if (res.data.studentName) {
               setStudentName(res.data.studentName);
             }
+            if (res.data.attemptsUsedToday !== undefined) {
+              setAttemptsUsed(res.data.attemptsUsedToday);
+            }
+            if (res.data.remainingDailyAttempts !== undefined) {
+              setRemainingDailyAttempts(res.data.remainingDailyAttempts);
+            }
+            if (res.data.isCooldownActive && res.data.cooldownRemainingSeconds) {
+              setResendCooldown(res.data.cooldownRemainingSeconds);
+            }
             if (
               errorCode === "DEVICE_LIMIT_REACHED" ||
               errorCode === "DEVICE_ALREADY_LOGGED_IN" ||
               errorCode === "MAX_DEVICES_ACTIVE" ||
               errorCode === "STUDENT_NOT_FOUND" ||
-              errorCode === "EMPTY_REG"
+              errorCode === "EMPTY_REG" ||
+              errorCode === "DAILY_LIMIT_EXCEEDED"
             ) {
               setErrorMsg("");
               setErrorCode("");
@@ -294,6 +317,7 @@ export default function StudentAuthModal({ isOpen, onClose }) {
 
       setMaskedEmail(result.data?.maskedEmail || `${cleanReg.toLowerCase()}@centurionuniv.edu.in`);
       setStudentName(result.data?.studentName || "Student");
+      setAttemptsUsed(result.data?.attemptsUsedToday ?? 1);
       setRemainingDailyAttempts(result.data?.remainingDailyAttempts ?? 1);
       setTimerSeconds(result.data?.expiresInSeconds || 180);
       setTimerActive(true);
@@ -305,6 +329,10 @@ export default function StudentAuthModal({ isOpen, onClose }) {
       if (result.code === "OTP_COOLDOWN_ACTIVE") {
         const wait = result.details?.remainingSeconds || 180;
         setResendCooldown(wait);
+      }
+      if (result.code === "DAILY_LIMIT_EXCEEDED") {
+        setAttemptsUsed(2);
+        setRemainingDailyAttempts(0);
       }
       if (
         result.code === "DEVICE_LIMIT_REACHED" ||
@@ -698,7 +726,12 @@ export default function StudentAuthModal({ isOpen, onClose }) {
                 <div style={{ display: "flex", alignItems: "center", gap: 7, fontSize: 11.5, color: "#475569" }}>
                   <Clock size={13} color="#2563eb" />
                   <span>
-                    <strong>Daily OTP Limit:</strong> {regNo.trim().toUpperCase() === "230301120327" ? "Developer bypass active." : "Maximum 2 attempts per day (resets at midnight)."}
+                    <strong>Daily OTP Limit:</strong>{" "}
+                    {cleanReg === "230301120327"
+                      ? "Developer bypass active (Unlimited)."
+                      : attemptsUsed > 0
+                      ? `${attemptsUsed}/2 attempts used today (${remainingDailyAttempts} remaining).`
+                      : "Maximum 2 attempts per day (resets at midnight)."}
                   </span>
                 </div>
                 <div style={{ display: "flex", alignItems: "center", gap: 7, fontSize: 11.5, color: "#475569" }}>
@@ -816,10 +849,10 @@ export default function StudentAuthModal({ isOpen, onClose }) {
                   {maskedEmail}
                 </div>
                 <div style={{ fontSize: 11, color: "#166534", marginTop: 3 }}>
-                  {remainingDailyAttempts >= 90 ? (
+                  {cleanReg === "230301120327" || remainingDailyAttempts >= 90 ? (
                     <span>Access: <strong>Developer Access (Unlimited)</strong></span>
                   ) : (
-                    <span>Remaining attempts today: <strong>{remainingDailyAttempts}/2</strong></span>
+                    <span>OTP Attempts: <strong>{attemptsUsed}/2 used today</strong> ({remainingDailyAttempts} remaining)</span>
                   )}
                 </div>
               </div>
