@@ -13,13 +13,12 @@ export default function MaintenanceGuard({ children }) {
   } = useApp();
   const location = useLocation();
 
-  // Authorized Admin Access: Only if admin is authenticated with active adminToken
-  const isAuthorizedAdminAccess =
-    Boolean(adminToken) && location.pathname.startsWith("/admin");
+  // Authorized Admin Access: Authenticated admins/sub-admins with active adminToken have full access across all routes
+  const isAdminAuthenticated = Boolean(adminToken);
   const isAdminLoginPage = location.pathname === "/admin/login";
 
-  // Allow navigation only for authenticated admins or the secure admin login route
-  const allowAccess = isAuthorizedAdminAccess || isAdminLoginPage;
+  // Allow unrestricted access for authenticated admins on all routes, or admin login for credentials entry
+  const allowAccess = isAdminAuthenticated || isAdminLoginPage;
 
   // Lock body scroll if maintenance is active on blocked routes
   useEffect(() => {

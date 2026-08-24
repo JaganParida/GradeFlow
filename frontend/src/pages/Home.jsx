@@ -160,6 +160,7 @@ export default function Home() {
       <HeroSection
         hasActiveSession={hasActiveSession}
         currentRegNo={currentRegNo}
+        authChecking={authChecking}
         onExplore={handleExplore}
         onLogin={handleLogin}
         onDashboard={handleDashboard}
@@ -223,6 +224,7 @@ export default function Home() {
       <FinalCtaSection
         hasActiveSession={hasActiveSession}
         currentRegNo={currentRegNo}
+        authChecking={authChecking}
         onOpenApp={handleDashboard}
         onLogin={handleLogin}
       />

@@ -1,9 +1,10 @@
 import React from "react";
-import { ArrowRight, ShieldCheck, GraduationCap, CheckCircle2 } from "lucide-react";
+import { ArrowRight, ShieldCheck, GraduationCap, CheckCircle2, Loader2 } from "lucide-react";
 
 export default function FinalCtaSection({
   hasActiveSession,
   currentRegNo,
+  authChecking = false,
   onOpenApp,
   onLogin,
 }) {
@@ -86,6 +87,7 @@ export default function FinalCtaSection({
 
           {/* Action Buttons */}
           <div
+            className="gf-hero-btn-container"
             style={{
               display: "flex",
               alignItems: "center",
@@ -95,7 +97,29 @@ export default function FinalCtaSection({
               marginBottom: 32,
             }}
           >
-            {hasActiveSession ? (
+            {authChecking ? (
+              <div
+                className="gf-mobile-full-btn"
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: 8,
+                  padding: "13px 22px",
+                  borderRadius: 10,
+                  background: "#eff6ff",
+                  border: "1px solid #bfdbfe",
+                  color: "#2563eb",
+                  fontSize: "clamp(13px, 3.2vw, 15px)",
+                  fontWeight: 700,
+                  cursor: "default",
+                  userSelect: "none",
+                }}
+              >
+                <Loader2 size={16} className="gf-spin" />
+                <span>Verifying session...</span>
+              </div>
+            ) : hasActiveSession ? (
               <button
                 className="gf-mobile-full-btn"
                 onClick={onOpenApp}
@@ -112,18 +136,15 @@ export default function FinalCtaSection({
                   fontWeight: 700,
                   border: "none",
                   cursor: "pointer",
-                  boxShadow: "0 4px 14px rgba(37, 99, 235, 0.28)",
                   transition: "all 0.15s ease",
                   whiteSpace: "nowrap",
                   flexWrap: "nowrap",
                 }}
                 onMouseEnter={(e) => {
                   e.currentTarget.style.background = "#1d4ed8";
-                  e.currentTarget.style.boxShadow = "0 6px 20px rgba(37, 99, 235, 0.35)";
                 }}
                 onMouseLeave={(e) => {
                   e.currentTarget.style.background = "#2563eb";
-                  e.currentTarget.style.boxShadow = "0 4px 14px rgba(37, 99, 235, 0.28)";
                 }}
               >
                 <span>Continue to Dashboard</span>

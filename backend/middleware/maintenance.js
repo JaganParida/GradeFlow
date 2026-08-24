@@ -100,6 +100,8 @@ async function setMaintenanceState({ enabled, message = "", adminEmail = "" }) {
   return cachedMaintenance;
 }
 
+const jwt = require("jsonwebtoken");
+
 /**
  * Express middleware to enforce maintenance mode on student-facing routes
  */
@@ -111,9 +113,7 @@ function maintenanceMiddleware(req, res, next) {
 
   const path = req.originalUrl || req.url || "";
 
-  // ─── ADMIN & SYSTEM BYPASS ────────────────────────────────────────────────
-  // Main Admin, Sub-Admin, and system diagnostic endpoints MUST ALWAYS remain accessible
-  // so admins can log in, inspect health, and disable maintenance mode.
+  // ─── 1. SYSTEM & ADMIN ROUTES ALWAYS ACCESSIBLE ─────────────────────────
   if (
     path.startsWith("/api/admin") ||
     path.startsWith("/api/auth/admin") ||
@@ -124,7 +124,29 @@ function maintenanceMiddleware(req, res, next) {
     return next();
   }
 
-  // ─── BLOCK STUDENT / PUBLIC ACCESS WITH 503 SERVICE UNAVAILABLE ───────────
+  // ─── 2. AUTHENTICATED ADMIN / SUB-ADMIN BYPASS ──────────────────────────
+  // Authenticated administrators have full access to test/inspect all routes during maintenance
+  let token = null;
+  if (req.cookies && req.cookies.jwt && req.cookies.jwt !== "none" && req.cookies.jwt !== "") {
+    token = req.cookies.jwt;
+  } else if (req.headers.authorization && req.headers.authorization.startsWith("Bearer")) {
+    token = req.headers.authorization.split(" ")[1];
+  } else if (req.headers["x-admin-token"]) {
+    token = req.headers["x-admin-token"];
+  }
+
+  if (token && process.env.JWT_SECRET) {
+    try {
+      const decoded = jwt.verify(token, process.env.JWT_SECRET, { algorithms: ["HS256"] });
+      if (decoded && (decoded.role === "admin" || decoded.adminType === "subadmin" || decoded.email)) {
+        return next();
+      }
+    } catch {
+      // Invalid/expired admin token, proceed to block
+    }
+  }
+
+  // ─── 3. BLOCK STUDENT / PUBLIC ACCESS WITH 503 SERVICE UNAVAILABLE ───────
   res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate");
   res.setHeader("Pragma", "no-cache");
 
