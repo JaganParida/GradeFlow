@@ -154,7 +154,12 @@ function getGmailTransporter() {
 
   // Use dedicated Gmail credentials if set, otherwise fallback to EMAIL_USER/EMAIL_PASS if service is gmail
   const gmailUser = process.env.GMAIL_SMTP_USER || process.env.GMAIL_USER || (process.env.EMAIL_SERVICE === "gmail" ? process.env.EMAIL_USER : null);
-  const gmailPass = process.env.GMAIL_SMTP_PASS || process.env.GMAIL_PASS || (process.env.EMAIL_SERVICE === "gmail" ? process.env.EMAIL_PASS : null);
+  const gmailPass =
+    process.env.GMAIL_SMTP_PASS ||
+    process.env.GMAIL_SMTP_APP_PASSWORD ||
+    process.env.GMAIL_APP_PASSWORD ||
+    process.env.GMAIL_PASS ||
+    (process.env.EMAIL_SERVICE === "gmail" ? process.env.EMAIL_PASS : null);
 
   if (!gmailUser || !gmailPass) {
     return null; // Gmail fallback not configured
@@ -187,6 +192,45 @@ async function sendMailWithFailover(mailOptions) {
 
   const maxBrevoDaily = Number(process.env.BREVO_DAILY_LIMIT) || 300;
   const maxGmailDaily = Number(process.env.GMAIL_DAILY_LIMIT) || 500;
+
+  const primaryChoice = (process.env.PRIMARY_EMAIL_PROVIDER || process.env.EMAIL_PROVIDER || "").toLowerCase();
+  const preferGmail = primaryChoice === "gmail" || process.env.EMAIL_SERVICE === "gmail" || process.env.GMAIL_PRIMARY === "true";
+
+  if (preferGmail && gmailTransporter) {
+    const isGmailAvailable =
+      !providerState.gmail.isQuotaExhausted &&
+      providerState.gmail.dailySentCount < maxGmailDaily &&
+      (!providerState.gmail.quotaExhaustedUntil || Date.now() > providerState.gmail.quotaExhaustedUntil);
+
+    if (isGmailAvailable) {
+      try {
+        const gmailSender = process.env.GMAIL_SMTP_USER || process.env.GMAIL_USER || mailOptions.from;
+        const gmailOptions = {
+          ...mailOptions,
+          from: mailOptions.from || `"GradeFlow" <${gmailSender}>`,
+        };
+        const result = await gmailTransporter.sendMail(gmailOptions);
+        providerState.gmail.dailySentCount += 1;
+        providerState.gmail.consecutiveFailures = 0;
+        return { success: true, provider: "gmail", messageId: result?.messageId };
+      } catch (gmailErr) {
+        const gmailClass = classifySmtpError(gmailErr);
+        console.warn(`[EmailService] Gmail primary delivery failed (${gmailClass}): ${gmailErr.message}`);
+        if (brevoTransporter) {
+          try {
+            const result = await brevoTransporter.sendMail(mailOptions);
+            providerState.brevo.dailySentCount += 1;
+            providerState.brevo.consecutiveFailures = 0;
+            return { success: true, provider: "brevo_fallback", messageId: result?.messageId, primaryFailureReason: gmailClass };
+          } catch (brevoErr) {
+            throw new EmailProviderError("OTP delivery is temporarily unavailable. Please try again later.", "ALL_PROVIDERS_UNAVAILABLE", brevoErr);
+          }
+        } else {
+          throw new EmailProviderError("OTP delivery is temporarily unavailable. Please try again later.", "ALL_PROVIDERS_UNAVAILABLE", gmailErr);
+        }
+      }
+    }
+  }
 
   let brevoFailed = false;
   let brevoClassification = "UNKNOWN";
