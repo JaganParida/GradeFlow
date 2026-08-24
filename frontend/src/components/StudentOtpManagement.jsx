@@ -545,7 +545,7 @@ export default function StudentOtpManagement({ API, authHeaders, isMobile }) {
                 </h4>
               </div>
               <p style={{ margin: 0, fontSize: 12.5, color: "#64748b", maxWidth: 650, lineHeight: 1.4 }}>
-                Resets only today's OTP quota ({studentData.todayDateKey}) for student <strong>{studentData.regNo}</strong> to <strong>0 / 2</strong> and clears active cooldown. Historical activity logs above are permanently retained for audit purposes.
+                Resets only today's OTP quota ({studentData.todayDateKey}) for student <strong>{studentData.regNo}</strong> to <strong>0 / {studentData.maxDailyLimit}</strong> and clears active cooldown. Historical activity logs above are permanently retained for audit purposes.
               </p>
             </div>
 
@@ -657,7 +657,7 @@ export default function StudentOtpManagement({ API, authHeaders, isMobile }) {
                 </div>
                 <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13 }}>
                   <span style={{ color: "#64748b" }}>Today's Usage Change:</span>
-                  <strong style={{ color: "#b91c1c" }}>{studentData.todayUsage} / 2 &rarr; <span style={{ color: "#16a34a" }}>0 / 2</span></strong>
+                  <strong style={{ color: "#b91c1c" }}>{studentData.todayUsage} / {studentData.maxDailyLimit} &rarr; <span style={{ color: "#16a34a" }}>0 / {studentData.maxDailyLimit}</span></strong>
                 </div>
                 <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13 }}>
                   <span style={{ color: "#64748b" }}>Cooldown Status:</span>
