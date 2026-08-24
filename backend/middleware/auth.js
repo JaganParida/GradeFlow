@@ -135,6 +135,7 @@ const protect = async (req, res, next) => {
       };
     }
 
+    req.user = req.admin;
     next();
   } catch {
     res.status(401).json({ success: false, message: "Not authorized, token invalid or expired" });

@@ -2897,7 +2897,8 @@ const AdminAuditLog = require("../models/AdminAuditLog");
 // GET current maintenance mode status
 router.get("/maintenance", async (req, res) => {
   try {
-    const isMainAdmin = req.user && (req.user.adminType === "main" || !req.user.adminType);
+    const adminObj = req.admin || req.user;
+    const isMainAdmin = adminObj && (adminObj.adminType === "main" || !adminObj.adminType);
     if (!isMainAdmin) {
       return res.status(403).json({
         success: false,
@@ -2919,7 +2920,8 @@ router.get("/maintenance", async (req, res) => {
 // PUT update maintenance mode status (Toggle ON/OFF)
 router.put("/maintenance", async (req, res) => {
   try {
-    const isMainAdmin = req.user && (req.user.adminType === "main" || !req.user.adminType);
+    const adminObj = req.admin || req.user;
+    const isMainAdmin = adminObj && (adminObj.adminType === "main" || !adminObj.adminType);
     if (!isMainAdmin) {
       return res.status(403).json({
         success: false,
@@ -2928,7 +2930,7 @@ router.put("/maintenance", async (req, res) => {
     }
 
     const { enabled, message } = req.body || {};
-    const adminEmail = req.user?.email || "main_admin";
+    const adminEmail = adminObj?.email || process.env.ADMIN_EMAIL || "main_admin";
 
     const updated = await setMaintenanceState({
       enabled: Boolean(enabled),

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { motion, AnimatePresence } from "framer-motion";
 import { formatDistanceToNow } from "date-fns";
+import { useApp } from "../context/AppContext";
 import {
   ShieldCheck,
   ShieldAlert,
@@ -143,6 +144,7 @@ function formatTimeAgo(dateStr) {
 }
 
 export default function AdminManagement({ API, authHeaders, isMobile }) {
+  const { setMaintenance, checkMaintenanceStatus } = useApp();
   const [subAdmins, setSubAdmins] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("accounts"); // 'accounts' | 'audit-logs'
@@ -211,6 +213,7 @@ export default function AdminManagement({ API, authHeaders, isMobile }) {
       if (data.success && data.maintenance) {
         setMaintenanceData(data.maintenance);
         setMaintenanceMessageInput(data.maintenance.message || "");
+        if (setMaintenance) setMaintenance(data.maintenance);
       }
     } catch (err) {
       console.warn("Failed to fetch maintenance settings:", err);
@@ -231,6 +234,8 @@ export default function AdminManagement({ API, authHeaders, isMobile }) {
       );
       if (data.success) {
         setMaintenanceData(data.maintenance);
+        if (setMaintenance) setMaintenance(data.maintenance);
+        if (checkMaintenanceStatus) await checkMaintenanceStatus(true);
         setShowEnableConfirmModal(false);
         setMaintenanceSuccess("Global Maintenance Mode enabled successfully. Student access is now restricted.");
         setTimeout(() => setMaintenanceSuccess(""), 5000);
@@ -254,6 +259,8 @@ export default function AdminManagement({ API, authHeaders, isMobile }) {
       );
       if (data.success) {
         setMaintenanceData(data.maintenance);
+        if (setMaintenance) setMaintenance(data.maintenance);
+        if (checkMaintenanceStatus) await checkMaintenanceStatus(true);
         setShowDisableConfirmModal(false);
         setMaintenanceSuccess("Global Maintenance Mode disabled successfully. Student access has been restored.");
         setTimeout(() => setMaintenanceSuccess(""), 5000);
