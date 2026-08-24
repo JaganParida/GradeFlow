@@ -256,7 +256,7 @@ router.post("/student/send-otp", async (req, res) => {
       }
     }
 
-    const maxDailyLimit = Number(process.env.STUDENT_DAILY_OTP_MAX) || 3;
+    const maxDailyLimit = Number(process.env.STUDENT_DAILY_OTP_MAX) || 2;
     if (!isUnlimited && dailyLimit.otpSendCount >= maxDailyLimit) {
       const { hours, mins, totalSeconds } = getTimeUntilIstMidnight();
       return res.status(429).json({
@@ -286,11 +286,6 @@ router.post("/student/send-otp", async (req, res) => {
       })
     );
 
-    // Increment daily count atomically
-    dailyLimit.otpSendCount += 1;
-    dailyLimit.lastOtpSentAt = new Date();
-    await globalDbQueue.run(() => dailyLimit.save());
-
     // ── Dispatch Email via Primary Brevo with Gmail Fallback ──
     try {
       const emailResult = await sendStudentOtpEmail({
@@ -304,8 +299,15 @@ router.post("/student/send-otp", async (req, res) => {
       if (emailResult.provider === "gmail_fallback") {
         console.log(`[Auth] OTP for ${rawReg} dispatched via Gmail fallback (${emailResult.primaryFailureReason}).`);
       }
+
+      // ONLY consume daily attempt if email was successfully delivered by Brevo or Gmail!
+      dailyLimit.otpSendCount += 1;
+      dailyLimit.lastOtpSentAt = new Date();
+      await globalDbQueue.run(() => dailyLimit.save());
     } catch (emailErr) {
       console.error("[Auth] All email providers failed for student OTP:", emailErr.message);
+      // Clean up unverified OTP so student can retry once email service is restored
+      await globalDbQueue.run(() => OtpVerification.deleteMany({ regNo: rawReg })).catch(() => {});
       return res.status(503).json({
         message: "OTP delivery is temporarily unavailable. Please try again in a few moments.",
         code: "OTP_DELIVERY_UNAVAILABLE",
@@ -321,7 +323,7 @@ router.post("/student/send-otp", async (req, res) => {
       studentName,
       regNo: rawReg,
       expiresInSeconds: 300,
-      remainingDailyAttempts: isUnlimited ? 99 : Math.max(0, 2 - dailyLimit.otpSendCount),
+      remainingDailyAttempts: isUnlimited ? 99 : Math.max(0, maxDailyLimit - dailyLimit.otpSendCount),
       isUnlimited,
     });
   } catch (err) {
