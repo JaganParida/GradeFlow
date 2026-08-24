@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import {
   Wrench,
@@ -7,9 +8,13 @@ import {
   Activity,
   CheckCircle2,
   Lock,
+  Shield,
+  ArrowRight,
 } from "lucide-react";
+import { useApp } from "../../context/AppContext";
 
 export default function MaintenancePage({ message, onRetry }) {
+  const { adminToken } = useApp();
   const [checking, setChecking] = useState(false);
   const [feedback, setFeedback] = useState("");
 
@@ -238,6 +243,31 @@ export default function MaintenancePage({ message, onRetry }) {
           <span style={{ fontSize: 13, color: "#64748b", marginTop: 4, fontWeight: 500 }}>
             {feedback}
           </span>
+        )}
+
+        {adminToken && (
+          <Link
+            to="/admin/dashboard"
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 7,
+              marginTop: 14,
+              padding: "9px 18px",
+              borderRadius: 999,
+              background: "#eff6ff",
+              border: "1px solid #bfdbfe",
+              color: "#2563eb",
+              fontSize: 13,
+              fontWeight: 700,
+              textDecoration: "none",
+              transition: "all 0.15s ease",
+            }}
+          >
+            <Shield size={14} color="#2563eb" />
+            <span>Admin Authenticated &bull; Open Admin Dashboard</span>
+            <ArrowRight size={13} color="#2563eb" />
+          </Link>
         )}
       </motion.div>
     </div>

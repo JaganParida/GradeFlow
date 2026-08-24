@@ -7,12 +7,17 @@ export default function MaintenanceGuard({ children }) {
   const { maintenance, checkMaintenanceStatus, adminToken } = useApp();
   const location = useLocation();
 
-  // Allow Main Admin and Sub-Admin route access to manage the platform
-  const isAdminRoute = location.pathname.startsWith("/admin");
+  // Authorized Admin Access: Only if admin is authenticated with active adminToken
+  const isAuthorizedAdminAccess =
+    Boolean(adminToken) && location.pathname.startsWith("/admin");
+  const isAdminLoginPage = location.pathname === "/admin/login";
 
-  // Lock body scroll if maintenance is active on student/public routes
+  // Allow navigation only for authenticated admins or the secure admin login route
+  const allowAccess = isAuthorizedAdminAccess || isAdminLoginPage;
+
+  // Lock body scroll if maintenance is active on blocked routes
   useEffect(() => {
-    if (maintenance?.enabled && !isAdminRoute) {
+    if (maintenance?.enabled && !allowAccess) {
       document.body.style.overflow = "hidden";
     } else {
       document.body.style.overflow = "";
@@ -20,10 +25,10 @@ export default function MaintenanceGuard({ children }) {
     return () => {
       document.body.style.overflow = "";
     };
-  }, [maintenance?.enabled, isAdminRoute]);
+  }, [maintenance?.enabled, allowAccess]);
 
-  // If maintenance is ON and user is NOT accessing the admin portal, block full viewport
-  if (maintenance?.enabled && !isAdminRoute) {
+  // If maintenance is ON and user is NOT an authorized logged-in admin or logging in, block fully
+  if (maintenance?.enabled && !allowAccess) {
     return (
       <MaintenanceState
         message={maintenance.message}
