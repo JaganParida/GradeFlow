@@ -16,21 +16,30 @@ export default function ServerErrorPage({ onRetry }) {
     }
   };
 
+  React.useEffect(() => {
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, []);
+
   return (
     <div
       style={{
-        minHeight: "92vh",
-        width: "100%",
+        position: "fixed",
+        inset: 0,
+        zIndex: 999999,
+        background: "radial-gradient(ellipse at 50% 15%, rgba(220, 38, 38, 0.05) 0%, #fcfdfe 70%)",
+        minHeight: "100vh",
         display: "flex",
         flexDirection: "column",
         alignItems: "center",
         justifyContent: "center",
         textAlign: "center",
-        padding: "60px 20px",
+        padding: "40px 20px",
         boxSizing: "border-box",
         fontFamily: "'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
-        background: "radial-gradient(100% 60% at 50% 10%, rgba(220, 38, 38, 0.04) 0%, #fcfdfe 100%)",
-        position: "relative",
+        overflowY: "auto",
       }}
       role="alert"
       aria-live="polite"
