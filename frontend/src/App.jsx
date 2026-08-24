@@ -22,7 +22,16 @@ import { AlertTriangle, X } from "lucide-react";
 import ErrorBoundary from "./components/system/ErrorBoundary";
 import NetworkStatusListener from "./components/system/NetworkStatusListener";
 import MaintenanceGuard from "./components/system/MaintenanceGuard";
-import { NotFoundState, RateLimitState } from "./components/system/SystemState";
+import {
+  NotFoundState,
+  RateLimitState,
+  MaintenanceState,
+  OfflineState,
+  SessionExpiredState,
+  ServerErrorState,
+  ServiceUnavailableState,
+  UnauthorizedState,
+} from "./components/system/SystemState";
 
 function ScrollToTop() {
   const { pathname, hash } = useLocation();
@@ -291,6 +300,17 @@ export default function App() {
                 </PageTransition>
               }
             />
+
+            {/* ── Direct System State & Preview Routes ── */}
+            <Route path="/403" element={<PageTransition><UnauthorizedState /></PageTransition>} />
+            <Route path="/access-denied" element={<PageTransition><UnauthorizedState /></PageTransition>} />
+            <Route path="/maintenance" element={<PageTransition><MaintenanceState /></PageTransition>} />
+            <Route path="/offline" element={<PageTransition><OfflineState /></PageTransition>} />
+            <Route path="/session-expired" element={<PageTransition><SessionExpiredState /></PageTransition>} />
+            <Route path="/rate-limit" element={<PageTransition><RateLimitState /></PageTransition>} />
+            <Route path="/500" element={<PageTransition><ServerErrorState /></PageTransition>} />
+            <Route path="/503" element={<PageTransition><ServiceUnavailableState /></PageTransition>} />
+
             {/* Catch-All 404 Route */}
             <Route
               path="*"
