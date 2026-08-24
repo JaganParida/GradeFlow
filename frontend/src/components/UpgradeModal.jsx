@@ -12,7 +12,13 @@ import {
 import { useApp } from "../context/AppContext";
 
 export default function UpgradeModal() {
-  const { maintenance, adminToken } = useApp();
+  const {
+    maintenance,
+    adminToken,
+    hasActiveSession,
+    studentSession,
+    openStudentAuthModal,
+  } = useApp();
   const isMaintenanceBlocked = Boolean(maintenance?.enabled && !adminToken);
 
   const [isOpen, setIsOpen] = useState(false);
@@ -81,9 +87,14 @@ export default function UpgradeModal() {
 
   const handleOpenReview = () => {
     handleDismiss();
-    window.dispatchEvent(
-      new CustomEvent("open-feedback-modal", { detail: { source: "upgrade_popup" } })
-    );
+    const isAuth = Boolean(hasActiveSession || studentSession?.regNo);
+    if (!isAuth) {
+      openStudentAuthModal({ type: "feedback" });
+    } else {
+      window.dispatchEvent(
+        new CustomEvent("open-feedback-modal", { detail: { source: "upgrade_popup" } })
+      );
+    }
   };
 
   const FEATURES = [

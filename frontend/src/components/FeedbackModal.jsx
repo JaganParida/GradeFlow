@@ -3,18 +3,13 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   X,
   Star,
-  MessageSquare,
   CheckCircle2,
   Send,
-  AlertCircle,
-  Lock,
-  Search,
-  ShieldCheck,
   Loader2,
-  Info,
-  BadgeCheck,
+  ShieldCheck,
+  MessageSquare,
 } from "lucide-react";
-import { useNavigate, useLocation } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import { useApp } from "../context/AppContext";
 
@@ -22,133 +17,116 @@ export default function FeedbackModal() {
   const [show, setShow] = useState(false);
   const [rating, setRating] = useState(5);
   const [hoverRating, setHoverRating] = useState(0);
-  const [name, setName] = useState("");
-  const [regNo, setRegNo] = useState("");
   const [comment, setComment] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
   const [isSuccess, setIsSuccess] = useState(false);
 
-  // Search Step State
-  const [searchRegInput, setSearchRegInput] = useState("");
-  const [searchLoading, setSearchLoading] = useState(false);
-  const [searchError, setSearchError] = useState("");
-  const [isChangingReg, setIsChangingReg] = useState(false);
-
   const navigate = useNavigate();
-  const location = useLocation();
-  const { API, studentData, fetchStudent, maintenance, adminToken } = useApp();
+  const {
+    API_BASE,
+    studentData,
+    studentSession,
+    hasActiveSession,
+    openStudentAuthModal,
+    maintenance,
+    adminToken,
+  } = useApp();
+
   const isMaintenanceBlocked = Boolean(maintenance?.enabled && !adminToken);
+  const currentRegNo = studentData?.regNo || studentSession?.regNo || "";
+  const currentStudentName =
+    studentData?.studentName ||
+    studentSession?.studentName ||
+    studentSession?.name ||
+    "Verified Student";
 
-  const currentRegNo = studentData?.regNo || "";
-  const currentStudentName = studentData?.studentName || "";
-
-  // Prefill student details whenever available
+  // Bulletproof mobile + desktop background scroll lock
   useEffect(() => {
-    if (currentRegNo) {
-      setRegNo(currentRegNo);
-    }
-    if (currentStudentName) {
-      setName(currentStudentName);
-    }
-  }, [studentData, currentRegNo, currentStudentName]);
+    if (!show) return;
 
-  // Listen to open event from any part of the app (e.g. Upgrade popup, footer, navbar)
+    const scrollY = window.scrollY || window.pageYOffset || 0;
+    const originalBodyOverflow = document.body.style.overflow;
+    const originalBodyPosition = document.body.style.position;
+    const originalBodyTop = document.body.style.top;
+    const originalBodyWidth = document.body.style.width;
+    const originalHtmlOverflow = document.documentElement.style.overflow;
+
+    document.documentElement.style.overflow = "hidden";
+    document.body.style.overflow = "hidden";
+    document.body.style.position = "fixed";
+    document.body.style.top = `-${scrollY}px`;
+    document.body.style.width = "100%";
+
+    const preventBackdropTouch = (e) => {
+      if (e.target && e.target.closest && e.target.closest(".gf-modal-scrollable")) {
+        return;
+      }
+      if (e.cancelable) {
+        e.preventDefault();
+      }
+    };
+
+    document.addEventListener("touchmove", preventBackdropTouch, { passive: false });
+
+    return () => {
+      document.documentElement.style.overflow = originalHtmlOverflow;
+      document.body.style.overflow = originalBodyOverflow;
+      document.body.style.position = originalBodyPosition;
+      document.body.style.top = originalBodyTop;
+      document.body.style.width = originalBodyWidth;
+      document.removeEventListener("touchmove", preventBackdropTouch);
+      window.scrollTo(0, scrollY);
+    };
+  }, [show]);
+
+  // Listen to open event from any part of the application
   useEffect(() => {
     const handleOpen = (e) => {
       if (isMaintenanceBlocked) return;
+
+      const isAuth = Boolean(hasActiveSession || studentSession?.regNo || studentData?.regNo);
+      if (!isAuth) {
+        openStudentAuthModal({ type: "feedback" });
+        return;
+      }
+
       setShow(true);
       setIsSuccess(false);
       setErrorMessage("");
-      setSearchError("");
-      setIsChangingReg(false);
       if (e?.detail?.rating) setRating(e.detail.rating);
     };
 
     window.addEventListener("open-feedback-modal", handleOpen);
     return () => window.removeEventListener("open-feedback-modal", handleOpen);
-  }, []);
+  }, [hasActiveSession, studentSession, studentData, isMaintenanceBlocked, openStudentAuthModal]);
+
+  if (isMaintenanceBlocked) return null;
 
   const handleClose = () => {
     setShow(false);
     setIsSuccess(false);
     setErrorMessage("");
-    setSearchError("");
-    setIsChangingReg(false);
-    localStorage.setItem("gf_feedback_modal_dismissed", "true");
-  };
-
-  const handleVerifyStudent = async (e) => {
-    if (e) e.preventDefault();
-    setSearchError("");
-    const cleanInput = searchRegInput.trim();
-    if (!cleanInput) {
-      setSearchError("Please enter your registration number.");
-      return;
-    }
-
-    setSearchLoading(true);
-    try {
-      const data = await fetchStudent(cleanInput);
-      let studentObj = data && typeof data === "object" ? data : null;
-      if (!studentObj) {
-        try {
-          studentObj = JSON.parse(sessionStorage.getItem("gf_student_data"));
-        } catch {}
-      }
-      if (
-        data &&
-        (studentObj?.studentName || studentObj?.regNo || data === true)
-      ) {
-        const foundName = studentObj?.studentName || "";
-        const foundReg = studentObj?.regNo || cleanInput;
-        setName(foundName);
-        setRegNo(foundReg);
-        try {
-          sessionStorage.setItem("last_regNo", foundReg);
-          sessionStorage.setItem("last_studentName", foundName);
-        } catch {}
-        setIsChangingReg(false);
-      } else {
-        setSearchError(
-          "Student record not found. Please verify your registration number.",
-        );
-      }
-    } catch (err) {
-      setSearchError(
-        err?.response?.data?.message ||
-          "Failed to verify student. Please check your registration number.",
-      );
-    } finally {
-      setSearchLoading(false);
-    }
   };
 
   const handleSubmit = async (e) => {
-    e.preventDefault();
+    if (e) e.preventDefault();
     setErrorMessage("");
 
-    const trimmedName = (name || currentStudentName).trim();
-    const trimmedRegNo = (regNo || currentRegNo).trim();
     const trimmedComment = comment.trim();
-
-    if (!trimmedRegNo) {
-      setIsChangingReg(true);
+    if (!currentRegNo) {
+      handleClose();
+      openStudentAuthModal({ type: "feedback" });
       return;
     }
 
-    if (!trimmedName) {
-      setErrorMessage("Please enter your full name.");
+    if (!trimmedComment || trimmedComment.length < 5) {
+      setErrorMessage("Please share a brief comment or review (min 5 characters).");
       return;
     }
 
-    if (!trimmedComment) {
-      setErrorMessage("Please share a brief comment or review.");
-      return;
-    }
-
-    if (rating === 0) {
-      setErrorMessage("Please select a star rating.");
+    if (rating < 1 || rating > 5) {
+      setErrorMessage("Please select a star rating from 1 to 5.");
       return;
     }
 
@@ -156,26 +134,29 @@ export default function FeedbackModal() {
 
     try {
       const payload = {
-        name: trimmedName,
-        regNo: trimmedRegNo,
+        name: currentStudentName,
+        regNo: currentRegNo,
         rating: Number(rating),
         comment: trimmedComment,
+        category: "Overall Experience",
       };
 
-      const res = await axios.post(`${API}/feedback`, payload);
+      const res = await axios.post(`${API_BASE || "/api"}/feedback`, payload);
 
       setIsSuccess(true);
       setTimeout(() => {
         setShow(false);
         setIsSuccess(false);
         setComment("");
-        navigate(`/testimonials?highlight=${res.data._id}`);
+        if (res.data?._id) {
+          navigate(`/testimonials?highlight=${res.data._id}`);
+        }
       }, 1200);
     } catch (err) {
       console.error("Failed to submit feedback", err);
       const serverMsg =
         err.response?.data?.message ||
-        "Failed to submit feedback. Please ensure all inputs are valid.";
+        "Failed to submit review. Please try again.";
       setErrorMessage(serverMsg);
     } finally {
       setIsSubmitting(false);
@@ -185,31 +166,19 @@ export default function FeedbackModal() {
   const getRatingLabel = (r) => {
     switch (r) {
       case 5:
-        return "Outstanding experience (5/5)";
+        return "5/5 — Outstanding & Highly Recommended";
       case 4:
-        return "Very good & helpful (4/5)";
+        return "4/5 — Very Good & Helpful";
       case 3:
-        return "Good, with room for improvement (3/5)";
+        return "3/5 — Good & Satisfactory";
       case 2:
-        return "Fair, needs work (2/5)";
+        return "2/5 — Fair, Needs Work";
       case 1:
-        return "Needs major improvement (1/5)";
+        return "1/5 — Needs Major Improvement";
       default:
-        return "Select your star rating";
+        return "Select a star rating";
     }
   };
-
-  const [isMobile, setIsMobile] = useState(
-    () => (typeof window !== "undefined" ? window.innerWidth < 640 || window.innerHeight < 700 : false)
-  );
-
-  useEffect(() => {
-    const handleResize = () => {
-      setIsMobile(window.innerWidth < 640 || window.innerHeight < 700);
-    };
-    window.addEventListener("resize", handleResize);
-    return () => window.removeEventListener("resize", handleResize);
-  }, []);
 
   return (
     <AnimatePresence>
@@ -217,589 +186,413 @@ export default function FeedbackModal() {
         <div
           role="dialog"
           aria-modal="true"
+          aria-labelledby="feedback-modal-title"
           style={{
             position: "fixed",
             inset: 0,
-            zIndex: 999999,
+            zIndex: 99999,
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            padding: isMobile ? "8px" : "16px",
+            padding: "16px",
             boxSizing: "border-box",
+            touchAction: "none",
           }}
         >
-          {/* Backdrop */}
+          {/* Backdrop Blur & Full Cover */}
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
+            transition={{ duration: 0.22 }}
             onClick={handleClose}
+            onTouchMove={(e) => {
+              if (e.cancelable) e.preventDefault();
+            }}
             style={{
               position: "fixed",
               inset: 0,
+              zIndex: 1,
               background: "rgba(15, 23, 42, 0.65)",
-              backdropFilter: "blur(8px)",
-              WebkitBackdropFilter: "blur(8px)",
+              backdropFilter: "blur(12px)",
+              WebkitBackdropFilter: "blur(12px)",
+              touchAction: "none",
             }}
           />
 
-          {/* Modal Box */}
+          {/* Modal Container */}
           <motion.div
-            initial={{ opacity: 0, scale: 0.94, y: 14 }}
+            initial={{ opacity: 0, scale: 0.96, y: 8 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.94, y: 10 }}
-            transition={{ type: "spring", damping: 28, stiffness: 350 }}
+            exit={{ opacity: 0, scale: 0.96, y: 6 }}
+            transition={{ duration: 0.22, ease: "easeOut" }}
             style={{
               position: "relative",
               width: "100%",
               maxWidth: 480,
-              maxHeight: "min(92vh, 580px)",
-              overflowY: "auto",
-              WebkitOverflowScrolling: "touch",
-              scrollbarWidth: "none",
+              maxHeight: "min(90vh, 600px)",
+              display: "flex",
+              flexDirection: "column",
               background: "#ffffff",
-              borderRadius: isMobile ? 18 : 22,
+              borderRadius: 14,
               border: "1px solid #e2e8f0",
-              boxShadow:
-                "0 25px 50px -12px rgba(15, 23, 42, 0.25), 0 0 0 1px rgba(15, 23, 42, 0.05)",
-              padding: isMobile ? "18px 16px 16px 16px" : "26px 24px",
+              overflow: "hidden",
               zIndex: 10,
-              fontFamily: "'DM Sans', sans-serif",
+              fontFamily: "'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
             }}
           >
-            {/* Top Accent Strip */}
+            {/* Header */}
             <div
               style={{
-                position: "absolute",
-                top: 0,
-                left: 0,
-                right: 0,
-                height: 4,
-                background: "linear-gradient(90deg, #2563eb, #8b5cf6, #f59e0b)",
-                borderTopLeftRadius: isMobile ? 18 : 22,
-                borderTopRightRadius: isMobile ? 18 : 22,
-              }}
-            />
-
-            {/* Close Button */}
-            <button
-              onClick={handleClose}
-              aria-label="Close modal"
-              style={{
-                position: "absolute",
-                top: 16,
-                right: 16,
-                background: "#f1f5f9",
-                border: "1px solid #e2e8f0",
-                borderRadius: "50%",
-                width: 32,
-                height: 32,
+                padding: "18px 20px 14px 20px",
+                borderBottom: "1px solid #f1f5f9",
                 display: "flex",
                 alignItems: "center",
-                justifyContent: "center",
-                color: "#64748b",
-                cursor: "pointer",
-                transition: "all 0.15s ease",
-                padding: 0,
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.background = "#e2e8f0";
-                e.currentTarget.style.color = "#0f172a";
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.background = "#f1f5f9";
-                e.currentTarget.style.color = "#64748b";
+                justifyContent: "space-between",
+                flexShrink: 0,
               }}
             >
-              <X size={16} />
-            </button>
+              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                <img
+                  src="/webisteLogo.png"
+                  alt="GradeFlow Logo"
+                  style={{
+                    height: 28,
+                    width: "auto",
+                    objectFit: "contain",
+                    display: "block",
+                  }}
+                />
+                <div>
+                  <h2
+                    id="feedback-modal-title"
+                    style={{
+                      fontSize: 16,
+                      fontWeight: 800,
+                      color: "#0f172a",
+                      margin: 0,
+                      lineHeight: 1.2,
+                      letterSpacing: "-0.3px",
+                    }}
+                  >
+                    Share Your Feedback
+                  </h2>
+                  <span style={{ fontSize: 12, color: "#64748b", fontWeight: 500 }}>
+                    Help improve GradeFlow for all students
+                  </span>
+                </div>
+              </div>
 
-            {isSuccess ? (
-              <motion.div
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 1, scale: 1 }}
+              {/* Close Button */}
+              <button
+                type="button"
+                onClick={handleClose}
+                aria-label="Close"
                 style={{
-                  textAlign: "center",
-                  padding: "30px 10px",
+                  width: 30,
+                  height: 30,
+                  borderRadius: 8,
+                  background: "#f8fafc",
+                  border: "1px solid #e2e8f0",
+                  color: "#64748b",
                   display: "flex",
-                  flexDirection: "column",
                   alignItems: "center",
-                  gap: 12,
+                  justifyContent: "center",
+                  cursor: "pointer",
+                  transition: "all 0.15s ease",
+                  padding: 0,
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = "#f1f5f9";
+                  e.currentTarget.style.color = "#0f172a";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = "#f8fafc";
+                  e.currentTarget.style.color = "#64748b";
                 }}
               >
+                <X size={15} />
+              </button>
+            </div>
+
+            {/* Modal Body */}
+            <div
+              className="gf-modal-scrollable"
+              style={{
+                padding: "18px 20px",
+                overflowY: "auto",
+                WebkitOverflowScrolling: "touch",
+                overscrollBehavior: "contain",
+                touchAction: "pan-y",
+                flex: 1,
+                display: "flex",
+                flexDirection: "column",
+                gap: 16,
+              }}
+            >
+              {isSuccess ? (
                 <div
                   style={{
-                    width: 56,
-                    height: 56,
-                    borderRadius: "50%",
-                    background: "#dcfce7",
-                    border: "2px solid #86efac",
-                    color: "#15803d",
                     display: "flex",
+                    flexDirection: "column",
                     alignItems: "center",
                     justifyContent: "center",
+                    padding: "36px 12px",
+                    textAlign: "center",
                   }}
                 >
-                  <CheckCircle2 size={32} />
-                </div>
-                <h3 style={{ fontSize: 20, fontWeight: 900, color: "#0f172a", margin: 0 }}>
-                  Thank You for Your Review!
-                </h3>
-                <p style={{ fontSize: 13.5, color: "#64748b", margin: 0 }}>
-                  Your feedback helps us continuously improve GradeFlow for everyone.
-                </p>
-              </motion.div>
-            ) : (!currentRegNo && !regNo) || isChangingReg ? (
-              /* Step 0: Registration Number Required */
-              <div>
-                <div style={{ textAlign: "center", marginBottom: 18 }}>
                   <div
                     style={{
-                      width: 46,
-                      height: 46,
-                      borderRadius: 14,
-                      background: "#eff6ff",
-                      color: "#2563eb",
+                      width: 52,
+                      height: 52,
+                      borderRadius: "50%",
+                      background: "#dcfce7",
+                      color: "#16a34a",
                       display: "flex",
                       alignItems: "center",
                       justifyContent: "center",
-                      margin: "0 auto 12px auto",
+                      marginBottom: 14,
                     }}
                   >
-                    <Search size={22} />
+                    <CheckCircle2 size={28} />
                   </div>
-                  <h3
-                    style={{
-                      fontSize: 19,
-                      fontWeight: 900,
-                      color: "#0f172a",
-                      margin: "0 0 6px 0",
-                    }}
-                  >
-                    Registration Number Required
+                  <h3 style={{ fontSize: 18, fontWeight: 800, color: "#0f172a", margin: "0 0 6px 0" }}>
+                    Thank You for Your Review!
                   </h3>
-                  <p style={{ fontSize: 13, color: "#64748b", margin: 0, lineHeight: 1.5 }}>
-                    Please enter your registration number to continue.
+                  <p style={{ fontSize: 13, color: "#64748b", margin: 0, maxWidth: 300 }}>
+                    Your feedback has been successfully published to the community wall.
                   </p>
                 </div>
-
-                <form onSubmit={handleVerifyStudent} style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-                  <div>
-                    <label
-                      style={{
-                        display: "block",
-                        fontSize: 11,
-                        fontWeight: 800,
-                        color: "#475569",
-                        marginBottom: 5,
-                        textTransform: "uppercase",
-                        letterSpacing: "0.3px",
-                      }}
-                    >
-                      Registration Number *
-                    </label>
-                    <input
-                      type="text"
-                      autoFocus
-                      value={searchRegInput}
-                      onChange={(e) => {
-                        setSearchRegInput(e.target.value);
-                        setSearchError("");
-                      }}
-                      placeholder="e.g. 230301120450"
-                      style={{
-                        width: "100%",
-                        boxSizing: "border-box",
-                        padding: "10px 12px",
-                        borderRadius: 10,
-                        border: searchError ? "1px solid #ef4444" : "1px solid #cbd5e1",
-                        fontSize: 14,
-                        outline: "none",
-                        fontFamily: "inherit",
-                      }}
-                    />
-                    {searchError && (
-                      <p
-                        style={{
-                          fontSize: 11.5,
-                          color: "#dc2626",
-                          marginTop: 4,
-                          marginBottom: 0,
-                          fontWeight: 600,
-                        }}
-                      >
-                        {searchError}
-                      </p>
-                    )}
-                  </div>
-
-                  <div style={{ display: "flex", gap: 8, marginTop: 4 }}>
-                    {isChangingReg && (
-                      <button
-                        type="button"
-                        onClick={() => setIsChangingReg(false)}
-                        style={{
-                          flex: 1,
-                          padding: "10px",
-                          borderRadius: 10,
-                          background: "#f1f5f9",
-                          color: "#475569",
-                          border: "none",
-                          fontWeight: 600,
-                          fontSize: 13,
-                          cursor: "pointer",
-                          fontFamily: "inherit",
-                        }}
-                      >
-                        Cancel
-                      </button>
-                    )}
-                    <button
-                      type="submit"
-                      disabled={searchLoading}
-                      style={{
-                        flex: 1.3,
-                        padding: "10px",
-                        borderRadius: 10,
-                        background: "#2563eb",
-                        color: "#ffffff",
-                        border: "none",
-                        fontWeight: 700,
-                        fontSize: 13,
-                        cursor: searchLoading ? "not-allowed" : "pointer",
-                        fontFamily: "inherit",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        gap: 6,
-                        boxShadow: "0 4px 12px rgba(37, 99, 235, 0.2)",
-                      }}
-                    >
-                      {searchLoading ? (
-                        <>
-                          <Loader2 size={14} className="animate-spin" />
-                          <span>Verifying...</span>
-                        </>
-                      ) : (
-                        <>
-                          <BadgeCheck size={14} />
-                          <span>Verify & Continue</span>
-                        </>
-                      )}
-                    </button>
-                  </div>
-                </form>
-              </div>
-            ) : (
-              <div>
-                {/* Header */}
-                <div style={{ textAlign: "center", marginBottom: 16 }}>
-                  <div
-                    style={{
-                      width: 44,
-                      height: 44,
-                      borderRadius: 12,
-                      background: "#fef3c7",
-                      border: "1px solid #fde68a",
-                      color: "#b45309",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      margin: "0 auto 10px",
-                    }}
-                  >
-                    <Star size={22} fill="#f59e0b" color="#f59e0b" />
-                  </div>
-                  <h3
-                    style={{
-                      fontSize: 20,
-                      fontWeight: 900,
-                      color: "#0f172a",
-                      margin: "0 0 4px 0",
-                    }}
-                  >
-                    Leave a Review for GradeFlow
-                  </h3>
-                  <p style={{ fontSize: 13, color: "#64748b", margin: 0 }}>
-                    Share your experience with GradeFlow
-                  </p>
-                </div>
-
-                {/* Form */}
-                <form
-                  onSubmit={handleSubmit}
-                  style={{ display: "flex", flexDirection: "column", gap: 12 }}
-                >
-                  {/* Star Rating Interactive Selector */}
-                  <div
-                    style={{
-                      display: "flex",
-                      flexDirection: "column",
-                      alignItems: "center",
-                      background: "#f8fafc",
-                      border: "1px solid #e2e8f0",
-                      borderRadius: 14,
-                      padding: "10px 14px",
-                    }}
-                  >
-                    <div style={{ display: "flex", gap: 6, marginBottom: 4 }}>
-                      {[1, 2, 3, 4, 5].map((star) => (
-                        <button
-                          key={star}
-                          type="button"
-                          onClick={() => setRating(star)}
-                          onMouseEnter={() => setHoverRating(star)}
-                          onMouseLeave={() => setHoverRating(0)}
-                          style={{
-                            background: "transparent",
-                            border: "none",
-                            cursor: "pointer",
-                            padding: 4,
-                            transition: "transform 0.12s ease",
-                          }}
-                          onMouseDown={(e) => (e.currentTarget.style.transform = "scale(0.88)")}
-                          onMouseUp={(e) => (e.currentTarget.style.transform = "scale(1)")}
-                        >
-                          <Star
-                            size={28}
-                            fill={(hoverRating || rating) >= star ? "#f59e0b" : "#e2e8f0"}
-                            color={(hoverRating || rating) >= star ? "#d97706" : "#cbd5e1"}
-                          />
-                        </button>
-                      ))}
-                    </div>
-                    <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6, minHeight: 18 }}>
-                      {(hoverRating || rating) > 0 && (
-                        <div style={{ display: "flex", alignItems: "center", gap: 2 }}>
-                          {[1, 2, 3, 4, 5].slice(0, hoverRating || rating).map((s) => (
-                            <Star key={s} size={12} fill="#f59e0b" color="#d97706" />
-                          ))}
-                        </div>
-                      )}
-                      <span style={{ fontSize: 12, fontWeight: 700, color: "#475569" }}>
-                        {getRatingLabel(hoverRating || rating)}
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Name & Registration Number Inputs (Strict Locked Mode) */}
-                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
-                    <div>
-                      <label
-                        style={{
-                          display: "block",
-                          fontSize: 11,
-                          fontWeight: 800,
-                          color: "#475569",
-                          marginBottom: 4,
-                          textTransform: "uppercase",
-                          letterSpacing: "0.3px",
-                        }}
-                      >
-                        Full Name *
-                      </label>
-                      <div style={{ position: "relative" }}>
-                        <input
-                          type="text"
-                          readOnly
-                          required
-                          value={name || currentStudentName}
-                          placeholder="Full Name"
-                          style={{
-                            width: "100%",
-                            boxSizing: "border-box",
-                            padding: "9px 28px 9px 12px",
-                            borderRadius: 10,
-                            background: "#f8fafc",
-                            border: "1px solid #cbd5e1",
-                            color: "#0f172a",
-                            fontSize: 13,
-                            outline: "none",
-                            fontFamily: "inherit",
-                            cursor: "default",
-                          }}
-                        />
-                        <Lock
-                          size={12}
-                          color="#64748b"
-                          style={{
-                            position: "absolute",
-                            right: 9,
-                            top: "50%",
-                            transform: "translateY(-50%)",
-                            pointerEvents: "none",
-                          }}
-                        />
-                      </div>
-                    </div>
-
-                    <div>
-                      <label
-                        style={{
-                          display: "block",
-                          fontSize: 11,
-                          fontWeight: 800,
-                          color: "#475569",
-                          marginBottom: 4,
-                          textTransform: "uppercase",
-                          letterSpacing: "0.3px",
-                        }}
-                      >
-                        Reg. No *
-                      </label>
-                      <div style={{ position: "relative" }}>
-                        <input
-                          type="text"
-                          readOnly
-                          required
-                          value={regNo || currentRegNo}
-                          placeholder="Registration Number"
-                          style={{
-                            width: "100%",
-                            boxSizing: "border-box",
-                            padding: "9px 28px 9px 12px",
-                            borderRadius: 10,
-                            background: "#f8fafc",
-                            border: "1px solid #cbd5e1",
-                            color: "#0f172a",
-                            fontSize: 13,
-                            outline: "none",
-                            fontFamily: "inherit",
-                            cursor: "default",
-                          }}
-                        />
-                        <Lock
-                          size={12}
-                          color="#64748b"
-                          style={{
-                            position: "absolute",
-                            right: 9,
-                            top: "50%",
-                            transform: "translateY(-50%)",
-                            pointerEvents: "none",
-                          }}
-                        />
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Locked Profile Badge with Change Option */}
+              ) : (
+                <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+                  {/* Verified Student Session Card */}
                   <div
                     style={{
                       display: "flex",
                       alignItems: "center",
                       justifyContent: "space-between",
-                      padding: "6px 10px",
-                      background: "#eff6ff",
-                      border: "1px solid #dbeafe",
-                      borderRadius: 8,
-                      fontSize: 11,
-                      color: "#1e40af",
+                      padding: "10px 14px",
+                      background: "#f8fafc",
+                      border: "1px solid #e2e8f0",
+                      borderRadius: 10,
                     }}
                   >
-                    <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
-                      <ShieldCheck size={13} color="#2563eb" />
-                      <span>
-                        Verified Profile: <strong>{regNo || currentRegNo}</strong>
-                      </span>
+                    <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                      <div
+                        style={{
+                          width: 34,
+                          height: 34,
+                          borderRadius: 8,
+                          background: "#2563eb",
+                          color: "#ffffff",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          fontSize: 14,
+                          fontWeight: 800,
+                        }}
+                      >
+                        {currentStudentName.charAt(0).toUpperCase() || "S"}
+                      </div>
+                      <div>
+                        <div style={{ fontSize: 13.5, fontWeight: 700, color: "#0f172a", lineHeight: 1.2 }}>
+                          {currentStudentName}
+                        </div>
+                        <div style={{ fontSize: 11.5, fontFamily: "'Space Mono', monospace", color: "#64748b" }}>
+                          {currentRegNo}
+                        </div>
+                      </div>
                     </div>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setIsChangingReg(true);
-                        setSearchRegInput(regNo || currentRegNo);
-                        setSearchError("");
-                      }}
+
+                    <div
                       style={{
-                        background: "none",
-                        border: "none",
-                        color: "#2563eb",
-                        fontWeight: 700,
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: 4,
+                        padding: "3px 8px",
+                        borderRadius: 6,
+                        background: "#dcfce7",
+                        color: "#15803d",
                         fontSize: 11,
-                        cursor: "pointer",
-                        padding: 0,
-                        textDecoration: "underline",
+                        fontWeight: 700,
                       }}
                     >
-                      Change
-                    </button>
+                      <ShieldCheck size={12} />
+                      <span>Verified</span>
+                    </div>
                   </div>
 
-                  {/* Comment / Review */}
+                  {/* Star Rating Selector */}
                   <div>
                     <label
                       style={{
                         display: "block",
-                        fontSize: 11,
-                        fontWeight: 800,
-                        color: "#475569",
-                        marginBottom: 4,
-                        textTransform: "uppercase",
-                        letterSpacing: "0.3px",
+                        fontSize: 12.5,
+                        fontWeight: 700,
+                        color: "#334155",
+                        marginBottom: 8,
                       }}
                     >
-                      Your Review / Thoughts *
+                      Your Rating
+                    </label>
+                    <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                      {[1, 2, 3, 4, 5].map((star) => {
+                        const isFilled = (hoverRating || rating) >= star;
+                        return (
+                          <button
+                            key={star}
+                            type="button"
+                            onClick={() => setRating(star)}
+                            onMouseEnter={() => setHoverRating(star)}
+                            onMouseLeave={() => setHoverRating(0)}
+                            style={{
+                              background: "none",
+                              border: "none",
+                              padding: 4,
+                              cursor: "pointer",
+                              outline: "none",
+                              transition: "transform 0.1s ease",
+                            }}
+                          >
+                            <Star
+                              size={26}
+                              fill={isFilled ? "#f59e0b" : "none"}
+                              color={isFilled ? "#f59e0b" : "#cbd5e1"}
+                              strokeWidth={1.75}
+                            />
+                          </button>
+                        );
+                      })}
+                    </div>
+                    <div style={{ fontSize: 12, color: "#64748b", marginTop: 6, fontWeight: 500 }}>
+                      {getRatingLabel(hoverRating || rating)}
+                    </div>
+                  </div>
+
+                  {/* Comment Textarea */}
+                  <div>
+                    <label
+                      htmlFor="feedback-comment"
+                      style={{
+                        display: "block",
+                        fontSize: 12.5,
+                        fontWeight: 700,
+                        color: "#334155",
+                        marginBottom: 6,
+                      }}
+                    >
+                      Your Review / Experience
                     </label>
                     <textarea
-                      required
+                      id="feedback-comment"
                       value={comment}
                       onChange={(e) => setComment(e.target.value)}
-                      placeholder="What do you think about GradeFlow?"
-                      rows={3}
+                      placeholder="What do you love most about GradeFlow? How did it help your academic workflow?"
+                      maxLength={600}
+                      rows={4}
                       style={{
                         width: "100%",
+                        padding: "10px 12px",
+                        borderRadius: 10,
+                        border: "1px solid #cbd5e1",
+                        fontSize: 13.5,
+                        fontFamily: "'DM Sans', sans-serif",
+                        color: "#0f172a",
                         boxSizing: "border-box",
-                        padding: "9px 12px",
+                        resize: "none",
+                        outline: "none",
+                        transition: "border-color 0.15s ease",
+                      }}
+                      onFocus={(e) => (e.target.style.borderColor = "#2563eb")}
+                      onBlur={(e) => (e.target.style.borderColor = "#cbd5e1")}
+                    />
+                    <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 4 }}>
+                      <span style={{ fontSize: 11, color: "#94a3b8" }}>
+                        {comment.length} / 600
+                      </span>
+                    </div>
+                  </div>
+
+                  {errorMessage && (
+                    <div
+                      style={{
+                        fontSize: 12.5,
+                        color: "#dc2626",
+                        background: "#fef2f2",
+                        border: "1px solid #fee2e2",
+                        borderRadius: 8,
+                        padding: "8px 12px",
+                        fontWeight: 600,
+                      }}
+                    >
+                      {errorMessage}
+                    </div>
+                  )}
+
+                  {/* Actions Bar */}
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 10,
+                      paddingTop: 6,
+                    }}
+                  >
+                    <button
+                      type="button"
+                      onClick={handleClose}
+                      disabled={isSubmitting}
+                      style={{
+                        flex: 1,
+                        padding: "10px 14px",
                         borderRadius: 10,
                         background: "#ffffff",
                         border: "1px solid #cbd5e1",
-                        color: "#0f172a",
+                        color: "#334155",
                         fontSize: 13,
-                        outline: "none",
-                        fontFamily: "inherit",
-                        resize: "none",
+                        fontWeight: 650,
+                        cursor: "pointer",
                       }}
-                    />
-                  </div>
+                    >
+                      Cancel
+                    </button>
 
-                  {/* Submit Button */}
-                  <button
-                    type="submit"
-                    disabled={isSubmitting}
-                    style={{
-                      width: "100%",
-                      padding: "10px",
-                      borderRadius: 10,
-                      background: isSubmitting
-                        ? "#93c5fd"
-                        : "linear-gradient(135deg, #2563eb, #1d4ed8)",
-                      color: "#ffffff",
-                      border: "none",
-                      fontSize: 13.5,
-                      fontWeight: 800,
-                      cursor: isSubmitting ? "not-allowed" : "pointer",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      gap: 6,
-                      boxShadow: "0 4px 12px rgba(37, 99, 235, 0.2)",
-                    }}
-                  >
-                    {isSubmitting ? (
-                      <>
-                        <Loader2 size={15} className="animate-spin" />
-                        <span>Submitting Review...</span>
-                      </>
-                    ) : (
-                      <>
-                        <Send size={14} />
-                        <span>Submit Review</span>
-                      </>
-                    )}
-                  </button>
+                    <button
+                      type="submit"
+                      disabled={isSubmitting}
+                      style={{
+                        flex: 1.4,
+                        display: "inline-flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        gap: 6,
+                        padding: "10px 16px",
+                        borderRadius: 10,
+                        background: "#2563eb",
+                        border: "1px solid #2563eb",
+                        color: "#ffffff",
+                        fontSize: 13,
+                        fontWeight: 700,
+                        cursor: isSubmitting ? "not-allowed" : "pointer",
+                        opacity: isSubmitting ? 0.8 : 1,
+                      }}
+                    >
+                      {isSubmitting ? (
+                        <>
+                          <Loader2 size={14} className="gf-spin" />
+                          <span>Submitting...</span>
+                        </>
+                      ) : (
+                        <>
+                          <span>Submit Review</span>
+                          <Send size={13} />
+                        </>
+                      )}
+                    </button>
+                  </div>
                 </form>
-              </div>
-            )}
+              )}
+            </div>
           </motion.div>
         </div>
       )}

@@ -58,6 +58,14 @@ export default function StudentAuthModal({ isOpen, onClose }) {
     if (pendingDestination) {
       const dest = pendingDestination;
       setPendingDestination(null);
+      if (dest.type === "feedback") {
+        setTimeout(() => {
+          window.dispatchEvent(
+            new CustomEvent("open-feedback-modal", { detail: { source: "auth_success" } })
+          );
+        }, 120);
+        return;
+      }
       if (dest.type === "timetable") {
         navigate(`/timetable/${encodeStudentId(cleanReg)}`);
       } else if (dest.type === "attendance") {
