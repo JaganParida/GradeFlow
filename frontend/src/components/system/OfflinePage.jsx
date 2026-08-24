@@ -5,7 +5,6 @@ import {
   WifiOff,
   RefreshCw,
   Home as HomeIcon,
-  Zap,
   Gamepad2,
   Trophy,
   Play,
@@ -100,7 +99,7 @@ function OfflineRunnerGame() {
       ctx.beginPath();
       ctx.moveTo(0, groundY + playerSize);
       ctx.lineTo(canvas.width, groundY + playerSize);
-      ctx.strokeStyle = "#cbd5e1";
+      ctx.strokeStyle = "#e2e8f0";
       ctx.lineWidth = 2;
       ctx.stroke();
 
@@ -108,7 +107,7 @@ function OfflineRunnerGame() {
       if (state.active) {
         state.frame++;
         const dotOffset = (state.frame * state.speed) % 20;
-        ctx.fillStyle = "#94a3b8";
+        ctx.fillStyle = "#cbd5e1";
         for (let x = -dotOffset; x < canvas.width; x += 20) {
           ctx.fillRect(x, groundY + playerSize + 6, 4, 1.5);
         }
@@ -213,12 +212,12 @@ function OfflineRunnerGame() {
         background: "#ffffff",
         border: "1px solid #e2e8f0",
         borderRadius: 20,
-        padding: "20px 24px",
+        padding: "18px 22px",
         maxWidth: 580,
         width: "100%",
-        boxShadow: "0 6px 24px rgba(15, 23, 42, 0.04)",
+        boxShadow: "0 4px 20px rgba(15, 23, 42, 0.04)",
         boxSizing: "border-box",
-        margin: "20px 0",
+        margin: "18px 0",
         display: "flex",
         flexDirection: "column",
         alignItems: "center",
@@ -235,7 +234,7 @@ function OfflineRunnerGame() {
         }}
       >
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <Gamepad2 size={18} color="#2563eb" />
+          <Gamepad2 size={17} color="#2563eb" />
           <span style={{ fontSize: 13.5, fontWeight: 800, color: "#0f172a" }}>
             GradeFlow Offline Runner
           </span>
@@ -246,7 +245,7 @@ function OfflineRunnerGame() {
             <Trophy size={14} color="#f59e0b" />
             <span>HI: {highScore}</span>
           </div>
-          <div style={{ fontSize: 15, fontWeight: 900, color: "#2563eb", fontFamily: "monospace" }}>
+          <div style={{ fontSize: 14.5, fontWeight: 900, color: "#2563eb", fontFamily: "monospace" }}>
             SCORE: {score}
           </div>
         </div>
@@ -279,8 +278,8 @@ function OfflineRunnerGame() {
             style={{
               position: "absolute",
               inset: 0,
-              background: "rgba(255, 255, 255, 0.85)",
-              backdropFilter: "blur(2px)",
+              background: "rgba(255, 255, 255, 0.88)",
+              backdropFilter: "blur(3px)",
               display: "flex",
               flexDirection: "column",
               alignItems: "center",
@@ -305,9 +304,9 @@ function OfflineRunnerGame() {
                 background: "#2563eb",
                 color: "#ffffff",
                 border: "none",
-                padding: "6px 16px",
+                padding: "7px 18px",
                 borderRadius: 8,
-                fontSize: 12.5,
+                fontSize: 13,
                 fontWeight: 700,
                 cursor: "pointer",
                 display: "inline-flex",
@@ -362,7 +361,7 @@ export default function OfflinePage({ onRetry }) {
   return (
     <div
       style={{
-        minHeight: "90vh",
+        minHeight: "92vh",
         width: "100%",
         display: "flex",
         flexDirection: "column",
@@ -372,47 +371,24 @@ export default function OfflinePage({ onRetry }) {
         padding: "40px 20px 60px",
         boxSizing: "border-box",
         fontFamily: "'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
-        background: "radial-gradient(ellipse at 50% 25%, rgba(245, 158, 11, 0.05) 0%, #fcfdfe 70%)",
+        background: "radial-gradient(100% 60% at 50% 10%, rgba(245, 158, 11, 0.04) 0%, #fcfdfe 100%)",
         position: "relative",
       }}
       role="alert"
       aria-live="polite"
     >
-      {/* ── Status Badge ── */}
-      <motion.div
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        style={{
-          display: "inline-flex",
-          alignItems: "center",
-          gap: 6,
-          background: "#fffbeb",
-          border: "1px solid #fde68a",
-          padding: "4px 14px",
-          borderRadius: 999,
-          fontSize: 12,
-          fontWeight: 750,
-          color: "#92400e",
-          marginBottom: 12,
-          letterSpacing: "0.02em",
-        }}
-      >
-        <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#f59e0b" }} />
-        NO INTERNET DETECTED &bull; WORKING OFFLINE
-      </motion.div>
-
       {/* ── Headline ── */}
       <motion.h1
-        initial={{ opacity: 0, y: 10 }}
+        initial={{ opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.35 }}
+        transition={{ duration: 0.3 }}
         style={{
-          fontSize: "clamp(24px, 4vw, 32px)",
+          fontSize: "clamp(26px, 4.5vw, 36px)",
           fontWeight: 800,
           color: "#0f172a",
           margin: "0 0 8px 0",
-          letterSpacing: "-0.03em",
-          lineHeight: 1.25,
+          letterSpacing: "-0.035em",
+          lineHeight: 1.2,
         }}
       >
         You're Currently Offline
@@ -420,18 +396,18 @@ export default function OfflinePage({ onRetry }) {
 
       {/* ── Subtitle ── */}
       <motion.p
-        initial={{ opacity: 0, y: 10 }}
+        initial={{ opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.4 }}
+        transition={{ duration: 0.35 }}
         style={{
           fontSize: 15,
           color: "#64748b",
           lineHeight: 1.55,
           maxWidth: 480,
-          margin: "0 0 16px 0",
+          margin: "0 0 12px 0",
         }}
       >
-        Your connection is unavailable. Play our offline mini-game while we wait for your internet connection to restore!
+        Your internet connection is unavailable. Play our offline mini-game while we wait for your connection to restore!
       </motion.p>
 
       {/* ── Interactive Google-Style Dino Runner Mini-Game ── */}
@@ -439,7 +415,7 @@ export default function OfflinePage({ onRetry }) {
 
       {/* ── Actions ── */}
       <motion.div
-        initial={{ opacity: 0, y: 10 }}
+        initial={{ opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.45 }}
         style={{ display: "flex", gap: 12, flexWrap: "wrap", justifyContent: "center", marginTop: 8 }}
@@ -448,7 +424,6 @@ export default function OfflinePage({ onRetry }) {
           type="button"
           onClick={handleTestConnection}
           disabled={testing}
-          className="gf-state-btn-primary"
           style={{
             display: "inline-flex",
             alignItems: "center",
@@ -462,6 +437,7 @@ export default function OfflinePage({ onRetry }) {
             border: "none",
             cursor: testing ? "not-allowed" : "pointer",
             boxShadow: "0 4px 14px rgba(37, 99, 235, 0.28)",
+            transition: "all 0.15s ease",
           }}
         >
           <RefreshCw size={15} className={testing ? "gf-spin" : ""} />
@@ -471,7 +447,6 @@ export default function OfflinePage({ onRetry }) {
         {hasActiveSession && (
           <Link
             to={`/dashboard/${currentRegNo}`}
-            className="gf-state-btn-secondary"
             style={{
               display: "inline-flex",
               alignItems: "center",
@@ -484,6 +459,7 @@ export default function OfflinePage({ onRetry }) {
               color: "#334155",
               border: "1px solid #cbd5e1",
               textDecoration: "none",
+              transition: "all 0.15s ease",
             }}
           >
             <HomeIcon size={15} />

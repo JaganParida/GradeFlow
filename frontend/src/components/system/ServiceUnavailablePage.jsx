@@ -5,7 +5,6 @@ import {
   Server,
   RefreshCw,
   Home as HomeIcon,
-  Clock,
   Radio,
 } from "lucide-react";
 
@@ -25,7 +24,7 @@ export default function ServiceUnavailablePage({ onRetry }) {
   return (
     <div
       style={{
-        minHeight: "90vh",
+        minHeight: "92vh",
         width: "100%",
         display: "flex",
         flexDirection: "column",
@@ -35,48 +34,39 @@ export default function ServiceUnavailablePage({ onRetry }) {
         padding: "60px 20px",
         boxSizing: "border-box",
         fontFamily: "'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
-        background: "radial-gradient(ellipse at 50% 30%, rgba(245, 158, 11, 0.05) 0%, #fcfdfe 70%)",
+        background: "radial-gradient(100% 60% at 50% 10%, rgba(245, 158, 11, 0.04) 0%, #fcfdfe 100%)",
         position: "relative",
       }}
       role="alert"
       aria-live="polite"
     >
       {/* ── Animated Bridge / Satellite Sync SVG ── */}
-      <div style={{ width: "100%", maxWidth: 280, height: 180, marginBottom: 24, position: "relative" }}>
-        <svg viewBox="0 0 280 180" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ width: "100%", height: "100%" }}>
-          <defs>
-            <linearGradient id="cloudBridgeGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-              <stop offset="0%" stopColor="#f8fafc" />
-              <stop offset="100%" stopColor="#e2e8f0" />
-            </linearGradient>
-          </defs>
-
+      <div style={{ width: "100%", maxWidth: 280, height: 170, marginBottom: 20, position: "relative" }}>
+        <svg viewBox="0 0 280 170" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ width: "100%", height: "100%" }}>
           {/* Data Center Icon Left */}
-          <rect x="40" y="70" width="60" height="60" rx="10" fill="#334155" />
-          <rect x="48" y="78" width="44" height="10" rx="3" fill="#10b981" />
-          <rect x="48" y="94" width="44" height="10" rx="3" fill="#3b82f6" />
-          <rect x="48" y="110" width="44" height="10" rx="3" fill="#f59e0b" />
+          <rect x="40" y="60" width="60" height="60" rx="10" fill="#334155" />
+          <rect x="48" y="68" width="44" height="10" rx="3" fill="#10b981" />
+          <rect x="48" y="84" width="44" height="10" rx="3" fill="#3b82f6" />
+          <rect x="48" y="100" width="44" height="10" rx="3" fill="#f59e0b" />
 
           {/* University Cloud Right */}
-          <rect x="180" y="70" width="60" height="60" rx="10" fill="#1e293b" />
-          <circle cx="210" cy="100" r="14" fill="#3b82f6" opacity="0.3" />
-          <path d="M196 100 Q210 88 224 100" stroke="#60a5fa" strokeWidth="2.5" strokeLinecap="round" />
+          <rect x="180" y="60" width="60" height="60" rx="10" fill="#1e293b" />
+          <circle cx="210" cy="90" r="14" fill="#3b82f6" opacity="0.3" />
+          <path d="M196 90 Q210 78 224 90" stroke="#60a5fa" strokeWidth="2.5" strokeLinecap="round" />
 
           {/* Pulsing Sync Bridge Connecting Both */}
-          <line x1="105" y1="100" x2="175" y2="100" stroke="#f59e0b" strokeWidth="3" strokeDasharray="5 5">
+          <line x1="105" y1="90" x2="175" y2="90" stroke="#f59e0b" strokeWidth="3" strokeDasharray="5 5">
             <animate attributeName="stroke-dashoffset" values="0;20" dur="1s" repeatCount="indefinite" />
           </line>
         </svg>
 
         {/* Floating Radio Dish Icon */}
         <motion.div
-          animate={{
-            scale: [1, 1.08, 1],
-          }}
+          animate={{ scale: [1, 1.08, 1] }}
           transition={{ duration: 2.2, repeat: Infinity, ease: "easeInOut" }}
           style={{
             position: "absolute",
-            top: 14,
+            top: 10,
             left: "50%",
             transform: "translateX(-50%)",
             width: 42,
@@ -95,51 +85,28 @@ export default function ServiceUnavailablePage({ onRetry }) {
         </motion.div>
       </div>
 
-      {/* ── Status Badge ── */}
-      <motion.div
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        style={{
-          display: "inline-flex",
-          alignItems: "center",
-          gap: 6,
-          background: "#fffbeb",
-          border: "1px solid #fde68a",
-          padding: "4px 14px",
-          borderRadius: 999,
-          fontSize: 12,
-          fontWeight: 750,
-          color: "#92400e",
-          marginBottom: 16,
-          letterSpacing: "0.02em",
-        }}
-      >
-        <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#f59e0b" }} />
-        HTTP 503 &bull; SERVICE TEMPORARILY UNAVAILABLE
-      </motion.div>
-
       {/* ── Headline ── */}
       <motion.h1
-        initial={{ opacity: 0, y: 10 }}
+        initial={{ opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.35 }}
+        transition={{ duration: 0.3 }}
         style={{
-          fontSize: "clamp(24px, 4vw, 32px)",
+          fontSize: "clamp(26px, 4.5vw, 36px)",
           fontWeight: 800,
           color: "#0f172a",
-          margin: "0 0 12px 0",
-          letterSpacing: "-0.03em",
-          lineHeight: 1.25,
+          margin: "0 0 10px 0",
+          letterSpacing: "-0.035em",
+          lineHeight: 1.2,
         }}
       >
-        Connecting to University Services
+        Connecting to Academic Services
       </motion.h1>
 
       {/* ── Subtitle ── */}
       <motion.p
-        initial={{ opacity: 0, y: 10 }}
+        initial={{ opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.4 }}
+        transition={{ duration: 0.35 }}
         style={{
           fontSize: 15.5,
           color: "#64748b",
@@ -148,12 +115,12 @@ export default function ServiceUnavailablePage({ onRetry }) {
           margin: "0 0 32px 0",
         }}
       >
-        GradeFlow is reconnecting to academic databases. Service will be restored in a moment.
+        GradeFlow is reconnecting to university databases. Live access will be restored in a moment.
       </motion.p>
 
       {/* ── Actions ── */}
       <motion.div
-        initial={{ opacity: 0, y: 10 }}
+        initial={{ opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.45 }}
         style={{ display: "flex", gap: 12, flexWrap: "wrap", justifyContent: "center" }}
@@ -162,7 +129,6 @@ export default function ServiceUnavailablePage({ onRetry }) {
           type="button"
           onClick={handleRefresh}
           disabled={refreshing}
-          className="gf-state-btn-primary"
           style={{
             display: "inline-flex",
             alignItems: "center",
@@ -176,6 +142,7 @@ export default function ServiceUnavailablePage({ onRetry }) {
             border: "none",
             cursor: refreshing ? "not-allowed" : "pointer",
             boxShadow: "0 4px 14px rgba(37, 99, 235, 0.28)",
+            transition: "all 0.15s ease",
           }}
         >
           <RefreshCw size={16} className={refreshing ? "gf-spin" : ""} />
@@ -184,7 +151,6 @@ export default function ServiceUnavailablePage({ onRetry }) {
 
         <Link
           to="/"
-          className="gf-state-btn-secondary"
           style={{
             display: "inline-flex",
             alignItems: "center",
@@ -197,6 +163,7 @@ export default function ServiceUnavailablePage({ onRetry }) {
             color: "#334155",
             border: "1px solid #cbd5e1",
             textDecoration: "none",
+            transition: "all 0.15s ease",
           }}
         >
           <HomeIcon size={16} />
