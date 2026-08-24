@@ -18,13 +18,42 @@ export default function UpgradeModal() {
   const [isOpen, setIsOpen] = useState(false);
 
   useEffect(() => {
-    if (isOpen) {
-      document.body.style.overflow = "hidden";
-    } else {
-      document.body.style.overflow = "";
-    }
+    if (!isOpen) return;
+
+    // Save exact scroll position
+    const scrollY = window.scrollY || window.pageYOffset || 0;
+    const originalBodyOverflow = document.body.style.overflow;
+    const originalBodyPosition = document.body.style.position;
+    const originalBodyTop = document.body.style.top;
+    const originalBodyWidth = document.body.style.width;
+    const originalHtmlOverflow = document.documentElement.style.overflow;
+
+    // Bulletproof mobile (iOS & Android) + Desktop background scroll lock
+    document.documentElement.style.overflow = "hidden";
+    document.body.style.overflow = "hidden";
+    document.body.style.position = "fixed";
+    document.body.style.top = `-${scrollY}px`;
+    document.body.style.width = "100%";
+
+    const preventBackdropTouch = (e) => {
+      if (e.target && e.target.closest && e.target.closest(".gf-modal-scrollable")) {
+        return; // Allow scrolling inside the modal's feature area
+      }
+      if (e.cancelable) {
+        e.preventDefault();
+      }
+    };
+
+    document.addEventListener("touchmove", preventBackdropTouch, { passive: false });
+
     return () => {
-      document.body.style.overflow = "";
+      document.documentElement.style.overflow = originalHtmlOverflow;
+      document.body.style.overflow = originalBodyOverflow;
+      document.body.style.position = originalBodyPosition;
+      document.body.style.top = originalBodyTop;
+      document.body.style.width = originalBodyWidth;
+      document.removeEventListener("touchmove", preventBackdropTouch);
+      window.scrollTo(0, scrollY);
     };
   }, [isOpen]);
 
@@ -104,6 +133,7 @@ export default function UpgradeModal() {
             justifyContent: "center",
             padding: "16px",
             boxSizing: "border-box",
+            touchAction: "none",
           }}
         >
           {/* Backdrop Blur & Full Cover */}
@@ -113,6 +143,9 @@ export default function UpgradeModal() {
             exit={{ opacity: 0 }}
             transition={{ duration: 0.25 }}
             onClick={handleDismiss}
+            onTouchMove={(e) => {
+              if (e.cancelable) e.preventDefault();
+            }}
             style={{
               position: "fixed",
               inset: 0,
@@ -120,6 +153,7 @@ export default function UpgradeModal() {
               background: "rgba(15, 23, 42, 0.65)",
               backdropFilter: "blur(12px)",
               WebkitBackdropFilter: "blur(12px)",
+              touchAction: "none",
             }}
           />
 
@@ -220,10 +254,13 @@ export default function UpgradeModal() {
 
             {/* Scrollable Features Content */}
             <div
+              className="gf-modal-scrollable"
               style={{
                 padding: "16px 20px",
                 overflowY: "auto",
                 WebkitOverflowScrolling: "touch",
+                overscrollBehavior: "contain",
+                touchAction: "pan-y",
                 flex: 1,
                 display: "flex",
                 flexDirection: "column",
