@@ -37,7 +37,8 @@ export default function FeedbackModal() {
 
   const navigate = useNavigate();
   const location = useLocation();
-  const { API, studentData, fetchStudent } = useApp();
+  const { API, studentData, fetchStudent, maintenance, adminToken } = useApp();
+  const isMaintenanceBlocked = Boolean(maintenance?.enabled && !adminToken);
 
   const currentRegNo = studentData?.regNo || "";
   const currentStudentName = studentData?.studentName || "";
@@ -55,6 +56,7 @@ export default function FeedbackModal() {
   // Listen to open event from any part of the app (e.g. Upgrade popup, footer, navbar)
   useEffect(() => {
     const handleOpen = (e) => {
+      if (isMaintenanceBlocked) return;
       setShow(true);
       setIsSuccess(false);
       setErrorMessage("");

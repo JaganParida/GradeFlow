@@ -44,9 +44,11 @@ export default function OfflinePage({ onRetry }) {
       style={{
         position: "fixed",
         inset: 0,
-        zIndex: 999999,
-        background: "radial-gradient(ellipse at 50% 15%, rgba(37, 99, 235, 0.05) 0%, #fcfdfe 70%)",
+        zIndex: 9999999,
+        backgroundColor: "#ffffff",
+        background: "radial-gradient(ellipse at 50% 15%, #eff6ff 0%, #ffffff 70%)",
         minHeight: "100vh",
+        width: "100vw",
         display: "flex",
         flexDirection: "column",
         alignItems: "center",

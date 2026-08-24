@@ -161,8 +161,6 @@ export default function App() {
       <ScrollToTop />
       <NetworkStatusListener />
       <Navbar />
-      <FeedbackModal />
-      <UpgradeModal />
 
       {rateLimitError && (
         <RateLimitState
@@ -172,6 +170,8 @@ export default function App() {
       )}
 
       <MaintenanceGuard>
+        <FeedbackModal />
+        <UpgradeModal />
         <AnimatePresence mode="wait">
           <Routes location={location} key={location.pathname}>
             <Route

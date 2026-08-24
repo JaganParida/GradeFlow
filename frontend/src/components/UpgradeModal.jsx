@@ -10,8 +10,12 @@ import {
   X,
   Layers,
 } from "lucide-react";
+import { useApp } from "../context/AppContext";
 
 export default function UpgradeModal() {
+  const { maintenance, adminToken } = useApp();
+  const isMaintenanceBlocked = Boolean(maintenance?.enabled && !adminToken);
+
   const [isOpen, setIsOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(
     () => (typeof window !== "undefined" ? window.innerWidth < 640 || window.innerHeight < 700 : false)
@@ -26,6 +30,10 @@ export default function UpgradeModal() {
   }, []);
 
   useEffect(() => {
+    if (isMaintenanceBlocked) {
+      setIsOpen(false);
+      return;
+    }
     // Check if user has already seen the v2 upgrade announcement on this device
     const hasSeen = localStorage.getItem("gf_v2_upgrade_popup_seen");
     if (!hasSeen) {
@@ -34,7 +42,9 @@ export default function UpgradeModal() {
       }, 600);
       return () => clearTimeout(timer);
     }
-  }, []);
+  }, [isMaintenanceBlocked]);
+
+  if (isMaintenanceBlocked) return null;
 
   const handleDismiss = () => {
     setIsOpen(false);
