@@ -437,7 +437,7 @@ module.exports = async function handler(req, res) {
 
       let isCooldownActive = false;
       let cooldownRemainingSeconds = 0;
-      if (!isUnlimited && dailyLimit && dailyLimit.lastOtpSentAt) {
+      if (!isUnlimited && dailyLimit && dailyLimit.lastOtpSentAt && dailyLimit.otpSendCount > 0) {
         const timeSinceLastSend = Date.now() - new Date(dailyLimit.lastOtpSentAt).getTime();
         if (timeSinceLastSend < 180 * 1000) {
           isCooldownActive = true;
@@ -568,10 +568,10 @@ module.exports = async function handler(req, res) {
         StudentDailyLimit.findOne({ regNo: rawReg, dateKey })
       );
       if (!dailyLimit) {
-        dailyLimit = new StudentDailyLimit({ regNo: rawReg, dateKey, otpSendCount: 0 });
+        dailyLimit = new StudentDailyLimit({ regNo: rawReg, dateKey, otpSendCount: 0, lastOtpSentAt: null });
       }
 
-      if (!isUnlimited && dailyLimit.lastOtpSentAt) {
+      if (!isUnlimited && dailyLimit.lastOtpSentAt && dailyLimit.otpSendCount > 0) {
         const timeSinceLastSend = Date.now() - new Date(dailyLimit.lastOtpSentAt).getTime();
         if (timeSinceLastSend < 180 * 1000) {
           const waitSeconds = Math.ceil((180 * 1000 - timeSinceLastSend) / 1000);
