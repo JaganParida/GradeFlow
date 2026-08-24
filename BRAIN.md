@@ -215,9 +215,9 @@ GradeFlow/
   - **Fallback**: Gmail SMTP (`smtp.gmail.com:465/587`).
   - **Failover Invariance**: In case of Brevo credit exhaustion or connection timeout, the system seamlessly routes through Gmail using the **exact same OTP code** without generating conflicting duplicates.
 - **Limits & Cooldown**:
-  - **Cooldown**: 60-second atomic cooldown between OTP requests.
+  - **Cooldown**: 180-second (3-minute) atomic cooldown between OTP requests.
   - **Daily Limit**: Strictly **2 OTP attempts per calendar day** per student (quota deducted **only upon successful email delivery**).
-  - **TTL**: Codes expire automatically after 5 minutes (300 seconds).
+  - **TTL**: Codes expire automatically after 3 minutes (180 seconds).
 
 ---
 
@@ -327,7 +327,7 @@ GradeFlow/
 
 - [x] Student registration number validation & 2FA OTP verification
 - [x] Single-device restriction for standard students (and 2-device for superuser `230301120327`)
-- [x] 60-second OTP cooldown and 2 OTPs/day limit (deducted only upon successful email delivery)
+- [x] 180-second (3-minute) OTP cooldown and 2 OTPs/day limit (deducted only upon successful email delivery)
 - [x] Single-OTP code invariance during Brevo $\rightarrow$ Gmail failover
 - [x] 7-day continuous inactivity session revocation
 - [x] Master Admin login, 2FA OTP, single-device admin policy, and full maintenance access

@@ -42,7 +42,7 @@ export default function StudentAuthModal({ isOpen, onClose }) {
   const [maskedEmail, setMaskedEmail] = useState("");
   const [studentName, setStudentName] = useState("");
   const [remainingDailyAttempts, setRemainingDailyAttempts] = useState(2);
-  const [timerSeconds, setTimerSeconds] = useState(300);
+  const [timerSeconds, setTimerSeconds] = useState(180);
   const [timerActive, setTimerActive] = useState(false);
   const [resendCooldown, setResendCooldown] = useState(0);
   const [deviceStatus, setDeviceStatus] = useState(null); // { exists, isBlocked, isCurrentDevice, message, studentName }
@@ -295,15 +295,15 @@ export default function StudentAuthModal({ isOpen, onClose }) {
       setMaskedEmail(result.data?.maskedEmail || `${cleanReg.toLowerCase()}@centurionuniv.edu.in`);
       setStudentName(result.data?.studentName || "Student");
       setRemainingDailyAttempts(result.data?.remainingDailyAttempts ?? 1);
-      setTimerSeconds(result.data?.expiresInSeconds || 300);
+      setTimerSeconds(result.data?.expiresInSeconds || 180);
       setTimerActive(true);
-      setResendCooldown(60); // 60s cooldown starts strictly upon confirmed success
+      setResendCooldown(result.data?.cooldownSeconds || 180); // 180s cooldown starts strictly upon confirmed success
       setStep(2);
     } else {
       setErrorMsg(result.error);
       setErrorCode(result.code);
       if (result.code === "OTP_COOLDOWN_ACTIVE") {
-        const wait = result.details?.remainingSeconds || 60;
+        const wait = result.details?.remainingSeconds || 180;
         setResendCooldown(wait);
       }
       if (

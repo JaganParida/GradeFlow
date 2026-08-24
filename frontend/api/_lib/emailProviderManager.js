@@ -164,7 +164,7 @@ async function sendMailWithFailover(mailOptions) {
   }
 }
 
-async function sendStudentOtpEmail({ to, studentName, regNo, otp, expiresInMinutes = 5 }) {
+async function sendStudentOtpEmail({ to, studentName, regNo, otp, expiresInMinutes = 3 }) {
   const recipientEmail = String(to || "").trim().toLowerCase();
   if (!recipientEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(recipientEmail)) {
     throw new EmailProviderError("Invalid recipient email address", "RECIPIENT_ERROR");

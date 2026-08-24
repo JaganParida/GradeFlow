@@ -122,15 +122,15 @@ async function runTests() {
     failed++;
   }
 
-  // ── TEST 4: 60-Second Cooldown & Atomic Daily Limit Verification ──
-  console.log("\n[TEST 4] Testing Server-Side 60s OTP Cooldown Protection...");
+  // ── TEST 4: 180-Second (3-Minute) Cooldown & Atomic Daily Limit Verification ──
+  console.log("\n[TEST 4] Testing Server-Side 180s OTP Cooldown Protection...");
   const simulatedLimit = {
     regNo: "230301120050",
-    lastOtpSentAt: new Date(Date.now() - 25 * 1000), // Sent 25s ago
+    lastOtpSentAt: new Date(Date.now() - 45 * 1000), // Sent 45s ago
     otpSendCount: 1,
   };
 
-  const cooldownRemaining = 60 * 1000 - (Date.now() - simulatedLimit.lastOtpSentAt.getTime());
+  const cooldownRemaining = 180 * 1000 - (Date.now() - simulatedLimit.lastOtpSentAt.getTime());
   const isCooldownActive = cooldownRemaining > 0;
 
   if (isCooldownActive) {

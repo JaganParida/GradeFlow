@@ -538,8 +538,8 @@ module.exports = async function handler(req, res) {
 
       if (!isUnlimited && dailyLimit.lastOtpSentAt) {
         const timeSinceLastSend = Date.now() - new Date(dailyLimit.lastOtpSentAt).getTime();
-        if (timeSinceLastSend < 60 * 1000) {
-          const waitSeconds = Math.ceil((60 * 1000 - timeSinceLastSend) / 1000);
+        if (timeSinceLastSend < 180 * 1000) {
+          const waitSeconds = Math.ceil((180 * 1000 - timeSinceLastSend) / 1000);
           return res.status(429).json({
             success: false,
             code: "OTP_COOLDOWN_ACTIVE",
@@ -565,7 +565,7 @@ module.exports = async function handler(req, res) {
       const otpHash = await bcrypt.hash(otpCode, otpSalt);
 
       await globalDbQueue.run(() => OtpVerification.deleteMany({ regNo: rawReg }));
-      const expiresAt = new Date(Date.now() + 5 * 60 * 1000);
+      const expiresAt = new Date(Date.now() + 3 * 60 * 1000);
 
       await globalDbQueue.run(() =>
         OtpVerification.create({
@@ -584,7 +584,7 @@ module.exports = async function handler(req, res) {
           studentName,
           regNo: rawReg,
           otp: otpCode,
-          expiresInMinutes: 5,
+          expiresInMinutes: 3,
         });
 
         if (emailResult.provider === "gmail_fallback") {
@@ -612,7 +612,8 @@ module.exports = async function handler(req, res) {
         maskedEmail,
         studentName,
         regNo: rawReg,
-        expiresInSeconds: 300,
+        expiresInSeconds: 180,
+        cooldownSeconds: 180,
         remainingDailyAttempts: isUnlimited ? 99 : Math.max(0, maxDailyLimit - dailyLimit.otpSendCount),
         isUnlimited,
       });

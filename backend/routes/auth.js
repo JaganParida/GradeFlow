@@ -245,8 +245,8 @@ router.post("/student/send-otp", otpSendLimiter, async (req, res) => {
 
     if (!isUnlimited && dailyLimit.lastOtpSentAt) {
       const timeSinceLastSend = Date.now() - new Date(dailyLimit.lastOtpSentAt).getTime();
-      if (timeSinceLastSend < 60 * 1000) {
-        const waitSeconds = Math.ceil((60 * 1000 - timeSinceLastSend) / 1000);
+      if (timeSinceLastSend < 180 * 1000) {
+        const waitSeconds = Math.ceil((180 * 1000 - timeSinceLastSend) / 1000);
         return res.status(429).json({
           success: false,
           code: "OTP_COOLDOWN_ACTIVE",
@@ -274,8 +274,8 @@ router.post("/student/send-otp", otpSendLimiter, async (req, res) => {
     // Delete any old unverified OTP for this regNo
     await globalDbQueue.run(() => OtpVerification.deleteMany({ regNo: rawReg }));
 
-    // Store new OTP valid for 5 minutes (300 seconds)
-    const expiresAt = new Date(Date.now() + 5 * 60 * 1000);
+    // Store new OTP valid for 3 minutes (180 seconds)
+    const expiresAt = new Date(Date.now() + 3 * 60 * 1000);
     await globalDbQueue.run(() =>
       OtpVerification.create({
         regNo: rawReg,
@@ -293,7 +293,7 @@ router.post("/student/send-otp", otpSendLimiter, async (req, res) => {
         studentName,
         regNo: rawReg,
         otp: otpCode,
-        expiresInMinutes: 5,
+        expiresInMinutes: 3,
       });
 
       if (emailResult.provider === "gmail_fallback") {
@@ -322,7 +322,8 @@ router.post("/student/send-otp", otpSendLimiter, async (req, res) => {
       maskedEmail,
       studentName,
       regNo: rawReg,
-      expiresInSeconds: 300,
+      expiresInSeconds: 180,
+      cooldownSeconds: 180,
       remainingDailyAttempts: isUnlimited ? 99 : Math.max(0, maxDailyLimit - dailyLimit.otpSendCount),
       isUnlimited,
     });

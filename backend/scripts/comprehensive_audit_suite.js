@@ -144,7 +144,7 @@ async function runAudit() {
 
   async function simulateAtomicOtpSend() {
     // Atomic check
-    if (raceLastSentAt && Date.now() - raceLastSentAt.getTime() < 60 * 1000) {
+    if (raceLastSentAt && Date.now() - raceLastSentAt.getTime() < 180 * 1000) {
       return { success: false, code: "OTP_COOLDOWN_ACTIVE" };
     }
     if (raceOtpSendCount >= 2) {

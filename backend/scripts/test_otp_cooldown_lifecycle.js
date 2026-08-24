@@ -1,12 +1,14 @@
 /**
- * Test Suite: OTP Cooldown and Delivery Lifecycle Verification
+ * Test Suite: OTP Cooldown and Expiration Lifecycle Verification (180 Seconds / 3 Minutes)
  * 
  * Verifies:
- * 1. Successful delivery triggers 60s cooldown and consumes 1 daily allowance.
- * 2. Failed delivery (both providers fail) does NOT start cooldown and does NOT consume allowance.
- * 3. Immediate retry after failed delivery is permitted.
- * 4. Provider failover (Brevo -> Gmail) preserves single OTP and starts cooldown only once.
- * 5. Concurrent OTP requests maintain atomic locking.
+ * 1. Successful delivery triggers 180s (3-minute) cooldown and consumes 1 daily allowance.
+ * 2. OTP expiration is exactly 180s (3 minutes).
+ * 3. At 179s request is still blocked; at 180s+ request is permitted.
+ * 4. Failed delivery does NOT start cooldown and does NOT consume allowance.
+ * 5. Immediate retry after failed delivery is permitted.
+ * 6. Provider failover (Brevo -> Gmail) preserves single OTP and starts 180s cooldown only once.
+ * 7. Concurrent OTP requests maintain atomic locking.
  */
 
 const path = require("path");
@@ -15,7 +17,7 @@ const bcrypt = require("bcryptjs");
 
 async function runOtpLifecycleTest() {
   console.log("======================================================================");
-  console.log(" OTP COOLDOWN & DELIVERY LIFECYCLE TEST SUITE");
+  console.log(" OTP 3-MINUTE (180s) COOLDOWN & EXPIRATION LIFECYCLE TEST SUITE");
   console.log("======================================================================\n");
 
   let testsPassed = 0;
@@ -41,15 +43,15 @@ async function runOtpLifecycleTest() {
   };
 
   async function mockSendOtpWithFailure(dailyLimit, simulateProviderFailure = false) {
-    // 1. Cooldown check
+    // 1. 180s Cooldown check
     if (dailyLimit.lastOtpSentAt) {
       const diffMs = Date.now() - new Date(dailyLimit.lastOtpSentAt).getTime();
-      if (diffMs < 60 * 1000) {
-        return { success: false, code: "OTP_COOLDOWN_ACTIVE", waitSeconds: Math.ceil((60 * 1000 - diffMs) / 1000) };
+      if (diffMs < 180 * 1000) {
+        return { success: false, code: "OTP_COOLDOWN_ACTIVE", waitSeconds: Math.ceil((180 * 1000 - diffMs) / 1000) };
       }
     }
 
-    // 2. Daily limit check
+    // 2. Daily limit check (2/day)
     if (dailyLimit.otpSendCount >= 2) {
       return { success: false, code: "DAILY_LIMIT_EXCEEDED" };
     }
@@ -73,7 +75,7 @@ async function runOtpLifecycleTest() {
   );
   assert(
     studentLimitFailed.lastOtpSentAt === null,
-    "lastOtpSentAt remains NULL after failed delivery (cooldown NOT started)"
+    "lastOtpSentAt remains NULL after failed delivery (180s cooldown NOT started)"
   );
   assert(
     studentLimitFailed.otpSendCount === 0,
@@ -95,15 +97,37 @@ async function runOtpLifecycleTest() {
     "otpSendCount is incremented to 1 after confirmed delivery"
   );
 
-  // --- TEST 2: Successful Delivery Cooldown ---
-  console.log("\n--- 2. Testing 60-Second Cooldown on Successful Delivery ---");
+  // --- TEST 2: Successful Delivery 180s Cooldown ---
+  console.log("\n--- 2. Testing 180-Second (3-Minute) Cooldown on Successful Delivery ---");
   const immediateAttempt = await mockSendOtpWithFailure(studentLimitFailed, false);
   assert(
     immediateAttempt.success === false && immediateAttempt.code === "OTP_COOLDOWN_ACTIVE",
-    "Immediate attempt within 60s of SUCCESSFUL delivery is cleanly blocked by cooldown"
+    "Immediate attempt within 180s of SUCCESSFUL delivery is cleanly blocked by cooldown"
   );
 
-  // --- TEST 3: Failover Preserves Single OTP and Cooldown ---
+  // Simulate 179s elapsed (1s remaining)
+  const simulated179sLimit = {
+    ...studentLimitFailed,
+    lastOtpSentAt: new Date(Date.now() - 179 * 1000),
+  };
+  const at179sAttempt = await mockSendOtpWithFailure(simulated179sLimit, false);
+  assert(
+    at179sAttempt.success === false && at179sAttempt.waitSeconds === 1,
+    "At 179s elapsed, request is still blocked with exactly 1 second remaining"
+  );
+
+  // Simulate 180s elapsed (cooldown finished)
+  const simulated180sLimit = {
+    ...studentLimitFailed,
+    lastOtpSentAt: new Date(Date.now() - 180 * 1000),
+  };
+  const at180sAttempt = await mockSendOtpWithFailure(simulated180sLimit, false);
+  assert(
+    at180sAttempt.success === true && at180sAttempt.code === "OTP_SENT",
+    "At 180s+ elapsed, cooldown expires and next OTP request succeeds cleanly (consumed 2/2 daily limit)"
+  );
+
+  // --- TEST 3: Failover Preserves Single OTP and 180s Cooldown ---
   console.log("\n--- 3. Testing Provider Failover Lifecycle ---");
   const studentLimitFailover = {
     regNo: "230301120002",
@@ -139,7 +163,7 @@ async function runOtpLifecycleTest() {
   );
   assert(
     studentLimitFailover.lastOtpSentAt !== null,
-    "Failover started 60s cooldown exactly once"
+    "Failover started 180s cooldown exactly once"
   );
 
   console.log("\n======================================================================");
