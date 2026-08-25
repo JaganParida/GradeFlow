@@ -10,6 +10,7 @@ const OtpRequestLog = require("./_lib/models/OtpRequestLog");
 const AdminAuditLog = require("./_lib/models/AdminAuditLog");
 const jwt = require("jsonwebtoken");
 const { globalDbQueue } = require("./_lib/dbProtection");
+const { getActiveSessions, getMaxAllowedDevices } = require("./_lib/sessionManager");
 
 const CORS_HEADERS = {
   "Access-Control-Allow-Credentials": "true",
@@ -160,23 +161,66 @@ module.exports = async (req, res) => {
       }
 
       const activeSessions = await globalDbQueue.run(() =>
-        StudentSession.find({
-          regNo: rawReg,
-          status: "ACTIVE",
-          expiresAt: { $gt: new Date() },
-        }).sort({ lastActiveAt: -1 })
+        getActiveSessions(StudentSession, rawReg)
       );
+      const maxAllowedDevices = getMaxAllowedDevices(rawReg);
 
       const sanitizedSessions = activeSessions.map((s, idx) => {
-        const ip = String(s.deviceInfo?.ip || "");
-        const maskedIp = ip.includes(".") ? `${ip.split(".").slice(0, 2).join(".")}.***.***` : (ip ? "Hidden" : "Unknown");
+        const ua = String(s.deviceInfo?.userAgent || "");
+        const rawIp = String(s.deviceInfo?.ip || "");
+        const maskedIp = rawIp.includes(".")
+          ? `${rawIp.split(".").slice(0, 2).join(".")}.***.***`
+          : (rawIp ? "Hidden" : "Unknown");
+
+        let os = "Unknown";
+        if (/windows/i.test(ua)) os = "Windows";
+        else if (/macintosh|mac os x/i.test(ua)) os = "macOS";
+        else if (/android/i.test(ua)) os = "Android";
+        else if (/iphone/i.test(ua)) os = "iOS";
+        else if (/ipad/i.test(ua)) os = "iPadOS";
+        else if (/linux/i.test(ua)) os = "Linux";
+
+        let browser = "Unknown";
+        if (/edg/i.test(ua)) browser = "Edge";
+        else if (/chrome|crios/i.test(ua)) browser = "Chrome";
+        else if (/firefox|fxios/i.test(ua)) browser = "Firefox";
+        else if (/safari/i.test(ua)) browser = "Safari";
+        else if (/opera|opr/i.test(ua)) browser = "Opera";
+
+        let deviceType = "Desktop";
+        if (/mobile|iphone|ipod|android.*mobile|windows phone/i.test(ua) || os === "Android" || os === "iOS") {
+          deviceType = "Mobile";
+        } else if (/tablet|ipad|android(?!.*mobile)/i.test(ua) || os === "iPadOS") {
+          deviceType = "Tablet";
+        } else if (os === "Windows" || os === "macOS" || os === "Linux") {
+          deviceType = "Laptop";
+        }
+
+        let platform = s.deviceInfo?.platform;
+        if (!platform || platform === "Unknown") {
+          if (os !== "Unknown" && browser !== "Unknown") {
+            platform = `${os} / ${browser}`;
+          } else if (os !== "Unknown") {
+            platform = `${os} Device`;
+          } else if (deviceType !== "Unknown") {
+            platform = `${deviceType} Browser`;
+          } else {
+            platform = "Authorized Browser";
+          }
+        }
+
         return {
           deviceIndex: idx + 1,
-          platform: s.deviceInfo?.platform || "Unknown",
-          userAgent: s.deviceInfo?.userAgent || "Unknown",
+          sessionId: s.sessionId,
+          deviceType,
+          os,
+          browser,
+          platform,
+          userAgent: ua,
           maskedIp,
           loggedInAt: s.loggedInAt,
           lastActiveAt: s.lastActiveAt,
+          expiresAt: s.expiresAt,
           status: "ACTIVE",
         };
       });

@@ -21,9 +21,32 @@ import {
   Check,
   X,
   Sparkles,
-  Server,
   Layers,
+  Globe,
+  Activity,
+  Calendar,
+  Monitor,
+  Tablet,
 } from "lucide-react";
+
+function formatISTDate(dateVal) {
+  if (!dateVal) return "N/A";
+  try {
+    const d = new Date(dateVal);
+    if (isNaN(d.getTime())) return "N/A";
+    return new Intl.DateTimeFormat("en-GB", {
+      timeZone: "Asia/Kolkata",
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+      hour: "numeric",
+      minute: "2-digit",
+      hour12: true,
+    }).format(d);
+  } catch {
+    return "N/A";
+  }
+}
 
 export default function StudentOtpManagement({ API, authHeaders, isMobile }) {
   const [searchReg, setSearchReg] = useState("");
@@ -389,6 +412,174 @@ export default function StudentOtpManagement({ API, authHeaders, isMobile }) {
                 {studentData.activeDevicesCount >= studentData.maxAllowedDevices ? "Single-device lock active" : "Device slots available"}
               </div>
             </div>
+          </div>
+
+          {/* ── Active Authorized Device Sessions Panel ── */}
+          <div
+            style={{
+              background: "#ffffff",
+              borderRadius: 16,
+              border: "1px solid #e2e8f0",
+              padding: isMobile ? "16px 14px" : "20px 24px",
+              boxShadow: "0 2px 10px rgba(15, 23, 42, 0.02)",
+            }}
+          >
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14, flexWrap: "wrap", gap: 8 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <div
+                  style={{
+                    width: 32,
+                    height: 32,
+                    borderRadius: 8,
+                    background: (studentData.activeSessions?.length || 0) > 0 ? "#ecfdf5" : "#f1f5f9",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}
+                >
+                  <Smartphone size={17} color={(studentData.activeSessions?.length || 0) > 0 ? "#059669" : "#64748b"} />
+                </div>
+                <div>
+                  <h3 style={{ margin: 0, fontSize: 15.5, fontWeight: 800, color: "#0f172a" }}>
+                    Active Device Sessions ({studentData.activeDevicesCount} / {studentData.maxAllowedDevices})
+                  </h3>
+                  <p style={{ margin: "2px 0 0 0", fontSize: 12, color: "#64748b" }}>
+                    Live student sessions currently holding valid authentication tokens in MongoDB.
+                  </p>
+                </div>
+              </div>
+              <span
+                style={{
+                  fontSize: 11.5,
+                  fontWeight: 700,
+                  color: (studentData.activeSessions?.length || 0) > 0 ? "#065f46" : "#64748b",
+                  background: (studentData.activeSessions?.length || 0) > 0 ? "#d1fae5" : "#f1f5f9",
+                  padding: "4px 10px",
+                  borderRadius: 8,
+                  border: `1px solid ${(studentData.activeSessions?.length || 0) > 0 ? "#a7f3d0" : "#e2e8f0"}`,
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 5,
+                }}
+              >
+                {(studentData.activeSessions?.length || 0) > 0 ? (
+                  <>
+                    <span style={{ width: 7, height: 7, borderRadius: "50%", background: "#10b981", display: "inline-block" }} />
+                    {studentData.activeSessions.length} Active Device{studentData.activeSessions.length > 1 ? "s" : ""}
+                  </>
+                ) : (
+                  "0 Active Devices (Signed Out)"
+                )}
+              </span>
+            </div>
+
+            {(!studentData.activeSessions || studentData.activeSessions.length === 0) ? (
+              <div
+                style={{
+                  padding: "20px 16px",
+                  borderRadius: 12,
+                  background: "#f8fafc",
+                  border: "1px dashed #cbd5e1",
+                  textAlign: "center",
+                  color: "#64748b",
+                  fontSize: 13,
+                }}
+              >
+                No active device sessions found. Student is signed out on all devices.
+              </div>
+            ) : (
+              <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(auto-fit, minmax(320px, 1fr))", gap: 12 }}>
+                {studentData.activeSessions.map((session, idx) => {
+                  const isMob = session.deviceType === "Mobile";
+                  const isTab = session.deviceType === "Tablet";
+                  return (
+                    <div
+                      key={session.sessionId || idx}
+                      style={{
+                        background: "#f8fafc",
+                        border: "1px solid #e2e8f0",
+                        borderRadius: 12,
+                        padding: "14px 16px",
+                        display: "flex",
+                        flexDirection: "column",
+                        gap: 10,
+                      }}
+                    >
+                      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                          <div
+                            style={{
+                              width: 32,
+                              height: 32,
+                              borderRadius: 8,
+                              background: "#eff6ff",
+                              color: "#2563eb",
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                            }}
+                          >
+                            {isMob ? <Smartphone size={17} /> : isTab ? <Tablet size={17} /> : <Laptop size={17} />}
+                          </div>
+                          <div>
+                            <div style={{ fontSize: 13.5, fontWeight: 800, color: "#0f172a" }}>
+                              {session.platform || "Authorized Device"}
+                            </div>
+                            <div style={{ fontSize: 11.5, color: "#64748b" }}>
+                              Device {session.deviceIndex || idx + 1} of {studentData.maxAllowedDevices}
+                            </div>
+                          </div>
+                        </div>
+                        <span
+                          style={{
+                            fontSize: 11,
+                            fontWeight: 700,
+                            color: "#059669",
+                            background: "#ecfdf5",
+                            border: "1px solid #a7f3d0",
+                            padding: "3px 8px",
+                            borderRadius: 6,
+                            display: "inline-flex",
+                            alignItems: "center",
+                            gap: 4,
+                          }}
+                        >
+                          <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#10b981", display: "inline-block" }} />
+                          ACTIVE
+                        </span>
+                      </div>
+
+                      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, fontSize: 12, paddingTop: 6, borderTop: "1px solid #f1f5f9" }}>
+                        <div>
+                          <div style={{ color: "#94a3b8", fontSize: 10.5, fontWeight: 700, textTransform: "uppercase" }}>IP Address</div>
+                          <div style={{ color: "#334155", fontWeight: 600, marginTop: 2, display: "flex", alignItems: "center", gap: 4 }}>
+                            <Globe size={12} color="#64748b" /> {session.maskedIp || "Hidden"}
+                          </div>
+                        </div>
+                        <div>
+                          <div style={{ color: "#94a3b8", fontSize: 10.5, fontWeight: 700, textTransform: "uppercase" }}>Logged In</div>
+                          <div style={{ color: "#334155", fontWeight: 600, marginTop: 2 }}>
+                            {formatISTDate(session.loggedInAt)}
+                          </div>
+                        </div>
+                        <div>
+                          <div style={{ color: "#94a3b8", fontSize: 10.5, fontWeight: 700, textTransform: "uppercase" }}>Last Active</div>
+                          <div style={{ color: "#334155", fontWeight: 600, marginTop: 2 }}>
+                            {formatISTDate(session.lastActiveAt)}
+                          </div>
+                        </div>
+                        <div>
+                          <div style={{ color: "#94a3b8", fontSize: 10.5, fontWeight: 700, textTransform: "uppercase" }}>Expires At</div>
+                          <div style={{ color: "#334155", fontWeight: 600, marginTop: 2 }}>
+                            {formatISTDate(session.expiresAt)}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
 
           {/* ── Chronological OTP History Timeline ── */}
