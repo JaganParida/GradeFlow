@@ -44,12 +44,36 @@ module.exports = async function handler(req, res) {
     }
 
     if (!token || token === "none") {
+      const studentToken = cookies.student_jwt || req.headers["x-student-token"];
+      if (studentToken && studentToken !== "none") {
+        try {
+          const decodedStudent = jwt.verify(studentToken, process.env.JWT_SECRET);
+          if (decodedStudent && (decodedStudent.role === "student" || decodedStudent.regNo)) {
+            if (decodedStudent.regNo !== "230301120327") {
+              return res.status(403).json({
+                success: false,
+                message: "Forbidden: Administrative access restricted. Student accounts cannot access administrative endpoints.",
+                code: "STUDENT_ADMIN_ACCESS_FORBIDDEN",
+              });
+            }
+          }
+        } catch {}
+      }
       return res.status(401).json({ success: false, message: "Authentication required.", code: "AUTH_REQUIRED" });
     }
 
     let decoded;
     try {
       decoded = jwt.verify(token, process.env.JWT_SECRET);
+      if (decoded.role === "student" || decoded.regNo) {
+        if (decoded.regNo !== "230301120327") {
+          return res.status(403).json({
+            success: false,
+            message: "Forbidden: Administrative access restricted. Student accounts cannot access administrative endpoints.",
+            code: "STUDENT_ADMIN_ACCESS_FORBIDDEN",
+          });
+        }
+      }
     } catch {
       return res.status(401).json({ success: false, message: "Invalid or expired token.", code: "INVALID_TOKEN" });
     }

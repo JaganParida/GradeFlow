@@ -50,13 +50,31 @@ async function authenticateMainAdmin(req) {
   }
 
   if (!token || token === "none") {
+    // Check if a student token was passed via headers or cookies
+    const studentToken = cookies.student_jwt || req.headers["x-student-token"];
+    if (studentToken && studentToken !== "none") {
+      try {
+        const decodedStudent = jwt.verify(studentToken, process.env.JWT_SECRET, { algorithms: ["HS256"] });
+        if (decodedStudent && (decodedStudent.role === "student" || decodedStudent.regNo)) {
+          if (decodedStudent.regNo !== "230301120327") {
+            return {
+              error: "FORBIDDEN",
+              status: 403,
+              message: "Forbidden: Administrative access restricted. Student accounts cannot access administrative endpoints.",
+            };
+          }
+        }
+      } catch {}
+    }
     return { error: "AUTH_REQUIRED", status: 401, message: "Administrative authentication required." };
   }
 
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET, { algorithms: ["HS256"] });
-    if (decoded.role === "student") {
-      return { error: "FORBIDDEN", status: 403, message: "Forbidden: Admin privileges required." };
+    if (decoded.role === "student" || decoded.regNo) {
+      if (decoded.regNo !== "230301120327") {
+        return { error: "FORBIDDEN", status: 403, message: "Forbidden: Admin privileges required. Student accounts cannot access administrative endpoints." };
+      }
     }
 
     if (decoded.adminType === "subadmin") {

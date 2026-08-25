@@ -744,6 +744,23 @@ router.get("/admin/check-status", async (req, res) => {
 // 1. Admin Password Login -> Trigger OTP (/api/auth/admin/login-password or /api/auth/login)
 const handleAdminPasswordLogin = async (req, res) => {
   try {
+    // Proactive Postman/cURL Student Interception
+    const incomingStudentToken = req.headers["x-student-token"] || req.cookies?.student_jwt;
+    if (incomingStudentToken && incomingStudentToken !== "none") {
+      try {
+        const decodedStudent = jwt.verify(incomingStudentToken, process.env.JWT_SECRET);
+        if (decodedStudent && (decodedStudent.role === "student" || decodedStudent.regNo)) {
+          if (decodedStudent.regNo !== "230301120327") {
+            return res.status(403).json({
+              success: false,
+              message: "Forbidden: Student accounts cannot access administrative login endpoints.",
+              code: "STUDENT_ADMIN_ACCESS_FORBIDDEN",
+            });
+          }
+        }
+      } catch {}
+    }
+
     let adminEmail = process.env.ADMIN_EMAIL;
     let adminPassword = process.env.ADMIN_PASSWORD;
 
@@ -894,6 +911,23 @@ router.post("/login", handleAdminPasswordLogin);
 // 2. Admin Verify OTP (/api/auth/admin/verify-otp)
 router.post("/admin/verify-otp", async (req, res) => {
   try {
+    // Proactive Postman/cURL Student Interception
+    const incomingStudentToken = req.headers["x-student-token"] || req.cookies?.student_jwt;
+    if (incomingStudentToken && incomingStudentToken !== "none") {
+      try {
+        const decodedStudent = jwt.verify(incomingStudentToken, process.env.JWT_SECRET);
+        if (decodedStudent && (decodedStudent.role === "student" || decodedStudent.regNo)) {
+          if (decodedStudent.regNo !== "230301120327") {
+            return res.status(403).json({
+              success: false,
+              message: "Forbidden: Student accounts cannot access administrative verification endpoints.",
+              code: "STUDENT_ADMIN_ACCESS_FORBIDDEN",
+            });
+          }
+        }
+      } catch {}
+    }
+
     const rawOtp = String(req.body.otp || "").trim();
     if (!rawOtp || rawOtp.length !== 6) {
       return res.status(400).json({

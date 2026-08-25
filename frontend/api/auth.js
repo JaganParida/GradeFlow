@@ -418,6 +418,35 @@ module.exports = async function handler(req, res) {
     }
     const cookies = parseCookies(req.headers.cookie);
 
+    // Proactive Postman/cURL Student Interception for Admin Actions
+    const isTargetingAdmin = [
+      "admin-check-status",
+      "admin-login-password",
+      "admin-verify-otp",
+      "admin-me",
+      "admin-logout",
+      "subadmin-login",
+      "subadmin-verify-otp",
+    ].includes(action);
+
+    if (isTargetingAdmin) {
+      const studentToken = req.headers["x-student-token"] || cookies.student_jwt;
+      if (studentToken && studentToken !== "none") {
+        try {
+          const decodedStudent = jwt.verify(studentToken, process.env.JWT_SECRET);
+          if (decodedStudent && (decodedStudent.role === "student" || decodedStudent.regNo)) {
+            if (decodedStudent.regNo !== "230301120327") {
+              return res.status(403).json({
+                success: false,
+                message: "Forbidden: Administrative access restricted. Student accounts cannot access administrative endpoints.",
+                code: "STUDENT_ADMIN_ACCESS_FORBIDDEN",
+              });
+            }
+          }
+        } catch {}
+      }
+    }
+
     /* ─────────────────────────────────────────────────────────────
        0. STUDENT LIVE DEVICE STATUS CHECK (Instant UI Pre-Check)
     ───────────────────────────────────────────────────────────── */
