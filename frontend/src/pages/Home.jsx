@@ -57,12 +57,10 @@ export default function Home() {
   };
 
   const handleLogin = () => {
-    if (authChecking) return;
     openStudentAuthModal();
   };
 
   const handleDashboard = () => {
-    if (authChecking) return;
     if (hasActiveSession && currentRegNo) {
       navigate(`/dashboard/${encodeStudentId(currentRegNo)}`);
     } else {
@@ -71,7 +69,6 @@ export default function Home() {
   };
 
   const handleTimetable = () => {
-    if (authChecking) return;
     if (hasActiveSession && currentRegNo) {
       navigate(`/timetable/${encodeStudentId(currentRegNo)}`);
     } else {
@@ -80,7 +77,6 @@ export default function Home() {
   };
 
   const handleAttendance = () => {
-    if (authChecking) return;
     if (hasActiveSession && currentRegNo) {
       navigate(`/attendance/${encodeStudentId(currentRegNo)}`);
     } else {
@@ -89,7 +85,6 @@ export default function Home() {
   };
 
   const handlePredictor = () => {
-    if (authChecking) return;
     if (hasActiveSession && currentRegNo) {
       navigate(`/analytics/${encodeStudentId(currentRegNo)}?tab=predictor`);
     } else {
@@ -98,7 +93,6 @@ export default function Home() {
   };
 
   const handleAnalytics = (tab = "overview") => {
-    if (authChecking) return;
     if (hasActiveSession && currentRegNo) {
       const query = tab ? `?tab=${encodeURIComponent(tab)}` : "";
       navigate(`/analytics/${encodeStudentId(currentRegNo)}${query}`);
@@ -108,7 +102,6 @@ export default function Home() {
   };
 
   const handlePlacement = () => {
-    if (authChecking) return;
     if (hasActiveSession && currentRegNo) {
       navigate(`/analytics/${encodeStudentId(currentRegNo)}?tab=placement`);
     } else {
@@ -117,7 +110,6 @@ export default function Home() {
   };
 
   const handleDomains = () => {
-    if (authChecking) return;
     if (hasActiveSession && currentRegNo) {
       navigate(`/analytics/${encodeStudentId(currentRegNo)}?tab=mastery`);
     } else {
@@ -126,7 +118,6 @@ export default function Home() {
   };
 
   const handleGradeSheet = () => {
-    if (authChecking) return;
     if (hasActiveSession && currentRegNo) {
       navigate(`/analytics/${encodeStudentId(currentRegNo)}?tab=grades`);
     } else {
@@ -135,7 +126,6 @@ export default function Home() {
   };
 
   const handleDegreeProgress = () => {
-    if (authChecking) return;
     if (hasActiveSession && currentRegNo) {
       navigate(`/dashboard/${encodeStudentId(currentRegNo)}?tab=baskets`);
     } else {
@@ -144,7 +134,6 @@ export default function Home() {
   };
 
   const handleLeaderboard = () => {
-    if (authChecking) return;
     if (hasActiveSession && currentRegNo) {
       navigate("/leaderboard");
     } else {

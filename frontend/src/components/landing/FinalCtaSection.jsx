@@ -97,34 +97,27 @@ export default function FinalCtaSection({
               marginBottom: 32,
             }}
           >
-            {authChecking && !hasActiveSession ? (
+            {authChecking ? (
               <div
+                className="gf-mobile-full-btn"
                 style={{
-                  height: 48,
-                  width: 220,
-                  borderRadius: 10,
-                  background: "#f1f5f9",
-                  border: "1px solid #e2e8f0",
-                  display: "flex",
+                  display: "inline-flex",
                   alignItems: "center",
                   justifyContent: "center",
-                  color: "#94a3b8",
-                  fontSize: 13,
-                  fontWeight: 600,
                   gap: 8,
+                  padding: "13px 22px",
+                  borderRadius: 10,
+                  background: "#f8fafc",
+                  border: "1px solid #e2e8f0",
+                  color: "#64748b",
+                  fontSize: "clamp(13px, 3.2vw, 15px)",
+                  fontWeight: 600,
+                  boxShadow: "0 2px 6px rgba(0,0,0,0.04)",
+                  userSelect: "none",
                 }}
               >
-                <div
-                  className="gf-spin"
-                  style={{
-                    width: 14,
-                    height: 14,
-                    border: "2px solid #cbd5e1",
-                    borderTopColor: "#3b82f6",
-                    borderRadius: "50%",
-                  }}
-                />
-                <span>Loading portal...</span>
+                <Loader2 size={16} className="spin" color="#2563eb" />
+                <span>Verifying session...</span>
               </div>
             ) : hasActiveSession ? (
               <button

@@ -107,14 +107,12 @@ export default function Navbar() {
   const isEligibleForTimetable = is2023CSEBatch(studentData, currentRegNo);
 
   const requireAuthFor = (destination) => {
-    if (authChecking) return;
     setPendingDestination(destination);
     openStudentAuthModal();
   };
 
   const handleDashboardClick = (e) => {
     if (e) e.preventDefault();
-    if (authChecking) return;
     if (!hasActiveSession && !currentRegNo) {
       requireAuthFor({ type: "dashboard" });
     } else {
@@ -124,7 +122,6 @@ export default function Navbar() {
 
   const handleTimetableClick = (e) => {
     if (e) e.preventDefault();
-    if (authChecking) return;
     if (!hasActiveSession && !currentRegNo) {
       requireAuthFor({ type: "timetable" });
     } else {
@@ -134,7 +131,6 @@ export default function Navbar() {
 
   const handleAttendanceClick = (e) => {
     if (e) e.preventDefault();
-    if (authChecking) return;
     if (!hasActiveSession && !currentRegNo) {
       requireAuthFor({ type: "attendance" });
     } else {
@@ -144,7 +140,6 @@ export default function Navbar() {
 
   const handleAnalyticsClick = (e, targetTab = "") => {
     if (e) e.preventDefault();
-    if (authChecking) return;
     if (!hasActiveSession && !currentRegNo) {
       requireAuthFor({ type: "analytics", tab: targetTab });
     } else {
@@ -155,7 +150,6 @@ export default function Navbar() {
 
   const handleRankingsClick = (e) => {
     if (e) e.preventDefault();
-    if (authChecking) return;
     if (!hasActiveSession && !currentRegNo) {
       requireAuthFor({ type: "leaderboard" });
     } else {
@@ -859,15 +853,15 @@ export default function Navbar() {
                     borderRadius: 10,
                     background: "#f8fafc",
                     border: "1px solid #e2e8f0",
-                    color: "#94a3b8",
+                    color: "#64748b",
                     fontSize: 13,
                     fontWeight: 600,
                     cursor: "default",
                     userSelect: "none",
                   }}
                 >
-                  <Loader2 size={14} className="spin" />
-                  <span>Loading...</span>
+                  <Loader2 size={14} className="spin" color="#2563eb" />
+                  <span>Verifying...</span>
                 </div>
               ) : hasActiveSession ? (
                 <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
@@ -1850,7 +1844,7 @@ export default function Navbar() {
                       borderRadius: 12,
                       background: "#f8fafc",
                       border: "1px solid #e2e8f0",
-                      color: "#94a3b8",
+                      color: "#64748b",
                       fontSize: 13.5,
                       fontWeight: 600,
                       display: "flex",
@@ -1859,8 +1853,8 @@ export default function Navbar() {
                       gap: 8,
                     }}
                   >
-                    <Loader2 size={16} className="spin" />
-                    <span>Checking student session...</span>
+                    <Loader2 size={16} className="spin" color="#2563eb" />
+                    <span>Verifying session...</span>
                   </div>
                 ) : (
                   <button
