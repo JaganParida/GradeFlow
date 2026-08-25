@@ -569,9 +569,9 @@ export default function StudentOtpManagement({ API, authHeaders, isMobile }) {
                           </div>
                         </div>
                         <div>
-                          <div style={{ color: "#94a3b8", fontSize: 10.5, fontWeight: 700, textTransform: "uppercase" }}>Expires At</div>
-                          <div style={{ color: "#334155", fontWeight: 600, marginTop: 2 }}>
-                            {formatISTDate(session.expiresAt)}
+                          <div style={{ color: "#94a3b8", fontSize: 10.5, fontWeight: 700, textTransform: "uppercase" }}>Session Expiry</div>
+                          <div style={{ color: "#059669", fontWeight: 700, marginTop: 2 }}>
+                            Permanent (Until Logout)
                           </div>
                         </div>
                       </div>

@@ -884,10 +884,10 @@ module.exports = async function handler(req, res) {
       const studentRecord = await SemesterResult.findOne({ regNo: rawReg }).sort({ semester: -1 });
       const studentName = studentRecord?.studentName || "Student";
 
-      // Create new session document for this device (WITHOUT deleting/evicting existing valid sessions)
+      // Create new session document for this device (Permanent until manual logout)
       const sessionId = crypto.randomUUID();
       const now = Date.now();
-      const expiresAt = new Date(now + SEVEN_DAYS_MS);
+      const expiresAt = new Date(now + 100 * 365 * 24 * 60 * 60 * 1000);
 
       await StudentSession.create({
         regNo: rawReg,
@@ -909,12 +909,13 @@ module.exports = async function handler(req, res) {
           sessionId,
         },
         process.env.JWT_SECRET,
-        { expiresIn: "7d" }
+        { expiresIn: "36500d" }
       );
 
+      const maxAge = 100 * 365 * 24 * 60 * 60;
       res.setHeader("Set-Cookie", [
-        `student_jwt=${token}; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=${7 * 24 * 60 * 60}`,
-        `student_jwt=${token}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${7 * 24 * 60 * 60}`,
+        `student_jwt=${token}; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=${maxAge}`,
+        `student_jwt=${token}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${maxAge}`,
       ]);
 
       return res.json({
@@ -1279,7 +1280,7 @@ module.exports = async function handler(req, res) {
 
       const sessionId = crypto.randomUUID();
       const now = new Date();
-      const expiresAt = new Date(Date.now() + SEVEN_DAYS_MS);
+      const expiresAt = new Date(Date.now() + 100 * 365 * 24 * 60 * 60 * 1000);
 
       const userAgent = req.headers["user-agent"] || "Unknown";
       const ip = req.headers["x-forwarded-for"] || req.connection?.remoteAddress || "";
@@ -1297,10 +1298,10 @@ module.exports = async function handler(req, res) {
       const token = jwt.sign(
         { role: "admin", sessionId, loggedInAt: now },
         process.env.JWT_SECRET,
-        { expiresIn: "7d" }
+        { expiresIn: "36500d" }
       );
 
-      const maxAge = 7 * 24 * 60 * 60;
+      const maxAge = 100 * 365 * 24 * 60 * 60;
       res.setHeader("Set-Cookie", [
         `jwt=${token}; Path=/; HttpOnly; Secure; SameSite=None; Max-Age=${maxAge}`,
         `jwt=${token}; Path=/; HttpOnly; SameSite=None; Max-Age=${maxAge}`,
@@ -1589,10 +1590,10 @@ module.exports = async function handler(req, res) {
           loggedInAt: now,
         },
         process.env.JWT_SECRET,
-        { expiresIn: "7d" }
+        { expiresIn: "36500d" }
       );
 
-      const maxAge = 7 * 24 * 60 * 60;
+      const maxAge = 100 * 365 * 24 * 60 * 60;
       res.setHeader("Set-Cookie", [
         `jwt=${token}; Path=/; HttpOnly; Secure; SameSite=None; Max-Age=${maxAge}`,
         `jwt=${token}; Path=/; HttpOnly; SameSite=None; Max-Age=${maxAge}`,
@@ -1647,17 +1648,8 @@ module.exports = async function handler(req, res) {
               });
             }
 
-            if (session.expiresAt && session.expiresAt < new Date()) {
-              await SubAdminSession.deleteOne({ _id: session._id });
-              return res.status(401).json({
-                success: false,
-                code: "INACTIVITY_LOGOUT",
-                message: "Sub-Admin session expired due to 7 continuous days of inactivity.",
-              });
-            }
-
+            // Touch activity timestamp (sessions are permanent until manual logout)
             session.lastActiveAt = new Date();
-            session.expiresAt = new Date(Date.now() + SEVEN_DAYS_MS);
             await session.save();
           }
 
@@ -1703,15 +1695,7 @@ module.exports = async function handler(req, res) {
           });
         }
 
-        if (!isAdminSessionValid(session)) {
-          await AdminSession.deleteOne({ _id: session._id });
-          return res.status(401).json({
-            success: false,
-            code: "INACTIVITY_LOGOUT",
-            message: "Admin session expired due to 7 continuous days of inactivity.",
-          });
-        }
-
+        // Touch activity timestamp (sessions are permanent until manual logout)
         await touchAdminSession(session);
 
         return res.json({

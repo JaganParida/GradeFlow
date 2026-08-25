@@ -570,10 +570,10 @@ router.post("/student/verify-otp", otpLimiter, async (req, res) => {
     const studentRecord = await SemesterResult.findOne({ regNo: rawReg }).sort({ semester: -1 });
     const studentName = studentRecord?.studentName || "Student";
 
-    // Generate New Unique Session for this Device
+    // Generate New Unique Session for this Device (Permanent until manual logout)
     const sessionId = crypto.randomUUID();
     const now = Date.now();
-    const expiresAt = new Date(now + SEVEN_DAYS_MS);
+    const expiresAt = new Date(now + 100 * 365 * 24 * 60 * 60 * 1000);
 
     // Create session record in MongoDB (WITHOUT deleting/evicting existing valid sessions)
     await StudentSession.create({
@@ -590,7 +590,7 @@ router.post("/student/verify-otp", otpLimiter, async (req, res) => {
       isActive: true,
     });
 
-    // Issue JWT with 7-day expiration matching inactivity policy
+    // Issue permanent JWT (valid for 100 years until explicit user logout)
     const studentToken = jwt.sign(
       {
         regNo: rawReg,
@@ -598,13 +598,15 @@ router.post("/student/verify-otp", otpLimiter, async (req, res) => {
         role: "student",
       },
       process.env.JWT_SECRET,
-      { expiresIn: "7d" }
+      { expiresIn: "36500d" }
     );
 
+    const isProd = process.env.NODE_ENV === "production";
     const cookieOptions = {
+      maxAge: 100 * 365 * 24 * 60 * 60 * 1000,
       expires: expiresAt,
       httpOnly: true,
-      secure: true,
+      secure: isProd || req.secure || req.headers["x-forwarded-proto"] === "https",
       sameSite: "lax",
       path: "/",
     };
@@ -988,10 +990,10 @@ router.post("/admin/verify-otp", async (req, res) => {
       });
     }
 
-    // Create new Admin Session
+    // Create new Admin Session (Permanent until manual logout)
     const sessionId = crypto.randomUUID();
     const now = new Date();
-    const expiresAt = new Date(Date.now() + SEVEN_DAYS_MS);
+    const expiresAt = new Date(Date.now() + 100 * 365 * 24 * 60 * 60 * 1000);
 
     const userAgent = req.headers["user-agent"] || "Unknown";
     const ip = req.ip || req.connection?.remoteAddress || "";
@@ -1009,11 +1011,12 @@ router.post("/admin/verify-otp", async (req, res) => {
     const token = jwt.sign(
       { role: "admin", sessionId, loggedInAt: now },
       process.env.JWT_SECRET,
-      { expiresIn: "7d" }
+      { expiresIn: "36500d" }
     );
 
     const isProd = process.env.NODE_ENV === "production";
     const options = {
+      maxAge: 100 * 365 * 24 * 60 * 60 * 1000,
       expires: expiresAt,
       httpOnly: true,
       secure: isProd || req.secure || req.headers["x-forwarded-proto"] === "https",
@@ -1284,10 +1287,10 @@ router.post("/subadmin/verify-otp", async (req, res) => {
       { isActive: false }
     );
 
-    // Create new Sub-Admin Session
+    // Create new Sub-Admin Session (Permanent until manual logout)
     const sessionId = crypto.randomUUID();
     const now = new Date();
-    const expiresAt = new Date(Date.now() + SEVEN_DAYS_MS);
+    const expiresAt = new Date(Date.now() + 100 * 365 * 24 * 60 * 60 * 1000);
 
     const userAgent = req.headers["user-agent"] || "Unknown";
     const ip = req.ip || req.connection?.remoteAddress || "";
@@ -1318,11 +1321,12 @@ router.post("/subadmin/verify-otp", async (req, res) => {
         loggedInAt: now,
       },
       process.env.JWT_SECRET,
-      { expiresIn: "7d" }
+      { expiresIn: "36500d" }
     );
 
     const isProd = process.env.NODE_ENV === "production";
     const options = {
+      maxAge: 100 * 365 * 24 * 60 * 60 * 1000,
       expires: expiresAt,
       httpOnly: true,
       secure: isProd || req.secure || req.headers["x-forwarded-proto"] === "https",
@@ -1340,11 +1344,11 @@ router.post("/subadmin/verify-otp", async (req, res) => {
       name: subAdmin.name,
       email: subAdmin.email,
       permissions: subAdmin.permissions || { routes: [], sections: [], actions: [] },
-      message: `Welcome back, ${subAdmin.name}!`,
+      message: "Sub-Admin authenticated successfully.",
     });
   } catch (err) {
     console.error("Sub-Admin OTP verify error:", err);
-    return res.status(500).json({ success: false, message: "Server error during Sub-Admin OTP verification." });
+    return res.status(500).json({ message: "Server error during Sub-Admin OTP verification." });
   }
 });
 
@@ -1387,18 +1391,8 @@ const handleAdminMe = async (req, res) => {
           });
         }
 
-        if (session.expiresAt && session.expiresAt < new Date()) {
-          await SubAdminSession.deleteOne({ _id: session._id });
-          return res.status(401).json({
-            success: false,
-            code: "INACTIVITY_LOGOUT",
-            message: "Sub-Admin session expired due to 7 continuous days of inactivity.",
-          });
-        }
-
-        // Rolling activity update
+        // Record activity timestamp (Sessions are permanent until manual logout)
         session.lastActiveAt = new Date();
-        session.expiresAt = new Date(Date.now() + SEVEN_DAYS_MS);
         await session.save();
       }
 
@@ -1438,16 +1432,7 @@ const handleAdminMe = async (req, res) => {
         });
       }
 
-      if (!isAdminSessionValid(session)) {
-        await AdminSession.deleteOne({ _id: session._id });
-        return res.status(401).json({
-          success: false,
-          code: "INACTIVITY_LOGOUT",
-          message: "Admin session expired due to 7 continuous days of inactivity.",
-        });
-      }
-
-      // Rolling activity update
+      // Record activity timestamp (Sessions are permanent until manual logout)
       await touchAdminSession(session);
 
       return res.json({

@@ -536,7 +536,7 @@ export default function AdminLogin() {
                 bg: "#ecfdf5",
                 border: "#d1fae5",
                 title: "Multi-Device Governance",
-                desc: "Strict policy limit of maximum 2 active authorized admin devices with sliding 7-day session validity.",
+                desc: "Strict policy limit of maximum 2 active authorized admin devices with permanent session until manual logout.",
               },
               {
                 icon: <BarChart3 size={16} color="#8b5cf6" />,
@@ -1520,7 +1520,7 @@ export default function AdminLogin() {
                   background: "#10b981",
                 }}
               />
-              Security Gateway: Operational &bull; 7-Day Session Sliding Lock
+              Security Gateway: Operational &bull; Permanent Session Lock
             </div>
           </motion.div>
         </div>

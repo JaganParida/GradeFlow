@@ -122,15 +122,7 @@ module.exports = async function handler(req, res) {
         });
       }
 
-      if (!isSessionValid(activeSession)) {
-        await StudentSession.deleteOne({ _id: activeSession._id });
-        return res.status(401).json({
-          message: "Session expired due to 7 continuous days of inactivity. Please log in again.",
-          code: "INACTIVITY_LOGOUT",
-        });
-      }
-
-      // Rolling activity update
+      // Touch activity timestamp (sessions are permanent until manual logout)
       await touchSession(activeSession);
 
       // Check strict data isolation & device authorization

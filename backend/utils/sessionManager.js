@@ -1,4 +1,5 @@
-const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000; // 604,800,000 ms = 7 continuous days
+const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000; // Kept for reference
+const PERMANENT_SESSION_MS = 100 * 365 * 24 * 60 * 60 * 1000; // 100 years (Permanent sessions)
 const MAX_ADMIN_DEVICES = 2; // Maximum simultaneous active devices for Admin
 
 /**
@@ -12,18 +13,11 @@ function getMaxAllowedDevices(regNo) {
 }
 
 /**
- * Cleans up genuinely expired or inactive student sessions from MongoDB.
+ * Cleans up explicitly revoked/inactive student sessions from MongoDB.
+ * Sessions NEVER expire automatically; they remain active until explicit logout.
  */
 async function cleanExpiredSessions(StudentSession, regNo = null) {
-  const cutoff = new Date(Date.now() - SEVEN_DAYS_MS);
-  const now = new Date();
-  const filter = {
-    $or: [
-      { lastActiveAt: { $lt: cutoff } },
-      { expiresAt: { $lt: now } },
-      { isActive: false },
-    ],
-  };
+  const filter = { isActive: false };
   if (regNo) {
     filter.regNo = String(regNo).trim().toUpperCase();
   }
@@ -31,106 +25,85 @@ async function cleanExpiredSessions(StudentSession, regNo = null) {
 }
 
 /**
- * Returns all currently active, valid sessions for a student registration number.
+ * Returns all currently active sessions for a student registration number.
+ * Sessions remain 100% active and permanent until explicit user logout.
  */
 async function getActiveSessions(StudentSession, regNo) {
   const clean = String(regNo || "").trim().toUpperCase();
   await cleanExpiredSessions(StudentSession, clean);
 
-  const cutoff = new Date(Date.now() - SEVEN_DAYS_MS);
-  const now = new Date();
-
   return StudentSession.find({
     regNo: clean,
     isActive: true,
-    lastActiveAt: { $gte: cutoff },
-    expiresAt: { $gt: now },
   }).sort({ loggedInAt: -1 });
 }
 
 /**
- * Validates whether a student session document is currently active and within 7-day inactivity window.
+ * Validates whether a student session document is currently active.
+ * One-time login: sessions NEVER auto-expire or auto-logout.
  */
 function isSessionValid(session) {
   if (!session || !session.isActive) return false;
-  const now = Date.now();
-  const lastActive = new Date(session.lastActiveAt).getTime();
-  const expires = new Date(session.expiresAt).getTime();
-  if (now - lastActive > SEVEN_DAYS_MS) return false;
-  if (now >= expires) return false;
   return true;
 }
 
 /**
- * Refreshes the last active timestamp and extends expiration by 7 days for a student session.
+ * Updates the last active timestamp for audit logging without expiring the session.
  */
 async function touchSession(session) {
-  const now = Date.now();
-  session.lastActiveAt = new Date(now);
-  session.expiresAt = new Date(now + SEVEN_DAYS_MS);
+  session.lastActiveAt = new Date();
+  if (!session.expiresAt || new Date(session.expiresAt).getFullYear() < 2050) {
+    session.expiresAt = new Date(Date.now() + PERMANENT_SESSION_MS);
+  }
   return session.save();
 }
 
 /* ═══════════════════════════════════════════════════════════════════
-   ADMIN SESSION HELPERS (MAX 2 DEVICES & 7-DAY INACTIVITY)
+   ADMIN SESSION HELPERS (PERMANENT ONE-TIME LOGIN UNTIL MANUAL LOGOUT)
 ═══════════════════════════════════════════════════════════════════ */
 
 /**
- * Cleans up expired admin sessions.
+ * Cleans up explicitly revoked admin sessions.
  */
 async function cleanExpiredAdminSessions(AdminSession) {
-  const cutoff = new Date(Date.now() - SEVEN_DAYS_MS);
-  const now = new Date();
-  await AdminSession.deleteMany({
-    $or: [
-      { lastActiveAt: { $lt: cutoff } },
-      { expiresAt: { $lt: now } },
-      { isActive: false },
-    ],
-  });
+  await AdminSession.deleteMany({ isActive: false });
 }
 
 /**
- * Returns all currently active, valid admin sessions (max 2 allowed).
+ * Returns all currently active admin sessions (max 2 allowed).
+ * Sessions remain active permanently until explicit logout.
  */
 async function getActiveAdminSessions(AdminSession) {
   await cleanExpiredAdminSessions(AdminSession);
 
-  const cutoff = new Date(Date.now() - SEVEN_DAYS_MS);
-  const now = new Date();
-
   return AdminSession.find({
     isActive: true,
-    lastActiveAt: { $gte: cutoff },
-    expiresAt: { $gt: now },
   }).sort({ loggedInAt: -1 });
 }
 
 /**
- * Validates whether an admin session document is active and within 7-day inactivity window.
+ * Validates whether an admin session document is active.
+ * One-time login: admin sessions NEVER auto-expire or auto-logout.
  */
 function isAdminSessionValid(session) {
   if (!session || !session.isActive) return false;
-  const now = Date.now();
-  const lastActive = new Date(session.lastActiveAt).getTime();
-  const expires = new Date(session.expiresAt).getTime();
-  if (now - lastActive > SEVEN_DAYS_MS) return false;
-  if (now >= expires) return false;
   return true;
 }
 
 /**
- * Refreshes the last active timestamp and extends expiration by 7 days for an admin session.
+ * Updates the last active timestamp for audit logging without expiring the admin session.
  */
 async function touchAdminSession(session) {
-  const now = Date.now();
-  session.lastActiveAt = new Date(now);
-  session.expiresAt = new Date(now + SEVEN_DAYS_MS);
+  session.lastActiveAt = new Date();
+  if (!session.expiresAt || new Date(session.expiresAt).getFullYear() < 2050) {
+    session.expiresAt = new Date(Date.now() + PERMANENT_SESSION_MS);
+  }
   return session.save();
 }
 
 module.exports = {
   SEVEN_DAYS_MS,
+  PERMANENT_SESSION_MS,
   MAX_ADMIN_DEVICES,
   getMaxAllowedDevices,
   cleanExpiredSessions,

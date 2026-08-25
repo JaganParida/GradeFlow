@@ -73,19 +73,8 @@ const protect = async (req, res, next) => {
           });
         }
 
-        if (session.expiresAt && session.expiresAt < new Date()) {
-          await SubAdminSession.deleteOne({ _id: session._id });
-          return res.status(401).json({
-            success: false,
-            message: "Sub-Admin session expired due to 7 continuous days of inactivity. Please log in again.",
-            code: "INACTIVITY_LOGOUT",
-          });
-        }
-
-        // Rolling 7-day inactivity update
-        const now = new Date();
-        session.lastActiveAt = now;
-        session.expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+        // Record last active time without auto-expiration
+        session.lastActiveAt = new Date();
         await session.save();
       }
 
@@ -138,16 +127,7 @@ const protect = async (req, res, next) => {
         });
       }
 
-      if (!isAdminSessionValid(session)) {
-        await AdminSession.deleteOne({ _id: session._id });
-        return res.status(401).json({
-          success: false,
-          message: "Admin session expired due to 7 continuous days of inactivity. Please log in again.",
-          code: "INACTIVITY_LOGOUT",
-        });
-      }
-
-      // Rolling 7-day inactivity update
+      // Record activity timestamp (Sessions are permanent until manual logout)
       await touchAdminSession(session);
 
       req.admin = {
@@ -201,16 +181,7 @@ const protectStudent = async (req, res, next) => {
       });
     }
 
-    if (!isSessionValid(session)) {
-      await StudentSession.deleteOne({ _id: session._id });
-      return res.status(401).json({
-        success: false,
-        message: "Session expired due to 7 continuous days of inactivity. Please log in again.",
-        code: "INACTIVITY_LOGOUT",
-      });
-    }
-
-    // Refresh last active timestamp & extend expiration by 7 days
+    // Refresh last active timestamp (sessions are permanent until manual logout)
     await touchSession(session);
 
     req.student = {
@@ -297,16 +268,7 @@ const requireStudentOrAdmin = async (req, res, next) => {
       });
     }
 
-    if (!isSessionValid(session)) {
-      await StudentSession.deleteOne({ _id: session._id });
-      return res.status(401).json({
-        success: false,
-        message: "Session expired due to 7 continuous days of inactivity. Please log in again.",
-        code: "INACTIVITY_LOGOUT",
-      });
-    }
-
-    // Refresh last active timestamp & extend expiration by 7 days
+    // Refresh last active timestamp (sessions are permanent until manual logout)
     await touchSession(session);
 
     req.student = {
