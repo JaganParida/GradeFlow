@@ -1,9 +1,13 @@
 import React from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { ShieldCheck, ArrowUpRight } from "lucide-react";
+import { useApp } from "../../context/AppContext";
 
 export default function LandingFooter({ onNavigateSection }) {
   const navigate = useNavigate();
+  const { adminToken, studentData, studentSession } = useApp();
+  const currentRegNo = studentData?.regNo || studentSession?.regNo || "";
+  const canSeeAdmin = Boolean(adminToken || currentRegNo === "230301120327");
 
   return (
     <footer
@@ -271,24 +275,26 @@ export default function LandingFooter({ onNavigateSection }) {
                   Developer Note
                 </Link>
               </li>
-              <li>
-                <Link
-                  to="/admin"
-                  style={{
-                    color: "#0f172a",
-                    fontWeight: 700,
-                    textDecoration: "none",
-                    display: "inline-flex",
-                    alignItems: "center",
-                    gap: 4,
-                  }}
-                  onMouseEnter={(e) => (e.target.style.color = "#2563eb")}
-                  onMouseLeave={(e) => (e.target.style.color = "#0f172a")}
-                >
-                  <span>Admin Portal</span>
-                  <ArrowUpRight size={13} />
-                </Link>
-              </li>
+              {canSeeAdmin && (
+                <li>
+                  <Link
+                    to="/admin"
+                    style={{
+                      color: "#0f172a",
+                      fontWeight: 700,
+                      textDecoration: "none",
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: 4,
+                    }}
+                    onMouseEnter={(e) => (e.target.style.color = "#2563eb")}
+                    onMouseLeave={(e) => (e.target.style.color = "#0f172a")}
+                  >
+                    <span>Admin Portal</span>
+                    <ArrowUpRight size={13} />
+                  </Link>
+                </li>
+              )}
             </ul>
           </div>
         </div>

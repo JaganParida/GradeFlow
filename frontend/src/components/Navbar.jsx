@@ -103,6 +103,7 @@ export default function Navbar() {
   }, [mobileMenuOpen]);
 
   const currentRegNo = studentData?.regNo || studentSession?.regNo || "";
+  const canSeeAdmin = Boolean(adminToken || currentRegNo === "230301120327");
 
   const isEligibleForTimetable = is2023CSEBatch(studentData, currentRegNo);
 
@@ -770,75 +771,77 @@ export default function Navbar() {
               </button>
             )}
 
-            {/* Admin Portal Button (Clean Professional Security Styling - Distinct Color When Logged In) */}
-            <Link
-              to="/admin"
-              className={`gf-admin-link ${adminToken ? "gf-admin-logged-in" : ""}`}
-              title={adminToken ? "Admin Portal (Logged In & Authenticated)" : "Admin Portal"}
-              style={{
-                textDecoration: "none",
-                display: "inline-flex",
-                alignItems: "center",
-                gap: 6,
-                padding: "7px 13px",
-                borderRadius: 9,
-                border: adminToken
-                  ? "1.5px solid #10b981"
-                  : location.pathname.startsWith("/admin")
-                    ? "1.5px solid #cbd5e1"
-                    : "1px solid #cbd5e1",
-                background: adminToken
-                  ? "linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%)"
-                  : location.pathname.startsWith("/admin")
-                    ? "#f1f5f9"
-                    : "#ffffff",
-                color: adminToken
-                  ? "#065f46"
-                  : location.pathname.startsWith("/admin")
-                    ? "#0f172a"
-                    : "#475569",
-                fontSize: 12.5,
-                fontWeight: 750,
-                letterSpacing: "0.2px",
-                transition: "all 0.18s ease",
-                boxShadow: adminToken
-                  ? "0 2px 6px rgba(16, 185, 129, 0.18)"
-                  : "none",
-              }}
-              onMouseEnter={(e) => {
-                if (!adminToken) {
-                  e.currentTarget.style.background = "#f8fafc";
-                  e.currentTarget.style.color = "#0f172a";
-                  e.currentTarget.style.borderColor = "#94a3b8";
-                } else {
-                  e.currentTarget.style.background = "linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%)";
-                  e.currentTarget.style.borderColor = "#059669";
-                  e.currentTarget.style.color = "#064e3b";
-                }
-              }}
-              onMouseLeave={(e) => {
-                if (!adminToken) {
-                  e.currentTarget.style.background = location.pathname.startsWith("/admin")
-                    ? "#f1f5f9"
-                    : "#ffffff";
-                  e.currentTarget.style.color = location.pathname.startsWith("/admin")
-                    ? "#0f172a"
-                    : "#475569";
-                  e.currentTarget.style.borderColor = "#cbd5e1";
-                } else {
-                  e.currentTarget.style.background = "linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%)";
-                  e.currentTarget.style.borderColor = "#10b981";
-                  e.currentTarget.style.color = "#065f46";
-                }
-              }}
-            >
-              <ShieldCheck
-                size={15}
-                color={adminToken ? "#059669" : "#64748b"}
-                strokeWidth={adminToken ? 2.4 : 2}
-              />
-              <span className="gf-admin-text">Admin</span>
-            </Link>
+            {/* Admin Portal Button (Accessible ONLY for Admin / Superuser) */}
+            {canSeeAdmin && (
+              <Link
+                to="/admin"
+                className={`gf-admin-link ${adminToken ? "gf-admin-logged-in" : ""}`}
+                title={adminToken ? "Admin Portal (Logged In & Authenticated)" : "Admin Portal"}
+                style={{
+                  textDecoration: "none",
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 6,
+                  padding: "7px 13px",
+                  borderRadius: 9,
+                  border: adminToken
+                    ? "1.5px solid #10b981"
+                    : location.pathname.startsWith("/admin")
+                      ? "1.5px solid #cbd5e1"
+                      : "1px solid #cbd5e1",
+                  background: adminToken
+                    ? "linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%)"
+                    : location.pathname.startsWith("/admin")
+                      ? "#f1f5f9"
+                      : "#ffffff",
+                  color: adminToken
+                    ? "#065f46"
+                    : location.pathname.startsWith("/admin")
+                      ? "#0f172a"
+                      : "#475569",
+                  fontSize: 12.5,
+                  fontWeight: 750,
+                  letterSpacing: "0.2px",
+                  transition: "all 0.18s ease",
+                  boxShadow: adminToken
+                    ? "0 2px 6px rgba(16, 185, 129, 0.18)"
+                    : "none",
+                }}
+                onMouseEnter={(e) => {
+                  if (!adminToken) {
+                    e.currentTarget.style.background = "#f8fafc";
+                    e.currentTarget.style.color = "#0f172a";
+                    e.currentTarget.style.borderColor = "#94a3b8";
+                  } else {
+                    e.currentTarget.style.background = "linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%)";
+                    e.currentTarget.style.borderColor = "#059669";
+                    e.currentTarget.style.color = "#064e3b";
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (!adminToken) {
+                    e.currentTarget.style.background = location.pathname.startsWith("/admin")
+                      ? "#f1f5f9"
+                      : "#ffffff";
+                    e.currentTarget.style.color = location.pathname.startsWith("/admin")
+                      ? "#0f172a"
+                      : "#475569";
+                    e.currentTarget.style.borderColor = "#cbd5e1";
+                  } else {
+                    e.currentTarget.style.background = "linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%)";
+                    e.currentTarget.style.borderColor = "#10b981";
+                    e.currentTarget.style.color = "#065f46";
+                  }
+                }}
+              >
+                <ShieldCheck
+                  size={15}
+                  color={adminToken ? "#059669" : "#64748b"}
+                  strokeWidth={adminToken ? 2.4 : 2}
+                />
+                <span className="gf-admin-text">Admin</span>
+              </Link>
+            )}
 
             {/* Desktop Auth Button */}
             <div className="gf-desktop-auth">
@@ -1669,88 +1672,90 @@ export default function Navbar() {
                   )}
                 </Link>
 
-                {/* Admin Portal */}
-                <Link
-                  to="/admin"
-                  onClick={() => setMobileMenuOpen(false)}
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "space-between",
-                    padding: "11px 12px",
-                    borderRadius: 10,
-                    textDecoration: "none",
-                    background: adminToken
-                      ? "#f0fdf4"
-                      : location.pathname.startsWith("/admin")
-                        ? "#eff6ff"
-                        : "transparent",
-                    border: adminToken ? "1px solid #bbf7d0" : "1px solid transparent",
-                    color: adminToken
-                      ? "#065f46"
-                      : location.pathname.startsWith("/admin")
-                        ? "#2563eb"
-                        : "#1e293b",
-                    fontSize: 14.5,
-                    fontWeight: adminToken || location.pathname.startsWith("/admin")
-                      ? 700
-                      : 600,
-                  }}
-                >
-                  <div
-                    style={{ display: "flex", alignItems: "center", gap: 10 }}
+                {/* Admin Portal (Accessible ONLY for Admin / Superuser) */}
+                {canSeeAdmin && (
+                  <Link
+                    to="/admin"
+                    onClick={() => setMobileMenuOpen(false)}
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                      padding: "11px 12px",
+                      borderRadius: 10,
+                      textDecoration: "none",
+                      background: adminToken
+                        ? "#f0fdf4"
+                        : location.pathname.startsWith("/admin")
+                          ? "#eff6ff"
+                          : "transparent",
+                      border: adminToken ? "1px solid #bbf7d0" : "1px solid transparent",
+                      color: adminToken
+                        ? "#065f46"
+                        : location.pathname.startsWith("/admin")
+                          ? "#2563eb"
+                          : "#1e293b",
+                      fontSize: 14.5,
+                      fontWeight: adminToken || location.pathname.startsWith("/admin")
+                        ? 700
+                        : 600,
+                    }}
                   >
-                    <ShieldCheck
-                      size={17}
-                      color={
-                        adminToken
-                          ? "#059669"
-                          : location.pathname.startsWith("/admin")
-                            ? "#2563eb"
-                            : "#64748b"
-                      }
-                      strokeWidth={adminToken ? 2.4 : 2}
-                    />
-                    <span>Admin Portal</span>
-                  </div>
-                  {adminToken ? (
-                    <span
-                      style={{
-                        fontSize: 10.5,
-                        fontWeight: 700,
-                        background: "#dcfce7",
-                        color: "#065f46",
-                        padding: "2px 8px",
-                        borderRadius: 6,
-                        border: "1px solid #86efac",
-                      }}
+                    <div
+                      style={{ display: "flex", alignItems: "center", gap: 10 }}
                     >
-                      Logged In
-                    </span>
-                  ) : location.pathname.startsWith("/admin") ? (
-                    <span
-                      style={{
-                        width: 6,
-                        height: 6,
-                        borderRadius: "50%",
-                        background: "#2563eb",
-                      }}
-                    />
-                  ) : (
-                    <span
-                      style={{
-                        fontSize: 10,
-                        fontWeight: 700,
-                        background: "#f1f5f9",
-                        color: "#64748b",
-                        padding: "2px 6px",
-                        borderRadius: 4,
-                      }}
-                    >
-                      Gate
-                    </span>
-                  )}
-                </Link>
+                      <ShieldCheck
+                        size={17}
+                        color={
+                          adminToken
+                            ? "#059669"
+                            : location.pathname.startsWith("/admin")
+                              ? "#2563eb"
+                              : "#64748b"
+                        }
+                        strokeWidth={adminToken ? 2.4 : 2}
+                      />
+                      <span>Admin Portal</span>
+                    </div>
+                    {adminToken ? (
+                      <span
+                        style={{
+                          fontSize: 10.5,
+                          fontWeight: 700,
+                          background: "#dcfce7",
+                          color: "#065f46",
+                          padding: "2px 8px",
+                          borderRadius: 6,
+                          border: "1px solid #86efac",
+                        }}
+                      >
+                        Logged In
+                      </span>
+                    ) : location.pathname.startsWith("/admin") ? (
+                      <span
+                        style={{
+                          width: 6,
+                          height: 6,
+                          borderRadius: "50%",
+                          background: "#2563eb",
+                        }}
+                      />
+                    ) : (
+                      <span
+                        style={{
+                          fontSize: 10,
+                          fontWeight: 700,
+                          background: "#f1f5f9",
+                          color: "#64748b",
+                          padding: "2px 6px",
+                          borderRadius: 4,
+                        }}
+                      >
+                        Gate
+                      </span>
+                    )}
+                  </Link>
+                )}
               </div>
 
               {/* Mobile Drawer Bottom Action */}
