@@ -148,23 +148,24 @@ export default function StudentOtpManagement({ API, authHeaders, isMobile }) {
           gap: 16,
         }}
       >
-        <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
-          <div
-            style={{
-              width: 50,
-              height: 50,
-              borderRadius: 14,
-              background: "rgba(255, 255, 255, 0.12)",
-              backdropFilter: "blur(10px)",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              border: "1px solid rgba(255, 255, 255, 0.2)",
-            }}
-          >
-            <ShieldAlert size={28} color="#a5b4fc" />
-          </div>
-          <div>
+        <div style={{ display: "flex", flexDirection: "column", gap: 12, width: "100%" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+            <div
+              style={{
+                width: 44,
+                height: 44,
+                borderRadius: 12,
+                background: "rgba(255, 255, 255, 0.14)",
+                backdropFilter: "blur(10px)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                border: "1px solid rgba(255, 255, 255, 0.25)",
+                flexShrink: 0,
+              }}
+            >
+              <ShieldAlert size={24} color="#a5b4fc" />
+            </div>
             <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
               <h2 style={{ margin: 0, fontSize: isMobile ? 18 : 22, fontWeight: 800, letterSpacing: "-0.5px" }}>
                 Student OTP Attempt Management
@@ -187,10 +188,10 @@ export default function StudentOtpManagement({ API, authHeaders, isMobile }) {
                 Main Admin Only
               </span>
             </div>
-            <p style={{ margin: "4px 0 0 0", fontSize: 13, color: "#c7d2fe", maxWidth: 650, lineHeight: 1.4 }}>
-              Inspect detailed OTP request history, device origins, and provider delivery statuses before making an administrative decision to reset daily limits.
-            </p>
           </div>
+          <p style={{ margin: 0, fontSize: 13, color: "#c7d2fe", maxWidth: 680, lineHeight: 1.5 }}>
+            Inspect detailed OTP request history, device origins, and provider delivery statuses before making an administrative decision to reset daily limits.
+          </p>
         </div>
       </div>
 
@@ -204,7 +205,7 @@ export default function StudentOtpManagement({ API, authHeaders, isMobile }) {
           boxShadow: "0 2px 10px rgba(15, 23, 42, 0.03)",
         }}
       >
-        <form onSubmit={handleSearch} style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
+        <form onSubmit={handleSearch} style={{ display: "flex", gap: 12, flexWrap: "wrap", alignItems: "center" }}>
           <div style={{ position: "relative", flex: 1, minWidth: isMobile ? "100%" : 280 }}>
             <Search
               size={18}
@@ -213,7 +214,7 @@ export default function StudentOtpManagement({ API, authHeaders, isMobile }) {
             />
             <input
               type="text"
-              placeholder="Enter Student Reg No (e.g., 230301120137)..."
+              placeholder={isMobile ? "Enter Reg No (e.g., 230301120137)..." : "Enter Student Reg No (e.g., 230301120137)..."}
               value={searchReg}
               onChange={(e) => setSearchReg(e.target.value)}
               style={{
@@ -227,6 +228,8 @@ export default function StudentOtpManagement({ API, authHeaders, isMobile }) {
                 outline: "none",
                 transition: "border-color 0.2s",
                 boxSizing: "border-box",
+                maxWidth: "100%",
+                fontFamily: "'DM Sans', sans-serif",
               }}
               onFocus={(e) => (e.target.style.borderColor = "#4f46e5")}
               onBlur={(e) => (e.target.style.borderColor = "#cbd5e1")}
