@@ -191,32 +191,46 @@ export default function AttendanceTargetPredictor({
         </div>
 
         {/* Target Goal Selector */}
-        <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap", width: isMobile ? "100%" : "auto" }}>
           <span style={{ fontSize: 11, fontWeight: 800, color: "#64748b", textTransform: "uppercase" }}>
-            Target Attendance Goal:
+            Target Goal:
           </span>
-          <div style={{ display: "flex", gap: 4, background: "#f8fafc", padding: 3, borderRadius: 10, border: "1px solid #e2e8f0" }}>
+          <div
+            style={{
+              display: "flex",
+              gap: 4,
+              background: "#f8fafc",
+              padding: 3,
+              borderRadius: 10,
+              border: "1px solid #e2e8f0",
+              width: isMobile ? "100%" : "auto",
+              boxSizing: "border-box",
+            }}
+          >
             {[
-              { val: 75, label: isMobile ? "75%" : "75% Threshold" },
-              { val: 80, label: isMobile ? "80%" : "80% Safe" },
-              { val: 85, label: isMobile ? "85%" : "85% Distinction" },
-              { val: 90, label: isMobile ? "90%" : "90% Top" },
+              { val: 75, label: "75%" },
+              { val: 80, label: "80%" },
+              { val: 85, label: "85%" },
+              { val: 90, label: "90%" },
             ].map(({ val, label }) => (
               <button
                 key={val}
                 type="button"
                 onClick={() => setTargetGoal(val)}
                 style={{
+                  flex: isMobile ? 1 : "none",
                   background: targetGoal === val ? "#2563eb" : "transparent",
                   color: targetGoal === val ? "#ffffff" : "#475569",
                   border: "none",
                   borderRadius: 7,
-                  padding: isMobile ? "4px 8px" : "4px 10px",
-                  fontSize: isMobile ? 11.5 : 12,
+                  padding: isMobile ? "6px 4px" : "5px 12px",
+                  fontSize: isMobile ? 12 : 12.5,
                   fontWeight: 800,
                   cursor: "pointer",
                   transition: "all 0.15s ease",
-                  boxShadow: targetGoal === val ? "0 2px 6px rgba(37, 99, 235, 0.2)" : "none",
+                  boxShadow: targetGoal === val ? "0 2px 6px rgba(37, 99, 235, 0.22)" : "none",
+                  textAlign: "center",
+                  whiteSpace: "nowrap",
                 }}
               >
                 {label}
@@ -239,22 +253,24 @@ export default function AttendanceTargetPredictor({
           style={{
             background: isCurrentlySafe ? "#f0fdf4" : "#fff7ed",
             border: `1.5px solid ${isCurrentlySafe ? "#bbf7d0" : "#fed7aa"}`,
-            borderRadius: 16,
-            padding: "14px 16px",
+            borderRadius: 14,
+            padding: isMobile ? "12px 12px" : "14px 16px",
             display: "flex",
             flexDirection: "column",
             justifyContent: "space-between",
-            gap: 6,
+            gap: 4,
+            boxSizing: "border-box",
+            overflow: "hidden",
           }}
         >
-          <div style={{ fontSize: 11, fontWeight: 800, color: isCurrentlySafe ? "#166534" : "#9a3412", textTransform: "uppercase" }}>
+          <div style={{ fontSize: 10.5, fontWeight: 800, color: isCurrentlySafe ? "#166534" : "#9a3412", textTransform: "uppercase", letterSpacing: "0.2px" }}>
             Current Status
           </div>
-          <div style={{ fontSize: 24, fontWeight: 900, color: isCurrentlySafe ? "#15803d" : "#c2410c" }}>
+          <div style={{ fontSize: isMobile ? 22 : 25, fontWeight: 900, color: isCurrentlySafe ? "#15803d" : "#c2410c", lineHeight: 1.15 }}>
             {currentPct}%
           </div>
-          <div style={{ fontSize: 11.5, color: isCurrentlySafe ? "#166534" : "#9a3412" }}>
-            {totalAttended} / {totalDelivered} classes ({activeCalculation?.deficit || 0} classes deficit)
+          <div style={{ fontSize: 11, color: isCurrentlySafe ? "#166534" : "#9a3412", lineHeight: 1.3 }}>
+            {totalAttended}/{totalDelivered} classes ({activeCalculation?.deficit || 0} deficit)
           </div>
         </div>
 
@@ -263,24 +279,26 @@ export default function AttendanceTargetPredictor({
           style={{
             background: isCurrentlySafe ? "#f0fdfa" : "#fffbeb",
             border: `1.5px solid ${isCurrentlySafe ? "#99f6e4" : "#fde68a"}`,
-            borderRadius: 16,
-            padding: "14px 16px",
+            borderRadius: 14,
+            padding: isMobile ? "12px 12px" : "14px 16px",
             display: "flex",
             flexDirection: "column",
             justifyContent: "space-between",
-            gap: 6,
+            gap: 4,
+            boxSizing: "border-box",
+            overflow: "hidden",
           }}
         >
-          <div style={{ fontSize: 11, fontWeight: 800, color: isCurrentlySafe ? "#0f766e" : "#b45309", textTransform: "uppercase" }}>
-            {isCurrentlySafe ? `Safe Bunks Available` : `Sprint Needed for ${targetGoal}%`}
+          <div style={{ fontSize: 10.5, fontWeight: 800, color: isCurrentlySafe ? "#0f766e" : "#b45309", textTransform: "uppercase", letterSpacing: "0.2px" }}>
+            {isCurrentlySafe ? `Safe Bunks` : `Sprint for ${targetGoal}%`}
           </div>
-          <div style={{ fontSize: 22, fontWeight: 900, color: isCurrentlySafe ? "#0d9488" : "#d97706" }}>
+          <div style={{ fontSize: isMobile ? 18 : 22, fontWeight: 900, color: isCurrentlySafe ? "#0d9488" : "#d97706", lineHeight: 1.2 }}>
             {isCurrentlySafe
               ? `${activeCalculation?.safeBunks || 0} Safe Bunks`
-              : `${activeCalculation?.classesNeeded || 0} Consecutive Classes`}
+              : `${activeCalculation?.classesNeeded || 0} Classes`}
           </div>
-          <div style={{ fontSize: 11.5, color: isCurrentlySafe ? "#0f766e" : "#b45309" }}>
-            {isCurrentlySafe ? `Can miss without falling below ${targetGoal}%` : `Must attend 100% without absence`}
+          <div style={{ fontSize: 11, color: isCurrentlySafe ? "#0f766e" : "#b45309", lineHeight: 1.3 }}>
+            {isCurrentlySafe ? `Can miss safely` : `100% streak needed`}
           </div>
         </div>
 
@@ -289,22 +307,24 @@ export default function AttendanceTargetPredictor({
           style={{
             background: "#eff6ff",
             border: "1.5px solid #bfdbfe",
-            borderRadius: 16,
-            padding: "14px 16px",
+            borderRadius: 14,
+            padding: isMobile ? "12px 12px" : "14px 16px",
             display: "flex",
             flexDirection: "column",
             justifyContent: "space-between",
-            gap: 6,
+            gap: 4,
+            boxSizing: "border-box",
+            overflow: "hidden",
           }}
         >
-          <div style={{ fontSize: 11, fontWeight: 800, color: "#1e40af", textTransform: "uppercase", display: "flex", alignItems: "center", gap: 5 }}>
-            <CalendarIcon size={13} /> Estimated Reach Date
+          <div style={{ fontSize: 10.5, fontWeight: 800, color: "#1e40af", textTransform: "uppercase", display: "flex", alignItems: "center", gap: 4, letterSpacing: "0.2px" }}>
+            <CalendarIcon size={12} /> Reach Date
           </div>
-          <div style={{ fontSize: 20, fontWeight: 900, color: "#1d4ed8" }}>
-            {baseProjection?.estimatedDate || (isCurrentlySafe ? "Already Achieved" : "Exceeds Semester")}
+          <div style={{ fontSize: isMobile ? 15.5 : 19, fontWeight: 900, color: "#1d4ed8", lineHeight: 1.25, wordBreak: "break-word" }}>
+            {baseProjection?.estimatedDate || (isCurrentlySafe ? "Achieved" : "Exceeds Sem")}
           </div>
-          <div style={{ fontSize: 11.5, color: "#1e40af" }}>
-            {baseProjection ? `~${baseProjection.estimatedWeeks} weeks (${baseProjection.classesPerWeek} classes/week routine)` : "Timetable active"}
+          <div style={{ fontSize: 11, color: "#1e40af", lineHeight: 1.3 }}>
+            {baseProjection ? `~${baseProjection.estimatedWeeks} wks (${baseProjection.classesPerWeek}/wk)` : "Timetable active"}
           </div>
         </div>
 
@@ -313,30 +333,32 @@ export default function AttendanceTargetPredictor({
           style={{
             background: "#faf5ff",
             border: "1.5px solid #e9d5ff",
-            borderRadius: 16,
-            padding: "14px 16px",
+            borderRadius: 14,
+            padding: isMobile ? "12px 12px" : "14px 16px",
             display: "flex",
             flexDirection: "column",
             justifyContent: "space-between",
-            gap: 6,
+            gap: 4,
+            boxSizing: "border-box",
+            overflow: "hidden",
           }}
         >
-          <div style={{ fontSize: 11, fontWeight: 800, color: "#6b21a8", textTransform: "uppercase", display: "flex", alignItems: "center", gap: 5 }}>
-            <Activity size={13} /> Semester Timeline
+          <div style={{ fontSize: 10.5, fontWeight: 800, color: "#6b21a8", textTransform: "uppercase", display: "flex", alignItems: "center", gap: 4, letterSpacing: "0.2px" }}>
+            <Activity size={12} /> Timeline
           </div>
-          <div style={{ fontSize: 20, fontWeight: 900, color: baseProjection?.isAttainable ? "#16a34a" : "#dc2626" }}>
+          <div style={{ fontSize: isMobile ? 16 : 19, fontWeight: 900, color: baseProjection?.isAttainable ? "#16a34a" : "#dc2626", lineHeight: 1.2 }}>
             {baseProjection?.isAttainable ? (
-              <span style={{ display: "inline-flex", alignItems: "center", gap: 5 }}>
-                Attainable <CheckCircle2 size={16} color="#16a34a" />
+              <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
+                Attainable <CheckCircle2 size={14} color="#16a34a" />
               </span>
             ) : (
-              <span style={{ display: "inline-flex", alignItems: "center", gap: 5 }}>
-                Critical Warning <AlertTriangle size={16} color="#dc2626" />
+              <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
+                Critical <AlertTriangle size={14} color="#dc2626" />
               </span>
             )}
           </div>
-          <div style={{ fontSize: 11.5, color: "#6b21a8" }}>
-            Max attainable: {baseProjection?.maxAttainablePercentage || currentPct}% (End: 31 Oct)
+          <div style={{ fontSize: 11, color: "#6b21a8", lineHeight: 1.3 }}>
+            Max: {baseProjection?.maxAttainablePercentage || currentPct}% (31 Oct)
           </div>
         </div>
       </div>
@@ -362,21 +384,21 @@ export default function AttendanceTargetPredictor({
             flexDirection: isMobile ? "column" : "row",
             alignItems: "center",
             justifyContent: "center",
-            gap: isMobile ? 3 : 6,
-            padding: isMobile ? "8px 4px" : "9px 14px",
+            gap: isMobile ? 2 : 6,
+            padding: isMobile ? "8px 2px" : "9px 14px",
             borderRadius: 9,
             fontSize: isMobile ? 11 : 12.5,
             fontWeight: 800,
             background: engineView === "all_schedule" ? "#ffffff" : "transparent",
             color: engineView === "all_schedule" ? "#0f172a" : "#64748b",
             border: "none",
-            boxShadow: engineView === "all_schedule" ? "0 1px 4px rgba(0,0,0,0.06)" : "none",
+            boxShadow: engineView === "all_schedule" ? "0 2px 6px rgba(15, 23, 42, 0.08)" : "none",
             cursor: "pointer",
-            transition: "all 0.15s",
+            transition: "all 0.15s ease",
             textAlign: "center",
           }}
         >
-          <CalendarCheck size={isMobile ? 15 : 15} color={engineView === "all_schedule" ? "#2563eb" : "#64748b"} />
+          <CalendarCheck size={14} color={engineView === "all_schedule" ? "#2563eb" : "#64748b"} />
           <span>{isMobile ? "1. Schedule" : "1. Complete Schedule"}</span>
         </button>
 
@@ -388,22 +410,22 @@ export default function AttendanceTargetPredictor({
             flexDirection: isMobile ? "column" : "row",
             alignItems: "center",
             justifyContent: "center",
-            gap: isMobile ? 3 : 6,
-            padding: isMobile ? "8px 4px" : "9px 14px",
+            gap: isMobile ? 2 : 6,
+            padding: isMobile ? "8px 2px" : "9px 14px",
             borderRadius: 9,
             fontSize: isMobile ? 11 : 12.5,
             fontWeight: 800,
             background: engineView === "penalty_simulator" ? "#ffffff" : "transparent",
             color: engineView === "penalty_simulator" ? "#0f172a" : "#64748b",
             border: "none",
-            boxShadow: engineView === "penalty_simulator" ? "0 1px 4px rgba(0,0,0,0.06)" : "none",
+            boxShadow: engineView === "penalty_simulator" ? "0 2px 6px rgba(15, 23, 42, 0.08)" : "none",
             cursor: "pointer",
-            transition: "all 0.15s",
+            transition: "all 0.15s ease",
             textAlign: "center",
           }}
         >
-          <Flame size={isMobile ? 15 : 15} color={engineView === "penalty_simulator" ? "#ea580c" : "#64748b"} />
-          <span>{isMobile ? "2. Miss Penalty" : "2. Miss Penalty Simulator"}</span>
+          <Flame size={14} color={engineView === "penalty_simulator" ? "#ea580c" : "#64748b"} />
+          <span>{isMobile ? "2. Miss Penalty" : "2. Miss Penalty"}</span>
         </button>
 
         <button
@@ -414,22 +436,22 @@ export default function AttendanceTargetPredictor({
             flexDirection: isMobile ? "column" : "row",
             alignItems: "center",
             justifyContent: "center",
-            gap: isMobile ? 3 : 6,
-            padding: isMobile ? "8px 4px" : "9px 14px",
+            gap: isMobile ? 2 : 6,
+            padding: isMobile ? "8px 2px" : "9px 14px",
             borderRadius: 9,
             fontSize: isMobile ? 11 : 12.5,
             fontWeight: 800,
             background: engineView === "multiphase_planner" ? "#ffffff" : "transparent",
             color: engineView === "multiphase_planner" ? "#0f172a" : "#64748b",
             border: "none",
-            boxShadow: engineView === "multiphase_planner" ? "0 1px 4px rgba(0,0,0,0.06)" : "none",
+            boxShadow: engineView === "multiphase_planner" ? "0 2px 6px rgba(15, 23, 42, 0.08)" : "none",
             cursor: "pointer",
-            transition: "all 0.15s",
+            transition: "all 0.15s ease",
             textAlign: "center",
           }}
         >
-          <Compass size={isMobile ? 15 : 15} color={engineView === "multiphase_planner" ? "#7c3aed" : "#64748b"} />
-          <span>{isMobile ? "3. Multi-Phase" : "3. Multi-Phase Roadmap"}</span>
+          <Compass size={14} color={engineView === "multiphase_planner" ? "#7c3aed" : "#64748b"} />
+          <span>{isMobile ? "3. Roadmap" : "3. Multi-Phase Roadmap"}</span>
         </button>
       </div>
 

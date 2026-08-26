@@ -2475,19 +2475,23 @@ export default function Dashboard() {
                             {/* Pagination Toolbar */}
                             {totalInternalPages > 1 && (
                               <div
+                                className="gf-internal-pagination-toolbar"
                                 style={{
                                   display: "flex",
                                   alignItems: "center",
                                   justifyContent: "space-between",
                                   flexWrap: "wrap",
-                                  gap: 12,
+                                  gap: 10,
                                   padding: "10px 14px",
                                   background: "#f8fafc",
                                   borderRadius: 12,
                                   border: "1px solid #e2e8f0",
+                                  width: "100%",
+                                  boxSizing: "border-box",
+                                  overflow: "hidden",
                                 }}
                               >
-                                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                                <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
                                   <span style={{ fontSize: 12.5, fontWeight: 600, color: "#475569" }}>
                                     Showing <strong style={{ color: "#0f172a" }}>{startIdx}–{endIdx}</strong> of <strong style={{ color: "#0f172a" }}>{internalSubjects.length}</strong> subjects
                                   </span>
@@ -2496,52 +2500,66 @@ export default function Dashboard() {
                                   </span>
                                 </div>
 
-                                <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                                <div
+                                  className="gf-pagination-btn-group"
+                                  style={{
+                                    display: "flex",
+                                    alignItems: "center",
+                                    justifyContent: "center",
+                                    flexWrap: "wrap",
+                                    gap: 5,
+                                    maxWidth: "100%",
+                                  }}
+                                >
                                   <button
                                     onClick={() => setInternalPage((p) => Math.max(1, p - 1))}
                                     disabled={currentInternalPage <= 1}
                                     style={{
                                       display: "inline-flex",
                                       alignItems: "center",
-                                      gap: 4,
-                                      padding: "6px 12px",
+                                      gap: 3,
+                                      padding: "6px 10px",
+                                      height: 32,
                                       borderRadius: 8,
                                       border: "1px solid #cbd5e1",
                                       background: currentInternalPage <= 1 ? "#f1f5f9" : "#ffffff",
                                       color: currentInternalPage <= 1 ? "#94a3b8" : "#1e293b",
-                                      fontSize: 12.5,
+                                      fontSize: 12,
                                       fontWeight: 600,
                                       cursor: currentInternalPage <= 1 ? "not-allowed" : "pointer",
                                       fontFamily: "'DM Sans', sans-serif",
+                                      flexShrink: 0,
                                     }}
                                   >
-                                    <ChevronLeft size={14} /> Prev
+                                    <ChevronLeft size={13} /> Prev
                                   </button>
 
-                                  <div style={{ display: "flex", gap: 4 }}>
+                                  <div style={{ display: "flex", alignItems: "center", gap: 4, flexWrap: "wrap", justifyContent: "center" }}>
                                     {Array.from({ length: totalInternalPages }, (_, idx) => idx + 1)
                                       .filter((p) => p === 1 || p === totalInternalPages || Math.abs(p - currentInternalPage) <= 1)
                                       .map((p, pIdx, arr) => (
                                         <React.Fragment key={p}>
                                           {pIdx > 0 && arr[pIdx - 1] !== p - 1 && (
-                                            <span style={{ padding: "0 4px", color: "#94a3b8", fontSize: 12, alignSelf: "center" }}>…</span>
+                                            <span style={{ padding: "0 2px", color: "#94a3b8", fontSize: 11, alignSelf: "center" }}>…</span>
                                           )}
                                           <button
                                             onClick={() => setInternalPage(p)}
                                             style={{
-                                              minWidth: 32,
+                                              minWidth: 28,
                                               height: 32,
+                                              padding: "0 6px",
                                               borderRadius: 8,
-                                              border: p === currentInternalPage ? "1px solid #2563eb" : "1px solid #cbd5e1",
+                                              border: p === currentInternalPage ? "1.5px solid #2563eb" : "1px solid #cbd5e1",
                                               background: p === currentInternalPage ? "#2563eb" : "#ffffff",
                                               color: p === currentInternalPage ? "#ffffff" : "#334155",
-                                              fontSize: 12.5,
+                                              fontSize: 12,
                                               fontWeight: 700,
                                               cursor: "pointer",
                                               display: "flex",
                                               alignItems: "center",
                                               justifyContent: "center",
                                               fontFamily: "'DM Sans', sans-serif",
+                                              flexShrink: 0,
                                             }}
                                           >
                                             {p}
@@ -2556,19 +2574,21 @@ export default function Dashboard() {
                                     style={{
                                       display: "inline-flex",
                                       alignItems: "center",
-                                      gap: 4,
-                                      padding: "6px 12px",
+                                      gap: 3,
+                                      padding: "6px 10px",
+                                      height: 32,
                                       borderRadius: 8,
                                       border: "1px solid #cbd5e1",
                                       background: currentInternalPage >= totalInternalPages ? "#f1f5f9" : "#ffffff",
                                       color: currentInternalPage >= totalInternalPages ? "#94a3b8" : "#1e293b",
-                                      fontSize: 12.5,
+                                      fontSize: 12,
                                       fontWeight: 600,
                                       cursor: currentInternalPage >= totalInternalPages ? "not-allowed" : "pointer",
                                       fontFamily: "'DM Sans', sans-serif",
+                                      flexShrink: 0,
                                     }}
                                   >
-                                    Next <ChevronRight size={14} />
+                                    Next <ChevronRight size={13} />
                                   </button>
                                 </div>
                               </div>

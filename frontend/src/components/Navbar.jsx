@@ -94,11 +94,17 @@ export default function Navbar() {
   useEffect(() => {
     if (mobileMenuOpen) {
       document.body.style.overflow = "hidden";
+      document.documentElement.style.overflow = "hidden";
+      document.body.style.touchAction = "none";
     } else {
       document.body.style.overflow = "";
+      document.documentElement.style.overflow = "";
+      document.body.style.touchAction = "";
     }
     return () => {
       document.body.style.overflow = "";
+      document.documentElement.style.overflow = "";
+      document.body.style.touchAction = "";
     };
   }, [mobileMenuOpen]);
 
@@ -1003,24 +1009,26 @@ export default function Navbar() {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              transition={{ duration: 0.2 }}
+              transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
               onClick={() => setMobileMenuOpen(false)}
+              onTouchMove={(e) => e.preventDefault()}
               style={{
                 position: "fixed",
                 inset: 0,
-                background: "rgba(15, 23, 42, 0.45)",
-                backdropFilter: "blur(6px)",
-                WebkitBackdropFilter: "blur(6px)",
+                background: "rgba(15, 23, 42, 0.48)",
+                backdropFilter: "blur(8px)",
+                WebkitBackdropFilter: "blur(8px)",
                 zIndex: 998,
+                touchAction: "none",
               }}
             />
 
             {/* Slide-out Menu Panel */}
             <motion.div
-              initial={{ opacity: 0, y: -16 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -16 }}
-              transition={{ type: "spring", stiffness: 360, damping: 30 }}
+              initial={{ opacity: 0, y: -14, scale: 0.99 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: -10, scale: 0.99 }}
+              transition={{ type: "spring", stiffness: 340, damping: 30, mass: 0.8 }}
               style={{
                 position: "fixed",
                 top: 58,
@@ -1028,11 +1036,14 @@ export default function Navbar() {
                 right: 0,
                 maxHeight: "calc(100vh - 58px)",
                 overflowY: "auto",
-                background: "#ffffff",
+                WebkitOverflowScrolling: "touch",
+                background: "rgba(255, 255, 255, 0.98)",
+                backdropFilter: "blur(20px)",
+                WebkitBackdropFilter: "blur(20px)",
                 borderBottom: "1px solid #e2e8f0",
-                boxShadow: "0 20px 40px rgba(15, 23, 42, 0.16)",
+                boxShadow: "0 25px 50px -12px rgba(15, 23, 42, 0.18)",
                 zIndex: 999,
-                padding: "14px 18px 24px",
+                padding: "16px 18px 28px",
                 display: "flex",
                 flexDirection: "column",
                 gap: 14,
@@ -2181,30 +2192,30 @@ export default function Navbar() {
         /* Tablet & Mobile responsive styling */
         @media (max-width: 768px) {
           .gf-navbar-inner {
-            height: 58px !important;
+            height: 60px !important;
             padding: 0 16px !important;
-            gap: 8px !important;
+            gap: 10px !important;
           }
           .gf-navbar-right {
             gap: 8px !important;
           }
           .gf-search-btn {
-            width: 34px !important;
-            height: 34px !important;
-            border-radius: 8px !important;
+            width: 38px !important;
+            height: 38px !important;
+            border-radius: 10px !important;
           }
           .gf-admin-text {
             display: inline-block !important;
-            font-size: 12px !important;
-            font-weight: 700 !important;
+            font-size: 12.5px !important;
+            font-weight: 750 !important;
           }
           .gf-admin-link {
             display: inline-flex !important;
             align-items: center !important;
-            gap: 4px !important;
-            padding: 5px 10px !important;
-            border-radius: 8px !important;
-            height: 34px !important;
+            gap: 5px !important;
+            padding: 0 12px !important;
+            border-radius: 10px !important;
+            height: 38px !important;
             background: #ffffff !important;
             border: 1px solid #cbd5e1 !important;
             color: #475569 !important;
@@ -2218,9 +2229,9 @@ export default function Navbar() {
             box-shadow: 0 2px 6px rgba(16, 185, 129, 0.18) !important;
           }
           .gf-mobile-toggle {
-            width: 34px !important;
-            height: 34px !important;
-            border-radius: 8px !important;
+            width: 38px !important;
+            height: 38px !important;
+            border-radius: 10px !important;
           }
           .gf-logo-text {
             font-size: 21.5px !important;
@@ -2233,30 +2244,30 @@ export default function Navbar() {
 
         @media (max-width: 480px) {
           .gf-navbar-inner {
-            height: 56px !important;
-            padding: 0 14px !important;
-            gap: 6px !important;
+            height: 60px !important;
+            padding: 0 16px !important;
+            gap: 8px !important;
           }
           .gf-navbar-right {
-            gap: 6px !important;
+            gap: 8px !important;
           }
           .gf-search-btn {
-            width: 33px !important;
-            height: 33px !important;
-            border-radius: 8px !important;
+            width: 38px !important;
+            height: 38px !important;
+            border-radius: 10px !important;
           }
           .gf-admin-text {
             display: inline-block !important;
-            font-size: 11.5px !important;
+            font-size: 12px !important;
             font-weight: 750 !important;
           }
           .gf-admin-link {
             display: inline-flex !important;
             align-items: center !important;
-            gap: 3px !important;
-            padding: 4px 8px !important;
-            border-radius: 8px !important;
-            height: 33px !important;
+            gap: 4px !important;
+            padding: 0 11px !important;
+            border-radius: 10px !important;
+            height: 38px !important;
             background: #ffffff !important;
             border: 1px solid #cbd5e1 !important;
             color: #475569 !important;
@@ -2270,40 +2281,41 @@ export default function Navbar() {
             box-shadow: 0 2px 6px rgba(16, 185, 129, 0.18) !important;
           }
           .gf-mobile-toggle {
-            width: 33px !important;
-            height: 33px !important;
-            border-radius: 8px !important;
+            width: 38px !important;
+            height: 38px !important;
+            border-radius: 10px !important;
           }
           .gf-logo-text {
-            font-size: 19px !important;
+            font-size: 20px !important;
           }
           .gf-logo-img {
-            height: 38px !important;
+            height: 40px !important;
             margin-right: -7px !important;
           }
         }
 
         @media (max-width: 360px) {
           .gf-navbar-inner {
-            height: 54px !important;
-            padding: 0 10px !important;
-            gap: 4px !important;
+            height: 58px !important;
+            padding: 0 12px !important;
+            gap: 6px !important;
           }
           .gf-navbar-right {
-            gap: 4px !important;
+            gap: 6px !important;
           }
           .gf-search-btn {
-            width: 30px !important;
-            height: 30px !important;
-            border-radius: 7px !important;
+            width: 36px !important;
+            height: 36px !important;
+            border-radius: 9px !important;
           }
           .gf-admin-text {
-            display: none !important;
+            display: inline-block !important;
+            font-size: 11px !important;
           }
           .gf-admin-link {
-            padding: 0 6px !important;
-            height: 30px !important;
-            border-radius: 7px !important;
+            padding: 0 9px !important;
+            height: 36px !important;
+            border-radius: 9px !important;
           }
           .gf-admin-link.gf-admin-logged-in {
             background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%) !important;
@@ -2311,15 +2323,15 @@ export default function Navbar() {
             color: #065f46 !important;
           }
           .gf-mobile-toggle {
-            width: 30px !important;
-            height: 30px !important;
-            border-radius: 7px !important;
+            width: 36px !important;
+            height: 36px !important;
+            border-radius: 9px !important;
           }
           .gf-logo-text {
-            font-size: 17px !important;
+            font-size: 18px !important;
           }
           .gf-logo-img {
-            height: 32px !important;
+            height: 36px !important;
             margin-right: -6px !important;
           }
         }
