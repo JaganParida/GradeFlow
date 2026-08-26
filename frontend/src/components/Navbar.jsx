@@ -909,8 +909,8 @@ export default function Navbar() {
                   : "Open navigation menu"
               }
               style={{
-                width: 36,
-                height: 36,
+                width: 38,
+                height: 38,
                 borderRadius: 10,
                 background: mobileMenuOpen ? "#eff6ff" : "#f8fafc",
                 border: mobileMenuOpen
@@ -921,7 +921,7 @@ export default function Navbar() {
                 justifyContent: "center",
                 color: mobileMenuOpen ? "#2563eb" : "#0f172a",
                 cursor: "pointer",
-                transition: "all 0.2s ease",
+                transition: "background 0.15s ease, border-color 0.15s ease, color 0.15s ease",
               }}
             >
               {mobileMenuOpen ? <X size={19} /> : <Menu size={19} />}

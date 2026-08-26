@@ -165,7 +165,7 @@ export default function StudentOtpManagement({ API, authHeaders, isMobile }) {
             <ShieldAlert size={28} color="#a5b4fc" />
           </div>
           <div>
-            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
               <h2 style={{ margin: 0, fontSize: isMobile ? 18 : 22, fontWeight: 800, letterSpacing: "-0.5px" }}>
                 Student OTP Attempt Management
               </h2>
@@ -173,12 +173,15 @@ export default function StudentOtpManagement({ API, authHeaders, isMobile }) {
                 style={{
                   background: "#4338ca",
                   color: "#e0e7ff",
-                  fontSize: 11,
+                  fontSize: 10.5,
                   fontWeight: 700,
                   padding: "3px 8px",
                   borderRadius: 6,
                   border: "1px solid #6366f1",
                   textTransform: "uppercase",
+                  whiteSpace: "nowrap",
+                  display: "inline-block",
+                  flexShrink: 0,
                 }}
               >
                 Main Admin Only

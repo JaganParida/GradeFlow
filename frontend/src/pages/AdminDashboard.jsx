@@ -3591,9 +3591,41 @@ export default function AdminDashboard() {
   const [tab, setTab] = useState("overview");
   const [isMobile, setIsMobile] = useState(() => typeof window !== "undefined" && window.innerWidth < 768);
   const [showAdminLogoutConfirm, setShowAdminLogoutConfirm] = useState(false);
+  const adminTabsRef = useRef(null);
+
+  const centerActiveAdminTab = (behavior = "smooth") => {
+    if (adminTabsRef.current) {
+      const container = adminTabsRef.current;
+      const activeEl = container.querySelector(`[data-tab-id="${tab}"]`);
+      if (activeEl) {
+        const containerRect = container.getBoundingClientRect();
+        const activeRect = activeEl.getBoundingClientRect();
+        const currentScroll = container.scrollLeft;
+        const targetScroll = currentScroll + (activeRect.left - containerRect.left) - (containerRect.width / 2) + (activeRect.width / 2);
+        container.scrollTo({
+          left: Math.max(0, targetScroll),
+          behavior,
+        });
+      }
+    }
+  };
 
   useEffect(() => {
-    const handleResize = () => setIsMobile(window.innerWidth < 768);
+    centerActiveAdminTab("smooth");
+  }, [tab]);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      centerActiveAdminTab("auto");
+    }, 150);
+    return () => clearTimeout(timer);
+  }, []);
+
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth < 768);
+      centerActiveAdminTab("auto");
+    };
     window.addEventListener("resize", handleResize);
     return () => window.removeEventListener("resize", handleResize);
   }, []);
@@ -3952,6 +3984,7 @@ export default function AdminDashboard() {
         {/* ── Segmented Navigation Tabs ── */}
         {ADMIN_TABS.length > 0 && (
           <div
+            ref={adminTabsRef}
             style={{
               background: "#f1f5f9",
               borderRadius: 14,
@@ -3962,6 +3995,8 @@ export default function AdminDashboard() {
               gap: 4,
               overflowX: "auto",
               scrollbarWidth: "none",
+              msOverflowStyle: "none",
+              WebkitOverflowScrolling: "touch",
             }}
           >
             {ADMIN_TABS.map((t) => {
@@ -3969,6 +4004,7 @@ export default function AdminDashboard() {
               return (
                 <button
                   key={t.id}
+                  data-tab-id={t.id}
                   onClick={() => setTab(t.id)}
                   style={{
                     display: "inline-flex",

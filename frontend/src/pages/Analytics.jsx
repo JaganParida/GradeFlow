@@ -268,10 +268,10 @@ export default function Analytics() {
       const container = mobileTabsRef.current;
       const activeEl = container.querySelector(`[data-tab-id="${tab}"]`);
       if (activeEl) {
-        const containerWidth = container.clientWidth;
-        const activeOffsetLeft = activeEl.offsetLeft;
-        const activeWidth = activeEl.clientWidth;
-        const targetScroll = activeOffsetLeft - containerWidth / 2 + activeWidth / 2;
+        const containerRect = container.getBoundingClientRect();
+        const activeRect = activeEl.getBoundingClientRect();
+        const currentScroll = container.scrollLeft;
+        const targetScroll = currentScroll + (activeRect.left - containerRect.left) - (containerRect.width / 2) + (activeRect.width / 2);
         container.scrollTo({
           left: Math.max(0, targetScroll),
           behavior,

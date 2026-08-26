@@ -190,21 +190,6 @@ export default function AttendanceTracker() {
     setCanScrollSubjectRight(scrollLeft < scrollWidth - clientWidth - 4);
   }
 
-  const centerActiveSubject = (behavior = "smooth") => {
-    if (subjectPillsRef.current && selectedSubjectName) {
-      const container = subjectPillsRef.current;
-      const activeEl = container.querySelector(`[data-subject-id="${selectedSubjectName}"]`);
-      if (activeEl) {
-        const containerWidth = container.clientWidth;
-        const activeOffsetLeft = activeEl.offsetLeft;
-        const activeWidth = activeEl.clientWidth;
-        const targetScroll = activeOffsetLeft - containerWidth / 2 + activeWidth / 2;
-        container.scrollTo({ left: Math.max(0, targetScroll), behavior });
-        setTimeout(checkSubjectScroll, 250);
-      }
-    }
-  };
-
   function scrollSubjectPills(direction) {
     if (!subjectPillsRef.current) return;
     const offset = direction === "left" ? -220 : 220;
@@ -219,47 +204,12 @@ export default function AttendanceTracker() {
     setCanScrollSectionRight(scrollLeft < scrollWidth - clientWidth - 4);
   }
 
-  const centerActiveSection = (behavior = "smooth") => {
-    if (sectionPillsRef.current && selectedSection) {
-      const container = sectionPillsRef.current;
-      const activeEl = container.querySelector(`[data-section-id="${selectedSection}"]`);
-      if (activeEl) {
-        const containerWidth = container.clientWidth;
-        const activeOffsetLeft = activeEl.offsetLeft;
-        const activeWidth = activeEl.clientWidth;
-        const targetScroll = activeOffsetLeft - containerWidth / 2 + activeWidth / 2;
-        container.scrollTo({ left: Math.max(0, targetScroll), behavior });
-        setTimeout(checkSectionScroll, 250);
-      }
-    }
-  };
-
   function scrollSectionPills(direction) {
     if (!sectionPillsRef.current) return;
     const offset = direction === "left" ? -180 : 180;
     sectionPillsRef.current.scrollBy({ left: offset, behavior: "smooth" });
     setTimeout(checkSectionScroll, 250);
   }
-
-  useEffect(() => {
-    centerActiveSection("smooth");
-    checkSectionScroll();
-  }, [selectedSection]);
-
-  useEffect(() => {
-    centerActiveSubject("smooth");
-    checkSubjectScroll();
-  }, [selectedSubjectName]);
-
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      centerActiveSection("auto");
-      centerActiveSubject("auto");
-      checkSectionScroll();
-      checkSubjectScroll();
-    }, 150);
-    return () => clearTimeout(timer);
-  }, []);
 
   // Normalize URL token if plain regNo was passed in route
   useEffect(() => {
@@ -285,6 +235,57 @@ export default function AttendanceTracker() {
 
   // Saved Subjects (In-Memory React State, synced direct to MongoDB Atlas)
   const [savedSubjects, setSavedSubjects] = useState([]);
+
+  // Accurate auto-centering for Section and Subject scroll tracks
+  const centerActiveSection = (behavior = "smooth") => {
+    if (sectionPillsRef.current && selectedSection) {
+      const container = sectionPillsRef.current;
+      const activeEl = container.querySelector(`[data-section-id="${selectedSection}"]`);
+      if (activeEl) {
+        const containerRect = container.getBoundingClientRect();
+        const activeRect = activeEl.getBoundingClientRect();
+        const currentScroll = container.scrollLeft;
+        const targetScroll = currentScroll + (activeRect.left - containerRect.left) - (containerRect.width / 2) + (activeRect.width / 2);
+        container.scrollTo({ left: Math.max(0, targetScroll), behavior });
+        setTimeout(checkSectionScroll, 250);
+      }
+    }
+  };
+
+  const centerActiveSubject = (behavior = "smooth") => {
+    if (subjectPillsRef.current && selectedSubjectName) {
+      const container = subjectPillsRef.current;
+      const activeEl = container.querySelector(`[data-subject-id="${selectedSubjectName}"]`);
+      if (activeEl) {
+        const containerRect = container.getBoundingClientRect();
+        const activeRect = activeEl.getBoundingClientRect();
+        const currentScroll = container.scrollLeft;
+        const targetScroll = currentScroll + (activeRect.left - containerRect.left) - (containerRect.width / 2) + (activeRect.width / 2);
+        container.scrollTo({ left: Math.max(0, targetScroll), behavior });
+        setTimeout(checkSubjectScroll, 250);
+      }
+    }
+  };
+
+  useEffect(() => {
+    centerActiveSection("smooth");
+    checkSectionScroll();
+  }, [selectedSection]);
+
+  useEffect(() => {
+    centerActiveSubject("smooth");
+    checkSubjectScroll();
+  }, [selectedSubjectName]);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      centerActiveSection("auto");
+      centerActiveSubject("auto");
+      checkSectionScroll();
+      checkSubjectScroll();
+    }, 150);
+    return () => clearTimeout(timer);
+  }, []);
 
   // Handler for applying OCR extracted subjects with full PP/PR/TUT components
   const handleApplyScreenshotSubjects = (extracted) => {

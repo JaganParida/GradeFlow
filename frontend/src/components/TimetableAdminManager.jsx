@@ -1016,16 +1016,16 @@ export default function TimetableAdminManager({ authHeaders, API }) {
           >
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 12 }}>
               <div>
-                <h3 style={{ fontSize: 16.5, fontWeight: 800, color: "#0f172a", margin: 0, display: "flex", alignItems: "center", gap: 8 }}>
+                <h3 style={{ fontSize: 16.5, fontWeight: 800, color: "#0f172a", margin: 0, display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
                   <Clock size={19} color="#2563eb" />
                   <span>Section-Wise Timetable Live Editor</span>
                   {isLiveCustomPublished ? (
-                    <span style={{ fontSize: 11, fontWeight: 800, background: "#ecfdf5", color: "#059669", padding: "2px 8px", borderRadius: 999, border: "1px solid #a7f3d0", display: "inline-flex", alignItems: "center", gap: 4 }}>
+                    <span style={{ fontSize: 11, fontWeight: 800, background: "#ecfdf5", color: "#059669", padding: "2px 8px", borderRadius: 999, border: "1px solid #a7f3d0", display: "inline-flex", alignItems: "center", gap: 4, whiteSpace: "nowrap", flexShrink: 0 }}>
                       <CheckCircle2 size={11} color="#059669" />
                       Live Custom Published
                     </span>
                   ) : (
-                    <span style={{ fontSize: 11, fontWeight: 800, background: "#eff6ff", color: "#2563eb", padding: "2px 8px", borderRadius: 999, border: "1px solid #bfdbfe", display: "inline-flex", alignItems: "center", gap: 4 }}>
+                    <span style={{ fontSize: 11, fontWeight: 800, background: "#eff6ff", color: "#2563eb", padding: "2px 8px", borderRadius: 999, border: "1px solid #bfdbfe", display: "inline-flex", alignItems: "center", gap: 4, whiteSpace: "nowrap", flexShrink: 0 }}>
                       <BookOpen size={11} color="#2563eb" />
                       Standard Curriculum Template
                     </span>
@@ -1141,7 +1141,7 @@ export default function TimetableAdminManager({ authHeaders, API }) {
             </div>
 
             {/* Selector Inputs */}
-            <div style={{ display: "grid", gridTemplateColumns: isMobile ? "repeat(2, 1fr)" : "repeat(auto-fit, minmax(150px, 1fr))", gap: 10 }}>
+            <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(auto-fit, minmax(170px, 1fr))", gap: 10 }}>
               {/* Batch */}
               <div>
                 <label style={{ display: "block", fontSize: 11.5, fontWeight: 700, color: "#475569", marginBottom: 4 }}>
@@ -1159,6 +1159,8 @@ export default function TimetableAdminManager({ authHeaders, API }) {
                     fontWeight: 700,
                     color: "#0f172a",
                     outline: "none",
+                    boxSizing: "border-box",
+                    maxWidth: "100%",
                   }}
                 >
                   <option value="2023">2023 Batch (6th Sem)</option>
@@ -1187,6 +1189,8 @@ export default function TimetableAdminManager({ authHeaders, API }) {
                     fontWeight: 700,
                     color: "#0f172a",
                     outline: "none",
+                    boxSizing: "border-box",
+                    maxWidth: "100%",
                   }}
                 >
                   <option value="CSE">Computer Science &amp; Engg (CSE)</option>
@@ -1216,6 +1220,8 @@ export default function TimetableAdminManager({ authHeaders, API }) {
                     fontWeight: 700,
                     color: "#0f172a",
                     outline: "none",
+                    boxSizing: "border-box",
+                    maxWidth: "100%",
                   }}
                 >
                   {[1, 2, 3, 4, 5, 6, 7, 8].map((s) => (
@@ -1244,6 +1250,8 @@ export default function TimetableAdminManager({ authHeaders, API }) {
                     color: "#1d4ed8",
                     background: "#eff6ff",
                     outline: "none",
+                    boxSizing: "border-box",
+                    maxWidth: "100%",
                   }}
                 >
                   {ALL_SECTIONS.map((sec) => (
