@@ -37,11 +37,7 @@ import { is2023CSEBatch } from "../utils/timetableHelper";
 const mobileDrawerVariants = {
   hidden: {
     opacity: 0,
-    y: -12,
-    transition: {
-      duration: 0.16,
-      ease: [0.32, 0.72, 0, 1],
-    },
+    y: -14,
   },
   visible: {
     opacity: 1,
@@ -49,28 +45,59 @@ const mobileDrawerVariants = {
     transition: {
       duration: 0.28,
       ease: [0.16, 1, 0.3, 1],
-      staggerChildren: 0.035,
-      delayChildren: 0.03,
+      staggerChildren: 0.03,
+      delayChildren: 0.02,
     },
   },
   exit: {
     opacity: 0,
-    y: -10,
+    y: -12,
     transition: {
-      duration: 0.15,
+      duration: 0.22,
       ease: [0.32, 0.72, 0, 1],
+      staggerChildren: 0.018,
+      staggerDirection: -1,
+    },
+  },
+};
+
+const mobileLinksGroupVariants = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: {
+      staggerChildren: 0.03,
+    },
+  },
+  exit: {
+    opacity: 0,
+    transition: {
+      staggerChildren: 0.015,
+      staggerDirection: -1,
+      duration: 0.18,
     },
   },
 };
 
 const mobileNavItemVariants = {
-  hidden: { opacity: 0, y: 8 },
+  hidden: {
+    opacity: 0,
+    y: 10,
+  },
   visible: {
     opacity: 1,
     y: 0,
     transition: {
-      duration: 0.22,
+      duration: 0.24,
       ease: [0.16, 1, 0.3, 1],
+    },
+  },
+  exit: {
+    opacity: 0,
+    y: -6,
+    transition: {
+      duration: 0.16,
+      ease: [0.32, 0.72, 0, 1],
     },
   },
 };
@@ -980,7 +1007,7 @@ export default function Navbar() {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              transition={{ duration: 0.18, ease: "easeOut" }}
+              transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
               onClick={() => setMobileMenuOpen(false)}
               onTouchMove={(e) => e.preventDefault()}
               style={{
@@ -1073,7 +1100,7 @@ export default function Navbar() {
               )}
 
               {/* Navigation Links Group */}
-              <motion.div variants={mobileDrawerVariants} style={{ display: "flex", flexDirection: "column", gap: 3 }}>
+              <motion.div variants={mobileLinksGroupVariants} style={{ display: "flex", flexDirection: "column", gap: 3 }}>
                 {/* Home */}
                 <motion.div variants={mobileNavItemVariants}>
                   <Link
