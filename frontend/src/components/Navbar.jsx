@@ -96,16 +96,13 @@ export default function Navbar() {
   useEffect(() => {
     if (mobileMenuOpen) {
       document.body.style.overflow = "hidden";
-      document.documentElement.style.overflow = "hidden";
       document.body.style.touchAction = "none";
     } else {
       document.body.style.overflow = "";
-      document.documentElement.style.overflow = "";
       document.body.style.touchAction = "";
     }
     return () => {
       document.body.style.overflow = "";
-      document.documentElement.style.overflow = "";
       document.body.style.touchAction = "";
     };
   }, [mobileMenuOpen]);
@@ -942,26 +939,25 @@ export default function Navbar() {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
+              transition={{ duration: 0.18, ease: "easeOut" }}
               onClick={() => setMobileMenuOpen(false)}
               onTouchMove={(e) => e.preventDefault()}
               style={{
                 position: "fixed",
                 inset: 0,
-                background: "rgba(15, 23, 42, 0.48)",
-                backdropFilter: "blur(8px)",
-                WebkitBackdropFilter: "blur(8px)",
+                background: "rgba(15, 23, 42, 0.45)",
                 zIndex: 998,
                 touchAction: "none",
+                willChange: "opacity",
               }}
             />
 
             {/* Slide-out Menu Panel */}
             <motion.div
-              initial={{ opacity: 0, y: -12 }}
+              initial={{ opacity: 0, y: -10 }}
               animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -8 }}
-              transition={{ duration: 0.22, ease: [0.25, 0.46, 0.45, 0.94] }}
+              exit={{ opacity: 0, y: -10 }}
+              transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
               style={{
                 position: "fixed",
                 top: 58,
@@ -970,16 +966,16 @@ export default function Navbar() {
                 maxHeight: "calc(100vh - 58px)",
                 overflowY: "auto",
                 WebkitOverflowScrolling: "touch",
-                background: "rgba(255, 255, 255, 0.98)",
-                backdropFilter: "blur(20px)",
-                WebkitBackdropFilter: "blur(20px)",
+                background: "#ffffff",
                 borderBottom: "1px solid #e2e8f0",
-                boxShadow: "0 25px 50px -12px rgba(15, 23, 42, 0.18)",
+                boxShadow: "0 20px 40px -10px rgba(15, 23, 42, 0.18)",
                 zIndex: 999,
                 padding: "16px 18px 28px",
                 display: "flex",
                 flexDirection: "column",
                 gap: 14,
+                willChange: "transform, opacity",
+                transformOrigin: "top center",
               }}
             >
               {/* Admin Search Bar inside Drawer (Admin Only) */}

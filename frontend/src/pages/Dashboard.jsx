@@ -347,6 +347,24 @@ export default function Dashboard() {
     }
   };
 
+  const centerActiveTab = (behavior = "smooth") => {
+    if (mobileTabsRef.current) {
+      const container = mobileTabsRef.current;
+      const activeEl = container.querySelector(`[data-tab-id="${tab}"]`);
+      if (activeEl) {
+        const containerWidth = container.clientWidth;
+        const activeOffsetLeft = activeEl.offsetLeft;
+        const activeWidth = activeEl.clientWidth;
+        const targetScroll = activeOffsetLeft - containerWidth / 2 + activeWidth / 2;
+        container.scrollTo({
+          left: Math.max(0, targetScroll),
+          behavior,
+        });
+        setTimeout(checkTabsScroll, 250);
+      }
+    }
+  };
+
   const scrollTabs = (direction) => {
     if (mobileTabsRef.current) {
       const scrollAmount = direction === "left" ? -150 : 150;
@@ -360,9 +378,23 @@ export default function Dashboard() {
     const handleResize = () => {
       setIsMobile(window.innerWidth < 1024);
       checkTabsScroll();
+      centerActiveTab("auto");
     };
     window.addEventListener("resize", handleResize);
     return () => window.removeEventListener("resize", handleResize);
+  }, []);
+
+  useEffect(() => {
+    centerActiveTab("smooth");
+    checkTabsScroll();
+  }, [tab]);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      centerActiveTab("auto");
+      checkTabsScroll();
+    }, 120);
+    return () => clearTimeout(timer);
   }, []);
 
   const downloadFullTranscript = async () => {
@@ -1162,6 +1194,7 @@ export default function Dashboard() {
                   return (
                     <button
                       key={item.id}
+                      data-tab-id={item.id}
                       onClick={() => setTab(item.id)}
                       style={{
                         display: "inline-flex",
