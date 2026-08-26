@@ -30,6 +30,7 @@ import {
   Percent,
   GraduationCap,
   Loader2,
+  PieChart,
 } from "lucide-react";
 import { is2023CSEBatch } from "../utils/timetableHelper";
 
@@ -481,149 +482,80 @@ export default function Navbar() {
               <AnimatePresence>
                 {analyticsDropdown && (
                   <motion.div
-                    initial={{ opacity: 0, y: 8 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: 8 }}
-                    transition={{ duration: 0.15 }}
+                    initial={{ opacity: 0, y: 6, scale: 0.98 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: 4, scale: 0.98 }}
+                    transition={{ duration: 0.18, ease: [0.16, 1, 0.3, 1] }}
                     style={{
                       position: "absolute",
-                      top: "calc(100% + 8px)",
-                      left: -20,
-                      width: 240,
+                      top: "calc(100% + 10px)",
+                      left: -24,
+                      width: 272,
                       background: "#ffffff",
-                      border: "1px solid #cbd5e1",
-                      borderRadius: 12,
-                      padding: 8,
-                      boxShadow: "0 10px 30px rgba(15, 23, 42, 0.12)",
+                      border: "1px solid #e2e8f0",
+                      borderRadius: 14,
+                      padding: "6px",
+                      boxShadow: "0 12px 40px -8px rgba(15, 23, 42, 0.14), 0 4px 12px -2px rgba(15, 23, 42, 0.06)",
                       zIndex: 100,
                     }}
                   >
-                    <button
-                      onClick={(e) => {
-                        setAnalyticsDropdown(false);
-                        handleAnalyticsClick(e, "trajectory");
-                      }}
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        gap: 10,
-                        padding: "10px 12px",
-                        borderRadius: 8,
-                        color: "#0f172a",
-                        background: "transparent",
-                        border: "none",
-                        width: "100%",
-                        textAlign: "left",
-                        fontSize: 13,
-                        fontWeight: 600,
-                        cursor: "pointer",
-                        transition: "background 0.15s",
-                      }}
-                      onMouseEnter={(e) =>
-                        (e.currentTarget.style.background = "#f8fafc")
-                      }
-                      onMouseLeave={(e) =>
-                        (e.currentTarget.style.background = "transparent")
-                      }
-                    >
-                      <TrendingUp size={15} color="#2563eb" /> Performance
-                      Trajectory
-                    </button>
+                    {/* Dropdown Header */}
+                    <div style={{ padding: "8px 12px 6px 12px", fontSize: 10.5, fontWeight: 800, color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.06em" }}>
+                      Analytics Suite
+                    </div>
 
-                    <button
-                      onClick={(e) => {
-                        setAnalyticsDropdown(false);
-                        handleAnalyticsClick(e, "grades");
-                      }}
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        gap: 10,
-                        padding: "10px 12px",
-                        borderRadius: 8,
-                        color: "#0f172a",
-                        background: "transparent",
-                        border: "none",
-                        width: "100%",
-                        textAlign: "left",
-                        fontSize: 13,
-                        fontWeight: 600,
-                        cursor: "pointer",
-                        transition: "background 0.15s",
-                      }}
-                      onMouseEnter={(e) =>
-                        (e.currentTarget.style.background = "#f8fafc")
-                      }
-                      onMouseLeave={(e) =>
-                        (e.currentTarget.style.background = "transparent")
-                      }
-                    >
-                      <BarChart2 size={15} color="#8b5cf6" /> Grade Distribution
-                    </button>
-
-                    <button
-                      onClick={(e) => {
-                        setAnalyticsDropdown(false);
-                        handleAnalyticsClick(e, "placement");
-                      }}
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        gap: 10,
-                        padding: "10px 12px",
-                        borderRadius: 8,
-                        color: "#0f172a",
-                        background: "transparent",
-                        border: "none",
-                        width: "100%",
-                        textAlign: "left",
-                        fontSize: 13,
-                        fontWeight: 600,
-                        cursor: "pointer",
-                        transition: "background 0.15s",
-                      }}
-                      onMouseEnter={(e) =>
-                        (e.currentTarget.style.background = "#f8fafc")
-                      }
-                      onMouseLeave={(e) =>
-                        (e.currentTarget.style.background = "transparent")
-                      }
-                    >
-                      <Briefcase size={15} color="#10b981" /> Placement &
-                      Companies
-                    </button>
-
-                    <button
-                      onClick={(e) => {
-                        setAnalyticsDropdown(false);
-                        handleAnalyticsClick(e, "mastery");
-                      }}
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        gap: 10,
-                        padding: "10px 12px",
-                        borderRadius: 8,
-                        color: "#0f172a",
-                        background: "transparent",
-                        border: "none",
-                        width: "100%",
-                        textAlign: "left",
-                        fontSize: 13,
-                        fontWeight: 600,
-                        cursor: "pointer",
-                        transition: "background 0.15s",
-                      }}
-                      onMouseEnter={(e) =>
-                        (e.currentTarget.style.background = "#f8fafc")
-                      }
-                      onMouseLeave={(e) =>
-                        (e.currentTarget.style.background = "transparent")
-                      }
-                    >
-                      <Target size={15} color="#d97706" /> Subject Mastery &
-                      Insights
-                    </button>
+                    {[
+                      { key: "trajectory", icon: <TrendingUp size={15} />, iconColor: "#2563eb", label: "Performance Trajectory", desc: "SGPA & CGPA trends" },
+                      { key: "grades", icon: <BarChart2 size={15} />, iconColor: "#8b5cf6", label: "Grade Distribution", desc: "Grade breakdown analysis" },
+                      { key: "placement", icon: <Briefcase size={15} />, iconColor: "#10b981", label: "Placement & Companies", desc: "Eligibility & company matches" },
+                      { key: "mastery", icon: <Target size={15} />, iconColor: "#d97706", label: "Subject Mastery & Insights", desc: "Strengths & weak areas" },
+                      { key: "predictor", icon: <Award size={15} />, iconColor: "#16a34a", label: "CGPA Goal Predictor", desc: "Target CGPA roadmap" },
+                      { key: "whatif", icon: <PieChart size={15} />, iconColor: "#6366f1", label: "What-If Simulator", desc: "Grade impact scenarios" },
+                    ].map((item, idx) => (
+                      <button
+                        key={item.key}
+                        onClick={(e) => {
+                          setAnalyticsDropdown(false);
+                          handleAnalyticsClick(e, item.key);
+                        }}
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 10,
+                          padding: "9px 12px",
+                          borderRadius: 10,
+                          color: "#0f172a",
+                          background: "transparent",
+                          border: "none",
+                          width: "100%",
+                          textAlign: "left",
+                          cursor: "pointer",
+                          transition: "background 0.15s ease, transform 0.1s ease",
+                          fontFamily: "'DM Sans', sans-serif",
+                        }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.background = "#f8fafc";
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.background = "transparent";
+                        }}
+                      >
+                        <div style={{
+                          width: 32, height: 32,
+                          borderRadius: 8,
+                          background: `${item.iconColor}10`,
+                          display: "flex", alignItems: "center", justifyContent: "center",
+                          flexShrink: 0,
+                          color: item.iconColor,
+                        }}>
+                          {item.icon}
+                        </div>
+                        <div style={{ display: "flex", flexDirection: "column", gap: 1, minWidth: 0 }}>
+                          <span style={{ fontSize: 13, fontWeight: 650, lineHeight: 1.2, color: "#0f172a" }}>{item.label}</span>
+                          <span style={{ fontSize: 11, fontWeight: 500, color: "#94a3b8", lineHeight: 1.2 }}>{item.desc}</span>
+                        </div>
+                      </button>
+                    ))}
                   </motion.div>
                 )}
               </AnimatePresence>
@@ -1025,10 +957,10 @@ export default function Navbar() {
 
             {/* Slide-out Menu Panel */}
             <motion.div
-              initial={{ opacity: 0, y: -14, scale: 0.99 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, y: -10, scale: 0.99 }}
-              transition={{ type: "spring", stiffness: 340, damping: 30, mass: 0.8 }}
+              initial={{ opacity: 0, y: -12 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -8 }}
+              transition={{ duration: 0.22, ease: [0.25, 0.46, 0.45, 0.94] }}
               style={{
                 position: "fixed",
                 top: 58,
@@ -1377,97 +1309,42 @@ export default function Navbar() {
                           marginTop: 3,
                         }}
                       >
-                        <button
-                          onClick={(e) => {
-                            setMobileMenuOpen(false);
-                            handleAnalyticsClick(e, "trajectory");
-                          }}
-                          style={{
-                            display: "flex",
-                            alignItems: "center",
-                            gap: 9,
-                            padding: "8px 10px",
-                            borderRadius: 8,
-                            border: "none",
-                            background: "transparent",
-                            color: "#475569",
-                            fontSize: 13,
-                            fontWeight: 600,
-                            cursor: "pointer",
-                            textAlign: "left",
-                          }}
-                        >
-                          <TrendingUp size={14} color="#2563eb" /> Trajectory
-                        </button>
-                        <button
-                          onClick={(e) => {
-                            setMobileMenuOpen(false);
-                            handleAnalyticsClick(e, "grades");
-                          }}
-                          style={{
-                            display: "flex",
-                            alignItems: "center",
-                            gap: 9,
-                            padding: "8px 10px",
-                            borderRadius: 8,
-                            border: "none",
-                            background: "transparent",
-                            color: "#475569",
-                            fontSize: 13,
-                            fontWeight: 600,
-                            cursor: "pointer",
-                            textAlign: "left",
-                          }}
-                        >
-                          <BarChart2 size={14} color="#8b5cf6" /> Grade
-                          Distribution
-                        </button>
-
-                        <button
-                          onClick={(e) => {
-                            setMobileMenuOpen(false);
-                            handleAnalyticsClick(e, "placement");
-                          }}
-                          style={{
-                            display: "flex",
-                            alignItems: "center",
-                            gap: 9,
-                            padding: "8px 10px",
-                            borderRadius: 8,
-                            border: "none",
-                            background: "transparent",
-                            color: "#475569",
-                            fontSize: 13,
-                            fontWeight: 600,
-                            cursor: "pointer",
-                            textAlign: "left",
-                          }}
-                        >
-                          <Briefcase size={14} color="#10b981" /> Placement
-                          Insights
-                        </button>
-                        <button
-                          onClick={(e) => {
-                            setMobileMenuOpen(false);
-                            handleAnalyticsClick(e, "mastery");
-                          }}
-                          style={{
-                            display: "flex",
-                            alignItems: "center",
-                            gap: 9,
-                            padding: "8px 10px",
-                            borderRadius: 8,
-                            border: "none",
-                            background: "transparent",
-                            color: "#475569",
-                            fontSize: 13,
-                            fontWeight: 600,
-                            cursor: "pointer",
-                            textAlign: "left",
-                          }}
-                        >
-                          <Target size={14} color="#f59e0b" /> Subject Mastery
-                        </button>
+                        {[
+                          { key: "trajectory", icon: <TrendingUp size={14} />, iconColor: "#2563eb", label: "Performance Trajectory" },
+                          { key: "grades", icon: <BarChart2 size={14} />, iconColor: "#8b5cf6", label: "Grade Distribution" },
+                          { key: "placement", icon: <Briefcase size={14} />, iconColor: "#10b981", label: "Placement & Companies" },
+                          { key: "mastery", icon: <Target size={14} />, iconColor: "#f59e0b", label: "Subject Mastery" },
+                          { key: "predictor", icon: <Award size={14} />, iconColor: "#16a34a", label: "CGPA Goal Predictor" },
+                          { key: "whatif", icon: <PieChart size={14} />, iconColor: "#6366f1", label: "What-If Simulator" },
+                        ].map((item) => (
+                          <button
+                            key={item.key}
+                            onClick={(e) => {
+                              setMobileMenuOpen(false);
+                              handleAnalyticsClick(e, item.key);
+                            }}
+                            style={{
+                              display: "flex",
+                              alignItems: "center",
+                              gap: 9,
+                              padding: "9px 10px",
+                              borderRadius: 8,
+                              border: "none",
+                              background: "transparent",
+                              color: "#475569",
+                              fontSize: 13,
+                              fontWeight: 600,
+                              cursor: "pointer",
+                              textAlign: "left",
+                              fontFamily: "'DM Sans', sans-serif",
+                              width: "100%",
+                              transition: "background 0.15s ease",
+                            }}
+                          >
+                            <span style={{ color: item.iconColor, display: "flex", flexShrink: 0 }}>{item.icon}</span>
+                            {item.label}
+                          </button>
+                        ))}
                       </motion.div>
                     )}
                   </AnimatePresence>
