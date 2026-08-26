@@ -1872,7 +1872,19 @@ export default function Navbar() {
       {/* ── Logout Confirmation Modal ── */}
       <AnimatePresence>
         {showLogoutConfirm && (
-          <>
+          <div
+            style={{
+              position: "fixed",
+              inset: 0,
+              zIndex: 9999,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              padding: "16px",
+              boxSizing: "border-box",
+            }}
+          >
+            {/* Backdrop */}
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
@@ -1882,33 +1894,32 @@ export default function Navbar() {
               style={{
                 position: "fixed",
                 inset: 0,
-                background: "rgba(15, 23, 42, 0.5)",
+                background: "rgba(15, 23, 42, 0.55)",
                 backdropFilter: "blur(6px)",
                 WebkitBackdropFilter: "blur(6px)",
-                zIndex: 9998,
               }}
             />
+            {/* Modal Card */}
             <motion.div
-              initial={{ opacity: 0, scale: 0.95, y: 8 }}
+              initial={{ opacity: 0, scale: 0.94, y: 12 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: 8 }}
+              exit={{ opacity: 0, scale: 0.94, y: 12 }}
               transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
               style={{
-                position: "fixed",
-                top: "50%",
-                left: "50%",
-                transform: "translate(-50%, -50%)",
-                width: "min(380px, calc(100vw - 40px))",
+                position: "relative",
+                zIndex: 1,
+                width: "100%",
+                maxWidth: 380,
                 background: "#ffffff",
-                borderRadius: 18,
+                borderRadius: 20,
                 padding: "28px 24px 22px",
                 boxShadow: "0 25px 60px -12px rgba(15, 23, 42, 0.25), 0 0 0 1px rgba(15, 23, 42, 0.06)",
-                zIndex: 9999,
                 display: "flex",
                 flexDirection: "column",
                 alignItems: "center",
                 gap: 16,
                 fontFamily: "'DM Sans', sans-serif",
+                boxSizing: "border-box",
               }}
             >
               {/* Icon */}
@@ -1990,7 +2001,7 @@ export default function Navbar() {
                 </button>
               </div>
             </motion.div>
-          </>
+          </div>
         )}
       </AnimatePresence>
 

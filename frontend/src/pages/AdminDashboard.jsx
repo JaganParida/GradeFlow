@@ -4708,7 +4708,19 @@ export default function AdminDashboard() {
         {/* ── Admin Logout Confirmation Modal ── */}
         <AnimatePresence>
           {showAdminLogoutConfirm && (
-            <>
+            <div
+              style={{
+                position: "fixed",
+                inset: 0,
+                zIndex: 9999,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                padding: "16px",
+                boxSizing: "border-box",
+              }}
+            >
+              {/* Backdrop */}
               <motion.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
@@ -4718,33 +4730,32 @@ export default function AdminDashboard() {
                 style={{
                   position: "fixed",
                   inset: 0,
-                  background: "rgba(15, 23, 42, 0.5)",
+                  background: "rgba(15, 23, 42, 0.55)",
                   backdropFilter: "blur(6px)",
                   WebkitBackdropFilter: "blur(6px)",
-                  zIndex: 9998,
                 }}
               />
+              {/* Modal Card */}
               <motion.div
-                initial={{ opacity: 0, scale: 0.95, y: 8 }}
+                initial={{ opacity: 0, scale: 0.94, y: 12 }}
                 animate={{ opacity: 1, scale: 1, y: 0 }}
-                exit={{ opacity: 0, scale: 0.95, y: 8 }}
+                exit={{ opacity: 0, scale: 0.94, y: 12 }}
                 transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
                 style={{
-                  position: "fixed",
-                  top: "50%",
-                  left: "50%",
-                  transform: "translate(-50%, -50%)",
-                  width: "min(380px, calc(100vw - 40px))",
+                  position: "relative",
+                  zIndex: 1,
+                  width: "100%",
+                  maxWidth: 380,
                   background: "#ffffff",
-                  borderRadius: 18,
+                  borderRadius: 20,
                   padding: "28px 24px 22px",
                   boxShadow: "0 25px 60px -12px rgba(15, 23, 42, 0.25), 0 0 0 1px rgba(15, 23, 42, 0.06)",
-                  zIndex: 9999,
                   display: "flex",
                   flexDirection: "column",
                   alignItems: "center",
                   gap: 16,
                   fontFamily: "'DM Sans', sans-serif",
+                  boxSizing: "border-box",
                 }}
               >
                 <div style={{ width: 52, height: 52, borderRadius: 14, background: "linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%)", display: "flex", alignItems: "center", justifyContent: "center" }}>
@@ -4759,7 +4770,7 @@ export default function AdminDashboard() {
                   <button onClick={async () => { setShowAdminLogoutConfirm(false); await adminLogout(); navigate("/admin"); }} style={{ flex: 1, padding: "11px 16px", borderRadius: 12, border: "none", background: "linear-gradient(135deg, #ef4444 0%, #dc2626 100%)", color: "#ffffff", fontSize: 14, fontWeight: 700, cursor: "pointer", fontFamily: "'DM Sans', sans-serif", boxShadow: "0 2px 8px rgba(239, 68, 68, 0.3)", display: "flex", alignItems: "center", justifyContent: "center", gap: 6, transition: "all 0.15s ease" }} onMouseEnter={(e) => (e.currentTarget.style.filter = "brightness(1.05)")} onMouseLeave={(e) => (e.currentTarget.style.filter = "none")}><LogOut size={15} /> Yes, Logout</button>
                 </div>
               </motion.div>
-            </>
+            </div>
           )}
         </AnimatePresence>
       </div>
