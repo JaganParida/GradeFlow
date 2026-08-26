@@ -315,6 +315,8 @@ function UploadCard({
                       color: "#0f172a",
                       fontSize: 13,
                       outline: "none",
+                      boxSizing: "border-box",
+                      maxWidth: "100%",
                       fontFamily: "'DM Sans', sans-serif",
                     }}
                   >
@@ -756,6 +758,10 @@ function MissingUploadCard({
                       fontSize: 13,
                       color: "#1e293b",
                       background: "#ffffff",
+                      boxSizing: "border-box",
+                      maxWidth: "100%",
+                      outline: "none",
+                      fontFamily: "'DM Sans', sans-serif",
                     }}
                   >
                     {currentOptions?.map((opt) => {
@@ -784,6 +790,9 @@ function MissingUploadCard({
                       fontSize: 13,
                       color: "#1e293b",
                       boxSizing: "border-box",
+                      maxWidth: "100%",
+                      outline: "none",
+                      fontFamily: "'DM Sans', sans-serif",
                     }}
                   />
                 )}
@@ -1541,6 +1550,9 @@ function ManualGradeUpdateCard({ authHeaders, API, onSuccess }) {
                     color: "#0f172a",
                     fontSize: 13,
                     outline: "none",
+                    boxSizing: "border-box",
+                    maxWidth: "100%",
+                    fontFamily: "'DM Sans', sans-serif",
                   }}
                 >
                   <option value="">-- Choose Semester --</option>
@@ -1569,6 +1581,9 @@ function ManualGradeUpdateCard({ authHeaders, API, onSuccess }) {
                     color: "#0f172a",
                     fontSize: 13,
                     outline: "none",
+                    boxSizing: "border-box",
+                    maxWidth: "100%",
+                    fontFamily: "'DM Sans', sans-serif",
                   }}
                 >
                   <option value="">-- Choose Subject --</option>
@@ -1607,6 +1622,9 @@ function ManualGradeUpdateCard({ authHeaders, API, onSuccess }) {
                       color: "#0f172a",
                       fontSize: 13,
                       outline: "none",
+                      boxSizing: "border-box",
+                      maxWidth: "100%",
+                      fontFamily: "'DM Sans', sans-serif",
                     }}
                   >
                     <option value="O">O (10 Grade Points - Outstanding)</option>
@@ -2166,14 +2184,14 @@ function SectionToppersCard({ authHeaders, API }) {
               </div>
 
               {/* Badges Row */}
-              <div style={{ display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center" }}>
-                <span style={{ background: "#eff6ff", border: "1px solid #dbeafe", color: "#1d4ed8", fontSize: 11, fontWeight: 700, padding: "2px 8px", borderRadius: 6 }}>
+              <div style={{ display: "flex", gap: 5, flexWrap: "wrap", alignItems: "center" }}>
+                <span style={{ background: "#eff6ff", border: "1px solid #dbeafe", color: "#1d4ed8", fontSize: 11, fontWeight: 700, padding: "2px 8px", borderRadius: 6, whiteSpace: "nowrap" }}>
                   {st.section || section || "Sec A"}
                 </span>
-                <span style={{ background: "#f1f5f9", border: "1px solid #e2e8f0", color: "#475569", fontSize: 11, fontWeight: 700, padding: "2px 8px", borderRadius: 6 }}>
+                <span style={{ background: "#f1f5f9", border: "1px solid #e2e8f0", color: "#475569", fontSize: 11, fontWeight: 700, padding: "2px 8px", borderRadius: 6, whiteSpace: "nowrap" }}>
                   {st.batch || batch} • {st.branch || branch}
                 </span>
-                <span style={{ background: "#faf5ff", border: "1px solid #f3e8ff", color: "#7e22ce", fontSize: 11, fontWeight: 700, padding: "2px 8px", borderRadius: 6 }}>
+                <span style={{ background: "#faf5ff", border: "1px solid #f3e8ff", color: "#7e22ce", fontSize: 11, fontWeight: 700, padding: "2px 8px", borderRadius: 6, whiteSpace: "nowrap" }}>
                   Sem {st.semester || 6}
                 </span>
               </div>
@@ -2892,14 +2910,14 @@ function BacklogTrackerCard({ authHeaders, API }) {
                 </div>
 
                 {/* Badges Row */}
-                <div style={{ display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center" }}>
-                  <span style={{ background: "#f1f5f9", border: "1px solid #e2e8f0", color: "#475569", fontSize: 11, fontWeight: 700, padding: "2px 8px", borderRadius: 6 }}>
+                <div style={{ display: "flex", gap: 5, flexWrap: "wrap", alignItems: "center" }}>
+                  <span style={{ background: "#f1f5f9", border: "1px solid #e2e8f0", color: "#475569", fontSize: 11, fontWeight: 700, padding: "2px 8px", borderRadius: 6, whiteSpace: "nowrap" }}>
                     {st.branch || "CSE"}
                   </span>
-                  <span style={{ background: "#eff6ff", border: "1px solid #dbeafe", color: "#1d4ed8", fontSize: 11, fontWeight: 700, padding: "2px 8px", borderRadius: 6 }}>
+                  <span style={{ background: "#eff6ff", border: "1px solid #dbeafe", color: "#1d4ed8", fontSize: 11, fontWeight: 700, padding: "2px 8px", borderRadius: 6, whiteSpace: "nowrap" }}>
                     BATCH {st.batch || "N/A"}
                   </span>
-                  <span style={{ background: "#ecfdf5", border: "1px solid #a7f3d0", color: "#065f46", fontSize: 11, fontWeight: 700, padding: "2px 8px", borderRadius: 6 }}>
+                  <span style={{ background: "#ecfdf5", border: "1px solid #a7f3d0", color: "#065f46", fontSize: 11, fontWeight: 700, padding: "2px 8px", borderRadius: 6, whiteSpace: "nowrap" }}>
                     SEC {st.section || "N/A"}
                   </span>
                 </div>
@@ -3077,13 +3095,13 @@ function BacklogTrackerCard({ authHeaders, API }) {
                       </td>
                       <td style={{ padding: "14px 10px" }}>
                         <div style={{ display: "flex", gap: 5, flexWrap: "wrap", alignItems: "center" }}>
-                          <span style={{ background: "#f1f5f9", border: "1px solid #e2e8f0", color: "#475569", fontSize: 11, fontWeight: 700, padding: "2px 7px", borderRadius: 6 }}>
+                          <span style={{ background: "#f1f5f9", border: "1px solid #e2e8f0", color: "#475569", fontSize: 11, fontWeight: 700, padding: "2px 7px", borderRadius: 6, whiteSpace: "nowrap" }}>
                             {st.branch || "CSE"}
                           </span>
-                          <span style={{ background: "#eff6ff", border: "1px solid #dbeafe", color: "#1d4ed8", fontSize: 11, fontWeight: 700, padding: "2px 7px", borderRadius: 6 }}>
+                          <span style={{ background: "#eff6ff", border: "1px solid #dbeafe", color: "#1d4ed8", fontSize: 11, fontWeight: 700, padding: "2px 7px", borderRadius: 6, whiteSpace: "nowrap" }}>
                             BATCH {st.batch || "N/A"}
                           </span>
-                          <span style={{ background: "#ecfdf5", border: "1px solid #a7f3d0", color: "#065f46", fontSize: 11, fontWeight: 700, padding: "2px 7px", borderRadius: 6 }}>
+                          <span style={{ background: "#ecfdf5", border: "1px solid #a7f3d0", color: "#065f46", fontSize: 11, fontWeight: 700, padding: "2px 7px", borderRadius: 6, whiteSpace: "nowrap" }}>
                             SEC {st.section || "N/A"}
                           </span>
                         </div>
@@ -3572,6 +3590,7 @@ export default function AdminDashboard() {
   const [clearCacheLoading, setClearCacheLoading] = useState(false);
   const [tab, setTab] = useState("overview");
   const [isMobile, setIsMobile] = useState(() => typeof window !== "undefined" && window.innerWidth < 768);
+  const [showAdminLogoutConfirm, setShowAdminLogoutConfirm] = useState(false);
 
   useEffect(() => {
     const handleResize = () => setIsMobile(window.innerWidth < 768);
@@ -3770,8 +3789,8 @@ export default function AdminDashboard() {
               <ShieldCheck size={22} />
             </div>
             <div>
-              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                <h1 style={{ fontSize: 20, fontWeight: 800, color: "#0f172a", margin: 0, letterSpacing: "-0.4px" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                <h1 style={{ fontSize: isMobile ? 18 : 20, fontWeight: 800, color: "#0f172a", margin: 0, letterSpacing: "-0.4px" }}>
                   Admin Control Console
                 </h1>
                 <span
@@ -3783,6 +3802,8 @@ export default function AdminDashboard() {
                     border: isMainAdmin ? "1px solid #dbeafe" : "1px solid #ede9fe",
                     padding: "2px 8px",
                     borderRadius: 99,
+                    whiteSpace: "nowrap",
+                    display: "inline-block",
                   }}
                 >
                   {isMainAdmin ? "Master Administrator" : `Sub-Admin (${adminProfile?.name || "Scoped"})`}
@@ -3820,10 +3841,7 @@ export default function AdminDashboard() {
             </button>
 
             <button
-              onClick={async () => {
-                await adminLogout();
-                navigate("/admin");
-              }}
+              onClick={() => setShowAdminLogoutConfirm(true)}
               style={{
                 display: "inline-flex",
                 alignItems: "center",
@@ -4649,6 +4667,64 @@ export default function AdminDashboard() {
           <AdminManagement API={API} authHeaders={authHeaders} isMobile={isMobile} />
         )}
           </motion.div>
+        </AnimatePresence>
+
+        {/* ── Admin Logout Confirmation Modal ── */}
+        <AnimatePresence>
+          {showAdminLogoutConfirm && (
+            <>
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.2 }}
+                onClick={() => setShowAdminLogoutConfirm(false)}
+                style={{
+                  position: "fixed",
+                  inset: 0,
+                  background: "rgba(15, 23, 42, 0.5)",
+                  backdropFilter: "blur(6px)",
+                  WebkitBackdropFilter: "blur(6px)",
+                  zIndex: 9998,
+                }}
+              />
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95, y: 8 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.95, y: 8 }}
+                transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
+                style={{
+                  position: "fixed",
+                  top: "50%",
+                  left: "50%",
+                  transform: "translate(-50%, -50%)",
+                  width: "min(380px, calc(100vw - 40px))",
+                  background: "#ffffff",
+                  borderRadius: 18,
+                  padding: "28px 24px 22px",
+                  boxShadow: "0 25px 60px -12px rgba(15, 23, 42, 0.25), 0 0 0 1px rgba(15, 23, 42, 0.06)",
+                  zIndex: 9999,
+                  display: "flex",
+                  flexDirection: "column",
+                  alignItems: "center",
+                  gap: 16,
+                  fontFamily: "'DM Sans', sans-serif",
+                }}
+              >
+                <div style={{ width: 52, height: 52, borderRadius: 14, background: "linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                  <LogOut size={24} color="#ef4444" />
+                </div>
+                <div style={{ textAlign: "center" }}>
+                  <h3 style={{ margin: 0, fontSize: 18, fontWeight: 800, color: "#0f172a", letterSpacing: "-0.3px" }}>Confirm Admin Logout</h3>
+                  <p style={{ margin: "6px 0 0 0", fontSize: 13.5, color: "#64748b", lineHeight: 1.5 }}>Are you sure you want to logout from the Admin Console? You'll need to sign in again.</p>
+                </div>
+                <div style={{ display: "flex", gap: 10, width: "100%", marginTop: 4 }}>
+                  <button onClick={() => setShowAdminLogoutConfirm(false)} style={{ flex: 1, padding: "11px 16px", borderRadius: 12, border: "1.5px solid #e2e8f0", background: "#ffffff", color: "#334155", fontSize: 14, fontWeight: 700, cursor: "pointer", fontFamily: "'DM Sans', sans-serif", transition: "all 0.15s ease" }} onMouseEnter={(e) => (e.currentTarget.style.background = "#f8fafc")} onMouseLeave={(e) => (e.currentTarget.style.background = "#ffffff")}>Cancel</button>
+                  <button onClick={async () => { setShowAdminLogoutConfirm(false); await adminLogout(); navigate("/admin"); }} style={{ flex: 1, padding: "11px 16px", borderRadius: 12, border: "none", background: "linear-gradient(135deg, #ef4444 0%, #dc2626 100%)", color: "#ffffff", fontSize: 14, fontWeight: 700, cursor: "pointer", fontFamily: "'DM Sans', sans-serif", boxShadow: "0 2px 8px rgba(239, 68, 68, 0.3)", display: "flex", alignItems: "center", justifyContent: "center", gap: 6, transition: "all 0.15s ease" }} onMouseEnter={(e) => (e.currentTarget.style.filter = "brightness(1.05)")} onMouseLeave={(e) => (e.currentTarget.style.filter = "none")}><LogOut size={15} /> Yes, Logout</button>
+                </div>
+              </motion.div>
+            </>
+          )}
         </AnimatePresence>
       </div>
 

@@ -39,6 +39,7 @@ export default function Navbar() {
   const [analyticsDropdown, setAnalyticsDropdown] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [mobileAnalyticsOpen, setMobileAnalyticsOpen] = useState(false);
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [searchModalOpen, setSearchModalOpen] = useState(false);
   const [searchRegNo, setSearchRegNo] = useState("");
@@ -829,7 +830,7 @@ export default function Navbar() {
                     <span>Dashboard</span>
                   </Link>
                   <button
-                    onClick={() => leaveSession()}
+                    onClick={() => setShowLogoutConfirm(true)}
                     disabled={isLoggingOut}
                     style={{
                       background: "#fff1f2",
@@ -1703,7 +1704,7 @@ export default function Navbar() {
                     </div>
                     <button
                       onClick={() => {
-                        leaveSession();
+                        setShowLogoutConfirm(true);
                         setMobileMenuOpen(false);
                       }}
                       disabled={isLoggingOut}
@@ -1726,7 +1727,7 @@ export default function Navbar() {
                       ) : (
                         <LogOut size={12} />
                       )}
-                      <span>{isLoggingOut ? "Exiting..." : "Exit"}</span>
+                      <span>{isLoggingOut ? "Logging out..." : "Logout"}</span>
                     </button>
                   </div>
                 ) : authChecking ? (
@@ -1777,6 +1778,131 @@ export default function Navbar() {
                     <GraduationCap size={16} /> Student Portal Login
                   </button>
                 )}
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+
+      {/* ── Logout Confirmation Modal ── */}
+      <AnimatePresence>
+        {showLogoutConfirm && (
+          <>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.2 }}
+              onClick={() => setShowLogoutConfirm(false)}
+              style={{
+                position: "fixed",
+                inset: 0,
+                background: "rgba(15, 23, 42, 0.5)",
+                backdropFilter: "blur(6px)",
+                WebkitBackdropFilter: "blur(6px)",
+                zIndex: 9998,
+              }}
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 8 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 8 }}
+              transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
+              style={{
+                position: "fixed",
+                top: "50%",
+                left: "50%",
+                transform: "translate(-50%, -50%)",
+                width: "min(380px, calc(100vw - 40px))",
+                background: "#ffffff",
+                borderRadius: 18,
+                padding: "28px 24px 22px",
+                boxShadow: "0 25px 60px -12px rgba(15, 23, 42, 0.25), 0 0 0 1px rgba(15, 23, 42, 0.06)",
+                zIndex: 9999,
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+                gap: 16,
+                fontFamily: "'DM Sans', sans-serif",
+              }}
+            >
+              {/* Icon */}
+              <div
+                style={{
+                  width: 52,
+                  height: 52,
+                  borderRadius: 14,
+                  background: "linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%)",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                <LogOut size={24} color="#ef4444" />
+              </div>
+
+              {/* Title & Description */}
+              <div style={{ textAlign: "center" }}>
+                <h3 style={{ margin: 0, fontSize: 18, fontWeight: 800, color: "#0f172a", letterSpacing: "-0.3px" }}>
+                  Confirm Logout
+                </h3>
+                <p style={{ margin: "6px 0 0 0", fontSize: 13.5, color: "#64748b", lineHeight: 1.5 }}>
+                  Are you sure you want to logout? You'll need to sign in again to access your dashboard.
+                </p>
+              </div>
+
+              {/* Buttons */}
+              <div style={{ display: "flex", gap: 10, width: "100%", marginTop: 4 }}>
+                <button
+                  onClick={() => setShowLogoutConfirm(false)}
+                  style={{
+                    flex: 1,
+                    padding: "11px 16px",
+                    borderRadius: 12,
+                    border: "1.5px solid #e2e8f0",
+                    background: "#ffffff",
+                    color: "#334155",
+                    fontSize: 14,
+                    fontWeight: 700,
+                    cursor: "pointer",
+                    fontFamily: "'DM Sans', sans-serif",
+                    transition: "all 0.15s ease",
+                  }}
+                  onMouseEnter={(e) => (e.currentTarget.style.background = "#f8fafc")}
+                  onMouseLeave={(e) => (e.currentTarget.style.background = "#ffffff")}
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={() => {
+                    setShowLogoutConfirm(false);
+                    leaveSession();
+                  }}
+                  disabled={isLoggingOut}
+                  style={{
+                    flex: 1,
+                    padding: "11px 16px",
+                    borderRadius: 12,
+                    border: "none",
+                    background: "linear-gradient(135deg, #ef4444 0%, #dc2626 100%)",
+                    color: "#ffffff",
+                    fontSize: 14,
+                    fontWeight: 700,
+                    cursor: isLoggingOut ? "not-allowed" : "pointer",
+                    fontFamily: "'DM Sans', sans-serif",
+                    boxShadow: "0 2px 8px rgba(239, 68, 68, 0.3)",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: 6,
+                    transition: "all 0.15s ease",
+                  }}
+                  onMouseEnter={(e) => (e.currentTarget.style.filter = "brightness(1.05)")}
+                  onMouseLeave={(e) => (e.currentTarget.style.filter = "none")}
+                >
+                  <LogOut size={15} />
+                  {isLoggingOut ? "Logging out..." : "Yes, Logout"}
+                </button>
               </div>
             </motion.div>
           </>
