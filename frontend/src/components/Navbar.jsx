@@ -37,49 +37,24 @@ import { is2023CSEBatch } from "../utils/timetableHelper";
 const mobileDrawerVariants = {
   hidden: {
     opacity: 0,
-    y: -24,
-    scaleY: 0.96,
+    y: -16,
   },
   visible: {
     opacity: 1,
     y: 0,
-    scaleY: 1,
-    transition: {
-      duration: 0.35,
-      ease: [0.22, 1, 0.36, 1],
-      staggerChildren: 0.035,
-      delayChildren: 0.04,
-    },
-  },
-  exit: {
-    opacity: 0,
-    y: -20,
-    scaleY: 0.97,
     transition: {
       duration: 0.28,
-      ease: [0.22, 1, 0.36, 1],
-      staggerChildren: 0.018,
-      staggerDirection: -1,
-    },
-  },
-};
-
-const mobileLinksGroupVariants = {
-  hidden: { opacity: 0 },
-  visible: {
-    opacity: 1,
-    transition: {
-      staggerChildren: 0.032,
-      delayChildren: 0.03,
+      ease: [0.16, 1, 0.3, 1],
+      staggerChildren: 0.024,
+      delayChildren: 0.02,
     },
   },
   exit: {
     opacity: 0,
+    y: -12,
     transition: {
-      staggerChildren: 0.016,
-      staggerDirection: -1,
-      duration: 0.22,
-      ease: [0.22, 1, 0.36, 1],
+      duration: 0.2,
+      ease: [0.32, 0.72, 0, 1],
     },
   },
 };
@@ -87,22 +62,20 @@ const mobileLinksGroupVariants = {
 const mobileNavItemVariants = {
   hidden: {
     opacity: 0,
-    y: 14,
+    y: 8,
   },
   visible: {
     opacity: 1,
     y: 0,
     transition: {
-      duration: 0.3,
-      ease: [0.22, 1, 0.36, 1],
+      duration: 0.22,
+      ease: [0.16, 1, 0.3, 1],
     },
   },
   exit: {
     opacity: 0,
-    y: -8,
     transition: {
-      duration: 0.2,
-      ease: [0.22, 1, 0.36, 1],
+      duration: 0.12,
     },
   },
 };
@@ -960,7 +933,7 @@ export default function Navbar() {
             {/* Mobile Hamburger Toggle Button */}
             <button
               className="gf-mobile-toggle"
-              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              onClick={() => setMobileMenuOpen((prev) => !prev)}
               aria-label={
                 mobileMenuOpen
                   ? "Close navigation menu"
@@ -972,26 +945,28 @@ export default function Navbar() {
                 borderRadius: 10,
                 background: mobileMenuOpen ? "#eff6ff" : "#f8fafc",
                 border: mobileMenuOpen
-                  ? "1px solid #bfdbfe"
+                  ? "1.5px solid #bfdbfe"
                   : "1px solid #e2e8f0",
                 display: "none",
                 alignItems: "center",
                 justifyContent: "center",
                 color: mobileMenuOpen ? "#2563eb" : "#0f172a",
                 cursor: "pointer",
-                transition: "background 0.2s ease, border-color 0.2s ease, color 0.2s ease",
+                transition: "all 0.15s ease",
+                flexShrink: 0,
               }}
             >
-              <motion.div
-                key={mobileMenuOpen ? "close" : "menu"}
-                initial={{ rotate: -30, opacity: 0, scale: 0.85 }}
-                animate={{ rotate: 0, opacity: 1, scale: 1 }}
-                exit={{ rotate: 30, opacity: 0, scale: 0.85 }}
-                transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
-                style={{ display: "flex", alignItems: "center", justifyContent: "center" }}
+              <span
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  transition: "transform 0.22s cubic-bezier(0.16, 1, 0.3, 1)",
+                  transform: mobileMenuOpen ? "rotate(90deg)" : "rotate(0deg)",
+                }}
               >
-                {mobileMenuOpen ? <X size={19} /> : <Menu size={19} />}
-              </motion.div>
+                {mobileMenuOpen ? <X size={20} /> : <Menu size={20} />}
+              </span>
             </button>
           </div>
         </div>
@@ -1006,16 +981,15 @@ export default function Navbar() {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
+              transition={{ duration: 0.24, ease: "easeOut" }}
               onClick={() => setMobileMenuOpen(false)}
               onTouchMove={(e) => e.preventDefault()}
               style={{
                 position: "fixed",
                 inset: 0,
-                background: "rgba(15, 23, 42, 0.45)",
+                background: "rgba(15, 23, 42, 0.4)",
                 zIndex: 998,
                 touchAction: "none",
-                willChange: "opacity",
               }}
             />
 
@@ -1030,19 +1004,18 @@ export default function Navbar() {
                 top: 58,
                 left: 0,
                 right: 0,
-                maxHeight: "calc(100vh - 58px)",
+                maxHeight: "calc(100dvh - 58px)",
                 overflowY: "auto",
                 WebkitOverflowScrolling: "touch",
                 background: "#ffffff",
                 borderBottom: "1px solid #e2e8f0",
-                boxShadow: "0 20px 40px -10px rgba(15, 23, 42, 0.18)",
+                boxShadow: "0 20px 40px -10px rgba(15, 23, 42, 0.16)",
                 zIndex: 999,
                 padding: "16px 18px 28px",
                 display: "flex",
                 flexDirection: "column",
                 gap: 14,
-                willChange: "transform, opacity",
-                transformOrigin: "top center",
+                overscrollBehavior: "contain",
               }}
             >
               {/* Admin Search Bar inside Drawer (Admin Only) */}
@@ -1099,7 +1072,7 @@ export default function Navbar() {
               )}
 
               {/* Navigation Links Group */}
-              <motion.div variants={mobileLinksGroupVariants} style={{ display: "flex", flexDirection: "column", gap: 3 }}>
+              <div style={{ display: "flex", flexDirection: "column", gap: 3 }}>
                 {/* Home */}
                 <motion.div variants={mobileNavItemVariants}>
                   <Link
@@ -1728,7 +1701,7 @@ export default function Navbar() {
                     </Link>
                   </motion.div>
                 )}
-              </motion.div>
+              </div>
 
               {/* Mobile Drawer Bottom Action */}
               <motion.div
