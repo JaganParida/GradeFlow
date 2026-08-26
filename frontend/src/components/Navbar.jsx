@@ -37,24 +37,27 @@ import { is2023CSEBatch } from "../utils/timetableHelper";
 const mobileDrawerVariants = {
   hidden: {
     opacity: 0,
-    y: -14,
+    y: -24,
+    scaleY: 0.96,
   },
   visible: {
     opacity: 1,
     y: 0,
+    scaleY: 1,
     transition: {
-      duration: 0.28,
-      ease: [0.16, 1, 0.3, 1],
-      staggerChildren: 0.03,
-      delayChildren: 0.02,
+      duration: 0.35,
+      ease: [0.22, 1, 0.36, 1],
+      staggerChildren: 0.035,
+      delayChildren: 0.04,
     },
   },
   exit: {
     opacity: 0,
-    y: -12,
+    y: -20,
+    scaleY: 0.97,
     transition: {
-      duration: 0.22,
-      ease: [0.32, 0.72, 0, 1],
+      duration: 0.28,
+      ease: [0.22, 1, 0.36, 1],
       staggerChildren: 0.018,
       staggerDirection: -1,
     },
@@ -66,15 +69,17 @@ const mobileLinksGroupVariants = {
   visible: {
     opacity: 1,
     transition: {
-      staggerChildren: 0.03,
+      staggerChildren: 0.032,
+      delayChildren: 0.03,
     },
   },
   exit: {
     opacity: 0,
     transition: {
-      staggerChildren: 0.015,
+      staggerChildren: 0.016,
       staggerDirection: -1,
-      duration: 0.18,
+      duration: 0.22,
+      ease: [0.22, 1, 0.36, 1],
     },
   },
 };
@@ -82,22 +87,22 @@ const mobileLinksGroupVariants = {
 const mobileNavItemVariants = {
   hidden: {
     opacity: 0,
-    y: 10,
+    y: 14,
   },
   visible: {
     opacity: 1,
     y: 0,
     transition: {
-      duration: 0.24,
-      ease: [0.16, 1, 0.3, 1],
+      duration: 0.3,
+      ease: [0.22, 1, 0.36, 1],
     },
   },
   exit: {
     opacity: 0,
-    y: -6,
+    y: -8,
     transition: {
-      duration: 0.16,
-      ease: [0.32, 0.72, 0, 1],
+      duration: 0.2,
+      ease: [0.22, 1, 0.36, 1],
     },
   },
 };
@@ -159,21 +164,6 @@ export default function Navbar() {
     setAnalyticsDropdown(false);
     setMobileAnalyticsOpen(false);
   }, [location.pathname]);
-
-  // Lock body scroll when mobile menu is open
-  useEffect(() => {
-    if (mobileMenuOpen) {
-      document.body.style.overflow = "hidden";
-      document.body.style.touchAction = "none";
-    } else {
-      document.body.style.overflow = "";
-      document.body.style.touchAction = "";
-    }
-    return () => {
-      document.body.style.overflow = "";
-      document.body.style.touchAction = "";
-    };
-  }, [mobileMenuOpen]);
 
   const currentRegNo = studentData?.regNo || studentSession?.regNo || "";
   const canSeeAdmin = Boolean(adminToken || currentRegNo === "230301120327");
@@ -989,10 +979,19 @@ export default function Navbar() {
                 justifyContent: "center",
                 color: mobileMenuOpen ? "#2563eb" : "#0f172a",
                 cursor: "pointer",
-                transition: "background 0.15s ease, border-color 0.15s ease, color 0.15s ease",
+                transition: "background 0.2s ease, border-color 0.2s ease, color 0.2s ease",
               }}
             >
-              {mobileMenuOpen ? <X size={19} /> : <Menu size={19} />}
+              <motion.div
+                key={mobileMenuOpen ? "close" : "menu"}
+                initial={{ rotate: -30, opacity: 0, scale: 0.85 }}
+                animate={{ rotate: 0, opacity: 1, scale: 1 }}
+                exit={{ rotate: 30, opacity: 0, scale: 0.85 }}
+                transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
+                style={{ display: "flex", alignItems: "center", justifyContent: "center" }}
+              >
+                {mobileMenuOpen ? <X size={19} /> : <Menu size={19} />}
+              </motion.div>
             </button>
           </div>
         </div>
@@ -1007,7 +1006,7 @@ export default function Navbar() {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
+              transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
               onClick={() => setMobileMenuOpen(false)}
               onTouchMove={(e) => e.preventDefault()}
               style={{
