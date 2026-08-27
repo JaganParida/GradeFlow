@@ -628,27 +628,40 @@ const parseCutmOcrText = (text, catalog = []) => {
 
     let extracted = [];
 
-    // 1. Try Gemini 2.5 Pro Endpoint
-    try {
-      setProcessingStatus("Scanning physical ERP component rows with Gemini 2.5 Pro...");
-      let res = null;
-      try {
-        res = await axios.post(`${API}/attendance/ocr`, {
-          imageBase64,
-          mimeType: mimeType || "image/jpeg",
-        });
-      } catch {
-        res = await axios.post(`/api/attendance-ocr`, {
-          imageBase64,
-          mimeType: mimeType || "image/jpeg",
-        });
-      }
+    // 1. Try Cloud Gemini 2.5 Pro Endpoints (multiple fallback paths)
+    const RENDER_BACKEND = "https://gradeflow-api.onrender.com/api";
+    const ocrPayload = { imageBase64, mimeType: mimeType || "image/jpeg" };
 
-      if (res?.data?.success && Array.isArray(res.data.subjects) && res.data.subjects.length > 0) {
-        extracted = deduplicateAndCanonicalizeSubjects(res.data.subjects, sectionCatalog);
+    // Try endpoints in order: primary API → Vercel serverless → Render backend
+    const endpointsToTry = [
+      { url: `${API}/attendance/ocr`, label: "Primary API" },
+      { url: `/api/attendance-ocr`, label: "Vercel Serverless" },
+      { url: `${RENDER_BACKEND}/attendance/ocr`, label: "Render Backend" },
+    ];
+
+    for (const endpoint of endpointsToTry) {
+      if (extracted.length > 0) break;
+      try {
+        setProcessingStatus(`Scanning ERP rows via ${endpoint.label}...`);
+        const res = await axios.post(endpoint.url, ocrPayload, { timeout: 60000 });
+
+        if (
+          res?.data?.success &&
+          Array.isArray(res.data.subjects) &&
+          res.data.subjects.length > 0
+        ) {
+          console.log(
+            `[ERP OCR] ${endpoint.label} returned ${res.data.subjects.length} subjects via engine: ${res.data.engine || "unknown"}, model: ${res.data.modelUsed || "unknown"}`
+          );
+          extracted = deduplicateAndCanonicalizeSubjects(res.data.subjects, sectionCatalog);
+        } else {
+          console.warn(
+            `[ERP OCR] ${endpoint.label} returned empty/fallback: engine=${res?.data?.engine}, subjects=${res?.data?.subjects?.length || 0}`
+          );
+        }
+      } catch (err) {
+        console.warn(`[ERP OCR] ${endpoint.label} failed:`, err.message);
       }
-    } catch (err) {
-      console.warn("Cloud Gemini 2.5 Pro OCR skipped, switching to high-accuracy local OCR engine:", err);
     }
 
     // 2. If Serverless didn't extract or no API key, run Client-Side Tesseract.js Engine with Canvas Preprocessing
