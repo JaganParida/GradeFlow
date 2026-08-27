@@ -628,15 +628,12 @@ const parseCutmOcrText = (text, catalog = []) => {
 
     let extracted = [];
 
-    // 1. Try Cloud Gemini 2.5 Pro Endpoints (multiple fallback paths)
-    const RENDER_BACKEND = "https://gradeflow-api.onrender.com/api";
+    // 1. Try Vercel Serverless Gemini Vision Endpoint
     const ocrPayload = { imageBase64, mimeType: mimeType || "image/jpeg" };
 
-    // Try endpoints in order: primary API → Vercel serverless → Render backend
     const endpointsToTry = [
-      { url: `${API}/attendance/ocr`, label: "Primary API" },
-      { url: `/api/attendance-ocr`, label: "Vercel Serverless" },
-      { url: `${RENDER_BACKEND}/attendance/ocr`, label: "Render Backend" },
+      { url: `${API}/attendance/ocr`, label: "Vercel OCR Route" },
+      { url: `/api/attendance-ocr`, label: "Vercel Serverless Direct" },
     ];
 
     let lastApiError = "";
