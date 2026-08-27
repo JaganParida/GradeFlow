@@ -27,6 +27,9 @@ import {
   Clipboard,
   BookOpen,
   ChevronDown,
+  ScanLine,
+  Lock,
+  AlertTriangle,
 } from "lucide-react";
 import { getSectionSubjectCatalog, cleanSubjectBaseName } from "../utils/timetableHelper";
 import {
@@ -207,7 +210,7 @@ export default function AttendanceScreenshotModal({
     const currentLimit = getDailyScanStatus(studentId);
     if (currentLimit.isLimitReached) {
       setErrorMsg(
-        "⚠️ Daily AI Screenshot Limit Reached (2/2): You have already used your 2 AI scans for today. The limit will automatically reset tomorrow at midnight (12:00 AM). Please enter or update your attendance manually."
+        "Daily Screenshot Limit Reached (2/2): You have already used your 2 scans for today. The limit will automatically reset tomorrow at midnight (12:00 AM). Please enter or update your attendance manually."
       );
       return;
     }
@@ -1033,94 +1036,126 @@ const parseCutmOcrText = (text, catalog = []) => {
           <div style={{ padding: isMobile ? "14px 12px" : "20px 24px", overflowY: "auto", flex: 1 }}>
             {step === "upload" ? (
               <div>
-                {/* Daily AI Scan Limit Disclaimer & Quota Bar */}
+                {/* Clean Daily Scan Quota & Guidance Banner */}
                 <div
                   style={{
                     marginBottom: 16,
                     background: scanStatus.isLimitReached ? "#fef2f2" : "#f8fafc",
-                    border: `1.5px solid ${scanStatus.isLimitReached ? "#fca5a5" : "#e2e8f0"}`,
+                    border: `1px solid ${scanStatus.isLimitReached ? "#fecaca" : "#e2e8f0"}`,
                     borderRadius: 14,
-                    padding: "12px 16px",
+                    padding: isMobile ? "12px 14px" : "14px 18px",
                     display: "flex",
                     flexDirection: "column",
-                    gap: 8,
+                    gap: 10,
+                    boxShadow: "0 1px 3px rgba(0,0,0,0.02)",
                   }}
                 >
-                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 8 }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  {/* Header Row: Title & Badges */}
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: isMobile ? "flex-start" : "center",
+                      justifyContent: "space-between",
+                      flexDirection: isMobile ? "column" : "row",
+                      gap: isMobile ? 10 : 12,
+                    }}
+                  >
+                    <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                       <div
                         style={{
-                          width: 28,
-                          height: 28,
-                          borderRadius: 8,
+                          width: 32,
+                          height: 32,
+                          borderRadius: 9,
                           background: scanStatus.isLimitReached ? "#fee2e2" : "#eff6ff",
                           color: scanStatus.isLimitReached ? "#dc2626" : "#2563eb",
                           display: "flex",
                           alignItems: "center",
                           justifyContent: "center",
                           flexShrink: 0,
+                          border: `1px solid ${scanStatus.isLimitReached ? "#fca5a5" : "#bfdbfe"}`,
                         }}
                       >
-                        <Sparkles size={16} />
+                        {scanStatus.isLimitReached ? <Lock size={16} /> : <ScanLine size={16} />}
                       </div>
                       <div>
-                        <div style={{ fontSize: 13, fontWeight: 800, color: scanStatus.isLimitReached ? "#991b1b" : "#0f172a" }}>
-                          Daily AI Screenshot Quota
+                        <div style={{ fontSize: 13.5, fontWeight: 800, color: scanStatus.isLimitReached ? "#991b1b" : "#0f172a", letterSpacing: "-0.2px" }}>
+                          Daily Screenshot Quota
                         </div>
-                        <div style={{ fontSize: 11.5, color: scanStatus.isLimitReached ? "#b91c1c" : "#64748b" }}>
+                        <div style={{ fontSize: 11.5, color: scanStatus.isLimitReached ? "#b91c1c" : "#64748b", marginTop: 1 }}>
                           {scanStatus.isLimitReached
-                            ? "Daily limit reached (2/2 used) • Resets tomorrow at midnight (12:00 AM)"
-                            : `You have ${scanStatus.remaining} of ${scanStatus.max} scans remaining for today`}
+                            ? "Limit reached (2 of 2 used) • Resets at midnight (12:00 AM)"
+                            : `${scanStatus.remaining} of ${scanStatus.max} scans available today`}
                         </div>
                       </div>
                     </div>
 
                     {/* Quota Progress Pills */}
-                    <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 6, width: isMobile ? "100%" : "auto" }}>
                       {[...Array(scanStatus.max)].map((_, i) => {
                         const isUsed = i < scanStatus.used;
                         return (
                           <div
                             key={i}
                             style={{
-                              padding: "3px 8px",
-                              borderRadius: 6,
-                              fontSize: 10.5,
-                              fontWeight: 800,
-                              background: isUsed ? "#fee2e2" : "#dcfce7",
-                              color: isUsed ? "#b91c1c" : "#15803d",
-                              border: `1px solid ${isUsed ? "#fca5a5" : "#86efac"}`,
+                              flex: isMobile ? 1 : "none",
+                              padding: "4px 10px",
+                              borderRadius: 8,
+                              fontSize: 11,
+                              fontWeight: 700,
+                              background: isUsed ? "#fee2e2" : "#ecfdf5",
+                              color: isUsed ? "#991b1b" : "#065f46",
+                              border: `1px solid ${isUsed ? "#fecaca" : "#a7f3d0"}`,
                               display: "flex",
                               alignItems: "center",
-                              gap: 4,
+                              justifyContent: "center",
+                              gap: 5,
                             }}
                           >
-                            {isUsed ? "✕ Used" : "✓ Free Scan"}
+                            {isUsed ? (
+                              <>
+                                <X size={12} color="#dc2626" strokeWidth={2.5} />
+                                <span>Scan {i + 1} Used</span>
+                              </>
+                            ) : (
+                              <>
+                                <Check size={12} color="#059669" strokeWidth={2.5} />
+                                <span>Scan {i + 1} Free</span>
+                              </>
+                            )}
                           </div>
                         );
                       })}
                     </div>
                   </div>
 
-                  {/* Disclaimer Notice */}
+                  {/* Guidance & Disclaimer */}
                   <div
                     style={{
                       fontSize: 11.5,
                       color: scanStatus.isLimitReached ? "#7f1d1d" : "#475569",
-                      background: scanStatus.isLimitReached ? "#ffffff" : "#f1f5f9",
-                      padding: "6px 10px",
-                      borderRadius: 8,
+                      background: scanStatus.isLimitReached ? "#ffffff" : "#ffffff",
+                      padding: "8px 12px",
+                      borderRadius: 9,
                       border: `1px solid ${scanStatus.isLimitReached ? "#fecaca" : "#e2e8f0"}`,
-                      lineHeight: 1.4,
+                      lineHeight: 1.45,
+                      display: "flex",
+                      alignItems: "flex-start",
+                      gap: 8,
                     }}
                   >
                     {scanStatus.isLimitReached ? (
                       <>
-                        🔒 <strong>Limit Reached:</strong> You have completed your <strong>2 scans for today</strong>. Please add or modify subjects using <strong>"Add From Section Catalog"</strong> or <strong>"Custom Row"</strong>. AI scanning unlocks automatically after midnight.
+                        <AlertTriangle size={14} color="#dc2626" style={{ flexShrink: 0, marginTop: 2 }} />
+                        <span>
+                          <strong>Daily Quota Reached:</strong> You have completed your <strong>2 screenshot scans for today</strong>. Please add or modify subjects using <strong>"Add From Section Catalog"</strong> or <strong>"Custom Row"</strong>. Quota resets automatically at midnight.
+                        </span>
                       </>
                     ) : (
                       <>
-                        ⚠️ <strong>Important Notice:</strong> Each student is limited to <strong>2 AI screenshot scans per day</strong>. Please make sure your ERP screenshot is clear and uncropped before scanning. Quota resets daily at <strong>12:00 AM midnight</strong>.
+                        <Clock size={14} color="#2563eb" style={{ flexShrink: 0, marginTop: 2 }} />
+                        <span>
+                          <strong>Usage Guidelines:</strong> Each student is allotted <strong>2 screenshot scans per day</strong>. Please ensure your ERP table is clearly visible before scanning. Quota resets daily at <strong>12:00 AM midnight</strong>.
+                        </span>
                       </>
                     )}
                   </div>
@@ -1134,7 +1169,7 @@ const parseCutmOcrText = (text, catalog = []) => {
                   onDrop={!scanStatus.isLimitReached ? handleDrop : undefined}
                   onClick={() => {
                     if (scanStatus.isLimitReached) {
-                      setErrorMsg("⚠️ Daily AI Scan Limit Reached (2/2). It will reset tomorrow at midnight (12:00 AM). Please enter or update your attendance manually.");
+                      setErrorMsg("Daily Screenshot Limit Reached (2/2). It will reset tomorrow at midnight (12:00 AM). Please enter or update your attendance manually.");
                     } else {
                       fileInputRef.current?.click();
                     }
@@ -1162,7 +1197,7 @@ const parseCutmOcrText = (text, catalog = []) => {
 
                   {isProcessing ? (
                     <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 14, width: "100%", maxWidth: 440, margin: "0 auto" }}>
-                      {/* Pulsing AI Spinner Icon / Completed Check */}
+                      {/* Spinner Icon / Completed Check */}
                       <div
                         style={{
                           width: 56,
@@ -1183,7 +1218,7 @@ const parseCutmOcrText = (text, catalog = []) => {
                         {scanProgress >= 100 ? (
                           <CheckCircle2 size={30} color="#16a34a" />
                         ) : (
-                          <Sparkles size={28} className="spin" />
+                          <Loader2 size={28} className="spin" />
                         )}
                       </div>
 

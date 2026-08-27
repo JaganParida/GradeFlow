@@ -267,7 +267,7 @@ export default function AttendanceTracker() {
     const status = getDailyScanStatus(currentRegNo);
     if (status.isLimitReached) {
       setScanLimitWarning(
-        "⚠️ Daily AI Screenshot Limit Reached (2/2): You have used all AI screenshot scans for today. The limit will reset tomorrow after midnight (12:00 AM). You can still add subjects manually."
+        "Daily Screenshot Limit Reached (2/2): You have used all screenshot scans for today. The limit will reset tomorrow after midnight (12:00 AM). Please enter or update your attendance manually."
       );
       setTimeout(() => setScanLimitWarning(""), 7000);
       setIsScreenshotModalOpen(true);
@@ -2500,7 +2500,7 @@ export default function AttendanceTracker() {
                       <Camera size={15} />
                       <span>
                         {scanStatus.isLimitReached
-                          ? "Auto-Import (Limit Reached 0/2)"
+                          ? "Limit Reached (0/2 scans left)"
                           : `Auto-Import via Screenshot (${scanStatus.remaining}/${scanStatus.max})`}
                       </span>
                     </button>
@@ -2527,7 +2527,7 @@ export default function AttendanceTracker() {
                             <Smartphone size={16} />
                           </div>
                           <span style={{ fontSize: 13.5, fontWeight: 800, color: "#0f172a" }}>
-                            Method 1: 1-Click AI Screenshot Import
+                            Method 1: 1-Click Screenshot Import
                           </span>
                         </div>
                         <span style={{ fontSize: 10, fontWeight: 900, background: "#eff6ff", color: "#1d4ed8", padding: "2px 7px", borderRadius: 6, border: "1px solid #bfdbfe" }}>
@@ -2556,7 +2556,7 @@ export default function AttendanceTracker() {
                         </div>
                         <div style={{ display: "flex", alignItems: "flex-start", gap: 8 }}>
                           <span style={{ width: 18, height: 18, borderRadius: 999, background: "#eff6ff", color: "#2563eb", fontSize: 10, fontWeight: 900, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, marginTop: 1 }}>3</span>
-                          <span>AI extracts theory (<strong>PP</strong>), practical (<strong>PR</strong>), and tutorial (<strong>TUT</strong>) numbers matching course codes automatically.</span>
+                          <span>Theory (<strong>PP</strong>), practical (<strong>PR</strong>), and tutorial (<strong>TUT</strong>) numbers match course codes automatically.</span>
                         </div>
                         <div style={{ display: "flex", alignItems: "flex-start", gap: 8 }}>
                           <span style={{ width: 18, height: 18, borderRadius: 999, background: "#eff6ff", color: "#2563eb", fontSize: 10, fontWeight: 900, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, marginTop: 1 }}>4</span>
@@ -2588,7 +2588,7 @@ export default function AttendanceTracker() {
                         <CloudUpload size={14} />
                         <span>
                           {scanStatus.isLimitReached
-                            ? "🔒 Daily AI Limit Reached (0/2 today)"
+                            ? "Daily Limit Reached (0/2 today)"
                             : `Upload / Paste ERP Screenshot Now (${scanStatus.remaining}/${scanStatus.max} left)`}
                         </span>
                       </button>
@@ -3773,9 +3773,9 @@ export default function AttendanceTracker() {
       >
         <AlertTriangle size={20} color="#dc2626" style={{ flexShrink: 0, marginTop: 2 }} />
         <div style={{ fontSize: 12.5, color: "#991b1b", lineHeight: 1.45 }}>
-          <strong>Daily AI Scan Limit Reached (2/2)</strong>
+          <strong>Daily Screenshot Limit Reached (2/2)</strong>
           <div style={{ marginTop: 2 }}>
-            You have used your 2 AI screenshot scans for today. The limit will reset tomorrow at midnight (12:00 AM). Please enter or update your attendance manually.
+            You have used your 2 screenshot scans for today. The limit will reset tomorrow at midnight (12:00 AM). Please enter or update your attendance manually.
           </div>
         </div>
         <button
