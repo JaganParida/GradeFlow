@@ -44,16 +44,18 @@ export default function AttendanceScreenshotModal({
   onApply,
   currentSection = "CSE-E",
   studentId = "",
+  userRole = "",
+  isAdmin = false,
   API = "/api",
 }) {
-  const [scanStatus, setScanStatus] = useState(() => getDailyScanStatus(studentId));
+  const [scanStatus, setScanStatus] = useState(() => getDailyScanStatus(studentId, userRole, isAdmin));
 
   useEffect(() => {
-    setScanStatus(getDailyScanStatus(studentId));
-    const handleUpdate = () => setScanStatus(getDailyScanStatus(studentId));
+    setScanStatus(getDailyScanStatus(studentId, userRole, isAdmin));
+    const handleUpdate = () => setScanStatus(getDailyScanStatus(studentId, userRole, isAdmin));
     window.addEventListener("gradeflow_scan_limit_updated", handleUpdate);
     return () => window.removeEventListener("gradeflow_scan_limit_updated", handleUpdate);
-  }, [studentId, isOpen]);
+  }, [studentId, userRole, isAdmin, isOpen]);
 
   const [dragActive, setDragActive] = useState(false);
   const [selectedFile, setSelectedFile] = useState(null);
@@ -207,7 +209,7 @@ export default function AttendanceScreenshotModal({
   };
 
   const processFile = (file) => {
-    const currentLimit = getDailyScanStatus(studentId);
+    const currentLimit = getDailyScanStatus(studentId, userRole, isAdmin);
     if (currentLimit.isLimitReached) {
       setErrorMsg(
         "Daily Screenshot Limit Reached (2/2): You have already used your 2 scans for today. The limit will automatically reset tomorrow at midnight (12:00 AM). Please enter or update your attendance manually."
@@ -742,7 +744,7 @@ const parseCutmOcrText = (text, catalog = []) => {
 
     if (finalCleanList.length > 0) {
       setParsedSubjects(finalCleanList);
-      incrementDailyScanCount(studentId);
+      incrementDailyScanCount(studentId, userRole, isAdmin);
       if (lastApiError) setErrorMsg(lastApiError);
       setStep("review");
     } else {
@@ -1066,13 +1068,13 @@ const parseCutmOcrText = (text, catalog = []) => {
                           width: 32,
                           height: 32,
                           borderRadius: 9,
-                          background: scanStatus.isLimitReached ? "#fee2e2" : "#eff6ff",
-                          color: scanStatus.isLimitReached ? "#dc2626" : "#2563eb",
+                          background: scanStatus.isExempt ? "#ecfdf5" : scanStatus.isLimitReached ? "#fee2e2" : "#eff6ff",
+                          color: scanStatus.isExempt ? "#059669" : scanStatus.isLimitReached ? "#dc2626" : "#2563eb",
                           display: "flex",
                           alignItems: "center",
                           justifyContent: "center",
                           flexShrink: 0,
-                          border: `1px solid ${scanStatus.isLimitReached ? "#fca5a5" : "#bfdbfe"}`,
+                          border: `1px solid ${scanStatus.isExempt ? "#a7f3d0" : scanStatus.isLimitReached ? "#fca5a5" : "#bfdbfe"}`,
                         }}
                       >
                         {scanStatus.isLimitReached ? <Lock size={16} /> : <ScanLine size={16} />}
@@ -1082,7 +1084,9 @@ const parseCutmOcrText = (text, catalog = []) => {
                           Daily Screenshot Quota
                         </div>
                         <div style={{ fontSize: 11.5, color: scanStatus.isLimitReached ? "#b91c1c" : "#64748b", marginTop: 1 }}>
-                          {scanStatus.isLimitReached
+                          {scanStatus.isExempt
+                            ? "Unlimited Scans (Privileged / Master Access)"
+                            : scanStatus.isLimitReached
                             ? "Limit reached (2 of 2 used) • Resets at midnight (12:00 AM)"
                             : `${scanStatus.remaining} of ${scanStatus.max} scans available today`}
                         </div>
@@ -1091,40 +1095,60 @@ const parseCutmOcrText = (text, catalog = []) => {
 
                     {/* Quota Progress Pills */}
                     <div style={{ display: "flex", alignItems: "center", gap: 6, width: isMobile ? "100%" : "auto" }}>
-                      {[...Array(scanStatus.max)].map((_, i) => {
-                        const isUsed = i < scanStatus.used;
-                        return (
-                          <div
-                            key={i}
-                            style={{
-                              flex: isMobile ? 1 : "none",
-                              padding: "4px 10px",
-                              borderRadius: 8,
-                              fontSize: 11,
-                              fontWeight: 700,
-                              background: isUsed ? "#fee2e2" : "#ecfdf5",
-                              color: isUsed ? "#991b1b" : "#065f46",
-                              border: `1px solid ${isUsed ? "#fecaca" : "#a7f3d0"}`,
-                              display: "flex",
-                              alignItems: "center",
-                              justifyContent: "center",
-                              gap: 5,
-                            }}
-                          >
-                            {isUsed ? (
-                              <>
-                                <X size={12} color="#dc2626" strokeWidth={2.5} />
-                                <span>Scan {i + 1} Used</span>
-                              </>
-                            ) : (
-                              <>
-                                <Check size={12} color="#059669" strokeWidth={2.5} />
-                                <span>Scan {i + 1} Free</span>
-                              </>
-                            )}
-                          </div>
-                        );
-                      })}
+                      {scanStatus.isExempt ? (
+                        <div
+                          style={{
+                            padding: "4px 12px",
+                            borderRadius: 8,
+                            fontSize: 11,
+                            fontWeight: 800,
+                            background: "#ecfdf5",
+                            color: "#065f46",
+                            border: "1px solid #a7f3d0",
+                            display: "flex",
+                            alignItems: "center",
+                            gap: 5,
+                          }}
+                        >
+                          <Check size={12} color="#059669" strokeWidth={2.5} />
+                          <span>Unlimited Access</span>
+                        </div>
+                      ) : (
+                        [...Array(scanStatus.max)].map((_, i) => {
+                          const isUsed = i < scanStatus.used;
+                          return (
+                            <div
+                              key={i}
+                              style={{
+                                flex: isMobile ? 1 : "none",
+                                padding: "4px 10px",
+                                borderRadius: 8,
+                                fontSize: 11,
+                                fontWeight: 700,
+                                background: isUsed ? "#fee2e2" : "#ecfdf5",
+                                color: isUsed ? "#991b1b" : "#065f46",
+                                border: `1px solid ${isUsed ? "#fecaca" : "#a7f3d0"}`,
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "center",
+                                gap: 5,
+                              }}
+                            >
+                              {isUsed ? (
+                                <>
+                                  <X size={12} color="#dc2626" strokeWidth={2.5} />
+                                  <span>Scan {i + 1} Used</span>
+                                </>
+                              ) : (
+                                <>
+                                  <Check size={12} color="#059669" strokeWidth={2.5} />
+                                  <span>Scan {i + 1} Free</span>
+                                </>
+                              )}
+                            </div>
+                          );
+                        })
+                      )}
                     </div>
                   </div>
 
@@ -1133,7 +1157,7 @@ const parseCutmOcrText = (text, catalog = []) => {
                     style={{
                       fontSize: 11.5,
                       color: scanStatus.isLimitReached ? "#7f1d1d" : "#475569",
-                      background: scanStatus.isLimitReached ? "#ffffff" : "#ffffff",
+                      background: "#ffffff",
                       padding: "8px 12px",
                       borderRadius: 9,
                       border: `1px solid ${scanStatus.isLimitReached ? "#fecaca" : "#e2e8f0"}`,
@@ -1143,7 +1167,14 @@ const parseCutmOcrText = (text, catalog = []) => {
                       gap: 8,
                     }}
                   >
-                    {scanStatus.isLimitReached ? (
+                    {scanStatus.isExempt ? (
+                      <>
+                        <ShieldCheck size={14} color="#059669" style={{ flexShrink: 0, marginTop: 2 }} />
+                        <span>
+                          <strong>Exempt Account:</strong> You have unlimited screenshot parsing enabled for your profile. Please ensure screenshots remain clear and uncropped.
+                        </span>
+                      </>
+                    ) : scanStatus.isLimitReached ? (
                       <>
                         <AlertTriangle size={14} color="#dc2626" style={{ flexShrink: 0, marginTop: 2 }} />
                         <span>

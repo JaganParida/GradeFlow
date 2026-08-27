@@ -252,20 +252,23 @@ export default function AttendanceTracker() {
   const [isScreenshotModalOpen, setIsScreenshotModalOpen] = useState(false);
   const [isVerifiedDisclaimerChecked, setIsVerifiedDisclaimerChecked] = useState(false);
 
-  // Daily AI Screenshot Scan Limit Tracking (2 Scans/day per student)
-  const [scanStatus, setScanStatus] = useState(() => getDailyScanStatus(currentRegNo));
+  // Daily AI Screenshot Scan Limit Tracking (2 Scans/day per student, exempt for 230301120327, admin, subadmin)
+  const userRole = studentSession?.role || (adminToken ? "admin" : "");
+  const isAdmin = Boolean(adminToken);
+
+  const [scanStatus, setScanStatus] = useState(() => getDailyScanStatus(currentRegNo, userRole, isAdmin));
   const [scanLimitWarning, setScanLimitWarning] = useState("");
 
   useEffect(() => {
-    setScanStatus(getDailyScanStatus(currentRegNo));
-    const handleUpdate = () => setScanStatus(getDailyScanStatus(currentRegNo));
+    setScanStatus(getDailyScanStatus(currentRegNo, userRole, isAdmin));
+    const handleUpdate = () => setScanStatus(getDailyScanStatus(currentRegNo, userRole, isAdmin));
     window.addEventListener("gradeflow_scan_limit_updated", handleUpdate);
     return () => window.removeEventListener("gradeflow_scan_limit_updated", handleUpdate);
-  }, [currentRegNo]);
+  }, [currentRegNo, userRole, isAdmin]);
 
   const handleOpenScreenshotModal = () => {
-    const status = getDailyScanStatus(currentRegNo);
-    if (status.isLimitReached) {
+    const status = getDailyScanStatus(currentRegNo, userRole, isAdmin);
+    if (!status.isExempt && status.isLimitReached) {
       setScanLimitWarning(
         "Daily Screenshot Limit Reached (2/2): You have used all screenshot scans for today. The limit will reset tomorrow after midnight (12:00 AM). Please enter or update your attendance manually."
       );
@@ -1174,11 +1177,11 @@ export default function AttendanceTracker() {
                     fontWeight: 800,
                     padding: "1px 6px",
                     borderRadius: 999,
-                    background: scanStatus.isLimitReached ? "#fee2e2" : "#dbeafe",
-                    color: scanStatus.isLimitReached ? "#dc2626" : "#1e40af",
+                    background: scanStatus.isExempt ? "#dcfce7" : scanStatus.isLimitReached ? "#fee2e2" : "#dbeafe",
+                    color: scanStatus.isExempt ? "#15803d" : scanStatus.isLimitReached ? "#dc2626" : "#1e40af",
                   }}
                 >
-                  {scanStatus.isLimitReached ? "0/2 left" : `${scanStatus.remaining}/${scanStatus.max}`}
+                  {scanStatus.isExempt ? "Unlimited" : scanStatus.isLimitReached ? "0/2 left" : `${scanStatus.remaining}/${scanStatus.max}`}
                 </span>
               </button>
 
@@ -2499,7 +2502,9 @@ export default function AttendanceTracker() {
                     >
                       <Camera size={15} />
                       <span>
-                        {scanStatus.isLimitReached
+                        {scanStatus.isExempt
+                          ? "Auto-Import via Screenshot (Unlimited)"
+                          : scanStatus.isLimitReached
                           ? "Limit Reached (0/2 scans left)"
                           : `Auto-Import via Screenshot (${scanStatus.remaining}/${scanStatus.max})`}
                       </span>
@@ -2587,7 +2592,9 @@ export default function AttendanceTracker() {
                       >
                         <CloudUpload size={14} />
                         <span>
-                          {scanStatus.isLimitReached
+                          {scanStatus.isExempt
+                            ? "Upload / Paste ERP Screenshot Now (Unlimited)"
+                            : scanStatus.isLimitReached
                             ? "Daily Limit Reached (0/2 today)"
                             : `Upload / Paste ERP Screenshot Now (${scanStatus.remaining}/${scanStatus.max} left)`}
                         </span>
@@ -3802,6 +3809,8 @@ export default function AttendanceTracker() {
       onApply={handleApplyScreenshotSubjects}
       currentSection={selectedSection}
       studentId={currentRegNo}
+      userRole={userRole}
+      isAdmin={isAdmin}
       API={API}
     />
   </div>
