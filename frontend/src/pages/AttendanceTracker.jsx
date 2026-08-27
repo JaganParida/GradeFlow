@@ -347,17 +347,52 @@ export default function AttendanceTracker() {
     setCanScrollTabsRight(scrollLeft < scrollWidth - clientWidth - 5);
   };
 
+  const centerActiveTab = (behavior = "smooth") => {
+    if (mobileTabsRef.current) {
+      const container = mobileTabsRef.current;
+      const activeEl = container.querySelector(`[data-tab-id="${activeTab}"]`);
+      if (activeEl) {
+        const containerRect = container.getBoundingClientRect();
+        const activeRect = activeEl.getBoundingClientRect();
+        const currentScroll = container.scrollLeft;
+        const targetScroll = currentScroll + (activeRect.left - containerRect.left) - (containerRect.width / 2) + (activeRect.width / 2);
+        container.scrollTo({
+          left: Math.max(0, targetScroll),
+          behavior,
+        });
+        setTimeout(checkTabsScroll, 250);
+      }
+    }
+  };
+
   const scrollTabs = (direction) => {
-    if (!mobileTabsRef.current) return;
-    const offset = direction === "left" ? -140 : 140;
-    mobileTabsRef.current.scrollBy({ left: offset, behavior: "smooth" });
-    setTimeout(checkTabsScroll, 300);
+    if (mobileTabsRef.current) {
+      const scrollAmount = direction === "left" ? -150 : 150;
+      mobileTabsRef.current.scrollBy({ left: scrollAmount, behavior: "smooth" });
+      setTimeout(checkTabsScroll, 200);
+    }
   };
 
   useEffect(() => {
+    const handleResize = () => {
+      checkTabsScroll();
+      centerActiveTab("auto");
+    };
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+
+  useEffect(() => {
+    centerActiveTab("smooth");
     checkTabsScroll();
-    window.addEventListener("resize", checkTabsScroll);
-    return () => window.removeEventListener("resize", checkTabsScroll);
+  }, [activeTab]);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      centerActiveTab("auto");
+      checkTabsScroll();
+    }, 300);
+    return () => clearTimeout(timer);
   }, []);
 
   const handleTabClick = (tabKey) => {
@@ -1598,10 +1633,9 @@ export default function AttendanceTracker() {
             RIGHT MAIN WORKSPACE PANEL
         ══════════════════════════════════════════════════════════ */}
         <main style={{ display: "flex", flexDirection: "column", gap: isMobile ? 10 : 20, minWidth: 0, width: "100%", boxSizing: "border-box" }}>
-          {/* ── MOBILE EXCLUSIVE TOP BAR: Full-Width Auto-Import CTA + 1-Line 3-Tab Segmented Switcher ── */}
+          {/* ── MOBILE EXCLUSIVE AUTO-IMPORT CTA ── */}
           {isMobile && (
             <div style={{ display: "flex", flexDirection: "column", gap: 8, width: "100%" }}>
-              {/* Full-width Auto-Import Button */}
               <button
                 type="button"
                 onClick={handleOpenScreenshotModal}
@@ -1639,170 +1673,123 @@ export default function AttendanceTracker() {
                   {scanStatus.isExempt ? "Unlimited" : `${scanStatus.remaining}/${scanStatus.max} left`}
                 </span>
               </button>
-
-              {/* 1-Line Clean 4-Tab Segmented Control */}
-              <div
-                style={{
-                  background: "#ffffff",
-                  border: "1px solid #cbd5e1",
-                  borderRadius: 8,
-                  padding: 3,
-                  display: "grid",
-                  gridTemplateColumns: "repeat(4, 1fr)",
-                  gap: 3,
-                  width: "100%",
-                  boxSizing: "border-box",
-                }}
-              >
-                {navMenuItems.map((item) => {
-                  const isActive = activeTab === item.id;
-                  return (
-                    <button
-                      key={item.id}
-                      type="button"
-                      onClick={() => handleTabClick(item.id)}
-                      style={{
-                        padding: "7px 2px",
-                        borderRadius: 6,
-                        border: "none",
-                        background: isActive ? "#059669" : "transparent",
-                        color: isActive ? "#ffffff" : "#475569",
-                        fontSize: 11,
-                        fontWeight: isActive ? 800 : 600,
-                        cursor: "pointer",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        gap: 3,
-                        transition: "all 0.12s ease",
-                        whiteSpace: "nowrap",
-                        boxShadow: "none",
-                      }}
-                    >
-                      {item.icon}
-                      <span>{item.shortLabel || item.label}</span>
-                    </button>
-                  );
-                })}
-              </div>
             </div>
           )}
 
-          {/* Desktop Views Navigation Horizontal Pill Bar (Matching Dashboard.jsx 1:1) */}
-          {!isMobile && (
-            <div
+          {/* ── VIEWS NAVIGATION HORIZONTAL PILL BAR (Matching Dashboard.jsx 1:1) ── */}
+          <div
+            style={{
+              position: "sticky",
+              top: 0,
+              zIndex: 20,
+              background: "#f1f5f9",
+              padding: "4px 0 6px 0",
+              display: "flex",
+              alignItems: "center",
+              gap: 5,
+              width: "100%",
+            }}
+          >
+            {/* Left Arrow Button */}
+            <button
+              type="button"
+              onClick={() => scrollTabs("left")}
+              disabled={!canScrollTabsLeft}
+              aria-label="Scroll views left"
               style={{
+                width: 28,
+                height: 28,
+                borderRadius: "50%",
+                border: canScrollTabsLeft ? "1px solid #cbd5e1" : "1px solid #e2e8f0",
                 background: "#ffffff",
-                border: "1px solid #cbd5e1",
-                borderRadius: 12,
-                padding: "6px 10px",
+                color: canScrollTabsLeft ? "#059669" : "#94a3b8",
                 display: "flex",
                 alignItems: "center",
-                gap: 6,
-                width: "100%",
-                boxSizing: "border-box",
+                justifyContent: "center",
+                cursor: canScrollTabsLeft ? "pointer" : "default",
+                flexShrink: 0,
+                opacity: canScrollTabsLeft ? 1 : 0.4,
+                transition: "all 0.15s ease",
+                padding: 0,
               }}
             >
-              {/* Left Arrow Button */}
-              <button
-                type="button"
-                onClick={() => scrollTabs("left")}
-                disabled={!canScrollTabsLeft}
-                aria-label="Scroll views left"
-                style={{
-                  width: 26,
-                  height: 26,
-                  borderRadius: "50%",
-                  border: canScrollTabsLeft ? "1px solid #cbd5e1" : "1px solid #e2e8f0",
-                  background: "#ffffff",
-                  color: canScrollTabsLeft ? "#059669" : "#94a3b8",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  cursor: canScrollTabsLeft ? "pointer" : "default",
-                  flexShrink: 0,
-                  opacity: canScrollTabsLeft ? 1 : 0.4,
-                  transition: "all 0.15s ease",
-                  padding: 0,
-                }}
-              >
-                <ChevronLeft size={14} />
-              </button>
+              <ChevronLeft size={15} />
+            </button>
 
-              {/* Scrollable Tabs Track */}
-              <div
-                ref={mobileTabsRef}
-                onScroll={checkTabsScroll}
-                style={{
-                  display: "flex",
-                  gap: 6,
-                  overflowX: "auto",
-                  width: "100%",
-                  WebkitOverflowScrolling: "touch",
-                  scrollbarWidth: "none",
-                  msOverflowStyle: "none",
-                  scrollBehavior: "smooth",
-                }}
-              >
-                {navMenuItems.map((item) => {
-                  const isActive = activeTab === item.id;
-                  return (
-                    <button
-                      key={item.id}
-                      type="button"
-                      onClick={() => handleTabClick(item.id)}
-                      style={{
-                        display: "inline-flex",
-                        alignItems: "center",
-                        gap: 6,
-                        padding: "6px 14px",
-                        borderRadius: 999,
-                        border: isActive ? "1px solid #86efac" : "1px solid #e2e8f0",
-                        background: isActive ? "#ecfdf5" : "#ffffff",
-                        color: isActive ? "#059669" : "#475569",
-                        fontSize: 12,
-                        fontWeight: isActive ? 800 : 600,
-                        whiteSpace: "nowrap",
-                        cursor: "pointer",
-                        fontFamily: "'DM Sans', sans-serif",
-                        flexShrink: 0,
-                        transition: "all 0.15s ease",
-                      }}
-                    >
-                      <span style={{ color: isActive ? "#059669" : "#64748b" }}>{item.icon}</span>
-                      <span>{item.label}</span>
-                    </button>
-                  );
-                })}
-              </div>
-
-              {/* Right Arrow Button */}
-              <button
-                type="button"
-                onClick={() => scrollTabs("right")}
-                disabled={!canScrollTabsRight}
-                aria-label="Scroll views right"
-                style={{
-                  width: 26,
-                  height: 26,
-                  borderRadius: "50%",
-                  border: canScrollTabsRight ? "1px solid #cbd5e1" : "1px solid #e2e8f0",
-                  background: "#ffffff",
-                  color: canScrollTabsRight ? "#059669" : "#94a3b8",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  cursor: canScrollTabsRight ? "pointer" : "default",
-                  flexShrink: 0,
-                  opacity: canScrollTabsRight ? 1 : 0.4,
-                  transition: "all 0.15s ease",
-                  padding: 0,
-                }}
-              >
-                <ChevronRight size={14} />
-              </button>
+            {/* Scrollable Tabs Track */}
+            <div
+              ref={mobileTabsRef}
+              onScroll={checkTabsScroll}
+              style={{
+                display: "flex",
+                gap: 6,
+                overflowX: "auto",
+                width: "100%",
+                WebkitOverflowScrolling: "touch",
+                scrollbarWidth: "none",
+                msOverflowStyle: "none",
+                scrollBehavior: "smooth",
+              }}
+            >
+              {navMenuItems.map((item) => {
+                const isActive = activeTab === item.id;
+                return (
+                  <button
+                    key={item.id}
+                    data-tab-id={item.id}
+                    type="button"
+                    onClick={() => handleTabClick(item.id)}
+                    style={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: 6,
+                      padding: "7px 14px",
+                      borderRadius: 999,
+                      border: isActive ? "1px solid #cbd5e1" : "1px solid #e2e8f0",
+                      background: isActive ? "#ffffff" : "#f8fafc",
+                      color: isActive ? "#059669" : "#475569",
+                      fontSize: 12,
+                      fontWeight: isActive ? 800 : 600,
+                      whiteSpace: "nowrap",
+                      cursor: "pointer",
+                      fontFamily: "'DM Sans', sans-serif",
+                      flexShrink: 0,
+                      transition: "all 0.15s ease",
+                    }}
+                  >
+                    <span style={{ color: isActive ? "#059669" : "#64748b" }}>{item.icon}</span>
+                    <span>{item.label}</span>
+                  </button>
+                );
+              })}
             </div>
-          )}
+
+            {/* Right Arrow Button */}
+            <button
+              type="button"
+              onClick={() => scrollTabs("right")}
+              disabled={!canScrollTabsRight}
+              aria-label="Scroll views right"
+              style={{
+                width: 28,
+                height: 28,
+                borderRadius: "50%",
+                border: canScrollTabsRight ? "1px solid #cbd5e1" : "1px solid #e2e8f0",
+                background: "#ffffff",
+                color: canScrollTabsRight ? "#059669" : "#94a3b8",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                cursor: canScrollTabsRight ? "pointer" : "default",
+                flexShrink: 0,
+                opacity: canScrollTabsRight ? 1 : 0.4,
+                transition: "all 0.15s ease",
+                padding: 0,
+              }}
+            >
+              <ChevronRight size={15} />
+            </button>
+          </div>
 
           {/* On Desktop: Always visible. On Mobile: Visible when on Daily Hub (checkin) or Subject Matrix (matrix) */}
           {(!isMobile || activeTab === "checkin" || activeTab === "matrix") && (
