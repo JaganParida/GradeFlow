@@ -212,65 +212,56 @@ export default function AttendanceScreenshotModal({
         const img = new Image();
         img.crossOrigin = "anonymous";
         img.onload = () => {
-          const canvas = document.createElement("canvas");
-          const scaleFactor = img.width < 500 ? Math.max(3, Math.round(1800 / Math.max(1, img.width))) : 2.5;
-          const targetWidth = Math.min(2800, Math.max(1600, Math.round(img.width * scaleFactor)));
+          const padding = 40;
+          const targetWidth = img.width < 500 ? 1100 : 2200;
           const scale = targetWidth / Math.max(1, img.width);
-          canvas.width = targetWidth;
-          canvas.height = Math.round(img.height * scale);
+          const scaledH = Math.round(img.height * scale);
+
+          const canvas = document.createElement("canvas");
+          canvas.width = targetWidth + padding * 2;
+          canvas.height = scaledH + padding * 2;
           const ctx = canvas.getContext("2d");
           if (!ctx) return resolve(imageSource);
 
+          // Fill white background
           ctx.fillStyle = "#ffffff";
           ctx.fillRect(0, 0, canvas.width, canvas.height);
 
+          // High quality image smoothing
           ctx.imageSmoothingEnabled = true;
           ctx.imageSmoothingQuality = "high";
-          ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+          ctx.drawImage(img, padding, padding, targetWidth, scaledH);
 
           const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
           const d = imgData.data;
-          const w = canvas.width;
 
+          // Gentle Linear Contrast Normalization (Preserving character strokes & anti-aliasing)
           let totalLum = 0;
-          const step = 16;
+          let minLum = 255;
+          let maxLum = 0;
+          const step = 8;
           let sampleCount = 0;
+
           for (let i = 0; i < d.length; i += 4 * step) {
-            totalLum += 0.299 * d[i] + 0.587 * d[i + 1] + 0.114 * d[i + 2];
+            const lum = 0.299 * d[i] + 0.587 * d[i + 1] + 0.114 * d[i + 2];
+            totalLum += lum;
+            if (lum < minLum) minLum = lum;
+            if (lum > maxLum) maxLum = lum;
             sampleCount++;
           }
+
           const avgLum = sampleCount > 0 ? totalLum / sampleCount : 200;
           const isDarkMode = avgLum < 120;
+          const range = Math.max(20, maxLum - minLum);
 
-          // Adaptive Grayscale & Split Pill Cleaning (Preserves left text while clarifying right fractions)
-          for (let y = 0; y < canvas.height; y++) {
-            for (let x = 0; x < canvas.width; x++) {
-              const idx = (y * w + x) * 4;
-              const r = d[idx];
-              const g = d[idx + 1];
-              const b = d[idx + 2];
-              let lum = 0.299 * r + 0.587 * g + 0.114 * b;
+          for (let i = 0; i < d.length; i += 4) {
+            let lum = 0.299 * d[i] + 0.587 * d[i + 1] + 0.114 * d[i + 2];
+            if (isDarkMode) lum = 255 - lum;
 
-              if (isDarkMode) {
-                lum = 255 - lum;
-              }
-
-              // On the right side (x > 55%), eliminate light pill borders (lum > 165)
-              if (x > canvas.width * 0.55 && lum > 165) {
-                d[idx] = 255;
-                d[idx + 1] = 255;
-                d[idx + 2] = 255;
-              } else if (lum < 130) {
-                d[idx] = 0;
-                d[idx + 1] = 0;
-                d[idx + 2] = 0;
-              } else {
-                const val = Math.max(0, Math.min(255, Math.round((lum - 130) * (255 / 45))));
-                d[idx] = val;
-                d[idx + 1] = val;
-                d[idx + 2] = val;
-              }
-            }
+            const stretched = Math.max(0, Math.min(255, Math.round(((lum - minLum) / range) * 255)));
+            d[i] = stretched;
+            d[i + 1] = stretched;
+            d[i + 2] = stretched;
           }
 
           ctx.putImageData(imgData, 0, 0);
@@ -342,8 +333,8 @@ const normalizeCourseCode = (code) => {
 const cleanSubjectName = (name) => {
   if (!name) return "";
   return name
-    .replace(/\([A-Z0-9\s\-]+\)$/i, "")
-    .replace(/\b(CUTM|CUCS|CUEC|CUEE|CUME|CUCY|CUPH|CUMA|BTE|BBA|MBA)\w{3,6}\b/gi, "")
+    .replace(/\([A-Z]{3,5}[A-Z0-9]{3,6}\)$/i, "")
+    .replace(/\b(CUTM|CUCS|CUEC|CUEE|CUME|CUCE|CUCY|CUPH|CUMA|BTE|BBA|MBA)\w{3,6}\b/gi, "")
     .replace(/[-_\|\:]+$/, "")
     .replace(/^[-_\|\:\d\.\s]+/, "")
     .replace(/\s+/g, " ")
@@ -429,10 +420,11 @@ const deduplicateAndCanonicalizeSubjects = (rawList = [], catalog = []) => {
   return subjects;
 };
 
-// Robust Fraction & Session Extractor from Raw OCR Line
+// Dynamic Extraction of Attended/Delivered Session Counts
 const extractFractionFromLine = (line) => {
   if (!line) return null;
 
+  // 1. Explicit fraction e.g. "6/7", "24/28", "7/7", "0/0", "2/2", "8/8", "7/9", "5/7", "4/4", "26/28", "8/9", "23/25", "12/12", "6/8", "14/14"
   const fracMatch = line.match(/\b(\d{1,3})\s*[\/\\|]\s*(\d{1,3})\b/);
   if (fracMatch) {
     const a = parseInt(fracMatch[1], 10);
@@ -440,10 +432,12 @@ const extractFractionFromLine = (line) => {
     if (d >= a && d <= 150) return { attended: a, delivered: d };
   }
 
+  // 2. Explicit zero e.g. "0/0", "o/o", "O/O", "0\0", "0|0", "0 0"
   if (/\b[0oO]\s*[\/\\|]\s*[0oO]\b|\b0\s+0\b|\b0\/0\b/.test(line)) {
     return { attended: 0, delivered: 0 };
   }
 
+  // 3. Space-separated two numbers e.g. "6 7", "24 28", "14 14"
   const spaceMatch = line.match(/\b(\d{1,2})\s+(\d{1,2})\b/);
   if (spaceMatch) {
     const a = parseInt(spaceMatch[1], 10);
@@ -451,6 +445,7 @@ const extractFractionFromLine = (line) => {
     if (d >= a && d <= 150 && d > 0) return { attended: a, delivered: d };
   }
 
+  // 4. Concatenated 4-digit attendance e.g. "2428" (24/28), "1414" (14/14), "1212" (12/12), "2628" (26/28), "2325" (23/25)
   const fourDigitMatches = line.match(/\b(\d{2})(\d{2})\b/g);
   if (fourDigitMatches) {
     for (const m of fourDigitMatches) {
@@ -460,12 +455,13 @@ const extractFractionFromLine = (line) => {
     }
   }
 
+  // 5. Concatenated 2-digit attendance e.g. "67" (6/7), "57" (5/7), "44" (4/4), "77" (7/7), "88" (8/8), "22" (2/2), "89" (8/9), "79" (7/9), "68" (6/8)
   const twoDigitMatches = line.match(/\b(\d)(\d)\b/g);
   if (twoDigitMatches) {
     for (const m of twoDigitMatches) {
       const a = parseInt(m[0], 10);
       const d = parseInt(m[1], 10);
-      if (d >= a && d >= 4 && d <= 10) return { attended: a, delivered: d };
+      if (d >= a && d >= 2 && d <= 10) return { attended: a, delivered: d };
     }
   }
 
@@ -525,7 +521,7 @@ const parseCutmOcrText = (text, catalog = []) => {
         namePart = cleanSubjectName(
           line
             .replace(/^\d+[\.\s\-\|\)]*/, "")
-            .replace(/\b[A-Z]{3,5}[A-Z0-9]{3,6}\s*-\s*(PP|PR|TUT)\b/gi, "")
+            .replace(/\b[A-Z]{3,5}[A-Z0-9]{3,6}\s*[-_=\:]\s*(PP|PR|TUT)\b/gi, "")
             .replace(/\b[A-Z]{3,5}[A-Z0-9]{3,6}\b/gi, "")
             .replace(/(?:-\s*|\(\s*)(PP|PR|TUT)(?:\s*\))/gi, "")
             .replace(/\b\d{1,3}\s*[\/\\|]\s*\d{1,3}\b/g, "")
@@ -534,7 +530,7 @@ const parseCutmOcrText = (text, catalog = []) => {
         );
       }
 
-      if (code || namePart.length > 3 || frac) {
+      if ((code && frac) || (shortMatch && frac) || (namePart.length > 3 && frac)) {
         rawRows.push({
           name: namePart || code,
           code: code,
@@ -577,7 +573,7 @@ const parseCutmOcrText = (text, catalog = []) => {
       const mainCardMatch = line.match(/^(.*?)\s*\(?([A-Z]{3,5}[A-Z0-9]{3,6})\)?$/i);
       if (mainCardMatch && !frac && !compSubMatch && mainCardMatch[1].trim().length > 3) {
         const code = normalizeCourseCode(mainCardMatch[2]);
-        let name = mainCardMatch[1].trim();
+        let name = cleanSubjectName(mainCardMatch[1].trim());
         currentSubject = {
           name: name || code,
           code: code,
@@ -595,21 +591,25 @@ const parseCutmOcrText = (text, catalog = []) => {
         if (!currentSubject) {
           const codeMatch = line.match(/\b([A-Z]{3,5}[A-Z0-9]{3,6})\b/i);
           const code = codeMatch ? normalizeCourseCode(codeMatch[1]) : "";
-          currentSubject = {
-            name: code || "Subject",
-            code: code,
-            components: [],
-          };
-          rawRows.push(currentSubject);
+          if (code) {
+            currentSubject = {
+              name: code,
+              code: code,
+              components: [],
+            };
+            rawRows.push(currentSubject);
+          }
         }
 
-        let comp = currentSubject.components.find((c) => c.type === compType);
-        if (!comp) {
-          comp = { type: compType, attended: frac.attended, delivered: frac.delivered };
-          currentSubject.components.push(comp);
-        } else {
-          comp.attended = frac.attended;
-          comp.delivered = frac.delivered;
+        if (currentSubject) {
+          let comp = currentSubject.components.find((c) => c.type === compType);
+          if (!comp) {
+            comp = { type: compType, attended: frac.attended, delivered: frac.delivered };
+            currentSubject.components.push(comp);
+          } else {
+            comp.attended = frac.attended;
+            comp.delivered = frac.delivered;
+          }
         }
       }
     }
