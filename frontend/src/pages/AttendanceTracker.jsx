@@ -1101,6 +1101,22 @@ export default function AttendanceTracker() {
 
   const activeStudentName = studentData?.studentName || "";
 
+  const navMenuItems = [
+    { id: "matrix", label: "Attendance Hub", icon: <Layers size={14} />, badge: `${allSectionSubjects.length} Subs` },
+    { id: "studio", label: "Predictor Studio", icon: <Sliders size={14} />, badge: "Simulate" },
+    { id: "bunk_analyzer", label: "Timetable Planner", icon: <Zap size={14} />, badge: "Smart Routine" },
+  ];
+
+  const handleResetAllAttendance = () => {
+    if (window.confirm("Are you sure you want to reset all attendance check-ins and revert to default routine values?")) {
+      setSavedSubjects([]);
+      setAllDailyLogs({});
+      localStorage.removeItem("gradeflow_saved_attendance");
+      localStorage.removeItem("gradeflow_daily_attendance_logs");
+      syncAttendanceToDb([], {}, targetGoal);
+    }
+  };
+
   if (pageLoading || isSearching) {
     return (
       <div
