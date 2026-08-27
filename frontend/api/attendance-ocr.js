@@ -27,10 +27,11 @@ module.exports = async function handler(req, res) {
 
     if (GEMINI_API_KEY) {
       const modelsToTry = [
+        "gemini-3.6-flash",
+        "gemini-flash-latest",
+        "gemini-3.1-pro-preview",
         "gemini-2.5-pro",
         "gemini-2.0-flash",
-        "gemini-1.5-pro",
-        "gemini-1.5-flash",
       ];
 
       let lastError = null;
@@ -41,7 +42,10 @@ module.exports = async function handler(req, res) {
             `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${GEMINI_API_KEY}`,
             {
               method: "POST",
-              headers: { "Content-Type": "application/json" },
+              headers: {
+                "Content-Type": "application/json",
+                "X-goog-api-key": GEMINI_API_KEY,
+              },
               body: JSON.stringify({
                 contents: [
                   {
