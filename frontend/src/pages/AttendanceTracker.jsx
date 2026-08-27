@@ -1122,36 +1122,36 @@ export default function AttendanceTracker() {
         }}
       >
         {/* ═══════════════════════════════════════════════════════════════
-            TOP HERO HEADER CARD
+            TOP DASHBOARD IDENTITY & QUICK ACTION BAR
         ═══════════════════════════════════════════════════════════════ */}
         <div
           style={{
             background: "#ffffff",
             border: "1px solid #e2e8f0",
             borderRadius: 20,
-            padding: isMobile ? "16px 14px" : "22px 26px",
-            boxShadow: "0 1px 3px rgba(0, 0, 0, 0.04), 0 10px 24px -6px rgba(15, 23, 42, 0.04)",
+            padding: isMobile ? "16px 14px" : "20px 24px",
+            boxShadow: "0 1px 3px rgba(0, 0, 0, 0.04), 0 10px 24px -6px rgba(15, 23, 42, 0.03)",
             display: "flex",
             flexDirection: "column",
-            gap: 16,
+            gap: 14,
           }}
         >
-          {/* Top Row: Title, Subtitle, and Section Controls */}
+          {/* Top Row: Student Profile / Section Branding & Quick Action Buttons */}
           <div
             style={{
               display: "flex",
               justifyContent: "space-between",
               alignItems: "center",
               flexWrap: "wrap",
-              gap: 14,
+              gap: 12,
             }}
           >
-            {/* Left: Branding & Section Title */}
-            <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+            {/* Left: Branding & Student Info */}
+            <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
               <div
                 style={{
-                  width: isMobile ? 44 : 50,
-                  height: isMobile ? 44 : 50,
+                  width: isMobile ? 44 : 48,
+                  height: isMobile ? 44 : 48,
                   borderRadius: 14,
                   background: "linear-gradient(135deg, #059669 0%, #10b981 100%)",
                   color: "#ffffff",
@@ -1162,77 +1162,70 @@ export default function AttendanceTracker() {
                   boxShadow: "0 4px 14px rgba(16, 185, 129, 0.25)",
                 }}
               >
-                <Percent size={isMobile ? 22 : 26} />
+                <Percent size={isMobile ? 22 : 24} />
               </div>
 
               <div>
-                <div
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 6,
-                    color: "#059669",
-                    fontSize: 11.5,
-                    fontWeight: 800,
-                    textTransform: "uppercase",
-                    letterSpacing: "0.5px",
-                  }}
-                >
-                  <ShieldCheck size={13} />
-                  <span>Attendance Intelligence & Predictive Simulator</span>
+                <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+                  <h1
+                    style={{
+                      fontSize: isMobile ? 18 : 22,
+                      fontWeight: 900,
+                      color: "#0f172a",
+                      margin: 0,
+                      letterSpacing: "-0.4px",
+                    }}
+                  >
+                    {activeStudentName ? activeStudentName : `Section ${selectedSection} Attendance`}
+                  </h1>
+                  <span
+                    style={{
+                      fontSize: 11,
+                      fontWeight: 800,
+                      padding: "2px 8px",
+                      borderRadius: 999,
+                      background: "#ecfdf5",
+                      border: "1px solid #a7f3d0",
+                      color: "#059669",
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: 4,
+                    }}
+                  >
+                    <Building size={11} color="#059669" />
+                    <span>Sec {selectedSection}</span>
+                  </span>
                 </div>
-                <h1
-                  style={{
-                    fontSize: isMobile ? 20 : 24,
-                    fontWeight: 800,
-                    color: "#0f172a",
-                    margin: "2px 0 0 0",
-                    letterSpacing: "-0.4px",
-                  }}
-                >
-                  Section {selectedSection} Attendance Tracker
-                </h1>
+                <p style={{ fontSize: 12, color: "#64748b", margin: "2px 0 0 0" }}>
+                  {currentRegNo ? (
+                    <span>
+                      Reg No: <strong style={{ color: "#334155" }}>{currentRegNo}</strong> &middot; Real-time Attendance Intelligence
+                    </span>
+                  ) : (
+                    <span>Live Subject Attendance & Dynamic Routine Tracker</span>
+                  )}
+                </p>
               </div>
             </div>
 
-            {/* Right: Section Badge / Selector & Student Tag */}
+            {/* Right: Section Selector / Screenshot OCR Auto-Import CTA */}
             <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-              {activeStudentName || currentRegNo ? (
-                <div
-                  style={{
-                    display: "inline-flex",
-                    alignItems: "center",
-                    gap: 6,
-                    padding: "7px 14px",
-                    borderRadius: 10,
-                    background: "#ecfdf5",
-                    border: "1.5px solid #10b981",
-                    color: "#047857",
-                    fontSize: 13,
-                    fontWeight: 800,
-                  }}
-                >
-                  <Building size={14} color="#059669" />
-                  <span>Section {selectedSection}</span>
-                </div>
-              ) : (
-                <>
-                  <span style={{ fontSize: 12.5, fontWeight: 700, color: "#64748b" }}>
-                    Section:
-                  </span>
+              {/* Section dropdown for guest users */}
+              {!activeStudentName && !currentRegNo && (
+                <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                  <span style={{ fontSize: 12, fontWeight: 700, color: "#64748b" }}>Section:</span>
                   <select
                     value={selectedSection}
                     onChange={(e) => setSelectedSection(e.target.value)}
                     style={{
-                      padding: "8px 14px",
+                      padding: "7px 12px",
                       borderRadius: 10,
                       border: "1.5px solid #10b981",
                       background: "#ecfdf5",
                       color: "#047857",
-                      fontSize: 13,
+                      fontSize: 12.5,
                       fontWeight: 800,
-                      cursor: isVerifiedDisclaimerChecked ? "pointer" : "not-allowed",
-                  opacity: isVerifiedDisclaimerChecked ? 1 : 0.7,
+                      cursor: "pointer",
                       outline: "none",
                       boxShadow: "0 1px 3px rgba(16, 185, 129, 0.1)",
                     }}
@@ -1243,7 +1236,7 @@ export default function AttendanceTracker() {
                       </option>
                     ))}
                   </select>
-                </>
+                </div>
               )}
 
               {/* AI Screenshot Auto-Import Button */}
@@ -1256,196 +1249,83 @@ export default function AttendanceTracker() {
                   gap: 6,
                   padding: "7px 14px",
                   borderRadius: 10,
-                  background: scanStatus.isLimitReached ? "#f1f5f9" : "#eff6ff",
-                  border: `1px solid ${scanStatus.isLimitReached ? "#cbd5e1" : "#bfdbfe"}`,
-                  color: scanStatus.isLimitReached ? "#64748b" : "#1d4ed8",
+                  background: scanStatus.isLimitReached ? "#f1f5f9" : "linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)",
+                  border: `1px solid ${scanStatus.isLimitReached ? "#cbd5e1" : "#2563eb"}`,
+                  color: scanStatus.isLimitReached ? "#64748b" : "#ffffff",
                   fontSize: 12.5,
-                  fontWeight: 700,
+                  fontWeight: 800,
                   cursor: scanStatus.isLimitReached ? "not-allowed" : "pointer",
-                  opacity: scanStatus.isLimitReached ? 0.65 : 1,
-                  filter: scanStatus.isLimitReached ? "grayscale(30%)" : "none",
+                  opacity: scanStatus.isLimitReached ? 0.7 : 1,
                   transition: "all 0.15s ease",
-                  boxShadow: scanStatus.isLimitReached ? "none" : "0 1px 3px rgba(37, 99, 235, 0.08)",
+                  boxShadow: scanStatus.isLimitReached ? "none" : "0 2px 8px rgba(37, 99, 235, 0.25)",
                 }}
                 title={
                   scanStatus.isLimitReached
-                    ? "Daily AI Scan Limit Reached (2/2). Resets tomorrow at midnight (12:00 AM)."
-                    : `AI Screenshot Auto-Import (${scanStatus.remaining}/${scanStatus.max} scans left today)`
+                    ? "Daily Screenshot Limit Reached (2/2). Resets tomorrow at midnight (12:00 AM)."
+                    : `Screenshot Auto-Import (${scanStatus.remaining}/${scanStatus.max} scans left today)`
                 }
               >
-                <Camera size={14} color={scanStatus.isLimitReached ? "#64748b" : "#2563eb"} />
-                <span>Auto-Import via Screenshot</span>
+                <Camera size={14} color={scanStatus.isLimitReached ? "#64748b" : "#ffffff"} />
+                <span>Auto-Import Screenshot</span>
                 <span
                   style={{
                     fontSize: 10,
-                    fontWeight: 800,
+                    fontWeight: 900,
                     padding: "1px 6px",
                     borderRadius: 999,
-                    background: scanStatus.isExempt ? "#dcfce7" : scanStatus.isLimitReached ? "#fee2e2" : "#dbeafe",
-                    color: scanStatus.isExempt ? "#15803d" : scanStatus.isLimitReached ? "#dc2626" : "#1e40af",
+                    background: scanStatus.isExempt
+                      ? "rgba(255,255,255,0.25)"
+                      : scanStatus.isLimitReached
+                      ? "#fee2e2"
+                      : "rgba(255,255,255,0.25)",
+                    color: scanStatus.isLimitReached ? "#dc2626" : "#ffffff",
                   }}
                 >
                   {scanStatus.isExempt ? "Unlimited" : scanStatus.isLimitReached ? "0/2 left" : `${scanStatus.remaining}/${scanStatus.max}`}
                 </span>
               </button>
 
-              {activeStudentName && (
-                <div
+              {/* Guest Login button */}
+              {!currentRegNo && (
+                <button
+                  type="button"
+                  onClick={openStudentAuthModal}
                   style={{
-                    display: "inline-flex",
-                    alignItems: "center",
-                    gap: 6,
                     padding: "7px 12px",
                     borderRadius: 10,
-                    background: "#f8fafc",
-                    border: "1px solid #e2e8f0",
+                    border: "1px solid #cbd5e1",
+                    background: "#ffffff",
+                    color: "#0f172a",
                     fontSize: 12,
                     fontWeight: 700,
-                    color: "#334155",
+                    cursor: "pointer",
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 5,
                   }}
                 >
-                  <User size={13} color="#059669" />
-                  <span>{activeStudentName}</span>
-                </div>
+                  <GraduationCap size={13} color="#2563eb" />
+                  <span>Login</span>
+                </button>
               )}
             </div>
           </div>
 
-          {/* Quick Section Switcher Pills with Arrow Buttons (In Guest / Generic Mode) */}
-          {!activeStudentName && !currentRegNo && (
-            <div style={{ display: "flex", alignItems: "center", gap: 4, width: "100%", position: "relative" }}>
-              <button
-                type="button"
-                onClick={() => scrollSectionPills("left")}
-                disabled={!canScrollSectionLeft}
-                aria-label="Scroll sections left"
-                style={{
-                  width: 26,
-                  height: 26,
-                  borderRadius: 7,
-                  border: "1px solid #cbd5e1",
-                  background: "#ffffff",
-                  color: canScrollSectionLeft ? "#0f172a" : "#cbd5e1",
-                  cursor: canScrollSectionLeft ? "pointer" : "default",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  flexShrink: 0,
-                }}
-              >
-                <ChevronLeft size={14} />
-              </button>
-
-              <div
-                ref={sectionPillsRef}
-                onScroll={checkSectionScroll}
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 5,
-                  padding: "6px 8px",
-                  borderRadius: 10,
-                  background: "#f8fafc",
-                  border: "1px solid #e2e8f0",
-                  overflowX: "auto",
-                  scrollBehavior: "smooth",
-                  scrollbarWidth: "none",
-                  msOverflowStyle: "none",
-                  flex: 1,
-                }}
-              >
-                <span style={{ fontSize: 11, fontWeight: 800, color: "#64748b", textTransform: "uppercase", marginRight: 2, flexShrink: 0 }}>
-                  Sec:
-                </span>
-                {ALL_SECTIONS.map((sec) => {
-                  const isActive = selectedSection === sec;
-                  return (
-                    <button
-                      key={sec}
-                      data-section-id={sec}
-                      type="button"
-                      onClick={() => setSelectedSection(sec)}
-                      style={{
-                        padding: "3px 9px",
-                        borderRadius: 7,
-                        fontSize: 11.5,
-                        fontWeight: 800,
-                        cursor: "pointer",
-                        border: isActive ? "1.5px solid #059669" : "1px solid transparent",
-                        background: isActive ? "#059669" : "transparent",
-                        color: isActive ? "#ffffff" : "#475569",
-                        transition: "all 0.15s ease",
-                        whiteSpace: "nowrap",
-                        flexShrink: 0,
-                      }}
-                    >
-                      {sec}
-                    </button>
-                  );
-                })}
-              </div>
-
-              <button
-                type="button"
-                onClick={() => scrollSectionPills("right")}
-                disabled={!canScrollSectionRight}
-                aria-label="Scroll sections right"
-                style={{
-                  width: 26,
-                  height: 26,
-                  borderRadius: 7,
-                  border: "1px solid #cbd5e1",
-                  background: "#ffffff",
-                  color: canScrollSectionRight ? "#0f172a" : "#cbd5e1",
-                  cursor: canScrollSectionRight ? "pointer" : "default",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  flexShrink: 0,
-                }}
-              >
-                <ChevronRight size={14} />
-              </button>
-            </div>
-          )}
-
-          {/* Student Search Form */}
-          <div
-            style={{
-              paddingTop: 12,
-              borderTop: "1px solid #f1f5f9",
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-              flexWrap: "wrap",
-              gap: 12,
-            }}
-          >
-            {/* Admin Search OR Verified Student Lock Badge */}
-            {adminToken ? (
+          {/* Admin Search Form (if Admin) */}
+          {adminToken && (
+            <div style={{ paddingTop: 10, borderTop: "1px solid #f1f5f9" }}>
               <form
                 onSubmit={handleSearchStudent}
                 style={{
                   display: "flex",
                   alignItems: "center",
                   gap: 8,
-                  maxWidth: 400,
+                  maxWidth: 420,
                   width: "100%",
                 }}
               >
-                <div
-                  style={{
-                    position: "relative",
-                    flex: 1,
-                    display: "flex",
-                    alignItems: "center",
-                  }}
-                >
-                  <Search
-                    size={15}
-                    color="#94a3b8"
-                    style={{ position: "absolute", left: 12, pointerEvents: "none" }}
-                  />
+                <div style={{ position: "relative", flex: 1, display: "flex", alignItems: "center" }}>
+                  <Search size={15} color="#94a3b8" style={{ position: "absolute", left: 12, pointerEvents: "none" }} />
                   <input
                     type="text"
                     placeholder="Admin: Lookup Reg No (e.g. 230301120001)"
@@ -1465,7 +1345,6 @@ export default function AttendanceTracker() {
                     }}
                   />
                 </div>
-
                 <button
                   type="submit"
                   disabled={isSearching}
@@ -1488,75 +1367,8 @@ export default function AttendanceTracker() {
                   <ArrowRight size={13} />
                 </button>
               </form>
-            ) : currentRegNo ? (
-              <div
-                style={{
-                  display: "inline-flex",
-                  alignItems: "center",
-                  gap: 8,
-                  padding: "7px 14px",
-                  borderRadius: 10,
-                  background: "#f0fdf4",
-                  border: "1px solid #bbf7d0",
-                  color: "#166534",
-                  fontSize: 12.5,
-                  fontWeight: 700,
-                }}
-              >
-                <ShieldCheck size={16} color="#16a34a" />
-                <span>
-                  Authorized Student: <strong>{currentRegNo}</strong> &middot; Section <strong>{selectedSection}</strong>
-                </span>
-              </div>
-            ) : (
-              <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
-                <span style={{ fontSize: 12.5, color: "#64748b", fontWeight: 600, display: "inline-flex", alignItems: "center", gap: 5 }}>
-                  <Lock size={13} color="#64748b" />
-                  <span>Log in to view your personalized attendance and daily routine check-in.</span>
-                </span>
-                <button
-                  type="button"
-                  onClick={openStudentAuthModal}
-                  style={{
-                    padding: "7px 14px",
-                    borderRadius: 9,
-                    border: "none",
-                    background: "linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)",
-                    color: "#ffffff",
-                    fontSize: 12.5,
-                    fontWeight: 700,
-                    cursor: "pointer",
-                    display: "inline-flex",
-                    alignItems: "center",
-                    gap: 6,
-                  }}
-                >
-                  <GraduationCap size={14} />
-                  <span>Student Login</span>
-                </button>
-              </div>
-            )}
-
-            {/* Attendance Tracker Header Pill */}
-            <div
-              style={{
-                display: "inline-flex",
-                background: "#f0fdf4",
-                padding: "6px 14px",
-                borderRadius: 12,
-                border: "1px solid #bbf7d0",
-                alignItems: "center",
-                gap: 6,
-                color: "#059669",
-                fontSize: 12,
-                fontWeight: 800,
-                boxShadow: "0 1px 3px rgba(0,0,0,0.02)",
-              }}
-            >
-              <Percent size={14} color="#059669" />
-              <span>Attendance Tracker</span>
             </div>
-          </div>
+          )}
 
           {searchError && (
             <div
@@ -1564,7 +1376,7 @@ export default function AttendanceTracker() {
                 background: "#fef2f2",
                 border: "1px solid #fecaca",
                 color: "#dc2626",
-                padding: "9px 14px",
+                padding: "8px 12px",
                 borderRadius: 10,
                 fontSize: 12,
                 fontWeight: 600,
@@ -1573,215 +1385,14 @@ export default function AttendanceTracker() {
                 gap: 8,
               }}
             >
-              <AlertTriangle size={15} />
+              <AlertTriangle size={14} />
               <span>{searchError}</span>
             </div>
           )}
         </div>
 
         {/* ═══════════════════════════════════════════════════════════════
-            TOP AGGREGATE SUMMARY STRIP
-        ═══════════════════════════════════════════════════════════════ */}
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: isMobile ? "1fr 1fr" : "repeat(4, 1fr)",
-            gap: isMobile ? 8 : 12,
-          }}
-        >
-          {/* Card 1: Overall Percentage */}
-          <div
-            style={{
-              background: "#ffffff",
-              border: "1px solid #e2e8f0",
-              borderRadius: 16,
-              padding: isMobile ? "12px 14px" : "16px 18px",
-              display: "flex",
-              flexDirection: "column",
-              justifyContent: "space-between",
-              boxShadow: "0 1px 3px rgba(0,0,0,0.02)",
-            }}
-          >
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-              <span style={{ fontSize: isMobile ? 11 : 12, fontWeight: 700, color: "#64748b" }}>
-                Aggregate %
-              </span>
-              <div
-                style={{
-                  width: 26,
-                  height: 26,
-                  borderRadius: 7,
-                  background: overallAggregate.percentage >= 75 ? "#ecfdf5" : "#fef2f2",
-                  color: overallAggregate.percentage >= 75 ? "#059669" : "#dc2626",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                }}
-              >
-                <Percent size={14} />
-              </div>
-            </div>
-            <div style={{ marginTop: 8 }}>
-              <div
-                style={{
-                  fontSize: isMobile ? 22 : 26,
-                  fontWeight: 900,
-                  color: overallAggregate.percentage >= 75 ? "#059669" : "#dc2626",
-                  letterSpacing: "-0.5px",
-                }}
-              >
-                {overallAggregate.percentage}%
-              </div>
-              <div style={{ fontSize: 10.5, color: "#64748b", marginTop: 2 }}>
-                Across {overallAggregate.subjectsCount} semester {overallAggregate.subjectsCount === 1 ? "subject" : "subjects"}
-              </div>
-            </div>
-          </div>
-
-          {/* Card 2: Total Classes Attended / Delivered */}
-          <div
-            style={{
-              background: "#ffffff",
-              border: "1px solid #e2e8f0",
-              borderRadius: 16,
-              padding: isMobile ? "12px 14px" : "16px 18px",
-              display: "flex",
-              flexDirection: "column",
-              justifyContent: "space-between",
-              boxShadow: "0 1px 3px rgba(0,0,0,0.02)",
-            }}
-          >
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-              <span style={{ fontSize: isMobile ? 11 : 12, fontWeight: 700, color: "#64748b" }}>
-                Attended / Delivered
-              </span>
-              <div
-                style={{
-                  width: 26,
-                  height: 26,
-                  borderRadius: 7,
-                  background: "#eff6ff",
-                  color: "#2563eb",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                }}
-              >
-                <CheckCircle2 size={14} />
-              </div>
-            </div>
-            <div style={{ marginTop: 8 }}>
-              <div style={{ fontSize: isMobile ? 20 : 24, fontWeight: 900, color: "#0f172a", letterSpacing: "-0.5px" }}>
-                {overallAggregate.totalAttended} <span style={{ fontSize: isMobile ? 13 : 15, color: "#94a3b8", fontWeight: 600 }}>/ {overallAggregate.totalDelivered}</span>
-              </div>
-              <div style={{ fontSize: 10.5, color: "#64748b", marginTop: 2 }}>
-                Delivered lectures & labs
-              </div>
-            </div>
-          </div>
-
-          {/* Card 3: Safe Bunk Margin or Deficit */}
-          <div
-            style={{
-              background: "#ffffff",
-              border: "1px solid #e2e8f0",
-              borderRadius: 16,
-              padding: isMobile ? "12px 14px" : "16px 18px",
-              display: "flex",
-              flexDirection: "column",
-              justifyContent: "space-between",
-              boxShadow: "0 1px 3px rgba(0,0,0,0.02)",
-            }}
-          >
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-              <span style={{ fontSize: isMobile ? 11 : 12, fontWeight: 700, color: "#64748b" }}>
-                {overallCalculation.classesNeeded > 0 ? "Deficit Classes" : "Safe Bunk Margin"}
-              </span>
-              <div
-                style={{
-                  width: 26,
-                  height: 26,
-                  borderRadius: 7,
-                  background: overallCalculation.classesNeeded > 0 ? "#fef3c7" : "#f0fdf4",
-                  color: overallCalculation.classesNeeded > 0 ? "#d97706" : "#16a34a",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                }}
-              >
-                <Zap size={14} />
-              </div>
-            </div>
-            <div style={{ marginTop: 8 }}>
-              <div
-                style={{
-                  fontSize: isMobile ? 20 : 24,
-                  fontWeight: 900,
-                  color: overallCalculation.classesNeeded > 0 ? "#d97706" : "#16a34a",
-                  letterSpacing: "-0.5px",
-                }}
-              >
-                {overallCalculation.classesNeeded > 0
-                  ? `${overallCalculation.classesNeeded} Req`
-                  : `${overallCalculation.safeBunks} Classes`}
-              </div>
-              <div style={{ fontSize: 10.5, color: "#64748b", marginTop: 2 }}>
-                {overallCalculation.classesNeeded > 0 ? `To reach ${targetGoal}%` : `Can miss & stay >= ${targetGoal}%`}
-              </div>
-            </div>
-          </div>
-
-          {/* Card 4: 75% Compliance Status */}
-          <div
-            style={{
-              background: "#ffffff",
-              border: "1px solid #e2e8f0",
-              borderRadius: 16,
-              padding: isMobile ? "12px 14px" : "16px 18px",
-              display: "flex",
-              flexDirection: "column",
-              justifyContent: "space-between",
-              boxShadow: "0 1px 3px rgba(0,0,0,0.02)",
-            }}
-          >
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-              <span style={{ fontSize: isMobile ? 11 : 12, fontWeight: 700, color: "#64748b" }}>
-                Exam Status
-              </span>
-              <div
-                style={{
-                  width: 26,
-                  height: 26,
-                  borderRadius: 7,
-                  background: overallCalculation.isEligible ? "#ecfdf5" : "#fef2f2",
-                  color: overallCalculation.isEligible ? "#059669" : "#dc2626",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                }}
-              >
-                <Award size={14} />
-              </div>
-            </div>
-            <div style={{ marginTop: 8 }}>
-              <div
-                style={{
-                  fontSize: isMobile ? 17 : 20,
-                  fontWeight: 900,
-                  color: overallCalculation.isEligible ? "#059669" : "#dc2626",
-                }}
-              >
-                {overallCalculation.isEligible ? "ELIGIBLE" : "DEBARRED"}
-              </div>
-              <div style={{ fontSize: 10.5, color: "#64748b", marginTop: 2 }}>
-                Criteria: 75%
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* ═══════════════════════════════════════════════════════════════
-            VIEW MODE TAB SWITCHER: STUDIO vs SMART BUNK ANALYZER
+            HIGH-CONTRAST 3-TAB SEGMENTED NAVIGATION CONTROL
         ═══════════════════════════════════════════════════════════════ */}
         <div
           style={{
@@ -1796,11 +1407,12 @@ export default function AttendanceTracker() {
             width: "100%",
           }}
         >
+          {/* Tab 1: Attendance Hub */}
           <button
             type="button"
             onClick={() => handleTabClick("matrix")}
             style={{
-              padding: isMobile ? "8px 4px" : "10px 14px",
+              padding: isMobile ? "9px 4px" : "11px 16px",
               borderRadius: 10,
               border: "none",
               background:
@@ -1827,7 +1439,7 @@ export default function AttendanceTracker() {
           >
             <Layers size={isMobile ? 13 : 15} style={{ flexShrink: 0 }} />
             <span style={{ overflow: "hidden", textOverflow: "ellipsis" }}>
-              {isMobile ? "Studio" : "Attendance Studio"}
+              {isMobile ? "Hub" : "Attendance Hub"}
             </span>
             <span
               style={{
@@ -1847,11 +1459,12 @@ export default function AttendanceTracker() {
             </span>
           </button>
 
+          {/* Tab 2: Predictor Studio */}
           <button
             type="button"
             onClick={() => handleTabClick("studio")}
             style={{
-              padding: isMobile ? "8px 4px" : "10px 14px",
+              padding: isMobile ? "9px 4px" : "11px 16px",
               borderRadius: 10,
               border: "none",
               background:
@@ -1878,15 +1491,16 @@ export default function AttendanceTracker() {
           >
             <Sliders size={isMobile ? 13 : 15} style={{ flexShrink: 0 }} />
             <span style={{ overflow: "hidden", textOverflow: "ellipsis" }}>
-              {isMobile ? "Predictor" : "Attendance Predictor"}
+              {isMobile ? "Predictor" : "Predictor Studio"}
             </span>
           </button>
 
+          {/* Tab 3: Smart Timetable Planner */}
           <button
             type="button"
             onClick={() => handleTabClick("bunk_analyzer")}
             style={{
-              padding: isMobile ? "8px 4px" : "10px 14px",
+              padding: isMobile ? "9px 4px" : "11px 16px",
               borderRadius: 10,
               border: "none",
               background:
@@ -1913,27 +1527,8 @@ export default function AttendanceTracker() {
           >
             <Zap size={isMobile ? 13 : 15} style={{ flexShrink: 0 }} />
             <span style={{ overflow: "hidden", textOverflow: "ellipsis" }}>
-              {isMobile ? "Bunk Analyzer" : "Safe Bunk Analyzer"}
+              {isMobile ? "Planner" : "Timetable Planner"}
             </span>
-            {!isMobile && (
-              <span
-                style={{
-                  fontSize: 9.5,
-                  fontWeight: 900,
-                  padding: "1px 5px",
-                  borderRadius: 999,
-                  background:
-                    activeTab === "bunk_analyzer"
-                      ? "rgba(255,255,255,0.25)"
-                      : "#eff6ff",
-                  color: activeTab === "bunk_analyzer" ? "#ffffff" : "#2563eb",
-                  textTransform: "uppercase",
-                  flexShrink: 0,
-                }}
-              >
-                AI
-              </span>
-            )}
           </button>
         </div>
 
@@ -1953,20 +1548,274 @@ export default function AttendanceTracker() {
             transition={{ duration: 0.18, ease: "easeOut" }}
             style={{ display: "flex", flexDirection: "column", gap: 16, width: "100%" }}
           >
-            {/* TODAY'S DAILY ROUTINE ATTENDANCE CHECK-IN HUB */}
+            {/* ── 1. OVERALL SEMESTER SCOREBOARD (Result Dashboard Style) ── */}
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.35, ease: "easeOut" }}
+              style={{
+                background: "#ffffff",
+                border: "1px solid #e2e8f0",
+                borderRadius: 20,
+                padding: isMobile ? "16px 14px" : "22px 24px",
+                boxShadow: "0 1px 3px rgba(0,0,0,0.02), 0 6px 16px -4px rgba(15,23,42,0.03)",
+                display: "flex",
+                flexDirection: "column",
+                gap: 16,
+              }}
+            >
+              {/* Scoreboard Top: Large Gauge + Eligibility + Target Goal Selector */}
               <div
                 style={{
-                  background: "#ffffff",
-                  border: "1.5px solid #e2e8f0",
-                  borderRadius: 18,
-                  padding: isMobile ? "16px 14px" : "20px 24px",
                   display: "flex",
-                  flexDirection: "column",
+                  flexDirection: isMobile ? "column" : "row",
+                  justifyContent: "space-between",
+                  alignItems: isMobile ? "flex-start" : "center",
                   gap: 14,
-                  boxShadow: "0 2px 6px rgba(0,0,0,0.02)",
-                  overflow: "hidden",
+                  paddingBottom: 14,
+                  borderBottom: "1px solid #f1f5f9",
                 }}
               >
+                {/* Left: Big Score & Badge */}
+                <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+                  <div
+                    style={{
+                      width: isMobile ? 54 : 64,
+                      height: isMobile ? 54 : 64,
+                      borderRadius: 16,
+                      background:
+                        overallAggregate.percentage >= 75
+                          ? "linear-gradient(135deg, #059669 0%, #10b981 100%)"
+                          : overallAggregate.percentage >= 65
+                          ? "linear-gradient(135deg, #d97706 0%, #f59e0b 100%)"
+                          : "linear-gradient(135deg, #dc2626 0%, #ef4444 100%)",
+                      color: "#ffffff",
+                      display: "flex",
+                      flexDirection: "column",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      flexShrink: 0,
+                      boxShadow:
+                        overallAggregate.percentage >= 75
+                          ? "0 4px 14px rgba(16, 185, 129, 0.3)"
+                          : "0 4px 14px rgba(220, 38, 38, 0.25)",
+                    }}
+                  >
+                    <span style={{ fontSize: isMobile ? 18 : 22, fontWeight: 900, lineHeight: 1 }}>
+                      {overallAggregate.percentage}%
+                    </span>
+                    <span style={{ fontSize: 9, fontWeight: 800, textTransform: "uppercase", opacity: 0.9, marginTop: 2 }}>
+                      Overall
+                    </span>
+                  </div>
+
+                  <div>
+                    <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+                      <h3 style={{ fontSize: isMobile ? 16 : 19, fontWeight: 900, color: "#0f172a", margin: 0 }}>
+                        Semester Attendance Score
+                      </h3>
+                      <span
+                        style={{
+                          fontSize: 10.5,
+                          fontWeight: 900,
+                          padding: "2px 8px",
+                          borderRadius: 6,
+                          background: overallCalculation.isEligible ? "#dcfce7" : "#fee2e2",
+                          color: overallCalculation.isEligible ? "#15803d" : "#b91c1c",
+                          border: `1px solid ${overallCalculation.isEligible ? "#bbf7d0" : "#fecaca"}`,
+                          display: "inline-flex",
+                          alignItems: "center",
+                          gap: 4,
+                        }}
+                      >
+                        {overallCalculation.isEligible ? (
+                          <>
+                            <CheckCircle2 size={12} color="#15803d" /> <span>EXAM ELIGIBLE</span>
+                          </>
+                        ) : (
+                          <>
+                            <AlertTriangle size={12} color="#b91c1c" /> <span>ATTENDANCE SHORTAGE</span>
+                          </>
+                        )}
+                      </span>
+                    </div>
+                    <p style={{ fontSize: 12, color: "#64748b", margin: "3px 0 0 0" }}>
+                      {overallAggregate.totalAttended} attended out of {overallAggregate.totalDelivered} delivered classes across {overallAggregate.subjectsCount} semester subjects.
+                    </p>
+                  </div>
+                </div>
+
+                {/* Right: Target Goal Goal Selector Chips */}
+                <div style={{ display: "flex", flexDirection: "column", alignItems: isMobile ? "flex-start" : "flex-end", gap: 4 }}>
+                  <div style={{ fontSize: 10.5, fontWeight: 800, color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.5px" }}>
+                    Target Goal Criteria
+                  </div>
+                  <div style={{ display: "flex", alignItems: "center", gap: 5, background: "#f8fafc", padding: 3, borderRadius: 10, border: "1px solid #e2e8f0" }}>
+                    {[75, 80, 85, 90].map((goal) => {
+                      const isSelected = targetGoal === goal;
+                      return (
+                        <button
+                          key={goal}
+                          type="button"
+                          onClick={() => {
+                            setTargetGoal(goal);
+                            syncAttendanceToDb(savedSubjects, allDailyLogs, goal);
+                          }}
+                          style={{
+                            padding: "4px 10px",
+                            borderRadius: 7,
+                            border: "none",
+                            background: isSelected ? "linear-gradient(135deg, #059669 0%, #047857 100%)" : "transparent",
+                            color: isSelected ? "#ffffff" : "#475569",
+                            fontSize: 11.5,
+                            fontWeight: 800,
+                            cursor: "pointer",
+                            transition: "all 0.15s ease",
+                            boxShadow: isSelected ? "0 2px 6px rgba(5,150,105,0.25)" : "none",
+                          }}
+                        >
+                          {goal}%
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
+
+              {/* Scoreboard Metrics Row (4 Modern KPI Tiles) */}
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: isMobile ? "1fr 1fr" : "repeat(4, 1fr)",
+                  gap: 10,
+                }}
+              >
+                {/* Metric 1: Attended / Conducted */}
+                <div
+                  style={{
+                    background: "#f8fafc",
+                    border: "1px solid #e2e8f0",
+                    borderRadius: 12,
+                    padding: "10px 14px",
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: 2,
+                  }}
+                >
+                  <span style={{ fontSize: 11, fontWeight: 700, color: "#64748b" }}>Attended / Conducted</span>
+                  <div style={{ fontSize: 18, fontWeight: 900, color: "#0f172a" }}>
+                    {overallAggregate.totalAttended} <span style={{ fontSize: 12, fontWeight: 600, color: "#94a3b8" }}>/ {overallAggregate.totalDelivered}</span>
+                  </div>
+                  <span style={{ fontSize: 10, color: "#64748b" }}>Delivered classes</span>
+                </div>
+
+                {/* Metric 2: Safe Bunks / Deficit */}
+                <div
+                  style={{
+                    background: overallCalculation.classesNeeded > 0 ? "#fffbeb" : "#f0fdf4",
+                    border: `1px solid ${overallCalculation.classesNeeded > 0 ? "#fde68a" : "#bbf7d0"}`,
+                    borderRadius: 12,
+                    padding: "10px 14px",
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: 2,
+                  }}
+                >
+                  <span style={{ fontSize: 11, fontWeight: 700, color: overallCalculation.classesNeeded > 0 ? "#92400e" : "#166534" }}>
+                    {overallCalculation.classesNeeded > 0 ? "Recovery Needed" : "Safe Bunk Margin"}
+                  </span>
+                  <div style={{ fontSize: 18, fontWeight: 900, color: overallCalculation.classesNeeded > 0 ? "#b45309" : "#15803d" }}>
+                    {overallCalculation.classesNeeded > 0
+                      ? `${overallCalculation.classesNeeded} Classes`
+                      : `+${overallCalculation.safeBunks} Classes`}
+                  </div>
+                  <span style={{ fontSize: 10, color: overallCalculation.classesNeeded > 0 ? "#92400e" : "#166534" }}>
+                    {overallCalculation.classesNeeded > 0 ? `To reach ${targetGoal}%` : `Buffer to stay ≥ ${targetGoal}%`}
+                  </span>
+                </div>
+
+                {/* Metric 3: Active Target Goal */}
+                <div
+                  style={{
+                    background: "#f8fafc",
+                    border: "1px solid #e2e8f0",
+                    borderRadius: 12,
+                    padding: "10px 14px",
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: 2,
+                  }}
+                >
+                  <span style={{ fontSize: 11, fontWeight: 700, color: "#64748b" }}>Active Target</span>
+                  <div style={{ fontSize: 18, fontWeight: 900, color: "#2563eb" }}>
+                    {targetGoal}% Goal
+                  </div>
+                  <span style={{ fontSize: 10, color: "#64748b" }}>Institutional standard: 75%</span>
+                </div>
+
+                {/* Metric 4: Enrolled Subjects */}
+                <div
+                  style={{
+                    background: "#f8fafc",
+                    border: "1px solid #e2e8f0",
+                    borderRadius: 12,
+                    padding: "10px 14px",
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: 2,
+                  }}
+                >
+                  <span style={{ fontSize: 11, fontWeight: 700, color: "#64748b" }}>Enrolled Subjects</span>
+                  <div style={{ fontSize: 18, fontWeight: 900, color: "#0f172a" }}>
+                    {allSectionSubjects.length} Courses
+                  </div>
+                  <span style={{ fontSize: 10, color: "#64748b" }}>Section {selectedSection}</span>
+                </div>
+              </div>
+
+              {/* Progress Bar with 75% Threshold Pin */}
+              <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: 11, fontWeight: 700, color: "#64748b" }}>
+                  <span>0%</span>
+                  <span style={{ color: "#059669", fontWeight: 800 }}>Minimum Required: 75%</span>
+                  <span>100%</span>
+                </div>
+                <div style={{ position: "relative", width: "100%", height: 8, background: "#f1f5f9", borderRadius: 999, overflow: "hidden" }}>
+                  <div
+                    style={{
+                      width: `${Math.min(100, Math.max(0, overallAggregate.percentage))}%`,
+                      height: "100%",
+                      background:
+                        overallAggregate.percentage >= 75
+                          ? "linear-gradient(90deg, #10b981, #059669)"
+                          : overallAggregate.percentage >= 65
+                          ? "linear-gradient(90deg, #f59e0b, #d97706)"
+                          : "linear-gradient(90deg, #ef4444, #dc2626)",
+                      borderRadius: 999,
+                      transition: "width 0.3s ease",
+                    }}
+                  />
+                </div>
+              </div>
+            </motion.div>
+
+            {/* ── 2. CLASS ATTENDANCE CHECK-IN HUB (Date / History Stepper & Routine Cards) ── */}
+            <motion.div
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.35, delay: 0.05, ease: "easeOut" }}
+              style={{
+                background: "#ffffff",
+                border: "1px solid #e2e8f0",
+                borderRadius: 20,
+                padding: isMobile ? "16px 14px" : "20px 24px",
+                display: "flex",
+                flexDirection: "column",
+                gap: 14,
+                boxShadow: "0 1px 3px rgba(0,0,0,0.02)",
+                overflow: "hidden",
+              }}
+            >
           {/* Header & Date Navigation Toolbar */}
           <div
             style={{
@@ -2291,8 +2140,11 @@ export default function AttendanceTracker() {
                 const subCode = resolveSubjectCode(period, studentData);
 
                 return (
-                  <div
+                  <motion.div
                     key={period.slotIndex}
+                    whileHover={{ scale: 1.015, translateY: -2 }}
+                    whileTap={{ scale: 0.99 }}
+                    transition={{ duration: 0.18, ease: "easeOut" }}
                     style={{
                       background: isPresent ? "#f0fdf4" : isAbsent ? "#fff1f2" : "#ffffff",
                       border: `1.5px solid ${isPresent ? "#86efac" : isAbsent ? "#fecdd3" : "#e2e8f0"}`,
@@ -2307,7 +2159,7 @@ export default function AttendanceTracker() {
                         : isAbsent
                         ? "0 2px 8px rgba(239, 68, 68, 0.08)"
                         : "0 1px 3px rgba(0,0,0,0.02)",
-                      transition: "all 0.15s ease",
+                      transition: "background 0.2s ease, border-color 0.2s ease",
                     }}
                   >
                     <div>
@@ -2435,27 +2287,30 @@ export default function AttendanceTracker() {
                         <span>Absent</span>
                       </button>
                     </div>
-                  </div>
+                  </motion.div>
                 );
               })}
             </div>
           )}
-        </div>
+            </motion.div>
 
         {/* ═══════════════════════════════════════════════════════════════
             ALL SEMESTER SUBJECTS MATRIX & TARGET PREDICTOR
         ═══════════════════════════════════════════════════════════════ */}
         {allSectionSubjects.length > 0 && (
-          <div
+          <motion.div
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.35, delay: 0.1, ease: "easeOut" }}
             style={{
               background: "#ffffff",
-              border: "1.5px solid #e2e8f0",
-              borderRadius: 18,
+              border: "1px solid #e2e8f0",
+              borderRadius: 20,
               padding: isMobile ? "16px 14px" : "22px 24px",
               display: "flex",
               flexDirection: "column",
               gap: 16,
-              boxShadow: "0 2px 6px rgba(0,0,0,0.02)",
+              boxShadow: "0 1px 3px rgba(0,0,0,0.02)",
             }}
           >
             {/* Header */}
@@ -2512,8 +2367,11 @@ export default function AttendanceTracker() {
                 const isPassing = hasConductedClasses ? subCalc.currentPercentage >= 75 : true;
 
                 return (
-                  <div
+                  <motion.div
                     key={idx}
+                    whileHover={{ scale: 1.015, translateY: -3, boxShadow: "0 8px 24px -4px rgba(15,23,42,0.08)" }}
+                    whileTap={{ scale: 0.99 }}
+                    transition={{ duration: 0.2, ease: "easeOut" }}
                     onClick={() => {
                       setSelectedSubjectName(sub.subjectName); setComponentInputs(sub.components || []); handleTabClick("studio"); window.scrollTo({ top: 400, behavior: "smooth" });
                     }}
@@ -2528,7 +2386,7 @@ export default function AttendanceTracker() {
                       gap: 12,
                       cursor: "pointer",
                       boxShadow: "0 1px 3px rgba(0,0,0,0.02)",
-                      transition: "transform 0.15s, box-shadow 0.15s, border-color 0.15s",
+                      transition: "border-color 0.2s ease, background 0.2s ease",
                     }}
                   >
                     <div>
@@ -2700,11 +2558,11 @@ export default function AttendanceTracker() {
                         )}
                       </div>
                     </div>
-                  </div>
+                  </motion.div>
                 );
               })}
             </div>
-          </div>
+          </motion.div>
         )}
           </motion.div>
         )}
