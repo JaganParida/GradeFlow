@@ -26,19 +26,28 @@ module.exports = async function handler(req, res) {
     const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 
     if (GEMINI_API_KEY) {
-      const model = "gemini-2.5-pro";
-      try {
-        const response = await fetch(
-          `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${GEMINI_API_KEY}`,
-          {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              contents: [
-                {
-                  parts: [
-                    {
-                      text: `You are an expert Document AI OCR engine for university student ERP attendance portals.
+      const modelsToTry = [
+        "gemini-2.5-pro",
+        "gemini-2.0-flash",
+        "gemini-1.5-pro",
+        "gemini-1.5-flash",
+      ];
+
+      let lastError = null;
+
+      for (const model of modelsToTry) {
+        try {
+          const response = await fetch(
+            `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${GEMINI_API_KEY}`,
+            {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                contents: [
+                  {
+                    parts: [
+                      {
+                        text: `You are an expert Document AI OCR engine for university student ERP attendance portals.
 Read the uploaded ERP screenshot only. Do not infer information from prior screenshots. Do not use external knowledge. Do not complete or guess missing text.
 
 Extract EVERY physical ERP component row/card visible in the screenshot.
@@ -75,117 +84,135 @@ OUTPUT FORMAT (JSON Schema):
     }
   ]
 }`,
-                    },
-                    {
-                      inline_data: {
-                        mime_type: mimeType || "image/jpeg",
-                        data: cleanBase64,
                       },
-                    },
-                  ],
+                      {
+                        inline_data: {
+                          mime_type: mimeType || "image/jpeg",
+                          data: cleanBase64,
+                        },
+                      },
+                    ],
+                  },
+                ],
+                generationConfig: {
+                  temperature: 0.0,
+                  response_mime_type: "application/json",
                 },
-              ],
-              generationConfig: {
-                temperature: 0.0,
-                response_mime_type: "application/json",
-              },
-            }),
+              }),
+            }
+          );
+
+          if (response.ok) {
+            const result = await response.json();
+            const rawText = result.candidates?.[0]?.content?.parts?.[0]?.text || "{}";
+            let parsedData = { rows: [] };
+            try {
+              parsedData = JSON.parse(rawText.replace(/```json/g, "").replace(/```/g, "").trim());
+            } catch {
+              const jsonMatch = rawText.match(/\{[\s\S]*\}/);
+              if (jsonMatch) parsedData = JSON.parse(jsonMatch[0]);
+            }
+
+            const rawRows = Array.isArray(parsedData.rows)
+              ? parsedData.rows
+              : Array.isArray(parsedData)
+              ? parsedData
+              : [];
+
+            if (rawRows.length > 0) {
+              // Group physical component rows into subjects by Course Code / Course Name
+              const subjectsMap = new Map();
+
+              rawRows.forEach((row, idx) => {
+                if (!row) return;
+                const name = String(row.courseName || row.name || "").trim();
+                const code = String(row.courseCode || row.code || "").trim();
+                const compType = String(row.component || row.type || "PP").toUpperCase();
+                const attended = Math.max(0, parseInt(row.attended, 10) || 0);
+                const delivered = Math.max(0, parseInt(row.delivered !== undefined ? row.delivered : row.total, 10) || 0);
+
+                const key = code || name || `sub_${idx}`;
+
+                if (!subjectsMap.has(key)) {
+                  subjectsMap.set(key, {
+                    id: `ocr_sub_${Date.now()}_${idx}`,
+                    name: name || code || "Subject",
+                    code: code,
+                    components: [],
+                  });
+                }
+
+                const sub = subjectsMap.get(key);
+                if (!sub.code && code) sub.code = code;
+                if ((!sub.name || sub.name === sub.code) && name) sub.name = name;
+
+                let comp = sub.components.find((c) => c.type === compType);
+                if (!comp) {
+                  comp = { type: compType, attended: 0, delivered: 0, percentage: 0 };
+                  sub.components.push(comp);
+                }
+                comp.attended = attended;
+                comp.delivered = delivered;
+                comp.percentage = delivered > 0 ? parseFloat(((attended / delivered) * 100).toFixed(1)) : 0;
+              });
+
+              const formattedSubjects = Array.from(subjectsMap.values()).map((sub, idx) => {
+                const totalAtt = sub.components.reduce((acc, c) => acc + c.attended, 0);
+                const totalDel = sub.components.reduce((acc, c) => acc + c.delivered, 0);
+                const pct = totalDel > 0 ? parseFloat(((totalAtt / totalDel) * 100).toFixed(1)) : 0;
+
+                return {
+                  id: sub.id || `ocr_sub_${Date.now()}_${idx}`,
+                  name: sub.name,
+                  code: sub.code,
+                  attendedClasses: totalAtt,
+                  totalClasses: totalDel,
+                  percentage: pct,
+                  components: sub.components,
+                };
+              });
+
+              return res.json({
+                success: true,
+                engine: "gemini_vision",
+                modelUsed: model,
+                rowsCount: rawRows.length,
+                subjectsCount: formattedSubjects.length,
+                subjects: formattedSubjects,
+              });
+            }
+          } else {
+            const errData = await response.text();
+            lastError = `Gemini API returned HTTP ${response.status} with model ${model}: ${errData.substring(0, 300)}`;
+            console.warn(lastError);
+            if (response.status === 401 || response.status === 403) {
+              // Invalid API key — don't keep trying other models with a known bad key
+              return res.json({
+                success: false,
+                engine: "gemini_auth_error",
+                error: `Gemini API Authentication Failed (${response.status}). The provided GEMINI_API_KEY is invalid. Please check your Google AI Studio API Key (starts with AIzaSy...).`,
+                subjects: [],
+              });
+            }
           }
-        );
-
-        if (response.ok) {
-          const result = await response.json();
-          const rawText = result.candidates?.[0]?.content?.parts?.[0]?.text || "{}";
-          let parsedData = { rows: [] };
-          try {
-            parsedData = JSON.parse(rawText.replace(/```json/g, "").replace(/```/g, "").trim());
-          } catch {
-            const jsonMatch = rawText.match(/\{[\s\S]*\}/);
-            if (jsonMatch) parsedData = JSON.parse(jsonMatch[0]);
-          }
-
-          const rawRows = Array.isArray(parsedData.rows)
-            ? parsedData.rows
-            : Array.isArray(parsedData)
-            ? parsedData
-            : [];
-
-          if (rawRows.length > 0) {
-            // Group physical component rows into subjects by Course Code / Course Name
-            const subjectsMap = new Map();
-
-            rawRows.forEach((row, idx) => {
-              if (!row) return;
-              const name = String(row.courseName || row.name || "").trim();
-              const code = String(row.courseCode || row.code || "").trim();
-              const compType = String(row.component || row.type || "PP").toUpperCase();
-              const attended = Math.max(0, parseInt(row.attended, 10) || 0);
-              const delivered = Math.max(0, parseInt(row.delivered !== undefined ? row.delivered : row.total, 10) || 0);
-
-              const key = code || name || `sub_${idx}`;
-
-              if (!subjectsMap.has(key)) {
-                subjectsMap.set(key, {
-                  id: `ocr_sub_${Date.now()}_${idx}`,
-                  name: name || code || "Subject",
-                  code: code,
-                  components: [],
-                });
-              }
-
-              const sub = subjectsMap.get(key);
-              if (!sub.code && code) sub.code = code;
-              if ((!sub.name || sub.name === sub.code) && name) sub.name = name;
-
-              let comp = sub.components.find((c) => c.type === compType);
-              if (!comp) {
-                comp = { type: compType, attended: 0, delivered: 0, percentage: 0 };
-                sub.components.push(comp);
-              }
-              comp.attended = attended;
-              comp.delivered = delivered;
-              comp.percentage = delivered > 0 ? parseFloat(((attended / delivered) * 100).toFixed(1)) : 0;
-            });
-
-            const formattedSubjects = Array.from(subjectsMap.values()).map((sub, idx) => {
-              const totalAtt = sub.components.reduce((acc, c) => acc + c.attended, 0);
-              const totalDel = sub.components.reduce((acc, c) => acc + c.delivered, 0);
-              const pct = totalDel > 0 ? parseFloat(((totalAtt / totalDel) * 100).toFixed(1)) : 0;
-
-              return {
-                id: sub.id || `ocr_sub_${Date.now()}_${idx}`,
-                name: sub.name,
-                code: sub.code,
-                attendedClasses: totalAtt,
-                totalClasses: totalDel,
-                percentage: pct,
-                components: sub.components,
-              };
-            });
-
-            return res.json({
-              success: true,
-              engine: "gemini_2.5_pro",
-              modelUsed: model,
-              rowsCount: rawRows.length,
-              subjectsCount: formattedSubjects.length,
-              subjects: formattedSubjects,
-            });
-          }
-        } else {
-          const errData = await response.text();
-          console.warn(`Gemini 2.5 Pro API returned error (${response.status}):`, errData);
+        } catch (geminiErr) {
+          lastError = `Gemini invocation error with model ${model}: ${geminiErr.message}`;
+          console.warn(lastError);
         }
-      } catch (geminiErr) {
-        console.warn(`Gemini 2.5 Pro invocation error:`, geminiErr.message);
       }
+
+      return res.json({
+        success: false,
+        engine: "gemini_error",
+        error: lastError || "All Gemini vision models failed to process the image.",
+        subjects: [],
+      });
     }
 
-    // Fallback response allowing client to run local OCR extraction
     return res.json({
-      success: true,
-      engine: "client_fallback",
-      message: "Please proceed with client-side OCR parsing or manual adjustment.",
+      success: false,
+      engine: "no_api_key",
+      error: "GEMINI_API_KEY is not configured in Vercel Environment Variables.",
       subjects: [],
     });
   } catch (err) {

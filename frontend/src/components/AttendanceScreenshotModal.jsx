@@ -639,6 +639,8 @@ const parseCutmOcrText = (text, catalog = []) => {
       { url: `${RENDER_BACKEND}/attendance/ocr`, label: "Render Backend" },
     ];
 
+    let lastApiError = "";
+
     for (const endpoint of endpointsToTry) {
       if (extracted.length > 0) break;
       try {
@@ -655,17 +657,18 @@ const parseCutmOcrText = (text, catalog = []) => {
           );
           extracted = deduplicateAndCanonicalizeSubjects(res.data.subjects, sectionCatalog);
         } else {
-          console.warn(
-            `[ERP OCR] ${endpoint.label} returned empty/fallback: engine=${res?.data?.engine}, subjects=${res?.data?.subjects?.length || 0}`
-          );
+          const errMsg = res?.data?.error || `engine=${res?.data?.engine}, subjects=${res?.data?.subjects?.length || 0}`;
+          if (res?.data?.error) lastApiError = res.data.error;
+          console.warn(`[ERP OCR] ${endpoint.label} returned empty/fallback:`, errMsg);
         }
       } catch (err) {
+        lastApiError = `Network error connecting to ${endpoint.label}: ${err.message}`;
         console.warn(`[ERP OCR] ${endpoint.label} failed:`, err.message);
       }
     }
 
-    // 2. If Serverless didn't extract or no API key, run Client-Side Tesseract.js Engine with Canvas Preprocessing
-    if (extracted.length === 0) {
+    // 2. If Serverless didn't extract, try client OCR only if no explicit auth error
+    if (extracted.length === 0 && !lastApiError.includes("Authentication Failed")) {
       try {
         setProcessingStatus("Enhancing contrast & running local OCR engine...");
         const preprocessedBase64 = await preprocessImageForOcr(imageBase64);
@@ -678,16 +681,13 @@ const parseCutmOcrText = (text, catalog = []) => {
         await worker.terminate();
 
         const rawText = ret.data?.text || "";
-        extracted = parseCutmOcrText(rawText, sectionCatalog);
+        const clientParsed = parseCutmOcrText(rawText, sectionCatalog);
+        if (clientParsed && clientParsed.length >= 6) {
+          // Only trust local OCR if it detected a substantial set of subjects
+          extracted = clientParsed;
+        }
       } catch (tessErr) {
-        console.warn("Local Tesseract OCR warning, trying default mode:", tessErr);
-        try {
-          const worker2 = await createWorker("eng");
-          const ret2 = await worker2.recognize(imageBase64);
-          await worker2.terminate();
-          const rawText2 = ret2.data?.text || "";
-          extracted = parseCutmOcrText(rawText2, sectionCatalog);
-        } catch {}
+        console.warn("Local Tesseract OCR warning:", tessErr);
       }
     }
 
@@ -719,9 +719,10 @@ const parseCutmOcrText = (text, catalog = []) => {
 
     if (finalCleanList.length > 0) {
       setParsedSubjects(finalCleanList);
+      if (lastApiError) setErrorMsg(lastApiError);
       setStep("review");
     } else {
-      setErrorMsg("Could not detect subjects automatically. Please add rows manually.");
+      setErrorMsg(lastApiError || "Could not detect subjects automatically. Please add rows manually.");
       setParsedSubjects([]);
       setStep("review");
     }
