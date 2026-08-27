@@ -85,6 +85,7 @@ export default function AttendanceScreenshotModal({
     };
   }, [isProcessing]);
   const fileInputRef = useRef(null);
+  const activeRequestIdRef = useRef(0);
 
   // Responsive device width tracking
   const [windowWidth, setWindowWidth] = useState(typeof window !== "undefined" ? window.innerWidth : 1200);
@@ -618,17 +619,18 @@ const parseCutmOcrText = (text, catalog = []) => {
   return deduplicateAndCanonicalizeSubjects(rawRows, catalog);
 };
 
-  // Analyze Screenshot via Dual AI (Cloud Gemini + Client-Side Tesseract WASM Engine with Image Preprocessing)
+  // Analyze Screenshot via Dual AI (Gemini 2.5 Pro Vision + Client-Side Tesseract WASM Engine with High-Quality Canvas Preprocessing)
   const analyzeScreenshot = async (imageBase64, mimeType) => {
+    const currentReqId = ++activeRequestIdRef.current;
     setIsProcessing(true);
     setErrorMsg("");
-    setProcessingStatus("Initializing AI Vision scanner...");
+    setProcessingStatus("Initializing Gemini 2.5 Pro Vision scanner...");
 
     let extracted = [];
 
-    // 1. Try Serverless Endpoint
+    // 1. Try Gemini 2.5 Pro Endpoint
     try {
-      setProcessingStatus("Scanning image layout with Gemini Vision...");
+      setProcessingStatus("Scanning physical ERP component rows with Gemini 2.5 Pro...");
       let res = null;
       try {
         res = await axios.post(`${API}/attendance/ocr`, {
@@ -646,7 +648,7 @@ const parseCutmOcrText = (text, catalog = []) => {
         extracted = deduplicateAndCanonicalizeSubjects(res.data.subjects, sectionCatalog);
       }
     } catch (err) {
-      console.warn("Cloud OCR skipped, switching to high-accuracy local OCR engine:", err);
+      console.warn("Cloud Gemini 2.5 Pro OCR skipped, switching to high-accuracy local OCR engine:", err);
     }
 
     // 2. If Serverless didn't extract or no API key, run Client-Side Tesseract.js Engine with Canvas Preprocessing
@@ -689,6 +691,9 @@ const parseCutmOcrText = (text, catalog = []) => {
       }));
     }
 
+    // Guard against stale asynchronous request race conditions
+    if (currentReqId !== activeRequestIdRef.current) return;
+
     // Ensure final canonical deduplication
     const finalCleanList = deduplicateAndCanonicalizeSubjects(extracted, sectionCatalog);
 
@@ -696,6 +701,8 @@ const parseCutmOcrText = (text, catalog = []) => {
     setScanStepIndex(4);
     setScanProgress(100);
     await new Promise((r) => setTimeout(r, 450));
+
+    if (currentReqId !== activeRequestIdRef.current) return;
 
     if (finalCleanList.length > 0) {
       setParsedSubjects(finalCleanList);

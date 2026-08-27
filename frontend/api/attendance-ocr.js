@@ -26,135 +26,158 @@ module.exports = async function handler(req, res) {
     const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 
     if (GEMINI_API_KEY) {
-      const modelsToTry = [
-        "gemini-2.0-flash",
-        "gemini-1.5-flash",
-        "gemini-1.5-flash-8b",
-        "gemini-1.5-pro",
-      ];
+      const model = "gemini-2.5-pro";
+      try {
+        const response = await fetch(
+          `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${GEMINI_API_KEY}`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              contents: [
+                {
+                  parts: [
+                    {
+                      text: `You are an expert Document AI OCR engine for university student ERP attendance portals.
+Read the uploaded ERP screenshot only. Do not infer information from prior screenshots. Do not use external knowledge. Do not complete or guess missing text.
 
-      for (const model of modelsToTry) {
-        try {
-          const response = await fetch(
-            `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${GEMINI_API_KEY}`,
-            {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                contents: [
-                  {
-                    parts: [
-                      {
-                        text: `You are an expert Document AI OCR parser for university student ERP attendance portals (Centurion University CUTM ERP, TCS iON, Web ERP, Mobile ERP).
-Extract ALL course attendance records exactly as visible in the screenshot.
+Extract EVERY physical ERP component row/card visible in the screenshot.
+The fundamental unit is: ONE PHYSICAL ERP COMPONENT ROW = ONE COMPONENT RECORD.
 
-SUPPORTED ERP LAYOUTS:
+SUPPORTED LAYOUTS:
 1. WEBSITE ERP TABLE:
-   - Table columns: "Sr.No" | "Course Name" | "Course Short Name" | "Course Code" | "Attended/Delivered" | "Percent"
-   - Identify component type from "Course Short Name" or column headers:
-     - "- PP" or "PP" -> type: "PP" (Theory/Practice)
-     - "- PR" or "PR" -> type: "PR" (Practical/Lab)
-     - "- TUT" or "TUT" -> type: "TUT" (Tutorial/Project)
-   - Extract attended/delivered integer fraction "A/D" (e.g. "3/6", "26/28", "0/0", "16/20", "12/14", "8/10", "6/7", "22/30", "12/16", "16/18", "6/8").
-   - If attended/delivered is "0/0", attended is 0 and delivered is 0.
-   - GROUPING: Group all component rows sharing the same Course Code or Course Name into a SINGLE object with its "components" array.
+   - Columns: "Sr.No" | "Course Name" | "Course Short Name" | "Course Code" | "Attended/Delivered" | "Percent"
+   - Course Short Name contains the component: "PP" (Theory/Practice), "PR" (Practical/Lab), "TUT" (Tutorial/Project).
+   - Extract every physical table row as its own record.
 
-2. MOBILE ERP CARD FORMAT:
-   - Cards with Subject Title, Course Code in parentheses e.g. "ROBOTIC AUTOMATION WITH ROS AND C++ (CUTM1020)" and sub-lines with components "(PP) 3/6", "(PR) 26/28", "(TUT) 5/6".
+2. MOBILE ERP CARDS:
+   - Subject Card Header (Subject Title + Course Code) and sub-component lines (PP, PR, TUT).
+   - Extract each component line as its own record with its parent card subject name and course code.
 
-STRICT EXTRACTION RULES:
-- Extract ONLY what is visible in the provided image. Do NOT invent, assume, or guess subjects or numbers.
-- Compute total attended as the sum of all component attended classes.
-- Compute total delivered as the sum of all component delivered classes.
-- If total delivered is 0, percentage is 0.0.
+STRICT RULES:
+- Preserve exact subject names and course codes. Keep legitimate parenthetical tokens (e.g. "(CISCO)").
+- Preserve PP, PR, and TUT separately.
+- Extract the exact integer attended and delivered session counts.
+- If attended/delivered is "0/0", attended is 0 and delivered is 0, and percent is 0.0.
+- Do NOT merge rows before outputting. Output every physical row.
 
-OUTPUT FORMAT:
-Return ONLY a valid JSON array of course objects (no markdown, no preamble):
-[
-  {
-    "name": "Course Title",
-    "code": "COURSE_CODE",
-    "components": [
-      { "type": "PP", "attended": 0, "delivered": 0 }
-    ],
-    "attended": 0,
-    "total": 0,
-    "percentage": 0.0
-  }
-]`,
+OUTPUT FORMAT (JSON Schema):
+{
+  "erpFormat": "website" or "mobile",
+  "rows": [
+    {
+      "courseName": "Full Course Title as visible in image",
+      "courseCode": "Course Code e.g. CUTM1020, CUCS1007",
+      "component": "PP" | "PR" | "TUT",
+      "attended": 0,
+      "delivered": 0,
+      "percent": 0.0
+    }
+  ]
+}`,
+                    },
+                    {
+                      inline_data: {
+                        mime_type: mimeType || "image/jpeg",
+                        data: cleanBase64,
                       },
-                      {
-                        inline_data: {
-                          mime_type: mimeType || "image/jpeg",
-                          data: cleanBase64,
-                        },
-                      },
-                    ],
-                  },
-                ],
-                generationConfig: {
-                  temperature: 0.0,
-                  response_mime_type: "application/json",
+                    },
+                  ],
                 },
-              }),
-            }
-          );
-
-          if (response.ok) {
-            const result = await response.json();
-            const rawText = result.candidates?.[0]?.content?.parts?.[0]?.text || "[]";
-            let parsedData = [];
-            try {
-              parsedData = JSON.parse(rawText.replace(/```json/g, "").replace(/```/g, "").trim());
-            } catch {
-              const jsonMatch = rawText.match(/\[[\s\S]*\]/);
-              if (jsonMatch) parsedData = JSON.parse(jsonMatch[0]);
-            }
-
-            if (Array.isArray(parsedData) && parsedData.length > 0) {
-              const formattedSubjects = parsedData.map((s, idx) => {
-                const comps = Array.isArray(s.components) && s.components.length > 0
-                  ? s.components.map((c) => ({
-                      type: String(c.type || "PP").toUpperCase(),
-                      attended: Math.max(0, parseInt(c.attended, 10) || 0),
-                      delivered: Math.max(0, parseInt(c.delivered !== undefined ? c.delivered : c.total, 10) || 0),
-                    }))
-                  : [
-                      {
-                        type: "PP",
-                        attended: Math.max(0, parseInt(s.attended, 10) || 0),
-                        delivered: Math.max(0, parseInt(s.delivered !== undefined ? s.delivered : s.total, 10) || 0),
-                      },
-                    ];
-
-                const totalAtt = comps.reduce((acc, c) => acc + (Number(c.attended) || 0), 0);
-                const totalDel = comps.reduce((acc, c) => acc + (Number(c.delivered) || 0), 0);
-                const calculatedPct = totalDel > 0 ? parseFloat(((totalAtt / totalDel) * 100).toFixed(1)) : 0;
-                const pct = typeof s.percentage === "number" ? parseFloat(s.percentage.toFixed(1)) : calculatedPct;
-
-                return {
-                  id: `ocr_sub_${Date.now()}_${idx}`,
-                  name: String(s.name || `Subject ${idx + 1}`).trim(),
-                  code: String(s.code || "").trim(),
-                  attendedClasses: totalAtt,
-                  totalClasses: totalDel,
-                  percentage: pct,
-                  components: comps,
-                };
-              });
-
-              return res.json({
-                success: true,
-                engine: "gemini_vision",
-                modelUsed: model,
-                subjectsCount: formattedSubjects.length,
-                subjects: formattedSubjects,
-              });
-            }
+              ],
+              generationConfig: {
+                temperature: 0.0,
+                response_mime_type: "application/json",
+              },
+            }),
           }
-        } catch (geminiErr) {
-          console.warn(`Gemini Vision OCR Error with model ${model}:`, geminiErr.message);
+        );
+
+        if (response.ok) {
+          const result = await response.json();
+          const rawText = result.candidates?.[0]?.content?.parts?.[0]?.text || "{}";
+          let parsedData = { rows: [] };
+          try {
+            parsedData = JSON.parse(rawText.replace(/```json/g, "").replace(/```/g, "").trim());
+          } catch {
+            const jsonMatch = rawText.match(/\{[\s\S]*\}/);
+            if (jsonMatch) parsedData = JSON.parse(jsonMatch[0]);
+          }
+
+          const rawRows = Array.isArray(parsedData.rows)
+            ? parsedData.rows
+            : Array.isArray(parsedData)
+            ? parsedData
+            : [];
+
+          if (rawRows.length > 0) {
+            // Group physical component rows into subjects by Course Code / Course Name
+            const subjectsMap = new Map();
+
+            rawRows.forEach((row, idx) => {
+              if (!row) return;
+              const name = String(row.courseName || row.name || "").trim();
+              const code = String(row.courseCode || row.code || "").trim();
+              const compType = String(row.component || row.type || "PP").toUpperCase();
+              const attended = Math.max(0, parseInt(row.attended, 10) || 0);
+              const delivered = Math.max(0, parseInt(row.delivered !== undefined ? row.delivered : row.total, 10) || 0);
+
+              const key = code || name || `sub_${idx}`;
+
+              if (!subjectsMap.has(key)) {
+                subjectsMap.set(key, {
+                  id: `ocr_sub_${Date.now()}_${idx}`,
+                  name: name || code || "Subject",
+                  code: code,
+                  components: [],
+                });
+              }
+
+              const sub = subjectsMap.get(key);
+              if (!sub.code && code) sub.code = code;
+              if ((!sub.name || sub.name === sub.code) && name) sub.name = name;
+
+              let comp = sub.components.find((c) => c.type === compType);
+              if (!comp) {
+                comp = { type: compType, attended: 0, delivered: 0, percentage: 0 };
+                sub.components.push(comp);
+              }
+              comp.attended = attended;
+              comp.delivered = delivered;
+              comp.percentage = delivered > 0 ? parseFloat(((attended / delivered) * 100).toFixed(1)) : 0;
+            });
+
+            const formattedSubjects = Array.from(subjectsMap.values()).map((sub, idx) => {
+              const totalAtt = sub.components.reduce((acc, c) => acc + c.attended, 0);
+              const totalDel = sub.components.reduce((acc, c) => acc + c.delivered, 0);
+              const pct = totalDel > 0 ? parseFloat(((totalAtt / totalDel) * 100).toFixed(1)) : 0;
+
+              return {
+                id: sub.id || `ocr_sub_${Date.now()}_${idx}`,
+                name: sub.name,
+                code: sub.code,
+                attendedClasses: totalAtt,
+                totalClasses: totalDel,
+                percentage: pct,
+                components: sub.components,
+              };
+            });
+
+            return res.json({
+              success: true,
+              engine: "gemini_2.5_pro",
+              modelUsed: model,
+              rowsCount: rawRows.length,
+              subjectsCount: formattedSubjects.length,
+              subjects: formattedSubjects,
+            });
+          }
+        } else {
+          const errData = await response.text();
+          console.warn(`Gemini 2.5 Pro API returned error (${response.status}):`, errData);
         }
+      } catch (geminiErr) {
+        console.warn(`Gemini 2.5 Pro invocation error:`, geminiErr.message);
       }
     }
 
