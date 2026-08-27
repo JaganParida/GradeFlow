@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import axios from "axios";
 import { useApp } from "../context/AppContext";
 import { encodeStudentId, decodeStudentId, isEncryptedToken } from "../utils/studentIdEncoder";
@@ -218,6 +218,9 @@ export default function AttendanceTracker() {
     }
   }, [decodedParam, urlParam, navigate]);
 
+  const [searchParams] = useSearchParams();
+  const urlTabParam = searchParams.get("tab");
+
   // Section Subjects Catalog from Timetable Database
   const sectionCatalog = useMemo(() => {
     return getSectionSubjectCatalog(selectedSection);
@@ -229,7 +232,22 @@ export default function AttendanceTracker() {
   const [targetGoal, setTargetGoal] = useState(75);
   const [simulateMissCount, setSimulateMissCount] = useState(0);
   const [simulateAttendCount, setSimulateAttendCount] = useState(0);
-  const [activeTab, setActiveTab] = useState("matrix"); // "studio" | "bunk_analyzer"
+
+  const getInitialTab = () => {
+    if (urlTabParam === "studio" || urlTabParam === "predictor") return "studio";
+    if (urlTabParam === "bunk" || urlTabParam === "bunk_analyzer") return "bunk_analyzer";
+    if (urlTabParam === "matrix" || urlTabParam === "tracker") return "matrix";
+    return "matrix";
+  };
+
+  const [activeTab, setActiveTab] = useState(getInitialTab);
+  const hasUserManuallySelectedTabRef = useRef(Boolean(urlTabParam));
+
+  const handleTabClick = (tabKey) => {
+    hasUserManuallySelectedTabRef.current = true;
+    setActiveTab(tabKey);
+  };
+
   const [isScreenshotModalOpen, setIsScreenshotModalOpen] = useState(false);
   const [isVerifiedDisclaimerChecked, setIsVerifiedDisclaimerChecked] = useState(false);
 
@@ -389,11 +407,25 @@ export default function AttendanceTracker() {
         const res = await axios.get(`${API}/student/${targetReg}/attendance`);
         if (res.data?.success && res.data.attendance && isMounted) {
           const att = res.data.attendance;
-          if (Array.isArray(att.savedSubjects) && att.savedSubjects.length > 0) {
-            setSavedSubjects(att.savedSubjects);
-          } else {
-            setSavedSubjects([]);
+          const loadedSubs = Array.isArray(att.savedSubjects) ? att.savedSubjects : [];
+          setSavedSubjects(loadedSubs);
+
+          // Check if student has actual non-zero saved attendance data in DB
+          const hasRealAttendance = loadedSubs.length > 0 && loadedSubs.some((s) =>
+            (s.components || []).some((c) => (Number(c.delivered) || 0) > 0)
+          );
+
+          // Auto-route default tab based on whether student has attendance data vs needs the guide
+          if (!hasUserManuallySelectedTabRef.current && !urlTabParam) {
+            if (!hasRealAttendance) {
+              // For students where the guide is shown (no saved attendance), default to "studio" (Attendance Predictor tab where Guide is present)
+              setActiveTab("studio");
+            } else {
+              // For students with saved attendance data, default to "matrix" (Attendance Studio)
+              setActiveTab("matrix");
+            }
           }
+
           if (att.targetGoal) {
             setTargetGoal(att.targetGoal);
           }
@@ -416,9 +448,17 @@ export default function AttendanceTracker() {
             setAllDailyLogs({});
             setDailyAttendanceLogs({});
           }
+        } else if (isMounted) {
+          setSavedSubjects([]);
+          if (!hasUserManuallySelectedTabRef.current && !urlTabParam) {
+            setActiveTab("studio");
+          }
         }
       } catch (err) {
         console.warn("Could not load student attendance:", err.message);
+        if (isMounted && !hasUserManuallySelectedTabRef.current && !urlTabParam) {
+          setActiveTab("studio");
+        }
       } finally {
         if (isMounted) {
           setPageLoading(false);
@@ -1603,7 +1643,7 @@ export default function AttendanceTracker() {
         >
           <button
             type="button"
-            onClick={() => setActiveTab("matrix")}
+            onClick={() => handleTabClick("matrix")}
             style={{
               padding: isMobile ? "8px 4px" : "10px 14px",
               borderRadius: 10,
@@ -1654,7 +1694,7 @@ export default function AttendanceTracker() {
 
           <button
             type="button"
-            onClick={() => setActiveTab("studio")}
+            onClick={() => handleTabClick("studio")}
             style={{
               padding: isMobile ? "8px 4px" : "10px 14px",
               borderRadius: 10,
@@ -1689,7 +1729,7 @@ export default function AttendanceTracker() {
 
           <button
             type="button"
-            onClick={() => setActiveTab("bunk_analyzer")}
+            onClick={() => handleTabClick("bunk_analyzer")}
             style={{
               padding: isMobile ? "8px 4px" : "10px 14px",
               borderRadius: 10,
@@ -2131,7 +2171,7 @@ export default function AttendanceTracker() {
                   <div
                     key={idx}
                     onClick={() => {
-                      setSelectedSubjectName(sub.subjectName); setComponentInputs(sub.components || []); setActiveTab("studio"); window.scrollTo({ top: 400, behavior: "smooth" });
+                      setSelectedSubjectName(sub.subjectName); setComponentInputs(sub.components || []); handleTabClick("studio"); window.scrollTo({ top: 400, behavior: "smooth" });
                     }}
                     style={{
                       background: "#ffffff",
@@ -2281,7 +2321,7 @@ export default function AttendanceTracker() {
                           type="button"
                           onClick={(e) => {
                             e.stopPropagation();
-                            setSelectedSubjectName(sub.subjectName); setComponentInputs(sub.components || []); setActiveTab("studio"); window.scrollTo({ top: 400, behavior: "smooth" });
+                            setSelectedSubjectName(sub.subjectName); setComponentInputs(sub.components || []); handleTabClick("studio"); window.scrollTo({ top: 400, behavior: "smooth" });
                           }}
                           style={{
                             border: "none",
