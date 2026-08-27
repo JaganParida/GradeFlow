@@ -69,6 +69,7 @@ import SmartBunkAnalyzer from "../components/SmartBunkAnalyzer";
 import AttendanceTargetPredictor from "../components/AttendanceTargetPredictor";
 import AttendanceScreenshotModal from "../components/AttendanceScreenshotModal";
 import { AttendanceSkeleton } from "../components/LoadingSpinner";
+import { getDailyScanStatus, MAX_DAILY_SCANS } from "../utils/scanLimitHelper";
 
 export default function AttendanceTracker() {
   const { studentId: urlParam } = useParams();
@@ -250,6 +251,31 @@ export default function AttendanceTracker() {
 
   const [isScreenshotModalOpen, setIsScreenshotModalOpen] = useState(false);
   const [isVerifiedDisclaimerChecked, setIsVerifiedDisclaimerChecked] = useState(false);
+
+  // Daily AI Screenshot Scan Limit Tracking (2 Scans/day per student)
+  const [scanStatus, setScanStatus] = useState(() => getDailyScanStatus(currentRegNo));
+  const [scanLimitWarning, setScanLimitWarning] = useState("");
+
+  useEffect(() => {
+    setScanStatus(getDailyScanStatus(currentRegNo));
+    const handleUpdate = () => setScanStatus(getDailyScanStatus(currentRegNo));
+    window.addEventListener("gradeflow_scan_limit_updated", handleUpdate);
+    return () => window.removeEventListener("gradeflow_scan_limit_updated", handleUpdate);
+  }, [currentRegNo]);
+
+  const handleOpenScreenshotModal = () => {
+    const status = getDailyScanStatus(currentRegNo);
+    if (status.isLimitReached) {
+      setScanLimitWarning(
+        "⚠️ Daily AI Screenshot Limit Reached (2/2): You have used all AI screenshot scans for today. The limit will reset tomorrow after midnight (12:00 AM). You can still add subjects manually."
+      );
+      setTimeout(() => setScanLimitWarning(""), 7000);
+      setIsScreenshotModalOpen(true);
+    } else {
+      setScanLimitWarning("");
+      setIsScreenshotModalOpen(true);
+    }
+  };
 
   // Saved Subjects (In-Memory React State, synced direct to MongoDB Atlas)
   const [savedSubjects, setSavedSubjects] = useState([]);
@@ -1116,25 +1142,44 @@ export default function AttendanceTracker() {
               {/* AI Screenshot Auto-Import Button */}
               <button
                 type="button"
-                onClick={() => setIsScreenshotModalOpen(true)}
+                onClick={handleOpenScreenshotModal}
                 style={{
                   display: "inline-flex",
                   alignItems: "center",
                   gap: 6,
                   padding: "7px 14px",
                   borderRadius: 10,
-                  background: "#eff6ff",
-                  border: "1px solid #bfdbfe",
-                  color: "#1d4ed8",
+                  background: scanStatus.isLimitReached ? "#f1f5f9" : "#eff6ff",
+                  border: `1px solid ${scanStatus.isLimitReached ? "#cbd5e1" : "#bfdbfe"}`,
+                  color: scanStatus.isLimitReached ? "#64748b" : "#1d4ed8",
                   fontSize: 12.5,
                   fontWeight: 700,
-                  cursor: "pointer",
+                  cursor: scanStatus.isLimitReached ? "not-allowed" : "pointer",
+                  opacity: scanStatus.isLimitReached ? 0.65 : 1,
+                  filter: scanStatus.isLimitReached ? "grayscale(30%)" : "none",
                   transition: "all 0.15s ease",
-                  boxShadow: "0 1px 3px rgba(37, 99, 235, 0.08)",
+                  boxShadow: scanStatus.isLimitReached ? "none" : "0 1px 3px rgba(37, 99, 235, 0.08)",
                 }}
+                title={
+                  scanStatus.isLimitReached
+                    ? "Daily AI Scan Limit Reached (2/2). Resets tomorrow at midnight (12:00 AM)."
+                    : `AI Screenshot Auto-Import (${scanStatus.remaining}/${scanStatus.max} scans left today)`
+                }
               >
-                <Camera size={14} color="#2563eb" />
+                <Camera size={14} color={scanStatus.isLimitReached ? "#64748b" : "#2563eb"} />
                 <span>Auto-Import via Screenshot</span>
+                <span
+                  style={{
+                    fontSize: 10,
+                    fontWeight: 800,
+                    padding: "1px 6px",
+                    borderRadius: 999,
+                    background: scanStatus.isLimitReached ? "#fee2e2" : "#dbeafe",
+                    color: scanStatus.isLimitReached ? "#dc2626" : "#1e40af",
+                  }}
+                >
+                  {scanStatus.isLimitReached ? "0/2 left" : `${scanStatus.remaining}/${scanStatus.max}`}
+                </span>
               </button>
 
               {activeStudentName && (
@@ -2428,27 +2473,36 @@ export default function AttendanceTracker() {
 
                     <button
                       type="button"
-                      onClick={() => setIsScreenshotModalOpen(true)}
+                      onClick={handleOpenScreenshotModal}
                       style={{
                         padding: "8px 16px",
                         borderRadius: 10,
                         border: "none",
-                        background: "linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)",
+                        background: scanStatus.isLimitReached
+                          ? "#64748b"
+                          : "linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)",
                         color: "#ffffff",
                         fontSize: 13,
                         fontWeight: 800,
-                        cursor: "pointer",
+                        cursor: scanStatus.isLimitReached ? "not-allowed" : "pointer",
+                        opacity: scanStatus.isLimitReached ? 0.65 : 1,
                         display: "inline-flex",
                         alignItems: "center",
                         gap: 6,
-                        boxShadow: "0 2px 8px rgba(37, 99, 235, 0.25)",
+                        boxShadow: scanStatus.isLimitReached ? "none" : "0 2px 8px rgba(37, 99, 235, 0.25)",
                         transition: "transform 0.15s ease",
                       }}
-                      onMouseEnter={(e) => (e.currentTarget.style.transform = "translateY(-1px)")}
+                      onMouseEnter={(e) => {
+                        if (!scanStatus.isLimitReached) e.currentTarget.style.transform = "translateY(-1px)";
+                      }}
                       onMouseLeave={(e) => (e.currentTarget.style.transform = "translateY(0)")}
                     >
                       <Camera size={15} />
-                      <span>Auto-Import via Screenshot</span>
+                      <span>
+                        {scanStatus.isLimitReached
+                          ? "Auto-Import (Limit Reached 0/2)"
+                          : `Auto-Import via Screenshot (${scanStatus.remaining}/${scanStatus.max})`}
+                      </span>
                     </button>
                   </div>
 
@@ -2512,17 +2566,19 @@ export default function AttendanceTracker() {
 
                       <button
                         type="button"
-                        onClick={() => setIsScreenshotModalOpen(true)}
+                        onClick={handleOpenScreenshotModal}
                         style={{
                           marginTop: 4,
                           padding: "8px 14px",
                           borderRadius: 8,
-                          border: "1px solid #bfdbfe",
-                          background: "#eff6ff",
-                          color: "#1d4ed8",
+                          border: `1px solid ${scanStatus.isLimitReached ? "#cbd5e1" : "#bfdbfe"}`,
+                          background: scanStatus.isLimitReached ? "#f1f5f9" : "#eff6ff",
+                          color: scanStatus.isLimitReached ? "#64748b" : "#1d4ed8",
                           fontSize: 12,
                           fontWeight: 800,
-                          cursor: "pointer",
+                          cursor: scanStatus.isLimitReached ? "not-allowed" : "pointer",
+                          opacity: scanStatus.isLimitReached ? 0.65 : 1,
+                          filter: scanStatus.isLimitReached ? "grayscale(30%)" : "none",
                           display: "inline-flex",
                           alignItems: "center",
                           justifyContent: "center",
@@ -2530,7 +2586,11 @@ export default function AttendanceTracker() {
                         }}
                       >
                         <CloudUpload size={14} />
-                        <span>Upload / Paste ERP Screenshot Now</span>
+                        <span>
+                          {scanStatus.isLimitReached
+                            ? "🔒 Daily AI Limit Reached (0/2 today)"
+                            : `Upload / Paste ERP Screenshot Now (${scanStatus.remaining}/${scanStatus.max} left)`}
+                        </span>
                       </button>
                     </div>
 
@@ -3692,12 +3752,56 @@ export default function AttendanceTracker() {
     )}
   </AnimatePresence>
 
+    {/* Floating Scan Limit Warning Toast */}
+    {scanLimitWarning && (
+      <div
+        style={{
+          position: "fixed",
+          bottom: 24,
+          right: 24,
+          zIndex: 9999,
+          background: "#fef2f2",
+          border: "1.5px solid #f87171",
+          borderRadius: 14,
+          padding: "14px 18px",
+          boxShadow: "0 10px 25px rgba(220, 38, 38, 0.2)",
+          maxWidth: 380,
+          display: "flex",
+          alignItems: "flex-start",
+          gap: 12,
+        }}
+      >
+        <AlertTriangle size={20} color="#dc2626" style={{ flexShrink: 0, marginTop: 2 }} />
+        <div style={{ fontSize: 12.5, color: "#991b1b", lineHeight: 1.45 }}>
+          <strong>Daily AI Scan Limit Reached (2/2)</strong>
+          <div style={{ marginTop: 2 }}>
+            You have used your 2 AI screenshot scans for today. The limit will reset tomorrow at midnight (12:00 AM). Please enter or update your attendance manually.
+          </div>
+        </div>
+        <button
+          type="button"
+          onClick={() => setScanLimitWarning("")}
+          style={{
+            background: "transparent",
+            border: "none",
+            color: "#991b1b",
+            cursor: "pointer",
+            padding: 0,
+            marginLeft: "auto",
+          }}
+        >
+          <X size={16} />
+        </button>
+      </div>
+    )}
+
     {/* AI Screenshot Auto-Importer Modal */}
     <AttendanceScreenshotModal
       isOpen={isScreenshotModalOpen}
       onClose={() => setIsScreenshotModalOpen(false)}
       onApply={handleApplyScreenshotSubjects}
       currentSection={selectedSection}
+      studentId={currentRegNo}
       API={API}
     />
   </div>

@@ -29,14 +29,29 @@ import {
   ChevronDown,
 } from "lucide-react";
 import { getSectionSubjectCatalog, cleanSubjectBaseName } from "../utils/timetableHelper";
+import {
+  getDailyScanStatus,
+  incrementDailyScanCount,
+  MAX_DAILY_SCANS,
+} from "../utils/scanLimitHelper";
 
 export default function AttendanceScreenshotModal({
   isOpen,
   onClose,
   onApply,
   currentSection = "CSE-E",
+  studentId = "",
   API = "/api",
 }) {
+  const [scanStatus, setScanStatus] = useState(() => getDailyScanStatus(studentId));
+
+  useEffect(() => {
+    setScanStatus(getDailyScanStatus(studentId));
+    const handleUpdate = () => setScanStatus(getDailyScanStatus(studentId));
+    window.addEventListener("gradeflow_scan_limit_updated", handleUpdate);
+    return () => window.removeEventListener("gradeflow_scan_limit_updated", handleUpdate);
+  }, [studentId, isOpen]);
+
   const [dragActive, setDragActive] = useState(false);
   const [selectedFile, setSelectedFile] = useState(null);
   const [imagePreview, setImagePreview] = useState(null);
@@ -189,6 +204,14 @@ export default function AttendanceScreenshotModal({
   };
 
   const processFile = (file) => {
+    const currentLimit = getDailyScanStatus(studentId);
+    if (currentLimit.isLimitReached) {
+      setErrorMsg(
+        "⚠️ Daily AI Screenshot Limit Reached (2/2): You have already used your 2 AI scans for today. The limit will automatically reset tomorrow at midnight (12:00 AM). Please enter or update your attendance manually."
+      );
+      return;
+    }
+
     if (!file.type.startsWith("image/")) {
       setErrorMsg("Please upload a valid image screenshot (PNG, JPG, WebP).");
       return;
@@ -716,6 +739,7 @@ const parseCutmOcrText = (text, catalog = []) => {
 
     if (finalCleanList.length > 0) {
       setParsedSubjects(finalCleanList);
+      incrementDailyScanCount(studentId);
       if (lastApiError) setErrorMsg(lastApiError);
       setStep("review");
     } else {
@@ -1009,20 +1033,121 @@ const parseCutmOcrText = (text, catalog = []) => {
           <div style={{ padding: isMobile ? "14px 12px" : "20px 24px", overflowY: "auto", flex: 1 }}>
             {step === "upload" ? (
               <div>
+                {/* Daily AI Scan Limit Disclaimer & Quota Bar */}
+                <div
+                  style={{
+                    marginBottom: 16,
+                    background: scanStatus.isLimitReached ? "#fef2f2" : "#f8fafc",
+                    border: `1.5px solid ${scanStatus.isLimitReached ? "#fca5a5" : "#e2e8f0"}`,
+                    borderRadius: 14,
+                    padding: "12px 16px",
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: 8,
+                  }}
+                >
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 8 }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                      <div
+                        style={{
+                          width: 28,
+                          height: 28,
+                          borderRadius: 8,
+                          background: scanStatus.isLimitReached ? "#fee2e2" : "#eff6ff",
+                          color: scanStatus.isLimitReached ? "#dc2626" : "#2563eb",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          flexShrink: 0,
+                        }}
+                      >
+                        <Sparkles size={16} />
+                      </div>
+                      <div>
+                        <div style={{ fontSize: 13, fontWeight: 800, color: scanStatus.isLimitReached ? "#991b1b" : "#0f172a" }}>
+                          Daily AI Screenshot Quota
+                        </div>
+                        <div style={{ fontSize: 11.5, color: scanStatus.isLimitReached ? "#b91c1c" : "#64748b" }}>
+                          {scanStatus.isLimitReached
+                            ? "Daily limit reached (2/2 used) • Resets tomorrow at midnight (12:00 AM)"
+                            : `You have ${scanStatus.remaining} of ${scanStatus.max} scans remaining for today`}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Quota Progress Pills */}
+                    <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                      {[...Array(scanStatus.max)].map((_, i) => {
+                        const isUsed = i < scanStatus.used;
+                        return (
+                          <div
+                            key={i}
+                            style={{
+                              padding: "3px 8px",
+                              borderRadius: 6,
+                              fontSize: 10.5,
+                              fontWeight: 800,
+                              background: isUsed ? "#fee2e2" : "#dcfce7",
+                              color: isUsed ? "#b91c1c" : "#15803d",
+                              border: `1px solid ${isUsed ? "#fca5a5" : "#86efac"}`,
+                              display: "flex",
+                              alignItems: "center",
+                              gap: 4,
+                            }}
+                          >
+                            {isUsed ? "✕ Used" : "✓ Free Scan"}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* Disclaimer Notice */}
+                  <div
+                    style={{
+                      fontSize: 11.5,
+                      color: scanStatus.isLimitReached ? "#7f1d1d" : "#475569",
+                      background: scanStatus.isLimitReached ? "#ffffff" : "#f1f5f9",
+                      padding: "6px 10px",
+                      borderRadius: 8,
+                      border: `1px solid ${scanStatus.isLimitReached ? "#fecaca" : "#e2e8f0"}`,
+                      lineHeight: 1.4,
+                    }}
+                  >
+                    {scanStatus.isLimitReached ? (
+                      <>
+                        🔒 <strong>Limit Reached:</strong> You have completed your <strong>2 scans for today</strong>. Please add or modify subjects using <strong>"Add From Section Catalog"</strong> or <strong>"Custom Row"</strong>. AI scanning unlocks automatically after midnight.
+                      </>
+                    ) : (
+                      <>
+                        ⚠️ <strong>Important Notice:</strong> Each student is limited to <strong>2 AI screenshot scans per day</strong>. Please make sure your ERP screenshot is clear and uncropped before scanning. Quota resets daily at <strong>12:00 AM midnight</strong>.
+                      </>
+                    )}
+                  </div>
+                </div>
+
                 {/* Drag & Drop Area */}
                 <div
-                  onDragEnter={handleDrag}
-                  onDragLeave={handleDrag}
-                  onDragOver={handleDrag}
-                  onDrop={handleDrop}
-                  onClick={() => fileInputRef.current?.click()}
+                  onDragEnter={!scanStatus.isLimitReached ? handleDrag : undefined}
+                  onDragLeave={!scanStatus.isLimitReached ? handleDrag : undefined}
+                  onDragOver={!scanStatus.isLimitReached ? handleDrag : undefined}
+                  onDrop={!scanStatus.isLimitReached ? handleDrop : undefined}
+                  onClick={() => {
+                    if (scanStatus.isLimitReached) {
+                      setErrorMsg("⚠️ Daily AI Scan Limit Reached (2/2). It will reset tomorrow at midnight (12:00 AM). Please enter or update your attendance manually.");
+                    } else {
+                      fileInputRef.current?.click();
+                    }
+                  }}
                   style={{
-                    border: `2px dashed ${dragActive ? "#2563eb" : "#cbd5e1"}`,
-                    background: dragActive ? "#eff6ff" : "#f8fafc",
+                    border: `2px dashed ${scanStatus.isLimitReached ? "#fca5a5" : dragActive ? "#2563eb" : "#cbd5e1"}`,
+                    background: scanStatus.isLimitReached ? "#f8fafc" : dragActive ? "#eff6ff" : "#f8fafc",
+                    opacity: scanStatus.isLimitReached ? 0.65 : 1,
+                    filter: scanStatus.isLimitReached ? "grayscale(30%)" : "none",
                     borderRadius: 16,
                     padding: "36px 20px",
                     textAlign: "center",
-                    cursor: "pointer",
+                    cursor: scanStatus.isLimitReached ? "not-allowed" : "pointer",
                     transition: "all 0.2s ease",
                   }}
                 >
@@ -1030,6 +1155,7 @@ const parseCutmOcrText = (text, catalog = []) => {
                     ref={fileInputRef}
                     type="file"
                     accept="image/*"
+                    disabled={scanStatus.isLimitReached}
                     onChange={handleFileChange}
                     style={{ display: "none" }}
                   />
@@ -1143,6 +1269,31 @@ const parseCutmOcrText = (text, catalog = []) => {
                             </>
                           )}
                         </div>
+                      </div>
+                    </div>
+                  ) : scanStatus.isLimitReached ? (
+                    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 10 }}>
+                      <div
+                        style={{
+                          width: 52,
+                          height: 52,
+                          borderRadius: 14,
+                          background: "#fee2e2",
+                          border: "1px solid #fca5a5",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          color: "#dc2626",
+                          boxShadow: "0 2px 8px rgba(220, 38, 38, 0.1)",
+                        }}
+                      >
+                        <AlertTriangle size={26} />
+                      </div>
+                      <div style={{ fontSize: 14.5, fontWeight: 800, color: "#991b1b" }}>
+                        Daily AI Scan Limit Reached (2/2)
+                      </div>
+                      <div style={{ fontSize: 12, color: "#7f1d1d", maxWidth: 360, lineHeight: 1.45 }}>
+                        You have used your 2 AI screenshot scans for today. Limit resets tomorrow after midnight (12:00 AM). Please add your attendance manually below.
                       </div>
                     </div>
                   ) : (
