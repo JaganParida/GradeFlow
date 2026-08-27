@@ -806,7 +806,7 @@ export function calculateAttendance({
     totalDelivered += del;
   });
 
-  const currentPercentage = totalDelivered > 0 ? (totalAttended / totalDelivered) * 100 : 100;
+  const currentPercentage = totalDelivered > 0 ? (totalAttended / totalDelivered) * 100 : 0;
   const target = Math.min(100, Math.max(1, Number(targetPercentage) || 75));
 
   // Simulation: Absent X classes

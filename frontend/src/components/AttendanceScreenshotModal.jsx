@@ -108,8 +108,8 @@ export default function AttendanceScreenshotModal({
       totalAtt += Number(s.attendedClasses) || 0;
       totalDel += Number(s.totalClasses) || 0;
     });
-    const pct = totalDel > 0 ? (totalAtt / totalDel) * 100 : 100;
-    const isEligible = pct >= 75;
+    const pct = totalDel > 0 ? (totalAtt / totalDel) * 100 : 0;
+    const isEligible = totalDel === 0 ? true : pct >= 75;
     return {
       totalAtt,
       totalDel,
@@ -1527,7 +1527,7 @@ const deduplicateAndCanonicalizeSubjects = (rawList = [], catalog = []) => {
                                     }}
                                   >
                                     <span>{comp.type}: {comp.attended}/{comp.delivered || comp.total}</span>
-                                    <span style={{ fontSize: 10, opacity: 0.85 }}>({comp.percentage || (comp.delivered > 0 ? ((comp.attended / comp.delivered) * 100).toFixed(0) : 0)}%)</span>
+                                    <span style={{ fontSize: 10, opacity: 0.85 }}>({Number(comp.delivered) > 0 ? `${comp.percentage || ((comp.attended / comp.delivered) * 100).toFixed(0)}%` : "0%"})</span>
                                   </span>
                                 ))
                               ) : (
@@ -1724,7 +1724,7 @@ const deduplicateAndCanonicalizeSubjects = (rawList = [], catalog = []) => {
                                           borderRadius: 4,
                                         }}
                                       >
-                                        {comp.type}: {comp.attended}/{comp.delivered || comp.total} ({comp.percentage || (comp.delivered > 0 ? ((comp.attended / comp.delivered) * 100).toFixed(0) : 0)}%)
+                                        {comp.type}: {comp.attended}/{comp.delivered || comp.total} ({Number(comp.delivered) > 0 ? `${comp.percentage || ((comp.attended / comp.delivered) * 100).toFixed(0)}%` : "0%"})
                                       </span>
                                     ))}
                                   </div>
@@ -2274,12 +2274,12 @@ const deduplicateAndCanonicalizeSubjects = (rawList = [], catalog = []) => {
                                 fontWeight: 800,
                                 padding: "3px 6px",
                                 borderRadius: 5,
-                                background: (comp.percentage || 0) >= 75 ? "#ecfdf5" : "#fffbeb",
-                                color: (comp.percentage || 0) >= 75 ? "#059669" : "#d97706",
-                                border: `1px solid ${(comp.percentage || 0) >= 75 ? "#a7f3d0" : "#fde68a"}`,
+                                background: Number(comp.delivered) > 0 && (comp.percentage || 0) >= 75 ? "#ecfdf5" : "#fffbeb",
+                                color: Number(comp.delivered) > 0 && (comp.percentage || 0) >= 75 ? "#059669" : "#d97706",
+                                border: `1px solid ${Number(comp.delivered) > 0 && (comp.percentage || 0) >= 75 ? "#a7f3d0" : "#fde68a"}`,
                               }}
                             >
-                              {comp.percentage || 0}%
+                              {Number(comp.delivered) > 0 ? `${comp.percentage || 0}%` : "0%"}
                             </span>
                           </div>
 

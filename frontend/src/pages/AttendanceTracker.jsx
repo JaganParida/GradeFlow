@@ -909,13 +909,16 @@ export default function AttendanceTracker() {
       });
     });
 
-    const percentage = totDel > 0 ? (totAtt / totDel) * 100 : 100;
+    const percentage = totDel > 0 ? (totAtt / totDel) * 100 : 0;
     const target = Math.min(100, Math.max(1, Number(targetGoal) || 75));
 
     let classesNeeded = 0;
     let safeBunks = 0;
 
-    if (percentage < target) {
+    if (totDel === 0) {
+      classesNeeded = 0;
+      safeBunks = 0;
+    } else if (percentage < target) {
       const numerator = target * totDel - 100 * totAtt;
       const denominator = 100 - target;
       classesNeeded = Math.ceil(numerator / denominator);
@@ -932,7 +935,7 @@ export default function AttendanceTracker() {
       percentage: Number(percentage.toFixed(2)),
       classesNeeded: Number.isFinite(classesNeeded) ? classesNeeded : 0,
       safeBunks: Math.max(0, safeBunks),
-      isEligible: percentage >= 75,
+      isEligible: totDel === 0 ? true : percentage >= 75,
       subjectsCount: list.length,
     };
   }, [allSectionSubjects, savedSubjects, targetGoal, activeCalculation]);
@@ -2165,7 +2168,8 @@ export default function AttendanceTracker() {
                   targetPercentage: 80,
                 });
                 const subCode = resolveSubjectCode({ subject: sub.subjectName }, studentData);
-                const isPassing = subCalc.currentPercentage >= 75;
+                const hasConductedClasses = subCalc.totalDelivered > 0;
+                const isPassing = hasConductedClasses ? subCalc.currentPercentage >= 75 : true;
 
                 return (
                   <div
@@ -2175,7 +2179,7 @@ export default function AttendanceTracker() {
                     }}
                     style={{
                       background: "#ffffff",
-                      border: `1.5px solid ${isPassing ? "#e2e8f0" : "#fecaca"}`,
+                      border: `1.5px solid ${!hasConductedClasses ? "#e2e8f0" : (isPassing ? "#e2e8f0" : "#fecaca")}`,
                       borderRadius: 16,
                       padding: "16px 18px",
                       display: "flex",
@@ -2222,22 +2226,22 @@ export default function AttendanceTracker() {
                             style={{
                               fontSize: 18,
                               fontWeight: 900,
-                              color: isPassing ? "#059669" : "#dc2626",
+                              color: !hasConductedClasses ? "#64748b" : (isPassing ? "#059669" : "#dc2626"),
                             }}
                           >
-                            {subCalc.currentPercentage}%
+                            {hasConductedClasses ? `${subCalc.currentPercentage}%` : "0%"}
                           </div>
                           <span
                             style={{
                               fontSize: 9.5,
                               fontWeight: 900,
-                              background: isPassing ? "#ecfdf5" : "#fef2f2",
-                              color: isPassing ? "#059669" : "#dc2626",
+                              background: !hasConductedClasses ? "#f1f5f9" : (isPassing ? "#ecfdf5" : "#fef2f2"),
+                              color: !hasConductedClasses ? "#64748b" : (isPassing ? "#059669" : "#dc2626"),
                               padding: "1px 6px",
                               borderRadius: 4,
                             }}
                           >
-                            {isPassing ? "ELIGIBLE" : "SHORTAGE"}
+                            {!hasConductedClasses ? "NO CLASSES" : (isPassing ? "ELIGIBLE" : "SHORTAGE")}
                           </span>
                         </div>
                       </div>
@@ -2257,7 +2261,7 @@ export default function AttendanceTracker() {
                       {/* Component breakdown list */}
                       <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 4 }}>
                         {(sub.components || []).map((c, cIdx) => {
-                          const cPct = c.delivered > 0 ? ((c.attended / c.delivered) * 100).toFixed(1) : "100.0";
+                          const cPct = c.delivered > 0 ? ((c.attended / c.delivered) * 100).toFixed(1) : "0.0";
                           return (
                             <span
                               key={cIdx}
@@ -2783,9 +2787,10 @@ export default function AttendanceTracker() {
               </div>
 
               {componentInputs.map((comp, idx) => {
+                const hasCompDelivered = Number(comp.delivered) > 0;
                 const compPercent =
-                  comp.delivered > 0 ? ((comp.attended / comp.delivered) * 100).toFixed(1) : "100.0";
-                const isPassing = Number(compPercent) >= 75;
+                  hasCompDelivered ? ((comp.attended / comp.delivered) * 100).toFixed(1) : "0.0";
+                const isPassing = hasCompDelivered ? Number(compPercent) >= 75 : true;
 
                 return (
                   <div
