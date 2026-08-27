@@ -934,7 +934,7 @@ const parseCutmOcrText = (text, catalog = []) => {
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
-          padding: 16,
+          padding: isMobile ? 8 : 16,
         }}
         onClick={handleClose}
       >
@@ -945,7 +945,7 @@ const parseCutmOcrText = (text, catalog = []) => {
           transition={{ duration: 0.2, ease: "easeOut" }}
           style={{
             background: "#ffffff",
-            borderRadius: 20,
+            borderRadius: isMobile ? 16 : 20,
             width: "100%",
             maxWidth: step === "upload" ? 540 : 780,
             boxShadow: "0 20px 40px -15px rgba(0, 0, 0, 0.15)",
@@ -953,14 +953,14 @@ const parseCutmOcrText = (text, catalog = []) => {
             overflow: "hidden",
             display: "flex",
             flexDirection: "column",
-            maxHeight: "90vh",
+            maxHeight: isMobile ? "94vh" : "90vh",
           }}
           onClick={(e) => e.stopPropagation()}
         >
           {/* Header */}
           <div
             style={{
-              padding: "18px 24px",
+              padding: isMobile ? "14px 16px" : "18px 24px",
               borderBottom: "1px solid #f1f5f9",
               display: "flex",
               alignItems: "center",
@@ -1042,8 +1042,8 @@ const parseCutmOcrText = (text, catalog = []) => {
                 <div
                   style={{
                     marginBottom: 16,
-                    background: scanStatus.isLimitReached ? "#fef2f2" : "#f8fafc",
-                    border: `1px solid ${scanStatus.isLimitReached ? "#fecaca" : "#e2e8f0"}`,
+                    background: scanStatus.isExempt ? "#f0fdf4" : scanStatus.isLimitReached ? "#fef2f2" : "#f8fafc",
+                    border: `1px solid ${scanStatus.isExempt ? "#bbf7d0" : scanStatus.isLimitReached ? "#fecaca" : "#e2e8f0"}`,
                     borderRadius: 14,
                     padding: isMobile ? "12px 14px" : "14px 18px",
                     display: "flex",
@@ -1068,13 +1068,13 @@ const parseCutmOcrText = (text, catalog = []) => {
                           width: 32,
                           height: 32,
                           borderRadius: 9,
-                          background: scanStatus.isExempt ? "#ecfdf5" : scanStatus.isLimitReached ? "#fee2e2" : "#eff6ff",
-                          color: scanStatus.isExempt ? "#059669" : scanStatus.isLimitReached ? "#dc2626" : "#2563eb",
+                          background: scanStatus.isExempt ? "#dcfce7" : scanStatus.isLimitReached ? "#fee2e2" : "#eff6ff",
+                          color: scanStatus.isExempt ? "#15803d" : scanStatus.isLimitReached ? "#dc2626" : "#2563eb",
                           display: "flex",
                           alignItems: "center",
                           justifyContent: "center",
                           flexShrink: 0,
-                          border: `1px solid ${scanStatus.isExempt ? "#a7f3d0" : scanStatus.isLimitReached ? "#fca5a5" : "#bfdbfe"}`,
+                          border: `1px solid ${scanStatus.isExempt ? "#86efac" : scanStatus.isLimitReached ? "#fca5a5" : "#bfdbfe"}`,
                         }}
                       >
                         {scanStatus.isLimitReached ? <Lock size={16} /> : <ScanLine size={16} />}
@@ -1171,286 +1171,292 @@ const parseCutmOcrText = (text, catalog = []) => {
                       <>
                         <ShieldCheck size={14} color="#059669" style={{ flexShrink: 0, marginTop: 2 }} />
                         <span>
-                          <strong>Exempt Account:</strong> You have unlimited screenshot parsing enabled for your profile. Please ensure screenshots remain clear and uncropped.
+                          <strong>Exempt Account:</strong> You have unlimited screenshot parsing enabled for your profile.
                         </span>
                       </>
                     ) : scanStatus.isLimitReached ? (
                       <>
                         <AlertTriangle size={14} color="#dc2626" style={{ flexShrink: 0, marginTop: 2 }} />
                         <span>
-                          <strong>Daily Quota Reached:</strong> You have completed your <strong>2 screenshot scans for today</strong>. Please add or modify subjects using <strong>"Add From Section Catalog"</strong> or <strong>"Custom Row"</strong>. Quota resets automatically at midnight.
+                          <strong>Daily Limit Reached:</strong> You can still add and manage your subjects manually below. Quota resets daily at <strong>12:00 AM midnight</strong>.
                         </span>
                       </>
                     ) : (
                       <>
                         <Clock size={14} color="#2563eb" style={{ flexShrink: 0, marginTop: 2 }} />
                         <span>
-                          <strong>Usage Guidelines:</strong> Each student is allotted <strong>2 screenshot scans per day</strong>. Please ensure your ERP table is clearly visible before scanning. Quota resets daily at <strong>12:00 AM midnight</strong>.
+                          <strong>Usage Guidelines:</strong> Each student has <strong>2 screenshot scans per day</strong>. Quota resets daily at <strong>12:00 AM midnight</strong>.
                         </span>
                       </>
                     )}
                   </div>
                 </div>
 
-                {/* Drag & Drop Area */}
-                <div
-                  onDragEnter={!scanStatus.isLimitReached ? handleDrag : undefined}
-                  onDragLeave={!scanStatus.isLimitReached ? handleDrag : undefined}
-                  onDragOver={!scanStatus.isLimitReached ? handleDrag : undefined}
-                  onDrop={!scanStatus.isLimitReached ? handleDrop : undefined}
-                  onClick={() => {
-                    if (scanStatus.isLimitReached) {
-                      setErrorMsg("Daily Screenshot Limit Reached (2/2). It will reset tomorrow at midnight (12:00 AM). Please enter or update your attendance manually.");
-                    } else {
-                      fileInputRef.current?.click();
-                    }
-                  }}
-                  style={{
-                    border: `2px dashed ${scanStatus.isLimitReached ? "#fca5a5" : dragActive ? "#2563eb" : "#cbd5e1"}`,
-                    background: scanStatus.isLimitReached ? "#f8fafc" : dragActive ? "#eff6ff" : "#f8fafc",
-                    opacity: scanStatus.isLimitReached ? 0.65 : 1,
-                    filter: scanStatus.isLimitReached ? "grayscale(30%)" : "none",
-                    borderRadius: 16,
-                    padding: "36px 20px",
-                    textAlign: "center",
-                    cursor: scanStatus.isLimitReached ? "not-allowed" : "pointer",
-                    transition: "all 0.2s ease",
-                  }}
-                >
-                  <input
-                    ref={fileInputRef}
-                    type="file"
-                    accept="image/*"
-                    disabled={scanStatus.isLimitReached}
-                    onChange={handleFileChange}
-                    style={{ display: "none" }}
-                  />
-
-                  {isProcessing ? (
-                    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 14, width: "100%", maxWidth: 440, margin: "0 auto" }}>
-                      {/* Spinner Icon / Completed Check */}
-                      <div
-                        style={{
-                          width: 56,
-                          height: 56,
-                          borderRadius: 16,
-                          background: scanProgress >= 100
-                            ? "linear-gradient(135deg, #dcfce7 0%, #bbf7d0 100%)"
-                            : "linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%)",
-                          border: `1.5px solid ${scanProgress >= 100 ? "#86efac" : "#bfdbfe"}`,
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                          color: scanProgress >= 100 ? "#16a34a" : "#2563eb",
-                          boxShadow: scanProgress >= 100 ? "0 4px 16px rgba(22, 163, 74, 0.25)" : "0 4px 16px rgba(37, 99, 235, 0.2)",
-                          transition: "all 0.3s ease",
-                        }}
-                      >
-                        {scanProgress >= 100 ? (
-                          <CheckCircle2 size={30} color="#16a34a" />
-                        ) : (
-                          <Loader2 size={28} className="spin" />
-                        )}
-                      </div>
-
-                      {/* Live Scanning Stage Info */}
-                      <div style={{ textAlign: "center", display: "flex", flexDirection: "column", gap: 4, width: "100%" }}>
-                        <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}>
-                          <span
-                            style={{
-                              fontSize: 10.5,
-                              fontWeight: 800,
-                              color: scanProgress >= 100 ? "#15803d" : "#1d4ed8",
-                              background: scanProgress >= 100 ? "#dcfce7" : "#dbeafe",
-                              padding: "2px 10px",
-                              borderRadius: 999,
-                              textTransform: "uppercase",
-                              letterSpacing: "0.5px",
-                            }}
-                          >
-                            {SCAN_MESSAGES[scanStepIndex]?.badge || "AI OCR Processing"}
-                          </span>
-                          <span style={{ fontSize: 11, fontWeight: 900, color: scanProgress >= 100 ? "#16a34a" : "#2563eb" }}>
-                            {scanProgress}%
-                          </span>
-                        </div>
-
-                        <div style={{ fontSize: 15, fontWeight: 800, color: "#0f172a", marginTop: 2 }}>
-                          {SCAN_MESSAGES[scanStepIndex]?.title || "Scanning Attendance Screenshot..."}
-                        </div>
-                        <div style={{ fontSize: 12, color: "#64748b", lineHeight: 1.45, minHeight: 34 }}>
-                          {SCAN_MESSAGES[scanStepIndex]?.desc || "Extracting subjects, attended classes, and total counts with AI Vision..."}
-                        </div>
-                      </div>
-
-                      {/* Monotonic Smooth Progress Bar */}
-                      <div
-                        style={{
-                          width: "100%",
-                          height: 7,
-                          borderRadius: 999,
-                          background: "#e2e8f0",
-                          overflow: "hidden",
-                          position: "relative",
-                        }}
-                      >
-                        <div
-                          style={{
-                            width: `${scanProgress}%`,
-                            height: "100%",
-                            background: scanProgress >= 100
-                              ? "linear-gradient(90deg, #10b981 0%, #059669 100%)"
-                              : "linear-gradient(90deg, #2563eb 0%, #3b82f6 100%)",
-                            borderRadius: 999,
-                            transition: "width 0.45s cubic-bezier(0.4, 0, 0.2, 1)",
-                          }}
-                        />
-                      </div>
-
-                      {/* Prominent Patience Disclaimer Banner */}
-                      <div
-                        style={{
-                          background: scanProgress >= 100 ? "#f0fdf4" : "#fffbeb",
-                          border: `1px solid ${scanProgress >= 100 ? "#bbf7d0" : "#fde68a"}`,
-                          borderRadius: 12,
-                          padding: "10px 14px",
-                          display: "flex",
-                          alignItems: "flex-start",
-                          gap: 10,
-                          textAlign: "left",
-                          width: "100%",
-                          boxSizing: "border-box",
-                          transition: "all 0.3s ease",
-                        }}
-                      >
-                        <Clock size={16} color={scanProgress >= 100 ? "#16a34a" : "#d97706"} style={{ flexShrink: 0, marginTop: 2 }} />
-                        <div style={{ fontSize: 11.5, color: scanProgress >= 100 ? "#166534" : "#92400e", lineHeight: 1.45 }}>
-                          {scanProgress >= 100 ? (
-                            <>
-                              <strong>Verification complete!</strong> All detected subject calculations loaded successfully.
-                            </>
-                          ) : (
-                            <>
-                              <strong>Please be patient:</strong> High-precision AI OCR scanning accurately detects multi-component Theory, Lab, and Tutorial breakdowns. This takes <strong>3–5 seconds</strong>—please do not close or refresh this modal.
-                            </>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  ) : scanStatus.isLimitReached ? (
-                    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 10 }}>
-                      <div
-                        style={{
-                          width: 52,
-                          height: 52,
-                          borderRadius: 14,
-                          background: "#fee2e2",
-                          border: "1px solid #fca5a5",
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                          color: "#dc2626",
-                          boxShadow: "0 2px 8px rgba(220, 38, 38, 0.1)",
-                        }}
-                      >
-                        <AlertTriangle size={26} />
-                      </div>
-                      <div style={{ fontSize: 14.5, fontWeight: 800, color: "#991b1b" }}>
-                        Daily AI Scan Limit Reached (2/2)
-                      </div>
-                      <div style={{ fontSize: 12, color: "#7f1d1d", maxWidth: 360, lineHeight: 1.45 }}>
-                        You have used your 2 AI screenshot scans for today. Limit resets tomorrow after midnight (12:00 AM). Please add your attendance manually below.
-                      </div>
-                    </div>
-                  ) : (
-                    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 10 }}>
-                      <div
-                        style={{
-                          width: 52,
-                          height: 52,
-                          borderRadius: 14,
-                          background: "#ffffff",
-                          border: "1px solid #e2e8f0",
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                          color: "#2563eb",
-                          boxShadow: "0 2px 8px rgba(0,0,0,0.04)",
-                        }}
-                      >
-                        <UploadCloud size={26} />
-                      </div>
-                      <div style={{ fontSize: 14.5, fontWeight: 700, color: "#0f172a" }}>
-                        Drag & drop screenshot here, or <span style={{ color: "#2563eb" }}>browse file</span>
-                      </div>
-                      <div style={{ fontSize: 12, color: "#64748b" }}>
-                        Supports PNG, JPG, WebP • Or press <kbd style={{ background: "#e2e8f0", padding: "2px 6px", borderRadius: 4, fontSize: 11, fontWeight: 600 }}>Ctrl + V</kbd> to paste
-                      </div>
-                    </div>
-                  )}
-                </div>
-
-                {/* Verification Disclaimer & Checkbox */}
-                <div
-                  style={{
-                    marginTop: 14,
-                    background: isScreenshotVerified ? "#f0fdf4" : "#fffbeb",
-                    border: `1.5px solid ${isScreenshotVerified ? "#86efac" : "#fde68a"}`,
-                    borderRadius: 12,
-                    padding: "10px 14px",
-                    display: "flex",
-                    flexDirection: "column",
-                    gap: 8,
-                    transition: "all 0.2s ease",
-                  }}
-                >
-                  <div style={{ display: "flex", alignItems: "flex-start", gap: 8 }}>
-                    <ShieldCheck
-                      size={16}
-                      color={isScreenshotVerified ? "#059669" : "#d97706"}
-                      style={{ flexShrink: 0, marginTop: 2 }}
-                    />
-                    <div style={{ fontSize: 11.5, color: isScreenshotVerified ? "#166534" : "#92400e", lineHeight: 1.45 }}>
-                      <strong>ERP Verification Disclaimer:</strong> Please double-check that all detected Theory (PP), Lab (PR), and Tutorial (TUT) values match your official ERP attendance records before confirming.
-                    </div>
-                  </div>
-
-                  <label
-                    onClick={() => setIsScreenshotVerified(!isScreenshotVerified)}
+                {/* Main Action Area */}
+                {scanStatus.isLimitReached ? (
+                  /* ── Actionable Manual Entry Box When Limit Reached ── */
+                  <div
                     style={{
+                      background: "#ffffff",
+                      border: "1.5px solid #cbd5e1",
+                      borderRadius: 16,
+                      padding: isMobile ? "20px 16px" : "28px 24px",
+                      textAlign: "center",
                       display: "flex",
+                      flexDirection: "column",
                       alignItems: "center",
-                      gap: 10,
-                      cursor: "pointer",
-                      fontSize: 12.5,
-                      fontWeight: 700,
-                      color: isScreenshotVerified ? "#15803d" : "#78350f",
-                      userSelect: "none",
+                      gap: 16,
+                      boxShadow: "0 2px 10px rgba(0,0,0,0.03)",
                     }}
                   >
                     <div
                       style={{
-                        width: 20,
-                        height: 20,
-                        borderRadius: 6,
-                        border: `2px solid ${isScreenshotVerified ? "#059669" : "#cbd5e1"}`,
-                        background: isScreenshotVerified ? "#059669" : "#ffffff",
+                        width: 52,
+                        height: 52,
+                        borderRadius: 14,
+                        background: "#eff6ff",
+                        border: "1px solid #bfdbfe",
                         display: "flex",
                         alignItems: "center",
                         justifyContent: "center",
-                        cursor: "pointer",
-                        flexShrink: 0,
-                        transition: "all 0.15s ease",
-                        boxShadow: isScreenshotVerified ? "0 2px 6px rgba(5, 150, 105, 0.35)" : "none",
+                        color: "#2563eb",
                       }}
                     >
-                      {isScreenshotVerified && (
-                        <Check size={13} color="#ffffff" strokeWidth={2.5} />
-                      )}
+                      <BookOpen size={24} />
                     </div>
-                    <span>I have verified that the extracted ERP component attendance values are accurate</span>
-                  </label>
-                </div>
+
+                    <div>
+                      <h4 style={{ fontSize: 15, fontWeight: 800, color: "#0f172a", margin: 0 }}>
+                        Continue with Manual Attendance Entry
+                      </h4>
+                      <p style={{ fontSize: 12.5, color: "#64748b", margin: "5px 0 0 0", maxWidth: 440, lineHeight: 1.45 }}>
+                        Select a fast option below to add and calculate your section attendance:
+                      </p>
+                    </div>
+
+                    <div style={{ display: "flex", flexDirection: isMobile ? "column" : "row", gap: 10, width: "100%", maxWidth: 460 }}>
+                      {sectionCatalog.length > 0 && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const defaultRows = sectionCatalog.map((c, idx) => ({
+                              id: `sec_sub_${Date.now()}_${idx}`,
+                              name: c.subjectName,
+                              code: c.code || "",
+                              attendedClasses: 0,
+                              totalClasses: 0,
+                              percentage: 0,
+                              components: [],
+                            }));
+                            setParsedSubjects(defaultRows);
+                            setStep("review");
+                          }}
+                          style={{
+                            flex: 1,
+                            padding: "11px 16px",
+                            borderRadius: 10,
+                            border: "none",
+                            background: "linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)",
+                            color: "#ffffff",
+                            fontSize: 12.5,
+                            fontWeight: 800,
+                            cursor: "pointer",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            gap: 8,
+                            boxShadow: "0 2px 8px rgba(37, 99, 235, 0.25)",
+                          }}
+                        >
+                          <BookOpen size={15} />
+                          <span>Load Section {currentSection} Subjects</span>
+                        </button>
+                      )}
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          handleAddCustomRow();
+                          setStep("review");
+                        }}
+                        style={{
+                          flex: 1,
+                          padding: "11px 16px",
+                          borderRadius: 10,
+                          border: "1px solid #cbd5e1",
+                          background: "#f8fafc",
+                          color: "#334155",
+                          fontSize: 12.5,
+                          fontWeight: 700,
+                          cursor: "pointer",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          gap: 6,
+                        }}
+                      >
+                        <Plus size={15} />
+                        <span>Add Subject Manually</span>
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  /* ── Normal Drag & Drop Area When Limit is Active ── */
+                  <div
+                    onDragEnter={handleDrag}
+                    onDragLeave={handleDrag}
+                    onDragOver={handleDrag}
+                    onDrop={handleDrop}
+                    onClick={() => fileInputRef.current?.click()}
+                    style={{
+                      border: `2px dashed ${dragActive ? "#2563eb" : "#cbd5e1"}`,
+                      background: dragActive ? "#eff6ff" : "#f8fafc",
+                      borderRadius: 16,
+                      padding: isMobile ? "28px 16px" : "36px 20px",
+                      textAlign: "center",
+                      cursor: "pointer",
+                      transition: "all 0.2s ease",
+                    }}
+                  >
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept="image/*"
+                      onChange={handleFileChange}
+                      style={{ display: "none" }}
+                    />
+
+                    {isProcessing ? (
+                      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 14, width: "100%", maxWidth: 440, margin: "0 auto" }}>
+                        <div
+                          style={{
+                            width: 56,
+                            height: 56,
+                            borderRadius: 16,
+                            background: scanProgress >= 100
+                              ? "linear-gradient(135deg, #dcfce7 0%, #bbf7d0 100%)"
+                              : "linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%)",
+                            border: `1.5px solid ${scanProgress >= 100 ? "#86efac" : "#bfdbfe"}`,
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            color: scanProgress >= 100 ? "#16a34a" : "#2563eb",
+                            boxShadow: scanProgress >= 100 ? "0 4px 16px rgba(22, 163, 74, 0.25)" : "0 4px 16px rgba(37, 99, 235, 0.2)",
+                            transition: "all 0.3s ease",
+                          }}
+                        >
+                          {scanProgress >= 100 ? (
+                            <CheckCircle2 size={30} color="#16a34a" />
+                          ) : (
+                            <Loader2 size={28} className="spin" />
+                          )}
+                        </div>
+
+                        <div style={{ textAlign: "center", display: "flex", flexDirection: "column", gap: 4, width: "100%" }}>
+                          <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}>
+                            <span
+                              style={{
+                                fontSize: 10.5,
+                                fontWeight: 800,
+                                color: scanProgress >= 100 ? "#15803d" : "#1d4ed8",
+                                background: scanProgress >= 100 ? "#dcfce7" : "#dbeafe",
+                                padding: "2px 10px",
+                                borderRadius: 999,
+                                textTransform: "uppercase",
+                                letterSpacing: "0.5px",
+                              }}
+                            >
+                              {SCAN_MESSAGES[scanStepIndex]?.badge || "AI OCR Processing"}
+                            </span>
+                            <span style={{ fontSize: 11, fontWeight: 900, color: scanProgress >= 100 ? "#16a34a" : "#2563eb" }}>
+                              {scanProgress}%
+                            </span>
+                          </div>
+
+                          <div style={{ fontSize: 15, fontWeight: 800, color: "#0f172a", marginTop: 2 }}>
+                            {SCAN_MESSAGES[scanStepIndex]?.title || "Scanning Attendance Screenshot..."}
+                          </div>
+                          <div style={{ fontSize: 12, color: "#64748b", lineHeight: 1.45, minHeight: 34 }}>
+                            {SCAN_MESSAGES[scanStepIndex]?.desc || "Extracting subjects, attended classes, and total counts with AI Vision..."}
+                          </div>
+                        </div>
+
+                        <div
+                          style={{
+                            width: "100%",
+                            height: 7,
+                            borderRadius: 999,
+                            background: "#e2e8f0",
+                            overflow: "hidden",
+                            position: "relative",
+                          }}
+                        >
+                          <div
+                            style={{
+                              width: `${scanProgress}%`,
+                              height: "100%",
+                              background: scanProgress >= 100
+                                ? "linear-gradient(90deg, #10b981 0%, #059669 100%)"
+                                : "linear-gradient(90deg, #2563eb 0%, #3b82f6 100%)",
+                              borderRadius: 999,
+                              transition: "width 0.45s cubic-bezier(0.4, 0, 0.2, 1)",
+                            }}
+                          />
+                        </div>
+
+                        <div
+                          style={{
+                            background: scanProgress >= 100 ? "#f0fdf4" : "#fffbeb",
+                            border: `1px solid ${scanProgress >= 100 ? "#bbf7d0" : "#fde68a"}`,
+                            borderRadius: 12,
+                            padding: "10px 14px",
+                            display: "flex",
+                            alignItems: "flex-start",
+                            gap: 10,
+                            textAlign: "left",
+                            width: "100%",
+                            boxSizing: "border-box",
+                            transition: "all 0.3s ease",
+                          }}
+                        >
+                          <Clock size={16} color={scanProgress >= 100 ? "#16a34a" : "#d97706"} style={{ flexShrink: 0, marginTop: 2 }} />
+                          <div style={{ fontSize: 11.5, color: scanProgress >= 100 ? "#166534" : "#92400e", lineHeight: 1.45 }}>
+                            {scanProgress >= 100 ? (
+                              <strong>Verification complete! All detected subject calculations loaded successfully.</strong>
+                            ) : (
+                              <strong>Please be patient: Detecting multi-component Theory, Lab, and Tutorial breakdowns (3–5 seconds)...</strong>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    ) : (
+                      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 10 }}>
+                        <div
+                          style={{
+                            width: 52,
+                            height: 52,
+                            borderRadius: 14,
+                            background: "#ffffff",
+                            border: "1px solid #e2e8f0",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            color: "#2563eb",
+                            boxShadow: "0 2px 8px rgba(0,0,0,0.04)",
+                          }}
+                        >
+                          <UploadCloud size={26} />
+                        </div>
+                        <div style={{ fontSize: 14.5, fontWeight: 700, color: "#0f172a" }}>
+                          Drag & drop screenshot here, or <span style={{ color: "#2563eb" }}>browse file</span>
+                        </div>
+                        <div style={{ fontSize: 12, color: "#64748b" }}>
+                          Supports PNG, JPG, WebP • Or press <kbd style={{ background: "#e2e8f0", padding: "2px 6px", borderRadius: 4, fontSize: 11, fontWeight: 600 }}>Ctrl + V</kbd> to paste
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
 
                 {errorMsg && (
                   <div
@@ -1473,23 +1479,25 @@ const parseCutmOcrText = (text, catalog = []) => {
                 )}
 
                 {/* Quick Hint Card */}
-                <div
-                  style={{
-                    marginTop: 16,
-                    padding: "12px 14px",
-                    background: "#f8fafc",
-                    border: "1px solid #e2e8f0",
-                    borderRadius: 12,
-                    display: "flex",
-                    alignItems: "flex-start",
-                    gap: 10,
-                  }}
-                >
-                  <FileCheck size={16} color="#059669" style={{ flexShrink: 0, marginTop: 2 }} />
-                  <div style={{ fontSize: 12, color: "#475569", lineHeight: 1.5 }}>
-                    <strong>Pro Tip:</strong> Supports both <strong>Website ERP Table</strong> (with Course Code &amp; Component rows e.g. <code>CUTM1020 - PP</code>) and <strong>Mobile ERP App</strong> screenshots. Take a quick snip (<kbd style={{ background: "#e2e8f0", padding: "1px 5px", borderRadius: 3 }}>Win+Shift+S</kbd> or <kbd style={{ background: "#e2e8f0", padding: "1px 5px", borderRadius: 3 }}>Cmd+Shift+4</kbd>) and press <kbd style={{ background: "#e2e8f0", padding: "1px 5px", borderRadius: 3 }}>Ctrl+V</kbd> right here.
+                {!scanStatus.isLimitReached && (
+                  <div
+                    style={{
+                      marginTop: 16,
+                      padding: "12px 14px",
+                      background: "#f8fafc",
+                      border: "1px solid #e2e8f0",
+                      borderRadius: 12,
+                      display: "flex",
+                      alignItems: "flex-start",
+                      gap: 10,
+                    }}
+                  >
+                    <FileCheck size={16} color="#059669" style={{ flexShrink: 0, marginTop: 2 }} />
+                    <div style={{ fontSize: 12, color: "#475569", lineHeight: 1.5 }}>
+                      <strong>Pro Tip:</strong> Supports both <strong>Website ERP Table</strong> (with Course Code &amp; Component rows e.g. <code>CUTM1020 - PP</code>) and <strong>Mobile ERP App</strong> screenshots. Press <kbd style={{ background: "#e2e8f0", padding: "1px 5px", borderRadius: 3 }}>Ctrl+V</kbd> to paste directly.
+                    </div>
                   </div>
-                </div>
+                )}
               </div>
             ) : (
               /* Review Step */
