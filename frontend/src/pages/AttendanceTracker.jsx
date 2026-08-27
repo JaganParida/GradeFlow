@@ -71,6 +71,18 @@ import AttendanceScreenshotModal from "../components/AttendanceScreenshotModal";
 import { AttendanceSkeleton } from "../components/LoadingSpinner";
 import { getDailyScanStatus, MAX_DAILY_SCANS } from "../utils/scanLimitHelper";
 
+const tabTransitionVariants = {
+  initial: { opacity: 0, y: 10 },
+  animate: {
+    opacity: 1,
+    y: 0,
+    transition: {
+      duration: 0.22,
+      ease: [0.16, 1, 0.3, 1],
+    },
+  },
+};
+
 export default function AttendanceTracker() {
   const { studentId: urlParam } = useParams();
   const navigate = useNavigate();
@@ -1970,7 +1982,13 @@ export default function AttendanceTracker() {
                 TAB 1: SUBJECT-WISE ATTENDANCE MATRIX ({allSectionSubjects.length})
             ═══════════════════════════════════════════════════════════════ */}
             {activeTab === "matrix" && (
-              <div style={{ display: "flex", flexDirection: "column", gap: 14, width: "100%" }}>
+              <motion.div
+                key="tab-matrix"
+                initial="initial"
+                animate="animate"
+                variants={tabTransitionVariants}
+                style={{ display: "flex", flexDirection: "column", gap: 14, width: "100%" }}
+              >
 
             {/* ── 2. CLASS ATTENDANCE CHECK-IN HUB (Date / History Stepper & Routine Cards) ── */}
             <div
@@ -2726,14 +2744,20 @@ export default function AttendanceTracker() {
             </div>
           </div>
         )}
-          </div>
+              </motion.div>
         )}
 
         {/* ═══════════════════════════════════════════════════════════════
             TAB 2: PREDICTOR STUDIO
         ═══════════════════════════════════════════════════════════════ */}
         {activeTab === "studio" && (
-          <div style={{ display: "flex", flexDirection: "column", gap: 14, width: "100%" }}>
+          <motion.div
+            key="tab-studio"
+            initial="initial"
+            animate="animate"
+            variants={tabTransitionVariants}
+            style={{ display: "flex", flexDirection: "column", gap: 14, width: "100%" }}
+          >
             {/* ═══════════════════════════════════════════════════════════════
                 FIRST-TIME STUDENT ONBOARDING & GUIDED SETUP HUB
             ═══════════════════════════════════════════════════════════════ */}
@@ -4038,14 +4062,20 @@ export default function AttendanceTracker() {
           isMobile={isMobile}
         />
 
-        </div>
+        </motion.div>
       )}
 
     {/* ═══════════════════════════════════════════════════════════════
         TAB 3: SMART BUNK & WEEKLY SAFE DAYS ANALYZER
     ═══════════════════════════════════════════════════════════════ */}
     {activeTab === "bunk_analyzer" && (
-      <div style={{ width: "100%" }}>
+      <motion.div
+        key="tab-bunk_analyzer"
+        initial="initial"
+        animate="animate"
+        variants={tabTransitionVariants}
+        style={{ width: "100%" }}
+      >
         <SmartBunkAnalyzer
           selectedSection={selectedSection}
           allSectionSubjects={allSectionSubjects}
@@ -4054,7 +4084,7 @@ export default function AttendanceTracker() {
           todayDayName={todayDayName}
           isMobile={isMobile}
         />
-      </div>
+      </motion.div>
     )}
   </div>
 
