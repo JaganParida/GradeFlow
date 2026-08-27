@@ -1131,7 +1131,7 @@ export default function AttendanceTracker() {
   const isShortageHighlightActive = highlightShortageUntil > Date.now();
 
   const handleHighlightShortageSubjects = () => {
-    setHighlightShortageUntil(Date.now() + 5 * 60 * 1000); // 5 minutes
+    setHighlightShortageUntil(Date.now() + 1 * 60 * 1000); // 1 minute
     handleTabClick("matrix");
     setTimeout(() => {
       const el = document.getElementById("attendance-subject-matrix-section");
@@ -1322,21 +1322,21 @@ export default function AttendanceTracker() {
               {isSearchAuthorized && (
                 <div
                   style={{
-                    background: "#0f172a",
+                    background: "#f8fafc",
+                    border: "1px solid #e2e8f0",
                     borderRadius: 12,
                     padding: "10px 12px",
                     display: "flex",
                     flexDirection: "column",
                     gap: 6,
-                    color: "#ffffff",
                   }}
                 >
                   <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 10.5, fontWeight: 800, color: "#38bdf8", textTransform: "uppercase", letterSpacing: "0.5px" }}>
-                      <ShieldCheck size={12} color="#38bdf8" />
+                    <div style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 10.5, fontWeight: 800, color: "#2563eb", textTransform: "uppercase", letterSpacing: "0.5px" }}>
+                      <ShieldCheck size={12} color="#2563eb" />
                       <span>Lookup Student</span>
                     </div>
-                    <span style={{ fontSize: 9, fontWeight: 900, background: "#1e293b", color: "#94a3b8", padding: "1px 5px", borderRadius: 4 }}>
+                    <span style={{ fontSize: 9, fontWeight: 800, background: "#eff6ff", color: "#2563eb", border: "1px solid #bfdbfe", padding: "1px 5px", borderRadius: 4 }}>
                       Admin Mode
                     </span>
                   </div>
@@ -1351,15 +1351,16 @@ export default function AttendanceTracker() {
                         onChange={(e) => setSearchRegInput(e.target.value)}
                         style={{
                           width: "100%",
-                          padding: "5px 6px 5px 24px",
-                          borderRadius: 6,
-                          border: "1px solid #334155",
-                          background: "#1e293b",
-                          color: "#ffffff",
-                          fontSize: 11,
+                          padding: "6px 6px 6px 26px",
+                          borderRadius: 7,
+                          border: "1px solid #cbd5e1",
+                          background: "#ffffff",
+                          color: "#0f172a",
+                          fontSize: 11.5,
                           fontWeight: 600,
                           outline: "none",
                           boxSizing: "border-box",
+                          fontFamily: "'DM Sans', sans-serif",
                         }}
                       />
                     </div>
@@ -1367,18 +1368,19 @@ export default function AttendanceTracker() {
                       type="submit"
                       disabled={isSearching}
                       style={{
-                        padding: "5px 9px",
-                        borderRadius: 6,
+                        padding: "6px 10px",
+                        borderRadius: 7,
                         border: "none",
-                        background: "#2563eb",
+                        background: "linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)",
                         color: "#ffffff",
-                        fontSize: 11,
+                        fontSize: 11.5,
                         fontWeight: 800,
                         cursor: isSearching ? "not-allowed" : "pointer",
                         display: "inline-flex",
                         alignItems: "center",
                         gap: 3,
                         flexShrink: 0,
+                        boxShadow: "0 2px 6px rgba(37,99,235,0.25)",
                       }}
                     >
                       <span>{isSearching ? "..." : "Go"}</span>
@@ -1387,7 +1389,7 @@ export default function AttendanceTracker() {
                   </form>
 
                   {searchError && (
-                    <div style={{ fontSize: 10, color: "#f87171", fontWeight: 600 }}>
+                    <div style={{ fontSize: 10.5, color: "#dc2626", fontWeight: 600 }}>
                       {searchError}
                     </div>
                   )}
@@ -1396,79 +1398,37 @@ export default function AttendanceTracker() {
 
               <div style={{ height: 1, background: "#f1f5f9" }} />
 
-              {/* 2. Section Display / Switcher */}
-              {isSearchAuthorized ? (
-                /* Admin Multi-Section Switcher */
-                <div>
-                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
-                    <span style={{ fontSize: 10.5, fontWeight: 800, color: "#64748b", textTransform: "uppercase", letterSpacing: "0.5px" }}>
-                      Switch Section (Admin)
-                    </span>
-                    <span style={{ fontSize: 10, color: "#94a3b8", fontWeight: 600 }}>
-                      {ALL_SECTIONS.length} Sections
-                    </span>
-                  </div>
-
-                  <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 4 }}>
-                    {ALL_SECTIONS.map((sec) => {
-                      const isActive = selectedSection === sec;
-                      return (
-                        <button
-                          key={sec}
-                          type="button"
-                          onClick={() => setSelectedSection(sec)}
-                          style={{
-                            padding: "5px 0",
-                            borderRadius: 7,
-                            border: isActive ? "1px solid #059669" : "1px solid #e2e8f0",
-                            background: isActive ? "#ecfdf5" : "#f8fafc",
-                            color: isActive ? "#065f46" : "#475569",
-                            fontSize: 11.5,
-                            fontWeight: isActive ? 800 : 600,
-                            cursor: "pointer",
-                            fontFamily: "'DM Sans', sans-serif",
-                            transition: "all 0.15s ease",
-                          }}
-                        >
-                          {sec}
-                        </button>
-                      );
-                    })}
-                  </div>
+              {/* 2. Enrolled Section (Locked / Assigned) */}
+              <div>
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 6 }}>
+                  <span style={{ fontSize: 10.5, fontWeight: 800, color: "#64748b", textTransform: "uppercase", letterSpacing: "0.5px" }}>
+                    Enrolled Section
+                  </span>
+                  <span style={{ fontSize: 10, color: "#059669", fontWeight: 700, background: "#ecfdf5", padding: "1px 6px", borderRadius: 4 }}>
+                    Assigned
+                  </span>
                 </div>
-              ) : (
-                /* Student Locked Enrolled Section Card */
-                <div>
-                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 6 }}>
-                    <span style={{ fontSize: 10.5, fontWeight: 800, color: "#64748b", textTransform: "uppercase", letterSpacing: "0.5px" }}>
-                      Enrolled Section
-                    </span>
-                    <span style={{ fontSize: 10, color: "#059669", fontWeight: 700, background: "#ecfdf5", padding: "1px 6px", borderRadius: 4 }}>
-                      Assigned
-                    </span>
+                <div
+                  style={{
+                    padding: "8px 12px",
+                    borderRadius: 8,
+                    border: "1px solid #a7f3d0",
+                    background: "#ecfdf5",
+                    color: "#065f46",
+                    fontSize: 12.5,
+                    fontWeight: 800,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                  }}
+                >
+                  <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                    <Building size={14} color="#059669" />
+                    <span>Section {selectedSection}</span>
                   </div>
-                  <div
-                    style={{
-                      padding: "8px 12px",
-                      borderRadius: 8,
-                      border: "1px solid #a7f3d0",
-                      background: "#ecfdf5",
-                      color: "#065f46",
-                      fontSize: 12.5,
-                      fontWeight: 800,
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "space-between",
-                    }}
-                  >
-                    <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                      <Building size={14} color="#059669" />
-                      <span>Section {selectedSection}</span>
-                    </div>
-                    <span style={{ fontSize: 10.5, fontWeight: 700, color: "#059669" }}>Locked</span>
-                  </div>
+                  <span style={{ fontSize: 10.5, fontWeight: 700, color: "#059669" }}>Locked</span>
                 </div>
-              )}
+              </div>
 
               <div style={{ height: 1, background: "#f1f5f9" }} />
 
@@ -1978,21 +1938,15 @@ export default function AttendanceTracker() {
                     boxShadow: isShortageHighlightActive ? "0 0 0 2px rgba(249, 115, 22, 0.2), 0 4px 12px rgba(249, 115, 22, 0.08)" : "none",
                     transition: "all 0.2s ease",
                   }}
-                  title="Click to highlight all subjects below 75% for 5 minutes"
+                  title="Click to highlight shortage subjects for 1 minute"
                 >
                   <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
                     <span style={{ fontSize: isMobile ? 10.5 : 11.5, fontWeight: 700, color: "#475569", textTransform: "uppercase", letterSpacing: "0.5px" }}>
                       Below 75% Criteria
                     </span>
-                    {isShortageHighlightActive ? (
-                      <span style={{ fontSize: 9.5, fontWeight: 900, background: "#ffedd5", color: "#c2410c", padding: "1px 6px", borderRadius: 5 }}>
-                        ⚡ 5m Highlight
-                      </span>
-                    ) : (
-                      <span style={{ fontSize: 10, background: shortageCount > 0 ? "#fee2e2" : "#ecfdf5", color: shortageCount > 0 ? "#dc2626" : "#059669", padding: "1px 6px", borderRadius: 5, fontWeight: 700 }}>
-                        {shortageCount > 0 ? "Shortage" : "All Safe"}
-                      </span>
-                    )}
+                    <span style={{ fontSize: 10, background: shortageCount > 0 ? "#fee2e2" : "#ecfdf5", color: shortageCount > 0 ? "#dc2626" : "#059669", padding: "1px 6px", borderRadius: 5, fontWeight: 700 }}>
+                      {shortageCount > 0 ? "Shortage" : "All Safe"}
+                    </span>
                   </div>
                   <div style={{ fontSize: isMobile ? 22 : 30, fontWeight: 800, color: shortageCount > 0 ? "#dc2626" : "#059669", fontFamily: "'DM Sans', sans-serif", letterSpacing: "-0.5px", lineHeight: 1.1 }}>
                     {shortageCount}
@@ -2536,13 +2490,13 @@ export default function AttendanceTracker() {
             transition={{ duration: 0.35, delay: 0.1, ease: "easeOut" }}
             style={{
               background: "#ffffff",
-              border: isShortageHighlightActive ? "1.5px solid #f97316" : "1px solid #e2e8f0",
+              border: "1px solid #e2e8f0",
               borderRadius: 20,
               padding: isMobile ? "16px 14px" : "22px 24px",
               display: "flex",
               flexDirection: "column",
               gap: 16,
-              boxShadow: isShortageHighlightActive ? "0 4px 20px rgba(249, 115, 22, 0.08)" : "0 1px 3px rgba(0,0,0,0.02)",
+              boxShadow: "0 1px 3px rgba(0,0,0,0.02)",
               transition: "all 0.2s ease",
             }}
           >
@@ -2559,26 +2513,6 @@ export default function AttendanceTracker() {
               </div>
 
               <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-                {isShortageHighlightActive && (
-                  <div
-                    style={{
-                      background: "#fff7ed",
-                      border: "1.5px solid #fdba74",
-                      borderRadius: 10,
-                      padding: "6px 12px",
-                      fontSize: 11.5,
-                      fontWeight: 800,
-                      color: "#c2410c",
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 6,
-                    }}
-                  >
-                    <AlertTriangle size={13} color="#ea580c" />
-                    <span>Showing Shortage Highlights (5 mins active)</span>
-                  </div>
-                )}
-
                 <div
                   style={{
                     background: "linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%)",
@@ -2628,7 +2562,7 @@ export default function AttendanceTracker() {
                       setSelectedSubjectName(sub.subjectName); setComponentInputs(sub.components || []); handleTabClick("studio"); window.scrollTo({ top: 400, behavior: "smooth" });
                     }}
                     style={{
-                      background: isShortageAndHighlighted ? "#fff5f5" : "#ffffff",
+                      background: isShortageAndHighlighted ? "#fff8f8" : "#ffffff",
                       border: isShortageAndHighlighted
                         ? "2px solid #ef4444"
                         : `1.5px solid ${!hasConductedClasses ? "#e2e8f0" : (isPassing ? "#e2e8f0" : "#fecaca")}`,
@@ -2646,29 +2580,6 @@ export default function AttendanceTracker() {
                     }}
                   >
                     <div>
-                      {/* Shortage Highlight Banner */}
-                      {isShortageAndHighlighted && (
-                        <div style={{ marginBottom: 8 }}>
-                          <span
-                            style={{
-                              fontSize: 10.5,
-                              fontWeight: 900,
-                              background: "#fee2e2",
-                              color: "#b91c1c",
-                              border: "1px solid #fca5a5",
-                              padding: "3px 8px",
-                              borderRadius: 6,
-                              display: "inline-flex",
-                              alignItems: "center",
-                              gap: 4,
-                            }}
-                          >
-                            <AlertTriangle size={12} color="#b91c1c" />
-                            <span>ATTENDANCE SHORTAGE: Need {subCalc.classesNeeded} classes to reach 75%</span>
-                          </span>
-                        </div>
-                      )}
-
                       {/* Card Header: Name + Code + Overall % */}
                       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 10 }}>
                         <div>
