@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   ShieldCheck,
   CheckCircle2,
@@ -568,23 +569,31 @@ export default function SmartBunkAnalyzer({
       {/* ═══════════════════════════════════════════════════════════════
           SELECTED DAY FULL VERDICT & LEAVE IMPACT CARD
       ═══════════════════════════════════════════════════════════════ */}
-      {selectedDayData && (
-        <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-          {/* Day Hero Verdict Card */}
-          <div
-            style={{
-              background: selectedDayData.canBunkAllDay
-                ? "#f0fdf4"
-                : selectedDayData.dayStatus === "WARNING"
-                ? "#fffbeb"
-                : "#fef2f2",
-              border: `1.5px solid ${
-                selectedDayData.canBunkAllDay
-                  ? "#86efac"
+      <AnimatePresence mode="wait">
+        {selectedDayData && (
+          <motion.div
+            key={selectedDay}
+            initial={{ opacity: 0, y: 6 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -4 }}
+            transition={{ duration: 0.16, ease: "easeOut" }}
+            style={{ display: "flex", flexDirection: "column", gap: 14 }}
+          >
+            {/* Day Hero Verdict Card */}
+            <div
+              style={{
+                background: selectedDayData.canBunkAllDay
+                  ? "#f0fdf4"
                   : selectedDayData.dayStatus === "WARNING"
-                  ? "#fde68a"
-                  : "#fca5a5"
-              }`,
+                  ? "#fffbeb"
+                  : "#fef2f2",
+                border: `1.5px solid ${
+                  selectedDayData.canBunkAllDay
+                    ? "#86efac"
+                    : selectedDayData.dayStatus === "WARNING"
+                    ? "#fde68a"
+                    : "#fca5a5"
+                }`,
               borderRadius: 16,
               padding: isMobile ? "14px 16px" : "18px 22px",
               display: "flex",
@@ -1576,8 +1585,9 @@ export default function SmartBunkAnalyzer({
               </div>
             )}
           </div>
-        </div>
+        </motion.div>
       )}
+      </AnimatePresence>
     </div>
   );
 }

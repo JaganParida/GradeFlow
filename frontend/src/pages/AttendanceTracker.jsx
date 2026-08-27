@@ -72,13 +72,21 @@ import { AttendanceSkeleton } from "../components/LoadingSpinner";
 import { getDailyScanStatus, MAX_DAILY_SCANS } from "../utils/scanLimitHelper";
 
 const tabTransitionVariants = {
-  initial: { opacity: 0, y: 10 },
+  initial: { opacity: 0, y: 8 },
   animate: {
     opacity: 1,
     y: 0,
     transition: {
-      duration: 0.22,
-      ease: [0.16, 1, 0.3, 1],
+      duration: 0.18,
+      ease: "easeOut",
+    },
+  },
+  exit: {
+    opacity: 0,
+    y: -6,
+    transition: {
+      duration: 0.12,
+      ease: "easeIn",
     },
   },
 };
@@ -1975,20 +1983,22 @@ export default function AttendanceTracker() {
           )}
 
           {/* ═══════════════════════════════════════════════════════════════
-              TAB VIEWS CONTAINER (Instant, smooth, zero layout shift)
+              TAB VIEWS CONTAINER (Dashboard-Style Smooth Animated Tabs)
           ═══════════════════════════════════════════════════════════════ */}
           <div style={{ width: "100%" }}>
-            {/* ═══════════════════════════════════════════════════════════════
-                TAB 1: SUBJECT-WISE ATTENDANCE MATRIX ({allSectionSubjects.length})
-            ═══════════════════════════════════════════════════════════════ */}
-            {activeTab === "matrix" && (
-              <motion.div
-                key="tab-matrix"
-                initial="initial"
-                animate="animate"
-                variants={tabTransitionVariants}
-                style={{ display: "flex", flexDirection: "column", gap: 14, width: "100%" }}
-              >
+            <AnimatePresence mode="wait">
+              {/* ═══════════════════════════════════════════════════════════════
+                  TAB 1: SUBJECT-WISE ATTENDANCE MATRIX ({allSectionSubjects.length})
+              ═══════════════════════════════════════════════════════════════ */}
+              {activeTab === "matrix" && (
+                <motion.div
+                  key="tab-matrix"
+                  initial="initial"
+                  animate="animate"
+                  exit="exit"
+                  variants={tabTransitionVariants}
+                  style={{ display: "flex", flexDirection: "column", gap: 14, width: "100%" }}
+                >
 
             {/* ── 2. CLASS ATTENDANCE CHECK-IN HUB (Date / History Stepper & Routine Cards) ── */}
             <div
@@ -2314,14 +2324,20 @@ export default function AttendanceTracker() {
               </span>
             </div>
           ) : (
-            <div
-              style={{
-                display: "grid",
-                gridTemplateColumns: isMobile ? "1fr" : "repeat(auto-fill, minmax(280px, 1fr))",
-                gap: 10,
-              }}
-            >
-              {selectedDayClasses.map((period) => {
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={selectedCheckInDateKey}
+                initial={{ opacity: 0, y: 6 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -4 }}
+                transition={{ duration: 0.15, ease: "easeOut" }}
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: isMobile ? "1fr" : "repeat(auto-fill, minmax(280px, 1fr))",
+                  gap: 10,
+                }}
+              >
+                {selectedDayClasses.map((period) => {
                 const status = activeDateLogs[period.slotIndex]; // "present" | "absent" | undefined
                 const isPresent = status === "present";
                 const isAbsent = status === "absent";
@@ -2471,7 +2487,8 @@ export default function AttendanceTracker() {
                   </div>
                 );
               })}
-            </div>
+              </motion.div>
+            </AnimatePresence>
           )}
             </div>
 
@@ -2755,6 +2772,7 @@ export default function AttendanceTracker() {
             key="tab-studio"
             initial="initial"
             animate="animate"
+            exit="exit"
             variants={tabTransitionVariants}
             style={{ display: "flex", flexDirection: "column", gap: 14, width: "100%" }}
           >
@@ -4073,6 +4091,7 @@ export default function AttendanceTracker() {
         key="tab-bunk_analyzer"
         initial="initial"
         animate="animate"
+        exit="exit"
         variants={tabTransitionVariants}
         style={{ width: "100%" }}
       >
@@ -4086,6 +4105,7 @@ export default function AttendanceTracker() {
         />
       </motion.div>
     )}
+    </AnimatePresence>
   </div>
 
     {/* Floating Scan Limit Warning Toast */}
