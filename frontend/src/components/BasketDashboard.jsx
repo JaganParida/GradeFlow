@@ -754,7 +754,17 @@ export default function BasketDashboard({ results, studentData }) {
             const takenSkillCourses = data.subjects.filter((s) =>
               BASKET_5_SKILL_COURSES.some((sc) => isMatch(s, sc)),
             );
-            if (takenSkillCourses.length === 0) return null;
+
+            const isDSATaken = takenSkillCourses.some((s) =>
+              isMatch(s, { subCode: "CUTM3166", subName: "Data Structure and Algorithms" }),
+            );
+
+            const pendingSkillCourses = !isDSATaken
+              ? [{ subCode: "CUTM3166", subName: "Data Structure and Algorithms", credits: 4 }]
+              : [];
+
+            if (takenSkillCourses.length === 0 && pendingSkillCourses.length === 0) return null;
+
             return (
               <div>
                 <div
@@ -777,6 +787,9 @@ export default function BasketDashboard({ results, studentData }) {
                 >
                   {takenSkillCourses.map((sub, idx) =>
                     renderSubjectRow(sub, "skill-" + idx, false, false),
+                  )}
+                  {pendingSkillCourses.map((sub, idx) =>
+                    renderSubjectRow(sub, "skill-pending-" + idx, true, false),
                   )}
                 </div>
               </div>

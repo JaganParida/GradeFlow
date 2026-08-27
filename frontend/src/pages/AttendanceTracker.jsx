@@ -14,6 +14,7 @@ import {
   Calculator,
   Clock,
   Calendar as CalendarIcon,
+  CalendarCheck,
   BookOpen,
   Layers,
   ShieldCheck,
@@ -326,9 +327,10 @@ export default function AttendanceTracker() {
 
   const getInitialTab = () => {
     if (urlTabParam === "studio" || urlTabParam === "predictor") return "studio";
-    if (urlTabParam === "bunk" || urlTabParam === "bunk_analyzer") return "bunk_analyzer";
-    if (urlTabParam === "matrix" || urlTabParam === "tracker") return "matrix";
-    return "matrix";
+    if (urlTabParam === "bunk" || urlTabParam === "bunk_analyzer" || urlTabParam === "planner") return "bunk_analyzer";
+    if (urlTabParam === "matrix" || urlTabParam === "subjects" || urlTabParam === "subject_matrix") return "matrix";
+    if (urlTabParam === "checkin" || urlTabParam === "hub" || urlTabParam === "daily") return "checkin";
+    return "checkin";
   };
 
   const [activeTab, setActiveTab] = useState(getInitialTab);
@@ -1164,9 +1166,10 @@ export default function AttendanceTracker() {
   const [isResetModalOpen, setIsResetModalOpen] = useState(false);
 
   const navMenuItems = [
-    { id: "matrix", label: "Attendance Hub", icon: <Layers size={14} />, badge: `${allSectionSubjects.length} Subs` },
-    { id: "studio", label: "Predictor Studio", icon: <Sliders size={14} />, badge: "Simulate" },
-    { id: "bunk_analyzer", label: "Timetable Planner", icon: <Zap size={14} />, badge: "Smart Routine" },
+    { id: "checkin", label: "Daily Check-In Hub", shortLabel: "Daily Hub", icon: <CalendarCheck size={14} />, badge: "Routine" },
+    { id: "matrix", label: "Subject-wise Matrix", shortLabel: "Subjects", icon: <Grid size={14} />, badge: `${allSectionSubjects.length} Subs` },
+    { id: "studio", label: "Predictor Studio", shortLabel: "Predictor", icon: <Sliders size={14} />, badge: "Simulate" },
+    { id: "bunk_analyzer", label: "Smart Bunk Planner", shortLabel: "Planner", icon: <ShieldCheck size={14} />, badge: "Weekly" },
   ];
 
   const handleResetAllAttendance = () => {
@@ -1537,7 +1540,7 @@ export default function AttendanceTracker() {
                   type="button"
                   onClick={() => {
                     setSelectedCheckInDateKey(todayDateKey);
-                    handleTabClick("matrix");
+                    handleTabClick("checkin");
                   }}
                   style={{
                     width: "100%",
@@ -1637,7 +1640,7 @@ export default function AttendanceTracker() {
                 </span>
               </button>
 
-              {/* 1-Line Clean 3-Tab Segmented Control */}
+              {/* 1-Line Clean 4-Tab Segmented Control */}
               <div
                 style={{
                   background: "#ffffff",
@@ -1645,7 +1648,7 @@ export default function AttendanceTracker() {
                   borderRadius: 8,
                   padding: 3,
                   display: "grid",
-                  gridTemplateColumns: "repeat(3, 1fr)",
+                  gridTemplateColumns: "repeat(4, 1fr)",
                   gap: 3,
                   width: "100%",
                   boxSizing: "border-box",
@@ -1659,25 +1662,25 @@ export default function AttendanceTracker() {
                       type="button"
                       onClick={() => handleTabClick(item.id)}
                       style={{
-                        padding: "7px 4px",
+                        padding: "7px 2px",
                         borderRadius: 6,
                         border: "none",
                         background: isActive ? "#059669" : "transparent",
                         color: isActive ? "#ffffff" : "#475569",
-                        fontSize: 12,
-                        fontWeight: isActive ? 700 : 500,
+                        fontSize: 11,
+                        fontWeight: isActive ? 800 : 600,
                         cursor: "pointer",
                         display: "flex",
                         alignItems: "center",
                         justifyContent: "center",
-                        gap: 4,
+                        gap: 3,
                         transition: "all 0.12s ease",
                         whiteSpace: "nowrap",
                         boxShadow: "none",
                       }}
                     >
                       {item.icon}
-                      <span>{item.label === "Attendance Hub" ? "Hub" : item.label === "Predictor Studio" ? "Predictor" : "Planner"}</span>
+                      <span>{item.shortLabel || item.label}</span>
                     </button>
                   );
                 })}
@@ -1685,8 +1688,124 @@ export default function AttendanceTracker() {
             </div>
           )}
 
-          {/* On Desktop: Always visible. On Mobile: Visible ONLY when on Attendance Hub (matrix) */}
-          {(!isMobile || activeTab === "matrix") && (
+          {/* Desktop Views Navigation Horizontal Pill Bar (Matching Dashboard.jsx 1:1) */}
+          {!isMobile && (
+            <div
+              style={{
+                background: "#ffffff",
+                border: "1px solid #cbd5e1",
+                borderRadius: 12,
+                padding: "6px 10px",
+                display: "flex",
+                alignItems: "center",
+                gap: 6,
+                width: "100%",
+                boxSizing: "border-box",
+              }}
+            >
+              {/* Left Arrow Button */}
+              <button
+                type="button"
+                onClick={() => scrollTabs("left")}
+                disabled={!canScrollTabsLeft}
+                aria-label="Scroll views left"
+                style={{
+                  width: 26,
+                  height: 26,
+                  borderRadius: "50%",
+                  border: canScrollTabsLeft ? "1px solid #cbd5e1" : "1px solid #e2e8f0",
+                  background: "#ffffff",
+                  color: canScrollTabsLeft ? "#059669" : "#94a3b8",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  cursor: canScrollTabsLeft ? "pointer" : "default",
+                  flexShrink: 0,
+                  opacity: canScrollTabsLeft ? 1 : 0.4,
+                  transition: "all 0.15s ease",
+                  padding: 0,
+                }}
+              >
+                <ChevronLeft size={14} />
+              </button>
+
+              {/* Scrollable Tabs Track */}
+              <div
+                ref={mobileTabsRef}
+                onScroll={checkTabsScroll}
+                style={{
+                  display: "flex",
+                  gap: 6,
+                  overflowX: "auto",
+                  width: "100%",
+                  WebkitOverflowScrolling: "touch",
+                  scrollbarWidth: "none",
+                  msOverflowStyle: "none",
+                  scrollBehavior: "smooth",
+                }}
+              >
+                {navMenuItems.map((item) => {
+                  const isActive = activeTab === item.id;
+                  return (
+                    <button
+                      key={item.id}
+                      type="button"
+                      onClick={() => handleTabClick(item.id)}
+                      style={{
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: 6,
+                        padding: "6px 14px",
+                        borderRadius: 999,
+                        border: isActive ? "1px solid #86efac" : "1px solid #e2e8f0",
+                        background: isActive ? "#ecfdf5" : "#ffffff",
+                        color: isActive ? "#059669" : "#475569",
+                        fontSize: 12,
+                        fontWeight: isActive ? 800 : 600,
+                        whiteSpace: "nowrap",
+                        cursor: "pointer",
+                        fontFamily: "'DM Sans', sans-serif",
+                        flexShrink: 0,
+                        transition: "all 0.15s ease",
+                      }}
+                    >
+                      <span style={{ color: isActive ? "#059669" : "#64748b" }}>{item.icon}</span>
+                      <span>{item.label}</span>
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* Right Arrow Button */}
+              <button
+                type="button"
+                onClick={() => scrollTabs("right")}
+                disabled={!canScrollTabsRight}
+                aria-label="Scroll views right"
+                style={{
+                  width: 26,
+                  height: 26,
+                  borderRadius: "50%",
+                  border: canScrollTabsRight ? "1px solid #cbd5e1" : "1px solid #e2e8f0",
+                  background: "#ffffff",
+                  color: canScrollTabsRight ? "#059669" : "#94a3b8",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  cursor: canScrollTabsRight ? "pointer" : "default",
+                  flexShrink: 0,
+                  opacity: canScrollTabsRight ? 1 : 0.4,
+                  transition: "all 0.15s ease",
+                  padding: 0,
+                }}
+              >
+                <ChevronRight size={14} />
+              </button>
+            </div>
+          )}
+
+          {/* On Desktop: Always visible. On Mobile: Visible when on Daily Hub (checkin) or Subject Matrix (matrix) */}
+          {(!isMobile || activeTab === "checkin" || activeTab === "matrix") && (
             <>
               {/* Top Academic & Attendance Overview Header Card */}
               <div
@@ -1987,18 +2106,19 @@ export default function AttendanceTracker() {
           ═══════════════════════════════════════════════════════════════ */}
           <div style={{ width: "100%" }}>
             <AnimatePresence mode="wait">
-              {/* ═══════════════════════════════════════════════════════════════
-                  TAB 1: SUBJECT-WISE ATTENDANCE MATRIX ({allSectionSubjects.length})
-              ═══════════════════════════════════════════════════════════════ */}
-              {activeTab === "matrix" && (
-                <motion.div
-                  key="tab-matrix"
-                  initial="initial"
-                  animate="animate"
-                  exit="exit"
-                  variants={tabTransitionVariants}
-                  style={{ display: "flex", flexDirection: "column", gap: 14, width: "100%" }}
-                >
+              <motion.div
+                key={activeTab}
+                initial={{ opacity: 0.95 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0.95 }}
+                transition={{ duration: 0.12 }}
+                style={{ width: "100%", minWidth: 0, display: "flex", flexDirection: "column", gap: isMobile ? 10 : 14 }}
+              >
+                {/* ═══════════════════════════════════════════════════════════════
+                    TAB 1: DAILY CLASS ATTENDANCE CHECK-IN HUB
+                ═══════════════════════════════════════════════════════════════ */}
+                {activeTab === "checkin" && (
+                  <div style={{ display: "flex", flexDirection: "column", gap: isMobile ? 10 : 14, width: "100%" }}>
 
             {/* ── 2. CLASS ATTENDANCE CHECK-IN HUB (Date / History Stepper & Routine Cards) ── */}
             <div
@@ -2491,24 +2611,28 @@ export default function AttendanceTracker() {
             </AnimatePresence>
           )}
             </div>
+          </div>
+        )}
 
         {/* ═══════════════════════════════════════════════════════════════
-            ALL SEMESTER SUBJECTS MATRIX & TARGET PREDICTOR
+            TAB 2: SUBJECT-WISE ATTENDANCE MATRIX ({allSectionSubjects.length})
         ═══════════════════════════════════════════════════════════════ */}
-        {allSectionSubjects.length > 0 && (
-          <div
-            id="attendance-subject-matrix-section"
-            style={{
-              background: "#ffffff",
-              border: "1px solid #e2e8f0",
-              borderRadius: 10,
-              padding: isMobile ? "14px 12px" : "18px 20px",
-              display: "flex",
-              flexDirection: "column",
-              gap: 14,
-              boxShadow: "none",
-            }}
-          >
+        {activeTab === "matrix" && (
+          <div style={{ display: "flex", flexDirection: "column", gap: isMobile ? 10 : 14, width: "100%" }}>
+            {allSectionSubjects.length > 0 && (
+              <div
+                id="attendance-subject-matrix-section"
+                style={{
+                  background: "#ffffff",
+                  border: "1px solid #e2e8f0",
+                  borderRadius: 10,
+                  padding: isMobile ? "14px 12px" : "18px 20px",
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: 14,
+                  boxShadow: "none",
+                }}
+              >
             {/* Header */}
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 10 }}>
               <div>
@@ -2761,21 +2885,14 @@ export default function AttendanceTracker() {
             </div>
           </div>
         )}
-              </motion.div>
+          </div>
         )}
 
         {/* ═══════════════════════════════════════════════════════════════
-            TAB 2: PREDICTOR STUDIO
+            TAB 3: PREDICTOR STUDIO
         ═══════════════════════════════════════════════════════════════ */}
         {activeTab === "studio" && (
-          <motion.div
-            key="tab-studio"
-            initial="initial"
-            animate="animate"
-            exit="exit"
-            variants={tabTransitionVariants}
-            style={{ display: "flex", flexDirection: "column", gap: 14, width: "100%" }}
-          >
+          <div style={{ display: "flex", flexDirection: "column", gap: isMobile ? 10 : 14, width: "100%" }}>
             {/* ═══════════════════════════════════════════════════════════════
                 FIRST-TIME STUDENT ONBOARDING & GUIDED SETUP HUB
             ═══════════════════════════════════════════════════════════════ */}
@@ -4079,22 +4196,14 @@ export default function AttendanceTracker() {
           studentData={studentData}
           isMobile={isMobile}
         />
-
-        </motion.div>
-      )}
+      </div>
+    )}
 
     {/* ═══════════════════════════════════════════════════════════════
-        TAB 3: SMART BUNK & WEEKLY SAFE DAYS ANALYZER
+        TAB 4: SMART BUNK & WEEKLY SAFE DAYS ANALYZER
     ═══════════════════════════════════════════════════════════════ */}
     {activeTab === "bunk_analyzer" && (
-      <motion.div
-        key="tab-bunk_analyzer"
-        initial="initial"
-        animate="animate"
-        exit="exit"
-        variants={tabTransitionVariants}
-        style={{ width: "100%" }}
-      >
+      <div style={{ width: "100%" }}>
         <SmartBunkAnalyzer
           selectedSection={selectedSection}
           allSectionSubjects={allSectionSubjects}
@@ -4103,10 +4212,11 @@ export default function AttendanceTracker() {
           todayDayName={todayDayName}
           isMobile={isMobile}
         />
-      </motion.div>
+      </div>
     )}
-    </AnimatePresence>
-  </div>
+  </motion.div>
+</AnimatePresence>
+</div>
 
     {/* Floating Scan Limit Warning Toast */}
     {scanLimitWarning && (

@@ -655,8 +655,9 @@ export function AttendanceSkeleton() {
         {/* Semester Score Box */}
         <SkeletonBlock w="100%" h="68px" r="8px" />
 
-        {/* 3-Tab Vertical Switcher */}
+        {/* 4-Tab Vertical Switcher */}
         <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+          <SkeletonBlock w="100%" h="42px" r="8px" />
           <SkeletonBlock w="100%" h="42px" r="8px" />
           <SkeletonBlock w="100%" h="42px" r="8px" />
           <SkeletonBlock w="100%" h="42px" r="8px" />

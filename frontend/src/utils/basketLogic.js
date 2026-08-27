@@ -238,8 +238,7 @@ export const COMMON_BASKET_5_SYLLABUS = [
   { subCode: "CUTM1905", subName: "INTERNSHIP", credits: 2 },
   { subCode: "CUTM1906", subName: "MINOR PROJECT", credits: 2 },
   { subCode: "CUTM1578", subName: "SUMMER INTERNSHIP I", credits: 2 },
-  { subCode: "CUTM2598", subName: "MINOR PROJECT III", credits: 2 },
-  { subCode: "CUTM3166", subName: "Data Structure and Algorithms", credits: 4 }
+  { subCode: "CUTM2598", subName: "MINOR PROJECT III", credits: 2 }
 ];
 
 export const ADDITIONAL_BASKET_5_SUBJECTS = [
