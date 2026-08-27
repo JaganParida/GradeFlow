@@ -113,6 +113,18 @@ export default function AttendanceTracker() {
     return `${year}-${month}-${day}`;
   }
 
+  // Friendly date formatter (e.g. "27 Feb 2026")
+  function formatFriendlyDate(dateKey) {
+    if (!dateKey) return "";
+    const parts = dateKey.split("-");
+    if (parts.length !== 3) return dateKey;
+    const year = parts[0];
+    const month = parseInt(parts[1], 10);
+    const day = parseInt(parts[2], 10);
+    const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+    return `${day} ${months[month - 1]} ${year}`;
+  }
+
   // ── Live Timetable Dynamic Sync from MongoDB Cloud ─────────────────────
   const [timetableVersion, setTimetableVersion] = useState(0);
 
@@ -135,19 +147,37 @@ export default function AttendanceTracker() {
     };
   }, [API]);
 
-  // ── Daily Timetable Check-in State & Keys ──────────────────────────────
+  // ── Class Attendance Check-in Hub State (Date / History Stepper) ─────────────
   const todayDateObj = useMemo(() => new Date(), []);
   const todayDateKey = useMemo(() => getLocalCalendarDateKey(todayDateObj), [todayDateObj]);
-  const todayDayName = useMemo(() => getDayName(todayDateObj), [todayDateObj]); // Accurately returns "Sunday", "Monday", "Tuesday", etc.
-  const isTodaySunday = useMemo(() => isSunday(todayDateObj), [todayDateObj]);
+  const yesterdayDateKey = useMemo(() => {
+    const y = new Date(todayDateObj.getTime() - 86400000);
+    return getLocalCalendarDateKey(y);
+  }, [todayDateObj]);
 
-  const todayScheduleRaw = useMemo(() => {
-    if (isTodaySunday) return [];
-    return getDaySchedule(selectedSection, todayDayName);
-  }, [selectedSection, todayDayName, isTodaySunday, timetableVersion]);
+  // Selected date for attendance check-in (defaults to Today)
+  const [selectedCheckInDateKey, setSelectedCheckInDateKey] = useState(() => todayDateKey);
+  // Minimum allowed date (Student's account creation / earliest tracking date)
+  const [minTrackingDateKey, setMinTrackingDateKey] = useState(() => todayDateKey);
 
-  const todayClasses = useMemo(() => {
-    return (todayScheduleRaw || [])
+  // Computed Date Properties for Selected Check-in Day
+  const selectedDateObj = useMemo(() => new Date(selectedCheckInDateKey + "T00:00:00"), [selectedCheckInDateKey]);
+  const selectedDayName = useMemo(() => getDayName(selectedDateObj), [selectedDateObj]);
+  const isSelectedSunday = useMemo(() => isSunday(selectedDateObj), [selectedDateObj]);
+  const isSelectedToday = selectedCheckInDateKey === todayDateKey;
+  const isSelectedYesterday = selectedCheckInDateKey === yesterdayDateKey;
+
+  const canGoPrev = selectedCheckInDateKey > minTrackingDateKey;
+  const canGoNext = selectedCheckInDateKey < todayDateKey;
+
+  // Selected Day Timetable Schedule
+  const selectedDayScheduleRaw = useMemo(() => {
+    if (isSelectedSunday) return [];
+    return getDaySchedule(selectedSection, selectedDayName);
+  }, [selectedSection, selectedDayName, isSelectedSunday, timetableVersion]);
+
+  const selectedDayClasses = useMemo(() => {
+    return (selectedDayScheduleRaw || [])
       .map((period, idx) => ({
         ...period,
         slotIndex: idx,
@@ -155,12 +185,52 @@ export default function AttendanceTracker() {
         cleanName: cleanSubjectBaseName(period.subject),
       }))
       .filter((p) => !p.isFree && !p.isBreak && p.subject && p.subject !== "No Class / Free" && !/lunch\s*break|recess/i.test(p.subject));
-  }, [todayScheduleRaw]);
+  }, [selectedDayScheduleRaw]);
+
+  // Backwards compatibility alias for components expecting today classes
+  const todayClasses = selectedDayClasses;
+  const todayDayName = selectedDayName;
+  const isTodaySunday = isSelectedSunday;
 
   // Full calendar dailyLogs store map (Date -> { slotIndex: "present" | "absent" })
   const [allDailyLogs, setAllDailyLogs] = useState({});
-  // Today's specific routine check-ins (resets at exact 12:00 AM midnight for new day)
+  // Today's specific routine check-ins
   const [dailyAttendanceLogs, setDailyAttendanceLogs] = useState({});
+
+  // Active logs for the currently inspected date
+  const activeDateLogs = allDailyLogs[selectedCheckInDateKey] || {};
+
+  // Date Navigation Helpers
+  const handlePrevDay = () => {
+    if (!canGoPrev) return;
+    const d = new Date(selectedCheckInDateKey + "T00:00:00");
+    d.setDate(d.getDate() - 1);
+    const k = getLocalCalendarDateKey(d);
+    if (k >= minTrackingDateKey) {
+      setSelectedCheckInDateKey(k);
+    }
+  };
+
+  const handleNextDay = () => {
+    if (!canGoNext) return;
+    const d = new Date(selectedCheckInDateKey + "T00:00:00");
+    d.setDate(d.getDate() + 1);
+    const k = getLocalCalendarDateKey(d);
+    if (k <= todayDateKey) {
+      setSelectedCheckInDateKey(k);
+    }
+  };
+
+  const handleSelectDate = (dateKey) => {
+    if (!dateKey) return;
+    if (dateKey >= minTrackingDateKey && dateKey <= todayDateKey) {
+      setSelectedCheckInDateKey(dateKey);
+    } else if (dateKey > todayDateKey) {
+      setSelectedCheckInDateKey(todayDateKey);
+    } else if (dateKey < minTrackingDateKey) {
+      setSelectedCheckInDateKey(minTrackingDateKey);
+    }
+  };
 
   // Search State
   const [searchRegInput, setSearchRegInput] = useState("");
@@ -388,19 +458,18 @@ export default function AttendanceTracker() {
   // Sync to MongoDB helper (Direct Cloud Persistence)
   const syncAttendanceToDb = async (
     updatedSaved = savedSubjects,
-    updatedDaily = dailyAttendanceLogs,
+    updatedAllLogs = allDailyLogs,
     goal = targetGoal
   ) => {
     const regToSync = currentRegNo || studentSession?.regNo || studentData?.regNo;
     if (!regToSync) return;
     try {
-      const updatedAll = { ...allDailyLogs, [todayDateKey]: updatedDaily };
-      setAllDailyLogs(updatedAll);
+      setAllDailyLogs(updatedAllLogs);
       await axios.post(`${API}/student/${regToSync}/attendance`, {
         section: selectedSection,
         targetGoal: goal,
         savedSubjects: updatedSaved,
-        dailyLogs: updatedAll,
+        dailyLogs: updatedAllLogs,
       });
     } catch (err) {
       console.warn("Background attendance sync to MongoDB:", err.message);
@@ -473,9 +542,24 @@ export default function AttendanceTracker() {
             } else {
               setDailyAttendanceLogs({});
             }
+
+            // Resolve minimum tracking start date from DB createdAt or earliest logged date
+            let cKey = null;
+            if (att.createdAt) {
+              cKey = getLocalCalendarDateKey(new Date(att.createdAt));
+            }
+            const logDateKeys = Object.keys(cleanDailyLogs).filter((k) => /^\d{4}-\d{2}-\d{2}$/.test(k)).sort();
+            const earliestLog = logDateKeys[0];
+            const resolvedMin = cKey && earliestLog ? (cKey < earliestLog ? cKey : earliestLog) : (cKey || earliestLog || todayDateKey);
+            setMinTrackingDateKey(resolvedMin);
           } else {
             setAllDailyLogs({});
             setDailyAttendanceLogs({});
+            if (att.createdAt) {
+              setMinTrackingDateKey(getLocalCalendarDateKey(new Date(att.createdAt)));
+            } else {
+              setMinTrackingDateKey(todayDateKey);
+            }
           }
         } else if (isMounted) {
           setSavedSubjects([]);
@@ -646,10 +730,11 @@ export default function AttendanceTracker() {
   }
 
 
-  // Dedicated robust handler for marking Present or Absent on today's classes
+  // Dedicated robust handler for marking Present or Absent on classes for the selected date
   function handleMarkDailyAttendance(period, targetStatus) {
     const slotIdx = period.slotIndex;
-    const currentStatus = dailyAttendanceLogs[slotIdx]; // "present" | "absent" | undefined
+    const currentDateLogs = allDailyLogs[selectedCheckInDateKey] || {};
+    const currentStatus = currentDateLogs[slotIdx]; // "present" | "absent" | undefined
     const cleanName = period.cleanName || cleanSubjectBaseName(period.subject);
     const compType = (period.type || "PP").toUpperCase();
 
@@ -687,14 +772,24 @@ export default function AttendanceTracker() {
       deltaDelivered = 0; // Class was delivered, still delivered
     }
 
-    // Update dailyAttendanceLogs
-    const nextDailyLogs = { ...dailyAttendanceLogs };
+    // Update allDailyLogs for this dateKey
+    const nextDateLogs = { ...currentDateLogs };
     if (nextStatus) {
-      nextDailyLogs[slotIdx] = nextStatus;
+      nextDateLogs[slotIdx] = nextStatus;
     } else {
-      delete nextDailyLogs[slotIdx];
+      delete nextDateLogs[slotIdx];
     }
-    setDailyAttendanceLogs(nextDailyLogs);
+
+    const nextAllLogs = { ...allDailyLogs };
+    if (Object.keys(nextDateLogs).length > 0) {
+      nextAllLogs[selectedCheckInDateKey] = nextDateLogs;
+    } else {
+      delete nextAllLogs[selectedCheckInDateKey];
+    }
+    setAllDailyLogs(nextAllLogs);
+    if (selectedCheckInDateKey === todayDateKey) {
+      setDailyAttendanceLogs(nextDateLogs);
+    }
 
     // Update savedSubjects store
     let nextSavedList = [...savedSubjects];
@@ -742,7 +837,7 @@ export default function AttendanceTracker() {
       });
     }
     setSavedSubjects(nextSavedList);
-    syncAttendanceToDb(nextSavedList, nextDailyLogs, targetGoal);
+    syncAttendanceToDb(nextSavedList, nextAllLogs, targetGoal);
 
     // If currently inspecting this subject in the studio, update componentInputs in real time
     if (selectedSubjectName === cleanName) {
@@ -771,12 +866,15 @@ export default function AttendanceTracker() {
     }
   }
 
-  // Clear all of today's check-ins and rollback all attended/delivered counts
-  function handleResetTodayCheckins() {
+  // Clear all check-ins for the selected date and rollback attended/delivered counts
+  function handleResetDateCheckins(dateKey = selectedCheckInDateKey) {
+    const dateLogs = allDailyLogs[dateKey];
+    if (!dateLogs || Object.keys(dateLogs).length === 0) return;
+
     let nextSavedList = [...savedSubjects];
 
-    todayClasses.forEach((period) => {
-      const status = dailyAttendanceLogs[period.slotIndex];
+    selectedDayClasses.forEach((period) => {
+      const status = dateLogs[period.slotIndex];
       if (status === "present" || status === "absent") {
         const cleanName = period.cleanName || cleanSubjectBaseName(period.subject);
         const compType = (period.type || "PP").toUpperCase();
@@ -796,14 +894,20 @@ export default function AttendanceTracker() {
             }
             return c;
           });
+          sub.lastUpdated = new Date().toISOString();
           nextSavedList[existingIdx] = sub;
         }
       }
     });
 
-    setDailyAttendanceLogs({});
+    const nextAllLogs = { ...allDailyLogs };
+    delete nextAllLogs[dateKey];
+    setAllDailyLogs(nextAllLogs);
+    if (dateKey === todayDateKey) {
+      setDailyAttendanceLogs({});
+    }
     setSavedSubjects(nextSavedList);
-    syncAttendanceToDb(nextSavedList, {}, targetGoal);
+    syncAttendanceToDb(nextSavedList, nextAllLogs, targetGoal);
   }
 
   const [saveSuccessAlert, setSaveSuccessAlert] = useState(false);
@@ -1863,47 +1967,84 @@ export default function AttendanceTracker() {
                   overflow: "hidden",
                 }}
               >
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 8 }}>
+          {/* Header & Date Navigation Toolbar */}
+          <div
+            style={{
+              display: "flex",
+              flexDirection: isMobile ? "column" : "row",
+              justifyContent: "space-between",
+              alignItems: isMobile ? "flex-start" : "center",
+              gap: 12,
+              paddingBottom: 12,
+              borderBottom: "1px solid #f1f5f9",
+            }}
+          >
+            {/* Title & Info */}
             <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
               <div
                 style={{
-                  width: 36,
-                  height: 36,
+                  width: 38,
+                  height: 38,
                   borderRadius: 10,
-                  background: "linear-gradient(135deg, #059669 0%, #10b981 100%)",
+                  background: isSelectedToday
+                    ? "linear-gradient(135deg, #059669 0%, #10b981 100%)"
+                    : isSelectedYesterday
+                    ? "linear-gradient(135deg, #2563eb 0%, #3b82f6 100%)"
+                    : "linear-gradient(135deg, #475569 0%, #64748b 100%)",
                   color: "#ffffff",
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
                   flexShrink: 0,
+                  boxShadow: isSelectedToday ? "0 2px 8px rgba(16, 185, 129, 0.25)" : "none",
                 }}
               >
-                <CalendarIcon size={18} />
+                <CalendarIcon size={19} />
               </div>
               <div>
-                <h3 style={{ fontSize: isMobile ? 15 : 17, fontWeight: 800, color: "#0f172a", margin: 0 }}>
-                  Today's Class Check-in ({todayDayName})
-                </h3>
+                <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                  <h3 style={{ fontSize: isMobile ? 15 : 17, fontWeight: 800, color: "#0f172a", margin: 0 }}>
+                    {isSelectedToday
+                      ? `Today's Class Check-in`
+                      : isSelectedYesterday
+                      ? `Yesterday's Class Check-in`
+                      : `Class Check-in`}
+                  </h3>
+                  <span
+                    style={{
+                      fontSize: 10.5,
+                      fontWeight: 800,
+                      padding: "2px 8px",
+                      borderRadius: 999,
+                      background: isSelectedToday ? "#dcfce7" : isSelectedYesterday ? "#eff6ff" : "#f1f5f9",
+                      color: isSelectedToday ? "#15803d" : isSelectedYesterday ? "#1d4ed8" : "#475569",
+                      border: `1px solid ${isSelectedToday ? "#bbf7d0" : isSelectedYesterday ? "#bfdbfe" : "#e2e8f0"}`,
+                    }}
+                  >
+                    {selectedDayName}, {formatFriendlyDate(selectedCheckInDateKey)}
+                  </span>
+                </div>
                 <p style={{ fontSize: 12, color: "#64748b", margin: "2px 0 0 0" }}>
-                  {isTodaySunday
-                    ? "Sunday is a scheduled weekend holiday. No attendance check-in is required today."
-                    : "Mark attendance as each class ends to auto-increment your saved records in real time."}
+                  {isSelectedSunday
+                    ? "Sunday is a scheduled weekend holiday. No academic attendance is recorded."
+                    : "Mark or adjust attendance per class to auto-increment and sync your cloud records in real time."}
                 </p>
               </div>
             </div>
 
-            <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-              {Object.keys(dailyAttendanceLogs).length > 0 && (
+            {/* Quick Stats & Reset Action */}
+            <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", width: isMobile ? "100%" : "auto", justifyContent: isMobile ? "space-between" : "flex-end" }}>
+              {Object.keys(activeDateLogs).length > 0 && (
                 <button
                   type="button"
-                  onClick={handleResetTodayCheckins}
+                  onClick={() => handleResetDateCheckins(selectedCheckInDateKey)}
                   style={{
                     fontSize: 11,
                     fontWeight: 700,
                     color: "#dc2626",
                     background: "#fef2f2",
                     border: "1px solid #fecaca",
-                    padding: "4px 10px",
+                    padding: "5px 10px",
                     borderRadius: 8,
                     cursor: "pointer",
                     display: "inline-flex",
@@ -1912,28 +2053,29 @@ export default function AttendanceTracker() {
                   }}
                 >
                   <RotateCcw size={12} />
-                  <span>Reset Today</span>
+                  <span>Reset {isSelectedToday ? "Today" : isSelectedYesterday ? "Yesterday" : "Date"}</span>
                 </button>
               )}
+
               {(() => {
-                const presentCount = Object.values(dailyAttendanceLogs).filter((v) => v === "present").length;
-                const absentCount = Object.values(dailyAttendanceLogs).filter((v) => v === "absent").length;
+                const presentCount = Object.values(activeDateLogs).filter((v) => v === "present").length;
+                const absentCount = Object.values(activeDateLogs).filter((v) => v === "absent").length;
                 const totalLogged = presentCount + absentCount;
 
-                if (isTodaySunday || todayClasses.length === 0) {
+                if (isSelectedSunday || selectedDayClasses.length === 0) {
                   return (
                     <span
                       style={{
                         fontSize: 11.5,
                         fontWeight: 800,
-                        color: isTodaySunday ? "#d97706" : "#64748b",
-                        background: isTodaySunday ? "#fffbeb" : "#f1f5f9",
-                        border: `1px solid ${isTodaySunday ? "#fde68a" : "#e2e8f0"}`,
-                        padding: "3px 10px",
+                        color: isSelectedSunday ? "#d97706" : "#64748b",
+                        background: isSelectedSunday ? "#fffbeb" : "#f1f5f9",
+                        border: `1px solid ${isSelectedSunday ? "#fde68a" : "#e2e8f0"}`,
+                        padding: "4px 10px",
                         borderRadius: 8,
                       }}
                     >
-                      {isTodaySunday ? "Weekend · No Classes Today" : "No Classes Today"}
+                      {isSelectedSunday ? "Weekend · No Classes" : "No Classes"}
                     </span>
                   );
                 }
@@ -1946,28 +2088,178 @@ export default function AttendanceTracker() {
                       color: totalLogged > 0 ? "#0f766e" : "#059669",
                       background: totalLogged > 0 ? "#f0fdfa" : "#ecfdf5",
                       border: `1px solid ${totalLogged > 0 ? "#99f6e4" : "#a7f3d0"}`,
-                      padding: "3px 10px",
+                      padding: "4px 10px",
                       borderRadius: 8,
                     }}
                   >
                     {totalLogged === 0
-                      ? `0 / ${todayClasses.length} Logged Today`
-                      : `${presentCount} Present · ${absentCount} Absent (${totalLogged}/${todayClasses.length})`}
+                      ? `0 / ${selectedDayClasses.length} Logged`
+                      : `${presentCount} Present · ${absentCount} Absent (${totalLogged}/${selectedDayClasses.length})`}
                   </span>
                 );
               })()}
             </div>
           </div>
 
-          {todayClasses.length === 0 ? (
+          {/* Date Navigation Bar (Prev Day, Date Picker, Next Day, Shortcut Chips) */}
+          <div
+            style={{
+              background: "#f8fafc",
+              border: "1px solid #e2e8f0",
+              borderRadius: 12,
+              padding: "8px 12px",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              flexWrap: "wrap",
+              gap: 8,
+            }}
+          >
+            {/* Stepper Controls */}
+            <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+              {/* Prev Day Button */}
+              <button
+                type="button"
+                onClick={handlePrevDay}
+                disabled={!canGoPrev}
+                style={{
+                  padding: "6px 12px",
+                  borderRadius: 8,
+                  border: `1px solid ${canGoPrev ? "#cbd5e1" : "#e2e8f0"}`,
+                  background: canGoPrev ? "#ffffff" : "#f1f5f9",
+                  color: canGoPrev ? "#0f172a" : "#94a3b8",
+                  fontSize: 12,
+                  fontWeight: 700,
+                  cursor: canGoPrev ? "pointer" : "not-allowed",
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 4,
+                  transition: "all 0.15s ease",
+                }}
+                title={canGoPrev ? "Go to previous day" : `Initial tracking start date (${formatFriendlyDate(minTrackingDateKey)})`}
+              >
+                <ChevronLeft size={14} />
+                <span>Prev Day</span>
+              </button>
+
+              {/* Native / Interactive Date Picker Centerpiece */}
+              <label
+                style={{
+                  position: "relative",
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 6,
+                  padding: "6px 12px",
+                  borderRadius: 8,
+                  background: "#ffffff",
+                  border: "1px solid #cbd5e1",
+                  fontSize: 12,
+                  fontWeight: 800,
+                  color: "#0f172a",
+                  cursor: "pointer",
+                  boxShadow: "0 1px 2px rgba(0,0,0,0.03)",
+                }}
+              >
+                <CalendarIcon size={14} color="#2563eb" />
+                <span>{formatFriendlyDate(selectedCheckInDateKey)}</span>
+                <input
+                  type="date"
+                  min={minTrackingDateKey}
+                  max={todayDateKey}
+                  value={selectedCheckInDateKey}
+                  onChange={(e) => {
+                    if (e.target.value) {
+                      handleSelectDate(e.target.value);
+                    }
+                  }}
+                  style={{
+                    position: "absolute",
+                    inset: 0,
+                    opacity: 0,
+                    cursor: "pointer",
+                    width: "100%",
+                    height: "100%",
+                  }}
+                />
+              </label>
+
+              {/* Next Day Button */}
+              <button
+                type="button"
+                onClick={handleNextDay}
+                disabled={!canGoNext}
+                style={{
+                  padding: "6px 12px",
+                  borderRadius: 8,
+                  border: `1px solid ${canGoNext ? "#cbd5e1" : "#e2e8f0"}`,
+                  background: canGoNext ? "#ffffff" : "#f1f5f9",
+                  color: canGoNext ? "#0f172a" : "#94a3b8",
+                  fontSize: 12,
+                  fontWeight: 700,
+                  cursor: canGoNext ? "pointer" : "not-allowed",
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 4,
+                  transition: "all 0.15s ease",
+                }}
+                title={canGoNext ? "Go to next day" : "Cannot mark future dates beyond today"}
+              >
+                <span>Next Day</span>
+                <ChevronRight size={14} />
+              </button>
+            </div>
+
+            {/* Quick Date Shortcut Chips */}
+            <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+              <button
+                type="button"
+                onClick={() => setSelectedCheckInDateKey(todayDateKey)}
+                style={{
+                  padding: "5px 10px",
+                  borderRadius: 7,
+                  fontSize: 11,
+                  fontWeight: 800,
+                  cursor: "pointer",
+                  border: isSelectedToday ? "1px solid #86efac" : "1px solid #e2e8f0",
+                  background: isSelectedToday ? "#dcfce7" : "#ffffff",
+                  color: isSelectedToday ? "#15803d" : "#475569",
+                  transition: "all 0.15s ease",
+                }}
+              >
+                Today
+              </button>
+
+              {yesterdayDateKey >= minTrackingDateKey && (
+                <button
+                  type="button"
+                  onClick={() => setSelectedCheckInDateKey(yesterdayDateKey)}
+                  style={{
+                    padding: "5px 10px",
+                    borderRadius: 7,
+                    fontSize: 11,
+                    fontWeight: 800,
+                    cursor: "pointer",
+                    border: isSelectedYesterday ? "1px solid #bfdbfe" : "1px solid #e2e8f0",
+                    background: isSelectedYesterday ? "#eff6ff" : "#ffffff",
+                    color: isSelectedYesterday ? "#1d4ed8" : "#475569",
+                    transition: "all 0.15s ease",
+                  }}
+                >
+                  Yesterday
+                </button>
+              )}
+            </div>
+          </div>
+
+          {selectedDayClasses.length === 0 ? (
             <div
               style={{
-                background: isTodaySunday ? "#fffbeb" : "#f8fafc",
-                border: `1.5px dashed ${isTodaySunday ? "#fde68a" : "#cbd5e1"}`,
+                background: isSelectedSunday ? "#fffbeb" : "#f8fafc",
+                border: `1.5px dashed ${isSelectedSunday ? "#fde68a" : "#cbd5e1"}`,
                 borderRadius: 14,
                 padding: "20px 24px",
                 textAlign: "center",
-                color: isTodaySunday ? "#92400e" : "#64748b",
+                color: isSelectedSunday ? "#92400e" : "#64748b",
                 fontSize: 13.5,
                 fontWeight: 600,
                 display: "flex",
@@ -1977,11 +2269,11 @@ export default function AttendanceTracker() {
                 gap: 10,
               }}
             >
-              <Info size={18} color={isTodaySunday ? "#d97706" : "#64748b"} />
+              <Info size={18} color={isSelectedSunday ? "#d97706" : "#64748b"} />
               <span>
-                {isTodaySunday
-                  ? `Today is Sunday — Weekend Holiday. No classes are scheduled for Section ${selectedSection}. Enjoy your weekend!`
-                  : `No academic classes scheduled for ${todayDayName} (Section ${selectedSection}). Enjoy your day.`}
+                {isSelectedSunday
+                  ? `Sunday is a weekend holiday. No classes are scheduled for Section ${selectedSection}.`
+                  : `No academic classes scheduled for ${selectedDayName} (Section ${selectedSection}).`}
               </span>
             </div>
           ) : (
@@ -1992,8 +2284,8 @@ export default function AttendanceTracker() {
                 gap: 10,
               }}
             >
-              {todayClasses.map((period) => {
-                const status = dailyAttendanceLogs[period.slotIndex]; // "present" | "absent" | undefined
+              {selectedDayClasses.map((period) => {
+                const status = activeDateLogs[period.slotIndex]; // "present" | "absent" | undefined
                 const isPresent = status === "present";
                 const isAbsent = status === "absent";
                 const subCode = resolveSubjectCode(period, studentData);
