@@ -1141,6 +1141,8 @@ export default function AttendanceTracker() {
     }, 150);
   };
 
+  const [isResetModalOpen, setIsResetModalOpen] = useState(false);
+
   const navMenuItems = [
     { id: "matrix", label: "Attendance Hub", icon: <Layers size={14} />, badge: `${allSectionSubjects.length} Subs` },
     { id: "studio", label: "Predictor Studio", icon: <Sliders size={14} />, badge: "Simulate" },
@@ -1148,13 +1150,7 @@ export default function AttendanceTracker() {
   ];
 
   const handleResetAllAttendance = () => {
-    if (window.confirm("Are you sure you want to reset all attendance check-ins and revert to default routine values?")) {
-      setSavedSubjects([]);
-      setAllDailyLogs({});
-      localStorage.removeItem("gradeflow_saved_attendance");
-      localStorage.removeItem("gradeflow_daily_attendance_logs");
-      syncAttendanceToDb([], {}, targetGoal);
-    }
+    setIsResetModalOpen(true);
   };
 
   if (pageLoading || isSearching) {
@@ -1195,568 +1191,485 @@ export default function AttendanceTracker() {
           padding: isMobile ? "12px 10px 80px 10px" : "24px 32px 90px 32px",
           display: "grid",
           gridTemplateColumns: isMobile ? "1fr" : "280px minmax(0, 1fr)",
-          gap: isMobile ? 14 : 24,
+          gap: isMobile ? 12 : 24,
           alignItems: "start",
           boxSizing: "border-box",
           width: "100%",
         }}
       >
         {/* ══════════════════════════════════════════════════════════
-            LEFT SIDEBAR NAVIGATION / MOBILE PROFILE CARD
+            LEFT SIDEBAR NAVIGATION (Desktop Only)
         ══════════════════════════════════════════════════════════ */}
-        <aside
-          style={{
-            position: isMobile ? "relative" : "sticky",
-            top: isMobile ? "auto" : 20,
-            maxHeight: isMobile ? "none" : "calc(100vh - 40px)",
-            overflowY: isMobile ? "visible" : "auto",
-            display: "flex",
-            flexDirection: "column",
-            margin: 0,
-            padding: 0,
-            width: "100%",
-            boxSizing: "border-box",
-          }}
-        >
-          {/* Main Unified Sidebar Card */}
-          <div
+        {!isMobile && (
+          <aside
             style={{
-              background: "#ffffff",
-              border: "1px solid #cbd5e1",
-              borderRadius: 16,
-              padding: isMobile ? "14px 14px" : "16px 14px",
+              position: "sticky",
+              top: 20,
+              maxHeight: "calc(100vh - 40px)",
+              overflowY: "auto",
               display: "flex",
               flexDirection: "column",
-              gap: isMobile ? 10 : 14,
+              margin: 0,
+              padding: 0,
+              width: "100%",
+              boxSizing: "border-box",
             }}
           >
-            {/* 1. Student Profile Header */}
-            <div>
-              <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: isMobile ? 8 : 10 }}>
-                <div
-                  style={{
-                    width: isMobile ? 38 : 42,
-                    height: isMobile ? 38 : 42,
-                    borderRadius: 12,
-                    background: "linear-gradient(135deg, #059669 0%, #10b981 100%)",
-                    color: "#ffffff",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    fontSize: isMobile ? 15 : 17,
-                    fontWeight: 800,
-                    flexShrink: 0,
-                    boxShadow: "0 2px 8px rgba(16, 185, 129, 0.25)",
-                  }}
-                >
-                  {activeStudentName ? activeStudentName.charAt(0).toUpperCase() : "A"}
-                </div>
-                <div style={{ minWidth: 0, flex: 1 }}>
-                  <h3
-                    style={{
-                      fontSize: isMobile ? 14 : 14.5,
-                      fontWeight: 800,
-                      color: "#0f172a",
-                      margin: "0 0 2px 0",
-                      overflow: "hidden",
-                      textOverflow: "ellipsis",
-                      whiteSpace: "nowrap",
-                    }}
-                    title={activeStudentName || `Section ${selectedSection}`}
-                  >
-                    {activeStudentName || `Section ${selectedSection}`}
-                  </h3>
-                  {currentRegNo ? (
-                    <span
-                      style={{
-                        fontFamily: "'DM Sans', monospace",
-                        fontSize: 11,
-                        color: "#475569",
-                        fontWeight: 700,
-                        background: "#f1f5f9",
-                        padding: "2px 6px",
-                        borderRadius: 5,
-                        border: "1px solid #e2e8f0",
-                        display: "inline-block",
-                      }}
-                    >
-                      {currentRegNo}
-                    </span>
-                  ) : (
-                    <span style={{ fontSize: 10.5, color: "#64748b", fontWeight: 600 }}>
-                      Section {selectedSection} Routine
-                    </span>
-                  )}
-                </div>
-              </div>
-
-              {/* Student Meta Details */}
-              <div
-                style={{
-                  display: "grid",
-                  gridTemplateColumns: "repeat(3, 1fr)",
-                  gap: 4,
-                  padding: "6px 8px",
-                  background: "#f8fafc",
-                  borderRadius: 8,
-                  border: "1px solid #f1f5f9",
-                  fontSize: 11,
-                  textAlign: "center",
-                }}
-              >
-                <div>
-                  <div style={{ color: "#94a3b8", fontSize: 9.5, fontWeight: 700, textTransform: "uppercase" }}>Branch</div>
-                  <strong style={{ color: "#0f172a" }}>CSE</strong>
-                </div>
-                <div>
-                  <div style={{ color: "#94a3b8", fontSize: 9.5, fontWeight: 700, textTransform: "uppercase" }}>Sec</div>
-                  <strong style={{ color: "#059669" }}>{selectedSection}</strong>
-                </div>
-                <div>
-                  <div style={{ color: "#94a3b8", fontSize: 9.5, fontWeight: 700, textTransform: "uppercase" }}>Status</div>
-                  <strong style={{ color: overallCalculation.isEligible ? "#059669" : "#dc2626" }}>
-                    {overallCalculation.isEligible ? "Eligible" : "Shortage"}
-                  </strong>
-                </div>
-              </div>
-            </div>
-
-            {/* Admin / Privileged Student Lookup Search Bar (Only for Admin & 230301120327) */}
-            {isSearchAuthorized && (
-              <div
-                style={{
-                  background: "#0f172a",
-                  borderRadius: 12,
-                  padding: "10px 12px",
-                  display: "flex",
-                  flexDirection: "column",
-                  gap: 6,
-                  color: "#ffffff",
-                }}
-              >
-                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 10.5, fontWeight: 800, color: "#38bdf8", textTransform: "uppercase", letterSpacing: "0.5px" }}>
-                    <ShieldCheck size={12} color="#38bdf8" />
-                    <span>Lookup Student</span>
-                  </div>
-                  <span style={{ fontSize: 9, fontWeight: 900, background: "#1e293b", color: "#94a3b8", padding: "1px 5px", borderRadius: 4 }}>
-                    Admin Mode
-                  </span>
-                </div>
-
-                <form onSubmit={handleSearchStudent} style={{ display: "flex", gap: 5 }}>
-                  <div style={{ position: "relative", flex: 1, display: "flex", alignItems: "center" }}>
-                    <Search size={12} color="#64748b" style={{ position: "absolute", left: 8, pointerEvents: "none" }} />
-                    <input
-                      type="text"
-                      placeholder="Reg No (e.g. 230301120001)"
-                      value={searchRegInput}
-                      onChange={(e) => setSearchRegInput(e.target.value)}
-                      style={{
-                        width: "100%",
-                        padding: "5px 6px 5px 24px",
-                        borderRadius: 6,
-                        border: "1px solid #334155",
-                        background: "#1e293b",
-                        color: "#ffffff",
-                        fontSize: 11,
-                        fontWeight: 600,
-                        outline: "none",
-                        boxSizing: "border-box",
-                      }}
-                    />
-                  </div>
-                  <button
-                    type="submit"
-                    disabled={isSearching}
-                    style={{
-                      padding: "5px 9px",
-                      borderRadius: 6,
-                      border: "none",
-                      background: "#2563eb",
-                      color: "#ffffff",
-                      fontSize: 11,
-                      fontWeight: 800,
-                      cursor: isSearching ? "not-allowed" : "pointer",
-                      display: "inline-flex",
-                      alignItems: "center",
-                      gap: 3,
-                      flexShrink: 0,
-                    }}
-                  >
-                    <span>{isSearching ? "..." : "Go"}</span>
-                    <ArrowRight size={10} />
-                  </button>
-                </form>
-
-                {searchError && (
-                  <div style={{ fontSize: 10, color: "#f87171", fontWeight: 600 }}>
-                    {searchError}
-                  </div>
-                )}
-              </div>
-            )}
-
-            <div style={{ height: 1, background: "#f1f5f9" }} />
-
-            {/* 2. Section Display / Switcher */}
-            {isSearchAuthorized ? (
-              /* Admin Multi-Section Switcher */
+            {/* Main Unified Sidebar Card */}
+            <div
+              style={{
+                background: "#ffffff",
+                border: "1px solid #cbd5e1",
+                borderRadius: 16,
+                padding: "16px 14px",
+                display: "flex",
+                flexDirection: "column",
+                gap: 14,
+              }}
+            >
+              {/* 1. Student Profile Header */}
               <div>
-                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
-                  <span style={{ fontSize: 10.5, fontWeight: 800, color: "#64748b", textTransform: "uppercase", letterSpacing: "0.5px" }}>
-                    Switch Section (Admin)
-                  </span>
-                  <span style={{ fontSize: 10, color: "#94a3b8", fontWeight: 600 }}>
-                    {ALL_SECTIONS.length} Sections
-                  </span>
-                </div>
-
-                <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 4 }}>
-                  {ALL_SECTIONS.map((sec) => {
-                    const isActive = selectedSection === sec;
-                    return (
-                      <button
-                        key={sec}
-                        type="button"
-                        onClick={() => setSelectedSection(sec)}
+                <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}>
+                  <div
+                    style={{
+                      width: 42,
+                      height: 42,
+                      borderRadius: 12,
+                      background: "linear-gradient(135deg, #059669 0%, #10b981 100%)",
+                      color: "#ffffff",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      fontSize: 17,
+                      fontWeight: 800,
+                      flexShrink: 0,
+                      boxShadow: "0 2px 8px rgba(16, 185, 129, 0.25)",
+                    }}
+                  >
+                    {activeStudentName ? activeStudentName.charAt(0).toUpperCase() : "A"}
+                  </div>
+                  <div style={{ minWidth: 0, flex: 1 }}>
+                    <h3
+                      style={{
+                        fontSize: 14.5,
+                        fontWeight: 800,
+                        color: "#0f172a",
+                        margin: "0 0 2px 0",
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                        whiteSpace: "nowrap",
+                      }}
+                      title={activeStudentName || `Section ${selectedSection}`}
+                    >
+                      {activeStudentName || `Section ${selectedSection}`}
+                    </h3>
+                    {currentRegNo ? (
+                      <span
                         style={{
-                          padding: "5px 0",
-                          borderRadius: 7,
-                          border: isActive ? "1px solid #059669" : "1px solid #e2e8f0",
-                          background: isActive ? "#ecfdf5" : "#f8fafc",
-                          color: isActive ? "#065f46" : "#475569",
-                          fontSize: 11.5,
-                          fontWeight: isActive ? 800 : 600,
-                          cursor: "pointer",
-                          fontFamily: "'DM Sans', sans-serif",
-                          transition: "all 0.15s ease",
+                          fontFamily: "'DM Sans', monospace",
+                          fontSize: 11,
+                          color: "#475569",
+                          fontWeight: 700,
+                          background: "#f1f5f9",
+                          padding: "2px 6px",
+                          borderRadius: 5,
+                          border: "1px solid #e2e8f0",
+                          display: "inline-block",
                         }}
                       >
-                        {sec}
-                      </button>
-                    );
-                  })}
+                        {currentRegNo}
+                      </span>
+                    ) : (
+                      <span style={{ fontSize: 10.5, color: "#64748b", fontWeight: 600 }}>
+                        Section {selectedSection} Routine
+                      </span>
+                    )}
+                  </div>
                 </div>
-              </div>
-            ) : (
-              /* Student Locked Enrolled Section Card */
-              <div>
-                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 6 }}>
-                  <span style={{ fontSize: 10.5, fontWeight: 800, color: "#64748b", textTransform: "uppercase", letterSpacing: "0.5px" }}>
-                    Enrolled Section
-                  </span>
-                  <span style={{ fontSize: 10, color: "#059669", fontWeight: 700, background: "#ecfdf5", padding: "1px 6px", borderRadius: 4 }}>
-                    Assigned
-                  </span>
-                </div>
+
+                {/* Student Meta Details */}
                 <div
                   style={{
-                    padding: "8px 12px",
+                    display: "grid",
+                    gridTemplateColumns: "repeat(3, 1fr)",
+                    gap: 4,
+                    padding: "6px 8px",
+                    background: "#f8fafc",
                     borderRadius: 8,
-                    border: "1px solid #a7f3d0",
-                    background: "#ecfdf5",
-                    color: "#065f46",
-                    fontSize: 12.5,
-                    fontWeight: 800,
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "space-between",
+                    border: "1px solid #f1f5f9",
+                    fontSize: 11,
+                    textAlign: "center",
                   }}
                 >
-                  <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                    <Building size={14} color="#059669" />
-                    <span>Section {selectedSection}</span>
+                  <div>
+                    <div style={{ color: "#94a3b8", fontSize: 9.5, fontWeight: 700, textTransform: "uppercase" }}>Branch</div>
+                    <strong style={{ color: "#0f172a" }}>CSE</strong>
                   </div>
-                  <span style={{ fontSize: 10.5, fontWeight: 700, color: "#059669" }}>Locked</span>
+                  <div>
+                    <div style={{ color: "#94a3b8", fontSize: 9.5, fontWeight: 700, textTransform: "uppercase" }}>Sec</div>
+                    <strong style={{ color: "#059669" }}>{selectedSection}</strong>
+                  </div>
+                  <div>
+                    <div style={{ color: "#94a3b8", fontSize: 9.5, fontWeight: 700, textTransform: "uppercase" }}>Status</div>
+                    <strong style={{ color: overallCalculation.isEligible ? "#059669" : "#dc2626" }}>
+                      {overallCalculation.isEligible ? "Eligible" : "Shortage"}
+                    </strong>
+                  </div>
                 </div>
               </div>
-            )}
 
-            <div style={{ height: 1, background: "#f1f5f9" }} />
-
-            {/* 3. Dashboard Navigation Views Menu (Desktop Only) */}
-            {!isMobile && (
-              <>
-                <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
-                  <div style={{ fontSize: 10.5, fontWeight: 800, color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.5px", paddingLeft: 4, marginBottom: 4 }}>
-                    Views
+              {/* Admin / Privileged Student Lookup Search Bar (Only for Admin & 230301120327) */}
+              {isSearchAuthorized && (
+                <div
+                  style={{
+                    background: "#0f172a",
+                    borderRadius: 12,
+                    padding: "10px 12px",
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: 6,
+                    color: "#ffffff",
+                  }}
+                >
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 10.5, fontWeight: 800, color: "#38bdf8", textTransform: "uppercase", letterSpacing: "0.5px" }}>
+                      <ShieldCheck size={12} color="#38bdf8" />
+                      <span>Lookup Student</span>
+                    </div>
+                    <span style={{ fontSize: 9, fontWeight: 900, background: "#1e293b", color: "#94a3b8", padding: "1px 5px", borderRadius: 4 }}>
+                      Admin Mode
+                    </span>
                   </div>
 
-                  {navMenuItems.map((item) => {
-                    const isActive = activeTab === item.id;
-                    return (
-                      <button
-                        key={item.id}
-                        type="button"
-                        onClick={() => handleTabClick(item.id)}
+                  <form onSubmit={handleSearchStudent} style={{ display: "flex", gap: 5 }}>
+                    <div style={{ position: "relative", flex: 1, display: "flex", alignItems: "center" }}>
+                      <Search size={12} color="#64748b" style={{ position: "absolute", left: 8, pointerEvents: "none" }} />
+                      <input
+                        type="text"
+                        placeholder="Reg No (e.g. 230301120001)"
+                        value={searchRegInput}
+                        onChange={(e) => setSearchRegInput(e.target.value)}
                         style={{
                           width: "100%",
-                          display: "flex",
-                          alignItems: "center",
-                          gap: 9,
-                          padding: "8px 10px",
-                          borderRadius: 8,
-                          border: "none",
-                          background: isActive ? "#ecfdf5" : "transparent",
-                          color: isActive ? "#059669" : "#475569",
-                          fontSize: 12.5,
-                          fontWeight: isActive ? 800 : 500,
-                          cursor: "pointer",
-                          fontFamily: "'DM Sans', sans-serif",
-                          transition: "all 0.15s ease",
-                          textAlign: "left",
+                          padding: "5px 6px 5px 24px",
+                          borderRadius: 6,
+                          border: "1px solid #334155",
+                          background: "#1e293b",
+                          color: "#ffffff",
+                          fontSize: 11,
+                          fontWeight: 600,
+                          outline: "none",
+                          boxSizing: "border-box",
                         }}
-                        onMouseEnter={(e) => {
-                          if (!isActive) e.currentTarget.style.background = "#f8fafc";
-                        }}
-                        onMouseLeave={(e) => {
-                          if (!isActive) e.currentTarget.style.background = "transparent";
-                        }}
-                      >
-                        <span style={{ color: isActive ? "#059669" : "#64748b" }}>{item.icon}</span>
-                        <span style={{ flex: 1 }}>{item.label}</span>
-                        {isActive && <div style={{ width: 5, height: 5, borderRadius: "50%", background: "#059669" }} />}
-                      </button>
-                    );
-                  })}
+                      />
+                    </div>
+                    <button
+                      type="submit"
+                      disabled={isSearching}
+                      style={{
+                        padding: "5px 9px",
+                        borderRadius: 6,
+                        border: "none",
+                        background: "#2563eb",
+                        color: "#ffffff",
+                        fontSize: 11,
+                        fontWeight: 800,
+                        cursor: isSearching ? "not-allowed" : "pointer",
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: 3,
+                        flexShrink: 0,
+                      }}
+                    >
+                      <span>{isSearching ? "..." : "Go"}</span>
+                      <ArrowRight size={10} />
+                    </button>
+                  </form>
+
+                  {searchError && (
+                    <div style={{ fontSize: 10, color: "#f87171", fontWeight: 600 }}>
+                      {searchError}
+                    </div>
+                  )}
                 </div>
+              )}
 
-                <div style={{ height: 1, background: "#f1f5f9" }} />
-              </>
-            )}
+              <div style={{ height: 1, background: "#f1f5f9" }} />
 
-            {/* 4. Quick Actions / Tools */}
-            <div style={{ display: "flex", flexDirection: "column", gap: isMobile ? 6 : 5 }}>
-              <div style={{ fontSize: 10.5, fontWeight: 800, color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.5px", paddingLeft: 4, marginBottom: 2 }}>
-                Tools
-              </div>
+              {/* 2. Section Display / Switcher */}
+              {isSearchAuthorized ? (
+                /* Admin Multi-Section Switcher */
+                <div>
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
+                    <span style={{ fontSize: 10.5, fontWeight: 800, color: "#64748b", textTransform: "uppercase", letterSpacing: "0.5px" }}>
+                      Switch Section (Admin)
+                    </span>
+                    <span style={{ fontSize: 10, color: "#94a3b8", fontWeight: 600 }}>
+                      {ALL_SECTIONS.length} Sections
+                    </span>
+                  </div>
 
-              {isMobile ? (
-                /* Mobile 3-Button Compact Row */
-                <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 6 }}>
-                  <button
-                    type="button"
-                    onClick={handleOpenScreenshotModal}
-                    style={{
-                      display: "flex",
-                      flexDirection: "column",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      gap: 4,
-                      padding: "8px 4px",
-                      borderRadius: 8,
-                      border: "1px solid #dcfce7",
-                      background: "#f0fdf4",
-                      color: "#166534",
-                      fontSize: 11,
-                      fontWeight: 800,
-                      cursor: "pointer",
-                      fontFamily: "'DM Sans', sans-serif",
-                    }}
-                  >
-                    <Camera size={14} color="#059669" />
-                    <span>Auto-Import</span>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setSelectedCheckInDateKey(todayDateKey);
-                      handleTabClick("matrix");
-                    }}
-                    style={{
-                      display: "flex",
-                      flexDirection: "column",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      gap: 4,
-                      padding: "8px 4px",
-                      borderRadius: 8,
-                      border: "1px solid #e0e7ff",
-                      background: "#eef2ff",
-                      color: "#3730a3",
-                      fontSize: 11,
-                      fontWeight: 800,
-                      cursor: "pointer",
-                      fontFamily: "'DM Sans', sans-serif",
-                    }}
-                  >
-                    <CalendarIcon size={14} color="#4f46e5" />
-                    <span>Check-in</span>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => handleTabClick("bunk_analyzer")}
-                    style={{
-                      display: "flex",
-                      flexDirection: "column",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      gap: 4,
-                      padding: "8px 4px",
-                      borderRadius: 8,
-                      border: "1px solid #f1f5f9",
-                      background: "#f8fafc",
-                      color: "#334155",
-                      fontSize: 11,
-                      fontWeight: 800,
-                      cursor: "pointer",
-                      fontFamily: "'DM Sans', sans-serif",
-                    }}
-                  >
-                    <Zap size={14} color="#2563eb" />
-                    <span>Planner</span>
-                  </button>
+                  <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 4 }}>
+                    {ALL_SECTIONS.map((sec) => {
+                      const isActive = selectedSection === sec;
+                      return (
+                        <button
+                          key={sec}
+                          type="button"
+                          onClick={() => setSelectedSection(sec)}
+                          style={{
+                            padding: "5px 0",
+                            borderRadius: 7,
+                            border: isActive ? "1px solid #059669" : "1px solid #e2e8f0",
+                            background: isActive ? "#ecfdf5" : "#f8fafc",
+                            color: isActive ? "#065f46" : "#475569",
+                            fontSize: 11.5,
+                            fontWeight: isActive ? 800 : 600,
+                            cursor: "pointer",
+                            fontFamily: "'DM Sans', sans-serif",
+                            transition: "all 0.15s ease",
+                          }}
+                        >
+                          {sec}
+                        </button>
+                      );
+                    })}
+                  </div>
                 </div>
               ) : (
-                /* Desktop Vertical Action List */
-                <>
-                  <button
-                    type="button"
-                    onClick={handleOpenScreenshotModal}
-                    style={{
-                      width: "100%",
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 8,
-                      padding: "7px 9px",
-                      borderRadius: 7,
-                      border: "1px solid #bbf7d0",
-                      background: "#f0fdf4",
-                      color: "#166534",
-                      fontSize: 12,
-                      fontWeight: 700,
-                      cursor: "pointer",
-                      fontFamily: "'DM Sans', sans-serif",
-                      transition: "all 0.15s ease",
-                    }}
-                  >
-                    <Camera size={13} color="#059669" />
-                    <span style={{ flex: 1, textAlign: "left" }}>Auto-Import Scan</span>
-                    <span style={{ fontSize: 9.5, fontWeight: 900, background: "#dcfce7", color: "#15803d", padding: "1px 5px", borderRadius: 4 }}>
-                      {scanStatus.isExempt ? "Unlimited" : `${scanStatus.remaining}/${scanStatus.max}`}
+                /* Student Locked Enrolled Section Card */
+                <div>
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 6 }}>
+                    <span style={{ fontSize: 10.5, fontWeight: 800, color: "#64748b", textTransform: "uppercase", letterSpacing: "0.5px" }}>
+                      Enrolled Section
                     </span>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setSelectedCheckInDateKey(todayDateKey);
-                      handleTabClick("matrix");
-                    }}
+                    <span style={{ fontSize: 10, color: "#059669", fontWeight: 700, background: "#ecfdf5", padding: "1px 6px", borderRadius: 4 }}>
+                      Assigned
+                    </span>
+                  </div>
+                  <div
                     style={{
-                      width: "100%",
+                      padding: "8px 12px",
+                      borderRadius: 8,
+                      border: "1px solid #a7f3d0",
+                      background: "#ecfdf5",
+                      color: "#065f46",
+                      fontSize: 12.5,
+                      fontWeight: 800,
                       display: "flex",
                       alignItems: "center",
-                      gap: 8,
-                      padding: "7px 9px",
-                      borderRadius: 7,
-                      border: "1px solid #f1f5f9",
-                      background: "#f8fafc",
-                      color: "#334155",
-                      fontSize: 12,
-                      fontWeight: 600,
-                      cursor: "pointer",
-                      fontFamily: "'DM Sans', sans-serif",
-                      transition: "all 0.15s ease",
-                    }}
-                    onMouseEnter={(e) => (e.currentTarget.style.background = "#f1f5f9")}
-                    onMouseLeave={(e) => (e.currentTarget.style.background = "#f8fafc")}
-                  >
-                    <CalendarIcon size={13} color="#2563eb" />
-                    <span style={{ flex: 1, textAlign: "left" }}>Mark Today's Attendance</span>
-                    <ArrowRight size={11} color="#94a3b8" />
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => handleResetAllAttendance()}
-                    style={{
-                      width: "100%",
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 8,
-                      padding: "7px 9px",
-                      borderRadius: 7,
-                      border: "1px solid #fee2e2",
-                      background: "#fff1f2",
-                      color: "#991b1b",
-                      fontSize: 12,
-                      fontWeight: 600,
-                      cursor: "pointer",
-                      fontFamily: "'DM Sans', sans-serif",
-                      transition: "all 0.15s ease",
+                      justifyContent: "space-between",
                     }}
                   >
-                    <RotateCcw size={13} color="#dc2626" />
-                    <span style={{ flex: 1, textAlign: "left" }}>Reset Attendance Data</span>
-                  </button>
-                </>
+                    <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                      <Building size={14} color="#059669" />
+                      <span>Section {selectedSection}</span>
+                    </div>
+                    <span style={{ fontSize: 10.5, fontWeight: 700, color: "#059669" }}>Locked</span>
+                  </div>
+                </div>
               )}
+
+              <div style={{ height: 1, background: "#f1f5f9" }} />
+
+              {/* 3. Dashboard Navigation Views Menu */}
+              <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+                <div style={{ fontSize: 10.5, fontWeight: 800, color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.5px", paddingLeft: 4, marginBottom: 4 }}>
+                  Views
+                </div>
+
+                {navMenuItems.map((item) => {
+                  const isActive = activeTab === item.id;
+                  return (
+                    <button
+                      key={item.id}
+                      type="button"
+                      onClick={() => handleTabClick(item.id)}
+                      style={{
+                        width: "100%",
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 9,
+                        padding: "8px 10px",
+                        borderRadius: 8,
+                        border: "none",
+                        background: isActive ? "#ecfdf5" : "transparent",
+                        color: isActive ? "#059669" : "#475569",
+                        fontSize: 12.5,
+                        fontWeight: isActive ? 800 : 500,
+                        cursor: "pointer",
+                        fontFamily: "'DM Sans', sans-serif",
+                        transition: "all 0.15s ease",
+                        textAlign: "left",
+                      }}
+                      onMouseEnter={(e) => {
+                        if (!isActive) e.currentTarget.style.background = "#f8fafc";
+                      }}
+                      onMouseLeave={(e) => {
+                        if (!isActive) e.currentTarget.style.background = "transparent";
+                      }}
+                    >
+                      <span style={{ color: isActive ? "#059669" : "#64748b" }}>{item.icon}</span>
+                      <span style={{ flex: 1 }}>{item.label}</span>
+                      {isActive && <div style={{ width: 5, height: 5, borderRadius: "50%", background: "#059669" }} />}
+                    </button>
+                  );
+                })}
+              </div>
+
+              <div style={{ height: 1, background: "#f1f5f9" }} />
+
+              {/* 4. Quick Actions / Tools */}
+              <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
+                <div style={{ fontSize: 10.5, fontWeight: 800, color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.5px", paddingLeft: 4, marginBottom: 2 }}>
+                  Tools
+                </div>
+
+                <button
+                  type="button"
+                  onClick={handleOpenScreenshotModal}
+                  style={{
+                    width: "100%",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 8,
+                    padding: "7px 9px",
+                    borderRadius: 7,
+                    border: "1px solid #bbf7d0",
+                    background: "#f0fdf4",
+                    color: "#166534",
+                    fontSize: 12,
+                    fontWeight: 700,
+                    cursor: "pointer",
+                    fontFamily: "'DM Sans', sans-serif",
+                    transition: "all 0.15s ease",
+                  }}
+                >
+                  <Camera size={13} color="#059669" />
+                  <span style={{ flex: 1, textAlign: "left" }}>Auto-Import Scan</span>
+                  <span style={{ fontSize: 9.5, fontWeight: 900, background: "#dcfce7", color: "#15803d", padding: "1px 5px", borderRadius: 4 }}>
+                    {scanStatus.isExempt ? "Unlimited" : `${scanStatus.remaining}/${scanStatus.max}`}
+                  </span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSelectedCheckInDateKey(todayDateKey);
+                    handleTabClick("matrix");
+                  }}
+                  style={{
+                    width: "100%",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 8,
+                    padding: "7px 9px",
+                    borderRadius: 7,
+                    border: "1px solid #f1f5f9",
+                    background: "#f8fafc",
+                    color: "#334155",
+                    fontSize: 12,
+                    fontWeight: 600,
+                    cursor: "pointer",
+                    fontFamily: "'DM Sans', sans-serif",
+                    transition: "all 0.15s ease",
+                  }}
+                  onMouseEnter={(e) => (e.currentTarget.style.background = "#f1f5f9")}
+                  onMouseLeave={(e) => (e.currentTarget.style.background = "#f8fafc")}
+                >
+                  <CalendarIcon size={13} color="#2563eb" />
+                  <span style={{ flex: 1, textAlign: "left" }}>Mark Today's Attendance</span>
+                  <ArrowRight size={11} color="#94a3b8" />
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => handleResetAllAttendance()}
+                  style={{
+                    width: "100%",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 8,
+                    padding: "7px 9px",
+                    borderRadius: 7,
+                    border: "1px solid #fee2e2",
+                    background: "#fff1f2",
+                    color: "#991b1b",
+                    fontSize: 12,
+                    fontWeight: 600,
+                    cursor: "pointer",
+                    fontFamily: "'DM Sans', sans-serif",
+                    transition: "all 0.15s ease",
+                  }}
+                >
+                  <RotateCcw size={13} color="#dc2626" />
+                  <span style={{ flex: 1, textAlign: "left" }}>Reset Attendance Data</span>
+                </button>
+              </div>
             </div>
-          </div>
-        </aside>
+          </aside>
+        )}
 
         {/* ══════════════════════════════════════════════════════════
             RIGHT MAIN WORKSPACE PANEL
         ══════════════════════════════════════════════════════════ */}
-        <main style={{ display: "flex", flexDirection: "column", gap: isMobile ? 12 : 20, minWidth: 0, width: "100%", boxSizing: "border-box" }}>
-          {/* Mobile Sticky Views Sub-Navigation Bar with Left & Right Arrow Buttons */}
+        <main style={{ display: "flex", flexDirection: "column", gap: isMobile ? 10 : 20, minWidth: 0, width: "100%", boxSizing: "border-box" }}>
+          {/* ── MOBILE EXCLUSIVE TOP BAR: Full-Width Auto-Import CTA + 1-Line 3-Tab Segmented Switcher ── */}
           {isMobile && (
-            <div
-              style={{
-                position: "sticky",
-                top: 0,
-                zIndex: 20,
-                background: "#f1f5f9",
-                padding: "4px 0 6px 0",
-                display: "flex",
-                alignItems: "center",
-                gap: 5,
-                width: "100%",
-              }}
-            >
-              {/* Left Arrow Button */}
+            <div style={{ display: "flex", flexDirection: "column", gap: 8, width: "100%" }}>
+              {/* Full-width Auto-Import Button */}
               <button
                 type="button"
-                onClick={() => scrollTabs("left")}
-                disabled={!canScrollTabsLeft}
-                aria-label="Scroll views left"
+                onClick={handleOpenScreenshotModal}
                 style={{
-                  width: 28,
-                  height: 28,
-                  borderRadius: "50%",
-                  border: canScrollTabsLeft ? "1px solid #cbd5e1" : "1px solid #e2e8f0",
-                  background: "#ffffff",
-                  color: canScrollTabsLeft ? "#059669" : "#94a3b8",
+                  width: "100%",
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
-                  cursor: canScrollTabsLeft ? "pointer" : "default",
-                  flexShrink: 0,
-                  opacity: canScrollTabsLeft ? 1 : 0.4,
-                  transition: "all 0.15s ease",
-                  padding: 0,
+                  gap: 8,
+                  padding: "11px 14px",
+                  borderRadius: 12,
+                  border: "none",
+                  background: scanStatus.isLimitReached
+                    ? "#64748b"
+                    : "linear-gradient(135deg, #059669 0%, #047857 100%)",
+                  color: "#ffffff",
+                  fontSize: 13,
+                  fontWeight: 800,
+                  cursor: scanStatus.isLimitReached ? "not-allowed" : "pointer",
+                  fontFamily: "'DM Sans', sans-serif",
+                  boxShadow: scanStatus.isLimitReached ? "none" : "0 3px 10px rgba(5,150,105,0.25)",
                 }}
               >
-                <ChevronLeft size={15} />
+                <Camera size={16} />
+                <span>Auto-Import Screenshot</span>
+                <span
+                  style={{
+                    fontSize: 10,
+                    fontWeight: 900,
+                    padding: "2px 7px",
+                    borderRadius: 999,
+                    background: "rgba(255,255,255,0.25)",
+                    color: "#ffffff",
+                    marginLeft: 2,
+                  }}
+                >
+                  {scanStatus.isExempt ? "Unlimited" : `${scanStatus.remaining}/${scanStatus.max} left`}
+                </span>
               </button>
 
-              {/* Scrollable Tabs Track */}
+              {/* 1-Line Clean 3-Tab Segmented Control */}
               <div
-                ref={mobileTabsRef}
-                onScroll={checkTabsScroll}
                 style={{
-                  display: "flex",
-                  gap: 6,
-                  overflowX: "auto",
+                  background: "#ffffff",
+                  border: "1px solid #cbd5e1",
+                  borderRadius: 12,
+                  padding: 3,
+                  display: "grid",
+                  gridTemplateColumns: "repeat(3, 1fr)",
+                  gap: 4,
                   width: "100%",
-                  WebkitOverflowScrolling: "touch",
-                  scrollbarWidth: "none",
-                  msOverflowStyle: "none",
-                  scrollBehavior: "smooth",
+                  boxSizing: "border-box",
                 }}
               >
                 {navMenuItems.map((item) => {
@@ -1764,467 +1677,341 @@ export default function AttendanceTracker() {
                   return (
                     <button
                       key={item.id}
-                      data-tab-id={item.id}
                       type="button"
                       onClick={() => handleTabClick(item.id)}
                       style={{
-                        display: "inline-flex",
-                        alignItems: "center",
-                        gap: 6,
-                        padding: "7px 12px",
+                        padding: "8px 4px",
                         borderRadius: 8,
-                        border: isActive ? "1px solid #059669" : "1px solid #cbd5e1",
-                        background: isActive ? "#059669" : "#ffffff",
+                        border: "none",
+                        background: isActive ? "linear-gradient(135deg, #059669 0%, #047857 100%)" : "transparent",
                         color: isActive ? "#ffffff" : "#475569",
-                        fontSize: 12,
-                        fontWeight: isActive ? 700 : 500,
+                        fontSize: 11.5,
+                        fontWeight: isActive ? 800 : 600,
                         cursor: "pointer",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        gap: 4,
+                        transition: "all 0.15s ease",
                         whiteSpace: "nowrap",
-                        flexShrink: 0,
-                        fontFamily: "'DM Sans', sans-serif",
                         boxShadow: isActive ? "0 2px 6px rgba(5,150,105,0.25)" : "none",
                       }}
                     >
                       {item.icon}
-                      <span>{item.label}</span>
+                      <span>{item.label === "Attendance Hub" ? "Hub" : item.label === "Predictor Studio" ? "Predictor" : "Planner"}</span>
                     </button>
                   );
                 })}
               </div>
-
-              {/* Right Arrow Button */}
-              <button
-                type="button"
-                onClick={() => scrollTabs("right")}
-                disabled={!canScrollTabsRight}
-                aria-label="Scroll views right"
-                style={{
-                  width: 28,
-                  height: 28,
-                  borderRadius: "50%",
-                  border: canScrollTabsRight ? "1px solid #cbd5e1" : "1px solid #e2e8f0",
-                  background: "#ffffff",
-                  color: canScrollTabsRight ? "#059669" : "#94a3b8",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  cursor: canScrollTabsRight ? "pointer" : "default",
-                  flexShrink: 0,
-                  opacity: canScrollTabsRight ? 1 : 0.4,
-                  transition: "all 0.15s ease",
-                  padding: 0,
-                }}
-              >
-                <ChevronRight size={15} />
-              </button>
             </div>
           )}
 
-          {/* Top Academic & Attendance Overview Header Card */}
-          <div
-            style={{
-              background: "#ffffff",
-              border: "1px solid #cbd5e1",
-              borderRadius: 16,
-              padding: isMobile ? "12px 14px" : "20px 24px",
-              display: "flex",
-              flexDirection: "column",
-              gap: isMobile ? 8 : 14,
-            }}
-          >
-            {/* Header Content */}
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "space-between",
-                gap: 10,
-              }}
-            >
-              {isMobile ? (
-                /* Mobile Clean Single-Row Name + Section Badge */
-                <>
-                  <div style={{ minWidth: 0, flex: 1 }}>
-                    <h2
-                      style={{
-                        fontSize: 16,
-                        fontWeight: 800,
-                        color: "#0f172a",
-                        margin: 0,
-                        letterSpacing: "-0.3px",
-                        overflow: "hidden",
-                        textOverflow: "ellipsis",
-                        whiteSpace: "nowrap",
-                      }}
-                    >
-                      {activeStudentName || `Section ${selectedSection}`}
-                    </h2>
-                  </div>
-
-                  <span
-                    style={{
-                      display: "inline-flex",
-                      alignItems: "center",
-                      gap: 4,
-                      background: "#ecfdf5",
-                      color: "#059669",
-                      padding: "4px 9px",
-                      borderRadius: 7,
-                      fontSize: 11,
-                      fontWeight: 700,
-                      border: "1px solid #a7f3d0",
-                      flexShrink: 0,
-                    }}
-                  >
-                    <Building size={12} />
-                    <span>Sec {selectedSection}</span>
-                  </span>
-                </>
-              ) : (
-                /* Desktop Header with Title & Action Buttons */
-                <>
-                  <div style={{ minWidth: 0, flex: 1 }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: 6, color: "#059669", fontSize: 12, fontWeight: 700, marginBottom: 2 }}>
-                      <Activity size={13} />
-                      <span>Attendance Intelligence · Section {selectedSection}</span>
-                    </div>
-                    <h1
-                      style={{
-                        fontSize: "clamp(22px, 2.5vw, 28px)",
-                        fontWeight: 800,
-                        color: "#0f172a",
-                        margin: 0,
-                        letterSpacing: "-0.4px",
-                      }}
-                    >
-                      {activeStudentName || `Section ${selectedSection} Attendance`}
-                    </h1>
-                  </div>
-
-                  <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-                    {/* Target Goal Selector */}
-                    <div style={{ display: "flex", alignItems: "center", gap: 4, background: "#f8fafc", padding: "3px 6px", borderRadius: 8, border: "1px solid #e2e8f0" }}>
-                      <span style={{ fontSize: 11, fontWeight: 800, color: "#64748b", marginRight: 2 }}>Target:</span>
-                      {[75, 80, 85, 90].map((goal) => {
-                        const isSelected = targetGoal === goal;
-                        return (
-                          <button
-                            key={goal}
-                            type="button"
-                            onClick={() => {
-                              setTargetGoal(goal);
-                              syncAttendanceToDb(savedSubjects, allDailyLogs, goal);
-                            }}
-                            style={{
-                              padding: "3px 7px",
-                              borderRadius: 6,
-                              border: "none",
-                              background: isSelected ? "#059669" : "transparent",
-                              color: isSelected ? "#ffffff" : "#475569",
-                              fontSize: 11,
-                              fontWeight: 800,
-                              cursor: "pointer",
-                              transition: "all 0.15s ease",
-                            }}
-                          >
-                            {goal}%
-                          </button>
-                        );
-                      })}
-                    </div>
-
-                    <button
-                      type="button"
-                      onClick={handleOpenScreenshotModal}
-                      style={{
-                        display: "inline-flex",
-                        alignItems: "center",
-                        gap: 6,
-                        padding: "8px 14px",
-                        borderRadius: 9,
-                        border: "none",
-                        background: scanStatus.isLimitReached ? "#64748b" : "linear-gradient(135deg, #059669 0%, #047857 100%)",
-                        color: "#ffffff",
-                        fontSize: 12.5,
-                        fontWeight: 700,
-                        cursor: scanStatus.isLimitReached ? "not-allowed" : "pointer",
-                        fontFamily: "'DM Sans', sans-serif",
-                        transition: "all 0.15s",
-                        boxShadow: "0 2px 6px rgba(5,150,105,0.25)",
-                      }}
-                    >
-                      <Camera size={14} />
-                      <span>Auto-Import</span>
-                    </button>
-                  </div>
-                </>
-              )}
-            </div>
-
-            {/* Achievement Badges Row */}
-            <div
-              style={{
-                display: "flex",
-                gap: 6,
-                overflowX: isMobile ? "auto" : "visible",
-                flexWrap: isMobile ? "nowrap" : "wrap",
-                paddingTop: isMobile ? 6 : 8,
-                borderTop: "1px solid #f1f5f9",
-                alignItems: "center",
-                WebkitOverflowScrolling: "touch",
-                scrollbarWidth: "none",
-                msOverflowStyle: "none",
-              }}
-            >
-              {overallAggregate.percentage >= 75 && (
-                <span
-                  style={{
-                    background: "#10b98115",
-                    color: "#059669",
-                    border: "1px solid #10b98133",
-                    padding: "4px 10px",
-                    borderRadius: 999,
-                    fontSize: 11,
-                    fontWeight: 700,
-                    display: "inline-flex",
-                    alignItems: "center",
-                    gap: 5,
-                    whiteSpace: "nowrap",
-                    flexShrink: 0,
-                  }}
-                >
-                  <Award size={13} color="#059669" /> 75%+ Safe Bunk Elite
-                </span>
-              )}
-
-              <span
+          {/* On Desktop: Always visible. On Mobile: Visible ONLY when on Attendance Hub (matrix) */}
+          {(!isMobile || activeTab === "matrix") && (
+            <>
+              {/* Top Academic & Attendance Overview Header Card */}
+              <div
                 style={{
-                  background: overallCalculation.isEligible ? "#10b98115" : "#ef444415",
-                  color: overallCalculation.isEligible ? "#059669" : "#dc2626",
-                  border: `1px solid ${overallCalculation.isEligible ? "#10b98133" : "#ef444433"}`,
-                  padding: "4px 10px",
-                  borderRadius: 999,
-                  fontSize: 11,
-                  fontWeight: 700,
-                  display: "inline-flex",
-                  alignItems: "center",
-                  gap: 5,
-                  whiteSpace: "nowrap",
-                  flexShrink: 0,
+                  background: "#ffffff",
+                  border: "1px solid #cbd5e1",
+                  borderRadius: 16,
+                  padding: isMobile ? "12px 14px" : "20px 24px",
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: isMobile ? 8 : 14,
                 }}
               >
-                {overallCalculation.isEligible ? (
-                  <>
-                    <CheckCircle2 size={13} color="#059669" /> Exam Eligible
-                  </>
-                ) : (
-                  <>
-                    <AlertTriangle size={13} color="#dc2626" /> Attendance Shortage
-                  </>
-                )}
-              </span>
-
-              {overallCalculation.safeBunks > 0 && (
-                <span
+                {/* Header Content */}
+                <div
                   style={{
-                    background: "#3b82f615",
-                    color: "#2563eb",
-                    border: "1px solid #3b82f633",
-                    padding: "4px 10px",
-                    borderRadius: 999,
-                    fontSize: 11,
-                    fontWeight: 700,
-                    display: "inline-flex",
+                    display: "flex",
                     alignItems: "center",
-                    gap: 5,
-                    whiteSpace: "nowrap",
-                    flexShrink: 0,
+                    justifyContent: "space-between",
+                    gap: 10,
                   }}
                 >
-                  <ShieldCheck size={13} color="#2563eb" /> +{overallCalculation.safeBunks} Safe Bunk Margin
-                </span>
-              )}
+                  {isMobile ? (
+                    /* Mobile Clean Single-Row Name + Section Badge */
+                    <>
+                      <div style={{ minWidth: 0, flex: 1 }}>
+                        <h2
+                          style={{
+                            fontSize: 15.5,
+                            fontWeight: 800,
+                            color: "#0f172a",
+                            margin: 0,
+                            letterSpacing: "-0.3px",
+                            overflow: "hidden",
+                            textOverflow: "ellipsis",
+                            whiteSpace: "nowrap",
+                          }}
+                        >
+                          {activeStudentName || `Section ${selectedSection}`}
+                        </h2>
+                      </div>
 
-              <span
+                      <span
+                        style={{
+                          display: "inline-flex",
+                          alignItems: "center",
+                          gap: 4,
+                          background: "#ecfdf5",
+                          color: "#059669",
+                          padding: "4px 9px",
+                          borderRadius: 7,
+                          fontSize: 11,
+                          fontWeight: 700,
+                          border: "1px solid #a7f3d0",
+                          flexShrink: 0,
+                        }}
+                      >
+                        <Building size={12} />
+                        <span>Sec {selectedSection}</span>
+                      </span>
+                    </>
+                  ) : (
+                    /* Desktop Header with Title & Action Buttons */
+                    <>
+                      <div style={{ minWidth: 0, flex: 1 }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: 6, color: "#059669", fontSize: 12, fontWeight: 700, marginBottom: 2 }}>
+                          <Activity size={13} />
+                          <span>Attendance Intelligence · Section {selectedSection}</span>
+                        </div>
+                        <h1
+                          style={{
+                            fontSize: "clamp(22px, 2.5vw, 28px)",
+                            fontWeight: 800,
+                            color: "#0f172a",
+                            margin: 0,
+                            letterSpacing: "-0.4px",
+                          }}
+                        >
+                          {activeStudentName || `Section ${selectedSection} Attendance`}
+                        </h1>
+                      </div>
+
+                      <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                        {/* Target Goal Selector */}
+                        <div style={{ display: "flex", alignItems: "center", gap: 4, background: "#f8fafc", padding: "3px 6px", borderRadius: 8, border: "1px solid #e2e8f0" }}>
+                          <span style={{ fontSize: 11, fontWeight: 800, color: "#64748b", marginRight: 2 }}>Target:</span>
+                          {[75, 80, 85, 90].map((goal) => {
+                            const isSelected = targetGoal === goal;
+                            return (
+                              <button
+                                key={goal}
+                                type="button"
+                                onClick={() => {
+                                  setTargetGoal(goal);
+                                  syncAttendanceToDb(savedSubjects, allDailyLogs, goal);
+                                }}
+                                style={{
+                                  padding: "3px 7px",
+                                  borderRadius: 6,
+                                  border: "none",
+                                  background: isSelected ? "#059669" : "transparent",
+                                  color: isSelected ? "#ffffff" : "#475569",
+                                  fontSize: 11,
+                                  fontWeight: 800,
+                                  cursor: "pointer",
+                                  transition: "all 0.15s ease",
+                                }}
+                              >
+                                {goal}%
+                              </button>
+                            );
+                          })}
+                        </div>
+
+                        <button
+                          type="button"
+                          onClick={handleOpenScreenshotModal}
+                          style={{
+                            display: "inline-flex",
+                            alignItems: "center",
+                            gap: 6,
+                            padding: "8px 14px",
+                            borderRadius: 9,
+                            border: "none",
+                            background: scanStatus.isLimitReached ? "#64748b" : "linear-gradient(135deg, #059669 0%, #047857 100%)",
+                            color: "#ffffff",
+                            fontSize: 12.5,
+                            fontWeight: 700,
+                            cursor: scanStatus.isLimitReached ? "not-allowed" : "pointer",
+                            fontFamily: "'DM Sans', sans-serif",
+                            transition: "all 0.15s",
+                            boxShadow: "0 2px 6px rgba(5,150,105,0.25)",
+                          }}
+                        >
+                          <Camera size={14} />
+                          <span>Auto-Import</span>
+                        </button>
+                      </div>
+                    </>
+                  )}
+                </div>
+              </div>
+
+              {/* 4 Hero Stat Cards (2x2 on Mobile, 4 in row on Desktop) */}
+              <div
                 style={{
-                  background: "#8b5cf615",
-                  color: "#7c3aed",
-                  border: "1px solid #8b5cf633",
-                  padding: "4px 10px",
-                  borderRadius: 999,
-                  fontSize: 11,
-                  fontWeight: 700,
-                  display: "inline-flex",
-                  alignItems: "center",
-                  gap: 5,
-                  whiteSpace: "nowrap",
-                  flexShrink: 0,
+                  display: "grid",
+                  gridTemplateColumns: isMobile ? "repeat(2, 1fr)" : "repeat(auto-fit, minmax(200px, 1fr))",
+                  gap: isMobile ? 8 : 14,
+                  width: "100%",
                 }}
               >
-                <Target size={13} color="#7c3aed" /> Target {targetGoal}% Active
-              </span>
-            </div>
-          </div>
-
-          {/* 4 Hero Stat Cards (2x2 on Mobile, 4 in row on Desktop) */}
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: isMobile ? "repeat(2, 1fr)" : "repeat(auto-fit, minmax(200px, 1fr))",
-              gap: isMobile ? 8 : 14,
-              width: "100%",
-            }}
-          >
-            {/* 1. Overall Score */}
-            <motion.div
-              whileHover={{ y: -2 }}
-              style={{
-                background: "#ffffff",
-                border: "1px solid #cbd5e1",
-                borderRadius: 14,
-                padding: isMobile ? "12px 12px" : "18px 18px",
-                display: "flex",
-                flexDirection: "column",
-                gap: 4,
-                position: "relative",
-                overflow: "hidden",
-              }}
-            >
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                <span style={{ fontSize: isMobile ? 10.5 : 11.5, fontWeight: 700, color: "#475569", textTransform: "uppercase", letterSpacing: "0.5px" }}>
-                  Semester Attendance
-                </span>
-                <span style={{ fontSize: 10, background: overallAggregate.percentage >= 75 ? "#ecfdf5" : "#fee2e2", color: overallAggregate.percentage >= 75 ? "#059669" : "#dc2626", padding: "1px 6px", borderRadius: 5, fontWeight: 700 }}>
-                  {overallAggregate.percentage >= 75 ? "Eligible" : "Shortage"}
-                </span>
-              </div>
-              <div style={{ fontSize: isMobile ? 22 : 30, fontWeight: 800, color: overallAggregate.percentage >= 75 ? "#059669" : "#dc2626", fontFamily: "'DM Sans', sans-serif", letterSpacing: "-0.5px", lineHeight: 1.1 }}>
-                {overallAggregate.percentage}%
-                <span style={{ fontSize: 11, color: "#94a3b8", fontWeight: 500 }}> /100</span>
-              </div>
-              <span style={{ fontSize: 10.5, color: "#64748b" }}>Current semester score</span>
-              <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, height: 3.5, background: "#f1f5f9" }}>
+                {/* 1. Overall Score */}
                 <motion.div
-                  initial={{ width: 0 }}
-                  animate={{
-                    width: `${Math.min(100, Math.max(0, overallAggregate.percentage))}%`,
-                  }}
-                  transition={{ duration: 0.8, ease: "easeOut" }}
+                  whileHover={{ y: -2 }}
                   style={{
-                    height: "100%",
-                    background: overallAggregate.percentage >= 75 ? "#059669" : "#dc2626",
+                    background: "#ffffff",
+                    border: "1px solid #cbd5e1",
+                    borderRadius: 14,
+                    padding: isMobile ? "12px 12px" : "18px 18px",
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: 4,
+                    position: "relative",
+                    overflow: "hidden",
                   }}
-                />
-              </div>
-            </motion.div>
+                >
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                    <span style={{ fontSize: isMobile ? 10.5 : 11.5, fontWeight: 700, color: "#475569", textTransform: "uppercase", letterSpacing: "0.5px" }}>
+                      Semester Attendance
+                    </span>
+                    <span style={{ fontSize: 10, background: overallAggregate.percentage >= 75 ? "#ecfdf5" : "#fee2e2", color: overallAggregate.percentage >= 75 ? "#059669" : "#dc2626", padding: "1px 6px", borderRadius: 5, fontWeight: 700 }}>
+                      {overallAggregate.percentage >= 75 ? "Eligible" : "Shortage"}
+                    </span>
+                  </div>
+                  <div style={{ fontSize: isMobile ? 22 : 30, fontWeight: 800, color: overallAggregate.percentage >= 75 ? "#059669" : "#dc2626", fontFamily: "'DM Sans', sans-serif", letterSpacing: "-0.5px", lineHeight: 1.1 }}>
+                    {overallAggregate.percentage}%
+                    <span style={{ fontSize: 11, color: "#94a3b8", fontWeight: 500 }}> /100</span>
+                  </div>
+                  <span style={{ fontSize: 10.5, color: "#64748b" }}>Current semester score</span>
+                  <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, height: 3.5, background: "#f1f5f9" }}>
+                    <motion.div
+                      initial={{ width: 0 }}
+                      animate={{
+                        width: `${Math.min(100, Math.max(0, overallAggregate.percentage))}%`,
+                      }}
+                      transition={{ duration: 0.8, ease: "easeOut" }}
+                      style={{
+                        height: "100%",
+                        background: overallAggregate.percentage >= 75 ? "#059669" : "#dc2626",
+                      }}
+                    />
+                  </div>
+                </motion.div>
 
-            {/* 2. Attended / Delivered */}
-            <motion.div
-              whileHover={{ y: -2 }}
-              style={{
-                background: "#ffffff",
-                border: "1px solid #cbd5e1",
-                borderRadius: 14,
-                padding: isMobile ? "12px 12px" : "18px 18px",
-                display: "flex",
-                flexDirection: "column",
-                gap: 4,
-              }}
-            >
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                <span style={{ fontSize: isMobile ? 10.5 : 11.5, fontWeight: 700, color: "#475569", textTransform: "uppercase", letterSpacing: "0.5px" }}>
-                  Attended Classes
-                </span>
-                <span style={{ fontSize: 10, background: "#f5f3ff", color: "#8b5cf6", padding: "1px 6px", borderRadius: 5, fontWeight: 700 }}>
-                  {allSectionSubjects.length} Courses
-                </span>
-              </div>
-              <div style={{ fontSize: isMobile ? 22 : 30, fontWeight: 800, color: "#0f172a", fontFamily: "'DM Sans', sans-serif", letterSpacing: "-0.5px", lineHeight: 1.1 }}>
-                {overallAggregate.totalAttended}
-                <span style={{ fontSize: 11, color: "#94a3b8", fontWeight: 500 }}> / {overallAggregate.totalDelivered}</span>
-              </div>
-              <span style={{ fontSize: 10.5, color: "#64748b" }}>Delivered across semester</span>
-            </motion.div>
+                {/* 2. Attended / Delivered */}
+                <motion.div
+                  whileHover={{ y: -2 }}
+                  style={{
+                    background: "#ffffff",
+                    border: "1px solid #cbd5e1",
+                    borderRadius: 14,
+                    padding: isMobile ? "12px 12px" : "18px 18px",
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: 4,
+                  }}
+                >
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                    <span style={{ fontSize: isMobile ? 10.5 : 11.5, fontWeight: 700, color: "#475569", textTransform: "uppercase", letterSpacing: "0.5px" }}>
+                      Attended Classes
+                    </span>
+                    <span style={{ fontSize: 10, background: "#f5f3ff", color: "#8b5cf6", padding: "1px 6px", borderRadius: 5, fontWeight: 700 }}>
+                      {allSectionSubjects.length} Courses
+                    </span>
+                  </div>
+                  <div style={{ fontSize: isMobile ? 22 : 30, fontWeight: 800, color: "#0f172a", fontFamily: "'DM Sans', sans-serif", letterSpacing: "-0.5px", lineHeight: 1.1 }}>
+                    {overallAggregate.totalAttended}
+                    <span style={{ fontSize: 11, color: "#94a3b8", fontWeight: 500 }}> / {overallAggregate.totalDelivered}</span>
+                  </div>
+                  <span style={{ fontSize: 10.5, color: "#64748b" }}>Delivered across semester</span>
+                </motion.div>
 
-            {/* 3. Safe Bunk Margin */}
-            <motion.div
-              whileHover={{ y: -2 }}
-              style={{
-                background: "#ffffff",
-                border: "1px solid #cbd5e1",
-                borderRadius: 14,
-                padding: isMobile ? "12px 12px" : "18px 18px",
-                display: "flex",
-                flexDirection: "column",
-                gap: 4,
-              }}
-            >
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                <span style={{ fontSize: isMobile ? 10.5 : 11.5, fontWeight: 700, color: "#475569", textTransform: "uppercase", letterSpacing: "0.5px" }}>
-                  {overallCalculation.classesNeeded > 0 ? "Recovery Needed" : "Safe Bunk Margin"}
-                </span>
-                <span style={{ fontSize: 10, background: "#f8fafc", color: "#64748b", border: "1px solid #cbd5e1", padding: "1px 6px", borderRadius: 5, fontWeight: 700 }}>
-                  Goal: {targetGoal}%
-                </span>
-              </div>
-              <div style={{ fontSize: isMobile ? 22 : 30, fontWeight: 800, color: overallCalculation.classesNeeded > 0 ? "#d97706" : "#059669", fontFamily: "'DM Sans', sans-serif", letterSpacing: "-0.5px", lineHeight: 1.1 }}>
-                {overallCalculation.classesNeeded > 0 ? `${overallCalculation.classesNeeded}` : `+${overallCalculation.safeBunks}`}
-                <span style={{ fontSize: 11, color: "#94a3b8", fontWeight: 500 }}> classes</span>
-              </div>
-              <span style={{ fontSize: 10.5, color: "#64748b" }}>
-                {overallCalculation.classesNeeded > 0 ? `To reach ${targetGoal}% criteria` : `Buffer to stay ≥ ${targetGoal}%`}
-              </span>
-            </motion.div>
-
-            {/* 4. Shortage Subjects (Below 75% Attendance) */}
-            <motion.div
-              whileHover={{ y: -2, scale: 1.015 }}
-              whileTap={{ scale: 0.99 }}
-              onClick={handleHighlightShortageSubjects}
-              style={{
-                background: isShortageHighlightActive ? "#fff7ed" : "#ffffff",
-                border: `1.5px solid ${isShortageHighlightActive ? "#f97316" : shortageCount > 0 ? "#fecaca" : "#cbd5e1"}`,
-                borderRadius: 14,
-                padding: isMobile ? "12px 12px" : "18px 18px",
-                display: "flex",
-                flexDirection: "column",
-                gap: 4,
-                cursor: "pointer",
-                boxShadow: isShortageHighlightActive ? "0 0 0 2px rgba(249, 115, 22, 0.2), 0 4px 12px rgba(249, 115, 22, 0.08)" : "none",
-                transition: "all 0.2s ease",
-              }}
-              title="Click to highlight all subjects below 75% for 5 minutes"
-            >
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                <span style={{ fontSize: isMobile ? 10.5 : 11.5, fontWeight: 700, color: "#475569", textTransform: "uppercase", letterSpacing: "0.5px" }}>
-                  Below 75% Criteria
-                </span>
-                {isShortageHighlightActive ? (
-                  <span style={{ fontSize: 9.5, fontWeight: 900, background: "#ffedd5", color: "#c2410c", padding: "1px 6px", borderRadius: 5 }}>
-                    ⚡ 5m Highlight
+                {/* 3. Safe Bunk Margin */}
+                <motion.div
+                  whileHover={{ y: -2 }}
+                  style={{
+                    background: "#ffffff",
+                    border: "1px solid #cbd5e1",
+                    borderRadius: 14,
+                    padding: isMobile ? "12px 12px" : "18px 18px",
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: 4,
+                  }}
+                >
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                    <span style={{ fontSize: isMobile ? 10.5 : 11.5, fontWeight: 700, color: "#475569", textTransform: "uppercase", letterSpacing: "0.5px" }}>
+                      {overallCalculation.classesNeeded > 0 ? "Recovery Needed" : "Safe Bunk Margin"}
+                    </span>
+                    <span style={{ fontSize: 10, background: "#f8fafc", color: "#64748b", border: "1px solid #cbd5e1", padding: "1px 6px", borderRadius: 5, fontWeight: 700 }}>
+                      Goal: {targetGoal}%
+                    </span>
+                  </div>
+                  <div style={{ fontSize: isMobile ? 22 : 30, fontWeight: 800, color: overallCalculation.classesNeeded > 0 ? "#d97706" : "#059669", fontFamily: "'DM Sans', sans-serif", letterSpacing: "-0.5px", lineHeight: 1.1 }}>
+                    {overallCalculation.classesNeeded > 0 ? `${overallCalculation.classesNeeded}` : `+${overallCalculation.safeBunks}`}
+                    <span style={{ fontSize: 11, color: "#94a3b8", fontWeight: 500 }}> classes</span>
+                  </div>
+                  <span style={{ fontSize: 10.5, color: "#64748b" }}>
+                    {overallCalculation.classesNeeded > 0 ? `To reach ${targetGoal}% criteria` : `Buffer to stay ≥ ${targetGoal}%`}
                   </span>
-                ) : (
-                  <span style={{ fontSize: 10, background: shortageCount > 0 ? "#fee2e2" : "#ecfdf5", color: shortageCount > 0 ? "#dc2626" : "#059669", padding: "1px 6px", borderRadius: 5, fontWeight: 700 }}>
-                    {shortageCount > 0 ? "Shortage" : "All Safe"}
+                </motion.div>
+
+                {/* 4. Shortage Subjects (Below 75% Attendance) */}
+                <motion.div
+                  whileHover={{ y: -2, scale: 1.015 }}
+                  whileTap={{ scale: 0.99 }}
+                  onClick={handleHighlightShortageSubjects}
+                  style={{
+                    background: isShortageHighlightActive ? "#fff7ed" : "#ffffff",
+                    border: `1.5px solid ${isShortageHighlightActive ? "#f97316" : shortageCount > 0 ? "#fecaca" : "#cbd5e1"}`,
+                    borderRadius: 14,
+                    padding: isMobile ? "12px 12px" : "18px 18px",
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: 4,
+                    cursor: "pointer",
+                    boxShadow: isShortageHighlightActive ? "0 0 0 2px rgba(249, 115, 22, 0.2), 0 4px 12px rgba(249, 115, 22, 0.08)" : "none",
+                    transition: "all 0.2s ease",
+                  }}
+                  title="Click to highlight all subjects below 75% for 5 minutes"
+                >
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                    <span style={{ fontSize: isMobile ? 10.5 : 11.5, fontWeight: 700, color: "#475569", textTransform: "uppercase", letterSpacing: "0.5px" }}>
+                      Below 75% Criteria
+                    </span>
+                    {isShortageHighlightActive ? (
+                      <span style={{ fontSize: 9.5, fontWeight: 900, background: "#ffedd5", color: "#c2410c", padding: "1px 6px", borderRadius: 5 }}>
+                        ⚡ 5m Highlight
+                      </span>
+                    ) : (
+                      <span style={{ fontSize: 10, background: shortageCount > 0 ? "#fee2e2" : "#ecfdf5", color: shortageCount > 0 ? "#dc2626" : "#059669", padding: "1px 6px", borderRadius: 5, fontWeight: 700 }}>
+                        {shortageCount > 0 ? "Shortage" : "All Safe"}
+                      </span>
+                    )}
+                  </div>
+                  <div style={{ fontSize: isMobile ? 22 : 30, fontWeight: 800, color: shortageCount > 0 ? "#dc2626" : "#059669", fontFamily: "'DM Sans', sans-serif", letterSpacing: "-0.5px", lineHeight: 1.1 }}>
+                    {shortageCount}
+                    <span style={{ fontSize: 12, color: "#94a3b8", fontWeight: 600 }}> / {allSectionSubjects.length} Courses</span>
+                  </div>
+                  <span style={{ fontSize: 10.5, color: shortageCount > 0 ? "#b91c1c" : "#059669", fontWeight: 700, display: "flex", alignItems: "center", gap: 4 }}>
+                    {shortageCount > 0 ? (
+                      <>
+                        <span>Click to highlight {shortageCount} subject(s)</span>
+                        <ArrowRight size={11} />
+                      </>
+                    ) : (
+                      <span>All subjects ≥ 75% (No shortage)</span>
+                    )}
                   </span>
-                )}
+                </motion.div>
               </div>
-              <div style={{ fontSize: isMobile ? 22 : 30, fontWeight: 800, color: shortageCount > 0 ? "#dc2626" : "#059669", fontFamily: "'DM Sans', sans-serif", letterSpacing: "-0.5px", lineHeight: 1.1 }}>
-                {shortageCount}
-                <span style={{ fontSize: 12, color: "#94a3b8", fontWeight: 600 }}> / {allSectionSubjects.length} Courses</span>
-              </div>
-              <span style={{ fontSize: 10.5, color: shortageCount > 0 ? "#b91c1c" : "#059669", fontWeight: 700, display: "flex", alignItems: "center", gap: 4 }}>
-                {shortageCount > 0 ? (
-                  <>
-                    <span>Click to highlight {shortageCount} subject(s)</span>
-                    <ArrowRight size={11} />
-                  </>
-                ) : (
-                  <span>All subjects ≥ 75% (No shortage)</span>
-                )}
-              </span>
-            </motion.div>
-          </div>
+            </>
+          )}
 
           {/* ═══════════════════════════════════════════════════════════════
               TAB SWITCHER CONTAINER (AnimatePresence smooth fade-in/fade-out)
@@ -4456,6 +4243,131 @@ export default function AttendanceTracker() {
         isAdmin={isAdmin}
         API={API}
       />
+
+      {/* Reset Attendance Data Confirmation Modal */}
+      <AnimatePresence>
+        {isResetModalOpen && (
+          <div
+            style={{
+              position: "fixed",
+              inset: 0,
+              background: "rgba(15, 23, 42, 0.65)",
+              backdropFilter: "blur(4px)",
+              zIndex: 99999,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              padding: 16,
+            }}
+            onClick={() => setIsResetModalOpen(false)}
+          >
+            <motion.div
+              initial={{ opacity: 0, scale: 0.94, y: 12 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.94, y: 12 }}
+              transition={{ duration: 0.2, ease: "easeOut" }}
+              onClick={(e) => e.stopPropagation()}
+              style={{
+                background: "#ffffff",
+                borderRadius: 20,
+                padding: "24px 22px",
+                maxWidth: 420,
+                width: "100%",
+                border: "1px solid #e2e8f0",
+                boxShadow: "0 25px 50px -12px rgba(15, 23, 42, 0.25)",
+                display: "flex",
+                flexDirection: "column",
+                gap: 16,
+              }}
+            >
+              <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                <div
+                  style={{
+                    width: 44,
+                    height: 44,
+                    borderRadius: 12,
+                    background: "#fee2e2",
+                    border: "1px solid #fecaca",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    flexShrink: 0,
+                  }}
+                >
+                  <RotateCcw size={22} color="#dc2626" />
+                </div>
+                <div>
+                  <h3 style={{ fontSize: 17, fontWeight: 800, color: "#0f172a", margin: 0, letterSpacing: "-0.3px" }}>
+                    Reset Attendance Data?
+                  </h3>
+                  <p style={{ fontSize: 12, color: "#64748b", margin: "2px 0 0 0" }}>
+                    Revert all changes to default section routine
+                  </p>
+                </div>
+              </div>
+
+              <div
+                style={{
+                  background: "#fef2f2",
+                  border: "1px solid #fecaca",
+                  borderRadius: 12,
+                  padding: "12px 14px",
+                  fontSize: 12.5,
+                  color: "#991b1b",
+                  lineHeight: 1.45,
+                }}
+              >
+                This will permanently clear all marked daily check-ins, custom subject calculations, and reset to Section <strong>{selectedSection}</strong> default routine values.
+              </div>
+
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginTop: 4 }}>
+                <button
+                  type="button"
+                  onClick={() => setIsResetModalOpen(false)}
+                  style={{
+                    padding: "10px 14px",
+                    borderRadius: 10,
+                    border: "1px solid #cbd5e1",
+                    background: "#ffffff",
+                    color: "#475569",
+                    fontSize: 12.5,
+                    fontWeight: 700,
+                    cursor: "pointer",
+                    transition: "all 0.15s ease",
+                  }}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSavedSubjects([]);
+                    setAllDailyLogs({});
+                    localStorage.removeItem("gradeflow_saved_attendance");
+                    localStorage.removeItem("gradeflow_daily_attendance_logs");
+                    syncAttendanceToDb([], {}, targetGoal);
+                    setIsResetModalOpen(false);
+                  }}
+                  style={{
+                    padding: "10px 14px",
+                    borderRadius: 10,
+                    border: "none",
+                    background: "linear-gradient(135deg, #dc2626 0%, #b91c1c 100%)",
+                    color: "#ffffff",
+                    fontSize: 12.5,
+                    fontWeight: 800,
+                    cursor: "pointer",
+                    boxShadow: "0 2px 8px rgba(220, 38, 38, 0.3)",
+                    transition: "all 0.15s ease",
+                  }}
+                >
+                  Yes, Reset All
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
         </main>
       </div>
     </div>
