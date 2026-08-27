@@ -316,45 +316,184 @@ const SCAN_MESSAGES = [
   },
 ];
 
+// Master Subject Catalog for Centurion University ERP Resolution
+const MASTER_COURSE_CATALOG = [
+  { code: "CUTM1020", name: "Robotic automation with ROS and C++", keywords: ["ROBOT", "ROS", "AUTOMATION", "1020", "CUTM1020"] },
+  { code: "CUTM1577", name: "Minor Project II", keywords: ["MINOR", "PROJECT", "1577", "CUTM1577"] },
+  { code: "CUTM1578", name: "Summer Internship I", keywords: ["SUMMER", "INTERNSHIP", "1578", "CUTM1578"] },
+  { code: "CUTM3166", name: "Data Structure and Algorithms", keywords: ["DATA", "STRUCT", "ALGO", "3166", "CUTM3166"] },
+  { code: "CUCS1007", name: "Information Security (CISCO)", keywords: ["INFO", "SECUR", "CISCO", "1007", "CUCS1007"] },
+  { code: "CUCS1006", name: "Network and Protocols for IoT", keywords: ["NETWORK", "PROTOCOL", "IOT", "1006", "CUCS1006"] },
+  { code: "CUCS1008", name: "Theory of Computation and Compiler Design", keywords: ["THEORY", "COMPUTATION", "COMPILER", "TOC", "1008", "CUCS1008"] },
+  { code: "CUCS1014", name: "Prompt Engineering using ChatGPT", keywords: ["PROMPT", "ENGINEERING", "CHATGPT", "GPT", "1014", "CUCS1014"] },
+  { code: "CUCS1015", name: "Cloud Fundamentals", keywords: ["CLOUD", "FUNDAMENTAL", "AZURE", "1015", "CUCS1015"] },
+];
+
+// Deduplicate and Canonicalize Subjects (Merges split codes/names into single unified subject objects)
+const deduplicateAndCanonicalizeSubjects = (rawList = [], catalog = []) => {
+  const subjectsMap = new Map();
+
+  const getCanonical = (code, name) => {
+    const rawUpper = `${code || ""} ${name || ""}`.toUpperCase();
+    
+    // 1. Check Course Code exact / regex match
+    const codeMatch = rawUpper.match(/\b([A-Z]{3,5}\d{3,5})\b/);
+    if (codeMatch) {
+      const cCode = codeMatch[1];
+      const known = MASTER_COURSE_CATALOG.find((k) => k.code === cCode);
+      if (known) return known;
+    }
+
+    // 2. Check 4-digit code numbers
+    const numMatch = rawUpper.match(/\b(1020|1007|1006|1008|1014|1015|3166|1577|1578)\b/);
+    if (numMatch) {
+      const num = numMatch[1];
+      const known = MASTER_COURSE_CATALOG.find((k) => k.code.includes(num) || k.keywords.includes(num));
+      if (known) return known;
+    }
+
+    // 3. Keyword / Fuzzy Match
+    for (const known of MASTER_COURSE_CATALOG) {
+      const matched = known.keywords.filter((kw) => rawUpper.includes(kw));
+      if (matched.length >= 2 || (matched.length === 1 && (known.keywords[0] === matched[0] || matched[0].length >= 5))) {
+        return known;
+      }
+    }
+
+    // 4. Check Section Catalog
+    for (const c of catalog) {
+      if (c && c.subjectName && (name && c.subjectName.toLowerCase() === name.toLowerCase())) {
+        return { code: c.code || "", name: c.subjectName };
+      }
+    }
+
+    return { code: code || "", name: name || code || "Subject" };
+  };
+
+  rawList.forEach((item) => {
+    if (!item) return;
+    const canon = getCanonical(item.code, item.name);
+    const key = (canon.code || canon.name).toUpperCase();
+
+    if (!subjectsMap.has(key)) {
+      subjectsMap.set(key, {
+        id: item.id || `ocr_sub_${Date.now()}_${subjectsMap.size}`,
+        name: canon.name,
+        code: canon.code,
+        components: [],
+        attendedClasses: 0,
+        totalClasses: 0,
+        percentage: 0,
+        detectedFromImage: true,
+      });
+    }
+
+    const existing = subjectsMap.get(key);
+    if (!existing.code && canon.code) existing.code = canon.code;
+    if (canon.name && (!existing.name || existing.name === existing.code)) existing.name = canon.name;
+
+    const comps = Array.isArray(item.components) && item.components.length > 0
+      ? item.components
+      : [{ type: "PP", attended: item.attendedClasses || item.attended || 0, delivered: item.totalClasses || item.delivered || item.total || 0 }];
+
+    comps.forEach((c) => {
+      const cType = String(c.type || "PP").toUpperCase();
+      let exComp = existing.components.find((ec) => ec.type === cType);
+      if (!exComp) {
+        exComp = { type: cType, attended: 0, delivered: 0, percentage: 0 };
+        existing.components.push(exComp);
+      }
+      exComp.attended = Math.max(0, Number(c.attended) || 0);
+      exComp.delivered = Math.max(exComp.attended, Number(c.delivered || c.total) || 0);
+      exComp.percentage = exComp.delivered > 0 ? Number(((exComp.attended / exComp.delivered) * 100).toFixed(1)) : 0;
+    });
+
+    existing.attendedClasses = existing.components.reduce((acc, c) => acc + c.attended, 0);
+    existing.totalClasses = existing.components.reduce((acc, c) => acc + c.delivered, 0);
+    existing.percentage = existing.totalClasses > 0 ? Number(((existing.attendedClasses / existing.totalClasses) * 100).toFixed(1)) : 0;
+  });
+
+  return Array.from(subjectsMap.values());
+};
+
 // Universal CUTM ERP Text Parser (Website ERP Tables & Mobile Cards)
   const parseCutmOcrText = (text, catalog = []) => {
     const lines = text.split("\n").map((l) => l.trim()).filter(Boolean);
     const subjectsMap = new Map();
 
-    // 1. Pre-seed with section catalog subjects if available
-    catalog.forEach((c) => {
-      if (!c || !c.subjectName) return;
-      const key = (c.code || c.subjectName).toUpperCase();
-      subjectsMap.set(key, {
-        name: c.subjectName,
-        code: c.code || "",
-        components: [],
-        detectedFromImage: false,
-      });
-    });
-
-    const getOrCreateSubject = (code, name) => {
-      const cleanCode = (code || "").toUpperCase().replace(/\s+/g, "");
+    const registerSubject = (code, name) => {
+      const cleanCode = (code || "").toUpperCase().replace(/[^A-Z0-9]/g, "");
       const cleanName = (name || "").trim();
-
-      if (cleanCode && subjectsMap.has(cleanCode)) {
-        return subjectsMap.get(cleanCode);
-      }
-      
-      for (const [, sub] of subjectsMap) {
-        if (cleanCode && sub.code && sub.code.toUpperCase() === cleanCode) return sub;
-        if (cleanName && sub.name.toUpperCase() === cleanName.toUpperCase()) return sub;
-      }
-
       const key = cleanCode || cleanName.toUpperCase();
-      const newSub = {
-        name: cleanName || cleanCode || "Subject",
+
+      if (subjectsMap.has(key)) return subjectsMap.get(key);
+
+      for (const [, existing] of subjectsMap) {
+        if (cleanCode && existing.code && existing.code === cleanCode) return existing;
+        if (cleanName && existing.name.toLowerCase() === cleanName.toLowerCase()) return existing;
+      }
+
+      const entry = {
+        name: cleanName || cleanCode,
         code: cleanCode,
         components: [],
-        detectedFromImage: true,
+        detectedFromImage: false,
       };
-      subjectsMap.set(key, newSub);
-      return newSub;
+      subjectsMap.set(key, entry);
+      return entry;
+    };
+
+    MASTER_COURSE_CATALOG.forEach((s) => registerSubject(s.code, s.name));
+    catalog.forEach((c) => {
+      if (!c || !c.subjectName) return;
+      const known = MASTER_COURSE_CATALOG.find(
+        (k) => k.name.toLowerCase() === c.subjectName.toLowerCase() || (c.code && k.code === c.code)
+      );
+      const code = c.code || (known ? known.code : "");
+      registerSubject(code, c.subjectName);
+    });
+
+    const resolveSubject = (rawStr) => {
+      if (!rawStr) return null;
+      const upper = rawStr.toUpperCase();
+
+      const codeMatch = upper.match(/\b([A-Z]{3,5}\d{3,5})\b/);
+      if (codeMatch) {
+        const code = codeMatch[1];
+        for (const [, sub] of subjectsMap) {
+          if (sub.code && sub.code === code) return sub;
+        }
+        const known = MASTER_COURSE_CATALOG.find((k) => k.code === code);
+        if (known) return registerSubject(known.code, known.name);
+      }
+
+      const numMatch = upper.match(/\b(1020|1007|1006|1008|1014|1015|3166|1577|1578)\b/);
+      if (numMatch) {
+        const num = numMatch[1];
+        const known = MASTER_COURSE_CATALOG.find((k) => k.code.includes(num) || k.keywords.includes(num));
+        if (known) {
+          for (const [, sub] of subjectsMap) {
+            if (sub.code === known.code) return sub;
+          }
+          return registerSubject(known.code, known.name);
+        }
+      }
+
+      for (const known of MASTER_COURSE_CATALOG) {
+        const matched = known.keywords.filter((kw) => upper.includes(kw));
+        if (matched.length >= 2 || (matched.length === 1 && (known.keywords[0] === matched[0] || matched[0].length >= 5))) {
+          for (const [, sub] of subjectsMap) {
+            if (sub.code === known.code || sub.name.toLowerCase() === known.name.toLowerCase()) return sub;
+          }
+          return registerSubject(known.code, known.name);
+        }
+      }
+
+      for (const [, sub] of subjectsMap) {
+        if (sub.name && upper.includes(sub.name.toUpperCase())) return sub;
+      }
+
+      return null;
     };
 
     const detectComponentType = (str) => {
@@ -374,6 +513,10 @@ const SCAN_MESSAGES = [
         if (!isNaN(att) && !isNaN(del) && del >= att && del <= 150) {
           return { attended: att, delivered: del };
         }
+      }
+      const zeroZeroMatch = str.match(/(\d{1,2})\s*[\/\\|]\s*(?:0\b|\s*)/);
+      if (zeroZeroMatch && parseInt(zeroZeroMatch[1], 10) === 0) {
+        return { attended: 0, delivered: 0 };
       }
       return null;
     };
@@ -398,7 +541,6 @@ const SCAN_MESSAGES = [
         continue;
       }
 
-      // Check component indicator on current line
       if (/\bTUT\b|[-_\(\[\s]TUT[-_\)\]\s]/i.test(upper)) {
         activeCompType = "TUT";
       } else if (/\bPR\b|[-_\(\[\s]PR[-_\)\]\s]/i.test(upper)) {
@@ -407,61 +549,30 @@ const SCAN_MESSAGES = [
         activeCompType = "PP";
       }
 
-      const rowCodeMatch = line.match(/\b([A-Z]{3,5}\d{3,5})\b/i);
-      const fractionMatch = extractFraction(line);
+      const matchedSub = resolveSubject(line);
+      if (matchedSub) {
+        activeSubject = matchedSub;
+      }
 
-      // Single-line Website ERP Table row
-      if (rowCodeMatch && fractionMatch) {
-        const code = rowCodeMatch[1].toUpperCase();
+      const fractionMatch = extractFraction(line);
+      if (fractionMatch && activeSubject) {
+        activeSubject.detectedFromImage = true;
         const hasExplicitComp = /\b(PP|PR|TUT|THEORY|LAB|PRACTICAL|TUTORIAL)\b|[-_\(\[\s](PP|PR|TUT)[-_\)\]\s]/i.test(line);
         const compType = hasExplicitComp ? detectComponentType(line) : activeCompType;
-        
-        let subName = line.split(rowCodeMatch[0])[0]
-          .replace(/^\d+\s*\|?\s*/, "")
-          .replace(/[|\-_]/g, " ")
-          .trim();
 
-        if (!subName || subName.length < 3) {
-          subName = code;
-        }
-
-        const subject = getOrCreateSubject(code, subName);
-        subject.detectedFromImage = true;
-        if (code && !subject.code) subject.code = code;
-        if (subName && (!subject.name || subject.name === subject.code)) subject.name = subName;
-
-        let comp = subject.components.find((c) => c.type === compType);
+        let comp = activeSubject.components.find((c) => c.type === compType);
         if (!comp) {
           comp = { type: compType, attended: 0, delivered: 0, percentage: 0 };
-          subject.components.push(comp);
-        }
-        comp.attended = fractionMatch.attended;
-        comp.delivered = fractionMatch.delivered;
-        comp.percentage = comp.delivered > 0 ? Number(((comp.attended / comp.delivered) * 100).toFixed(1)) : 100;
-        continue;
-      }
-
-      if (rowCodeMatch) {
-        const code = rowCodeMatch[1].toUpperCase();
-        let name = line.replace(rowCodeMatch[0], "").replace(/[\(\)\|\-_]/g, " ").trim();
-        activeSubject = getOrCreateSubject(code, name);
-        activeSubject.detectedFromImage = true;
-      }
-
-      if (fractionMatch && activeSubject) {
-        let comp = activeSubject.components.find((c) => c.type === activeCompType);
-        if (!comp) {
-          comp = { type: activeCompType, attended: 0, delivered: 0, percentage: 0 };
           activeSubject.components.push(comp);
         }
         comp.attended = fractionMatch.attended;
         comp.delivered = fractionMatch.delivered;
-        comp.percentage = comp.delivered > 0 ? Number(((comp.attended / comp.delivered) * 100).toFixed(1)) : 100;
+        comp.percentage = comp.delivered > 0 ? Number(((comp.attended / comp.delivered) * 100).toFixed(1)) : (comp.delivered === 0 ? 0 : 100);
       }
     }
 
-    return Array.from(subjectsMap.values())
-      .filter((s) => s.detectedFromImage || (s.components && s.components.length > 0))
+    const detected = Array.from(subjectsMap.values())
+      .filter((s) => s.detectedFromImage && s.components.length > 0)
       .map((s, idx) => {
         const totalAtt = s.components.reduce((acc, c) => acc + (Number(c.attended) || 0), 0);
         const totalDel = s.components.reduce((acc, c) => acc + (Number(c.delivered) || 0), 0);
@@ -474,9 +585,11 @@ const SCAN_MESSAGES = [
           totalClasses: totalDel,
           percentage: totalDel > 0 ? Number(((totalAtt / totalDel) * 100).toFixed(1)) : 0,
           components: s.components,
-          detectedFromImage: s.detectedFromImage,
+          detectedFromImage: true,
         };
       });
+
+    return deduplicateAndCanonicalizeSubjects(detected, catalog);
   };
 
   // Analyze Screenshot via Dual AI (Cloud Gemini + Client-Side Tesseract WASM Engine with Image Preprocessing)
@@ -490,13 +603,21 @@ const SCAN_MESSAGES = [
     // 1. Try Serverless Endpoint
     try {
       setProcessingStatus("Scanning image layout with Gemini Vision...");
-      const res = await axios.post(`${API}/attendance/ocr`, {
-        imageBase64,
-        mimeType: mimeType || "image/jpeg",
-      });
+      let res = null;
+      try {
+        res = await axios.post(`${API}/attendance/ocr`, {
+          imageBase64,
+          mimeType: mimeType || "image/jpeg",
+        });
+      } catch {
+        res = await axios.post(`/api/attendance-ocr`, {
+          imageBase64,
+          mimeType: mimeType || "image/jpeg",
+        });
+      }
 
-      if (res.data?.success && Array.isArray(res.data.subjects) && res.data.subjects.length > 0) {
-        extracted = res.data.subjects;
+      if (res?.data?.success && Array.isArray(res.data.subjects) && res.data.subjects.length > 0) {
+        extracted = deduplicateAndCanonicalizeSubjects(res.data.subjects, sectionCatalog);
       }
     } catch (err) {
       console.warn("Cloud OCR skipped, switching to high-accuracy local OCR engine:", err);
@@ -542,13 +663,16 @@ const SCAN_MESSAGES = [
       }));
     }
 
+    // Ensure final canonical deduplication
+    const finalCleanList = deduplicateAndCanonicalizeSubjects(extracted, sectionCatalog);
+
     // Final 100% completion milestone with smooth transition
     setScanStepIndex(4);
     setScanProgress(100);
     await new Promise((r) => setTimeout(r, 450));
 
-    if (extracted.length > 0) {
-      setParsedSubjects(extracted);
+    if (finalCleanList.length > 0) {
+      setParsedSubjects(finalCleanList);
       setStep("review");
     } else {
       setErrorMsg("Could not detect subjects automatically. Please add rows manually.");
