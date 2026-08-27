@@ -27,9 +27,9 @@ module.exports = async function handler(req, res) {
 
     if (GEMINI_API_KEY) {
       const modelsToTry = [
-        "gemini-1.5-flash",
         "gemini-2.0-flash",
-        "gemini-1.5-flash-latest",
+        "gemini-1.5-flash",
+        "gemini-1.5-flash-8b",
         "gemini-1.5-pro",
       ];
 
@@ -45,40 +45,41 @@ module.exports = async function handler(req, res) {
                   {
                     parts: [
                       {
-                        text: `You are an expert OCR and Document AI parser for university student attendance portals (CUTM ERP, TCS iON, Web ERP, Mobile ERP).
-Accurately extract all academic course attendance records from this screenshot.
+                        text: `You are an expert Document AI OCR parser for university student ERP attendance portals (Centurion University CUTM ERP, TCS iON, Web ERP, Mobile ERP).
+Extract ALL course attendance records exactly as visible in the screenshot.
 
-SUPPORTED UNIVERSITY ERP FORMATS:
-1. CUTM WEBSITE ERP TABLE FORMAT:
-   - The screenshot shows a full tabular matrix with columns:
-     "Sr.No" | "Course Name" | "Course Short Name" | "Course Code" | "Attended/Delivered" | "Percent"
-   - Every single row in the table represents an academic course component.
-   - Look at "Course Short Name" to identify the component type:
-     - Contains "- PP" or "PP" -> type: "PP" (Theory/Practice)
-     - Contains "- PR" or "PR" -> type: "PR" (Practical/Lab)
-     - Contains "- TUT" or "TUT" -> type: "TUT" (Tutorial)
-   - Look at "Attended/Delivered" (e.g. inside rounded pills like "3/6", "26/28", "5/6", "0/0", "16/20", "12/12", "12/14", "8/10", "6/7", "22/30", "12/16", "16/18", "8/8", "6/8"):
-     - The first integer before the slash is 'attended'.
-     - The second integer after the slash is 'delivered'.
-   - GROUPING RULE: Group all component rows that share the same "Course Code" (e.g. CUTM1020, CUCS1007, CUTM3166) or same "Course Name" into a SINGLE subject object with all its components inside the "components" array!
+SUPPORTED ERP LAYOUTS:
+1. WEBSITE ERP TABLE:
+   - Table columns: "Sr.No" | "Course Name" | "Course Short Name" | "Course Code" | "Attended/Delivered" | "Percent"
+   - Identify component type from "Course Short Name" or column headers:
+     - "- PP" or "PP" -> type: "PP" (Theory/Practice)
+     - "- PR" or "PR" -> type: "PR" (Practical/Lab)
+     - "- TUT" or "TUT" -> type: "TUT" (Tutorial/Project)
+   - Extract attended/delivered integer fraction "A/D" (e.g. "3/6", "26/28", "0/0", "16/20", "12/14", "8/10", "6/7", "22/30", "12/16", "16/18", "6/8").
+   - If attended/delivered is "0/0", attended is 0 and delivered is 0.
+   - GROUPING: Group all component rows sharing the same Course Code or Course Name into a SINGLE object with its "components" array.
 
-2. CUTM MOBILE ERP CARD FORMAT:
-   - Each card has a subject title with code in parentheses (e.g. "ROBOTIC AUTOMATION WITH ROS AND C++ (CUTM1020)") and sub-lines with components "(PP) 3/6", "(PR) 26/28", "(TUT) 5/6".
+2. MOBILE ERP CARD FORMAT:
+   - Cards with Subject Title, Course Code in parentheses e.g. "ROBOTIC AUTOMATION WITH ROS AND C++ (CUTM1020)" and sub-lines with components "(PP) 3/6", "(PR) 26/28", "(TUT) 5/6".
+
+STRICT EXTRACTION RULES:
+- Extract ONLY what is visible in the provided image. Do NOT invent, assume, or guess subjects or numbers.
+- Compute total attended as the sum of all component attended classes.
+- Compute total delivered as the sum of all component delivered classes.
+- If total delivered is 0, percentage is 0.0.
 
 OUTPUT FORMAT:
-Return ONLY a valid JSON array of objects for each unique course (no markdown, no preamble):
+Return ONLY a valid JSON array of course objects (no markdown, no preamble):
 [
   {
-    "name": "ROBOTIC AUTOMATION WITH ROS AND C++",
-    "code": "CUTM1020",
+    "name": "Course Title",
+    "code": "COURSE_CODE",
     "components": [
-      { "type": "PP", "attended": 3, "delivered": 6 },
-      { "type": "PR", "attended": 26, "delivered": 28 },
-      { "type": "TUT", "attended": 5, "delivered": 6 }
+      { "type": "PP", "attended": 0, "delivered": 0 }
     ],
-    "attended": 34,
-    "total": 40,
-    "percentage": 85.0
+    "attended": 0,
+    "total": 0,
+    "percentage": 0.0
   }
 ]`,
                       },
@@ -92,7 +93,7 @@ Return ONLY a valid JSON array of objects for each unique course (no markdown, n
                   },
                 ],
                 generationConfig: {
-                  temperature: 0.1,
+                  temperature: 0.0,
                   response_mime_type: "application/json",
                 },
               }),
@@ -116,19 +117,19 @@ Return ONLY a valid JSON array of objects for each unique course (no markdown, n
                   ? s.components.map((c) => ({
                       type: String(c.type || "PP").toUpperCase(),
                       attended: Math.max(0, parseInt(c.attended, 10) || 0),
-                      delivered: Math.max(0, parseInt(c.delivered || c.total, 10) || 0),
+                      delivered: Math.max(0, parseInt(c.delivered !== undefined ? c.delivered : c.total, 10) || 0),
                     }))
                   : [
                       {
                         type: "PP",
                         attended: Math.max(0, parseInt(s.attended, 10) || 0),
-                        delivered: Math.max(0, parseInt(s.total, 10) || 0),
+                        delivered: Math.max(0, parseInt(s.delivered !== undefined ? s.delivered : s.total, 10) || 0),
                       },
                     ];
 
                 const totalAtt = comps.reduce((acc, c) => acc + (Number(c.attended) || 0), 0);
                 const totalDel = comps.reduce((acc, c) => acc + (Number(c.delivered) || 0), 0);
-                const calculatedPct = totalDel > 0 ? parseFloat(((totalAtt / totalDel) * 100).toFixed(1)) : 100;
+                const calculatedPct = totalDel > 0 ? parseFloat(((totalAtt / totalDel) * 100).toFixed(1)) : 0;
                 const pct = typeof s.percentage === "number" ? parseFloat(s.percentage.toFixed(1)) : calculatedPct;
 
                 return {

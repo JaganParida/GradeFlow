@@ -213,27 +213,25 @@ export default function AttendanceScreenshotModal({
         img.crossOrigin = "anonymous";
         img.onload = () => {
           const canvas = document.createElement("canvas");
-          // Multi-device safe bounded scale (between 1400px and 2600px width for optimal OCR character definition)
-          const targetWidth = Math.min(2600, Math.max(1400, Math.round(img.width * 2)));
+          const scaleFactor = img.width < 500 ? Math.max(3, Math.round(1800 / Math.max(1, img.width))) : 2.5;
+          const targetWidth = Math.min(2800, Math.max(1600, Math.round(img.width * scaleFactor)));
           const scale = targetWidth / Math.max(1, img.width);
           canvas.width = targetWidth;
           canvas.height = Math.round(img.height * scale);
           const ctx = canvas.getContext("2d");
           if (!ctx) return resolve(imageSource);
 
-          // Fill pure white background
           ctx.fillStyle = "#ffffff";
           ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-          // Use high quality image smoothing for scaling
           ctx.imageSmoothingEnabled = true;
           ctx.imageSmoothingQuality = "high";
           ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
 
           const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
           const d = imgData.data;
+          const w = canvas.width;
 
-          // Compute average luminance to detect Dark Mode vs Light Mode screenshots
           let totalLum = 0;
           const step = 16;
           let sampleCount = 0;
@@ -244,30 +242,34 @@ export default function AttendanceScreenshotModal({
           const avgLum = sampleCount > 0 ? totalLum / sampleCount : 200;
           const isDarkMode = avgLum < 120;
 
-          // Adaptive Grayscale & High-Contrast Digit Enhancement (Eliminates pill borders without breaking text)
-          for (let i = 0; i < d.length; i += 4) {
-            const r = d[i];
-            const g = d[i + 1];
-            const b = d[i + 2];
-            let lum = 0.299 * r + 0.587 * g + 0.114 * b;
+          // Adaptive Grayscale & Split Pill Cleaning (Preserves left text while clarifying right fractions)
+          for (let y = 0; y < canvas.height; y++) {
+            for (let x = 0; x < canvas.width; x++) {
+              const idx = (y * w + x) * 4;
+              const r = d[idx];
+              const g = d[idx + 1];
+              const b = d[idx + 2];
+              let lum = 0.299 * r + 0.587 * g + 0.114 * b;
 
-            if (isDarkMode) {
-              lum = 255 - lum; // Invert dark mode so text is dark on white
-            }
+              if (isDarkMode) {
+                lum = 255 - lum;
+              }
 
-            if (lum > 185) {
-              d[i] = 255;
-              d[i + 1] = 255;
-              d[i + 2] = 255;
-            } else if (lum < 140) {
-              d[i] = 0;
-              d[i + 1] = 0;
-              d[i + 2] = 0;
-            } else {
-              const val = Math.max(0, Math.min(255, Math.round((lum - 140) * (255 / 45))));
-              d[i] = val;
-              d[i + 1] = val;
-              d[i + 2] = val;
+              // On the right side (x > 55%), eliminate light pill borders (lum > 165)
+              if (x > canvas.width * 0.55 && lum > 165) {
+                d[idx] = 255;
+                d[idx + 1] = 255;
+                d[idx + 2] = 255;
+              } else if (lum < 130) {
+                d[idx] = 0;
+                d[idx + 1] = 0;
+                d[idx + 2] = 0;
+              } else {
+                const val = Math.max(0, Math.min(255, Math.round((lum - 130) * (255 / 45))));
+                d[idx] = val;
+                d[idx + 1] = val;
+                d[idx + 2] = val;
+              }
             }
           }
 
@@ -316,85 +318,96 @@ const SCAN_MESSAGES = [
   },
 ];
 
-// Master Subject Catalog for Centurion University ERP Resolution
-const MASTER_COURSE_CATALOG = [
-  { code: "CUTM1020", name: "Robotic automation with ROS and C++", keywords: ["ROBOT", "ROS", "AUTOMATION", "1020", "CUTM1020"] },
-  { code: "CUTM1577", name: "Minor Project II", keywords: ["MINOR", "PROJECT", "1577", "CUTM1577"] },
-  { code: "CUTM1578", name: "Summer Internship I", keywords: ["SUMMER", "INTERNSHIP", "1578", "CUTM1578"] },
-  { code: "CUTM3166", name: "Data Structure and Algorithms", keywords: ["DATA", "STRUCT", "ALGO", "3166", "CUTM3166"] },
-  { code: "CUCS1007", name: "Information Security (CISCO)", keywords: ["INFO", "SECUR", "CISCO", "1007", "CUCS1007"] },
-  { code: "CUCS1006", name: "Network and Protocols for IoT", keywords: ["NETWORK", "PROTOCOL", "IOT", "1006", "CUCS1006"] },
-  { code: "CUCS1008", name: "Theory of Computation and Compiler Design", keywords: ["THEORY", "COMPUTATION", "COMPILER", "TOC", "1008", "CUCS1008"] },
-  { code: "CUCS1014", name: "Prompt Engineering using ChatGPT", keywords: ["PROMPT", "ENGINEERING", "CHATGPT", "GPT", "1014", "CUCS1014"] },
-  { code: "CUCS1015", name: "Cloud Fundamentals", keywords: ["CLOUD", "FUNDAMENTAL", "AZURE", "1015", "CUCS1015"] },
-];
+// Clean course code normalizer (resolves common OCR letter-digit substitutions e.g. CUTMI020 -> CUTM1020)
+const normalizeCourseCode = (code) => {
+  if (!code) return "";
+  let clean = code.toUpperCase().replace(/[^A-Z0-9]/g, "");
+  const match = clean.match(/^([A-Z]{3,5})([A-Z0-9]{3,6})$/i);
+  if (match) {
+    let prefix = match[1].toUpperCase()
+      .replace(/J/g, "U")
+      .replace(/^C[UI]T[MI]/, "CUTM")
+      .replace(/^C[UI]C[S5I]/, "CUCS");
+    let numPart = match[2]
+      .replace(/I|l|M/g, "1")
+      .replace(/O/g, "0")
+      .replace(/S/g, "5")
+      .replace(/Z/g, "2")
+      .replace(/B/g, "8");
+    return prefix + numPart;
+  }
+  return clean;
+};
 
-// Deduplicate and Canonicalize Subjects (Merges split codes/names into single unified subject objects)
+const cleanSubjectName = (name) => {
+  if (!name) return "";
+  return name
+    .replace(/\([A-Z0-9\s\-]+\)$/i, "")
+    .replace(/\b(CUTM|CUCS|CUEC|CUEE|CUME|CUCY|CUPH|CUMA|BTE|BBA|MBA)\w{3,6}\b/gi, "")
+    .replace(/[-_\|\:]+$/, "")
+    .replace(/^[-_\|\:\d\.\s]+/, "")
+    .replace(/\s+/g, " ")
+    .trim();
+};
+
+// Deduplicate and Canonicalize Subjects (Dynamically merges multi-components without hardcoded subjects)
 const deduplicateAndCanonicalizeSubjects = (rawList = [], catalog = []) => {
-  const subjectsMap = new Map();
-
-  const getCanonical = (code, name) => {
-    const rawUpper = `${code || ""} ${name || ""}`.toUpperCase();
-    
-    // 1. Check Course Code exact / regex match
-    const codeMatch = rawUpper.match(/\b([A-Z]{3,5}\d{3,5})\b/);
-    if (codeMatch) {
-      const cCode = codeMatch[1];
-      const known = MASTER_COURSE_CATALOG.find((k) => k.code === cCode);
-      if (known) return known;
-    }
-
-    // 2. Check 4-digit code numbers
-    const numMatch = rawUpper.match(/\b(1020|1007|1006|1008|1014|1015|3166|1577|1578)\b/);
-    if (numMatch) {
-      const num = numMatch[1];
-      const known = MASTER_COURSE_CATALOG.find((k) => k.code.includes(num) || k.keywords.includes(num));
-      if (known) return known;
-    }
-
-    // 3. Keyword / Fuzzy Match
-    for (const known of MASTER_COURSE_CATALOG) {
-      const matched = known.keywords.filter((kw) => rawUpper.includes(kw));
-      if (matched.length >= 2 || (matched.length === 1 && (known.keywords[0] === matched[0] || matched[0].length >= 5))) {
-        return known;
-      }
-    }
-
-    // 4. Check Section Catalog
-    for (const c of catalog) {
-      if (c && c.subjectName && (name && c.subjectName.toLowerCase() === name.toLowerCase())) {
-        return { code: c.code || "", name: c.subjectName };
-      }
-    }
-
-    return { code: code || "", name: name || code || "Subject" };
-  };
+  const subjects = [];
 
   rawList.forEach((item) => {
     if (!item) return;
-    const canon = getCanonical(item.code, item.name);
-    const key = (canon.code || canon.name).toUpperCase();
 
-    if (!subjectsMap.has(key)) {
-      subjectsMap.set(key, {
-        id: item.id || `ocr_sub_${Date.now()}_${subjectsMap.size}`,
-        name: canon.name,
-        code: canon.code,
+    const rawCode = normalizeCourseCode(item.code || "");
+    let rawName = cleanSubjectName(item.name || "");
+
+    rawName = rawName.replace(new RegExp(rawCode, "gi"), "").trim();
+    if (!rawCode && rawName.length < 3) return;
+
+    let existing = subjects.find((s) => {
+      if (rawCode && s.code && s.code === rawCode) return true;
+      if (rawName && s.name && rawName.length > 2 && s.name.length > 2) {
+        const n1 = rawName.toLowerCase().replace(/[^a-z0-9]/g, "");
+        const n2 = s.name.toLowerCase().replace(/[^a-z0-9]/g, "");
+        if (n1 === n2) return true;
+      }
+      return false;
+    });
+
+    if (!existing) {
+      let finalName = rawName;
+      if (!finalName && rawCode) {
+        for (const c of catalog) {
+          if (c && c.code && normalizeCourseCode(c.code) === rawCode && c.subjectName) {
+            finalName = c.subjectName;
+            break;
+          }
+        }
+      }
+      if (!finalName) finalName = rawCode || "Subject";
+
+      existing = {
+        id: item.id || `ocr_sub_${Date.now()}_${subjects.length}`,
+        name: finalName,
+        code: rawCode,
         components: [],
         attendedClasses: 0,
         totalClasses: 0,
         percentage: 0,
         detectedFromImage: true,
-      });
+      };
+      subjects.push(existing);
     }
 
-    const existing = subjectsMap.get(key);
-    if (!existing.code && canon.code) existing.code = canon.code;
-    if (canon.name && (!existing.name || existing.name === existing.code)) existing.name = canon.name;
+    if (!existing.code && rawCode) existing.code = rawCode;
+    if (rawName && (!existing.name || existing.name === existing.code)) existing.name = rawName;
 
     const comps = Array.isArray(item.components) && item.components.length > 0
       ? item.components
-      : [{ type: "PP", attended: item.attendedClasses || item.attended || 0, delivered: item.totalClasses || item.delivered || item.total || 0 }];
+      : [{
+          type: "PP",
+          attended: item.attendedClasses !== undefined ? item.attendedClasses : (item.attended || 0),
+          delivered: item.totalClasses !== undefined ? item.totalClasses : (item.delivered || item.total || 0),
+        }];
 
     comps.forEach((c) => {
       const cType = String(c.type || "PP").toUpperCase();
@@ -403,260 +416,207 @@ const deduplicateAndCanonicalizeSubjects = (rawList = [], catalog = []) => {
         exComp = { type: cType, attended: 0, delivered: 0, percentage: 0 };
         existing.components.push(exComp);
       }
-      exComp.attended = Math.max(0, Number(c.attended) || 0);
-      exComp.delivered = Math.max(exComp.attended, Number(c.delivered || c.total) || 0);
-      exComp.percentage = exComp.delivered > 0 ? Number(((exComp.attended / exComp.delivered) * 100).toFixed(1)) : 0;
+      exComp.attended = Math.max(0, parseInt(c.attended, 10) || 0);
+      exComp.delivered = Math.max(0, parseInt(c.delivered !== undefined ? c.delivered : c.total, 10) || 0);
+      exComp.percentage = exComp.delivered > 0 ? parseFloat(((exComp.attended / exComp.delivered) * 100).toFixed(1)) : 0;
     });
 
     existing.attendedClasses = existing.components.reduce((acc, c) => acc + c.attended, 0);
     existing.totalClasses = existing.components.reduce((acc, c) => acc + c.delivered, 0);
-    existing.percentage = existing.totalClasses > 0 ? Number(((existing.attendedClasses / existing.totalClasses) * 100).toFixed(1)) : 0;
+    existing.percentage = existing.totalClasses > 0 ? parseFloat(((existing.attendedClasses / existing.totalClasses) * 100).toFixed(1)) : 0;
   });
 
-  return Array.from(subjectsMap.values());
+  return subjects;
 };
 
-// Official Centurion University Website ERP Table Structure (18 Standard Table Rows)
-const WEBSITE_TABLE_ROWS = [
-  { row: 1, code: "CUTM1020", comp: "PP", name: "Robotic automation with ROS and C++", att: 3, del: 6 },
-  { row: 2, code: "CUTM1020", comp: "PR", name: "Robotic automation with ROS and C++", att: 26, del: 28 },
-  { row: 3, code: "CUTM1020", comp: "TUT", name: "Robotic automation with ROS and C++", att: 5, del: 6 },
-  { row: 4, code: "CUTM1577", comp: "TUT", name: "Minor Project II", att: 0, del: 0 },
-  { row: 5, code: "CUTM1578", comp: "TUT", name: "Summer Internship I", att: 0, del: 0 },
-  { row: 6, code: "CUTM3166", comp: "PR", name: "Data Structure and Algorithms", att: 16, del: 20 },
-  { row: 7, code: "CUTM3166", comp: "TUT", name: "Data Structure and Algorithms", att: 12, del: 12 },
-  { row: 8, code: "CUCS1007", comp: "PR", name: "Information Security (CISCO)", att: 12, del: 14 },
-  { row: 9, code: "CUCS1007", comp: "TUT", name: "Information Security (CISCO)", att: 8, del: 10 },
-  { row: 10, code: "CUCS1007", comp: "PP", name: "Information Security (CISCO)", att: 6, del: 7 },
-  { row: 11, code: "CUCS1006", comp: "PP", name: "Network and Protocols for IoT", att: 6, del: 7 },
-  { row: 12, code: "CUCS1006", comp: "PR", name: "Network and Protocols for IoT", att: 22, del: 30 },
-  { row: 13, code: "CUCS1008", comp: "PP", name: "Theory of Computation and Compiler Design", att: 12, del: 16 },
-  { row: 14, code: "CUCS1008", comp: "PR", name: "Theory of Computation and Compiler Design", att: 16, del: 18 },
-  { row: 15, code: "CUCS1014", comp: "PP", name: "Prompt Engineering using ChatGPT", att: 6, del: 7 },
-  { row: 16, code: "CUCS1014", comp: "PR", name: "Prompt Engineering using ChatGPT", att: 8, del: 8 },
-  { row: 17, code: "CUCS1015", comp: "PP", name: "Cloud Fundamentals", att: 6, del: 8 },
-  { row: 18, code: "CUCS1015", comp: "PR", name: "Cloud Fundamentals", att: 6, del: 8 },
-];
+// Robust Fraction & Session Extractor from Raw OCR Line
+const extractFractionFromLine = (line) => {
+  if (!line) return null;
 
-// Universal CUTM ERP Text Parser (Website ERP Tables & Mobile Cards)
-  const parseCutmOcrText = (text, catalog = []) => {
-    const isWebsiteTable = /Sr\.?No|Course|counaiame|shontioma|coursocods|Total\s*Percentage/i.test(text);
+  const fracMatch = line.match(/\b(\d{1,3})\s*[\/\\|]\s*(\d{1,3})\b/);
+  if (fracMatch) {
+    const a = parseInt(fracMatch[1], 10);
+    const d = parseInt(fracMatch[2], 10);
+    if (d >= a && d <= 150) return { attended: a, delivered: d };
+  }
 
-    if (isWebsiteTable) {
-      const extractedRows = [];
+  if (/\b[0oO]\s*[\/\\|]\s*[0oO]\b|\b0\s+0\b|\b0\/0\b/.test(line)) {
+    return { attended: 0, delivered: 0 };
+  }
 
-      // Collect all explicit fractions from text
-      const fracList = [];
-      const fracRegex = /\b(\d{1,3})\s*[\/\\|]\s*(\d{1,3})\b/g;
-      let fm;
-      while ((fm = fracRegex.exec(text)) !== null) {
-        const a = parseInt(fm[1], 10);
-        const d = parseInt(fm[2], 10);
-        if (d >= a && d <= 150 && !(a === 170 && d === 205) && !(a === 170 && d === 208)) {
-          fracList.push({ attended: a, delivered: d });
-        }
-      }
+  const spaceMatch = line.match(/\b(\d{1,2})\s+(\d{1,2})\b/);
+  if (spaceMatch) {
+    const a = parseInt(spaceMatch[1], 10);
+    const d = parseInt(spaceMatch[2], 10);
+    if (d >= a && d <= 150 && d > 0) return { attended: a, delivered: d };
+  }
 
-      // Map through standard website table rows
-      WEBSITE_TABLE_ROWS.forEach((stdRow, idx) => {
-        let rowAtt = stdRow.att;
-        let rowDel = stdRow.del;
-
-        if (fracList[idx]) {
-          rowAtt = fracList[idx].attended;
-          rowDel = fracList[idx].delivered;
-        }
-
-        extractedRows.push({
-          name: stdRow.name,
-          code: stdRow.code,
-          components: [
-            {
-              type: stdRow.comp,
-              attended: rowAtt !== undefined ? rowAtt : (stdRow.comp === "TUT" && stdRow.code.includes("157") ? 0 : 6),
-              delivered: rowDel !== undefined ? rowDel : (stdRow.comp === "TUT" && stdRow.code.includes("157") ? 0 : 8),
-            }
-          ]
-        });
-      });
-
-      return deduplicateAndCanonicalizeSubjects(extractedRows, catalog);
+  const fourDigitMatches = line.match(/\b(\d{2})(\d{2})\b/g);
+  if (fourDigitMatches) {
+    for (const m of fourDigitMatches) {
+      const a = parseInt(m.substring(0, 2), 10);
+      const d = parseInt(m.substring(2, 4), 10);
+      if (d >= a && d >= 5 && d <= 60) return { attended: a, delivered: d };
     }
+  }
 
-    // ── MOBILE ERP SCREENSHOT EXTRACTION (PRESERVED 100% UNCHANGED) ──
-    const lines = text.split("\n").map((l) => l.trim()).filter(Boolean);
-    const subjectsMap = new Map();
+  const twoDigitMatches = line.match(/\b(\d)(\d)\b/g);
+  if (twoDigitMatches) {
+    for (const m of twoDigitMatches) {
+      const a = parseInt(m[0], 10);
+      const d = parseInt(m[1], 10);
+      if (d >= a && d >= 4 && d <= 10) return { attended: a, delivered: d };
+    }
+  }
 
-    const registerSubject = (code, name) => {
-      const cleanCode = (code || "").toUpperCase().replace(/[^A-Z0-9]/g, "");
-      const cleanName = (name || "").trim();
-      const key = cleanCode || cleanName.toUpperCase();
+  return null;
+};
 
-      if (subjectsMap.has(key)) return subjectsMap.get(key);
+// Universal Dynamic CUTM ERP Text Parser (Website ERP Tables & Mobile ERP Cards)
+const parseCutmOcrText = (text, catalog = []) => {
+  if (!text || typeof text !== "string") return [];
 
-      for (const [, existing] of subjectsMap) {
-        if (cleanCode && existing.code && existing.code === cleanCode) return existing;
-        if (cleanName && existing.name.toLowerCase() === cleanName.toLowerCase()) return existing;
-      }
+  const lines = text.split("\n").map((l) => l.trim()).filter(Boolean);
+  const isWebsiteTable = /Sr\.?No|Course\s*Name|Course\s*Short|Course\s*Code|Attended\s*[\/\|\\-]?\s*Delivered/i.test(text);
 
-      const entry = {
-        name: cleanName || cleanCode,
-        code: cleanCode,
-        components: [],
-        detectedFromImage: false,
-      };
-      subjectsMap.set(key, entry);
-      return entry;
-    };
+  const rawRows = [];
 
-    MASTER_COURSE_CATALOG.forEach((s) => registerSubject(s.code, s.name));
-    catalog.forEach((c) => {
-      if (!c || !c.subjectName) return;
-      const known = MASTER_COURSE_CATALOG.find(
-        (k) => k.name.toLowerCase() === c.subjectName.toLowerCase() || (c.code && k.code === c.code)
-      );
-      const code = c.code || (known ? known.code : "");
-      registerSubject(code, c.subjectName);
-    });
-
-    const resolveSubject = (rawStr) => {
-      if (!rawStr) return null;
-      const upper = rawStr.toUpperCase();
-
-      const codeMatch = upper.match(/\b([A-Z]{3,5}\d{3,5})\b/);
-      if (codeMatch) {
-        const code = codeMatch[1];
-        for (const [, sub] of subjectsMap) {
-          if (sub.code && sub.code === code) return sub;
-        }
-        const known = MASTER_COURSE_CATALOG.find((k) => k.code === code);
-        if (known) return registerSubject(known.code, known.name);
-      }
-
-      const numMatch = upper.match(/\b(1020|1007|1006|1008|1014|1015|3166|1577|1578)\b/);
-      if (numMatch) {
-        const num = numMatch[1];
-        const known = MASTER_COURSE_CATALOG.find((k) => k.code.includes(num) || k.keywords.includes(num));
-        if (known) {
-          for (const [, sub] of subjectsMap) {
-            if (sub.code === known.code) return sub;
-          }
-          return registerSubject(known.code, known.name);
-        }
-      }
-
-      for (const known of MASTER_COURSE_CATALOG) {
-        const matched = known.keywords.filter((kw) => upper.includes(kw));
-        if (matched.length >= 2 || (matched.length === 1 && (known.keywords[0] === matched[0] || matched[0].length >= 5))) {
-          for (const [, sub] of subjectsMap) {
-            if (sub.code === known.code || sub.name.toLowerCase() === known.name.toLowerCase()) return sub;
-          }
-          return registerSubject(known.code, known.name);
-        }
-      }
-
-      for (const [, sub] of subjectsMap) {
-        if (sub.name && upper.includes(sub.name.toUpperCase())) return sub;
-      }
-
-      return null;
-    };
-
-    const detectComponentType = (str) => {
-      const upper = (str || "").toUpperCase();
-      if (/\bTUT\b|[-_\(\[\s]TUT[-_\)\]\s]|TUTORIAL/i.test(upper)) return "TUT";
-      if (/\bPR\b|[-_\(\[\s]PR[-_\)\]\s]|\(PR\)|-\s*PR|PRACTICAL|\bLAB\b/i.test(upper)) return "PR";
-      if (/\bPP\b|[-_\(\[\s]PP[-_\)\]\s]|\(PP\)|-\s*PP|THEORY|\bTH\b/i.test(upper)) return "PP";
-      return "PP";
-    };
-
-    const extractFraction = (str) => {
-      if (!str) return null;
-      const fracMatch = str.match(/(\d{1,3})\s*[\/\\|]\s*(\d{1,3})/);
-      if (fracMatch) {
-        const att = parseInt(fracMatch[1], 10);
-        const del = parseInt(fracMatch[2], 10);
-        if (!isNaN(att) && !isNaN(del) && del >= att && del <= 150) {
-          return { attended: att, delivered: del };
-        }
-      }
-      const zeroZeroMatch = str.match(/(\d{1,2})\s*[\/\\|]\s*(?:0\b|\s*)/);
-      if (zeroZeroMatch && parseInt(zeroZeroMatch[1], 10) === 0) {
-        return { attended: 0, delivered: 0 };
-      }
-      return null;
-    };
-
-    let activeSubject = null;
-    let activeCompType = "PP";
-
+  if (isWebsiteTable) {
+    // ── WEBSITE ERP TABLE PARSER (Structural Column Anchor Architecture) ──
     for (let i = 0; i < lines.length; i++) {
       const line = lines[i];
-      const upper = line.toUpperCase();
 
       if (
-        line.includes("Sr.No") ||
-        line.includes("Course Name") ||
-        line.includes("Course Short Name") ||
-        line.includes("Course Code") ||
-        line.includes("Attended/Delivered") ||
-        line.includes("From date") ||
-        line.includes("To date") ||
-        line.toLowerCase().startsWith("total percentage")
+        /^(Sr\.?No|Course|counaiame|shontioma|coursocods|From\s*date|To\s*date)/i.test(line) ||
+        line.toLowerCase().startsWith("total percentage") ||
+        line.toLowerCase().startsWith("total percent") ||
+        line.toLowerCase().startsWith("total percontoge")
       ) {
         continue;
       }
 
-      if (/\bTUT\b|[-_\(\[\s]TUT[-_\)\]\s]/i.test(upper)) {
-        activeCompType = "TUT";
-      } else if (/\bPR\b|[-_\(\[\s]PR[-_\)\]\s]/i.test(upper)) {
-        activeCompType = "PR";
-      } else if (/\bPP\b|[-_\(\[\s]PP[-_\)\]\s]/i.test(upper)) {
-        activeCompType = "PP";
-      }
+      // Column 3 Anchor: "Course Short Name" formatted as "CODE - COMP" or "CODE = COMP"
+      const shortMatch = line.match(/\b([A-Z]{3,5}[A-Z0-9]{3,6})\s*[-_=\:]\s*(PP|PR|TUT)\b/i);
 
-      const matchedSub = resolveSubject(line);
-      if (matchedSub) {
-        activeSubject = matchedSub;
-      }
+      let code = "";
+      let compType = "PP";
+      let namePart = "";
+      let frac = null;
 
-      const fractionMatch = extractFraction(line);
-      if (fractionMatch && activeSubject) {
-        activeSubject.detectedFromImage = true;
-        const hasExplicitComp = /\b(PP|PR|TUT|THEORY|LAB|PRACTICAL|TUTORIAL)\b|[-_\(\[\s](PP|PR|TUT)[-_\)\]\s]/i.test(line);
-        const compType = hasExplicitComp ? detectComponentType(line) : activeCompType;
+      if (shortMatch) {
+        code = normalizeCourseCode(shortMatch[1]);
+        compType = shortMatch[2].toUpperCase();
+        namePart = cleanSubjectName(line.substring(0, shortMatch.index));
+        const trailing = line.substring(shortMatch.index + shortMatch[0].length);
+        frac = extractFractionFromLine(trailing);
+      } else {
+        const codeMatches = line.match(/\b([A-Z]{3,5}[A-Z0-9]{3,6})\b/gi);
+        code = codeMatches ? normalizeCourseCode(codeMatches[codeMatches.length - 1]) : "";
 
-        let comp = activeSubject.components.find((c) => c.type === compType);
-        if (!comp) {
-          comp = { type: compType, attended: 0, delivered: 0, percentage: 0 };
-          activeSubject.components.push(comp);
+        const compMatch = line.match(/[-_]\s*(PP|PR|TUT)\b|\((PP|PR|TUT)\)|\b(PP|PR|TUT)\b/i);
+        if (compMatch) {
+          const tag = (compMatch[1] || compMatch[2] || compMatch[3]).toUpperCase();
+          if (tag === "TUT") compType = "TUT";
+          else if (tag === "PR") compType = "PR";
+          else if (tag === "PP") compType = "PP";
         }
-        comp.attended = fractionMatch.attended;
-        comp.delivered = fractionMatch.delivered;
-        comp.percentage = comp.delivered > 0 ? Number(((comp.attended / comp.delivered) * 100).toFixed(1)) : (comp.delivered === 0 ? 0 : 100);
+
+        frac = extractFractionFromLine(line);
+        namePart = cleanSubjectName(
+          line
+            .replace(/^\d+[\.\s\-\|\)]*/, "")
+            .replace(/\b[A-Z]{3,5}[A-Z0-9]{3,6}\s*-\s*(PP|PR|TUT)\b/gi, "")
+            .replace(/\b[A-Z]{3,5}[A-Z0-9]{3,6}\b/gi, "")
+            .replace(/(?:-\s*|\(\s*)(PP|PR|TUT)(?:\s*\))/gi, "")
+            .replace(/\b\d{1,3}\s*[\/\\|]\s*\d{1,3}\b/g, "")
+            .replace(/\b\d{1,3}(?:\.\d+)?\s*%?\b/g, "")
+            .replace(/[\(\)\[\]\|_]/g, " ")
+        );
+      }
+
+      if (code || namePart.length > 3 || frac) {
+        rawRows.push({
+          name: namePart || code,
+          code: code,
+          components: [
+            {
+              type: compType,
+              attended: frac ? frac.attended : 0,
+              delivered: frac ? frac.delivered : 0,
+            },
+          ],
+        });
       }
     }
+  } else {
+    // ── MOBILE ERP CARDS PARSER ──
+    let currentSubject = null;
+    let currentCompType = "PP";
 
-    const detected = Array.from(subjectsMap.values())
-      .filter((s) => s.detectedFromImage && s.components.length > 0)
-      .map((s, idx) => {
-        const totalAtt = s.components.reduce((acc, c) => acc + (Number(c.attended) || 0), 0);
-        const totalDel = s.components.reduce((acc, c) => acc + (Number(c.delivered) || 0), 0);
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i];
 
-        return {
-          id: `ocr_sub_${Date.now()}_${idx}`,
-          name: s.name,
-          code: s.code,
-          attendedClasses: totalAtt,
-          totalClasses: totalDel,
-          percentage: totalDel > 0 ? Number(((totalAtt / totalDel) * 100).toFixed(1)) : 0,
-          components: s.components,
-          detectedFromImage: true,
+      if (
+        /Attendance\s*Details|Subject\s*Wise|From\s*date|To\s*date|Total\s*Percentage|Total\s*Percontoge/i.test(line) ||
+        /^(Home|Scan\s*QR|Notifications)$/i.test(line)
+      ) {
+        continue;
+      }
+
+      const compSubMatch = line.match(/[-_]\s*\(?(PP|PR|TUT)\)?|\((PP|PR|TUT)\)/i);
+      const frac = extractFractionFromLine(line);
+
+      if (compSubMatch && !frac) {
+        const tag = (compSubMatch[1] || compSubMatch[2]).toUpperCase();
+        if (tag === "TUT") currentCompType = "TUT";
+        else if (tag === "PR") currentCompType = "PR";
+        else if (tag === "PP") currentCompType = "PP";
+        continue;
+      }
+
+      const mainCardMatch = line.match(/^(.*?)\s*\(?([A-Z]{3,5}[A-Z0-9]{3,6})\)?$/i);
+      if (mainCardMatch && !frac && !compSubMatch && mainCardMatch[1].trim().length > 3) {
+        const code = normalizeCourseCode(mainCardMatch[2]);
+        let name = mainCardMatch[1].trim();
+        currentSubject = {
+          name: name || code,
+          code: code,
+          components: [],
         };
-      });
+        rawRows.push(currentSubject);
+        currentCompType = "PP";
+        continue;
+      }
 
-    return deduplicateAndCanonicalizeSubjects(detected, catalog);
-  };
+      if (frac) {
+        const compTagInLine = line.match(/\(?(PP|PR|TUT)\)?/i);
+        const compType = compTagInLine ? compTagInLine[1].toUpperCase() : currentCompType;
+
+        if (!currentSubject) {
+          const codeMatch = line.match(/\b([A-Z]{3,5}[A-Z0-9]{3,6})\b/i);
+          const code = codeMatch ? normalizeCourseCode(codeMatch[1]) : "";
+          currentSubject = {
+            name: code || "Subject",
+            code: code,
+            components: [],
+          };
+          rawRows.push(currentSubject);
+        }
+
+        let comp = currentSubject.components.find((c) => c.type === compType);
+        if (!comp) {
+          comp = { type: compType, attended: frac.attended, delivered: frac.delivered };
+          currentSubject.components.push(comp);
+        } else {
+          comp.attended = frac.attended;
+          comp.delivered = frac.delivered;
+        }
+      }
+    }
+  }
+
+  return deduplicateAndCanonicalizeSubjects(rawRows, catalog);
+};
 
   // Analyze Screenshot via Dual AI (Cloud Gemini + Client-Side Tesseract WASM Engine with Image Preprocessing)
   const analyzeScreenshot = async (imageBase64, mimeType) => {
