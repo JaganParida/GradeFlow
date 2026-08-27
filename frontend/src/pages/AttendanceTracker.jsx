@@ -1188,10 +1188,10 @@ export default function AttendanceTracker() {
         style={{
           maxWidth: 1440,
           margin: "0 auto",
-          padding: isMobile ? "12px 10px 80px 10px" : "24px 32px 90px 32px",
+          padding: isMobile ? "8px 8px 80px 8px" : "24px 32px 90px 32px",
           display: "grid",
           gridTemplateColumns: isMobile ? "1fr" : "280px minmax(0, 1fr)",
-          gap: isMobile ? 12 : 24,
+          gap: isMobile ? 10 : 24,
           alignItems: "start",
           boxSizing: "border-box",
           width: "100%",
@@ -1220,11 +1220,12 @@ export default function AttendanceTracker() {
               style={{
                 background: "#ffffff",
                 border: "1px solid #cbd5e1",
-                borderRadius: 16,
+                borderRadius: 10,
                 padding: "16px 14px",
                 display: "flex",
                 flexDirection: "column",
                 gap: 14,
+                boxShadow: "none",
               }}
             >
               {/* 1. Student Profile Header */}

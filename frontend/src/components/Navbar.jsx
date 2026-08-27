@@ -37,32 +37,7 @@ import { is2023CSEBatch } from "../utils/timetableHelper";
 const mobileDrawerVariants = {
   hidden: {
     opacity: 0,
-    y: -16,
-  },
-  visible: {
-    opacity: 1,
-    y: 0,
-    transition: {
-      duration: 0.28,
-      ease: [0.16, 1, 0.3, 1],
-      staggerChildren: 0.024,
-      delayChildren: 0.02,
-    },
-  },
-  exit: {
-    opacity: 0,
-    y: -12,
-    transition: {
-      duration: 0.2,
-      ease: [0.32, 0.72, 0, 1],
-    },
-  },
-};
-
-const mobileNavItemVariants = {
-  hidden: {
-    opacity: 0,
-    y: 8,
+    y: -10,
   },
   visible: {
     opacity: 1,
@@ -70,12 +45,31 @@ const mobileNavItemVariants = {
     transition: {
       duration: 0.22,
       ease: [0.16, 1, 0.3, 1],
+      staggerChildren: 0.018,
+      delayChildren: 0.01,
     },
   },
   exit: {
     opacity: 0,
+    y: -8,
     transition: {
-      duration: 0.12,
+      duration: 0.16,
+      ease: [0.22, 1, 0.36, 1],
+    },
+  },
+};
+
+const mobileNavItemVariants = {
+  hidden: {
+    opacity: 0,
+    y: 6,
+  },
+  visible: {
+    opacity: 1,
+    y: 0,
+    transition: {
+      duration: 0.18,
+      ease: [0.16, 1, 0.3, 1],
     },
   },
 };
@@ -981,13 +975,15 @@ export default function Navbar() {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              transition={{ duration: 0.24, ease: "easeOut" }}
+              transition={{ duration: 0.18, ease: "easeOut" }}
               onClick={() => setMobileMenuOpen(false)}
               onTouchMove={(e) => e.preventDefault()}
               style={{
                 position: "fixed",
                 inset: 0,
-                background: "rgba(15, 23, 42, 0.4)",
+                background: "rgba(15, 23, 42, 0.45)",
+                backdropFilter: "blur(6px)",
+                WebkitBackdropFilter: "blur(6px)",
                 zIndex: 998,
                 touchAction: "none",
               }}
@@ -1009,13 +1005,14 @@ export default function Navbar() {
                 WebkitOverflowScrolling: "touch",
                 background: "#ffffff",
                 borderBottom: "1px solid #e2e8f0",
-                boxShadow: "0 20px 40px -10px rgba(15, 23, 42, 0.16)",
+                boxShadow: "0 10px 30px -5px rgba(15, 23, 42, 0.12)",
                 zIndex: 999,
-                padding: "16px 18px 28px",
+                padding: "14px 16px 24px",
                 display: "flex",
                 flexDirection: "column",
-                gap: 14,
+                gap: 12,
                 overscrollBehavior: "contain",
+                willChange: "transform, opacity",
               }}
             >
               {/* Admin Search Bar inside Drawer (Admin Only) */}
