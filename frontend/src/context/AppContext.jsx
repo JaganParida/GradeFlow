@@ -205,6 +205,7 @@ export function AppProvider({ children }) {
   const [sessionRevokedNotice, setSessionRevokedNotice] = useState(null);
 
   const fetchNotifications = async () => {
+    if (!studentSession?.regNo || !studentSession?.sessionId) return;
     try {
       const res = await axios.get(`${API_BASE}/notifications/student`, { withCredentials: true });
       if (res.data?.success) {
@@ -215,27 +216,45 @@ export function AppProvider({ children }) {
   };
 
   const approveLoginRequest = async (requestId) => {
+    // 1. Immediate optimistic UI update
+    setNotifications((prev) =>
+      prev.map((n) => (n.approvalRequestId === requestId ? { ...n, status: "APPROVED" } : n))
+    );
+    setUnreadCount((c) => Math.max(0, c - 1));
+
     try {
       const res = await axios.post(`${API_BASE}/notifications/approve`, { requestId }, { withCredentials: true });
       if (res.data?.success) {
-        await fetchNotifications();
+        fetchNotifications().catch(() => {});
         return { success: true, message: res.data.message };
       }
+      // Revert if server failed
+      await fetchNotifications().catch(() => {});
       return { success: false, message: res.data?.message || "Failed to approve request." };
     } catch (err) {
+      await fetchNotifications().catch(() => {});
       return { success: false, message: err.response?.data?.message || "Failed to approve request." };
     }
   };
 
   const denyLoginRequest = async (requestId) => {
+    // 1. Immediate optimistic UI update
+    setNotifications((prev) =>
+      prev.map((n) => (n.approvalRequestId === requestId ? { ...n, status: "DENIED" } : n))
+    );
+    setUnreadCount((c) => Math.max(0, c - 1));
+
     try {
       const res = await axios.post(`${API_BASE}/notifications/deny`, { requestId }, { withCredentials: true });
       if (res.data?.success) {
-        await fetchNotifications();
+        fetchNotifications().catch(() => {});
         return { success: true, message: res.data.message };
       }
+      // Revert if server failed
+      await fetchNotifications().catch(() => {});
       return { success: false, message: res.data?.message || "Failed to deny request." };
     } catch (err) {
+      await fetchNotifications().catch(() => {});
       return { success: false, message: err.response?.data?.message || "Failed to deny request." };
     }
   };
@@ -244,10 +263,11 @@ export function AppProvider({ children }) {
     try {
       await axios.post(`${API_BASE}/notifications/mark-read`, {}, { withCredentials: true });
       setUnreadCount(0);
+      setNotifications((prev) => prev.map((n) => (n.status === "UNREAD" ? { ...n, status: "READ" } : n)));
     } catch {}
   };
 
-  // Realtime SSE stream for active student session
+  // Realtime SSE stream + Resilient Background Sync for active student session
   useEffect(() => {
     if (!studentSession || !studentSession.regNo || !studentSession.sessionId) {
       setNotifications([]);
@@ -255,39 +275,85 @@ export function AppProvider({ children }) {
       return;
     }
 
-    fetchNotifications();
-
+    let isMounted = true;
     let eventSource = null;
-    try {
-      eventSource = new EventSource(`${API_BASE}/notifications/stream`, { withCredentials: true });
+    let reconnectTimeout = null;
 
-      eventSource.addEventListener("notification", () => {
-        fetchNotifications();
-      });
-
-      eventSource.addEventListener("session_revoked", (e) => {
-        try {
-          const data = JSON.parse(e.data || "{}");
-          setSessionRevokedNotice(
-            data.message || "Your session ended because your account was approved on another device."
-          );
-        } catch {
-          setSessionRevokedNotice("Your session ended because your account was approved on another device.");
+    const connectSSE = () => {
+      if (!isMounted || !studentSession?.regNo) return;
+      try {
+        if (eventSource) {
+          eventSource.close();
         }
-        setStudentSession(null);
-        setStudentData(null);
-        navigate("/", { replace: true });
-      });
 
-      eventSource.onerror = () => {
-        eventSource?.close();
-      };
-    } catch {}
+        eventSource = new EventSource(`${API_BASE}/notifications/stream`, { withCredentials: true });
 
-    const interval = setInterval(fetchNotifications, 20000);
+        eventSource.addEventListener("notification", () => {
+          if (isMounted) fetchNotifications();
+        });
+
+        eventSource.addEventListener("session_revoked", (e) => {
+          if (!isMounted) return;
+          try {
+            const data = JSON.parse(e.data || "{}");
+            setSessionRevokedNotice(
+              data.message || "Your session ended because your account was approved on another device."
+            );
+          } catch {
+            setSessionRevokedNotice("Your session ended because your account was approved on another device.");
+          }
+          setStudentSession(null);
+          setStudentData(null);
+          navigate("/", { replace: true });
+        });
+
+        eventSource.onerror = () => {
+          if (eventSource) {
+            eventSource.close();
+            eventSource = null;
+          }
+          if (isMounted) {
+            // Auto-reconnect with 3s backoff
+            clearTimeout(reconnectTimeout);
+            reconnectTimeout = setTimeout(connectSSE, 3000);
+          }
+        };
+      } catch {
+        if (isMounted) {
+          clearTimeout(reconnectTimeout);
+          reconnectTimeout = setTimeout(connectSSE, 4000);
+        }
+      }
+    };
+
+    // Initial fetch and SSE connection
+    fetchNotifications();
+    connectSSE();
+
+    // Background sync every 5s for bulletproof real-time guarantees
+    const pollInterval = setInterval(() => {
+      if (isMounted) fetchNotifications();
+    }, 5000);
+
+    // Mobile / tab visibility handler
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible" && isMounted) {
+        fetchNotifications();
+        if (!eventSource || eventSource.readyState === EventSource.CLOSED) {
+          connectSSE();
+        }
+      }
+    };
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
     return () => {
-      clearInterval(interval);
-      eventSource?.close();
+      isMounted = false;
+      clearInterval(pollInterval);
+      clearTimeout(reconnectTimeout);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+      if (eventSource) {
+        eventSource.close();
+      }
     };
   }, [studentSession?.sessionId, studentSession?.regNo]);
 

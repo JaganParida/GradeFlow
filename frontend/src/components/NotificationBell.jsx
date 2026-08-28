@@ -28,7 +28,7 @@ export default function NotificationBell({ isMobile = false }) {
   } = useApp();
 
   const [isOpen, setIsOpen] = useState(false);
-  const [processingId, setProcessingId] = useState(null);
+  const [processingState, setProcessingState] = useState({}); // { [notifId]: 'ALLOW' | 'DENY' }
   const dropdownRef = useRef(null);
 
   // Close dropdown on click outside
@@ -62,23 +62,23 @@ export default function NotificationBell({ isMobile = false }) {
 
   const handleApprove = async (e, notif) => {
     e.stopPropagation();
-    if (!notif.approvalRequestId || processingId) return;
-    setProcessingId(notif.notificationId);
+    if (!notif.approvalRequestId || processingState[notif.notificationId]) return;
+    setProcessingState((prev) => ({ ...prev, [notif.notificationId]: "ALLOW" }));
     try {
       await approveLoginRequest(notif.approvalRequestId);
     } finally {
-      setProcessingId(null);
+      setProcessingState((prev) => ({ ...prev, [notif.notificationId]: null }));
     }
   };
 
   const handleDeny = async (e, notif) => {
     e.stopPropagation();
-    if (!notif.approvalRequestId || processingId) return;
-    setProcessingId(notif.notificationId);
+    if (!notif.approvalRequestId || processingState[notif.notificationId]) return;
+    setProcessingState((prev) => ({ ...prev, [notif.notificationId]: "DENY" }));
     try {
       await denyLoginRequest(notif.approvalRequestId);
     } finally {
-      setProcessingId(null);
+      setProcessingState((prev) => ({ ...prev, [notif.notificationId]: null }));
     }
   };
 
@@ -253,7 +253,8 @@ export default function NotificationBell({ isMobile = false }) {
             ) : (
               <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
                 {notifications.map((notif) => {
-                  const isProcessing = processingId === notif.notificationId;
+                  const currentAction = processingState[notif.notificationId];
+                  const isProcessing = Boolean(currentAction);
                   const isPending = notif.status === "UNREAD" || notif.status === "READ";
                   const isApproved = notif.status === "APPROVED";
                   const isDenied = notif.status === "DENIED";
@@ -358,21 +359,31 @@ export default function NotificationBell({ isMobile = false }) {
                             disabled={isProcessing}
                             onClick={(e) => handleDeny(e, notif)}
                             style={{
-                              padding: "6px 12px",
+                              padding: "7px 12px",
+                              minHeight: 38,
                               borderRadius: 8,
                               border: "1px solid #fca5a5",
-                              background: "#fef2f2",
+                              background: currentAction === "DENY" ? "#fee2e2" : "#fef2f2",
                               color: "#991b1b",
                               fontSize: 12,
                               fontWeight: 700,
                               cursor: isProcessing ? "not-allowed" : "pointer",
                               display: "inline-flex",
                               alignItems: "center",
-                              gap: 4,
+                              gap: 5,
                             }}
                           >
-                            <X size={13} />
-                            <span>Deny</span>
+                            {currentAction === "DENY" ? (
+                              <>
+                                <Loader2 size={13} className="spin" />
+                                <span>Denying...</span>
+                              </>
+                            ) : (
+                              <>
+                                <X size={13} />
+                                <span>Deny</span>
+                              </>
+                            )}
                           </button>
 
                           <button
@@ -380,21 +391,22 @@ export default function NotificationBell({ isMobile = false }) {
                             disabled={isProcessing}
                             onClick={(e) => handleApprove(e, notif)}
                             style={{
-                              padding: "6px 14px",
+                              padding: "7px 14px",
+                              minHeight: 38,
                               borderRadius: 8,
                               border: "none",
-                              background: isProcessing ? "#94a3b8" : "#16a34a",
+                              background: currentAction === "ALLOW" ? "#15803d" : isProcessing ? "#94a3b8" : "#16a34a",
                               color: "#ffffff",
                               fontSize: 12,
                               fontWeight: 700,
                               cursor: isProcessing ? "not-allowed" : "pointer",
                               display: "inline-flex",
                               alignItems: "center",
-                              gap: 4,
+                              gap: 5,
                               boxShadow: "0 2px 4px rgba(22, 163, 74, 0.2)",
                             }}
                           >
-                            {isProcessing ? (
+                            {currentAction === "ALLOW" ? (
                               <>
                                 <Loader2 size={13} className="spin" />
                                 <span>Approving...</span>
@@ -413,34 +425,40 @@ export default function NotificationBell({ isMobile = false }) {
                       {isApproved && (
                         <div
                           style={{
-                            fontSize: 11.5,
+                            fontSize: 12,
                             color: "#16a34a",
                             fontWeight: 700,
                             display: "flex",
                             alignItems: "center",
-                            gap: 4,
+                            gap: 5,
                             marginTop: 2,
+                            padding: "4px 8px",
+                            background: "#f0fdf4",
+                            borderRadius: 6,
                           }}
                         >
-                          <CheckCircle2 size={13} color="#16a34a" />
-                          <span>Approved & session transferred</span>
+                          <CheckCircle2 size={14} color="#16a34a" />
+                          <span>Device access approved</span>
                         </div>
                       )}
 
                       {isDenied && (
                         <div
                           style={{
-                            fontSize: 11.5,
+                            fontSize: 12,
                             color: "#dc2626",
                             fontWeight: 700,
                             display: "flex",
                             alignItems: "center",
-                            gap: 4,
+                            gap: 5,
                             marginTop: 2,
+                            padding: "4px 8px",
+                            background: "#fef2f2",
+                            borderRadius: 6,
                           }}
                         >
-                          <XCircle size={13} color="#dc2626" />
-                          <span>Denied from this device</span>
+                          <XCircle size={14} color="#dc2626" />
+                          <span>Login request denied</span>
                         </div>
                       )}
 

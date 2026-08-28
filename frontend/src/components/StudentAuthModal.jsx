@@ -428,8 +428,7 @@ export default function StudentAuthModal({ isOpen, onClose }) {
         });
       }, 1000);
 
-      // 2. High-speed poll every 1.5s
-      pollInterval = setInterval(async () => {
+      const pollStatus = async () => {
         const res = await checkApprovalStatus(approvalRequestId);
         if (res?.status === "APPROVED" && res?.success) {
           clearInterval(pollInterval);
@@ -446,7 +445,24 @@ export default function StudentAuthModal({ isOpen, onClose }) {
           setErrorMsg("Approval request timed out. Please try logging in again.");
           setErrorCode("APPROVAL_EXPIRED");
         }
-      }, 1500);
+      };
+
+      // 2. High-speed poll every 1.5s
+      pollInterval = setInterval(pollStatus, 1500);
+
+      // 3. Immediate poll on tab resume / visibility change
+      const handleVisibilityChange = () => {
+        if (document.visibilityState === "visible") {
+          pollStatus();
+        }
+      };
+      document.addEventListener("visibilitychange", handleVisibilityChange);
+
+      return () => {
+        clearInterval(pollInterval);
+        clearInterval(timerInterval);
+        document.removeEventListener("visibilitychange", handleVisibilityChange);
+      };
     }
 
     return () => {
@@ -1255,48 +1271,93 @@ export default function StudentAuthModal({ isOpen, onClose }) {
                 </div>
               )}
 
-              <div
-                style={{
-                  background: "#f0fdf4",
-                  border: "1px solid #bbf7d0",
-                  borderRadius: 12,
-                  padding: "10px 12px",
-                  fontSize: 12,
-                  color: "#166534",
-                  fontWeight: 600,
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 8,
-                }}
-              >
-                <CheckCircle2 size={16} color="#16a34a" style={{ flexShrink: 0 }} />
-                <span>Open GradeFlow on your active device and tap <strong>Allow This Device</strong> in the notification bell.</span>
-              </div>
+              {errorCode === "APPROVAL_DENIED" ? (
+                <div
+                  style={{
+                    background: "#fef2f2",
+                    border: "1px solid #fecaca",
+                    borderRadius: 12,
+                    padding: "12px",
+                    fontSize: 12.5,
+                    color: "#991b1b",
+                    fontWeight: 600,
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 8,
+                    textAlign: "left",
+                  }}
+                >
+                  <XCircle size={18} color="#dc2626" style={{ flexShrink: 0 }} />
+                  <span>Your login request was denied by the active device.</span>
+                </div>
+              ) : errorCode === "APPROVAL_EXPIRED" ? (
+                <div
+                  style={{
+                    background: "#fffbeb",
+                    border: "1px solid #fde68a",
+                    borderRadius: 12,
+                    padding: "12px",
+                    fontSize: 12.5,
+                    color: "#92400e",
+                    fontWeight: 600,
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 8,
+                    textAlign: "left",
+                  }}
+                >
+                  <Clock size={18} color="#d97706" style={{ flexShrink: 0 }} />
+                  <span>Approval request timed out. Please try logging in again.</span>
+                </div>
+              ) : (
+                <>
+                  <div
+                    style={{
+                      background: "#f0fdf4",
+                      border: "1px solid #bbf7d0",
+                      borderRadius: 12,
+                      padding: "10px 12px",
+                      fontSize: 12,
+                      color: "#166534",
+                      fontWeight: 600,
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 8,
+                    }}
+                  >
+                    <CheckCircle2 size={16} color="#16a34a" style={{ flexShrink: 0 }} />
+                    <span>Open GradeFlow on your active device and tap <strong>Allow This Device</strong> in the notification bell.</span>
+                  </div>
 
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, color: "#64748b", fontSize: 12 }}>
-                <Loader2 size={14} className="spin" />
-                <span>Waiting for response from active device...</span>
-              </div>
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, color: "#64748b", fontSize: 12 }}>
+                    <Loader2 size={14} className="spin" />
+                    <span>Waiting for response from active device...</span>
+                  </div>
+                </>
+              )}
 
               <button
                 type="button"
                 onClick={() => {
-                  cancelApprovalRequest(approvalRequestId);
+                  if (errorCode !== "APPROVAL_DENIED" && errorCode !== "APPROVAL_EXPIRED") {
+                    cancelApprovalRequest(approvalRequestId);
+                  }
                   setStep("PASSWORD");
                   setErrorMsg("");
+                  setErrorCode("");
                 }}
                 style={{
-                  background: "none",
-                  border: "1px solid #cbd5e1",
+                  background: errorCode ? "#2563eb" : "none",
+                  border: errorCode ? "none" : "1px solid #cbd5e1",
                   borderRadius: 10,
-                  padding: "8px 16px",
-                  color: "#475569",
+                  padding: "9px 16px",
+                  color: errorCode ? "#ffffff" : "#475569",
                   fontSize: 12.5,
                   fontWeight: 700,
                   cursor: "pointer",
                 }}
               >
-                Cancel Request
+                {errorCode ? "Try Again" : "Cancel Request"}
               </button>
             </div>
           )}

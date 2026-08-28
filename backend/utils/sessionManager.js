@@ -235,6 +235,17 @@ async function respondDeviceApproval(StudentSession, requestId, respondingSessio
         message: "Login request was denied from your active device.",
       });
 
+      authEventBus.emit(`notification:${cleanReg}:${respondingSessionId}`, {
+        type: "NOTIFICATION_UPDATED",
+        requestId,
+        status: "DENIED",
+      });
+      authEventBus.emit(`notification:${cleanReg}`, {
+        type: "NOTIFICATION_UPDATED",
+        requestId,
+        status: "DENIED",
+      });
+
       return { success: true, status: "DENIED", message: "Login request denied successfully." };
     }
 
@@ -300,6 +311,17 @@ async function respondDeviceApproval(StudentSession, requestId, respondingSessio
         { approvalRequestId: requestId },
         { $set: { status: "APPROVED" } }
       );
+
+      authEventBus.emit(`notification:${cleanReg}:${targetSessionId}`, {
+        type: "NOTIFICATION_UPDATED",
+        requestId,
+        status: "APPROVED",
+      });
+      authEventBus.emit(`notification:${cleanReg}`, {
+        type: "NOTIFICATION_UPDATED",
+        requestId,
+        status: "APPROVED",
+      });
 
       // 5. Notify the old device that its session is revoked
       authEventBus.emit(`session_revoked:${cleanReg}`, {
