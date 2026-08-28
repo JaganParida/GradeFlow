@@ -2118,14 +2118,14 @@ function SectionToppersCard({ authHeaders, API }) {
       {/* Toppers Content */}
       {loading ? (
         <SectionToppersSkeleton />
-      ) : data.students?.length === 0 ? (
+      ) : !data.students || data.students.length === 0 ? (
         <div style={{ textAlign: "center", padding: "30px 0", color: "#94a3b8", fontSize: 13 }}>
           No section toppers found matching the current filters.
         </div>
       ) : isMobile ? (
         /* Mobile Card View (Zero Horizontal Scrolling) */
         <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-          {data.students.map((st, idx) => (
+          {(data.students || []).map((st, idx) => (
             <div
               key={st.regNo || idx}
               style={{
@@ -2255,7 +2255,7 @@ function SectionToppersCard({ authHeaders, API }) {
               </tr>
             </thead>
             <tbody>
-              {data.students.map((st, idx) => (
+              {(data.students || []).map((st, idx) => (
                 <tr
                   key={st.regNo || idx}
                   style={{ borderBottom: "1px solid #f1f5f9", transition: "background 0.15s" }}
@@ -2855,14 +2855,14 @@ function BacklogTrackerCard({ authHeaders, API }) {
       {/* Backlogs Content */}
       {loading ? (
         <BacklogTrackerSkeleton />
-      ) : data.students?.length === 0 ? (
+      ) : !data.students || data.students.length === 0 ? (
         <div style={{ textAlign: "center", padding: "30px 0", color: "#94a3b8", fontSize: 13 }}>
           No backlog records found.
         </div>
       ) : isMobile ? (
         /* Mobile Card View (Zero Horizontal Scrolling) */
         <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-          {data.students.map((st, idx) => {
+          {(data.students || []).map((st, idx) => {
             const isExpanded = expandedRegNo === st.regNo;
             return (
               <div
@@ -3069,7 +3069,7 @@ function BacklogTrackerCard({ authHeaders, API }) {
               </tr>
             </thead>
             <tbody>
-              {data.students.map((st, idx) => {
+              {(data.students || []).map((st, idx) => {
                 const isExpanded = expandedRegNo === st.regNo;
                 return (
                   <Fragment key={st.regNo || idx}>
@@ -3493,7 +3493,7 @@ function FeedbackManager({ authHeaders, API }) {
             Student Feedback & Reviews
           </h3>
           <span style={{ fontSize: 12, color: "#64748b" }}>
-            Total {feedbacks.length} submissions received
+            Total {(feedbacks || []).length} submissions received
           </span>
         </div>
       </div>
@@ -3501,10 +3501,10 @@ function FeedbackManager({ authHeaders, API }) {
       <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
         {loading ? (
           <AdminFeedbackSkeleton />
-        ) : feedbacks.length === 0 ? (
+        ) : !feedbacks || feedbacks.length === 0 ? (
           <p style={{ color: "#94a3b8", fontSize: 13 }}>No student feedback submitted yet.</p>
         ) : (
-          feedbacks.map((fb) => (
+          (feedbacks || []).map((fb) => (
             <div
               key={fb._id}
               style={{
@@ -4252,7 +4252,7 @@ export default function AdminDashboard() {
                 {isMobile ? (
                   /* Mobile Card View (Zero Horizontal Scroll) */
                   <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-                    {stats.batchBreakdown.map((b) => (
+                    {(stats?.batchBreakdown || []).map((b) => (
                       <div
                         key={b.batch}
                         style={{
@@ -4325,7 +4325,7 @@ export default function AdminDashboard() {
                               Semester-Wise Students
                             </div>
                             <div style={{ display: "flex", flexWrap: "wrap", gap: 5 }}>
-                              {b.semBreakdown.map((s) => (
+                              {(b.semBreakdown || []).map((s) => (
                                 <span
                                   key={s.semester}
                                   style={{
@@ -4361,7 +4361,7 @@ export default function AdminDashboard() {
                         </tr>
                       </thead>
                       <tbody>
-                        {stats.batchBreakdown.map((b) => (
+                        {(stats?.batchBreakdown || []).map((b) => (
                           <tr
                             key={b.batch}
                             style={{ borderBottom: "1px solid #f1f5f9" }}
@@ -4393,7 +4393,7 @@ export default function AdminDashboard() {
                             </td>
                             <td style={{ padding: "12px 14px" }}>
                               <div style={{ display: "flex", flexWrap: "wrap", gap: 5, maxWidth: 380 }}>
-                                {b.semBreakdown?.map((s) => (
+                                {(b.semBreakdown || []).map((s) => (
                                   <span
                                     key={s.semester}
                                     style={{

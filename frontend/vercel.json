@@ -53,6 +53,46 @@
       "destination": "/api/subadmins.js?id=:id&action=revoke"
     },
     {
+      "source": "/api/admin/stats",
+      "destination": "/api/admin.js?action=stats"
+    },
+    {
+      "source": "/api/admin/purge-logs/:id",
+      "destination": "/api/admin.js?action=purge-logs&id=:id"
+    },
+    {
+      "source": "/api/admin/purge-logs",
+      "destination": "/api/admin.js?action=purge-logs"
+    },
+    {
+      "source": "/api/admin/students/search",
+      "destination": "/api/admin.js?action=search-students"
+    },
+    {
+      "source": "/api/admin/student/details/:regNo",
+      "destination": "/api/admin.js?action=student-details&regNo=:regNo"
+    },
+    {
+      "source": "/api/admin/student/update-grade",
+      "destination": "/api/admin.js?action=update-grade"
+    },
+    {
+      "source": "/api/admin/section-toppers",
+      "destination": "/api/admin.js?action=section-toppers"
+    },
+    {
+      "source": "/api/admin/backlogs",
+      "destination": "/api/admin.js?action=backlogs"
+    },
+    {
+      "source": "/api/admin/maintenance",
+      "destination": "/api/admin.js?action=maintenance"
+    },
+    {
+      "source": "/api/system/maintenance",
+      "destination": "/api/admin.js?action=maintenance"
+    },
+    {
       "source": "/api/admin/subadmins/:id/sessions/:sessionId",
       "destination": "/api/subadmins.js?id=:id&sessionId=:sessionId&action=revoke-session"
     },

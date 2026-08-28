@@ -168,8 +168,10 @@ export function AppProvider({ children }) {
         }
       })();
 
-      // 2. Student Session Check Promise (HttpOnly Cookie)
+      // 2. Student Session Check Promise (HttpOnly Cookie) — only on student-facing routes
+      const isExplicitAdminRoute = typeof window !== "undefined" && window.location.pathname.startsWith("/admin");
       const studentPromise = (async () => {
+        if (isExplicitAdminRoute) return;
         try {
           const resStudent = await axios.get(`${API_BASE}/auth/student/me`, {
             withCredentials: true,
