@@ -75,6 +75,7 @@ export default function StudentAuthModal({ isOpen, onClose }) {
   const [deviceStatus, setDeviceStatus] = useState(null);
   const [isChecking, setIsChecking] = useState(false);
   const [isBlockedModalOpen, setIsBlockedModalOpen] = useState(false);
+  const [blockedDevicesData, setBlockedDevicesData] = useState([]);
   const cleanReg = regNo.trim().toUpperCase();
   const isRegValid = cleanReg.length >= 10 && cleanReg.length <= 16;
 
