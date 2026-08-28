@@ -121,6 +121,7 @@ app.use("/api/admin", adminLimiter, csrfProtect, require("./routes/admin"));
 app.use("/api/rankings", publicLimiter, require("./routes/rankings"));
 app.use("/api/feedback", publicLimiter, require("./routes/feedback"));
 app.use("/api/timetable", publicLimiter, require("./routes/timetable"));
+app.use("/api/notifications", require("./routes/notifications"));
 
 // ─── Attendance OCR Endpoint ───────────────────────────────────
 app.post("/api/attendance/ocr", publicLimiter, async (req, res) => {

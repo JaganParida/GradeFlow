@@ -27,6 +27,8 @@ const {
   getMaxAllowedDevices,
   getActiveSessions,
   replaceStudentSession,
+  createDeviceApprovalRequest,
+  getDeviceApprovalStatus,
   touchSession,
   getActiveAdminSessions,
   isAdminSessionValid,
@@ -349,29 +351,56 @@ router.post("/student/login-password", authLimiter, async (req, res) => {
 
       // CASE B: New Device
       if (maxAllowedDevices === 1) {
-        // Normal Student (Max = 1): Entering CORRECT password on new device ATOMICALLY REPLACES old session!
-        const { newSession, wasReplaced } = await replaceStudentSession(StudentSession, rawReg, {
-          deviceInfo: extractRequestDeviceInfo(req),
-        });
+        if (activeSessions.length === 0) {
+          // Normal student with 0 active devices -> Direct Login!
+          const { newSession } = await replaceStudentSession(StudentSession, rawReg, {
+            deviceInfo: extractRequestDeviceInfo(req),
+          });
 
-        const studentToken = jwt.sign(
-          { regNo: rawReg, sessionId: newSession.sessionId, role: "student" },
-          process.env.JWT_SECRET,
-          { expiresIn: "36500d" }
+          const studentToken = jwt.sign(
+            { regNo: rawReg, sessionId: newSession.sessionId, role: "student" },
+            process.env.JWT_SECRET,
+            { expiresIn: "36500d" }
+          );
+
+          res.cookie("student_jwt", studentToken, getCookieOptions(req));
+
+          return res.json({
+            success: true,
+            message: "Login successful.",
+            student: {
+              regNo: rawReg,
+              studentName,
+              sessionId: newSession.sessionId,
+            },
+          });
+        }
+
+        // Normal student with 1 active device -> IN-WEBSITE DEVICE APPROVAL FLOW (Prompt Sections 11-14)
+        const activeDev = activeSessions[0];
+        const { approvalRequest } = await createDeviceApprovalRequest(
+          rawReg,
+          extractRequestDeviceInfo(req),
+          activeDev.sessionId
         );
-
-        res.cookie("student_jwt", studentToken, getCookieOptions(req));
 
         return res.json({
           success: true,
-          message: wasReplaced
-            ? "Login successful. Previous device session was replaced."
-            : "Login successful.",
-          sessionReplaced: wasReplaced,
+          step: "APPROVAL_PENDING",
+          requestId: approvalRequest.requestId,
+          expiresInSeconds: 180,
+          message: "Approval required from your currently active device.",
           student: {
             regNo: rawReg,
             studentName,
-            sessionId: newSession.sessionId,
+          },
+          activeDevice: {
+            platform: activeDev.deviceInfo?.platform || "Authorized Device",
+            deviceType: activeDev.deviceInfo?.deviceType || "Mobile",
+            os: activeDev.deviceInfo?.os || "Unknown",
+            browser: activeDev.deviceInfo?.browser || "Unknown",
+            ip: activeDev.deviceInfo?.ip || "",
+            loggedInAt: activeDev.loggedInAt,
           },
         });
       } else {
@@ -418,6 +447,17 @@ router.post("/student/login-password", authLimiter, async (req, res) => {
         );
 
         res.cookie("student_jwt", studentToken, getCookieOptions(req, expiresAt));
+
+        return res.json({
+          success: true,
+          message: "Login successful.",
+          student: {
+            regNo: rawReg,
+            studentName,
+            sessionId,
+          },
+        });
+      }
 
         return res.json({
           success: true,
@@ -1091,6 +1131,79 @@ router.post("/student/logout", async (req, res) => {
   } catch (err) {
     console.error("Student logout error:", err);
     res.status(500).json({ message: "Server error during logout." });
+  }
+});
+
+// 8. Student Device Approval Status Polling (/api/auth/student/approval-status/:requestId)
+router.get("/student/approval-status/:requestId", async (req, res) => {
+  try {
+    const { requestId } = req.params;
+    if (!requestId) {
+      return res.status(400).json({ success: false, message: "Request ID required." });
+    }
+
+    const statusData = await getDeviceApprovalStatus(requestId);
+    if (!statusData || !statusData.success) {
+      return res.status(404).json(statusData || { success: false, message: "Approval request not found." });
+    }
+
+    if (statusData.status === "APPROVED" && statusData.approvedToken) {
+      res.cookie("student_jwt", statusData.approvedToken, getCookieOptions(req));
+      const studentRecord = await SemesterResult.findOne({ regNo: statusData.regNo }).sort({ semester: -1 });
+      return res.json({
+        success: true,
+        status: "APPROVED",
+        message: "Login request approved! Logging you in...",
+        student: {
+          regNo: statusData.regNo,
+          studentName: studentRecord?.studentName || "Student",
+          sessionId: statusData.approvedSessionId,
+        },
+      });
+    }
+
+    if (statusData.status === "DENIED") {
+      return res.json({
+        success: false,
+        status: "DENIED",
+        message: "Login request was denied from your active device.",
+      });
+    }
+
+    if (statusData.status === "EXPIRED") {
+      return res.json({
+        success: false,
+        status: "EXPIRED",
+        message: "Approval request timed out. Please try again.",
+      });
+    }
+
+    const remainingSecs = Math.max(0, Math.ceil((new Date(statusData.expiresAt).getTime() - Date.now()) / 1000));
+    return res.json({
+      success: true,
+      status: "PENDING",
+      expiresInSeconds: remainingSecs,
+    });
+  } catch (err) {
+    console.error("Approval status check error:", err);
+    return res.status(500).json({ success: false, message: "Server error checking approval status." });
+  }
+});
+
+// 9. Cancel Device Approval Request (/api/auth/student/cancel-approval)
+router.post("/student/cancel-approval", async (req, res) => {
+  try {
+    const { requestId } = req.body || {};
+    if (requestId) {
+      const DeviceApprovalRequest = require("../models/DeviceApprovalRequest");
+      const StudentNotification = require("../models/StudentNotification");
+      await DeviceApprovalRequest.updateOne({ requestId, status: "PENDING" }, { $set: { status: "EXPIRED" } });
+      await StudentNotification.updateMany({ approvalRequestId: requestId, status: "UNREAD" }, { $set: { status: "EXPIRED" } });
+    }
+    return res.json({ success: true, message: "Approval request cancelled." });
+  } catch (err) {
+    console.error("Cancel approval error:", err);
+    return res.status(500).json({ success: false, message: "Server error cancelling approval." });
   }
 });
 

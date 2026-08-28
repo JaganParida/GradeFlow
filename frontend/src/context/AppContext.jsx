@@ -199,6 +199,98 @@ export function AppProvider({ children }) {
     return () => clearInterval(interval);
   }, []);
 
+  // ─── Student In-App Notifications & Realtime SSE Stream ──────────
+  const [notifications, setNotifications] = useState([]);
+  const [unreadCount, setUnreadCount] = useState(0);
+  const [sessionRevokedNotice, setSessionRevokedNotice] = useState(null);
+
+  const fetchNotifications = async () => {
+    try {
+      const res = await axios.get(`${API_BASE}/notifications/student`, { withCredentials: true });
+      if (res.data?.success) {
+        setNotifications(res.data.notifications || []);
+        setUnreadCount(res.data.unreadCount || 0);
+      }
+    } catch {}
+  };
+
+  const approveLoginRequest = async (requestId) => {
+    try {
+      const res = await axios.post(`${API_BASE}/notifications/approve`, { requestId }, { withCredentials: true });
+      if (res.data?.success) {
+        await fetchNotifications();
+        return { success: true, message: res.data.message };
+      }
+      return { success: false, message: res.data?.message || "Failed to approve request." };
+    } catch (err) {
+      return { success: false, message: err.response?.data?.message || "Failed to approve request." };
+    }
+  };
+
+  const denyLoginRequest = async (requestId) => {
+    try {
+      const res = await axios.post(`${API_BASE}/notifications/deny`, { requestId }, { withCredentials: true });
+      if (res.data?.success) {
+        await fetchNotifications();
+        return { success: true, message: res.data.message };
+      }
+      return { success: false, message: res.data?.message || "Failed to deny request." };
+    } catch (err) {
+      return { success: false, message: err.response?.data?.message || "Failed to deny request." };
+    }
+  };
+
+  const markNotificationsRead = async () => {
+    try {
+      await axios.post(`${API_BASE}/notifications/mark-read`, {}, { withCredentials: true });
+      setUnreadCount(0);
+    } catch {}
+  };
+
+  // Realtime SSE stream for active student session
+  useEffect(() => {
+    if (!studentSession || !studentSession.regNo) {
+      setNotifications([]);
+      setUnreadCount(0);
+      return;
+    }
+
+    fetchNotifications();
+
+    let eventSource = null;
+    try {
+      eventSource = new EventSource(`${API_BASE}/notifications/stream`, { withCredentials: true });
+
+      eventSource.addEventListener("notification", () => {
+        fetchNotifications();
+      });
+
+      eventSource.addEventListener("session_revoked", (e) => {
+        try {
+          const data = JSON.parse(e.data || "{}");
+          setSessionRevokedNotice(
+            data.message || "Your session ended because your account was approved on another device."
+          );
+        } catch {
+          setSessionRevokedNotice("Your session ended because your account was approved on another device.");
+        }
+        setStudentSession(null);
+        setStudentData(null);
+        navigate("/", { replace: true });
+      });
+
+      eventSource.onerror = () => {
+        eventSource?.close();
+      };
+    } catch {}
+
+    const interval = setInterval(fetchNotifications, 20000);
+    return () => {
+      clearInterval(interval);
+      eventSource?.close();
+    };
+  }, [studentSession?.sessionId]);
+
   // ─── Student Authentication Methods ──────────────────────────────
   const sendStudentOtp = async (regNo) => {
     setLoading(true);
@@ -259,6 +351,17 @@ export function AppProvider({ children }) {
     setError("");
     try {
       const res = await axios.post(`${API_BASE}/auth/student/login-password`, { regNo, password });
+      if (res.data?.step === "APPROVAL_PENDING") {
+        return {
+          success: true,
+          step: "APPROVAL_PENDING",
+          requestId: res.data.requestId,
+          activeDevice: res.data.activeDevice,
+          expiresInSeconds: res.data.expiresInSeconds || 180,
+          message: res.data.message,
+          student: res.data.student,
+        };
+      }
       if (res.data?.success && res.data?.student) {
         setStudentSession(res.data.student);
         await fetchStudent(regNo, 3, 500, true);
@@ -279,6 +382,32 @@ export function AppProvider({ children }) {
     } finally {
       setLoading(false);
     }
+  };
+
+  const checkApprovalStatus = async (requestId) => {
+    try {
+      const res = await axios.get(`${API_BASE}/auth/student/approval-status/${requestId}`, {
+        withCredentials: true,
+      });
+      if (res.data?.success && res.data?.status === "APPROVED" && res.data?.student) {
+        setStudentSession(res.data.student);
+        await fetchStudent(res.data.student.regNo, 3, 500, true);
+        return { success: true, status: "APPROVED", student: res.data.student };
+      }
+      return res.data;
+    } catch (err) {
+      return {
+        success: false,
+        status: "ERROR",
+        message: err.response?.data?.message || "Failed to check approval status.",
+      };
+    }
+  };
+
+  const cancelApprovalRequest = async (requestId) => {
+    try {
+      await axios.post(`${API_BASE}/auth/student/cancel-approval`, { requestId });
+    } catch {}
   };
 
   const studentCreatePassword = async (regNo, password, setupPasswordToken) => {
@@ -599,6 +728,16 @@ export function AppProvider({ children }) {
         adminDeviceCount,
         isAdminButtonVisible,
         checkAdminStatus,
+        notifications,
+        unreadCount,
+        fetchNotifications,
+        approveLoginRequest,
+        denyLoginRequest,
+        markNotificationsRead,
+        checkApprovalStatus,
+        cancelApprovalRequest,
+        sessionRevokedNotice,
+        setSessionRevokedNotice,
         adminLogin,
         adminLoginPassword,
         adminVerifyOtp,

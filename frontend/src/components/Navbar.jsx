@@ -4,6 +4,7 @@ import { useApp } from "../context/AppContext";
 import { encodeStudentId } from "../utils/studentIdEncoder";
 import { motion, AnimatePresence } from "framer-motion";
 import StudentAuthModal from "./StudentAuthModal";
+import NotificationBell from "./NotificationBell";
 import {
   BarChart2,
   ChevronDown,
@@ -26,6 +27,7 @@ import {
   Calculator,
   ArrowRight,
   ShieldCheck,
+  ShieldAlert,
   Clock,
   Percent,
   GraduationCap,
@@ -121,6 +123,8 @@ export default function Navbar() {
     pendingDestination,
     setPendingDestination,
     isAdminButtonVisible,
+    sessionRevokedNotice,
+    setSessionRevokedNotice,
   } = useApp();
 
   const analyticsRef = useRef(null);
@@ -775,6 +779,9 @@ export default function Navbar() {
 
           {/* Right Controls */}
           <div className="gf-navbar-right" style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            {/* In-App Notification Bell & Device Approvals (Desktop) */}
+            {hasActiveSession && <NotificationBell isMobile={false} />}
+
             {/* Search button (Accessible ONLY for Admin) */}
             {adminToken && (
               <button
@@ -977,6 +984,11 @@ export default function Navbar() {
                   <span className="gf-portal-short-text">Portal Login</span>
                 </button>
               )}
+            </div>
+
+            {/* Mobile Notification Bell */}
+            <div className="gf-mobile-bell-wrapper" style={{ display: "none" }}>
+              {hasActiveSession && <NotificationBell isMobile={true} />}
             </div>
 
             {/* Mobile Hamburger Toggle Button */}
@@ -2420,6 +2432,10 @@ export default function Navbar() {
             color: #065f46 !important;
             box-shadow: 0 2px 6px rgba(16, 185, 129, 0.18) !important;
           }
+          .gf-mobile-bell-wrapper {
+            display: flex !important;
+            align-items: center;
+          }
           .gf-mobile-toggle {
             width: 38px !important;
             height: 38px !important;
@@ -2476,6 +2492,81 @@ export default function Navbar() {
           }
         }
       `}</style>
+
+      {/* Session Revoked Graceful Alert Modal (Section 35) */}
+      {sessionRevokedNotice && (
+        <div
+          style={{
+            position: "fixed",
+            inset: 0,
+            zIndex: 999999,
+            background: "rgba(15, 23, 42, 0.75)",
+            backdropFilter: "blur(6px)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            padding: 16,
+          }}
+        >
+          <div
+            style={{
+              background: "#ffffff",
+              borderRadius: 20,
+              maxWidth: 420,
+              width: "100%",
+              padding: "28px 24px",
+              textAlign: "center",
+              boxShadow: "0 25px 50px -12px rgba(15, 23, 42, 0.3)",
+              border: "1px solid #fee2e2",
+            }}
+          >
+            <div
+              style={{
+                width: 52,
+                height: 52,
+                borderRadius: "50%",
+                background: "#fee2e2",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                margin: "0 auto 16px",
+              }}
+            >
+              <ShieldAlert size={26} color="#dc2626" />
+            </div>
+            <h4
+              style={{
+                fontSize: 18,
+                fontWeight: 800,
+                color: "#0f172a",
+                margin: "0 0 8px",
+                letterSpacing: "-0.3px",
+              }}
+            >
+              Session Ended
+            </h4>
+            <p style={{ fontSize: 13.5, color: "#64748b", margin: "0 0 20px", lineHeight: 1.5 }}>
+              {sessionRevokedNotice}
+            </p>
+            <button
+              onClick={() => setSessionRevokedNotice(null)}
+              style={{
+                background: "#0f172a",
+                color: "#ffffff",
+                border: "none",
+                borderRadius: 10,
+                padding: "12px 20px",
+                fontWeight: 700,
+                fontSize: 13.5,
+                cursor: "pointer",
+                width: "100%",
+              }}
+            >
+              Understood
+            </button>
+          </div>
+        </div>
+      )}
     </>
   );
 }

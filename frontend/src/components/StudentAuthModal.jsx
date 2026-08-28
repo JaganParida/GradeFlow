@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import { useApp, API_BASE } from "../context/AppContext";
@@ -21,6 +21,10 @@ import {
   KeyRound,
   Eye,
   EyeOff,
+  Radio,
+  Laptop,
+  Tablet,
+  AlertTriangle,
 } from "lucide-react";
 import BlockedLoginDeviceModal from "./BlockedLoginDeviceModal";
 
@@ -30,15 +34,19 @@ export default function StudentAuthModal({ isOpen, onClose }) {
     verifyStudentOtp,
     studentLoginPassword,
     studentCreatePassword,
+    checkApprovalStatus,
+    cancelApprovalRequest,
     studentData,
     studentSession,
     hasActiveSession,
     pendingDestination,
     setPendingDestination,
+    sessionRevokedNotice,
+    setSessionRevokedNotice,
   } = useApp();
   const navigate = useNavigate();
 
-  // Steps: "REGNO" | "PASSWORD" | "OTP" | "CREATE_PASSWORD"
+  // Steps: "REGNO" | "PASSWORD" | "OTP" | "CREATE_PASSWORD" | "PASSWORD_SUCCESS" | "APPROVAL_PENDING"
   const [step, setStep] = useState("REGNO");
   const [regNo, setRegNo] = useState("");
   const [password, setPassword] = useState("");
@@ -47,6 +55,11 @@ export default function StudentAuthModal({ isOpen, onClose }) {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [otp, setOtp] = useState("");
   const [setupPasswordToken, setSetupPasswordToken] = useState("");
+
+  // Approval Request States
+  const [approvalRequestId, setApprovalRequestId] = useState("");
+  const [approvalActiveDevice, setApprovalActiveDevice] = useState(null);
+  const [approvalTimerSeconds, setApprovalTimerSeconds] = useState(180);
 
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
@@ -134,6 +147,8 @@ export default function StudentAuthModal({ isOpen, onClose }) {
       setPassword("");
       setConfirmPassword("");
       setSetupPasswordToken("");
+      setApprovalRequestId("");
+      setApprovalActiveDevice(null);
       setStep("REGNO");
       setTimerActive(false);
       setResendCooldown(0);
@@ -154,6 +169,8 @@ export default function StudentAuthModal({ isOpen, onClose }) {
       setPassword("");
       setConfirmPassword("");
       setSetupPasswordToken("");
+      setApprovalRequestId("");
+      setApprovalActiveDevice(null);
       setErrorMsg("");
       setErrorCode("");
       setStatusNotice("");
@@ -272,6 +289,52 @@ export default function StudentAuthModal({ isOpen, onClose }) {
     return () => clearInterval(interval);
   }, [resendCooldown]);
 
+  // Device Approval Polling & Countdown (Prompt Sections 11-13)
+  useEffect(() => {
+    let pollInterval = null;
+    let timerInterval = null;
+
+    if (step === "APPROVAL_PENDING" && approvalRequestId) {
+      // 1. Countdown timer
+      timerInterval = setInterval(() => {
+        setApprovalTimerSeconds((prev) => {
+          if (prev <= 1) {
+            clearInterval(timerInterval);
+            setErrorMsg("Approval request timed out. Please try logging in again.");
+            setErrorCode("APPROVAL_EXPIRED");
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+
+      // 2. High-speed poll every 1.5s
+      pollInterval = setInterval(async () => {
+        const res = await checkApprovalStatus(approvalRequestId);
+        if (res?.status === "APPROVED" && res?.success) {
+          clearInterval(pollInterval);
+          clearInterval(timerInterval);
+          navigateToDestination(cleanReg);
+        } else if (res?.status === "DENIED") {
+          clearInterval(pollInterval);
+          clearInterval(timerInterval);
+          setErrorMsg("Login request was denied from your active device.");
+          setErrorCode("APPROVAL_DENIED");
+        } else if (res?.status === "EXPIRED") {
+          clearInterval(pollInterval);
+          clearInterval(timerInterval);
+          setErrorMsg("Approval request timed out. Please try logging in again.");
+          setErrorCode("APPROVAL_EXPIRED");
+        }
+      }, 1500);
+    }
+
+    return () => {
+      clearInterval(pollInterval);
+      clearInterval(timerInterval);
+    };
+  }, [step, approvalRequestId]);
+
   const formatTimer = (seconds) => {
     const m = Math.floor(seconds / 60);
     const s = seconds % 60;
@@ -356,7 +419,7 @@ export default function StudentAuthModal({ isOpen, onClose }) {
     }
   };
 
-  // Step 2: Submit Password
+  // Step 2: Submit Password (Handles direct login OR triggers Device Approval)
   const handlePasswordSubmit = async (e) => {
     if (e) e.preventDefault();
     if (!password) {
@@ -370,6 +433,15 @@ export default function StudentAuthModal({ isOpen, onClose }) {
 
     const result = await studentLoginPassword(cleanReg, password);
     setLoading(false);
+
+    if (result.step === "APPROVAL_PENDING") {
+      // Normal student on 2nd device: Device Approval Request Triggered! (Section 11-13)
+      setApprovalRequestId(result.requestId);
+      setApprovalActiveDevice(result.activeDevice);
+      setApprovalTimerSeconds(result.expiresInSeconds || 180);
+      setStep("APPROVAL_PENDING");
+      return;
+    }
 
     if (result.success) {
       navigateToDestination(cleanReg);
@@ -415,7 +487,7 @@ export default function StudentAuthModal({ isOpen, onClose }) {
     }
   };
 
-  // Step 4: Mandatory Create Password
+  // Step 4: Mandatory Create Password -> Transitions to Animated Password Success Screen
   const handleCreatePasswordSubmit = async (e) => {
     if (e) e.preventDefault();
     if (!password || password.length < 8) {
@@ -435,7 +507,7 @@ export default function StudentAuthModal({ isOpen, onClose }) {
     setLoading(false);
 
     if (result.success) {
-      navigateToDestination(cleanReg);
+      setStep("PASSWORD_SUCCESS");
     } else {
       setErrorMsg(result.error);
       setErrorCode(result.code);
@@ -504,68 +576,70 @@ export default function StudentAuthModal({ isOpen, onClose }) {
           </button>
 
           {/* Modal Header */}
-          <div style={{ textAlign: "center", marginBottom: 20 }}>
-            <div
-              style={{
-                width: 48,
-                height: 48,
-                borderRadius: 14,
-                background: "#eff6ff",
-                border: "1px solid #dbeafe",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                margin: "0 auto 12px auto",
-              }}
-            >
-              {step === "CREATE_PASSWORD" ? (
-                <KeyRound size={24} color="#2563eb" />
-              ) : step === "PASSWORD" ? (
-                <Lock size={24} color="#2563eb" />
-              ) : step === "OTP" ? (
-                <Mail size={24} color="#2563eb" />
-              ) : (
-                <GraduationCap size={24} color="#2563eb" />
-              )}
-            </div>
+          {step !== "PASSWORD_SUCCESS" && step !== "APPROVAL_PENDING" && (
+            <div style={{ textAlign: "center", marginBottom: 20 }}>
+              <div
+                style={{
+                  width: 48,
+                  height: 48,
+                  borderRadius: 14,
+                  background: "#eff6ff",
+                  border: "1px solid #dbeafe",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  margin: "0 auto 12px auto",
+                }}
+              >
+                {step === "CREATE_PASSWORD" ? (
+                  <KeyRound size={24} color="#2563eb" />
+                ) : step === "PASSWORD" ? (
+                  <Lock size={24} color="#2563eb" />
+                ) : step === "OTP" ? (
+                  <Mail size={24} color="#2563eb" />
+                ) : (
+                  <GraduationCap size={24} color="#2563eb" />
+                )}
+              </div>
 
-            <h3
-              style={{
-                fontSize: 18,
-                fontWeight: 800,
-                color: "#0f172a",
-                margin: "0 0 4px 0",
-                letterSpacing: "-0.4px",
-              }}
-            >
-              {step === "CREATE_PASSWORD"
-                ? "Create Account Password"
-                : step === "PASSWORD"
-                ? "Student Password Login"
-                : step === "OTP"
-                ? "Email Verification"
-                : "Student Portal Login"}
-            </h3>
-            <p
-              style={{
-                fontSize: 13,
-                color: "#64748b",
-                margin: 0,
-                lineHeight: 1.45,
-              }}
-            >
-              {step === "CREATE_PASSWORD"
-                ? "Set a mandatory password to secure your student account"
-                : step === "PASSWORD"
-                ? `Enter your account password for ${cleanReg}`
-                : step === "OTP"
-                ? `Enter the 6-digit verification code sent to your email`
-                : "Enter your official university registration number"}
-            </p>
-          </div>
+              <h3
+                style={{
+                  fontSize: 18,
+                  fontWeight: 800,
+                  color: "#0f172a",
+                  margin: "0 0 4px 0",
+                  letterSpacing: "-0.4px",
+                }}
+              >
+                {step === "CREATE_PASSWORD"
+                  ? "Create Account Password"
+                  : step === "PASSWORD"
+                  ? "Student Password Login"
+                  : step === "OTP"
+                  ? "Email Verification"
+                  : "Student Portal Login"}
+              </h3>
+              <p
+                style={{
+                  fontSize: 13,
+                  color: "#64748b",
+                  margin: 0,
+                  lineHeight: 1.45,
+                }}
+              >
+                {step === "CREATE_PASSWORD"
+                  ? "Set a mandatory password to secure your student account"
+                  : step === "PASSWORD"
+                  ? `Enter your account password for ${cleanReg}`
+                  : step === "OTP"
+                  ? `Enter the 6-digit verification code sent to your email`
+                  : "Enter your official university registration number"}
+              </p>
+            </div>
+          )}
 
           {/* Alert / Notice Display */}
-          {statusNotice && (
+          {statusNotice && step !== "PASSWORD_SUCCESS" && (
             <div
               style={{
                 background: "#f0fdf4",
@@ -586,10 +660,10 @@ export default function StudentAuthModal({ isOpen, onClose }) {
             </div>
           )}
 
-          {errorMsg && (
+          {errorMsg && step !== "PASSWORD_SUCCESS" && (
             <div
               style={{
-                background: errorCode === "BLOCKED_DEVICE_ACTIVE" || errorCode === "DEVICE_LIMIT_REACHED" ? "#fef2f2" : "#fef2f2",
+                background: "#fef2f2",
                 border: "1px solid #fee2e2",
                 borderRadius: 12,
                 padding: "12px 14px",
@@ -625,6 +699,10 @@ export default function StudentAuthModal({ isOpen, onClose }) {
                     ? "Device Slot Occupied"
                     : errorCode === "DEVICE_LIMIT_REACHED"
                     ? "Device Limit Reached"
+                    : errorCode === "APPROVAL_DENIED"
+                    ? "Login Request Denied"
+                    : errorCode === "APPROVAL_EXPIRED"
+                    ? "Approval Timed Out"
                     : "Authentication Notice"}
                 </span>
                 <p style={{ fontSize: 12, color: "#7f1d1d", lineHeight: 1.4, margin: 0 }}>
@@ -742,7 +820,7 @@ export default function StudentAuthModal({ isOpen, onClose }) {
                 </div>
                 <div style={{ display: "flex", alignItems: "center", gap: 7, fontSize: 11.5, color: "#475569" }}>
                   <Lock size={13} color="#2563eb" />
-                  <span><strong>Password Attempts:</strong> Max 2 attempts before OTP fallback evaluation.</span>
+                  <span><strong>Device Approvals:</strong> In-website device transfer approval supported.</span>
                 </div>
               </div>
 
@@ -842,7 +920,7 @@ export default function StudentAuthModal({ isOpen, onClose }) {
                 </div>
               </div>
 
-              {/* OTP Fallback Button (Unlocks if allowed by server) */}
+              {/* OTP Fallback Button */}
               {deviceStatus?.otpFallbackAllowed && (
                 <div style={{ background: "#eff6ff", border: "1px solid #dbeafe", borderRadius: 10, padding: "10px 12px" }}>
                   <span style={{ fontSize: 12, color: "#1e40af", fontWeight: 600, display: "block", marginBottom: 6 }}>
@@ -928,6 +1006,115 @@ export default function StudentAuthModal({ isOpen, onClose }) {
                 <span>Change Registration Number</span>
               </button>
             </form>
+          )}
+
+          {/* STEP 2B: APPROVAL PENDING SCREEN (Prompt Sections 11-13) */}
+          {step === "APPROVAL_PENDING" && (
+            <div style={{ textAlign: "center", display: "flex", flexDirection: "column", gap: 16 }}>
+              <div
+                style={{
+                  width: 56,
+                  height: 56,
+                  borderRadius: "50%",
+                  background: "#eff6ff",
+                  border: "2px solid #bfdbfe",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  margin: "0 auto",
+                }}
+              >
+                <Radio size={26} color="#2563eb" className="pulse" />
+              </div>
+
+              <div>
+                <h3 style={{ fontSize: 18, fontWeight: 800, color: "#0f172a", margin: "0 0 6px 0" }}>
+                  Approval Required
+                </h3>
+                <p style={{ fontSize: 13, color: "#64748b", lineHeight: 1.5, margin: 0 }}>
+                  You are currently logged in on another device. We sent an in-app approval request to your active session.
+                </p>
+              </div>
+
+              {/* Active Device Info Box */}
+              {approvalActiveDevice && (
+                <div
+                  style={{
+                    background: "#f8fafc",
+                    border: "1.5px solid #e2e8f0",
+                    borderRadius: 14,
+                    padding: "14px",
+                    textAlign: "left",
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: 6,
+                    fontSize: 12.5,
+                  }}
+                >
+                  <div style={{ display: "flex", justifyContent: "space-between" }}>
+                    <span style={{ color: "#64748b" }}>Active Device:</span>
+                    <strong style={{ color: "#0f172a" }}>
+                      {approvalActiveDevice.deviceType} ({approvalActiveDevice.platform || approvalActiveDevice.os})
+                    </strong>
+                  </div>
+                  <div style={{ display: "flex", justifyContent: "space-between" }}>
+                    <span style={{ color: "#64748b" }}>Browser:</span>
+                    <span style={{ color: "#334155" }}>{approvalActiveDevice.browser}</span>
+                  </div>
+                  <div style={{ display: "flex", justifyContent: "space-between" }}>
+                    <span style={{ color: "#64748b" }}>Expires In:</span>
+                    <strong style={{ color: approvalTimerSeconds < 30 ? "#dc2626" : "#2563eb", fontFamily: "'Space Mono', monospace" }}>
+                      {formatTimer(approvalTimerSeconds)}
+                    </strong>
+                  </div>
+                </div>
+              )}
+
+              {/* Instructions */}
+              <div
+                style={{
+                  background: "#f0fdf4",
+                  border: "1px solid #bbf7d0",
+                  borderRadius: 12,
+                  padding: "10px 12px",
+                  fontSize: 12,
+                  color: "#166534",
+                  fontWeight: 600,
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 8,
+                }}
+              >
+                <CheckCircle2 size={16} color="#16a34a" style={{ flexShrink: 0 }} />
+                <span>Open GradeFlow on your active device and tap <strong>Allow This Device</strong> in the notification bell.</span>
+              </div>
+
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, color: "#64748b", fontSize: 12 }}>
+                <Loader2 size={14} className="spin" />
+                <span>Waiting for response from active device...</span>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => {
+                  cancelApprovalRequest(approvalRequestId);
+                  setStep("PASSWORD");
+                  setErrorMsg("");
+                }}
+                style={{
+                  background: "none",
+                  border: "1px solid #cbd5e1",
+                  borderRadius: 10,
+                  padding: "8px 16px",
+                  color: "#475569",
+                  fontSize: 12.5,
+                  fontWeight: 700,
+                  cursor: "pointer",
+                }}
+              >
+                Cancel Request
+              </button>
+            </div>
           )}
 
           {/* STEP 3: OTP Verification */}
@@ -1180,16 +1367,97 @@ export default function StudentAuthModal({ isOpen, onClose }) {
                 {loading ? (
                   <>
                     <Loader2 size={15} className="spin" />
-                    <span>Saving Password & Logging In...</span>
+                    <span>Saving Password...</span>
                   </>
                 ) : (
                   <>
                     <KeyRound size={15} />
-                    <span>Create Password & Log In</span>
+                    <span>Save Password</span>
                   </>
                 )}
               </button>
             </form>
+          )}
+
+          {/* STEP 5: PASSWORD CREATION SUCCESS SCREEN (Prompt Section 8) */}
+          {step === "PASSWORD_SUCCESS" && (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              style={{ textAlign: "center", display: "flex", flexDirection: "column", gap: 16 }}
+            >
+              <div
+                style={{
+                  width: 64,
+                  height: 64,
+                  borderRadius: "50%",
+                  background: "#dcfce7",
+                  border: "2px solid #86efac",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  margin: "0 auto",
+                }}
+              >
+                <CheckCircle2 size={36} color="#16a34a" />
+              </div>
+
+              <div>
+                <h3 style={{ fontSize: 20, fontWeight: 900, color: "#0f172a", margin: "0 0 6px 0" }}>
+                  Password Created Successfully
+                </h3>
+                <p style={{ fontSize: 13.5, color: "#475569", margin: 0, lineHeight: 1.5 }}>
+                  Your password has been created and bound to your university account ({cleanReg}).
+                </p>
+              </div>
+
+              {/* Security Warning Card (Section 8) */}
+              <div
+                style={{
+                  background: "#fef3c7",
+                  border: "1.5px solid #fde68a",
+                  borderRadius: 14,
+                  padding: "14px 16px",
+                  textAlign: "left",
+                  display: "flex",
+                  gap: 12,
+                  alignItems: "flex-start",
+                }}
+              >
+                <AlertTriangle size={20} color="#b45309" style={{ flexShrink: 0, marginTop: 2 }} />
+                <div>
+                  <strong style={{ fontSize: 13, color: "#92400e", display: "block", marginBottom: 2 }}>
+                    SECURITY WARNING
+                  </strong>
+                  <span style={{ fontSize: 12, color: "#78350f", lineHeight: 1.4 }}>
+                    Do not share your password with anyone. Your password is private and protects your academic and attendance records.
+                  </span>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => navigateToDestination(cleanReg)}
+                style={{
+                  width: "100%",
+                  padding: "12px 18px",
+                  borderRadius: 10,
+                  border: "none",
+                  background: "#0f172a",
+                  color: "#ffffff",
+                  fontSize: 14,
+                  fontWeight: 800,
+                  cursor: "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: 8,
+                }}
+              >
+                <span>Continue to Grade Flow</span>
+                <ArrowRight size={16} />
+              </button>
+            </motion.div>
           )}
         </motion.div>
       </div>
