@@ -2089,23 +2089,22 @@ export default function AttendanceTracker() {
           )}
 
           {/* ═══════════════════════════════════════════════════════════════
-              TAB VIEWS CONTAINER (Dashboard-Style Smooth Animated Tabs)
+              ANIMATED TAB CONTENT SWITCHER (Analytics-Style Smooth Fade Up)
           ═══════════════════════════════════════════════════════════════ */}
           <div style={{ width: "100%" }}>
             <AnimatePresence mode="wait">
-              <motion.div
-                key={activeTab}
-                initial={{ opacity: 0.95 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0.95 }}
-                transition={{ duration: 0.12 }}
-                style={{ width: "100%", minWidth: 0, display: "flex", flexDirection: "column", gap: isMobile ? 10 : 14 }}
-              >
-                {/* ═══════════════════════════════════════════════════════════════
-                    TAB 1: DAILY CLASS ATTENDANCE CHECK-IN HUB
-                ═══════════════════════════════════════════════════════════════ */}
-                {activeTab === "checkin" && (
-                  <div style={{ display: "flex", flexDirection: "column", gap: isMobile ? 10 : 14, width: "100%" }}>
+              {/* ═══════════════════════════════════════════════════════════════
+                  TAB 1: DAILY CLASS ATTENDANCE CHECK-IN HUB
+              ═══════════════════════════════════════════════════════════════ */}
+              {activeTab === "checkin" && (
+                <motion.div
+                  key="checkin"
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -8 }}
+                  transition={{ duration: 0.22, ease: "easeOut" }}
+                  style={{ display: "flex", flexDirection: "column", gap: isMobile ? 10 : 14, width: "100%" }}
+                >
 
             {/* ── 2. CLASS ATTENDANCE CHECK-IN HUB (Date / History Stepper & Routine Cards) ── */}
             <div
@@ -2434,10 +2433,10 @@ export default function AttendanceTracker() {
             <AnimatePresence mode="wait">
               <motion.div
                 key={selectedCheckInDateKey}
-                initial={{ opacity: 0, y: 6 }}
+                initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -4 }}
-                transition={{ duration: 0.15, ease: "easeOut" }}
+                exit={{ opacity: 0, y: -8 }}
+                transition={{ duration: 0.22, ease: "easeOut" }}
                 style={{
                   display: "grid",
                   gridTemplateColumns: isMobile ? "1fr" : "repeat(auto-fill, minmax(280px, 1fr))",
@@ -2598,14 +2597,21 @@ export default function AttendanceTracker() {
             </AnimatePresence>
           )}
             </div>
-          </div>
+          </motion.div>
         )}
 
         {/* ═══════════════════════════════════════════════════════════════
             TAB 2: SUBJECT-WISE ATTENDANCE MATRIX ({allSectionSubjects.length})
         ═══════════════════════════════════════════════════════════════ */}
         {activeTab === "matrix" && (
-          <div style={{ display: "flex", flexDirection: "column", gap: isMobile ? 10 : 14, width: "100%" }}>
+          <motion.div
+            key="matrix"
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -8 }}
+            transition={{ duration: 0.22, ease: "easeOut" }}
+            style={{ display: "flex", flexDirection: "column", gap: isMobile ? 10 : 14, width: "100%" }}
+          >
             {allSectionSubjects.length > 0 && (
               <div
                 id="attendance-subject-matrix-section"
@@ -2872,14 +2878,21 @@ export default function AttendanceTracker() {
             </div>
           </div>
         )}
-          </div>
+          </motion.div>
         )}
 
         {/* ═══════════════════════════════════════════════════════════════
             TAB 3: PREDICTOR STUDIO
         ═══════════════════════════════════════════════════════════════ */}
         {activeTab === "studio" && (
-          <div style={{ display: "flex", flexDirection: "column", gap: isMobile ? 10 : 14, width: "100%" }}>
+          <motion.div
+            key="studio"
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -8 }}
+            transition={{ duration: 0.22, ease: "easeOut" }}
+            style={{ display: "flex", flexDirection: "column", gap: isMobile ? 10 : 14, width: "100%" }}
+          >
             {/* ═══════════════════════════════════════════════════════════════
                 FIRST-TIME STUDENT ONBOARDING & GUIDED SETUP HUB
             ═══════════════════════════════════════════════════════════════ */}
@@ -4183,14 +4196,21 @@ export default function AttendanceTracker() {
           studentData={studentData}
           isMobile={isMobile}
         />
-      </div>
+      </motion.div>
     )}
 
     {/* ═══════════════════════════════════════════════════════════════
         TAB 4: SMART BUNK & WEEKLY SAFE DAYS ANALYZER
     ═══════════════════════════════════════════════════════════════ */}
     {activeTab === "bunk_analyzer" && (
-      <div style={{ width: "100%" }}>
+      <motion.div
+        key="bunk_analyzer"
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        exit={{ opacity: 0, y: -8 }}
+        transition={{ duration: 0.22, ease: "easeOut" }}
+        style={{ width: "100%" }}
+      >
         <SmartBunkAnalyzer
           selectedSection={selectedSection}
           allSectionSubjects={allSectionSubjects}
@@ -4199,10 +4219,9 @@ export default function AttendanceTracker() {
           todayDayName={todayDayName}
           isMobile={isMobile}
         />
-      </div>
+      </motion.div>
     )}
-  </motion.div>
-</AnimatePresence>
+  </AnimatePresence>
 </div>
 
     {/* Floating Scan Limit Warning Toast */}
