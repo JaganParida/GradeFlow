@@ -296,7 +296,7 @@ export function AppProvider({ children }) {
     setLoading(true);
     setError("");
     try {
-      const res = await axios.post(`${API_BASE}/auth/student/send-otp`, { regNo });
+      const res = await axios.post(`${API_BASE}/auth/student/send-otp`, { regNo }, { withCredentials: true });
       if (res.data?.alreadyLoggedIn && res.data?.student && res.data?.hasPassword) {
         setStudentSession(res.data.student);
         await fetchStudent(res.data.student.regNo, 3, 500, true);
@@ -317,7 +317,7 @@ export function AppProvider({ children }) {
     setLoading(true);
     setError("");
     try {
-      const res = await axios.post(`${API_BASE}/auth/student/verify-otp`, { regNo, otp });
+      const res = await axios.post(`${API_BASE}/auth/student/verify-otp`, { regNo, otp }, { withCredentials: true });
       if (res.data?.success) {
         if (res.data.step === "CREATE_PASSWORD") {
           return {
@@ -350,7 +350,7 @@ export function AppProvider({ children }) {
     setLoading(true);
     setError("");
     try {
-      const res = await axios.post(`${API_BASE}/auth/student/login-password`, { regNo, password });
+      const res = await axios.post(`${API_BASE}/auth/student/login-password`, { regNo, password }, { withCredentials: true });
       if (res.data?.step === "APPROVAL_PENDING") {
         return {
           success: true,
@@ -406,7 +406,7 @@ export function AppProvider({ children }) {
 
   const cancelApprovalRequest = async (requestId) => {
     try {
-      await axios.post(`${API_BASE}/auth/student/cancel-approval`, { requestId });
+      await axios.post(`${API_BASE}/auth/student/cancel-approval`, { requestId }, { withCredentials: true });
     } catch {}
   };
 
@@ -418,7 +418,7 @@ export function AppProvider({ children }) {
         regNo,
         password,
         setupPasswordToken,
-      });
+      }, { withCredentials: true });
       if (res.data?.success && res.data?.student) {
         setStudentSession(res.data.student);
         await fetchStudent(regNo, 3, 500, true);
@@ -440,7 +440,7 @@ export function AppProvider({ children }) {
     setLoading(true);
     setError("");
     try {
-      const res = await axios.post(`${API_BASE}/auth/student/transfer-session`, { regNo, password });
+      const res = await axios.post(`${API_BASE}/auth/student/transfer-session`, { regNo, password }, { withCredentials: true });
       if (res.data?.success && res.data?.student) {
         setStudentSession(res.data.student);
         await fetchStudent(regNo, 3, 500, true);

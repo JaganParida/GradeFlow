@@ -463,17 +463,6 @@ router.post("/student/login-password", authLimiter, async (req, res) => {
           },
         });
       }
-
-        return res.json({
-          success: true,
-          message: "Login successful.",
-          student: {
-            regNo: rawReg,
-            studentName,
-            sessionId,
-          },
-        });
-      }
     }
 
     // IF PASSWORD WRONG:
