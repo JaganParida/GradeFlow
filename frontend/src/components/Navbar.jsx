@@ -34,27 +34,37 @@ import {
 } from "lucide-react";
 import { is2023CSEBatch } from "../utils/timetableHelper";
 
+const prefersReducedMotion =
+  typeof window !== "undefined" &&
+  window.matchMedia &&
+  window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
 const mobileDrawerVariants = {
   hidden: {
     opacity: 0,
-    y: -10,
+    y: prefersReducedMotion ? 0 : -8,
+    scale: prefersReducedMotion ? 1 : 0.99,
   },
   visible: {
     opacity: 1,
     y: 0,
+    scale: 1,
     transition: {
-      duration: 0.22,
+      duration: prefersReducedMotion ? 0.01 : 0.24,
       ease: [0.16, 1, 0.3, 1],
-      staggerChildren: 0.018,
-      delayChildren: 0.01,
+      staggerChildren: prefersReducedMotion ? 0 : 0.032,
+      delayChildren: prefersReducedMotion ? 0 : 0.015,
     },
   },
   exit: {
     opacity: 0,
-    y: -8,
+    y: prefersReducedMotion ? 0 : -8,
+    scale: prefersReducedMotion ? 1 : 0.99,
     transition: {
-      duration: 0.16,
+      duration: prefersReducedMotion ? 0.01 : 0.20,
       ease: [0.22, 1, 0.36, 1],
+      staggerChildren: prefersReducedMotion ? 0 : 0.015,
+      staggerDirection: -1,
     },
   },
 };
@@ -62,14 +72,22 @@ const mobileDrawerVariants = {
 const mobileNavItemVariants = {
   hidden: {
     opacity: 0,
-    y: 6,
+    y: prefersReducedMotion ? 0 : -4,
   },
   visible: {
     opacity: 1,
     y: 0,
     transition: {
-      duration: 0.18,
+      duration: prefersReducedMotion ? 0.01 : 0.20,
       ease: [0.16, 1, 0.3, 1],
+    },
+  },
+  exit: {
+    opacity: 0,
+    y: prefersReducedMotion ? 0 : -4,
+    transition: {
+      duration: prefersReducedMotion ? 0.01 : 0.15,
+      ease: [0.22, 1, 0.36, 1],
     },
   },
 };
@@ -131,6 +149,28 @@ export default function Navbar() {
     setAnalyticsDropdown(false);
     setMobileAnalyticsOpen(false);
   }, [location.pathname]);
+
+  // Lock body scroll while mobile drawer is open
+  useEffect(() => {
+    if (mobileMenuOpen) {
+      const originalOverflow = document.body.style.overflow;
+      document.body.style.overflow = "hidden";
+      return () => {
+        document.body.style.overflow = originalOverflow;
+      };
+    }
+  }, [mobileMenuOpen]);
+
+  // Auto-close mobile drawer when resizing beyond mobile breakpoint
+  useEffect(() => {
+    const handleResize = () => {
+      if (window.innerWidth > 900) {
+        setMobileMenuOpen(false);
+      }
+    };
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
 
   const currentRegNo = studentData?.regNo || studentSession?.regNo || "";
   const canSeeAdmin = Boolean(adminToken || currentRegNo === "230301120327");
@@ -933,6 +973,7 @@ export default function Navbar() {
                   ? "Close navigation menu"
                   : "Open navigation menu"
               }
+              aria-expanded={mobileMenuOpen}
               style={{
                 width: 38,
                 height: 38,
@@ -946,21 +987,37 @@ export default function Navbar() {
                 justifyContent: "center",
                 color: mobileMenuOpen ? "#2563eb" : "#0f172a",
                 cursor: "pointer",
-                transition: "all 0.15s ease",
+                transition: "background 0.2s ease, border-color 0.2s ease, color 0.2s ease",
                 flexShrink: 0,
+                position: "relative",
+                overflow: "hidden",
               }}
             >
-              <span
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  transition: "transform 0.22s cubic-bezier(0.16, 1, 0.3, 1)",
-                  transform: mobileMenuOpen ? "rotate(90deg)" : "rotate(0deg)",
-                }}
-              >
-                {mobileMenuOpen ? <X size={20} /> : <Menu size={20} />}
-              </span>
+              <AnimatePresence mode="wait" initial={false}>
+                {mobileMenuOpen ? (
+                  <motion.span
+                    key="mobile-close-icon"
+                    initial={{ opacity: 0, rotate: -90, scale: 0.85 }}
+                    animate={{ opacity: 1, rotate: 0, scale: 1 }}
+                    exit={{ opacity: 0, rotate: 90, scale: 0.85 }}
+                    transition={{ duration: prefersReducedMotion ? 0.01 : 0.18, ease: "easeOut" }}
+                    style={{ display: "flex", alignItems: "center", justifyContent: "center" }}
+                  >
+                    <X size={20} />
+                  </motion.span>
+                ) : (
+                  <motion.span
+                    key="mobile-menu-icon"
+                    initial={{ opacity: 0, rotate: 90, scale: 0.85 }}
+                    animate={{ opacity: 1, rotate: 0, scale: 1 }}
+                    exit={{ opacity: 0, rotate: -90, scale: 0.85 }}
+                    transition={{ duration: prefersReducedMotion ? 0.01 : 0.18, ease: "easeOut" }}
+                    style={{ display: "flex", alignItems: "center", justifyContent: "center" }}
+                  >
+                    <Menu size={20} />
+                  </motion.span>
+                )}
+              </AnimatePresence>
             </button>
           </div>
         </div>
@@ -969,32 +1026,33 @@ export default function Navbar() {
       {/* ── Mobile Navigation Drawer ── */}
       <AnimatePresence>
         {mobileMenuOpen && (
-          <>
-            {/* Backdrop */}
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.18, ease: "easeOut" }}
-              onClick={() => setMobileMenuOpen(false)}
-              onTouchMove={(e) => e.preventDefault()}
-              style={{
-                position: "fixed",
-                inset: 0,
-                background: "rgba(15, 23, 42, 0.45)",
-                backdropFilter: "blur(6px)",
-                WebkitBackdropFilter: "blur(6px)",
-                zIndex: 998,
-                touchAction: "none",
-              }}
-            />
+          <motion.div
+            key="mobile-nav-backdrop"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: prefersReducedMotion ? 0.01 : 0.20, ease: "easeOut" }}
+            onClick={() => setMobileMenuOpen(false)}
+            onTouchMove={(e) => e.preventDefault()}
+            style={{
+              position: "fixed",
+              inset: 0,
+              background: "rgba(15, 23, 42, 0.45)",
+              backdropFilter: "blur(6px)",
+              WebkitBackdropFilter: "blur(6px)",
+              zIndex: 998,
+              touchAction: "none",
+            }}
+          />
+        )}
 
-            {/* Slide-out Menu Panel */}
-            <motion.div
-              variants={mobileDrawerVariants}
-              initial="hidden"
-              animate="visible"
-              exit="exit"
+        {mobileMenuOpen && (
+          <motion.div
+            key="mobile-nav-drawer"
+            variants={mobileDrawerVariants}
+            initial="hidden"
+            animate="visible"
+            exit="exit"
               style={{
                 position: "fixed",
                 top: 58,
@@ -1834,8 +1892,7 @@ export default function Navbar() {
                 )}
               </motion.div>
             </motion.div>
-          </>
-        )}
+          )}
       </AnimatePresence>
 
       {/* ── Logout Confirmation Modal ── */}
