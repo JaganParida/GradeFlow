@@ -408,7 +408,8 @@ export function getHolidayInfo(dateObj) {
   if (matchedHoliday) {
     const isOptional = matchedHoliday.type === "optional";
     const isObservation = matchedHoliday.type === "observation";
-    const isFullHoliday = !isOptional && !isObservation;
+    // Optional holidays are instructional working days (isHoliday = false); official academic and observation holidays are non-instructional (isHoliday = true)
+    const isFullHoliday = !isOptional;
 
     return {
       isHoliday: isFullHoliday,
@@ -421,7 +422,7 @@ export function getHolidayInfo(dateObj) {
       description: isOptional
         ? `Optional University Holiday: ${matchedHoliday.name}. University remains open and classes are conducted as scheduled. Students & faculty are permitted to avail any 2 optional leaves per academic year.`
         : isObservation
-        ? `Official University Observation Day: ${matchedHoliday.name}. Commemorative events and classes held as notified.`
+        ? `Official University Observation Day: ${matchedHoliday.name}. Commemorative events held; regular semester lectures are suspended.`
         : `Official University Academic Holiday: ${matchedHoliday.name}. University is closed.`,
     };
   }
