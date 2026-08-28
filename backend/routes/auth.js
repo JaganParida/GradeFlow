@@ -1236,8 +1236,11 @@ router.get("/admin/check-status", async (req, res) => {
     const isBlocked = activeSessions.length >= MAX_ADMIN_DEVICES && !isCurrentDevice;
     const sanitizedDevices = activeSessions.map((s, idx) => ({
       deviceIndex: idx + 1,
-      platform: s.deviceInfo?.platform || "Unknown",
-      userAgent: s.deviceInfo?.userAgent || "Unknown",
+      deviceType: s.deviceInfo?.deviceType || "Desktop",
+      os: s.deviceInfo?.os || "Windows",
+      browser: s.deviceInfo?.browser || "Chrome",
+      platform: s.deviceInfo?.platform || `${s.deviceInfo?.os || "Windows"} • ${s.deviceInfo?.browser || "Chrome"}`,
+      userAgent: s.deviceInfo?.userAgent || "Standard Browser",
       loggedInAt: s.loggedInAt,
       lastActiveAt: s.lastActiveAt,
       status: "ACTIVE",
@@ -1340,8 +1343,11 @@ const handleAdminPasswordLogin = async (req, res) => {
     if (activeSessions.length >= MAX_ADMIN_DEVICES && !isCurrentDevice) {
       const sanitizedDevices = activeSessions.map((s, idx) => ({
         deviceIndex: idx + 1,
-        platform: s.deviceInfo?.platform || "Unknown",
-        userAgent: s.deviceInfo?.userAgent || "Unknown",
+        deviceType: s.deviceInfo?.deviceType || "Desktop",
+        os: s.deviceInfo?.os || "Windows",
+        browser: s.deviceInfo?.browser || "Chrome",
+        platform: s.deviceInfo?.platform || `${s.deviceInfo?.os || "Windows"} • ${s.deviceInfo?.browser || "Chrome"}`,
+        userAgent: s.deviceInfo?.userAgent || "Standard Browser",
         loggedInAt: s.loggedInAt,
         lastActiveAt: s.lastActiveAt,
         status: "ACTIVE",

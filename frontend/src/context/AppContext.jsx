@@ -60,9 +60,10 @@ export function AppProvider({ children }) {
   const [adminToken, setAdminToken] = useState(false);
   const [adminProfile, setAdminProfile] = useState(null);
   const [adminDeviceCount, setAdminDeviceCount] = useState(0);
-  const [isAdminButtonVisible, setIsAdminButtonVisible] = useState(true);
+  // Admin button visibility is strictly determined by current browser authorization
+  const isAdminButtonVisible = Boolean(adminToken);
 
-  // Check live admin device occupancy (0 or 1 device -> button visible; 2 devices -> button hidden)
+  // Check live admin device occupancy
   const checkAdminStatus = async () => {
     try {
       const res = await axios.get(`${API_BASE}/auth/admin/check-status`, {
@@ -72,7 +73,6 @@ export function AppProvider({ children }) {
       if (res.data && res.data.success) {
         const count = res.data.activeDeviceCount ?? 0;
         setAdminDeviceCount(count);
-        setIsAdminButtonVisible(count < 2);
         return res.data;
       }
     } catch (err) {

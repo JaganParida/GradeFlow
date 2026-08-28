@@ -42,10 +42,8 @@ export default function BlockedLoginDeviceModal({
 
   if (!isOpen) return null;
 
-  // Normalize device list: fallback if empty
-  const devicesList = Array.isArray(activeDevices) && activeDevices.length > 0
-    ? activeDevices
-    : [{ userAgent: "Unknown", platform: "Unknown", loggedInAt: new Date(), lastActiveAt: new Date(), status: "ACTIVE" }];
+  const isFullyBlocked = Array.isArray(activeDevices) && activeDevices.length >= maxAllowed;
+  const devicesList = Array.isArray(activeDevices) ? activeDevices : [];
 
   const getDeviceIcon = (deviceType) => {
     const iconSize = isMobile ? 18 : 20;
@@ -55,7 +53,6 @@ export default function BlockedLoginDeviceModal({
       case "tablet":
         return <Tablet size={iconSize} color="#7c3aed" />;
       case "desktop":
-        return <Monitor size={iconSize} color="#059669" />;
       case "laptop":
       default:
         return <Laptop size={iconSize} color="#2563eb" />;
@@ -103,8 +100,10 @@ export default function BlockedLoginDeviceModal({
           <div
             style={{
               padding: isMobile ? "14px 16px" : "20px 24px",
-              background: "linear-gradient(135deg, #fef2f2 0%, #fff1f2 100%)",
-              borderBottom: "1px solid #fee2e2",
+              background: isFullyBlocked
+                ? "linear-gradient(135deg, #fef2f2 0%, #fff1f2 100%)"
+                : "linear-gradient(135deg, #eff6ff 0%, #f0fdf4 100%)",
+              borderBottom: `1px solid ${isFullyBlocked ? "#fee2e2" : "#dbeafe"}`,
               display: "flex",
               alignItems: "flex-start",
               justifyContent: "space-between",
@@ -118,15 +117,17 @@ export default function BlockedLoginDeviceModal({
                   width: isMobile ? "38px" : "44px",
                   height: isMobile ? "38px" : "44px",
                   borderRadius: isMobile ? "10px" : "12px",
-                  backgroundColor: "#fee2e2",
+                  backgroundColor: isFullyBlocked ? "#fee2e2" : "#dbeafe",
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
                   flexShrink: 0,
-                  boxShadow: "0 2px 6px rgba(220, 38, 38, 0.12)",
+                  boxShadow: isFullyBlocked
+                    ? "0 2px 6px rgba(220, 38, 38, 0.12)"
+                    : "0 2px 6px rgba(37, 99, 235, 0.12)",
                 }}
               >
-                <ShieldAlert size={isMobile ? 20 : 24} color="#dc2626" />
+                <ShieldAlert size={isMobile ? 20 : 24} color={isFullyBlocked ? "#dc2626" : "#2563eb"} />
               </div>
               <div>
                 <h3
@@ -134,24 +135,24 @@ export default function BlockedLoginDeviceModal({
                     margin: 0,
                     fontSize: isMobile ? "16px" : "18px",
                     fontWeight: "900",
-                    color: "#991b1b",
+                    color: isFullyBlocked ? "#991b1b" : "#1e40af",
                     letterSpacing: "-0.3px",
                     lineHeight: "1.25",
                   }}
                 >
-                  Login Not Allowed
+                  {isFullyBlocked ? "Device Limit Reached" : "Active Device Information"}
                 </h3>
                 <p
                   style={{
                     margin: "3px 0 0 0",
                     fontSize: isMobile ? "12px" : "13px",
-                    color: "#7f1d1d",
+                    color: isFullyBlocked ? "#7f1d1d" : "#1e3a8a",
                     lineHeight: "1.4",
                   }}
                 >
-                  {maxAllowed > 1
-                    ? `Your account is already actively logged in on ${devicesList.length} authorized devices (maximum limit: ${maxAllowed}).`
-                    : "Your account is already logged in on another device."}
+                  {isFullyBlocked
+                    ? `Your account is currently active on ${devicesList.length} of ${maxAllowed} authorized devices (maximum limit reached).`
+                    : `Your account is active on ${devicesList.length} of ${maxAllowed} authorized devices. Sign-in is permitted.`}
                 </p>
               </div>
             </div>
@@ -162,7 +163,7 @@ export default function BlockedLoginDeviceModal({
               style={{
                 background: "transparent",
                 border: "none",
-                color: "#991b1b",
+                color: isFullyBlocked ? "#991b1b" : "#1e40af",
                 cursor: "pointer",
                 padding: "6px",
                 borderRadius: "8px",
@@ -359,23 +360,31 @@ export default function BlockedLoginDeviceModal({
             {/* Informational Policy Notice */}
             <div
               style={{
-                backgroundColor: "#f1f5f9",
-                border: "1px solid #e2e8f0",
+                backgroundColor: isFullyBlocked ? "#fef2f2" : "#f0fdf4",
+                border: `1px solid ${isFullyBlocked ? "#fee2e2" : "#bbf7d0"}`,
                 borderRadius: isMobile ? "10px" : "12px",
                 padding: isMobile ? "10px 12px" : "12px 14px",
                 display: "flex",
                 alignItems: "flex-start",
                 gap: "8px",
                 fontSize: isMobile ? "11.5px" : "12px",
-                color: "#475569",
+                color: isFullyBlocked ? "#991b1b" : "#166534",
                 lineHeight: "1.45",
                 boxSizing: "border-box",
               }}
             >
-              <Info size={15} color="#64748b" style={{ flexShrink: 0, marginTop: "2px" }} />
+              <Info size={15} color={isFullyBlocked ? "#dc2626" : "#16a34a"} style={{ flexShrink: 0, marginTop: "2px" }} />
               <div>
-                To sign in on this new device, please <strong>log out</strong> from your existing active session first.
-                For institutional data security, concurrent logins beyond the authorized limit are strictly blocked.
+                {isFullyBlocked ? (
+                  <>
+                    To sign in on this new device, please <strong>log out</strong> from your existing active session first.
+                    For institutional data security, concurrent logins beyond the authorized limit are strictly blocked.
+                  </>
+                ) : (
+                  <>
+                    Your account has available device slots (<strong>{devicesList.length}/{maxAllowed}</strong> used). You may sign in on this device by completing verification.
+                  </>
+                )}
               </div>
             </div>
           </div>

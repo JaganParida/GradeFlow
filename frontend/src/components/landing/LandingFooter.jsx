@@ -5,8 +5,9 @@ import { useApp } from "../../context/AppContext";
 
 export default function LandingFooter({ onNavigateSection }) {
   const navigate = useNavigate();
-  const { adminToken, isAdminButtonVisible } = useApp();
-  const canSeeAdmin = Boolean(adminToken || isAdminButtonVisible);
+  const { adminToken } = useApp();
+  // Admin portal link is visible ONLY if the current browser has a valid, verified AdminSession
+  const canSeeAdmin = Boolean(adminToken);
 
   return (
     <footer

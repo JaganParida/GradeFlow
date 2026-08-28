@@ -1233,8 +1233,11 @@ module.exports = async function handler(req, res) {
       const isBlocked = activeSessions.length >= MAX_ADMIN_DEVICES && !isCurrentDevice;
       const sanitizedDevices = activeSessions.map((s, idx) => ({
         deviceIndex: idx + 1,
-        platform: s.deviceInfo?.platform || "Unknown",
-        userAgent: s.deviceInfo?.userAgent || "Unknown",
+        deviceType: s.deviceInfo?.deviceType || "Desktop",
+        os: s.deviceInfo?.os || "Windows",
+        browser: s.deviceInfo?.browser || "Chrome",
+        platform: s.deviceInfo?.platform || `${s.deviceInfo?.os || "Windows"} • ${s.deviceInfo?.browser || "Chrome"}`,
+        userAgent: s.deviceInfo?.userAgent || "Standard Browser",
         loggedInAt: s.loggedInAt,
         lastActiveAt: s.lastActiveAt,
         status: "ACTIVE",
@@ -1326,9 +1329,23 @@ module.exports = async function handler(req, res) {
       }
 
       if (activeSessions.length >= MAX_ADMIN_DEVICES && !isCurrentDevice) {
+        const sanitizedDevices = activeSessions.map((s, idx) => ({
+          deviceIndex: idx + 1,
+          deviceType: s.deviceInfo?.deviceType || "Desktop",
+          os: s.deviceInfo?.os || "Windows",
+          browser: s.deviceInfo?.browser || "Chrome",
+          platform: s.deviceInfo?.platform || `${s.deviceInfo?.os || "Windows"} • ${s.deviceInfo?.browser || "Chrome"}`,
+          userAgent: s.deviceInfo?.userAgent || "Standard Browser",
+          loggedInAt: s.loggedInAt,
+          lastActiveAt: s.lastActiveAt,
+          status: "ACTIVE",
+        }));
         return res.status(403).json({
           message: `Admin portal is currently active on ${activeSessions.length} authorized devices (maximum limit: ${MAX_ADMIN_DEVICES}).`,
           code: "ADMIN_DEVICE_LIMIT_REACHED",
+          activeDevices: sanitizedDevices,
+          activeDeviceCount: activeSessions.length,
+          maxAllowedDevices: MAX_ADMIN_DEVICES,
         });
       }
 
