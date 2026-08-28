@@ -54,7 +54,85 @@ export default function StudentAuthModal({ isOpen, onClose }) {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [otp, setOtp] = useState("");
+  const [otpDigits, setOtpDigits] = useState(["", "", "", "", "", ""]);
+  const otpInputRefs = useRef([]);
   const [setupPasswordToken, setSetupPasswordToken] = useState("");
+
+  // Sync otp string from digits
+  useEffect(() => {
+    setOtp(otpDigits.join(""));
+  }, [otpDigits]);
+
+  // When step becomes OTP, auto-focus first box
+  useEffect(() => {
+    if (step === "OTP") {
+      setOtpDigits(["", "", "", "", "", ""]);
+      setTimeout(() => {
+        otpInputRefs.current[0]?.focus();
+      }, 100);
+    }
+  }, [step]);
+
+  const handleDigitChange = (index, value) => {
+    const cleanVal = value.replace(/\D/g, "");
+    if (!cleanVal) {
+      const newDigits = [...otpDigits];
+      newDigits[index] = "";
+      setOtpDigits(newDigits);
+      return;
+    }
+
+    if (cleanVal.length > 1) {
+      const pasted = cleanVal.slice(0, 6).split("");
+      const newDigits = [...otpDigits];
+      pasted.forEach((char, i) => {
+        if (index + i < 6) {
+          newDigits[index + i] = char;
+        }
+      });
+      setOtpDigits(newDigits);
+      const nextIndex = Math.min(index + pasted.length, 5);
+      otpInputRefs.current[nextIndex]?.focus();
+      return;
+    }
+
+    const newDigits = [...otpDigits];
+    newDigits[index] = cleanVal[0];
+    setOtpDigits(newDigits);
+
+    if (index < 5) {
+      otpInputRefs.current[index + 1]?.focus();
+    }
+  };
+
+  const handleDigitKeyDown = (index, e) => {
+    if (e.key === "Backspace") {
+      if (!otpDigits[index] && index > 0) {
+        const newDigits = [...otpDigits];
+        newDigits[index - 1] = "";
+        setOtpDigits(newDigits);
+        otpInputRefs.current[index - 1]?.focus();
+      }
+    } else if (e.key === "ArrowLeft" && index > 0) {
+      otpInputRefs.current[index - 1]?.focus();
+    } else if (e.key === "ArrowRight" && index < 5) {
+      otpInputRefs.current[index + 1]?.focus();
+    }
+  };
+
+  const handleOtpPaste = (e) => {
+    e.preventDefault();
+    const pastedData = e.clipboardData.getData("text").replace(/\D/g, "").slice(0, 6);
+    if (pastedData) {
+      const newDigits = ["", "", "", "", "", ""];
+      pastedData.split("").forEach((char, i) => {
+        if (i < 6) newDigits[i] = char;
+      });
+      setOtpDigits(newDigits);
+      const focusIdx = Math.min(pastedData.length, 5);
+      otpInputRefs.current[focusIdx]?.focus();
+    }
+  };
 
   // Approval Request States
   const [approvalRequestId, setApprovalRequestId] = useState("");
@@ -644,6 +722,39 @@ export default function StudentAuthModal({ isOpen, onClose }) {
             </div>
           ) : null}
 
+          {/* Modern Step Progress Indicator */}
+          {step !== "PASSWORD_SUCCESS" && step !== "APPROVAL_PENDING" && (
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6, marginBottom: 18 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 11, fontWeight: 800, color: step === "REGNO" ? "#2563eb" : "#16a34a" }}>
+                <div style={{ width: 18, height: 18, borderRadius: "50%", background: step === "REGNO" ? "#2563eb" : "#16a34a", color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10, fontWeight: 900 }}>
+                  {step === "REGNO" ? "1" : "✓"}
+                </div>
+                <span>Identifier</span>
+              </div>
+
+              <div style={{ width: 18, height: 2, background: step === "REGNO" ? "#e2e8f0" : "#16a34a", borderRadius: 1 }} />
+
+              <div style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 11, fontWeight: 800, color: (step === "OTP" || step === "PASSWORD") ? "#2563eb" : (step === "CREATE_PASSWORD") ? "#16a34a" : "#94a3b8" }}>
+                <div style={{ width: 18, height: 18, borderRadius: "50%", background: (step === "OTP" || step === "PASSWORD") ? "#2563eb" : (step === "CREATE_PASSWORD") ? "#16a34a" : "#e2e8f0", color: (step === "OTP" || step === "PASSWORD" || step === "CREATE_PASSWORD") ? "#fff" : "#64748b", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10, fontWeight: 900 }}>
+                  {step === "CREATE_PASSWORD" ? "✓" : "2"}
+                </div>
+                <span>{step === "PASSWORD" ? "Password" : "OTP Code"}</span>
+              </div>
+
+              {(!deviceStatus?.hasPassword || step === "CREATE_PASSWORD") && (
+                <>
+                  <div style={{ width: 18, height: 2, background: (step === "CREATE_PASSWORD") ? "#2563eb" : "#e2e8f0", borderRadius: 1 }} />
+                  <div style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 11, fontWeight: 800, color: step === "CREATE_PASSWORD" ? "#2563eb" : "#94a3b8" }}>
+                    <div style={{ width: 18, height: 18, borderRadius: "50%", background: step === "CREATE_PASSWORD" ? "#2563eb" : "#e2e8f0", color: step === "CREATE_PASSWORD" ? "#fff" : "#64748b", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10, fontWeight: 900 }}>
+                      3
+                    </div>
+                    <span>Password</span>
+                  </div>
+                </>
+              )}
+            </div>
+          )}
+
           {/* Modal Header */}
           {step !== "PASSWORD_SUCCESS" && step !== "APPROVAL_PENDING" && (
             <div style={{ textAlign: "center", marginBottom: 20 }}>
@@ -1189,99 +1300,176 @@ export default function StudentAuthModal({ isOpen, onClose }) {
 
           {/* STEP 3: OTP Verification */}
           {step === "OTP" && (
-            <form onSubmit={handleVerifyOtp} style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+            <form onSubmit={handleVerifyOtp} style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+              {/* Clean verification email notification card */}
               <div
                 style={{
                   background: "#f0fdf4",
-                  border: "1px solid #bbf7d0",
-                  borderRadius: 10,
-                  padding: "10px 12px",
-                  textAlign: "center",
+                  border: "1.5px solid #bbf7d0",
+                  borderRadius: 14,
+                  padding: "12px 14px",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 12,
                 }}
               >
-                <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 5, fontSize: 12, color: "#166534", fontWeight: 700 }}>
-                  <Mail size={13} color="#16a34a" />
-                  <span>Verification code sent to:</span>
+                <div
+                  style={{
+                    width: 36,
+                    height: 36,
+                    borderRadius: 10,
+                    background: "#dcfce7",
+                    border: "1px solid #86efac",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    flexShrink: 0,
+                  }}
+                >
+                  <Mail size={18} color="#16a34a" />
                 </div>
-                <div style={{ margin: "3px 0 0 0", fontSize: 13.5, fontWeight: 800, color: "#15803d", fontFamily: "'Space Mono', monospace" }}>
-                  {maskedEmail}
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 11.5, color: "#166534", fontWeight: 700 }}>
+                    Verification code dispatched to:
+                  </div>
+                  <div style={{ fontSize: 13.5, fontWeight: 800, color: "#15803d", fontFamily: "'Space Mono', monospace", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                    {maskedEmail}
+                  </div>
                 </div>
               </div>
 
+              {/* 6-Digit Individual Split Input Boxes */}
               <div>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
-                  <label style={{ fontSize: 12, fontWeight: 700, color: "#475569", textTransform: "uppercase" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+                  <label style={{ fontSize: 12, fontWeight: 800, color: "#475569", textTransform: "uppercase", letterSpacing: "0.5px" }}>
                     Enter 6-Digit Code
                   </label>
-                  <div style={{ fontSize: 11.5, fontWeight: 700, color: timerSeconds < 30 ? "#dc2626" : "#059669", fontFamily: "'Space Mono', monospace" }}>
-                    {timerActive ? formatTimer(timerSeconds) : "Code Expired"}
+                  <div
+                    style={{
+                      fontSize: 11.5,
+                      fontWeight: 800,
+                      color: timerSeconds < 30 ? "#dc2626" : "#059669",
+                      background: timerSeconds < 30 ? "#fef2f2" : "#f0fdf4",
+                      border: `1px solid ${timerSeconds < 30 ? "#fecaca" : "#bbf7d0"}`,
+                      padding: "2px 8px",
+                      borderRadius: 999,
+                      fontFamily: "'Space Mono', monospace",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 4,
+                    }}
+                  >
+                    <Clock size={11} />
+                    <span>{timerActive ? formatTimer(timerSeconds) : "Expired"}</span>
                   </div>
                 </div>
 
-                <input
-                  type="text"
-                  value={otp}
-                  maxLength={6}
-                  onChange={(e) => setOtp(e.target.value.replace(/\D/g, ""))}
-                  placeholder="• • • • • •"
-                  autoFocus
-                  required
+                <div
                   style={{
-                    width: "100%",
-                    padding: "12px",
-                    fontSize: 22,
-                    fontWeight: 900,
-                    letterSpacing: "10px",
-                    textAlign: "center",
-                    fontFamily: "'Space Mono', monospace",
-                    color: "#0f172a",
-                    background: "#f8fafc",
-                    border: "1.5px solid #2563eb",
-                    borderRadius: 10,
-                    outline: "none",
-                    boxSizing: "border-box",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    gap: 6,
                   }}
-                />
+                  onPaste={handleOtpPaste}
+                >
+                  {[0, 1, 2, 3, 4, 5].map((index) => (
+                    <React.Fragment key={index}>
+                      {index === 3 && (
+                        <div
+                          style={{
+                            width: 6,
+                            height: 2,
+                            background: "#cbd5e1",
+                            borderRadius: 1,
+                            margin: "0 1px",
+                          }}
+                        />
+                      )}
+                      <input
+                        ref={(el) => (otpInputRefs.current[index] = el)}
+                        type="text"
+                        inputMode="numeric"
+                        pattern="[0-9]*"
+                        maxLength={1}
+                        value={otpDigits[index]}
+                        onChange={(e) => handleDigitChange(index, e.target.value)}
+                        onKeyDown={(e) => handleDigitKeyDown(index, e)}
+                        style={{
+                          width: "48px",
+                          height: "52px",
+                          fontSize: "22px",
+                          fontWeight: "900",
+                          textAlign: "center",
+                          fontFamily: "'Space Mono', monospace",
+                          color: "#0f172a",
+                          background: otpDigits[index] ? "#ffffff" : "#f8fafc",
+                          border: "1.5px solid",
+                          borderColor: otpDigits[index] ? "#2563eb" : "#cbd5e1",
+                          borderRadius: "12px",
+                          outline: "none",
+                          boxSizing: "border-box",
+                          boxShadow: otpDigits[index] ? "0 2px 8px rgba(37, 99, 235, 0.15)" : "none",
+                          transition: "all 0.15s ease",
+                        }}
+                        onFocus={(e) => {
+                          e.target.style.borderColor = "#2563eb";
+                          e.target.style.boxShadow = "0 0 0 3px rgba(37, 99, 235, 0.15)";
+                          e.target.style.background = "#ffffff";
+                        }}
+                        onBlur={(e) => {
+                          e.target.style.borderColor = otpDigits[index] ? "#2563eb" : "#cbd5e1";
+                          e.target.style.boxShadow = otpDigits[index] ? "0 2px 8px rgba(37, 99, 235, 0.15)" : "none";
+                          e.target.style.background = otpDigits[index] ? "#ffffff" : "#f8fafc";
+                        }}
+                      />
+                    </React.Fragment>
+                  ))}
+                </div>
               </div>
 
+              {/* Verify Code CTA Button */}
               <button
                 type="submit"
                 disabled={loading || otp.length < 6}
                 style={{
                   width: "100%",
-                  padding: "11px 16px",
-                  borderRadius: 10,
+                  padding: "12px 16px",
+                  borderRadius: 12,
                   border: "none",
-                  background: loading || otp.length < 6 ? "#cbd5e1" : "#16a34a",
+                  background: loading || otp.length < 6 ? "#cbd5e1" : "linear-gradient(135deg, #16a34a 0%, #15803d 100%)",
                   color: "#ffffff",
-                  fontSize: 13.5,
-                  fontWeight: 700,
+                  fontSize: 14,
+                  fontWeight: 800,
                   cursor: loading || otp.length < 6 ? "not-allowed" : "pointer",
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
-                  gap: 6,
+                  gap: 8,
+                  boxShadow: otp.length < 6 ? "none" : "0 4px 14px rgba(22, 163, 74, 0.25)",
+                  transition: "all 0.2s ease",
                 }}
               >
                 {loading ? (
                   <>
-                    <Loader2 size={15} className="spin" />
+                    <Loader2 size={16} className="spin" />
                     <span>Verifying Code...</span>
                   </>
                 ) : (
                   <>
-                    <CheckCircle2 size={15} />
-                    <span>Verify Code</span>
+                    <CheckCircle2 size={16} />
+                    <span>Verify & Continue</span>
                   </>
                 )}
               </button>
 
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", paddingTop: 4 }}>
                 <button
                   type="button"
                   onClick={() => {
                     setStep("REGNO");
                     setOtp("");
+                    setOtpDigits(["", "", "", "", "", ""]);
                     setErrorMsg("");
                   }}
                   style={{
