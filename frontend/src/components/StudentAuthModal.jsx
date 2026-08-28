@@ -170,7 +170,7 @@ export default function StudentAuthModal({ isOpen, onClose }) {
       setDeviceStatus(null);
       setIsChecking(false);
     }
-  }, [isOpen, hasActiveSession]);
+  }, [isOpen]);
 
   // Live Pre-Check for active device limit & student existence
   useEffect(() => {
@@ -355,7 +355,7 @@ export default function StudentAuthModal({ isOpen, onClose }) {
       return;
     }
 
-    if (deviceStatus?.isCurrentDevice) {
+    if (deviceStatus?.isCurrentDevice && deviceStatus?.hasPassword) {
       navigateToDestination(cleanReg);
       return;
     }
@@ -382,7 +382,7 @@ export default function StudentAuthModal({ isOpen, onClose }) {
     setLoading(false);
 
     if (result.success) {
-      if (result.data?.alreadyLoggedIn) {
+      if (result.data?.alreadyLoggedIn && deviceStatus?.hasPassword) {
         navigateToDestination(cleanReg);
         return;
       }

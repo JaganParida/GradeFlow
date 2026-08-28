@@ -249,7 +249,7 @@ export function AppProvider({ children }) {
 
   // Realtime SSE stream for active student session
   useEffect(() => {
-    if (!studentSession || !studentSession.regNo) {
+    if (!studentSession || !studentSession.regNo || !studentSession.sessionId) {
       setNotifications([]);
       setUnreadCount(0);
       return;
@@ -289,7 +289,7 @@ export function AppProvider({ children }) {
       clearInterval(interval);
       eventSource?.close();
     };
-  }, [studentSession?.sessionId]);
+  }, [studentSession?.sessionId, studentSession?.regNo]);
 
   // ─── Student Authentication Methods ──────────────────────────────
   const sendStudentOtp = async (regNo) => {

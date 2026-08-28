@@ -133,7 +133,7 @@ router.get("/student/check-status", async (req, res) => {
 
     let isCurrentDevice = false;
     let currentSessionId = null;
-    if (incomingToken && incomingToken !== "none") {
+    if (hasPassword && incomingToken && incomingToken !== "none") {
       try {
         const decoded = jwt.verify(incomingToken, process.env.JWT_SECRET);
         if (decoded.regNo === rawReg && activeSessions.some((s) => s.sessionId === decoded.sessionId)) {
@@ -587,7 +587,7 @@ router.post("/student/send-otp", otpSendLimiter, async (req, res) => {
     }
 
     let isCurrentDevice = false;
-    if (incomingToken && incomingToken !== "none") {
+    if (hasPassword && incomingToken && incomingToken !== "none") {
       try {
         const decoded = jwt.verify(incomingToken, process.env.JWT_SECRET);
         if (decoded.regNo === rawReg && activeSessions.some((s) => s.sessionId === decoded.sessionId)) {
@@ -596,7 +596,7 @@ router.post("/student/send-otp", otpSendLimiter, async (req, res) => {
       } catch {}
     }
 
-    if (isCurrentDevice) {
+    if (hasPassword && isCurrentDevice) {
       return res.json({
         success: true,
         alreadyLoggedIn: true,
