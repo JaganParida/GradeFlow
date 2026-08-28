@@ -780,7 +780,9 @@ export default function Navbar() {
           {/* Right Controls */}
           <div className="gf-navbar-right" style={{ display: "flex", alignItems: "center", gap: 10 }}>
             {/* In-App Notification Bell & Device Approvals (Desktop) */}
-            {hasActiveSession && <NotificationBell isMobile={false} />}
+            <div className="gf-desktop-bell-wrapper">
+              {hasActiveSession && <NotificationBell isMobile={false} />}
+            </div>
 
             {/* Search button (Accessible ONLY for Admin) */}
             {adminToken && (
@@ -2328,6 +2330,11 @@ export default function Navbar() {
           }
         }
 
+        .gf-desktop-bell-wrapper {
+          display: flex;
+          align-items: center;
+        }
+
         /* Seamless switch to mobile navigation drawer */
         @media (max-width: 1180px) {
           .gf-desktop-nav {
@@ -2336,6 +2343,13 @@ export default function Navbar() {
           .gf-desktop-auth {
             display: none !important;
           }
+          .gf-desktop-bell-wrapper {
+            display: none !important;
+          }
+          .gf-mobile-bell-wrapper {
+            display: flex !important;
+            align-items: center;
+          }
           .gf-mobile-toggle {
             display: flex !important;
           }
@@ -2343,6 +2357,13 @@ export default function Navbar() {
 
         /* Tablet & Mobile responsive styling */
         @media (max-width: 768px) {
+          .gf-desktop-bell-wrapper {
+            display: none !important;
+          }
+          .gf-mobile-bell-wrapper {
+            display: flex !important;
+            align-items: center;
+          }
           .gf-navbar-inner {
             height: 60px !important;
             padding: 0 16px !important;
