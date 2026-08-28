@@ -324,7 +324,135 @@ module.exports = async (req, res) => {
     }
   }
 
-  // ── 2. POST /reset ──
+  // ── 2. POST /revoke-session ──
+  if (action === "revoke-session") {
+    try {
+      const sessionId = String(req.body?.sessionId || "").trim();
+      if (!sessionId) {
+        return res.status(400).json({
+          success: false,
+          message: "Session identifier (sessionId) is required to revoke device session.",
+        });
+      }
+
+      const sessionToRevoke = await globalDbQueue.run(() =>
+        StudentSession.findOne({ regNo: rawReg, sessionId })
+      );
+
+      if (!sessionToRevoke) {
+        return res.status(404).json({
+          success: false,
+          message: "Active device session not found or already revoked.",
+        });
+      }
+
+      await globalDbQueue.run(() =>
+        StudentSession.deleteOne({ regNo: rawReg, sessionId })
+      );
+
+      const safeReason = req.body?.reason ? String(req.body.reason).trim().slice(0, 200) : "Main Admin Session Revocation";
+      const adminEmail = authResult.admin?.email || process.env.ADMIN_EMAIL || "main_admin";
+
+      try {
+        await globalDbQueue.run(() =>
+          AdminAuditLog.create({
+            actorEmail: adminEmail,
+            actorType: "main_admin",
+            action: "STUDENT_DEVICE_SESSION_REVOKE",
+            actionType: "MANAGEMENT",
+            targetRegNo: rawReg,
+            result: "SUCCESS",
+            details: {
+              sessionId,
+              platform: sessionToRevoke.deviceInfo?.platform || "Unknown",
+              userAgent: sessionToRevoke.deviceInfo?.userAgent || "Unknown",
+              ip: sessionToRevoke.deviceInfo?.ip || "",
+              loggedInAt: sessionToRevoke.loggedInAt,
+              reason: safeReason,
+            },
+            ip: req.headers["x-forwarded-for"] || req.socket?.remoteAddress || "",
+            userAgent: req.headers["user-agent"] || "",
+          })
+        );
+      } catch (auditErr) {
+        console.warn("Audit log error:", auditErr.message);
+      }
+
+      const remainingSessions = await globalDbQueue.run(() =>
+        getActiveSessions(StudentSession, rawReg)
+      );
+      const maxAllowed = getMaxAllowedDevices(rawReg);
+
+      return res.json({
+        success: true,
+        message: `Device session (${sessionToRevoke.deviceInfo?.platform || "Authorized Device"}) for student ${rawReg} was successfully revoked.`,
+        remainingActiveDevices: remainingSessions.length,
+        maxAllowedDevices: maxAllowed,
+        revokedSessionId: sessionId,
+      });
+    } catch (err) {
+      console.error("POST student-otp-management revoke-session error:", err);
+      return res.status(500).json({ success: false, message: "Failed to revoke student device session." });
+    }
+  }
+
+  // ── 3. POST /revoke-all-sessions ──
+  if (action === "revoke-all-sessions") {
+    try {
+      const activeSessions = await globalDbQueue.run(() =>
+        getActiveSessions(StudentSession, rawReg)
+      );
+      const countToRevoke = activeSessions.length;
+
+      await globalDbQueue.run(() =>
+        StudentSession.deleteMany({ regNo: rawReg })
+      );
+
+      const safeReason = req.body?.reason ? String(req.body.reason).trim().slice(0, 200) : "Main Admin Revoke All Sessions";
+      const adminEmail = authResult.admin?.email || process.env.ADMIN_EMAIL || "main_admin";
+
+      try {
+        await globalDbQueue.run(() =>
+          AdminAuditLog.create({
+            actorEmail: adminEmail,
+            actorType: "main_admin",
+            action: "STUDENT_ALL_DEVICE_SESSIONS_REVOKE",
+            actionType: "MANAGEMENT",
+            targetRegNo: rawReg,
+            result: "SUCCESS",
+            details: {
+              revokedCount: countToRevoke,
+              revokedSessions: activeSessions.map((s) => ({
+                sessionId: s.sessionId,
+                platform: s.deviceInfo?.platform || "Unknown",
+                loggedInAt: s.loggedInAt,
+              })),
+              reason: safeReason,
+            },
+            ip: req.headers["x-forwarded-for"] || req.socket?.remoteAddress || "",
+            userAgent: req.headers["user-agent"] || "",
+          })
+        );
+      } catch (auditErr) {
+        console.warn("Audit log error:", auditErr.message);
+      }
+
+      const maxAllowed = getMaxAllowedDevices(rawReg);
+
+      return res.json({
+        success: true,
+        message: `All active device sessions (${countToRevoke}) for student ${rawReg} were successfully revoked.`,
+        revokedCount: countToRevoke,
+        remainingActiveDevices: 0,
+        maxAllowedDevices: maxAllowed,
+      });
+    } catch (err) {
+      console.error("POST student-otp-management revoke-all-sessions error:", err);
+      return res.status(500).json({ success: false, message: "Failed to revoke student device sessions." });
+    }
+  }
+
+  // ── 4. POST /reset ──
   if (req.method === "POST" || action === "reset") {
     try {
       const existingLimit = await globalDbQueue.run(() =>

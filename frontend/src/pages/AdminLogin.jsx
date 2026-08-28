@@ -167,12 +167,12 @@ export default function AdminLogin() {
     if (code === "SUBADMIN_DEVICE_LIMIT_REACHED") {
       const devs = errData?.details?.activeDevices || errData?.activeDevices || [];
       setBlockedDevicesData(devs);
-      setMaxAllowedDevices(1);
+      setMaxAllowedDevices(2);
       setIsBlockedModalOpen(true);
       setErrorInfo({
         title: "Device Authorization Limit",
-        message: "Sub-Admin portal is currently active on another device (maximum limit: 1 device). Please log out from that device to continue.",
-        badge: "Max 1 Device",
+        message: "Sub-Admin portal is currently active on 2 authorized devices (maximum limit: 2). Please log out from another device to continue.",
+        badge: "Max 2 Devices",
         type: "warning",
       });
       return;
@@ -252,12 +252,12 @@ export default function AdminLogin() {
       if (res?.code === "SUBADMIN_DEVICE_LIMIT_REACHED" || res?.details?.code === "SUBADMIN_DEVICE_LIMIT_REACHED") {
         const devs = res?.details?.activeDevices || res?.activeDevices || [];
         setBlockedDevicesData(devs);
-        setMaxAllowedDevices(1);
+        setMaxAllowedDevices(2);
         setIsBlockedModalOpen(true);
         setErrorInfo({
           title: "Device Authorization Limit",
-          message: "Sub-Admin portal is currently active on another authorized device (maximum limit: 1 device). Please log out from that device to continue.",
-          badge: "Max 1 Device",
+          message: "Sub-Admin portal is currently active on 2 authorized devices (maximum limit: 2 devices). Please log out from another device to continue.",
+          badge: "Max 2 Devices",
           type: "warning",
         });
         return;

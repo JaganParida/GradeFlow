@@ -25,6 +25,14 @@
       "destination": "/api/student-otp-management.js?action=reset&regNo=:regNo"
     },
     {
+      "source": "/api/admin/student-otp-management/revoke-session/:regNo",
+      "destination": "/api/student-otp-management.js?action=revoke-session&regNo=:regNo"
+    },
+    {
+      "source": "/api/admin/student-otp-management/revoke-all-sessions/:regNo",
+      "destination": "/api/student-otp-management.js?action=revoke-all-sessions&regNo=:regNo"
+    },
+    {
       "source": "/api/admin/subadmins/audit/logs",
       "destination": "/api/subadmins.js?action=logs"
     },

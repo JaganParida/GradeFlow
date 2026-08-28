@@ -27,6 +27,8 @@ import {
   Calendar,
   Monitor,
   Tablet,
+  LogOut,
+  Trash2,
 } from "lucide-react";
 
 function formatISTDate(dateVal) {
@@ -60,6 +62,12 @@ export default function StudentOtpManagement({ API, authHeaders, isMobile }) {
   const [showResetModal, setShowResetModal] = useState(false);
   const [resetReason, setResetReason] = useState("");
   const [resetLoading, setResetLoading] = useState(false);
+
+  // Revoke Session Modal state
+  const [showRevokeModal, setShowRevokeModal] = useState(false);
+  const [revokeTarget, setRevokeTarget] = useState(null); // { isAll: boolean, session: object | null }
+  const [revokeReason, setRevokeReason] = useState("");
+  const [revokeLoading, setRevokeLoading] = useState(false);
 
   const handleSearch = async (e) => {
     if (e) e.preventDefault();
@@ -128,6 +136,49 @@ export default function StudentOtpManagement({ API, authHeaders, isMobile }) {
       setErrorMsg(err.response?.data?.message || "An error occurred while resetting OTP attempts.");
     } finally {
       setResetLoading(false);
+    }
+  };
+
+  const handleRevokeSubmit = async () => {
+    if (!studentData?.regNo || !revokeTarget) return;
+    setRevokeLoading(true);
+    setErrorMsg("");
+    setSuccessMsg("");
+
+    try {
+      let res;
+      if (revokeTarget.isAll) {
+        res = await axios.post(
+          `${API}/admin/student-otp-management/revoke-all-sessions/${studentData.regNo}`,
+          { reason: revokeReason.trim() },
+          authHeaders
+        );
+      } else {
+        res = await axios.post(
+          `${API}/admin/student-otp-management/revoke-session/${studentData.regNo}`,
+          {
+            sessionId: revokeTarget.session?.sessionId,
+            reason: revokeReason.trim(),
+          },
+          authHeaders
+        );
+      }
+
+      if (res.data?.success) {
+        setSuccessMsg(res.data.message || "Device session revoked successfully.");
+        setShowRevokeModal(false);
+        setRevokeTarget(null);
+        setRevokeReason("");
+        // Instantly reload student session details
+        handleSearch();
+      } else {
+        setErrorMsg(res.data?.message || "Failed to revoke device session.");
+      }
+    } catch (err) {
+      console.error("Session Revoke Error:", err);
+      setErrorMsg(err.response?.data?.message || "An error occurred while revoking the device session.");
+    } finally {
+      setRevokeLoading(false);
     }
   };
 
@@ -430,7 +481,7 @@ export default function StudentOtpManagement({ API, authHeaders, isMobile }) {
               boxShadow: "0 2px 10px rgba(15, 23, 42, 0.02)",
             }}
           >
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14, flexWrap: "wrap", gap: 8 }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14, flexWrap: "wrap", gap: 10 }}>
               <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                 <div
                   style={{
@@ -454,29 +505,60 @@ export default function StudentOtpManagement({ API, authHeaders, isMobile }) {
                   </p>
                 </div>
               </div>
-              <span
-                style={{
-                  fontSize: 11.5,
-                  fontWeight: 700,
-                  color: (studentData.activeSessions?.length || 0) > 0 ? "#065f46" : "#64748b",
-                  background: (studentData.activeSessions?.length || 0) > 0 ? "#d1fae5" : "#f1f5f9",
-                  padding: "4px 10px",
-                  borderRadius: 8,
-                  border: `1px solid ${(studentData.activeSessions?.length || 0) > 0 ? "#a7f3d0" : "#e2e8f0"}`,
-                  display: "inline-flex",
-                  alignItems: "center",
-                  gap: 5,
-                }}
-              >
-                {(studentData.activeSessions?.length || 0) > 0 ? (
-                  <>
-                    <span style={{ width: 7, height: 7, borderRadius: "50%", background: "#10b981", display: "inline-block" }} />
-                    {studentData.activeSessions.length} Active Device{studentData.activeSessions.length > 1 ? "s" : ""}
-                  </>
-                ) : (
-                  "0 Active Devices (Signed Out)"
+              <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                {(studentData.activeSessions?.length || 0) > 1 && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setRevokeTarget({ isAll: true, session: null });
+                      setRevokeReason("");
+                      setShowRevokeModal(true);
+                    }}
+                    style={{
+                      fontSize: 11.5,
+                      fontWeight: 700,
+                      color: "#b91c1c",
+                      background: "#fef2f2",
+                      border: "1px solid #fecaca",
+                      padding: "4px 10px",
+                      borderRadius: 8,
+                      cursor: "pointer",
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: 5,
+                      transition: "all 0.15s ease",
+                    }}
+                    onMouseEnter={(e) => { e.currentTarget.style.background = "#fee2e2"; }}
+                    onMouseLeave={(e) => { e.currentTarget.style.background = "#fef2f2"; }}
+                  >
+                    <Trash2 size={12} color="#dc2626" />
+                    Revoke All Devices
+                  </button>
                 )}
-              </span>
+                <span
+                  style={{
+                    fontSize: 11.5,
+                    fontWeight: 700,
+                    color: (studentData.activeSessions?.length || 0) > 0 ? "#065f46" : "#64748b",
+                    background: (studentData.activeSessions?.length || 0) > 0 ? "#d1fae5" : "#f1f5f9",
+                    padding: "4px 10px",
+                    borderRadius: 8,
+                    border: `1px solid ${(studentData.activeSessions?.length || 0) > 0 ? "#a7f3d0" : "#e2e8f0"}`,
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 5,
+                  }}
+                >
+                  {(studentData.activeSessions?.length || 0) > 0 ? (
+                    <>
+                      <span style={{ width: 7, height: 7, borderRadius: "50%", background: "#10b981", display: "inline-block" }} />
+                      {studentData.activeSessions.length} Active Device{studentData.activeSessions.length > 1 ? "s" : ""}
+                    </>
+                  ) : (
+                    "0 Active Devices (Signed Out)"
+                  )}
+                </span>
+              </div>
             </div>
 
             {(!studentData.activeSessions || studentData.activeSessions.length === 0) ? (
@@ -580,6 +662,43 @@ export default function StudentOtpManagement({ API, authHeaders, isMobile }) {
                             Permanent (Until Logout)
                           </div>
                         </div>
+                      </div>
+
+                      {/* Revoke Session Button */}
+                      <div style={{ display: "flex", justifyContent: "flex-end", paddingTop: 6, borderTop: "1px dashed #e2e8f0" }}>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setRevokeTarget({ isAll: false, session });
+                            setRevokeReason("");
+                            setShowRevokeModal(true);
+                          }}
+                          style={{
+                            padding: "6px 12px",
+                            borderRadius: 8,
+                            border: "1px solid #fecaca",
+                            background: "#fff1f2",
+                            color: "#be123c",
+                            fontSize: 11.5,
+                            fontWeight: 700,
+                            cursor: "pointer",
+                            display: "inline-flex",
+                            alignItems: "center",
+                            gap: 5,
+                            transition: "all 0.15s ease",
+                          }}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.background = "#ffe4e6";
+                            e.currentTarget.style.borderColor = "#fda4af";
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.background = "#fff1f2";
+                            e.currentTarget.style.borderColor = "#fecaca";
+                          }}
+                        >
+                          <LogOut size={12} color="#e11d48" />
+                          Revoke Session
+                        </button>
                       </div>
                     </div>
                   );
@@ -923,6 +1042,179 @@ export default function StudentOtpManagement({ API, authHeaders, isMobile }) {
                 >
                   {resetLoading ? <RefreshCw size={14} className="spin" /> : <Check size={14} />}
                   Confirm & Reset
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* ── Revoke Device Session Confirmation Modal ── */}
+      <AnimatePresence>
+        {showRevokeModal && revokeTarget && studentData && (
+          <div
+            style={{
+              position: "fixed",
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              backgroundColor: "rgba(15, 23, 42, 0.65)",
+              backdropFilter: "blur(4px)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              zIndex: 9999,
+              padding: 16,
+            }}
+            onClick={() => !revokeLoading && setShowRevokeModal(false)}
+          >
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 10 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 10 }}
+              onClick={(e) => e.stopPropagation()}
+              style={{
+                background: "#ffffff",
+                borderRadius: 20,
+                maxWidth: 480,
+                width: "100%",
+                padding: 24,
+                boxShadow: "0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)",
+                border: "1px solid #e2e8f0",
+              }}
+            >
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                  <div
+                    style={{
+                      width: 38,
+                      height: 38,
+                      borderRadius: 10,
+                      background: "#fee2e2",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                    }}
+                  >
+                    <LogOut size={20} color="#dc2626" />
+                  </div>
+                  <div>
+                    <h3 style={{ margin: 0, fontSize: 16.5, fontWeight: 800, color: "#0f172a" }}>
+                      {revokeTarget.isAll ? "Revoke All Device Sessions" : "Revoke Device Session"}
+                    </h3>
+                    <div style={{ fontSize: 12, color: "#64748b" }}>Main Admin Authorization Required</div>
+                  </div>
+                </div>
+                <button
+                  onClick={() => !revokeLoading && setShowRevokeModal(false)}
+                  style={{ background: "none", border: "none", cursor: "pointer", color: "#94a3b8" }}
+                >
+                  <X size={20} />
+                </button>
+              </div>
+
+              {/* State Preview Box */}
+              <div
+                style={{
+                  background: "#f8fafc",
+                  border: "1px solid #e2e8f0",
+                  borderRadius: 12,
+                  padding: "14px 16px",
+                  marginBottom: 16,
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: 8,
+                }}
+              >
+                <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13 }}>
+                  <span style={{ color: "#64748b" }}>Student Reg No:</span>
+                  <strong style={{ color: "#0f172a" }}>{studentData.regNo} ({studentData.studentName})</strong>
+                </div>
+                <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13 }}>
+                  <span style={{ color: "#64748b" }}>Target Device:</span>
+                  <strong style={{ color: "#be123c" }}>
+                    {revokeTarget.isAll ? `All Active Devices (${studentData.activeSessions?.length || 0})` : (revokeTarget.session?.platform || "Authorized Device")}
+                  </strong>
+                </div>
+                {!revokeTarget.isAll && revokeTarget.session && (
+                  <>
+                    <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13 }}>
+                      <span style={{ color: "#64748b" }}>IP Address:</span>
+                      <strong style={{ color: "#334155" }}>{revokeTarget.session.maskedIp || "Hidden"}</strong>
+                    </div>
+                    <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13 }}>
+                      <span style={{ color: "#64748b" }}>Logged In:</span>
+                      <strong style={{ color: "#334155" }}>{formatISTDate(revokeTarget.session.loggedInAt)}</strong>
+                    </div>
+                  </>
+                )}
+                <div style={{ fontSize: 12, color: "#991b1b", marginTop: 4, padding: "8px 10px", background: "#fef2f2", borderRadius: 8, border: "1px solid #fecaca", lineHeight: 1.4 }}>
+                  ⚠️ This will immediately terminate the session token in MongoDB and free up a device slot for new logins.
+                </div>
+              </div>
+
+              {/* Optional Reason Input */}
+              <div style={{ marginBottom: 20 }}>
+                <label style={{ display: "block", fontSize: 12.5, fontWeight: 700, color: "#334155", marginBottom: 6 }}>
+                  Administrative Reason (Optional)
+                </label>
+                <input
+                  type="text"
+                  placeholder="e.g., Ghost session cleanup, device change, student auto-logout troubleshooting..."
+                  value={revokeReason}
+                  onChange={(e) => setRevokeReason(e.target.value)}
+                  style={{
+                    width: "100%",
+                    padding: "10px 12px",
+                    borderRadius: 10,
+                    border: "1px solid #cbd5e1",
+                    fontSize: 13,
+                    outline: "none",
+                    boxSizing: "border-box",
+                  }}
+                />
+              </div>
+
+              {/* Action Buttons */}
+              <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
+                <button
+                  type="button"
+                  onClick={() => setShowRevokeModal(false)}
+                  disabled={revokeLoading}
+                  style={{
+                    padding: "10px 18px",
+                    borderRadius: 10,
+                    border: "1px solid #cbd5e1",
+                    background: "#ffffff",
+                    color: "#475569",
+                    fontSize: 13,
+                    fontWeight: 700,
+                    cursor: "pointer",
+                  }}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={handleRevokeSubmit}
+                  disabled={revokeLoading}
+                  style={{
+                    padding: "10px 20px",
+                    borderRadius: 10,
+                    border: "none",
+                    background: "#be123c",
+                    color: "#ffffff",
+                    fontSize: 13,
+                    fontWeight: 700,
+                    cursor: revokeLoading ? "not-allowed" : "pointer",
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 6,
+                  }}
+                >
+                  {revokeLoading ? <RefreshCw size={14} className="spin" /> : <LogOut size={14} />}
+                  {revokeTarget.isAll ? "Confirm & Revoke All" : "Confirm & Revoke"}
                 </button>
               </div>
             </motion.div>

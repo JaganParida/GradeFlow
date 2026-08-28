@@ -21,25 +21,6 @@ export function isExemptFromScanLimit(studentId = "", userRole = "", isAdminToke
     return true;
   }
 
-  // Also check if admin / privileged session is active in browser storage
-  if (typeof window !== "undefined") {
-    try {
-      const sessionCache = localStorage.getItem("gf_student_session_cache");
-      if (sessionCache) {
-        const parsed = JSON.parse(sessionCache);
-        const cachedRole = String(parsed?.role || "").toLowerCase();
-        const cachedReg = String(parsed?.regNo || "").toLowerCase();
-
-        if (["admin", "subadmin", "superadmin"].includes(cachedRole)) {
-          return true;
-        }
-        if (UNLIMITED_REG_NOS.some((reg) => reg.toLowerCase() === cachedReg)) {
-          return true;
-        }
-      }
-    } catch {}
-  }
-
   return false;
 }
 

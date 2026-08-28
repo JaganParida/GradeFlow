@@ -3257,5 +3257,140 @@ router.post("/student-otp-management/reset/:regNo", requireMainAdmin, async (req
   }
 });
 
+// 3. POST Revoke Specific Student Device Session
+router.post("/student-otp-management/revoke-session/:regNo", requireMainAdmin, async (req, res) => {
+  try {
+    const rawReg = String(req.params.regNo || "").trim().toUpperCase();
+    const sessionId = String(req.body?.sessionId || "").trim();
+
+    if (!rawReg || !/^[a-zA-Z0-9_-]{3,30}$/.test(rawReg)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid registration number format. Must be 3-30 alphanumeric characters.",
+      });
+    }
+
+    if (!sessionId) {
+      return res.status(400).json({
+        success: false,
+        message: "Session identifier (sessionId) is required to revoke device session.",
+      });
+    }
+
+    const sessionToRevoke = await StudentSession.findOne({ regNo: rawReg, sessionId });
+    if (!sessionToRevoke) {
+      return res.status(404).json({
+        success: false,
+        message: "Active device session not found or already revoked.",
+      });
+    }
+
+    // Revoke the specific session
+    await StudentSession.deleteOne({ regNo: rawReg, sessionId });
+
+    const safeReason = req.body?.reason ? String(req.body.reason).trim().slice(0, 200) : "Main Admin Session Revocation";
+    const adminEmail = req.admin?.email || process.env.ADMIN_EMAIL || "main_admin";
+
+    // Write audit log
+    try {
+      await AdminAuditLog.create({
+        actorEmail: adminEmail,
+        actorType: "main_admin",
+        action: "STUDENT_DEVICE_SESSION_REVOKE",
+        actionType: "MANAGEMENT",
+        targetRegNo: rawReg,
+        result: "SUCCESS",
+        details: {
+          sessionId,
+          platform: sessionToRevoke.deviceInfo?.platform || "Unknown",
+          userAgent: sessionToRevoke.deviceInfo?.userAgent || "Unknown",
+          ip: sessionToRevoke.deviceInfo?.ip || "",
+          loggedInAt: sessionToRevoke.loggedInAt,
+          reason: safeReason,
+        },
+        ip: req.ip || "",
+        userAgent: req.headers["user-agent"] || "",
+      });
+    } catch (auditErr) {
+      console.warn("Failed to write session revoke audit log:", auditErr.message);
+    }
+
+    const remainingSessions = await getActiveSessions(StudentSession, rawReg);
+    const maxAllowed = getMaxAllowedDevices(rawReg);
+
+    return res.json({
+      success: true,
+      message: `Device session (${sessionToRevoke.deviceInfo?.platform || "Authorized Device"}) for student ${rawReg} was successfully revoked.`,
+      remainingActiveDevices: remainingSessions.length,
+      maxAllowedDevices: maxAllowed,
+      revokedSessionId: sessionId,
+    });
+  } catch (err) {
+    console.error("POST /student-otp-management/revoke-session error:", err);
+    return res.status(500).json({ success: false, message: "Failed to revoke student device session." });
+  }
+});
+
+// 4. POST Revoke ALL Active Device Sessions for Student
+router.post("/student-otp-management/revoke-all-sessions/:regNo", requireMainAdmin, async (req, res) => {
+  try {
+    const rawReg = String(req.params.regNo || "").trim().toUpperCase();
+
+    if (!rawReg || !/^[a-zA-Z0-9_-]{3,30}$/.test(rawReg)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid registration number format. Must be 3-30 alphanumeric characters.",
+      });
+    }
+
+    const activeSessions = await getActiveSessions(StudentSession, rawReg);
+    const countToRevoke = activeSessions.length;
+
+    // Delete all sessions for this registration number
+    await StudentSession.deleteMany({ regNo: rawReg });
+
+    const safeReason = req.body?.reason ? String(req.body.reason).trim().slice(0, 200) : "Main Admin Revoke All Sessions";
+    const adminEmail = req.admin?.email || process.env.ADMIN_EMAIL || "main_admin";
+
+    // Write audit log
+    try {
+      await AdminAuditLog.create({
+        actorEmail: adminEmail,
+        actorType: "main_admin",
+        action: "STUDENT_ALL_DEVICE_SESSIONS_REVOKE",
+        actionType: "MANAGEMENT",
+        targetRegNo: rawReg,
+        result: "SUCCESS",
+        details: {
+          revokedCount: countToRevoke,
+          revokedSessions: activeSessions.map((s) => ({
+            sessionId: s.sessionId,
+            platform: s.deviceInfo?.platform || "Unknown",
+            loggedInAt: s.loggedInAt,
+          })),
+          reason: safeReason,
+        },
+        ip: req.ip || "",
+        userAgent: req.headers["user-agent"] || "",
+      });
+    } catch (auditErr) {
+      console.warn("Failed to write all sessions revoke audit log:", auditErr.message);
+    }
+
+    const maxAllowed = getMaxAllowedDevices(rawReg);
+
+    return res.json({
+      success: true,
+      message: `All active device sessions (${countToRevoke}) for student ${rawReg} were successfully revoked.`,
+      revokedCount: countToRevoke,
+      remainingActiveDevices: 0,
+      maxAllowedDevices: maxAllowed,
+    });
+  } catch (err) {
+    console.error("POST /student-otp-management/revoke-all-sessions error:", err);
+    return res.status(500).json({ success: false, message: "Failed to revoke student device sessions." });
+  }
+});
+
 module.exports = router;
 

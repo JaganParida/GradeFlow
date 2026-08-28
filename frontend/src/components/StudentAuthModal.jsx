@@ -18,6 +18,9 @@ import {
   Lock,
   Smartphone,
   ChevronLeft,
+  KeyRound,
+  Eye,
+  EyeOff,
 } from "lucide-react";
 import BlockedLoginDeviceModal from "./BlockedLoginDeviceModal";
 
@@ -25,6 +28,8 @@ export default function StudentAuthModal({ isOpen, onClose }) {
   const {
     sendStudentOtp,
     verifyStudentOtp,
+    studentLoginPassword,
+    studentCreatePassword,
     studentData,
     studentSession,
     hasActiveSession,
@@ -33,12 +38,20 @@ export default function StudentAuthModal({ isOpen, onClose }) {
   } = useApp();
   const navigate = useNavigate();
 
-  const [step, setStep] = useState(1); // 1 = Enter RegNo, 2 = Enter OTP
+  // Steps: "REGNO" | "PASSWORD" | "OTP" | "CREATE_PASSWORD"
+  const [step, setStep] = useState("REGNO");
   const [regNo, setRegNo] = useState("");
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [otp, setOtp] = useState("");
+  const [setupPasswordToken, setSetupPasswordToken] = useState("");
+
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
   const [errorCode, setErrorCode] = useState("");
+  const [statusNotice, setStatusNotice] = useState("");
   const [maskedEmail, setMaskedEmail] = useState("");
   const [studentName, setStudentName] = useState("");
   const [remainingDailyAttempts, setRemainingDailyAttempts] = useState(2);
@@ -46,7 +59,7 @@ export default function StudentAuthModal({ isOpen, onClose }) {
   const [timerSeconds, setTimerSeconds] = useState(180);
   const [timerActive, setTimerActive] = useState(false);
   const [resendCooldown, setResendCooldown] = useState(0);
-  const [deviceStatus, setDeviceStatus] = useState(null); // { exists, isBlocked, isCurrentDevice, message, studentName }
+  const [deviceStatus, setDeviceStatus] = useState(null);
   const [isChecking, setIsChecking] = useState(false);
   const [isBlockedModalOpen, setIsBlockedModalOpen] = useState(false);
   const [blockedDevicesData, setBlockedDevicesData] = useState([]);
@@ -55,8 +68,9 @@ export default function StudentAuthModal({ isOpen, onClose }) {
   const isRegValid = cleanReg.length >= 10 && cleanReg.length <= 16;
 
   // Helper to route to intended destination after auth
-  const navigateToDestination = (cleanReg) => {
+  const navigateToDestination = (targetReg) => {
     onClose();
+    const destReg = targetReg || cleanReg;
     if (pendingDestination) {
       const dest = pendingDestination;
       setPendingDestination(null);
@@ -69,36 +83,36 @@ export default function StudentAuthModal({ isOpen, onClose }) {
         return;
       }
       if (dest.type === "timetable") {
-        navigate(`/timetable/${encodeStudentId(cleanReg)}`);
+        navigate(`/timetable/${encodeStudentId(destReg)}`);
       } else if (dest.type === "attendance") {
-        navigate(`/attendance/${encodeStudentId(cleanReg)}`);
+        navigate(`/attendance/${encodeStudentId(destReg)}`);
       } else if (dest.type === "analytics") {
         const query = dest.tab ? `?tab=${encodeURIComponent(dest.tab)}` : "";
-        navigate(`/analytics/${encodeStudentId(cleanReg)}${query}`);
+        navigate(`/analytics/${encodeStudentId(destReg)}${query}`);
       } else if (dest.type === "predictor") {
-        navigate(`/analytics/${encodeStudentId(cleanReg)}?tab=predictor`);
+        navigate(`/analytics/${encodeStudentId(destReg)}?tab=predictor`);
       } else if (dest.type === "placement") {
-        navigate(`/analytics/${encodeStudentId(cleanReg)}?tab=placement`);
+        navigate(`/analytics/${encodeStudentId(destReg)}?tab=placement`);
       } else if (dest.type === "domains") {
-        navigate(`/analytics/${encodeStudentId(cleanReg)}?tab=mastery`);
+        navigate(`/analytics/${encodeStudentId(destReg)}?tab=mastery`);
       } else if (dest.type === "gradesheet") {
-        navigate(`/analytics/${encodeStudentId(cleanReg)}?tab=grades`);
+        navigate(`/analytics/${encodeStudentId(destReg)}?tab=grades`);
       } else if (dest.type === "leaderboard") {
         navigate("/leaderboard");
       } else if (dest.path) {
-        navigate(dest.path.replace(":id", encodeStudentId(cleanReg)));
+        navigate(dest.path.replace(":id", encodeStudentId(destReg)));
       } else if (dest.type === "dashboard") {
         const query = dest.tab ? `?tab=${encodeURIComponent(dest.tab)}` : "";
-        navigate(`/dashboard/${encodeStudentId(cleanReg)}${query}`);
+        navigate(`/dashboard/${encodeStudentId(destReg)}${query}`);
       } else {
-        navigate(`/dashboard/${encodeStudentId(cleanReg)}`);
+        navigate(`/dashboard/${encodeStudentId(destReg)}`);
       }
     } else {
-      navigate(`/dashboard/${encodeStudentId(cleanReg)}`);
+      navigate(`/dashboard/${encodeStudentId(destReg)}`);
     }
   };
 
-  // If already authenticated with active session, auto-close modal and navigate to destination
+  // If already authenticated with active session, auto-close modal and navigate
   useEffect(() => {
     if (isOpen && hasActiveSession) {
       const currentReg = studentSession?.regNo || studentData?.regNo || regNo;
@@ -110,13 +124,17 @@ export default function StudentAuthModal({ isOpen, onClose }) {
     }
   }, [isOpen, hasActiveSession, studentSession, studentData]);
 
-  // Cleanly reset state whenever modal opens or closes
+  // Clean state whenever modal opens or closes
   useEffect(() => {
     if (isOpen) {
       setErrorMsg("");
       setErrorCode("");
+      setStatusNotice("");
       setOtp("");
-      setStep(1);
+      setPassword("");
+      setConfirmPassword("");
+      setSetupPasswordToken("");
+      setStep("REGNO");
       setTimerActive(false);
       setResendCooldown(0);
       setAttemptsUsed(0);
@@ -131,10 +149,14 @@ export default function StudentAuthModal({ isOpen, onClose }) {
         setStudentName("");
       }
     } else {
-      setStep(1);
+      setStep("REGNO");
       setOtp("");
+      setPassword("");
+      setConfirmPassword("");
+      setSetupPasswordToken("");
       setErrorMsg("");
       setErrorCode("");
+      setStatusNotice("");
       setTimerActive(false);
       setResendCooldown(0);
       setAttemptsUsed(0);
@@ -144,38 +166,25 @@ export default function StudentAuthModal({ isOpen, onClose }) {
     }
   }, [isOpen, hasActiveSession]);
 
-  // Live Pre-Check for active device limit & student existence (Debounced by 280ms)
+  // Live Pre-Check for active device limit & student existence
   useEffect(() => {
     const clean = regNo.trim().toUpperCase();
-    if (!isOpen || step !== 1) {
-      setDeviceStatus(null);
-      setIsChecking(false);
+    if (!isOpen || step !== "REGNO") {
       return;
     }
 
     if (clean.length < 10) {
       setDeviceStatus(null);
       setIsChecking(false);
-      if (
-        errorCode === "DEVICE_LIMIT_REACHED" ||
-        errorCode === "DEVICE_ALREADY_LOGGED_IN" ||
-        errorCode === "MAX_DEVICES_ACTIVE" ||
-        errorCode === "STUDENT_NOT_FOUND" ||
-        errorCode === "EMPTY_REG"
-      ) {
-        setErrorMsg("");
-        setErrorCode("");
-      }
+      setErrorMsg("");
+      setErrorCode("");
       return;
     }
 
     setIsChecking(true);
     const timer = setTimeout(async () => {
       try {
-        const studentJwt = localStorage.getItem("gf_student_jwt") || sessionStorage.getItem("gf_student_jwt");
-        const headers = studentJwt ? { "x-student-token": studentJwt, Authorization: `Bearer ${studentJwt}` } : {};
         const res = await axios.get(`${API_BASE}/auth/student/check-status?regNo=${encodeURIComponent(clean)}`, {
-          headers,
           withCredentials: true,
         });
 
@@ -185,23 +194,31 @@ export default function StudentAuthModal({ isOpen, onClose }) {
             setErrorMsg(`Registration number ${clean} not found in university student records.`);
             setErrorCode("STUDENT_NOT_FOUND");
           } else if (res.data.isBlocked) {
-            const devices = res.data.activeDevices || res.data.sessions || [];
-            setDeviceStatus({ exists: true, isBlocked: true, message: res.data.blockMessage, devices });
+            const devices = res.data.sessions || [];
+            setDeviceStatus({
+              exists: true,
+              isBlocked: true,
+              message: res.data.blockMessage,
+              devices,
+              hasPassword: res.data.hasPassword,
+            });
             setBlockedDevicesData(devices);
             setErrorMsg(res.data.blockMessage);
-            setErrorCode("DEVICE_LIMIT_REACHED");
-          } else if (res.data.isDailyLimitReached) {
-            setDeviceStatus({ exists: true, isBlocked: true, message: res.data.blockMessage, reason: "DAILY_LIMIT_EXCEEDED" });
-            setErrorMsg(res.data.blockMessage);
-            setErrorCode("DAILY_LIMIT_EXCEEDED");
-            setAttemptsUsed(res.data.attemptsUsedToday || 2);
-            setRemainingDailyAttempts(0);
+            setErrorCode(res.data.blockReason || "DEVICE_LIMIT_REACHED");
           } else if (res.data.isCurrentDevice) {
             setDeviceStatus({ exists: true, isCurrentDevice: true, isBlocked: false });
             setErrorMsg("");
             setErrorCode("");
           } else {
-            setDeviceStatus({ exists: true, isBlocked: false, isCurrentDevice: false, studentName: res.data.studentName });
+            setDeviceStatus({
+              exists: true,
+              isBlocked: false,
+              isCurrentDevice: false,
+              studentName: res.data.studentName,
+              hasPassword: res.data.hasPassword,
+              failedPasswordAttempts: res.data.failedPasswordAttempts,
+              otpFallbackAllowed: res.data.otpFallbackAllowed,
+            });
             if (res.data.studentName) {
               setStudentName(res.data.studentName);
             }
@@ -214,17 +231,8 @@ export default function StudentAuthModal({ isOpen, onClose }) {
             if (res.data.isCooldownActive && res.data.cooldownRemainingSeconds) {
               setResendCooldown(res.data.cooldownRemainingSeconds);
             }
-            if (
-              errorCode === "DEVICE_LIMIT_REACHED" ||
-              errorCode === "DEVICE_ALREADY_LOGGED_IN" ||
-              errorCode === "MAX_DEVICES_ACTIVE" ||
-              errorCode === "STUDENT_NOT_FOUND" ||
-              errorCode === "EMPTY_REG" ||
-              errorCode === "DAILY_LIMIT_EXCEEDED"
-            ) {
-              setErrorMsg("");
-              setErrorCode("");
-            }
+            setErrorMsg("");
+            setErrorCode("");
           }
         } else {
           setDeviceStatus(null);
@@ -236,12 +244,10 @@ export default function StudentAuthModal({ isOpen, onClose }) {
       }
     }, 280);
 
-    return () => {
-      clearTimeout(timer);
-    };
+    return () => clearTimeout(timer);
   }, [regNo, isOpen, step]);
 
-  // Live 5-Minute Countdown Timer for OTP Expiry
+  // Live OTP Countdown Timer
   useEffect(() => {
     let interval = null;
     if (timerActive && timerSeconds > 0) {
@@ -255,7 +261,7 @@ export default function StudentAuthModal({ isOpen, onClose }) {
     return () => clearInterval(interval);
   }, [timerActive, timerSeconds]);
 
-  // Live 60-Second Cooldown Timer for Resend Button
+  // Live Cooldown Timer for Resend
   useEffect(() => {
     let interval = null;
     if (resendCooldown > 0) {
@@ -272,8 +278,8 @@ export default function StudentAuthModal({ isOpen, onClose }) {
     return `${m.toString().padStart(2, "0")}:${s.toString().padStart(2, "0")}`;
   };
 
-  // Step 1: Send OTP
-  const handleSendOtp = async (e) => {
+  // Step 1: Submit Registration Number (Dispatches to Password Login or OTP)
+  const handleRegSubmit = async (e) => {
     if (e) e.preventDefault();
     if (loading || isChecking) return;
 
@@ -302,6 +308,20 @@ export default function StudentAuthModal({ isOpen, onClose }) {
       return;
     }
 
+    setErrorMsg("");
+    setErrorCode("");
+
+    // If account has password -> Go to Password Screen
+    if (deviceStatus?.hasPassword) {
+      setStep("PASSWORD");
+      return;
+    }
+
+    // If new student (no password) -> Trigger OTP Send
+    await triggerSendOtp();
+  };
+
+  const triggerSendOtp = async () => {
     setLoading(true);
     setErrorMsg("");
     setErrorCode("");
@@ -314,31 +334,21 @@ export default function StudentAuthModal({ isOpen, onClose }) {
         navigateToDestination(cleanReg);
         return;
       }
-
       setMaskedEmail(result.data?.maskedEmail || `${cleanReg.toLowerCase()}@centurionuniv.edu.in`);
       setStudentName(result.data?.studentName || "Student");
       setAttemptsUsed(result.data?.attemptsUsedToday ?? 1);
       setRemainingDailyAttempts(result.data?.remainingDailyAttempts ?? 1);
       setTimerSeconds(result.data?.expiresInSeconds || 180);
       setTimerActive(true);
-      setResendCooldown(result.data?.cooldownSeconds || 180); // 180s cooldown starts strictly upon confirmed success
-      setStep(2);
+      setResendCooldown(result.data?.cooldownSeconds || 180);
+      setStep("OTP");
     } else {
       setErrorMsg(result.error);
       setErrorCode(result.code);
       if (result.code === "OTP_COOLDOWN_ACTIVE") {
-        const wait = result.details?.remainingSeconds || 180;
-        setResendCooldown(wait);
+        setResendCooldown(result.details?.remainingSeconds || 180);
       }
-      if (result.code === "DAILY_LIMIT_EXCEEDED") {
-        setAttemptsUsed(2);
-        setRemainingDailyAttempts(0);
-      }
-      if (
-        result.code === "DEVICE_LIMIT_REACHED" ||
-        result.details?.code === "DEVICE_LIMIT_REACHED" ||
-        result.code === "DEVICE_ALREADY_LOGGED_IN"
-      ) {
+      if (result.code === "BLOCKED_DEVICE_ACTIVE" || result.code === "DEVICE_LIMIT_REACHED") {
         const devs = result.details?.activeDevices || result.details?.sessions || deviceStatus?.devices || [];
         setBlockedDevicesData(devs);
         setIsBlockedModalOpen(true);
@@ -346,13 +356,11 @@ export default function StudentAuthModal({ isOpen, onClose }) {
     }
   };
 
-  // Step 2: Verify OTP
-  const handleVerifyOtp = async (e) => {
+  // Step 2: Submit Password
+  const handlePasswordSubmit = async (e) => {
     if (e) e.preventDefault();
-    const cleanOtp = otp.trim();
-    if (!cleanOtp || cleanOtp.length < 6) {
-      setErrorMsg("Please enter the complete 6-digit verification code.");
-      setErrorCode("INVALID_LENGTH");
+    if (!password) {
+      setErrorMsg("Please enter your password.");
       return;
     }
 
@@ -360,20 +368,16 @@ export default function StudentAuthModal({ isOpen, onClose }) {
     setErrorMsg("");
     setErrorCode("");
 
-    const cleanReg = regNo.trim().toUpperCase();
-    const result = await verifyStudentOtp(cleanReg, cleanOtp);
+    const result = await studentLoginPassword(cleanReg, password);
     setLoading(false);
 
-    if (result.success || hasActiveSession) {
+    if (result.success) {
       navigateToDestination(cleanReg);
     } else {
       setErrorMsg(result.error);
       setErrorCode(result.code);
-      if (
-        result.code === "DEVICE_LIMIT_REACHED" ||
-        result.details?.code === "DEVICE_LIMIT_REACHED" ||
-        result.code === "DEVICE_ALREADY_LOGGED_IN"
-      ) {
+
+      if (result.code === "BLOCKED_DEVICE_ACTIVE" || result.code === "DEVICE_LIMIT_REACHED") {
         const devs = result.details?.activeDevices || result.details?.sessions || [];
         setBlockedDevicesData(devs);
         setIsBlockedModalOpen(true);
@@ -381,11 +385,61 @@ export default function StudentAuthModal({ isOpen, onClose }) {
     }
   };
 
-  // Resend OTP
-  const handleResendOtp = async () => {
-    if (resendCooldown > 0 || remainingDailyAttempts <= 0 || loading) return;
-    setOtp("");
-    await handleSendOtp();
+  // Step 3: Verify OTP
+  const handleVerifyOtp = async (e) => {
+    if (e) e.preventDefault();
+    const cleanOtp = otp.trim();
+    if (!cleanOtp || cleanOtp.length < 6) {
+      setErrorMsg("Please enter the complete 6-digit verification code.");
+      return;
+    }
+
+    setLoading(true);
+    setErrorMsg("");
+    setErrorCode("");
+
+    const result = await verifyStudentOtp(cleanReg, cleanOtp);
+    setLoading(false);
+
+    if (result.success) {
+      if (result.step === "CREATE_PASSWORD") {
+        setSetupPasswordToken(result.setupPasswordToken);
+        setStep("CREATE_PASSWORD");
+        setStatusNotice("OTP verified successfully. Please create a strong password to secure your account.");
+      } else {
+        navigateToDestination(cleanReg);
+      }
+    } else {
+      setErrorMsg(result.error);
+      setErrorCode(result.code);
+    }
+  };
+
+  // Step 4: Mandatory Create Password
+  const handleCreatePasswordSubmit = async (e) => {
+    if (e) e.preventDefault();
+    if (!password || password.length < 8) {
+      setErrorMsg("Password must be at least 8 characters long.");
+      return;
+    }
+    if (password !== confirmPassword) {
+      setErrorMsg("Passwords do not match. Please re-enter.");
+      return;
+    }
+
+    setLoading(true);
+    setErrorMsg("");
+    setErrorCode("");
+
+    const result = await studentCreatePassword(cleanReg, password, setupPasswordToken);
+    setLoading(false);
+
+    if (result.success) {
+      navigateToDestination(cleanReg);
+    } else {
+      setErrorMsg(result.error);
+      setErrorCode(result.code);
+    }
   };
 
   if (!isOpen) return null;
@@ -445,14 +499,6 @@ export default function StudentAuthModal({ isOpen, onClose }) {
               cursor: "pointer",
               transition: "all 0.15s ease",
             }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.background = "#f1f5f9";
-              e.currentTarget.style.color = "#0f172a";
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.background = "#f8fafc";
-              e.currentTarget.style.color = "#64748b";
-            }}
           >
             <X size={15} />
           </button>
@@ -472,7 +518,15 @@ export default function StudentAuthModal({ isOpen, onClose }) {
                 margin: "0 auto 12px auto",
               }}
             >
-              <GraduationCap size={24} color="#2563eb" />
+              {step === "CREATE_PASSWORD" ? (
+                <KeyRound size={24} color="#2563eb" />
+              ) : step === "PASSWORD" ? (
+                <Lock size={24} color="#2563eb" />
+              ) : step === "OTP" ? (
+                <Mail size={24} color="#2563eb" />
+              ) : (
+                <GraduationCap size={24} color="#2563eb" />
+              )}
             </div>
 
             <h3
@@ -484,7 +538,13 @@ export default function StudentAuthModal({ isOpen, onClose }) {
                 letterSpacing: "-0.4px",
               }}
             >
-              {step === 1 ? "Student Portal Login" : "Email Verification"}
+              {step === "CREATE_PASSWORD"
+                ? "Create Account Password"
+                : step === "PASSWORD"
+                ? "Student Password Login"
+                : step === "OTP"
+                ? "Email Verification"
+                : "Student Portal Login"}
             </h3>
             <p
               style={{
@@ -494,15 +554,113 @@ export default function StudentAuthModal({ isOpen, onClose }) {
                 lineHeight: 1.45,
               }}
             >
-              {step === 1
-                ? "Official authentication via Centurion University email"
-                : `Enter the 6-digit code sent to your email inbox`}
+              {step === "CREATE_PASSWORD"
+                ? "Set a mandatory password to secure your student account"
+                : step === "PASSWORD"
+                ? `Enter your account password for ${cleanReg}`
+                : step === "OTP"
+                ? `Enter the 6-digit verification code sent to your email`
+                : "Enter your official university registration number"}
             </p>
           </div>
 
-          {/* Form Content */}
-          {step === 1 ? (
-            <form onSubmit={handleSendOtp} style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+          {/* Alert / Notice Display */}
+          {statusNotice && (
+            <div
+              style={{
+                background: "#f0fdf4",
+                border: "1px solid #bbf7d0",
+                borderRadius: 10,
+                padding: "10px 12px",
+                marginBottom: 14,
+                fontSize: 12,
+                color: "#166534",
+                fontWeight: 600,
+                display: "flex",
+                alignItems: "center",
+                gap: 8,
+              }}
+            >
+              <CheckCircle2 size={14} color="#16a34a" />
+              <span>{statusNotice}</span>
+            </div>
+          )}
+
+          {errorMsg && (
+            <div
+              style={{
+                background: errorCode === "BLOCKED_DEVICE_ACTIVE" || errorCode === "DEVICE_LIMIT_REACHED" ? "#fef2f2" : "#fef2f2",
+                border: "1px solid #fee2e2",
+                borderRadius: 12,
+                padding: "12px 14px",
+                display: "flex",
+                gap: 12,
+                alignItems: "flex-start",
+                marginBottom: 14,
+                boxShadow: "0 2px 6px rgba(0, 0, 0, 0.02)",
+              }}
+            >
+              <div
+                style={{
+                  width: 28,
+                  height: 28,
+                  borderRadius: 8,
+                  background: "#fee2e2",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  flexShrink: 0,
+                  marginTop: 1,
+                }}
+              >
+                {errorCode === "BLOCKED_DEVICE_ACTIVE" || errorCode === "DEVICE_LIMIT_REACHED" ? (
+                  <Smartphone size={15} color="#dc2626" />
+                ) : (
+                  <AlertCircle size={15} color="#dc2626" />
+                )}
+              </div>
+              <div style={{ flex: 1 }}>
+                <span style={{ fontSize: 12.5, color: "#991b1b", fontWeight: 700, display: "block", marginBottom: 2 }}>
+                  {errorCode === "BLOCKED_DEVICE_ACTIVE"
+                    ? "Device Slot Occupied"
+                    : errorCode === "DEVICE_LIMIT_REACHED"
+                    ? "Device Limit Reached"
+                    : "Authentication Notice"}
+                </span>
+                <p style={{ fontSize: 12, color: "#7f1d1d", lineHeight: 1.4, margin: 0 }}>
+                  {errorMsg}
+                </p>
+
+                {(errorCode === "BLOCKED_DEVICE_ACTIVE" || errorCode === "DEVICE_LIMIT_REACHED") && (
+                  <button
+                    type="button"
+                    onClick={() => setIsBlockedModalOpen(true)}
+                    style={{
+                      marginTop: "8px",
+                      background: "#fee2e2",
+                      border: "1px solid #fca5a5",
+                      color: "#991b1b",
+                      borderRadius: "8px",
+                      padding: "5px 12px",
+                      fontSize: "11.5px",
+                      fontWeight: "800",
+                      cursor: "pointer",
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: "6px",
+                    }}
+                  >
+                    <Smartphone size={13} color="#dc2626" />
+                    <span>View Active Device Info</span>
+                  </button>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* STEP 1: Registration Number */}
+          {step === "REGNO" && (
+            <form onSubmit={handleRegSubmit} style={{ display: "flex", flexDirection: "column", gap: 14 }}>
               <div>
                 <label
                   style={{
@@ -517,44 +675,31 @@ export default function StudentAuthModal({ isOpen, onClose }) {
                 >
                   University Registration Number
                 </label>
-                <div style={{ position: "relative" }}>
-                  <input
-                    type="text"
-                    value={regNo}
-                    onChange={(e) => setRegNo(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 16))}
-                    maxLength={16}
-                    placeholder="e.g. 230101120001"
-                    autoFocus
-                    required
-                    style={{
-                      width: "100%",
-                      padding: "11px 14px",
-                      fontSize: 14,
-                      fontWeight: 700,
-                      fontFamily: "'Space Mono', monospace",
-                      color: "#0f172a",
-                      background: "#f8fafc",
-                      border: "1.5px solid #cbd5e1",
-                      borderRadius: 10,
-                      outline: "none",
-                      boxSizing: "border-box",
-                      transition: "all 0.15s ease",
-                    }}
-                    onFocus={(e) => {
-                      e.target.style.borderColor = "#2563eb";
-                      e.target.style.background = "#ffffff";
-                    }}
-                    onBlur={(e) => {
-                      e.target.style.borderColor = "#cbd5e1";
-                      e.target.style.background = "#f8fafc";
-                    }}
-                  />
-                </div>
+                <input
+                  type="text"
+                  value={regNo}
+                  onChange={(e) => setRegNo(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 16))}
+                  maxLength={16}
+                  placeholder="e.g. 230101120001"
+                  autoFocus
+                  required
+                  style={{
+                    width: "100%",
+                    padding: "11px 14px",
+                    fontSize: 14,
+                    fontWeight: 700,
+                    fontFamily: "'Space Mono', monospace",
+                    color: "#0f172a",
+                    background: "#f8fafc",
+                    border: "1.5px solid #cbd5e1",
+                    borderRadius: 10,
+                    outline: "none",
+                    boxSizing: "border-box",
+                  }}
+                />
 
                 {isRegValid && deviceStatus?.exists !== false && (
-                  <motion.div
-                    initial={{ opacity: 0, y: -4 }}
-                    animate={{ opacity: 1, y: 0 }}
+                  <div
                     style={{
                       fontSize: 11.5,
                       color: "#2563eb",
@@ -565,144 +710,16 @@ export default function StudentAuthModal({ isOpen, onClose }) {
                       fontWeight: 600,
                     }}
                   >
-                    <Mail size={13} />
+                    <ShieldCheck size={13} color="#2563eb" />
                     <span>
-                      OTP will be sent to: <strong>{cleanReg.toLowerCase()}@centurionuniv.edu.in</strong>
+                      {deviceStatus?.hasPassword
+                        ? "Account password security active"
+                        : "New account — First-time verification will create a password"}
                       {studentName && studentName !== "Student" ? ` (${studentName})` : ""}
                     </span>
-                  </motion.div>
+                  </div>
                 )}
               </div>
-
-              {/* Professional Institutional Security Alert */}
-              {errorMsg && (
-                <div
-                  style={{
-                    background:
-                      errorCode === "DEVICE_LIMIT_REACHED" || errorCode === "DEVICE_ALREADY_LOGGED_IN" || errorCode === "MAX_DEVICES_ACTIVE" || errorCode === "ALREADY_LOGGED_IN_ANOTHER_DEVICE"
-                        ? "#fef2f2"
-                        : errorCode === "DAILY_LIMIT_EXCEEDED"
-                        ? "#fffbeb"
-                        : "#fef2f2",
-                    border: `1px solid ${
-                      errorCode === "DEVICE_LIMIT_REACHED" || errorCode === "DEVICE_ALREADY_LOGGED_IN" || errorCode === "MAX_DEVICES_ACTIVE" || errorCode === "ALREADY_LOGGED_IN_ANOTHER_DEVICE"
-                        ? "#fee2e2"
-                        : errorCode === "DAILY_LIMIT_EXCEEDED"
-                        ? "#fef3c7"
-                        : "#fee2e2"
-                    }`,
-                    borderRadius: 12,
-                    padding: "12px 14px",
-                    display: "flex",
-                    gap: 12,
-                    alignItems: "flex-start",
-                    boxShadow: "0 2px 6px rgba(0, 0, 0, 0.02)",
-                  }}
-                >
-                  <div
-                    style={{
-                      width: 28,
-                      height: 28,
-                      borderRadius: 8,
-                      background:
-                        errorCode === "DEVICE_LIMIT_REACHED" || errorCode === "DEVICE_ALREADY_LOGGED_IN" || errorCode === "MAX_DEVICES_ACTIVE" || errorCode === "ALREADY_LOGGED_IN_ANOTHER_DEVICE"
-                          ? "#fee2e2"
-                          : errorCode === "DAILY_LIMIT_EXCEEDED"
-                          ? "#fef3c7"
-                          : "#fee2e2",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      flexShrink: 0,
-                      marginTop: 1,
-                    }}
-                  >
-                    {errorCode === "DEVICE_LIMIT_REACHED" || errorCode === "DEVICE_ALREADY_LOGGED_IN" || errorCode === "MAX_DEVICES_ACTIVE" || errorCode === "ALREADY_LOGGED_IN_ANOTHER_DEVICE" ? (
-                      <Smartphone size={15} color="#dc2626" />
-                    ) : errorCode === "DAILY_LIMIT_EXCEEDED" ? (
-                      <Clock size={15} color="#d97706" />
-                    ) : (
-                      <AlertCircle size={15} color="#dc2626" />
-                    )}
-                  </div>
-                  <div style={{ flex: 1 }}>
-                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, marginBottom: 2 }}>
-                      <span
-                        style={{
-                          fontSize: 13,
-                          fontWeight: 700,
-                          color:
-                            errorCode === "DEVICE_LIMIT_REACHED" || errorCode === "DEVICE_ALREADY_LOGGED_IN" || errorCode === "MAX_DEVICES_ACTIVE" || errorCode === "ALREADY_LOGGED_IN_ANOTHER_DEVICE"
-                              ? "#991b1b"
-                              : errorCode === "DAILY_LIMIT_EXCEEDED"
-                              ? "#92400e"
-                              : "#991b1b",
-                          letterSpacing: "-0.2px",
-                        }}
-                      >
-                        {errorCode === "DEVICE_LIMIT_REACHED" || errorCode === "DEVICE_ALREADY_LOGGED_IN"
-                          ? "Device Limit Reached"
-                          : errorCode === "DAILY_LIMIT_EXCEEDED"
-                          ? "Daily Limit Exceeded"
-                          : "Verification Notice"}
-                      </span>
-                      <span
-                        style={{
-                          fontSize: 10.5,
-                          fontWeight: 700,
-                          padding: "2px 7px",
-                          borderRadius: 99,
-                          background:
-                            errorCode === "DAILY_LIMIT_EXCEEDED" ? "#fde68a" : "#fecaca",
-                          color:
-                            errorCode === "DAILY_LIMIT_EXCEEDED" ? "#78350f" : "#7f1d1d",
-                        }}
-                      >
-                        {errorCode === "DEVICE_LIMIT_REACHED" ? "1 Active Device" : errorCode === "DAILY_LIMIT_EXCEEDED" ? "Max 2 Attempts" : "Attention"}
-                      </span>
-                    </div>
-                    <p
-                      style={{
-                        fontSize: 12,
-                        color:
-                          errorCode === "DAILY_LIMIT_EXCEEDED" ? "#78350f" : "#7f1d1d",
-                        lineHeight: 1.45,
-                        margin: 0,
-                        opacity: 0.92,
-                      }}
-                    >
-                      {errorMsg}
-                    </p>
-
-                    {(errorCode === "DEVICE_LIMIT_REACHED" || errorCode === "DEVICE_ALREADY_LOGGED_IN" || errorCode === "MAX_DEVICES_ACTIVE") && (
-                      <button
-                        type="button"
-                        onClick={() => setIsBlockedModalOpen(true)}
-                        style={{
-                          marginTop: "8px",
-                          background: "#fee2e2",
-                          border: "1px solid #fca5a5",
-                          color: "#991b1b",
-                          borderRadius: "8px",
-                          padding: "5px 12px",
-                          fontSize: "11.5px",
-                          fontWeight: "800",
-                          cursor: "pointer",
-                          display: "inline-flex",
-                          alignItems: "center",
-                          gap: "6px",
-                          transition: "background 0.15s ease",
-                        }}
-                        onMouseEnter={(e) => (e.currentTarget.style.background = "#fecaca")}
-                        onMouseLeave={(e) => (e.currentTarget.style.background = "#fee2e2")}
-                      >
-                        <Smartphone size={13} color="#dc2626" />
-                        <span>View Active Device Info</span>
-                      </button>
-                    )}
-                  </div>
-                </div>
-              )}
 
               {/* Security Policy Highlights */}
               <div
@@ -719,28 +736,16 @@ export default function StudentAuthModal({ isOpen, onClose }) {
                 <div style={{ display: "flex", alignItems: "center", gap: 7, fontSize: 11.5, color: "#475569" }}>
                   <ShieldCheck size={13} color="#16a34a" />
                   <span>
-                    <strong>{regNo.trim().toUpperCase() === "230301120327" ? "Multi-Device Lock:" : "Single Device Lock:"}</strong>{" "}
-                    {regNo.trim().toUpperCase() === "230301120327" ? "Maximum 2 active devices allowed." : "Only 1 active device allowed per student."}
+                    <strong>{cleanReg === "230301120327" ? "Multi-Device Policy:" : "Single-Device Policy:"}</strong>{" "}
+                    {cleanReg === "230301120327" ? "Max 2 devices allowed." : "1 active logged-in device allowed."}
                   </span>
                 </div>
                 <div style={{ display: "flex", alignItems: "center", gap: 7, fontSize: 11.5, color: "#475569" }}>
-                  <Clock size={13} color="#2563eb" />
-                  <span>
-                    <strong>Daily OTP Limit:</strong>{" "}
-                    {cleanReg === "230301120327"
-                      ? "Developer bypass active (Unlimited)."
-                      : attemptsUsed > 0
-                      ? `${attemptsUsed}/2 attempts used today (${remainingDailyAttempts} remaining).`
-                      : "Maximum 2 attempts per day (resets at midnight)."}
-                  </span>
-                </div>
-                <div style={{ display: "flex", alignItems: "center", gap: 7, fontSize: 11.5, color: "#475569" }}>
-                  <Lock size={13} color="#64748b" />
-                  <span><strong>Inactivity Policy:</strong> Automatic logout after 7 days of continuous inactivity.</span>
+                  <Lock size={13} color="#2563eb" />
+                  <span><strong>Password Attempts:</strong> Max 2 attempts before OTP fallback evaluation.</span>
                 </div>
               </div>
 
-              {/* Submit Button */}
               <button
                 type="submit"
                 disabled={loading || isChecking || !isRegValid || deviceStatus?.isBlocked || deviceStatus?.exists === false}
@@ -748,89 +753,185 @@ export default function StudentAuthModal({ isOpen, onClose }) {
                   width: "100%",
                   padding: "11px 16px",
                   borderRadius: 10,
-                  border: deviceStatus?.isBlocked
-                    ? "1.5px solid #fca5a5"
-                    : deviceStatus?.exists === false
-                    ? "1.5px solid #fecaca"
-                    : "none",
-                  background: isChecking
-                    ? "#f1f5f9"
-                    : deviceStatus?.isBlocked
-                    ? "#fee2e2"
-                    : deviceStatus?.exists === false
-                    ? "#fef2f2"
-                    : deviceStatus?.isCurrentDevice
-                    ? "#16a34a"
-                    : loading || !isRegValid
-                    ? "#cbd5e1"
-                    : "#0f172a",
-                  color: isChecking
-                    ? "#475569"
-                    : deviceStatus?.isBlocked || deviceStatus?.exists === false
-                    ? "#991b1b"
-                    : "#ffffff",
+                  border: "none",
+                  background: loading || !isRegValid || deviceStatus?.isBlocked || deviceStatus?.exists === false ? "#cbd5e1" : "#0f172a",
+                  color: "#ffffff",
                   fontSize: 13.5,
                   fontWeight: 700,
-                  cursor:
-                    loading || isChecking || !isRegValid || deviceStatus?.isBlocked || deviceStatus?.exists === false
-                      ? "not-allowed"
-                      : "pointer",
+                  cursor: loading || !isRegValid || deviceStatus?.isBlocked || deviceStatus?.exists === false ? "not-allowed" : "pointer",
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
                   gap: 6,
-                  transition: "all 0.15s ease",
-                }}
-                onMouseEnter={(e) => {
-                  if (!loading && !isChecking && isRegValid && !deviceStatus?.isBlocked && deviceStatus?.exists !== false) {
-                    e.currentTarget.style.background = deviceStatus?.isCurrentDevice ? "#15803d" : "#1e293b";
-                  }
-                }}
-                onMouseLeave={(e) => {
-                  if (!loading && !isChecking && isRegValid && !deviceStatus?.isBlocked && deviceStatus?.exists !== false) {
-                    e.currentTarget.style.background = deviceStatus?.isCurrentDevice ? "#16a34a" : "#0f172a";
-                  }
                 }}
               >
                 {loading ? (
                   <>
                     <Loader2 size={15} className="spin" />
-                    <span>Sending Code...</span>
+                    <span>Processing...</span>
                   </>
                 ) : isChecking ? (
                   <>
-                    <Loader2 size={15} className="spin" color="#2563eb" />
-                    <span>Verifying Registration Number...</span>
-                  </>
-                ) : !isRegValid ? (
-                  <>
-                    <span>Enter Valid Registration No.</span>
-                    <ArrowRight size={15} />
-                  </>
-                ) : deviceStatus?.exists === false ? (
-                  <>
-                    <AlertCircle size={15} color="#dc2626" />
-                    <span>Student Record Not Found</span>
-                  </>
-                ) : deviceStatus?.isBlocked ? (
-                  <>
-                    <Lock size={15} color="#991b1b" />
-                    <span>Login Blocked (Active on Device)</span>
-                  </>
-                ) : deviceStatus?.isCurrentDevice ? (
-                  <>
-                    <CheckCircle2 size={15} />
-                    <span>Already Active — Continue</span>
+                    <Loader2 size={15} className="spin" />
+                    <span>Verifying...</span>
                   </>
                 ) : (
                   <>
-                    <span>Send Verification Code</span>
+                    <span>Continue</span>
                     <ArrowRight size={15} />
                   </>
                 )}
               </button>
             </form>
-          ) : (
+          )}
+
+          {/* STEP 2: Password Input */}
+          {step === "PASSWORD" && (
+            <form onSubmit={handlePasswordSubmit} style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+              <div>
+                <label
+                  style={{
+                    display: "block",
+                    fontSize: 12,
+                    fontWeight: 700,
+                    color: "#475569",
+                    marginBottom: 6,
+                    textTransform: "uppercase",
+                    letterSpacing: "0.5px",
+                  }}
+                >
+                  Account Password
+                </label>
+                <div style={{ position: "relative" }}>
+                  <input
+                    type={showPassword ? "text" : "password"}
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder="Enter your account password"
+                    autoFocus
+                    required
+                    style={{
+                      width: "100%",
+                      padding: "11px 40px 11px 14px",
+                      fontSize: 14,
+                      color: "#0f172a",
+                      background: "#f8fafc",
+                      border: "1.5px solid #cbd5e1",
+                      borderRadius: 10,
+                      outline: "none",
+                      boxSizing: "border-box",
+                    }}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    style={{
+                      position: "absolute",
+                      right: 12,
+                      top: "50%",
+                      transform: "translateY(-50%)",
+                      background: "none",
+                      border: "none",
+                      color: "#64748b",
+                      cursor: "pointer",
+                      padding: 0,
+                    }}
+                  >
+                    {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                  </button>
+                </div>
+              </div>
+
+              {/* OTP Fallback Button (Unlocks if allowed by server) */}
+              {deviceStatus?.otpFallbackAllowed && (
+                <div style={{ background: "#eff6ff", border: "1px solid #dbeafe", borderRadius: 10, padding: "10px 12px" }}>
+                  <span style={{ fontSize: 12, color: "#1e40af", fontWeight: 600, display: "block", marginBottom: 6 }}>
+                    Forgot password or locked out?
+                  </span>
+                  <button
+                    type="button"
+                    onClick={triggerSendOtp}
+                    style={{
+                      background: "#2563eb",
+                      color: "#ffffff",
+                      border: "none",
+                      borderRadius: 8,
+                      padding: "6px 12px",
+                      fontSize: 11.5,
+                      fontWeight: 700,
+                      cursor: "pointer",
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: 5,
+                    }}
+                  >
+                    <Mail size={12} />
+                    <span>Send Verification Code to Email</span>
+                  </button>
+                </div>
+              )}
+
+              <button
+                type="submit"
+                disabled={loading || !password}
+                style={{
+                  width: "100%",
+                  padding: "11px 16px",
+                  borderRadius: 10,
+                  border: "none",
+                  background: loading || !password ? "#cbd5e1" : "#0f172a",
+                  color: "#ffffff",
+                  fontSize: 13.5,
+                  fontWeight: 700,
+                  cursor: loading || !password ? "not-allowed" : "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: 6,
+                }}
+              >
+                {loading ? (
+                  <>
+                    <Loader2 size={15} className="spin" />
+                    <span>Signing in...</span>
+                  </>
+                ) : (
+                  <>
+                    <Lock size={15} />
+                    <span>Sign In</span>
+                  </>
+                )}
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setStep("REGNO");
+                  setPassword("");
+                  setErrorMsg("");
+                }}
+                style={{
+                  background: "none",
+                  border: "none",
+                  color: "#64748b",
+                  fontSize: 12,
+                  fontWeight: 700,
+                  cursor: "pointer",
+                  padding: 0,
+                  display: "inline-flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: 4,
+                }}
+              >
+                <ChevronLeft size={14} />
+                <span>Change Registration Number</span>
+              </button>
+            </form>
+          )}
+
+          {/* STEP 3: OTP Verification */}
+          {step === "OTP" && (
             <form onSubmit={handleVerifyOtp} style={{ display: "flex", flexDirection: "column", gap: 14 }}>
               <div
                 style={{
@@ -848,50 +949,15 @@ export default function StudentAuthModal({ isOpen, onClose }) {
                 <div style={{ margin: "3px 0 0 0", fontSize: 13.5, fontWeight: 800, color: "#15803d", fontFamily: "'Space Mono', monospace" }}>
                   {maskedEmail}
                 </div>
-                <div style={{ fontSize: 11, color: "#166534", marginTop: 3 }}>
-                  {cleanReg === "230301120327" || remainingDailyAttempts >= 90 ? (
-                    <span>Access: <strong>Developer Access (Unlimited)</strong></span>
-                  ) : (
-                    <span>OTP Attempts: <strong>{attemptsUsed}/2 used today</strong> ({remainingDailyAttempts} remaining)</span>
-                  )}
-                </div>
               </div>
 
               <div>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
-                  <label
-                    style={{
-                      fontSize: 12,
-                      fontWeight: 700,
-                      color: "#475569",
-                      textTransform: "uppercase",
-                      letterSpacing: "0.5px",
-                    }}
-                  >
-                    Enter 6-Digit OTP
+                  <label style={{ fontSize: 12, fontWeight: 700, color: "#475569", textTransform: "uppercase" }}>
+                    Enter 6-Digit Code
                   </label>
-                  <div
-                    style={{
-                      display: "inline-flex",
-                      alignItems: "center",
-                      gap: 4,
-                      fontSize: 11.5,
-                      fontWeight: 700,
-                      color: timerSeconds < 30 ? "#dc2626" : "#059669",
-                      fontFamily: "'Space Mono', monospace",
-                    }}
-                  >
-                    {timerActive ? (
-                      <>
-                        <Clock size={12} />
-                        <span>{formatTimer(timerSeconds)}</span>
-                      </>
-                    ) : (
-                      <>
-                        <AlertCircle size={12} color="#dc2626" />
-                        <span>Code Expired</span>
-                      </>
-                    )}
+                  <div style={{ fontSize: 11.5, fontWeight: 700, color: timerSeconds < 30 ? "#dc2626" : "#059669", fontFamily: "'Space Mono', monospace" }}>
+                    {timerActive ? formatTimer(timerSeconds) : "Code Expired"}
                   </div>
                 </div>
 
@@ -900,7 +966,7 @@ export default function StudentAuthModal({ isOpen, onClose }) {
                   value={otp}
                   maxLength={6}
                   onChange={(e) => setOtp(e.target.value.replace(/\D/g, ""))}
-                  placeholder="&bull; &bull; &bull; &bull; &bull; &bull;"
+                  placeholder="• • • • • •"
                   autoFocus
                   required
                   style={{
@@ -921,39 +987,6 @@ export default function StudentAuthModal({ isOpen, onClose }) {
                 />
               </div>
 
-              {errorMsg && (
-                <div
-                  style={{
-                    background: "#fef2f2",
-                    border: "1px solid #fee2e2",
-                    borderRadius: 12,
-                    padding: "10px 14px",
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 10,
-                    boxShadow: "0 2px 6px rgba(0, 0, 0, 0.02)",
-                  }}
-                >
-                  <div
-                    style={{
-                      width: 26,
-                      height: 26,
-                      borderRadius: 7,
-                      background: "#fee2e2",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      flexShrink: 0,
-                    }}
-                  >
-                    <AlertCircle size={14} color="#dc2626" />
-                  </div>
-                  <span style={{ fontSize: 12, color: "#991b1b", fontWeight: 600, lineHeight: 1.4 }}>
-                    {errorMsg}
-                  </span>
-                </div>
-              )}
-
               <button
                 type="submit"
                 disabled={loading || otp.length < 6}
@@ -971,33 +1004,26 @@ export default function StudentAuthModal({ isOpen, onClose }) {
                   alignItems: "center",
                   justifyContent: "center",
                   gap: 6,
-                  transition: "background 0.15s ease",
-                }}
-                onMouseEnter={(e) => {
-                  if (!loading && otp.length >= 6) e.currentTarget.style.background = "#15803d";
-                }}
-                onMouseLeave={(e) => {
-                  if (!loading && otp.length >= 6) e.currentTarget.style.background = "#16a34a";
                 }}
               >
                 {loading ? (
                   <>
                     <Loader2 size={15} className="spin" />
-                    <span>Verifying...</span>
+                    <span>Verifying Code...</span>
                   </>
                 ) : (
                   <>
                     <CheckCircle2 size={15} />
-                    <span>Verify & Continue</span>
+                    <span>Verify Code</span>
                   </>
                 )}
               </button>
 
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", paddingTop: 4 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                 <button
                   type="button"
                   onClick={() => {
-                    setStep(1);
+                    setStep("REGNO");
                     setOtp("");
                     setErrorMsg("");
                   }}
@@ -1021,7 +1047,7 @@ export default function StudentAuthModal({ isOpen, onClose }) {
                 <button
                   type="button"
                   disabled={resendCooldown > 0 || remainingDailyAttempts <= 0 || loading}
-                  onClick={handleResendOtp}
+                  onClick={triggerSendOtp}
                   style={{
                     background: "none",
                     border: "none",
@@ -1029,7 +1055,7 @@ export default function StudentAuthModal({ isOpen, onClose }) {
                     fontSize: 12,
                     fontWeight: 700,
                     cursor: resendCooldown > 0 || remainingDailyAttempts <= 0 ? "not-allowed" : "pointer",
-                    display: "flex",
+                    display: "inline-flex",
                     alignItems: "center",
                     gap: 4,
                     padding: 0,
@@ -1041,10 +1067,134 @@ export default function StudentAuthModal({ isOpen, onClose }) {
               </div>
             </form>
           )}
+
+          {/* STEP 4: MANDATORY CREATE PASSWORD */}
+          {step === "CREATE_PASSWORD" && (
+            <form onSubmit={handleCreatePasswordSubmit} style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+              <div>
+                <label style={{ display: "block", fontSize: 12, fontWeight: 700, color: "#475569", marginBottom: 6 }}>
+                  Create Account Password (Min 8 chars)
+                </label>
+                <div style={{ position: "relative" }}>
+                  <input
+                    type={showPassword ? "text" : "password"}
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder="Enter new password"
+                    autoFocus
+                    required
+                    style={{
+                      width: "100%",
+                      padding: "11px 40px 11px 14px",
+                      fontSize: 14,
+                      color: "#0f172a",
+                      background: "#f8fafc",
+                      border: "1.5px solid #cbd5e1",
+                      borderRadius: 10,
+                      outline: "none",
+                      boxSizing: "border-box",
+                    }}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    style={{
+                      position: "absolute",
+                      right: 12,
+                      top: "50%",
+                      transform: "translateY(-50%)",
+                      background: "none",
+                      border: "none",
+                      color: "#64748b",
+                      cursor: "pointer",
+                      padding: 0,
+                    }}
+                  >
+                    {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                  </button>
+                </div>
+              </div>
+
+              <div>
+                <label style={{ display: "block", fontSize: 12, fontWeight: 700, color: "#475569", marginBottom: 6 }}>
+                  Confirm Password
+                </label>
+                <div style={{ position: "relative" }}>
+                  <input
+                    type={showConfirmPassword ? "text" : "password"}
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    placeholder="Confirm new password"
+                    required
+                    style={{
+                      width: "100%",
+                      padding: "11px 40px 11px 14px",
+                      fontSize: 14,
+                      color: "#0f172a",
+                      background: "#f8fafc",
+                      border: "1.5px solid #cbd5e1",
+                      borderRadius: 10,
+                      outline: "none",
+                      boxSizing: "border-box",
+                    }}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                    style={{
+                      position: "absolute",
+                      right: 12,
+                      top: "50%",
+                      transform: "translateY(-50%)",
+                      background: "none",
+                      border: "none",
+                      color: "#64748b",
+                      cursor: "pointer",
+                      padding: 0,
+                    }}
+                  >
+                    {showConfirmPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                  </button>
+                </div>
+              </div>
+
+              <button
+                type="submit"
+                disabled={loading || !password || password.length < 8 || password !== confirmPassword}
+                style={{
+                  width: "100%",
+                  padding: "11px 16px",
+                  borderRadius: 10,
+                  border: "none",
+                  background: loading || !password || password.length < 8 || password !== confirmPassword ? "#cbd5e1" : "#16a34a",
+                  color: "#ffffff",
+                  fontSize: 13.5,
+                  fontWeight: 700,
+                  cursor: loading || !password || password.length < 8 || password !== confirmPassword ? "not-allowed" : "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: 6,
+                }}
+              >
+                {loading ? (
+                  <>
+                    <Loader2 size={15} className="spin" />
+                    <span>Saving Password & Logging In...</span>
+                  </>
+                ) : (
+                  <>
+                    <KeyRound size={15} />
+                    <span>Create Password & Log In</span>
+                  </>
+                )}
+              </button>
+            </form>
+          )}
         </motion.div>
       </div>
 
-      {/* Blocked Login Device Information Modal */}
+      {/* Blocked Login Device Modal */}
       <BlockedLoginDeviceModal
         isOpen={isBlockedModalOpen}
         onClose={() => setIsBlockedModalOpen(false)}

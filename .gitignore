@@ -40,3 +40,5 @@ logs/
 # Scratch & Temporary Dev Files
 scratch/
 *.traineddata
+backend/scripts/
+

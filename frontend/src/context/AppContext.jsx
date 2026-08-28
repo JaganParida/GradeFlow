@@ -9,27 +9,21 @@ axios.defaults.withCredentials = true;
 
 axios.interceptors.request.use((config) => {
   try {
-    const studentJwt = localStorage.getItem("gf_student_jwt") || sessionStorage.getItem("gf_student_jwt");
-
     config.headers = config.headers || {};
     // Attach CSRF protection header for state-changing browser requests
     config.headers["X-Requested-With"] = "XMLHttpRequest";
-
-    const url = config.url || "";
-    const isStudentAuthUrl = url.includes("/auth/student/") || url.includes("/student/");
-
-    if (isStudentAuthUrl && studentJwt) {
-      config.headers["x-student-token"] = studentJwt;
-      config.headers.Authorization = `Bearer ${studentJwt}`;
-    }
   } catch {}
   return config;
 });
 
 const AppCtx = createContext();
 
-// Explicit list of obsolete legacy auth/session keys to clean up from browser storage
+// Explicit list of obsolete legacy auth/session keys to proactively wipe from browser storage
 const OBSOLETE_AUTH_STORAGE_KEYS = [
+  "gf_student_jwt",
+  "gf_student_session",
+  "gf_student_session_cache",
+  "gf_student_data",
   "gf_admin_jwt",
   "gf_admin_token",
   "admin_jwt",
@@ -46,7 +40,7 @@ const OBSOLETE_AUTH_STORAGE_KEYS = [
 ];
 
 export function AppProvider({ children }) {
-  // Proactively wipe only confirmed obsolete authentication keys without clearing unrelated application state
+  // Proactively wipe all obsolete authentication keys on startup
   useEffect(() => {
     try {
       OBSOLETE_AUTH_STORAGE_KEYS.forEach((key) => {
@@ -57,34 +51,27 @@ export function AppProvider({ children }) {
   }, []);
 
   const [studentData, setStudentData] = useState(null);
-  const [studentSession, setStudentSession] = useState(() => {
-    try {
-      const cached = localStorage.getItem("gf_student_session_cache");
-      if (cached) {
-        return JSON.parse(cached);
-      }
-    } catch {}
-    return null;
-  });
+  const [studentSession, setStudentSession] = useState(null);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  
   // In-memory administrative authentication state — NOT persisted in localStorage
   const [adminToken, setAdminToken] = useState(false);
   const [adminProfile, setAdminProfile] = useState(null);
 
   // ─── Theme Management ────────────────────────────────────────────
   const [theme, setTheme] = useState(() => {
-    return localStorage.getItem('gf_theme') || 'light';
+    return localStorage.getItem("gf_theme") || "light";
   });
 
   useEffect(() => {
-    document.documentElement.setAttribute('data-theme', theme);
-    localStorage.setItem('gf_theme', theme);
+    document.documentElement.setAttribute("data-theme", theme);
+    localStorage.setItem("gf_theme", theme);
   }, [theme]);
 
   const toggleTheme = () => {
-    setTheme(prev => prev === 'light' ? 'dark' : 'light');
+    setTheme((prev) => (prev === "light" ? "dark" : "light"));
   };
 
   // ─── Global Maintenance Mode State ───────────────────────────────
@@ -103,7 +90,7 @@ export function AppProvider({ children }) {
   });
   const [maintenanceChecked, setMaintenanceChecked] = useState(false);
 
-  const checkMaintenanceStatus = async (force = false) => {
+  const checkMaintenanceStatus = async () => {
     try {
       const res = await axios.get(`${API_BASE}/system/maintenance?t=${Date.now()}`, {
         headers: { "Cache-Control": "no-cache" },
@@ -133,16 +120,19 @@ export function AppProvider({ children }) {
   const [authChecking, setAuthChecking] = useState(true);
   const navigate = useNavigate();
 
-  // ─── Check Auth & Maintenance on Startup (Concurrent & Non-blocking) ───
+  // ─── Check Server-Side Auth & Maintenance on Startup (Pure Cookie-Based) ───
   useEffect(() => {
     const checkAuthAndSystem = async () => {
-      // 0. Maintenance check with timeout
+      // 0. Maintenance check
       const maintenancePromise = checkMaintenanceStatus();
 
-      // 1. Admin Auth Check Promise
+      // 1. Admin Auth Check Promise (HttpOnly Cookie)
       const adminPromise = (async () => {
         try {
-          const resAdmin = await axios.get(`${API_BASE}/auth/admin/me`, { withCredentials: true, timeout: 3500 });
+          const resAdmin = await axios.get(`${API_BASE}/auth/admin/me`, {
+            withCredentials: true,
+            timeout: 3500,
+          });
           if (resAdmin.data?.success && resAdmin.data?.authenticated) {
             setAdminToken(true);
             setAdminProfile(resAdmin.data);
@@ -150,49 +140,32 @@ export function AppProvider({ children }) {
             setAdminToken(false);
             setAdminProfile(null);
           }
-        } catch (err) {
+        } catch {
           setAdminToken(false);
           setAdminProfile(null);
         }
       })();
 
-      // 2. Student Session Check Promise
+      // 2. Student Session Check Promise (HttpOnly Cookie)
       const studentPromise = (async () => {
         try {
-          const studentJwt = localStorage.getItem("gf_student_jwt") || sessionStorage.getItem("gf_student_jwt");
-          const headers = studentJwt ? { "x-student-token": studentJwt, Authorization: `Bearer ${studentJwt}` } : {};
-          const resStudent = await axios.get(`${API_BASE}/auth/student/me`, { headers, withCredentials: true, timeout: 4000 });
+          const resStudent = await axios.get(`${API_BASE}/auth/student/me`, {
+            withCredentials: true,
+            timeout: 4000,
+          });
           if (resStudent.data?.success && resStudent.data?.student) {
-            if (resStudent.data?.token) {
-              localStorage.setItem("gf_student_jwt", resStudent.data.token);
-            }
-            localStorage.setItem("gf_student_session_cache", JSON.stringify(resStudent.data.student));
             setStudentSession(resStudent.data.student);
             await fetchStudent(resStudent.data.student.regNo, 2, 500);
           } else {
-            // Only wipe if server confirmed session expired/terminated
-            const code = resStudent.data?.code;
-            if (code === "SESSION_TERMINATED" || code === "INACTIVITY_LOGOUT" || code === "SESSION_INACTIVE_EXPIRED") {
-              localStorage.removeItem("gf_student_jwt");
-              localStorage.removeItem("gf_student_session_cache");
-              sessionStorage.removeItem("gf_student_jwt");
-              setStudentSession(null);
-              setStudentData(null);
-            }
-          }
-        } catch (err) {
-          const code = err.response?.data?.code;
-          if (code === "SESSION_TERMINATED" || code === "INACTIVITY_LOGOUT" || code === "SESSION_INACTIVE_EXPIRED") {
-            localStorage.removeItem("gf_student_jwt");
-            localStorage.removeItem("gf_student_session_cache");
-            sessionStorage.removeItem("gf_student_jwt");
             setStudentSession(null);
             setStudentData(null);
           }
+        } catch {
+          setStudentSession(null);
+          setStudentData(null);
         }
       })();
 
-      // Run checks in parallel
       await Promise.allSettled([maintenancePromise, adminPromise, studentPromise]);
       setAuthChecking(false);
     };
@@ -200,7 +173,7 @@ export function AppProvider({ children }) {
     checkAuthAndSystem();
   }, []);
 
-  // ─── Student OTP Auth Methods ────────────────────────────────────
+  // ─── Student Authentication Methods ──────────────────────────────
   const sendStudentOtp = async (regNo) => {
     setLoading(true);
     setError("");
@@ -227,22 +200,104 @@ export function AppProvider({ children }) {
     setError("");
     try {
       const res = await axios.post(`${API_BASE}/auth/student/verify-otp`, { regNo, otp });
-      if (res.data?.success && res.data?.student) {
-        if (res.data?.token) {
-          localStorage.setItem("gf_student_jwt", res.data.token);
-          sessionStorage.setItem("gf_student_jwt", res.data.token);
+      if (res.data?.success) {
+        if (res.data.step === "CREATE_PASSWORD") {
+          return {
+            success: true,
+            step: "CREATE_PASSWORD",
+            setupPasswordToken: res.data.setupPasswordToken,
+            message: res.data.message,
+            student: res.data.student,
+          };
         }
-        setStudentSession(res.data.student);
-        // Fetch student profile directly into memory
-        await fetchStudent(regNo, 3, 500, true);
-        return { success: true, student: res.data.student };
+        if (res.data.student) {
+          setStudentSession(res.data.student);
+          await fetchStudent(regNo, 3, 500, true);
+          return { success: true, student: res.data.student };
+        }
       }
       return { success: false, error: res.data?.message || "Verification failed." };
     } catch (err) {
       const msg = err.response?.data?.message || "Invalid or expired OTP. Please try again.";
       const code = err.response?.data?.code || "VERIFY_ERROR";
+      const details = err.response?.data || {};
       setError(msg);
-      return { success: false, error: msg, code };
+      return { success: false, error: msg, code, details };
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const studentLoginPassword = async (regNo, password) => {
+    setLoading(true);
+    setError("");
+    try {
+      const res = await axios.post(`${API_BASE}/auth/student/login-password`, { regNo, password });
+      if (res.data?.success && res.data?.student) {
+        setStudentSession(res.data.student);
+        await fetchStudent(regNo, 3, 500, true);
+        return {
+          success: true,
+          student: res.data.student,
+          sessionReplaced: res.data.sessionReplaced,
+          message: res.data.message,
+        };
+      }
+      return { success: false, error: res.data?.message || "Login failed." };
+    } catch (err) {
+      const msg = err.response?.data?.message || "Incorrect password. Please try again.";
+      const code = err.response?.data?.code || "AUTH_ERROR";
+      const details = err.response?.data || {};
+      setError(msg);
+      return { success: false, error: msg, code, details };
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const studentCreatePassword = async (regNo, password, setupPasswordToken) => {
+    setLoading(true);
+    setError("");
+    try {
+      const res = await axios.post(`${API_BASE}/auth/student/create-password`, {
+        regNo,
+        password,
+        setupPasswordToken,
+      });
+      if (res.data?.success && res.data?.student) {
+        setStudentSession(res.data.student);
+        await fetchStudent(regNo, 3, 500, true);
+        return { success: true, student: res.data.student, message: res.data.message };
+      }
+      return { success: false, error: res.data?.message || "Failed to create password." };
+    } catch (err) {
+      const msg = err.response?.data?.message || "Password creation failed. Please try again.";
+      const code = err.response?.data?.code || "CREATE_PASSWORD_ERROR";
+      const details = err.response?.data || {};
+      setError(msg);
+      return { success: false, error: msg, code, details };
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const studentTransferSession = async (regNo, password) => {
+    setLoading(true);
+    setError("");
+    try {
+      const res = await axios.post(`${API_BASE}/auth/student/transfer-session`, { regNo, password });
+      if (res.data?.success && res.data?.student) {
+        setStudentSession(res.data.student);
+        await fetchStudent(regNo, 3, 500, true);
+        return { success: true, student: res.data.student, message: res.data.message };
+      }
+      return { success: false, error: res.data?.message || "Failed to transfer session." };
+    } catch (err) {
+      const msg = err.response?.data?.message || "Session transfer failed.";
+      const code = err.response?.data?.code || "TRANSFER_ERROR";
+      const details = err.response?.data || {};
+      setError(msg);
+      return { success: false, error: msg, code, details };
     } finally {
       setLoading(false);
     }
@@ -254,7 +309,7 @@ export function AppProvider({ children }) {
   const studentLogout = async () => {
     setIsLoggingOut(true);
 
-    // 1. Immediately wipe in-memory state for instant UI response
+    // 1. Immediately wipe in-memory state
     setStudentSession(null);
     setStudentData(null);
     setError("");
@@ -262,18 +317,13 @@ export function AppProvider({ children }) {
     setIsAuthModalOpen(false);
 
     try {
-      localStorage.removeItem("gf_student_jwt");
-      localStorage.removeItem("gf_student_data");
-      localStorage.removeItem("gf_student_session");
-      localStorage.removeItem("gf_student_session_cache");
-      localStorage.removeItem("last_regNo");
-      localStorage.removeItem("last_studentName");
-      localStorage.removeItem("gf_today_attendance");
-      localStorage.removeItem("gf_timetable_cache");
-      sessionStorage.removeItem("gf_student_jwt");
+      OBSOLETE_AUTH_STORAGE_KEYS.forEach((k) => {
+        localStorage.removeItem(k);
+        sessionStorage.removeItem(k);
+      });
     } catch {}
 
-    // 2. Clear session on server in background
+    // 2. Clear session on server
     try {
       await axios.post(`${API_BASE}/auth/student/logout`);
     } catch (err) {
@@ -284,7 +334,7 @@ export function AppProvider({ children }) {
     }
   };
 
-  // ─── Admin Auth (Password-Only Step 1 -> Server OTP -> Step 2) ───
+  // ─── Admin Auth Methods ──────────────────────────────────────────
   const adminLoginPassword = async (password) => {
     setLoading(true);
     setError("");
@@ -423,15 +473,13 @@ export function AppProvider({ children }) {
   };
 
   const logoutAdmin = adminLogout;
-
   const authHeaders = { "X-Requested-With": "XMLHttpRequest" };
 
-  // ─── Student Fetch with Silent Exponential Backoff ────────────────
+  // ─── Student Profile Fetch ───────────────────────────────────────
   const fetchStudent = async (regNo, retries = 4, backoffMs = 1000, forceRefresh = false) => {
     if (!regNo) return null;
     const cleanReg = regNo.trim().toUpperCase();
 
-    // Reuse existing in-memory student data instantly to prevent tab switch loading spinners
     if (!forceRefresh && studentData && studentData.regNo === cleanReg) {
       setLoading(false);
       return studentData;
@@ -450,15 +498,12 @@ export function AppProvider({ children }) {
       return res.data;
     } catch (err) {
       const status = err.response?.status;
-
-      // Transient server errors — retry silently
       const isTransient = status === 429 || status === 502 || status === 503;
       if (isTransient && retries > 0) {
         await new Promise((resolve) => setTimeout(resolve, backoffMs));
         return fetchStudent(cleanReg, retries - 1, backoffMs * 2);
       }
 
-      // After all retries exhausted or non-transient error — show message
       let msg = "Something went wrong. Please try again.";
       if (status === 401) {
         msg = "Session expired or authentication required. Please log in with your registration number.";
@@ -495,7 +540,6 @@ export function AppProvider({ children }) {
   };
 
   const getAdminAuthHeaders = () => ({ headers: { "X-Requested-With": "XMLHttpRequest" } });
-
   const hasActiveSession = Boolean(studentData || studentSession);
 
   return (
@@ -515,6 +559,9 @@ export function AppProvider({ children }) {
         },
         sendStudentOtp,
         verifyStudentOtp,
+        studentLoginPassword,
+        studentCreatePassword,
+        studentTransferSession,
         studentLogout,
         isLoggingOut,
         pendingDestination,
@@ -556,7 +603,5 @@ export function AppProvider({ children }) {
   );
 }
 
-// Both names are exported so nothing breaks
 export const useApp = () => useContext(AppCtx);
 export const useAppContext = () => useContext(AppCtx);
-
