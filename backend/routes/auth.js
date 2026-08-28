@@ -194,6 +194,11 @@ router.get("/student/check-status", async (req, res) => {
         }
       } else {
         // Password login is the normal entry method
+        if (maxAllowedDevices > 1 && activeSessions.length >= maxAllowedDevices && !isCurrentDevice) {
+          isBlocked = true;
+          blockReason = "DEVICE_LIMIT_REACHED";
+          blockMessage = `Account ${rawReg} is already actively logged in on ${maxAllowedDevices} devices (maximum ${maxAllowedDevices} allowed). Please log out from one device before signing in on a new device.`;
+        }
         otpAllowed = false;
       }
     } else {

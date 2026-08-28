@@ -195,7 +195,7 @@ module.exports = async function handler(req, res) {
 
   try {
     await connectToDatabase();
-    let action = req.query.action;
+    let action = req.query?.action;
     if (!action && req.url) {
       const cleanUrl = req.url.split("?")[0];
       if (cleanUrl.includes("student/send-otp")) action = "student-send-otp";
@@ -265,7 +265,6 @@ module.exports = async function handler(req, res) {
       const hasPassword = Boolean(studentAccount && studentAccount.passwordHash);
       const failedPasswordAttempts = studentAccount ? studentAccount.failedPasswordAttempts || 0 : 0;
       const isLocked = Boolean(studentAccount?.lockedUntil && new Date() < new Date(studentAccount.lockedUntil));
-      const otpFallbackAllowed = failedPasswordAttempts >= 2 || isLocked;
 
       const maxAllowedDevices = getMaxAllowedDevices(rawReg);
       const activeSessions = await getActiveSessions(StudentSession, rawReg);
@@ -290,21 +289,6 @@ module.exports = async function handler(req, res) {
         } catch {}
       }
 
-      const isBlocked = activeSessions.length >= maxAllowedDevices && !isCurrentDevice;
-
-      const sessionDetails = activeSessions.map((s, idx) => ({
-        deviceIndex: idx + 1,
-        sessionId: s.sessionId,
-        isCurrentDevice: s.sessionId === currentSessionId,
-        platform: s.deviceInfo?.platform || "Unknown",
-        userAgent: s.deviceInfo?.userAgent || "Unknown",
-        ip: s.deviceInfo?.ip || "",
-        loggedInAt: s.loggedInAt,
-        lastActiveAt: s.lastActiveAt,
-        expiresAt: s.expiresAt,
-        status: "ACTIVE",
-      }));
-
       const dateKey = getIstDateKey();
       const dailyLimit = await StudentDailyLimit.findOne({ regNo: rawReg, dateKey });
       const isUnlimited = rawReg === "230301120327";
@@ -324,21 +308,65 @@ module.exports = async function handler(req, res) {
       const isDailyLimitReached = !isUnlimited && currentDailyCount >= maxDailyLimit;
       const remainingDailyAttempts = isUnlimited ? 99 : Math.max(0, maxDailyLimit - currentDailyCount);
 
+      let isBlocked = false;
       let blockReason = null;
       let blockMessage = null;
+      let otpFallbackAllowed = failedPasswordAttempts >= 2 || isLocked;
 
-      if (isBlocked) {
-        blockReason = "DEVICE_LIMIT_REACHED";
-        blockMessage = rawReg === "230301120327"
-          ? `Account 230301120327 is already actively logged in on 2 devices (maximum 2 allowed). Please log out from one device before signing in on a new device.`
-          : `Registration number ${rawReg} is already logged in on an active device. Single-device security policy is active. Please log out from that device first.`;
-      } else if (isDailyLimitReached) {
-        blockReason = "DAILY_LIMIT_EXCEEDED";
-        blockMessage = `Daily OTP limit reached (${currentDailyCount}/${maxDailyLimit} attempts used). Login for ${rawReg} is locked for today. It will automatically reset at midnight.`;
-      } else if (isCooldownActive) {
-        blockReason = "OTP_COOLDOWN_ACTIVE";
-        blockMessage = `Please wait ${cooldownRemainingSeconds} seconds before requesting another verification code.`;
+      if (hasPassword) {
+        if (failedPasswordAttempts >= 2) {
+          if (maxAllowedDevices === 1 && activeSessions.length >= 1 && !isCurrentDevice) {
+            // Another device is active and user failed 2 password attempts -> OTP bypass blocked to prevent takeover
+            isBlocked = true;
+            blockReason = "PASSWORD_FAILED_DEVICE_ACTIVE";
+            blockMessage = `Maximum password attempts exceeded (2/2). Registration number ${rawReg} is currently logged in on another device. Single-device security policy: OTP recovery is blocked while your authorized device slot is occupied.`;
+          } else if (maxAllowedDevices > 1 && activeSessions.length >= maxAllowedDevices && !isCurrentDevice) {
+            isBlocked = true;
+            blockReason = "DEVICE_LIMIT_REACHED";
+            blockMessage = `Account ${rawReg} has reached the maximum allowed active devices (${maxAllowedDevices}). Please log out from another device.`;
+          } else {
+            // 0 devices active -> allow OTP recovery
+            otpFallbackAllowed = true;
+          }
+        } else {
+          // Normal password login flow:
+          // For Normal Students (maxAllowedDevices === 1): Having 1 active device is NOT blocked on check-status!
+          // They proceed to enter password, and correct password creates in-app DeviceApprovalRequest.
+          // For Multi-Device (230301120327, maxAllowedDevices === 2): Block ONLY when activeSessions >= 2 and not current device.
+          if (maxAllowedDevices > 1 && activeSessions.length >= maxAllowedDevices && !isCurrentDevice) {
+            isBlocked = true;
+            blockReason = "DEVICE_LIMIT_REACHED";
+            blockMessage = `Account ${rawReg} is already actively logged in on ${maxAllowedDevices} devices (maximum ${maxAllowedDevices} allowed). Please log out from one device before signing in on a new device.`;
+          }
+        }
+      } else {
+        // Brand new student (no password created yet) -> Needs OTP verification to create password
+        if (activeSessions.length >= maxAllowedDevices && !isCurrentDevice) {
+          isBlocked = true;
+          blockReason = "DEVICE_LIMIT_REACHED";
+          blockMessage = `Registration number ${rawReg} is already logged in on an active device. Please log out from that device first.`;
+        } else if (isDailyLimitReached) {
+          isBlocked = true;
+          blockReason = "DAILY_LIMIT_EXCEEDED";
+          blockMessage = `Daily OTP limit reached (${currentDailyCount}/${maxDailyLimit} attempts used). Login for ${rawReg} is locked for today. It will automatically reset at midnight.`;
+        } else if (isCooldownActive) {
+          blockReason = "OTP_COOLDOWN_ACTIVE";
+          blockMessage = `Please wait ${cooldownRemainingSeconds} seconds before requesting another verification code.`;
+        }
       }
+
+      const sessionDetails = activeSessions.map((s, idx) => ({
+        deviceIndex: idx + 1,
+        sessionId: s.sessionId,
+        isCurrentDevice: s.sessionId === currentSessionId,
+        platform: s.deviceInfo?.platform || "Unknown",
+        userAgent: s.deviceInfo?.userAgent || "Unknown",
+        ip: s.deviceInfo?.ip || "",
+        loggedInAt: s.loggedInAt,
+        lastActiveAt: s.lastActiveAt,
+        expiresAt: s.expiresAt,
+        status: "ACTIVE",
+      }));
 
       return res.json({
         success: true,
@@ -350,17 +378,15 @@ module.exports = async function handler(req, res) {
         activeDeviceCount: activeSessions.length,
         maxAllowedDevices,
         isBlocked,
-        otpAllowed: !isBlocked && !isDailyLimitReached && !isCooldownActive,
-        otpFallbackAllowed,
-        loginAllowed: !isBlocked && (!hasPassword || failedPasswordAttempts < 2 || otpFallbackAllowed),
-        attemptsUsedToday: currentDailyCount,
-        maxDailyAttempts: maxDailyLimit,
-        remainingDailyAttempts,
-        isCooldownActive,
-        cooldownRemainingSeconds,
-        isDailyLimitReached,
         blockReason,
         blockMessage,
+        otpFallbackAllowed,
+        isDailyLimitReached,
+        isCooldownActive,
+        cooldownRemainingSeconds,
+        remainingDailyAttempts,
+        attemptsUsedToday: currentDailyCount,
+        maxDailyAttempts: maxDailyLimit,
         sessions: sessionDetails,
       });
     }
@@ -1051,9 +1077,31 @@ module.exports = async function handler(req, res) {
       }
 
       const statusData = await getDeviceApprovalStatus(requestId);
+      if (!statusData || !statusData.success) {
+        return res.status(404).json(statusData || { success: false, message: "Approval request not found." });
+      }
 
       if (statusData.status === "APPROVED" && statusData.approvedToken) {
         setStudentCookie(res, statusData.approvedToken);
+        const studentRecord = await SemesterResult.findOne({ regNo: statusData.regNo }).sort({ semester: -1 });
+        return res.json({
+          success: true,
+          status: "APPROVED",
+          message: "Login request approved! Logging you in...",
+          student: {
+            regNo: statusData.regNo,
+            studentName: studentRecord?.studentName || "Student",
+            sessionId: statusData.approvedSessionId,
+          },
+        });
+      }
+
+      if (statusData.status === "DENIED") {
+        return res.json({
+          success: false,
+          status: "DENIED",
+          message: "Login request was denied from your active device.",
+        });
       }
 
       return res.json({
