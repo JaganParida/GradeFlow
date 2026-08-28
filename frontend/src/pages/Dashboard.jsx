@@ -727,15 +727,14 @@ export default function Dashboard() {
         <aside
           style={{
             position: isMobile ? "relative" : "sticky",
-            top: isMobile ? "auto" : 20,
-            maxHeight: isMobile ? "none" : "calc(100vh - 40px)",
-            overflowY: isMobile ? "visible" : "auto",
+            top: isMobile ? "auto" : 24,
             display: "flex",
             flexDirection: "column",
             margin: 0,
             padding: 0,
             width: "100%",
             boxSizing: "border-box",
+            alignSelf: "start",
           }}
         >
           {/* Main Unified Sidebar Card */}
@@ -748,6 +747,7 @@ export default function Dashboard() {
               display: "flex",
               flexDirection: "column",
               gap: isMobile ? 10 : 14,
+              boxShadow: "0 1px 3px rgba(0, 0, 0, 0.04)",
             }}
           >
             {/* 1. Student Profile Header */}
