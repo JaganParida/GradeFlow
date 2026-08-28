@@ -36,6 +36,9 @@ const {
   getActiveAdminSessions,
   isAdminSessionValid,
   touchAdminSession,
+  MAX_SUBADMIN_DEVICES,
+  cleanExpiredSubAdminSessions,
+  getActiveSubAdminSessions,
 } = require("./_lib/sessionManager");
 
 const CORS_HEADERS = {
@@ -1485,6 +1488,15 @@ module.exports = async function handler(req, res) {
       }
 
       await SubAdminOtpVerification.deleteMany({ email: cleanEmail });
+
+      const activeSessions = await getActiveSubAdminSessions(SubAdminSession, subAdmin._id);
+      if (activeSessions.length >= (MAX_SUBADMIN_DEVICES || 2)) {
+        return res.status(403).json({
+          success: false,
+          code: "SUBADMIN_DEVICE_LIMIT_REACHED",
+          message: `Sub-Admin device limit reached (${MAX_SUBADMIN_DEVICES || 2} active devices). Please log out from another device.`,
+        });
+      }
 
       const sessionId = crypto.randomUUID();
       const now = new Date();
