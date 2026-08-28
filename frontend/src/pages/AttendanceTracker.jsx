@@ -66,11 +66,47 @@ import {
   calculateAttendance,
   estimateTargetReachDate,
 } from "../utils/timetableHelper";
+import { isMatch } from "../utils/basketLogic";
 import SmartBunkAnalyzer from "../components/SmartBunkAnalyzer";
 import AttendanceTargetPredictor from "../components/AttendanceTargetPredictor";
 import AttendanceScreenshotModal from "../components/AttendanceScreenshotModal";
 import { AttendanceSkeleton } from "../components/LoadingSpinner";
 import { getDailyScanStatus, MAX_DAILY_SCANS } from "../utils/scanLimitHelper";
+
+// Robust Subject Comparator (Handles aliases, normalized names, course codes, and baskets)
+function isSameSubject(a, b) {
+  if (!a || !b) return false;
+  const nameA = typeof a === "string" ? a : (a.subjectName || a.name || a.subName || "");
+  const nameB = typeof b === "string" ? b : (b.subjectName || b.name || b.subName || "");
+  const codeA = typeof a === "object" ? (a.code || a.subCode || "") : "";
+  const codeB = typeof b === "object" ? (b.code || b.subCode || "") : "";
+
+  if (nameA && nameB && nameA.trim().toLowerCase() === nameB.trim().toLowerCase()) return true;
+
+  const cleanA = cleanSubjectBaseName(nameA).toLowerCase();
+  const cleanB = cleanSubjectBaseName(nameB).toLowerCase();
+  if (cleanA && cleanB && cleanA === cleanB) return true;
+
+  if (codeA && codeB) {
+    const normCodeA = codeA.replace(/[^a-zA-Z0-9]/g, "").toUpperCase();
+    const normCodeB = codeB.replace(/[^a-zA-Z0-9]/g, "").toUpperCase();
+    if (normCodeA && normCodeB && (normCodeA === normCodeB || normCodeA.includes(normCodeB) || normCodeB.includes(normCodeA))) {
+      return true;
+    }
+  }
+
+  if (isMatch({ subName: nameA, subCode: codeA }, { subName: nameB, subCode: codeB })) {
+    return true;
+  }
+
+  const norm1 = nameA.toLowerCase().replace(/and/g, "").replace(/[^a-z0-9]/g, "");
+  const norm2 = nameB.toLowerCase().replace(/and/g, "").replace(/[^a-z0-9]/g, "");
+  if (norm1 && norm2 && (norm1 === norm2 || norm1.includes(norm2) || norm2.includes(norm1))) {
+    return true;
+  }
+
+  return false;
+}
 
 const tabTransitionVariants = {
   initial: { opacity: 0, y: 8 },
@@ -486,11 +522,16 @@ export default function AttendanceTracker() {
   }, []);
 
   // Handler for applying OCR extracted subjects with full PP/PR/TUT components
+  // Handler for applying OCR extracted subjects with full PP/PR/TUT components
   const handleApplyScreenshotSubjects = (extracted) => {
     if (!Array.isArray(extracted) || extracted.length === 0) return;
 
     const formatted = extracted.map((s) => {
-      const cleanName = cleanSubjectBaseName(s.name) || s.name;
+      // Find matching catalog subject if available to maintain canonical section catalog naming & code
+      const catMatch = sectionCatalog.find((c) => isSameSubject(c, s));
+      const cleanName = catMatch ? catMatch.subjectName : (cleanSubjectBaseName(s.name) || s.name);
+      const subCode = s.code || catMatch?.code || "";
+
       const comps =
         Array.isArray(s.components) && s.components.length > 0
           ? s.components.map((c) => ({
@@ -508,21 +549,42 @@ export default function AttendanceTracker() {
 
       return {
         subjectName: cleanName,
-        code: s.code || "",
+        code: subCode,
         components: comps,
       };
     });
 
-    setSavedSubjects(formatted);
-    syncAttendanceToDb(formatted, dailyAttendanceLogs, targetGoal);
+    // Smart merge: Update matched subjects with latest attendance counts and keep any existing subjects
+    // so previous data and records are completely preserved
+    const mergedSaved = [...savedSubjects];
+    formatted.forEach((newSub) => {
+      const existingIdx = mergedSaved.findIndex((s) => isSameSubject(s, newSub));
+      if (existingIdx !== -1) {
+        mergedSaved[existingIdx] = {
+          ...mergedSaved[existingIdx],
+          subjectName: newSub.subjectName,
+          code: newSub.code || mergedSaved[existingIdx].code || "",
+          components: newSub.components,
+          lastUpdated: new Date().toISOString(),
+        };
+      } else {
+        mergedSaved.push(newSub);
+      }
+    });
+
+    setSavedSubjects(mergedSaved);
+    syncAttendanceToDb(mergedSaved, allDailyLogs, targetGoal);
 
     // Auto-load the first imported subject into the studio
-    if (formatted.length > 0) {
-      const first = formatted[0];
+    if (mergedSaved.length > 0) {
+      const first = mergedSaved[0];
       setSelectedSubjectName(first.subjectName);
       setComponentInputs(first.components);
     }
-    setActiveTab("studio");
+
+    // Direct redirect to Subject-wise Matrix tab upon saving from modal
+    hasUserManuallySelectedTabRef.current = true;
+    setActiveTab("matrix");
   };
 
   // Proactively clean legacy attendance localStorage keys on mount for maximum privacy
@@ -600,8 +662,8 @@ export default function AttendanceTracker() {
               // For students where the guide is shown (no saved attendance), default to "studio" (Attendance Predictor tab where Guide is present)
               setActiveTab("studio");
             } else {
-              // For students with saved attendance data, default to "matrix" (Attendance Studio)
-              setActiveTab("matrix");
+              // For students with saved attendance data, default to "checkin" (Daily Check-In Hub)
+              setActiveTab("checkin");
             }
           }
 
@@ -874,7 +936,7 @@ export default function AttendanceTracker() {
 
     // Update savedSubjects store
     let nextSavedList = [...savedSubjects];
-    const existingIdx = nextSavedList.findIndex((s) => s.subjectName === cleanName);
+    const existingIdx = nextSavedList.findIndex((s) => isSameSubject(s, cleanName));
 
     if (existingIdx !== -1) {
       const sub = { ...nextSavedList[existingIdx] };
@@ -921,7 +983,7 @@ export default function AttendanceTracker() {
     syncAttendanceToDb(nextSavedList, nextAllLogs, targetGoal);
 
     // If currently inspecting this subject in the studio, update componentInputs in real time
-    if (selectedSubjectName === cleanName) {
+    if (isSameSubject(selectedSubjectName, cleanName)) {
       setComponentInputs((prev) => {
         let hasType = false;
         const nextComps = prev.map((c) => {
@@ -962,7 +1024,7 @@ export default function AttendanceTracker() {
         const deltaAttended = status === "present" ? -1 : 0;
         const deltaDelivered = -1;
 
-        const existingIdx = nextSavedList.findIndex((s) => s.subjectName === cleanName);
+        const existingIdx = nextSavedList.findIndex((s) => isSameSubject(s, cleanName));
         if (existingIdx !== -1) {
           const sub = { ...nextSavedList[existingIdx] };
           sub.components = (sub.components || []).map((c) => {
@@ -1009,11 +1071,12 @@ export default function AttendanceTracker() {
   function handleSaveActiveSubject() {
     if (!selectedSubjectName) return;
 
-    const filtered = savedSubjects.filter((s) => s.subjectName !== selectedSubjectName);
+    const filtered = savedSubjects.filter((s) => !isSameSubject(s, selectedSubjectName));
     const updatedList = [
       ...filtered,
       {
         subjectName: selectedSubjectName,
+        code: activeCatalogItem?.code || "",
         components: componentInputs,
         lastUpdated: new Date().toISOString(),
         section: selectedSection,
@@ -1022,15 +1085,15 @@ export default function AttendanceTracker() {
     ];
 
     setSavedSubjects(updatedList);
-    syncAttendanceToDb(updatedList, dailyAttendanceLogs, targetGoal);
+    syncAttendanceToDb(updatedList, allDailyLogs, targetGoal);
     setSaveSuccessAlert(true);
     setTimeout(() => setSaveSuccessAlert(false), 3500);
   }
 
   function handleDeleteSavedSubject(subjectName) {
-    const updatedList = savedSubjects.filter((s) => s.subjectName !== subjectName);
+    const updatedList = savedSubjects.filter((s) => !isSameSubject(s, subjectName));
     setSavedSubjects(updatedList);
-    syncAttendanceToDb(updatedList, dailyAttendanceLogs, targetGoal);
+    syncAttendanceToDb(updatedList, allDailyLogs, targetGoal);
   }
 
   // Complete List of Section Subjects with Detected Components & Saved Overrides
@@ -1038,8 +1101,9 @@ export default function AttendanceTracker() {
     const map = new Map();
 
     sectionCatalog.forEach((catItem) => {
-      const isSelected = selectedSubjectName === catItem.subjectName;
-      const saved = savedSubjects.find((s) => s.subjectName === catItem.subjectName);
+      const isSelected = isSameSubject(selectedSubjectName, catItem);
+      // Robust match with saved subjects by name, clean base name, code, or aliases
+      const saved = savedSubjects.find((s) => isSameSubject(s, catItem));
       const savedComps =
         isSelected && Array.isArray(componentInputs) && componentInputs.length > 0
           ? componentInputs
@@ -1061,6 +1125,7 @@ export default function AttendanceTracker() {
 
       map.set(catItem.subjectName, {
         subjectName: catItem.subjectName,
+        code: catItem.code || saved?.code || "",
         components,
         classesPerWeek: catItem.classesPerWeek,
         weeklyOccurrences: catItem.weeklyOccurrences,
@@ -1069,14 +1134,17 @@ export default function AttendanceTracker() {
     });
 
     savedSubjects.forEach((saved) => {
-      if (!map.has(saved.subjectName)) {
-        const isSelected = selectedSubjectName === saved.subjectName;
+      // Check if this saved subject is already represented in our catalog map
+      const alreadyInCatalog = Array.from(map.values()).some((item) => isSameSubject(item, saved));
+      if (!alreadyInCatalog) {
+        const isSelected = isSameSubject(selectedSubjectName, saved);
         const comps =
           isSelected && Array.isArray(componentInputs) && componentInputs.length > 0
             ? componentInputs
             : saved.components || [{ type: "PP", attended: 0, delivered: 0 }];
         map.set(saved.subjectName, {
           subjectName: saved.subjectName,
+          code: saved.code || "",
           components: comps,
           classesPerWeek: (saved.weeklyOccurrences || []).length || 3,
           weeklyOccurrences: saved.weeklyOccurrences || [],
@@ -1689,22 +1757,22 @@ export default function AttendanceTracker() {
             </div>
           )}
 
-          {/* ── VIEWS NAVIGATION HORIZONTAL PILL BAR (Matching Dashboard.jsx 1:1) ── */}
-          <div
-            style={{
-              position: "sticky",
-              top: 0,
-              zIndex: 20,
-              background: "#f1f5f9",
-              padding: "4px 0 6px 0",
-              display: "flex",
-              alignItems: "center",
-              gap: 5,
-              width: "100%",
-            }}
-          >
-            {/* Left Arrow Button (Mobile Only) */}
-            {isMobile && (
+          {/* ── VIEWS NAVIGATION HORIZONTAL PILL BAR (Mobile Devices Only) ── */}
+          {isMobile && (
+            <div
+              style={{
+                position: "sticky",
+                top: 0,
+                zIndex: 20,
+                background: "#f1f5f9",
+                padding: "4px 0 6px 0",
+                display: "flex",
+                alignItems: "center",
+                gap: 5,
+                width: "100%",
+              }}
+            >
+              {/* Left Arrow Button */}
               <button
                 type="button"
                 onClick={() => scrollTabs("left")}
@@ -1729,58 +1797,56 @@ export default function AttendanceTracker() {
               >
                 <ChevronLeft size={15} />
               </button>
-            )}
 
-            {/* Scrollable Tabs Track */}
-            <div
-              ref={mobileTabsRef}
-              onScroll={checkTabsScroll}
-              style={{
-                display: "flex",
-                gap: 6,
-                overflowX: "auto",
-                width: "100%",
-                WebkitOverflowScrolling: "touch",
-                scrollbarWidth: "none",
-                msOverflowStyle: "none",
-                scrollBehavior: "smooth",
-              }}
-            >
-              {navMenuItems.map((item) => {
-                const isActive = activeTab === item.id;
-                return (
-                  <button
-                    key={item.id}
-                    data-tab-id={item.id}
-                    type="button"
-                    onClick={() => handleTabClick(item.id)}
-                    style={{
-                      display: "inline-flex",
-                      alignItems: "center",
-                      gap: 6,
-                      padding: "7px 14px",
-                      borderRadius: 999,
-                      border: isActive ? "1px solid #cbd5e1" : "1px solid #e2e8f0",
-                      background: isActive ? "#ffffff" : "#f8fafc",
-                      color: isActive ? "#059669" : "#475569",
-                      fontSize: 12,
-                      fontWeight: isActive ? 800 : 600,
-                      whiteSpace: "nowrap",
-                      cursor: "pointer",
-                      fontFamily: "'DM Sans', sans-serif",
-                      flexShrink: 0,
-                      transition: "all 0.15s ease",
-                    }}
-                  >
-                    <span style={{ color: isActive ? "#059669" : "#64748b" }}>{item.icon}</span>
-                    <span>{item.label}</span>
-                  </button>
-                );
-              })}
-            </div>
+              {/* Scrollable Tabs Track */}
+              <div
+                ref={mobileTabsRef}
+                onScroll={checkTabsScroll}
+                style={{
+                  display: "flex",
+                  gap: 6,
+                  overflowX: "auto",
+                  width: "100%",
+                  WebkitOverflowScrolling: "touch",
+                  scrollbarWidth: "none",
+                  msOverflowStyle: "none",
+                  scrollBehavior: "smooth",
+                }}
+              >
+                {navMenuItems.map((item) => {
+                  const isActive = activeTab === item.id;
+                  return (
+                    <button
+                      key={item.id}
+                      data-tab-id={item.id}
+                      type="button"
+                      onClick={() => handleTabClick(item.id)}
+                      style={{
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: 6,
+                        padding: "7px 14px",
+                        borderRadius: 999,
+                        border: isActive ? "1px solid #cbd5e1" : "1px solid #e2e8f0",
+                        background: isActive ? "#ffffff" : "#f8fafc",
+                        color: isActive ? "#059669" : "#475569",
+                        fontSize: 12,
+                        fontWeight: isActive ? 800 : 600,
+                        whiteSpace: "nowrap",
+                        cursor: "pointer",
+                        fontFamily: "'DM Sans', sans-serif",
+                        flexShrink: 0,
+                        transition: "all 0.15s ease",
+                      }}
+                    >
+                      <span style={{ color: isActive ? "#059669" : "#64748b" }}>{item.icon}</span>
+                      <span>{item.label}</span>
+                    </button>
+                  );
+                })}
+              </div>
 
-            {/* Right Arrow Button (Mobile Only) */}
-            {isMobile && (
+              {/* Right Arrow Button */}
               <button
                 type="button"
                 onClick={() => scrollTabs("right")}
@@ -1805,8 +1871,8 @@ export default function AttendanceTracker() {
               >
                 <ChevronRight size={15} />
               </button>
-            )}
-          </div>
+            </div>
+          )}
 
           {/* On Desktop: Always visible. On Mobile: Visible when on Daily Hub (checkin) or Subject Matrix (matrix) */}
           {(!isMobile || activeTab === "checkin" || activeTab === "matrix") && (
