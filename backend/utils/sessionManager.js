@@ -285,11 +285,9 @@ async function respondDeviceApproval(StudentSession, requestId, respondingSessio
         message: "Your session ended because your account was approved on another device.",
       });
 
-      // 6. Notify the waiting new device that approval is complete
+      // 6. Notify the waiting new device that approval is complete (NO raw token in SSE)
       authEventBus.emit(`approval:${requestId}`, {
         status: "APPROVED",
-        sessionId: newSessionId,
-        token,
         student: {
           regNo: cleanReg,
           sessionId: newSessionId,
@@ -299,8 +297,6 @@ async function respondDeviceApproval(StudentSession, requestId, respondingSessio
       return {
         success: true,
         status: "APPROVED",
-        newSession,
-        token,
         message: "Device approved successfully. Session transferred.",
       };
     }
