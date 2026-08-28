@@ -75,10 +75,53 @@ export default function StudentAuthModal({ isOpen, onClose }) {
   const [deviceStatus, setDeviceStatus] = useState(null);
   const [isChecking, setIsChecking] = useState(false);
   const [isBlockedModalOpen, setIsBlockedModalOpen] = useState(false);
-  const [blockedDevicesData, setBlockedDevicesData] = useState([]);
-
   const cleanReg = regNo.trim().toUpperCase();
   const isRegValid = cleanReg.length >= 10 && cleanReg.length <= 16;
+
+  // Protection against closing modal when password creation is mandatory
+  const handleModalClose = () => {
+    if (step === "CREATE_PASSWORD") {
+      setErrorMsg("Password creation is mandatory to secure your account and cannot be skipped.");
+      return;
+    }
+    onClose();
+  };
+
+  // Keyboard Escape listener
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === "Escape" && isOpen) {
+        if (step === "CREATE_PASSWORD") {
+          e.preventDefault();
+          setErrorMsg("Password creation is mandatory to secure your account and cannot be skipped.");
+        } else {
+          onClose();
+        }
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [isOpen, step, onClose]);
+
+  // Live password validation calculations
+  const hasMinLength = password.length >= 8;
+  const hasUpper = /[A-Z]/.test(password);
+  const hasLower = /[a-z]/.test(password);
+  const hasNumber = /[0-9]/.test(password);
+  const isMatch = password.length > 0 && password === confirmPassword;
+
+  const strengthScore = [hasMinLength, (hasUpper && hasLower), hasNumber].filter(Boolean).length;
+
+  const getStrengthMeta = () => {
+    if (!password) return { label: "", color: "#cbd5e1", width: "0%" };
+    if (password.length < 8) return { label: "Too short (min 8 chars)", color: "#ef4444", width: "25%" };
+    if (strengthScore <= 1) return { label: "Weak", color: "#f97316", width: "45%" };
+    if (strengthScore === 2) return { label: "Medium", color: "#eab308", width: "75%" };
+    return { label: "Strong & Secure", color: "#10b981", width: "100%" };
+  };
+
+  const strengthMeta = getStrengthMeta();
+  const isPasswordFormValid = hasMinLength && hasUpper && hasLower && hasNumber && isMatch;
 
   // Helper to route to intended destination after auth
   const navigateToDestination = (targetReg) => {
@@ -529,7 +572,11 @@ export default function StudentAuthModal({ isOpen, onClose }) {
           backdropFilter: "blur(6px)",
           WebkitBackdropFilter: "blur(6px)",
         }}
-        onClick={onClose}
+        onClick={(e) => {
+          if (e.target === e.currentTarget) {
+            handleModalClose();
+          }
+        }}
       >
         <motion.div
           initial={{ opacity: 0, scale: 0.95, y: 10 }}
@@ -549,29 +596,52 @@ export default function StudentAuthModal({ isOpen, onClose }) {
           }}
           onClick={(e) => e.stopPropagation()}
         >
-          {/* Close Button */}
-          <button
-            onClick={onClose}
-            aria-label="Close modal"
-            style={{
-              position: "absolute",
-              top: 16,
-              right: 16,
-              background: "#f8fafc",
-              border: "1px solid #e2e8f0",
-              borderRadius: "50%",
-              width: 32,
-              height: 32,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              color: "#64748b",
-              cursor: "pointer",
-              transition: "all 0.15s ease",
-            }}
-          >
-            <X size={15} />
-          </button>
+          {/* Close Button / Mandatory Tag */}
+          {step !== "CREATE_PASSWORD" && step !== "PASSWORD_SUCCESS" ? (
+            <button
+              onClick={handleModalClose}
+              aria-label="Close modal"
+              style={{
+                position: "absolute",
+                top: 16,
+                right: 16,
+                background: "#f8fafc",
+                border: "1px solid #e2e8f0",
+                borderRadius: "50%",
+                width: 32,
+                height: 32,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                color: "#64748b",
+                cursor: "pointer",
+                transition: "all 0.15s ease",
+              }}
+            >
+              <X size={15} />
+            </button>
+          ) : step === "CREATE_PASSWORD" ? (
+            <div
+              style={{
+                position: "absolute",
+                top: 16,
+                right: 16,
+                display: "flex",
+                alignItems: "center",
+                gap: 5,
+                background: "#fef3c7",
+                border: "1px solid #fde68a",
+                borderRadius: 999,
+                padding: "3px 9px",
+                fontSize: 10.5,
+                fontWeight: 800,
+                color: "#92400e",
+              }}
+            >
+              <Lock size={11} />
+              <span>Mandatory Step</span>
+            </div>
+          ) : null}
 
           {/* Modal Header */}
           {step !== "PASSWORD_SUCCESS" && step !== "APPROVAL_PENDING" && (
@@ -626,7 +696,7 @@ export default function StudentAuthModal({ isOpen, onClose }) {
                 }}
               >
                 {step === "CREATE_PASSWORD"
-                  ? "Set a mandatory password to secure your student account"
+                  ? `Set a mandatory password to secure your account (${cleanReg})`
                   : step === "PASSWORD"
                   ? `Enter your account password for ${cleanReg}`
                   : step === "OTP"
@@ -888,7 +958,7 @@ export default function StudentAuthModal({ isOpen, onClose }) {
                     required
                     style={{
                       width: "100%",
-                      padding: "11px 40px 11px 14px",
+                      padding: "11px 42px 11px 14px",
                       fontSize: 14,
                       color: "#0f172a",
                       background: "#f8fafc",
@@ -910,7 +980,10 @@ export default function StudentAuthModal({ isOpen, onClose }) {
                       border: "none",
                       color: "#64748b",
                       cursor: "pointer",
-                      padding: 0,
+                      padding: 4,
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
                     }}
                   >
                     {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
@@ -1006,7 +1079,7 @@ export default function StudentAuthModal({ isOpen, onClose }) {
             </form>
           )}
 
-          {/* STEP 2B: APPROVAL PENDING SCREEN (Prompt Sections 11-13) */}
+          {/* STEP 2B: APPROVAL PENDING SCREEN */}
           {step === "APPROVAL_PENDING" && (
             <div style={{ textAlign: "center", display: "flex", flexDirection: "column", gap: 16 }}>
               <div
@@ -1034,7 +1107,6 @@ export default function StudentAuthModal({ isOpen, onClose }) {
                 </p>
               </div>
 
-              {/* Active Device Info Box */}
               {approvalActiveDevice && (
                 <div
                   style={{
@@ -1068,7 +1140,6 @@ export default function StudentAuthModal({ isOpen, onClose }) {
                 </div>
               )}
 
-              {/* Instructions */}
               <div
                 style={{
                   background: "#f0fdf4",
@@ -1253,31 +1324,34 @@ export default function StudentAuthModal({ isOpen, onClose }) {
             </form>
           )}
 
-          {/* STEP 4: MANDATORY CREATE PASSWORD */}
+          {/* STEP 4: MANDATORY CREATE PASSWORD WITH REAL-TIME STRENGTH & CRITERIA CHECKLIST */}
           {step === "CREATE_PASSWORD" && (
             <form onSubmit={handleCreatePasswordSubmit} style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+              {/* New Password Input */}
               <div>
                 <label style={{ display: "block", fontSize: 12, fontWeight: 700, color: "#475569", marginBottom: 6 }}>
-                  Create Account Password (Min 8 chars)
+                  Create Account Password
                 </label>
                 <div style={{ position: "relative" }}>
                   <input
                     type={showPassword ? "text" : "password"}
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    placeholder="Enter new password"
+                    placeholder="Enter your new secure password"
                     autoFocus
                     required
                     style={{
                       width: "100%",
-                      padding: "11px 40px 11px 14px",
+                      padding: "11px 42px 11px 14px",
                       fontSize: 14,
                       color: "#0f172a",
                       background: "#f8fafc",
-                      border: "1.5px solid #cbd5e1",
+                      border: "1.5px solid",
+                      borderColor: password ? (isPasswordFormValid ? "#10b981" : "#cbd5e1") : "#cbd5e1",
                       borderRadius: 10,
                       outline: "none",
                       boxSizing: "border-box",
+                      transition: "border-color 0.2s ease",
                     }}
                   />
                   <button
@@ -1292,7 +1366,10 @@ export default function StudentAuthModal({ isOpen, onClose }) {
                       border: "none",
                       color: "#64748b",
                       cursor: "pointer",
-                      padding: 0,
+                      padding: 4,
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
                     }}
                   >
                     {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
@@ -1300,6 +1377,7 @@ export default function StudentAuthModal({ isOpen, onClose }) {
                 </div>
               </div>
 
+              {/* Confirm Password Input */}
               <div>
                 <label style={{ display: "block", fontSize: 12, fontWeight: 700, color: "#475569", marginBottom: 6 }}>
                   Confirm Password
@@ -1309,18 +1387,20 @@ export default function StudentAuthModal({ isOpen, onClose }) {
                     type={showConfirmPassword ? "text" : "password"}
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
-                    placeholder="Confirm new password"
+                    placeholder="Re-enter your password"
                     required
                     style={{
                       width: "100%",
-                      padding: "11px 40px 11px 14px",
+                      padding: "11px 42px 11px 14px",
                       fontSize: 14,
                       color: "#0f172a",
                       background: "#f8fafc",
-                      border: "1.5px solid #cbd5e1",
+                      border: "1.5px solid",
+                      borderColor: confirmPassword ? (isMatch ? "#10b981" : "#ef4444") : "#cbd5e1",
                       borderRadius: 10,
                       outline: "none",
                       boxSizing: "border-box",
+                      transition: "border-color 0.2s ease",
                     }}
                   />
                   <button
@@ -1335,7 +1415,10 @@ export default function StudentAuthModal({ isOpen, onClose }) {
                       border: "none",
                       color: "#64748b",
                       cursor: "pointer",
-                      padding: 0,
+                      padding: 4,
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
                     }}
                   >
                     {showConfirmPassword ? <EyeOff size={16} /> : <Eye size={16} />}
@@ -1343,41 +1426,126 @@ export default function StudentAuthModal({ isOpen, onClose }) {
                 </div>
               </div>
 
+              {/* Password Strength & Real-Time Validation Checklist */}
+              <div
+                style={{
+                  background: "#f8fafc",
+                  border: "1px solid #e2e8f0",
+                  borderRadius: 12,
+                  padding: "12px 14px",
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: 8,
+                }}
+              >
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                  <span style={{ fontSize: 11, fontWeight: 800, color: "#64748b", textTransform: "uppercase", letterSpacing: "0.5px" }}>
+                    Security Strength
+                  </span>
+                  <span style={{ fontSize: 11, fontWeight: 800, color: strengthMeta.color }}>
+                    {strengthMeta.label}
+                  </span>
+                </div>
+
+                {/* Segmented Strength Bar */}
+                <div style={{ width: "100%", height: 5, background: "#e2e8f0", borderRadius: 999, overflow: "hidden" }}>
+                  <div
+                    style={{
+                      width: strengthMeta.width,
+                      height: "100%",
+                      background: strengthMeta.color,
+                      transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
+                      borderRadius: 999,
+                    }}
+                  />
+                </div>
+
+                {/* Validation Checklist Grid */}
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "6px 12px", marginTop: 4, fontSize: 11.5 }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 6, color: hasMinLength ? "#16a34a" : "#94a3b8", fontWeight: hasMinLength ? 700 : 500 }}>
+                    {hasMinLength ? (
+                      <CheckCircle2 size={13} color="#16a34a" />
+                    ) : (
+                      <div style={{ width: 12, height: 12, borderRadius: "50%", border: "1.5px solid #cbd5e1" }} />
+                    )}
+                    <span>8+ Characters</span>
+                  </div>
+
+                  <div style={{ display: "flex", alignItems: "center", gap: 6, color: hasUpper ? "#16a34a" : "#94a3b8", fontWeight: hasUpper ? 700 : 500 }}>
+                    {hasUpper ? (
+                      <CheckCircle2 size={13} color="#16a34a" />
+                    ) : (
+                      <div style={{ width: 12, height: 12, borderRadius: "50%", border: "1.5px solid #cbd5e1" }} />
+                    )}
+                    <span>Uppercase (A-Z)</span>
+                  </div>
+
+                  <div style={{ display: "flex", alignItems: "center", gap: 6, color: hasLower ? "#16a34a" : "#94a3b8", fontWeight: hasLower ? 700 : 500 }}>
+                    {hasLower ? (
+                      <CheckCircle2 size={13} color="#16a34a" />
+                    ) : (
+                      <div style={{ width: 12, height: 12, borderRadius: "50%", border: "1.5px solid #cbd5e1" }} />
+                    )}
+                    <span>Lowercase (a-z)</span>
+                  </div>
+
+                  <div style={{ display: "flex", alignItems: "center", gap: 6, color: hasNumber ? "#16a34a" : "#94a3b8", fontWeight: hasNumber ? 700 : 500 }}>
+                    {hasNumber ? (
+                      <CheckCircle2 size={13} color="#16a34a" />
+                    ) : (
+                      <div style={{ width: 12, height: 12, borderRadius: "50%", border: "1.5px solid #cbd5e1" }} />
+                    )}
+                    <span>Number (0-9)</span>
+                  </div>
+
+                  <div style={{ gridColumn: "span 2", display: "flex", alignItems: "center", gap: 6, color: isMatch ? "#16a34a" : "#94a3b8", fontWeight: isMatch ? 700 : 500 }}>
+                    {isMatch ? (
+                      <CheckCircle2 size={13} color="#16a34a" />
+                    ) : (
+                      <div style={{ width: 12, height: 12, borderRadius: "50%", border: "1.5px solid #cbd5e1" }} />
+                    )}
+                    <span>Passwords Match</span>
+                  </div>
+                </div>
+              </div>
+
               <button
                 type="submit"
-                disabled={loading || !password || password.length < 8 || password !== confirmPassword}
+                disabled={loading || !isPasswordFormValid}
                 style={{
                   width: "100%",
-                  padding: "11px 16px",
+                  padding: "12px 16px",
                   borderRadius: 10,
                   border: "none",
-                  background: loading || !password || password.length < 8 || password !== confirmPassword ? "#cbd5e1" : "#16a34a",
+                  background: loading || !isPasswordFormValid ? "#cbd5e1" : "#0f172a",
                   color: "#ffffff",
                   fontSize: 13.5,
                   fontWeight: 700,
-                  cursor: loading || !password || password.length < 8 || password !== confirmPassword ? "not-allowed" : "pointer",
+                  cursor: loading || !isPasswordFormValid ? "not-allowed" : "pointer",
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
                   gap: 6,
+                  boxShadow: !isPasswordFormValid ? "none" : "0 4px 12px rgba(15, 23, 42, 0.15)",
+                  transition: "all 0.2s ease",
                 }}
               >
                 {loading ? (
                   <>
                     <Loader2 size={15} className="spin" />
-                    <span>Saving Password...</span>
+                    <span>Securing Account...</span>
                   </>
                 ) : (
                   <>
                     <KeyRound size={15} />
-                    <span>Save Password</span>
+                    <span>Create Password & Sign In</span>
                   </>
                 )}
               </button>
             </form>
           )}
 
-          {/* STEP 5: PASSWORD CREATION SUCCESS SCREEN (Prompt Section 8) */}
+          {/* STEP 5: PASSWORD CREATION SUCCESS SCREEN */}
           {step === "PASSWORD_SUCCESS" && (
             <motion.div
               initial={{ opacity: 0, scale: 0.9 }}
@@ -1409,7 +1577,6 @@ export default function StudentAuthModal({ isOpen, onClose }) {
                 </p>
               </div>
 
-              {/* Security Warning Card (Section 8) */}
               <div
                 style={{
                   background: "#fef3c7",
