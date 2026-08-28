@@ -105,12 +105,56 @@
       "destination": "/api/auth.js?action=student-check-status"
     },
     {
+      "source": "/api/auth/student/create-password",
+      "destination": "/api/auth.js?action=student-create-password"
+    },
+    {
+      "source": "/api/auth/student/login-password",
+      "destination": "/api/auth.js?action=student-login-password"
+    },
+    {
+      "source": "/api/auth/student/transfer-session",
+      "destination": "/api/auth.js?action=student-transfer-session"
+    },
+    {
+      "source": "/api/auth/student/approval-status/:id",
+      "destination": "/api/auth.js?action=student-approval-status&id=:id"
+    },
+    {
+      "source": "/api/auth/student/approval-status",
+      "destination": "/api/auth.js?action=student-approval-status"
+    },
+    {
+      "source": "/api/auth/student/cancel-approval",
+      "destination": "/api/auth.js?action=student-cancel-approval"
+    },
+    {
       "source": "/api/auth/student/me",
       "destination": "/api/auth.js?action=student-me"
     },
     {
       "source": "/api/auth/student/logout",
       "destination": "/api/auth.js?action=student-logout"
+    },
+    {
+      "source": "/api/notifications/student",
+      "destination": "/api/notifications.js?action=student"
+    },
+    {
+      "source": "/api/notifications/approve",
+      "destination": "/api/notifications.js?action=approve"
+    },
+    {
+      "source": "/api/notifications/deny",
+      "destination": "/api/notifications.js?action=deny"
+    },
+    {
+      "source": "/api/notifications/mark-read",
+      "destination": "/api/notifications.js?action=mark-read"
+    },
+    {
+      "source": "/api/notifications/stream",
+      "destination": "/api/notifications.js?action=stream"
     },
     {
       "source": "/api/auth/login",

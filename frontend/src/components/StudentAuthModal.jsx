@@ -211,8 +211,17 @@ export default function StudentAuthModal({ isOpen, onClose }) {
             setBlockedDevicesData(devices);
             setErrorMsg(res.data.blockMessage);
             setErrorCode(res.data.blockReason || "DEVICE_LIMIT_REACHED");
-          } else if (res.data.isCurrentDevice) {
-            setDeviceStatus({ exists: true, isCurrentDevice: true, isBlocked: false });
+          } else if (res.data.isCurrentDevice && res.data.hasPassword) {
+            setDeviceStatus({
+              exists: true,
+              isCurrentDevice: true,
+              isBlocked: false,
+              hasPassword: res.data.hasPassword,
+              studentName: res.data.studentName,
+            });
+            if (res.data.studentName) {
+              setStudentName(res.data.studentName);
+            }
             setErrorMsg("");
             setErrorCode("");
           } else {

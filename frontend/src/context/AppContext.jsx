@@ -297,7 +297,7 @@ export function AppProvider({ children }) {
     setError("");
     try {
       const res = await axios.post(`${API_BASE}/auth/student/send-otp`, { regNo });
-      if (res.data?.alreadyLoggedIn && res.data?.student) {
+      if (res.data?.alreadyLoggedIn && res.data?.student && res.data?.hasPassword) {
         setStudentSession(res.data.student);
         await fetchStudent(res.data.student.regNo, 3, 500, true);
       }
