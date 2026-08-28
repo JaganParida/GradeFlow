@@ -667,11 +667,14 @@ export default function StudentAuthModal({ isOpen, onClose }) {
             borderRadius: 20,
             border: "1px solid #e2e8f0",
             boxShadow: "0 20px 45px -10px rgba(15, 23, 42, 0.22)",
-            maxWidth: 440,
+            maxWidth: "min(440px, 100%)",
             width: "100%",
+            maxHeight: "min(92vh, 700px)",
+            overflowY: "auto",
+            WebkitOverflowScrolling: "touch",
             position: "relative",
             boxSizing: "border-box",
-            padding: "26px 24px",
+            padding: "clamp(18px, 4vw, 26px) clamp(16px, 4vw, 24px)",
           }}
           onClick={(e) => e.stopPropagation()}
         >
@@ -682,8 +685,8 @@ export default function StudentAuthModal({ isOpen, onClose }) {
               aria-label="Close modal"
               style={{
                 position: "absolute",
-                top: 16,
-                right: 16,
+                top: 14,
+                right: 14,
                 background: "#f8fafc",
                 border: "1px solid #e2e8f0",
                 borderRadius: "50%",
@@ -703,8 +706,8 @@ export default function StudentAuthModal({ isOpen, onClose }) {
             <div
               style={{
                 position: "absolute",
-                top: 16,
-                right: 16,
+                top: 14,
+                right: 14,
                 display: "flex",
                 alignItems: "center",
                 gap: 5,
@@ -724,18 +727,18 @@ export default function StudentAuthModal({ isOpen, onClose }) {
 
           {/* Modern Step Progress Indicator */}
           {step !== "PASSWORD_SUCCESS" && step !== "APPROVAL_PENDING" && (
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6, marginBottom: 18 }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 11, fontWeight: 800, color: step === "REGNO" ? "#2563eb" : "#16a34a" }}>
-                <div style={{ width: 18, height: 18, borderRadius: "50%", background: step === "REGNO" ? "#2563eb" : "#16a34a", color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10, fontWeight: 900 }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "center", flexWrap: "wrap", gap: "clamp(4px, 1.2vw, 6px)", marginBottom: 16 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 4, fontSize: "clamp(10px, 2.5vw, 11px)", fontWeight: 800, color: step === "REGNO" ? "#2563eb" : "#16a34a" }}>
+                <div style={{ width: 18, height: 18, borderRadius: "50%", background: step === "REGNO" ? "#2563eb" : "#16a34a", color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10, fontWeight: 900, flexShrink: 0 }}>
                   {step === "REGNO" ? "1" : "✓"}
                 </div>
                 <span>Identifier</span>
               </div>
 
-              <div style={{ width: 18, height: 2, background: step === "REGNO" ? "#e2e8f0" : "#16a34a", borderRadius: 1 }} />
+              <div style={{ width: "clamp(10px, 2vw, 16px)", height: 2, background: step === "REGNO" ? "#e2e8f0" : "#16a34a", borderRadius: 1 }} />
 
-              <div style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 11, fontWeight: 800, color: (step === "OTP" || step === "PASSWORD") ? "#2563eb" : (step === "CREATE_PASSWORD") ? "#16a34a" : "#94a3b8" }}>
-                <div style={{ width: 18, height: 18, borderRadius: "50%", background: (step === "OTP" || step === "PASSWORD") ? "#2563eb" : (step === "CREATE_PASSWORD") ? "#16a34a" : "#e2e8f0", color: (step === "OTP" || step === "PASSWORD" || step === "CREATE_PASSWORD") ? "#fff" : "#64748b", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10, fontWeight: 900 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 4, fontSize: "clamp(10px, 2.5vw, 11px)", fontWeight: 800, color: (step === "OTP" || step === "PASSWORD") ? "#2563eb" : (step === "CREATE_PASSWORD") ? "#16a34a" : "#94a3b8" }}>
+                <div style={{ width: 18, height: 18, borderRadius: "50%", background: (step === "OTP" || step === "PASSWORD") ? "#2563eb" : (step === "CREATE_PASSWORD") ? "#16a34a" : "#e2e8f0", color: (step === "OTP" || step === "PASSWORD" || step === "CREATE_PASSWORD") ? "#fff" : "#64748b", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10, fontWeight: 900, flexShrink: 0 }}>
                   {step === "CREATE_PASSWORD" ? "✓" : "2"}
                 </div>
                 <span>{step === "PASSWORD" ? "Password" : "OTP Code"}</span>
@@ -743,9 +746,9 @@ export default function StudentAuthModal({ isOpen, onClose }) {
 
               {(!deviceStatus?.hasPassword || step === "CREATE_PASSWORD") && (
                 <>
-                  <div style={{ width: 18, height: 2, background: (step === "CREATE_PASSWORD") ? "#2563eb" : "#e2e8f0", borderRadius: 1 }} />
-                  <div style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 11, fontWeight: 800, color: step === "CREATE_PASSWORD" ? "#2563eb" : "#94a3b8" }}>
-                    <div style={{ width: 18, height: 18, borderRadius: "50%", background: step === "CREATE_PASSWORD" ? "#2563eb" : "#e2e8f0", color: step === "CREATE_PASSWORD" ? "#fff" : "#64748b", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10, fontWeight: 900 }}>
+                  <div style={{ width: "clamp(10px, 2vw, 16px)", height: 2, background: (step === "CREATE_PASSWORD") ? "#2563eb" : "#e2e8f0", borderRadius: 1 }} />
+                  <div style={{ display: "flex", alignItems: "center", gap: 4, fontSize: "clamp(10px, 2.5vw, 11px)", fontWeight: 800, color: step === "CREATE_PASSWORD" ? "#2563eb" : "#94a3b8" }}>
+                    <div style={{ width: 18, height: 18, borderRadius: "50%", background: step === "CREATE_PASSWORD" ? "#2563eb" : "#e2e8f0", color: step === "CREATE_PASSWORD" ? "#fff" : "#64748b", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10, fontWeight: 900, flexShrink: 0 }}>
                       3
                     </div>
                     <span>Password</span>
@@ -757,38 +760,38 @@ export default function StudentAuthModal({ isOpen, onClose }) {
 
           {/* Modal Header */}
           {step !== "PASSWORD_SUCCESS" && step !== "APPROVAL_PENDING" && (
-            <div style={{ textAlign: "center", marginBottom: 20 }}>
+            <div style={{ textAlign: "center", marginBottom: 18 }}>
               <div
                 style={{
-                  width: 48,
-                  height: 48,
-                  borderRadius: 14,
+                  width: 44,
+                  height: 44,
+                  borderRadius: 12,
                   background: "#eff6ff",
                   border: "1px solid #dbeafe",
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
-                  margin: "0 auto 12px auto",
+                  margin: "0 auto 10px auto",
                 }}
               >
                 {step === "CREATE_PASSWORD" ? (
-                  <KeyRound size={24} color="#2563eb" />
+                  <KeyRound size={22} color="#2563eb" />
                 ) : step === "PASSWORD" ? (
-                  <Lock size={24} color="#2563eb" />
+                  <Lock size={22} color="#2563eb" />
                 ) : step === "OTP" ? (
-                  <Mail size={24} color="#2563eb" />
+                  <Mail size={22} color="#2563eb" />
                 ) : (
-                  <GraduationCap size={24} color="#2563eb" />
+                  <GraduationCap size={22} color="#2563eb" />
                 )}
               </div>
 
               <h3
                 style={{
-                  fontSize: 18,
+                  fontSize: "clamp(16px, 4vw, 18px)",
                   fontWeight: 800,
                   color: "#0f172a",
                   margin: "0 0 4px 0",
-                  letterSpacing: "-0.4px",
+                  letterSpacing: "-0.3px",
                 }}
               >
                 {step === "CREATE_PASSWORD"
@@ -801,7 +804,7 @@ export default function StudentAuthModal({ isOpen, onClose }) {
               </h3>
               <p
                 style={{
-                  fontSize: 13,
+                  fontSize: "clamp(12px, 3vw, 13px)",
                   color: "#64748b",
                   margin: 0,
                   lineHeight: 1.45,
@@ -1338,7 +1341,7 @@ export default function StudentAuthModal({ isOpen, onClose }) {
                 </div>
               </div>
 
-              {/* 6-Digit Individual Split Input Boxes */}
+              {/* 6-Digit Individual Split Input Boxes (Fully Responsive Grid) */}
               <div>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
                   <label style={{ fontSize: 12, fontWeight: 800, color: "#475569", textTransform: "uppercase", letterSpacing: "0.5px" }}>
@@ -1366,64 +1369,54 @@ export default function StudentAuthModal({ isOpen, onClose }) {
 
                 <div
                   style={{
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "space-between",
-                    gap: 6,
+                    display: "grid",
+                    gridTemplateColumns: "repeat(6, 1fr)",
+                    gap: "clamp(4px, 1.5vw, 8px)",
+                    width: "100%",
+                    boxSizing: "border-box",
                   }}
                   onPaste={handleOtpPaste}
                 >
                   {[0, 1, 2, 3, 4, 5].map((index) => (
-                    <React.Fragment key={index}>
-                      {index === 3 && (
-                        <div
-                          style={{
-                            width: 6,
-                            height: 2,
-                            background: "#cbd5e1",
-                            borderRadius: 1,
-                            margin: "0 1px",
-                          }}
-                        />
-                      )}
-                      <input
-                        ref={(el) => (otpInputRefs.current[index] = el)}
-                        type="text"
-                        inputMode="numeric"
-                        pattern="[0-9]*"
-                        maxLength={1}
-                        value={otpDigits[index]}
-                        onChange={(e) => handleDigitChange(index, e.target.value)}
-                        onKeyDown={(e) => handleDigitKeyDown(index, e)}
-                        style={{
-                          width: "48px",
-                          height: "52px",
-                          fontSize: "22px",
-                          fontWeight: "900",
-                          textAlign: "center",
-                          fontFamily: "'Space Mono', monospace",
-                          color: "#0f172a",
-                          background: otpDigits[index] ? "#ffffff" : "#f8fafc",
-                          border: "1.5px solid",
-                          borderColor: otpDigits[index] ? "#2563eb" : "#cbd5e1",
-                          borderRadius: "12px",
-                          outline: "none",
-                          boxSizing: "border-box",
-                          boxShadow: otpDigits[index] ? "0 2px 8px rgba(37, 99, 235, 0.15)" : "none",
-                          transition: "all 0.15s ease",
-                        }}
-                        onFocus={(e) => {
-                          e.target.style.borderColor = "#2563eb";
-                          e.target.style.boxShadow = "0 0 0 3px rgba(37, 99, 235, 0.15)";
-                          e.target.style.background = "#ffffff";
-                        }}
-                        onBlur={(e) => {
-                          e.target.style.borderColor = otpDigits[index] ? "#2563eb" : "#cbd5e1";
-                          e.target.style.boxShadow = otpDigits[index] ? "0 2px 8px rgba(37, 99, 235, 0.15)" : "none";
-                          e.target.style.background = otpDigits[index] ? "#ffffff" : "#f8fafc";
-                        }}
-                      />
-                    </React.Fragment>
+                    <input
+                      key={index}
+                      ref={(el) => (otpInputRefs.current[index] = el)}
+                      type="text"
+                      inputMode="numeric"
+                      pattern="[0-9]*"
+                      maxLength={1}
+                      value={otpDigits[index]}
+                      onChange={(e) => handleDigitChange(index, e.target.value)}
+                      onKeyDown={(e) => handleDigitKeyDown(index, e)}
+                      style={{
+                        width: "100%",
+                        aspectRatio: "1 / 1.15",
+                        maxHeight: 54,
+                        fontSize: "clamp(18px, 4.8vw, 22px)",
+                        fontWeight: "900",
+                        textAlign: "center",
+                        fontFamily: "'Space Mono', monospace",
+                        color: "#0f172a",
+                        background: otpDigits[index] ? "#ffffff" : "#f8fafc",
+                        border: "1.5px solid",
+                        borderColor: otpDigits[index] ? "#2563eb" : "#cbd5e1",
+                        borderRadius: "10px",
+                        outline: "none",
+                        boxSizing: "border-box",
+                        boxShadow: otpDigits[index] ? "0 2px 8px rgba(37, 99, 235, 0.15)" : "none",
+                        transition: "all 0.15s ease",
+                      }}
+                      onFocus={(e) => {
+                        e.target.style.borderColor = "#2563eb";
+                        e.target.style.boxShadow = "0 0 0 3px rgba(37, 99, 235, 0.15)";
+                        e.target.style.background = "#ffffff";
+                      }}
+                      onBlur={(e) => {
+                        e.target.style.borderColor = otpDigits[index] ? "#2563eb" : "#cbd5e1";
+                        e.target.style.boxShadow = otpDigits[index] ? "0 2px 8px rgba(37, 99, 235, 0.15)" : "none";
+                        e.target.style.background = otpDigits[index] ? "#ffffff" : "#f8fafc";
+                      }}
+                    />
                   ))}
                 </div>
               </div>
@@ -1650,12 +1643,12 @@ export default function StudentAuthModal({ isOpen, onClose }) {
                 </div>
 
                 {/* Validation Checklist Grid */}
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "6px 12px", marginTop: 4, fontSize: 11.5 }}>
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(120px, 1fr))", gap: "6px 8px", marginTop: 4, fontSize: "clamp(10.5px, 2.5vw, 11.5px)" }}>
                   <div style={{ display: "flex", alignItems: "center", gap: 6, color: hasMinLength ? "#16a34a" : "#94a3b8", fontWeight: hasMinLength ? 700 : 500 }}>
                     {hasMinLength ? (
                       <CheckCircle2 size={13} color="#16a34a" />
                     ) : (
-                      <div style={{ width: 12, height: 12, borderRadius: "50%", border: "1.5px solid #cbd5e1" }} />
+                      <div style={{ width: 12, height: 12, borderRadius: "50%", border: "1.5px solid #cbd5e1", flexShrink: 0 }} />
                     )}
                     <span>8+ Characters</span>
                   </div>
@@ -1664,7 +1657,7 @@ export default function StudentAuthModal({ isOpen, onClose }) {
                     {hasUpper ? (
                       <CheckCircle2 size={13} color="#16a34a" />
                     ) : (
-                      <div style={{ width: 12, height: 12, borderRadius: "50%", border: "1.5px solid #cbd5e1" }} />
+                      <div style={{ width: 12, height: 12, borderRadius: "50%", border: "1.5px solid #cbd5e1", flexShrink: 0 }} />
                     )}
                     <span>Uppercase (A-Z)</span>
                   </div>
@@ -1673,7 +1666,7 @@ export default function StudentAuthModal({ isOpen, onClose }) {
                     {hasLower ? (
                       <CheckCircle2 size={13} color="#16a34a" />
                     ) : (
-                      <div style={{ width: 12, height: 12, borderRadius: "50%", border: "1.5px solid #cbd5e1" }} />
+                      <div style={{ width: 12, height: 12, borderRadius: "50%", border: "1.5px solid #cbd5e1", flexShrink: 0 }} />
                     )}
                     <span>Lowercase (a-z)</span>
                   </div>
@@ -1682,16 +1675,16 @@ export default function StudentAuthModal({ isOpen, onClose }) {
                     {hasNumber ? (
                       <CheckCircle2 size={13} color="#16a34a" />
                     ) : (
-                      <div style={{ width: 12, height: 12, borderRadius: "50%", border: "1.5px solid #cbd5e1" }} />
+                      <div style={{ width: 12, height: 12, borderRadius: "50%", border: "1.5px solid #cbd5e1", flexShrink: 0 }} />
                     )}
                     <span>Number (0-9)</span>
                   </div>
 
-                  <div style={{ gridColumn: "span 2", display: "flex", alignItems: "center", gap: 6, color: isMatch ? "#16a34a" : "#94a3b8", fontWeight: isMatch ? 700 : 500 }}>
+                  <div style={{ gridColumn: "1 / -1", display: "flex", alignItems: "center", gap: 6, color: isMatch ? "#16a34a" : "#94a3b8", fontWeight: isMatch ? 700 : 500 }}>
                     {isMatch ? (
                       <CheckCircle2 size={13} color="#16a34a" />
                     ) : (
-                      <div style={{ width: 12, height: 12, borderRadius: "50%", border: "1.5px solid #cbd5e1" }} />
+                      <div style={{ width: 12, height: 12, borderRadius: "50%", border: "1.5px solid #cbd5e1", flexShrink: 0 }} />
                     )}
                     <span>Passwords Match</span>
                   </div>

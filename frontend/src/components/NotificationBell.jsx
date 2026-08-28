@@ -169,12 +169,14 @@ export default function NotificationBell({ isMobile = false }) {
             transition={{ duration: 0.16, ease: "easeOut" }}
             style={{
               position: isMobile ? "fixed" : "absolute",
-              top: isMobile ? 60 : "calc(100% + 10px)",
+              top: isMobile ? 64 : "calc(100% + 10px)",
               right: isMobile ? 12 : 0,
               left: isMobile ? 12 : "auto",
-              width: isMobile ? "auto" : 360,
-              maxHeight: "80vh",
+              width: isMobile ? "calc(100vw - 24px)" : "min(360px, calc(100vw - 24px))",
+              maxWidth: "calc(100vw - 24px)",
+              maxHeight: "min(80vh, 520px)",
               overflowY: "auto",
+              WebkitOverflowScrolling: "touch",
               background: "#ffffff",
               borderRadius: 16,
               border: "1px solid #e2e8f0",

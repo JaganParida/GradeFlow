@@ -156,6 +156,7 @@ async function createDeviceApprovalRequest(regNo, requestingDeviceInfo, targetSe
     title: "New Login Request",
     message: `Someone is attempting to log in to your account from a new ${requestingDeviceInfo.deviceType || "device"} (${requestingDeviceInfo.platform || "Unknown"}).`,
     approvalRequestId: requestId,
+    targetSessionId,
     requestingDevice: {
       deviceType: requestingDeviceInfo.deviceType || "Desktop",
       os: requestingDeviceInfo.os || "Unknown",
@@ -167,7 +168,14 @@ async function createDeviceApprovalRequest(regNo, requestingDeviceInfo, targetSe
     expiresAt,
   });
 
-  // Emit realtime notification event
+  // Emit realtime notification event strictly targeting active session and student channel
+  if (targetSessionId) {
+    authEventBus.emit(`notification:${clean}:${targetSessionId}`, {
+      type: "NEW_NOTIFICATION",
+      notification,
+      approvalRequest,
+    });
+  }
   authEventBus.emit(`notification:${clean}`, {
     type: "NEW_NOTIFICATION",
     notification,
@@ -231,17 +239,32 @@ async function respondDeviceApproval(StudentSession, requestId, respondingSessio
     }
 
     if (cleanAction === "ALLOW") {
-      // 1. Atomically revoke all existing active sessions for this student
-      await StudentSession.updateMany(
-        { regNo: cleanReg, isActive: true },
-        {
-          $set: {
-            isActive: false,
-            revokedAt: new Date(),
-            revokeReason: "APPROVED_ON_NEW_DEVICE",
-          },
-        }
-      );
+      const targetSessionId = freshReq.targetSessionId || respondingSessionId;
+
+      // 1. Atomically revoke target active session(s)
+      if (targetSessionId) {
+        await StudentSession.updateOne(
+          { regNo: cleanReg, sessionId: targetSessionId, isActive: true },
+          {
+            $set: {
+              isActive: false,
+              revokedAt: new Date(),
+              revokeReason: "APPROVED_ON_NEW_DEVICE",
+            },
+          }
+        );
+      } else {
+        await StudentSession.updateMany(
+          { regNo: cleanReg, isActive: true },
+          {
+            $set: {
+              isActive: false,
+              revokedAt: new Date(),
+              revokeReason: "APPROVED_ON_NEW_DEVICE",
+            },
+          }
+        );
+      }
 
       // 2. Create the new session for the requesting device
       const newSessionId = crypto.randomUUID();
@@ -280,7 +303,7 @@ async function respondDeviceApproval(StudentSession, requestId, respondingSessio
 
       // 5. Notify the old device that its session is revoked
       authEventBus.emit(`session_revoked:${cleanReg}`, {
-        revokedSessionId: respondingSessionId,
+        revokedSessionId: targetSessionId,
         reason: "APPROVED_ON_NEW_DEVICE",
         message: "Your session ended because your account was approved on another device.",
       });

@@ -14,6 +14,7 @@ const router = express.Router();
 router.get("/student", protectStudent, async (req, res) => {
   try {
     const regNo = req.student.regNo;
+    const currentSessionId = req.student.sessionId;
 
     // Clean up expired notifications
     await StudentNotification.updateMany(
@@ -27,15 +28,21 @@ router.get("/student", protectStudent, async (req, res) => {
 
     const notifications = await StudentNotification.find({
       regNo,
+      $or: [{ targetSessionId: null }, { targetSessionId: currentSessionId }],
       createdAt: { $gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) }, // Last 7 days
     }).sort({ createdAt: -1 }).limit(20);
 
     const unreadCount = await StudentNotification.countDocuments({
       regNo,
+      $or: [{ targetSessionId: null }, { targetSessionId: currentSessionId }],
       status: "UNREAD",
-      $or: [
-        { expiresAt: null },
-        { expiresAt: { $gt: new Date() } },
+      $and: [
+        {
+          $or: [
+            { expiresAt: null },
+            { expiresAt: { $gt: new Date() } },
+          ],
+        }
       ],
     });
 
@@ -142,10 +149,13 @@ router.get("/stream", protectStudent, (req, res) => {
   // Send initial connection ACK
   res.write(`event: connected\ndata: ${JSON.stringify({ connected: true, regNo })}\n\n`);
 
-  // Notification listener
+  // Notification listener (strictly filtering target session if specified)
   const onNotification = (data) => {
     try {
-      res.write(`event: notification\ndata: ${JSON.stringify(data)}\n\n`);
+      const targetId = data.notification?.targetSessionId || data.approvalRequest?.targetSessionId;
+      if (!targetId || targetId === currentSessionId) {
+        res.write(`event: notification\ndata: ${JSON.stringify(data)}\n\n`);
+      }
     } catch {}
   };
 
@@ -158,6 +168,7 @@ router.get("/stream", protectStudent, (req, res) => {
     } catch {}
   };
 
+  authEventBus.on(`notification:${regNo}:${currentSessionId}`, onNotification);
   authEventBus.on(`notification:${regNo}`, onNotification);
   authEventBus.on(`session_revoked:${regNo}`, onSessionRevoked);
 
@@ -170,6 +181,7 @@ router.get("/stream", protectStudent, (req, res) => {
 
   req.on("close", () => {
     clearInterval(heartbeat);
+    authEventBus.off(`notification:${regNo}:${currentSessionId}`, onNotification);
     authEventBus.off(`notification:${regNo}`, onNotification);
     authEventBus.off(`session_revoked:${regNo}`, onSessionRevoked);
     res.end();

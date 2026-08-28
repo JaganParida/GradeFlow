@@ -34,6 +34,11 @@ const StudentNotificationSchema = new mongoose.Schema(
       default: null,
       index: true,
     },
+    targetSessionId: {
+      type: String,
+      default: null,
+      index: true,
+    },
     requestingDevice: {
       deviceType: { type: String, default: "Desktop" },
       os: { type: String, default: "Unknown" },

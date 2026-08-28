@@ -82,6 +82,7 @@ module.exports = async function handler(req, res) {
     // 1. Fetch notifications
     if (action === "student" && req.method === "GET") {
       const regNo = student.regNo;
+      const currentSessionId = student.sessionId;
 
       // Clean up expired notifications
       await StudentNotification.updateMany(
@@ -95,6 +96,7 @@ module.exports = async function handler(req, res) {
 
       const notifications = await StudentNotification.find({
         regNo,
+        $or: [{ targetSessionId: null }, { targetSessionId: currentSessionId }],
         createdAt: { $gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) },
       })
         .sort({ createdAt: -1 })
@@ -102,8 +104,9 @@ module.exports = async function handler(req, res) {
 
       const unreadCount = await StudentNotification.countDocuments({
         regNo,
+        $or: [{ targetSessionId: null }, { targetSessionId: currentSessionId }],
         status: "UNREAD",
-        $or: [{ expiresAt: null }, { expiresAt: { $gt: new Date() } }],
+        $and: [{ $or: [{ expiresAt: null }, { expiresAt: { $gt: new Date() } }] }],
       });
 
       return res.json({
@@ -191,7 +194,10 @@ module.exports = async function handler(req, res) {
 
       const onNotification = (data) => {
         try {
-          res.write(`event: notification\ndata: ${JSON.stringify(data)}\n\n`);
+          const targetId = data.notification?.targetSessionId || data.approvalRequest?.targetSessionId;
+          if (!targetId || targetId === currentSessionId) {
+            res.write(`event: notification\ndata: ${JSON.stringify(data)}\n\n`);
+          }
         } catch {}
       };
 
@@ -203,6 +209,7 @@ module.exports = async function handler(req, res) {
         } catch {}
       };
 
+      authEventBus.on(`notification:${regNo}:${currentSessionId}`, onNotification);
       authEventBus.on(`notification:${regNo}`, onNotification);
       authEventBus.on(`session_revoked:${regNo}`, onSessionRevoked);
 
@@ -214,6 +221,7 @@ module.exports = async function handler(req, res) {
 
       req.on("close", () => {
         clearInterval(heartbeat);
+        authEventBus.off(`notification:${regNo}:${currentSessionId}`, onNotification);
         authEventBus.off(`notification:${regNo}`, onNotification);
         authEventBus.off(`session_revoked:${regNo}`, onSessionRevoked);
         res.end();
