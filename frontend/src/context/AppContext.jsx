@@ -59,6 +59,27 @@ export function AppProvider({ children }) {
   // In-memory administrative authentication state — NOT persisted in localStorage
   const [adminToken, setAdminToken] = useState(false);
   const [adminProfile, setAdminProfile] = useState(null);
+  const [adminDeviceCount, setAdminDeviceCount] = useState(0);
+  const [isAdminButtonVisible, setIsAdminButtonVisible] = useState(true);
+
+  // Check live admin device occupancy (0 or 1 device -> button visible; 2 devices -> button hidden)
+  const checkAdminStatus = async () => {
+    try {
+      const res = await axios.get(`${API_BASE}/auth/admin/check-status`, {
+        withCredentials: true,
+        timeout: 3500,
+      });
+      if (res.data && res.data.success) {
+        const count = res.data.activeDeviceCount ?? 0;
+        setAdminDeviceCount(count);
+        setIsAdminButtonVisible(count < 2);
+        return res.data;
+      }
+    } catch (err) {
+      console.warn("Failed to check admin device status:", err.message);
+    }
+    return null;
+  };
 
   // ─── Theme Management ────────────────────────────────────────────
   const [theme, setTheme] = useState(() => {
@@ -123,8 +144,9 @@ export function AppProvider({ children }) {
   // ─── Check Server-Side Auth & Maintenance on Startup (Pure Cookie-Based) ───
   useEffect(() => {
     const checkAuthAndSystem = async () => {
-      // 0. Maintenance check
+      // 0. Maintenance check & Admin device status check
       const maintenancePromise = checkMaintenanceStatus();
+      const adminStatusPromise = checkAdminStatus();
 
       // 1. Admin Auth Check Promise (HttpOnly Cookie)
       const adminPromise = (async () => {
@@ -166,11 +188,15 @@ export function AppProvider({ children }) {
         }
       })();
 
-      await Promise.allSettled([maintenancePromise, adminPromise, studentPromise]);
+      await Promise.allSettled([maintenancePromise, adminStatusPromise, adminPromise, studentPromise]);
       setAuthChecking(false);
     };
 
     checkAuthAndSystem();
+
+    // Periodic refresh of admin device occupancy
+    const interval = setInterval(checkAdminStatus, 60000);
+    return () => clearInterval(interval);
   }, []);
 
   // ─── Student Authentication Methods ──────────────────────────────
@@ -570,6 +596,9 @@ export function AppProvider({ children }) {
         error,
         adminToken,
         adminProfile,
+        adminDeviceCount,
+        isAdminButtonVisible,
+        checkAdminStatus,
         adminLogin,
         adminLoginPassword,
         adminVerifyOtp,

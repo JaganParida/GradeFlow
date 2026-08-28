@@ -5,9 +5,8 @@ import { useApp } from "../../context/AppContext";
 
 export default function LandingFooter({ onNavigateSection }) {
   const navigate = useNavigate();
-  const { adminToken, studentData, studentSession } = useApp();
-  const currentRegNo = studentData?.regNo || studentSession?.regNo || "";
-  const canSeeAdmin = Boolean(adminToken || currentRegNo === "230301120327");
+  const { adminToken, isAdminButtonVisible } = useApp();
+  const canSeeAdmin = Boolean(adminToken || isAdminButtonVisible);
 
   return (
     <footer

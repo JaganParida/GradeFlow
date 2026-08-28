@@ -89,22 +89,14 @@ function ProtectedRoute({ children }) {
 }
 
 function AdminRouteGuard({ children, allowGate = false }) {
-  const { adminToken, hasActiveSession, studentSession, studentData, authChecking } = useApp();
-  const currentRegNo = studentData?.regNo || studentSession?.regNo || "";
-  const isDeveloperSuperuser = currentRegNo === "230301120327";
+  const { adminToken, authChecking } = useApp();
 
   if (authChecking) {
     return <DashboardSkeleton />;
   }
 
-  // 1. If an active session belongs to a standard non-admin student (everyone except 230301120327),
-  // they are strictly blocked from ALL admin entry points and shown 403 Access Denied
-  if (hasActiveSession && !isDeveloperSuperuser && !adminToken) {
-    return <UnauthorizedState />;
-  }
-
-  // 2. For /admin/dashboard: requires active admin authorization
-  if (!allowGate && !adminToken && !isDeveloperSuperuser) {
+  // For /admin/dashboard: strictly requires active admin authorization
+  if (!allowGate && !adminToken) {
     return <UnauthorizedState />;
   }
 

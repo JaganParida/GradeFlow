@@ -120,6 +120,7 @@ export default function Navbar() {
     closeStudentAuthModal,
     pendingDestination,
     setPendingDestination,
+    isAdminButtonVisible,
   } = useApp();
 
   const analyticsRef = useRef(null);
@@ -142,6 +143,23 @@ export default function Navbar() {
     document.addEventListener("mousedown", handler);
     return () => document.removeEventListener("mousedown", handler);
   }, []);
+
+  // Responsive Breakpoint Tracker
+  const [viewportWidth, setViewportWidth] = useState(() =>
+    typeof window !== "undefined" ? window.innerWidth : 1200
+  );
+
+  useEffect(() => {
+    const handleResize = () => {
+      setViewportWidth(window.innerWidth);
+    };
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+
+  const currentRegNo = studentData?.regNo || studentSession?.regNo || "";
+  // Show Admin button if admin is logged in OR if 0/1 devices are active (hides when 2 devices are logged in)
+  const canSeeAdmin = Boolean(adminToken || isAdminButtonVisible);
 
   // Close mobile menu on page navigation
   useEffect(() => {
@@ -171,9 +189,6 @@ export default function Navbar() {
     window.addEventListener("resize", handleResize);
     return () => window.removeEventListener("resize", handleResize);
   }, []);
-
-  const currentRegNo = studentData?.regNo || studentSession?.regNo || "";
-  const canSeeAdmin = Boolean(adminToken || currentRegNo === "230301120327");
 
   const isEligibleForTimetable = is2023CSEBatch(studentData, currentRegNo);
 
