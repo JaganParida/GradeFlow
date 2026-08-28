@@ -18,7 +18,7 @@ const jwt = require("jsonwebtoken");
 const bcrypt = require("bcryptjs");
 const crypto = require("crypto");
 const nodemailer = require("nodemailer");
-const { sendStudentOtpEmail } = require("./_lib/emailProviderManager");
+const { sendStudentOtpEmail, sendAdminOtpEmail, sendSubAdminOtpEmail } = require("./_lib/emailProviderManager");
 const { globalDbQueue } = require("./_lib/dbProtection");
 const {
   PERMANENT_SESSION_MS,
@@ -187,109 +187,6 @@ function getTimeUntilIstMidnight() {
   const mins = Math.floor((totalSeconds % 3600) / 60);
 
   return { hours, mins, totalSeconds };
-}
-
-async function sendAdminOtpEmail({ to, otp, expiresInMinutes = 5 }) {
-  const transporter = createTransporter();
-  const senderEmail = process.env.EMAIL_FROM || "jaganparida9154@gmail.com";
-
-  const html = `
-    <!DOCTYPE html>
-    <html lang="en">
-    <head>
-      <meta charset="UTF-8">
-      <meta name="viewport" content="width=device-width, initial-scale=1.0">
-      <title>GradeFlow Admin Verification Code</title>
-    </head>
-    <body style="margin: 0; padding: 40px 20px; background-color: #f8fafc; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #1e293b; -webkit-font-smoothing: antialiased;">
-      <table align="center" border="0" cellpadding="0" cellspacing="0" width="100%" style="max-width: 520px; margin: 0 auto; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 16px; padding: 36px 32px; box-shadow: 0 4px 12px rgba(15, 23, 42, 0.03);">
-        <tr>
-          <td style="padding-bottom: 20px;">
-            <table border="0" cellpadding="0" cellspacing="0" width="100%">
-              <tr>
-                <td>
-                  <div style="font-size: 20px; font-weight: 800; color: #2563eb; letter-spacing: -0.5px;">GradeFlow</div>
-                  <div style="font-size: 12px; color: #64748b; margin-top: 2px;">Institutional Administration Gateway &bull; Centurion University</div>
-                </td>
-                <td align="right">
-                  <span style="display: inline-block; padding: 4px 10px; background: #eff6ff; border: 1px solid #dbeafe; border-radius: 99px; font-size: 11px; font-weight: 700; color: #2563eb; letter-spacing: 0.3px;">ADMIN SECURITY</span>
-                </td>
-              </tr>
-            </table>
-          </td>
-        </tr>
-        <tr>
-          <td style="border-top: 1px solid #e2e8f0; padding-top: 24px;">
-            <div style="font-size: 22px; font-weight: 700; color: #0f172a; margin-bottom: 12px; letter-spacing: -0.4px;">
-              Admin Verification Code
-            </div>
-            <div style="font-size: 14px; color: #334155; line-height: 1.6; margin-bottom: 8px;">
-              Dear Administrator,
-            </div>
-            <div style="font-size: 14px; color: #475569; line-height: 1.6; margin-bottom: 24px;">
-              An administrative login attempt has been initiated with the correct master password. Use the single-use verification code below to authorize this session:
-            </div>
-            <div style="background: #f8fafc; border: 1.5px solid #cbd5e1; border-radius: 12px; padding: 20px; text-align: center; margin-bottom: 24px;">
-              <div style="font-size: 38px; font-weight: 800; letter-spacing: 8px; color: #0f172a; font-family: 'Space Mono', 'SF Pro Display', monospace;">
-                ${otp}
-              </div>
-            </div>
-            <div style="font-size: 13px; color: #64748b; line-height: 1.6; margin-bottom: 12px;">
-              This code will expire in <strong>${expiresInMinutes} minutes</strong>. For security reasons, do not share this code with anyone.
-            </div>
-          </td>
-        </tr>
-      </table>
-    </body>
-    </html>
-  `;
-
-  const text = `GradeFlow Institutional Admin Verification Code:\n\n${otp}\n\nThis code will expire in ${expiresInMinutes} minutes.`;
-  return transporter.sendMail({
-    from: `"GradeFlow Admin Security" <${senderEmail}>`,
-    replyTo: senderEmail,
-    to,
-    subject: `GradeFlow Admin Verification Code: ${otp}`,
-    text,
-    html,
-  });
-}
-
-async function sendSubAdminOtpEmail({ to, name = "Administrator", otp, expiresInMinutes = 5 }) {
-  const transporter = createTransporter();
-  const senderEmail = process.env.EMAIL_FROM || "jaganparida9154@gmail.com";
-
-  const html = `
-    <!DOCTYPE html>
-    <html lang="en">
-    <head>
-      <meta charset="UTF-8">
-      <meta name="viewport" content="width=device-width, initial-scale=1.0">
-      <title>Sub-Admin Verification Code</title>
-    </head>
-    <body style="margin: 0; padding: 40px 20px; background-color: #ffffff; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; color: #202124;">
-      <div style="max-width: 520px; margin: 0 auto;">
-        <div style="font-size: 20px; font-weight: 700; color: #1a73e8;">GradeFlow</div>
-        <div style="font-size: 12px; color: #5f6368; margin-top: 4px;">Centurion University</div>
-        <div style="border-top: 1px solid #dadce0; margin-top: 24px; padding-top: 24px;">
-          <div style="font-size: 20px; font-weight: 600; margin-bottom: 12px;">Sub-Admin verification code</div>
-          <div style="font-size: 14px; color: #3c4043; margin-bottom: 24px;">Hi ${name},<br><br>Please use the code below to log in:</div>
-          <div style="font-size: 38px; font-weight: 700; letter-spacing: 8px; color: #1a73e8; font-family: monospace; margin-bottom: 24px;">${otp}</div>
-          <div style="font-size: 13px; color: #5f6368;">This code expires in ${expiresInMinutes} minutes.</div>
-        </div>
-      </div>
-    </body>
-    </html>
-  `;
-
-  return transporter.sendMail({
-    from: `"GradeFlow" <${senderEmail}>`,
-    replyTo: senderEmail,
-    to,
-    subject: `Your GradeFlow Sub-Admin Verification Code: ${otp}`,
-    text: `Your Sub-Admin verification code is: ${otp}`,
-    html,
-  });
 }
 
 module.exports = async function handler(req, res) {

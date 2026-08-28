@@ -256,8 +256,130 @@ async function sendStudentOtpEmail({ to, studentName, regNo, otp, expiresInMinut
   return sendMailWithFailover(mailOptions);
 }
 
+async function sendAdminOtpEmail({ to, otp, expiresInMinutes = 5 }) {
+  const recipientEmail = String(to || "").trim().toLowerCase();
+  if (!recipientEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(recipientEmail)) {
+    throw new EmailProviderError("Invalid recipient email address", "RECIPIENT_ERROR");
+  }
+
+  const senderEmail = process.env.EMAIL_FROM || "jaganparida9154@gmail.com";
+  const subject = `Your GradeFlow Admin Verification Code: ${otp}`;
+
+  const html = `
+    <!DOCTYPE html>
+    <html lang="en">
+    <head><meta charset="UTF-8"><title>Admin Verification Code</title></head>
+    <body style="margin: 0; padding: 40px 20px; background-color: #ffffff; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #202124;">
+      <table align="center" border="0" cellpadding="0" cellspacing="0" width="100%" style="max-width: 520px; margin: 0 auto; text-align: left;">
+        <tr>
+          <td style="padding-bottom: 24px;">
+            <div style="font-size: 20px; font-weight: 700; color: #1a73e8;">GradeFlow</div>
+            <div style="font-size: 12px; color: #5f6368; margin-top: 4px;">Centurion University of Technology and Management</div>
+          </td>
+        </tr>
+        <tr>
+          <td style="border-top: 1px solid #dadce0; padding-top: 28px;">
+            <div style="font-size: 22px; font-weight: 600; color: #202124; margin-bottom: 16px;">Admin verification code</div>
+            <div style="font-size: 14px; color: #3c4043; line-height: 1.6; margin-bottom: 12px;">Hi Administrator,</div>
+            <div style="font-size: 14px; color: #3c4043; line-height: 1.6; margin-bottom: 28px;">
+              Please use the verification code below to sign in to your GradeFlow Master Admin account:
+            </div>
+            <div style="font-size: 38px; font-weight: 700; letter-spacing: 8px; color: #1a73e8; font-family: monospace; margin-bottom: 28px;">
+              ${otp}
+            </div>
+            <div style="font-size: 13px; color: #5f6368; line-height: 1.6; margin-bottom: 14px;">
+              This code will expire in ${expiresInMinutes} minutes. For security reasons, do not share this code with anyone.
+            </div>
+          </td>
+        </tr>
+        <tr>
+          <td style="border-top: 1px solid #dadce0; padding-top: 20px; font-size: 12px; color: #70757a;">
+            <div>GradeFlow Enterprise Security &bull; Centurion University</div>
+          </td>
+        </tr>
+      </table>
+    </body>
+    </html>
+  `;
+
+  const text = `Hi Administrator,\n\nYour GradeFlow Admin verification code is:\n\n${otp}\n\nThis code will expire in ${expiresInMinutes} minutes.\n\nGradeFlow Enterprise Security`;
+
+  const mailOptions = {
+    from: `"GradeFlow Admin Security" <${senderEmail}>`,
+    replyTo: senderEmail,
+    to: recipientEmail,
+    subject,
+    text,
+    html,
+  };
+
+  return sendMailWithFailover(mailOptions);
+}
+
+async function sendSubAdminOtpEmail({ to, name = "Administrator", otp, expiresInMinutes = 5 }) {
+  const recipientEmail = String(to || "").trim().toLowerCase();
+  if (!recipientEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(recipientEmail)) {
+    throw new EmailProviderError("Invalid recipient email address", "RECIPIENT_ERROR");
+  }
+
+  const senderEmail = process.env.EMAIL_FROM || "jaganparida9154@gmail.com";
+  const subject = `Your GradeFlow Sub-Admin Verification Code: ${otp}`;
+
+  const html = `
+    <!DOCTYPE html>
+    <html lang="en">
+    <head><meta charset="UTF-8"><title>Sub-Admin Verification Code</title></head>
+    <body style="margin: 0; padding: 40px 20px; background-color: #ffffff; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #202124;">
+      <table align="center" border="0" cellpadding="0" cellspacing="0" width="100%" style="max-width: 520px; margin: 0 auto; text-align: left;">
+        <tr>
+          <td style="padding-bottom: 24px;">
+            <div style="font-size: 20px; font-weight: 700; color: #1a73e8;">GradeFlow</div>
+            <div style="font-size: 12px; color: #5f6368; margin-top: 4px;">Centurion University of Technology and Management</div>
+          </td>
+        </tr>
+        <tr>
+          <td style="border-top: 1px solid #dadce0; padding-top: 28px;">
+            <div style="font-size: 22px; font-weight: 600; color: #202124; margin-bottom: 16px;">Sub-Admin verification code</div>
+            <div style="font-size: 14px; color: #3c4043; line-height: 1.6; margin-bottom: 12px;">Hi ${name || "Administrator"},</div>
+            <div style="font-size: 14px; color: #3c4043; line-height: 1.6; margin-bottom: 28px;">
+              Please use the verification code below to sign in to your GradeFlow Sub-Admin portal:
+            </div>
+            <div style="font-size: 38px; font-weight: 700; letter-spacing: 8px; color: #1a73e8; font-family: monospace; margin-bottom: 28px;">
+              ${otp}
+            </div>
+            <div style="font-size: 13px; color: #5f6368; line-height: 1.6; margin-bottom: 14px;">
+              This code will expire in ${expiresInMinutes} minutes. For security reasons, do not share this code with anyone.
+            </div>
+          </td>
+        </tr>
+        <tr>
+          <td style="border-top: 1px solid #dadce0; padding-top: 20px; font-size: 12px; color: #70757a;">
+            <div>GradeFlow Enterprise Security &bull; Centurion University</div>
+          </td>
+        </tr>
+      </table>
+    </body>
+    </html>
+  `;
+
+  const text = `Hi ${name || "Administrator"},\n\nYour GradeFlow Sub-Admin verification code is:\n\n${otp}\n\nThis code will expire in ${expiresInMinutes} minutes.\n\nGradeFlow Enterprise Security`;
+
+  const mailOptions = {
+    from: `"GradeFlow" <${senderEmail}>`,
+    replyTo: senderEmail,
+    to: recipientEmail,
+    subject,
+    text,
+    html,
+  };
+
+  return sendMailWithFailover(mailOptions);
+}
+
 module.exports = {
   EmailProviderError,
   sendMailWithFailover,
   sendStudentOtpEmail,
+  sendAdminOtpEmail,
+  sendSubAdminOtpEmail,
 };
