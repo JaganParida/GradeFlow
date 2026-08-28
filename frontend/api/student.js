@@ -172,14 +172,109 @@ module.exports = async function handler(req, res) {
 
       if (req.method === "POST") {
         const { section, targetGoal, savedSubjects, dailyLogs } = req.body || {};
+
+        // 1. Fetch existing attendance record for this student
+        const existing = await Attendance.findOne({ regNo: cleanRegNo });
+
+        let finalSavedSubjects = [];
+        const incomingSubjects = Array.isArray(savedSubjects) ? savedSubjects : [];
+
+        if (existing && Array.isArray(existing.savedSubjects) && existing.savedSubjects.length > 0) {
+          // Helper to generate normalized identity key for subject matching
+          const getSubjectKey = (s) => {
+            const code = (s.code || "").toUpperCase().replace(/[^A-Z0-9]/g, "");
+            const name = (s.subjectName || s.name || "").toLowerCase().replace(/and/g, "").replace(/[^a-z0-9]/g, "");
+            return code ? `CODE:${code}` : `NAME:${name}`;
+          };
+
+          const mergedMap = new Map();
+
+          // Seed with existing saved subjects
+          existing.savedSubjects.forEach((s) => {
+            const item = s.toObject ? s.toObject() : s;
+            const key = getSubjectKey(item);
+            mergedMap.set(key, item);
+          });
+
+          // Merge incoming subjects
+          incomingSubjects.forEach((inc) => {
+            const key = getSubjectKey(inc);
+            const prev = mergedMap.get(key);
+
+            if (prev) {
+              const prevComps = prev.components || [];
+              const incComps = inc.components || [];
+              const mergedComps = [];
+
+              // For each incoming component, update numbers
+              incComps.forEach((ic) => {
+                const cType = (ic.type || "PP").toUpperCase();
+                const prevC = prevComps.find((pc) => (pc.type || "PP").toUpperCase() === cType);
+                const incAtt = Number(ic.attended) || 0;
+                const incDel = Number(ic.delivered) || 0;
+
+                // 0/0 protection: If incoming is 0/0 but prev has valid real attendance, keep previous!
+                if (incDel === 0 && incAtt === 0 && prevC && (Number(prevC.delivered) || 0) > 0) {
+                  mergedComps.push(prevC);
+                } else {
+                  mergedComps.push({
+                    type: cType,
+                    attended: incAtt,
+                    delivered: incDel,
+                  });
+                }
+              });
+
+              // Keep previous component types not present in incoming update
+              prevComps.forEach((pc) => {
+                const cType = (pc.type || "PP").toUpperCase();
+                if (!mergedComps.some((mc) => mc.type === cType)) {
+                  mergedComps.push(pc);
+                }
+              });
+
+              mergedMap.set(key, {
+                ...prev,
+                subjectName: inc.subjectName || prev.subjectName,
+                code: inc.code || prev.code || "",
+                components: mergedComps,
+                section: inc.section || prev.section || section,
+                lastUpdated: new Date(),
+              });
+            } else {
+              mergedMap.set(key, inc);
+            }
+          });
+
+          finalSavedSubjects = Array.from(mergedMap.values());
+        } else {
+          finalSavedSubjects = incomingSubjects;
+        }
+
+        // 2. Safely merge dailyLogs so historical check-in dates are NEVER wiped
+        let mergedDailyLogs = {};
+        if (existing && existing.dailyLogs) {
+          mergedDailyLogs = existing.dailyLogs instanceof Map
+            ? Object.fromEntries(existing.dailyLogs)
+            : (typeof existing.dailyLogs === "object" ? { ...existing.dailyLogs } : {});
+        }
+
+        if (dailyLogs && typeof dailyLogs === "object") {
+          Object.keys(dailyLogs).forEach((dKey) => {
+            if (/^\d{4}-\d{2}-\d{2}$/.test(dKey) && typeof dailyLogs[dKey] === "object") {
+              mergedDailyLogs[dKey] = dailyLogs[dKey];
+            }
+          });
+        }
+
         const updatedAttendance = await Attendance.findOneAndUpdate(
           { regNo: cleanRegNo },
           {
             regNo: cleanRegNo,
-            section: section || "CSE-A",
-            targetGoal: Number(targetGoal) || 75,
-            savedSubjects: Array.isArray(savedSubjects) ? savedSubjects : [],
-            dailyLogs: dailyLogs && typeof dailyLogs === "object" ? dailyLogs : {},
+            section: section || existing?.section || "CSE-A",
+            targetGoal: Number(targetGoal) || existing?.targetGoal || 75,
+            savedSubjects: finalSavedSubjects,
+            dailyLogs: mergedDailyLogs,
             lastSyncedAt: new Date(),
           },
           { upsert: true, new: true, setDefaultsOnInsert: true }
@@ -187,7 +282,14 @@ module.exports = async function handler(req, res) {
         return res.json({
           success: true,
           message: "Attendance data saved successfully to database.",
-          attendance: updatedAttendance,
+          attendance: {
+            regNo: updatedAttendance.regNo,
+            section: updatedAttendance.section,
+            targetGoal: updatedAttendance.targetGoal,
+            savedSubjects: updatedAttendance.savedSubjects,
+            dailyLogs: updatedAttendance.dailyLogs ? Object.fromEntries(updatedAttendance.dailyLogs) : {},
+            lastSyncedAt: updatedAttendance.lastSyncedAt,
+          },
         });
       }
 

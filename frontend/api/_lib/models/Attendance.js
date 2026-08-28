@@ -12,6 +12,7 @@ const attendanceComponentSchema = new mongoose.Schema(
 const savedSubjectSchema = new mongoose.Schema(
   {
     subjectName: { type: String, required: true },
+    code: { type: String, default: "" },
     components: [attendanceComponentSchema],
     section: { type: String, default: "" },
     weeklyOccurrences: { type: Array, default: [] },
