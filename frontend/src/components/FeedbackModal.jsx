@@ -85,7 +85,7 @@ export default function FeedbackModal() {
     const handleOpen = (e) => {
       if (isMaintenanceBlocked) return;
 
-      const isAuth = Boolean(hasActiveSession || studentSession?.regNo || studentData?.regNo);
+      const isAuth = Boolean(hasActiveSession && studentSession?.regNo);
       if (!isAuth) {
         openStudentAuthModal({ type: "feedback" });
         return;

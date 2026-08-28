@@ -87,7 +87,7 @@ export default function UpgradeModal() {
 
   const handleOpenReview = () => {
     handleDismiss();
-    const isAuth = Boolean(hasActiveSession || studentSession?.regNo);
+    const isAuth = Boolean(hasActiveSession && studentSession?.regNo);
     if (!isAuth) {
       openStudentAuthModal({ type: "feedback" });
     } else {

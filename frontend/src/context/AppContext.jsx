@@ -695,7 +695,7 @@ export function AppProvider({ children }) {
   };
 
   const getAdminAuthHeaders = () => ({ headers: { "X-Requested-With": "XMLHttpRequest" } });
-  const hasActiveSession = Boolean(studentData || studentSession);
+  const hasActiveSession = Boolean(studentSession && studentSession.regNo && studentSession.sessionId);
 
   return (
     <AppCtx.Provider

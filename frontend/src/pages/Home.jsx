@@ -31,7 +31,7 @@ export default function Home() {
     openStudentAuthModal,
   } = useApp();
 
-  const currentRegNo = studentData?.regNo || studentSession?.regNo || "";
+  const currentRegNo = studentSession?.regNo || "";
 
   // Handle URL hash scrolling
   useEffect(() => {

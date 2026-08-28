@@ -161,7 +161,7 @@ export default function Navbar() {
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
-  const currentRegNo = studentData?.regNo || studentSession?.regNo || "";
+  const currentRegNo = studentSession?.regNo || "";
   // Show Admin button if admin is logged in OR if 0/1 devices are active (hides when 2 devices are logged in)
   const canSeeAdmin = Boolean(adminToken || isAdminButtonVisible);
 
@@ -203,7 +203,7 @@ export default function Navbar() {
 
   const handleDashboardClick = (e) => {
     if (e) e.preventDefault();
-    if (!hasActiveSession && !currentRegNo) {
+    if (!hasActiveSession || !currentRegNo) {
       requireAuthFor({ type: "dashboard" });
     } else {
       navigate(`/dashboard/${encodeStudentId(currentRegNo)}`);
@@ -212,7 +212,7 @@ export default function Navbar() {
 
   const handleTimetableClick = (e) => {
     if (e) e.preventDefault();
-    if (!hasActiveSession && !currentRegNo) {
+    if (!hasActiveSession || !currentRegNo) {
       requireAuthFor({ type: "timetable" });
     } else {
       navigate(`/timetable/${encodeStudentId(currentRegNo)}`);
@@ -221,7 +221,7 @@ export default function Navbar() {
 
   const handleAttendanceClick = (e) => {
     if (e) e.preventDefault();
-    if (!hasActiveSession && !currentRegNo) {
+    if (!hasActiveSession || !currentRegNo) {
       requireAuthFor({ type: "attendance" });
     } else {
       navigate(`/attendance/${encodeStudentId(currentRegNo)}`);
@@ -230,7 +230,7 @@ export default function Navbar() {
 
   const handleAnalyticsClick = (e, targetTab = "") => {
     if (e) e.preventDefault();
-    if (!hasActiveSession && !currentRegNo) {
+    if (!hasActiveSession || !currentRegNo) {
       requireAuthFor({ type: "analytics", tab: targetTab });
     } else {
       const query = targetTab ? `?tab=${encodeURIComponent(targetTab)}` : "";
@@ -240,7 +240,7 @@ export default function Navbar() {
 
   const handleRankingsClick = (e) => {
     if (e) e.preventDefault();
-    if (!hasActiveSession && !currentRegNo) {
+    if (!hasActiveSession || !currentRegNo) {
       requireAuthFor({ type: "leaderboard" });
     } else {
       navigate("/leaderboard");

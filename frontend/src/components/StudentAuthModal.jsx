@@ -125,17 +125,6 @@ export default function StudentAuthModal({ isOpen, onClose }) {
     }
   };
 
-  // If already authenticated with active session, auto-close modal and navigate
-  useEffect(() => {
-    if (isOpen && hasActiveSession) {
-      const currentReg = studentSession?.regNo || studentData?.regNo || regNo;
-      if (currentReg) {
-        navigateToDestination(currentReg);
-      } else {
-        onClose();
-      }
-    }
-  }, [isOpen, hasActiveSession, studentSession, studentData]);
 
   // Clean state whenever modal opens or closes
   useEffect(() => {
@@ -156,8 +145,8 @@ export default function StudentAuthModal({ isOpen, onClose }) {
       setRemainingDailyAttempts(2);
       setDeviceStatus(null);
       setIsChecking(false);
-      if (hasActiveSession && (studentSession?.regNo || studentData?.regNo)) {
-        setRegNo(studentSession?.regNo || studentData?.regNo);
+      if (hasActiveSession && studentSession?.regNo) {
+        setRegNo(studentSession.regNo);
       } else {
         setRegNo("");
         setMaskedEmail("");

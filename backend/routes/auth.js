@@ -851,6 +851,9 @@ router.post("/student/verify-otp", otpLimiter, async (req, res) => {
 
       return res.json({
         success: true,
+        verified: true,
+        authenticated: false,
+        passwordRequired: true,
         step: "CREATE_PASSWORD",
         setupPasswordToken,
         message: "Verification successful. You must now create a password for your account.",
