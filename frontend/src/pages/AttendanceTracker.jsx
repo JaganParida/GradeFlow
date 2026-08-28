@@ -526,33 +526,50 @@ export default function AttendanceTracker() {
   const handleApplyScreenshotSubjects = (extracted) => {
     if (!Array.isArray(extracted) || extracted.length === 0) return;
 
-    const formatted = extracted.map((s) => {
-      // Find matching catalog subject if available to maintain canonical section catalog naming & code
+    // Filter and map incoming extracted subjects strictly to the section timetable catalog
+    const formatted = [];
+    extracted.forEach((s) => {
       const catMatch = sectionCatalog.find((c) => isSameSubject(c, s));
-      const cleanName = catMatch ? catMatch.subjectName : (cleanSubjectBaseName(s.name) || s.name);
-      const subCode = s.code || catMatch?.code || "";
+      if (catMatch) {
+        const cleanName = catMatch.subjectName;
+        const subCode = s.code || catMatch.code || resolveSubjectCode({ subject: cleanName }, studentData) || "";
 
-      const comps =
-        Array.isArray(s.components) && s.components.length > 0
-          ? s.components.map((c) => ({
-              type: (c.type || "PP").toUpperCase(),
-              attended: Number(c.attended) || 0,
-              delivered: Number(c.delivered) || 0,
-            }))
-          : [
-              {
-                type: "PP",
-                attended: s.attendedClasses || 0,
-                delivered: s.totalClasses || 0,
-              },
-            ];
+        const comps =
+          Array.isArray(s.components) && s.components.length > 0
+            ? s.components.map((c) => ({
+                type: (c.type || "PP").toUpperCase(),
+                attended: Number(c.attended) || 0,
+                delivered: Number(c.delivered) || 0,
+              }))
+            : [
+                {
+                  type: "PP",
+                  attended: Number(s.attendedClasses) || 0,
+                  delivered: Number(s.totalClasses) || 0,
+                },
+              ];
 
-      return {
-        subjectName: cleanName,
-        code: subCode,
-        components: comps,
-      };
+        formatted.push({
+          subjectName: cleanName,
+          code: subCode,
+          components: comps,
+          section: selectedSection,
+        });
+      }
     });
+
+    // Fallback if catalog is still empty on initial load
+    if (formatted.length === 0 && sectionCatalog.length === 0) {
+      extracted.forEach((s) => {
+        const cleanName = cleanSubjectBaseName(s.name) || s.name;
+        formatted.push({
+          subjectName: cleanName,
+          code: s.code || "",
+          components: s.components || [{ type: "PP", attended: Number(s.attendedClasses) || 0, delivered: Number(s.totalClasses) || 0 }],
+          section: selectedSection,
+        });
+      });
+    }
 
     // Smart merge: Update matched subjects with latest attendance counts and keep any existing subjects
     // so previous data and records are completely preserved
@@ -565,6 +582,7 @@ export default function AttendanceTracker() {
           subjectName: newSub.subjectName,
           code: newSub.code || mergedSaved[existingIdx].code || "",
           components: newSub.components,
+          section: selectedSection,
           lastUpdated: new Date().toISOString(),
         };
       } else {
@@ -1096,7 +1114,7 @@ export default function AttendanceTracker() {
     syncAttendanceToDb(updatedList, allDailyLogs, targetGoal);
   }
 
-  // Complete List of Section Subjects with Detected Components & Saved Overrides
+  // Complete List of Section Subjects with Detected Components & Saved Overrides (Strict Section Timetable Scoped)
   const allSectionSubjects = useMemo(() => {
     const map = new Map();
 
@@ -1123,9 +1141,12 @@ export default function AttendanceTracker() {
         }
       });
 
+      const resolvedCode =
+        catItem.code || saved?.code || resolveSubjectCode({ subject: catItem.subjectName }, studentData) || "";
+
       map.set(catItem.subjectName, {
         subjectName: catItem.subjectName,
-        code: catItem.code || saved?.code || "",
+        code: resolvedCode,
         components,
         classesPerWeek: catItem.classesPerWeek,
         weeklyOccurrences: catItem.weeklyOccurrences,
@@ -1133,28 +1154,8 @@ export default function AttendanceTracker() {
       });
     });
 
-    savedSubjects.forEach((saved) => {
-      // Check if this saved subject is already represented in our catalog map
-      const alreadyInCatalog = Array.from(map.values()).some((item) => isSameSubject(item, saved));
-      if (!alreadyInCatalog) {
-        const isSelected = isSameSubject(selectedSubjectName, saved);
-        const comps =
-          isSelected && Array.isArray(componentInputs) && componentInputs.length > 0
-            ? componentInputs
-            : saved.components || [{ type: "PP", attended: 0, delivered: 0 }];
-        map.set(saved.subjectName, {
-          subjectName: saved.subjectName,
-          code: saved.code || "",
-          components: comps,
-          classesPerWeek: (saved.weeklyOccurrences || []).length || 3,
-          weeklyOccurrences: saved.weeklyOccurrences || [],
-          isSaved: true,
-        });
-      }
-    });
-
     return Array.from(map.values());
-  }, [sectionCatalog, savedSubjects, selectedSubjectName, componentInputs]);
+  }, [sectionCatalog, savedSubjects, selectedSubjectName, componentInputs, studentData]);
 
   // Check if student has actual non-zero saved attendance data in DB
   const hasSavedAttendance = useMemo(() => {
