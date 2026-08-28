@@ -1,5 +1,3 @@
-import * as XLSX from "xlsx";
-
 /**
  * Month names lookup for natural date parsing
  */
@@ -187,8 +185,9 @@ export async function parseAcademicCalendarFile(file) {
   // 2. Excel / CSV File
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
-    reader.onload = (e) => {
+    reader.onload = async (e) => {
       try {
+        const XLSX = await import("xlsx");
         const data = new Uint8Array(e.target.result);
         const workbook = XLSX.read(data, { type: "array", cellDates: true });
         const sheetName = workbook.SheetNames[0];
@@ -283,8 +282,9 @@ export async function parseAcademicHolidaysFile(file) {
   // 2. Excel / CSV File
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
-    reader.onload = (e) => {
+    reader.onload = async (e) => {
       try {
+        const XLSX = await import("xlsx");
         const data = new Uint8Array(e.target.result);
         const workbook = XLSX.read(data, { type: "array", cellDates: true });
         const sheetName = workbook.SheetNames[0];

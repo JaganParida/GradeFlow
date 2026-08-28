@@ -1,9 +1,9 @@
-import ExcelJS from "exceljs";
 import { saveAs } from "file-saver";
 import { getSubjectBasket } from "./pdfGenerator";
 
 export const generateBasketExcel = async (studentData) => {
     try {
+        const { default: ExcelJS } = await import("exceljs");
         const semSubjects = { 1: [], 2: [], 3: [], 4: [], 5: [], 6: [], 7: [], 8: [] };
         const addedSubCodes = new Set();
         

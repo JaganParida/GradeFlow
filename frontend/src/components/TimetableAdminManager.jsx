@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo } from "react";
 import axios from "axios";
-import * as XLSX from "xlsx";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Clock,
@@ -544,8 +543,9 @@ export default function TimetableAdminManager({ authHeaders, API }) {
     setStatusMsg({ text: "", type: "" });
 
     const reader = new FileReader();
-    reader.onload = (evt) => {
+    reader.onload = async (evt) => {
       try {
+        const XLSX = await import("xlsx");
         const data = new Uint8Array(evt.target.result);
         const workbook = XLSX.read(data, { type: "array" });
         const firstSheetName = workbook.SheetNames[0];
@@ -673,7 +673,7 @@ export default function TimetableAdminManager({ authHeaders, API }) {
     };
   }
 
-  function downloadTimetableTemplate() {
+  async function downloadTimetableTemplate() {
     const rows = [
       {
         Day: "Monday",
@@ -699,6 +699,7 @@ export default function TimetableAdminManager({ authHeaders, API }) {
       },
     ];
 
+    const { default: XLSX } = await import("xlsx");
     const ws = XLSX.utils.json_to_sheet(rows);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Timetable");

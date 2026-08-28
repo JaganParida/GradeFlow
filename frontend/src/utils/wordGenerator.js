@@ -1,9 +1,9 @@
-import { Document, Packer, Paragraph, TextRun, Table, TableRow, TableCell, WidthType, AlignmentType, PageOrientation, ShadingType, ImageRun, BorderStyle } from "docx";
 import { saveAs } from "file-saver";
 import { getSubjectBasket } from "./pdfGenerator";
 
 export const generateBasketWord = async (studentData) => {
     try {
+        const { Document, Packer, Paragraph, TextRun, Table, TableRow, TableCell, WidthType, AlignmentType, PageOrientation, ShadingType, ImageRun, BorderStyle } = await import("docx");
         const semSubjects = { 1: [], 2: [], 3: [], 4: [], 5: [], 6: [], 7: [], 8: [] };
         const addedSubCodes = new Set();
         

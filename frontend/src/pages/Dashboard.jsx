@@ -13,9 +13,6 @@ import BasketDashboard from "../components/BasketDashboard";
 import TargetPredictor from "../components/TargetPredictor";
 import axios from "axios";
 import { motion, AnimatePresence } from "framer-motion";
-import jsPDF from "jspdf";
-import autoTable from "jspdf-autotable";
-import html2canvas from "html2canvas";
 import {
   User,
   TrendingUp,
@@ -402,6 +399,8 @@ export default function Dashboard() {
     
     setTimeout(async () => {
       try {
+        const { default: jsPDF } = await import("jspdf");
+        const { default: html2canvas } = await import("html2canvas");
         const pdf = new jsPDF("p", "mm", "a4");
         
         for (let i = 0; i < studentData.results.length; i++) {
@@ -2109,6 +2108,8 @@ export default function Dashboard() {
                           <button
                             onClick={async () => {
                               try {
+                                const { default: jsPDF } = await import("jspdf");
+                                const { default: autoTable } = await import("jspdf-autotable");
                                 const doc = new jsPDF("landscape", "mm", "a4");
                                 const semNumber = internalMarks?.semester || selectedSem;
                                 const isSem1 = Number(semNumber) === 1;

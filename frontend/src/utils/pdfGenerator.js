@@ -1,5 +1,3 @@
-import jsPDF from "jspdf";
-import autoTable from "jspdf-autotable";
 import {
   BASKET_1_SYLLABUS,
   BASKET_2_SYLLABUS,
@@ -48,6 +46,8 @@ const getBase64ImageFromURL = (url) => {
 
 export const generateBasketPDF = async (studentData) => {
     try {
+        const { default: jsPDF } = await import("jspdf");
+        const { default: autoTable } = await import("jspdf-autotable");
         const doc = new jsPDF("landscape", "mm", "a4");
         
         let logoBase64 = null;

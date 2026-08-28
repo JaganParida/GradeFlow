@@ -1,6 +1,4 @@
 import { useRef, useState, useEffect } from "react";
-import jsPDF from "jspdf";
-import html2canvas from "html2canvas";
 import { Download, Image as ImageIcon, Printer, GraduationCap, AlertTriangle, ZoomIn, ZoomOut } from "lucide-react";
 import {
   FAIL_GRADES,
@@ -91,6 +89,8 @@ export default function GradeSheet({ result, studentData, highlightedSubject }) 
   });
 
   async function downloadPDF() {
+    const { default: html2canvas } = await import("html2canvas");
+    const { default: jsPDF } = await import("jspdf");
     const canvas = await html2canvas(sheetRef.current, {
       scale: 4,
       backgroundColor: "#fff",
@@ -109,6 +109,7 @@ export default function GradeSheet({ result, studentData, highlightedSubject }) 
   }
 
   async function saveImage() {
+    const { default: html2canvas } = await import("html2canvas");
     const canvas = await html2canvas(sheetRef.current, {
       scale: 4,
       backgroundColor: "#fff",

@@ -107,6 +107,7 @@ export function AppProvider({ children }) {
     try {
       const res = await axios.get(`${API_BASE}/system/maintenance?t=${Date.now()}`, {
         headers: { "Cache-Control": "no-cache" },
+        timeout: 2500,
       });
       if (res.data && typeof res.data.enabled === "boolean") {
         const updated = {
@@ -132,42 +133,55 @@ export function AppProvider({ children }) {
   const [authChecking, setAuthChecking] = useState(true);
   const navigate = useNavigate();
 
-  // ─── Check Auth & Maintenance on Startup ─────────────────────────
+  // ─── Check Auth & Maintenance on Startup (Concurrent & Non-blocking) ───
   useEffect(() => {
     const checkAuthAndSystem = async () => {
-      // 0. Check Global Maintenance Mode first
-      await checkMaintenanceStatus();
+      // 0. Maintenance check with timeout
+      const maintenancePromise = checkMaintenanceStatus();
 
-      // 1. Check Admin Auth (Server-authoritative HttpOnly cookie verification)
-      try {
-        const resAdmin = await axios.get(`${API_BASE}/auth/admin/me`, { withCredentials: true });
-        if (resAdmin.data?.success && resAdmin.data?.authenticated) {
-          setAdminToken(true);
-          setAdminProfile(resAdmin.data);
-        } else {
+      // 1. Admin Auth Check Promise
+      const adminPromise = (async () => {
+        try {
+          const resAdmin = await axios.get(`${API_BASE}/auth/admin/me`, { withCredentials: true, timeout: 3500 });
+          if (resAdmin.data?.success && resAdmin.data?.authenticated) {
+            setAdminToken(true);
+            setAdminProfile(resAdmin.data);
+          } else {
+            setAdminToken(false);
+            setAdminProfile(null);
+          }
+        } catch (err) {
           setAdminToken(false);
           setAdminProfile(null);
         }
-      } catch (err) {
-        setAdminToken(false);
-        setAdminProfile(null);
-      }
+      })();
 
-      // 2. Check Student Session (Persistent across 7 days)
-      try {
-        const studentJwt = localStorage.getItem("gf_student_jwt") || sessionStorage.getItem("gf_student_jwt");
-        const headers = studentJwt ? { "x-student-token": studentJwt, Authorization: `Bearer ${studentJwt}` } : {};
-        const resStudent = await axios.get(`${API_BASE}/auth/student/me`, { headers, withCredentials: true });
-        if (resStudent.data?.success && resStudent.data?.student) {
-          if (resStudent.data?.token) {
-            localStorage.setItem("gf_student_jwt", resStudent.data.token);
+      // 2. Student Session Check Promise
+      const studentPromise = (async () => {
+        try {
+          const studentJwt = localStorage.getItem("gf_student_jwt") || sessionStorage.getItem("gf_student_jwt");
+          const headers = studentJwt ? { "x-student-token": studentJwt, Authorization: `Bearer ${studentJwt}` } : {};
+          const resStudent = await axios.get(`${API_BASE}/auth/student/me`, { headers, withCredentials: true, timeout: 4000 });
+          if (resStudent.data?.success && resStudent.data?.student) {
+            if (resStudent.data?.token) {
+              localStorage.setItem("gf_student_jwt", resStudent.data.token);
+            }
+            localStorage.setItem("gf_student_session_cache", JSON.stringify(resStudent.data.student));
+            setStudentSession(resStudent.data.student);
+            await fetchStudent(resStudent.data.student.regNo, 2, 500);
+          } else {
+            // Only wipe if server confirmed session expired/terminated
+            const code = resStudent.data?.code;
+            if (code === "SESSION_TERMINATED" || code === "INACTIVITY_LOGOUT" || code === "SESSION_INACTIVE_EXPIRED") {
+              localStorage.removeItem("gf_student_jwt");
+              localStorage.removeItem("gf_student_session_cache");
+              sessionStorage.removeItem("gf_student_jwt");
+              setStudentSession(null);
+              setStudentData(null);
+            }
           }
-          localStorage.setItem("gf_student_session_cache", JSON.stringify(resStudent.data.student));
-          setStudentSession(resStudent.data.student);
-          await fetchStudent(resStudent.data.student.regNo, 2, 500);
-        } else {
-          // Only wipe if server confirmed session expired/terminated
-          const code = resStudent.data?.code;
+        } catch (err) {
+          const code = err.response?.data?.code;
           if (code === "SESSION_TERMINATED" || code === "INACTIVITY_LOGOUT" || code === "SESSION_INACTIVE_EXPIRED") {
             localStorage.removeItem("gf_student_jwt");
             localStorage.removeItem("gf_student_session_cache");
@@ -176,18 +190,11 @@ export function AppProvider({ children }) {
             setStudentData(null);
           }
         }
-      } catch (err) {
-        const code = err.response?.data?.code;
-        if (code === "SESSION_TERMINATED" || code === "INACTIVITY_LOGOUT" || code === "SESSION_INACTIVE_EXPIRED") {
-          localStorage.removeItem("gf_student_jwt");
-          localStorage.removeItem("gf_student_session_cache");
-          sessionStorage.removeItem("gf_student_jwt");
-          setStudentSession(null);
-          setStudentData(null);
-        }
-      } finally {
-        setAuthChecking(false);
-      }
+      })();
+
+      // Run checks in parallel
+      await Promise.allSettled([maintenancePromise, adminPromise, studentPromise]);
+      setAuthChecking(false);
     };
 
     checkAuthAndSystem();

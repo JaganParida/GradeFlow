@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo } from "react";
 import axios from "axios";
-import { createWorker } from "tesseract.js";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   UploadCloud,
@@ -698,6 +697,7 @@ const parseCutmOcrText = (text, catalog = []) => {
         setProcessingStatus("Enhancing contrast & running local OCR engine...");
         const preprocessedBase64 = await preprocessImageForOcr(imageBase64);
 
+        const { createWorker } = await import("tesseract.js");
         const worker = await createWorker("eng");
         await worker.setParameters({
           tessedit_pageseg_mode: "6", // Assume a single uniform block of text

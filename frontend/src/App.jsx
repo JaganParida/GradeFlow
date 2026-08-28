@@ -1,22 +1,24 @@
 import { Routes, Route, Navigate, useLocation } from "react-router-dom";
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense, lazy } from "react";
 import axios from "axios";
 import { AnimatePresence, motion } from "framer-motion";
 import Navbar from "./components/Navbar";
-import Home from "./pages/Home";
-import Dashboard from "./pages/Dashboard";
-import Analytics from "./pages/Analytics";
-import Leaderboard from "./pages/Leaderboard";
-import Testimonials from "./pages/Testimonials";
-import AboutDev from "./pages/AboutDev";
-import Resources from "./pages/Resources";
-import AdminLogin from "./pages/AdminLogin";
-import AdminDashboard from "./pages/AdminDashboard";
-import Timetable from "./pages/Timetable";
-import AttendanceTracker from "./pages/AttendanceTracker";
 import FeedbackModal from "./components/FeedbackModal";
 import UpgradeModal from "./components/UpgradeModal";
 import { DashboardSkeleton } from "./components/LoadingSpinner";
+
+// Lazy-loaded route pages for lightning fast initial load
+const Home = lazy(() => import("./pages/Home"));
+const Dashboard = lazy(() => import("./pages/Dashboard"));
+const Analytics = lazy(() => import("./pages/Analytics"));
+const Leaderboard = lazy(() => import("./pages/Leaderboard"));
+const Testimonials = lazy(() => import("./pages/Testimonials"));
+const AboutDev = lazy(() => import("./pages/AboutDev"));
+const Resources = lazy(() => import("./pages/Resources"));
+const AdminLogin = lazy(() => import("./pages/AdminLogin"));
+const AdminDashboard = lazy(() => import("./pages/AdminDashboard"));
+const Timetable = lazy(() => import("./pages/Timetable"));
+const AttendanceTracker = lazy(() => import("./pages/AttendanceTracker"));
 import { useApp } from "./context/AppContext";
 import { AlertTriangle, X } from "lucide-react";
 import ErrorBoundary from "./components/system/ErrorBoundary";
@@ -185,8 +187,9 @@ export default function App() {
       <MaintenanceGuard>
         <FeedbackModal />
         <UpgradeModal />
-        <AnimatePresence mode="wait">
-          <Routes location={location} key={location.pathname}>
+        <Suspense fallback={<DashboardSkeleton />}>
+          <AnimatePresence mode="wait">
+            <Routes location={location} key={location.pathname}>
             <Route
               path="/"
               element={
@@ -351,6 +354,7 @@ export default function App() {
             />
           </Routes>
         </AnimatePresence>
+        </Suspense>
       </MaintenanceGuard>
     </ErrorBoundary>
   );
