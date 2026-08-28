@@ -1760,13 +1760,14 @@ export default function AttendanceTracker() {
           {/* ── VIEWS NAVIGATION HORIZONTAL PILL BAR (Mobile Devices Only) ── */}
           {isMobile && (
             <div
+              className="flex md:hidden"
               style={{
                 position: "sticky",
                 top: 0,
                 zIndex: 20,
                 background: "#f1f5f9",
                 padding: "4px 0 6px 0",
-                display: "flex",
+                display: isMobile ? "flex" : "none",
                 alignItems: "center",
                 gap: 5,
                 width: "100%",
