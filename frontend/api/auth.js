@@ -223,7 +223,6 @@ module.exports = async function handler(req, res) {
 
     // Security interception for student trying to access admin endpoints
     const isTargetingAdmin = [
-      "admin-check-status",
       "admin-login-password",
       "admin-verify-otp",
       "admin-me",

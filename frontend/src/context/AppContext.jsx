@@ -60,10 +60,9 @@ export function AppProvider({ children }) {
   const [adminToken, setAdminToken] = useState(false);
   const [adminProfile, setAdminProfile] = useState(null);
   const [adminDeviceCount, setAdminDeviceCount] = useState(0);
-  // Admin button visibility is strictly determined by current browser authorization
-  const isAdminButtonVisible = Boolean(adminToken);
+  const [isAdminButtonVisible, setIsAdminButtonVisible] = useState(true);
 
-  // Check live admin device occupancy
+  // Check live admin device occupancy (0 or 1 device -> button visible to all; 2 devices -> button hidden from public)
   const checkAdminStatus = async () => {
     try {
       const res = await axios.get(`${API_BASE}/auth/admin/check-status`, {
@@ -73,6 +72,7 @@ export function AppProvider({ children }) {
       if (res.data && res.data.success) {
         const count = res.data.activeDeviceCount ?? 0;
         setAdminDeviceCount(count);
+        setIsAdminButtonVisible(count < 2);
         return res.data;
       }
     } catch (err) {
@@ -196,9 +196,21 @@ export function AppProvider({ children }) {
 
     checkAuthAndSystem();
 
-    // Periodic refresh of admin device occupancy
-    const interval = setInterval(checkAdminStatus, 60000);
-    return () => clearInterval(interval);
+    // Periodic refresh of admin device occupancy (every 15s & on tab focus)
+    const interval = setInterval(checkAdminStatus, 15000);
+    const handleAdminVisibility = () => {
+      if (document.visibilityState === "visible") {
+        checkAdminStatus();
+      }
+    };
+    document.addEventListener("visibilitychange", handleAdminVisibility);
+    window.addEventListener("focus", handleAdminVisibility);
+
+    return () => {
+      clearInterval(interval);
+      document.removeEventListener("visibilitychange", handleAdminVisibility);
+      window.removeEventListener("focus", handleAdminVisibility);
+    };
   }, []);
 
   // ─── Student In-App Notifications & Realtime SSE Stream ──────────
