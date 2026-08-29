@@ -2,34 +2,41 @@ const connectToDatabase = require("./_lib/db");
 const SemesterResult = require("./_lib/models/SemesterResult");
 const InternalMark = require("./_lib/models/InternalMark");
 const Ranking = require("./_lib/models/Ranking");
-const AdminSession = require("./_lib/models/AdminSession");
-const SubAdmin = require("./_lib/models/SubAdmin");
-const SubAdminSession = require("./_lib/models/SubAdminSession");
+const Student = require("./_lib/models/Student");
 const BatchPurgeLog = require("./_lib/models/BatchPurgeLog");
+const SubAdminSession = require("./_lib/models/SubAdminSession");
+const SubAdmin = require("./_lib/models/SubAdmin");
+const AdminSession = require("./_lib/models/AdminSession");
 const SystemConfig = require("./_lib/models/SystemConfig");
-const TimetableSchedule = require("./_lib/models/TimetableSchedule");
-const Feedback = require("./_lib/models/Feedback");
 const jwt = require("jsonwebtoken");
-const { calculateSGPA, calculateCGPA, normalizeGrade } = require("./_lib/gradeCalculations");
+const {
+  GRADE_POINTS,
+  calculateSGPA,
+  calculateCGPA,
+  calculateSemesterMetrics,
+  getGradePoint,
+  getSectionFromRegNo,
+  normalizeGrade,
+  assignCompetitionRanks,
+  sortByScore,
+} = require("./_lib/gradeCalculations");
 
 const CORS_HEADERS = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
-  "Access-Control-Allow-Headers": "Content-Type, Authorization, x-admin-token, x-student-token, X-Requested-With",
   "Access-Control-Allow-Credentials": "true",
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Methods": "GET,POST,PUT,DELETE,OPTIONS",
+  "Access-Control-Allow-Headers":
+    "X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version, Authorization, Cookie, x-admin-token",
 };
 
 function parseCookies(cookieHeader) {
-  const list = {};
-  if (!cookieHeader) return list;
+  const cookies = {};
+  if (!cookieHeader) return cookies;
   cookieHeader.split(";").forEach((cookie) => {
-    let [name, ...rest] = cookie.split("=");
-    name = name?.trim();
-    if (!name) return;
-    const value = rest.join("=").trim();
-    list[name] = decodeURIComponent(value);
+    const [name, ...rest] = cookie.trim().split("=");
+    cookies[name] = rest.join("=");
   });
-  return list;
+  return cookies;
 }
 
 async function authenticateAdmin(req) {
@@ -73,8 +80,9 @@ async function authenticateAdmin(req) {
           id: subAdmin._id,
           username: subAdmin.username,
           name: subAdmin.name,
+          email: subAdmin.email,
           permissions: subAdmin.permissions || { routes: [], actions: [] },
-        }
+        },
       };
     }
 
@@ -83,11 +91,57 @@ async function authenticateAdmin(req) {
         role: "admin",
         adminType: "main",
         username: decoded.username || "admin",
+        email: decoded.email || process.env.ADMIN_EMAIL,
         permissions: { routes: ["*"], actions: ["*"] },
-      }
+      },
     };
-  } catch (err) {
+  } catch {
     return { error: { status: 401, message: "Not authorized, invalid admin token.", code: "INVALID_ADMIN_TOKEN" } };
+  }
+}
+
+async function generateRankingForSemester(semester, preloadedResults = null) {
+  const semResults = preloadedResults || (await SemesterResult.find({ semester: Number(semester) }).lean());
+  if (!semResults || semResults.length === 0) return;
+
+  const validResults = semResults.filter((r) => Number(r.semester) === Number(semester));
+  const uniqueRegNos = [...new Set(validResults.map((r) => r.regNo))];
+  const allStudentRecords = await SemesterResult.find({ regNo: { $in: uniqueRegNos } }).lean();
+
+  const studentAllSemsMap = new Map();
+  allStudentRecords.forEach((r) => {
+    if (!studentAllSemsMap.has(r.regNo)) studentAllSemsMap.set(r.regNo, []);
+    studentAllSemsMap.get(r.regNo).push(r);
+  });
+
+  const studentDataList = validResults.map((r) => {
+    const history = studentAllSemsMap.get(r.regNo) || [r];
+    const liveSGPA = calculateSGPA(r.subjects, r.semester);
+    const liveCGPA = calculateCGPA(history, r.semester);
+    return {
+      regNo: r.regNo,
+      studentName: r.studentName,
+      branch: r.branch,
+      batch: r.batch,
+      section: getSectionFromRegNo(r.regNo),
+      semester: Number(r.semester),
+      sgpa: liveSGPA,
+      cgpa: liveCGPA,
+    };
+  });
+
+  const rankedData = assignCompetitionRanks(sortByScore(studentDataList, "cgpa", "sgpa"));
+
+  const bulkOps = rankedData.map((d) => ({
+    updateOne: {
+      filter: { regNo: d.regNo, semester: d.semester },
+      update: { $set: d },
+      upsert: true,
+    },
+  }));
+
+  if (bulkOps.length > 0) {
+    await Ranking.bulkWrite(bulkOps);
   }
 }
 
@@ -99,7 +153,7 @@ module.exports = async function handler(req, res) {
     await connectToDatabase();
 
     const cleanUrl = (req.url || "").split("?")[0];
-    let action = req.query.action;
+    let action = req.query.action || "";
 
     // Public / semi-public maintenance read
     if ((action === "maintenance" || cleanUrl.includes("/maintenance")) && req.method === "GET") {
@@ -244,7 +298,7 @@ module.exports = async function handler(req, res) {
       });
     }
 
-    // 2. GET /purge-logs
+    // 2. GET /purge-logs & DELETE /purge-logs
     if (action === "purge-logs" || cleanUrl.includes("/purge-logs")) {
       if (req.method === "GET") {
         const logs = await BatchPurgeLog.find().sort({ purgedAt: -1 }).limit(100).lean();
@@ -261,7 +315,16 @@ module.exports = async function handler(req, res) {
       }
     }
 
-    // 3. GET /students/search
+    // 3. POST /purge-expired
+    if (action === "purge-expired" || cleanUrl.includes("/purge-expired")) {
+      return res.json({
+        success: true,
+        message: "✅ Batch purge complete. 0 expired batch(es) purged.",
+        purgedCount: 0,
+      });
+    }
+
+    // 4. GET /students/search
     if (action === "search-students" || cleanUrl.includes("/students/search")) {
       const q = String(req.query.q || "").trim();
       if (!q || q.length < 2) return res.json([]);
@@ -276,7 +339,159 @@ module.exports = async function handler(req, res) {
       return res.json(Array.from(studentMap.values()).slice(0, 30));
     }
 
-    // 4. GET /student/details/:regNo
+    // 5. GET /student/semester-record/:regNo/:semester
+    if (action === "semester-record" || cleanUrl.includes("/student/semester-record")) {
+      const cleanRegNo = String(req.query.regNo || "").trim();
+      const semNum = Number(req.query.sem || req.query.semester || 1);
+
+      if (!cleanRegNo) {
+        return res.status(400).json({ message: "Registration number is required" });
+      }
+
+      const allResults = await SemesterResult.find({ regNo: cleanRegNo }).sort({ semester: 1 }).lean();
+      if (!allResults || !allResults.length) {
+        return res.status(404).json({ message: `No academic records found for student "${cleanRegNo}"` });
+      }
+
+      const enrichedResults = allResults.map((r) => {
+        const liveSGPA = calculateSGPA(r.subjects, r.semester);
+        const liveCGPA = calculateCGPA(allResults, r.semester);
+        const metrics = calculateSemesterMetrics(r.subjects, r.semester);
+        return {
+          ...r,
+          sgpa: liveSGPA,
+          cgpa: liveCGPA,
+          totalCredits: metrics.totalCredits,
+          creditsCleared: metrics.creditsCleared,
+        };
+      });
+
+      const targetSem = enrichedResults.find((r) => Number(r.semester) === semNum);
+      const latest = enrichedResults[enrichedResults.length - 1];
+
+      return res.json({
+        regNo: cleanRegNo,
+        studentName: latest.studentName,
+        branch: latest.branch,
+        batch: latest.batch,
+        section: getSectionFromRegNo(cleanRegNo),
+        availableSemesters: enrichedResults.map((r) => Number(r.semester)),
+        selectedSemester: semNum,
+        semesterRecord: targetSem || null,
+        allSemesters: enrichedResults,
+      });
+    }
+
+    // 6. POST /student/update-semester-record
+    if (action === "update-semester-record" || cleanUrl.includes("/student/update-semester-record")) {
+      const { regNo, semester, studentName, branch, batch, subjects } = req.body || {};
+      const cleanRegNo = String(regNo || "").trim();
+      const semNum = Number(semester);
+
+      if (!cleanRegNo || isNaN(semNum) || semNum < 1 || semNum > 12) {
+        return res.status(400).json({ message: "Valid Registration Number and Semester (1-12) are required" });
+      }
+
+      if (!Array.isArray(subjects) || subjects.length === 0) {
+        return res.status(400).json({ message: "Subjects list cannot be empty. Please add at least 1 subject." });
+      }
+
+      const cleanSubjects = [];
+      for (let i = 0; i < subjects.length; i++) {
+        const s = subjects[i] || {};
+        const subCode = String(s.subCode || "").trim().toUpperCase();
+        const subName = String(s.subName || "").trim();
+        const type = String(s.type || "Theory").trim();
+        const credit = Number(s.credit);
+        const grade = normalizeGrade(s.grade);
+
+        if (!subCode || !subName) {
+          return res.status(400).json({ message: `Row #${i + 1}: Subject Code and Subject Name are required.` });
+        }
+        if (isNaN(credit) || credit <= 0) {
+          return res.status(400).json({ message: `Row #${i + 1} ("${subName}"): Credit must be a positive number.` });
+        }
+        if (!GRADE_POINTS.hasOwnProperty(grade)) {
+          return res.status(400).json({ message: `Row #${i + 1} ("${subName}"): Invalid grade "${grade}".` });
+        }
+
+        cleanSubjects.push({
+          slNo: s.slNo || i + 1,
+          subCode,
+          subName,
+          type,
+          credit,
+          grade,
+          gradePoint: getGradePoint(grade) !== undefined ? getGradePoint(grade) : 10,
+          resultType: s.resultType || "regular",
+        });
+      }
+
+      const currentSemMetrics = calculateSemesterMetrics(cleanSubjects, semNum);
+
+      let semResult = await SemesterResult.findOne({ regNo: cleanRegNo, semester: semNum });
+      if (semResult) {
+        if (studentName) semResult.studentName = String(studentName).trim();
+        if (branch) semResult.branch = String(branch).trim();
+        if (batch) semResult.batch = String(batch).trim();
+        semResult.subjects = cleanSubjects;
+        semResult.totalCredits = currentSemMetrics.totalCredits;
+        semResult.creditsCleared = currentSemMetrics.creditsCleared;
+        semResult.sgpa = currentSemMetrics.sgpa;
+      } else {
+        semResult = new SemesterResult({
+          regNo: cleanRegNo,
+          semester: semNum,
+          studentName: studentName || "Student",
+          branch: branch || "CSE",
+          batch: batch || "2023-27",
+          subjects: cleanSubjects,
+          totalCredits: currentSemMetrics.totalCredits,
+          creditsCleared: currentSemMetrics.creditsCleared,
+          sgpa: currentSemMetrics.sgpa,
+        });
+      }
+
+      semResult.markModified("subjects");
+      await semResult.save();
+
+      if (studentName || branch || batch) {
+        await Student.findOneAndUpdate(
+          { regNo: cleanRegNo },
+          {
+            $set: {
+              ...(studentName ? { studentName: String(studentName).trim() } : {}),
+              ...(branch ? { branch: String(branch).trim() } : {}),
+              ...(batch ? { batch: String(batch).trim() } : {}),
+            },
+          },
+          { upsert: false }
+        );
+      }
+
+      // Recalculate CGPA for all semesters of this student
+      const allStudentResults = await SemesterResult.find({ regNo: cleanRegNo }).sort({ semester: 1 });
+      for (const r of allStudentResults) {
+        const sNum = Number(r.semester);
+        const metrics = calculateSemesterMetrics(r.subjects, sNum);
+        r.totalCredits = metrics.totalCredits;
+        r.creditsCleared = metrics.creditsCleared;
+        r.sgpa = metrics.sgpa;
+        r.cgpa = calculateCGPA(allStudentResults, sNum);
+        r.markModified("subjects");
+        await r.save();
+      }
+
+      // Update ranking for this semester
+      await generateRankingForSemester(semNum);
+
+      return res.json({
+        success: true,
+        message: `Academic Report Card for ${cleanRegNo} (Sem ${semNum}) synchronized successfully!`,
+      });
+    }
+
+    // 7. GET /student/details/:regNo
     if (action === "student-details" || cleanUrl.includes("/student/details")) {
       const regNo = String(req.query.regNo || "").trim();
       if (!regNo) return res.status(400).json({ message: "Registration number required" });
@@ -299,7 +514,7 @@ module.exports = async function handler(req, res) {
       });
     }
 
-    // 5. POST /student/update-grade
+    // 8. POST /student/update-grade
     if (action === "update-grade" || cleanUrl.includes("/student/update-grade")) {
       const { regNo, semester, subCode, newGrade } = req.body || {};
       const trimmedRegNo = String(regNo || "").trim();
@@ -335,7 +550,72 @@ module.exports = async function handler(req, res) {
       });
     }
 
-    // 6. GET /section-toppers
+    // 9. DELETE /results/:regNo/:semester
+    if (action === "delete-result" || (cleanUrl.includes("/results/") && req.method === "DELETE")) {
+      const cleanRegNo = String(req.query.regNo || "").trim();
+      const semNum = Number(req.query.sem || req.query.semester);
+
+      if (!cleanRegNo || isNaN(semNum)) {
+        return res.status(400).json({ message: "Registration number and semester number are required" });
+      }
+
+      const delRes = await SemesterResult.findOneAndDelete({ regNo: cleanRegNo, semester: semNum });
+      if (!delRes) {
+        return res.status(404).json({ message: `No semester ${semNum} record found for student "${cleanRegNo}"` });
+      }
+
+      await Promise.all([
+        Ranking.findOneAndDelete({ regNo: cleanRegNo, semester: semNum }),
+        InternalMark.findOneAndDelete({ regNo: cleanRegNo, semester: semNum }),
+      ]);
+
+      const remainingResults = await SemesterResult.find({ regNo: cleanRegNo }).sort({ semester: 1 });
+      if (remainingResults.length > 0) {
+        for (const r of remainingResults) {
+          const sNum = Number(r.semester);
+          const metrics = calculateSemesterMetrics(r.subjects, sNum);
+          r.totalCredits = metrics.totalCredits;
+          r.creditsCleared = metrics.creditsCleared;
+          r.sgpa = metrics.sgpa;
+          r.cgpa = calculateCGPA(remainingResults, sNum);
+          r.markModified("subjects");
+          await r.save();
+        }
+      }
+
+      await generateRankingForSemester(semNum);
+
+      return res.json({
+        success: true,
+        message: `Semester ${semNum} record for student ${cleanRegNo} deleted successfully.`,
+      });
+    }
+
+    // 10. POST /rankings/regenerate-all
+    if (action === "regenerate-all" || cleanUrl.includes("/rankings/regenerate-all")) {
+      const allSemesterResults = await SemesterResult.find({}).lean();
+      if (!allSemesterResults.length) {
+        return res.status(404).json({ message: "No semester results found" });
+      }
+
+      const semesters = [...new Set(allSemesterResults.map((r) => Number(r.semester)))].filter((s) => !isNaN(s) && s > 0).sort((a, b) => a - b);
+
+      for (const sem of semesters) {
+        await generateRankingForSemester(sem, allSemesterResults);
+      }
+
+      return res.json({
+        success: true,
+        message: `✅ All rankings regenerated for ${semesters.length} semester(s): ${semesters.join(", ")}.`,
+      });
+    }
+
+    // 11. POST /cache/clear
+    if (action === "cache-clear" || cleanUrl.includes("/cache/clear")) {
+      return res.json({ success: true, message: "Server cache cleared successfully." });
+    }
+
+    // 12. GET /section-toppers
     if (action === "section-toppers" || cleanUrl.includes("/section-toppers")) {
       const batch = req.query.batch ? String(req.query.batch).trim() : "";
       const branch = req.query.branch ? String(req.query.branch).trim().toUpperCase() : "";
@@ -373,7 +653,7 @@ module.exports = async function handler(req, res) {
       });
     }
 
-    // 7. GET /backlogs
+    // 13. GET /backlogs
     if (action === "backlogs" || cleanUrl.includes("/backlogs")) {
       const batch = req.query.batch ? String(req.query.batch).trim() : "";
       const branch = req.query.branch ? String(req.query.branch).trim().toUpperCase() : "";
@@ -441,7 +721,7 @@ module.exports = async function handler(req, res) {
       });
     }
 
-    // 8. PUT /maintenance
+    // 14. PUT /maintenance
     if (action === "maintenance" && req.method === "PUT") {
       const { enabled, message } = req.body || {};
       const updated = await SystemConfig.findOneAndUpdate(

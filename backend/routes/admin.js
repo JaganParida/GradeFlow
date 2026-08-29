@@ -3386,9 +3386,19 @@ router.post("/student-otp-management/revoke-all-sessions/:regNo", requireMainAdm
       remainingActiveDevices: 0,
       maxAllowedDevices: maxAllowed,
     });
-  } catch (err) {
     console.error("POST /student-otp-management/revoke-all-sessions error:", err);
     return res.status(500).json({ success: false, message: "Failed to revoke student device sessions." });
+  }
+});
+
+// Clear in-memory server cache globally
+router.post("/cache/clear", protect, async (req, res) => {
+  try {
+    clearStudentCache();
+    res.json({ success: true, message: "Server cache cleared successfully." });
+  } catch (err) {
+    console.error("Clear cache error:", err);
+    res.status(500).json({ success: false, message: "Failed to clear server cache." });
   }
 });
 
