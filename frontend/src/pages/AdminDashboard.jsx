@@ -3571,7 +3571,7 @@ function FeedbackManager({ authHeaders, API }) {
    7. MAIN ADMIN DASHBOARD SHELL
    ════════════════════════════════════════════════════════════════ */
 export default function AdminDashboard() {
-  const { adminToken, adminLogout, API = "/api" } = useApp();
+  const { adminToken, adminLogout, authChecking, API = "/api" } = useApp();
   const navigate = useNavigate();
   const getAuthHeaders = () => ({ headers: { "X-Requested-With": "XMLHttpRequest" } });
 
@@ -3635,13 +3635,14 @@ export default function AdminDashboard() {
   const [purgeLogs, setPurgeLogs] = useState([]);
 
   useEffect(() => {
+    if (authChecking) return;
     if (!adminToken) {
       navigate("/admin");
       return;
     }
     fetchAdminProfile();
     fetchStats();
-  }, [adminToken]);
+  }, [adminToken, authChecking]);
 
   async function fetchAdminProfile() {
     try {

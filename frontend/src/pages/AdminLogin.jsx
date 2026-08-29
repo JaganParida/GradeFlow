@@ -51,14 +51,14 @@ export default function AdminLogin() {
   const [maxAllowedDevices, setMaxAllowedDevices] = useState(2);
 
   const otpInputsRef = useRef([]);
-  const { adminLoginPassword, adminVerifyOtp, subAdminLogin, subAdminVerifyOtp, adminToken } = useApp();
+  const { adminLoginPassword, adminVerifyOtp, subAdminLogin, subAdminVerifyOtp, adminToken, authChecking } = useApp();
   const navigate = useNavigate();
 
   useEffect(() => {
-    if (adminToken) {
+    if (!authChecking && adminToken) {
       navigate("/admin/dashboard", { replace: true });
     }
-  }, [adminToken, navigate]);
+  }, [adminToken, authChecking, navigate]);
 
   // Handle Lockout Countdown Timer
   useEffect(() => {

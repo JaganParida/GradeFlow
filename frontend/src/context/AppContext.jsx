@@ -144,16 +144,12 @@ export function AppProvider({ children }) {
   // ─── Check Server-Side Auth & Maintenance on Startup (Pure Cookie-Based) ───
   useEffect(() => {
     const checkAuthAndSystem = async () => {
-      // 0. Maintenance check & Admin device status check
-      const maintenancePromise = checkMaintenanceStatus();
-      const adminStatusPromise = checkAdminStatus();
-
       // 1. Admin Auth Check Promise (HttpOnly Cookie)
       const adminPromise = (async () => {
         try {
           const resAdmin = await axios.get(`${API_BASE}/auth/admin/me`, {
             withCredentials: true,
-            timeout: 3500,
+            timeout: 3000,
           });
           if (resAdmin.data?.success && resAdmin.data?.authenticated) {
             setAdminToken(true);
@@ -168,18 +164,17 @@ export function AppProvider({ children }) {
         }
       })();
 
-      // 2. Student Session Check Promise (HttpOnly Cookie) — only on student-facing routes
-      const isExplicitAdminRoute = typeof window !== "undefined" && window.location.pathname.startsWith("/admin");
+      // 2. Student Session Check Promise (HttpOnly Cookie)
       const studentPromise = (async () => {
-        if (isExplicitAdminRoute) return;
         try {
           const resStudent = await axios.get(`${API_BASE}/auth/student/me`, {
             withCredentials: true,
-            timeout: 4000,
+            timeout: 3000,
           });
           if (resStudent.data?.success && resStudent.data?.student) {
             setStudentSession(resStudent.data.student);
-            await fetchStudent(resStudent.data.student.regNo, 2, 500);
+            // Non-blocking background fetch for complete student profile
+            fetchStudent(resStudent.data.student.regNo, 2, 500).catch(() => {});
           } else {
             setStudentSession(null);
             setStudentData(null);
@@ -190,7 +185,11 @@ export function AppProvider({ children }) {
         }
       })();
 
-      await Promise.allSettled([maintenancePromise, adminStatusPromise, adminPromise, studentPromise]);
+      // 3. System Status & Maintenance checks in parallel
+      const maintenancePromise = checkMaintenanceStatus();
+      const adminStatusPromise = checkAdminStatus();
+
+      await Promise.allSettled([adminPromise, studentPromise, maintenancePromise, adminStatusPromise]);
       setAuthChecking(false);
     };
 
