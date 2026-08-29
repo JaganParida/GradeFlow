@@ -310,6 +310,10 @@ export function AppProvider({ children }) {
           if (!isMounted) return;
           try {
             const data = JSON.parse(e.data || "{}");
+            // Only process revocation if this specific device's sessionId was revoked
+            if (data.revokedSessionId && studentSession?.sessionId && data.revokedSessionId !== studentSession.sessionId) {
+              return;
+            }
             setSessionRevokedNotice(
               data.message || "Your session ended because your account was approved on another device."
             );

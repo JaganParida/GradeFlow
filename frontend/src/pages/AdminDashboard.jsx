@@ -3656,12 +3656,18 @@ export default function AdminDashboard() {
         if (isMain || (data.permissions?.actions || []).includes("manage.purge-batches")) {
           fetchPurgeLogs();
         }
-      } else {
-        adminLogout();
+      } else if (data && data.authenticated === false) {
+        setAdminToken(false);
+        setAdminProfile(null);
+        navigate("/admin");
       }
     } catch (err) {
       console.warn("Failed to fetch admin profile:", err.message);
-      adminLogout();
+      if (err.response?.status === 401 || err.response?.status === 403) {
+        setAdminToken(false);
+        setAdminProfile(null);
+        navigate("/admin");
+      }
     }
   }
 
