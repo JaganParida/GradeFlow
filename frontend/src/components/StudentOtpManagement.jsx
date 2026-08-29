@@ -35,7 +35,58 @@ import {
   Eye,
   ArrowUpRight,
   Loader2,
+  Radio,
+  CircleDot,
+  Circle,
 } from "lucide-react";
+
+function getSectionFromRegNo(regNo) {
+  if (!regNo) return "A";
+  const r = String(regNo).trim();
+  if (r === "230301180026") return "I";
+  
+  if (/^\d{2}0301120/.test(r)) {
+     const num = parseInt(r.slice(-3), 10);
+     if (num >= 1 && num <= 60) return "A";
+     if (num >= 61 && num <= 120) return "B";
+     if (num >= 121 && num <= 180) return "C";
+     if (num >= 181 && num <= 240) return "D";
+     if (num >= 241 && num <= 300) return "E";
+     if (num >= 301 && num <= 360) return "F";
+     if (num >= 361 && num <= 420) return "G";
+     if (num >= 421 && num <= 480) return "H";
+     if (num >= 481 && num <= 549) return "I";
+  }
+  return "A";
+}
+
+function getDynamicBranch(regNo, fallbackBranch) {
+  if (!regNo) return fallbackBranch || "CSE";
+  const r = String(regNo).trim();
+  if (r === "230301180026") return "CSE";
+  if (["230301120110", "230301120186", "230301120371", "230301120481"].includes(r)) return "ECE";
+  if (r === "230301231033") return "AERO";
+
+  const suffix = r.length >= 9 ? r.slice(2) : r;
+  if (suffix.startsWith("0301110") || suffix.startsWith("0301111")) return "CIVIL";
+  if (suffix.startsWith("0301120") || suffix.startsWith("0301121")) return "CSE";
+  if (suffix.startsWith("0301130") || suffix.startsWith("0301131") || suffix.startsWith("0301132")) return "ECE";
+  if (suffix.startsWith("0301150") || suffix.startsWith("0301151")) return "EEE";
+  if (suffix.startsWith("0301160") || suffix.startsWith("0301161")) return "ME";
+  if (suffix.startsWith("0301180")) return "BIO";
+  if (suffix.startsWith("0301190") || suffix.startsWith("0301191")) return "MI";
+  if (suffix.startsWith("0301230")) return "AERO";
+
+  if (r.startsWith("230301110") || r.startsWith("230301111")) return "CIVIL";
+  if (r.startsWith("230301120") || r.startsWith("230301121")) return "CSE";
+  if (r.startsWith("230301130") || r.startsWith("230301131") || r.startsWith("230301132")) return "ECE";
+  if (r.startsWith("230301150") || r.startsWith("230301151")) return "EEE";
+  if (r.startsWith("230301160") || r.startsWith("230301161")) return "ME";
+  if (r.startsWith("230301180")) return "BIO";
+  if (r.startsWith("230301190") || r.startsWith("230301191")) return "MI";
+  if (r.startsWith("230301230")) return "AERO";
+  return fallbackBranch || "CSE";
+}
 
 function formatISTDate(dateVal) {
   if (!dateVal) return "N/A";
@@ -455,14 +506,17 @@ export default function StudentOtpManagement({ API, authHeaders, isMobile }) {
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 12 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
             {[
-              { id: "all", label: `All Accounts (${accountsStats.totalRegistered})` },
-              { id: "active", label: `🟢 Online (${accountsStats.totalActive})` },
-              { id: "offline", label: `⚪ Offline (${accountsStats.totalOffline})` },
+              { id: "all", label: `All Accounts (${accountsStats.totalRegistered})`, icon: <Users size={13} /> },
+              { id: "active", label: `Online (${accountsStats.totalActive})`, icon: <Activity size={13} color="#16a34a" />, dotColor: "#16a34a" },
+              { id: "offline", label: `Offline (${accountsStats.totalOffline})`, icon: <Clock size={13} color="#64748b" />, dotColor: "#94a3b8" },
             ].map((f) => (
               <button
                 key={f.id}
                 onClick={() => setDirectoryFilter(f.id)}
                 style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 6,
                   padding: "6px 12px",
                   borderRadius: 8,
                   border: directoryFilter === f.id ? "1.5px solid #4f46e5" : "1px solid #e2e8f0",
@@ -473,7 +527,12 @@ export default function StudentOtpManagement({ API, authHeaders, isMobile }) {
                   cursor: "pointer",
                 }}
               >
-                {f.label}
+                {f.dotColor ? (
+                  <span style={{ width: 6, height: 6, borderRadius: "50%", background: f.dotColor, display: "inline-block" }} />
+                ) : (
+                  f.icon
+                )}
+                <span>{f.label}</span>
               </button>
             ))}
           </div>
@@ -496,6 +555,9 @@ export default function StudentOtpManagement({ API, authHeaders, isMobile }) {
             <button
               type="submit"
               style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 5,
                 padding: "6px 12px",
                 borderRadius: 8,
                 border: "none",
@@ -506,7 +568,8 @@ export default function StudentOtpManagement({ API, authHeaders, isMobile }) {
                 cursor: "pointer",
               }}
             >
-              Filter
+              <Filter size={12} />
+              <span>Filter</span>
             </button>
           </form>
         </div>
@@ -538,107 +601,122 @@ export default function StudentOtpManagement({ API, authHeaders, isMobile }) {
                   </td>
                 </tr>
               ) : (
-                accountsList.map((acc) => (
-                  <tr key={acc.regNo} style={{ borderBottom: "1px solid #f1f5f9" }}>
-                    <td style={{ padding: "12px 14px" }}>
-                      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                        <div
-                          style={{
-                            width: 32,
-                            height: 32,
-                            borderRadius: "50%",
-                            background: acc.isCurrentlyLoggedIn ? "#dcfce7" : "#f1f5f9",
-                            color: acc.isCurrentlyLoggedIn ? "#15803d" : "#475569",
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "center",
-                            fontWeight: 700,
-                            fontSize: 12,
-                          }}
-                        >
-                          {acc.studentName ? acc.studentName.charAt(0).toUpperCase() : "S"}
+                accountsList.map((acc) => {
+                  const resolvedBranch = (acc.branch && acc.branch !== "N/A") ? acc.branch : getDynamicBranch(acc.regNo);
+                  const resolvedSection = (acc.section && acc.section !== "N/A") ? acc.section : getSectionFromRegNo(acc.regNo);
+
+                  return (
+                    <tr key={acc.regNo} style={{ borderBottom: "1px solid #f1f5f9" }}>
+                      <td style={{ padding: "12px 14px" }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                          <div
+                            style={{
+                              width: 32,
+                              height: 32,
+                              borderRadius: "50%",
+                              background: acc.isCurrentlyLoggedIn ? "#dcfce7" : "#f1f5f9",
+                              color: acc.isCurrentlyLoggedIn ? "#15803d" : "#475569",
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                              fontWeight: 700,
+                              fontSize: 12,
+                            }}
+                          >
+                            {acc.studentName ? acc.studentName.charAt(0).toUpperCase() : "S"}
+                          </div>
+                          <div>
+                            <strong style={{ color: "#0f172a", display: "block" }}>{acc.studentName}</strong>
+                            <span style={{ fontSize: 11.5, color: "#64748b", fontFamily: "'Space Mono', monospace" }}>
+                              {acc.regNo}
+                            </span>
+                          </div>
                         </div>
-                        <div>
-                          <strong style={{ color: "#0f172a", display: "block" }}>{acc.studentName}</strong>
-                          <span style={{ fontSize: 11.5, color: "#64748b", fontFamily: "'Space Mono', monospace" }}>
-                            {acc.regNo}
-                          </span>
-                        </div>
-                      </div>
-                    </td>
-                    <td style={{ padding: "12px 14px", color: "#334155" }}>
-                      <div>Batch {acc.batch}</div>
-                      <span style={{ fontSize: 11, color: "#64748b" }}>{acc.branch} (Sec {acc.section})</span>
-                    </td>
-                    <td style={{ padding: "12px 14px", color: "#64748b", fontSize: 12 }}>
-                      {formatISTDate(acc.passwordCreatedAt)}
-                    </td>
-                    <td style={{ padding: "12px 14px" }}>
-                      {acc.isCurrentlyLoggedIn ? (
-                        <div style={{ display: "inline-flex", flexDirection: "column", gap: 2 }}>
+                      </td>
+                      <td style={{ padding: "12px 14px", color: "#334155" }}>
+                        <div style={{ fontWeight: 600 }}>Batch {acc.batch || "2023"}</div>
+                        <span style={{ fontSize: 11, color: "#64748b", fontWeight: 500 }}>
+                          {resolvedBranch} (Sec {resolvedSection})
+                        </span>
+                      </td>
+                      <td style={{ padding: "12px 14px", color: "#64748b", fontSize: 12 }}>
+                        {formatISTDate(acc.passwordCreatedAt)}
+                      </td>
+                      <td style={{ padding: "12px 14px" }}>
+                        {acc.isCurrentlyLoggedIn ? (
+                          <div style={{ display: "inline-flex", flexDirection: "column", gap: 2 }}>
+                            <span
+                              style={{
+                                display: "inline-flex",
+                                alignItems: "center",
+                                gap: 6,
+                                background: "#dcfce7",
+                                color: "#166534",
+                                fontSize: 11.5,
+                                fontWeight: 700,
+                                padding: "3px 9px",
+                                borderRadius: 6,
+                                border: "1px solid #bbf7d0",
+                              }}
+                            >
+                              <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#16a34a", display: "inline-block" }} />
+                              <span>Live Online ({acc.activeSessionsCount} device)</span>
+                            </span>
+                            {acc.activeSessions?.[0] && (
+                              <span style={{ fontSize: 10.5, color: "#64748b", display: "inline-flex", alignItems: "center", gap: 4 }}>
+                                {acc.activeSessions[0].deviceType === "Mobile" ? (
+                                  <Smartphone size={11} color="#64748b" />
+                                ) : (
+                                  <Laptop size={11} color="#64748b" />
+                                )}
+                                <span>{acc.activeSessions[0].deviceType} ({acc.activeSessions[0].browser})</span>
+                              </span>
+                            )}
+                          </div>
+                        ) : (
                           <span
                             style={{
                               display: "inline-flex",
                               alignItems: "center",
-                              gap: 4,
-                              background: "#dcfce7",
-                              color: "#166534",
+                              gap: 5,
+                              background: "#f1f5f9",
+                              color: "#64748b",
                               fontSize: 11.5,
-                              fontWeight: 700,
-                              padding: "3px 8px",
+                              fontWeight: 600,
+                              padding: "3px 9px",
                               borderRadius: 6,
+                              border: "1px solid #e2e8f0",
                             }}
                           >
-                            <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#16a34a" }} />
-                            Live Online ({acc.activeSessionsCount} device)
+                            <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#94a3b8", display: "inline-block" }} />
+                            <span>Offline</span>
                           </span>
-                          {acc.activeSessions?.[0] && (
-                            <span style={{ fontSize: 10.5, color: "#64748b" }}>
-                              {acc.activeSessions[0].deviceType} ({acc.activeSessions[0].browser})
-                            </span>
-                          )}
-                        </div>
-                      ) : (
-                        <span
+                        )}
+                      </td>
+                      <td style={{ padding: "12px 14px", textAlign: "right" }}>
+                        <button
+                          onClick={() => handleSearchWithReg(acc.regNo)}
                           style={{
                             display: "inline-flex",
                             alignItems: "center",
                             gap: 4,
-                            background: "#f1f5f9",
-                            color: "#64748b",
-                            fontSize: 11.5,
-                            fontWeight: 600,
-                            padding: "3px 8px",
-                            borderRadius: 6,
+                            padding: "6px 12px",
+                            borderRadius: 8,
+                            background: "#eef2ff",
+                            border: "1px solid #c7d2fe",
+                            color: "#4338ca",
+                            fontSize: 12,
+                            fontWeight: 700,
+                            cursor: "pointer",
                           }}
                         >
-                          Offline
-                        </span>
-                      )}
-                    </td>
-                    <td style={{ padding: "12px 14px", textAlign: "right" }}>
-                      <button
-                        onClick={() => handleSearchWithReg(acc.regNo)}
-                        style={{
-                          display: "inline-flex",
-                          alignItems: "center",
-                          gap: 4,
-                          padding: "6px 12px",
-                          borderRadius: 8,
-                          background: "#eef2ff",
-                          border: "1px solid #c7d2fe",
-                          color: "#4338ca",
-                          fontSize: 12,
-                          fontWeight: 700,
-                          cursor: "pointer",
-                        }}
-                      >
-                        <Eye size={13} />
-                        <span>Inspect</span>
-                      </button>
-                    </td>
-                  </tr>
-                ))
+                          <Eye size={13} />
+                          <span>Inspect</span>
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })
               )}
             </tbody>
           </table>
@@ -1548,8 +1626,9 @@ export default function StudentOtpManagement({ API, authHeaders, isMobile }) {
                     </div>
                   </>
                 )}
-                <div style={{ fontSize: 12, color: "#991b1b", marginTop: 4, padding: "8px 10px", background: "#fef2f2", borderRadius: 8, border: "1px solid #fecaca", lineHeight: 1.4 }}>
-                  ⚠️ This will immediately terminate the session token in MongoDB and free up a device slot for new logins.
+                <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, color: "#991b1b", marginTop: 4, padding: "8px 10px", background: "#fef2f2", borderRadius: 8, border: "1px solid #fecaca", lineHeight: 1.4 }}>
+                  <AlertTriangle size={14} color="#dc2626" style={{ flexShrink: 0 }} />
+                  <span>This will immediately terminate the session token in MongoDB and free up a device slot for new logins.</span>
                 </div>
               </div>
 

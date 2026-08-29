@@ -2132,17 +2132,16 @@ router.get("/student-accounts", protect, async (req, res) => {
       const isCurrentlyLoggedIn = sessions.length > 0;
       const isLocked = Boolean(st.lockedUntil && new Date(st.lockedUntil) > new Date());
 
-      let batch = meta.batch;
-      if (!batch && st.regNo && /^\d{2}/.test(st.regNo)) {
-        batch = `20${st.regNo.slice(0, 2)}`;
-      }
+      let batch = (meta.batch && meta.batch !== "N/A") ? meta.batch : (detectBatch(st.regNo) || "N/A");
+      let branch = (meta.branch && meta.branch !== "N/A") ? meta.branch : (detectBranch(st.regNo) || "CSE");
+      let section = (meta.section && meta.section !== "N/A") ? meta.section : (getSectionFromRegNo(st.regNo) || "A");
 
       return {
         regNo: st.regNo,
         studentName: meta.studentName || "Registered Student",
         batch: batch || "N/A",
-        branch: meta.branch || "N/A",
-        section: meta.section || "N/A",
+        branch: branch || "CSE",
+        section: section || "A",
         passwordCreatedAt: st.passwordCreatedAt || st.createdAt,
         accountCreatedAt: st.createdAt,
         isCurrentlyLoggedIn,

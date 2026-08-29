@@ -40,6 +40,43 @@ function parseCookies(cookieHeader) {
   return cookies;
 }
 
+function detectBatch(regNo) {
+  if (!regNo) return "";
+  const r = String(regNo).trim();
+  if (/^\d{2}/.test(r)) {
+    return `20${r.slice(0, 2)}`;
+  }
+  return "";
+}
+
+function detectBranch(regNo) {
+  if (!regNo) return "CSE";
+  const r = String(regNo).trim();
+  if (r === "230301180026") return "CSE";
+  if (["230301120110", "230301120186", "230301120371", "230301120481"].includes(r)) return "ECE";
+  if (r === "230301231033") return "AERO";
+
+  const suffix = r.length >= 9 ? r.slice(2) : r;
+  if (suffix.startsWith("0301110") || suffix.startsWith("0301111")) return "CIVIL";
+  if (suffix.startsWith("0301120") || suffix.startsWith("0301121")) return "CSE";
+  if (suffix.startsWith("0301130") || suffix.startsWith("0301131") || suffix.startsWith("0301132")) return "ECE";
+  if (suffix.startsWith("0301150") || suffix.startsWith("0301151")) return "EEE";
+  if (suffix.startsWith("0301160") || suffix.startsWith("0301161")) return "ME";
+  if (suffix.startsWith("0301180")) return "BIO";
+  if (suffix.startsWith("0301190") || suffix.startsWith("0301191")) return "MI";
+  if (suffix.startsWith("0301230")) return "AERO";
+
+  if (r.startsWith("230301110") || r.startsWith("230301111")) return "CIVIL";
+  if (r.startsWith("230301120") || r.startsWith("230301121")) return "CSE";
+  if (r.startsWith("230301130") || r.startsWith("230301131") || r.startsWith("230301132")) return "ECE";
+  if (r.startsWith("230301150") || r.startsWith("230301151")) return "EEE";
+  if (r.startsWith("230301160") || r.startsWith("230301161")) return "ME";
+  if (r.startsWith("230301180")) return "BIO";
+  if (r.startsWith("230301190") || r.startsWith("230301191")) return "MI";
+  if (r.startsWith("230301230")) return "AERO";
+  return "CSE";
+}
+
 async function authenticateAdmin(req) {
   const cookies = parseCookies(req.headers.cookie);
   let token = req.headers["x-admin-token"];
@@ -363,17 +400,16 @@ module.exports = async function handler(req, res) {
         const isCurrentlyLoggedIn = sessions.length > 0;
         const isLocked = Boolean(st.lockedUntil && new Date(st.lockedUntil) > new Date());
 
-        let batch = meta.batch;
-        if (!batch && st.regNo && /^\d{2}/.test(st.regNo)) {
-          batch = `20${st.regNo.slice(0, 2)}`;
-        }
+        let batch = (meta.batch && meta.batch !== "N/A") ? meta.batch : (detectBatch(st.regNo) || "N/A");
+        let branch = (meta.branch && meta.branch !== "N/A") ? meta.branch : (detectBranch(st.regNo) || "CSE");
+        let section = (meta.section && meta.section !== "N/A") ? meta.section : (getSectionFromRegNo(st.regNo) || "A");
 
         return {
           regNo: st.regNo,
           studentName: meta.studentName || "Registered Student",
           batch: batch || "N/A",
-          branch: meta.branch || "N/A",
-          section: meta.section || "N/A",
+          branch: branch || "CSE",
+          section: section || "A",
           passwordCreatedAt: st.passwordCreatedAt || st.createdAt,
           accountCreatedAt: st.createdAt,
           isCurrentlyLoggedIn,
