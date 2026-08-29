@@ -670,7 +670,7 @@ router.post("/student/send-otp", otpSendLimiter, async (req, res) => {
       }
     }
 
-    const maxDailyLimit = isUnlimited ? 99 : 2;
+    const maxDailyLimit = isUnlimited ? 999 : 3;
     if (!isUnlimited && dailyLimit.otpSendCount >= maxDailyLimit) {
       const { hours, mins, totalSeconds } = getTimeUntilIstMidnight();
       return res.status(429).json({
