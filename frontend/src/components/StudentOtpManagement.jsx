@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -29,6 +29,11 @@ import {
   Tablet,
   LogOut,
   Trash2,
+  KeyRound,
+  Filter,
+  Users,
+  Eye,
+  ArrowUpRight,
 } from "lucide-react";
 
 function formatISTDate(dateVal) {
@@ -58,6 +63,13 @@ export default function StudentOtpManagement({ API, authHeaders, isMobile }) {
   const [studentData, setStudentData] = useState(null);
   const [timeline, setTimeline] = useState([]);
 
+  // Registered Accounts Directory State
+  const [accountsList, setAccountsList] = useState([]);
+  const [accountsLoading, setAccountsLoading] = useState(false);
+  const [accountsStats, setAccountsStats] = useState({ totalRegistered: 0, totalActive: 0, totalOffline: 0 });
+  const [directoryFilter, setDirectoryFilter] = useState("all"); // "all" | "active" | "offline"
+  const [directorySearch, setDirectorySearch] = useState("");
+
   // Reset Modal state
   const [showResetModal, setShowResetModal] = useState(false);
   const [resetReason, setResetReason] = useState("");
@@ -69,18 +81,42 @@ export default function StudentOtpManagement({ API, authHeaders, isMobile }) {
   const [revokeReason, setRevokeReason] = useState("");
   const [revokeLoading, setRevokeLoading] = useState(false);
 
-  const handleSearch = async (e) => {
-    if (e) e.preventDefault();
-    const cleanReg = searchReg.trim().toUpperCase();
-    if (!cleanReg) {
-      setErrorMsg("Please enter a student registration number.");
-      return;
+  // Fetch all registered student accounts on mount & when filter changes
+  const fetchAccounts = async (search = directorySearch, filter = directoryFilter) => {
+    setAccountsLoading(true);
+    try {
+      const res = await axios.get(
+        `${API}/admin/student-accounts?search=${encodeURIComponent(search)}&filter=${filter}`,
+        authHeaders
+      );
+      if (res.data?.success) {
+        setAccountsList(res.data.accounts || []);
+        setAccountsStats({
+          totalRegistered: res.data.totalRegistered || 0,
+          totalActive: res.data.totalActive || 0,
+          totalOffline: res.data.totalOffline || 0,
+        });
+      }
+    } catch (err) {
+      console.warn("Failed to fetch student accounts directory:", err.message);
+    } finally {
+      setAccountsLoading(false);
     }
-    if (!/^[a-zA-Z0-9_-]{3,30}$/.test(cleanReg)) {
-      setErrorMsg("Invalid registration number format (must be 3-30 alphanumeric characters).");
-      return;
-    }
+  };
 
+  useEffect(() => {
+    fetchAccounts(directorySearch, directoryFilter);
+  }, [directoryFilter]);
+
+  const handleDirectorySearchSubmit = (e) => {
+    if (e) e.preventDefault();
+    fetchAccounts(directorySearch, directoryFilter);
+  };
+
+  const handleSearchWithReg = async (targetReg) => {
+    const cleanReg = targetReg.trim().toUpperCase();
+    if (!cleanReg) return;
+    setSearchReg(cleanReg);
     setLoading(true);
     setErrorMsg("");
     setSuccessMsg("");
@@ -93,6 +129,7 @@ export default function StudentOtpManagement({ API, authHeaders, isMobile }) {
       if (res.data?.success) {
         setStudentData(res.data.studentSummary);
         setTimeline(res.data.historyTimeline || []);
+        window.scrollTo({ top: 380, behavior: "smooth" });
       } else {
         setErrorMsg(res.data?.message || "Failed to fetch student OTP details.");
         setStudentData(null);
@@ -107,6 +144,11 @@ export default function StudentOtpManagement({ API, authHeaders, isMobile }) {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleSearch = async (e) => {
+    if (e) e.preventDefault();
+    handleSearchWithReg(searchReg);
   };
 
   const handleResetSubmit = async () => {
@@ -243,6 +285,362 @@ export default function StudentOtpManagement({ API, authHeaders, isMobile }) {
           <p style={{ margin: 0, fontSize: 13, color: "#c7d2fe", maxWidth: 680, lineHeight: 1.5 }}>
             Inspect detailed OTP request history, device origins, and provider delivery statuses before making an administrative decision to reset daily limits.
           </p>
+        </div>
+      </div>
+
+      {/* ── Registered Accounts & Live Login Monitor Directory ── */}
+      <div
+        style={{
+          background: "#ffffff",
+          borderRadius: 18,
+          border: "1px solid #e2e8f0",
+          padding: isMobile ? "18px 14px" : "22px 24px",
+          boxShadow: "0 2px 10px rgba(15, 23, 42, 0.03)",
+          display: "flex",
+          flexDirection: "column",
+          gap: 18,
+        }}
+      >
+        {/* Top Header with title and refresh button */}
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 12 }}>
+          <div>
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <Users size={20} color="#4f46e5" />
+              <h3 style={{ margin: 0, fontSize: 16, fontWeight: 800, color: "#0f172a" }}>
+                Registered Accounts & Live Login Monitor
+              </h3>
+            </div>
+            <p style={{ margin: "4px 0 0 0", fontSize: 12.5, color: "#64748b" }}>
+              Exact verified student accounts extracted from database with created passwords and live active sessions.
+            </p>
+          </div>
+          <button
+            onClick={() => fetchAccounts(directorySearch, directoryFilter)}
+            disabled={accountsLoading}
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 6,
+              padding: "7px 14px",
+              borderRadius: 10,
+              background: "#f8fafc",
+              border: "1px solid #e2e8f0",
+              color: "#334155",
+              fontSize: 12.5,
+              fontWeight: 700,
+              cursor: accountsLoading ? "not-allowed" : "pointer",
+            }}
+          >
+            <RefreshCw size={13} className={accountsLoading ? "spin" : ""} />
+            <span>Refresh Directory</span>
+          </button>
+        </div>
+
+        {/* 3 Summary Mini Stats */}
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
+            gap: 12,
+          }}
+        >
+          <div
+            style={{
+              background: "#f8fafc",
+              border: "1px solid #e2e8f0",
+              borderRadius: 14,
+              padding: "12px 16px",
+              display: "flex",
+              alignItems: "center",
+              gap: 12,
+            }}
+          >
+            <div
+              style={{
+                width: 36,
+                height: 36,
+                borderRadius: 10,
+                background: "#eff6ff",
+                border: "1px solid #bfdbfe",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              <KeyRound size={16} color="#2563eb" />
+            </div>
+            <div>
+              <div style={{ fontSize: 11, fontWeight: 700, color: "#64748b", textTransform: "uppercase" }}>
+                Created Accounts
+              </div>
+              <div style={{ fontSize: 18, fontWeight: 800, color: "#0f172a" }}>
+                {accountsStats.totalRegistered}
+              </div>
+            </div>
+          </div>
+
+          <div
+            style={{
+              background: "#f8fafc",
+              border: "1px solid #e2e8f0",
+              borderRadius: 14,
+              padding: "12px 16px",
+              display: "flex",
+              alignItems: "center",
+              gap: 12,
+            }}
+          >
+            <div
+              style={{
+                width: 36,
+                height: 36,
+                borderRadius: 10,
+                background: "#ecfdf5",
+                border: "1px solid #a7f3d0",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              <Activity size={16} color="#059669" />
+            </div>
+            <div>
+              <div style={{ fontSize: 11, fontWeight: 700, color: "#64748b", textTransform: "uppercase" }}>
+                Currently Online
+              </div>
+              <div style={{ fontSize: 18, fontWeight: 800, color: "#059669" }}>
+                {accountsStats.totalActive}
+              </div>
+            </div>
+          </div>
+
+          <div
+            style={{
+              background: "#f8fafc",
+              border: "1px solid #e2e8f0",
+              borderRadius: 14,
+              padding: "12px 16px",
+              display: "flex",
+              alignItems: "center",
+              gap: 12,
+            }}
+          >
+            <div
+              style={{
+                width: 36,
+                height: 36,
+                borderRadius: 10,
+                background: "#f1f5f9",
+                border: "1px solid #cbd5e1",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              <User size={16} color="#64748b" />
+            </div>
+            <div>
+              <div style={{ fontSize: 11, fontWeight: 700, color: "#64748b", textTransform: "uppercase" }}>
+                Offline Accounts
+              </div>
+              <div style={{ fontSize: 18, fontWeight: 800, color: "#64748b" }}>
+                {accountsStats.totalOffline}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Filter Pills & Directory Search */}
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 12 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+            {[
+              { id: "all", label: `All Accounts (${accountsStats.totalRegistered})` },
+              { id: "active", label: `🟢 Online (${accountsStats.totalActive})` },
+              { id: "offline", label: `⚪ Offline (${accountsStats.totalOffline})` },
+            ].map((f) => (
+              <button
+                key={f.id}
+                onClick={() => setDirectoryFilter(f.id)}
+                style={{
+                  padding: "6px 12px",
+                  borderRadius: 8,
+                  border: directoryFilter === f.id ? "1.5px solid #4f46e5" : "1px solid #e2e8f0",
+                  background: directoryFilter === f.id ? "#eef2ff" : "#ffffff",
+                  color: directoryFilter === f.id ? "#4338ca" : "#64748b",
+                  fontSize: 12,
+                  fontWeight: directoryFilter === f.id ? 700 : 600,
+                  cursor: "pointer",
+                }}
+              >
+                {f.label}
+              </button>
+            ))}
+          </div>
+
+          <form onSubmit={handleDirectorySearchSubmit} style={{ display: "flex", gap: 8 }}>
+            <input
+              type="text"
+              placeholder="Search Reg No or Name..."
+              value={directorySearch}
+              onChange={(e) => setDirectorySearch(e.target.value)}
+              style={{
+                padding: "6px 12px",
+                borderRadius: 8,
+                border: "1px solid #cbd5e1",
+                fontSize: 12.5,
+                outline: "none",
+                width: 180,
+              }}
+            />
+            <button
+              type="submit"
+              style={{
+                padding: "6px 12px",
+                borderRadius: 8,
+                border: "none",
+                background: "#4f46e5",
+                color: "#ffffff",
+                fontSize: 12,
+                fontWeight: 700,
+                cursor: "pointer",
+              }}
+            >
+              Filter
+            </button>
+          </form>
+        </div>
+
+        {/* Directory Accounts List Table */}
+        <div style={{ overflowX: "auto", border: "1px solid #e2e8f0", borderRadius: 12 }}>
+          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13, textAlign: "left" }}>
+            <thead>
+              <tr style={{ background: "#f8fafc", borderBottom: "1px solid #e2e8f0", color: "#64748b", fontSize: 11.5, textTransform: "uppercase", letterSpacing: "0.4px" }}>
+                <th style={{ padding: "10px 14px", fontWeight: 700 }}>Student / Reg No</th>
+                <th style={{ padding: "10px 14px", fontWeight: 700 }}>Batch / Branch</th>
+                <th style={{ padding: "10px 14px", fontWeight: 700 }}>Password Created</th>
+                <th style={{ padding: "10px 14px", fontWeight: 700 }}>Login Status</th>
+                <th style={{ padding: "10px 14px", fontWeight: 700, textAlign: "right" }}>Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              {accountsLoading ? (
+                <tr>
+                  <td colSpan={5} style={{ padding: "24px", textAlign: "center", color: "#64748b" }}>
+                    <Loader2 size={20} className="spin" style={{ margin: "0 auto 8px" }} />
+                    <div>Loading verified accounts directory...</div>
+                  </td>
+                </tr>
+              ) : accountsList.length === 0 ? (
+                <tr>
+                  <td colSpan={5} style={{ padding: "24px", textAlign: "center", color: "#94a3b8" }}>
+                    No registered student accounts found matching filter.
+                  </td>
+                </tr>
+              ) : (
+                accountsList.map((acc) => (
+                  <tr key={acc.regNo} style={{ borderBottom: "1px solid #f1f5f9" }}>
+                    <td style={{ padding: "12px 14px" }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                        <div
+                          style={{
+                            width: 32,
+                            height: 32,
+                            borderRadius: "50%",
+                            background: acc.isCurrentlyLoggedIn ? "#dcfce7" : "#f1f5f9",
+                            color: acc.isCurrentlyLoggedIn ? "#15803d" : "#475569",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            fontWeight: 700,
+                            fontSize: 12,
+                          }}
+                        >
+                          {acc.studentName ? acc.studentName.charAt(0).toUpperCase() : "S"}
+                        </div>
+                        <div>
+                          <strong style={{ color: "#0f172a", display: "block" }}>{acc.studentName}</strong>
+                          <span style={{ fontSize: 11.5, color: "#64748b", fontFamily: "'Space Mono', monospace" }}>
+                            {acc.regNo}
+                          </span>
+                        </div>
+                      </div>
+                    </td>
+                    <td style={{ padding: "12px 14px", color: "#334155" }}>
+                      <div>Batch {acc.batch}</div>
+                      <span style={{ fontSize: 11, color: "#64748b" }}>{acc.branch} (Sec {acc.section})</span>
+                    </td>
+                    <td style={{ padding: "12px 14px", color: "#64748b", fontSize: 12 }}>
+                      {formatISTDate(acc.passwordCreatedAt)}
+                    </td>
+                    <td style={{ padding: "12px 14px" }}>
+                      {acc.isCurrentlyLoggedIn ? (
+                        <div style={{ display: "inline-flex", flexDirection: "column", gap: 2 }}>
+                          <span
+                            style={{
+                              display: "inline-flex",
+                              alignItems: "center",
+                              gap: 4,
+                              background: "#dcfce7",
+                              color: "#166534",
+                              fontSize: 11.5,
+                              fontWeight: 700,
+                              padding: "3px 8px",
+                              borderRadius: 6,
+                            }}
+                          >
+                            <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#16a34a" }} />
+                            Live Online ({acc.activeSessionsCount} device)
+                          </span>
+                          {acc.activeSessions?.[0] && (
+                            <span style={{ fontSize: 10.5, color: "#64748b" }}>
+                              {acc.activeSessions[0].deviceType} ({acc.activeSessions[0].browser})
+                            </span>
+                          )}
+                        </div>
+                      ) : (
+                        <span
+                          style={{
+                            display: "inline-flex",
+                            alignItems: "center",
+                            gap: 4,
+                            background: "#f1f5f9",
+                            color: "#64748b",
+                            fontSize: 11.5,
+                            fontWeight: 600,
+                            padding: "3px 8px",
+                            borderRadius: 6,
+                          }}
+                        >
+                          Offline
+                        </span>
+                      )}
+                    </td>
+                    <td style={{ padding: "12px 14px", textAlign: "right" }}>
+                      <button
+                        onClick={() => handleSearchWithReg(acc.regNo)}
+                        style={{
+                          display: "inline-flex",
+                          alignItems: "center",
+                          gap: 4,
+                          padding: "6px 12px",
+                          borderRadius: 8,
+                          background: "#eef2ff",
+                          border: "1px solid #c7d2fe",
+                          color: "#4338ca",
+                          fontSize: 12,
+                          fontWeight: 700,
+                          cursor: "pointer",
+                        }}
+                      >
+                        <Eye size={13} />
+                        <span>Inspect</span>
+                      </button>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
         </div>
       </div>
 

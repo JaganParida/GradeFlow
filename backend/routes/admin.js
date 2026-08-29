@@ -1934,12 +1934,15 @@ router.post("/backlogs/email-status", protect, requirePermission("backlogs.view"
 
 router.get("/stats", protect, async (req, res) => {
   try {
-    const [totalResults, totalInternal, totalRankings] = await Promise.all([
+    const [totalResults, totalInternal, totalRankings, totalAccountsCreated, activeSessions] = await Promise.all([
       SemesterResult.countDocuments(),
       InternalMark.countDocuments(),
       Ranking.countDocuments(),
+      Student.countDocuments({ passwordHash: { $exists: true, $ne: null } }),
+      StudentSession.find({ isActive: true }, "regNo").lean(),
     ]);
     const uniqueStudents = await SemesterResult.distinct("regNo");
+    const activeLoggedInCount = new Set(activeSessions.map((s) => s.regNo)).size;
 
     const semResults = await SemesterResult.find({}, "regNo batch semester").lean();
     const rankings = await Ranking.find({}, "regNo batch semester").lean();
@@ -2054,6 +2057,8 @@ router.get("/stats", protect, async (req, res) => {
 
     res.json({
       totalStudents: uniqueStudents.length,
+      totalAccountsCreated,
+      activeLoggedInCount,
       totalResults,
       totalInternal,
       totalRankings,
@@ -2062,6 +2067,113 @@ router.get("/stats", protect, async (req, res) => {
   } catch (err) {
     console.error("Stats error:", err);
     res.status(500).json({ message: "Server error" });
+  }
+});
+
+// GET /student-accounts — Live Registered Student Accounts & Active Sessions Directory
+router.get("/student-accounts", protect, async (req, res) => {
+  try {
+    const search = String(req.query.search || "").trim().toUpperCase();
+    const filter = String(req.query.filter || "all").toLowerCase();
+    const limit = Math.min(Number(req.query.limit) || 200, 500);
+
+    const query = { passwordHash: { $exists: true, $ne: null } };
+    if (search) {
+      query.regNo = { $regex: search, $options: "i" };
+    }
+
+    const registeredStudents = await Student.find(
+      query,
+      "regNo passwordCreatedAt createdAt updatedAt failedPasswordAttempts lockedUntil"
+    )
+      .sort({ updatedAt: -1, createdAt: -1 })
+      .limit(limit)
+      .lean();
+
+    const regNos = registeredStudents.map((s) => s.regNo);
+
+    // Active sessions lookup
+    const activeSessions = await StudentSession.find({
+      regNo: { $in: regNos },
+      isActive: true,
+    }).lean();
+
+    const sessionMap = new Map();
+    activeSessions.forEach((s) => {
+      if (!sessionMap.has(s.regNo)) {
+        sessionMap.set(s.regNo, []);
+      }
+      sessionMap.get(s.regNo).push({
+        sessionId: s.sessionId,
+        deviceType: s.deviceInfo?.deviceType || "Desktop",
+        browser: s.deviceInfo?.browser || "Unknown",
+        os: s.deviceInfo?.os || "Unknown",
+        lastActiveAt: s.lastActiveAt,
+        loggedInAt: s.loggedInAt,
+      });
+    });
+
+    // Student names and batch info
+    const studentMetaDocs = await SemesterResult.find(
+      { regNo: { $in: regNos } },
+      "regNo studentName batch branch section"
+    ).lean();
+
+    const metaMap = new Map();
+    studentMetaDocs.forEach((doc) => {
+      if (doc.regNo && !metaMap.has(doc.regNo)) {
+        metaMap.set(doc.regNo, doc);
+      }
+    });
+
+    let list = registeredStudents.map((st) => {
+      const meta = metaMap.get(st.regNo) || {};
+      const sessions = sessionMap.get(st.regNo) || [];
+      const isCurrentlyLoggedIn = sessions.length > 0;
+      const isLocked = Boolean(st.lockedUntil && new Date(st.lockedUntil) > new Date());
+
+      let batch = meta.batch;
+      if (!batch && st.regNo && /^\d{2}/.test(st.regNo)) {
+        batch = `20${st.regNo.slice(0, 2)}`;
+      }
+
+      return {
+        regNo: st.regNo,
+        studentName: meta.studentName || "Registered Student",
+        batch: batch || "N/A",
+        branch: meta.branch || "N/A",
+        section: meta.section || "N/A",
+        passwordCreatedAt: st.passwordCreatedAt || st.createdAt,
+        accountCreatedAt: st.createdAt,
+        isCurrentlyLoggedIn,
+        activeSessionsCount: sessions.length,
+        activeSessions: sessions,
+        failedPasswordAttempts: st.failedPasswordAttempts || 0,
+        isLocked,
+        lockedUntil: st.lockedUntil,
+      };
+    });
+
+    if (filter === "active") {
+      list = list.filter((item) => item.isCurrentlyLoggedIn);
+    } else if (filter === "offline") {
+      list = list.filter((item) => !item.isCurrentlyLoggedIn);
+    }
+
+    const totalRegistered = await Student.countDocuments({ passwordHash: { $exists: true, $ne: null } });
+    const allActive = await StudentSession.find({ isActive: true }, "regNo").lean();
+    const totalActive = new Set(allActive.map((s) => s.regNo)).size;
+
+    return res.json({
+      success: true,
+      totalRegistered,
+      totalActive,
+      totalOffline: Math.max(0, totalRegistered - totalActive),
+      accounts: list,
+    });
+  } catch (err) {
+    console.error("GET /student-accounts error:", err);
+    return res.status(500).json({ success: false, message: "Failed to fetch registered student accounts." });
   }
 });
 

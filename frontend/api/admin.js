@@ -3,6 +3,7 @@ const SemesterResult = require("./_lib/models/SemesterResult");
 const InternalMark = require("./_lib/models/InternalMark");
 const Ranking = require("./_lib/models/Ranking");
 const Student = require("./_lib/models/Student");
+const StudentSession = require("./_lib/models/StudentSession");
 const BatchPurgeLog = require("./_lib/models/BatchPurgeLog");
 const SubAdminSession = require("./_lib/models/SubAdminSession");
 const SubAdmin = require("./_lib/models/SubAdmin");
@@ -173,12 +174,15 @@ module.exports = async function handler(req, res) {
 
     // 1. GET /stats
     if (action === "stats" || cleanUrl.includes("/stats")) {
-      const [totalResults, totalInternal, totalRankings] = await Promise.all([
+      const [totalResults, totalInternal, totalRankings, totalAccountsCreated, activeSessions] = await Promise.all([
         SemesterResult.countDocuments(),
         InternalMark.countDocuments(),
         Ranking.countDocuments(),
+        Student.countDocuments({ passwordHash: { $exists: true, $ne: null } }),
+        StudentSession.find({ isActive: true }, "regNo").lean(),
       ]);
       const uniqueStudents = await SemesterResult.distinct("regNo");
+      const activeLoggedInCount = new Set(activeSessions.map((s) => s.regNo)).size;
 
       const semResults = await SemesterResult.find({}, "regNo batch semester").lean();
       const rankings = await Ranking.find({}, "regNo batch semester").lean();
@@ -291,10 +295,112 @@ module.exports = async function handler(req, res) {
 
       return res.json({
         totalStudents: uniqueStudents.length,
+        totalAccountsCreated,
+        activeLoggedInCount,
         totalResults,
         totalInternal,
         totalRankings,
         batchBreakdown,
+      });
+    }
+
+    // 1B. GET /student-accounts
+    if (action === "student-accounts" || cleanUrl.includes("/student-accounts")) {
+      const search = String(req.query.search || "").trim().toUpperCase();
+      const filter = String(req.query.filter || "all").toLowerCase();
+      const limit = Math.min(Number(req.query.limit) || 200, 500);
+
+      const query = { passwordHash: { $exists: true, $ne: null } };
+      if (search) {
+        query.regNo = { $regex: search, $options: "i" };
+      }
+
+      const registeredStudents = await Student.find(
+        query,
+        "regNo passwordCreatedAt createdAt updatedAt failedPasswordAttempts lockedUntil"
+      )
+        .sort({ updatedAt: -1, createdAt: -1 })
+        .limit(limit)
+        .lean();
+
+      const regNos = registeredStudents.map((s) => s.regNo);
+
+      const activeSessions = await StudentSession.find({
+        regNo: { $in: regNos },
+        isActive: true,
+      }).lean();
+
+      const sessionMap = new Map();
+      activeSessions.forEach((s) => {
+        if (!sessionMap.has(s.regNo)) {
+          sessionMap.set(s.regNo, []);
+        }
+        sessionMap.get(s.regNo).push({
+          sessionId: s.sessionId,
+          deviceType: s.deviceInfo?.deviceType || "Desktop",
+          browser: s.deviceInfo?.browser || "Unknown",
+          os: s.deviceInfo?.os || "Unknown",
+          lastActiveAt: s.lastActiveAt,
+          loggedInAt: s.loggedInAt,
+        });
+      });
+
+      const studentMetaDocs = await SemesterResult.find(
+        { regNo: { $in: regNos } },
+        "regNo studentName batch branch section"
+      ).lean();
+
+      const metaMap = new Map();
+      studentMetaDocs.forEach((doc) => {
+        if (doc.regNo && !metaMap.has(doc.regNo)) {
+          metaMap.set(doc.regNo, doc);
+        }
+      });
+
+      let list = registeredStudents.map((st) => {
+        const meta = metaMap.get(st.regNo) || {};
+        const sessions = sessionMap.get(st.regNo) || [];
+        const isCurrentlyLoggedIn = sessions.length > 0;
+        const isLocked = Boolean(st.lockedUntil && new Date(st.lockedUntil) > new Date());
+
+        let batch = meta.batch;
+        if (!batch && st.regNo && /^\d{2}/.test(st.regNo)) {
+          batch = `20${st.regNo.slice(0, 2)}`;
+        }
+
+        return {
+          regNo: st.regNo,
+          studentName: meta.studentName || "Registered Student",
+          batch: batch || "N/A",
+          branch: meta.branch || "N/A",
+          section: meta.section || "N/A",
+          passwordCreatedAt: st.passwordCreatedAt || st.createdAt,
+          accountCreatedAt: st.createdAt,
+          isCurrentlyLoggedIn,
+          activeSessionsCount: sessions.length,
+          activeSessions: sessions,
+          failedPasswordAttempts: st.failedPasswordAttempts || 0,
+          isLocked,
+          lockedUntil: st.lockedUntil,
+        };
+      });
+
+      if (filter === "active") {
+        list = list.filter((item) => item.isCurrentlyLoggedIn);
+      } else if (filter === "offline") {
+        list = list.filter((item) => !item.isCurrentlyLoggedIn);
+      }
+
+      const totalRegistered = await Student.countDocuments({ passwordHash: { $exists: true, $ne: null } });
+      const allActive = await StudentSession.find({ isActive: true }, "regNo").lean();
+      const totalActive = new Set(allActive.map((s) => s.regNo)).size;
+
+      return res.json({
+        success: true,
+        totalRegistered,
+        totalActive,
+        totalOffline: Math.max(0, totalRegistered - totalActive),
+        accounts: list,
       });
     }
 

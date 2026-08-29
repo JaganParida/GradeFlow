@@ -61,6 +61,8 @@ import {
   Clock,
   Sliders,
   ShieldAlert,
+  KeyRound,
+  Activity,
 } from "lucide-react";
 
 function getDynamicSessionOptions(bStr, semVal, yStr) {
@@ -3912,32 +3914,43 @@ export default function AdminDashboard() {
           >
             {[
               {
-                label: "Total Registered Students",
-                value: stats.totalStudents?.toLocaleString(),
-                icon: <Users size={18} color="#2563eb" />,
+                label: "Created Student Accounts",
+                sublabel: "Passwords Created",
+                value: (stats.totalAccountsCreated ?? 0).toLocaleString(),
+                icon: <KeyRound size={18} color="#2563eb" />,
                 bg: "#eff6ff",
                 border: "#dbeafe",
+                badge: "Registered",
+                badgeColor: "#2563eb",
+                badgeBg: "#dbeafe",
+              },
+              {
+                label: "Currently Logged In",
+                sublabel: "Active Live Sessions",
+                value: (stats.activeLoggedInCount ?? 0).toLocaleString(),
+                icon: <Activity size={18} color="#10b981" />,
+                bg: "#ecfdf5",
+                border: "#a7f3d0",
+                badge: "Live Online",
+                badgeColor: "#059669",
+                badgeBg: "#d1fae5",
+                isLive: true,
+              },
+              {
+                label: "University Academic Records",
+                sublabel: "Total Students in DB",
+                value: (stats.totalStudents ?? 0).toLocaleString(),
+                icon: <Users size={18} color="#6366f1" />,
+                bg: "#eef2ff",
+                border: "#e0e7ff",
               },
               {
                 label: "Semester Result Records",
-                value: stats.totalResults?.toLocaleString(),
-                icon: <FileSpreadsheet size={18} color="#10b981" />,
-                bg: "#ecfdf5",
-                border: "#a7f3d0",
-              },
-              {
-                label: "Active Academic Batches",
-                value: stats.batchBreakdown?.length || 4,
-                icon: <BookOpen size={18} color="#f59e0b" />,
+                sublabel: "Result Sheets Stored",
+                value: (stats.totalResults ?? 0).toLocaleString(),
+                icon: <FileSpreadsheet size={18} color="#f59e0b" />,
                 bg: "#fffbeb",
                 border: "#fde68a",
-              },
-              {
-                label: "Total Generated Rankings",
-                value: stats.totalRankings?.toLocaleString() || "Synced",
-                icon: <Trophy size={18} color="#8b5cf6" />,
-                bg: "#f5f3ff",
-                border: "#ede9fe",
               },
             ].map((stat, i) => (
               <motion.div
@@ -3953,30 +3966,63 @@ export default function AdminDashboard() {
                   boxShadow: "0 2px 8px rgba(15, 23, 42, 0.02)",
                   display: "flex",
                   alignItems: "center",
+                  justifyContent: "space-between",
                   gap: 14,
                 }}
               >
-                <div
-                  style={{
-                    width: 42,
-                    height: 42,
-                    borderRadius: 12,
-                    background: stat.bg,
-                    border: `1px solid ${stat.border}`,
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    flexShrink: 0,
-                  }}
-                >
-                  {stat.icon}
-                </div>
-                <div>
-                  <div style={{ fontSize: 11.5, fontWeight: 700, color: "#64748b", textTransform: "uppercase", letterSpacing: "0.4px" }}>
-                    {stat.label}
+                <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+                  <div
+                    style={{
+                      width: 42,
+                      height: 42,
+                      borderRadius: 12,
+                      background: stat.bg,
+                      border: `1px solid ${stat.border}`,
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      flexShrink: 0,
+                    }}
+                  >
+                    {stat.icon}
                   </div>
-                  <div style={{ fontSize: 22, fontWeight: 800, color: "#0f172a", marginTop: 2 }}>
-                    {stat.value || "0"}
+                  <div>
+                    <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                      <span style={{ fontSize: 11.5, fontWeight: 700, color: "#64748b", textTransform: "uppercase", letterSpacing: "0.4px" }}>
+                        {stat.label}
+                      </span>
+                      {stat.badge && (
+                        <span
+                          style={{
+                            fontSize: 10,
+                            fontWeight: 700,
+                            padding: "2px 6px",
+                            borderRadius: 6,
+                            background: stat.badgeBg,
+                            color: stat.badgeColor,
+                            display: "inline-flex",
+                            alignItems: "center",
+                            gap: 3,
+                          }}
+                        >
+                          {stat.isLive && (
+                            <span
+                              style={{
+                                width: 5,
+                                height: 5,
+                                borderRadius: "50%",
+                                background: "#10b981",
+                                display: "inline-block",
+                              }}
+                            />
+                          )}
+                          {stat.badge}
+                        </span>
+                      )}
+                    </div>
+                    <div style={{ fontSize: 22, fontWeight: 800, color: "#0f172a", marginTop: 2 }}>
+                      {stat.value || "0"}
+                    </div>
                   </div>
                 </div>
               </motion.div>
