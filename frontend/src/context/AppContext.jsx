@@ -213,6 +213,17 @@ export function AppProvider({ children }) {
     };
   }, []);
 
+  // ─── Active Admin Heartbeat (Keep lastActiveAt fresh every 30s) ────
+  useEffect(() => {
+    if (!adminToken) return;
+    const heartbeatInterval = setInterval(async () => {
+      try {
+        await axios.get(`${API_BASE}/auth/admin/me`, { withCredentials: true, timeout: 3500 });
+      } catch {}
+    }, 30000);
+    return () => clearInterval(heartbeatInterval);
+  }, [adminToken]);
+
   // ─── Student In-App Notifications & Realtime SSE Stream ──────────
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
