@@ -82,7 +82,7 @@ function getCookieOptions(req, customExpires = null) {
     expires,
     httpOnly: true,
     secure: isProd || req.secure || req.headers["x-forwarded-proto"] === "https",
-    sameSite: isProd ? "none" : "lax",
+    sameSite: "lax",
     path: "/",
   };
 }
