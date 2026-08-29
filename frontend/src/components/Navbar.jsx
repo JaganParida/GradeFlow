@@ -33,6 +33,7 @@ import {
   GraduationCap,
   Loader2,
   PieChart,
+  Code2,
 } from "lucide-react";
 import { is2023CSEBatch } from "../utils/timetableHelper";
 
@@ -2326,29 +2327,29 @@ export default function Navbar() {
           }
           .gf-navbar-inner {
             height: 60px !important;
-            padding: 0 16px !important;
-            gap: 10px !important;
-          }
-          .gf-navbar-right {
+            padding: 0 14px !important;
             gap: 8px !important;
           }
+          .gf-navbar-right {
+            gap: 6px !important;
+          }
           .gf-search-btn {
-            width: 38px !important;
-            height: 38px !important;
-            border-radius: 10px !important;
+            width: 36px !important;
+            height: 36px !important;
+            border-radius: 9px !important;
           }
           .gf-admin-text {
             display: inline-block !important;
-            font-size: 12.5px !important;
+            font-size: 12px !important;
             font-weight: 750 !important;
           }
           .gf-admin-link {
             display: inline-flex !important;
             align-items: center !important;
-            gap: 5px !important;
-            padding: 0 12px !important;
-            border-radius: 10px !important;
-            height: 38px !important;
+            gap: 4px !important;
+            padding: 0 10px !important;
+            border-radius: 9px !important;
+            height: 36px !important;
             background: #ffffff !important;
             border: 1px solid #cbd5e1 !important;
             color: #475569 !important;
@@ -2362,45 +2363,45 @@ export default function Navbar() {
             box-shadow: 0 2px 6px rgba(16, 185, 129, 0.18) !important;
           }
           .gf-mobile-toggle {
-            width: 38px !important;
-            height: 38px !important;
-            border-radius: 10px !important;
+            width: 36px !important;
+            height: 36px !important;
+            border-radius: 9px !important;
           }
           .gf-logo-text {
-            font-size: 21.5px !important;
+            font-size: 20px !important;
           }
           .gf-logo-img {
-            height: 44px !important;
-            margin-right: -8px !important;
+            height: 40px !important;
+            margin-right: -7px !important;
           }
         }
 
         @media (max-width: 480px) {
           .gf-navbar-inner {
-            height: 60px !important;
-            padding: 0 16px !important;
-            gap: 8px !important;
+            height: 58px !important;
+            padding: 0 12px !important;
+            gap: 6px !important;
           }
           .gf-navbar-right {
-            gap: 8px !important;
+            gap: 5px !important;
           }
           .gf-search-btn {
-            width: 38px !important;
-            height: 38px !important;
-            border-radius: 10px !important;
+            width: 35px !important;
+            height: 35px !important;
+            border-radius: 9px !important;
           }
           .gf-admin-text {
             display: inline-block !important;
-            font-size: 12px !important;
+            font-size: 11.5px !important;
             font-weight: 750 !important;
           }
           .gf-admin-link {
             display: inline-flex !important;
             align-items: center !important;
-            gap: 4px !important;
-            padding: 0 11px !important;
-            border-radius: 10px !important;
-            height: 38px !important;
+            gap: 3.5px !important;
+            padding: 0 8px !important;
+            border-radius: 9px !important;
+            height: 35px !important;
             background: #ffffff !important;
             border: 1px solid #cbd5e1 !important;
             color: #475569 !important;
@@ -2418,41 +2419,42 @@ export default function Navbar() {
             align-items: center;
           }
           .gf-mobile-toggle {
-            width: 38px !important;
-            height: 38px !important;
-            border-radius: 10px !important;
+            width: 35px !important;
+            height: 35px !important;
+            border-radius: 9px !important;
           }
           .gf-logo-text {
-            font-size: 20px !important;
+            font-size: 18.5px !important;
           }
           .gf-logo-img {
-            height: 40px !important;
-            margin-right: -7px !important;
+            height: 37px !important;
+            margin-right: -6px !important;
           }
         }
 
         @media (max-width: 360px) {
           .gf-navbar-inner {
-            height: 58px !important;
-            padding: 0 12px !important;
-            gap: 6px !important;
+            height: 56px !important;
+            padding: 0 8px !important;
+            gap: 4px !important;
           }
           .gf-navbar-right {
-            gap: 6px !important;
+            gap: 4px !important;
           }
           .gf-search-btn {
-            width: 36px !important;
-            height: 36px !important;
-            border-radius: 9px !important;
+            width: 33px !important;
+            height: 33px !important;
+            border-radius: 8px !important;
           }
           .gf-admin-text {
-            display: inline-block !important;
-            font-size: 11px !important;
+            display: none !important;
           }
           .gf-admin-link {
-            padding: 0 9px !important;
-            height: 36px !important;
-            border-radius: 9px !important;
+            padding: 0 7px !important;
+            height: 33px !important;
+            width: 33px !important;
+            justify-content: center !important;
+            border-radius: 8px !important;
           }
           .gf-admin-link.gf-admin-logged-in {
             background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%) !important;
@@ -2460,16 +2462,16 @@ export default function Navbar() {
             color: #065f46 !important;
           }
           .gf-mobile-toggle {
-            width: 36px !important;
-            height: 36px !important;
-            border-radius: 9px !important;
+            width: 33px !important;
+            height: 33px !important;
+            border-radius: 8px !important;
           }
           .gf-logo-text {
-            font-size: 18px !important;
+            font-size: 17px !important;
           }
           .gf-logo-img {
-            height: 36px !important;
-            margin-right: -6px !important;
+            height: 33px !important;
+            margin-right: -5px !important;
           }
         }
       `}</style>
