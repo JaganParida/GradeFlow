@@ -162,8 +162,8 @@ export default function Navbar() {
   }, []);
 
   const currentRegNo = studentSession?.regNo || "";
-  // Admin button is visible ONLY if current browser is authenticated as Admin
-  const canSeeAdmin = Boolean(adminToken);
+  // Admin button is visible to all if 0/2 or 1/2 devices are active (hidden when 2/2 devices are full)
+  const canSeeAdmin = Boolean(adminToken || isAdminButtonVisible);
 
   // Close mobile menu on page navigation
   useEffect(() => {
