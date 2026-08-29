@@ -411,9 +411,23 @@ router.post("/student/login-password", authLimiter, async (req, res) => {
       } else {
         // 2-Device Account (Special Student 230301120327): Max = 2 active devices
         if (activeSessions.length >= maxAllowedDevices) {
-          const sessionsToRevoke = activeSessions.slice(maxAllowedDevices - 1);
-          const revokeIds = sessionsToRevoke.map((s) => s.sessionId);
-          await StudentSession.deleteMany({ sessionId: { $in: revokeIds } });
+          const sanitizedDevices = activeSessions.map((s, idx) => ({
+            deviceIndex: idx + 1,
+            platform: s.deviceInfo?.platform || "Unknown",
+            userAgent: s.deviceInfo?.userAgent || "Unknown",
+            loggedInAt: s.loggedInAt,
+            lastActiveAt: s.lastActiveAt,
+            status: "ACTIVE",
+          }));
+
+          return res.status(403).json({
+            success: false,
+            code: "DEVICE_LIMIT_REACHED",
+            message: `Account ${rawReg} is currently active on ${activeSessions.length} devices (maximum limit: ${maxAllowedDevices}). Please log out from another device before logging in on a new device.`,
+            activeDeviceCount: activeSessions.length,
+            maxAllowedDevices,
+            activeDevices: sanitizedDevices,
+          });
         }
 
         const sessionId = crypto.randomUUID();
@@ -1326,6 +1340,27 @@ const handleAdminPasswordLogin = async (req, res) => {
       } catch {}
     }
 
+    if (activeSessions.length >= MAX_ADMIN_DEVICES && !isCurrentDevice) {
+      const sanitizedDevices = activeSessions.map((s, idx) => ({
+        deviceIndex: idx + 1,
+        deviceType: s.deviceInfo?.deviceType || "Desktop",
+        os: s.deviceInfo?.os || "Windows",
+        browser: s.deviceInfo?.browser || "Chrome",
+        platform: s.deviceInfo?.platform || `${s.deviceInfo?.os || "Windows"} • ${s.deviceInfo?.browser || "Chrome"}`,
+        userAgent: s.deviceInfo?.userAgent || "Standard Browser",
+        loggedInAt: s.loggedInAt,
+        lastActiveAt: s.lastActiveAt,
+        status: "ACTIVE",
+      }));
+      return res.status(403).json({
+        message: `Admin portal is active on ${activeSessions.length} devices (maximum limit: ${MAX_ADMIN_DEVICES}). Please log out from another device first.`,
+        code: "ADMIN_DEVICE_LIMIT_REACHED",
+        activeDeviceCount: activeSessions.length,
+        maxAllowedDevices: MAX_ADMIN_DEVICES,
+        activeDevices: sanitizedDevices,
+      });
+    }
+
     // Generate secure 6-digit OTP code
     const otp = crypto.randomInt(100000, 1000000).toString();
     const otpHash = await bcrypt.hash(otp, 10);
@@ -1418,13 +1453,6 @@ router.post("/admin/verify-otp", async (req, res) => {
         message: `Admin device limit reached (${MAX_ADMIN_DEVICES} devices active). Please log out from another device.`,
         code: "ADMIN_DEVICE_LIMIT_REACHED",
       });
-    }
-
-    const activeSessions = await getActiveAdminSessions(AdminSession);
-    if (activeSessions.length >= MAX_ADMIN_DEVICES) {
-      const sessionsToRevoke = activeSessions.slice(MAX_ADMIN_DEVICES - 1);
-      const revokeIds = sessionsToRevoke.map((s) => s.sessionId);
-      await AdminSession.deleteMany({ sessionId: { $in: revokeIds } });
     }
 
     const sessionId = crypto.randomUUID();
@@ -1684,9 +1712,11 @@ router.post("/subadmin/verify-otp", async (req, res) => {
 
     const activeSessions = await getActiveSubAdminSessions(SubAdminSession, subAdmin._id);
     if (activeSessions.length >= MAX_SUBADMIN_DEVICES) {
-      const sessionsToRevoke = activeSessions.slice(MAX_SUBADMIN_DEVICES - 1);
-      const revokeIds = sessionsToRevoke.map((s) => s.sessionId);
-      await SubAdminSession.deleteMany({ sessionId: { $in: revokeIds } });
+      return res.status(403).json({
+        success: false,
+        code: "SUBADMIN_DEVICE_LIMIT_REACHED",
+        message: `Sub-Admin device limit reached (${MAX_SUBADMIN_DEVICES} active devices). Please log out from another device.`,
+      });
     }
 
     const sessionId = crypto.randomUUID();

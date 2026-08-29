@@ -162,8 +162,8 @@ export default function Navbar() {
   }, []);
 
   const currentRegNo = studentSession?.regNo || "";
-  // Show Admin button if admin is logged in OR if 0/1 devices are active (hides when 2/2 devices are logged in)
-  const canSeeAdmin = Boolean(adminToken || isAdminButtonVisible);
+  // Admin button is visible ONLY if current browser is authenticated as Admin
+  const canSeeAdmin = Boolean(adminToken);
 
   // Close mobile menu on page navigation
   useEffect(() => {
@@ -1699,52 +1699,36 @@ export default function Navbar() {
                   </Link>
                 </motion.div>
 
-                {/* Admin Portal */}
-                <motion.div variants={mobileNavItemVariants}>
-                  <Link
-                    to="/admin"
-                    onClick={() => setMobileMenuOpen(false)}
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "space-between",
-                      padding: "11px 12px",
-                      borderRadius: 10,
-                      textDecoration: "none",
-                      background: adminToken
-                        ? "#f0fdf4"
-                        : location.pathname.startsWith("/admin")
-                          ? "#eff6ff"
-                          : "transparent",
-                      border: adminToken ? "1px solid #bbf7d0" : "1px solid transparent",
-                      color: adminToken
-                        ? "#065f46"
-                        : location.pathname.startsWith("/admin")
-                          ? "#2563eb"
-                          : "#1e293b",
-                      fontSize: 14.5,
-                      fontWeight: adminToken || location.pathname.startsWith("/admin")
-                        ? 700
-                        : 600,
-                    }}
-                  >
-                    <div
-                      style={{ display: "flex", alignItems: "center", gap: 10 }}
+                {/* Admin Portal (Only visible if authenticated on this browser) */}
+                {canSeeAdmin && (
+                  <motion.div variants={mobileNavItemVariants}>
+                    <Link
+                      to="/admin"
+                      onClick={() => setMobileMenuOpen(false)}
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "space-between",
+                        padding: "11px 12px",
+                        borderRadius: 10,
+                        textDecoration: "none",
+                        background: "#f0fdf4",
+                        border: "1px solid #bbf7d0",
+                        color: "#065f46",
+                        fontSize: 14.5,
+                        fontWeight: 700,
+                      }}
                     >
-                      <ShieldCheck
-                        size={17}
-                        color={
-                          adminToken
-                            ? "#059669"
-                            : location.pathname.startsWith("/admin")
-                              ? "#2563eb"
-                              : "#64748b"
-                        }
-                        strokeWidth={adminToken ? 2.4 : 2}
-                      />
-                      <span>Admin Portal</span>
-                    </div>
-                    {adminToken ? (
+                      <div
+                        style={{ display: "flex", alignItems: "center", gap: 10 }}
+                      >
+                        <ShieldCheck
+                          size={17}
+                          color="#059669"
+                          strokeWidth={2.4}
+                        />
+                        <span>Admin Portal</span>
+                      </div>
                       <span
                         style={{
                           fontSize: 10.5,
@@ -1758,11 +1742,9 @@ export default function Navbar() {
                       >
                         Logged In
                       </span>
-                    ) : (
-                      <ChevronRight size={15} color="#94a3b8" />
-                    )}
-                  </Link>
-                </motion.div>
+                    </Link>
+                  </motion.div>
+                )}
               </div>
 
               {/* Mobile Drawer Bottom Action */}

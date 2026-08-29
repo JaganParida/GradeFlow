@@ -400,15 +400,11 @@ async function touchSession(session) {
    ADMIN & SUB-ADMIN SESSION HELPERS
 ═══════════════════════════════════════════════════════════════════ */
 
-const ADMIN_ACTIVE_HEARTBEAT_WINDOW_MS = 15 * 60 * 1000; // 15 minutes heartbeat activity window
-
 async function cleanExpiredAdminSessions(AdminSession) {
-  const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
   await AdminSession.deleteMany({
     $or: [
       { isActive: false },
       { expiresAt: { $lte: new Date() } },
-      { lastActiveAt: { $lte: oneDayAgo } },
     ],
   });
 }
@@ -416,12 +412,10 @@ async function cleanExpiredAdminSessions(AdminSession) {
 async function getActiveAdminSessions(AdminSession) {
   await cleanExpiredAdminSessions(AdminSession);
 
-  const activeCutoff = new Date(Date.now() - ADMIN_ACTIVE_HEARTBEAT_WINDOW_MS);
   return AdminSession.find({
     isActive: true,
     expiresAt: { $gt: new Date() },
-    lastActiveAt: { $gt: activeCutoff },
-  }).sort({ lastActiveAt: -1 });
+  }).sort({ loggedInAt: -1 });
 }
 
 function isAdminSessionValid(session) {
@@ -439,12 +433,10 @@ async function touchAdminSession(session) {
 }
 
 async function cleanExpiredSubAdminSessions(SubAdminSession, subAdminId = null) {
-  const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
   const filter = {
     $or: [
       { isActive: false },
       { expiresAt: { $lte: new Date() } },
-      { lastActiveAt: { $lte: oneDayAgo } },
     ],
   };
   if (subAdminId) {
@@ -456,13 +448,11 @@ async function cleanExpiredSubAdminSessions(SubAdminSession, subAdminId = null) 
 async function getActiveSubAdminSessions(SubAdminSession, subAdminId) {
   await cleanExpiredSubAdminSessions(SubAdminSession, subAdminId);
 
-  const activeCutoff = new Date(Date.now() - ADMIN_ACTIVE_HEARTBEAT_WINDOW_MS);
   return SubAdminSession.find({
     subAdminId,
     isActive: true,
     expiresAt: { $gt: new Date() },
-    lastActiveAt: { $gt: activeCutoff },
-  }).sort({ lastActiveAt: -1 });
+  }).sort({ loggedInAt: -1 });
 }
 
 module.exports = {

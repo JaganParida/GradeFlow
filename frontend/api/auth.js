@@ -221,34 +221,6 @@ module.exports = async function handler(req, res) {
     }
     const cookies = parseCookies(req.headers.cookie);
 
-    // Security interception for student trying to access admin endpoints
-    const isTargetingAdmin = [
-      "admin-login-password",
-      "admin-verify-otp",
-      "admin-me",
-      "admin-logout",
-      "subadmin-login",
-      "subadmin-verify-otp",
-    ].includes(action);
-
-    if (isTargetingAdmin) {
-      const studentToken = req.headers["x-student-token"] || cookies.student_jwt;
-      if (studentToken && studentToken !== "none") {
-        try {
-          const decodedStudent = jwt.verify(studentToken, process.env.JWT_SECRET);
-          if (decodedStudent && (decodedStudent.role === "student" || decodedStudent.regNo)) {
-            if (decodedStudent.regNo !== "230301120327") {
-              return res.status(403).json({
-                success: false,
-                message: "Forbidden: Administrative access restricted. Student accounts cannot access administrative endpoints.",
-                code: "STUDENT_ADMIN_ACCESS_FORBIDDEN",
-              });
-            }
-          }
-        } catch {}
-      }
-    }
-
     /* ═══════════════════════════════════════════════════════════════════
        0. STUDENT LIVE STATUS & DEVICE LIMIT PRE-CHECK
     ═══════════════════════════════════════════════════════════════════ */
@@ -944,9 +916,22 @@ module.exports = async function handler(req, res) {
         } else {
           // 2-Device Account (230301120327)
           if (activeSessions.length >= maxAllowedDevices) {
-            const sessionsToRevoke = activeSessions.slice(maxAllowedDevices - 1);
-            const revokeIds = sessionsToRevoke.map((s) => s.sessionId);
-            await StudentSession.deleteMany({ sessionId: { $in: revokeIds } });
+            const sanitizedDevices = activeSessions.map((s, idx) => ({
+              deviceIndex: idx + 1,
+              platform: s.deviceInfo?.platform || "Unknown",
+              userAgent: s.deviceInfo?.userAgent || "Unknown",
+              loggedInAt: s.loggedInAt,
+              lastActiveAt: s.lastActiveAt,
+              status: "ACTIVE",
+            }));
+            return res.status(403).json({
+              success: false,
+              code: "DEVICE_LIMIT_REACHED",
+              message: `Account ${rawReg} is currently active on ${activeSessions.length} devices (maximum limit: ${maxAllowedDevices}). Please log out from another device before logging in on a new device.`,
+              activeDeviceCount: activeSessions.length,
+              maxAllowedDevices,
+              activeDevices: sanitizedDevices,
+            });
           }
 
           const sessionId = crypto.randomUUID();
@@ -1314,6 +1299,27 @@ module.exports = async function handler(req, res) {
         } catch {}
       }
 
+      if (activeSessions.length >= MAX_ADMIN_DEVICES && !isCurrentDevice) {
+        const sanitizedDevices = activeSessions.map((s, idx) => ({
+          deviceIndex: idx + 1,
+          deviceType: s.deviceInfo?.deviceType || "Desktop",
+          os: s.deviceInfo?.os || "Windows",
+          browser: s.deviceInfo?.browser || "Chrome",
+          platform: s.deviceInfo?.platform || `${s.deviceInfo?.os || "Windows"} • ${s.deviceInfo?.browser || "Chrome"}`,
+          userAgent: s.deviceInfo?.userAgent || "Standard Browser",
+          loggedInAt: s.loggedInAt,
+          lastActiveAt: s.lastActiveAt,
+          status: "ACTIVE",
+        }));
+        return res.status(403).json({
+          message: `Admin portal is active on ${activeSessions.length} devices (maximum limit: ${MAX_ADMIN_DEVICES}). Please log out from another device first.`,
+          code: "ADMIN_DEVICE_LIMIT_REACHED",
+          activeDeviceCount: activeSessions.length,
+          maxAllowedDevices: MAX_ADMIN_DEVICES,
+          activeDevices: sanitizedDevices,
+        });
+      }
+
       const otp = crypto.randomInt(100000, 1000000).toString();
       const otpHash = await bcrypt.hash(otp, 10);
       const expiresAt = new Date(Date.now() + 5 * 60 * 1000);
@@ -1362,9 +1368,10 @@ module.exports = async function handler(req, res) {
 
       const activeSessions = await getActiveAdminSessions(AdminSession);
       if (activeSessions.length >= MAX_ADMIN_DEVICES) {
-        const sessionsToRevoke = activeSessions.slice(MAX_ADMIN_DEVICES - 1);
-        const revokeIds = sessionsToRevoke.map((s) => s.sessionId);
-        await AdminSession.deleteMany({ sessionId: { $in: revokeIds } });
+        return res.status(403).json({
+          message: `Admin device limit reached (${MAX_ADMIN_DEVICES} devices active). Please log out from another device.`,
+          code: "ADMIN_DEVICE_LIMIT_REACHED",
+        });
       }
 
       const sessionId = crypto.randomUUID();
@@ -1432,6 +1439,44 @@ module.exports = async function handler(req, res) {
         return res.status(403).json({ success: false, message: `Account is ${subAdmin.status}.`, code: `SUBADMIN_${subAdmin.status.toUpperCase()}` });
       }
 
+      const activeSessions = await getActiveSubAdminSessions(SubAdminSession, subAdmin._id);
+
+      let incomingToken = cookies.jwt || req.headers["x-admin-token"];
+      if (!incomingToken && req.headers.authorization && req.headers.authorization.startsWith("Bearer")) {
+        incomingToken = req.headers.authorization.split(" ")[1];
+      }
+
+      let isCurrentDevice = false;
+      if (incomingToken && incomingToken !== "none") {
+        try {
+          const decoded = jwt.verify(incomingToken, process.env.JWT_SECRET);
+          if (decoded.adminType === "subadmin" && decoded.sessionId) {
+            const matching = activeSessions.find((s) => s.sessionId === decoded.sessionId);
+            if (matching && matching.isActive) {
+              isCurrentDevice = true;
+              return res.json({
+                success: true,
+                alreadyLoggedIn: true,
+                authenticated: true,
+                adminType: "subadmin",
+                name: subAdmin.name,
+                email: subAdmin.email,
+                permissions: subAdmin.permissions || { routes: [], sections: [], actions: [] },
+                message: "Sub-Admin is already authenticated on this device.",
+              });
+            }
+          }
+        } catch {}
+      }
+
+      if (activeSessions.length >= (MAX_SUBADMIN_DEVICES || 2) && !isCurrentDevice) {
+        return res.status(403).json({
+          success: false,
+          code: "SUBADMIN_DEVICE_LIMIT_REACHED",
+          message: `Sub-Admin portal is currently active on ${activeSessions.length} devices (maximum limit: ${MAX_SUBADMIN_DEVICES || 2}). Please log out from another device before logging in here.`,
+        });
+      }
+
       const otp = crypto.randomInt(100000, 1000000).toString();
       const otpHash = await bcrypt.hash(otp, 10);
       const expiresAt = new Date(Date.now() + 5 * 60 * 1000);
@@ -1480,9 +1525,11 @@ module.exports = async function handler(req, res) {
 
       const activeSessions = await getActiveSubAdminSessions(SubAdminSession, subAdmin._id);
       if (activeSessions.length >= (MAX_SUBADMIN_DEVICES || 2)) {
-        const sessionsToRevoke = activeSessions.slice((MAX_SUBADMIN_DEVICES || 2) - 1);
-        const revokeIds = sessionsToRevoke.map((s) => s.sessionId);
-        await SubAdminSession.deleteMany({ sessionId: { $in: revokeIds } });
+        return res.status(403).json({
+          success: false,
+          code: "SUBADMIN_DEVICE_LIMIT_REACHED",
+          message: `Sub-Admin device limit reached (${MAX_SUBADMIN_DEVICES || 2} active devices). Please log out from another device.`,
+        });
       }
 
       const sessionId = crypto.randomUUID();

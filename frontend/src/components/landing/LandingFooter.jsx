@@ -5,9 +5,9 @@ import { useApp } from "../../context/AppContext";
 
 export default function LandingFooter({ onNavigateSection }) {
   const navigate = useNavigate();
-  const { adminToken, isAdminButtonVisible } = useApp();
-  // Show Admin button if admin is logged in OR if 0/1 devices are active (hides when 2/2 devices are logged in)
-  const canSeeAdmin = Boolean(adminToken || isAdminButtonVisible);
+  const { adminToken } = useApp();
+  // Admin Portal link is only visible if current browser is authenticated as Admin
+  const canSeeAdmin = Boolean(adminToken);
 
   return (
     <footer
@@ -275,24 +275,26 @@ export default function LandingFooter({ onNavigateSection }) {
                   Developer Note
                 </Link>
               </li>
-              <li>
-                <Link
-                  to="/admin"
-                  style={{
-                    color: "#0f172a",
-                    fontWeight: 700,
-                    textDecoration: "none",
-                    display: "inline-flex",
-                    alignItems: "center",
-                    gap: 4,
-                  }}
-                  onMouseEnter={(e) => (e.target.style.color = "#2563eb")}
-                  onMouseLeave={(e) => (e.target.style.color = "#0f172a")}
-                >
-                  <span>Admin Portal</span>
-                  <ArrowUpRight size={13} />
-                </Link>
-              </li>
+              {canSeeAdmin && (
+                <li>
+                  <Link
+                    to="/admin"
+                    style={{
+                      color: "#0f172a",
+                      fontWeight: 700,
+                      textDecoration: "none",
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: 4,
+                    }}
+                    onMouseEnter={(e) => (e.target.style.color = "#2563eb")}
+                    onMouseLeave={(e) => (e.target.style.color = "#0f172a")}
+                  >
+                    <span>Admin Portal</span>
+                    <ArrowUpRight size={13} />
+                  </Link>
+                </li>
+              )}
             </ul>
           </div>
         </div>
