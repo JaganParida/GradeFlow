@@ -480,7 +480,7 @@ export default function StudentAuthModal({ isOpen, onClose }) {
   // Step 1: Submit Registration Number (Dispatches to Password Login or OTP)
   const handleRegSubmit = async (e) => {
     if (e) e.preventDefault();
-    if (loading || isChecking) return;
+    if (loading) return;
 
     if (!isRegValid) {
       setErrorMsg("Please enter your complete university registration number.");
@@ -488,21 +488,55 @@ export default function StudentAuthModal({ isOpen, onClose }) {
       return;
     }
 
-    if (deviceStatus?.exists === false) {
+    let status = deviceStatus;
+
+    // If debounced status check is still in-flight or not ready, fetch immediately
+    if (!status || status.regNo !== cleanReg) {
+      setLoading(true);
+      try {
+        const res = await axios.get(`${API_BASE}/auth/student/check-status?regNo=${encodeURIComponent(cleanReg)}`, {
+          withCredentials: true,
+        });
+        if (res.data?.success) {
+          status = {
+            ...res.data,
+            regNo: cleanReg,
+            devices: res.data.sessions || [],
+          };
+          setDeviceStatus(status);
+          if (res.data.studentName) setStudentName(res.data.studentName);
+          if (res.data.attemptsUsedToday !== undefined) setAttemptsUsed(res.data.attemptsUsedToday);
+          if (res.data.remainingDailyAttempts !== undefined) setRemainingDailyAttempts(res.data.remainingDailyAttempts);
+          if (res.data.isCooldownActive && res.data.cooldownRemainingSeconds) setResendCooldown(res.data.cooldownRemainingSeconds);
+        } else {
+          setErrorMsg(res.data?.message || "Unable to verify registration number.");
+          setLoading(false);
+          return;
+        }
+      } catch (err) {
+        setErrorMsg(err.response?.data?.message || "Server connection error. Please try again.");
+        setLoading(false);
+        return;
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    if (status?.exists === false) {
       setErrorMsg(`Registration number ${cleanReg} not found in university student records.`);
       setErrorCode("STUDENT_NOT_FOUND");
       return;
     }
 
-    if (deviceStatus?.isBlocked) {
-      if (deviceStatus.devices && deviceStatus.devices.length > 0) {
-        setBlockedDevicesData(deviceStatus.devices);
+    if (status?.isBlocked) {
+      if (status.devices && status.devices.length > 0) {
+        setBlockedDevicesData(status.devices);
       }
       setIsBlockedModalOpen(true);
       return;
     }
 
-    if (deviceStatus?.isCurrentDevice && deviceStatus?.hasPassword) {
+    if (status?.isCurrentDevice && status?.hasPassword) {
       navigateToDestination(cleanReg);
       return;
     }
@@ -511,7 +545,7 @@ export default function StudentAuthModal({ isOpen, onClose }) {
     setErrorCode("");
 
     // If account has password -> Go to Password Screen
-    if (deviceStatus?.hasPassword) {
+    if (status?.hasPassword) {
       setStep("PASSWORD");
       return;
     }
