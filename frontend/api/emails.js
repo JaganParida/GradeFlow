@@ -1,5 +1,6 @@
 const nodemailer = require("nodemailer");
 const { generateBacklogEmailHtml, generateBacklogEmailText } = require("./_lib/emailTemplate.js");
+const { generateTopperEmailHtml, generateTopperEmailText } = require("./_lib/topperEmailTemplate.js");
 
 function createTransporter() {
   const emailUser = process.env.EMAIL_USER;
@@ -50,6 +51,71 @@ module.exports = async function handler(req, res) {
   }
 
   try {
+    const action = req.query.action || (req.url?.includes("topper") ? "topper" : "backlog");
+    const senderEmail = process.env.EMAIL_FROM || "jaganparida9154@gmail.com";
+
+    // 1. TOPPER EMAIL DISPATCH
+    if (action === "topper" || req.url?.includes("send-topper-email")) {
+      const {
+        regNo,
+        studentName = "Student",
+        cgpa = 0,
+        sgpa = 0,
+        sectionCgpaRank = 1,
+        sectionSgpaRank = 1,
+        universityRank = null,
+        semester = 1,
+        batch = "N/A",
+        branch = "N/A",
+        section = "N/A",
+        customEmail,
+      } = req.body || {};
+
+      const cleanRegNo = String(regNo || "").trim();
+      if (!cleanRegNo) {
+        return res.status(400).json({ message: "Registration number is required." });
+      }
+
+      const recipientEmail = customEmail || `${cleanRegNo}@centurionuniv.edu.in`;
+      const transporter = createTransporter();
+
+      const emailPayload = {
+        studentName,
+        regNo: cleanRegNo,
+        cgpa,
+        sgpa,
+        sectionCgpaRank,
+        sectionSgpaRank,
+        universityRank,
+        semester,
+        batch,
+        branch,
+        section,
+        developerWhatsapp: process.env.DEVELOPER_WHATSAPP || "919124540575",
+        frontendUrl: process.env.FRONTEND_URL || "https://grade-flow-navy.vercel.app",
+      };
+
+      const html = generateTopperEmailHtml(emailPayload);
+      const text = generateTopperEmailText(emailPayload);
+
+      const mailOptions = {
+        from: `"GradeFlow - Academic Updates" <${senderEmail}>`,
+        replyTo: senderEmail,
+        to: recipientEmail,
+        subject: `🏆 Congratulations ${studentName}! Section Academic Excellence Recognition (Semester ${semester})`,
+        text,
+        html,
+      };
+
+      const info = await transporter.sendMail(mailOptions);
+      return res.json({
+        success: true,
+        message: `Academic Excellence email successfully dispatched to ${recipientEmail}`,
+        messageId: info.messageId,
+      });
+    }
+
+    // 2. BACKLOG NOTIFICATION EMAIL DISPATCH
     const {
       regNo,
       studentName = "Student",
@@ -71,7 +137,6 @@ module.exports = async function handler(req, res) {
     }
 
     const recipientEmail = customEmail || `${cleanRegNo}@centurionuniv.edu.in`;
-
     const transporter = createTransporter();
 
     const emailPayload = {
@@ -93,29 +158,27 @@ module.exports = async function handler(req, res) {
     const html = generateBacklogEmailHtml(emailPayload);
     const text = generateBacklogEmailText(emailPayload);
 
-    const senderEmail = process.env.EMAIL_FROM || "jaganparida9154@gmail.com";
-
     const mailOptions = {
       from: `"GradeFlow - Academic Updates" <${senderEmail}>`,
       replyTo: senderEmail,
       to: recipientEmail,
-      subject: `Official Academic Status Update: ${cleanRegNo}`,
+      subject: `Academic Performance Update - Action Required (${studentName})`,
       text,
       html,
     };
 
     const info = await transporter.sendMail(mailOptions);
-
-    return res.status(200).json({
-      message: `📧 Backlog notification email sent successfully to ${recipientEmail}!`,
+    return res.json({
+      success: true,
+      message: `Backlog notification email successfully dispatched to ${recipientEmail}`,
       messageId: info.messageId,
-      recipient: recipientEmail,
     });
   } catch (err) {
-    console.error("Vercel Serverless Backlog Email Error:", err);
+    console.error("Email dispatch handler error:", err);
     return res.status(500).json({
-      message: err.message || "Failed to send backlog email.",
-      error: err.toString(),
+      success: false,
+      message: "Failed to send email.",
+      error: err.message,
     });
   }
 };

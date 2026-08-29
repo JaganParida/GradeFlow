@@ -49,6 +49,10 @@ module.exports = async function handler(req, res) {
   Object.entries(CORS_HEADERS).forEach(([k, v]) => res.setHeader(k, v));
   if (req.method === "OPTIONS") return res.status(200).end();
 
+  if (req.query.action === "health" || req.url?.includes("/api/health")) {
+    return res.status(200).json({ status: "ok", uptime: process.uptime(), timestamp: new Date().toISOString() });
+  }
+
   try {
     await connectToDatabase();
 

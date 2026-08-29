@@ -2,15 +2,15 @@
   "rewrites": [
     {
       "source": "/api/send-backlog-email",
-      "destination": "/api/send-backlog-email.js"
+      "destination": "/api/emails.js?action=backlog"
     },
     {
       "source": "/api/send-topper-email",
-      "destination": "/api/send-topper-email.js"
+      "destination": "/api/emails.js?action=topper"
     },
     {
       "source": "/api/health",
-      "destination": "/api/health.js"
+      "destination": "/api/student.js?action=health"
     },
     {
       "source": "/api/attendance/ocr",
