@@ -25,6 +25,7 @@ import {
   Laptop,
   Tablet,
   AlertTriangle,
+  XCircle,
 } from "lucide-react";
 import BlockedLoginDeviceModal from "./BlockedLoginDeviceModal";
 
