@@ -1674,7 +1674,7 @@ export default function Navbar() {
                     <div
                       style={{ display: "flex", alignItems: "center", gap: 10 }}
                     >
-                      <User
+                      <Code2
                         size={17}
                         color={
                           location.pathname === "/about-dev" ||
@@ -1699,92 +1699,70 @@ export default function Navbar() {
                   </Link>
                 </motion.div>
 
-                {/* Admin Portal (Accessible ONLY for Admin / Superuser) */}
-                {canSeeAdmin && (
-                  <motion.div variants={mobileNavItemVariants}>
-                    <Link
-                      to="/admin"
-                      onClick={() => setMobileMenuOpen(false)}
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "space-between",
-                        padding: "11px 12px",
-                        borderRadius: 10,
-                        textDecoration: "none",
-                        background: adminToken
-                          ? "#f0fdf4"
-                          : location.pathname.startsWith("/admin")
-                            ? "#eff6ff"
-                            : "transparent",
-                        border: adminToken ? "1px solid #bbf7d0" : "1px solid transparent",
-                        color: adminToken
-                          ? "#065f46"
-                          : location.pathname.startsWith("/admin")
-                            ? "#2563eb"
-                            : "#1e293b",
-                        fontSize: 14.5,
-                        fontWeight: adminToken || location.pathname.startsWith("/admin")
-                          ? 700
-                          : 600,
-                      }}
+                {/* Admin Portal */}
+                <motion.div variants={mobileNavItemVariants}>
+                  <Link
+                    to="/admin"
+                    onClick={() => setMobileMenuOpen(false)}
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                      padding: "11px 12px",
+                      borderRadius: 10,
+                      textDecoration: "none",
+                      background: adminToken
+                        ? "#f0fdf4"
+                        : location.pathname.startsWith("/admin")
+                          ? "#eff6ff"
+                          : "transparent",
+                      border: adminToken ? "1px solid #bbf7d0" : "1px solid transparent",
+                      color: adminToken
+                        ? "#065f46"
+                        : location.pathname.startsWith("/admin")
+                          ? "#2563eb"
+                          : "#1e293b",
+                      fontSize: 14.5,
+                      fontWeight: adminToken || location.pathname.startsWith("/admin")
+                        ? 700
+                        : 600,
+                    }}
+                  >
+                    <div
+                      style={{ display: "flex", alignItems: "center", gap: 10 }}
                     >
-                      <div
-                        style={{ display: "flex", alignItems: "center", gap: 10 }}
+                      <ShieldCheck
+                        size={17}
+                        color={
+                          adminToken
+                            ? "#059669"
+                            : location.pathname.startsWith("/admin")
+                              ? "#2563eb"
+                              : "#64748b"
+                        }
+                        strokeWidth={adminToken ? 2.4 : 2}
+                      />
+                      <span>Admin Portal</span>
+                    </div>
+                    {adminToken ? (
+                      <span
+                        style={{
+                          fontSize: 10.5,
+                          fontWeight: 700,
+                          background: "#dcfce7",
+                          color: "#065f46",
+                          padding: "2px 8px",
+                          borderRadius: 6,
+                          border: "1px solid #86efac",
+                        }}
                       >
-                        <ShieldCheck
-                          size={17}
-                          color={
-                            adminToken
-                              ? "#059669"
-                              : location.pathname.startsWith("/admin")
-                                ? "#2563eb"
-                                : "#64748b"
-                          }
-                          strokeWidth={adminToken ? 2.4 : 2}
-                        />
-                        <span>Admin Portal</span>
-                      </div>
-                      {adminToken ? (
-                        <span
-                          style={{
-                            fontSize: 10.5,
-                            fontWeight: 700,
-                            background: "#dcfce7",
-                            color: "#065f46",
-                            padding: "2px 8px",
-                            borderRadius: 6,
-                            border: "1px solid #86efac",
-                          }}
-                        >
-                          Logged In
-                        </span>
-                      ) : location.pathname.startsWith("/admin") ? (
-                        <span
-                          style={{
-                            width: 6,
-                            height: 6,
-                            borderRadius: "50%",
-                            background: "#2563eb",
-                          }}
-                        />
-                      ) : (
-                        <span
-                          style={{
-                            fontSize: 10,
-                            fontWeight: 700,
-                            background: "#f1f5f9",
-                            color: "#64748b",
-                            padding: "2px 6px",
-                            borderRadius: 4,
-                          }}
-                        >
-                          Gate
-                        </span>
-                      )}
-                    </Link>
-                  </motion.div>
-                )}
+                        Logged In
+                      </span>
+                    ) : (
+                      <ChevronRight size={15} color="#94a3b8" />
+                    )}
+                  </Link>
+                </motion.div>
               </div>
 
               {/* Mobile Drawer Bottom Action */}

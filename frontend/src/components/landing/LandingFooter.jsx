@@ -275,26 +275,24 @@ export default function LandingFooter({ onNavigateSection }) {
                   Developer Note
                 </Link>
               </li>
-              {canSeeAdmin && (
-                <li>
-                  <Link
-                    to="/admin"
-                    style={{
-                      color: "#0f172a",
-                      fontWeight: 700,
-                      textDecoration: "none",
-                      display: "inline-flex",
-                      alignItems: "center",
-                      gap: 4,
-                    }}
-                    onMouseEnter={(e) => (e.target.style.color = "#2563eb")}
-                    onMouseLeave={(e) => (e.target.style.color = "#0f172a")}
-                  >
-                    <span>Admin Portal</span>
-                    <ArrowUpRight size={13} />
-                  </Link>
-                </li>
-              )}
+              <li>
+                <Link
+                  to="/admin"
+                  style={{
+                    color: "#0f172a",
+                    fontWeight: 700,
+                    textDecoration: "none",
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 4,
+                  }}
+                  onMouseEnter={(e) => (e.target.style.color = "#2563eb")}
+                  onMouseLeave={(e) => (e.target.style.color = "#0f172a")}
+                >
+                  <span>Admin Portal</span>
+                  <ArrowUpRight size={13} />
+                </Link>
+              </li>
             </ul>
           </div>
         </div>
