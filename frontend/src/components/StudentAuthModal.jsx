@@ -714,133 +714,143 @@ export default function StudentAuthModal({ isOpen, onClose }) {
           transition={{ duration: 0.18, ease: "easeOut" }}
           style={{
             background: "#ffffff",
-            borderRadius: 20,
+            borderRadius: 18,
             border: "1px solid #e2e8f0",
             boxShadow: "0 20px 45px -10px rgba(15, 23, 42, 0.22)",
-            maxWidth: "min(440px, 100%)",
+            maxWidth: "min(410px, calc(100vw - 20px))",
             width: "100%",
-            maxHeight: "min(92vh, 700px)",
+            maxHeight: "min(92vh, 660px)",
             overflowY: "auto",
             WebkitOverflowScrolling: "touch",
             position: "relative",
             boxSizing: "border-box",
-            padding: "clamp(18px, 4vw, 26px) clamp(16px, 4vw, 24px)",
+            padding: "clamp(14px, 3.5vw, 20px) clamp(12px, 3.5vw, 18px)",
           }}
           onClick={(e) => e.stopPropagation()}
         >
-          {/* Close Button / Mandatory Tag */}
-          {step !== "CREATE_PASSWORD" && step !== "PASSWORD_SUCCESS" ? (
-            <button
-              onClick={handleModalClose}
-              aria-label="Close modal"
-              style={{
-                position: "absolute",
-                top: 14,
-                right: 14,
-                background: "#f8fafc",
-                border: "1px solid #e2e8f0",
-                borderRadius: "50%",
-                width: 32,
-                height: 32,
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                color: "#64748b",
-                cursor: "pointer",
-                transition: "all 0.15s ease",
-              }}
-            >
-              <X size={15} />
-            </button>
-          ) : step === "CREATE_PASSWORD" ? (
+          {/* Top Bar: Progress Stepper + Action/Mandatory Badge */}
+          {step !== "PASSWORD_SUCCESS" && step !== "APPROVAL_PENDING" && (
             <div
               style={{
-                position: "absolute",
-                top: 14,
-                right: 14,
                 display: "flex",
                 alignItems: "center",
-                gap: 5,
-                background: "#fef3c7",
-                border: "1px solid #fde68a",
-                borderRadius: 999,
-                padding: "3px 9px",
-                fontSize: 10.5,
-                fontWeight: 800,
-                color: "#92400e",
+                justifyContent: "space-between",
+                gap: 6,
+                marginBottom: 12,
+                width: "100%",
+                boxSizing: "border-box",
               }}
             >
-              <Lock size={11} />
-              <span>Mandatory Step</span>
-            </div>
-          ) : null}
-
-          {/* Modern Step Progress Indicator */}
-          {step !== "PASSWORD_SUCCESS" && step !== "APPROVAL_PENDING" && (
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "center", flexWrap: "wrap", gap: "clamp(4px, 1.2vw, 6px)", marginBottom: 16 }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 4, fontSize: "clamp(10px, 2.5vw, 11px)", fontWeight: 800, color: step === "REGNO" ? "#2563eb" : "#16a34a" }}>
-                <div style={{ width: 18, height: 18, borderRadius: "50%", background: step === "REGNO" ? "#2563eb" : "#16a34a", color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10, fontWeight: 900, flexShrink: 0 }}>
-                  {step === "REGNO" ? "1" : "✓"}
-                </div>
-                <span>Identifier</span>
-              </div>
-
-              <div style={{ width: "clamp(10px, 2vw, 16px)", height: 2, background: step === "REGNO" ? "#e2e8f0" : "#16a34a", borderRadius: 1 }} />
-
-              <div style={{ display: "flex", alignItems: "center", gap: 4, fontSize: "clamp(10px, 2.5vw, 11px)", fontWeight: 800, color: (step === "OTP" || step === "PASSWORD") ? "#2563eb" : (step === "CREATE_PASSWORD") ? "#16a34a" : "#94a3b8" }}>
-                <div style={{ width: 18, height: 18, borderRadius: "50%", background: (step === "OTP" || step === "PASSWORD") ? "#2563eb" : (step === "CREATE_PASSWORD") ? "#16a34a" : "#e2e8f0", color: (step === "OTP" || step === "PASSWORD" || step === "CREATE_PASSWORD") ? "#fff" : "#64748b", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10, fontWeight: 900, flexShrink: 0 }}>
-                  {step === "CREATE_PASSWORD" ? "✓" : "2"}
-                </div>
-                <span>{step === "PASSWORD" ? "Password" : "OTP Code"}</span>
-              </div>
-
-              {(!deviceStatus?.hasPassword || step === "CREATE_PASSWORD") && (
-                <>
-                  <div style={{ width: "clamp(10px, 2vw, 16px)", height: 2, background: (step === "CREATE_PASSWORD") ? "#2563eb" : "#e2e8f0", borderRadius: 1 }} />
-                  <div style={{ display: "flex", alignItems: "center", gap: 4, fontSize: "clamp(10px, 2.5vw, 11px)", fontWeight: 800, color: step === "CREATE_PASSWORD" ? "#2563eb" : "#94a3b8" }}>
-                    <div style={{ width: 18, height: 18, borderRadius: "50%", background: step === "CREATE_PASSWORD" ? "#2563eb" : "#e2e8f0", color: step === "CREATE_PASSWORD" ? "#fff" : "#64748b", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10, fontWeight: 900, flexShrink: 0 }}>
-                      3
-                    </div>
-                    <span>Password</span>
+              {/* Stepper */}
+              <div style={{ display: "flex", alignItems: "center", gap: "clamp(3px, 1vw, 5px)", flexShrink: 1, minWidth: 0 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 3, fontSize: "clamp(9.5px, 2.2vw, 10.5px)", fontWeight: 800, color: step === "REGNO" ? "#2563eb" : "#16a34a", whiteSpace: "nowrap" }}>
+                  <div style={{ width: 16, height: 16, borderRadius: "50%", background: step === "REGNO" ? "#2563eb" : "#16a34a", color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 9, fontWeight: 900, flexShrink: 0 }}>
+                    {step === "REGNO" ? "1" : "✓"}
                   </div>
-                </>
+                  <span>Identifier</span>
+                </div>
+
+                <div style={{ width: "clamp(6px, 1.5vw, 12px)", height: 2, background: step === "REGNO" ? "#e2e8f0" : "#16a34a", borderRadius: 1, flexShrink: 0 }} />
+
+                <div style={{ display: "flex", alignItems: "center", gap: 3, fontSize: "clamp(9.5px, 2.2vw, 10.5px)", fontWeight: 800, color: (step === "OTP" || step === "PASSWORD") ? "#2563eb" : (step === "CREATE_PASSWORD") ? "#16a34a" : "#94a3b8", whiteSpace: "nowrap" }}>
+                  <div style={{ width: 16, height: 16, borderRadius: "50%", background: (step === "OTP" || step === "PASSWORD") ? "#2563eb" : (step === "CREATE_PASSWORD") ? "#16a34a" : "#e2e8f0", color: (step === "OTP" || step === "PASSWORD" || step === "CREATE_PASSWORD") ? "#fff" : "#64748b", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 9, fontWeight: 900, flexShrink: 0 }}>
+                    {step === "CREATE_PASSWORD" ? "✓" : "2"}
+                  </div>
+                  <span>{step === "PASSWORD" ? "Password" : "OTP"}</span>
+                </div>
+
+                {(!deviceStatus?.hasPassword || step === "CREATE_PASSWORD") && (
+                  <>
+                    <div style={{ width: "clamp(6px, 1.5vw, 12px)", height: 2, background: (step === "CREATE_PASSWORD") ? "#2563eb" : "#e2e8f0", borderRadius: 1, flexShrink: 0 }} />
+                    <div style={{ display: "flex", alignItems: "center", gap: 3, fontSize: "clamp(9.5px, 2.2vw, 10.5px)", fontWeight: 800, color: step === "CREATE_PASSWORD" ? "#2563eb" : "#94a3b8", whiteSpace: "nowrap" }}>
+                      <div style={{ width: 16, height: 16, borderRadius: "50%", background: step === "CREATE_PASSWORD" ? "#2563eb" : "#e2e8f0", color: step === "CREATE_PASSWORD" ? "#fff" : "#64748b", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 9, fontWeight: 900, flexShrink: 0 }}>
+                        3
+                      </div>
+                      <span>Password</span>
+                    </div>
+                  </>
+                )}
+              </div>
+
+              {/* Right Side: Mandatory Badge or Close Button */}
+              {step === "CREATE_PASSWORD" ? (
+                <div
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 3.5,
+                    background: "#fef3c7",
+                    border: "1px solid #fde68a",
+                    borderRadius: 999,
+                    padding: "2px 7px",
+                    fontSize: 9.5,
+                    fontWeight: 800,
+                    color: "#92400e",
+                    flexShrink: 0,
+                    whiteSpace: "nowrap",
+                  }}
+                >
+                  <Lock size={10} />
+                  <span>Mandatory</span>
+                </div>
+              ) : (
+                <button
+                  onClick={handleModalClose}
+                  aria-label="Close modal"
+                  style={{
+                    background: "#f8fafc",
+                    border: "1px solid #e2e8f0",
+                    borderRadius: "50%",
+                    width: 26,
+                    height: 26,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    color: "#64748b",
+                    cursor: "pointer",
+                    transition: "all 0.15s ease",
+                    flexShrink: 0,
+                  }}
+                >
+                  <X size={13} />
+                </button>
               )}
             </div>
           )}
 
           {/* Modal Header */}
           {step !== "PASSWORD_SUCCESS" && step !== "APPROVAL_PENDING" && (
-            <div style={{ textAlign: "center", marginBottom: 18 }}>
+            <div style={{ textAlign: "center", marginBottom: 12 }}>
               <div
                 style={{
-                  width: 44,
-                  height: 44,
-                  borderRadius: 12,
+                  width: 38,
+                  height: 38,
+                  borderRadius: 10,
                   background: "#eff6ff",
                   border: "1px solid #dbeafe",
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
-                  margin: "0 auto 10px auto",
+                  margin: "0 auto 6px auto",
                 }}
               >
                 {step === "CREATE_PASSWORD" ? (
-                  <KeyRound size={22} color="#2563eb" />
+                  <KeyRound size={20} color="#2563eb" />
                 ) : step === "PASSWORD" ? (
-                  <Lock size={22} color="#2563eb" />
+                  <Lock size={20} color="#2563eb" />
                 ) : step === "OTP" ? (
-                  <Mail size={22} color="#2563eb" />
+                  <Mail size={20} color="#2563eb" />
                 ) : (
-                  <GraduationCap size={22} color="#2563eb" />
+                  <GraduationCap size={20} color="#2563eb" />
                 )}
               </div>
 
               <h3
                 style={{
-                  fontSize: "clamp(16px, 4vw, 18px)",
+                  fontSize: "clamp(15px, 3.8vw, 17px)",
                   fontWeight: 800,
                   color: "#0f172a",
-                  margin: "0 0 4px 0",
+                  margin: "0 0 2px 0",
                   letterSpacing: "-0.3px",
                 }}
               >
@@ -854,10 +864,10 @@ export default function StudentAuthModal({ isOpen, onClose }) {
               </h3>
               <p
                 style={{
-                  fontSize: "clamp(12px, 3vw, 13px)",
+                  fontSize: "clamp(11px, 2.7vw, 12px)",
                   color: "#64748b",
                   margin: 0,
-                  lineHeight: 1.45,
+                  lineHeight: 1.4,
                 }}
               >
                 {step === "CREATE_PASSWORD"
@@ -872,46 +882,25 @@ export default function StudentAuthModal({ isOpen, onClose }) {
           )}
 
           {/* Alert / Notice Display */}
-          {statusNotice && step !== "PASSWORD_SUCCESS" && (
-            <div
-              style={{
-                background: "#f0fdf4",
-                border: "1px solid #bbf7d0",
-                borderRadius: 10,
-                padding: "10px 12px",
-                marginBottom: 14,
-                fontSize: 12,
-                color: "#166534",
-                fontWeight: 600,
-                display: "flex",
-                alignItems: "center",
-                gap: 8,
-              }}
-            >
-              <CheckCircle2 size={14} color="#16a34a" />
-              <span>{statusNotice}</span>
-            </div>
-          )}
-
-          {errorMsg && step !== "PASSWORD_SUCCESS" && (
+          {errorMsg && step !== "PASSWORD_SUCCESS" ? (
             <div
               style={{
                 background: "#fef2f2",
                 border: "1px solid #fee2e2",
-                borderRadius: 12,
-                padding: "12px 14px",
+                borderRadius: 10,
+                padding: "8px 10px",
                 display: "flex",
-                gap: 12,
+                gap: 8,
                 alignItems: "flex-start",
-                marginBottom: 14,
-                boxShadow: "0 2px 6px rgba(0, 0, 0, 0.02)",
+                marginBottom: 10,
+                boxShadow: "0 1px 4px rgba(0, 0, 0, 0.02)",
               }}
             >
               <div
                 style={{
-                  width: 28,
-                  height: 28,
-                  borderRadius: 8,
+                  width: 22,
+                  height: 22,
+                  borderRadius: 6,
                   background: "#fee2e2",
                   display: "flex",
                   alignItems: "center",
@@ -921,13 +910,13 @@ export default function StudentAuthModal({ isOpen, onClose }) {
                 }}
               >
                 {errorCode === "BLOCKED_DEVICE_ACTIVE" || errorCode === "DEVICE_LIMIT_REACHED" ? (
-                  <Smartphone size={15} color="#dc2626" />
+                  <Smartphone size={13} color="#dc2626" />
                 ) : (
-                  <AlertCircle size={15} color="#dc2626" />
+                  <AlertCircle size={13} color="#dc2626" />
                 )}
               </div>
               <div style={{ flex: 1 }}>
-                <span style={{ fontSize: 12.5, color: "#991b1b", fontWeight: 700, display: "block", marginBottom: 2 }}>
+                <span style={{ fontSize: 11.5, color: "#991b1b", fontWeight: 700, display: "block", marginBottom: 1 }}>
                   {errorCode === "BLOCKED_DEVICE_ACTIVE"
                     ? "Device Slot Occupied"
                     : errorCode === "DEVICE_LIMIT_REACHED"
@@ -938,7 +927,7 @@ export default function StudentAuthModal({ isOpen, onClose }) {
                     ? "Approval Timed Out"
                     : "Authentication Notice"}
                 </span>
-                <p style={{ fontSize: 12, color: "#7f1d1d", lineHeight: 1.4, margin: 0 }}>
+                <p style={{ fontSize: 11, color: "#7f1d1d", lineHeight: 1.35, margin: 0 }}>
                   {errorMsg}
                 </p>
 
@@ -947,27 +936,46 @@ export default function StudentAuthModal({ isOpen, onClose }) {
                     type="button"
                     onClick={() => setIsBlockedModalOpen(true)}
                     style={{
-                      marginTop: "8px",
+                      marginTop: "6px",
                       background: "#fee2e2",
                       border: "1px solid #fca5a5",
                       color: "#991b1b",
-                      borderRadius: "8px",
-                      padding: "5px 12px",
-                      fontSize: "11.5px",
+                      borderRadius: "6px",
+                      padding: "4px 10px",
+                      fontSize: "11px",
                       fontWeight: "800",
                       cursor: "pointer",
                       display: "inline-flex",
                       alignItems: "center",
-                      gap: "6px",
+                      gap: "5px",
                     }}
                   >
-                    <Smartphone size={13} color="#dc2626" />
+                    <Smartphone size={12} color="#dc2626" />
                     <span>View Active Device Info</span>
                   </button>
                 )}
               </div>
             </div>
-          )}
+          ) : statusNotice && step !== "PASSWORD_SUCCESS" ? (
+            <div
+              style={{
+                background: "#f0fdf4",
+                border: "1px solid #bbf7d0",
+                borderRadius: 8,
+                padding: "6px 10px",
+                marginBottom: 10,
+                fontSize: 11.5,
+                color: "#166534",
+                fontWeight: 600,
+                display: "flex",
+                alignItems: "center",
+                gap: 6,
+              }}
+            >
+              <CheckCircle2 size={13} color="#16a34a" />
+              <span>{statusNotice}</span>
+            </div>
+          ) : null}
 
           {/* STEP 1: Registration Number */}
           {step === "REGNO" && (
@@ -1603,10 +1611,10 @@ export default function StudentAuthModal({ isOpen, onClose }) {
 
           {/* STEP 4: MANDATORY CREATE PASSWORD WITH REAL-TIME STRENGTH & CRITERIA CHECKLIST */}
           {step === "CREATE_PASSWORD" && (
-            <form onSubmit={handleCreatePasswordSubmit} style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+            <form onSubmit={handleCreatePasswordSubmit} style={{ display: "flex", flexDirection: "column", gap: 10 }}>
               {/* New Password Input */}
               <div>
-                <label style={{ display: "block", fontSize: 12, fontWeight: 700, color: "#475569", marginBottom: 6 }}>
+                <label style={{ display: "block", fontSize: 11.5, fontWeight: 700, color: "#475569", marginBottom: 3 }}>
                   Create Account Password
                 </label>
                 <div style={{ position: "relative" }}>
@@ -1614,18 +1622,18 @@ export default function StudentAuthModal({ isOpen, onClose }) {
                     type={showPassword ? "text" : "password"}
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    placeholder="Enter your new secure password"
+                    placeholder="Enter your new password"
                     autoFocus
                     required
                     style={{
                       width: "100%",
-                      padding: "11px 42px 11px 14px",
-                      fontSize: 14,
+                      padding: "9px 38px 9px 12px",
+                      fontSize: 13.5,
                       color: "#0f172a",
                       background: "#f8fafc",
                       border: "1.5px solid",
                       borderColor: password ? (isPasswordFormValid ? "#10b981" : "#cbd5e1") : "#cbd5e1",
-                      borderRadius: 10,
+                      borderRadius: 9,
                       outline: "none",
                       boxSizing: "border-box",
                       transition: "border-color 0.2s ease",
@@ -1636,7 +1644,7 @@ export default function StudentAuthModal({ isOpen, onClose }) {
                     onClick={() => setShowPassword(!showPassword)}
                     style={{
                       position: "absolute",
-                      right: 12,
+                      right: 10,
                       top: "50%",
                       transform: "translateY(-50%)",
                       background: "none",
@@ -1649,14 +1657,14 @@ export default function StudentAuthModal({ isOpen, onClose }) {
                       justifyContent: "center",
                     }}
                   >
-                    {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                    {showPassword ? <EyeOff size={15} /> : <Eye size={15} />}
                   </button>
                 </div>
               </div>
 
               {/* Confirm Password Input */}
               <div>
-                <label style={{ display: "block", fontSize: 12, fontWeight: 700, color: "#475569", marginBottom: 6 }}>
+                <label style={{ display: "block", fontSize: 11.5, fontWeight: 700, color: "#475569", marginBottom: 3 }}>
                   Confirm Password
                 </label>
                 <div style={{ position: "relative" }}>
@@ -1668,13 +1676,13 @@ export default function StudentAuthModal({ isOpen, onClose }) {
                     required
                     style={{
                       width: "100%",
-                      padding: "11px 42px 11px 14px",
-                      fontSize: 14,
+                      padding: "9px 38px 9px 12px",
+                      fontSize: 13.5,
                       color: "#0f172a",
                       background: "#f8fafc",
                       border: "1.5px solid",
                       borderColor: confirmPassword ? (isMatch ? "#10b981" : "#ef4444") : "#cbd5e1",
-                      borderRadius: 10,
+                      borderRadius: 9,
                       outline: "none",
                       boxSizing: "border-box",
                       transition: "border-color 0.2s ease",
@@ -1685,7 +1693,7 @@ export default function StudentAuthModal({ isOpen, onClose }) {
                     onClick={() => setShowConfirmPassword(!showConfirmPassword)}
                     style={{
                       position: "absolute",
-                      right: 12,
+                      right: 10,
                       top: "50%",
                       transform: "translateY(-50%)",
                       background: "none",
@@ -1698,7 +1706,7 @@ export default function StudentAuthModal({ isOpen, onClose }) {
                       justifyContent: "center",
                     }}
                   >
-                    {showConfirmPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                    {showConfirmPassword ? <EyeOff size={15} /> : <Eye size={15} />}
                   </button>
                 </div>
               </div>
@@ -1708,24 +1716,24 @@ export default function StudentAuthModal({ isOpen, onClose }) {
                 style={{
                   background: "#f8fafc",
                   border: "1px solid #e2e8f0",
-                  borderRadius: 12,
-                  padding: "12px 14px",
+                  borderRadius: 10,
+                  padding: "8px 11px",
                   display: "flex",
                   flexDirection: "column",
-                  gap: 8,
+                  gap: 5,
                 }}
               >
                 <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                  <span style={{ fontSize: 11, fontWeight: 800, color: "#64748b", textTransform: "uppercase", letterSpacing: "0.5px" }}>
+                  <span style={{ fontSize: 10, fontWeight: 800, color: "#64748b", textTransform: "uppercase", letterSpacing: "0.5px" }}>
                     Security Strength
                   </span>
-                  <span style={{ fontSize: 11, fontWeight: 800, color: strengthMeta.color }}>
+                  <span style={{ fontSize: 10.5, fontWeight: 800, color: strengthMeta.color }}>
                     {strengthMeta.label}
                   </span>
                 </div>
 
                 {/* Segmented Strength Bar */}
-                <div style={{ width: "100%", height: 5, background: "#e2e8f0", borderRadius: 999, overflow: "hidden" }}>
+                <div style={{ width: "100%", height: 4, background: "#e2e8f0", borderRadius: 999, overflow: "hidden" }}>
                   <div
                     style={{
                       width: strengthMeta.width,
@@ -1738,48 +1746,48 @@ export default function StudentAuthModal({ isOpen, onClose }) {
                 </div>
 
                 {/* Validation Checklist Grid */}
-                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(120px, 1fr))", gap: "6px 8px", marginTop: 4, fontSize: "clamp(10.5px, 2.5vw, 11.5px)" }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: 6, color: hasMinLength ? "#16a34a" : "#94a3b8", fontWeight: hasMinLength ? 700 : 500 }}>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "3px 6px", marginTop: 2, fontSize: "clamp(10px, 2.4vw, 11px)" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 5, color: hasMinLength ? "#16a34a" : "#94a3b8", fontWeight: hasMinLength ? 700 : 500 }}>
                     {hasMinLength ? (
-                      <CheckCircle2 size={13} color="#16a34a" />
+                      <CheckCircle2 size={12} color="#16a34a" />
                     ) : (
-                      <div style={{ width: 12, height: 12, borderRadius: "50%", border: "1.5px solid #cbd5e1", flexShrink: 0 }} />
+                      <div style={{ width: 10, height: 10, borderRadius: "50%", border: "1.5px solid #cbd5e1", flexShrink: 0 }} />
                     )}
-                    <span>8+ Characters</span>
+                    <span>8+ Chars</span>
                   </div>
 
-                  <div style={{ display: "flex", alignItems: "center", gap: 6, color: hasUpper ? "#16a34a" : "#94a3b8", fontWeight: hasUpper ? 700 : 500 }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 5, color: hasUpper ? "#16a34a" : "#94a3b8", fontWeight: hasUpper ? 700 : 500 }}>
                     {hasUpper ? (
-                      <CheckCircle2 size={13} color="#16a34a" />
+                      <CheckCircle2 size={12} color="#16a34a" />
                     ) : (
-                      <div style={{ width: 12, height: 12, borderRadius: "50%", border: "1.5px solid #cbd5e1", flexShrink: 0 }} />
+                      <div style={{ width: 10, height: 10, borderRadius: "50%", border: "1.5px solid #cbd5e1", flexShrink: 0 }} />
                     )}
-                    <span>Uppercase (A-Z)</span>
+                    <span>Uppercase</span>
                   </div>
 
-                  <div style={{ display: "flex", alignItems: "center", gap: 6, color: hasLower ? "#16a34a" : "#94a3b8", fontWeight: hasLower ? 700 : 500 }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 5, color: hasLower ? "#16a34a" : "#94a3b8", fontWeight: hasLower ? 700 : 500 }}>
                     {hasLower ? (
-                      <CheckCircle2 size={13} color="#16a34a" />
+                      <CheckCircle2 size={12} color="#16a34a" />
                     ) : (
-                      <div style={{ width: 12, height: 12, borderRadius: "50%", border: "1.5px solid #cbd5e1", flexShrink: 0 }} />
+                      <div style={{ width: 10, height: 10, borderRadius: "50%", border: "1.5px solid #cbd5e1", flexShrink: 0 }} />
                     )}
-                    <span>Lowercase (a-z)</span>
+                    <span>Lowercase</span>
                   </div>
 
-                  <div style={{ display: "flex", alignItems: "center", gap: 6, color: hasNumber ? "#16a34a" : "#94a3b8", fontWeight: hasNumber ? 700 : 500 }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 5, color: hasNumber ? "#16a34a" : "#94a3b8", fontWeight: hasNumber ? 700 : 500 }}>
                     {hasNumber ? (
-                      <CheckCircle2 size={13} color="#16a34a" />
+                      <CheckCircle2 size={12} color="#16a34a" />
                     ) : (
-                      <div style={{ width: 12, height: 12, borderRadius: "50%", border: "1.5px solid #cbd5e1", flexShrink: 0 }} />
+                      <div style={{ width: 10, height: 10, borderRadius: "50%", border: "1.5px solid #cbd5e1", flexShrink: 0 }} />
                     )}
                     <span>Number (0-9)</span>
                   </div>
 
-                  <div style={{ gridColumn: "1 / -1", display: "flex", alignItems: "center", gap: 6, color: isMatch ? "#16a34a" : "#94a3b8", fontWeight: isMatch ? 700 : 500 }}>
+                  <div style={{ gridColumn: "1 / -1", display: "flex", alignItems: "center", gap: 5, color: isMatch ? "#16a34a" : "#94a3b8", fontWeight: isMatch ? 700 : 500 }}>
                     {isMatch ? (
-                      <CheckCircle2 size={13} color="#16a34a" />
+                      <CheckCircle2 size={12} color="#16a34a" />
                     ) : (
-                      <div style={{ width: 12, height: 12, borderRadius: "50%", border: "1.5px solid #cbd5e1", flexShrink: 0 }} />
+                      <div style={{ width: 10, height: 10, borderRadius: "50%", border: "1.5px solid #cbd5e1", flexShrink: 0 }} />
                     )}
                     <span>Passwords Match</span>
                   </div>
@@ -1791,13 +1799,13 @@ export default function StudentAuthModal({ isOpen, onClose }) {
                 disabled={loading || !isPasswordFormValid}
                 style={{
                   width: "100%",
-                  padding: "12px 16px",
-                  borderRadius: 10,
+                  padding: "10px 14px",
+                  borderRadius: 9,
                   border: "none",
                   background: loading || !isPasswordFormValid ? "#cbd5e1" : "#0f172a",
                   color: "#ffffff",
                   fontSize: 13.5,
-                  fontWeight: 700,
+                  fontWeight: 800,
                   cursor: loading || !isPasswordFormValid ? "not-allowed" : "pointer",
                   display: "flex",
                   alignItems: "center",
@@ -1805,6 +1813,7 @@ export default function StudentAuthModal({ isOpen, onClose }) {
                   gap: 6,
                   boxShadow: !isPasswordFormValid ? "none" : "0 4px 12px rgba(15, 23, 42, 0.15)",
                   transition: "all 0.2s ease",
+                  marginTop: 2,
                 }}
               >
                 {loading ? (
