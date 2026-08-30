@@ -1073,8 +1073,13 @@ module.exports = async function handler(req, res) {
       let isAuthorized = false;
       if (candidatePassword) {
         isAuthorized = await studentAccount.comparePassword(candidatePassword);
-      } else if (requestId) {
-        const pendingApproval = await DeviceApprovalRequest.findOne({ requestId, regNo: rawReg, status: "PENDING" });
+      }
+      if (!isAuthorized && requestId) {
+        const pendingApproval = await DeviceApprovalRequest.findOne({
+          $or: [{ requestId }, { id: requestId }],
+          regNo: rawReg,
+          status: "PENDING",
+        });
         if (pendingApproval && new Date() < new Date(pendingApproval.expiresAt)) {
           isAuthorized = true;
         }
@@ -1105,6 +1110,7 @@ module.exports = async function handler(req, res) {
         await sendStudentOtpEmail({
           to: studentEmail,
           studentName,
+          regNo: rawReg,
           otp,
           expiresInMinutes: 5,
         });

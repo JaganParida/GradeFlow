@@ -1402,51 +1402,6 @@ export default function StudentAuthModal({ isOpen, onClose }) {
                 </>
               )}
 
-              {/* Lost Access / Ghost Session Fallback: University Email OTP */}
-              <div
-                style={{
-                  background: "#f8fafc",
-                  border: "1px dashed #cbd5e1",
-                  borderRadius: 12,
-                  padding: "12px 14px",
-                  textAlign: "center",
-                  display: "flex",
-                  flexDirection: "column",
-                  gap: 8,
-                }}
-              >
-                <div style={{ fontSize: 12, fontWeight: 700, color: "#334155" }}>
-                  Can't access your active device?
-                </div>
-                <div style={{ fontSize: 11.5, color: "#64748b", lineHeight: 1.4 }}>
-                  If cookies were cleared or you don't have access to your active device, verify via your registered University Email.
-                </div>
-                <div style={{ display: "flex", justifyContent: "center", marginTop: 2 }}>
-                  <button
-                    type="button"
-                    onClick={handleRequestEmailOtpHandover}
-                    disabled={loading}
-                    style={{
-                      display: "inline-flex",
-                      alignItems: "center",
-                      gap: 6,
-                      padding: "8px 14px",
-                      borderRadius: 8,
-                      background: "#2563eb",
-                      color: "#ffffff",
-                      border: "none",
-                      fontSize: 12,
-                      fontWeight: 700,
-                      cursor: loading ? "not-allowed" : "pointer",
-                      boxShadow: "0 2px 6px rgba(37, 99, 235, 0.2)",
-                    }}
-                  >
-                    {loading ? <Loader2 size={13} className="spin" /> : <Mail size={13} />}
-                    <span>Verify with University Email OTP</span>
-                  </button>
-                </div>
-              </div>
-
               <button
                 type="button"
                 onClick={() => {
@@ -1470,6 +1425,31 @@ export default function StudentAuthModal({ isOpen, onClose }) {
               >
                 {errorCode ? "Try Again" : "Cancel Request"}
               </button>
+
+              {/* Discrete Lost Access / Ghost Session Fallback */}
+              <div style={{ textAlign: "center", marginTop: 2 }}>
+                <button
+                  type="button"
+                  onClick={handleRequestEmailOtpHandover}
+                  disabled={loading}
+                  style={{
+                    background: "none",
+                    border: "none",
+                    color: "#4f46e5",
+                    fontSize: 12,
+                    fontWeight: 600,
+                    cursor: loading ? "not-allowed" : "pointer",
+                    padding: "4px 8px",
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 5,
+                    textDecoration: "underline",
+                  }}
+                >
+                  {loading ? <Loader2 size={12} className="spin" /> : <Mail size={12} />}
+                  <span>{loading ? "Sending code..." : "Can't access your other device? Verify with Email OTP"}</span>
+                </button>
+              </div>
             </div>
           )}
 
