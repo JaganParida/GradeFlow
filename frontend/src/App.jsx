@@ -8,18 +8,43 @@ import UpgradeModal from "./components/UpgradeModal";
 import { DashboardSkeleton } from "./components/LoadingSpinner";
 import { decodeStudentId, isEncryptedToken } from "./utils/studentIdEncoder";
 
-// Lazy-loaded route pages for lightning fast initial load
-const Home = lazy(() => import("./pages/Home"));
-const Dashboard = lazy(() => import("./pages/Dashboard"));
-const Analytics = lazy(() => import("./pages/Analytics"));
-const Leaderboard = lazy(() => import("./pages/Leaderboard"));
-const Testimonials = lazy(() => import("./pages/Testimonials"));
-const AboutDev = lazy(() => import("./pages/AboutDev"));
-const Resources = lazy(() => import("./pages/Resources"));
-const AdminLogin = lazy(() => import("./pages/AdminLogin"));
-const AdminDashboard = lazy(() => import("./pages/AdminDashboard"));
-const Timetable = lazy(() => import("./pages/Timetable"));
-const AttendanceTracker = lazy(() => import("./pages/AttendanceTracker"));
+// Helper for resilient lazy loading with auto-recovery on deployment chunk hash changes
+const lazyWithRetry = (componentImport) =>
+  lazy(async () => {
+    try {
+      return await componentImport();
+    } catch (error) {
+      const isChunkError =
+        error?.name === "ChunkLoadError" ||
+        error?.message?.includes("Failed to fetch dynamically imported module") ||
+        error?.message?.includes("dynamically imported module") ||
+        error?.message?.includes("Expected a JavaScript-or-Wasm module script");
+
+      if (isChunkError) {
+        const retryKey = "gradeflow_chunk_retry_" + window.location.pathname;
+        const hasRetried = sessionStorage.getItem(retryKey);
+        if (!hasRetried) {
+          sessionStorage.setItem(retryKey, "true");
+          window.location.reload();
+          return new Promise(() => {}); // Wait for page refresh
+        }
+      }
+      throw error;
+    }
+  });
+
+// Lazy-loaded route pages with automatic chunk retry protection
+const Home = lazyWithRetry(() => import("./pages/Home"));
+const Dashboard = lazyWithRetry(() => import("./pages/Dashboard"));
+const Analytics = lazyWithRetry(() => import("./pages/Analytics"));
+const Leaderboard = lazyWithRetry(() => import("./pages/Leaderboard"));
+const Testimonials = lazyWithRetry(() => import("./pages/Testimonials"));
+const AboutDev = lazyWithRetry(() => import("./pages/AboutDev"));
+const Resources = lazyWithRetry(() => import("./pages/Resources"));
+const AdminLogin = lazyWithRetry(() => import("./pages/AdminLogin"));
+const AdminDashboard = lazyWithRetry(() => import("./pages/AdminDashboard"));
+const Timetable = lazyWithRetry(() => import("./pages/Timetable"));
+const AttendanceTracker = lazyWithRetry(() => import("./pages/AttendanceTracker"));
 import { useApp } from "./context/AppContext";
 import { AlertTriangle, X } from "lucide-react";
 import ErrorBoundary from "./components/system/ErrorBoundary";

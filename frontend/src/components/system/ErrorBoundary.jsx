@@ -12,7 +12,22 @@ export class ErrorBoundary extends React.Component {
   }
 
   componentDidCatch(error, errorInfo) {
-    // Log diagnostics safely on client side without exposing secrets
+    // Auto-recover from stale chunks when a new deployment occurs
+    const isChunkLoadError =
+      error?.name === "ChunkLoadError" ||
+      error?.message?.includes("Failed to fetch dynamically imported module") ||
+      error?.message?.includes("dynamically imported module") ||
+      error?.message?.includes("Expected a JavaScript-or-Wasm module script");
+
+    if (isChunkLoadError) {
+      const alreadyReloaded = sessionStorage.getItem("gradeflow_auto_reloaded_chunk");
+      if (!alreadyReloaded) {
+        sessionStorage.setItem("gradeflow_auto_reloaded_chunk", "true");
+        window.location.reload();
+        return;
+      }
+    }
+
     console.error("GradeFlow UI Error Boundary caught an error:", {
       message: error?.message,
       stack: error?.stack,
@@ -21,6 +36,7 @@ export class ErrorBoundary extends React.Component {
   }
 
   handleReset = () => {
+    sessionStorage.removeItem("gradeflow_auto_reloaded_chunk");
     this.setState({ hasError: false, error: null });
     if (this.props.onReset) {
       this.props.onReset();
