@@ -190,7 +190,7 @@ export default function FeedbackModal() {
           style={{
             position: "fixed",
             inset: 0,
-            zIndex: 99999,
+            zIndex: 10000005,
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
