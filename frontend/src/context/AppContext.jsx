@@ -436,11 +436,12 @@ export function AppProvider({ children }) {
   }, [studentSession?.sessionId, studentSession?.regNo]);
 
   // ─── Student Authentication Methods ──────────────────────────────
-  const sendStudentOtp = async (regNo) => {
+  const sendStudentOtp = async (regNo, options = {}) => {
     setLoading(true);
     setError("");
     try {
-      const res = await axios.post(`${API_BASE}/auth/student/send-otp`, { regNo }, { withCredentials: true });
+      const payload = typeof options === "object" ? { regNo, ...options } : { regNo };
+      const res = await axios.post(`${API_BASE}/auth/student/send-otp`, payload, { withCredentials: true });
       if (res.data?.alreadyLoggedIn && res.data?.student && res.data?.hasPassword) {
         setStudentSession(res.data.student);
         await fetchStudent(res.data.student.regNo, 3, 500, true);
@@ -477,11 +478,12 @@ export function AppProvider({ children }) {
     }
   };
 
-  const verifyStudentOtp = async (regNo, otp) => {
+  const verifyStudentOtp = async (regNo, otp, options = {}) => {
     setLoading(true);
     setError("");
     try {
-      const res = await axios.post(`${API_BASE}/auth/student/verify-otp`, { regNo, otp }, { withCredentials: true });
+      const payload = typeof options === "object" ? { regNo, otp, ...options } : { regNo, otp };
+      const res = await axios.post(`${API_BASE}/auth/student/verify-otp`, payload, { withCredentials: true });
       if (res.data?.success) {
         if (res.data.step === "CREATE_PASSWORD") {
           return {

@@ -294,15 +294,15 @@ module.exports = async function handler(req, res) {
       let isBlocked = false;
       let blockReason = null;
       let blockMessage = null;
-      let otpFallbackAllowed = failedPasswordAttempts >= 2 || isLocked;
+      let otpFallbackAllowed = failedPasswordAttempts >= 3 || isLocked;
 
       if (hasPassword) {
-        if (failedPasswordAttempts >= 2) {
+        if (failedPasswordAttempts >= 3) {
           if (maxAllowedDevices === 1 && activeSessions.length >= 1 && !isCurrentDevice) {
-            // Another device is active and user failed 2 password attempts -> OTP bypass blocked to prevent takeover
+            // Another device is active and user failed 3 password attempts -> OTP bypass blocked to prevent takeover
             isBlocked = true;
             blockReason = "PASSWORD_FAILED_DEVICE_ACTIVE";
-            blockMessage = `Maximum password attempts exceeded (2/2). Registration number ${rawReg} is currently logged in on another device. Single-device security policy: OTP recovery is blocked while your authorized device slot is occupied.`;
+            blockMessage = `Maximum password attempts exceeded (3/3). Registration number ${rawReg} is currently logged in on another device. Single-device security policy: OTP recovery is blocked while your authorized device slot is occupied.`;
           } else if (maxAllowedDevices > 1 && activeSessions.length >= maxAllowedDevices && !isCurrentDevice) {
             isBlocked = true;
             blockReason = "DEVICE_LIMIT_REACHED";
@@ -312,10 +312,8 @@ module.exports = async function handler(req, res) {
             otpFallbackAllowed = true;
           }
         } else {
-          // Normal password login flow:
-          // For Normal Students (maxAllowedDevices === 1): Having 1 active device is NOT blocked on check-status!
-          // They proceed to enter password, and correct password creates in-app DeviceApprovalRequest.
-          // For Multi-Device (230301120327, maxAllowedDevices === 2): Block ONLY when activeSessions >= 2 and not current device.
+          // Allow forgot password if 0 active devices
+          otpFallbackAllowed = activeSessions.length === 0;
           if (maxAllowedDevices > 1 && activeSessions.length >= maxAllowedDevices && !isCurrentDevice) {
             isBlocked = true;
             blockReason = "DEVICE_LIMIT_REACHED";
@@ -431,7 +429,7 @@ module.exports = async function handler(req, res) {
       }
 
       // Existing student password enforcement
-      if (hasPassword && failedPasswordAttempts < 2 && !isLocked && !req.body.forceOtp && !req.body.isForgotPassword) {
+      if (hasPassword && failedPasswordAttempts < 3 && !isLocked && !req.body.forceOtp && !req.body.isForgotPassword) {
         return res.status(400).json({
           success: false,
           code: "PASSWORD_LOGIN_REQUIRED",
@@ -505,13 +503,37 @@ module.exports = async function handler(req, res) {
         });
       }
 
+      const isForgotPassword = Boolean(req.body.isForgotPassword || req.body.forceOtp);
+
+      // If in forgot password recovery mode: check if an unexpired recovery OTP is already alive in DB
+      if (isForgotPassword) {
+        const existingOtp = await OtpVerification.findOne({ regNo: rawReg });
+        if (existingOtp && new Date() < new Date(existingOtp.expiresAt)) {
+          const remainingSecs = Math.max(1, Math.ceil((new Date(existingOtp.expiresAt).getTime() - Date.now()) / 1000));
+          const maskedEmail = `${studentEmail.slice(0, 4)}***@${studentEmail.split("@")[1]}`;
+
+          return res.json({
+            success: true,
+            message: `A single-use recovery code has already been dispatched to ${studentEmail}. It is valid for 10 minutes. Resend is disabled.`,
+            maskedEmail,
+            studentName,
+            regNo: rawReg,
+            hasPassword,
+            expiresInSeconds: remainingSecs,
+            isForgotPassword: true,
+            resendAllowed: false,
+          });
+        }
+      }
+
       // Generate 6-Digit Cryptographically Secure OTP
       const otpCode = crypto.randomInt(100000, 999999).toString();
       const otpSalt = await bcrypt.genSalt(10);
       const otpHash = await bcrypt.hash(otpCode, otpSalt);
 
       await globalDbQueue.run(() => OtpVerification.deleteMany({ regNo: rawReg }));
-      const expiresAt = new Date(Date.now() + 3 * 60 * 1000);
+      const otpTtlMinutes = isForgotPassword ? 10 : 3;
+      const expiresAt = new Date(Date.now() + otpTtlMinutes * 60 * 1000);
 
       await globalDbQueue.run(() =>
         OtpVerification.create({
@@ -529,7 +551,7 @@ module.exports = async function handler(req, res) {
           studentName,
           regNo: rawReg,
           otp: otpCode,
-          expiresInMinutes: 3,
+          expiresInMinutes: otpTtlMinutes,
         });
 
         dailyLimit.otpSendCount += 1;
@@ -563,12 +585,14 @@ module.exports = async function handler(req, res) {
         studentName,
         regNo: rawReg,
         hasPassword,
-        expiresInSeconds: 180,
+        expiresInSeconds: otpTtlMinutes * 60,
         cooldownSeconds: 180,
         attemptsUsedToday: dailyLimit.otpSendCount,
         maxDailyAttempts: maxDailyLimit,
         remainingDailyAttempts: isUnlimited ? 99 : Math.max(0, maxDailyLimit - dailyLimit.otpSendCount),
         isUnlimited,
+        isForgotPassword,
+        resendAllowed: !isForgotPassword,
       });
     }
 
@@ -633,9 +657,9 @@ module.exports = async function handler(req, res) {
       const studentRecord = await SemesterResult.findOne({ regNo: rawReg }).sort({ semester: -1 });
       const studentName = studentRecord?.studentName || "Student";
 
-      // ── CRITICAL MANDATORY RULE: If account has NO password, return CREATE_PASSWORD token ──
-      // OTP verification MUST NEVER directly create a session or issue an authenticated cookie!
-      if (!studentAccount.passwordHash) {
+      // ── CRITICAL MANDATORY RULE: If account has NO password OR user is resetting password, return CREATE_PASSWORD token ──
+      const isResetFlow = Boolean(req.body.isForgotPassword || req.body.resetPassword || !studentAccount.passwordHash);
+      if (isResetFlow) {
         const setupPasswordToken = jwt.sign(
           { regNo: rawReg, purpose: "SETUP_PASSWORD" },
           process.env.JWT_SECRET,
@@ -649,7 +673,7 @@ module.exports = async function handler(req, res) {
           passwordRequired: true,
           step: "CREATE_PASSWORD",
           setupPasswordToken,
-          message: "Verification successful. You must now create a password for your account.",
+          message: "Verification successful. Please create a new password for your account.",
           student: {
             regNo: rawReg,
             studentName,
@@ -1037,13 +1061,13 @@ module.exports = async function handler(req, res) {
       studentAccount.lastFailedPasswordAt = new Date();
       await studentAccount.save();
 
-      const remainingAttempts = Math.max(0, 2 - studentAccount.failedPasswordAttempts);
+      const remainingAttempts = Math.max(0, 3 - studentAccount.failedPasswordAttempts);
 
-      if (studentAccount.failedPasswordAttempts >= 2) {
+      if (studentAccount.failedPasswordAttempts >= 3) {
         return res.status(401).json({
           success: false,
           code: "PASSWORD_ATTEMPTS_EXCEEDED",
-          message: "Incorrect password. 2 consecutive attempts failed. You can sign in using OTP verification.",
+          message: "Incorrect password. 3 consecutive attempts failed. You can sign in using OTP verification to reset your password.",
           failedAttempts: studentAccount.failedPasswordAttempts,
           otpFallbackAllowed: true,
         });
@@ -1052,7 +1076,7 @@ module.exports = async function handler(req, res) {
       return res.status(401).json({
         success: false,
         code: "INVALID_PASSWORD",
-        message: `Incorrect password. ${remainingAttempts} attempt remaining before OTP verification is required.`,
+        message: `Incorrect password. ${remainingAttempts} attempt${remainingAttempts === 1 ? "" : "s"} remaining before OTP verification is required.`,
         failedAttempts: studentAccount.failedPasswordAttempts,
         remainingAttempts,
       });

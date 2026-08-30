@@ -60,6 +60,8 @@ export default function StudentAuthModal({ isOpen, onClose }) {
   const [otpDigits, setOtpDigits] = useState(["", "", "", "", "", ""]);
   const otpInputRefs = useRef([]);
   const [setupPasswordToken, setSetupPasswordToken] = useState("");
+  const [isForgotPasswordMode, setIsForgotPasswordMode] = useState(false);
+  const [failedPasswordAttemptsCount, setFailedPasswordAttemptsCount] = useState(0);
 
   // Sync otp string from digits
   useEffect(() => {
@@ -560,12 +562,13 @@ export default function StudentAuthModal({ isOpen, onClose }) {
     await triggerSendOtp();
   };
 
-  const triggerSendOtp = async () => {
+  const triggerSendOtp = async (isForgot = false) => {
     setLoading(true);
     setErrorMsg("");
     setErrorCode("");
+    setIsForgotPasswordMode(Boolean(isForgot));
 
-    const result = await sendStudentOtp(cleanReg);
+    const result = await sendStudentOtp(cleanReg, { isForgotPassword: Boolean(isForgot) });
     setLoading(false);
 
     if (result.success) {
@@ -634,6 +637,12 @@ export default function StudentAuthModal({ isOpen, onClose }) {
       setErrorMsg(result.error);
       setErrorCode(result.code);
 
+      const attempts = (result.details?.failedAttempts || result.failedAttempts || failedPasswordAttemptsCount + 1);
+      setFailedPasswordAttemptsCount(attempts);
+
+      if (attempts >= 3 || result.code === "OTP_FALLBACK_ALLOWED" || result.code === "PASSWORD_ATTEMPTS_EXCEEDED") {
+        setDeviceStatus((prev) => ({ ...(prev || {}), otpFallbackAllowed: true, isLocked: true }));
+      }
       if (result.code === "BLOCKED_DEVICE_ACTIVE" || result.code === "DEVICE_LIMIT_REACHED") {
         const devs = result.details?.activeDevices || result.details?.sessions || [];
         setBlockedDevicesData(devs);
@@ -676,14 +685,14 @@ export default function StudentAuthModal({ isOpen, onClose }) {
     setErrorMsg("");
     setErrorCode("");
 
-    const result = await verifyStudentOtp(cleanReg, cleanOtp);
+    const result = await verifyStudentOtp(cleanReg, cleanOtp, { isForgotPassword: isForgotPasswordMode });
     setLoading(false);
 
     if (result.success) {
       if (result.step === "CREATE_PASSWORD") {
         setSetupPasswordToken(result.setupPasswordToken);
         setStep("CREATE_PASSWORD");
-        setStatusNotice("OTP verified successfully. Please create a strong password to secure your account.");
+        setStatusNotice("OTP verified successfully. Please create a new password to secure your account.");
       } else {
         navigateToDestination(cleanReg);
       }
@@ -1141,152 +1150,185 @@ export default function StudentAuthModal({ isOpen, onClose }) {
           )}
 
           {/* STEP 2: Password Input */}
-          {step === "PASSWORD" && (
-            <form onSubmit={handlePasswordSubmit} style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-              <div>
-                <label
-                  style={{
-                    display: "block",
-                    fontSize: 12,
-                    fontWeight: 700,
-                    color: "#475569",
-                    marginBottom: 6,
-                    textTransform: "uppercase",
-                    letterSpacing: "0.5px",
-                  }}
-                >
-                  Account Password
-                </label>
-                <div style={{ position: "relative" }}>
-                  <input
-                    type={showPassword ? "text" : "password"}
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    placeholder="Enter your account password"
-                    autoFocus
-                    required
+          {step === "PASSWORD" && (() => {
+            const isPasswordBlocked = failedPasswordAttemptsCount >= 3 || (deviceStatus?.failedPasswordAttempts >= 3) || deviceStatus?.isLocked;
+
+            return (
+              <form onSubmit={handlePasswordSubmit} style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+                <div>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
+                    <label
+                      style={{
+                        fontSize: 12,
+                        fontWeight: 700,
+                        color: isPasswordBlocked ? "#dc2626" : "#475569",
+                        textTransform: "uppercase",
+                        letterSpacing: "0.5px",
+                      }}
+                    >
+                      Account Password
+                    </label>
+                    {isPasswordBlocked ? (
+                      <span style={{ fontSize: 11.5, fontWeight: 800, color: "#dc2626", background: "#fef2f2", padding: "2px 8px", borderRadius: 999, border: "1px solid #fecaca" }}>
+                        🔒 Locked (3/3 Failed)
+                      </span>
+                    ) : failedPasswordAttemptsCount > 0 ? (
+                      <span style={{ fontSize: 11.5, fontWeight: 700, color: "#d97706" }}>
+                        {3 - failedPasswordAttemptsCount} attempt(s) remaining
+                      </span>
+                    ) : null}
+                  </div>
+
+                  <div style={{ position: "relative" }}>
+                    <input
+                      type={showPassword ? "text" : "password"}
+                      value={password}
+                      disabled={isPasswordBlocked}
+                      onChange={(e) => setPassword(e.target.value)}
+                      placeholder={isPasswordBlocked ? "Input locked due to 3 failed attempts" : "Enter your account password"}
+                      autoFocus={!isPasswordBlocked}
+                      required={!isPasswordBlocked}
+                      style={{
+                        width: "100%",
+                        padding: "11px 42px 11px 14px",
+                        fontSize: 14,
+                        color: isPasswordBlocked ? "#94a3b8" : "#0f172a",
+                        background: isPasswordBlocked ? "#f1f5f9" : "#f8fafc",
+                        border: isPasswordBlocked ? "1.5px solid #fecaca" : "1.5px solid #cbd5e1",
+                        borderRadius: 10,
+                        outline: "none",
+                        boxSizing: "border-box",
+                        cursor: isPasswordBlocked ? "not-allowed" : "text",
+                      }}
+                    />
+                    {!isPasswordBlocked && (
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword(!showPassword)}
+                        style={{
+                          position: "absolute",
+                          right: 12,
+                          top: "50%",
+                          transform: "translateY(-50%)",
+                          background: "none",
+                          border: "none",
+                          color: "#64748b",
+                          cursor: "pointer",
+                          padding: 4,
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                        }}
+                      >
+                        {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                      </button>
+                    )}
+                  </div>
+                </div>
+
+                {/* 1-Time Recovery OTP Card — ONLY visible when 3 password attempts have failed */}
+                {isPasswordBlocked && (
+                  <div style={{ background: "#eff6ff", border: "1.5px solid #bfdbfe", borderRadius: 12, padding: "14px", display: "flex", flexDirection: "column", gap: 10 }}>
+                    <div style={{ display: "flex", alignItems: "flex-start", gap: 8 }}>
+                      <AlertTriangle size={18} color="#2563eb" style={{ flexShrink: 0, marginTop: 2 }} />
+                      <div>
+                        <span style={{ fontSize: 12.5, color: "#1e40af", fontWeight: 800, display: "block" }}>
+                          Password Locked — 1-Time Email Verification
+                        </span>
+                        <p style={{ fontSize: 11.5, color: "#3b82f6", margin: "3px 0 0 0", lineHeight: 1.45 }}>
+                          A single-use OTP will be sent to your university email. It is valid for <strong>10 minutes</strong>. Resend is disabled.
+                        </p>
+                      </div>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => triggerSendOtp(true)}
+                      disabled={loading}
+                      style={{
+                        background: "#2563eb",
+                        color: "#ffffff",
+                        border: "none",
+                        borderRadius: 10,
+                        padding: "10px 14px",
+                        fontSize: 12.5,
+                        fontWeight: 800,
+                        cursor: loading ? "not-allowed" : "pointer",
+                        display: "inline-flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        gap: 6,
+                        boxShadow: "0 2px 8px rgba(37, 99, 235, 0.25)",
+                      }}
+                    >
+                      {loading ? <Loader2 size={14} className="spin" /> : <Mail size={14} />}
+                      <span>Send 1-Time Recovery Code (10 Min Expiry)</span>
+                    </button>
+                  </div>
+                )}
+
+                {!isPasswordBlocked && (
+                  <button
+                    type="submit"
+                    disabled={loading || !password}
                     style={{
                       width: "100%",
-                      padding: "11px 42px 11px 14px",
-                      fontSize: 14,
-                      color: "#0f172a",
-                      background: "#f8fafc",
-                      border: "1.5px solid #cbd5e1",
+                      padding: "11px 16px",
                       borderRadius: 10,
-                      outline: "none",
-                      boxSizing: "border-box",
-                    }}
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    style={{
-                      position: "absolute",
-                      right: 12,
-                      top: "50%",
-                      transform: "translateY(-50%)",
-                      background: "none",
                       border: "none",
-                      color: "#64748b",
-                      cursor: "pointer",
-                      padding: 4,
+                      background: loading || !password ? "#cbd5e1" : "#0f172a",
+                      color: "#ffffff",
+                      fontSize: 13.5,
+                      fontWeight: 700,
+                      cursor: loading || !password ? "not-allowed" : "pointer",
                       display: "flex",
                       alignItems: "center",
                       justifyContent: "center",
+                      gap: 6,
                     }}
                   >
-                    {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                    {loading ? (
+                      <>
+                        <Loader2 size={15} className="spin" />
+                        <span>Signing in...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Lock size={15} />
+                        <span>Sign In</span>
+                      </>
+                    )}
                   </button>
-                </div>
-              </div>
-
-              {/* OTP Fallback Button */}
-              {deviceStatus?.otpFallbackAllowed && (
-                <div style={{ background: "#eff6ff", border: "1px solid #dbeafe", borderRadius: 10, padding: "10px 12px" }}>
-                  <span style={{ fontSize: 12, color: "#1e40af", fontWeight: 600, display: "block", marginBottom: 6 }}>
-                    Forgot password or locked out?
-                  </span>
-                  <button
-                    type="button"
-                    onClick={triggerSendOtp}
-                    style={{
-                      background: "#2563eb",
-                      color: "#ffffff",
-                      border: "none",
-                      borderRadius: 8,
-                      padding: "6px 12px",
-                      fontSize: 11.5,
-                      fontWeight: 700,
-                      cursor: "pointer",
-                      display: "inline-flex",
-                      alignItems: "center",
-                      gap: 5,
-                    }}
-                  >
-                    <Mail size={12} />
-                    <span>Send Verification Code to Email</span>
-                  </button>
-                </div>
-              )}
-
-              <button
-                type="submit"
-                disabled={loading || !password}
-                style={{
-                  width: "100%",
-                  padding: "11px 16px",
-                  borderRadius: 10,
-                  border: "none",
-                  background: loading || !password ? "#cbd5e1" : "#0f172a",
-                  color: "#ffffff",
-                  fontSize: 13.5,
-                  fontWeight: 700,
-                  cursor: loading || !password ? "not-allowed" : "pointer",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  gap: 6,
-                }}
-              >
-                {loading ? (
-                  <>
-                    <Loader2 size={15} className="spin" />
-                    <span>Signing in...</span>
-                  </>
-                ) : (
-                  <>
-                    <Lock size={15} />
-                    <span>Sign In</span>
-                  </>
                 )}
-              </button>
 
-              <button
-                type="button"
-                onClick={() => {
-                  setStep("REGNO");
-                  setPassword("");
-                  setErrorMsg("");
-                }}
-                style={{
-                  background: "none",
-                  border: "none",
-                  color: "#64748b",
-                  fontSize: 12,
-                  fontWeight: 700,
-                  cursor: "pointer",
-                  padding: 0,
-                  display: "inline-flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  gap: 4,
-                }}
-              >
-                <ChevronLeft size={14} />
-                <span>Change Registration Number</span>
-              </button>
-            </form>
-          )}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setStep("REGNO");
+                    setPassword("");
+                    setFailedPasswordAttemptsCount(0);
+                    setErrorMsg("");
+                  }}
+                  style={{
+                    background: "none",
+                    border: "none",
+                    color: "#64748b",
+                    fontSize: 12,
+                    fontWeight: 700,
+                    cursor: "pointer",
+                    padding: 0,
+                    display: "inline-flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: 4,
+                  }}
+                >
+                  <ChevronLeft size={14} />
+                  <span>Change Registration Number</span>
+                </button>
+              </form>
+            );
+          })()}
 
           {/* STEP 2B: APPROVAL PENDING SCREEN */}
           {step === "APPROVAL_PENDING" && (
@@ -1622,26 +1664,32 @@ export default function StudentAuthModal({ isOpen, onClose }) {
                   <span>Change Reg. No.</span>
                 </button>
 
-                <button
-                  type="button"
-                  disabled={resendCooldown > 0 || remainingDailyAttempts <= 0 || loading}
-                  onClick={triggerSendOtp}
-                  style={{
-                    background: "none",
-                    border: "none",
-                    color: resendCooldown > 0 || remainingDailyAttempts <= 0 ? "#94a3b8" : "#2563eb",
-                    fontSize: 12,
-                    fontWeight: 700,
-                    cursor: resendCooldown > 0 || remainingDailyAttempts <= 0 ? "not-allowed" : "pointer",
-                    display: "inline-flex",
-                    alignItems: "center",
-                    gap: 4,
-                    padding: 0,
-                  }}
-                >
-                  <RefreshCw size={12} className={loading ? "spin" : ""} />
-                  <span>Resend Code {resendCooldown > 0 ? `(${resendCooldown}s)` : ""}</span>
-                </button>
+                {isForgotPasswordMode ? (
+                  <span style={{ fontSize: 11.5, color: "#64748b", fontStyle: "italic" }}>
+                    Single-use recovery code (10m). Resend disabled.
+                  </span>
+                ) : (
+                  <button
+                    type="button"
+                    disabled={resendCooldown > 0 || remainingDailyAttempts <= 0 || loading}
+                    onClick={triggerSendOtp}
+                    style={{
+                      background: "none",
+                      border: "none",
+                      color: resendCooldown > 0 || remainingDailyAttempts <= 0 ? "#94a3b8" : "#2563eb",
+                      fontSize: 12,
+                      fontWeight: 700,
+                      cursor: resendCooldown > 0 || remainingDailyAttempts <= 0 ? "not-allowed" : "pointer",
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: 4,
+                      padding: 0,
+                    }}
+                  >
+                    <RefreshCw size={12} className={loading ? "spin" : ""} />
+                    <span>Resend Code {resendCooldown > 0 ? `(${resendCooldown}s)` : ""}</span>
+                  </button>
+                )}
               </div>
             </form>
           )}

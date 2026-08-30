@@ -176,13 +176,13 @@ router.get("/student/check-status", async (req, res) => {
     let blockMessage = null;
 
     if (hasPassword) {
-      if (failedPasswordAttempts >= 2) {
+      if (failedPasswordAttempts >= 3) {
         if (maxAllowedDevices === 1 && activeSessions.length >= 1 && !isCurrentDevice) {
           // Another device active -> NO OTP! BLOCK NEW DEVICE!
           otpAllowed = false;
           isBlocked = true;
           blockReason = "PASSWORD_FAILED_DEVICE_ACTIVE";
-          blockMessage = `Maximum password attempts exceeded (2/2). Registration number ${rawReg} is currently logged in on another device. Single-device security policy: OTP recovery is blocked while your authorized device slot is occupied.`;
+          blockMessage = `Maximum password attempts exceeded (3/3). Registration number ${rawReg} is currently logged in on another device. Single-device security policy: OTP recovery is blocked while your authorized device slot is occupied.`;
         } else if (maxAllowedDevices > 1 && activeSessions.length >= maxAllowedDevices && !isCurrentDevice) {
           otpAllowed = false;
           isBlocked = true;
@@ -194,7 +194,9 @@ router.get("/student/check-status", async (req, res) => {
           otpAllowed = !isDailyLimitReached && !isCooldownActive;
         }
       } else {
-        // Password login is the normal entry method
+        // Allow forgot password OTP recovery if 0 devices active
+        otpFallbackAllowed = activeSessions.length === 0;
+        otpAllowed = otpFallbackAllowed && !isDailyLimitReached && !isCooldownActive;
         if (maxAllowedDevices > 1 && activeSessions.length >= maxAllowedDevices && !isCurrentDevice) {
           isBlocked = true;
           blockReason = "DEVICE_LIMIT_REACHED";
@@ -528,13 +530,23 @@ router.post("/student/login-password", authLimiter, async (req, res) => {
       return res.status(401).json({
         success: false,
         code: "INVALID_PASSWORD",
-        message: "Incorrect password. 1 attempt remaining before OTP recovery is evaluated.",
-        remainingAttempts: 1,
+        message: "Incorrect password. 2 attempts remaining.",
+        remainingAttempts: 2,
         failedAttempts: 1,
       });
     }
 
-    // FINAL RULE: 2 Failed Attempts reached
+    if (currentAttempts === 2) {
+      return res.status(401).json({
+        success: false,
+        code: "INVALID_PASSWORD",
+        message: "Incorrect password. 1 attempt remaining.",
+        remainingAttempts: 1,
+        failedAttempts: 2,
+      });
+    }
+
+    // FINAL RULE: 3 Failed Attempts reached
     // Evaluate active sessions server-side
     if (maxAllowedDevices === 1) {
       if (activeSessions.length >= 1) {
@@ -551,18 +563,18 @@ router.post("/student/login-password", authLimiter, async (req, res) => {
         return res.status(403).json({
           success: false,
           code: "BLOCKED_DEVICE_ACTIVE",
-          message: `Maximum password attempts reached (2/2). Registration number ${rawReg} is currently active on another device. Single-device security policy: OTP recovery is blocked while your account is logged in on another device.`,
+          message: `Maximum password attempts reached (3/3). Registration number ${rawReg} is currently active on another device. Single-device security policy: OTP recovery is blocked while your account is logged in on another device.`,
           isBlocked: true,
           activeDeviceCount: activeSessions.length,
           maxAllowedDevices: 1,
           activeDevices: sanitizedDevices,
         });
       } else {
-        // CASE B: 0 devices active -> OTP fallback is allowed
+        // CASE B: 0 devices active -> OTP fallback is allowed to reset password!
         return res.status(401).json({
           success: false,
           code: "OTP_FALLBACK_ALLOWED",
-          message: "Maximum password attempts reached (2/2). No active devices found on your account. You may now request an OTP to recover access.",
+          message: "Maximum password attempts reached (3/3). Please verify your identity via email OTP to create a new password.",
           otpFallbackAllowed: true,
           failedAttempts: currentAttempts,
         });
@@ -653,7 +665,8 @@ router.post("/student/send-otp", otpSendLimiter, async (req, res) => {
 
     // RULE 16: OTP MUST NEVER BYPASS DEVICE LIMIT
     if (hasPassword) {
-      if (failedPasswordAttempts < 2) {
+      const isForgotPassword = Boolean(req.body.isForgotPassword || req.body.forceOtp);
+      if (failedPasswordAttempts < 3 && !isForgotPassword && activeSessions.length > 0) {
         return res.status(400).json({
           success: false,
           code: "PASSWORD_REQUIRED",
@@ -661,12 +674,12 @@ router.post("/student/send-otp", otpSendLimiter, async (req, res) => {
         });
       }
 
-      // If failed >= 2: check active devices
+      // If failed >= 3 or isForgotPassword: check active devices
       if (maxAllowedDevices === 1 && activeSessions.length >= 1) {
         return res.status(403).json({
           success: false,
           code: "BLOCKED_DEVICE_ACTIVE",
-          message: `Single-device security policy: OTP cannot be sent because another device is already active on account ${rawReg}.`,
+          message: `Single-device security policy: Password reset is blocked while another device is currently active on account ${rawReg}. Please log out from that device first.`,
           activeDeviceCount: activeSessions.length,
           maxAllowedDevices: 1,
         });
@@ -708,7 +721,6 @@ router.post("/student/send-otp", otpSendLimiter, async (req, res) => {
         lastOtpSentAt: null,
       });
     }
-
     if (!isUnlimited && dailyLimit.lastOtpSentAt && dailyLimit.otpSendCount > 0) {
       const timeSinceLastSend = Date.now() - new Date(dailyLimit.lastOtpSentAt).getTime();
       if (timeSinceLastSend < 180 * 1000) {
@@ -722,6 +734,32 @@ router.post("/student/send-otp", otpSendLimiter, async (req, res) => {
       }
     }
 
+    const isForgotPassword = Boolean(req.body.isForgotPassword || req.body.forceOtp);
+
+    // If in forgot password recovery mode: check if an unexpired recovery OTP is already alive in DB
+    if (isForgotPassword) {
+      const existingOtp = await OtpVerification.findOne({ regNo: rawReg });
+      if (existingOtp && new Date() < new Date(existingOtp.expiresAt)) {
+        const remainingSecs = Math.max(1, Math.ceil((new Date(existingOtp.expiresAt).getTime() - Date.now()) / 1000));
+        const parts = studentEmail.split("@");
+        const maskedUser = parts[0].length > 4 ? `${parts[0].slice(0, 3)}***${parts[0].slice(-2)}` : `${parts[0].slice(0, 1)}***`;
+        const maskedEmail = `${maskedUser}@${parts[1]}`;
+
+        return res.json({
+          success: true,
+          message: `A single-use recovery code has already been dispatched to ${studentEmail}. It is valid for 10 minutes. Resend is disabled.`,
+          maskedEmail,
+          studentName,
+          regNo: rawReg,
+          hasPassword,
+          expiresInSeconds: remainingSecs,
+          isForgotPassword: true,
+          resendAllowed: false,
+        });
+      }
+    }
+
+    // Daily Limit Check
     const maxDailyLimit = isUnlimited ? 999 : 3;
     if (!isUnlimited && dailyLimit.otpSendCount >= maxDailyLimit) {
       const { hours, mins, totalSeconds } = getTimeUntilIstMidnight();
@@ -741,7 +779,8 @@ router.post("/student/send-otp", otpSendLimiter, async (req, res) => {
     // Invalidate old unverified OTPs for this regNo
     await globalDbQueue.run(() => OtpVerification.deleteMany({ regNo: rawReg }));
 
-    const expiresAt = new Date(Date.now() + 3 * 60 * 1000); // 3 minutes TTL
+    const otpTtlMinutes = isForgotPassword ? 10 : 3;
+    const expiresAt = new Date(Date.now() + otpTtlMinutes * 60 * 1000);
     await globalDbQueue.run(() =>
       OtpVerification.create({
         regNo: rawReg,
@@ -759,7 +798,7 @@ router.post("/student/send-otp", otpSendLimiter, async (req, res) => {
         studentName,
         regNo: rawReg,
         otp: otpCode,
-        expiresInMinutes: 3,
+        expiresInMinutes: otpTtlMinutes,
       });
 
       const isFallback = emailResult.provider === "gmail_fallback";
@@ -805,16 +844,18 @@ router.post("/student/send-otp", otpSendLimiter, async (req, res) => {
 
     res.json({
       success: true,
-      message: `A 6-digit verification code has been sent to ${studentEmail}.`,
+      message: `A 6-digit verification code has been dispatched to ${studentEmail}.`,
       maskedEmail,
       studentName,
       regNo: rawReg,
-      expiresInSeconds: 180,
+      expiresInSeconds: otpTtlMinutes * 60,
       cooldownSeconds: 180,
       attemptsUsedToday: dailyLimit.otpSendCount,
       maxDailyAttempts: maxDailyLimit,
       remainingDailyAttempts: isUnlimited ? 99 : Math.max(0, maxDailyLimit - dailyLimit.otpSendCount),
       isUnlimited,
+      isForgotPassword,
+      resendAllowed: !isForgotPassword,
     });
   } catch (err) {
     console.error("Student send-otp error:", err);
@@ -887,8 +928,9 @@ router.post("/student/verify-otp", otpLimiter, async (req, res) => {
     const studentRecord = await SemesterResult.findOne({ regNo: rawReg }).sort({ semester: -1 });
     const studentName = studentRecord?.studentName || "Student";
 
-    // RULE 8: If password does NOT exist -> MANDATORY CREATE PASSWORD
-    if (!studentAccount.passwordHash) {
+    // RULE 8: If password does NOT exist OR user is resetting password -> MANDATORY CREATE PASSWORD
+    const isResetFlow = Boolean(req.body.isForgotPassword || req.body.resetPassword || !studentAccount.passwordHash);
+    if (isResetFlow) {
       const setupPasswordToken = jwt.sign(
         { regNo: rawReg, purpose: "SETUP_PASSWORD" },
         process.env.JWT_SECRET,
@@ -902,7 +944,7 @@ router.post("/student/verify-otp", otpLimiter, async (req, res) => {
         passwordRequired: true,
         step: "CREATE_PASSWORD",
         setupPasswordToken,
-        message: "Verification successful. You must now create a password for your account.",
+        message: "Verification successful. Please create a new password for your account.",
         student: {
           regNo: rawReg,
           studentName,
