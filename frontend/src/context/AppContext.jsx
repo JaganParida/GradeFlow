@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect } from "react";
+import { createContext, useContext, useState, useEffect, useRef, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 
@@ -50,6 +50,12 @@ export function AppProvider({ children }) {
     } catch {}
   }, []);
 
+  // ─── Explicit Authentication Lifecycle States ───────────────────
+  // authStatus: "BOOTSTRAPPING" | "AUTHENTICATED" | "UNAUTHENTICATED" | "AUTH_ERROR"
+  const [authStatus, setAuthStatus] = useState("BOOTSTRAPPING");
+  const [adminAuthStatus, setAdminAuthStatus] = useState("BOOTSTRAPPING");
+  const [authChecking, setAuthChecking] = useState(true);
+
   const [studentData, setStudentData] = useState(null);
   const [studentSession, setStudentSession] = useState(null);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
@@ -62,12 +68,16 @@ export function AppProvider({ children }) {
   const [adminDeviceCount, setAdminDeviceCount] = useState(0);
   const [isAdminButtonVisible, setIsAdminButtonVisible] = useState(true);
 
+  // In-flight bootstrap promise ref for 100% request deduplication
+  const inFlightBootstrapRef = useRef(null);
+  const navigate = useNavigate();
+
   // Check live admin device occupancy (0 or 1 device -> button visible to all; 2 devices -> button hidden from public)
   const checkAdminStatus = async () => {
     try {
       const res = await axios.get(`${API_BASE}/auth/admin/check-status`, {
         withCredentials: true,
-        timeout: 3500,
+        timeout: 4000,
       });
       if (res.data && res.data.success) {
         const count = res.data.activeDeviceCount ?? 0;
@@ -115,7 +125,7 @@ export function AppProvider({ children }) {
     try {
       const res = await axios.get(`${API_BASE}/system/maintenance?t=${Date.now()}`, {
         headers: { "Cache-Control": "no-cache" },
-        timeout: 2500,
+        timeout: 3000,
       });
       if (res.data && typeof res.data.enabled === "boolean") {
         const updated = {
@@ -138,79 +148,116 @@ export function AppProvider({ children }) {
     return { enabled: false };
   };
 
-  const [authChecking, setAuthChecking] = useState(true);
-  const navigate = useNavigate();
+  // ─── Unified, Single-Roundtrip Authentication Bootstrap ──────────
+  const bootstrapAuthentication = useCallback(async (isSilent = false) => {
+    if (inFlightBootstrapRef.current) {
+      return inFlightBootstrapRef.current;
+    }
 
-  // ─── Check Server-Side Auth & Maintenance on Startup (Pure Cookie-Based) ───
-  useEffect(() => {
-    const checkAuthAndSystem = async () => {
-      // 1. Admin Auth Check Promise (HttpOnly Cookie)
-      const adminPromise = (async () => {
-        try {
-          const resAdmin = await axios.get(`${API_BASE}/auth/admin/me`, {
-            withCredentials: true,
-            timeout: 3000,
-          });
-          if (resAdmin.data?.success && resAdmin.data?.authenticated) {
-            setAdminToken(true);
-            setAdminProfile(resAdmin.data);
-          } else {
-            setAdminToken(false);
-            setAdminProfile(null);
-          }
-        } catch {
-          setAdminToken(false);
-          setAdminProfile(null);
-        }
-      })();
+    if (!isSilent) {
+      setAuthStatus((prev) => (prev === "BOOTSTRAPPING" ? prev : "BOOTSTRAPPING"));
+      setAuthChecking(true);
+    }
 
-      // 2. Student Session Check Promise (HttpOnly Cookie)
-      const studentPromise = (async () => {
-        try {
-          const resStudent = await axios.get(`${API_BASE}/auth/student/me`, {
-            withCredentials: true,
-            timeout: 3000,
-          });
-          if (resStudent.data?.success && resStudent.data?.student) {
-            setStudentSession(resStudent.data.student);
+    const bootstrapPromise = (async () => {
+      try {
+        const res = await axios.get(`${API_BASE}/auth/bootstrap`, {
+          withCredentials: true,
+          timeout: 6000,
+          headers: { "Cache-Control": "no-cache" },
+        });
+
+        if (res.data && res.data.success) {
+          const { student, admin, adminDeviceCount: devCount, isAdminButtonVisible: btnVis, maintenance: maint } = res.data;
+
+          // 1. Hydrate Student Session
+          if (student && student.regNo && student.sessionId) {
+            setStudentSession(student);
+            setAuthStatus("AUTHENTICATED");
             // Non-blocking background fetch for complete student profile
-            fetchStudent(resStudent.data.student.regNo, 2, 500).catch(() => {});
+            fetchStudent(student.regNo, 2, 500).catch(() => {});
           } else {
             setStudentSession(null);
             setStudentData(null);
+            setAuthStatus("UNAUTHENTICATED");
           }
-        } catch {
-          setStudentSession(null);
-          setStudentData(null);
+
+          // 2. Hydrate Admin Session
+          if (admin && admin.authenticated) {
+            setAdminToken(true);
+            setAdminProfile(admin);
+            setAdminAuthStatus("AUTHENTICATED");
+          } else {
+            setAdminToken(false);
+            setAdminProfile(null);
+            setAdminAuthStatus("UNAUTHENTICATED");
+          }
+
+          // 3. Hydrate Admin Occupancy & Button Visibility
+          if (typeof devCount === "number") {
+            setAdminDeviceCount(devCount);
+            setIsAdminButtonVisible(Boolean(btnVis));
+          }
+
+          // 4. Hydrate Maintenance State
+          if (maint) {
+            const maintObj = {
+              enabled: Boolean(maint.enabled),
+              message: maint.message || "",
+              enabledAt: maint.enabledAt || null,
+            };
+            setMaintenance(maintObj);
+            try {
+              sessionStorage.setItem("gf_maintenance_cache", JSON.stringify(maintObj));
+            } catch {}
+            setMaintenanceChecked(true);
+          }
+
+          return res.data;
+        } else {
+          setAuthStatus("UNAUTHENTICATED");
+          setAdminAuthStatus("UNAUTHENTICATED");
         }
-      })();
+      } catch (err) {
+        console.warn("Authentication bootstrap fallback:", err.message);
+        // Fallback gracefully so UI is never stuck in verifying session
+        setAuthStatus("UNAUTHENTICATED");
+        setAdminAuthStatus("UNAUTHENTICATED");
+      } finally {
+        setAuthChecking(false);
+        setMaintenanceChecked(true);
+        inFlightBootstrapRef.current = null;
+      }
+      return null;
+    })();
 
-      // 3. System Status & Maintenance checks in parallel
-      const maintenancePromise = checkMaintenanceStatus();
-      const adminStatusPromise = checkAdminStatus();
+    inFlightBootstrapRef.current = bootstrapPromise;
+    return bootstrapPromise;
+  }, []);
 
-      await Promise.allSettled([adminPromise, studentPromise, maintenancePromise, adminStatusPromise]);
-      setAuthChecking(false);
-    };
+  // ─── Initial Startup Bootstrap & Lifecycle Listeners ─────────────
+  useEffect(() => {
+    bootstrapAuthentication();
 
-    checkAuthAndSystem();
-
-    // Periodic refresh of admin device occupancy (every 15s & on tab focus)
+    // Periodic refresh of admin device occupancy (every 15s)
     const interval = setInterval(checkAdminStatus, 15000);
-    const handleAdminVisibility = () => {
+
+    // Passive silent revalidation on tab focus
+    const handleVisibilityChange = () => {
       if (document.visibilityState === "visible") {
-        checkAdminStatus();
+        bootstrapAuthentication(true);
       }
     };
-    document.addEventListener("visibilitychange", handleAdminVisibility);
-    window.addEventListener("focus", handleAdminVisibility);
+
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    window.addEventListener("focus", handleVisibilityChange);
 
     return () => {
       clearInterval(interval);
-      document.removeEventListener("visibilitychange", handleAdminVisibility);
-      window.removeEventListener("focus", handleAdminVisibility);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+      window.removeEventListener("focus", handleVisibilityChange);
     };
-  }, []);
+  }, [bootstrapAuthentication]);
 
   // ─── Active Admin Heartbeat (Keep lastActiveAt fresh every 30s) ────
   useEffect(() => {
@@ -796,7 +843,10 @@ export function AppProvider({ children }) {
       value={{
         studentData,
         studentSession,
+        authStatus,
+        adminAuthStatus,
         authChecking,
+        bootstrapAuthentication,
         isAuthModalOpen,
         setIsAuthModalOpen,
         openStudentAuthModal: (dest = null) => {

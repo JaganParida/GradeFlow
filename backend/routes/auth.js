@@ -15,6 +15,7 @@ const OtpVerification = require("../models/OtpVerification");
 const StudentSession = require("../models/StudentSession");
 const StudentDailyLimit = require("../models/StudentDailyLimit");
 const OtpRequestLog = require("../models/OtpRequestLog");
+const SystemConfig = require("../models/SystemConfig");
 const { protect, protectStudent } = require("../middleware/auth");
 const { otpLimiter, otpSendLimiter, authLimiter } = require("../middleware/rateLimiters");
 const { sendOtpEmail, sendAdminOtpEmail, sendSubAdminOtpEmail } = require("../utils/emailService");
@@ -1082,6 +1083,122 @@ router.post("/student/transfer-session", authLimiter, async (req, res) => {
   } catch (err) {
     console.error("Student transfer-session error:", err);
     res.status(500).json({ success: false, message: "Failed to transfer session." });
+  }
+});
+
+// 5b. Unified Single-Roundtrip Authentication Bootstrap (/api/auth/bootstrap)
+router.get("/bootstrap", async (req, res) => {
+  try {
+    let studentToken = req.cookies?.student_jwt;
+    if (!studentToken && req.headers["x-student-token"]) {
+      studentToken = req.headers["x-student-token"];
+    }
+    if (!studentToken && req.headers.authorization && req.headers.authorization.startsWith("Bearer")) {
+      studentToken = req.headers.authorization.split(" ")[1];
+    }
+
+    let adminToken = req.cookies?.jwt;
+    if (!adminToken && req.headers["x-admin-token"]) {
+      adminToken = req.headers["x-admin-token"];
+    }
+
+    let studentAuth = null;
+    let adminAuth = null;
+
+    // 1. Passive / Read-only Student Session Validation
+    if (studentToken && studentToken !== "none") {
+      try {
+        const decoded = jwt.verify(studentToken, process.env.JWT_SECRET);
+        if (decoded?.regNo && decoded?.sessionId) {
+          const session = await StudentSession.findOne({
+            regNo: decoded.regNo,
+            sessionId: decoded.sessionId,
+            isActive: true,
+          });
+          if (session && (!session.expiresAt || new Date(session.expiresAt) > new Date())) {
+            await touchSession(session);
+            const studentRecord = await SemesterResult.findOne({ regNo: decoded.regNo }).sort({ semester: -1 });
+            studentAuth = {
+              regNo: decoded.regNo,
+              studentName: studentRecord?.studentName || "Student",
+              sessionId: decoded.sessionId,
+            };
+          }
+        }
+      } catch {}
+    }
+
+    // 2. Passive / Read-only Admin & Sub-Admin Session Validation
+    if (adminToken && adminToken !== "none") {
+      try {
+        const decoded = jwt.verify(adminToken, process.env.JWT_SECRET);
+        if (decoded?.role === "admin") {
+          if (decoded.adminType === "subadmin" && decoded.subAdminId) {
+            const session = await SubAdminSession.findOne({ sessionId: decoded.sessionId, isActive: true });
+            if (session && (!session.expiresAt || new Date(session.expiresAt) > new Date())) {
+              session.lastActiveAt = new Date();
+              await session.save();
+              const subAdmin = await SubAdmin.findById(decoded.subAdminId);
+              if (subAdmin && subAdmin.status === "active") {
+                adminAuth = {
+                  authenticated: true,
+                  role: "admin",
+                  adminType: "subadmin",
+                  name: subAdmin.name || decoded.name,
+                  email: subAdmin.email || decoded.email,
+                  permissions: subAdmin.permissions || { routes: [], sections: [], actions: [] },
+                };
+              }
+            }
+          } else if (decoded.sessionId) {
+            const session = await AdminSession.findOne({ sessionId: decoded.sessionId, isActive: true });
+            if (session && (!session.expiresAt || new Date(session.expiresAt) > new Date())) {
+              await touchAdminSession(session);
+              adminAuth = {
+                authenticated: true,
+                role: "admin",
+                adminType: "main",
+                name: "Main Administrator",
+                email: decoded.email || process.env.ADMIN_EMAIL,
+                permissions: { routes: ["*"], sections: ["*"], actions: ["*"] },
+              };
+            }
+          }
+        }
+      } catch {}
+    }
+
+    // 3. Admin Device Occupancy & Maintenance status
+    let activeAdminCount = 0;
+    let maintenanceState = { enabled: false, message: "", enabledAt: null };
+
+    try {
+      const [activeAdminSessions, config] = await Promise.all([
+        AdminSession.find({ isActive: true, expiresAt: { $gt: new Date() } }).lean(),
+        SystemConfig.findOne({ key: "maintenance" }).lean(),
+      ]);
+      activeAdminCount = activeAdminSessions?.length || 0;
+      if (config?.maintenance) {
+        maintenanceState = {
+          enabled: Boolean(config.maintenance.enabled),
+          message: config.maintenance.message || "",
+          enabledAt: config.maintenance.enabledAt || null,
+        };
+      }
+    } catch {}
+
+    return res.json({
+      success: true,
+      authStatus: "RESOLVED",
+      student: studentAuth,
+      admin: adminAuth,
+      adminDeviceCount: activeAdminCount,
+      isAdminButtonVisible: activeAdminCount < 2,
+      maintenance: maintenanceState,
+    });
+  } catch (err) {
+    console.error("Auth /bootstrap error:", err);
+    return res.status(500).json({ success: false, message: "Bootstrap failed" });
   }
 });
 

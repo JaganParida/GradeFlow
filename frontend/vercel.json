@@ -169,6 +169,10 @@
       "destination": "/api/subadmins.js"
     },
     {
+      "source": "/api/auth/bootstrap",
+      "destination": "/api/auth.js?action=bootstrap"
+    },
+    {
       "source": "/api/auth/subadmin/login",
       "destination": "/api/auth.js?action=subadmin-login"
     },
