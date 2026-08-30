@@ -141,8 +141,24 @@
       "destination": "/api/admin.js?action=delete-result&regNo=:regNo&sem=:sem"
     },
     {
+      "source": "/api/admin/section-toppers/send-email",
+      "destination": "/api/emails.js?action=topper"
+    },
+    {
+      "source": "/api/admin/section-toppers/topper-email-status",
+      "destination": "/api/admin.js?action=topper-email-status"
+    },
+    {
       "source": "/api/admin/section-toppers",
       "destination": "/api/admin.js?action=section-toppers"
+    },
+    {
+      "source": "/api/admin/backlogs/send-email",
+      "destination": "/api/emails.js?action=backlog"
+    },
+    {
+      "source": "/api/admin/backlogs/email-status",
+      "destination": "/api/admin.js?action=backlogs-email-status"
     },
     {
       "source": "/api/admin/backlogs",

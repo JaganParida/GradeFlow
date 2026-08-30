@@ -1013,7 +1013,51 @@ module.exports = async function handler(req, res) {
       });
     }
 
-    // 14. PUT /maintenance
+    // 14. POST /section-toppers/topper-email-status
+    if (action === "topper-email-status" || cleanUrl.includes("/topper-email-status")) {
+      const { regNo, status, errorMsg } = req.body || {};
+      const cleanRegNo = String(regNo || "").trim();
+      if (!cleanRegNo) {
+        return res.status(400).json({ message: "Registration number required" });
+      }
+
+      await Student.findOneAndUpdate(
+        { regNo: cleanRegNo },
+        {
+          $set: {
+            lastTopperEmailSentAt: status === "SUCCESS" ? new Date() : undefined,
+            lastTopperEmailStatus: status,
+            lastTopperEmailError: errorMsg || null,
+          },
+        },
+        { upsert: true }
+      );
+      return res.json({ success: true });
+    }
+
+    // 15. POST /backlogs/email-status
+    if (action === "backlogs-email-status" || cleanUrl.includes("/backlogs/email-status") || cleanUrl.includes("/email-status")) {
+      const { regNo, status, errorMsg } = req.body || {};
+      const cleanRegNo = String(regNo || "").trim();
+      if (!cleanRegNo) {
+        return res.status(400).json({ message: "Registration number required" });
+      }
+
+      await Student.findOneAndUpdate(
+        { regNo: cleanRegNo },
+        {
+          $set: {
+            lastEmailSentAt: status === "SUCCESS" ? new Date() : undefined,
+            lastEmailStatus: status,
+            lastEmailError: errorMsg || null,
+          },
+        },
+        { upsert: true }
+      );
+      return res.json({ success: true });
+    }
+
+    // 16. PUT /maintenance
     if (action === "maintenance" && req.method === "PUT") {
       const { enabled, message } = req.body || {};
       const updated = await SystemConfig.findOneAndUpdate(
