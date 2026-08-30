@@ -163,7 +163,7 @@ export default function Navbar() {
   }, []);
 
   const loggedInRegNo = studentSession?.regNo || "";
-  const currentRegNo = loggedInRegNo || studentData?.regNo || "";
+  const currentRegNo = studentData?.regNo || loggedInRegNo || "";
 
   // Admin button is visible to all if 0/2 or 1/2 devices are active (hidden when 2/2 devices are full)
   const canSeeAdmin = Boolean(adminToken || isAdminButtonVisible);
@@ -179,7 +179,7 @@ export default function Navbar() {
         if (decoded) return decoded;
       }
     } catch {}
-    return currentRegNo;
+    return studentData?.regNo || loggedInRegNo || "";
   };
 
   // Close mobile menu on page navigation
@@ -211,7 +211,7 @@ export default function Navbar() {
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
-  const isEligibleForTimetable = is2023CSEBatch(studentData, currentRegNo);
+  const isEligibleForTimetable = is2023CSEBatch(studentData, getActiveViewedRegNo());
 
   const requireAuthFor = (destination) => {
     setPendingDestination(destination);
@@ -220,7 +220,7 @@ export default function Navbar() {
 
   const handleDashboardClick = (e) => {
     if (e) e.preventDefault();
-    const target = loggedInRegNo || studentData?.regNo;
+    const target = getActiveViewedRegNo();
     if (!target) {
       requireAuthFor({ type: "dashboard" });
     } else {
@@ -293,12 +293,22 @@ export default function Navbar() {
       } else if (dest?.type === "leaderboard") {
         navigate("/leaderboard");
       } else {
-        const isAlreadyOnStudentPage =
-          location.pathname.startsWith("/dashboard") ||
-          location.pathname.startsWith("/analytics");
-        navigate(`/dashboard/${encodedId}`, {
-          replace: isAlreadyOnStudentPage,
-        });
+        // When searching on a specific tab/route, stay on the same route with the new searched student
+        if (location.pathname.startsWith("/analytics")) {
+          const query = location.search || "";
+          navigate(`/analytics/${encodedId}${query}`);
+        } else if (location.pathname.startsWith("/attendance")) {
+          const query = location.search || "";
+          navigate(`/attendance/${encodedId}${query}`);
+        } else if (location.pathname.startsWith("/timetable")) {
+          const query = location.search || "";
+          navigate(`/timetable/${encodedId}${query}`);
+        } else {
+          const isAlreadyOnStudentPage = location.pathname.startsWith("/dashboard");
+          navigate(`/dashboard/${encodedId}`, {
+            replace: isAlreadyOnStudentPage,
+          });
+        }
       }
     }
   };
@@ -915,7 +925,7 @@ export default function Navbar() {
               ) : hasActiveSession ? (
                 <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                   <Link
-                    to={`/dashboard/${encodeStudentId(loggedInRegNo || currentRegNo)}`}
+                    to={`/dashboard/${encodeStudentId(getActiveViewedRegNo())}`}
                     style={{
                       display: "inline-flex",
                       alignItems: "center",
@@ -1820,7 +1830,7 @@ export default function Navbar() {
                           {studentSession?.name || studentData?.studentName || studentData?.name || "Active Student"}
                         </div>
                         <div style={{ fontSize: 11, color: "#64748b" }}>
-                          {loggedInRegNo || currentRegNo}
+                          {getActiveViewedRegNo()}
                         </div>
                       </div>
                     </div>
