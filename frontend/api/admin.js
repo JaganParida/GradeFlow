@@ -763,35 +763,114 @@ module.exports = async function handler(req, res) {
       const branch = req.query.branch ? String(req.query.branch).trim().toUpperCase() : "";
       const section = req.query.section ? String(req.query.section).trim() : "";
       const search = req.query.search ? String(req.query.search).trim() : "";
-      const page = Math.max(1, parseInt(req.query.page, 10) || 1);
-      const limit = Math.min(100, Math.max(1, parseInt(req.query.limit, 10) || 50));
+      const semester = req.query.semester;
 
-      const query = {};
-      if (batch) query.batch = batch;
-      if (branch) query.branch = branch;
+      const [allRankings, studentsTracking] = await Promise.all([
+        Ranking.find({}).lean(),
+        Student.find({}).lean(),
+      ]);
+
+      const studentTrackingMap = new Map();
+      studentsTracking.forEach((st) => {
+        studentTrackingMap.set(st.regNo, st);
+      });
+
+      let filteredRankings = allRankings;
+      if (semester) {
+        const semNum = Number(semester);
+        filteredRankings = filteredRankings.filter((rk) => Number(rk.semester) === semNum);
+      } else {
+        const latestMap = new Map();
+        allRankings.forEach((rk) => {
+          const regNo = rk.regNo;
+          const currentSem = Number(rk.semester) || 0;
+          const existing = latestMap.get(regNo);
+          if (!existing || currentSem > (Number(existing.semester) || 0)) {
+            latestMap.set(regNo, rk);
+          }
+        });
+        filteredRankings = Array.from(latestMap.values());
+      }
+
+      let validStudents = [];
+      filteredRankings.forEach((rk) => {
+        const regNo = String(rk.regNo || "").trim();
+        if (!regNo) return;
+
+        const cgpa = Number(rk.cgpa) || 0;
+        const sgpa = Number(rk.sgpa) || 0;
+        if (cgpa <= 0) return;
+
+        let b = String(rk.batch || "").trim();
+        if (!b && /^\d{2}/.test(regNo)) b = `20${regNo.slice(0, 2)}`;
+
+        let br = detectBranch(regNo);
+        if (rk.branch) br = String(rk.branch).trim().toUpperCase();
+
+        let sec = getSectionFromRegNo(regNo);
+        if (sec && !sec.startsWith("Sec")) sec = `Sec ${sec}`;
+        if (!sec) sec = "N/A";
+
+        const tracking = studentTrackingMap.get(regNo) || {};
+
+        validStudents.push({
+          regNo,
+          studentName: rk.studentName || "Student",
+          batch: b,
+          branch: br,
+          section: sec.replace(/^Sec\s*/i, ""),
+          fullSection: sec,
+          semester: rk.semester,
+          cgpa,
+          sgpa,
+          sectionCgpaRank: rk.sectionCgpaRank || null,
+          sectionSgpaRank: rk.sectionSgpaRank || null,
+          deptCgpaRank: rk.deptCgpaRank || null,
+          deptRank: rk.deptRank || null,
+          universityRank: rk.universityRank || rk.cgpaRank || null,
+          lastTopperEmailSentAt: tracking.lastTopperEmailSentAt ? tracking.lastTopperEmailSentAt.toISOString() : null,
+          lastTopperEmailStatus: tracking.lastTopperEmailStatus || null,
+          lastTopperEmailError: tracking.lastTopperEmailError || null,
+        });
+      });
+
+      if (batch) {
+        validStudents = validStudents.filter((s) => s.batch === batch);
+      }
+      if (branch) {
+        validStudents = validStudents.filter((s) => s.branch === branch);
+      }
       if (section) {
-        const cleanSec = section.replace(/^Sec\s*/i, "").toUpperCase();
-        query.section = cleanSec;
-      }
-      if (search) {
-        query.$or = [{ regNo: new RegExp(search, "i") }, { studentName: new RegExp(search, "i") }];
+        const cleanSec = String(section).replace(/^Section\s*|^Sec\s*/i, "").trim().toUpperCase();
+        validStudents = validStudents.filter((s) => {
+          const sSec = String(s.section || "").replace(/^Section\s*|^Sec\s*/i, "").trim().toUpperCase();
+          return sSec === cleanSec;
+        });
       }
 
-      const totalStudents = await Ranking.countDocuments(query);
-      const students = await Ranking.find(query)
-        .sort({ cgpa: -1, sgpa: -1 })
-        .skip((page - 1) * limit)
-        .limit(limit)
-        .lean();
+      if (search) {
+        const q = String(search).toLowerCase().trim();
+        validStudents = validStudents.filter(
+          (s) => s.regNo.toLowerCase().includes(q) || s.studentName.toLowerCase().includes(q)
+        );
+      }
+
+      validStudents.sort((a, b) => b.cgpa - a.cgpa || b.sgpa - a.sgpa);
+
+      let currentRank = 1;
+      let prevCgpa = null;
+      validStudents.forEach((s, idx) => {
+        if (idx === 0) currentRank = 1;
+        else if (s.cgpa < prevCgpa) currentRank = idx + 1;
+        if (!s.sectionCgpaRank) s.sectionCgpaRank = currentRank;
+        prevCgpa = s.cgpa;
+      });
+
+      const top10Toppers = validStudents.filter((s) => Number(s.sectionCgpaRank) <= 10);
 
       return res.json({
-        students: students || [],
-        pagination: {
-          total: totalStudents,
-          page,
-          limit,
-          pages: Math.ceil(totalStudents / limit) || 1,
-        },
+        totalToppers: top10Toppers.length,
+        students: top10Toppers,
       });
     }
 
@@ -816,12 +895,13 @@ module.exports = async function handler(req, res) {
 
       rawResults.forEach((r) => {
         if (!studentMap.has(r.regNo)) {
+          const derivedSec = r.section || getSectionFromRegNo(r.regNo) || "A";
           studentMap.set(r.regNo, {
             regNo: r.regNo,
             studentName: r.studentName,
-            branch: r.branch,
-            batch: r.batch,
-            section: r.section || "A",
+            branch: r.branch || detectBranch(r.regNo),
+            batch: r.batch || detectBatch(r.regNo),
+            section: derivedSec.replace(/^Sec\s*/i, ""),
             totalBacklogs: 0,
             backlogs: [],
             semBreakdown: {},
@@ -844,7 +924,7 @@ module.exports = async function handler(req, res) {
 
       let allBacklogStudents = Array.from(studentMap.values()).filter((s) => s.totalBacklogs > 0);
       if (section) {
-        const cleanSec = section.replace(/^Sec\s*/i, "").toUpperCase();
+        const cleanSec = section.replace(/^Section\s*|^Sec\s*/i, "").trim().toUpperCase();
         allBacklogStudents = allBacklogStudents.filter((s) => s.section?.toUpperCase() === cleanSec);
       }
 
