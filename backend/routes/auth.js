@@ -892,11 +892,14 @@ router.post("/student/verify-otp", otpLimiter, async (req, res) => {
       });
     } else {
       if (activeSessions.length >= maxAllowedDevices) {
-        return res.status(403).json({
-          success: false,
-          code: "DEVICE_LIMIT_REACHED",
-          message: `Account ${rawReg} has reached maximum active devices (${maxAllowedDevices}).`,
-        });
+        const sorted = activeSessions.sort((a, b) => new Date(a.lastActiveAt || a.loggedInAt) - new Date(b.lastActiveAt || b.loggedInAt));
+        const oldest = sorted[0];
+        if (oldest) {
+          oldest.isActive = false;
+          oldest.revokedAt = new Date();
+          oldest.revokeReason = "REPLACED_BY_NEW_DEVICE";
+          await oldest.save();
+        }
       }
 
       const sessionId = crypto.randomUUID();
@@ -1083,6 +1086,80 @@ router.post("/student/transfer-session", authLimiter, async (req, res) => {
   } catch (err) {
     console.error("Student transfer-session error:", err);
     res.status(500).json({ success: false, message: "Failed to transfer session." });
+  }
+});
+
+// 1D. Send Email OTP for Handover / Ghost Session Recovery (/api/auth/student/send-handover-otp)
+router.post("/student/send-handover-otp", async (req, res) => {
+  try {
+    const rawReg = String(req.body.regNo || "").trim().toUpperCase();
+    const candidatePassword = String(req.body.password || "");
+    const requestId = String(req.body.requestId || "");
+
+    if (!rawReg) {
+      return res.status(400).json({ success: false, message: "Registration number is required." });
+    }
+
+    const studentAccount = await Student.findOne({ regNo: rawReg });
+    if (!studentAccount || !studentAccount.passwordHash) {
+      return res.status(401).json({ success: false, message: "Invalid student credentials." });
+    }
+
+    let isAuthorized = false;
+    if (candidatePassword) {
+      isAuthorized = await studentAccount.comparePassword(candidatePassword);
+    } else if (requestId) {
+      const pendingApproval = await DeviceApprovalRequest.findOne({ requestId, regNo: rawReg, status: "PENDING" });
+      if (pendingApproval && new Date() < new Date(pendingApproval.expiresAt)) {
+        isAuthorized = true;
+      }
+    }
+
+    if (!isAuthorized) {
+      return res.status(401).json({ success: false, message: "Unauthorized request. Password verification required." });
+    }
+
+    const studentRecord = await SemesterResult.findOne({ regNo: rawReg }).sort({ semester: -1 });
+    const studentName = studentRecord?.studentName || "Student";
+    const studentEmail = `${rawReg.toLowerCase()}@centurionuniv.edu.in`;
+
+    const otp = crypto.randomInt(100000, 1000000).toString();
+    const otpHash = await bcrypt.hash(otp, 10);
+    const expiresAt = new Date(Date.now() + 5 * 60 * 1000); // 5 minutes TTL
+
+    await OtpVerification.deleteMany({ regNo: rawReg });
+    await OtpVerification.create({
+      regNo: rawReg,
+      otpHash,
+      expiresAt,
+      attempts: 0,
+    });
+
+    try {
+      await sendStudentOtpEmail({
+        to: studentEmail,
+        studentName,
+        otp,
+        expiresInMinutes: 5,
+      });
+    } catch (emailErr) {
+      console.error("Handover OTP email dispatch error:", emailErr);
+      return res.status(500).json({ success: false, message: "Failed to dispatch verification code to university email." });
+    }
+
+    const parts = studentEmail.split("@");
+    const maskedUser = parts[0].length > 4 ? `${parts[0].slice(0, 3)}***${parts[0].slice(-2)}` : `${parts[0].slice(0, 1)}***`;
+    const maskedEmail = `${maskedUser}@${parts[1]}`;
+
+    return res.json({
+      success: true,
+      message: `A 6-digit verification code has been dispatched to ${maskedEmail}`,
+      maskedEmail,
+      expiresInSeconds: 300,
+    });
+  } catch (err) {
+    console.error("Send handover OTP error:", err);
+    return res.status(500).json({ success: false, message: "Server error during handover OTP dispatch." });
   }
 });
 

@@ -454,6 +454,26 @@ export function AppProvider({ children }) {
     }
   };
 
+  const sendHandoverOtp = async (regNo, password = null, requestId = null) => {
+    setLoading(true);
+    setError("");
+    try {
+      const res = await axios.post(`${API_BASE}/auth/student/send-handover-otp`, {
+        regNo,
+        password,
+        requestId,
+      }, { withCredentials: true });
+      return { success: true, data: res.data };
+    } catch (err) {
+      const msg = err.response?.data?.message || "Failed to send email verification code.";
+      const code = err.response?.data?.code || "HANDOVER_OTP_ERROR";
+      setError(msg);
+      return { success: false, error: msg, code };
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const verifyStudentOtp = async (regNo, otp) => {
     setLoading(true);
     setError("");
@@ -857,6 +877,7 @@ export function AppProvider({ children }) {
           setIsAuthModalOpen(false);
         },
         sendStudentOtp,
+        sendHandoverOtp,
         verifyStudentOtp,
         studentLoginPassword,
         studentCreatePassword,

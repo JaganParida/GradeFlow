@@ -221,6 +221,10 @@
       "destination": "/api/auth.js?action=student-login-password"
     },
     {
+      "source": "/api/auth/student/send-handover-otp",
+      "destination": "/api/auth.js?action=student-send-handover-otp"
+    },
+    {
       "source": "/api/auth/student/transfer-session",
       "destination": "/api/auth.js?action=student-transfer-session"
     },
