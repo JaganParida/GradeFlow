@@ -162,7 +162,7 @@ export default function Navbar() {
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
-  const currentRegNo = studentSession?.regNo || "";
+  const currentRegNo = studentData?.regNo || studentSession?.regNo || "";
   // Admin button is visible to all if 0/2 or 1/2 devices are active (hidden when 2/2 devices are full)
   const canSeeAdmin = Boolean(adminToken || isAdminButtonVisible);
 
@@ -204,7 +204,7 @@ export default function Navbar() {
 
   const handleDashboardClick = (e) => {
     if (e) e.preventDefault();
-    if (!hasActiveSession || !currentRegNo) {
+    if (!currentRegNo) {
       requireAuthFor({ type: "dashboard" });
     } else {
       navigate(`/dashboard/${encodeStudentId(currentRegNo)}`);
@@ -213,7 +213,7 @@ export default function Navbar() {
 
   const handleTimetableClick = (e) => {
     if (e) e.preventDefault();
-    if (!hasActiveSession || !currentRegNo) {
+    if (!currentRegNo) {
       requireAuthFor({ type: "timetable" });
     } else {
       navigate(`/timetable/${encodeStudentId(currentRegNo)}`);
@@ -222,7 +222,7 @@ export default function Navbar() {
 
   const handleAttendanceClick = (e) => {
     if (e) e.preventDefault();
-    if (!hasActiveSession || !currentRegNo) {
+    if (!currentRegNo) {
       requireAuthFor({ type: "attendance" });
     } else {
       navigate(`/attendance/${encodeStudentId(currentRegNo)}`);
@@ -231,7 +231,7 @@ export default function Navbar() {
 
   const handleAnalyticsClick = (e, targetTab = "") => {
     if (e) e.preventDefault();
-    if (!hasActiveSession || !currentRegNo) {
+    if (!currentRegNo) {
       requireAuthFor({ type: "analytics", tab: targetTab });
     } else {
       const query = targetTab ? `?tab=${encodeURIComponent(targetTab)}` : "";
@@ -241,7 +241,7 @@ export default function Navbar() {
 
   const handleRankingsClick = (e) => {
     if (e) e.preventDefault();
-    if (!hasActiveSession || !currentRegNo) {
+    if (!currentRegNo && !hasActiveSession && !adminToken) {
       requireAuthFor({ type: "leaderboard" });
     } else {
       navigate("/leaderboard");
@@ -1487,7 +1487,7 @@ export default function Navbar() {
                   <Link
                     to="/leaderboard"
                     onClick={(e) => {
-                      if (!hasActiveSession && !currentRegNo) {
+                      if (!hasActiveSession && !currentRegNo && !adminToken) {
                         e.preventDefault();
                         setMobileMenuOpen(false);
                         setShowAuthModal(true);

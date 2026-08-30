@@ -536,8 +536,6 @@ export default function Analytics() {
     setWhatIfSGPA(sgpa_tc > 0 ? trunc2(sgpa_tw / sgpa_tc).toFixed(2) : "0.00");
   }, [whatIfGrades, studentData]);
 
-  if (loading || !studentData) return <AnalyticsSkeleton />;
-
   const {
     results = [],
     cgpa = 0,
@@ -549,15 +547,18 @@ export default function Analytics() {
     studentName,
     branch,
     batch,
-  } = studentData;
+  } = studentData || {};
 
-  const chartData = results.map((r, i) => ({
-    sem: `Sem ${r.semester}`,
-    SGPA: typeof r.sgpa === "number" ? r.sgpa : parseFloat(calcSGPA(r.subjects, r.semester).toFixed(2)),
-    CGPA: calcCGPAUpTo(results, i),
-  }));
+  const chartData = useMemo(() => {
+    if (!studentData || !results.length) return [];
+    return results.map((r, i) => ({
+      sem: `Sem ${r.semester}`,
+      SGPA: typeof r.sgpa === "number" ? r.sgpa : parseFloat(calcSGPA(r.subjects, r.semester).toFixed(2)),
+      CGPA: calcCGPAUpTo(results, i),
+    }));
+  }, [studentData, results]);
 
-  const remainingSems = Math.max(0, 8 - latestSemester);
+  const remainingSems = Math.max(0, 8 - (latestSemester || 1));
 
   const possibleGradCGPARange = useMemo(() => {
     if (!studentData || remainingSems <= 0) return null;
@@ -566,7 +567,7 @@ export default function Analytics() {
     const futureCredits = remainingSems * avgCreditsPerSem;
     const totalGradCredits = currentCredits + futureCredits;
 
-    const currentWeightedPoints = cgpa * currentCredits;
+    const currentWeightedPoints = (cgpa || 0) * currentCredits;
     const minCGPA = parseFloat(((currentWeightedPoints + 0.0 * futureCredits) / totalGradCredits).toFixed(2));
     const maxCGPA = parseFloat(((currentWeightedPoints + 10.0 * futureCredits) / totalGradCredits).toFixed(2));
 
@@ -583,12 +584,12 @@ export default function Analytics() {
     const futureCredits = remainingSems * avgCreditsPerSem;
     const totalGradCredits = currentCredits + futureCredits;
 
-    const currentWeightedPoints = cgpa * currentCredits;
+    const currentWeightedPoints = (cgpa || 0) * currentCredits;
     const minPossibleCGPA = parseFloat(((currentWeightedPoints + 0.0 * futureCredits) / totalGradCredits).toFixed(2));
     const maxPossibleCGPA = parseFloat(((currentWeightedPoints + 10.0 * futureCredits) / totalGradCredits).toFixed(2));
 
     const rawRequired = (target * totalGradCredits - currentWeightedPoints) / futureCredits;
-    const delta = parseFloat((target - cgpa).toFixed(2));
+    const delta = parseFloat((target - (cgpa || 0)).toFixed(2));
 
     let status = "achievable"; // "secured" | "achievable" | "impossible"
     let displaySGPA = rawRequired.toFixed(2);
@@ -617,6 +618,8 @@ export default function Analytics() {
       totalGradCredits,
     };
   }, [studentData, targetCGPA, remainingSems, creditsCleared, latestSemester, cgpa]);
+
+  if (loading || !studentData) return <AnalyticsSkeleton />;
 
   const latestResult = results[results.length - 1];
   const latestSubjects = latestResult?.subjects || [];
