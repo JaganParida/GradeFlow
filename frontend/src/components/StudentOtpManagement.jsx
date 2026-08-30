@@ -38,6 +38,10 @@ import {
   Radio,
   CircleDot,
   Circle,
+  ChevronLeft,
+  ChevronRight,
+  ChevronsLeft,
+  ChevronsRight,
 } from "lucide-react";
 
 function getSectionFromRegNo(regNo) {
@@ -127,6 +131,7 @@ export default function StudentOtpManagement({ API, authHeaders, isMobile }) {
   const [successMsg, setSuccessMsg] = useState("");
   const [studentData, setStudentData] = useState(null);
   const [timeline, setTimeline] = useState([]);
+  const [historyPage, setHistoryPage] = useState(1);
 
   // Registered Accounts Directory State
   const [accountsList, setAccountsList] = useState([]);
@@ -194,6 +199,7 @@ export default function StudentOtpManagement({ API, authHeaders, isMobile }) {
       if (res.data?.success) {
         setStudentData(res.data.studentSummary);
         setTimeline(res.data.historyTimeline || []);
+        setHistoryPage(1);
         window.scrollTo({ top: 380, behavior: "smooth" });
       } else {
         setErrorMsg(res.data?.message || "Failed to fetch student OTP details.");
@@ -1371,137 +1377,397 @@ export default function StudentOtpManagement({ API, authHeaders, isMobile }) {
             )}
           </div>
 
-          {/* ── Chronological OTP History Timeline ── */}
-          <div
-            style={{
-              background: "#ffffff",
-              borderRadius: 16,
-              border: "1px solid #e2e8f0",
-              padding: isMob ? "14px 12px" : "20px 24px",
-              boxShadow: "0 2px 10px rgba(15, 23, 42, 0.02)",
-            }}
-          >
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16, flexWrap: "wrap", gap: 8 }}>
-              <div>
-                <h3 style={{ margin: 0, fontSize: isMob ? 15 : 16, fontWeight: 800, color: "#0f172a" }}>
-                  OTP Activity & Delivery History
-                </h3>
-                <p style={{ margin: "3px 0 0 0", fontSize: isMob ? 11.5 : 12.5, color: "#64748b" }}>
-                  Showing last {timeline.length} request attempt(s) in chronological order (Asia/Kolkata).
-                </p>
-              </div>
-              <span style={{ fontSize: 11.5, fontWeight: 700, color: "#4f46e5", background: "#eef2ff", padding: "3px 9px", borderRadius: 8 }}>
-                Total Events: {timeline.length}
-              </span>
-            </div>
+          {/* ── Chronological OTP History Timeline (Recent First & 5 Items / Page) ── */}
+          {(() => {
+            const sortedTimeline = [...timeline].sort(
+              (a, b) => new Date(b.timestamp || 0) - new Date(a.timestamp || 0)
+            );
+            const itemsPerPage = 5;
+            const totalPages = Math.max(1, Math.ceil(sortedTimeline.length / itemsPerPage));
+            const safePage = Math.min(Math.max(1, historyPage), totalPages);
+            const startIndex = (safePage - 1) * itemsPerPage;
+            const endIndex = Math.min(startIndex + itemsPerPage, sortedTimeline.length);
+            const paginatedTimeline = sortedTimeline.slice(startIndex, endIndex);
 
-            {timeline.length === 0 ? (
-              <div style={{ padding: "30px 20px", textAlign: "center", color: "#64748b", fontSize: 13 }}>
-                No recent OTP request history logged for this student.
-              </div>
-            ) : (
-              <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-                {timeline.map((item, idx) => {
-                  const isDelivered = item.status === "DELIVERED";
-                  const isBlocked = item.status === "BLOCKED";
-                  const isFailed = item.status === "FAILED";
+            return (
+              <div
+                style={{
+                  background: "#ffffff",
+                  borderRadius: 16,
+                  border: "1.5px solid #e2e8f0",
+                  padding: isMob ? "16px 12px" : "22px 24px",
+                  boxShadow: "0 4px 20px rgba(15, 23, 42, 0.03)",
+                }}
+              >
+                {/* Header */}
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: isMob ? "flex-start" : "center",
+                    justifyContent: "space-between",
+                    marginBottom: 16,
+                    flexDirection: isMob ? "column" : "row",
+                    gap: 10,
+                  }}
+                >
+                  <div>
+                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                      <Activity size={18} color="#4f46e5" />
+                      <h3 style={{ margin: 0, fontSize: isMob ? 15.5 : 16.5, fontWeight: 800, color: "#0f172a" }}>
+                        OTP Activity & Delivery History
+                      </h3>
+                    </div>
+                    <p style={{ margin: "4px 0 0 0", fontSize: isMob ? 11.5 : 12.5, color: "#64748b" }}>
+                      {sortedTimeline.length > 0
+                        ? `Showing events ${startIndex + 1}–${endIndex} of ${sortedTimeline.length} • Recent first (5 per page)`
+                        : "No OTP requests recorded for this student."}
+                    </p>
+                  </div>
 
-                  let badgeBg = "#ecfdf5";
-                  let badgeBorder = "#a7f3d0";
-                  let badgeColor = "#065f46";
-                  if (isBlocked) {
-                    badgeBg = "#fffbeb";
-                    badgeBorder = "#fde68a";
-                    badgeColor = "#92400e";
-                  } else if (isFailed) {
-                    badgeBg = "#fef2f2";
-                    badgeBorder = "#fecaca";
-                    badgeColor = "#991b1b";
-                  }
-
-                  return (
-                    <div
-                      key={item.id || idx}
+                  <div style={{ display: "flex", alignItems: "center", gap: 6, width: isMob ? "100%" : "auto", justifyContent: isMob ? "space-between" : "flex-end" }}>
+                    <span
                       style={{
-                        background: "#f8fafc",
-                        border: "1px solid #e2e8f0",
-                        borderRadius: 12,
-                        padding: isMob ? "10px 12px" : "12px 16px",
-                        display: "flex",
-                        flexDirection: isMob ? "column" : "row",
-                        alignItems: isMob ? "flex-start" : "center",
-                        justifyContent: "space-between",
-                        gap: 10,
+                        fontSize: 11.5,
+                        fontWeight: 800,
+                        color: "#4f46e5",
+                        background: "#eef2ff",
+                        border: "1px solid #c7d2fe",
+                        padding: "3px 10px",
+                        borderRadius: 8,
                       }}
                     >
-                      {/* Left: Status & Time */}
-                      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                        <span
+                      Total Events: {sortedTimeline.length}
+                    </span>
+                    {totalPages > 1 && (
+                      <span
+                        style={{
+                          fontSize: 11.5,
+                          fontWeight: 700,
+                          color: "#475569",
+                          background: "#f1f5f9",
+                          border: "1px solid #e2e8f0",
+                          padding: "3px 10px",
+                          borderRadius: 8,
+                        }}
+                      >
+                        Page {safePage} / {totalPages}
+                      </span>
+                    )}
+                  </div>
+                </div>
+
+                {/* Timeline Items */}
+                {sortedTimeline.length === 0 ? (
+                  <div
+                    style={{
+                      padding: "40px 20px",
+                      textAlign: "center",
+                      color: "#64748b",
+                      fontSize: 13,
+                      background: "#f8fafc",
+                      borderRadius: 12,
+                      border: "1px dashed #cbd5e1",
+                    }}
+                  >
+                    <Clock size={28} color="#94a3b8" style={{ margin: "0 auto 8px" }} />
+                    <p style={{ margin: 0, fontWeight: 600 }}>No OTP request history logged for this student yet.</p>
+                  </div>
+                ) : (
+                  <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                    {paginatedTimeline.map((item, idx) => {
+                      const isDelivered = item.status === "DELIVERED";
+                      const isBlocked = item.status === "BLOCKED";
+                      const isFailed = item.status === "FAILED";
+
+                      let badgeBg = "#ecfdf5";
+                      let badgeBorder = "#a7f3d0";
+                      let badgeColor = "#065f46";
+                      let StatusIcon = CheckCircle2;
+
+                      if (isBlocked) {
+                        badgeBg = "#fffbeb";
+                        badgeBorder = "#fde68a";
+                        badgeColor = "#92400e";
+                        StatusIcon = AlertTriangle;
+                      } else if (isFailed) {
+                        badgeBg = "#fef2f2";
+                        badgeBorder = "#fecaca";
+                        badgeColor = "#991b1b";
+                        StatusIcon = XCircle;
+                      }
+
+                      return (
+                        <div
+                          key={item.id || idx}
                           style={{
-                            background: badgeBg,
-                            border: `1px solid ${badgeBorder}`,
-                            color: badgeColor,
-                            fontSize: 10.5,
-                            fontWeight: 800,
-                            padding: "3px 7px",
-                            borderRadius: 6,
-                            textTransform: "uppercase",
+                            background: "#f8fafc",
+                            border: `1px solid ${isFailed ? "#fecaca" : isBlocked ? "#fed7aa" : "#e2e8f0"}`,
+                            borderRadius: 14,
+                            padding: isMob ? "12px 14px" : "14px 18px",
+                            display: "flex",
+                            flexDirection: "column",
+                            gap: 8,
+                            transition: "all 0.15s ease",
+                            boxShadow: "0 1px 3px rgba(0,0,0,0.02)",
                           }}
                         >
-                          {item.status}
-                        </span>
-                        <div>
-                          <div style={{ fontSize: isMob ? 12.5 : 13, fontWeight: 700, color: "#0f172a" }}>
+                          {/* Top Row: Status Badge & Time */}
+                          <div
+                            style={{
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "space-between",
+                              flexWrap: "wrap",
+                              gap: 8,
+                            }}
+                          >
+                            <span
+                              style={{
+                                background: badgeBg,
+                                border: `1px solid ${badgeBorder}`,
+                                color: badgeColor,
+                                fontSize: 11,
+                                fontWeight: 800,
+                                padding: "3px 8px",
+                                borderRadius: 6,
+                                textTransform: "uppercase",
+                                display: "inline-flex",
+                                alignItems: "center",
+                                gap: 5,
+                              }}
+                            >
+                              <StatusIcon size={12} />
+                              <span>{item.status}</span>
+                            </span>
+
+                            <div
+                              style={{
+                                fontSize: 11.5,
+                                color: "#64748b",
+                                fontWeight: 600,
+                                display: "inline-flex",
+                                alignItems: "center",
+                                gap: 4,
+                                fontFamily: "'Space Mono', monospace",
+                              }}
+                            >
+                              <Clock size={12} color="#94a3b8" />
+                              <span>{item.formattedTime}</span>
+                            </div>
+                          </div>
+
+                          {/* Middle Row: Reason / Description */}
+                          <div style={{ fontSize: isMob ? 13 : 13.5, fontWeight: 700, color: "#0f172a", lineHeight: 1.4 }}>
                             {item.reason}
                           </div>
-                          <div style={{ fontSize: 11, color: "#64748b", marginTop: 2 }}>
-                            {item.formattedTime}
+
+                          {/* Bottom Row: Provider & Device Metadata Chips */}
+                          <div
+                            style={{
+                              display: "flex",
+                              alignItems: "center",
+                              gap: 6,
+                              flexWrap: "wrap",
+                              paddingTop: 2,
+                            }}
+                          >
+                            {/* Provider Chip */}
+                            <span
+                              style={{
+                                background: item.provider === "BREVO" ? "#ecfeff" : item.provider === "GMAIL" ? "#faf5ff" : "#f1f5f9",
+                                border: `1px solid ${item.provider === "BREVO" ? "#a5f3fc" : item.provider === "GMAIL" ? "#e9d5ff" : "#cbd5e1"}`,
+                                color: item.provider === "BREVO" ? "#0e7490" : item.provider === "GMAIL" ? "#7e22ce" : "#475569",
+                                fontSize: 10.5,
+                                fontWeight: 700,
+                                padding: "2.5px 8px",
+                                borderRadius: 6,
+                                display: "inline-flex",
+                                alignItems: "center",
+                                gap: 4,
+                              }}
+                            >
+                              <Mail size={11} />
+                              <span>
+                                {item.provider === "BREVO"
+                                  ? "Brevo Primary"
+                                  : item.provider === "GMAIL"
+                                  ? "Gmail Fallback"
+                                  : "System Handover"}
+                              </span>
+                            </span>
+
+                            {/* Device & IP Chip */}
+                            <span
+                              style={{
+                                background: "#ffffff",
+                                border: "1px solid #cbd5e1",
+                                color: "#334155",
+                                fontSize: 10.5,
+                                fontWeight: 600,
+                                padding: "2.5px 8px",
+                                borderRadius: 6,
+                                display: "inline-flex",
+                                alignItems: "center",
+                                gap: 5,
+                              }}
+                            >
+                              {item.device?.deviceType === "Mobile" ? <Smartphone size={11} /> : <Laptop size={11} />}
+                              <span>{item.device?.platform || "Device"} • {item.device?.maskedIp || "Hidden IP"}</span>
+                            </span>
+
+                            {item.failoverOccurred && (
+                              <span
+                                style={{
+                                  background: "#fef3c7",
+                                  border: "1px solid #fde68a",
+                                  color: "#92400e",
+                                  fontSize: 10,
+                                  fontWeight: 800,
+                                  padding: "2px 6px",
+                                  borderRadius: 6,
+                                }}
+                              >
+                                ⚡ Failover Auto-Switch
+                              </span>
+                            )}
                           </div>
                         </div>
+                      );
+                    })}
+                  </div>
+                )}
+
+                {/* ── Mobile-Friendly & Desktop Pagination Controls ── */}
+                {totalPages > 1 && (
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                      flexWrap: "wrap",
+                      gap: 12,
+                      marginTop: 18,
+                      paddingTop: 14,
+                      borderTop: "1px solid #e2e8f0",
+                    }}
+                  >
+                    {/* Left: Events summary (Desktop) */}
+                    {!isMob && (
+                      <span style={{ fontSize: 12.5, color: "#64748b", fontWeight: 600 }}>
+                        Showing <strong>{startIndex + 1}–{endIndex}</strong> of <strong>{sortedTimeline.length}</strong> events
+                      </span>
+                    )}
+
+                    {/* Pagination Buttons Container */}
+                    <div
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 6,
+                        width: isMob ? "100%" : "auto",
+                        justifyContent: isMob ? "space-between" : "flex-end",
+                      }}
+                    >
+                      {/* Previous Page Button */}
+                      <button
+                        type="button"
+                        disabled={safePage <= 1}
+                        onClick={() => setHistoryPage((p) => Math.max(1, p - 1))}
+                        style={{
+                          flex: isMob ? "1 1 0" : "none",
+                          padding: isMob ? "9px 12px" : "7px 14px",
+                          borderRadius: 8,
+                          border: "1px solid",
+                          borderColor: safePage <= 1 ? "#e2e8f0" : "#cbd5e1",
+                          background: safePage <= 1 ? "#f8fafc" : "#ffffff",
+                          color: safePage <= 1 ? "#94a3b8" : "#1e293b",
+                          fontSize: 12.5,
+                          fontWeight: 700,
+                          cursor: safePage <= 1 ? "not-allowed" : "pointer",
+                          display: "inline-flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          gap: 4,
+                          transition: "all 0.15s ease",
+                        }}
+                      >
+                        <ChevronLeft size={14} />
+                        <span>Previous</span>
+                      </button>
+
+                      {/* Numbered Page Buttons */}
+                      <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                        {Array.from({ length: totalPages }, (_, i) => i + 1).map((pageNum) => {
+                          const isActive = pageNum === safePage;
+                          if (totalPages > 5 && Math.abs(pageNum - safePage) > 1 && pageNum !== 1 && pageNum !== totalPages) {
+                            if (pageNum === 2 || pageNum === totalPages - 1) {
+                              return <span key={pageNum} style={{ fontSize: 11, color: "#94a3b8", padding: "0 2px" }}>...</span>;
+                            }
+                            return null;
+                          }
+
+                          return (
+                            <button
+                              key={pageNum}
+                              type="button"
+                              onClick={() => setHistoryPage(pageNum)}
+                              style={{
+                                minWidth: 32,
+                                height: 32,
+                                padding: "0 6px",
+                                borderRadius: 8,
+                                border: "1px solid",
+                                borderColor: isActive ? "#4f46e5" : "#cbd5e1",
+                                background: isActive ? "#4f46e5" : "#ffffff",
+                                color: isActive ? "#ffffff" : "#334155",
+                                fontSize: 12,
+                                fontWeight: 800,
+                                cursor: "pointer",
+                                display: "inline-flex",
+                                alignItems: "center",
+                                justifyContent: "center",
+                                transition: "all 0.15s ease",
+                                boxShadow: isActive ? "0 2px 6px rgba(79, 70, 229, 0.25)" : "none",
+                              }}
+                            >
+                              {pageNum}
+                            </button>
+                          );
+                        })}
                       </div>
 
-                      {/* Right: Provider & Device Pills */}
-                      <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
-                        {/* Provider Pill */}
-                        <span
-                          style={{
-                            background: item.provider === "BREVO" ? "#ecfeff" : item.provider === "GMAIL" ? "#faf5ff" : "#f1f5f9",
-                            border: `1px solid ${item.provider === "BREVO" ? "#a5f3fc" : item.provider === "GMAIL" ? "#e9d5ff" : "#cbd5e1"}`,
-                            color: item.provider === "BREVO" ? "#0e7490" : item.provider === "GMAIL" ? "#7e22ce" : "#475569",
-                            fontSize: 10.5,
-                            fontWeight: 700,
-                            padding: "2px 7px",
-                            borderRadius: 6,
-                          }}
-                        >
-                          {item.provider === "BREVO" ? "Brevo Primary" : item.provider === "GMAIL" ? "Gmail Fallback" : "No Provider"}
-                        </span>
-
-                        {/* Device Info */}
-                        <span
-                          style={{
-                            background: "#ffffff",
-                            border: "1px solid #cbd5e1",
-                            color: "#334155",
-                            fontSize: 10.5,
-                            fontWeight: 600,
-                            padding: "2px 7px",
-                            borderRadius: 6,
-                            display: "inline-flex",
-                            alignItems: "center",
-                            gap: 4,
-                          }}
-                        >
-                          {item.device?.deviceType === "Mobile" ? <Smartphone size={11} /> : <Laptop size={11} />}
-                          {item.device?.platform} • {item.device?.maskedIp}
-                        </span>
-                      </div>
+                      {/* Next Page Button */}
+                      <button
+                        type="button"
+                        disabled={safePage >= totalPages}
+                        onClick={() => setHistoryPage((p) => Math.min(totalPages, p + 1))}
+                        style={{
+                          flex: isMob ? "1 1 0" : "none",
+                          padding: isMob ? "9px 12px" : "7px 14px",
+                          borderRadius: 8,
+                          border: "1px solid",
+                          borderColor: safePage >= totalPages ? "#e2e8f0" : "#cbd5e1",
+                          background: safePage >= totalPages ? "#f8fafc" : "#ffffff",
+                          color: safePage >= totalPages ? "#94a3b8" : "#1e293b",
+                          fontSize: 12.5,
+                          fontWeight: 700,
+                          cursor: safePage >= totalPages ? "not-allowed" : "pointer",
+                          display: "inline-flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          gap: 4,
+                          transition: "all 0.15s ease",
+                        }}
+                      >
+                        <span>Next</span>
+                        <ChevronRight size={14} />
+                      </button>
                     </div>
-                  );
-                })}
+                  </div>
+                )}
               </div>
-            )}
-          </div>
+            );
+          })()}
 
           {/* ── Separate Administrative Decision Action Card ── */}
           <div
