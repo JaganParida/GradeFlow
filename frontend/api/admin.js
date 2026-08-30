@@ -15,6 +15,7 @@ const {
   calculateSGPA,
   calculateCGPA,
   calculateSemesterMetrics,
+  calculateBacklogs,
   getGradePoint,
   getSectionFromRegNo,
   normalizeGrade,
