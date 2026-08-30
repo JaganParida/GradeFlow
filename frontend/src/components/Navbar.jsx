@@ -271,44 +271,42 @@ export default function Navbar() {
   const handleSearchSubmit = async (e) => {
     e.preventDefault();
     const cleanReg = searchRegNo.trim();
-    if (!cleanReg || loading) return;
-    const success = await fetchStudent(cleanReg);
-    if (success) {
-      setShowAuthModal(false);
-      setSearchModalOpen(false);
-      setMobileMenuOpen(false);
-      setSearchRegNo("");
+    if (!cleanReg) return;
 
-      const encodedId = encodeStudentId(cleanReg);
-      const dest = pendingDestination;
-      setPendingDestination(null);
+    setShowAuthModal(false);
+    setSearchModalOpen(false);
+    setMobileMenuOpen(false);
+    setSearchRegNo("");
 
-      if (dest?.type === "timetable") {
-        navigate(`/timetable/${encodedId}`);
-      } else if (dest?.type === "attendance") {
-        navigate(`/attendance/${encodedId}`);
-      } else if (dest?.type === "analytics") {
-        const query = dest.tab ? `?tab=${encodeURIComponent(dest.tab)}` : "";
+    const encodedId = encodeStudentId(cleanReg);
+    const dest = pendingDestination;
+    setPendingDestination(null);
+
+    if (dest?.type === "timetable") {
+      navigate(`/timetable/${encodedId}`);
+    } else if (dest?.type === "attendance") {
+      navigate(`/attendance/${encodedId}`);
+    } else if (dest?.type === "analytics") {
+      const query = dest.tab ? `?tab=${encodeURIComponent(dest.tab)}` : "";
+      navigate(`/analytics/${encodedId}${query}`);
+    } else if (dest?.type === "leaderboard") {
+      navigate("/leaderboard");
+    } else {
+      // When searching on a specific tab/route, stay on the same route with the new searched student
+      if (location.pathname.startsWith("/analytics")) {
+        const query = location.search || "";
         navigate(`/analytics/${encodedId}${query}`);
-      } else if (dest?.type === "leaderboard") {
-        navigate("/leaderboard");
+      } else if (location.pathname.startsWith("/attendance")) {
+        const query = location.search || "";
+        navigate(`/attendance/${encodedId}${query}`);
+      } else if (location.pathname.startsWith("/timetable")) {
+        const query = location.search || "";
+        navigate(`/timetable/${encodedId}${query}`);
       } else {
-        // When searching on a specific tab/route, stay on the same route with the new searched student
-        if (location.pathname.startsWith("/analytics")) {
-          const query = location.search || "";
-          navigate(`/analytics/${encodedId}${query}`);
-        } else if (location.pathname.startsWith("/attendance")) {
-          const query = location.search || "";
-          navigate(`/attendance/${encodedId}${query}`);
-        } else if (location.pathname.startsWith("/timetable")) {
-          const query = location.search || "";
-          navigate(`/timetable/${encodedId}${query}`);
-        } else {
-          const isAlreadyOnStudentPage = location.pathname.startsWith("/dashboard");
-          navigate(`/dashboard/${encodedId}`, {
-            replace: isAlreadyOnStudentPage,
-          });
-        }
+        const isAlreadyOnStudentPage = location.pathname.startsWith("/dashboard");
+        navigate(`/dashboard/${encodedId}`, {
+          replace: isAlreadyOnStudentPage,
+        });
       }
     }
   };

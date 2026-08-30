@@ -1245,15 +1245,15 @@ export default function Analytics() {
                 </div>
 
                 {/* Selected Grade Detailed Course Breakdown Panel */}
-                <AnimatePresence>
+                <AnimatePresence mode="wait">
                   {selectedGradeFilter && (
                     <motion.div
                       key={`grade-details-${selectedGradeFilter}`}
-                      initial={{ opacity: 0, height: 0, y: -10 }}
-                      animate={{ opacity: 1, height: "auto", y: 0 }}
-                      exit={{ opacity: 0, height: 0, y: -10 }}
-                      transition={{ duration: 0.25, ease: "easeOut" }}
-                      style={{ overflow: "hidden", marginTop: 4 }}
+                      initial={{ opacity: 0, y: -8, scale: 0.995 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      exit={{ opacity: 0, y: -8, scale: 0.995 }}
+                      transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
+                      style={{ marginTop: 6 }}
                     >
                       <div
                         style={{
