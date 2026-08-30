@@ -51,6 +51,7 @@ import {
   Sliders,
   Zap,
   Percent,
+  Search,
 } from "lucide-react";
 import {
   GRADE_POINTS,
@@ -206,6 +207,54 @@ function getDynamicBranch(regNo, fallbackBranch) {
   return fallbackBranch || "-";
 }
 
+function getSubjectCurriculumCategory(subject) {
+  const rawType = String(subject.type || "").trim().toUpperCase();
+  const rawName = String(subject.subName || subject.subjectName || "").trim().toUpperCase();
+
+  // 1. Project Work (TUT / Project / Capstone / Internship / Dissertation / PW)
+  if (
+    rawType === "TUT" ||
+    rawType === "TUTORIAL" ||
+    rawType === "PROJECT" ||
+    rawType === "PROJ" ||
+    rawType === "PW" ||
+    rawType.includes("PROJECT") ||
+    rawType.includes("TUTORIAL") ||
+    rawName.includes("PROJECT") ||
+    rawName.includes("CAPSTONE") ||
+    rawName.includes("INTERNSHIP") ||
+    rawName.includes("DISSERTATION")
+  ) {
+    return "project";
+  }
+
+  // 2. Practicals & Labs (PR / Practice / Practical / Lab / Sessional / P)
+  if (
+    rawType === "PR" ||
+    rawType === "PRACTICAL" ||
+    rawType === "PRACTICALS" ||
+    rawType === "PRACTICE" ||
+    rawType === "LAB" ||
+    rawType === "LABS" ||
+    rawType === "SESSIONAL" ||
+    rawType === "PRAC" ||
+    rawType === "P" ||
+    rawType.includes("LAB") ||
+    rawType.includes("PRACTICAL") ||
+    rawType.includes("SESSIONAL") ||
+    rawName.endsWith(" LAB") ||
+    rawName.includes(" LAB ") ||
+    rawName.includes(" LABORATORY") ||
+    rawName.endsWith(" PRACTICAL") ||
+    rawName.includes(" PRACTICAL ")
+  ) {
+    return "practical";
+  }
+
+  // 3. Theory Courses (PP / Theory / T / TH / T+P / Default Courses)
+  return "theory";
+}
+
 export default function Analytics() {
   const { regNo: paramRegNo } = useParams();
   const decodedRegNo = decodeStudentId(paramRegNo);
@@ -248,6 +297,8 @@ export default function Analytics() {
   const [whatIfGrades, setWhatIfGrades] = useState({});
   const [whatIfCGPA, setWhatIfCGPA] = useState(null);
   const [whatIfSGPA, setWhatIfSGPA] = useState(null);
+  const [selectedGradeFilter, setSelectedGradeFilter] = useState(null);
+  const [gradeSearchQuery, setGradeSearchQuery] = useState("");
   const [isMobile, setIsMobile] = useState(() => (typeof window !== "undefined" ? window.innerWidth < 1024 : false));
 
   // Mobile Sub-Nav Scroll Reference & Status
@@ -368,6 +419,32 @@ export default function Analytics() {
     }));
   }, [studentData]);
 
+  // Group all subjects across all semesters by grade for detailed card view
+  const subjectsByGrade = useMemo(() => {
+    if (!studentData || !studentData.results) return {};
+    const map = { O: [], E: [], A: [], B: [], C: [], D: [], F: [] };
+
+    studentData.results.forEach((r) => {
+      r.subjects?.forEach((s) => {
+        const grade = String(s.grade || "").trim().toUpperCase();
+        if (map[grade]) {
+          const credit = Number(s.credit !== undefined ? s.credit : s.credits) || 0;
+          map[grade].push({
+            semester: r.semester,
+            subName: s.subName || s.subjectName || "Subject",
+            subCode: s.subCode || s.subjectCode || "",
+            credit,
+            type: s.type || "Theory",
+            grade,
+            points: credit * (GRADE_META[grade]?.pts || 0),
+          });
+        }
+      });
+    });
+
+    return map;
+  }, [studentData]);
+
   const totalGradedCount = useMemo(() => {
     return gradeDistributionData.reduce((acc, curr) => acc + curr.count, 0);
   }, [gradeDistributionData]);
@@ -389,27 +466,31 @@ export default function Analytics() {
 
     studentData.results.forEach((r) => {
       r.subjects?.forEach((s) => {
-        if (!s.credit || !GRADE_POINTS[s.grade]) return;
-        const type = s.type ? s.type.toLowerCase() : s.subName ? s.subName.toLowerCase() : "";
-        const points = s.credit * GRADE_POINTS[s.grade];
+        const credit = Number(s.credit !== undefined ? s.credit : s.credits) || 0;
+        const normalizedGrade = String(s.grade || "").trim().toUpperCase();
+        const gradePoint = GRADE_POINTS[normalizedGrade];
+        if (!credit || gradePoint === undefined) return;
 
-        if (type.includes("proj")) {
+        const points = credit * gradePoint;
+        const category = getSubjectCurriculumCategory(s);
+
+        if (category === "project") {
           projectW += points;
-          projectC += s.credit;
-        } else if (type.includes("p") || type.includes("lab") || type.includes("practical") || type.includes("sess")) {
+          projectC += credit;
+        } else if (category === "practical") {
           practicalW += points;
-          practicalC += s.credit;
+          practicalC += credit;
         } else {
           theoryW += points;
-          theoryC += s.credit;
+          theoryC += credit;
         }
       });
     });
 
     return [
-      { subject: "Theory Courses", score: theoryC ? (theoryW / theoryC) * 10 : 0, fullMark: 100 },
-      { subject: "Practicals & Labs", score: practicalC ? (practicalW / practicalC) * 10 : 0, fullMark: 100 },
-      { subject: "Project Work", score: projectC ? (projectW / projectC) * 10 : 0, fullMark: 100 },
+      { subject: "Theory Courses", score: theoryC ? Number(((theoryW / theoryC) * 10).toFixed(1)) : 0, fullMark: 100 },
+      { subject: "Practicals & Labs", score: practicalC ? Number(((practicalW / practicalC) * 10).toFixed(1)) : 0, fullMark: 100 },
+      { subject: "Project Work", score: projectC ? Number(((projectW / projectC) * 10).toFixed(1)) : 0, fullMark: 100 },
     ];
   }, [studentData]);
 
@@ -477,17 +558,65 @@ export default function Analytics() {
   }));
 
   const remainingSems = Math.max(0, 8 - latestSemester);
-  let requiredSGPA = null;
-  if (targetCGPA && remainingSems > 0) {
-    const target = parseFloat(targetCGPA);
-    const currentCredits = creditsCleared;
-    const avgCreditsPerSem = currentCredits / latestSemester;
+
+  const possibleGradCGPARange = useMemo(() => {
+    if (!studentData || remainingSems <= 0) return null;
+    const currentCredits = creditsCleared > 0 ? creditsCleared : Math.max(1, (latestSemester || 1) * 22);
+    const avgCreditsPerSem = (latestSemester || 1) > 0 ? currentCredits / (latestSemester || 1) : 22;
     const futureCredits = remainingSems * avgCreditsPerSem;
-    requiredSGPA = (
-      (target * (currentCredits + futureCredits) - cgpa * currentCredits) /
-      futureCredits
-    ).toFixed(2);
-  }
+    const totalGradCredits = currentCredits + futureCredits;
+
+    const currentWeightedPoints = cgpa * currentCredits;
+    const minCGPA = parseFloat(((currentWeightedPoints + 0.0 * futureCredits) / totalGradCredits).toFixed(2));
+    const maxCGPA = parseFloat(((currentWeightedPoints + 10.0 * futureCredits) / totalGradCredits).toFixed(2));
+
+    return { minCGPA, maxCGPA };
+  }, [studentData, remainingSems, creditsCleared, latestSemester, cgpa]);
+
+  const goalPrediction = useMemo(() => {
+    if (!studentData || !targetCGPA || remainingSems <= 0) return null;
+    const target = parseFloat(targetCGPA);
+    if (isNaN(target) || target <= 0) return null;
+
+    const currentCredits = creditsCleared > 0 ? creditsCleared : Math.max(1, (latestSemester || 1) * 22);
+    const avgCreditsPerSem = (latestSemester || 1) > 0 ? currentCredits / (latestSemester || 1) : 22;
+    const futureCredits = remainingSems * avgCreditsPerSem;
+    const totalGradCredits = currentCredits + futureCredits;
+
+    const currentWeightedPoints = cgpa * currentCredits;
+    const minPossibleCGPA = parseFloat(((currentWeightedPoints + 0.0 * futureCredits) / totalGradCredits).toFixed(2));
+    const maxPossibleCGPA = parseFloat(((currentWeightedPoints + 10.0 * futureCredits) / totalGradCredits).toFixed(2));
+
+    const rawRequired = (target * totalGradCredits - currentWeightedPoints) / futureCredits;
+    const delta = parseFloat((target - cgpa).toFixed(2));
+
+    let status = "achievable"; // "secured" | "achievable" | "impossible"
+    let displaySGPA = rawRequired.toFixed(2);
+
+    if (rawRequired <= 0) {
+      status = "secured";
+      displaySGPA = "0.00";
+    } else if (rawRequired > 10.0) {
+      status = "impossible";
+      displaySGPA = rawRequired.toFixed(2);
+    } else {
+      status = "achievable";
+      displaySGPA = rawRequired.toFixed(2);
+    }
+
+    return {
+      target,
+      displaySGPA,
+      rawRequired,
+      status,
+      delta,
+      minPossibleCGPA,
+      maxPossibleCGPA,
+      currentCredits,
+      futureCredits,
+      totalGradCredits,
+    };
+  }, [studentData, targetCGPA, remainingSems, creditsCleared, latestSemester, cgpa]);
 
   const latestResult = results[results.length - 1];
   const latestSubjects = latestResult?.subjects || [];
@@ -1019,9 +1148,24 @@ export default function Analytics() {
                           `Grade ${item.payload.grade} (${item.payload.label})`,
                         ]}
                       />
-                      <Bar dataKey="count" radius={[6, 6, 0, 0]}>
+                      <Bar
+                        dataKey="count"
+                        radius={[6, 6, 0, 0]}
+                        cursor="pointer"
+                        onClick={(data) => {
+                          if (data && data.count > 0) {
+                            setSelectedGradeFilter(selectedGradeFilter === data.grade ? null : data.grade);
+                            setGradeSearchQuery("");
+                          }
+                        }}
+                      >
                         {gradeDistributionData.map((entry, index) => (
-                          <Cell key={`cell-${index}`} fill={entry.color} />
+                          <Cell
+                            key={`cell-${index}`}
+                            fill={entry.color}
+                            stroke={selectedGradeFilter === entry.grade ? "#0f172a" : "none"}
+                            strokeWidth={selectedGradeFilter === entry.grade ? 2 : 0}
+                          />
                         ))}
                       </Bar>
                     </BarChart>
@@ -1030,28 +1174,349 @@ export default function Analytics() {
 
                 {/* Grade Chips Grid */}
                 <div style={{ display: "grid", gridTemplateColumns: isMobile ? "repeat(2, 1fr)" : "repeat(auto-fit, minmax(130px, 1fr))", gap: 8 }}>
-                  {gradeDistributionData.map((g) => (
-                    <div
-                      key={g.grade}
-                      style={{
-                        background: g.bg,
-                        border: `1px solid ${g.border}`,
-                        borderRadius: 10,
-                        padding: "10px 12px",
-                        textAlign: "center",
-                      }}
-                    >
-                      <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 5 }}>
-                        <span style={{ fontSize: 15, fontWeight: 900, color: g.color, fontFamily: "'Space Mono', monospace" }}>{g.grade}</span>
-                        <span style={{ fontSize: 11, fontWeight: 700, color: "#64748b" }}>({g.pts} pts)</span>
+                  {gradeDistributionData.map((g) => {
+                    const isSelected = selectedGradeFilter === g.grade;
+                    const isClickable = g.count > 0;
+                    return (
+                      <div
+                        key={g.grade}
+                        onClick={() => {
+                          if (isClickable) {
+                            setSelectedGradeFilter(isSelected ? null : g.grade);
+                            setGradeSearchQuery("");
+                          }
+                        }}
+                        style={{
+                          background: isSelected ? g.bg : g.bg,
+                          border: isSelected ? `2px solid ${g.color}` : `1px solid ${g.border}`,
+                          borderRadius: 10,
+                          padding: "10px 12px",
+                          textAlign: "center",
+                          cursor: isClickable ? "pointer" : "default",
+                          opacity: isClickable ? 1 : 0.55,
+                          transform: isSelected ? "scale(1.025)" : "none",
+                          boxShadow: isSelected ? `0 0 0 2px ${g.color}35, 0 4px 12px ${g.color}20` : "none",
+                          transition: "all 0.18s ease",
+                          position: "relative",
+                        }}
+                        title={isClickable ? `Click to view all ${g.count} courses with Grade ${g.grade}` : `No courses with Grade ${g.grade}`}
+                      >
+                        {isSelected && (
+                          <div
+                            style={{
+                              position: "absolute",
+                              top: 6,
+                              right: 6,
+                              width: 7,
+                              height: 7,
+                              borderRadius: "50%",
+                              background: g.color,
+                            }}
+                          />
+                        )}
+                        <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 5 }}>
+                          <span style={{ fontSize: 15, fontWeight: 900, color: g.color, fontFamily: "'Space Mono', monospace" }}>{g.grade}</span>
+                          <span style={{ fontSize: 11, fontWeight: 700, color: "#64748b" }}>({g.pts} pts)</span>
+                        </div>
+                        <div style={{ fontSize: 17, fontWeight: 900, color: "#0f172a", marginTop: 2, fontFamily: "'Space Mono', monospace" }}>
+                          {g.count} <span style={{ fontSize: 11, fontWeight: 600, color: "#64748b" }}>({g.pct}%)</span>
+                        </div>
+                        <div style={{ fontSize: 10.5, color: "#64748b", marginTop: 1 }}>{g.label}</div>
+                        {isClickable && (
+                          <div
+                            style={{
+                              fontSize: 9.5,
+                              fontWeight: 800,
+                              color: isSelected ? g.color : "#64748b",
+                              marginTop: 4,
+                              textTransform: "uppercase",
+                              letterSpacing: "0.3px",
+                            }}
+                          >
+                            {isSelected ? "Active View" : "Tap to view"}
+                          </div>
+                        )}
                       </div>
-                      <div style={{ fontSize: 17, fontWeight: 900, color: "#0f172a", marginTop: 2, fontFamily: "'Space Mono', monospace" }}>
-                        {g.count} <span style={{ fontSize: 11, fontWeight: 600, color: "#64748b" }}>({g.pct}%)</span>
-                      </div>
-                      <div style={{ fontSize: 10.5, color: "#64748b", marginTop: 1 }}>{g.label}</div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
+
+                {/* Selected Grade Detailed Course Breakdown Panel */}
+                <AnimatePresence>
+                  {selectedGradeFilter && (
+                    <motion.div
+                      key={`grade-details-${selectedGradeFilter}`}
+                      initial={{ opacity: 0, height: 0, y: -10 }}
+                      animate={{ opacity: 1, height: "auto", y: 0 }}
+                      exit={{ opacity: 0, height: 0, y: -10 }}
+                      transition={{ duration: 0.25, ease: "easeOut" }}
+                      style={{ overflow: "hidden", marginTop: 4 }}
+                    >
+                      <div
+                        style={{
+                          background: "#ffffff",
+                          border: `1.5px solid ${GRADE_META[selectedGradeFilter]?.border || "#cbd5e1"}`,
+                          borderRadius: 14,
+                          padding: isMobile ? "14px 12px" : "18px 20px",
+                          boxShadow: `0 4px 16px ${GRADE_META[selectedGradeFilter]?.color || "#cbd5e1"}15`,
+                          display: "flex",
+                          flexDirection: "column",
+                          gap: 12,
+                        }}
+                      >
+                        {/* Header */}
+                        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 10 }}>
+                          <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+                            <span
+                              style={{
+                                fontSize: 14,
+                                fontWeight: 900,
+                                color: GRADE_META[selectedGradeFilter]?.color,
+                                background: GRADE_META[selectedGradeFilter]?.bg,
+                                border: `1px solid ${GRADE_META[selectedGradeFilter]?.border}`,
+                                padding: "4px 10px",
+                                borderRadius: 8,
+                                fontFamily: "'Space Mono', monospace",
+                              }}
+                            >
+                              Grade {selectedGradeFilter} ({GRADE_META[selectedGradeFilter]?.pts} pts)
+                            </span>
+                            <div>
+                              <h4 style={{ fontSize: isMobile ? 14 : 15.5, fontWeight: 800, color: "#0f172a", margin: 0 }}>
+                                {GRADE_META[selectedGradeFilter]?.label} Courses ({subjectsByGrade[selectedGradeFilter]?.length || 0})
+                              </h4>
+                              <span style={{ fontSize: 11, color: "#64748b" }}>
+                                All subjects where you secured Grade '{selectedGradeFilter}' across semesters
+                              </span>
+                            </div>
+                          </div>
+
+                          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                            {/* Search Filter if > 3 subjects */}
+                            {(subjectsByGrade[selectedGradeFilter]?.length || 0) > 3 && (
+                              <div
+                                style={{
+                                  position: "relative",
+                                  display: "flex",
+                                  alignItems: "center",
+                                }}
+                              >
+                                <Search
+                                  size={13}
+                                  color="#94a3b8"
+                                  style={{ position: "absolute", left: 9 }}
+                                />
+                                <input
+                                  type="text"
+                                  placeholder="Search course / code..."
+                                  value={gradeSearchQuery}
+                                  onChange={(e) => setGradeSearchQuery(e.target.value)}
+                                  style={{
+                                    padding: "5px 10px 5px 28px",
+                                    borderRadius: 7,
+                                    border: "1px solid #cbd5e1",
+                                    background: "#f8fafc",
+                                    fontSize: 11.5,
+                                    color: "#0f172a",
+                                    outline: "none",
+                                    fontFamily: "'DM Sans', sans-serif",
+                                    width: isMobile ? 130 : 180,
+                                  }}
+                                />
+                              </div>
+                            )}
+
+                            <button
+                              onClick={() => {
+                                setSelectedGradeFilter(null);
+                                setGradeSearchQuery("");
+                              }}
+                              style={{
+                                display: "flex",
+                                alignItems: "center",
+                                gap: 4,
+                                padding: "5px 10px",
+                                borderRadius: 7,
+                                background: "#f1f5f9",
+                                border: "1px solid #cbd5e1",
+                                color: "#475569",
+                                fontSize: 11.5,
+                                fontWeight: 700,
+                                cursor: "pointer",
+                                transition: "all 0.15s ease",
+                              }}
+                              onMouseEnter={(e) => (e.currentTarget.style.background = "#e2e8f0")}
+                              onMouseLeave={(e) => (e.currentTarget.style.background = "#f1f5f9")}
+                            >
+                              <X size={13} />
+                              <span>Close</span>
+                            </button>
+                          </div>
+                        </div>
+
+                        {/* Course Cards Grid */}
+                        {(() => {
+                          const allSubjects = subjectsByGrade[selectedGradeFilter] || [];
+                          const q = gradeSearchQuery.trim().toLowerCase();
+                          const filtered = q
+                            ? allSubjects.filter(
+                                (s) =>
+                                  s.subName.toLowerCase().includes(q) ||
+                                  s.subCode.toLowerCase().includes(q) ||
+                                  String(s.semester).includes(q) ||
+                                  `sem ${s.semester}`.includes(q)
+                              )
+                            : allSubjects;
+
+                          if (filtered.length === 0) {
+                            return (
+                              <div style={{ textAlign: "center", padding: "24px 10px", color: "#64748b", fontSize: 12.5 }}>
+                                {q ? `No courses matching "${gradeSearchQuery}" with Grade ${selectedGradeFilter}.` : `No courses found with Grade ${selectedGradeFilter}.`}
+                              </div>
+                            );
+                          }
+
+                          return (
+                            <div
+                              style={{
+                                display: "grid",
+                                gridTemplateColumns: isMobile ? "1fr" : "repeat(auto-fit, minmax(290px, 1fr))",
+                                gap: 10,
+                                maxHeight: isMobile ? 380 : 460,
+                                overflowY: "auto",
+                                paddingRight: 4,
+                              }}
+                            >
+                              {filtered.map((sub, sIdx) => {
+                                return (
+                                  <div
+                                    key={`${sub.subCode}-${sub.semester}-${sIdx}`}
+                                    style={{
+                                      background: "#f8fafc",
+                                      border: "1px solid #e2e8f0",
+                                      borderRadius: 10,
+                                      padding: "12px 14px",
+                                      display: "flex",
+                                      flexDirection: "column",
+                                      justifyContent: "space-between",
+                                      gap: 8,
+                                      transition: "all 0.15s ease",
+                                    }}
+                                    onMouseEnter={(e) => {
+                                      e.currentTarget.style.background = "#ffffff";
+                                      e.currentTarget.style.borderColor = GRADE_META[selectedGradeFilter]?.color || "#cbd5e1";
+                                      e.currentTarget.style.boxShadow = "0 2px 8px rgba(0,0,0,0.04)";
+                                    }}
+                                    onMouseLeave={(e) => {
+                                      e.currentTarget.style.background = "#f8fafc";
+                                      e.currentTarget.style.borderColor = "#e2e8f0";
+                                      e.currentTarget.style.boxShadow = "none";
+                                    }}
+                                  >
+                                    <div>
+                                      {/* Badges Row */}
+                                      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 6, marginBottom: 6 }}>
+                                        <span
+                                          style={{
+                                            fontSize: 10.5,
+                                            fontWeight: 800,
+                                            color: "#1d4ed8",
+                                            background: "#eff6ff",
+                                            border: "1px solid #bfdbfe",
+                                            padding: "1px 6px",
+                                            borderRadius: 4,
+                                          }}
+                                        >
+                                          Semester {sub.semester}
+                                        </span>
+                                        <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
+                                          {sub.subCode && (
+                                            <span
+                                              style={{
+                                                fontSize: 10.5,
+                                                fontFamily: "'Space Mono', monospace",
+                                                fontWeight: 700,
+                                                color: "#475569",
+                                                background: "#ffffff",
+                                                border: "1px solid #cbd5e1",
+                                                padding: "1px 6px",
+                                                borderRadius: 4,
+                                              }}
+                                            >
+                                              {sub.subCode}
+                                            </span>
+                                          )}
+                                          <span
+                                            style={{
+                                              fontSize: 10,
+                                              fontWeight: 700,
+                                              color: "#64748b",
+                                              background: "#ffffff",
+                                              border: "1px solid #e2e8f0",
+                                              padding: "1px 5px",
+                                              borderRadius: 4,
+                                              textTransform: "uppercase",
+                                            }}
+                                          >
+                                            {sub.type || "Theory"}
+                                          </span>
+                                        </div>
+                                      </div>
+
+                                      {/* Subject Name */}
+                                      <h5
+                                        style={{
+                                          fontSize: 13,
+                                          fontWeight: 800,
+                                          color: "#0f172a",
+                                          margin: 0,
+                                          lineHeight: 1.35,
+                                        }}
+                                      >
+                                        {sub.subName}
+                                      </h5>
+                                    </div>
+
+                                    {/* Credits & Grade Points Bar */}
+                                    <div
+                                      style={{
+                                        display: "flex",
+                                        alignItems: "center",
+                                        justifyContent: "space-between",
+                                        paddingTop: 7,
+                                        borderTop: "1px dashed #e2e8f0",
+                                        fontSize: 11,
+                                        color: "#64748b",
+                                        fontWeight: 600,
+                                      }}
+                                    >
+                                      <span>
+                                        Credits: <strong style={{ color: "#0f172a" }}>{sub.credit}</strong>
+                                      </span>
+                                      <span
+                                        style={{
+                                          fontSize: 11,
+                                          fontWeight: 800,
+                                          color: GRADE_META[selectedGradeFilter]?.color,
+                                          background: GRADE_META[selectedGradeFilter]?.bg,
+                                          border: `1px solid ${GRADE_META[selectedGradeFilter]?.border}`,
+                                          padding: "1px 7px",
+                                          borderRadius: 4,
+                                        }}
+                                      >
+                                        Grade {sub.grade} • {sub.points} pts
+                                      </span>
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          );
+                        })()}
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
               </div>
             </motion.div>
           )}
@@ -1194,6 +1659,14 @@ export default function Analytics() {
                     <p style={{ color: "#64748b", fontSize: isMobile ? 11.5 : 13, margin: 0 }}>
                       Calculate the exact SGPA needed across remaining {remainingSems} semester(s)
                     </p>
+                    {possibleGradCGPARange && (
+                      <div style={{ fontSize: isMobile ? 11 : 12, color: "#64748b", marginTop: 4, display: "flex", alignItems: "center", gap: 5 }}>
+                        <span>Achievable Graduation CGPA:</span>
+                        <strong style={{ color: "#0f172a", fontFamily: "'Space Mono', monospace" }}>
+                          {possibleGradCGPARange.minCGPA} (Min) — {possibleGradCGPARange.maxCGPA} (Max)
+                        </strong>
+                      </div>
+                    )}
                   </div>
 
                   <div style={{ display: "flex", alignItems: "center", gap: 5, flexWrap: "wrap" }}>
@@ -1296,11 +1769,18 @@ export default function Analytics() {
                 </div>
 
                 {/* Prediction Result Display */}
-                {requiredSGPA && (
+                {goalPrediction && (
                   <div
                     style={{
-                      background: parseFloat(requiredSGPA) > 10 ? "#fef2f2" : "#f0fdf4",
-                      border: `1px solid ${parseFloat(requiredSGPA) > 10 ? "#fecaca" : "#bbf7d0"}`,
+                      background:
+                        goalPrediction.status === "impossible"
+                          ? "#fef2f2"
+                          : "#f0fdf4",
+                      border: `1px solid ${
+                        goalPrediction.status === "impossible"
+                          ? "#fecaca"
+                          : "#bbf7d0"
+                      }`,
                       borderRadius: 14,
                       padding: isMobile ? "14px 16px" : "20px 24px",
                       display: "flex",
@@ -1311,31 +1791,45 @@ export default function Analytics() {
                     }}
                   >
                     <div>
-                      <div style={{ fontSize: isMobile ? 11 : 12, fontWeight: 800, color: "#475569", textTransform: "uppercase" }}>
-                        Required SGPA in Each Remaining Semester
+                      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
+                        <div style={{ fontSize: isMobile ? 11 : 12, fontWeight: 800, color: "#475569", textTransform: "uppercase" }}>
+                          Required SGPA in Each Remaining Semester
+                        </div>
+                        {goalPrediction.status === "secured" && (
+                          <span style={{ fontSize: 10.5, fontWeight: 800, color: "#15803d", background: "#dcfce7", border: "1px solid #bbf7d0", padding: "1px 7px", borderRadius: 5 }}>
+                            Target Secured
+                          </span>
+                        )}
+                        {goalPrediction.status === "impossible" && (
+                          <span style={{ fontSize: 10.5, fontWeight: 800, color: "#dc2626", background: "#fee2e2", border: "1px solid #fecaca", padding: "1px 7px", borderRadius: 5 }}>
+                            Exceeds 10.0 Max
+                          </span>
+                        )}
                       </div>
+
                       <div
                         style={{
                           fontSize: isMobile ? 28 : 38,
                           fontWeight: 900,
-                          color: parseFloat(requiredSGPA) > 10 ? "#dc2626" : "#15803d",
-                          margin: "4px 0",
+                          color: goalPrediction.status === "impossible" ? "#dc2626" : "#15803d",
+                          margin: "2px 0 6px 0",
                           fontFamily: "'Space Mono', monospace",
                         }}
                       >
-                        {requiredSGPA}
+                        {goalPrediction.displaySGPA}
                       </div>
-                      {parseFloat(requiredSGPA) > 10 ? (
-                        <p style={{ color: "#dc2626", fontSize: isMobile ? 11.5 : 13, margin: 0, fontWeight: 600, display: "flex", alignItems: "center", gap: 4 }}>
-                          <AlertTriangle size={14} /> This target requires SGPA &gt; 10.0 (impossible).
+
+                      {goalPrediction.status === "impossible" ? (
+                        <p style={{ color: "#dc2626", fontSize: isMobile ? 11.5 : 13, margin: 0, fontWeight: 600, display: "flex", alignItems: "center", gap: 5 }}>
+                          <AlertTriangle size={15} /> This target requires SGPA &gt; 10.0 (Max achievable final CGPA is {goalPrediction.maxPossibleCGPA}).
                         </p>
-                      ) : parseFloat(requiredSGPA) <= 0 ? (
-                        <p style={{ color: "#15803d", fontSize: isMobile ? 11.5 : 13, margin: 0, fontWeight: 600, display: "flex", alignItems: "center", gap: 4 }}>
-                          <CheckCircle size={14} /> You already have enough credits to clear this target!
+                      ) : goalPrediction.status === "secured" ? (
+                        <p style={{ color: "#15803d", fontSize: isMobile ? 11.5 : 13, margin: 0, fontWeight: 600, display: "flex", alignItems: "center", gap: 5 }}>
+                          <CheckCircle size={15} /> You have already secured this target! Minimum graduation CGPA is guaranteed to be at least {goalPrediction.minPossibleCGPA}.
                         </p>
                       ) : (
-                        <p style={{ color: "#15803d", fontSize: isMobile ? 11.5 : 13, margin: 0, fontWeight: 600, display: "flex", alignItems: "center", gap: 4 }}>
-                          <CheckCircle size={14} /> Maintain average SGPA of {requiredSGPA} across remaining semesters.
+                        <p style={{ color: "#15803d", fontSize: isMobile ? 11.5 : 13, margin: 0, fontWeight: 600, display: "flex", alignItems: "center", gap: 5 }}>
+                          <CheckCircle size={15} /> Maintain an average SGPA of {goalPrediction.displaySGPA} across remaining {remainingSems} semester(s).
                         </p>
                       )}
                     </div>
@@ -1353,10 +1847,17 @@ export default function Analytics() {
                       <div style={{ fontSize: isMobile ? 13.5 : 16, fontWeight: 800, color: "#0f172a", fontFamily: "'Space Mono', monospace", marginTop: 2, display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 4 }}>
                         <span>{cgpa}</span>
                         <ArrowRight size={14} color="#64748b" />
-                        <span>{parseFloat(targetCGPA).toFixed(2)}</span>
+                        <span>{goalPrediction.target.toFixed(2)}</span>
                       </div>
-                      <div style={{ fontSize: 10.5, color: "#16a34a", fontWeight: 700, marginTop: 1 }}>
-                        +{(parseFloat(targetCGPA) - cgpa).toFixed(2)} Delta
+                      <div
+                        style={{
+                          fontSize: 10.5,
+                          fontWeight: 700,
+                          marginTop: 2,
+                          color: goalPrediction.delta >= 0 ? "#16a34a" : "#d97706",
+                        }}
+                      >
+                        {goalPrediction.delta >= 0 ? `+${goalPrediction.delta.toFixed(2)}` : goalPrediction.delta.toFixed(2)} Delta
                       </div>
                     </div>
                   </div>

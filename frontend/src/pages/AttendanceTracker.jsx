@@ -50,6 +50,7 @@ import {
   CloudUpload,
   HelpCircle,
   Upload,
+  Edit3,
 } from "lucide-react";
 import {
   ALL_SECTIONS,
@@ -1266,11 +1267,28 @@ export default function AttendanceTracker() {
   const shortageCount = shortageSubjects.length;
 
   const [highlightShortageUntil, setHighlightShortageUntil] = useState(0);
+  const [highlightSafeMarginUntil, setHighlightSafeMarginUntil] = useState(0);
 
   const isShortageHighlightActive = highlightShortageUntil > Date.now();
+  const isSafeMarginHighlightActive = highlightSafeMarginUntil > Date.now();
 
   const handleHighlightShortageSubjects = () => {
+    if (shortageCount <= 0) return;
+    setHighlightSafeMarginUntil(0);
     setHighlightShortageUntil(Date.now() + 1 * 60 * 1000); // 1 minute
+    handleTabClick("matrix");
+    setTimeout(() => {
+      const el = document.getElementById("attendance-subject-matrix-section");
+      if (el) {
+        el.scrollIntoView({ behavior: "smooth", block: "start" });
+      }
+    }, 150);
+  };
+
+  const handleHighlightSafeMarginSubjects = () => {
+    if (overallCalculation.safeBunks <= 0) return;
+    setHighlightShortageUntil(0);
+    setHighlightSafeMarginUntil(Date.now() + 1 * 60 * 1000); // 1 minute
     handleTabClick("matrix");
     setTimeout(() => {
       const el = document.getElementById("attendance-subject-matrix-section");
@@ -2101,16 +2119,20 @@ export default function AttendanceTracker() {
 
                 {/* 3. Safe Bunk Margin */}
                 <div
+                  onClick={overallCalculation.safeBunks > 0 ? handleHighlightSafeMarginSubjects : undefined}
                   style={{
-                    background: "#ffffff",
-                    border: "1px solid #cbd5e1",
+                    background: isSafeMarginHighlightActive ? "#f0fdf4" : "#ffffff",
+                    border: `1px solid ${isSafeMarginHighlightActive ? "#16a34a" : "#cbd5e1"}`,
                     borderRadius: 10,
                     padding: isMobile ? "12px 12px" : "16px 16px",
                     display: "flex",
                     flexDirection: "column",
                     gap: 4,
-                    boxShadow: "none",
+                    cursor: overallCalculation.safeBunks > 0 ? "pointer" : "default",
+                    boxShadow: isSafeMarginHighlightActive ? "0 0 0 2px rgba(22, 163, 74, 0.2)" : "none",
+                    transition: "all 0.15s ease",
                   }}
+                  title={overallCalculation.safeBunks > 0 ? "Click to highlight subjects with safe margin for 1 minute" : undefined}
                 >
                   <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
                     <span style={{ fontSize: isMobile ? 10.5 : 11.5, fontWeight: 700, color: "#475569", textTransform: "uppercase", letterSpacing: "0.5px" }}>
@@ -2124,14 +2146,21 @@ export default function AttendanceTracker() {
                     {overallCalculation.classesNeeded > 0 ? `${overallCalculation.classesNeeded}` : `+${overallCalculation.safeBunks}`}
                     <span style={{ fontSize: 11, color: "#94a3b8", fontWeight: 500 }}> classes</span>
                   </div>
-                  <span style={{ fontSize: 10.5, color: "#64748b" }}>
-                    {overallCalculation.classesNeeded > 0 ? `To reach ${targetGoal}% criteria` : `Buffer to stay ≥ ${targetGoal}%`}
+                  <span style={{ fontSize: 10.5, color: "#64748b", display: "flex", alignItems: "center", gap: 4 }}>
+                    {overallCalculation.classesNeeded > 0 ? (
+                      `To reach ${targetGoal}% criteria`
+                    ) : (
+                      <>
+                        <span>Buffer to stay ≥ {targetGoal}%</span>
+                        {overallCalculation.safeBunks > 0 && <ArrowRight size={11} color="#059669" />}
+                      </>
+                    )}
                   </span>
                 </div>
 
                 {/* 4. Shortage Subjects (Below 75% Attendance) */}
                 <div
-                  onClick={handleHighlightShortageSubjects}
+                  onClick={shortageCount > 0 ? handleHighlightShortageSubjects : undefined}
                   style={{
                     background: isShortageHighlightActive ? "#fff7ed" : "#ffffff",
                     border: `1px solid ${isShortageHighlightActive ? "#f97316" : shortageCount > 0 ? "#fca5a5" : "#cbd5e1"}`,
@@ -2140,11 +2169,11 @@ export default function AttendanceTracker() {
                     display: "flex",
                     flexDirection: "column",
                     gap: 4,
-                    cursor: "pointer",
-                    boxShadow: "none",
+                    cursor: shortageCount > 0 ? "pointer" : "default",
+                    boxShadow: isShortageHighlightActive ? "0 0 0 2px rgba(249, 115, 22, 0.2)" : "none",
                     transition: "all 0.15s ease",
                   }}
-                  title="Click to highlight shortage subjects for 1 minute"
+                  title={shortageCount > 0 ? "Click to highlight shortage subjects for 1 minute" : undefined}
                 >
                   <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
                     <span style={{ fontSize: isMobile ? 10.5 : 11.5, fontWeight: 700, color: "#475569", textTransform: "uppercase", letterSpacing: "0.5px" }}>
@@ -2762,6 +2791,7 @@ export default function AttendanceTracker() {
                 const hasConductedClasses = subCalc.totalDelivered > 0;
                 const isPassing = hasConductedClasses ? subCalc.currentPercentage >= 75 : true;
                 const isShortageAndHighlighted = isShortageHighlightActive && hasConductedClasses && !isPassing;
+                const isSafeAndHighlighted = isSafeMarginHighlightActive && hasConductedClasses && subCalc.safeBunks > 0;
 
                 return (
                   <div
@@ -2770,8 +2800,14 @@ export default function AttendanceTracker() {
                       setSelectedSubjectName(sub.subjectName); setComponentInputs(sub.components || []); handleTabClick("studio"); window.scrollTo({ top: 400, behavior: "smooth" });
                     }}
                     style={{
-                      background: isShortageAndHighlighted ? "#fff8f8" : "#ffffff",
-                      border: isShortageAndHighlighted
+                      background: isSafeAndHighlighted
+                        ? "#f0fdf4"
+                        : isShortageAndHighlighted
+                        ? "#fff8f8"
+                        : "#ffffff",
+                      border: isSafeAndHighlighted
+                        ? "1.5px solid #16a34a"
+                        : isShortageAndHighlighted
                         ? "1.5px solid #ef4444"
                         : `1px solid ${!hasConductedClasses ? "#e2e8f0" : (isPassing ? "#e2e8f0" : "#fca5a5")}`,
                       borderRadius: 8,
@@ -2781,7 +2817,9 @@ export default function AttendanceTracker() {
                       justifyContent: "space-between",
                       gap: 10,
                       cursor: "pointer",
-                      boxShadow: isShortageAndHighlighted
+                      boxShadow: isSafeAndHighlighted
+                        ? "0 0 0 2px rgba(22, 163, 74, 0.2)"
+                        : isShortageAndHighlighted
                         ? "0 0 0 2px rgba(239, 68, 68, 0.15)"
                         : "none",
                       transition: "border-color 0.15s ease, background 0.15s ease",
@@ -3168,9 +3206,12 @@ export default function AttendanceTracker() {
                             borderRadius: 6,
                             border: "1px solid #bfdbfe",
                             letterSpacing: "0.4px",
+                            display: "inline-flex",
+                            alignItems: "center",
+                            gap: 4,
                           }}
                         >
-                          ⚡ FASTEST & RECOMMENDED
+                          <Zap size={11} /> FASTEST & RECOMMENDED
                         </span>
                       </div>
 
@@ -3210,7 +3251,7 @@ export default function AttendanceTracker() {
                         </div>
                         <div style={{ display: "flex", alignItems: "flex-start", gap: 8 }}>
                           <span style={{ width: 18, height: 18, borderRadius: 999, background: "#eff6ff", color: "#2563eb", fontSize: 10, fontWeight: 900, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, marginTop: 1 }}>3</span>
-                          <span>AI auto-extracts Theory (<strong>PP</strong>), Practice (<strong>PR</strong>), and Tutorial (<strong>TUT</strong>) counts accurately.</span>
+                          <span>Auto-extracts Theory (<strong>PP</strong>), Practice (<strong>PR</strong>), and Tutorial (<strong>TUT</strong>) counts accurately.</span>
                         </div>
                         <div style={{ display: "flex", alignItems: "flex-start", gap: 8 }}>
                           <span style={{ width: 18, height: 18, borderRadius: 999, background: "#eff6ff", color: "#2563eb", fontSize: 10, fontWeight: 900, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, marginTop: 1 }}>4</span>
@@ -3296,9 +3337,12 @@ export default function AttendanceTracker() {
                             borderRadius: 6,
                             border: "1px solid #bbf7d0",
                             letterSpacing: "0.4px",
+                            display: "inline-flex",
+                            alignItems: "center",
+                            gap: 4,
                           }}
                         >
-                          ✏️ MANUAL ENTRY
+                          <Edit3 size={11} /> MANUAL ENTRY
                         </span>
                       </div>
 

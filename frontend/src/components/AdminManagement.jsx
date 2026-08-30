@@ -2703,7 +2703,7 @@ export default function AdminManagement({ API, authHeaders, isMobile }) {
                     }}
                   >
                     <div style={{ fontSize: 12, fontWeight: 800, color: "#166534", marginBottom: 4, display: "flex", alignItems: "center", gap: 6 }}>
-                      <Sparkles size={14} />
+                      <ShieldCheck size={14} />
                       Live Permission Access Summary:
                     </div>
                     <div style={{ fontSize: 12, color: "#15803d", lineHeight: 1.5 }}>
@@ -3228,7 +3228,7 @@ export default function AdminManagement({ API, authHeaders, isMobile }) {
                   }}
                 >
                   <div style={{ fontSize: 12, fontWeight: 800, color: "#166534", marginBottom: 4, display: "flex", alignItems: "center", gap: 6 }}>
-                    <Sparkles size={14} />
+                    <CheckCircle2 size={14} />
                     Live Preview Before Saving:
                   </div>
                   <div style={{ fontSize: 12, color: "#15803d" }}>

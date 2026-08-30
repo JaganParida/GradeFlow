@@ -49,7 +49,7 @@ import {
   Medal,
   Check,
 } from "lucide-react";
-import { calculateSGPA as calcSGPAFromSubjects, calculateSemesterMetrics, calculateCGPA } from "../utils/gradeCalculations";
+import { calculateSGPA as calcSGPAFromSubjects, calculateSemesterMetrics, calculateCGPA, FAIL_GRADES } from "../utils/gradeCalculations";
 
 /* ─── Custom WhatsApp SVG Icon ───────────────────────────────────── */
 const WhatsAppIcon = ({ size = 16, color = "#ffffff" }) => (
@@ -428,6 +428,92 @@ export default function Dashboard() {
         setIsDownloadingBatch(false);
       }
     }, 1500);
+  };
+
+  const shareSemResult = () => {
+    if (!studentData) return;
+
+    const currentResult =
+      semResult && semResult.semester === selectedSem
+        ? semResult
+        : studentData.results?.find((r) => r.semester === selectedSem) || semResult;
+
+    const subjects = currentResult?.subjects || [];
+    const studentBranch = getDynamicBranch(regNo, studentData.branch);
+    const studentSec = getSectionFromRegNo(regNo);
+
+    const { totalCredits, creditsCleared, sgpa: calculatedSgpa } = calculateSemesterMetrics(
+      subjects,
+      selectedSem
+    );
+    const semSgpa =
+      subjects && subjects.length > 0
+        ? calculatedSgpa
+        : typeof currentResult?.sgpa === "number"
+        ? currentResult.sgpa
+        : null;
+
+    const hasFailed = subjects.some((s) => (FAIL_GRADES || ["F", "R", "S", "M"]).includes(s.grade));
+    const cgpaUpToNow = calculateCGPA(studentData.results || [], selectedSem);
+
+    let subjectText = "";
+    if (subjects.length > 0) {
+      subjectText = subjects
+        .map((s, idx) => {
+          const code = s.subCode ? ` (${s.subCode})` : "";
+          const name = (s.subName || s.subjectName || "Subject").toUpperCase();
+          const cr = s.credit !== undefined ? s.credit : (s.credits !== undefined ? s.credits : "-");
+          const gr = s.grade || "-";
+          return `${idx + 1}. *${name}*${code}\n   Grade: *${gr}* | Credits: ${cr}`;
+        })
+        .join("\n\n");
+    } else {
+      subjectText = "No subject records available.";
+    }
+
+    const currentRanking =
+      semCacheRef.current[selectedSem]?.ranking ||
+      semesterRanking ||
+      (selectedSem === studentData.latestSemester ? studentData.ranking : null);
+
+    let rankLines = [];
+    if (currentRanking) {
+      if (currentRanking.deptRank) rankLines.push(`Dept Rank: #${currentRanking.deptRank}`);
+      if (currentRanking.sgpaRank) rankLines.push(`SGPA Rank: #${currentRanking.sgpaRank}`);
+      if (currentRanking.universityRank) rankLines.push(`Univ Rank: #${currentRanking.universityRank}`);
+    }
+
+    const message = [
+      `*GRADEFLOW — SEMESTER ${selectedSem} RESULT REPORT*`,
+      `━━━━━━━━━━━━━━━━━━━━━━━━━━`,
+      ``,
+      `*STUDENT INFORMATION*`,
+      `• *Name:* ${studentData.studentName}`,
+      `• *Regd No:* ${regNo}`,
+      `• *Branch:* ${studentBranch}${studentSec ? ` (Sec: ${studentSec})` : ""}`,
+      studentData.batch ? `• *Batch:* ${studentData.batch}` : null,
+      ``,
+      `*ACADEMIC PERFORMANCE (SEM ${selectedSem})*`,
+      `• *SGPA:* ${semSgpa !== null && semSgpa !== undefined ? Number(semSgpa).toFixed(2) : "—"}`,
+      cgpaUpToNow ? `• *CGPA:* ${Number(cgpaUpToNow).toFixed(2)} (Cumulative)` : null,
+      totalCredits > 0 ? `• *Credits Cleared:* ${creditsCleared} / ${totalCredits}` : null,
+      `• *Status:* ${hasFailed ? "Active Backlog" : "Passed (All Cleared)"}`,
+      rankLines.length > 0 ? `• *Ranking:* ${rankLines.join(" | ")}` : null,
+      ``,
+      `━━━━━━━━━━━━━━━━━━━━━━━━━━`,
+      `*COURSE-WISE GRADE BREAKDOWN*`,
+      ``,
+      subjectText,
+      ``,
+      `━━━━━━━━━━━━━━━━━━━━━━━━━━`,
+      `*To know about your result & analytics, visit website:*`,
+      `https://grade-flow-navy.vercel.app`,
+    ]
+      .filter((line) => line !== null && line !== undefined)
+      .join("\n");
+
+    const whatsappUrl = `https://api.whatsapp.com/send?text=${encodeURIComponent(message)}`;
+    window.open(whatsappUrl, "_blank", "noopener,noreferrer");
   };
 
   useEffect(() => {
@@ -990,17 +1076,7 @@ export default function Dashboard() {
                   </button>
 
                   <button
-                    onClick={() => {
-                      if (navigator.share) {
-                        navigator.share({
-                          title: `${studentName}'s GradeFlow Profile`,
-                          url: window.location.href,
-                        }).catch(console.error);
-                      } else {
-                        navigator.clipboard.writeText(window.location.href);
-                        alert("Link copied to clipboard!");
-                      }
-                    }}
+                    onClick={shareSemResult}
                     style={{
                       display: "flex",
                       flexDirection: "column",
@@ -1018,8 +1094,8 @@ export default function Dashboard() {
                       fontFamily: "'DM Sans', sans-serif",
                     }}
                   >
-                    <Share2 size={14} color="#8b5cf6" />
-                    <span>Share</span>
+                    <WhatsAppIcon size={15} color="#16a34a" />
+                    <span>Share Result</span>
                   </button>
                 </div>
               ) : (
@@ -1090,17 +1166,7 @@ export default function Dashboard() {
                   </button>
 
                   <button
-                    onClick={() => {
-                      if (navigator.share) {
-                        navigator.share({
-                          title: `${studentName}'s GradeFlow Profile`,
-                          url: window.location.href,
-                        }).catch(console.error);
-                      } else {
-                        navigator.clipboard.writeText(window.location.href);
-                        alert("Link copied to clipboard!");
-                      }
-                    }}
+                    onClick={shareSemResult}
                     style={{
                       width: "100%",
                       display: "flex",
@@ -1120,8 +1186,8 @@ export default function Dashboard() {
                     onMouseEnter={(e) => (e.currentTarget.style.background = "#f1f5f9")}
                     onMouseLeave={(e) => (e.currentTarget.style.background = "#f8fafc")}
                   >
-                    <Share2 size={13} color="#8b5cf6" />
-                    <span style={{ flex: 1, textAlign: "left" }}>Share Profile</span>
+                    <WhatsAppIcon size={14} color="#16a34a" />
+                    <span style={{ flex: 1, textAlign: "left" }}>Share Sem Result</span>
                   </button>
                 </>
               )}

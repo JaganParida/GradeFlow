@@ -20,7 +20,7 @@ import {
   Sliders,
   Check,
   X,
-  Sparkles,
+  Zap,
   Layers,
   Globe,
   Activity,
@@ -1625,9 +1625,12 @@ export default function StudentOtpManagement({ API, authHeaders, isMobile }) {
                                   fontWeight: 800,
                                   padding: "2px 6px",
                                   borderRadius: 6,
+                                  display: "inline-flex",
+                                  alignItems: "center",
+                                  gap: 3,
                                 }}
                               >
-                                ⚡ Failover Auto-Switch
+                                <Zap size={10.5} /> Failover Auto-Switch
                               </span>
                             )}
                           </div>

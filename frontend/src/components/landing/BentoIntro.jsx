@@ -10,6 +10,7 @@ import {
   ChevronRight,
   ShieldCheck,
   CheckCircle2,
+  Check,
   Calendar,
   LayoutGrid,
 } from "lucide-react";
@@ -428,7 +429,9 @@ export default function BentoIntro({
             {/* Attendance Safe Pill */}
             <div style={{ padding: "8px 12px", background: "#f0fdf4", border: "1px solid #bbf7d0", borderRadius: 8, display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
               <span style={{ fontSize: 11.5, fontWeight: 750, color: "#166534" }}>89.3% Overall</span>
-              <span style={{ fontSize: 11, fontWeight: 700, color: "#15803d" }}>✓ 4 Bunks Safe</span>
+              <span style={{ fontSize: 11, fontWeight: 700, color: "#15803d", display: "inline-flex", alignItems: "center", gap: 3 }}>
+                <Check size={12} /> 4 Bunks Safe
+              </span>
             </div>
 
             <div style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 13, fontWeight: 700, color: "#059669" }}>
