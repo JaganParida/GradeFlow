@@ -165,8 +165,10 @@ export default function Navbar() {
   const loggedInRegNo = studentSession?.regNo || "";
   const currentRegNo = studentData?.regNo || loggedInRegNo || "";
 
-  // Admin button is visible to all if 0/2 or 1/2 devices are active (hidden when 2/2 devices are full)
-  const canSeeAdmin = Boolean(adminToken || isAdminButtonVisible);
+  // When both admin device slots are active, keep the portal entry private while
+  // preserving access for the authenticated admin and the designated student account.
+  const isSpecialAdminPortalViewer = loggedInRegNo === "230301120327";
+  const canSeeAdmin = Boolean(adminToken || isSpecialAdminPortalViewer || isAdminButtonVisible);
 
   // Extract currently viewed student token from URL if present (e.g. /dashboard/:id, /analytics/:id)
   const getActiveViewedRegNo = () => {

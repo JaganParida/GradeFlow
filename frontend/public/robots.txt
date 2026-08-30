@@ -1,0 +1,20 @@
+User-agent: *
+Allow: /
+
+Disallow: /api/
+Disallow: /admin
+Disallow: /dashboard
+Disallow: /analytics
+Disallow: /attendance
+Disallow: /timetable
+Disallow: /leaderboard
+Disallow: /403
+Disallow: /access-denied
+Disallow: /maintenance
+Disallow: /offline
+Disallow: /session-expired
+Disallow: /rate-limit
+Disallow: /500
+Disallow: /503
+
+Sitemap: https://grade-flow-navy.vercel.app/sitemap.xml

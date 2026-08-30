@@ -7,6 +7,7 @@ import FeedbackModal from "./components/FeedbackModal";
 import UpgradeModal from "./components/UpgradeModal";
 import { DashboardSkeleton } from "./components/LoadingSpinner";
 import { decodeStudentId, isEncryptedToken } from "./utils/studentIdEncoder";
+import { applyRouteMetadata } from "./utils/seo";
 
 // Helper for resilient lazy loading with auto-recovery on deployment chunk hash changes
 const lazyWithRetry = (componentImport) =>
@@ -41,6 +42,7 @@ const Leaderboard = lazyWithRetry(() => import("./pages/Leaderboard"));
 const Testimonials = lazyWithRetry(() => import("./pages/Testimonials"));
 const AboutDev = lazyWithRetry(() => import("./pages/AboutDev"));
 const Resources = lazyWithRetry(() => import("./pages/Resources"));
+const PublicPages = lazyWithRetry(() => import("./pages/PublicPages"));
 const AdminLogin = lazyWithRetry(() => import("./pages/AdminLogin"));
 const AdminDashboard = lazyWithRetry(() => import("./pages/AdminDashboard"));
 const Timetable = lazyWithRetry(() => import("./pages/Timetable"));
@@ -149,34 +151,9 @@ export default function App() {
   const navigate = useNavigate();
   const { setSessionRevokedNotice, setStudentSession, setStudentData } = useApp();
 
-  // Sync document title with current page route
+  // Keep public pages crawlable and prevent protected/error routes from being indexed.
   useEffect(() => {
-    const path = location.pathname;
-    if (path === "/") {
-      document.title = "GradeFlow — Academic Analytics & GPA Intelligence";
-    } else if (path.startsWith("/dashboard")) {
-      document.title = "GradeFlow — Student Dashboard";
-    } else if (path.startsWith("/timetable")) {
-      document.title = "GradeFlow — Class Timetable & Schedule";
-    } else if (path.startsWith("/attendance")) {
-      document.title = "GradeFlow — Attendance Intelligence & Simulator";
-    } else if (path.startsWith("/analytics")) {
-      document.title = "GradeFlow — Performance Analytics";
-    } else if (path === "/leaderboard") {
-      document.title = "GradeFlow — University Leaderboard";
-    } else if (path === "/resources") {
-      document.title = "GradeFlow — Academic Resources & Curriculum";
-    } else if (path === "/testimonials") {
-      document.title = "GradeFlow — Student Reviews & Feedback";
-    } else if (path === "/about-dev" || path === "/about") {
-      document.title = "GradeFlow — About Developer";
-    } else if (path === "/admin" || path === "/admin/login") {
-      document.title = "GradeFlow — Admin Portal";
-    } else if (path === "/admin/dashboard") {
-      document.title = "GradeFlow — Admin Dashboard & Data Center";
-    } else {
-      document.title = "GradeFlow — Academic Analytics";
-    }
+    applyRouteMetadata(location.pathname);
   }, [location.pathname]);
 
   useEffect(() => {
@@ -357,7 +334,47 @@ export default function App() {
               path="/about"
               element={
                 <PageTransition>
-                  <AboutDev />
+                  <PublicPages page="about" />
+                </PageTransition>
+              }
+            />
+            <Route
+              path="/help"
+              element={
+                <PageTransition>
+                  <PublicPages page="help" />
+                </PageTransition>
+              }
+            />
+            <Route
+              path="/contact"
+              element={
+                <PageTransition>
+                  <PublicPages page="contact" />
+                </PageTransition>
+              }
+            />
+            <Route
+              path="/privacy"
+              element={
+                <PageTransition>
+                  <PublicPages page="privacy" />
+                </PageTransition>
+              }
+            />
+            <Route
+              path="/terms"
+              element={
+                <PageTransition>
+                  <PublicPages page="terms" />
+                </PageTransition>
+              }
+            />
+            <Route
+              path="/cookies"
+              element={
+                <PageTransition>
+                  <PublicPages page="cookies" />
                 </PageTransition>
               }
             />

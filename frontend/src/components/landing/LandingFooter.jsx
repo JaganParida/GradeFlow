@@ -5,9 +5,11 @@ import { useApp } from "../../context/AppContext";
 
 export default function LandingFooter({ onNavigateSection }) {
   const navigate = useNavigate();
-  const { adminToken, isAdminButtonVisible } = useApp();
-  // Admin Portal link is visible to all if 0/2 or 1/2 devices are active (hidden when 2/2 devices are full)
-  const canSeeAdmin = Boolean(adminToken || isAdminButtonVisible);
+  const { adminToken, isAdminButtonVisible, studentSession } = useApp();
+  // When both admin device slots are active, keep the portal entry private while
+  // preserving access for the authenticated admin and the designated student account.
+  const isSpecialAdminPortalViewer = studentSession?.regNo === "230301120327";
+  const canSeeAdmin = Boolean(adminToken || isSpecialAdminPortalViewer || isAdminButtonVisible);
 
   return (
     <footer
@@ -81,6 +83,16 @@ export default function LandingFooter({ onNavigateSection }) {
               Product
             </div>
             <ul style={{ listStyle: "none", padding: 0, margin: 0, display: "flex", flexDirection: "column", gap: 10, fontSize: 13.5 }}>
+              <li>
+                <Link
+                  to="/about"
+                  style={{ color: "#64748b", textDecoration: "none", transition: "color 0.15s" }}
+                  onMouseEnter={(e) => (e.target.style.color = "#2563eb")}
+                  onMouseLeave={(e) => (e.target.style.color = "#64748b")}
+                >
+                  About GradeFlow
+                </Link>
+              </li>
               <li>
                 <a
                   href="#features"
@@ -231,48 +243,60 @@ export default function LandingFooter({ onNavigateSection }) {
             </ul>
           </div>
 
-          {/* Col 4: Trust & Admin */}
+          {/* Col 4: Support, legal, and administrative access */}
           <div>
             <div style={{ fontSize: 13, fontWeight: 800, color: "#0f172a", textTransform: "uppercase", letterSpacing: "0.04em", marginBottom: 14 }}>
-              Trust &amp; Access
+              Support &amp; Legal
             </div>
             <ul style={{ listStyle: "none", padding: 0, margin: 0, display: "flex", flexDirection: "column", gap: 10, fontSize: 13.5 }}>
               <li>
-                <a
-                  href="#security"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    onNavigateSection("security");
-                  }}
+                <Link
+                  to="/help"
                   style={{ color: "#64748b", textDecoration: "none", transition: "color 0.15s" }}
                   onMouseEnter={(e) => (e.target.style.color = "#2563eb")}
                   onMouseLeave={(e) => (e.target.style.color = "#64748b")}
                 >
-                  Security Architecture
-                </a>
-              </li>
-              <li>
-                <a
-                  href="#faq"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    onNavigateSection("faq");
-                  }}
-                  style={{ color: "#64748b", textDecoration: "none", transition: "color 0.15s" }}
-                  onMouseEnter={(e) => (e.target.style.color = "#2563eb")}
-                  onMouseLeave={(e) => (e.target.style.color = "#64748b")}
-                >
-                  FAQ &amp; Knowledge Base
-                </a>
+                  Help &amp; Support
+                </Link>
               </li>
               <li>
                 <Link
-                  to="/about-dev"
+                  to="/contact"
                   style={{ color: "#64748b", textDecoration: "none", transition: "color 0.15s" }}
                   onMouseEnter={(e) => (e.target.style.color = "#2563eb")}
                   onMouseLeave={(e) => (e.target.style.color = "#64748b")}
                 >
-                  Developer Note
+                  Contact
+                </Link>
+              </li>
+              <li>
+                <Link
+                  to="/privacy"
+                  style={{ color: "#64748b", textDecoration: "none", transition: "color 0.15s" }}
+                  onMouseEnter={(e) => (e.target.style.color = "#2563eb")}
+                  onMouseLeave={(e) => (e.target.style.color = "#64748b")}
+                >
+                  Privacy Policy
+                </Link>
+              </li>
+              <li>
+                <Link
+                  to="/terms"
+                  style={{ color: "#64748b", textDecoration: "none", transition: "color 0.15s" }}
+                  onMouseEnter={(e) => (e.target.style.color = "#2563eb")}
+                  onMouseLeave={(e) => (e.target.style.color = "#64748b")}
+                >
+                  Terms of Use
+                </Link>
+              </li>
+              <li>
+                <Link
+                  to="/cookies"
+                  style={{ color: "#64748b", textDecoration: "none", transition: "color 0.15s" }}
+                  onMouseEnter={(e) => (e.target.style.color = "#2563eb")}
+                  onMouseLeave={(e) => (e.target.style.color = "#64748b")}
+                >
+                  Cookie Policy
                 </Link>
               </li>
               {canSeeAdmin && (
