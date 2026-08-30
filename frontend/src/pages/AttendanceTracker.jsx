@@ -1266,36 +1266,59 @@ export default function AttendanceTracker() {
 
   const shortageCount = shortageSubjects.length;
 
-  const [highlightShortageUntil, setHighlightShortageUntil] = useState(0);
-  const [highlightSafeMarginUntil, setHighlightSafeMarginUntil] = useState(0);
+  const [isShortageHighlightActive, setIsShortageHighlightActive] = useState(false);
+  const [isSafeMarginHighlightActive, setIsSafeMarginHighlightActive] = useState(false);
+  const highlightTimerRef = useRef(null);
 
-  const isShortageHighlightActive = highlightShortageUntil > Date.now();
-  const isSafeMarginHighlightActive = highlightSafeMarginUntil > Date.now();
+  // Clean up timer on unmount
+  useEffect(() => {
+    return () => {
+      if (highlightTimerRef.current) {
+        clearTimeout(highlightTimerRef.current);
+      }
+    };
+  }, []);
 
   const handleHighlightShortageSubjects = () => {
     if (shortageCount <= 0) return;
-    setHighlightSafeMarginUntil(0);
-    setHighlightShortageUntil(Date.now() + 1 * 60 * 1000); // 1 minute
+    if (highlightTimerRef.current) clearTimeout(highlightTimerRef.current);
+
+    setIsSafeMarginHighlightActive(false);
+    setIsShortageHighlightActive(true);
     handleTabClick("matrix");
+
     setTimeout(() => {
       const el = document.getElementById("attendance-subject-matrix-section");
       if (el) {
         el.scrollIntoView({ behavior: "smooth", block: "start" });
       }
     }, 150);
+
+    // Auto-remove highlight after 3.5 seconds
+    highlightTimerRef.current = setTimeout(() => {
+      setIsShortageHighlightActive(false);
+    }, 3500);
   };
 
   const handleHighlightSafeMarginSubjects = () => {
     if (overallCalculation.safeBunks <= 0) return;
-    setHighlightShortageUntil(0);
-    setHighlightSafeMarginUntil(Date.now() + 1 * 60 * 1000); // 1 minute
+    if (highlightTimerRef.current) clearTimeout(highlightTimerRef.current);
+
+    setIsShortageHighlightActive(false);
+    setIsSafeMarginHighlightActive(true);
     handleTabClick("matrix");
+
     setTimeout(() => {
       const el = document.getElementById("attendance-subject-matrix-section");
       if (el) {
         el.scrollIntoView({ behavior: "smooth", block: "start" });
       }
     }, 150);
+
+    // Auto-remove highlight after 3.5 seconds
+    highlightTimerRef.current = setTimeout(() => {
+      setIsSafeMarginHighlightActive(false);
+    }, 3500);
   };
 
   const [isResetModalOpen, setIsResetModalOpen] = useState(false);
@@ -2822,7 +2845,7 @@ export default function AttendanceTracker() {
                         : isShortageAndHighlighted
                         ? "0 0 0 2px rgba(239, 68, 68, 0.15)"
                         : "none",
-                      transition: "border-color 0.15s ease, background 0.15s ease",
+                      transition: "all 0.35s ease",
                     }}
                   >
                     <div>
