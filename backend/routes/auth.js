@@ -1130,6 +1130,7 @@ router.post("/student/send-handover-otp", async (req, res) => {
     await OtpVerification.deleteMany({ regNo: rawReg });
     await OtpVerification.create({
       regNo: rawReg,
+      email: studentEmail,
       otpHash,
       expiresAt,
       attempts: 0,
