@@ -517,10 +517,10 @@ export default function Dashboard() {
   };
 
   useEffect(() => {
-    if (!studentData || studentData.regNo !== regNo) {
+    if (regNo && (!studentData || studentData.regNo !== regNo)) {
       fetchStudent(regNo);
     }
-  }, [regNo]);
+  }, [regNo, studentData?.regNo]);
 
   useEffect(() => {
     if (studentData) {

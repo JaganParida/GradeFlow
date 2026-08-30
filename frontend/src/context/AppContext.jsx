@@ -174,8 +174,17 @@ export function AppProvider({ children }) {
           if (student && student.regNo && student.sessionId) {
             setStudentSession(student);
             setAuthStatus("AUTHENTICATED");
-            // Non-blocking background fetch for complete student profile
-            fetchStudent(student.regNo, 2, 500).catch(() => {});
+            // Only non-blocking fetch session profile if we are not currently viewing a specific student route
+            const path = typeof window !== "undefined" ? window.location.pathname : "";
+            const isViewingSpecificRoute =
+              path.startsWith("/dashboard/") ||
+              path.startsWith("/analytics/") ||
+              path.startsWith("/attendance/") ||
+              path.startsWith("/timetable/");
+
+            if (!isViewingSpecificRoute) {
+              fetchStudent(student.regNo, 2, 500).catch(() => {});
+            }
           } else {
             setStudentSession(null);
             setStudentData(null);

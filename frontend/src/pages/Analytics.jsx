@@ -386,10 +386,10 @@ export default function Analytics() {
   }, []);
 
   useEffect(() => {
-    if (!studentData || studentData.regNo !== regNo) {
-      if (regNo) fetchStudent(regNo);
+    if (regNo && (!studentData || studentData.regNo !== regNo)) {
+      fetchStudent(regNo);
     }
-  }, [regNo]);
+  }, [regNo, studentData?.regNo]);
 
   // Grade Distribution Calculation across all semesters
   const gradeDistributionData = useMemo(() => {
