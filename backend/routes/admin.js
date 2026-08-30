@@ -3121,7 +3121,7 @@ router.get("/student-otp-management/history/:regNo", requireMainAdmin, async (re
 
     const todayKey = getIstDateKey();
     const isUnlimited = rawReg === "230301120327";
-    const maxDailyLimit = isUnlimited ? 99 : 2;
+    const maxDailyLimit = isUnlimited ? 99 : 3;
 
     // Fetch Daily Limit Record
     const dailyLimit = await StudentDailyLimit.findOne({ regNo: rawReg, dateKey: todayKey });
@@ -3359,7 +3359,7 @@ router.post("/student-otp-management/reset/:regNo", requireMainAdmin, async (req
       after: {
         usage: 0,
         cooldown: false,
-        maxDailyLimit: rawReg === "230301120327" ? 99 : 2,
+        maxDailyLimit: rawReg === "230301120327" ? 99 : 3,
       },
     });
   } catch (err) {

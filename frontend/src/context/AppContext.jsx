@@ -526,6 +526,17 @@ export function AppProvider({ children }) {
           student: res.data.student,
         };
       }
+      if (res.data?.step === "OTP") {
+        return {
+          success: true,
+          step: "OTP",
+          otpSent: true,
+          maskedEmail: res.data.maskedEmail,
+          expiresInSeconds: res.data.expiresInSeconds || 300,
+          message: res.data.message,
+          student: res.data.student,
+        };
+      }
       if (res.data?.success && res.data?.student) {
         setStudentSession(res.data.student);
         await fetchStudent(regNo, 3, 500, true);

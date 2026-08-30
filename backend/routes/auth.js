@@ -150,7 +150,7 @@ router.get("/student/check-status", async (req, res) => {
 
     const dateKey = getIstDateKey();
     const dailyLimit = await StudentDailyLimit.findOne({ regNo: rawReg, dateKey });
-    const maxDailyLimit = isUnlimited ? 99 : 2;
+    const maxDailyLimit = isUnlimited ? 99 : 3;
 
     let isCooldownActive = false;
     let cooldownRemainingSeconds = 0;
@@ -358,26 +358,77 @@ router.post("/student/login-password", authLimiter, async (req, res) => {
       // CASE B: New Device
       if (maxAllowedDevices === 1) {
         if (activeSessions.length === 0) {
-          // Normal student with 0 active devices -> Direct Login!
-          const { newSession } = await replaceStudentSession(StudentSession, rawReg, {
-            deviceInfo: extractRequestDeviceInfo(req),
+          // Normal student with 0 active devices (cookies cleared / logged out) -> Auto-send Security OTP!
+          const dateKey = getIstDateKey();
+          let dailyLimit = await StudentDailyLimit.findOne({ regNo: rawReg, dateKey });
+          const isUnlimited = rawReg === "230301120327";
+          const maxDailyLimit = isUnlimited ? 99 : 3;
+
+          if (!isUnlimited && dailyLimit && dailyLimit.otpSendCount >= maxDailyLimit) {
+            const nextMidnight = new Date();
+            nextMidnight.setHours(24, 0, 0, 0);
+            const remainingMs = nextMidnight.getTime() - Date.now();
+            const hours = Math.floor(remainingMs / (1000 * 60 * 60));
+            const mins = Math.floor((remainingMs % (1000 * 60 * 60)) / (1000 * 60));
+
+            return res.status(429).json({
+              success: false,
+              code: "DAILY_LIMIT_EXCEEDED",
+              message: `Daily OTP limit reached (maximum ${maxDailyLimit} requests per calendar day). Login for ${rawReg} is locked for today. It will reset at midnight (in ${hours}h ${mins}m).`,
+            });
+          }
+
+          const studentEmail = `${rawReg.toLowerCase()}@centurionuniv.edu.in`;
+          const otp = crypto.randomInt(100000, 1000000).toString();
+          const otpHash = await bcrypt.hash(otp, 10);
+          const expiresAt = new Date(Date.now() + 5 * 60 * 1000);
+
+          await OtpVerification.deleteMany({ regNo: rawReg });
+          await OtpVerification.create({
+            regNo: rawReg,
+            email: studentEmail,
+            otpHash,
+            expiresAt,
+            attempts: 0,
           });
 
-          const studentToken = jwt.sign(
-            { regNo: rawReg, sessionId: newSession.sessionId, role: "student" },
-            process.env.JWT_SECRET,
-            { expiresIn: "36500d" }
-          );
+          if (!dailyLimit) {
+            dailyLimit = new StudentDailyLimit({ regNo: rawReg, dateKey, otpSendCount: 0 });
+          }
+          dailyLimit.otpSendCount += 1;
+          dailyLimit.lastOtpSentAt = new Date();
+          await dailyLimit.save();
 
-          res.cookie("student_jwt", studentToken, getCookieOptions(req));
+          try {
+            await sendStudentOtpEmail({
+              to: studentEmail,
+              studentName,
+              regNo: rawReg,
+              otp,
+              expiresInMinutes: 5,
+            });
+          } catch (emailErr) {
+            console.error("Auto OTP dispatch error on password login:", emailErr);
+            return res.status(500).json({
+              success: false,
+              message: "Failed to dispatch verification code to university email.",
+            });
+          }
+
+          const parts = studentEmail.split("@");
+          const maskedUser = parts[0].length > 4 ? `${parts[0].slice(0, 3)}***${parts[0].slice(-2)}` : `${parts[0].slice(0, 1)}***`;
+          const maskedEmail = `${maskedUser}@${parts[1]}`;
 
           return res.json({
             success: true,
-            message: "Login successful.",
+            step: "OTP",
+            otpSent: true,
+            maskedEmail,
+            expiresInSeconds: 300,
+            message: `A 6-digit verification code has been dispatched to ${maskedEmail}.`,
             student: {
               regNo: rawReg,
               studentName,
-              sessionId: newSession.sessionId,
             },
           });
         }

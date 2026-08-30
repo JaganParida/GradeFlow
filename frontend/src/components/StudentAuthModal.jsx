@@ -619,6 +619,15 @@ export default function StudentAuthModal({ isOpen, onClose }) {
       return;
     }
 
+    if (result.step === "OTP") {
+      // Auto-sent OTP when cookies were deleted / logged out!
+      setStep("OTP");
+      setMaskedEmail(result.maskedEmail || "");
+      setOtpExpiresInSeconds(result.expiresInSeconds || 300);
+      setStatusNotice(result.message || `A 6-digit verification code has been dispatched to ${result.maskedEmail || "your university email"}.`);
+      return;
+    }
+
     if (result.success) {
       navigateToDestination(cleanReg);
     } else {
@@ -1405,78 +1414,30 @@ export default function StudentAuthModal({ isOpen, onClose }) {
                 </>
               )}
 
-              {errorCode === "APPROVAL_EXPIRED" ? (
-                <div style={{ display: "flex", flexDirection: "column", gap: 10, marginTop: 4 }}>
-                  <button
-                    type="button"
-                    onClick={handleRequestEmailOtpHandover}
-                    disabled={loading}
-                    style={{
-                      display: "inline-flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      gap: 8,
-                      padding: "11px 16px",
-                      borderRadius: 10,
-                      background: "#2563eb",
-                      color: "#ffffff",
-                      border: "none",
-                      fontSize: 13,
-                      fontWeight: 700,
-                      cursor: loading ? "not-allowed" : "pointer",
-                      boxShadow: "0 2px 8px rgba(37, 99, 235, 0.25)",
-                    }}
-                  >
-                    {loading ? <Loader2 size={14} className="spin" /> : <Mail size={14} />}
-                    <span>Verify with University Email OTP</span>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setStep("PASSWORD");
-                      setErrorMsg("");
-                      setErrorCode("");
-                    }}
-                    style={{
-                      background: "none",
-                      border: "1px solid #cbd5e1",
-                      borderRadius: 10,
-                      padding: "9px 16px",
-                      color: "#475569",
-                      fontSize: 12.5,
-                      fontWeight: 700,
-                      cursor: "pointer",
-                    }}
-                  >
-                    Try Password Again
-                  </button>
-                </div>
-              ) : (
-                <button
-                  type="button"
-                  onClick={() => {
-                    if (errorCode !== "APPROVAL_DENIED") {
-                      cancelApprovalRequest(approvalRequestId);
-                    }
-                    setStep("PASSWORD");
-                    setErrorMsg("");
-                    setErrorCode("");
-                  }}
-                  style={{
-                    background: errorCode ? "#2563eb" : "none",
-                    border: errorCode ? "none" : "1px solid #cbd5e1",
-                    borderRadius: 10,
-                    padding: "9px 16px",
-                    color: errorCode ? "#ffffff" : "#475569",
-                    fontSize: 12.5,
-                    fontWeight: 700,
-                    cursor: "pointer",
-                  }}
-                >
-                  {errorCode ? "Try Again" : "Cancel Request"}
-                </button>
-              )}
+              <button
+                type="button"
+                onClick={() => {
+                  if (errorCode !== "APPROVAL_DENIED" && errorCode !== "APPROVAL_EXPIRED") {
+                    cancelApprovalRequest(approvalRequestId);
+                  }
+                  setStep("PASSWORD");
+                  setErrorMsg("");
+                  setErrorCode("");
+                }}
+                style={{
+                  background: errorCode ? "#2563eb" : "none",
+                  border: errorCode ? "none" : "1.5px solid #cbd5e1",
+                  borderRadius: 10,
+                  padding: "10px 16px",
+                  color: errorCode ? "#ffffff" : "#334155",
+                  fontSize: 13,
+                  fontWeight: 700,
+                  cursor: "pointer",
+                  width: "100%",
+                }}
+              >
+                {errorCode ? "Try Again" : "Cancel Request"}
+              </button>
             </div>
           )}
 

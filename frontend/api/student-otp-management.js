@@ -147,7 +147,7 @@ module.exports = async (req, res) => {
 
   const todayKey = getIstDateKey();
   const isUnlimited = rawReg === "230301120327";
-  const maxDailyLimit = isUnlimited ? 99 : 2;
+  const maxDailyLimit = isUnlimited ? 99 : 3;
 
   // ── 1. GET /history ──
   if (req.method === "GET" || action === "history") {
@@ -508,7 +508,7 @@ module.exports = async (req, res) => {
 
       return res.json({
         success: true,
-        message: `Today's OTP send attempt counter for student ${rawReg} has been reset to 0/2.`,
+        message: `Today's OTP send attempt counter for student ${rawReg} has been reset to 0/3.`,
         before: {
           usage: beforeUsage,
           cooldown: Boolean(beforeCooldown),
@@ -516,7 +516,7 @@ module.exports = async (req, res) => {
         after: {
           usage: 0,
           cooldown: false,
-          maxDailyLimit: rawReg === "230301120327" ? 99 : 2,
+          maxDailyLimit: rawReg === "230301120327" ? 99 : 3,
         },
       });
     } catch (err) {
