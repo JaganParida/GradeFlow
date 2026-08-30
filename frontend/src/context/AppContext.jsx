@@ -296,7 +296,17 @@ export function AppProvider({ children }) {
     try {
       const res = await axios.post(`${API_BASE}/notifications/approve`, { requestId }, { withCredentials: true });
       if (res.data?.success) {
-        fetchNotifications().catch(() => {});
+        // Laptop just approved the request and transferred the session to the new device!
+        setSessionRevokedNotice(
+          "Session Transferred: You approved access from your other device. This session has been transferred."
+        );
+        // Cleanly wipe in-memory session on this device
+        setStudentSession(null);
+        setStudentData(null);
+        setAuthStatus("UNAUTHENTICATED");
+        setTimeout(() => {
+          navigate("/", { replace: true });
+        }, 1200);
         return { success: true, message: res.data.message };
       }
       // Revert if server failed

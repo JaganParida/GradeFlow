@@ -34,12 +34,9 @@ export default function AccessDeniedPage() {
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
-  // Lock body scroll while overlay is active
+  // Keep body scroll natural so mobile screens can scroll to buttons
   useEffect(() => {
-    document.body.style.overflow = "hidden";
-    return () => {
-      document.body.style.overflow = "";
-    };
+    window.scrollTo(0, 0);
   }, []);
 
   const attemptedPath = location.pathname || "/";
@@ -78,24 +75,35 @@ export default function AccessDeniedPage() {
       style={{
         position: "fixed",
         inset: 0,
-        zIndex: 9999999,
+        zIndex: 9999,
         backgroundColor: "#ffffff",
         background: "radial-gradient(ellipse at 50% 12%, #fef2f2 0%, #fff7ed 40%, #ffffff 80%)",
-        minHeight: "100vh",
+        height: "100vh",
         width: "100vw",
+        overflowY: "auto",
+        WebkitOverflowScrolling: "touch",
         display: "flex",
         flexDirection: "column",
         alignItems: "center",
-        justifyContent: "center",
-        textAlign: "center",
-        padding: isMobile ? "24px 16px" : "40px 20px",
+        justifyContent: "flex-start",
+        padding: isMobile ? "24px 16px 48px" : "36px 20px 60px",
         boxSizing: "border-box",
         fontFamily: "'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
-        overflowY: "auto",
       }}
       role="alert"
       aria-live="polite"
     >
+      <div
+        style={{
+          margin: "auto 0",
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          width: "100%",
+          maxWidth: 520,
+          textAlign: "center",
+        }}
+      >
       {/* ── Top Brand Header ── */}
       <motion.div
         initial={{ opacity: 0, y: -12 }}
@@ -105,7 +113,7 @@ export default function AccessDeniedPage() {
           display: "flex",
           alignItems: "center",
           gap: 10,
-          marginBottom: 20,
+          marginBottom: 16,
           cursor: "pointer",
         }}
         onClick={() => navigate("/")}
@@ -430,6 +438,7 @@ export default function AccessDeniedPage() {
           <span>Return to Home</span>
         </Link>
       </motion.div>
+      </div>
     </div>
   );
 }

@@ -2482,9 +2482,10 @@ export default function Navbar() {
           style={{
             position: "fixed",
             inset: 0,
-            zIndex: 999999,
+            zIndex: 10000001,
             background: "rgba(15, 23, 42, 0.75)",
             backdropFilter: "blur(6px)",
+            WebkitBackdropFilter: "blur(6px)",
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
@@ -2526,27 +2527,54 @@ export default function Navbar() {
                 letterSpacing: "-0.3px",
               }}
             >
-              Session Ended
+              Session Transferred
             </h4>
             <p style={{ fontSize: 13.5, color: "#64748b", margin: "0 0 20px", lineHeight: 1.5 }}>
               {sessionRevokedNotice}
             </p>
-            <button
-              onClick={() => setSessionRevokedNotice(null)}
-              style={{
-                background: "#0f172a",
-                color: "#ffffff",
-                border: "none",
-                borderRadius: 10,
-                padding: "12px 20px",
-                fontWeight: 700,
-                fontSize: 13.5,
-                cursor: "pointer",
-                width: "100%",
-              }}
-            >
-              Understood
-            </button>
+            <div style={{ display: "flex", gap: 10 }}>
+              <button
+                type="button"
+                onClick={() => {
+                  setSessionRevokedNotice(null);
+                  navigate("/");
+                }}
+                style={{
+                  flex: 1,
+                  background: "#f1f5f9",
+                  color: "#334155",
+                  border: "1px solid #cbd5e1",
+                  borderRadius: 10,
+                  padding: "11px 16px",
+                  fontWeight: 700,
+                  fontSize: 13,
+                  cursor: "pointer",
+                }}
+              >
+                Go to Home
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setSessionRevokedNotice(null);
+                  openStudentAuthModal();
+                }}
+                style={{
+                  flex: 1,
+                  background: "#2563eb",
+                  color: "#ffffff",
+                  border: "none",
+                  borderRadius: 10,
+                  padding: "11px 16px",
+                  fontWeight: 800,
+                  fontSize: 13,
+                  cursor: "pointer",
+                  boxShadow: "0 4px 12px rgba(37, 99, 235, 0.25)",
+                }}
+              >
+                Sign In
+              </button>
+            </div>
           </div>
         </div>
       )}

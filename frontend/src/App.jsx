@@ -121,6 +121,8 @@ function AdminRouteGuard({ children, allowGate = false }) {
 export default function App() {
   const [rateLimitError, setRateLimitError] = useState(null);
   const location = useLocation();
+  const navigate = useNavigate();
+  const { setSessionRevokedNotice, setStudentSession, setStudentData } = useApp();
 
   // Sync document title with current page route
   useEffect(() => {
@@ -169,6 +171,21 @@ export default function App() {
               "The server is experiencing high traffic. Please wait a moment and try again.",
           );
         }
+
+        // Gracefully handle 401 Session Revocation / Termination on any student route
+        if (error.response && error.response.status === 401 && !isStudentAuthRoute) {
+          const code = error.response.data?.code;
+          const msg = error.response.data?.message || "";
+          if (code === "SESSION_TERMINATED" || msg.includes("logged out") || msg.includes("Session ended")) {
+            setStudentSession(null);
+            setStudentData(null);
+            setSessionRevokedNotice(
+              "Your session ended because your account was logged in or transferred to another device."
+            );
+            navigate("/", { replace: true });
+          }
+        }
+
         return Promise.reject(error);
       },
     );
@@ -176,7 +193,7 @@ export default function App() {
     return () => {
       axios.interceptors.response.eject(interceptor);
     };
-  }, []);
+  }, [setSessionRevokedNotice, setStudentSession, setStudentData, navigate]);
 
   return (
     <ErrorBoundary>
