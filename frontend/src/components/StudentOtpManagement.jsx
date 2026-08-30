@@ -108,6 +108,19 @@ function formatISTDate(dateVal) {
 }
 
 export default function StudentOtpManagement({ API, authHeaders, isMobile }) {
+  const [isMobileScreen, setIsMobileScreen] = useState(
+    typeof window !== "undefined" ? window.innerWidth < 768 : Boolean(isMobile)
+  );
+
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobileScreen(window.innerWidth < 768 || Boolean(isMobile));
+    };
+    window.addEventListener("resize", handleResize);
+    handleResize();
+    return () => window.removeEventListener("resize", handleResize);
+  }, [isMobile]);
+
   const [searchReg, setSearchReg] = useState("");
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
@@ -276,30 +289,32 @@ export default function StudentOtpManagement({ API, authHeaders, isMobile }) {
     }
   };
 
+  const isMob = isMobileScreen;
+
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 22, fontFamily: "'DM Sans', sans-serif" }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: isMob ? 16 : 22, fontFamily: "'DM Sans', sans-serif" }}>
       {/* ── Top Header Banner ── */}
       <div
         style={{
           background: "linear-gradient(135deg, #1e1b4b 0%, #312e81 100%)",
-          borderRadius: 20,
-          padding: isMobile ? "20px 16px" : "24px 28px",
+          borderRadius: isMob ? 16 : 20,
+          padding: isMob ? "16px 14px" : "24px 28px",
           color: "#ffffff",
           boxShadow: "0 10px 25px -5px rgba(49, 46, 129, 0.2)",
           display: "flex",
           alignItems: "center",
           justifyContent: "space-between",
           flexWrap: "wrap",
-          gap: 16,
+          gap: 12,
         }}
       >
-        <div style={{ display: "flex", flexDirection: "column", gap: 12, width: "100%" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: 8, width: "100%" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: isMob ? 10 : 14 }}>
             <div
               style={{
-                width: 44,
-                height: 44,
-                borderRadius: 12,
+                width: isMob ? 38 : 44,
+                height: isMob ? 38 : 44,
+                borderRadius: isMob ? 10 : 12,
                 background: "rgba(255, 255, 255, 0.14)",
                 backdropFilter: "blur(10px)",
                 display: "flex",
@@ -309,19 +324,19 @@ export default function StudentOtpManagement({ API, authHeaders, isMobile }) {
                 flexShrink: 0,
               }}
             >
-              <ShieldAlert size={24} color="#a5b4fc" />
+              <ShieldAlert size={isMob ? 20 : 24} color="#a5b4fc" />
             </div>
-            <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-              <h2 style={{ margin: 0, fontSize: isMobile ? 18 : 22, fontWeight: 800, letterSpacing: "-0.5px" }}>
-                Student OTP Attempt Management
+            <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+              <h2 style={{ margin: 0, fontSize: isMob ? 16.5 : 22, fontWeight: 800, letterSpacing: "-0.5px" }}>
+                Student OTP & Session Control
               </h2>
               <span
                 style={{
                   background: "#4338ca",
                   color: "#e0e7ff",
-                  fontSize: 10.5,
+                  fontSize: 10,
                   fontWeight: 700,
-                  padding: "3px 8px",
+                  padding: "2px 7px",
                   borderRadius: 6,
                   border: "1px solid #6366f1",
                   textTransform: "uppercase",
@@ -330,12 +345,12 @@ export default function StudentOtpManagement({ API, authHeaders, isMobile }) {
                   flexShrink: 0,
                 }}
               >
-                Main Admin Only
+                Main Admin
               </span>
             </div>
           </div>
-          <p style={{ margin: 0, fontSize: 13, color: "#c7d2fe", maxWidth: 680, lineHeight: 1.5 }}>
-            Inspect detailed OTP request history, device origins, and provider delivery statuses before making an administrative decision to reset daily limits.
+          <p style={{ margin: 0, fontSize: isMob ? 12 : 13, color: "#c7d2fe", maxWidth: 680, lineHeight: 1.45 }}>
+            Inspect detailed OTP request history, live authorized device sessions, and reset daily limits with full audit logging.
           </p>
         </div>
       </div>
@@ -344,26 +359,26 @@ export default function StudentOtpManagement({ API, authHeaders, isMobile }) {
       <div
         style={{
           background: "#ffffff",
-          borderRadius: 18,
+          borderRadius: isMob ? 16 : 18,
           border: "1px solid #e2e8f0",
-          padding: isMobile ? "18px 14px" : "22px 24px",
+          padding: isMob ? "14px 12px" : "22px 24px",
           boxShadow: "0 2px 10px rgba(15, 23, 42, 0.03)",
           display: "flex",
           flexDirection: "column",
-          gap: 18,
+          gap: isMob ? 14 : 18,
         }}
       >
         {/* Top Header with title and refresh button */}
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 12 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: isMob ? "flex-start" : "center", flexWrap: "wrap", gap: 10 }}>
           <div>
-            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-              <Users size={20} color="#4f46e5" />
-              <h3 style={{ margin: 0, fontSize: 16, fontWeight: 800, color: "#0f172a" }}>
-                Registered Accounts & Live Login Monitor
+            <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
+              <Users size={isMob ? 18 : 20} color="#4f46e5" />
+              <h3 style={{ margin: 0, fontSize: isMob ? 15 : 16, fontWeight: 800, color: "#0f172a" }}>
+                Registered Accounts & Live Monitor
               </h3>
             </div>
-            <p style={{ margin: "4px 0 0 0", fontSize: 12.5, color: "#64748b" }}>
-              Exact verified student accounts extracted from database with created passwords and live active sessions.
+            <p style={{ margin: "3px 0 0 0", fontSize: isMob ? 11.5 : 12.5, color: "#64748b" }}>
+              Live verified student accounts with active sessions in MongoDB.
             </p>
           </div>
           <button
@@ -372,19 +387,19 @@ export default function StudentOtpManagement({ API, authHeaders, isMobile }) {
             style={{
               display: "inline-flex",
               alignItems: "center",
-              gap: 6,
-              padding: "7px 14px",
-              borderRadius: 10,
+              gap: 5,
+              padding: isMob ? "6px 11px" : "7px 14px",
+              borderRadius: 8,
               background: "#f8fafc",
               border: "1px solid #e2e8f0",
               color: "#334155",
-              fontSize: 12.5,
+              fontSize: isMob ? 11.5 : 12.5,
               fontWeight: 700,
               cursor: accountsLoading ? "not-allowed" : "pointer",
             }}
           >
-            <RefreshCw size={13} className={accountsLoading ? "spin" : ""} />
-            <span>Refresh Directory</span>
+            <RefreshCw size={isMob ? 12 : 13} className={accountsLoading ? "spin" : ""} />
+            <span>Refresh</span>
           </button>
         </div>
 
@@ -392,40 +407,42 @@ export default function StudentOtpManagement({ API, authHeaders, isMobile }) {
         <div
           style={{
             display: "grid",
-            gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
-            gap: 12,
+            gridTemplateColumns: isMob ? "repeat(3, 1fr)" : "repeat(auto-fit, minmax(180px, 1fr))",
+            gap: isMob ? 8 : 12,
           }}
         >
           <div
             style={{
               background: "#f8fafc",
               border: "1px solid #e2e8f0",
-              borderRadius: 14,
-              padding: "12px 16px",
+              borderRadius: isMob ? 12 : 14,
+              padding: isMob ? "10px 8px" : "12px 16px",
               display: "flex",
-              alignItems: "center",
-              gap: 12,
+              flexDirection: isMob ? "column" : "row",
+              alignItems: isMob ? "flex-start" : "center",
+              gap: isMob ? 6 : 12,
             }}
           >
             <div
               style={{
-                width: 36,
-                height: 36,
-                borderRadius: 10,
+                width: isMob ? 28 : 36,
+                height: isMob ? 28 : 36,
+                borderRadius: isMob ? 8 : 10,
                 background: "#eff6ff",
                 border: "1px solid #bfdbfe",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
+                flexShrink: 0,
               }}
             >
-              <KeyRound size={16} color="#2563eb" />
+              <KeyRound size={isMob ? 14 : 16} color="#2563eb" />
             </div>
             <div>
-              <div style={{ fontSize: 11, fontWeight: 700, color: "#64748b", textTransform: "uppercase" }}>
-                Created Accounts
+              <div style={{ fontSize: isMob ? 9.5 : 11, fontWeight: 700, color: "#64748b", textTransform: "uppercase", letterSpacing: "0.2px" }}>
+                Created
               </div>
-              <div style={{ fontSize: 18, fontWeight: 800, color: "#0f172a" }}>
+              <div style={{ fontSize: isMob ? 16 : 18, fontWeight: 800, color: "#0f172a" }}>
                 {accountsStats.totalRegistered}
               </div>
             </div>
@@ -435,32 +452,34 @@ export default function StudentOtpManagement({ API, authHeaders, isMobile }) {
             style={{
               background: "#f8fafc",
               border: "1px solid #e2e8f0",
-              borderRadius: 14,
-              padding: "12px 16px",
+              borderRadius: isMob ? 12 : 14,
+              padding: isMob ? "10px 8px" : "12px 16px",
               display: "flex",
-              alignItems: "center",
-              gap: 12,
+              flexDirection: isMob ? "column" : "row",
+              alignItems: isMob ? "flex-start" : "center",
+              gap: isMob ? 6 : 12,
             }}
           >
             <div
               style={{
-                width: 36,
-                height: 36,
-                borderRadius: 10,
+                width: isMob ? 28 : 36,
+                height: isMob ? 28 : 36,
+                borderRadius: isMob ? 8 : 10,
                 background: "#ecfdf5",
                 border: "1px solid #a7f3d0",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
+                flexShrink: 0,
               }}
             >
-              <Activity size={16} color="#059669" />
+              <Activity size={isMob ? 14 : 16} color="#059669" />
             </div>
             <div>
-              <div style={{ fontSize: 11, fontWeight: 700, color: "#64748b", textTransform: "uppercase" }}>
-                Currently Online
+              <div style={{ fontSize: isMob ? 9.5 : 11, fontWeight: 700, color: "#64748b", textTransform: "uppercase", letterSpacing: "0.2px" }}>
+                Online
               </div>
-              <div style={{ fontSize: 18, fontWeight: 800, color: "#059669" }}>
+              <div style={{ fontSize: isMob ? 16 : 18, fontWeight: 800, color: "#059669" }}>
                 {accountsStats.totalActive}
               </div>
             </div>
@@ -470,32 +489,34 @@ export default function StudentOtpManagement({ API, authHeaders, isMobile }) {
             style={{
               background: "#f8fafc",
               border: "1px solid #e2e8f0",
-              borderRadius: 14,
-              padding: "12px 16px",
+              borderRadius: isMob ? 12 : 14,
+              padding: isMob ? "10px 8px" : "12px 16px",
               display: "flex",
-              alignItems: "center",
-              gap: 12,
+              flexDirection: isMob ? "column" : "row",
+              alignItems: isMob ? "flex-start" : "center",
+              gap: isMob ? 6 : 12,
             }}
           >
             <div
               style={{
-                width: 36,
-                height: 36,
-                borderRadius: 10,
+                width: isMob ? 28 : 36,
+                height: isMob ? 28 : 36,
+                borderRadius: isMob ? 8 : 10,
                 background: "#f1f5f9",
                 border: "1px solid #cbd5e1",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
+                flexShrink: 0,
               }}
             >
-              <User size={16} color="#64748b" />
+              <User size={isMob ? 14 : 16} color="#64748b" />
             </div>
             <div>
-              <div style={{ fontSize: 11, fontWeight: 700, color: "#64748b", textTransform: "uppercase" }}>
-                Offline Accounts
+              <div style={{ fontSize: isMob ? 9.5 : 11, fontWeight: 700, color: "#64748b", textTransform: "uppercase", letterSpacing: "0.2px" }}>
+                Offline
               </div>
-              <div style={{ fontSize: 18, fontWeight: 800, color: "#64748b" }}>
+              <div style={{ fontSize: isMob ? 16 : 18, fontWeight: 800, color: "#64748b" }}>
                 {accountsStats.totalOffline}
               </div>
             </div>
@@ -503,12 +524,12 @@ export default function StudentOtpManagement({ API, authHeaders, isMobile }) {
         </div>
 
         {/* Filter Pills & Directory Search */}
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 12 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+        <div style={{ display: "flex", flexDirection: isMob ? "column" : "row", justifyContent: "space-between", alignItems: isMob ? "stretch" : "center", gap: 10 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 6, overflowX: isMob ? "auto" : "visible", paddingBottom: isMob ? 4 : 0 }}>
             {[
-              { id: "all", label: `All Accounts (${accountsStats.totalRegistered})`, icon: <Users size={13} /> },
-              { id: "active", label: `Online (${accountsStats.totalActive})`, icon: <Activity size={13} color="#16a34a" />, dotColor: "#16a34a" },
-              { id: "offline", label: `Offline (${accountsStats.totalOffline})`, icon: <Clock size={13} color="#64748b" />, dotColor: "#94a3b8" },
+              { id: "all", label: `All (${accountsStats.totalRegistered})`, icon: <Users size={12} /> },
+              { id: "active", label: `Online (${accountsStats.totalActive})`, icon: <Activity size={12} color="#16a34a" />, dotColor: "#16a34a" },
+              { id: "offline", label: `Offline (${accountsStats.totalOffline})`, icon: <Clock size={12} color="#64748b" />, dotColor: "#94a3b8" },
             ].map((f) => (
               <button
                 key={f.id}
@@ -516,15 +537,17 @@ export default function StudentOtpManagement({ API, authHeaders, isMobile }) {
                 style={{
                   display: "inline-flex",
                   alignItems: "center",
-                  gap: 6,
-                  padding: "6px 12px",
+                  gap: 5,
+                  padding: isMob ? "5px 10px" : "6px 12px",
                   borderRadius: 8,
                   border: directoryFilter === f.id ? "1.5px solid #4f46e5" : "1px solid #e2e8f0",
                   background: directoryFilter === f.id ? "#eef2ff" : "#ffffff",
                   color: directoryFilter === f.id ? "#4338ca" : "#64748b",
-                  fontSize: 12,
+                  fontSize: isMob ? 11.5 : 12,
                   fontWeight: directoryFilter === f.id ? 700 : 600,
                   cursor: "pointer",
+                  whiteSpace: "nowrap",
+                  flexShrink: 0,
                 }}
               >
                 {f.dotColor ? (
@@ -537,19 +560,20 @@ export default function StudentOtpManagement({ API, authHeaders, isMobile }) {
             ))}
           </div>
 
-          <form onSubmit={handleDirectorySearchSubmit} style={{ display: "flex", gap: 8 }}>
+          <form onSubmit={handleDirectorySearchSubmit} style={{ display: "flex", gap: 6, width: isMob ? "100%" : "auto" }}>
             <input
               type="text"
               placeholder="Search Reg No or Name..."
               value={directorySearch}
               onChange={(e) => setDirectorySearch(e.target.value)}
               style={{
-                padding: "6px 12px",
+                flex: isMob ? 1 : "initial",
+                width: isMob ? "auto" : 180,
+                padding: "6px 10px",
                 borderRadius: 8,
                 border: "1px solid #cbd5e1",
-                fontSize: 12.5,
+                fontSize: 12,
                 outline: "none",
-                width: 180,
               }}
             />
             <button
@@ -557,7 +581,7 @@ export default function StudentOtpManagement({ API, authHeaders, isMobile }) {
               style={{
                 display: "inline-flex",
                 alignItems: "center",
-                gap: 5,
+                gap: 4,
                 padding: "6px 12px",
                 borderRadius: 8,
                 border: "none",
@@ -566,175 +590,337 @@ export default function StudentOtpManagement({ API, authHeaders, isMobile }) {
                 fontSize: 12,
                 fontWeight: 700,
                 cursor: "pointer",
+                flexShrink: 0,
               }}
             >
-              <Filter size={12} />
+              <Filter size={11} />
               <span>Filter</span>
             </button>
           </form>
         </div>
 
-        {/* Directory Accounts List Table */}
-        <div style={{ overflowX: "auto", border: "1px solid #e2e8f0", borderRadius: 12 }}>
-          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13, textAlign: "left" }}>
-            <thead>
-              <tr style={{ background: "#f8fafc", borderBottom: "1px solid #e2e8f0", color: "#64748b", fontSize: 11.5, textTransform: "uppercase", letterSpacing: "0.4px" }}>
-                <th style={{ padding: "10px 14px", fontWeight: 700 }}>Student / Reg No</th>
-                <th style={{ padding: "10px 14px", fontWeight: 700 }}>Batch / Branch</th>
-                <th style={{ padding: "10px 14px", fontWeight: 700 }}>Password Created</th>
-                <th style={{ padding: "10px 14px", fontWeight: 700 }}>Login Status</th>
-                <th style={{ padding: "10px 14px", fontWeight: 700, textAlign: "right" }}>Action</th>
-              </tr>
-            </thead>
-            <tbody>
-              {accountsLoading ? (
-                <tr>
-                  <td colSpan={5} style={{ padding: "24px", textAlign: "center", color: "#64748b" }}>
-                    <Loader2 size={20} className="spin" style={{ margin: "0 auto 8px" }} />
-                    <div>Loading verified accounts directory...</div>
-                  </td>
-                </tr>
-              ) : accountsList.length === 0 ? (
-                <tr>
-                  <td colSpan={5} style={{ padding: "24px", textAlign: "center", color: "#94a3b8" }}>
-                    No registered student accounts found matching filter.
-                  </td>
-                </tr>
-              ) : (
-                accountsList.map((acc) => {
-                  const resolvedBranch = (acc.branch && acc.branch !== "N/A") ? acc.branch : getDynamicBranch(acc.regNo);
-                  const resolvedSection = (acc.section && acc.section !== "N/A") ? acc.section : getSectionFromRegNo(acc.regNo);
+        {/* ── Directory Accounts Content: Responsive (Mobile Cards vs Desktop Table) ── */}
+        {isMob ? (
+          /* Mobile Sleek Cards List */
+          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+            {accountsLoading ? (
+              <div style={{ padding: "24px", textAlign: "center", color: "#64748b" }}>
+                <Loader2 size={20} className="spin" style={{ margin: "0 auto 8px" }} />
+                <div style={{ fontSize: 12.5 }}>Loading accounts directory...</div>
+              </div>
+            ) : accountsList.length === 0 ? (
+              <div style={{ padding: "24px", textAlign: "center", color: "#94a3b8", background: "#f8fafc", borderRadius: 12, border: "1px dashed #e2e8f0", fontSize: 12.5 }}>
+                No student accounts found matching filter.
+              </div>
+            ) : (
+              accountsList.map((acc) => {
+                const resolvedBranch = (acc.branch && acc.branch !== "N/A") ? acc.branch : getDynamicBranch(acc.regNo);
+                const resolvedSection = (acc.section && acc.section !== "N/A") ? acc.section : getSectionFromRegNo(acc.regNo);
 
-                  return (
-                    <tr key={acc.regNo} style={{ borderBottom: "1px solid #f1f5f9" }}>
-                      <td style={{ padding: "12px 14px" }}>
-                        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                return (
+                  <div
+                    key={acc.regNo}
+                    style={{
+                      background: "#ffffff",
+                      border: "1px solid #e2e8f0",
+                      borderRadius: 14,
+                      padding: "12px 14px",
+                      boxShadow: "0 1px 4px rgba(0,0,0,0.02)",
+                      display: "flex",
+                      flexDirection: "column",
+                      gap: 10,
+                    }}
+                  >
+                    {/* Top Row: Avatar + Name/Reg + Inspect Button */}
+                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0, flex: 1 }}>
+                        <div style={{ position: "relative", flexShrink: 0 }}>
                           <div
                             style={{
-                              width: 32,
-                              height: 32,
-                              borderRadius: "50%",
+                              width: 36,
+                              height: 36,
+                              borderRadius: 10,
                               background: acc.isCurrentlyLoggedIn ? "#dcfce7" : "#f1f5f9",
                               color: acc.isCurrentlyLoggedIn ? "#15803d" : "#475569",
                               display: "flex",
                               alignItems: "center",
                               justifyContent: "center",
-                              fontWeight: 700,
-                              fontSize: 12,
+                              fontWeight: 800,
+                              fontSize: 13,
+                              border: `1px solid ${acc.isCurrentlyLoggedIn ? "#bbf7d0" : "#e2e8f0"}`,
                             }}
                           >
                             {acc.studentName ? acc.studentName.charAt(0).toUpperCase() : "S"}
                           </div>
-                          <div>
-                            <strong style={{ color: "#0f172a", display: "block" }}>{acc.studentName}</strong>
-                            <span style={{ fontSize: 11.5, color: "#64748b", fontFamily: "'Space Mono', monospace" }}>
+                          <span
+                            style={{
+                              position: "absolute",
+                              bottom: -2,
+                              right: -2,
+                              width: 9,
+                              height: 9,
+                              borderRadius: "50%",
+                              background: acc.isCurrentlyLoggedIn ? "#16a34a" : "#94a3b8",
+                              border: "1.5px solid #ffffff",
+                            }}
+                          />
+                        </div>
+                        <div style={{ minWidth: 0, flex: 1 }}>
+                          <div style={{ color: "#0f172a", fontWeight: 800, fontSize: 13.5, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                            {acc.studentName}
+                          </div>
+                          <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 1 }}>
+                            <span style={{ fontSize: 11.5, color: "#4f46e5", fontFamily: "'Space Mono', monospace", fontWeight: 700 }}>
                               {acc.regNo}
+                            </span>
+                            <span style={{ fontSize: 10.5, color: "#64748b", background: "#f1f5f9", padding: "1px 5px", borderRadius: 4 }}>
+                              {resolvedBranch} • Sec {resolvedSection}
                             </span>
                           </div>
                         </div>
-                      </td>
-                      <td style={{ padding: "12px 14px", color: "#334155" }}>
-                        <div style={{ fontWeight: 600 }}>Batch {acc.batch || "2023"}</div>
-                        <span style={{ fontSize: 11, color: "#64748b", fontWeight: 500 }}>
-                          {resolvedBranch} (Sec {resolvedSection})
-                        </span>
-                      </td>
-                      <td style={{ padding: "12px 14px", color: "#64748b", fontSize: 12 }}>
-                        {formatISTDate(acc.passwordCreatedAt)}
-                      </td>
-                      <td style={{ padding: "12px 14px" }}>
+                      </div>
+
+                      <button
+                        onClick={() => handleSearchWithReg(acc.regNo)}
+                        style={{
+                          display: "inline-flex",
+                          alignItems: "center",
+                          gap: 4,
+                          padding: "6px 12px",
+                          borderRadius: 8,
+                          background: "#eef2ff",
+                          border: "1px solid #c7d2fe",
+                          color: "#4338ca",
+                          fontSize: 12,
+                          fontWeight: 700,
+                          cursor: "pointer",
+                          flexShrink: 0,
+                        }}
+                      >
+                        <Eye size={12} />
+                        <span>Inspect</span>
+                      </button>
+                    </div>
+
+                    {/* Bottom Status Row */}
+                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", paddingTop: 8, borderTop: "1px dashed #f1f5f9", gap: 6, flexWrap: "wrap" }}>
+                      <div>
                         {acc.isCurrentlyLoggedIn ? (
-                          <div style={{ display: "inline-flex", flexDirection: "column", gap: 2 }}>
-                            <span
-                              style={{
-                                display: "inline-flex",
-                                alignItems: "center",
-                                gap: 6,
-                                background: "#dcfce7",
-                                color: "#166534",
-                                fontSize: 11.5,
-                                fontWeight: 700,
-                                padding: "3px 9px",
-                                borderRadius: 6,
-                                border: "1px solid #bbf7d0",
-                              }}
-                            >
-                              <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#16a34a", display: "inline-block" }} />
-                              <span>Live Online ({acc.activeSessionsCount} device)</span>
-                            </span>
-                            {acc.activeSessions?.[0] && (
-                              <span style={{ fontSize: 10.5, color: "#64748b", display: "inline-flex", alignItems: "center", gap: 4 }}>
-                                {acc.activeSessions[0].deviceType === "Mobile" ? (
-                                  <Smartphone size={11} color="#64748b" />
-                                ) : (
-                                  <Laptop size={11} color="#64748b" />
-                                )}
-                                <span>{acc.activeSessions[0].deviceType} ({acc.activeSessions[0].browser})</span>
-                              </span>
-                            )}
-                          </div>
-                        ) : (
                           <span
                             style={{
                               display: "inline-flex",
                               alignItems: "center",
                               gap: 5,
+                              background: "#dcfce7",
+                              color: "#166534",
+                              fontSize: 11,
+                              fontWeight: 700,
+                              padding: "3px 8px",
+                              borderRadius: 6,
+                              border: "1px solid #bbf7d0",
+                            }}
+                          >
+                            <span style={{ width: 5, height: 5, borderRadius: "50%", background: "#16a34a", display: "inline-block" }} />
+                            <span>Live Online ({acc.activeSessionsCount} dev)</span>
+                            {acc.activeSessions?.[0]?.deviceType === "Mobile" ? (
+                              <Smartphone size={10.5} />
+                            ) : (
+                              <Laptop size={10.5} />
+                            )}
+                          </span>
+                        ) : (
+                          <span
+                            style={{
+                              display: "inline-flex",
+                              alignItems: "center",
+                              gap: 4,
                               background: "#f1f5f9",
                               color: "#64748b",
-                              fontSize: 11.5,
+                              fontSize: 11,
                               fontWeight: 600,
-                              padding: "3px 9px",
+                              padding: "3px 8px",
                               borderRadius: 6,
                               border: "1px solid #e2e8f0",
                             }}
                           >
-                            <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#94a3b8", display: "inline-block" }} />
+                            <span style={{ width: 5, height: 5, borderRadius: "50%", background: "#94a3b8", display: "inline-block" }} />
                             <span>Offline</span>
                           </span>
                         )}
-                      </td>
-                      <td style={{ padding: "12px 14px", textAlign: "right" }}>
-                        <button
-                          onClick={() => handleSearchWithReg(acc.regNo)}
-                          style={{
-                            display: "inline-flex",
-                            alignItems: "center",
-                            gap: 4,
-                            padding: "6px 12px",
-                            borderRadius: 8,
-                            background: "#eef2ff",
-                            border: "1px solid #c7d2fe",
-                            color: "#4338ca",
-                            fontSize: 12,
-                            fontWeight: 700,
-                            cursor: "pointer",
-                          }}
-                        >
-                          <Eye size={13} />
-                          <span>Inspect</span>
-                        </button>
-                      </td>
-                    </tr>
-                  );
-                })
-              )}
-            </tbody>
-          </table>
-        </div>
+                      </div>
+
+                      <div style={{ fontSize: 10.5, color: "#94a3b8" }}>
+                        Pwd: {formatISTDate(acc.passwordCreatedAt)}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })
+            )}
+          </div>
+        ) : (
+          /* Desktop Pristine Table View */
+          <div style={{ overflowX: "auto", border: "1px solid #e2e8f0", borderRadius: 12 }}>
+            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13, textAlign: "left" }}>
+              <thead>
+                <tr style={{ background: "#f8fafc", borderBottom: "1px solid #e2e8f0", color: "#64748b", fontSize: 11.5, textTransform: "uppercase", letterSpacing: "0.4px" }}>
+                  <th style={{ padding: "10px 14px", fontWeight: 700 }}>Student / Reg No</th>
+                  <th style={{ padding: "10px 14px", fontWeight: 700 }}>Batch / Branch</th>
+                  <th style={{ padding: "10px 14px", fontWeight: 700 }}>Password Created</th>
+                  <th style={{ padding: "10px 14px", fontWeight: 700 }}>Login Status</th>
+                  <th style={{ padding: "10px 14px", fontWeight: 700, textAlign: "right" }}>Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                {accountsLoading ? (
+                  <tr>
+                    <td colSpan={5} style={{ padding: "24px", textAlign: "center", color: "#64748b" }}>
+                      <Loader2 size={20} className="spin" style={{ margin: "0 auto 8px" }} />
+                      <div>Loading verified accounts directory...</div>
+                    </td>
+                  </tr>
+                ) : accountsList.length === 0 ? (
+                  <tr>
+                    <td colSpan={5} style={{ padding: "24px", textAlign: "center", color: "#94a3b8" }}>
+                      No registered student accounts found matching filter.
+                    </td>
+                  </tr>
+                ) : (
+                  accountsList.map((acc) => {
+                    const resolvedBranch = (acc.branch && acc.branch !== "N/A") ? acc.branch : getDynamicBranch(acc.regNo);
+                    const resolvedSection = (acc.section && acc.section !== "N/A") ? acc.section : getSectionFromRegNo(acc.regNo);
+
+                    return (
+                      <tr key={acc.regNo} style={{ borderBottom: "1px solid #f1f5f9" }}>
+                        <td style={{ padding: "12px 14px" }}>
+                          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                            <div
+                              style={{
+                                width: 32,
+                                height: 32,
+                                borderRadius: "50%",
+                                background: acc.isCurrentlyLoggedIn ? "#dcfce7" : "#f1f5f9",
+                                color: acc.isCurrentlyLoggedIn ? "#15803d" : "#475569",
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "center",
+                                fontWeight: 700,
+                                fontSize: 12,
+                              }}
+                            >
+                              {acc.studentName ? acc.studentName.charAt(0).toUpperCase() : "S"}
+                            </div>
+                            <div>
+                              <strong style={{ color: "#0f172a", display: "block" }}>{acc.studentName}</strong>
+                              <span style={{ fontSize: 11.5, color: "#64748b", fontFamily: "'Space Mono', monospace" }}>
+                                {acc.regNo}
+                              </span>
+                            </div>
+                          </div>
+                        </td>
+                        <td style={{ padding: "12px 14px", color: "#334155" }}>
+                          <div style={{ fontWeight: 600 }}>Batch {acc.batch || "2023"}</div>
+                          <span style={{ fontSize: 11, color: "#64748b", fontWeight: 500 }}>
+                            {resolvedBranch} (Sec {resolvedSection})
+                          </span>
+                        </td>
+                        <td style={{ padding: "12px 14px", color: "#64748b", fontSize: 12 }}>
+                          {formatISTDate(acc.passwordCreatedAt)}
+                        </td>
+                        <td style={{ padding: "12px 14px" }}>
+                          {acc.isCurrentlyLoggedIn ? (
+                            <div style={{ display: "inline-flex", flexDirection: "column", gap: 2 }}>
+                              <span
+                                style={{
+                                  display: "inline-flex",
+                                  alignItems: "center",
+                                  gap: 6,
+                                  background: "#dcfce7",
+                                  color: "#166534",
+                                  fontSize: 11.5,
+                                  fontWeight: 700,
+                                  padding: "3px 9px",
+                                  borderRadius: 6,
+                                  border: "1px solid #bbf7d0",
+                                }}
+                              >
+                                <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#16a34a", display: "inline-block" }} />
+                                <span>Live Online ({acc.activeSessionsCount} device)</span>
+                              </span>
+                              {acc.activeSessions?.[0] && (
+                                <span style={{ fontSize: 10.5, color: "#64748b", display: "inline-flex", alignItems: "center", gap: 4 }}>
+                                  {acc.activeSessions[0].deviceType === "Mobile" ? (
+                                    <Smartphone size={11} color="#64748b" />
+                                  ) : (
+                                    <Laptop size={11} color="#64748b" />
+                                  )}
+                                  <span>{acc.activeSessions[0].deviceType} ({acc.activeSessions[0].browser})</span>
+                                </span>
+                              )}
+                            </div>
+                          ) : (
+                            <span
+                              style={{
+                                display: "inline-flex",
+                                alignItems: "center",
+                                gap: 5,
+                                background: "#f1f5f9",
+                                color: "#64748b",
+                                fontSize: 11.5,
+                                fontWeight: 600,
+                                padding: "3px 9px",
+                                borderRadius: 6,
+                                border: "1px solid #e2e8f0",
+                              }}
+                            >
+                              <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#94a3b8", display: "inline-block" }} />
+                              <span>Offline</span>
+                            </span>
+                          )}
+                        </td>
+                        <td style={{ padding: "12px 14px", textAlign: "right" }}>
+                          <button
+                            onClick={() => handleSearchWithReg(acc.regNo)}
+                            style={{
+                              display: "inline-flex",
+                              alignItems: "center",
+                              gap: 4,
+                              padding: "6px 12px",
+                              borderRadius: 8,
+                              background: "#eef2ff",
+                              border: "1px solid #c7d2fe",
+                              color: "#4338ca",
+                              fontSize: 12,
+                              fontWeight: 700,
+                              cursor: "pointer",
+                            }}
+                          >
+                            <Eye size={13} />
+                            <span>Inspect</span>
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  })
+                )}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
 
       {/* ── Search Bar Card ── */}
       <div
         style={{
           background: "#ffffff",
-          borderRadius: 16,
+          borderRadius: isMob ? 14 : 16,
           border: "1px solid #e2e8f0",
-          padding: isMobile ? "16px 14px" : "20px 24px",
+          padding: isMob ? "14px 12px" : "20px 24px",
           boxShadow: "0 2px 10px rgba(15, 23, 42, 0.03)",
         }}
       >
-        <form onSubmit={handleSearch} style={{ display: "flex", gap: 12, flexWrap: "wrap", alignItems: "center" }}>
-          <div style={{ position: "relative", flex: 1, minWidth: isMobile ? "100%" : 280 }}>
+        <form onSubmit={handleSearch} style={{ display: "flex", gap: 10, flexDirection: isMob ? "column" : "row", alignItems: "stretch" }}>
+          <div style={{ position: "relative", flex: 1, minWidth: isMob ? "100%" : 280 }}>
             <Search
               size={18}
               color="#94a3b8"
@@ -742,15 +928,15 @@ export default function StudentOtpManagement({ API, authHeaders, isMobile }) {
             />
             <input
               type="text"
-              placeholder={isMobile ? "Enter Reg No (e.g., 230301120137)..." : "Enter Student Reg No (e.g., 230301120137)..."}
+              placeholder={isMob ? "Enter Reg No (e.g., 230301120137)..." : "Enter Student Reg No (e.g., 230301120137)..."}
               value={searchReg}
               onChange={(e) => setSearchReg(e.target.value)}
               style={{
                 width: "100%",
-                padding: "12px 14px 12px 42px",
+                padding: "11px 14px 11px 42px",
                 borderRadius: 12,
                 border: "1.5px solid #cbd5e1",
-                fontSize: 14,
+                fontSize: 13.5,
                 fontWeight: 600,
                 color: "#0f172a",
                 outline: "none",
@@ -767,24 +953,25 @@ export default function StudentOtpManagement({ API, authHeaders, isMobile }) {
             type="submit"
             disabled={loading}
             style={{
-              padding: "12px 24px",
+              padding: isMob ? "11px 16px" : "12px 24px",
               borderRadius: 12,
               border: "none",
               background: "#4f46e5",
               color: "#ffffff",
-              fontSize: 14,
+              fontSize: 13.5,
               fontWeight: 700,
               cursor: loading ? "not-allowed" : "pointer",
               display: "inline-flex",
               alignItems: "center",
+              justifyContent: "center",
               gap: 8,
               boxShadow: "0 4px 12px rgba(79, 70, 229, 0.25)",
               transition: "all 0.2s",
               opacity: loading ? 0.8 : 1,
             }}
           >
-            {loading ? <RefreshCw size={16} className="spin" /> : <Search size={16} />}
-            Search Activity
+            {loading ? <RefreshCw size={15} className="spin" /> : <Search size={15} />}
+            <span>Search Activity</span>
           </button>
         </form>
 
@@ -840,8 +1027,8 @@ export default function StudentOtpManagement({ API, authHeaders, isMobile }) {
           <div
             style={{
               display: "grid",
-              gridTemplateColumns: isMobile ? "1fr" : "repeat(auto-fit, minmax(220px, 1fr))",
-              gap: 14,
+              gridTemplateColumns: isMob ? "1fr" : "repeat(auto-fit, minmax(220px, 1fr))",
+              gap: isMob ? 10 : 14,
             }}
           >
             {/* Student Info Card */}
@@ -850,7 +1037,7 @@ export default function StudentOtpManagement({ API, authHeaders, isMobile }) {
                 background: "#ffffff",
                 border: "1px solid #e2e8f0",
                 borderRadius: 14,
-                padding: "16px 18px",
+                padding: isMob ? "14px 16px" : "16px 18px",
                 display: "flex",
                 flexDirection: "column",
                 gap: 6,
@@ -876,7 +1063,7 @@ export default function StudentOtpManagement({ API, authHeaders, isMobile }) {
                 background: studentData.todayUsage >= studentData.maxDailyLimit ? "#fef2f2" : "#f8fafc",
                 border: `1px solid ${studentData.todayUsage >= studentData.maxDailyLimit ? "#fecaca" : "#e2e8f0"}`,
                 borderRadius: 14,
-                padding: "16px 18px",
+                padding: isMob ? "14px 16px" : "16px 18px",
                 display: "flex",
                 flexDirection: "column",
                 gap: 4,
@@ -899,7 +1086,7 @@ export default function StudentOtpManagement({ API, authHeaders, isMobile }) {
                 background: studentData.isCooldownActive ? "#fffbeb" : "#f8fafc",
                 border: `1px solid ${studentData.isCooldownActive ? "#fde68a" : "#e2e8f0"}`,
                 borderRadius: 14,
-                padding: "16px 18px",
+                padding: isMob ? "14px 16px" : "16px 18px",
                 display: "flex",
                 flexDirection: "column",
                 gap: 4,
@@ -930,7 +1117,7 @@ export default function StudentOtpManagement({ API, authHeaders, isMobile }) {
                 background: "#ffffff",
                 border: "1px solid #e2e8f0",
                 borderRadius: 14,
-                padding: "16px 18px",
+                padding: isMob ? "14px 16px" : "16px 18px",
                 display: "flex",
                 flexDirection: "column",
                 gap: 4,
@@ -954,7 +1141,7 @@ export default function StudentOtpManagement({ API, authHeaders, isMobile }) {
               background: "#ffffff",
               borderRadius: 16,
               border: "1px solid #e2e8f0",
-              padding: isMobile ? "16px 14px" : "20px 24px",
+              padding: isMob ? "14px 12px" : "20px 24px",
               boxShadow: "0 2px 10px rgba(15, 23, 42, 0.02)",
             }}
           >
@@ -974,10 +1161,10 @@ export default function StudentOtpManagement({ API, authHeaders, isMobile }) {
                   <Smartphone size={17} color={(studentData.activeSessions?.length || 0) > 0 ? "#059669" : "#64748b"} />
                 </div>
                 <div>
-                  <h3 style={{ margin: 0, fontSize: 15.5, fontWeight: 800, color: "#0f172a" }}>
+                  <h3 style={{ margin: 0, fontSize: isMob ? 14.5 : 15.5, fontWeight: 800, color: "#0f172a" }}>
                     Active Device Sessions ({studentData.activeDevicesCount} / {studentData.maxAllowedDevices})
                   </h3>
-                  <p style={{ margin: "2px 0 0 0", fontSize: 12, color: "#64748b" }}>
+                  <p style={{ margin: "2px 0 0 0", fontSize: 11.5, color: "#64748b" }}>
                     Live student sessions currently holding valid authentication tokens in MongoDB.
                   </p>
                 </div>
@@ -1053,9 +1240,9 @@ export default function StudentOtpManagement({ API, authHeaders, isMobile }) {
                 No active device sessions found. Student is signed out on all devices.
               </div>
             ) : (
-              <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(auto-fit, minmax(320px, 1fr))", gap: 12 }}>
+              <div style={{ display: "grid", gridTemplateColumns: isMob ? "1fr" : "repeat(auto-fit, minmax(320px, 1fr))", gap: 12 }}>
                 {studentData.activeSessions.map((session, idx) => {
-                  const isMob = session.deviceType === "Mobile";
+                  const isMobileDev = session.deviceType === "Mobile";
                   const isTab = session.deviceType === "Tablet";
                   return (
                     <div
@@ -1084,7 +1271,7 @@ export default function StudentOtpManagement({ API, authHeaders, isMobile }) {
                               justifyContent: "center",
                             }}
                           >
-                            {isMob ? <Smartphone size={17} /> : isTab ? <Tablet size={17} /> : <Laptop size={17} />}
+                            {isMobileDev ? <Smartphone size={17} /> : isTab ? <Tablet size={17} /> : <Laptop size={17} />}
                           </div>
                           <div>
                             <div style={{ fontSize: 13.5, fontWeight: 800, color: "#0f172a" }}>
@@ -1190,20 +1377,20 @@ export default function StudentOtpManagement({ API, authHeaders, isMobile }) {
               background: "#ffffff",
               borderRadius: 16,
               border: "1px solid #e2e8f0",
-              padding: isMobile ? "16px 14px" : "20px 24px",
+              padding: isMob ? "14px 12px" : "20px 24px",
               boxShadow: "0 2px 10px rgba(15, 23, 42, 0.02)",
             }}
           >
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16, flexWrap: "wrap", gap: 8 }}>
               <div>
-                <h3 style={{ margin: 0, fontSize: 16, fontWeight: 800, color: "#0f172a" }}>
+                <h3 style={{ margin: 0, fontSize: isMob ? 15 : 16, fontWeight: 800, color: "#0f172a" }}>
                   OTP Activity & Delivery History
                 </h3>
-                <p style={{ margin: "3px 0 0 0", fontSize: 12.5, color: "#64748b" }}>
+                <p style={{ margin: "3px 0 0 0", fontSize: isMob ? 11.5 : 12.5, color: "#64748b" }}>
                   Showing last {timeline.length} request attempt(s) in chronological order (Asia/Kolkata).
                 </p>
               </div>
-              <span style={{ fontSize: 12, fontWeight: 700, color: "#4f46e5", background: "#eef2ff", padding: "4px 10px", borderRadius: 8 }}>
+              <span style={{ fontSize: 11.5, fontWeight: 700, color: "#4f46e5", background: "#eef2ff", padding: "3px 9px", borderRadius: 8 }}>
                 Total Events: {timeline.length}
               </span>
             </div>
@@ -1239,24 +1426,24 @@ export default function StudentOtpManagement({ API, authHeaders, isMobile }) {
                         background: "#f8fafc",
                         border: "1px solid #e2e8f0",
                         borderRadius: 12,
-                        padding: "12px 16px",
+                        padding: isMob ? "10px 12px" : "12px 16px",
                         display: "flex",
-                        flexDirection: isMobile ? "column" : "row",
-                        alignItems: isMobile ? "flex-start" : "center",
+                        flexDirection: isMob ? "column" : "row",
+                        alignItems: isMob ? "flex-start" : "center",
                         justifyContent: "space-between",
-                        gap: 12,
+                        gap: 10,
                       }}
                     >
                       {/* Left: Status & Time */}
-                      <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                         <span
                           style={{
                             background: badgeBg,
                             border: `1px solid ${badgeBorder}`,
                             color: badgeColor,
-                            fontSize: 11,
+                            fontSize: 10.5,
                             fontWeight: 800,
-                            padding: "4px 8px",
+                            padding: "3px 7px",
                             borderRadius: 6,
                             textTransform: "uppercase",
                           }}
@@ -1264,26 +1451,26 @@ export default function StudentOtpManagement({ API, authHeaders, isMobile }) {
                           {item.status}
                         </span>
                         <div>
-                          <div style={{ fontSize: 13, fontWeight: 700, color: "#0f172a" }}>
+                          <div style={{ fontSize: isMob ? 12.5 : 13, fontWeight: 700, color: "#0f172a" }}>
                             {item.reason}
                           </div>
-                          <div style={{ fontSize: 11.5, color: "#64748b", marginTop: 2 }}>
+                          <div style={{ fontSize: 11, color: "#64748b", marginTop: 2 }}>
                             {item.formattedTime}
                           </div>
                         </div>
                       </div>
 
                       {/* Right: Provider & Device Pills */}
-                      <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
                         {/* Provider Pill */}
                         <span
                           style={{
                             background: item.provider === "BREVO" ? "#ecfeff" : item.provider === "GMAIL" ? "#faf5ff" : "#f1f5f9",
                             border: `1px solid ${item.provider === "BREVO" ? "#a5f3fc" : item.provider === "GMAIL" ? "#e9d5ff" : "#cbd5e1"}`,
                             color: item.provider === "BREVO" ? "#0e7490" : item.provider === "GMAIL" ? "#7e22ce" : "#475569",
-                            fontSize: 11,
+                            fontSize: 10.5,
                             fontWeight: 700,
-                            padding: "3px 8px",
+                            padding: "2px 7px",
                             borderRadius: 6,
                           }}
                         >
@@ -1296,16 +1483,16 @@ export default function StudentOtpManagement({ API, authHeaders, isMobile }) {
                             background: "#ffffff",
                             border: "1px solid #cbd5e1",
                             color: "#334155",
-                            fontSize: 11,
+                            fontSize: 10.5,
                             fontWeight: 600,
-                            padding: "3px 8px",
+                            padding: "2px 7px",
                             borderRadius: 6,
                             display: "inline-flex",
                             alignItems: "center",
                             gap: 4,
                           }}
                         >
-                          {item.device?.deviceType === "Mobile" ? <Smartphone size={12} /> : <Laptop size={12} />}
+                          {item.device?.deviceType === "Mobile" ? <Smartphone size={11} /> : <Laptop size={11} />}
                           {item.device?.platform} • {item.device?.maskedIp}
                         </span>
                       </div>
@@ -1322,22 +1509,22 @@ export default function StudentOtpManagement({ API, authHeaders, isMobile }) {
               background: "linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%)",
               border: "1.5px solid #cbd5e1",
               borderRadius: 16,
-              padding: isMobile ? "18px 16px" : "22px 26px",
+              padding: isMob ? "16px 14px" : "22px 26px",
               display: "flex",
-              flexDirection: isMobile ? "column" : "row",
-              alignItems: isMobile ? "flex-start" : "center",
+              flexDirection: isMob ? "column" : "row",
+              alignItems: isMob ? "flex-start" : "center",
               justifyContent: "space-between",
-              gap: 16,
+              gap: 14,
             }}
           >
             <div>
               <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
                 <ShieldCheck size={18} color="#4f46e5" />
-                <h4 style={{ margin: 0, fontSize: 15, fontWeight: 800, color: "#0f172a" }}>
+                <h4 style={{ margin: 0, fontSize: isMob ? 14.5 : 15, fontWeight: 800, color: "#0f172a" }}>
                   Administrative Action: Reset Today's OTP Attempts
                 </h4>
               </div>
-              <p style={{ margin: 0, fontSize: 12.5, color: "#64748b", maxWidth: 650, lineHeight: 1.4 }}>
+              <p style={{ margin: 0, fontSize: isMob ? 12 : 12.5, color: "#64748b", maxWidth: 650, lineHeight: 1.4 }}>
                 Resets only today's OTP quota ({studentData.todayDateKey}) for student <strong>{studentData.regNo}</strong> to <strong>0 / {studentData.maxDailyLimit}</strong> and clears active cooldown. Historical activity logs above are permanently retained for audit purposes.
               </p>
             </div>
@@ -1345,23 +1532,25 @@ export default function StudentOtpManagement({ API, authHeaders, isMobile }) {
             <button
               onClick={() => setShowResetModal(true)}
               style={{
-                padding: "12px 20px",
+                width: isMob ? "100%" : "auto",
+                padding: isMob ? "11px 16px" : "12px 20px",
                 borderRadius: 12,
                 border: "none",
                 background: "#dc2626",
                 color: "#ffffff",
-                fontSize: 13.5,
+                fontSize: isMob ? 13 : 13.5,
                 fontWeight: 700,
                 cursor: "pointer",
                 display: "inline-flex",
                 alignItems: "center",
+                justifyContent: "center",
                 gap: 8,
                 boxShadow: "0 4px 12px rgba(220, 38, 38, 0.25)",
                 transition: "all 0.2s",
                 whiteSpace: "nowrap",
               }}
             >
-              <RotateCcw size={16} />
+              <RotateCcw size={15} />
               Reset Today's OTP Attempts
             </button>
           </div>
