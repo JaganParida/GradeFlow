@@ -2920,7 +2920,7 @@ function BacklogTrackerCard({ authHeaders, API }) {
                     BATCH {st.batch || "N/A"}
                   </span>
                   <span style={{ background: "#ecfdf5", border: "1px solid #a7f3d0", color: "#065f46", fontSize: 11, fontWeight: 700, padding: "2px 8px", borderRadius: 6, whiteSpace: "nowrap" }}>
-                    SEC {st.section || "N/A"}
+                    SEC {st.section ? String(st.section).replace(/^Sec\s*/i, "") : "N/A"}
                   </span>
                 </div>
 
@@ -3104,7 +3104,7 @@ function BacklogTrackerCard({ authHeaders, API }) {
                             BATCH {st.batch || "N/A"}
                           </span>
                           <span style={{ background: "#ecfdf5", border: "1px solid #a7f3d0", color: "#065f46", fontSize: 11, fontWeight: 700, padding: "2px 7px", borderRadius: 6, whiteSpace: "nowrap" }}>
-                            SEC {st.section || "N/A"}
+                            SEC {st.section ? String(st.section).replace(/^Sec\s*/i, "") : "N/A"}
                           </span>
                         </div>
                       </td>
