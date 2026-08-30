@@ -29,9 +29,17 @@ export default function Home() {
     hasActiveSession,
     authChecking,
     openStudentAuthModal,
+    fetchStudent,
   } = useApp();
 
   const currentRegNo = studentSession?.regNo || "";
+
+  // Auto-restore session studentData when returning to Home
+  useEffect(() => {
+    if (studentSession?.regNo && studentData?.regNo !== studentSession.regNo) {
+      fetchStudent(studentSession.regNo);
+    }
+  }, [studentSession?.regNo, studentData?.regNo]);
 
   // Handle URL hash scrolling
   useEffect(() => {

@@ -162,9 +162,25 @@ export default function Navbar() {
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
-  const currentRegNo = studentData?.regNo || studentSession?.regNo || "";
+  const loggedInRegNo = studentSession?.regNo || "";
+  const currentRegNo = loggedInRegNo || studentData?.regNo || "";
+
   // Admin button is visible to all if 0/2 or 1/2 devices are active (hidden when 2/2 devices are full)
   const canSeeAdmin = Boolean(adminToken || isAdminButtonVisible);
+
+  // Extract currently viewed student token from URL if present (e.g. /dashboard/:id, /analytics/:id)
+  const getActiveViewedRegNo = () => {
+    try {
+      const pathParts = location.pathname.split("/");
+      const section = pathParts[1];
+      const rawToken = pathParts[2];
+      if (["dashboard", "analytics", "attendance", "timetable"].includes(section) && rawToken) {
+        const decoded = decodeStudentId(rawToken);
+        if (decoded) return decoded;
+      }
+    } catch {}
+    return currentRegNo;
+  };
 
   // Close mobile menu on page navigation
   useEffect(() => {
@@ -204,38 +220,42 @@ export default function Navbar() {
 
   const handleDashboardClick = (e) => {
     if (e) e.preventDefault();
-    if (!currentRegNo) {
+    const target = loggedInRegNo || studentData?.regNo;
+    if (!target) {
       requireAuthFor({ type: "dashboard" });
     } else {
-      navigate(`/dashboard/${encodeStudentId(currentRegNo)}`);
+      navigate(`/dashboard/${encodeStudentId(target)}`);
     }
   };
 
   const handleTimetableClick = (e) => {
     if (e) e.preventDefault();
-    if (!currentRegNo) {
+    const target = getActiveViewedRegNo();
+    if (!target) {
       requireAuthFor({ type: "timetable" });
     } else {
-      navigate(`/timetable/${encodeStudentId(currentRegNo)}`);
+      navigate(`/timetable/${encodeStudentId(target)}`);
     }
   };
 
   const handleAttendanceClick = (e) => {
     if (e) e.preventDefault();
-    if (!currentRegNo) {
+    const target = getActiveViewedRegNo();
+    if (!target) {
       requireAuthFor({ type: "attendance" });
     } else {
-      navigate(`/attendance/${encodeStudentId(currentRegNo)}`);
+      navigate(`/attendance/${encodeStudentId(target)}`);
     }
   };
 
   const handleAnalyticsClick = (e, targetTab = "") => {
     if (e) e.preventDefault();
-    if (!currentRegNo) {
+    const target = getActiveViewedRegNo();
+    if (!target) {
       requireAuthFor({ type: "analytics", tab: targetTab });
     } else {
       const query = targetTab ? `?tab=${encodeURIComponent(targetTab)}` : "";
-      navigate(`/analytics/${encodeStudentId(currentRegNo)}${query}`);
+      navigate(`/analytics/${encodeStudentId(target)}${query}`);
     }
   };
 
@@ -895,7 +915,7 @@ export default function Navbar() {
               ) : hasActiveSession ? (
                 <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                   <Link
-                    to={`/dashboard/${encodeStudentId(currentRegNo)}`}
+                    to={`/dashboard/${encodeStudentId(loggedInRegNo || currentRegNo)}`}
                     style={{
                       display: "inline-flex",
                       alignItems: "center",
@@ -1797,10 +1817,10 @@ export default function Navbar() {
                             color: "#0f172a",
                           }}
                         >
-                          {studentData?.name || "Active Student"}
+                          {studentSession?.name || studentData?.studentName || studentData?.name || "Active Student"}
                         </div>
                         <div style={{ fontSize: 11, color: "#64748b" }}>
-                          {currentRegNo}
+                          {loggedInRegNo || currentRegNo}
                         </div>
                       </div>
                     </div>
