@@ -42,7 +42,36 @@ export default function AccessDeniedPage() {
     };
   }, []);
 
-  const attemptedPath = location.pathname || "/admin";
+  const attemptedPath = location.pathname || "/";
+  const isAdminRoute = attemptedPath.startsWith("/admin");
+  const isStudentRoute =
+    attemptedPath.startsWith("/dashboard") ||
+    attemptedPath.startsWith("/attendance") ||
+    attemptedPath.startsWith("/timetable") ||
+    attemptedPath.startsWith("/analytics") ||
+    attemptedPath.startsWith("/leaderboard");
+
+  let badgeText = "HTTP 403 • Access Forbidden";
+  let title = "Access Restricted";
+  let description = "You do not have the required permissions to access this page.";
+  let policy = "Authorized Users Only";
+
+  if (isAdminRoute) {
+    badgeText = "HTTP 403 • Admin Clearance Required";
+    title = "Administrative Gateway Restricted";
+    description = "This portal is strictly reserved for authorized university administrative personnel. Standard student accounts and unauthenticated visitors cannot access this gateway.";
+    policy = "Main Admin / Sub-Admin Only";
+  } else if (isStudentRoute && !hasActiveSession) {
+    badgeText = "HTTP 403 • Authentication Required";
+    title = "Student Portal Sign-In Required";
+    description = "This academic portal and student records are protected. Please sign in with your university registration number and account password to access this page.";
+    policy = "Student Authentication Required";
+  } else if (isStudentRoute && hasActiveSession) {
+    badgeText = "HTTP 403 • Data Privacy Guard";
+    title = "Student Profile Access Restricted";
+    description = `You are currently signed in as ${currentRegNo}. You do not have permission to view another student's private academic records.`;
+    policy = "Student Account Ownership Only";
+  }
 
   return (
     <div
@@ -127,7 +156,7 @@ export default function AccessDeniedPage() {
         }}
       >
         <AlertOctagon size={14} color="#dc2626" />
-        <span>HTTP 403 &bull; Access Forbidden</span>
+        <span>{badgeText}</span>
       </motion.div>
 
       {/* ── Animated Cyber-Security Shield Vector Graphic ── */}
@@ -226,7 +255,7 @@ export default function AccessDeniedPage() {
           lineHeight: 1.2,
         }}
       >
-        Administrative Gateway Restricted
+        {title}
       </motion.h1>
 
       {/* ── Description ── */}
@@ -242,7 +271,7 @@ export default function AccessDeniedPage() {
           margin: "0 0 24px 0",
         }}
       >
-        This portal is strictly reserved for authorized university administrative personnel. Standard student accounts and unauthenticated visitors cannot access this gateway.
+        {description}
       </motion.p>
 
       {/* ── Security Metadata Card ── */}
@@ -283,7 +312,7 @@ export default function AccessDeniedPage() {
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <span style={{ color: "#64748b", fontWeight: 600 }}>Authorization Policy:</span>
           <span style={{ color: "#b45309", fontWeight: 700, display: "inline-flex", alignItems: "center", gap: 4 }}>
-            <Lock size={12} /> Main Admin / Sub-Admin Only
+            <Lock size={12} /> {policy}
           </span>
         </div>
       </motion.div>
@@ -302,7 +331,31 @@ export default function AccessDeniedPage() {
           maxWidth: 480,
         }}
       >
-        {hasActiveSession ? (
+        {isAdminRoute && !adminToken ? (
+          <Link
+            to="/admin/login"
+            style={{
+              flex: isMobile ? "1 1 100%" : "1 1 auto",
+              display: "inline-flex",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: 8,
+              padding: "13px 22px",
+              borderRadius: 12,
+              fontSize: 14,
+              fontWeight: 750,
+              background: "linear-gradient(135deg, #0f172a 0%, #1e293b 100%)",
+              color: "#ffffff",
+              textDecoration: "none",
+              boxShadow: "0 4px 14px rgba(15, 23, 42, 0.25)",
+              transition: "all 0.15s ease",
+            }}
+          >
+            <Lock size={16} />
+            <span>Admin Portal Login</span>
+            <ArrowRight size={15} />
+          </Link>
+        ) : hasActiveSession ? (
           <Link
             to={`/dashboard/${encodeStudentId(currentRegNo)}`}
             style={{
