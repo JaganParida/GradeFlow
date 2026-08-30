@@ -377,9 +377,12 @@ export function AppProvider({ children }) {
           } catch {
             setSessionRevokedNotice("Your session ended because your account was approved on another device.");
           }
-          setStudentSession(null);
-          setStudentData(null);
-          navigate("/", { replace: true });
+          // Smooth 800ms grace period so active UI animations complete cleanly without abrupt glitches
+          setTimeout(() => {
+            setStudentSession(null);
+            setStudentData(null);
+            navigate("/", { replace: true });
+          }, 800);
         });
 
         eventSource.onerror = () => {

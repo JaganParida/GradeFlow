@@ -436,7 +436,10 @@ export default function StudentAuthModal({ isOpen, onClose }) {
         if (res?.status === "APPROVED" && res?.success) {
           clearInterval(pollInterval);
           clearInterval(timerInterval);
-          navigateToDestination(cleanReg);
+          setStatusNotice("Approval granted! Setting up your session...");
+          setTimeout(() => {
+            navigateToDestination(cleanReg);
+          }, 350);
         } else if (res?.status === "DENIED") {
           clearInterval(pollInterval);
           clearInterval(timerInterval);
