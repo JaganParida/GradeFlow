@@ -26,6 +26,9 @@ import {
   Tablet,
   AlertTriangle,
   XCircle,
+  Check,
+  ShieldAlert,
+  Shield,
 } from "lucide-react";
 import BlockedLoginDeviceModal from "./BlockedLoginDeviceModal";
 
@@ -790,7 +793,7 @@ export default function StudentAuthModal({ isOpen, onClose }) {
               <div style={{ display: "flex", alignItems: "center", gap: "clamp(3px, 1vw, 5px)", flexShrink: 1, minWidth: 0 }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 3, fontSize: "clamp(9.5px, 2.2vw, 10.5px)", fontWeight: 800, color: step === "REGNO" ? "#2563eb" : "#16a34a", whiteSpace: "nowrap" }}>
                   <div style={{ width: 16, height: 16, borderRadius: "50%", background: step === "REGNO" ? "#2563eb" : "#16a34a", color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 9, fontWeight: 900, flexShrink: 0 }}>
-                    {step === "REGNO" ? "1" : "✓"}
+                    {step === "REGNO" ? "1" : <Check size={10} strokeWidth={3} />}
                   </div>
                   <span>Identifier</span>
                 </div>
@@ -799,7 +802,7 @@ export default function StudentAuthModal({ isOpen, onClose }) {
 
                 <div style={{ display: "flex", alignItems: "center", gap: 3, fontSize: "clamp(9.5px, 2.2vw, 10.5px)", fontWeight: 800, color: (step === "OTP" || step === "PASSWORD") ? "#2563eb" : (step === "CREATE_PASSWORD") ? "#16a34a" : "#94a3b8", whiteSpace: "nowrap" }}>
                   <div style={{ width: 16, height: 16, borderRadius: "50%", background: (step === "OTP" || step === "PASSWORD") ? "#2563eb" : (step === "CREATE_PASSWORD") ? "#16a34a" : "#e2e8f0", color: (step === "OTP" || step === "PASSWORD" || step === "CREATE_PASSWORD") ? "#fff" : "#64748b", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 9, fontWeight: 900, flexShrink: 0 }}>
-                    {step === "CREATE_PASSWORD" ? "✓" : "2"}
+                    {step === "CREATE_PASSWORD" ? <Check size={10} strokeWidth={3} /> : "2"}
                   </div>
                   <span>{step === "PASSWORD" ? "Password" : "OTP"}</span>
                 </div>
@@ -1169,12 +1172,40 @@ export default function StudentAuthModal({ isOpen, onClose }) {
                       Account Password
                     </label>
                     {isPasswordBlocked ? (
-                      <span style={{ fontSize: 11.5, fontWeight: 800, color: "#dc2626", background: "#fef2f2", padding: "2px 8px", borderRadius: 999, border: "1px solid #fecaca" }}>
-                        🔒 Locked (3/3 Failed)
+                      <span
+                        style={{
+                          fontSize: 11,
+                          fontWeight: 800,
+                          color: "#dc2626",
+                          background: "#fef2f2",
+                          padding: "2.5px 8px",
+                          borderRadius: 999,
+                          border: "1px solid #fecaca",
+                          display: "inline-flex",
+                          alignItems: "center",
+                          gap: 4,
+                        }}
+                      >
+                        <Lock size={11} strokeWidth={2.5} />
+                        <span>Locked (3/3 Failed)</span>
                       </span>
                     ) : failedPasswordAttemptsCount > 0 ? (
-                      <span style={{ fontSize: 11.5, fontWeight: 700, color: "#d97706" }}>
-                        {3 - failedPasswordAttemptsCount} attempt(s) remaining
+                      <span
+                        style={{
+                          fontSize: 11,
+                          fontWeight: 700,
+                          color: "#d97706",
+                          background: "#fffbeb",
+                          padding: "2.5px 8px",
+                          borderRadius: 999,
+                          border: "1px solid #fde68a",
+                          display: "inline-flex",
+                          alignItems: "center",
+                          gap: 4,
+                        }}
+                      >
+                        <ShieldAlert size={11} strokeWidth={2.5} />
+                        <span>{3 - failedPasswordAttemptsCount} attempt(s) remaining</span>
                       </span>
                     ) : null}
                   </div>
@@ -1228,11 +1259,35 @@ export default function StudentAuthModal({ isOpen, onClose }) {
 
                 {/* 1-Time Recovery OTP Card — ONLY visible when 3 password attempts have failed */}
                 {isPasswordBlocked && (
-                  <div style={{ background: "#eff6ff", border: "1.5px solid #bfdbfe", borderRadius: 12, padding: "14px", display: "flex", flexDirection: "column", gap: 10 }}>
-                    <div style={{ display: "flex", alignItems: "flex-start", gap: 8 }}>
-                      <AlertTriangle size={18} color="#2563eb" style={{ flexShrink: 0, marginTop: 2 }} />
+                  <div
+                    style={{
+                      background: "linear-gradient(135deg, #eff6ff 0%, #f0f9ff 100%)",
+                      border: "1.5px solid #bfdbfe",
+                      borderRadius: 14,
+                      padding: "14px 15px",
+                      display: "flex",
+                      flexDirection: "column",
+                      gap: 12,
+                      boxShadow: "0 2px 10px rgba(37, 99, 235, 0.06)",
+                    }}
+                  >
+                    <div style={{ display: "flex", alignItems: "flex-start", gap: 10 }}>
+                      <div
+                        style={{
+                          width: 32,
+                          height: 32,
+                          borderRadius: 8,
+                          background: "#dbeafe",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          flexShrink: 0,
+                        }}
+                      >
+                        <ShieldAlert size={18} color="#2563eb" strokeWidth={2.2} />
+                      </div>
                       <div>
-                        <span style={{ fontSize: 12.5, color: "#1e40af", fontWeight: 800, display: "block" }}>
+                        <span style={{ fontSize: 13, color: "#1e40af", fontWeight: 800, display: "block" }}>
                           Password Locked — 1-Time Email Verification
                         </span>
                         <p style={{ fontSize: 11.5, color: "#3b82f6", margin: "3px 0 0 0", lineHeight: 1.45 }}>
@@ -1246,22 +1301,23 @@ export default function StudentAuthModal({ isOpen, onClose }) {
                       onClick={() => triggerSendOtp(true)}
                       disabled={loading}
                       style={{
-                        background: "#2563eb",
+                        background: "linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)",
                         color: "#ffffff",
                         border: "none",
                         borderRadius: 10,
-                        padding: "10px 14px",
-                        fontSize: 12.5,
+                        padding: "11px 16px",
+                        fontSize: 13,
                         fontWeight: 800,
                         cursor: loading ? "not-allowed" : "pointer",
                         display: "inline-flex",
                         alignItems: "center",
                         justifyContent: "center",
-                        gap: 6,
-                        boxShadow: "0 2px 8px rgba(37, 99, 235, 0.25)",
+                        gap: 7,
+                        boxShadow: "0 3px 10px rgba(37, 99, 235, 0.28)",
+                        transition: "all 0.15s ease",
                       }}
                     >
-                      {loading ? <Loader2 size={14} className="spin" /> : <Mail size={14} />}
+                      {loading ? <Loader2 size={15} className="spin" /> : <Mail size={15} strokeWidth={2.2} />}
                       <span>Send 1-Time Recovery Code (10 Min Expiry)</span>
                     </button>
                   </div>
