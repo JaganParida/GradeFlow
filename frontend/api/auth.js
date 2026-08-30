@@ -1487,10 +1487,14 @@ module.exports = async function handler(req, res) {
 
       const activeSessions = await getActiveAdminSessions(AdminSession);
       if (activeSessions.length >= MAX_ADMIN_DEVICES) {
-        return res.status(403).json({
-          message: `Admin device limit reached (${MAX_ADMIN_DEVICES} devices active). Please log out from another device.`,
-          code: "ADMIN_DEVICE_LIMIT_REACHED",
-        });
+        const sorted = activeSessions.sort((a, b) => new Date(a.lastActiveAt || a.loggedInAt) - new Date(b.lastActiveAt || b.loggedInAt));
+        const oldest = sorted[0];
+        if (oldest) {
+          oldest.isActive = false;
+          oldest.revokedAt = new Date();
+          oldest.revokeReason = "REPLACED_BY_NEW_DEVICE";
+          await oldest.save();
+        }
       }
 
       const sessionId = crypto.randomUUID();
@@ -1644,11 +1648,14 @@ module.exports = async function handler(req, res) {
 
       const activeSessions = await getActiveSubAdminSessions(SubAdminSession, subAdmin._id);
       if (activeSessions.length >= (MAX_SUBADMIN_DEVICES || 2)) {
-        return res.status(403).json({
-          success: false,
-          code: "SUBADMIN_DEVICE_LIMIT_REACHED",
-          message: `Sub-Admin device limit reached (${MAX_SUBADMIN_DEVICES || 2} active devices). Please log out from another device.`,
-        });
+        const sorted = activeSessions.sort((a, b) => new Date(a.lastActiveAt || a.loggedInAt) - new Date(b.lastActiveAt || b.loggedInAt));
+        const oldest = sorted[0];
+        if (oldest) {
+          oldest.isActive = false;
+          oldest.revokedAt = new Date();
+          oldest.revokeReason = "REPLACED_BY_NEW_DEVICE";
+          await oldest.save();
+        }
       }
 
       const sessionId = crypto.randomUUID();
