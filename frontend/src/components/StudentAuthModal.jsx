@@ -1402,54 +1402,78 @@ export default function StudentAuthModal({ isOpen, onClose }) {
                 </>
               )}
 
-              <button
-                type="button"
-                onClick={() => {
-                  if (errorCode !== "APPROVAL_DENIED" && errorCode !== "APPROVAL_EXPIRED") {
-                    cancelApprovalRequest(approvalRequestId);
-                  }
-                  setStep("PASSWORD");
-                  setErrorMsg("");
-                  setErrorCode("");
-                }}
-                style={{
-                  background: errorCode ? "#2563eb" : "none",
-                  border: errorCode ? "none" : "1px solid #cbd5e1",
-                  borderRadius: 10,
-                  padding: "9px 16px",
-                  color: errorCode ? "#ffffff" : "#475569",
-                  fontSize: 12.5,
-                  fontWeight: 700,
-                  cursor: "pointer",
-                }}
-              >
-                {errorCode ? "Try Again" : "Cancel Request"}
-              </button>
+              {errorCode === "APPROVAL_EXPIRED" ? (
+                <div style={{ display: "flex", flexDirection: "column", gap: 10, marginTop: 4 }}>
+                  <button
+                    type="button"
+                    onClick={handleRequestEmailOtpHandover}
+                    disabled={loading}
+                    style={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      gap: 8,
+                      padding: "11px 16px",
+                      borderRadius: 10,
+                      background: "#2563eb",
+                      color: "#ffffff",
+                      border: "none",
+                      fontSize: 13,
+                      fontWeight: 700,
+                      cursor: loading ? "not-allowed" : "pointer",
+                      boxShadow: "0 2px 8px rgba(37, 99, 235, 0.25)",
+                    }}
+                  >
+                    {loading ? <Loader2 size={14} className="spin" /> : <Mail size={14} />}
+                    <span>Verify with University Email OTP</span>
+                  </button>
 
-              {/* Discrete Lost Access / Ghost Session Fallback */}
-              <div style={{ textAlign: "center", marginTop: 2 }}>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setStep("PASSWORD");
+                      setErrorMsg("");
+                      setErrorCode("");
+                    }}
+                    style={{
+                      background: "none",
+                      border: "1px solid #cbd5e1",
+                      borderRadius: 10,
+                      padding: "9px 16px",
+                      color: "#475569",
+                      fontSize: 12.5,
+                      fontWeight: 700,
+                      cursor: "pointer",
+                    }}
+                  >
+                    Try Password Again
+                  </button>
+                </div>
+              ) : (
                 <button
                   type="button"
-                  onClick={handleRequestEmailOtpHandover}
-                  disabled={loading}
+                  onClick={() => {
+                    if (errorCode !== "APPROVAL_DENIED") {
+                      cancelApprovalRequest(approvalRequestId);
+                    }
+                    setStep("PASSWORD");
+                    setErrorMsg("");
+                    setErrorCode("");
+                  }}
                   style={{
-                    background: "none",
-                    border: "none",
-                    color: "#4f46e5",
-                    fontSize: 12,
-                    fontWeight: 600,
-                    cursor: loading ? "not-allowed" : "pointer",
-                    padding: "4px 8px",
-                    display: "inline-flex",
-                    alignItems: "center",
-                    gap: 5,
-                    textDecoration: "underline",
+                    background: errorCode ? "#2563eb" : "none",
+                    border: errorCode ? "none" : "1px solid #cbd5e1",
+                    borderRadius: 10,
+                    padding: "9px 16px",
+                    color: errorCode ? "#ffffff" : "#475569",
+                    fontSize: 12.5,
+                    fontWeight: 700,
+                    cursor: "pointer",
                   }}
                 >
-                  {loading ? <Loader2 size={12} className="spin" /> : <Mail size={12} />}
-                  <span>{loading ? "Sending code..." : "Can't access your other device? Verify with Email OTP"}</span>
+                  {errorCode ? "Try Again" : "Cancel Request"}
                 </button>
-              </div>
+              )}
             </div>
           )}
 
