@@ -1,4 +1,4 @@
-import { Routes, Route, Navigate, useLocation, useParams } from "react-router-dom";
+import { Routes, Route, Navigate, useLocation, useParams, useNavigate } from "react-router-dom";
 import { useState, useEffect, Suspense, lazy } from "react";
 import axios from "axios";
 import { AnimatePresence, motion } from "framer-motion";
