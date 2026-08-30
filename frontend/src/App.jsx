@@ -1,4 +1,4 @@
-import { Routes, Route, Navigate, useLocation } from "react-router-dom";
+import { Routes, Route, Navigate, useLocation, useParams } from "react-router-dom";
 import { useState, useEffect, Suspense, lazy } from "react";
 import axios from "axios";
 import { AnimatePresence, motion } from "framer-motion";
@@ -6,6 +6,7 @@ import Navbar from "./components/Navbar";
 import FeedbackModal from "./components/FeedbackModal";
 import UpgradeModal from "./components/UpgradeModal";
 import { DashboardSkeleton } from "./components/LoadingSpinner";
+import { decodeStudentId, isEncryptedToken } from "./utils/studentIdEncoder";
 
 // Lazy-loaded route pages for lightning fast initial load
 const Home = lazy(() => import("./pages/Home"));
@@ -78,13 +79,27 @@ function PageTransition({ children }) {
 }
 
 function ProtectedRoute({ children }) {
-  const { hasActiveSession, authChecking } = useApp();
+  const { hasActiveSession, authChecking, studentSession, adminToken } = useApp();
+  const params = useParams();
+  const rawParam = params.studentId || params.regNo || params.id;
+
   if (authChecking) {
     return <DashboardSkeleton />;
   }
-  if (!hasActiveSession) {
-    return <Navigate to="/" replace />;
+
+  // 1. If not authenticated at all -> Show 403 UnauthorizedState
+  if (!hasActiveSession && !adminToken) {
+    return <UnauthorizedState />;
   }
+
+  // 2. If authenticated as student, but URL param belongs to another student -> Show 403
+  if (studentSession?.regNo && rawParam && !adminToken) {
+    const targetReg = isEncryptedToken(rawParam) ? decodeStudentId(rawParam) : rawParam;
+    if (targetReg && targetReg.toUpperCase() !== studentSession.regNo.toUpperCase()) {
+      return <UnauthorizedState />;
+    }
+  }
+
   return children;
 }
 
@@ -201,35 +216,53 @@ export default function App() {
               }
             />
             <Route
+              path="/dashboard"
+              element={
+                <ProtectedRoute>
+                  <PageTransition>
+                    <Dashboard />
+                  </PageTransition>
+                </ProtectedRoute>
+              }
+            />
+            <Route
               path="/timetable/:studentId"
               element={
-                <PageTransition>
-                  <Timetable />
-                </PageTransition>
+                <ProtectedRoute>
+                  <PageTransition>
+                    <Timetable />
+                  </PageTransition>
+                </ProtectedRoute>
               }
             />
             <Route
               path="/timetable"
               element={
-                <PageTransition>
-                  <Timetable />
-                </PageTransition>
+                <ProtectedRoute>
+                  <PageTransition>
+                    <Timetable />
+                  </PageTransition>
+                </ProtectedRoute>
               }
             />
             <Route
               path="/attendance/:studentId"
               element={
-                <PageTransition>
-                  <AttendanceTracker />
-                </PageTransition>
+                <ProtectedRoute>
+                  <PageTransition>
+                    <AttendanceTracker />
+                  </PageTransition>
+                </ProtectedRoute>
               }
             />
             <Route
               path="/attendance"
               element={
-                <PageTransition>
-                  <AttendanceTracker />
-                </PageTransition>
+                <ProtectedRoute>
+                  <PageTransition>
+                    <AttendanceTracker />
+                  </PageTransition>
+                </ProtectedRoute>
               }
             />
             <Route
