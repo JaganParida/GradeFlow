@@ -629,50 +629,6 @@ export default function StudentAuthModal({ isOpen, onClose }) {
     }
   };
 
-  const handleForceTransfer = async () => {
-    setTransferLoading(true);
-    setErrorMsg("");
-    setErrorCode("");
-    try {
-      const res = await studentTransferSession(cleanReg, password);
-      if (res.success && res.student) {
-        setStep("PASSWORD_SUCCESS");
-        setSuccessMsg("Session transferred successfully! Logging you in...");
-        setTimeout(() => {
-          onClose();
-          navigate(`/dashboard/${encodeStudentId(res.student.regNo)}`);
-        }, 1200);
-      } else {
-        setErrorMsg(res.error || "Failed to transfer session.");
-      }
-    } catch {
-      setErrorMsg("Failed to transfer session. Please try again.");
-    } finally {
-      setTransferLoading(false);
-    }
-  };
-
-  const handleFallbackEmailOtp = async () => {
-    setTransferLoading(true);
-    setErrorMsg("");
-    setErrorCode("");
-    try {
-      const res = await sendStudentOtp(cleanReg);
-      if (res.success) {
-        setStep("OTP");
-        setMaskedEmail(res.data?.maskedEmail || "");
-        setOtpExpiresInSeconds(res.data?.expiresInSeconds || 300);
-        setSuccessMsg("A 6-digit verification code was sent to your registered university email.");
-      } else {
-        setErrorMsg(res.error || "Failed to send email verification OTP.");
-      }
-    } catch {
-      setErrorMsg("Failed to send OTP. Please try again.");
-    } finally {
-      setTransferLoading(false);
-    }
-  };
-
   // Step 3: Verify OTP
   const handleVerifyOtp = async (e) => {
     if (e) e.preventDefault();
@@ -1423,72 +1379,6 @@ export default function StudentAuthModal({ isOpen, onClose }) {
                   </div>
                 </>
               )}
-
-              {/* Ghost Session & Cookie Clear Self-Serve Recovery */}
-              <div
-                style={{
-                  background: "#f8fafc",
-                  border: "1px dashed #cbd5e1",
-                  borderRadius: 12,
-                  padding: "12px 14px",
-                  textAlign: "center",
-                  display: "flex",
-                  flexDirection: "column",
-                  gap: 8,
-                }}
-              >
-                <div style={{ fontSize: 12, fontWeight: 700, color: "#334155" }}>
-                  Can't access your active device?
-                </div>
-                <div style={{ fontSize: 11.5, color: "#64748b", lineHeight: 1.4 }}>
-                  If browser cookies were cleared or you don't have access to your other device, you can transfer your session directly.
-                </div>
-                <div style={{ display: "flex", gap: 8, justifyContent: "center", flexWrap: "wrap", marginTop: 4 }}>
-                  <button
-                    type="button"
-                    onClick={handleForceTransfer}
-                    disabled={transferLoading}
-                    style={{
-                      display: "inline-flex",
-                      alignItems: "center",
-                      gap: 6,
-                      padding: "8px 14px",
-                      borderRadius: 8,
-                      background: "#2563eb",
-                      color: "#ffffff",
-                      border: "none",
-                      fontSize: 12,
-                      fontWeight: 700,
-                      cursor: transferLoading ? "not-allowed" : "pointer",
-                      boxShadow: "0 2px 6px rgba(37, 99, 235, 0.2)",
-                    }}
-                  >
-                    {transferLoading ? <Loader2 size={13} className="spin" /> : <RotateCcw size={13} />}
-                    <span>Transfer Session Here</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={handleFallbackEmailOtp}
-                    disabled={transferLoading}
-                    style={{
-                      display: "inline-flex",
-                      alignItems: "center",
-                      gap: 6,
-                      padding: "8px 14px",
-                      borderRadius: 8,
-                      background: "#ffffff",
-                      color: "#475569",
-                      border: "1px solid #cbd5e1",
-                      fontSize: 12,
-                      fontWeight: 600,
-                      cursor: transferLoading ? "not-allowed" : "pointer",
-                    }}
-                  >
-                    <Mail size={13} />
-                    <span>Verify with Email OTP</span>
-                  </button>
-                </div>
-              </div>
 
               <button
                 type="button"
