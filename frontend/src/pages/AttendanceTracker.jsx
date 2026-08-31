@@ -1297,8 +1297,12 @@ export default function AttendanceTracker() {
 
   const shortageCount = shortageSubjects.length;
 
-  const recoverySubjects = useMemo(() => {
-    return allSectionSubjects.filter((sub) => {
+  const recoveryAnalysis = useMemo(() => {
+    let neededCount = 0;
+    let unattainableCount = 0;
+    let attainableCount = 0;
+
+    const list = allSectionSubjects.map((sub) => {
       let totAtt = 0;
       let totDel = 0;
       (sub.components || []).forEach((c) => {
@@ -1306,11 +1310,55 @@ export default function AttendanceTracker() {
         totDel += Number(c.delivered) || 0;
       });
       const pct = totDel > 0 ? (totAtt / totDel) * 100 : 0;
-      return totDel > 0 && pct < targetGoal;
-    });
-  }, [allSectionSubjects, targetGoal]);
+      const catMatch = sectionCatalog.find((c) => isSameSubject(c, sub));
+      const weeklyOccurrences = catMatch?.weeklyOccurrences || [];
 
-  const recoverySubjectsCount = recoverySubjects.length;
+      const subCalc = calculateAttendance({
+        components: sub.components,
+        targetPercentage: targetGoal,
+      });
+
+      let dateProj = null;
+      if (subCalc.classesNeeded > 0 && weeklyOccurrences.length > 0) {
+        dateProj = estimateTargetReachDate(
+          subCalc.classesNeeded,
+          weeklyOccurrences,
+          new Date(),
+          subCalc.totalAttended,
+          subCalc.totalDelivered,
+          targetGoal,
+          1
+        );
+      }
+
+      const isUnattainable = dateProj ? !dateProj.isAttainable : false;
+      const needsRecovery = totDel > 0 && pct < targetGoal;
+
+      if (needsRecovery) {
+        neededCount++;
+        if (isUnattainable) unattainableCount++;
+        else attainableCount++;
+      }
+
+      return {
+        sub,
+        subCalc,
+        dateProj,
+        isUnattainable,
+        needsRecovery,
+      };
+    });
+
+    return {
+      list,
+      neededCount,
+      unattainableCount,
+      attainableCount,
+    };
+  }, [allSectionSubjects, sectionCatalog, targetGoal]);
+
+  const recoverySubjectsCount = recoveryAnalysis.neededCount;
+  const unattainableSubjectsCount = recoveryAnalysis.unattainableCount;
 
   const [isRecoveryHighlightActive, setIsRecoveryHighlightActive] = useState(false);
   const [isShortageHighlightActive, setIsShortageHighlightActive] = useState(false);
@@ -2329,7 +2377,7 @@ export default function AttendanceTracker() {
                   }}
                   title={
                     overallCalculation.classesNeeded > 0
-                      ? `Click to highlight ${recoverySubjectsCount} subject(s) needing recovery for ${targetGoal}%`
+                      ? `Click to highlight ${recoverySubjectsCount} subject(s) needing recovery for ${targetGoal}%${unattainableSubjectsCount > 0 ? ` (${unattainableSubjectsCount} unattainable this semester)` : ""}`
                       : overallCalculation.safeBunks > 0
                       ? `Click to highlight subjects with safe margin for ${targetGoal}%`
                       : undefined
@@ -2350,7 +2398,12 @@ export default function AttendanceTracker() {
                   <span style={{ fontSize: 10.5, color: overallCalculation.classesNeeded > 0 ? "#b45309" : "#64748b", fontWeight: overallCalculation.classesNeeded > 0 ? 700 : 500, display: "flex", alignItems: "center", gap: 4 }}>
                     {overallCalculation.classesNeeded > 0 ? (
                       <>
-                        <span>Click to highlight {recoverySubjectsCount} subject(s) to recover</span>
+                        <span>
+                          Highlight {recoverySubjectsCount} to recover
+                          {unattainableSubjectsCount > 0 && (
+                            <strong style={{ color: "#dc2626", marginLeft: 4 }}>({unattainableSubjectsCount} unattainable)</strong>
+                          )}
+                        </span>
                         <ArrowRight size={11} color="#d97706" />
                       </>
                     ) : (
@@ -2987,6 +3040,9 @@ export default function AttendanceTracker() {
               }}
             >
               {allSectionSubjects.map((sub, idx) => {
+                const catMatch = sectionCatalog.find((c) => isSameSubject(c, sub));
+                const weeklyOccurrences = catMatch?.weeklyOccurrences || [];
+
                 const subCalc = calculateAttendance({
                   components: sub.components,
                   targetPercentage: targetGoal,
@@ -2995,6 +3051,21 @@ export default function AttendanceTracker() {
                 const hasConductedClasses = subCalc.totalDelivered > 0;
                 const isPassing75 = hasConductedClasses ? subCalc.currentPercentage >= 75 : true;
                 const isPassingTarget = hasConductedClasses ? subCalc.currentPercentage >= targetGoal : true;
+
+                let dateProj = null;
+                if (subCalc.classesNeeded > 0 && weeklyOccurrences.length > 0) {
+                  dateProj = estimateTargetReachDate(
+                    subCalc.classesNeeded,
+                    weeklyOccurrences,
+                    new Date(),
+                    subCalc.totalAttended,
+                    subCalc.totalDelivered,
+                    targetGoal,
+                    1
+                  );
+                }
+
+                const isUnattainable = Boolean(dateProj && !dateProj.isAttainable);
                 const isRecoveryAndHighlighted = isRecoveryHighlightActive && hasConductedClasses && subCalc.classesNeeded > 0;
                 const isShortageAndHighlighted = isShortageHighlightActive && hasConductedClasses && !isPassing75;
                 const isSafeAndHighlighted = isSafeMarginHighlightActive && hasConductedClasses && subCalc.safeBunks > 0;
@@ -3007,18 +3078,20 @@ export default function AttendanceTracker() {
                     }}
                     style={{
                       background: isRecoveryAndHighlighted
-                        ? "#fffbeb"
+                        ? (isUnattainable ? "#fff1f2" : "#fffbeb")
                         : isSafeAndHighlighted
                         ? "#f0fdf4"
                         : isShortageAndHighlighted
                         ? "#fff8f8"
                         : "#ffffff",
                       border: isRecoveryAndHighlighted
-                        ? "2px solid #d97706"
+                        ? (isUnattainable ? "2px solid #e11d48" : "2px solid #d97706")
                         : isSafeAndHighlighted
                         ? "1.5px solid #16a34a"
                         : isShortageAndHighlighted
                         ? "1.5px solid #ef4444"
+                        : isUnattainable
+                        ? "1.5px solid #fecdd3"
                         : `1px solid ${!hasConductedClasses ? "#e2e8f0" : (isPassing75 ? "#e2e8f0" : "#fca5a5")}`,
                       borderRadius: 8,
                       padding: "14px 16px",
@@ -3028,7 +3101,7 @@ export default function AttendanceTracker() {
                       gap: 10,
                       cursor: "pointer",
                       boxShadow: isRecoveryAndHighlighted
-                        ? "0 0 0 3px rgba(217, 119, 6, 0.25)"
+                        ? (isUnattainable ? "0 0 0 3px rgba(225, 29, 72, 0.25)" : "0 0 0 3px rgba(217, 119, 6, 0.25)")
                         : isSafeAndHighlighted
                         ? "0 0 0 2px rgba(22, 163, 74, 0.2)"
                         : isShortageAndHighlighted
@@ -3082,13 +3155,26 @@ export default function AttendanceTracker() {
                             style={{
                               fontSize: 9.5,
                               fontWeight: 900,
-                              background: !hasConductedClasses ? "#f1f5f9" : (isPassing75 ? "#ecfdf5" : "#fef2f2"),
-                              color: !hasConductedClasses ? "#64748b" : (isPassing75 ? "#059669" : "#dc2626"),
+                              background: !hasConductedClasses
+                                ? "#f1f5f9"
+                                : isUnattainable
+                                ? "#fff1f2"
+                                : (isPassing75 ? "#ecfdf5" : "#fef2f2"),
+                              color: !hasConductedClasses
+                                ? "#64748b"
+                                : isUnattainable
+                                ? "#e11d48"
+                                : (isPassing75 ? "#059669" : "#dc2626"),
+                              border: isUnattainable ? "1px solid #fecdd3" : "none",
                               padding: "1px 6px",
                               borderRadius: 4,
                             }}
                           >
-                            {!hasConductedClasses ? "NO CLASSES" : (isPassing75 ? "ELIGIBLE" : "SHORTAGE")}
+                            {!hasConductedClasses
+                              ? "NO CLASSES"
+                              : isUnattainable
+                              ? `UNATTAINABLE (${targetGoal}%)`
+                              : (isPassing75 ? "ELIGIBLE" : "SHORTAGE")}
                           </span>
                         </div>
                       </div>
@@ -3132,8 +3218,18 @@ export default function AttendanceTracker() {
                     {/* Smart Target & Safe Bunk Prediction Footer */}
                     <div
                       style={{
-                        background: subCalc.classesNeeded > 0 ? "#fffbeb" : "#f0fdf4",
-                        border: `1px solid ${subCalc.classesNeeded > 0 ? "#fde68a" : "#bbf7d0"}`,
+                        background: isUnattainable
+                          ? "#fff1f2"
+                          : subCalc.classesNeeded > 0
+                          ? "#fffbeb"
+                          : "#f0fdf4",
+                        border: `1px solid ${
+                          isUnattainable
+                            ? "#fecdd3"
+                            : subCalc.classesNeeded > 0
+                            ? "#fde68a"
+                            : "#bbf7d0"
+                        }`,
                         borderRadius: 10,
                         padding: "8px 10px",
                         display: "flex",
@@ -3143,11 +3239,23 @@ export default function AttendanceTracker() {
                       }}
                     >
                       <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 11.5 }}>
-                        {subCalc.classesNeeded > 0 ? (
+                        {isUnattainable && dateProj ? (
+                          <>
+                            <AlertTriangle size={13} color="#e11d48" />
+                            <span style={{ fontWeight: 800, color: "#9f1239" }}>
+                              Unattainable for {targetGoal}% &middot; Max possible: <strong>{dateProj.maxAttainablePercentage}%</strong> (only {dateProj.totalRemainingSemClasses} classes left)
+                            </span>
+                          </>
+                        ) : subCalc.classesNeeded > 0 ? (
                           <>
                             <AlertTriangle size={13} color="#d97706" />
                             <span style={{ fontWeight: 800, color: "#92400e" }}>
                               Need {subCalc.classesNeeded} {subCalc.classesNeeded === 1 ? "class" : "classes"} to reach {targetGoal}%
+                              {dateProj?.estimatedDate && (
+                                <span style={{ fontWeight: 700, color: "#b45309", marginLeft: 4 }}>
+                                  (Reach by {dateProj.estimatedDate})
+                                </span>
+                              )}
                             </span>
                           </>
                         ) : subCalc.safeBunks > 0 ? (
