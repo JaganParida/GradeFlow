@@ -42,48 +42,7 @@ const prefersReducedMotion =
   window.matchMedia &&
   window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
-const mobileDrawerVariants = {
-  hidden: {
-    x: prefersReducedMotion ? 0 : "100%",
-  },
-  visible: {
-    x: 0,
-    transition: {
-      duration: prefersReducedMotion ? 0.01 : 0.32,
-      ease: [0.32, 0.72, 0, 1], // Native iOS/modern web standard smooth sheet easing
-      staggerChildren: prefersReducedMotion ? 0 : 0.025,
-      delayChildren: prefersReducedMotion ? 0 : 0.04,
-    },
-  },
-  exit: {
-    x: prefersReducedMotion ? 0 : "100%",
-    transition: {
-      duration: prefersReducedMotion ? 0.01 : 0.22,
-      ease: [0.32, 0, 0.67, 0],
-    },
-  },
-};
 
-const mobileNavItemVariants = {
-  hidden: {
-    opacity: 0,
-    y: prefersReducedMotion ? 0 : 6,
-  },
-  visible: {
-    opacity: 1,
-    y: 0,
-    transition: {
-      duration: prefersReducedMotion ? 0.01 : 0.22,
-      ease: [0.16, 1, 0.3, 1],
-    },
-  },
-  exit: {
-    opacity: 0,
-    transition: {
-      duration: prefersReducedMotion ? 0.01 : 0.1,
-    },
-  },
-};
 
 export default function Navbar() {
   const [scrolled, setScrolled] = useState(false);
@@ -1073,873 +1032,868 @@ export default function Navbar() {
         </div>
       </nav>
 
-      {/* ── Mobile Navigation Drawer ── */}
-      <AnimatePresence>
-        {mobileMenuOpen && (
-          <motion.div
-            key="mobile-nav-drawer"
-            variants={mobileDrawerVariants}
-            initial="hidden"
-            animate="visible"
-            exit="exit"
+      {/* ── Mobile Navigation Drawer (Hardware-Accelerated 60/120fps Native Slide) ── */}
+      <div
+        id="gf-mobile-drawer"
+        style={{
+          position: "fixed",
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          width: "100%",
+          height: "100dvh",
+          overflowY: "auto",
+          WebkitOverflowScrolling: "touch",
+          background: "#ffffff",
+          zIndex: 9999,
+          padding: "16px 18px 36px 18px",
+          display: "flex",
+          flexDirection: "column",
+          gap: 12,
+          boxSizing: "border-box",
+          overscrollBehavior: "contain",
+          willChange: "transform, opacity",
+          transform: mobileMenuOpen ? "translate3d(0, 0, 0)" : "translate3d(100%, 0, 0)",
+          opacity: mobileMenuOpen ? 1 : 0,
+          visibility: mobileMenuOpen ? "visible" : "hidden",
+          pointerEvents: mobileMenuOpen ? "auto" : "none",
+          transition: prefersReducedMotion
+            ? "none"
+            : "transform 0.32s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.22s ease, visibility 0.32s",
+          WebkitBackfaceVisibility: "hidden",
+          backfaceVisibility: "hidden",
+        }}
+      >
+        {/* Drawer Header with Close Button */}
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            paddingBottom: 12,
+            borderBottom: "1px solid #f1f5f9",
+            marginBottom: 2,
+          }}
+        >
+          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+            <img
+              src="/webisteLogo.png"
+              alt="GradeFlow"
+              style={{ height: 36, width: "auto", objectFit: "contain" }}
+            />
+            <span
+              style={{
+                fontFamily: "'DM Sans', sans-serif",
+                fontWeight: 800,
+                fontSize: 20,
+                color: "#0f172a",
+                letterSpacing: "-0.4px",
+              }}
+            >
+              GradeFlow
+            </span>
+          </div>
+          <button
+            onClick={() => setMobileMenuOpen(false)}
+            aria-label="Close menu"
             style={{
-              position: "fixed",
-              top: 0,
-              left: 0,
-              right: 0,
-              bottom: 0,
-              width: "100%",
-              height: "100%",
-              maxHeight: "100dvh",
-              overflowY: "auto",
-              WebkitOverflowScrolling: "touch",
-              background: "#ffffff",
-              zIndex: 9999,
-              padding: "16px 18px 36px 18px",
+              width: 38,
+              height: 38,
+              borderRadius: 10,
+              background: "#f1f5f9",
+              border: "1px solid #e2e8f0",
               display: "flex",
-              flexDirection: "column",
-              gap: 12,
-              boxSizing: "border-box",
-              overscrollBehavior: "contain",
-              willChange: "transform",
-              transform: "translate3d(0, 0, 0)",
-              WebkitBackfaceVisibility: "hidden",
-              backfaceVisibility: "hidden",
+              alignItems: "center",
+              justifyContent: "center",
+              color: "#334155",
+              cursor: "pointer",
+              transition: "all 0.15s ease",
+              flexShrink: 0,
             }}
           >
-            {/* Drawer Header with Close Button */}
-            <motion.div
-              variants={mobileNavItemVariants}
+            <X size={19} />
+          </button>
+        </div>
+
+        {/* Admin Search Bar inside Drawer (Admin Only) */}
+        {adminToken && (
+          <div style={{ width: "100%" }}>
+            <form onSubmit={handleSearchSubmit} style={{ width: "100%" }}>
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  background: "#f8fafc",
+                  border: "1.5px solid #e2e8f0",
+                  borderRadius: 12,
+                  padding: "0 10px",
+                }}
+              >
+                <Search size={15} color="#94a3b8" />
+                <input
+                  type="text"
+                  value={searchRegNo}
+                  onChange={(e) => setSearchRegNo(e.target.value)}
+                  placeholder="Admin: Lookup Reg. No."
+                  style={{
+                    width: "100%",
+                    padding: "9px 8px",
+                    border: "none",
+                    background: "transparent",
+                    fontSize: 13,
+                    color: "#0f172a",
+                    outline: "none",
+                    fontFamily: "'DM Sans', sans-serif",
+                  }}
+                />
+                <button
+                  type="submit"
+                  disabled={loading}
+                  style={{
+                    background: "#2563eb",
+                    color: "#ffffff",
+                    border: "none",
+                    borderRadius: 8,
+                    padding: "5px 11px",
+                    fontSize: 11.5,
+                    fontWeight: 700,
+                    cursor: "pointer",
+                    fontFamily: "'DM Sans', sans-serif",
+                  }}
+                >
+                  Find
+                </button>
+              </div>
+            </form>
+          </div>
+        )}
+
+        {/* Navigation Links Group */}
+        <div style={{ display: "flex", flexDirection: "column", gap: 3 }}>
+          {/* Home */}
+          <div>
+            <Link
+              to="/"
+              onClick={() => setMobileMenuOpen(false)}
               style={{
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "space-between",
-                paddingBottom: 12,
-                borderBottom: "1px solid #f1f5f9",
-                marginBottom: 2,
+                padding: "11px 12px",
+                borderRadius: 10,
+                textDecoration: "none",
+                background:
+                  location.pathname === "/" ? "#eff6ff" : "transparent",
+                color: location.pathname === "/" ? "#2563eb" : "#1e293b",
+                fontSize: 14.5,
+                fontWeight: location.pathname === "/" ? 700 : 600,
               }}
             >
-              <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                <img
-                  src="/webisteLogo.png"
-                  alt="GradeFlow"
-                  style={{ height: 36, width: "auto", objectFit: "contain" }}
+              <div
+                style={{ display: "flex", alignItems: "center", gap: 10 }}
+              >
+                <HomeIcon
+                  size={17}
+                  color={location.pathname === "/" ? "#2563eb" : "#64748b"}
                 />
+                <span>Home</span>
+              </div>
+              {location.pathname === "/" && (
                 <span
                   style={{
-                    fontFamily: "'DM Sans', sans-serif",
-                    fontWeight: 800,
-                    fontSize: 20,
-                    color: "#0f172a",
-                    letterSpacing: "-0.4px",
+                    width: 6,
+                    height: 6,
+                    borderRadius: "50%",
+                    background: "#2563eb",
                   }}
-                >
-                  GradeFlow
-                </span>
+                />
+              )}
+            </Link>
+          </div>
+
+          {/* Dashboard */}
+          <div>
+            <button
+              onClick={(e) => {
+                setMobileMenuOpen(false);
+                handleDashboardClick(e);
+              }}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                padding: "11px 12px",
+                borderRadius: 10,
+                border: "none",
+                width: "100%",
+                textAlign: "left",
+                cursor: "pointer",
+                fontFamily: "'DM Sans', sans-serif",
+                background: location.pathname.startsWith("/dashboard")
+                  ? "#eff6ff"
+                  : "transparent",
+                color: location.pathname.startsWith("/dashboard")
+                  ? "#2563eb"
+                  : "#1e293b",
+                fontSize: 14.5,
+                fontWeight: location.pathname.startsWith("/dashboard")
+                  ? 700
+                  : 600,
+              }}
+            >
+              <div
+                style={{ display: "flex", alignItems: "center", gap: 10 }}
+              >
+                <LayoutDashboard
+                  size={17}
+                  color={
+                    location.pathname.startsWith("/dashboard")
+                      ? "#2563eb"
+                      : "#64748b"
+                  }
+                />
+                <span>Dashboard</span>
               </div>
+              {location.pathname.startsWith("/dashboard") ? (
+                <span
+                  style={{
+                    width: 6,
+                    height: 6,
+                    borderRadius: "50%",
+                    background: "#2563eb",
+                  }}
+                />
+              ) : (
+                <ChevronRight size={15} color="#cbd5e1" />
+              )}
+            </button>
+          </div>
+
+          {/* Class Timetable - Only for 2023 CSE Batch or Guest Mode */}
+          {isEligibleForTimetable && (
+            <div>
               <button
-                onClick={() => setMobileMenuOpen(false)}
-                aria-label="Close menu"
+                onClick={(e) => {
+                  setMobileMenuOpen(false);
+                  handleTimetableClick(e);
+                }}
                 style={{
-                  width: 38,
-                  height: 38,
-                  borderRadius: 10,
-                  background: "#f1f5f9",
-                  border: "1px solid #e2e8f0",
                   display: "flex",
                   alignItems: "center",
-                  justifyContent: "center",
-                  color: "#334155",
+                  justifyContent: "space-between",
+                  width: "100%",
+                  padding: "11px 12px",
+                  borderRadius: 10,
+                  border: "none",
+                  background: location.pathname.startsWith("/timetable")
+                    ? "#eff6ff"
+                    : "transparent",
+                  color: location.pathname.startsWith("/timetable")
+                    ? "#2563eb"
+                    : "#1e293b",
+                  fontSize: 14.5,
+                  fontWeight: location.pathname.startsWith("/timetable")
+                    ? 700
+                    : 600,
                   cursor: "pointer",
-                  transition: "all 0.15s ease",
-                  flexShrink: 0,
+                  textAlign: "left",
                 }}
               >
-                <X size={19} />
-              </button>
-            </motion.div>
-
-              {/* Admin Search Bar inside Drawer (Admin Only) */}
-              {adminToken && (
-                <motion.div variants={mobileNavItemVariants} style={{ width: "100%" }}>
-                  <form onSubmit={handleSearchSubmit} style={{ width: "100%" }}>
-                    <div
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        background: "#f8fafc",
-                        border: "1.5px solid #e2e8f0",
-                        borderRadius: 12,
-                        padding: "0 10px",
-                      }}
-                    >
-                      <Search size={15} color="#94a3b8" />
-                      <input
-                        type="text"
-                        value={searchRegNo}
-                        onChange={(e) => setSearchRegNo(e.target.value)}
-                        placeholder="Admin: Lookup Reg. No."
-                        style={{
-                          width: "100%",
-                          padding: "9px 8px",
-                          border: "none",
-                          background: "transparent",
-                          fontSize: 13,
-                          color: "#0f172a",
-                          outline: "none",
-                          fontFamily: "'DM Sans', sans-serif",
-                        }}
-                      />
-                      <button
-                        type="submit"
-                        disabled={loading}
-                        style={{
-                          background: "#2563eb",
-                          color: "#ffffff",
-                          border: "none",
-                          borderRadius: 8,
-                          padding: "5px 11px",
-                          fontSize: 11.5,
-                          fontWeight: 700,
-                          cursor: "pointer",
-                          fontFamily: "'DM Sans', sans-serif",
-                        }}
-                      >
-                        Find
-                      </button>
-                    </div>
-                  </form>
-                </motion.div>
-              )}
-
-              {/* Navigation Links Group */}
-              <div style={{ display: "flex", flexDirection: "column", gap: 3 }}>
-                {/* Home */}
-                <motion.div variants={mobileNavItemVariants}>
-                  <Link
-                    to="/"
-                    onClick={() => setMobileMenuOpen(false)}
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "space-between",
-                      padding: "11px 12px",
-                      borderRadius: 10,
-                      textDecoration: "none",
-                      background:
-                        location.pathname === "/" ? "#eff6ff" : "transparent",
-                      color: location.pathname === "/" ? "#2563eb" : "#1e293b",
-                      fontSize: 14.5,
-                      fontWeight: location.pathname === "/" ? 700 : 600,
-                    }}
-                  >
-                    <div
-                      style={{ display: "flex", alignItems: "center", gap: 10 }}
-                    >
-                      <HomeIcon
-                        size={17}
-                        color={location.pathname === "/" ? "#2563eb" : "#64748b"}
-                      />
-                      <span>Home</span>
-                    </div>
-                    {location.pathname === "/" && (
-                      <span
-                        style={{
-                          width: 6,
-                          height: 6,
-                          borderRadius: "50%",
-                          background: "#2563eb",
-                        }}
-                      />
-                    )}
-                  </Link>
-                </motion.div>
-
-                {/* Dashboard */}
-                <motion.div variants={mobileNavItemVariants}>
-                  <button
-                    onClick={(e) => {
-                      setMobileMenuOpen(false);
-                      handleDashboardClick(e);
-                    }}
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "space-between",
-                      padding: "11px 12px",
-                      borderRadius: 10,
-                      border: "none",
-                      width: "100%",
-                      textAlign: "left",
-                      cursor: "pointer",
-                      fontFamily: "'DM Sans', sans-serif",
-                      background: location.pathname.startsWith("/dashboard")
-                        ? "#eff6ff"
-                        : "transparent",
-                      color: location.pathname.startsWith("/dashboard")
+                <div
+                  style={{ display: "flex", alignItems: "center", gap: 10 }}
+                >
+                  <Clock
+                    size={17}
+                    color={
+                      location.pathname.startsWith("/timetable")
                         ? "#2563eb"
-                        : "#1e293b",
-                      fontSize: 14.5,
-                      fontWeight: location.pathname.startsWith("/dashboard")
-                        ? 700
-                        : 600,
+                        : "#64748b"
+                    }
+                  />
+                  <span>Class Timetable</span>
+                </div>
+                {location.pathname.startsWith("/timetable") ? (
+                  <span
+                    style={{
+                      width: 6,
+                      height: 6,
+                      borderRadius: "50%",
+                      background: "#2563eb",
                     }}
-                  >
-                    <div
-                      style={{ display: "flex", alignItems: "center", gap: 10 }}
-                    >
-                      <LayoutDashboard
-                        size={17}
-                        color={
-                          location.pathname.startsWith("/dashboard")
-                            ? "#2563eb"
-                            : "#64748b"
-                        }
-                      />
-                      <span>Dashboard</span>
-                    </div>
-                    {location.pathname.startsWith("/dashboard") ? (
-                      <span
-                        style={{
-                          width: 6,
-                          height: 6,
-                          borderRadius: "50%",
-                          background: "#2563eb",
-                        }}
-                      />
-                    ) : (
-                      <ChevronRight size={15} color="#cbd5e1" />
-                    )}
-                  </button>
-                </motion.div>
+                  />
+                ) : (
+                  <ChevronRight size={15} color="#cbd5e1" />
+                )}
+              </button>
+            </div>
+          )}
 
-                {/* Class Timetable - Only for 2023 CSE Batch or Guest Mode */}
-                {isEligibleForTimetable && (
-                  <motion.div variants={mobileNavItemVariants}>
+          {/* Attendance Tracker */}
+          <div>
+            <button
+              onClick={(e) => {
+                setMobileMenuOpen(false);
+                handleAttendanceClick(e);
+              }}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                width: "100%",
+                padding: "11px 12px",
+                borderRadius: 10,
+                border: "none",
+                background: location.pathname.startsWith("/attendance")
+                  ? "#ecfdf5"
+                  : "transparent",
+                color: location.pathname.startsWith("/attendance")
+                  ? "#059669"
+                  : "#1e293b",
+                fontSize: 14.5,
+                fontWeight: location.pathname.startsWith("/attendance")
+                  ? 700
+                  : 600,
+                cursor: "pointer",
+                textAlign: "left",
+              }}
+            >
+              <div
+                style={{ display: "flex", alignItems: "center", gap: 10 }}
+              >
+                <Percent
+                  size={17}
+                  color={
+                    location.pathname.startsWith("/attendance")
+                      ? "#059669"
+                      : "#64748b"
+                  }
+                />
+                <span>Attendance Tracker</span>
+              </div>
+              {location.pathname.startsWith("/attendance") ? (
+                <span
+                  style={{
+                    width: 6,
+                    height: 6,
+                    borderRadius: "50%",
+                    background: "#059669",
+                  }}
+                />
+              ) : (
+                <ChevronRight size={15} color="#cbd5e1" />
+              )}
+            </button>
+          </div>
+
+          {/* Analytics Accordion */}
+          <div>
+            <button
+              onClick={() => setMobileAnalyticsOpen(!mobileAnalyticsOpen)}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                padding: "11px 12px",
+                borderRadius: 10,
+                border: "none",
+                width: "100%",
+                textAlign: "left",
+                cursor: "pointer",
+                fontFamily: "'DM Sans', sans-serif",
+                background: location.pathname.startsWith("/analytics")
+                  ? "#eff6ff"
+                  : "transparent",
+                color: location.pathname.startsWith("/analytics")
+                  ? "#2563eb"
+                  : "#1e293b",
+                fontSize: 14.5,
+                fontWeight: location.pathname.startsWith("/analytics")
+                  ? 700
+                  : 600,
+              }}
+            >
+              <div
+                style={{ display: "flex", alignItems: "center", gap: 10 }}
+              >
+                <BarChart2
+                  size={17}
+                  color={
+                    location.pathname.startsWith("/analytics")
+                      ? "#2563eb"
+                      : "#64748b"
+                  }
+                />
+                <span>Analytics</span>
+              </div>
+              <ChevronDown
+                size={15}
+                color="#64748b"
+                style={{
+                  transition: "transform 0.2s",
+                  transform: mobileAnalyticsOpen
+                    ? "rotate(180deg)"
+                    : "none",
+                }}
+              />
+            </button>
+
+            <AnimatePresence>
+              {mobileAnalyticsOpen && (
+                <motion.div
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: "auto" }}
+                  exit={{ opacity: 0, height: 0 }}
+                  transition={{ duration: 0.2 }}
+                  style={{
+                    overflow: "hidden",
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: 2,
+                    paddingLeft: 22,
+                    marginTop: 3,
+                  }}
+                >
+                  {[
+                    { key: "trajectory", icon: <TrendingUp size={14} />, iconColor: "#2563eb", label: "Performance Trajectory" },
+                    { key: "grades", icon: <BarChart2 size={14} />, iconColor: "#8b5cf6", label: "Grade Distribution" },
+                    { key: "placement", icon: <Briefcase size={14} />, iconColor: "#10b981", label: "Placement & Companies" },
+                    { key: "mastery", icon: <Target size={14} />, iconColor: "#f59e0b", label: "Subject Mastery" },
+                    { key: "predictor", icon: <Award size={14} />, iconColor: "#16a34a", label: "CGPA Goal Predictor" },
+                    { key: "whatif", icon: <PieChart size={14} />, iconColor: "#6366f1", label: "What-If Simulator" },
+                  ].map((item) => (
                     <button
+                      key={item.key}
                       onClick={(e) => {
                         setMobileMenuOpen(false);
-                        handleTimetableClick(e);
+                        handleAnalyticsClick(e, item.key);
                       }}
                       style={{
                         display: "flex",
                         alignItems: "center",
-                        justifyContent: "space-between",
-                        width: "100%",
-                        padding: "11px 12px",
-                        borderRadius: 10,
+                        gap: 9,
+                        padding: "9px 10px",
+                        borderRadius: 8,
                         border: "none",
-                        background: location.pathname.startsWith("/timetable")
-                          ? "#eff6ff"
-                          : "transparent",
-                        color: location.pathname.startsWith("/timetable")
-                          ? "#2563eb"
-                          : "#1e293b",
-                        fontSize: 14.5,
-                        fontWeight: location.pathname.startsWith("/timetable")
-                          ? 700
-                          : 600,
+                        background: "transparent",
+                        color: "#475569",
+                        fontSize: 13,
+                        fontWeight: 600,
                         cursor: "pointer",
                         textAlign: "left",
+                        fontFamily: "'DM Sans', sans-serif",
+                        width: "100%",
+                        transition: "background 0.15s ease",
                       }}
                     >
-                      <div
-                        style={{ display: "flex", alignItems: "center", gap: 10 }}
-                      >
-                        <Clock
-                          size={17}
-                          color={
-                            location.pathname.startsWith("/timetable")
-                              ? "#2563eb"
-                              : "#64748b"
-                          }
-                        />
-                        <span>Class Timetable</span>
-                      </div>
-                      {location.pathname.startsWith("/timetable") ? (
-                        <span
-                          style={{
-                            width: 6,
-                            height: 6,
-                            borderRadius: "50%",
-                            background: "#2563eb",
-                          }}
-                        />
-                      ) : (
-                        <ChevronRight size={15} color="#cbd5e1" />
-                      )}
+                      <span style={{ color: item.iconColor, display: "flex", flexShrink: 0 }}>{item.icon}</span>
+                      {item.label}
                     </button>
-                  </motion.div>
-                )}
-
-                {/* Attendance Tracker */}
-                <motion.div variants={mobileNavItemVariants}>
-                  <button
-                    onClick={(e) => {
-                      setMobileMenuOpen(false);
-                      handleAttendanceClick(e);
-                    }}
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "space-between",
-                      width: "100%",
-                      padding: "11px 12px",
-                      borderRadius: 10,
-                      border: "none",
-                      background: location.pathname.startsWith("/attendance")
-                        ? "#ecfdf5"
-                        : "transparent",
-                      color: location.pathname.startsWith("/attendance")
-                        ? "#059669"
-                        : "#1e293b",
-                      fontSize: 14.5,
-                      fontWeight: location.pathname.startsWith("/attendance")
-                        ? 700
-                        : 600,
-                      cursor: "pointer",
-                      textAlign: "left",
-                    }}
-                  >
-                    <div
-                      style={{ display: "flex", alignItems: "center", gap: 10 }}
-                    >
-                      <Percent
-                        size={17}
-                        color={
-                          location.pathname.startsWith("/attendance")
-                            ? "#059669"
-                            : "#64748b"
-                        }
-                      />
-                      <span>Attendance Tracker</span>
-                    </div>
-                    {location.pathname.startsWith("/attendance") ? (
-                      <span
-                        style={{
-                          width: 6,
-                          height: 6,
-                          borderRadius: "50%",
-                          background: "#059669",
-                        }}
-                      />
-                    ) : (
-                      <ChevronRight size={15} color="#cbd5e1" />
-                    )}
-                  </button>
+                  ))}
                 </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
 
-                {/* Analytics Accordion */}
-                <motion.div variants={mobileNavItemVariants}>
-                  <button
-                    onClick={() => setMobileAnalyticsOpen(!mobileAnalyticsOpen)}
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "space-between",
-                      padding: "11px 12px",
-                      borderRadius: 10,
-                      border: "none",
-                      width: "100%",
-                      textAlign: "left",
-                      cursor: "pointer",
-                      fontFamily: "'DM Sans', sans-serif",
-                      background: location.pathname.startsWith("/analytics")
-                        ? "#eff6ff"
-                        : "transparent",
-                      color: location.pathname.startsWith("/analytics")
-                        ? "#2563eb"
-                        : "#1e293b",
-                      fontSize: 14.5,
-                      fontWeight: location.pathname.startsWith("/analytics")
-                        ? 700
-                        : 600,
-                    }}
-                  >
-                    <div
-                      style={{ display: "flex", alignItems: "center", gap: 10 }}
-                    >
-                      <BarChart2
-                        size={17}
-                        color={
-                          location.pathname.startsWith("/analytics")
-                            ? "#2563eb"
-                            : "#64748b"
-                        }
-                      />
-                      <span>Analytics</span>
-                    </div>
-                    <ChevronDown
-                      size={15}
-                      color="#64748b"
-                      style={{
-                        transition: "transform 0.2s",
-                        transform: mobileAnalyticsOpen
-                          ? "rotate(180deg)"
-                          : "none",
-                      }}
-                    />
-                  </button>
-
-                  <AnimatePresence>
-                    {mobileAnalyticsOpen && (
-                      <motion.div
-                        initial={{ opacity: 0, height: 0 }}
-                        animate={{ opacity: 1, height: "auto" }}
-                        exit={{ opacity: 0, height: 0 }}
-                        transition={{ duration: 0.2 }}
-                        style={{
-                          overflow: "hidden",
-                          display: "flex",
-                          flexDirection: "column",
-                          gap: 2,
-                          paddingLeft: 22,
-                          marginTop: 3,
-                        }}
-                      >
-                        {[
-                          { key: "trajectory", icon: <TrendingUp size={14} />, iconColor: "#2563eb", label: "Performance Trajectory" },
-                          { key: "grades", icon: <BarChart2 size={14} />, iconColor: "#8b5cf6", label: "Grade Distribution" },
-                          { key: "placement", icon: <Briefcase size={14} />, iconColor: "#10b981", label: "Placement & Companies" },
-                          { key: "mastery", icon: <Target size={14} />, iconColor: "#f59e0b", label: "Subject Mastery" },
-                          { key: "predictor", icon: <Award size={14} />, iconColor: "#16a34a", label: "CGPA Goal Predictor" },
-                          { key: "whatif", icon: <PieChart size={14} />, iconColor: "#6366f1", label: "What-If Simulator" },
-                        ].map((item) => (
-                          <button
-                            key={item.key}
-                            onClick={(e) => {
-                              setMobileMenuOpen(false);
-                              handleAnalyticsClick(e, item.key);
-                            }}
-                            style={{
-                              display: "flex",
-                              alignItems: "center",
-                              gap: 9,
-                              padding: "9px 10px",
-                              borderRadius: 8,
-                              border: "none",
-                              background: "transparent",
-                              color: "#475569",
-                              fontSize: 13,
-                              fontWeight: 600,
-                              cursor: "pointer",
-                              textAlign: "left",
-                              fontFamily: "'DM Sans', sans-serif",
-                              width: "100%",
-                              transition: "background 0.15s ease",
-                            }}
-                          >
-                            <span style={{ color: item.iconColor, display: "flex", flexShrink: 0 }}>{item.icon}</span>
-                            {item.label}
-                          </button>
-                        ))}
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
-                </motion.div>
-
-                {/* Rankings */}
-                <motion.div variants={mobileNavItemVariants}>
-                  <Link
-                    to="/leaderboard"
-                    onClick={(e) => {
-                      if (!hasActiveSession && !currentRegNo && !adminToken) {
-                        e.preventDefault();
-                        setMobileMenuOpen(false);
-                        setShowAuthModal(true);
-                      } else {
-                        setMobileMenuOpen(false);
-                      }
-                    }}
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "space-between",
-                      padding: "11px 12px",
-                      borderRadius: 10,
-                      textDecoration: "none",
-                      background:
-                        location.pathname === "/leaderboard"
-                          ? "#eff6ff"
-                          : "transparent",
-                      color:
-                        location.pathname === "/leaderboard"
-                          ? "#2563eb"
-                          : "#1e293b",
-                      fontSize: 14.5,
-                      fontWeight:
-                        location.pathname === "/leaderboard" ? 700 : 600,
-                    }}
-                  >
-                    <div
-                      style={{ display: "flex", alignItems: "center", gap: 10 }}
-                    >
-                      <Trophy
-                        size={17}
-                        color={
-                          location.pathname === "/leaderboard"
-                            ? "#2563eb"
-                            : "#64748b"
-                        }
-                      />
-                      <span>University Rankings</span>
-                    </div>
-                    {location.pathname === "/leaderboard" && (
-                      <span
-                        style={{
-                          width: 6,
-                          height: 6,
-                          borderRadius: "50%",
-                          background: "#2563eb",
-                        }}
-                      />
-                    )}
-                  </Link>
-                </motion.div>
-
-                {/* Resources */}
-                <motion.div variants={mobileNavItemVariants}>
-                  <Link
-                    to="/resources"
-                    onClick={() => setMobileMenuOpen(false)}
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "space-between",
-                      padding: "11px 12px",
-                      borderRadius: 10,
-                      textDecoration: "none",
-                      background:
-                        location.pathname === "/resources"
-                          ? "#eff6ff"
-                          : "transparent",
-                      color:
-                        location.pathname === "/resources"
-                          ? "#2563eb"
-                          : "#1e293b",
-                      fontSize: 14.5,
-                      fontWeight: location.pathname === "/resources" ? 700 : 600,
-                    }}
-                  >
-                    <div
-                      style={{ display: "flex", alignItems: "center", gap: 10 }}
-                    >
-                      <Calculator
-                        size={17}
-                        color={
-                          location.pathname === "/resources"
-                            ? "#2563eb"
-                            : "#64748b"
-                        }
-                      />
-                      <span>Calculators & Resources</span>
-                    </div>
-                    {location.pathname === "/resources" && (
-                      <span
-                        style={{
-                          width: 6,
-                          height: 6,
-                          borderRadius: "50%",
-                          background: "#2563eb",
-                        }}
-                      />
-                    )}
-                  </Link>
-                </motion.div>
-
-                {/* Testimonials */}
-                <motion.div variants={mobileNavItemVariants}>
-                  <Link
-                    to="/testimonials"
-                    onClick={() => setMobileMenuOpen(false)}
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "space-between",
-                      padding: "11px 12px",
-                      borderRadius: 10,
-                      textDecoration: "none",
-                      background:
-                        location.pathname === "/testimonials"
-                          ? "#eff6ff"
-                          : "transparent",
-                      color:
-                        location.pathname === "/testimonials"
-                          ? "#2563eb"
-                          : "#1e293b",
-                      fontSize: 14.5,
-                      fontWeight:
-                        location.pathname === "/testimonials" ? 700 : 600,
-                    }}
-                  >
-                    <div
-                      style={{ display: "flex", alignItems: "center", gap: 10 }}
-                    >
-                      <MessageSquare
-                        size={17}
-                        color={
-                          location.pathname === "/testimonials"
-                            ? "#2563eb"
-                            : "#64748b"
-                        }
-                      />
-                      <span>Student Reviews</span>
-                    </div>
-                    {location.pathname === "/testimonials" && (
-                      <span
-                        style={{
-                          width: 6,
-                          height: 6,
-                          borderRadius: "50%",
-                          background: "#2563eb",
-                        }}
-                      />
-                    )}
-                  </Link>
-                </motion.div>
-
-                {/* About Dev */}
-                <motion.div variants={mobileNavItemVariants}>
-                  <Link
-                    to="/about-dev"
-                    onClick={() => setMobileMenuOpen(false)}
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "space-between",
-                      padding: "11px 12px",
-                      borderRadius: 10,
-                      textDecoration: "none",
-                      background:
-                        location.pathname === "/about-dev" ||
-                        location.pathname === "/about"
-                          ? "#eff6ff"
-                          : "transparent",
-                      color:
-                        location.pathname === "/about-dev" ||
-                        location.pathname === "/about"
-                          ? "#2563eb"
-                          : "#1e293b",
-                      fontSize: 14.5,
-                      fontWeight:
-                        location.pathname === "/about-dev" ||
-                        location.pathname === "/about"
-                          ? 700
-                          : 600,
-                    }}
-                  >
-                    <div
-                      style={{ display: "flex", alignItems: "center", gap: 10 }}
-                    >
-                      <Code2
-                        size={17}
-                        color={
-                          location.pathname === "/about-dev" ||
-                          location.pathname === "/about"
-                            ? "#2563eb"
-                            : "#64748b"
-                        }
-                      />
-                      <span>About Developer</span>
-                    </div>
-                    {(location.pathname === "/about-dev" ||
-                      location.pathname === "/about") && (
-                      <span
-                        style={{
-                          width: 6,
-                          height: 6,
-                          borderRadius: "50%",
-                          background: "#2563eb",
-                        }}
-                      />
-                    )}
-                  </Link>
-                </motion.div>
-
-                {/* Admin Portal (Only visible if authenticated on this browser) */}
-                {canSeeAdmin && (
-                  <motion.div variants={mobileNavItemVariants}>
-                    <Link
-                      to="/admin"
-                      onClick={() => setMobileMenuOpen(false)}
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "space-between",
-                        padding: "11px 12px",
-                        borderRadius: 10,
-                        textDecoration: "none",
-                        background: "#f0fdf4",
-                        border: "1px solid #bbf7d0",
-                        color: "#065f46",
-                        fontSize: 14.5,
-                        fontWeight: 700,
-                      }}
-                    >
-                      <div
-                        style={{ display: "flex", alignItems: "center", gap: 10 }}
-                      >
-                        <ShieldCheck
-                          size={17}
-                          color="#059669"
-                          strokeWidth={2.4}
-                        />
-                        <span>Admin Portal</span>
-                      </div>
-                      <span
-                        style={{
-                          fontSize: 10.5,
-                          fontWeight: 700,
-                          background: "#dcfce7",
-                          color: "#065f46",
-                          padding: "2px 8px",
-                          borderRadius: 6,
-                          border: "1px solid #86efac",
-                        }}
-                      >
-                        Logged In
-                      </span>
-                    </Link>
-                  </motion.div>
-                )}
+          {/* Rankings */}
+          <div>
+            <Link
+              to="/leaderboard"
+              onClick={(e) => {
+                if (!hasActiveSession && !currentRegNo && !adminToken) {
+                  e.preventDefault();
+                  setMobileMenuOpen(false);
+                  setShowAuthModal(true);
+                } else {
+                  setMobileMenuOpen(false);
+                }
+              }}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                padding: "11px 12px",
+                borderRadius: 10,
+                textDecoration: "none",
+                background:
+                  location.pathname === "/leaderboard"
+                    ? "#eff6ff"
+                    : "transparent",
+                color:
+                  location.pathname === "/leaderboard"
+                    ? "#2563eb"
+                    : "#1e293b",
+                fontSize: 14.5,
+                fontWeight:
+                  location.pathname === "/leaderboard" ? 700 : 600,
+              }}
+            >
+              <div
+                style={{ display: "flex", alignItems: "center", gap: 10 }}
+              >
+                <Trophy
+                  size={17}
+                  color={
+                    location.pathname === "/leaderboard"
+                      ? "#2563eb"
+                      : "#64748b"
+                  }
+                />
+                <span>University Rankings</span>
               </div>
+              {location.pathname === "/leaderboard" && (
+                <span
+                  style={{
+                    width: 6,
+                    height: 6,
+                    borderRadius: "50%",
+                    background: "#2563eb",
+                  }}
+                />
+              )}
+            </Link>
+          </div>
 
-              {/* Mobile Drawer Bottom Action */}
-              <motion.div
-                variants={mobileNavItemVariants}
+          {/* Resources */}
+          <div>
+            <Link
+              to="/resources"
+              onClick={() => setMobileMenuOpen(false)}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                padding: "11px 12px",
+                borderRadius: 10,
+                textDecoration: "none",
+                background:
+                  location.pathname === "/resources"
+                    ? "#eff6ff"
+                    : "transparent",
+                color:
+                  location.pathname === "/resources"
+                    ? "#2563eb"
+                    : "#1e293b",
+                fontSize: 14.5,
+                fontWeight: location.pathname === "/resources" ? 700 : 600,
+              }}
+            >
+              <div
+                style={{ display: "flex", alignItems: "center", gap: 10 }}
+              >
+                <Calculator
+                  size={17}
+                  color={
+                    location.pathname === "/resources"
+                      ? "#2563eb"
+                      : "#64748b"
+                  }
+                />
+                <span>Calculators & Resources</span>
+              </div>
+              {location.pathname === "/resources" && (
+                <span
+                  style={{
+                    width: 6,
+                    height: 6,
+                    borderRadius: "50%",
+                    background: "#2563eb",
+                  }}
+                />
+              )}
+            </Link>
+          </div>
+
+          {/* Testimonials */}
+          <div>
+            <Link
+              to="/testimonials"
+              onClick={() => setMobileMenuOpen(false)}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                padding: "11px 12px",
+                borderRadius: 10,
+                textDecoration: "none",
+                background:
+                  location.pathname === "/testimonials"
+                    ? "#eff6ff"
+                    : "transparent",
+                color:
+                  location.pathname === "/testimonials"
+                    ? "#2563eb"
+                    : "#1e293b",
+                fontSize: 14.5,
+                fontWeight:
+                  location.pathname === "/testimonials" ? 700 : 600,
+              }}
+            >
+              <div
+                style={{ display: "flex", alignItems: "center", gap: 10 }}
+              >
+                <MessageSquare
+                  size={17}
+                  color={
+                    location.pathname === "/testimonials"
+                      ? "#2563eb"
+                      : "#64748b"
+                  }
+                />
+                <span>Student Reviews</span>
+              </div>
+              {location.pathname === "/testimonials" && (
+                <span
+                  style={{
+                    width: 6,
+                    height: 6,
+                    borderRadius: "50%",
+                    background: "#2563eb",
+                  }}
+                />
+              )}
+            </Link>
+          </div>
+
+          {/* About Dev */}
+          <div>
+            <Link
+              to="/about-dev"
+              onClick={() => setMobileMenuOpen(false)}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                padding: "11px 12px",
+                borderRadius: 10,
+                textDecoration: "none",
+                background:
+                  location.pathname === "/about-dev" ||
+                  location.pathname === "/about"
+                    ? "#eff6ff"
+                    : "transparent",
+                color:
+                  location.pathname === "/about-dev" ||
+                  location.pathname === "/about"
+                    ? "#2563eb"
+                    : "#1e293b",
+                fontSize: 14.5,
+                fontWeight:
+                  location.pathname === "/about-dev" ||
+                  location.pathname === "/about"
+                    ? 700
+                    : 600,
+              }}
+            >
+              <div
+                style={{ display: "flex", alignItems: "center", gap: 10 }}
+              >
+                <Code2
+                  size={17}
+                  color={
+                    location.pathname === "/about-dev" ||
+                    location.pathname === "/about"
+                      ? "#2563eb"
+                      : "#64748b"
+                  }
+                />
+                <span>About Developer</span>
+              </div>
+              {(location.pathname === "/about-dev" ||
+                location.pathname === "/about") && (
+                <span
+                  style={{
+                    width: 6,
+                    height: 6,
+                    borderRadius: "50%",
+                    background: "#2563eb",
+                  }}
+                />
+              )}
+            </Link>
+          </div>
+
+          {/* Admin Portal (Only visible if authenticated on this browser) */}
+          {canSeeAdmin && (
+            <div>
+              <Link
+                to="/admin"
+                onClick={() => setMobileMenuOpen(false)}
                 style={{
-                  borderTop: "1px solid #f1f5f9",
-                  paddingTop: 12,
-                  marginTop: 2,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  padding: "11px 12px",
+                  borderRadius: 10,
+                  textDecoration: "none",
+                  background: "#f0fdf4",
+                  border: "1px solid #bbf7d0",
+                  color: "#065f46",
+                  fontSize: 14.5,
+                  fontWeight: 700,
                 }}
               >
-                {hasActiveSession ? (
-                  <div
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "space-between",
-                      background: "#f8fafc",
-                      padding: "10px 12px",
-                      borderRadius: 12,
-                    }}
-                  >
-                    <div
-                      style={{ display: "flex", alignItems: "center", gap: 9 }}
-                    >
-                      <div
-                        style={{
-                          width: 32,
-                          height: 32,
-                          borderRadius: "50%",
-                          background: "#eff6ff",
-                          color: "#2563eb",
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                          fontWeight: 700,
-                          fontSize: 12,
-                        }}
-                      >
-                        {studentData?.name
-                          ? studentData.name.charAt(0).toUpperCase()
-                          : "ST"}
-                      </div>
-                      <div>
-                        <div
-                          style={{
-                            fontSize: 13,
-                            fontWeight: 700,
-                            color: "#0f172a",
-                          }}
-                        >
-                          {studentSession?.name || studentData?.studentName || studentData?.name || "Active Student"}
-                        </div>
-                        <div style={{ fontSize: 11, color: "#64748b" }}>
-                          {getActiveViewedRegNo()}
-                        </div>
-                      </div>
-                    </div>
-                    <button
-                      onClick={() => {
-                        setShowLogoutConfirm(true);
-                        setMobileMenuOpen(false);
-                      }}
-                      disabled={isLoggingOut}
-                      style={{
-                        background: "#fef2f2",
-                        border: "1px solid #fecaca",
-                        color: "#ef4444",
-                        borderRadius: 8,
-                        padding: "5px 9px",
-                        cursor: isLoggingOut ? "not-allowed" : "pointer",
-                        fontSize: 11.5,
-                        fontWeight: 600,
-                        display: "flex",
-                        alignItems: "center",
-                        gap: 4,
-                      }}
-                    >
-                      {isLoggingOut ? (
-                        <Loader2 size={12} className="spin" />
-                      ) : (
-                        <LogOut size={12} />
-                      )}
-                      <span>{isLoggingOut ? "Logging out..." : "Logout"}</span>
-                    </button>
-                  </div>
-                ) : authChecking ? (
-                  <div
-                    style={{
-                      width: "100%",
-                      padding: "12px",
-                      borderRadius: 12,
-                      background: "#f8fafc",
-                      border: "1px solid #e2e8f0",
-                      color: "#64748b",
-                      fontSize: 13.5,
-                      fontWeight: 600,
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      gap: 8,
-                    }}
-                  >
-                    <Loader2 size={16} className="spin" color="#2563eb" />
-                    <span>Verifying session...</span>
-                  </div>
-                ) : (
-                  <button
-                    onClick={() => {
-                      setMobileMenuOpen(false);
-                      openStudentAuthModal();
-                    }}
-                    style={{
-                      width: "100%",
-                      padding: "12px",
-                      borderRadius: 12,
-                      background:
-                        "linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)",
-                      color: "#ffffff",
-                      border: "none",
-                      fontSize: 14,
-                      fontWeight: 700,
-                      cursor: "pointer",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      gap: 8,
-                      fontFamily: "'DM Sans', sans-serif",
-                      boxShadow: "0 4px 14px rgba(37, 99, 235, 0.3)",
-                    }}
-                  >
-                    <GraduationCap size={16} /> Student Portal Login
-                  </button>
-                )}
-              </motion.div>
-            </motion.div>
+                <div
+                  style={{ display: "flex", alignItems: "center", gap: 10 }}
+                >
+                  <ShieldCheck
+                    size={17}
+                    color="#059669"
+                    strokeWidth={2.4}
+                  />
+                  <span>Admin Portal</span>
+                </div>
+                <span
+                  style={{
+                    fontSize: 10.5,
+                    fontWeight: 700,
+                    background: "#dcfce7",
+                    color: "#065f46",
+                    padding: "2px 8px",
+                    borderRadius: 6,
+                    border: "1px solid #86efac",
+                  }}
+                >
+                  Logged In
+                </span>
+              </Link>
+            </div>
           )}
-      </AnimatePresence>
+        </div>
+
+        {/* Mobile Drawer Bottom Action */}
+        <div
+          style={{
+            borderTop: "1px solid #f1f5f9",
+            paddingTop: 12,
+            marginTop: 2,
+          }}
+        >
+          {hasActiveSession ? (
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                background: "#f8fafc",
+                padding: "10px 12px",
+                borderRadius: 12,
+              }}
+            >
+              <div
+                style={{ display: "flex", alignItems: "center", gap: 9 }}
+              >
+                <div
+                  style={{
+                    width: 32,
+                    height: 32,
+                    borderRadius: "50%",
+                    background: "#eff6ff",
+                    color: "#2563eb",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    fontWeight: 700,
+                    fontSize: 12,
+                  }}
+                >
+                  {studentData?.name
+                    ? studentData.name.charAt(0).toUpperCase()
+                    : "ST"}
+                </div>
+                <div>
+                  <div
+                    style={{
+                      fontSize: 13,
+                      fontWeight: 700,
+                      color: "#0f172a",
+                    }}
+                  >
+                    {studentSession?.name || studentData?.studentName || studentData?.name || "Active Student"}
+                  </div>
+                  <div style={{ fontSize: 11, color: "#64748b" }}>
+                    {getActiveViewedRegNo()}
+                  </div>
+                </div>
+              </div>
+              <button
+                onClick={() => {
+                  setShowLogoutConfirm(true);
+                  setMobileMenuOpen(false);
+                }}
+                disabled={isLoggingOut}
+                style={{
+                  background: "#fef2f2",
+                  border: "1px solid #fecaca",
+                  color: "#ef4444",
+                  borderRadius: 8,
+                  padding: "5px 9px",
+                  cursor: isLoggingOut ? "not-allowed" : "pointer",
+                  fontSize: 11.5,
+                  fontWeight: 600,
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 4,
+                }}
+              >
+                {isLoggingOut ? (
+                  <Loader2 size={12} className="spin" />
+                ) : (
+                  <LogOut size={12} />
+                )}
+                <span>{isLoggingOut ? "Logging out..." : "Logout"}</span>
+              </button>
+            </div>
+          ) : authChecking ? (
+            <div
+              style={{
+                width: "100%",
+                padding: "12px",
+                borderRadius: 12,
+                background: "#f8fafc",
+                border: "1px solid #e2e8f0",
+                color: "#64748b",
+                fontSize: 13.5,
+                fontWeight: 600,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: 8,
+              }}
+            >
+              <Loader2 size={16} className="spin" color="#2563eb" />
+              <span>Verifying session...</span>
+            </div>
+          ) : (
+            <button
+              onClick={() => {
+                setMobileMenuOpen(false);
+                openStudentAuthModal();
+              }}
+              style={{
+                width: "100%",
+                padding: "12px",
+                borderRadius: 12,
+                background:
+                  "linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)",
+                color: "#ffffff",
+                border: "none",
+                fontSize: 14,
+                fontWeight: 700,
+                cursor: "pointer",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: 8,
+                fontFamily: "'DM Sans', sans-serif",
+                boxShadow: "0 4px 14px rgba(37, 99, 235, 0.3)",
+              }}
+            >
+              <GraduationCap size={16} /> Student Portal Login
+            </button>
+          )}
+        </div>
+      </div>
 
       {/* ── Logout Confirmation Modal ── */}
       <AnimatePresence>
