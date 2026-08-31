@@ -44,29 +44,32 @@ const prefersReducedMotion =
 
 const mobileDrawerVariants = {
   hidden: {
-    opacity: 0,
-    y: prefersReducedMotion ? 0 : -8,
-    scale: prefersReducedMotion ? 1 : 0.99,
+    x: prefersReducedMotion ? 0 : "100%",
+    opacity: prefersReducedMotion ? 0 : 1,
   },
   visible: {
+    x: 0,
     opacity: 1,
-    y: 0,
-    scale: 1,
     transition: {
-      duration: prefersReducedMotion ? 0.01 : 0.24,
-      ease: [0.16, 1, 0.3, 1],
-      staggerChildren: prefersReducedMotion ? 0 : 0.032,
-      delayChildren: prefersReducedMotion ? 0 : 0.015,
+      type: "spring",
+      damping: 30,
+      stiffness: 300,
+      mass: 0.8,
+      duration: prefersReducedMotion ? 0.01 : undefined,
+      staggerChildren: prefersReducedMotion ? 0 : 0.05,
+      delayChildren: prefersReducedMotion ? 0 : 0.1,
     },
   },
   exit: {
-    opacity: 0,
-    y: prefersReducedMotion ? 0 : -8,
-    scale: prefersReducedMotion ? 1 : 0.99,
+    x: prefersReducedMotion ? 0 : "100%",
+    opacity: prefersReducedMotion ? 0 : 1,
     transition: {
-      duration: prefersReducedMotion ? 0.01 : 0.20,
-      ease: [0.22, 1, 0.36, 1],
-      staggerChildren: prefersReducedMotion ? 0 : 0.015,
+      type: "spring",
+      damping: 35,
+      stiffness: 400,
+      mass: 0.8,
+      duration: prefersReducedMotion ? 0.01 : undefined,
+      staggerChildren: prefersReducedMotion ? 0 : 0.025,
       staggerDirection: -1,
     },
   },
@@ -75,22 +78,28 @@ const mobileDrawerVariants = {
 const mobileNavItemVariants = {
   hidden: {
     opacity: 0,
-    y: prefersReducedMotion ? 0 : -4,
+    x: prefersReducedMotion ? 0 : 40,
+    filter: prefersReducedMotion ? "none" : "blur(4px)",
   },
   visible: {
     opacity: 1,
-    y: 0,
+    x: 0,
+    filter: "blur(0px)",
     transition: {
-      duration: prefersReducedMotion ? 0.01 : 0.20,
-      ease: [0.16, 1, 0.3, 1],
+      type: "spring",
+      damping: 25,
+      stiffness: 250,
+      mass: 0.6,
+      duration: prefersReducedMotion ? 0.01 : undefined,
     },
   },
   exit: {
     opacity: 0,
-    y: prefersReducedMotion ? 0 : -4,
+    x: prefersReducedMotion ? 0 : 30,
+    filter: prefersReducedMotion ? "none" : "blur(2px)",
     transition: {
       duration: prefersReducedMotion ? 0.01 : 0.15,
-      ease: [0.22, 1, 0.36, 1],
+      ease: [0.4, 0, 1, 1],
     },
   },
 };
@@ -1091,7 +1100,7 @@ export default function Navbar() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            transition={{ duration: prefersReducedMotion ? 0.01 : 0.20, ease: "easeOut" }}
+            transition={{ duration: prefersReducedMotion ? 0.01 : 0.30, ease: "easeOut" }}
             onClick={() => setMobileMenuOpen(false)}
             onTouchMove={(e) => e.preventDefault()}
             style={{
@@ -1115,24 +1124,77 @@ export default function Navbar() {
             exit="exit"
               style={{
                 position: "fixed",
-                top: 58,
-                left: 0,
+                top: 0,
                 right: 0,
-                maxHeight: "calc(100dvh - 58px)",
+                bottom: 0,
+                width: "85%",
+                maxWidth: 340,
+                height: "100dvh",
                 overflowY: "auto",
                 WebkitOverflowScrolling: "touch",
                 background: "#ffffff",
-                borderBottom: "1px solid #e2e8f0",
-                boxShadow: "0 10px 30px -5px rgba(15, 23, 42, 0.12)",
+                borderLeft: "1px solid #e2e8f0",
+                borderRadius: "16px 0 0 16px",
+                boxShadow: "-8px 0 40px -5px rgba(15, 23, 42, 0.18)",
                 zIndex: 999,
-                padding: "14px 16px 24px",
+                padding: "20px 18px 32px",
                 display: "flex",
                 flexDirection: "column",
                 gap: 12,
                 overscrollBehavior: "contain",
-                willChange: "transform, opacity",
+                willChange: "transform",
               }}
             >
+              {/* Drawer Header with Close Button */}
+              <motion.div
+                variants={mobileNavItemVariants}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  paddingBottom: 14,
+                  borderBottom: "1px solid #f1f5f9",
+                  marginBottom: 2,
+                }}
+              >
+                <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                  <img
+                    src="/webisteLogo.png"
+                    alt="GradeFlow"
+                    style={{ height: 34, width: "auto", objectFit: "contain" }}
+                  />
+                  <span style={{
+                    fontFamily: "'DM Sans', sans-serif",
+                    fontWeight: 800,
+                    fontSize: 18,
+                    color: "#0f172a",
+                    letterSpacing: "-0.4px",
+                  }}>
+                    GradeFlow
+                  </span>
+                </div>
+                <button
+                  onClick={() => setMobileMenuOpen(false)}
+                  aria-label="Close menu"
+                  style={{
+                    width: 34,
+                    height: 34,
+                    borderRadius: 10,
+                    background: "#f8fafc",
+                    border: "1px solid #e2e8f0",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    color: "#64748b",
+                    cursor: "pointer",
+                    transition: "all 0.15s ease",
+                    flexShrink: 0,
+                  }}
+                >
+                  <X size={18} />
+                </button>
+              </motion.div>
+
               {/* Admin Search Bar inside Drawer (Admin Only) */}
               {adminToken && (
                 <motion.div variants={mobileNavItemVariants} style={{ width: "100%" }}>
