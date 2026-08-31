@@ -1974,44 +1974,116 @@ export default function AttendanceTracker() {
                   }}
                 >
                   {isMobile ? (
-                    /* Mobile Clean Single-Row Name + Section Badge */
-                    <>
-                      <div style={{ minWidth: 0, flex: 1 }}>
-                        <h2
+                    /* Mobile: Name + Section Badge + Target Selector */
+                    <div style={{ display: "flex", flexDirection: "column", gap: 8, width: "100%" }}>
+                      {/* Row 1: Name + Section Badge */}
+                      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
+                        <div style={{ minWidth: 0, flex: 1 }}>
+                          <h2
+                            style={{
+                              fontSize: 15,
+                              fontWeight: 800,
+                              color: "#0f172a",
+                              margin: 0,
+                              letterSpacing: "-0.3px",
+                              overflow: "hidden",
+                              textOverflow: "ellipsis",
+                              whiteSpace: "nowrap",
+                            }}
+                          >
+                            {activeStudentName || `Section ${selectedSection}`}
+                          </h2>
+                        </div>
+
+                        <span
                           style={{
-                            fontSize: 15,
-                            fontWeight: 800,
-                            color: "#0f172a",
-                            margin: 0,
-                            letterSpacing: "-0.3px",
-                            overflow: "hidden",
-                            textOverflow: "ellipsis",
-                            whiteSpace: "nowrap",
+                            display: "inline-flex",
+                            alignItems: "center",
+                            gap: 4,
+                            background: "#ecfdf5",
+                            color: "#059669",
+                            padding: "3px 8px",
+                            borderRadius: 6,
+                            fontSize: 11,
+                            fontWeight: 700,
+                            border: "1px solid #a7f3d0",
+                            flexShrink: 0,
                           }}
                         >
-                          {activeStudentName || `Section ${selectedSection}`}
-                        </h2>
+                          <Building size={12} />
+                          <span>Sec {selectedSection}</span>
+                        </span>
                       </div>
 
-                      <span
-                        style={{
-                          display: "inline-flex",
+                      {/* Row 2: Target Goal Selector + Auto-Import */}
+                      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 6 }}>
+                        <div style={{
+                          display: "flex",
                           alignItems: "center",
-                          gap: 4,
-                          background: "#ecfdf5",
-                          color: "#059669",
-                          padding: "3px 8px",
-                          borderRadius: 6,
-                          fontSize: 11,
-                          fontWeight: 700,
-                          border: "1px solid #a7f3d0",
-                          flexShrink: 0,
-                        }}
-                      >
-                        <Building size={12} />
-                        <span>Sec {selectedSection}</span>
-                      </span>
-                    </>
+                          gap: 3,
+                          background: "#f8fafc",
+                          padding: "4px 6px",
+                          borderRadius: 7,
+                          border: "1px solid #e2e8f0",
+                          flex: 1,
+                          minWidth: 0,
+                        }}>
+                          <span style={{ fontSize: 10.5, fontWeight: 800, color: "#64748b", marginRight: 1, flexShrink: 0 }}>Target:</span>
+                          {[75, 80, 85, 90].map((goal) => {
+                            const isSelected = targetGoal === goal;
+                            return (
+                              <button
+                                key={goal}
+                                type="button"
+                                onClick={() => {
+                                  setTargetGoal(goal);
+                                  syncAttendanceToDb(savedSubjects, allDailyLogs, goal);
+                                }}
+                                style={{
+                                  padding: "4px 8px",
+                                  borderRadius: 5,
+                                  border: "none",
+                                  background: isSelected ? "#059669" : "transparent",
+                                  color: isSelected ? "#ffffff" : "#475569",
+                                  fontSize: 11,
+                                  fontWeight: 800,
+                                  cursor: "pointer",
+                                  transition: "all 0.12s ease",
+                                  flexShrink: 0,
+                                }}
+                              >
+                                {goal}%
+                              </button>
+                            );
+                          })}
+                        </div>
+
+                        <button
+                          type="button"
+                          onClick={handleOpenScreenshotModal}
+                          style={{
+                            display: "inline-flex",
+                            alignItems: "center",
+                            gap: 4,
+                            padding: "6px 10px",
+                            borderRadius: 6,
+                            border: "1px solid #059669",
+                            background: scanStatus.isLimitReached ? "#64748b" : "#059669",
+                            color: "#ffffff",
+                            fontSize: 11,
+                            fontWeight: 700,
+                            cursor: scanStatus.isLimitReached ? "not-allowed" : "pointer",
+                            fontFamily: "'DM Sans', sans-serif",
+                            transition: "all 0.12s",
+                            boxShadow: "none",
+                            flexShrink: 0,
+                          }}
+                        >
+                          <Camera size={12} />
+                          <span>Import</span>
+                        </button>
+                      </div>
+                    </div>
                   ) : (
                     /* Desktop Header with Title & Action Buttons */
                     <>
