@@ -2015,73 +2015,44 @@ export default function AttendanceTracker() {
                         </span>
                       </div>
 
-                      {/* Row 2: Target Goal Selector + Auto-Import */}
-                      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 6 }}>
-                        <div style={{
-                          display: "flex",
-                          alignItems: "center",
-                          gap: 3,
-                          background: "#f8fafc",
-                          padding: "4px 6px",
-                          borderRadius: 7,
-                          border: "1px solid #e2e8f0",
-                          flex: 1,
-                          minWidth: 0,
-                        }}>
-                          <span style={{ fontSize: 10.5, fontWeight: 800, color: "#64748b", marginRight: 1, flexShrink: 0 }}>Target:</span>
-                          {[75, 80, 85, 90].map((goal) => {
-                            const isSelected = targetGoal === goal;
-                            return (
-                              <button
-                                key={goal}
-                                type="button"
-                                onClick={() => {
-                                  setTargetGoal(goal);
-                                  syncAttendanceToDb(savedSubjects, allDailyLogs, goal);
-                                }}
-                                style={{
-                                  padding: "4px 8px",
-                                  borderRadius: 5,
-                                  border: "none",
-                                  background: isSelected ? "#059669" : "transparent",
-                                  color: isSelected ? "#ffffff" : "#475569",
-                                  fontSize: 11,
-                                  fontWeight: 800,
-                                  cursor: "pointer",
-                                  transition: "all 0.12s ease",
-                                  flexShrink: 0,
-                                }}
-                              >
-                                {goal}%
-                              </button>
-                            );
-                          })}
-                        </div>
-
-                        <button
-                          type="button"
-                          onClick={handleOpenScreenshotModal}
-                          style={{
-                            display: "inline-flex",
-                            alignItems: "center",
-                            gap: 4,
-                            padding: "6px 10px",
-                            borderRadius: 6,
-                            border: "1px solid #059669",
-                            background: scanStatus.isLimitReached ? "#64748b" : "#059669",
-                            color: "#ffffff",
-                            fontSize: 11,
-                            fontWeight: 700,
-                            cursor: scanStatus.isLimitReached ? "not-allowed" : "pointer",
-                            fontFamily: "'DM Sans', sans-serif",
-                            transition: "all 0.12s",
-                            boxShadow: "none",
-                            flexShrink: 0,
-                          }}
-                        >
-                          <Camera size={12} />
-                          <span>Import</span>
-                        </button>
+                      {/* Row 2: Target Goal Selector */}
+                      <div style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 4,
+                        background: "#f8fafc",
+                        padding: "5px 10px",
+                        borderRadius: 8,
+                        border: "1px solid #e2e8f0",
+                      }}>
+                        <span style={{ fontSize: 11, fontWeight: 800, color: "#64748b", marginRight: 2, flexShrink: 0 }}>Target:</span>
+                        {[75, 80, 85, 90].map((goal) => {
+                          const isSelected = targetGoal === goal;
+                          return (
+                            <button
+                              key={goal}
+                              type="button"
+                              onClick={() => {
+                                setTargetGoal(goal);
+                                syncAttendanceToDb(savedSubjects, allDailyLogs, goal);
+                              }}
+                              style={{
+                                padding: "5px 10px",
+                                borderRadius: 6,
+                                border: "none",
+                                background: isSelected ? "#059669" : "transparent",
+                                color: isSelected ? "#ffffff" : "#475569",
+                                fontSize: 11.5,
+                                fontWeight: 800,
+                                cursor: "pointer",
+                                transition: "all 0.12s ease",
+                                flexShrink: 0,
+                              }}
+                            >
+                              {goal}%
+                            </button>
+                          );
+                        })}
                       </div>
                     </div>
                   ) : (
