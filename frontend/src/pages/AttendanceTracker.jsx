@@ -1297,6 +1297,22 @@ export default function AttendanceTracker() {
 
   const shortageCount = shortageSubjects.length;
 
+  const recoverySubjects = useMemo(() => {
+    return allSectionSubjects.filter((sub) => {
+      let totAtt = 0;
+      let totDel = 0;
+      (sub.components || []).forEach((c) => {
+        totAtt += Number(c.attended) || 0;
+        totDel += Number(c.delivered) || 0;
+      });
+      const pct = totDel > 0 ? (totAtt / totDel) * 100 : 0;
+      return totDel > 0 && pct < targetGoal;
+    });
+  }, [allSectionSubjects, targetGoal]);
+
+  const recoverySubjectsCount = recoverySubjects.length;
+
+  const [isRecoveryHighlightActive, setIsRecoveryHighlightActive] = useState(false);
   const [isShortageHighlightActive, setIsShortageHighlightActive] = useState(false);
   const [isSafeMarginHighlightActive, setIsSafeMarginHighlightActive] = useState(false);
   const highlightTimerRef = useRef(null);
@@ -1310,11 +1326,34 @@ export default function AttendanceTracker() {
     };
   }, []);
 
+  const handleHighlightRecoverySubjects = () => {
+    if (recoverySubjectsCount <= 0 && overallCalculation.classesNeeded <= 0) return;
+    if (highlightTimerRef.current) clearTimeout(highlightTimerRef.current);
+
+    setIsShortageHighlightActive(false);
+    setIsSafeMarginHighlightActive(false);
+    setIsRecoveryHighlightActive(true);
+    handleTabClick("matrix");
+
+    setTimeout(() => {
+      const el = document.getElementById("attendance-subject-matrix-section");
+      if (el) {
+        el.scrollIntoView({ behavior: "smooth", block: "start" });
+      }
+    }, 150);
+
+    // Auto-remove highlight after 4 seconds
+    highlightTimerRef.current = setTimeout(() => {
+      setIsRecoveryHighlightActive(false);
+    }, 4000);
+  };
+
   const handleHighlightShortageSubjects = () => {
     if (shortageCount <= 0) return;
     if (highlightTimerRef.current) clearTimeout(highlightTimerRef.current);
 
     setIsSafeMarginHighlightActive(false);
+    setIsRecoveryHighlightActive(false);
     setIsShortageHighlightActive(true);
     handleTabClick("matrix");
 
@@ -1336,6 +1375,7 @@ export default function AttendanceTracker() {
     if (highlightTimerRef.current) clearTimeout(highlightTimerRef.current);
 
     setIsShortageHighlightActive(false);
+    setIsRecoveryHighlightActive(false);
     setIsSafeMarginHighlightActive(true);
     handleTabClick("matrix");
 
@@ -2250,28 +2290,56 @@ export default function AttendanceTracker() {
                   <span style={{ fontSize: 10.5, color: "#64748b" }}>Delivered across semester</span>
                 </div>
 
-                {/* 3. Safe Bunk Margin */}
+                {/* 3. Recovery Needed / Safe Bunk Margin */}
                 <div
-                  onClick={overallCalculation.safeBunks > 0 ? handleHighlightSafeMarginSubjects : undefined}
+                  onClick={() => {
+                    if (overallCalculation.classesNeeded > 0) {
+                      handleHighlightRecoverySubjects();
+                    } else if (overallCalculation.safeBunks > 0) {
+                      handleHighlightSafeMarginSubjects();
+                    }
+                  }}
                   style={{
-                    background: isSafeMarginHighlightActive ? "#f0fdf4" : "#ffffff",
-                    border: `1px solid ${isSafeMarginHighlightActive ? "#16a34a" : "#cbd5e1"}`,
+                    background: isRecoveryHighlightActive
+                      ? "#fffbeb"
+                      : isSafeMarginHighlightActive
+                      ? "#f0fdf4"
+                      : "#ffffff",
+                    border: `1px solid ${
+                      isRecoveryHighlightActive
+                        ? "#d97706"
+                        : isSafeMarginHighlightActive
+                        ? "#16a34a"
+                        : overallCalculation.classesNeeded > 0
+                        ? "#fcd34d"
+                        : "#cbd5e1"
+                    }`,
                     borderRadius: 10,
                     padding: isMobile ? "12px 12px" : "16px 16px",
                     display: "flex",
                     flexDirection: "column",
                     gap: 4,
-                    cursor: overallCalculation.safeBunks > 0 ? "pointer" : "default",
-                    boxShadow: isSafeMarginHighlightActive ? "0 0 0 2px rgba(22, 163, 74, 0.2)" : "none",
+                    cursor: (overallCalculation.classesNeeded > 0 || overallCalculation.safeBunks > 0) ? "pointer" : "default",
+                    boxShadow: isRecoveryHighlightActive
+                      ? "0 0 0 2px rgba(217, 119, 6, 0.25)"
+                      : isSafeMarginHighlightActive
+                      ? "0 0 0 2px rgba(22, 163, 74, 0.2)"
+                      : "none",
                     transition: "all 0.15s ease",
                   }}
-                  title={overallCalculation.safeBunks > 0 ? "Click to highlight subjects with safe margin for 1 minute" : undefined}
+                  title={
+                    overallCalculation.classesNeeded > 0
+                      ? `Click to highlight ${recoverySubjectsCount} subject(s) needing recovery for ${targetGoal}%`
+                      : overallCalculation.safeBunks > 0
+                      ? `Click to highlight subjects with safe margin for ${targetGoal}%`
+                      : undefined
+                  }
                 >
                   <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
                     <span style={{ fontSize: isMobile ? 10.5 : 11.5, fontWeight: 700, color: "#475569", textTransform: "uppercase", letterSpacing: "0.5px" }}>
                       {overallCalculation.classesNeeded > 0 ? "Recovery Needed" : "Safe Bunk Margin"}
                     </span>
-                    <span style={{ fontSize: 10, background: "#f8fafc", color: "#64748b", border: "1px solid #cbd5e1", padding: "1px 6px", borderRadius: 4, fontWeight: 700 }}>
+                    <span style={{ fontSize: 10, background: overallCalculation.classesNeeded > 0 ? "#fef3c7" : "#f8fafc", color: overallCalculation.classesNeeded > 0 ? "#b45309" : "#64748b", border: `1px solid ${overallCalculation.classesNeeded > 0 ? "#fde68a" : "#cbd5e1"}`, padding: "1px 6px", borderRadius: 4, fontWeight: 700 }}>
                       Goal: {targetGoal}%
                     </span>
                   </div>
@@ -2279,9 +2347,12 @@ export default function AttendanceTracker() {
                     {overallCalculation.classesNeeded > 0 ? `${overallCalculation.classesNeeded}` : `+${overallCalculation.safeBunks}`}
                     <span style={{ fontSize: 11, color: "#94a3b8", fontWeight: 500 }}> classes</span>
                   </div>
-                  <span style={{ fontSize: 10.5, color: "#64748b", display: "flex", alignItems: "center", gap: 4 }}>
+                  <span style={{ fontSize: 10.5, color: overallCalculation.classesNeeded > 0 ? "#b45309" : "#64748b", fontWeight: overallCalculation.classesNeeded > 0 ? 700 : 500, display: "flex", alignItems: "center", gap: 4 }}>
                     {overallCalculation.classesNeeded > 0 ? (
-                      `To reach ${targetGoal}% criteria`
+                      <>
+                        <span>Click to highlight {recoverySubjectsCount} subject(s) to recover</span>
+                        <ArrowRight size={11} color="#d97706" />
+                      </>
                     ) : (
                       <>
                         <span>Buffer to stay ≥ {targetGoal}%</span>
@@ -2918,12 +2989,14 @@ export default function AttendanceTracker() {
               {allSectionSubjects.map((sub, idx) => {
                 const subCalc = calculateAttendance({
                   components: sub.components,
-                  targetPercentage: 75,
+                  targetPercentage: targetGoal,
                 });
                 const subCode = resolveSubjectCode({ subject: sub.subjectName }, studentData);
                 const hasConductedClasses = subCalc.totalDelivered > 0;
-                const isPassing = hasConductedClasses ? subCalc.currentPercentage >= 75 : true;
-                const isShortageAndHighlighted = isShortageHighlightActive && hasConductedClasses && !isPassing;
+                const isPassing75 = hasConductedClasses ? subCalc.currentPercentage >= 75 : true;
+                const isPassingTarget = hasConductedClasses ? subCalc.currentPercentage >= targetGoal : true;
+                const isRecoveryAndHighlighted = isRecoveryHighlightActive && hasConductedClasses && subCalc.classesNeeded > 0;
+                const isShortageAndHighlighted = isShortageHighlightActive && hasConductedClasses && !isPassing75;
                 const isSafeAndHighlighted = isSafeMarginHighlightActive && hasConductedClasses && subCalc.safeBunks > 0;
 
                 return (
@@ -2933,16 +3006,20 @@ export default function AttendanceTracker() {
                       setSelectedSubjectName(sub.subjectName); setComponentInputs(sub.components || []); handleTabClick("studio"); window.scrollTo({ top: 400, behavior: "smooth" });
                     }}
                     style={{
-                      background: isSafeAndHighlighted
+                      background: isRecoveryAndHighlighted
+                        ? "#fffbeb"
+                        : isSafeAndHighlighted
                         ? "#f0fdf4"
                         : isShortageAndHighlighted
                         ? "#fff8f8"
                         : "#ffffff",
-                      border: isSafeAndHighlighted
+                      border: isRecoveryAndHighlighted
+                        ? "2px solid #d97706"
+                        : isSafeAndHighlighted
                         ? "1.5px solid #16a34a"
                         : isShortageAndHighlighted
                         ? "1.5px solid #ef4444"
-                        : `1px solid ${!hasConductedClasses ? "#e2e8f0" : (isPassing ? "#e2e8f0" : "#fca5a5")}`,
+                        : `1px solid ${!hasConductedClasses ? "#e2e8f0" : (isPassing75 ? "#e2e8f0" : "#fca5a5")}`,
                       borderRadius: 8,
                       padding: "14px 16px",
                       display: "flex",
@@ -2950,7 +3027,9 @@ export default function AttendanceTracker() {
                       justifyContent: "space-between",
                       gap: 10,
                       cursor: "pointer",
-                      boxShadow: isSafeAndHighlighted
+                      boxShadow: isRecoveryAndHighlighted
+                        ? "0 0 0 3px rgba(217, 119, 6, 0.25)"
+                        : isSafeAndHighlighted
                         ? "0 0 0 2px rgba(22, 163, 74, 0.2)"
                         : isShortageAndHighlighted
                         ? "0 0 0 2px rgba(239, 68, 68, 0.15)"
@@ -2993,7 +3072,7 @@ export default function AttendanceTracker() {
                             style={{
                               fontSize: 18,
                               fontWeight: 900,
-                              color: !hasConductedClasses ? "#64748b" : (isPassing ? "#059669" : "#dc2626"),
+                              color: !hasConductedClasses ? "#64748b" : (isPassing75 ? "#059669" : "#dc2626"),
                               fontFamily: "'DM Sans', sans-serif",
                             }}
                           >
@@ -3003,13 +3082,13 @@ export default function AttendanceTracker() {
                             style={{
                               fontSize: 9.5,
                               fontWeight: 900,
-                              background: !hasConductedClasses ? "#f1f5f9" : (isPassing ? "#ecfdf5" : "#fef2f2"),
-                              color: !hasConductedClasses ? "#64748b" : (isPassing ? "#059669" : "#dc2626"),
+                              background: !hasConductedClasses ? "#f1f5f9" : (isPassing75 ? "#ecfdf5" : "#fef2f2"),
+                              color: !hasConductedClasses ? "#64748b" : (isPassing75 ? "#059669" : "#dc2626"),
                               padding: "1px 6px",
                               borderRadius: 4,
                             }}
                           >
-                            {!hasConductedClasses ? "NO CLASSES" : (isPassing ? "ELIGIBLE" : "SHORTAGE")}
+                            {!hasConductedClasses ? "NO CLASSES" : (isPassing75 ? "ELIGIBLE" : "SHORTAGE")}
                           </span>
                         </div>
                       </div>
@@ -3020,7 +3099,7 @@ export default function AttendanceTracker() {
                           style={{
                             width: `${Math.min(100, Math.max(0, subCalc.currentPercentage))}%`,
                             height: "100%",
-                            background: isPassing ? "linear-gradient(90deg, #10b981, #059669)" : "linear-gradient(90deg, #f87171, #dc2626)",
+                            background: isPassing75 ? "linear-gradient(90deg, #10b981, #059669)" : "linear-gradient(90deg, #f87171, #dc2626)",
                             borderRadius: 999,
                           }}
                         />
@@ -3068,21 +3147,21 @@ export default function AttendanceTracker() {
                           <>
                             <AlertTriangle size={13} color="#d97706" />
                             <span style={{ fontWeight: 800, color: "#92400e" }}>
-                              Need {subCalc.classesNeeded} more classes for 75.0%
+                              Need {subCalc.classesNeeded} {subCalc.classesNeeded === 1 ? "class" : "classes"} to reach {targetGoal}%
                             </span>
                           </>
                         ) : subCalc.safeBunks > 0 ? (
                           <>
                             <ShieldCheck size={13} color="#16a34a" />
                             <span style={{ fontWeight: 800, color: "#166534" }}>
-                              Safe buffer: Can miss {subCalc.safeBunks} {subCalc.safeBunks === 1 ? "class" : "classes"} (stays &ge; 75%)
+                              Safe buffer: Can miss {subCalc.safeBunks} {subCalc.safeBunks === 1 ? "class" : "classes"} (stays &ge; {targetGoal}%)
                             </span>
                           </>
                         ) : (
                           <>
                             <CheckCircle2 size={13} color="#2563eb" />
                             <span style={{ fontWeight: 800, color: "#1e40af" }}>
-                              At 75.0% threshold &mdash; Maintain regular attendance
+                              At {targetGoal}% threshold &mdash; Maintain regular attendance
                             </span>
                           </>
                         )}
