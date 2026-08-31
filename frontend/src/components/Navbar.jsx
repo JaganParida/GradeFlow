@@ -49,13 +49,10 @@ const mobileDrawerVariants = {
   visible: {
     x: 0,
     transition: {
-      type: "spring",
-      damping: 28,
-      stiffness: 280,
-      mass: 0.75,
-      duration: prefersReducedMotion ? 0.01 : undefined,
-      staggerChildren: prefersReducedMotion ? 0 : 0.035,
-      delayChildren: prefersReducedMotion ? 0 : 0.03,
+      duration: prefersReducedMotion ? 0.01 : 0.32,
+      ease: [0.32, 0.72, 0, 1], // Native iOS/modern web standard smooth sheet easing
+      staggerChildren: prefersReducedMotion ? 0 : 0.025,
+      delayChildren: prefersReducedMotion ? 0 : 0.04,
     },
   },
   exit: {
@@ -70,22 +67,20 @@ const mobileDrawerVariants = {
 const mobileNavItemVariants = {
   hidden: {
     opacity: 0,
-    x: prefersReducedMotion ? 0 : 24,
+    y: prefersReducedMotion ? 0 : 6,
   },
   visible: {
     opacity: 1,
-    x: 0,
+    y: 0,
     transition: {
-      duration: prefersReducedMotion ? 0.01 : 0.24,
+      duration: prefersReducedMotion ? 0.01 : 0.22,
       ease: [0.16, 1, 0.3, 1],
     },
   },
   exit: {
     opacity: 0,
-    x: prefersReducedMotion ? 0 : 16,
     transition: {
-      duration: prefersReducedMotion ? 0.01 : 0.14,
-      ease: "easeIn",
+      duration: prefersReducedMotion ? 0.01 : 0.1,
     },
   },
 };
@@ -1082,27 +1077,6 @@ export default function Navbar() {
       <AnimatePresence>
         {mobileMenuOpen && (
           <motion.div
-            key="mobile-nav-backdrop"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: prefersReducedMotion ? 0.01 : 0.30, ease: "easeOut" }}
-            onClick={() => setMobileMenuOpen(false)}
-            onTouchMove={(e) => e.preventDefault()}
-            style={{
-              position: "fixed",
-              inset: 0,
-              background: "rgba(15, 23, 42, 0.45)",
-              backdropFilter: "blur(6px)",
-              WebkitBackdropFilter: "blur(6px)",
-              zIndex: 998,
-              touchAction: "none",
-            }}
-          />
-        )}
-
-        {mobileMenuOpen && (
-          <motion.div
             key="mobile-nav-drawer"
             variants={mobileDrawerVariants}
             initial="hidden"
@@ -1114,8 +1088,9 @@ export default function Navbar() {
               left: 0,
               right: 0,
               bottom: 0,
-              width: "100vw",
-              height: "100dvh",
+              width: "100%",
+              height: "100%",
+              maxHeight: "100dvh",
               overflowY: "auto",
               WebkitOverflowScrolling: "touch",
               background: "#ffffff",
@@ -1127,6 +1102,9 @@ export default function Navbar() {
               boxSizing: "border-box",
               overscrollBehavior: "contain",
               willChange: "transform",
+              transform: "translate3d(0, 0, 0)",
+              WebkitBackfaceVisibility: "hidden",
+              backfaceVisibility: "hidden",
             }}
           >
             {/* Drawer Header with Close Button */}
