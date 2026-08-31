@@ -139,6 +139,8 @@ export default function StudentOtpManagement({ API, authHeaders, isMobile }) {
   const [accountsStats, setAccountsStats] = useState({ totalRegistered: 0, totalActive: 0, totalOffline: 0 });
   const [directoryFilter, setDirectoryFilter] = useState("all"); // "all" | "active" | "offline"
   const [directorySearch, setDirectorySearch] = useState("");
+  const [directoryPage, setDirectoryPage] = useState(1);
+  const directoryPageSize = 10;
 
   // Reset Modal state
   const [showResetModal, setShowResetModal] = useState(false);
@@ -175,11 +177,13 @@ export default function StudentOtpManagement({ API, authHeaders, isMobile }) {
   };
 
   useEffect(() => {
+    setDirectoryPage(1);
     fetchAccounts(directorySearch, directoryFilter);
   }, [directoryFilter]);
 
   const handleDirectorySearchSubmit = (e) => {
     if (e) e.preventDefault();
+    setDirectoryPage(1);
     fetchAccounts(directorySearch, directoryFilter);
   };
 
@@ -605,314 +609,450 @@ export default function StudentOtpManagement({ API, authHeaders, isMobile }) {
           </form>
         </div>
 
-        {/* ── Directory Accounts Content: Responsive (Mobile Cards vs Desktop Table) ── */}
-        {isMob ? (
-          /* Mobile Sleek Cards List */
-          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-            {accountsLoading ? (
-              <div style={{ padding: "24px", textAlign: "center", color: "#64748b" }}>
-                <Loader2 size={20} className="spin" style={{ margin: "0 auto 8px" }} />
-                <div style={{ fontSize: 12.5 }}>Loading accounts directory...</div>
-              </div>
-            ) : accountsList.length === 0 ? (
-              <div style={{ padding: "24px", textAlign: "center", color: "#94a3b8", background: "#f8fafc", borderRadius: 12, border: "1px dashed #e2e8f0", fontSize: 12.5 }}>
-                No student accounts found matching filter.
-              </div>
-            ) : (
-              accountsList.map((acc) => {
-                const resolvedBranch = (acc.branch && acc.branch !== "N/A") ? acc.branch : getDynamicBranch(acc.regNo);
-                const resolvedSection = (acc.section && acc.section !== "N/A") ? acc.section : getSectionFromRegNo(acc.regNo);
+        {/* ── Directory Accounts Content: Paginated (10 per page) ── */}
+        {(() => {
+          const totalAccounts = accountsList.length;
+          const dirTotalPages = Math.max(1, Math.ceil(totalAccounts / directoryPageSize));
+          const dirSafePage = Math.min(Math.max(1, directoryPage), dirTotalPages);
+          const dirStart = (dirSafePage - 1) * directoryPageSize;
+          const dirEnd = Math.min(dirStart + directoryPageSize, totalAccounts);
+          const paginatedAccounts = accountsList.slice(dirStart, dirEnd);
 
-                return (
+          return (
+            <>
+              {isMob ? (
+                /* Mobile Sleek Cards List */
+                <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                  {accountsLoading ? (
+                    <div style={{ padding: "24px", textAlign: "center", color: "#64748b" }}>
+                      <Loader2 size={20} className="spin" style={{ margin: "0 auto 8px" }} />
+                      <div style={{ fontSize: 12.5 }}>Loading accounts directory...</div>
+                    </div>
+                  ) : accountsList.length === 0 ? (
+                    <div style={{ padding: "24px", textAlign: "center", color: "#94a3b8", background: "#f8fafc", borderRadius: 12, border: "1px dashed #e2e8f0", fontSize: 12.5 }}>
+                      No student accounts found matching filter.
+                    </div>
+                  ) : (
+                    <AnimatePresence mode="wait">
+                      <motion.div
+                        key={`mob-page-${dirSafePage}`}
+                        initial={{ opacity: 0, x: 30 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        exit={{ opacity: 0, x: -30 }}
+                        transition={{ duration: 0.25, ease: "easeInOut" }}
+                        style={{ display: "flex", flexDirection: "column", gap: 10 }}
+                      >
+                        {paginatedAccounts.map((acc) => {
+                          const resolvedBranch = (acc.branch && acc.branch !== "N/A") ? acc.branch : getDynamicBranch(acc.regNo);
+                          const resolvedSection = (acc.section && acc.section !== "N/A") ? acc.section : getSectionFromRegNo(acc.regNo);
+
+                          return (
+                            <div
+                              key={acc.regNo}
+                              style={{
+                                background: "#ffffff",
+                                border: "1px solid #e2e8f0",
+                                borderRadius: 14,
+                                padding: "12px 14px",
+                                boxShadow: "0 1px 4px rgba(0,0,0,0.02)",
+                                display: "flex",
+                                flexDirection: "column",
+                                gap: 10,
+                              }}
+                            >
+                              {/* Top Row: Avatar + Name/Reg + Inspect Button */}
+                              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
+                                <div style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0, flex: 1 }}>
+                                  <div style={{ position: "relative", flexShrink: 0 }}>
+                                    <div
+                                      style={{
+                                        width: 36,
+                                        height: 36,
+                                        borderRadius: 10,
+                                        background: acc.isCurrentlyLoggedIn ? "#dcfce7" : "#f1f5f9",
+                                        color: acc.isCurrentlyLoggedIn ? "#15803d" : "#475569",
+                                        display: "flex",
+                                        alignItems: "center",
+                                        justifyContent: "center",
+                                        fontWeight: 800,
+                                        fontSize: 13,
+                                        border: `1px solid ${acc.isCurrentlyLoggedIn ? "#bbf7d0" : "#e2e8f0"}`,
+                                      }}
+                                    >
+                                      {acc.studentName ? acc.studentName.charAt(0).toUpperCase() : "S"}
+                                    </div>
+                                    <span
+                                      style={{
+                                        position: "absolute",
+                                        bottom: -2,
+                                        right: -2,
+                                        width: 9,
+                                        height: 9,
+                                        borderRadius: "50%",
+                                        background: acc.isCurrentlyLoggedIn ? "#16a34a" : "#94a3b8",
+                                        border: "1.5px solid #ffffff",
+                                      }}
+                                    />
+                                  </div>
+                                  <div style={{ minWidth: 0, flex: 1 }}>
+                                    <div style={{ color: "#0f172a", fontWeight: 800, fontSize: 13.5, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                                      {acc.studentName}
+                                    </div>
+                                    <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 1 }}>
+                                      <span style={{ fontSize: 11.5, color: "#4f46e5", fontFamily: "'Space Mono', monospace", fontWeight: 700 }}>
+                                        {acc.regNo}
+                                      </span>
+                                      <span style={{ fontSize: 10.5, color: "#64748b", background: "#f1f5f9", padding: "1px 5px", borderRadius: 4 }}>
+                                        {resolvedBranch} • Sec {resolvedSection}
+                                      </span>
+                                    </div>
+                                  </div>
+                                </div>
+
+                                <button
+                                  onClick={() => handleSearchWithReg(acc.regNo)}
+                                  style={{
+                                    display: "inline-flex",
+                                    alignItems: "center",
+                                    gap: 4,
+                                    padding: "6px 12px",
+                                    borderRadius: 8,
+                                    background: "#eef2ff",
+                                    border: "1px solid #c7d2fe",
+                                    color: "#4338ca",
+                                    fontSize: 12,
+                                    fontWeight: 700,
+                                    cursor: "pointer",
+                                    flexShrink: 0,
+                                  }}
+                                >
+                                  <Eye size={12} />
+                                  <span>Inspect</span>
+                                </button>
+                              </div>
+
+                              {/* Bottom Status Row */}
+                              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", paddingTop: 8, borderTop: "1px dashed #f1f5f9", gap: 6, flexWrap: "wrap" }}>
+                                <div>
+                                  {acc.isCurrentlyLoggedIn ? (
+                                    <span
+                                      style={{
+                                        display: "inline-flex",
+                                        alignItems: "center",
+                                        gap: 5,
+                                        background: "#dcfce7",
+                                        color: "#166534",
+                                        fontSize: 11,
+                                        fontWeight: 700,
+                                        padding: "3px 8px",
+                                        borderRadius: 6,
+                                        border: "1px solid #bbf7d0",
+                                      }}
+                                    >
+                                      <span style={{ width: 5, height: 5, borderRadius: "50%", background: "#16a34a", display: "inline-block" }} />
+                                      <span>Live Online ({acc.activeSessionsCount} dev)</span>
+                                      {acc.activeSessions?.[0]?.deviceType === "Mobile" ? (
+                                        <Smartphone size={10.5} />
+                                      ) : (
+                                        <Laptop size={10.5} />
+                                      )}
+                                    </span>
+                                  ) : (
+                                    <span
+                                      style={{
+                                        display: "inline-flex",
+                                        alignItems: "center",
+                                        gap: 4,
+                                        background: "#f1f5f9",
+                                        color: "#64748b",
+                                        fontSize: 11,
+                                        fontWeight: 600,
+                                        padding: "3px 8px",
+                                        borderRadius: 6,
+                                        border: "1px solid #e2e8f0",
+                                      }}
+                                    >
+                                      <span style={{ width: 5, height: 5, borderRadius: "50%", background: "#94a3b8", display: "inline-block" }} />
+                                      <span>Offline</span>
+                                    </span>
+                                  )}
+                                </div>
+
+                                <div style={{ fontSize: 10.5, color: "#94a3b8" }}>
+                                  Pwd: {formatISTDate(acc.passwordCreatedAt)}
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </motion.div>
+                    </AnimatePresence>
+                  )}
+                </div>
+              ) : (
+                /* Desktop Pristine Table View */
+                <div style={{ overflowX: "auto", border: "1px solid #e2e8f0", borderRadius: 12 }}>
+                  <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13, textAlign: "left" }}>
+                    <thead>
+                      <tr style={{ background: "#f8fafc", borderBottom: "1px solid #e2e8f0", color: "#64748b", fontSize: 11.5, textTransform: "uppercase", letterSpacing: "0.4px" }}>
+                        <th style={{ padding: "10px 14px", fontWeight: 700 }}>Student / Reg No</th>
+                        <th style={{ padding: "10px 14px", fontWeight: 700 }}>Batch / Branch</th>
+                        <th style={{ padding: "10px 14px", fontWeight: 700 }}>Password Created</th>
+                        <th style={{ padding: "10px 14px", fontWeight: 700 }}>Login Status</th>
+                        <th style={{ padding: "10px 14px", fontWeight: 700, textAlign: "right" }}>Action</th>
+                      </tr>
+                    </thead>
+                    <AnimatePresence mode="wait">
+                      <motion.tbody
+                        key={`desk-page-${dirSafePage}`}
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        transition={{ duration: 0.2, ease: "easeInOut" }}
+                      >
+                        {accountsLoading ? (
+                          <tr>
+                            <td colSpan={5} style={{ padding: "24px", textAlign: "center", color: "#64748b" }}>
+                              <Loader2 size={20} className="spin" style={{ margin: "0 auto 8px" }} />
+                              <div>Loading verified accounts directory...</div>
+                            </td>
+                          </tr>
+                        ) : accountsList.length === 0 ? (
+                          <tr>
+                            <td colSpan={5} style={{ padding: "24px", textAlign: "center", color: "#94a3b8" }}>
+                              No registered student accounts found matching filter.
+                            </td>
+                          </tr>
+                        ) : (
+                          paginatedAccounts.map((acc) => {
+                            const resolvedBranch = (acc.branch && acc.branch !== "N/A") ? acc.branch : getDynamicBranch(acc.regNo);
+                            const resolvedSection = (acc.section && acc.section !== "N/A") ? acc.section : getSectionFromRegNo(acc.regNo);
+
+                            return (
+                              <tr key={acc.regNo} style={{ borderBottom: "1px solid #f1f5f9" }}>
+                                <td style={{ padding: "12px 14px" }}>
+                                  <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                                    <div
+                                      style={{
+                                        width: 32,
+                                        height: 32,
+                                        borderRadius: "50%",
+                                        background: acc.isCurrentlyLoggedIn ? "#dcfce7" : "#f1f5f9",
+                                        color: acc.isCurrentlyLoggedIn ? "#15803d" : "#475569",
+                                        display: "flex",
+                                        alignItems: "center",
+                                        justifyContent: "center",
+                                        fontWeight: 700,
+                                        fontSize: 12,
+                                      }}
+                                    >
+                                      {acc.studentName ? acc.studentName.charAt(0).toUpperCase() : "S"}
+                                    </div>
+                                    <div>
+                                      <strong style={{ color: "#0f172a", display: "block" }}>{acc.studentName}</strong>
+                                      <span style={{ fontSize: 11.5, color: "#64748b", fontFamily: "'Space Mono', monospace" }}>
+                                        {acc.regNo}
+                                      </span>
+                                    </div>
+                                  </div>
+                                </td>
+                                <td style={{ padding: "12px 14px", color: "#334155" }}>
+                                  <div style={{ fontWeight: 600 }}>Batch {acc.batch || "2023"}</div>
+                                  <span style={{ fontSize: 11, color: "#64748b", fontWeight: 500 }}>
+                                    {resolvedBranch} (Sec {resolvedSection})
+                                  </span>
+                                </td>
+                                <td style={{ padding: "12px 14px", color: "#64748b", fontSize: 12 }}>
+                                  {formatISTDate(acc.passwordCreatedAt)}
+                                </td>
+                                <td style={{ padding: "12px 14px" }}>
+                                  {acc.isCurrentlyLoggedIn ? (
+                                    <div style={{ display: "inline-flex", flexDirection: "column", gap: 2 }}>
+                                      <span
+                                        style={{
+                                          display: "inline-flex",
+                                          alignItems: "center",
+                                          gap: 6,
+                                          background: "#dcfce7",
+                                          color: "#166534",
+                                          fontSize: 11.5,
+                                          fontWeight: 700,
+                                          padding: "3px 9px",
+                                          borderRadius: 6,
+                                          border: "1px solid #bbf7d0",
+                                        }}
+                                      >
+                                        <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#16a34a", display: "inline-block" }} />
+                                        <span>Live Online ({acc.activeSessionsCount} device)</span>
+                                      </span>
+                                      {acc.activeSessions?.[0] && (
+                                        <span style={{ fontSize: 10.5, color: "#64748b", display: "inline-flex", alignItems: "center", gap: 4 }}>
+                                          {acc.activeSessions[0].deviceType === "Mobile" ? (
+                                            <Smartphone size={11} color="#64748b" />
+                                          ) : (
+                                            <Laptop size={11} color="#64748b" />
+                                          )}
+                                          <span>{acc.activeSessions[0].deviceType} ({acc.activeSessions[0].browser})</span>
+                                        </span>
+                                      )}
+                                    </div>
+                                  ) : (
+                                    <span
+                                      style={{
+                                        display: "inline-flex",
+                                        alignItems: "center",
+                                        gap: 5,
+                                        background: "#f1f5f9",
+                                        color: "#64748b",
+                                        fontSize: 11.5,
+                                        fontWeight: 600,
+                                        padding: "3px 9px",
+                                        borderRadius: 6,
+                                        border: "1px solid #e2e8f0",
+                                      }}
+                                    >
+                                      <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#94a3b8", display: "inline-block" }} />
+                                      <span>Offline</span>
+                                    </span>
+                                  )}
+                                </td>
+                                <td style={{ padding: "12px 14px", textAlign: "right" }}>
+                                  <button
+                                    onClick={() => handleSearchWithReg(acc.regNo)}
+                                    style={{
+                                      display: "inline-flex",
+                                      alignItems: "center",
+                                      gap: 4,
+                                      padding: "6px 12px",
+                                      borderRadius: 8,
+                                      background: "#eef2ff",
+                                      border: "1px solid #c7d2fe",
+                                      color: "#4338ca",
+                                      fontSize: 12,
+                                      fontWeight: 700,
+                                      cursor: "pointer",
+                                    }}
+                                  >
+                                    <Eye size={13} />
+                                    <span>Inspect</span>
+                                  </button>
+                                </td>
+                              </tr>
+                            );
+                          })
+                        )}
+                      </motion.tbody>
+                    </AnimatePresence>
+                  </table>
+                </div>
+              )}
+
+              {/* ── Pagination Controls ── */}
+              {!accountsLoading && totalAccounts > directoryPageSize && (
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    flexWrap: "wrap",
+                    gap: 10,
+                    marginTop: 14,
+                    paddingTop: 14,
+                    borderTop: "1px solid #e2e8f0",
+                  }}
+                >
+                  {/* Left: summary */}
+                  <span style={{ fontSize: isMob ? 11.5 : 12.5, color: "#64748b", fontWeight: 600 }}>
+                    Showing <strong>{dirStart + 1}–{dirEnd}</strong> of <strong>{totalAccounts}</strong> accounts
+                  </span>
+
+                  {/* Right: buttons */}
                   <div
-                    key={acc.regNo}
                     style={{
-                      background: "#ffffff",
-                      border: "1px solid #e2e8f0",
-                      borderRadius: 14,
-                      padding: "12px 14px",
-                      boxShadow: "0 1px 4px rgba(0,0,0,0.02)",
                       display: "flex",
-                      flexDirection: "column",
-                      gap: 10,
+                      alignItems: "center",
+                      gap: 6,
+                      width: isMob ? "100%" : "auto",
+                      justifyContent: isMob ? "space-between" : "flex-end",
                     }}
                   >
-                    {/* Top Row: Avatar + Name/Reg + Inspect Button */}
-                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
-                      <div style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0, flex: 1 }}>
-                        <div style={{ position: "relative", flexShrink: 0 }}>
-                          <div
-                            style={{
-                              width: 36,
-                              height: 36,
-                              borderRadius: 10,
-                              background: acc.isCurrentlyLoggedIn ? "#dcfce7" : "#f1f5f9",
-                              color: acc.isCurrentlyLoggedIn ? "#15803d" : "#475569",
-                              display: "flex",
-                              alignItems: "center",
-                              justifyContent: "center",
-                              fontWeight: 800,
-                              fontSize: 13,
-                              border: `1px solid ${acc.isCurrentlyLoggedIn ? "#bbf7d0" : "#e2e8f0"}`,
-                            }}
-                          >
-                            {acc.studentName ? acc.studentName.charAt(0).toUpperCase() : "S"}
-                          </div>
-                          <span
-                            style={{
-                              position: "absolute",
-                              bottom: -2,
-                              right: -2,
-                              width: 9,
-                              height: 9,
-                              borderRadius: "50%",
-                              background: acc.isCurrentlyLoggedIn ? "#16a34a" : "#94a3b8",
-                              border: "1.5px solid #ffffff",
-                            }}
-                          />
-                        </div>
-                        <div style={{ minWidth: 0, flex: 1 }}>
-                          <div style={{ color: "#0f172a", fontWeight: 800, fontSize: 13.5, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                            {acc.studentName}
-                          </div>
-                          <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 1 }}>
-                            <span style={{ fontSize: 11.5, color: "#4f46e5", fontFamily: "'Space Mono', monospace", fontWeight: 700 }}>
-                              {acc.regNo}
-                            </span>
-                            <span style={{ fontSize: 10.5, color: "#64748b", background: "#f1f5f9", padding: "1px 5px", borderRadius: 4 }}>
-                              {resolvedBranch} • Sec {resolvedSection}
-                            </span>
-                          </div>
-                        </div>
-                      </div>
+                    {/* Previous */}
+                    <button
+                      type="button"
+                      disabled={dirSafePage <= 1}
+                      onClick={() => setDirectoryPage((p) => Math.max(1, p - 1))}
+                      style={{
+                        flex: isMob ? "1 1 0" : "none",
+                        padding: isMob ? "10px 14px" : "8px 16px",
+                        borderRadius: 10,
+                        border: "1px solid",
+                        borderColor: dirSafePage <= 1 ? "#e2e8f0" : "#cbd5e1",
+                        background: dirSafePage <= 1 ? "#f8fafc" : "#ffffff",
+                        color: dirSafePage <= 1 ? "#94a3b8" : "#1e293b",
+                        fontSize: isMob ? 13 : 12.5,
+                        fontWeight: 700,
+                        cursor: dirSafePage <= 1 ? "not-allowed" : "pointer",
+                        display: "inline-flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        gap: 5,
+                        transition: "all 0.2s ease",
+                      }}
+                    >
+                      <ChevronLeft size={15} />
+                      <span>Previous</span>
+                    </button>
 
-                      <button
-                        onClick={() => handleSearchWithReg(acc.regNo)}
-                        style={{
-                          display: "inline-flex",
-                          alignItems: "center",
-                          gap: 4,
-                          padding: "6px 12px",
-                          borderRadius: 8,
-                          background: "#eef2ff",
-                          border: "1px solid #c7d2fe",
-                          color: "#4338ca",
-                          fontSize: 12,
-                          fontWeight: 700,
-                          cursor: "pointer",
-                          flexShrink: 0,
-                        }}
-                      >
-                        <Eye size={12} />
-                        <span>Inspect</span>
-                      </button>
-                    </div>
+                    {/* Page indicator */}
+                    <span
+                      style={{
+                        fontSize: isMob ? 12 : 12.5,
+                        fontWeight: 800,
+                        color: "#4f46e5",
+                        background: "#eef2ff",
+                        border: "1px solid #c7d2fe",
+                        padding: isMob ? "8px 14px" : "6px 14px",
+                        borderRadius: 10,
+                        whiteSpace: "nowrap",
+                        minWidth: isMob ? 0 : 90,
+                        textAlign: "center",
+                      }}
+                    >
+                      {dirSafePage} / {dirTotalPages}
+                    </span>
 
-                    {/* Bottom Status Row */}
-                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", paddingTop: 8, borderTop: "1px dashed #f1f5f9", gap: 6, flexWrap: "wrap" }}>
-                      <div>
-                        {acc.isCurrentlyLoggedIn ? (
-                          <span
-                            style={{
-                              display: "inline-flex",
-                              alignItems: "center",
-                              gap: 5,
-                              background: "#dcfce7",
-                              color: "#166534",
-                              fontSize: 11,
-                              fontWeight: 700,
-                              padding: "3px 8px",
-                              borderRadius: 6,
-                              border: "1px solid #bbf7d0",
-                            }}
-                          >
-                            <span style={{ width: 5, height: 5, borderRadius: "50%", background: "#16a34a", display: "inline-block" }} />
-                            <span>Live Online ({acc.activeSessionsCount} dev)</span>
-                            {acc.activeSessions?.[0]?.deviceType === "Mobile" ? (
-                              <Smartphone size={10.5} />
-                            ) : (
-                              <Laptop size={10.5} />
-                            )}
-                          </span>
-                        ) : (
-                          <span
-                            style={{
-                              display: "inline-flex",
-                              alignItems: "center",
-                              gap: 4,
-                              background: "#f1f5f9",
-                              color: "#64748b",
-                              fontSize: 11,
-                              fontWeight: 600,
-                              padding: "3px 8px",
-                              borderRadius: 6,
-                              border: "1px solid #e2e8f0",
-                            }}
-                          >
-                            <span style={{ width: 5, height: 5, borderRadius: "50%", background: "#94a3b8", display: "inline-block" }} />
-                            <span>Offline</span>
-                          </span>
-                        )}
-                      </div>
-
-                      <div style={{ fontSize: 10.5, color: "#94a3b8" }}>
-                        Pwd: {formatISTDate(acc.passwordCreatedAt)}
-                      </div>
-                    </div>
+                    {/* Next */}
+                    <button
+                      type="button"
+                      disabled={dirSafePage >= dirTotalPages}
+                      onClick={() => setDirectoryPage((p) => Math.min(dirTotalPages, p + 1))}
+                      style={{
+                        flex: isMob ? "1 1 0" : "none",
+                        padding: isMob ? "10px 14px" : "8px 16px",
+                        borderRadius: 10,
+                        border: "1px solid",
+                        borderColor: dirSafePage >= dirTotalPages ? "#e2e8f0" : "#cbd5e1",
+                        background: dirSafePage >= dirTotalPages ? "#f8fafc" : "#ffffff",
+                        color: dirSafePage >= dirTotalPages ? "#94a3b8" : "#1e293b",
+                        fontSize: isMob ? 13 : 12.5,
+                        fontWeight: 700,
+                        cursor: dirSafePage >= dirTotalPages ? "not-allowed" : "pointer",
+                        display: "inline-flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        gap: 5,
+                        transition: "all 0.2s ease",
+                      }}
+                    >
+                      <span>Next</span>
+                      <ChevronRight size={15} />
+                    </button>
                   </div>
-                );
-              })
-            )}
-          </div>
-        ) : (
-          /* Desktop Pristine Table View */
-          <div style={{ overflowX: "auto", border: "1px solid #e2e8f0", borderRadius: 12 }}>
-            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13, textAlign: "left" }}>
-              <thead>
-                <tr style={{ background: "#f8fafc", borderBottom: "1px solid #e2e8f0", color: "#64748b", fontSize: 11.5, textTransform: "uppercase", letterSpacing: "0.4px" }}>
-                  <th style={{ padding: "10px 14px", fontWeight: 700 }}>Student / Reg No</th>
-                  <th style={{ padding: "10px 14px", fontWeight: 700 }}>Batch / Branch</th>
-                  <th style={{ padding: "10px 14px", fontWeight: 700 }}>Password Created</th>
-                  <th style={{ padding: "10px 14px", fontWeight: 700 }}>Login Status</th>
-                  <th style={{ padding: "10px 14px", fontWeight: 700, textAlign: "right" }}>Action</th>
-                </tr>
-              </thead>
-              <tbody>
-                {accountsLoading ? (
-                  <tr>
-                    <td colSpan={5} style={{ padding: "24px", textAlign: "center", color: "#64748b" }}>
-                      <Loader2 size={20} className="spin" style={{ margin: "0 auto 8px" }} />
-                      <div>Loading verified accounts directory...</div>
-                    </td>
-                  </tr>
-                ) : accountsList.length === 0 ? (
-                  <tr>
-                    <td colSpan={5} style={{ padding: "24px", textAlign: "center", color: "#94a3b8" }}>
-                      No registered student accounts found matching filter.
-                    </td>
-                  </tr>
-                ) : (
-                  accountsList.map((acc) => {
-                    const resolvedBranch = (acc.branch && acc.branch !== "N/A") ? acc.branch : getDynamicBranch(acc.regNo);
-                    const resolvedSection = (acc.section && acc.section !== "N/A") ? acc.section : getSectionFromRegNo(acc.regNo);
-
-                    return (
-                      <tr key={acc.regNo} style={{ borderBottom: "1px solid #f1f5f9" }}>
-                        <td style={{ padding: "12px 14px" }}>
-                          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                            <div
-                              style={{
-                                width: 32,
-                                height: 32,
-                                borderRadius: "50%",
-                                background: acc.isCurrentlyLoggedIn ? "#dcfce7" : "#f1f5f9",
-                                color: acc.isCurrentlyLoggedIn ? "#15803d" : "#475569",
-                                display: "flex",
-                                alignItems: "center",
-                                justifyContent: "center",
-                                fontWeight: 700,
-                                fontSize: 12,
-                              }}
-                            >
-                              {acc.studentName ? acc.studentName.charAt(0).toUpperCase() : "S"}
-                            </div>
-                            <div>
-                              <strong style={{ color: "#0f172a", display: "block" }}>{acc.studentName}</strong>
-                              <span style={{ fontSize: 11.5, color: "#64748b", fontFamily: "'Space Mono', monospace" }}>
-                                {acc.regNo}
-                              </span>
-                            </div>
-                          </div>
-                        </td>
-                        <td style={{ padding: "12px 14px", color: "#334155" }}>
-                          <div style={{ fontWeight: 600 }}>Batch {acc.batch || "2023"}</div>
-                          <span style={{ fontSize: 11, color: "#64748b", fontWeight: 500 }}>
-                            {resolvedBranch} (Sec {resolvedSection})
-                          </span>
-                        </td>
-                        <td style={{ padding: "12px 14px", color: "#64748b", fontSize: 12 }}>
-                          {formatISTDate(acc.passwordCreatedAt)}
-                        </td>
-                        <td style={{ padding: "12px 14px" }}>
-                          {acc.isCurrentlyLoggedIn ? (
-                            <div style={{ display: "inline-flex", flexDirection: "column", gap: 2 }}>
-                              <span
-                                style={{
-                                  display: "inline-flex",
-                                  alignItems: "center",
-                                  gap: 6,
-                                  background: "#dcfce7",
-                                  color: "#166534",
-                                  fontSize: 11.5,
-                                  fontWeight: 700,
-                                  padding: "3px 9px",
-                                  borderRadius: 6,
-                                  border: "1px solid #bbf7d0",
-                                }}
-                              >
-                                <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#16a34a", display: "inline-block" }} />
-                                <span>Live Online ({acc.activeSessionsCount} device)</span>
-                              </span>
-                              {acc.activeSessions?.[0] && (
-                                <span style={{ fontSize: 10.5, color: "#64748b", display: "inline-flex", alignItems: "center", gap: 4 }}>
-                                  {acc.activeSessions[0].deviceType === "Mobile" ? (
-                                    <Smartphone size={11} color="#64748b" />
-                                  ) : (
-                                    <Laptop size={11} color="#64748b" />
-                                  )}
-                                  <span>{acc.activeSessions[0].deviceType} ({acc.activeSessions[0].browser})</span>
-                                </span>
-                              )}
-                            </div>
-                          ) : (
-                            <span
-                              style={{
-                                display: "inline-flex",
-                                alignItems: "center",
-                                gap: 5,
-                                background: "#f1f5f9",
-                                color: "#64748b",
-                                fontSize: 11.5,
-                                fontWeight: 600,
-                                padding: "3px 9px",
-                                borderRadius: 6,
-                                border: "1px solid #e2e8f0",
-                              }}
-                            >
-                              <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#94a3b8", display: "inline-block" }} />
-                              <span>Offline</span>
-                            </span>
-                          )}
-                        </td>
-                        <td style={{ padding: "12px 14px", textAlign: "right" }}>
-                          <button
-                            onClick={() => handleSearchWithReg(acc.regNo)}
-                            style={{
-                              display: "inline-flex",
-                              alignItems: "center",
-                              gap: 4,
-                              padding: "6px 12px",
-                              borderRadius: 8,
-                              background: "#eef2ff",
-                              border: "1px solid #c7d2fe",
-                              color: "#4338ca",
-                              fontSize: 12,
-                              fontWeight: 700,
-                              cursor: "pointer",
-                            }}
-                          >
-                            <Eye size={13} />
-                            <span>Inspect</span>
-                          </button>
-                        </td>
-                      </tr>
-                    );
-                  })
-                )}
-              </tbody>
-            </table>
-          </div>
-        )}
+                </div>
+              )}
+            </>
+          );
+        })()}
       </div>
 
       {/* ── Search Bar Card ── */}

@@ -213,10 +213,16 @@ export default function AttendanceTracker() {
     return getLocalCalendarDateKey(y);
   }, [todayDateObj]);
 
+  // Default earliest allowed tracking date (180 days prior to today)
+  const defaultMinTrackingDateKey = useMemo(() => {
+    const past = new Date(todayDateObj.getTime() - 180 * 86400000);
+    return getLocalCalendarDateKey(past);
+  }, [todayDateObj]);
+
   // Selected date for attendance check-in (defaults to Today)
   const [selectedCheckInDateKey, setSelectedCheckInDateKey] = useState(() => todayDateKey);
-  // Minimum allowed date (Student's account creation / earliest tracking date)
-  const [minTrackingDateKey, setMinTrackingDateKey] = useState(() => todayDateKey);
+  // Minimum allowed date (allows historical navigation up to 180 days back)
+  const [minTrackingDateKey, setMinTrackingDateKey] = useState(() => defaultMinTrackingDateKey);
 
   // Computed Date Properties for Selected Check-in Day
   const selectedDateObj = useMemo(() => new Date(selectedCheckInDateKey + "T00:00:00"), [selectedCheckInDateKey]);
@@ -712,15 +718,16 @@ export default function AttendanceTracker() {
             }
             const logDateKeys = Object.keys(cleanDailyLogs).filter((k) => /^\d{4}-\d{2}-\d{2}$/.test(k)).sort();
             const earliestLog = logDateKeys[0];
-            const resolvedMin = cKey && earliestLog ? (cKey < earliestLog ? cKey : earliestLog) : (cKey || earliestLog || todayDateKey);
-            setMinTrackingDateKey(resolvedMin);
+            const resolvedMin = cKey && earliestLog ? (cKey < earliestLog ? cKey : earliestLog) : (cKey || earliestLog || defaultMinTrackingDateKey);
+            setMinTrackingDateKey(resolvedMin < defaultMinTrackingDateKey ? resolvedMin : defaultMinTrackingDateKey);
           } else {
             setAllDailyLogs({});
             setDailyAttendanceLogs({});
             if (att.createdAt) {
-              setMinTrackingDateKey(getLocalCalendarDateKey(new Date(att.createdAt)));
+              const cKey = getLocalCalendarDateKey(new Date(att.createdAt));
+              setMinTrackingDateKey(cKey < defaultMinTrackingDateKey ? cKey : defaultMinTrackingDateKey);
             } else {
-              setMinTrackingDateKey(todayDateKey);
+              setMinTrackingDateKey(defaultMinTrackingDateKey);
             }
           }
         } else if (isMounted) {
@@ -746,14 +753,14 @@ export default function AttendanceTracker() {
     return () => {
       isMounted = false;
     };
-  }, [decodedParam, studentSession?.regNo, API, todayDateKey]);
+  }, [decodedParam, studentSession?.regNo, API, todayDateKey, defaultMinTrackingDateKey]);
 
   // Synchronize componentInputs whenever savedSubjects loads or updates from MongoDB Atlas
   useEffect(() => {
     if (selectedSubjectName && savedSubjects.length > 0) {
-      const found = savedSubjects.find((s) => s.subjectName === selectedSubjectName);
+      const found = savedSubjects.find((s) => isSameSubject(s, selectedSubjectName));
       if (found && Array.isArray(found.components) && found.components.length > 0) {
-        setComponentInputs(found.components);
+        setComponentInputs(found.components.map((c) => ({ ...c })));
       }
     }
   }, [savedSubjects, selectedSubjectName]);
@@ -771,7 +778,7 @@ export default function AttendanceTracker() {
     setSelectedSubjectName(catalogItem.subjectName);
 
     // Check if subject already exists in saved list
-    const existing = savedSubjects.find((s) => s.subjectName === catalogItem.subjectName);
+    const existing = savedSubjects.find((s) => isSameSubject(s, catalogItem));
     const existingComps = existing?.components || [];
 
     // Ensure all detected components (PP, PR, TUT) from timetable catalog are included
@@ -785,24 +792,27 @@ export default function AttendanceTracker() {
         (c) => c.type.toUpperCase() === type.toUpperCase()
       );
       return (
-        found || {
-          type,
-          attended: 0,
-          delivered: 0,
-        }
+        found
+          ? { ...found }
+          : {
+              type,
+              attended: 0,
+              delivered: 0,
+            }
       );
     });
 
     // Also include any user-added custom components that weren't in catalog
     existingComps.forEach((c) => {
       if (!detectedTypes.some((t) => t.toUpperCase() === c.type.toUpperCase())) {
-        mergedComps.push(c);
+        mergedComps.push({ ...c });
       }
     });
 
     setComponentInputs(mergedComps.length > 0 ? mergedComps : [{ type: "PP", attended: 0, delivered: 0 }]);
     setSimulateMissCount(0);
     setSimulateAttendCount(0);
+    setIsVerifiedDisclaimerChecked(false);
   }
 
   // Handle in-page student search (seamless transition)
@@ -969,14 +979,14 @@ export default function AttendanceTracker() {
             delivered: Math.max(0, (Number(c.delivered) || 0) + deltaDelivered),
           };
         }
-        return c;
+        return { ...c };
       });
 
       if (!matchedComp) {
         components.push({
           type: compType,
-          attended: Math.max(0, deltaAttended > 0 ? 1 : 0),
-          delivered: Math.max(0, deltaDelivered > 0 ? 1 : 0),
+          attended: Math.max(0, deltaAttended > 0 ? deltaAttended : 0),
+          delivered: Math.max(0, deltaDelivered > 0 ? deltaDelivered : 0),
         });
       }
 
@@ -986,11 +996,12 @@ export default function AttendanceTracker() {
     } else {
       nextSavedList.push({
         subjectName: cleanName,
+        code: period.code || period.subCode || resolveSubjectCode(period, studentData) || "",
         components: [
           {
             type: compType,
-            attended: Math.max(0, deltaAttended > 0 ? 1 : 0),
-            delivered: Math.max(0, deltaDelivered > 0 ? 1 : 0),
+            attended: Math.max(0, deltaAttended > 0 ? deltaAttended : 0),
+            delivered: Math.max(0, deltaDelivered > 0 ? deltaDelivered : 0),
           },
         ],
         section: selectedSection,
@@ -1014,13 +1025,13 @@ export default function AttendanceTracker() {
               delivered: Math.max(0, (Number(c.delivered) || 0) + deltaDelivered),
             };
           }
-          return c;
+          return { ...c };
         });
         if (!hasType) {
           nextComps.push({
             type: compType,
-            attended: Math.max(0, deltaAttended > 0 ? 1 : 0),
-            delivered: Math.max(0, deltaDelivered > 0 ? 1 : 0),
+            attended: Math.max(0, deltaAttended > 0 ? deltaAttended : 0),
+            delivered: Math.max(0, deltaDelivered > 0 ? deltaDelivered : 0),
           });
         }
         return nextComps;
@@ -1033,9 +1044,20 @@ export default function AttendanceTracker() {
     const dateLogs = allDailyLogs[dateKey];
     if (!dateLogs || Object.keys(dateLogs).length === 0) return;
 
+    const targetDateObj = new Date(dateKey + "T00:00:00");
+    const targetDayName = getDayName(targetDateObj);
+    const daySchedule = getDaySchedule(selectedSection, targetDayName) || [];
+    const dayClasses = daySchedule
+      .map((period, idx) => ({
+        ...period,
+        slotIndex: idx,
+        cleanName: cleanSubjectBaseName(period.subject),
+      }))
+      .filter((p) => !p.isFree && !p.isBreak && p.subject && p.subject !== "No Class / Free" && !/lunch\s*break|recess/i.test(p.subject));
+
     let nextSavedList = [...savedSubjects];
 
-    selectedDayClasses.forEach((period) => {
+    dayClasses.forEach((period) => {
       const status = dateLogs[period.slotIndex];
       if (status === "present" || status === "absent") {
         const cleanName = period.cleanName || cleanSubjectBaseName(period.subject);
@@ -1054,7 +1076,7 @@ export default function AttendanceTracker() {
                 delivered: Math.max(0, (Number(c.delivered) || 0) + deltaDelivered),
               };
             }
-            return c;
+            return { ...c };
           });
           sub.lastUpdated = new Date().toISOString();
           nextSavedList[existingIdx] = sub;
@@ -1070,6 +1092,13 @@ export default function AttendanceTracker() {
     }
     setSavedSubjects(nextSavedList);
     syncAttendanceToDb(nextSavedList, nextAllLogs, targetGoal);
+
+    if (selectedSubjectName) {
+      const activeSaved = nextSavedList.find((s) => isSameSubject(s, selectedSubjectName));
+      if (activeSaved && Array.isArray(activeSaved.components)) {
+        setComponentInputs(activeSaved.components.map((c) => ({ ...c })));
+      }
+    }
   }
 
   const [saveSuccessAlert, setSaveSuccessAlert] = useState(false);
@@ -1091,12 +1120,18 @@ export default function AttendanceTracker() {
     if (!selectedSubjectName) return;
 
     const filtered = savedSubjects.filter((s) => !isSameSubject(s, selectedSubjectName));
+    const cleanComps = (componentInputs || []).map((c) => ({
+      type: (c.type || "PP").toUpperCase(),
+      attended: Math.max(0, parseInt(c.attended, 10) || 0),
+      delivered: Math.max(0, parseInt(c.delivered, 10) || 0),
+    }));
+
     const updatedList = [
       ...filtered,
       {
         subjectName: selectedSubjectName,
-        code: activeCatalogItem?.code || "",
-        components: componentInputs,
+        code: activeCatalogItem?.code || resolveSubjectCode({ subject: selectedSubjectName }, studentData) || "",
+        components: cleanComps,
         lastUpdated: new Date().toISOString(),
         section: selectedSection,
         weeklyOccurrences: activeCatalogItem?.weeklyOccurrences || [],
@@ -1120,13 +1155,9 @@ export default function AttendanceTracker() {
     const map = new Map();
 
     sectionCatalog.forEach((catItem) => {
-      const isSelected = isSameSubject(selectedSubjectName, catItem);
       // Robust match with saved subjects by name, clean base name, code, or aliases
       const saved = savedSubjects.find((s) => isSameSubject(s, catItem));
-      const savedComps =
-        isSelected && Array.isArray(componentInputs) && componentInputs.length > 0
-          ? componentInputs
-          : saved?.components || [];
+      const savedComps = saved?.components || [];
 
       const detectedTypes =
         catItem.components && catItem.components.length > 0 ? catItem.components : ["PP"];
@@ -1151,12 +1182,12 @@ export default function AttendanceTracker() {
         components,
         classesPerWeek: catItem.classesPerWeek,
         weeklyOccurrences: catItem.weeklyOccurrences,
-        isSaved: Boolean(saved || isSelected),
+        isSaved: Boolean(saved),
       });
     });
 
     return Array.from(map.values());
-  }, [sectionCatalog, savedSubjects, selectedSubjectName, componentInputs, studentData]);
+  }, [sectionCatalog, savedSubjects, studentData]);
 
   // Check if student has actual non-zero saved attendance data in DB
   const hasSavedAttendance = useMemo(() => {
@@ -2588,7 +2619,7 @@ export default function AttendanceTracker() {
 
                 return (
                   <div
-                    key={period.slotIndex}
+                    key={`${selectedCheckInDateKey}-p${period.slotIndex}`}
                     style={{
                       background: isPresent ? "#f0fdf4" : isAbsent ? "#fff1f2" : "#ffffff",
                       border: `1px solid ${isPresent ? "#86efac" : isAbsent ? "#fca5a5" : "#e2e8f0"}`,
@@ -4673,6 +4704,14 @@ export default function AttendanceTracker() {
                   onClick={() => {
                     setSavedSubjects([]);
                     setAllDailyLogs({});
+                    setDailyAttendanceLogs({});
+                    if (sectionCatalog.length > 0) {
+                      const first = sectionCatalog[0];
+                      const detected = first.components || ["PP"];
+                      setComponentInputs(detected.map((t) => ({ type: t, attended: 0, delivered: 0 })));
+                    } else {
+                      setComponentInputs([{ type: "PP", attended: 0, delivered: 0 }]);
+                    }
                     localStorage.removeItem("gradeflow_saved_attendance");
                     localStorage.removeItem("gradeflow_daily_attendance_logs");
                     syncAttendanceToDb([], {}, targetGoal);
