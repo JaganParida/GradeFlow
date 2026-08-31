@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useApp } from "../context/AppContext";
-import { encodeStudentId } from "../utils/studentIdEncoder";
+import { decodeStudentId, encodeStudentId } from "../utils/studentIdEncoder";
 import { motion, AnimatePresence } from "framer-motion";
 import StudentAuthModal from "./StudentAuthModal";
 import NotificationBell from "./NotificationBell";
@@ -61,6 +61,7 @@ export default function Navbar() {
     studentSession,
     hasActiveSession,
     authChecking,
+    waitForAuthResolution,
     leaveSession,
     isLoggingOut,
     fetchStudent,
@@ -169,9 +170,28 @@ export default function Navbar() {
     openStudentAuthModal();
   };
 
-  const handleDashboardClick = (e) => {
+  // Wait for the initial HTTP-only cookie check before deciding that a visitor
+  // needs to sign in. This avoids a slow connection opening the login modal for
+  // an already-authenticated student.
+  const getResolvedStudentTarget = async () => {
+    const visibleTarget = getActiveViewedRegNo();
+    if (visibleTarget) return visibleTarget;
+    const resolvedSession = await waitForAuthResolution();
+    return resolvedSession?.regNo || "";
+  };
+
+  const handleOpenStudentLogin = async () => {
+    const resolvedSession = await waitForAuthResolution();
+    if (resolvedSession?.regNo) {
+      navigate(`/dashboard/${encodeStudentId(resolvedSession.regNo)}`);
+      return;
+    }
+    openStudentAuthModal();
+  };
+
+  const handleDashboardClick = async (e) => {
     if (e) e.preventDefault();
-    const target = getActiveViewedRegNo();
+    const target = await getResolvedStudentTarget();
     if (!target) {
       requireAuthFor({ type: "dashboard" });
     } else {
@@ -179,9 +199,9 @@ export default function Navbar() {
     }
   };
 
-  const handleTimetableClick = (e) => {
+  const handleTimetableClick = async (e) => {
     if (e) e.preventDefault();
-    const target = getActiveViewedRegNo();
+    const target = await getResolvedStudentTarget();
     if (!target) {
       requireAuthFor({ type: "timetable" });
     } else {
@@ -189,9 +209,9 @@ export default function Navbar() {
     }
   };
 
-  const handleAttendanceClick = (e) => {
+  const handleAttendanceClick = async (e) => {
     if (e) e.preventDefault();
-    const target = getActiveViewedRegNo();
+    const target = await getResolvedStudentTarget();
     if (!target) {
       requireAuthFor({ type: "attendance" });
     } else {
@@ -199,9 +219,9 @@ export default function Navbar() {
     }
   };
 
-  const handleAnalyticsClick = (e, targetTab = "") => {
+  const handleAnalyticsClick = async (e, targetTab = "") => {
     if (e) e.preventDefault();
-    const target = getActiveViewedRegNo();
+    const target = await getResolvedStudentTarget();
     if (!target) {
       requireAuthFor({ type: "analytics", tab: targetTab });
     } else {
@@ -210,9 +230,10 @@ export default function Navbar() {
     }
   };
 
-  const handleRankingsClick = (e) => {
+  const handleRankingsClick = async (e) => {
     if (e) e.preventDefault();
-    if (!currentRegNo && !hasActiveSession && !adminToken) {
+    const resolvedSession = await waitForAuthResolution();
+    if (!currentRegNo && !resolvedSession?.regNo && !hasActiveSession && !adminToken) {
       requireAuthFor({ type: "leaderboard" });
     } else {
       navigate("/leaderboard");
@@ -935,7 +956,7 @@ export default function Navbar() {
                 </div>
               ) : (
                 <button
-                  onClick={() => openStudentAuthModal()}
+                  onClick={handleOpenStudentLogin}
                   style={{
                     display: "inline-flex",
                     alignItems: "center",
@@ -1868,7 +1889,7 @@ export default function Navbar() {
             <button
               onClick={() => {
                 setMobileMenuOpen(false);
-                openStudentAuthModal();
+                handleOpenStudentLogin();
               }}
               style={{
                 width: "100%",

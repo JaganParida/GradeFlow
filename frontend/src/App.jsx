@@ -5,7 +5,19 @@ import { AnimatePresence, motion } from "framer-motion";
 import Navbar from "./components/Navbar";
 import FeedbackModal from "./components/FeedbackModal";
 import UpgradeModal from "./components/UpgradeModal";
-import { DashboardSkeleton } from "./components/LoadingSpinner";
+import {
+  AdminDashboardSkeleton,
+  AdminLoginSkeleton,
+  AnalyticsSkeleton,
+  AttendanceSkeleton,
+  DashboardSkeleton,
+  LandingSkeleton,
+  LeaderboardSkeleton,
+  PublicPageSkeleton,
+  ResourcesSkeleton,
+  TestimonialsSkeleton,
+  TimetableSkeleton,
+} from "./components/LoadingSpinner";
 import { decodeStudentId, isEncryptedToken } from "./utils/studentIdEncoder";
 import { applyRouteMetadata } from "./utils/seo";
 
@@ -51,6 +63,7 @@ import { useApp } from "./context/AppContext";
 import { AlertTriangle, X } from "lucide-react";
 import ErrorBoundary from "./components/system/ErrorBoundary";
 import NetworkStatusListener from "./components/system/NetworkStatusListener";
+import SmoothScroll from "./components/system/SmoothScroll";
 import MaintenanceGuard from "./components/system/MaintenanceGuard";
 import {
   NotFoundState,
@@ -76,13 +89,33 @@ function ScrollToTop() {
         return;
       }
     }
-    // Instant scroll to top on route change to prevent any layout jumping
-    window.scrollTo(0, 0);
+    // Lenis owns scroll interpolation globally. Route resets must stay instant so
+    // a new page never visibly scrolls through the previous page's content.
+    window.dispatchEvent(new Event("gradeflow:scroll-top"));
+    window.scrollTo(0, 0); // Native fallback before Lenis is ready.
     if (document.documentElement) document.documentElement.scrollTop = 0;
     if (document.body) document.body.scrollTop = 0;
   }, [pathname, hash]);
 
   return null;
+}
+
+function RouteLoadingFallback() {
+  const { pathname } = useLocation();
+
+  if (pathname.startsWith("/dashboard")) return <DashboardSkeleton />;
+  if (pathname.startsWith("/analytics")) return <AnalyticsSkeleton />;
+  if (pathname.startsWith("/attendance")) return <AttendanceSkeleton />;
+  if (pathname.startsWith("/timetable")) return <TimetableSkeleton />;
+  if (pathname.startsWith("/leaderboard")) return <LeaderboardSkeleton />;
+  if (pathname.startsWith("/testimonials")) return <TestimonialsSkeleton />;
+  if (pathname === "/admin" || pathname === "/admin/login") return <AdminLoginSkeleton />;
+  if (pathname.startsWith("/admin")) return <AdminDashboardSkeleton />;
+  if (pathname.startsWith("/resources")) return <ResourcesSkeleton />;
+  if (["/about", "/help", "/contact", "/privacy", "/terms", "/cookies", "/about-dev"].includes(pathname)) {
+    return <PublicPageSkeleton />;
+  }
+  return <LandingSkeleton />;
 }
 
 function PageTransition({ children }) {
@@ -106,11 +139,25 @@ function PageTransition({ children }) {
 }
 
 function ProtectedRoute({ children }) {
-  const { hasActiveSession, authChecking, studentSession, adminToken } = useApp();
+  const { hasActiveSession, authChecking, authStatus, studentSession, adminToken } = useApp();
   const params = useParams();
   const rawParam = params.studentId || params.regNo || params.id;
 
   if (authChecking) {
+    return <DashboardSkeleton />;
+  }
+
+  // An encrypted URL is deliberately opaque. If its checksum cannot be
+  // verified, do not mount the page with an empty registration number: that
+  // used to leave Dashboard in its permanent loading state after URL edits.
+  if (rawParam && isEncryptedToken(rawParam) && !decodeStudentId(rawParam)) {
+    return <NotFoundState />;
+  }
+
+  // A network failure is not proof that the browser has no session cookie.
+  // Keep the session unresolved instead of briefly showing the student as
+  // logged out; the next interaction safely retries the bootstrap request.
+  if (authStatus === "AUTH_ERROR") {
     return <DashboardSkeleton />;
   }
 
@@ -131,9 +178,9 @@ function ProtectedRoute({ children }) {
 }
 
 function AdminRouteGuard({ children, allowGate = false }) {
-  const { adminToken, authChecking } = useApp();
+  const { adminToken, authChecking, adminAuthStatus } = useApp();
 
-  if (authChecking) {
+  if (authChecking || adminAuthStatus === "AUTH_ERROR") {
     return <DashboardSkeleton />;
   }
 
@@ -200,6 +247,7 @@ export default function App() {
   return (
     <ErrorBoundary>
       <ScrollToTop />
+      <SmoothScroll />
       <NetworkStatusListener />
       <Navbar />
 
@@ -213,7 +261,7 @@ export default function App() {
       <MaintenanceGuard>
         <FeedbackModal />
         <UpgradeModal />
-        <Suspense fallback={<DashboardSkeleton />}>
+        <Suspense fallback={<RouteLoadingFallback />}>
           <AnimatePresence mode="wait">
             <Routes location={location} key={location.pathname}>
             <Route

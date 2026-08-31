@@ -1266,6 +1266,10 @@ router.post("/student/send-handover-otp", async (req, res) => {
 // 5b. Unified Single-Roundtrip Authentication Bootstrap (/api/auth/bootstrap)
 router.get("/bootstrap", async (req, res) => {
   try {
+    // Session state is derived from HTTP-only cookies, so this endpoint must
+    // never be cached by a browser or intermediary.
+    res.setHeader("Cache-Control", "private, no-store, max-age=0, must-revalidate");
+    res.setHeader("Vary", "Cookie");
     let studentToken = req.cookies?.student_jwt;
     if (!studentToken && req.headers["x-student-token"]) {
       studentToken = req.headers["x-student-token"];

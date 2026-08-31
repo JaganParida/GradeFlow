@@ -2745,6 +2745,19 @@ html {
   scroll-behavior: smooth;
 }
 
+/* Route-level skeletons retain the actual page proportions on narrow screens. */
+@media (max-width: 760px) {
+  .gf-route-skeleton-hero,
+  .gf-route-skeleton-resources,
+  .gf-route-skeleton-admin {
+    grid-template-columns: 1fr !important;
+  }
+
+  .gf-route-skeleton-cards {
+    grid-template-columns: 1fr !important;
+  }
+}
+
 .gf-landing-nav-link:hover {
   color: #0f172a !important;
   background: #f1f5f9;

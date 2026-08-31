@@ -163,7 +163,10 @@ export function AppProvider({ children }) {
       try {
         const res = await axios.get(`${API_BASE}/auth/bootstrap`, {
           withCredentials: true,
-          timeout: 6000,
+          // Serverless cold starts and slow mobile networks can take longer than
+          // six seconds. Do not mistake an unfinished cookie validation for a
+          // logged-out student.
+          timeout: 15000,
           headers: { "Cache-Control": "no-cache" },
         });
 
@@ -228,10 +231,14 @@ export function AppProvider({ children }) {
           setAdminAuthStatus("UNAUTHENTICATED");
         }
       } catch (err) {
-        console.warn("Authentication bootstrap fallback:", err.message);
-        // Fallback gracefully so UI is never stuck in verifying session
-        setAuthStatus("UNAUTHENTICATED");
-        setAdminAuthStatus("UNAUTHENTICATED");
+        console.warn("Authentication bootstrap could not be resolved:", err.message);
+        // A timeout/offline response cannot prove that a cookie is missing.
+        // Keep this distinct from an explicit successful unauthenticated
+        // response so protected navigation never flashes the login state.
+        if (!isSilent) {
+          setAuthStatus("AUTH_ERROR");
+          setAdminAuthStatus("AUTH_ERROR");
+        }
       } finally {
         setAuthChecking(false);
         setMaintenanceChecked(true);
@@ -243,6 +250,17 @@ export function AppProvider({ children }) {
     inFlightBootstrapRef.current = bootstrapPromise;
     return bootstrapPromise;
   }, []);
+
+  // Used by click handlers while the app is still reading HTTP-only cookies.
+  // It reuses the current request (rather than reloading the page) and retries
+  // a failed network verification on the next protected action.
+  const waitForAuthResolution = useCallback(async () => {
+    if (authChecking || authStatus === "BOOTSTRAPPING" || authStatus === "AUTH_ERROR") {
+      const result = await bootstrapAuthentication();
+      return result?.student?.regNo ? result.student : null;
+    }
+    return studentSession;
+  }, [authChecking, authStatus, bootstrapAuthentication, studentSession]);
 
   // ─── Initial Startup Bootstrap & Lifecycle Listeners ─────────────
   useEffect(() => {
@@ -267,6 +285,21 @@ export function AppProvider({ children }) {
       window.removeEventListener("focus", handleVisibilityChange);
     };
   }, [bootstrapAuthentication]);
+
+  // Recover automatically from a cold-start/temporary network failure without
+  // ever converting the unknown cookie state into a false logged-out state.
+  useEffect(() => {
+    if (authStatus !== "AUTH_ERROR") return undefined;
+
+    const retryBootstrap = () => bootstrapAuthentication();
+    const retryTimer = window.setTimeout(retryBootstrap, 5000);
+    window.addEventListener("online", retryBootstrap, { once: true });
+
+    return () => {
+      window.clearTimeout(retryTimer);
+      window.removeEventListener("online", retryBootstrap);
+    };
+  }, [authStatus, bootstrapAuthentication]);
 
   // ─── Active Admin Heartbeat (Keep lastActiveAt fresh every 30s) ────
   useEffect(() => {
@@ -902,6 +935,7 @@ export function AppProvider({ children }) {
         adminAuthStatus,
         authChecking,
         bootstrapAuthentication,
+        waitForAuthResolution,
         isAuthModalOpen,
         setIsAuthModalOpen,
         openStudentAuthModal: (dest = null) => {

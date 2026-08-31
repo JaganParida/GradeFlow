@@ -1274,6 +1274,10 @@ module.exports = async function handler(req, res) {
        7b. UNIFIED AUTHENTICATION BOOTSTRAP (/auth/bootstrap)
     ═══════════════════════════════════════════════════════════════════ */
     if (action === "bootstrap" && req.method === "GET") {
+      // This response is specific to HTTP-only cookies. Never let a browser,
+      // CDN, or service worker reuse another session's bootstrap result.
+      res.setHeader("Cache-Control", "private, no-store, max-age=0, must-revalidate");
+      res.setHeader("Vary", "Cookie");
       let studentToken = req.headers["x-student-token"];
       if (!studentToken && cookies.student_jwt && cookies.student_jwt !== "none") {
         studentToken = cookies.student_jwt;

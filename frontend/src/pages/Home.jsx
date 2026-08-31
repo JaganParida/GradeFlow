@@ -28,6 +28,7 @@ export default function Home() {
     studentSession,
     hasActiveSession,
     authChecking,
+    waitForAuthResolution,
     openStudentAuthModal,
     fetchStudent,
   } = useApp();
@@ -64,90 +65,51 @@ export default function Home() {
     handleNavigateSection("features");
   };
 
-  const handleLogin = () => {
+  const goToProtectedDestination = async (destination) => {
+    // Do not use the initial empty React state as an auth decision. Wait for
+    // the HTTP-only cookie bootstrap, then use its resolved session directly.
+    const resolvedSession = await waitForAuthResolution();
+    const regNo = resolvedSession?.regNo || currentRegNo;
+    if (!regNo) {
+      openStudentAuthModal(destination);
+      return;
+    }
+
+    const encodedId = encodeStudentId(regNo);
+    if (destination.type === "leaderboard") {
+      navigate("/leaderboard");
+    } else if (destination.type === "timetable") {
+      navigate(`/timetable/${encodedId}`);
+    } else if (destination.type === "attendance") {
+      navigate(`/attendance/${encodedId}`);
+    } else if (destination.type === "analytics") {
+      const query = destination.tab ? `?tab=${encodeURIComponent(destination.tab)}` : "";
+      navigate(`/analytics/${encodedId}${query}`);
+    } else {
+      const query = destination.tab ? `?tab=${encodeURIComponent(destination.tab)}` : "";
+      navigate(`/dashboard/${encodedId}${query}`);
+    }
+  };
+
+  const handleLogin = async () => {
+    const resolvedSession = await waitForAuthResolution();
+    if (resolvedSession?.regNo) {
+      navigate(`/dashboard/${encodeStudentId(resolvedSession.regNo)}`);
+      return;
+    }
     openStudentAuthModal();
   };
 
-  const handleDashboard = () => {
-    if (hasActiveSession && currentRegNo) {
-      navigate(`/dashboard/${encodeStudentId(currentRegNo)}`);
-    } else {
-      openStudentAuthModal({ type: "dashboard" });
-    }
-  };
-
-  const handleTimetable = () => {
-    if (hasActiveSession && currentRegNo) {
-      navigate(`/timetable/${encodeStudentId(currentRegNo)}`);
-    } else {
-      openStudentAuthModal({ type: "timetable" });
-    }
-  };
-
-  const handleAttendance = () => {
-    if (hasActiveSession && currentRegNo) {
-      navigate(`/attendance/${encodeStudentId(currentRegNo)}`);
-    } else {
-      openStudentAuthModal({ type: "attendance" });
-    }
-  };
-
-  const handlePredictor = () => {
-    if (hasActiveSession && currentRegNo) {
-      navigate(`/analytics/${encodeStudentId(currentRegNo)}?tab=predictor`);
-    } else {
-      openStudentAuthModal({ type: "analytics", tab: "predictor" });
-    }
-  };
-
-  const handleAnalytics = (tab = "overview") => {
-    if (hasActiveSession && currentRegNo) {
-      const query = tab ? `?tab=${encodeURIComponent(tab)}` : "";
-      navigate(`/analytics/${encodeStudentId(currentRegNo)}${query}`);
-    } else {
-      openStudentAuthModal({ type: "analytics", tab });
-    }
-  };
-
-  const handlePlacement = () => {
-    if (hasActiveSession && currentRegNo) {
-      navigate(`/analytics/${encodeStudentId(currentRegNo)}?tab=placement`);
-    } else {
-      openStudentAuthModal({ type: "analytics", tab: "placement" });
-    }
-  };
-
-  const handleDomains = () => {
-    if (hasActiveSession && currentRegNo) {
-      navigate(`/analytics/${encodeStudentId(currentRegNo)}?tab=mastery`);
-    } else {
-      openStudentAuthModal({ type: "analytics", tab: "mastery" });
-    }
-  };
-
-  const handleGradeSheet = () => {
-    if (hasActiveSession && currentRegNo) {
-      navigate(`/analytics/${encodeStudentId(currentRegNo)}?tab=grades`);
-    } else {
-      openStudentAuthModal({ type: "analytics", tab: "grades" });
-    }
-  };
-
-  const handleDegreeProgress = () => {
-    if (hasActiveSession && currentRegNo) {
-      navigate(`/dashboard/${encodeStudentId(currentRegNo)}?tab=baskets`);
-    } else {
-      openStudentAuthModal({ type: "dashboard", tab: "baskets" });
-    }
-  };
-
-  const handleLeaderboard = () => {
-    if (hasActiveSession && currentRegNo) {
-      navigate("/leaderboard");
-    } else {
-      openStudentAuthModal({ type: "leaderboard" });
-    }
-  };
+  const handleDashboard = () => goToProtectedDestination({ type: "dashboard" });
+  const handleTimetable = () => goToProtectedDestination({ type: "timetable" });
+  const handleAttendance = () => goToProtectedDestination({ type: "attendance" });
+  const handlePredictor = () => goToProtectedDestination({ type: "analytics", tab: "predictor" });
+  const handleAnalytics = (tab = "overview") => goToProtectedDestination({ type: "analytics", tab });
+  const handlePlacement = () => goToProtectedDestination({ type: "analytics", tab: "placement" });
+  const handleDomains = () => goToProtectedDestination({ type: "analytics", tab: "mastery" });
+  const handleGradeSheet = () => goToProtectedDestination({ type: "analytics", tab: "grades" });
+  const handleDegreeProgress = () => goToProtectedDestination({ type: "dashboard", tab: "baskets" });
+  const handleLeaderboard = () => goToProtectedDestination({ type: "leaderboard" });
 
   return (
     <div

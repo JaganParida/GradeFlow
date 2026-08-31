@@ -37,6 +37,93 @@ export function SkeletonGrid({ count = 4, h = 100 }) {
   );
 }
 
+const fullPageStyle = {
+  maxWidth: 1280,
+  minHeight: "100vh",
+  margin: "0 auto",
+  padding: "96px 24px 64px",
+  display: "flex",
+  flexDirection: "column",
+  gap: 22,
+  boxSizing: "border-box",
+};
+
+/** Content-shaped fallbacks used while route chunks load on slow networks. */
+export function LandingSkeleton() {
+  return (
+    <main style={fullPageStyle} aria-label="Loading home page" aria-busy="true">
+      <div style={{ display: "grid", gridTemplateColumns: "minmax(0, 1.05fr) minmax(320px, .95fr)", gap: 32, alignItems: "center" }} className="gf-route-skeleton-hero">
+        <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+          <SkeletonBlock w="132px" h="26px" r="999px" />
+          <SkeletonBlock w="92%" h="52px" r="10px" />
+          <SkeletonBlock w="76%" h="52px" r="10px" />
+          <SkeletonBlock w="88%" h="18px" r="6px" />
+          <SkeletonBlock w="68%" h="18px" r="6px" />
+          <div style={{ display: "flex", gap: 10, marginTop: 8 }}><SkeletonBlock w="144px" h="46px" r="12px" /><SkeletonBlock w="124px" h="46px" r="12px" /></div>
+        </div>
+        <SkeletonBlock h="340px" r="22px" />
+      </div>
+      <SkeletonGrid count={4} h={132} />
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: 18 }} className="gf-route-skeleton-cards">
+        <SkeletonBlock h="220px" r="20px" /><SkeletonBlock h="220px" r="20px" /><SkeletonBlock h="220px" r="20px" />
+      </div>
+    </main>
+  );
+}
+
+export function PublicPageSkeleton() {
+  return (
+    <main style={{ ...fullPageStyle, maxWidth: 920 }} aria-label="Loading page" aria-busy="true">
+      <SkeletonBlock w="120px" h="24px" r="999px" />
+      <SkeletonBlock w="65%" h="46px" r="10px" />
+      <SkeletonBlock w="100%" h="18px" r="6px" />
+      <SkeletonBlock w="88%" h="18px" r="6px" />
+      <SkeletonBlock w="94%" h="220px" r="20px" />
+      <SkeletonBlock w="100%" h="160px" r="20px" />
+    </main>
+  );
+}
+
+export function ResourcesSkeleton() {
+  return (
+    <main style={fullPageStyle} aria-label="Loading resources" aria-busy="true">
+      <SkeletonBlock w="240px" h="38px" r="8px" />
+      <SkeletonBlock w="100%" h="48px" r="12px" />
+      <div style={{ display: "grid", gridTemplateColumns: "260px minmax(0, 1fr)", gap: 22 }} className="gf-route-skeleton-resources">
+        <SkeletonBlock h="420px" r="18px" />
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 16 }}>
+          {Array.from({ length: 6 }, (_, index) => <SkeletonBlock key={index} h="154px" r="18px" />)}
+        </div>
+      </div>
+    </main>
+  );
+}
+
+export function AdminLoginSkeleton() {
+  return (
+    <main style={{ ...fullPageStyle, maxWidth: 460, alignItems: "stretch", justifyContent: "center" }} aria-label="Loading sign in" aria-busy="true">
+      <SkeletonBlock w="56px" h="56px" r="16px" />
+      <SkeletonBlock w="72%" h="32px" r="8px" />
+      <SkeletonBlock w="100%" h="18px" r="5px" />
+      <SkeletonBlock w="100%" h="48px" r="10px" />
+      <SkeletonBlock w="100%" h="48px" r="10px" />
+    </main>
+  );
+}
+
+export function AdminDashboardSkeleton() {
+  return (
+    <main style={fullPageStyle} aria-label="Loading administration" aria-busy="true">
+      <SkeletonBlock w="250px" h="34px" r="8px" />
+      <SkeletonGrid count={4} h={124} />
+      <div style={{ display: "grid", gridTemplateColumns: "minmax(0, 1.2fr) minmax(300px, .8fr)", gap: 18 }} className="gf-route-skeleton-admin">
+        <SkeletonBlock h="360px" r="20px" />
+        <SkeletonBlock h="360px" r="20px" />
+      </div>
+    </main>
+  );
+}
+
 /* ─── Dashboard Full-Page Skeleton (100% Pixel Match to Dashboard Page Layout) ─── */
 export function DashboardSkeleton() {
   return (
