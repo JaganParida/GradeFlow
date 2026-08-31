@@ -1975,13 +1975,13 @@ export default function AttendanceTracker() {
                 >
                   {isMobile ? (
                     /* Mobile: Name + Section Badge + Target Selector */
-                    <div style={{ display: "flex", flexDirection: "column", gap: 8, width: "100%" }}>
+                    <div style={{ display: "flex", flexDirection: "column", gap: 10, width: "100%" }}>
                       {/* Row 1: Name + Section Badge */}
                       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
                         <div style={{ minWidth: 0, flex: 1 }}>
                           <h2
                             style={{
-                              fontSize: 15,
+                              fontSize: 16,
                               fontWeight: 800,
                               color: "#0f172a",
                               margin: 0,
@@ -1999,13 +1999,13 @@ export default function AttendanceTracker() {
                           style={{
                             display: "inline-flex",
                             alignItems: "center",
-                            gap: 4,
-                            background: "#ecfdf5",
-                            color: "#059669",
-                            padding: "3px 8px",
-                            borderRadius: 6,
-                            fontSize: 11,
-                            fontWeight: 700,
+                            gap: 4.5,
+                            background: "linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%)",
+                            color: "#047857",
+                            padding: "4px 9px",
+                            borderRadius: 8,
+                            fontSize: 11.5,
+                            fontWeight: 750,
                             border: "1px solid #a7f3d0",
                             flexShrink: 0,
                           }}
@@ -2015,44 +2015,80 @@ export default function AttendanceTracker() {
                         </span>
                       </div>
 
-                      {/* Row 2: Target Goal Selector */}
-                      <div style={{
-                        display: "flex",
-                        alignItems: "center",
-                        gap: 4,
-                        background: "#f8fafc",
-                        padding: "5px 10px",
-                        borderRadius: 8,
-                        border: "1px solid #e2e8f0",
-                      }}>
-                        <span style={{ fontSize: 11, fontWeight: 800, color: "#64748b", marginRight: 2, flexShrink: 0 }}>Target:</span>
-                        {[75, 80, 85, 90].map((goal) => {
-                          const isSelected = targetGoal === goal;
-                          return (
-                            <button
-                              key={goal}
-                              type="button"
-                              onClick={() => {
-                                setTargetGoal(goal);
-                                syncAttendanceToDb(savedSubjects, allDailyLogs, goal);
-                              }}
-                              style={{
-                                padding: "5px 10px",
-                                borderRadius: 6,
-                                border: "none",
-                                background: isSelected ? "#059669" : "transparent",
-                                color: isSelected ? "#ffffff" : "#475569",
-                                fontSize: 11.5,
-                                fontWeight: 800,
-                                cursor: "pointer",
-                                transition: "all 0.12s ease",
-                                flexShrink: 0,
-                              }}
-                            >
-                              {goal}%
-                            </button>
-                          );
-                        })}
+                      {/* Row 2: Target Goal Segmented Control */}
+                      <div
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 4,
+                          background: "#f1f5f9",
+                          padding: 3,
+                          borderRadius: 10,
+                          border: "1px solid #e2e8f0",
+                          width: "100%",
+                          boxSizing: "border-box",
+                        }}
+                      >
+                        <div
+                          style={{
+                            display: "inline-flex",
+                            alignItems: "center",
+                            gap: 4,
+                            padding: "0 6px 0 8px",
+                            fontSize: 11,
+                            fontWeight: 800,
+                            color: "#64748b",
+                            textTransform: "uppercase",
+                            letterSpacing: "0.4px",
+                            flexShrink: 0,
+                          }}
+                        >
+                          <Target size={12} color="#059669" />
+                          <span>Target</span>
+                        </div>
+
+                        <div
+                          style={{
+                            display: "grid",
+                            gridTemplateColumns: "repeat(4, 1fr)",
+                            gap: 3,
+                            flex: 1,
+                          }}
+                        >
+                          {[75, 80, 85, 90].map((goal) => {
+                            const isSelected = targetGoal === goal;
+                            return (
+                              <button
+                                key={goal}
+                                type="button"
+                                onClick={() => {
+                                  setTargetGoal(goal);
+                                  syncAttendanceToDb(savedSubjects, allDailyLogs, goal);
+                                }}
+                                style={{
+                                  padding: "6px 0",
+                                  borderRadius: 7,
+                                  border: "none",
+                                  background: isSelected ? "#059669" : "transparent",
+                                  color: isSelected ? "#ffffff" : "#475569",
+                                  fontSize: 12,
+                                  fontWeight: 800,
+                                  cursor: "pointer",
+                                  transition: "all 0.15s ease",
+                                  boxShadow: isSelected
+                                    ? "0 2px 6px rgba(5, 150, 105, 0.28)"
+                                    : "none",
+                                  textAlign: "center",
+                                  display: "flex",
+                                  alignItems: "center",
+                                  justifyContent: "center",
+                                }}
+                              >
+                                {goal}%
+                              </button>
+                            );
+                          })}
+                        </div>
                       </div>
                     </div>
                   ) : (

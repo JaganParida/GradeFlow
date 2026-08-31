@@ -45,32 +45,24 @@ const prefersReducedMotion =
 const mobileDrawerVariants = {
   hidden: {
     x: prefersReducedMotion ? 0 : "100%",
-    opacity: prefersReducedMotion ? 0 : 1,
   },
   visible: {
     x: 0,
-    opacity: 1,
     transition: {
       type: "spring",
-      damping: 30,
-      stiffness: 300,
-      mass: 0.8,
+      damping: 28,
+      stiffness: 280,
+      mass: 0.75,
       duration: prefersReducedMotion ? 0.01 : undefined,
-      staggerChildren: prefersReducedMotion ? 0 : 0.05,
-      delayChildren: prefersReducedMotion ? 0 : 0.1,
+      staggerChildren: prefersReducedMotion ? 0 : 0.035,
+      delayChildren: prefersReducedMotion ? 0 : 0.03,
     },
   },
   exit: {
     x: prefersReducedMotion ? 0 : "100%",
-    opacity: prefersReducedMotion ? 0 : 1,
     transition: {
-      type: "spring",
-      damping: 35,
-      stiffness: 400,
-      mass: 0.8,
-      duration: prefersReducedMotion ? 0.01 : undefined,
-      staggerChildren: prefersReducedMotion ? 0 : 0.025,
-      staggerDirection: -1,
+      duration: prefersReducedMotion ? 0.01 : 0.22,
+      ease: [0.32, 0, 0.67, 0],
     },
   },
 };
@@ -78,28 +70,22 @@ const mobileDrawerVariants = {
 const mobileNavItemVariants = {
   hidden: {
     opacity: 0,
-    x: prefersReducedMotion ? 0 : 40,
-    filter: prefersReducedMotion ? "none" : "blur(4px)",
+    x: prefersReducedMotion ? 0 : 24,
   },
   visible: {
     opacity: 1,
     x: 0,
-    filter: "blur(0px)",
     transition: {
-      type: "spring",
-      damping: 25,
-      stiffness: 250,
-      mass: 0.6,
-      duration: prefersReducedMotion ? 0.01 : undefined,
+      duration: prefersReducedMotion ? 0.01 : 0.24,
+      ease: [0.16, 1, 0.3, 1],
     },
   },
   exit: {
     opacity: 0,
-    x: prefersReducedMotion ? 0 : 30,
-    filter: prefersReducedMotion ? "none" : "blur(2px)",
+    x: prefersReducedMotion ? 0 : 16,
     transition: {
-      duration: prefersReducedMotion ? 0.01 : 0.15,
-      ease: [0.4, 0, 1, 1],
+      duration: prefersReducedMotion ? 0.01 : 0.14,
+      ease: "easeIn",
     },
   },
 };
@@ -1122,78 +1108,78 @@ export default function Navbar() {
             initial="hidden"
             animate="visible"
             exit="exit"
+            style={{
+              position: "fixed",
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              width: "100vw",
+              height: "100dvh",
+              overflowY: "auto",
+              WebkitOverflowScrolling: "touch",
+              background: "#ffffff",
+              zIndex: 9999,
+              padding: "16px 18px 36px 18px",
+              display: "flex",
+              flexDirection: "column",
+              gap: 12,
+              boxSizing: "border-box",
+              overscrollBehavior: "contain",
+              willChange: "transform",
+            }}
+          >
+            {/* Drawer Header with Close Button */}
+            <motion.div
+              variants={mobileNavItemVariants}
               style={{
-                position: "fixed",
-                top: 0,
-                right: 0,
-                bottom: 0,
-                width: "85%",
-                maxWidth: 340,
-                height: "100dvh",
-                overflowY: "auto",
-                WebkitOverflowScrolling: "touch",
-                background: "#ffffff",
-                borderLeft: "1px solid #e2e8f0",
-                borderRadius: "16px 0 0 16px",
-                boxShadow: "-8px 0 40px -5px rgba(15, 23, 42, 0.18)",
-                zIndex: 999,
-                padding: "20px 18px 32px",
                 display: "flex",
-                flexDirection: "column",
-                gap: 12,
-                overscrollBehavior: "contain",
-                willChange: "transform",
+                alignItems: "center",
+                justifyContent: "space-between",
+                paddingBottom: 12,
+                borderBottom: "1px solid #f1f5f9",
+                marginBottom: 2,
               }}
             >
-              {/* Drawer Header with Close Button */}
-              <motion.div
-                variants={mobileNavItemVariants}
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "space-between",
-                  paddingBottom: 14,
-                  borderBottom: "1px solid #f1f5f9",
-                  marginBottom: 2,
-                }}
-              >
-                <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
-                  <img
-                    src="/webisteLogo.png"
-                    alt="GradeFlow"
-                    style={{ height: 34, width: "auto", objectFit: "contain" }}
-                  />
-                  <span style={{
+              <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                <img
+                  src="/webisteLogo.png"
+                  alt="GradeFlow"
+                  style={{ height: 36, width: "auto", objectFit: "contain" }}
+                />
+                <span
+                  style={{
                     fontFamily: "'DM Sans', sans-serif",
                     fontWeight: 800,
-                    fontSize: 18,
+                    fontSize: 20,
                     color: "#0f172a",
                     letterSpacing: "-0.4px",
-                  }}>
-                    GradeFlow
-                  </span>
-                </div>
-                <button
-                  onClick={() => setMobileMenuOpen(false)}
-                  aria-label="Close menu"
-                  style={{
-                    width: 34,
-                    height: 34,
-                    borderRadius: 10,
-                    background: "#f8fafc",
-                    border: "1px solid #e2e8f0",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    color: "#64748b",
-                    cursor: "pointer",
-                    transition: "all 0.15s ease",
-                    flexShrink: 0,
                   }}
                 >
-                  <X size={18} />
-                </button>
-              </motion.div>
+                  GradeFlow
+                </span>
+              </div>
+              <button
+                onClick={() => setMobileMenuOpen(false)}
+                aria-label="Close menu"
+                style={{
+                  width: 38,
+                  height: 38,
+                  borderRadius: 10,
+                  background: "#f1f5f9",
+                  border: "1px solid #e2e8f0",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  color: "#334155",
+                  cursor: "pointer",
+                  transition: "all 0.15s ease",
+                  flexShrink: 0,
+                }}
+              >
+                <X size={19} />
+              </button>
+            </motion.div>
 
               {/* Admin Search Bar inside Drawer (Admin Only) */}
               {adminToken && (
