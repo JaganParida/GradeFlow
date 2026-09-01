@@ -1005,8 +1005,8 @@ export default function Navbar() {
               }
               aria-expanded={mobileMenuOpen}
               style={{
-                width: 38,
-                height: 38,
+                width: 44,
+                height: 44,
                 borderRadius: 10,
                 background: mobileMenuOpen ? "#eff6ff" : "#f8fafc",
                 border: mobileMenuOpen
@@ -1119,8 +1119,8 @@ export default function Navbar() {
             onClick={() => setMobileMenuOpen(false)}
             aria-label="Close menu"
             style={{
-              width: 38,
-              height: 38,
+              width: 44,
+              height: 44,
               borderRadius: 10,
               background: "#f1f5f9",
               border: "1px solid #e2e8f0",
@@ -2394,8 +2394,8 @@ export default function Navbar() {
             box-shadow: 0 2px 6px rgba(16, 185, 129, 0.18) !important;
           }
           .gf-mobile-toggle {
-            width: 36px !important;
-            height: 36px !important;
+            width: 44px !important;
+            height: 44px !important;
             border-radius: 9px !important;
           }
           .gf-logo-text {
@@ -2450,8 +2450,8 @@ export default function Navbar() {
             align-items: center;
           }
           .gf-mobile-toggle {
-            width: 35px !important;
-            height: 35px !important;
+            width: 44px !important;
+            height: 44px !important;
             border-radius: 9px !important;
           }
           .gf-logo-text {
@@ -2493,8 +2493,8 @@ export default function Navbar() {
             color: #065f46 !important;
           }
           .gf-mobile-toggle {
-            width: 33px !important;
-            height: 33px !important;
+            width: 44px !important;
+            height: 44px !important;
             border-radius: 8px !important;
           }
           .gf-logo-text {

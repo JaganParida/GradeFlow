@@ -11,6 +11,7 @@ import { encodeStudentId, decodeStudentId, isEncryptedToken } from "../utils/stu
 import GradeSheet from "../components/GradeSheet";
 import BasketDashboard from "../components/BasketDashboard";
 import TargetPredictor from "../components/TargetPredictor";
+import StudentSectionNavigation from "../components/StudentSectionNavigation";
 import axios from "axios";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -1259,8 +1260,15 @@ export default function Dashboard() {
             RIGHT MAIN WORKSPACE PANEL
         ══════════════════════════════════════════════════════════ */}
         <main style={{ display: "flex", flexDirection: "column", gap: isMobile ? 12 : 20, minWidth: 0, width: "100%", boxSizing: "border-box" }}>
+          <StudentSectionNavigation
+            sectionLabel="Academic Records"
+            items={navMenuItems}
+            activeId={tab}
+            onSelect={setTab}
+            accent="#2563eb"
+          />
           {/* Mobile Sticky Views Sub-Navigation Bar with Left & Right Arrow Buttons */}
-          {isMobile && (
+          {false && isMobile && (
             <div
               style={{
                 position: "sticky",
