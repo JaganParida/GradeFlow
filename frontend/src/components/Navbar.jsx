@@ -841,20 +841,6 @@ export default function Navbar() {
 
           {/* Right Controls */}
           <div className="gf-navbar-right" style={{ display: "flex", alignItems: "center", gap: 10 }}>
-            {sectionControl && (
-              <button
-                type="button"
-                className="gf-current-section-control"
-                onClick={openSectionNavigation}
-                aria-label={`Open ${sectionControl.sectionLabel} navigation; current page ${sectionControl.activeLabel}`}
-              >
-                <span style={{ color: sectionControl.accent, display: "inline-flex", flexShrink: 0 }}>
-                  {sectionControl.icon}
-                </span>
-                <span className="gf-current-section-control__label">{sectionControl.activeLabel}</span>
-                <ChevronDown size={16} aria-hidden="true" />
-              </button>
-            )}
             {/* In-App Notification Bell & Device Approvals (Desktop) */}
             <div className="gf-desktop-bell-wrapper">
               {hasActiveSession && <NotificationBell isMobile={false} />}
@@ -1155,13 +1141,13 @@ export default function Navbar() {
           bottom: 0,
           width: "100%",
           height: useBottomStudentNavigation ? "auto" : "100dvh",
-          maxHeight: useBottomStudentNavigation ? "min(76dvh, 620px)" : "none",
+          maxHeight: useBottomStudentNavigation ? "min(64dvh, 560px)" : "none",
           overflowY: "auto",
           WebkitOverflowScrolling: "touch",
           background: "#ffffff",
           zIndex: 9999,
           padding: useBottomStudentNavigation
-            ? "8px 16px calc(18px + env(safe-area-inset-bottom))"
+            ? "8px 14px calc(14px + env(safe-area-inset-bottom))"
             : "16px 18px 36px 18px",
           display: "flex",
           flexDirection: "column",
@@ -1182,7 +1168,9 @@ export default function Navbar() {
             : "transform 0.32s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.22s ease, visibility 0.32s",
           WebkitBackfaceVisibility: "hidden",
           backfaceVisibility: "hidden",
+          border: useBottomStudentNavigation ? "1px solid rgba(203, 213, 225, 0.92)" : "none",
           borderRadius: useBottomStudentNavigation ? "22px 22px 0 0" : 0,
+          boxShadow: useBottomStudentNavigation ? "0 -12px 48px rgba(15, 23, 42, 0.22)" : "none",
         }}
         onTouchStart={(event) => {
           if (useBottomStudentNavigation) {
@@ -1213,24 +1201,31 @@ export default function Navbar() {
             marginBottom: 2,
           }}
         >
-          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-            <img
-              src="/webisteLogo.png"
-              alt="GradeFlow"
-              style={{ height: 36, width: "auto", objectFit: "contain" }}
-            />
-            <span
-              style={{
-                fontFamily: "'DM Sans', sans-serif",
-                fontWeight: 800,
-                fontSize: 20,
-                color: "#0f172a",
-                letterSpacing: "-0.4px",
-              }}
-            >
-              GradeFlow
-            </span>
-          </div>
+          {useBottomStudentNavigation ? (
+            <div style={{ display: "grid", gap: 2 }}>
+              <span style={{ fontFamily: "'DM Sans', sans-serif", fontWeight: 800, fontSize: 17, color: "#0f172a", letterSpacing: "-0.2px" }}>Menu</span>
+              <span style={{ color: "#64748b", fontSize: 12, fontWeight: 500 }}>Account, tools and settings</span>
+            </div>
+          ) : (
+            <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+              <img
+                src="/webisteLogo.png"
+                alt="GradeFlow"
+                style={{ height: 36, width: "auto", objectFit: "contain" }}
+              />
+              <span
+                style={{
+                  fontFamily: "'DM Sans', sans-serif",
+                  fontWeight: 800,
+                  fontSize: 20,
+                  color: "#0f172a",
+                  letterSpacing: "-0.4px",
+                }}
+              >
+                GradeFlow
+              </span>
+            </div>
+          )}
           <button
             onClick={() => setMobileMenuOpen(false)}
             aria-label="Close menu"

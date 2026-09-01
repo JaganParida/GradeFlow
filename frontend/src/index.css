@@ -2925,7 +2925,16 @@ html {
 .gf-global-drawer__notification { display: none; }
 
 @media (max-width: 768px) {
-  .gf-student-nav-active { display: none !important; }
+  /* Keep the familiar brand at the top; move only navigation controls down. */
+  .gf-student-nav-active { display: block !important; }
+  .gf-student-nav-active .gf-navbar-inner {
+    height: 60px !important;
+    min-height: 60px !important;
+    justify-content: flex-start !important;
+    padding-inline: 16px !important;
+  }
+  .gf-student-nav-active .gf-desktop-nav,
+  .gf-student-nav-active .gf-navbar-right { display: none !important; }
 
   .gf-mobile-bottom-nav {
     position: fixed;
@@ -2991,7 +3000,7 @@ html {
     width: 100%;
     height: 100%;
     border: 0;
-    background: rgba(15, 23, 42, 0.34);
+    background: rgba(15, 23, 42, 0.42);
     cursor: default;
   }
 
