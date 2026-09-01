@@ -2,7 +2,6 @@ import { useEffect, useState, useMemo, useRef } from "react";
 import { useParams, useNavigate, useSearchParams, useLocation } from "react-router-dom";
 import { useApp } from "../context/AppContext";
 import CompanyEligibility from "../components/CompanyEligibility";
-import StudentSectionNavigation from "../components/StudentSectionNavigation";
 import {
   LineChart,
   Line,
@@ -773,16 +772,10 @@ export default function Analytics() {
             </div>
           </div>
 
-          <StudentSectionNavigation
-            sectionLabel="Analytics"
-            items={navTabs}
-            activeId={tab}
-            onSelect={handleTabChange}
-            accent="#2563eb"
-          />
-
-          {/* Legacy segmented control retained only as implementation context; the current-section sheet above is the sole rendered control. */}
-          {false ? (
+          {/* ══════════════════════════════════════════════════════════
+              SUB-NAV SEGMENTED TAB SWITCHER (With Scroll Arrows on Mobile)
+          ══════════════════════════════════════════════════════════ */}
+          {isMobile ? (
             <div
               style={{
                 display: "flex",

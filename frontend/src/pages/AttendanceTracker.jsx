@@ -2,7 +2,6 @@ import React, { useState, useEffect, useMemo, useRef } from "react";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import axios from "axios";
 import { useApp } from "../context/AppContext";
-import StudentSectionNavigation from "../components/StudentSectionNavigation";
 import { encodeStudentId, decodeStudentId, isEncryptedToken } from "../utils/studentIdEncoder";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -1876,15 +1875,8 @@ export default function AttendanceTracker() {
             RIGHT MAIN WORKSPACE PANEL
         ══════════════════════════════════════════════════════════ */}
         <main style={{ display: "flex", flexDirection: "column", gap: isMobile ? 10 : 20, minWidth: 0, width: "100%", boxSizing: "border-box" }}>
-          <StudentSectionNavigation
-            sectionLabel="Attendance"
-            items={navMenuItems}
-            activeId={activeTab}
-            onSelect={handleTabClick}
-            accent="#059669"
-          />
           {/* ── MOBILE EXCLUSIVE AUTO-IMPORT CTA ── */}
-          {false && isMobile && (
+          {isMobile && (
             <div style={{ display: "flex", flexDirection: "column", gap: 8, width: "100%" }}>
               <button
                 type="button"
