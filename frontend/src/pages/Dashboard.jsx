@@ -1266,6 +1266,7 @@ export default function Dashboard() {
             activeId={tab}
             onSelect={setTab}
             accent="#2563eb"
+            inline={false}
           />
           {/* Mobile Sticky Views Sub-Navigation Bar with Left & Right Arrow Buttons */}
           {false && isMobile && (

@@ -196,7 +196,10 @@ module.exports = async function handler(req, res) {
 
     // Public / semi-public maintenance read
     if ((action === "maintenance" || cleanUrl.includes("/maintenance")) && req.method === "GET") {
-      const config = await SystemConfig.findOne({ key: "system_maintenance" }).lean();
+      // Keep this key aligned with the auth bootstrap and Express deployment.
+      // Using a second document here made a successful admin toggle invisible
+      // to the public maintenance-status endpoint.
+      const config = await SystemConfig.findOne({ key: "maintenance" }).lean();
       return res.json({
         enabled: config?.maintenance?.enabled || false,
         message: config?.maintenance?.message || "",
@@ -1062,7 +1065,7 @@ module.exports = async function handler(req, res) {
     if (action === "maintenance" && req.method === "PUT") {
       const { enabled, message } = req.body || {};
       const updated = await SystemConfig.findOneAndUpdate(
-        { key: "system_maintenance" },
+        { key: "maintenance" },
         {
           $set: {
             maintenance: {

@@ -779,6 +779,7 @@ export default function Analytics() {
             activeId={tab}
             onSelect={handleTabChange}
             accent="#2563eb"
+            inline={false}
           />
 
           {/* Legacy segmented control retained only as implementation context; the current-section sheet above is the sole rendered control. */}

@@ -1882,6 +1882,7 @@ export default function AttendanceTracker() {
             activeId={activeTab}
             onSelect={handleTabClick}
             accent="#059669"
+            inline={false}
           />
           {/* ── MOBILE EXCLUSIVE AUTO-IMPORT CTA ── */}
           {false && isMobile && (

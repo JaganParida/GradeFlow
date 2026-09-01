@@ -2795,6 +2795,27 @@ html {
 
 .gf-section-nav__chevron { margin-left: auto; color: #64748b; flex: 0 0 auto; }
 
+.gf-current-section-control {
+  min-width: 0;
+  max-width: 250px;
+  height: 44px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 12px;
+  color: #334155;
+  border: 1px solid #cbd5e1;
+  border-radius: 10px;
+  background: #ffffff;
+  cursor: pointer;
+  font: 700 13px/1 "DM Sans", sans-serif;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+}
+
+.gf-current-section-control:hover { background: #f8fafc; border-color: #94a3b8; }
+.gf-current-section-control:focus-visible { outline: 3px solid rgba(37, 99, 235, 0.24); outline-offset: 2px; }
+.gf-current-section-control__label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
 .gf-section-sheet-overlay {
   position: fixed;
   z-index: 10050;
@@ -2809,11 +2830,11 @@ html {
 
 .gf-section-sheet {
   width: min(100%, 640px);
-  max-height: min(78dvh, 680px);
+  max-height: min(64dvh, 560px);
   overflow: auto;
   padding: 8px 14px calc(14px + env(safe-area-inset-bottom));
   border: 1px solid rgba(203, 213, 225, 0.92);
-  border-radius: 20px 20px 14px 14px;
+  border-radius: 22px 22px 14px 14px;
   background: #ffffff;
   box-shadow: 0 -12px 48px rgba(15, 23, 42, 0.22);
   font-family: "DM Sans", sans-serif;
@@ -2821,9 +2842,9 @@ html {
 }
 
 .gf-section-sheet__handle {
-  width: 40px;
+  width: 36px;
   height: 4px;
-  margin: 1px auto 12px;
+  margin: 2px auto 10px;
   border-radius: 999px;
   background: #cbd5e1;
 }
@@ -2833,19 +2854,10 @@ html {
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  padding: 0 4px 10px;
+  padding: 0 4px 7px;
 }
 
-.gf-section-sheet__header p {
-  margin: 0 0 2px;
-  color: #64748b;
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-}
-
-.gf-section-sheet__header h2 { margin: 0; color: #0f172a; font-size: 18px; line-height: 1.2; }
+.gf-section-sheet__header h2 { margin: 0; color: #0f172a; font-size: 17px; line-height: 1.2; }
 
 .gf-section-sheet__close {
   width: 44px;
@@ -2865,7 +2877,7 @@ html {
 
 .gf-section-sheet__item {
   width: 100%;
-  min-height: 58px;
+  min-height: 54px;
   display: flex;
   align-items: center;
   gap: 12px;
@@ -2894,6 +2906,30 @@ html {
   .gf-section-nav__trigger { min-height: 48px; font-size: 14px; padding-inline: 14px; }
   .gf-section-sheet-overlay { align-items: center; }
   .gf-section-sheet { max-width: 520px; border-radius: 18px; }
+}
+
+/* The hamburger is the one global navigation entry point; on wide screens the
+   existing mobile drawer becomes a compact side drawer instead of a new menu. */
+@media (min-width: 1181px) {
+  .gf-desktop-nav { display: none !important; }
+  .gf-mobile-toggle { display: flex !important; }
+  .gf-global-drawer {
+    left: auto !important;
+    width: min(380px, 92vw) !important;
+    height: 100dvh !important;
+    padding-top: 20px !important;
+    border-left: 1px solid #e2e8f0;
+    box-shadow: -16px 0 44px rgba(15, 23, 42, 0.14);
+  }
+}
+
+@media (max-width: 1180px) {
+  .gf-student-nav-active .gf-mobile-bell-wrapper { display: none !important; }
+  .gf-current-section-control { max-width: min(44vw, 205px); }
+}
+
+@media (max-width: 480px) {
+  .gf-current-section-control { height: 44px; gap: 6px; padding: 0 9px; font-size: 12px; }
 }
 
 @media (prefers-reduced-motion: reduce) {

@@ -49,6 +49,7 @@ export default function Navbar() {
   const [analyticsDropdown, setAnalyticsDropdown] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [mobileAnalyticsOpen, setMobileAnalyticsOpen] = useState(false);
+  const [sectionControl, setSectionControl] = useState(null);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [searchModalOpen, setSearchModalOpen] = useState(false);
@@ -86,6 +87,14 @@ export default function Navbar() {
     };
     window.addEventListener("scroll", handleScroll);
     return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
+
+  // Student workspaces publish their existing local tab state here. This is a
+  // presentation bridge only: the page remains the sole owner of its view.
+  useEffect(() => {
+    const receiveSectionControl = (event) => setSectionControl(event.detail || null);
+    window.addEventListener("gradeflow:student-section-control", receiveSectionControl);
+    return () => window.removeEventListener("gradeflow:student-section-control", receiveSectionControl);
   }, []);
 
   // Close dropdowns on outside click
@@ -286,6 +295,7 @@ export default function Navbar() {
   return (
     <>
       <nav
+        className={sectionControl ? "gf-student-nav-active" : undefined}
         style={{
           position: "sticky",
           top: 0,
@@ -780,6 +790,23 @@ export default function Navbar() {
 
           {/* Right Controls */}
           <div className="gf-navbar-right" style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            {sectionControl && (
+              <button
+                type="button"
+                className="gf-current-section-control"
+                onClick={() => {
+                  setMobileMenuOpen(false);
+                  sectionControl.open();
+                }}
+                aria-label={`Open ${sectionControl.sectionLabel} navigation; current page ${sectionControl.activeLabel}`}
+              >
+                <span style={{ color: sectionControl.accent, display: "inline-flex", flexShrink: 0 }}>
+                  {sectionControl.icon}
+                </span>
+                <span className="gf-current-section-control__label">{sectionControl.activeLabel}</span>
+                <ChevronDown size={16} aria-hidden="true" />
+              </button>
+            )}
             {/* In-App Notification Bell & Device Approvals (Desktop) */}
             <div className="gf-desktop-bell-wrapper">
               {hasActiveSession && <NotificationBell isMobile={false} />}
@@ -997,7 +1024,10 @@ export default function Navbar() {
             {/* Mobile Hamburger Toggle Button */}
             <button
               className="gf-mobile-toggle"
-              onClick={() => setMobileMenuOpen((prev) => !prev)}
+              onClick={() => setMobileMenuOpen((prev) => {
+                if (!prev) sectionControl?.close?.();
+                return !prev;
+              })}
               aria-label={
                 mobileMenuOpen
                   ? "Close navigation menu"
@@ -1056,6 +1086,7 @@ export default function Navbar() {
       {/* ── Mobile Navigation Drawer (Hardware-Accelerated 60/120fps Native Slide) ── */}
       <div
         id="gf-mobile-drawer"
+        className="gf-global-drawer"
         style={{
           position: "fixed",
           top: 0,
