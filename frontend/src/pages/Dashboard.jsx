@@ -483,6 +483,53 @@ export default function Dashboard() {
       if (currentRanking.universityRank) rankLines.push(`Univ Rank: #${currentRanking.universityRank}`);
     }
 
+    // Keep the shared credit figures aligned with the dashboard's semester metrics.
+    const semesterCreditSummary = (studentData.results || [])
+      .slice()
+      .sort((a, b) => Number(a.semester) - Number(b.semester))
+      .map((result) => {
+        const metrics = calculateSemesterMetrics(result.subjects || [], result.semester);
+        return {
+          semester: result.semester,
+          totalCredits: metrics.totalCredits,
+          creditsCleared: metrics.creditsCleared,
+        };
+      })
+      .filter((summary) => summary.totalCredits > 0);
+
+    const cumulativeCredits = semesterCreditSummary.reduce(
+      (totals, summary) => ({
+        totalCredits: totals.totalCredits + summary.totalCredits,
+        creditsCleared: totals.creditsCleared + summary.creditsCleared,
+      }),
+      { totalCredits: 0, creditsCleared: 0 }
+    );
+
+    const semesterCreditText = semesterCreditSummary.length
+      ? semesterCreditSummary
+          .map(
+            ({ semester, creditsCleared: cleared, totalCredits: total }) =>
+              `• Semester ${semester}: ${cleared} / ${total} credits cleared`
+          )
+          .join("\n")
+      : "• Credit information is not available.";
+
+    const activeBacklogText = backlogs.length
+      ? [
+          `• ${backlogs.length} active backlog${backlogs.length > 1 ? "s" : ""}`,
+          ...backlogs
+            .slice()
+            .sort((a, b) => Number(a.semester) - Number(b.semester))
+            .map((backlog) => {
+              const name = backlog.subName || backlog.subjectName || "Subject";
+              const code = backlog.subCode ? ` (${backlog.subCode})` : "";
+              const credit = Number(backlog.credit);
+              const creditText = Number.isFinite(credit) && credit > 0 ? ` | ${credit} Credits` : "";
+              return `• Semester ${backlog.semester}: ${name}${code} | Grade ${backlog.grade || "F"}${creditText}`;
+            }),
+        ].join("\n")
+      : "• No active backlogs.";
+
     const message = [
       `*GRADEFLOW — SEMESTER ${selectedSem} RESULT REPORT*`,
       `━━━━━━━━━━━━━━━━━━━━━━━━━━`,
@@ -501,12 +548,25 @@ export default function Dashboard() {
       rankLines.length > 0 ? `• *Ranking:* ${rankLines.join(" | ")}` : null,
       ``,
       `━━━━━━━━━━━━━━━━━━━━━━━━━━`,
+      `*CUMULATIVE CREDIT PROGRESS*`,
+      cumulativeCredits.totalCredits > 0
+        ? `• *Total Credits Cleared to Date:* ${cumulativeCredits.creditsCleared} / ${cumulativeCredits.totalCredits}`
+        : null,
+      ``,
+      `*SEMESTER-WISE CREDIT SUMMARY*`,
+      semesterCreditText,
+      ``,
+      `━━━━━━━━━━━━━━━━━━━━━━━━━━`,
+      `*ACTIVE BACKLOGS*`,
+      activeBacklogText,
+      ``,
+      `━━━━━━━━━━━━━━━━━━━━━━━━━━`,
       `*COURSE-WISE GRADE BREAKDOWN*`,
       ``,
       subjectText,
       ``,
       `━━━━━━━━━━━━━━━━━━━━━━━━━━`,
-      `*To know about your result & analytics, visit website:*`,
+      `*For detailed result and analytics, visit:*`,
       `https://grade-flow-navy.vercel.app`,
     ]
       .filter((line) => line !== null && line !== undefined)
