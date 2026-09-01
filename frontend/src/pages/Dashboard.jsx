@@ -689,7 +689,7 @@ export default function Dashboard() {
           background: "#f1f5f9",
           minHeight: "100vh",
           fontFamily: "'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif",
-            paddingBottom: isMobile ? 108 : 80,
+          paddingBottom: 80,
           width: "100%",
           boxSizing: "border-box",
           overflowX: "hidden",
@@ -849,7 +849,7 @@ export default function Dashboard() {
         minHeight: "100vh",
         color: "#0f172a",
         fontFamily: "'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif",
-        paddingBottom: isMobile ? 108 : 80,
+        paddingBottom: 80,
         overflowX: "hidden",
         width: "100%",
         boxSizing: "border-box",
@@ -1266,7 +1266,6 @@ export default function Dashboard() {
             activeId={tab}
             onSelect={setTab}
             accent="#2563eb"
-            inline={false}
           />
           {/* Mobile Sticky Views Sub-Navigation Bar with Left & Right Arrow Buttons */}
           {false && isMobile && (

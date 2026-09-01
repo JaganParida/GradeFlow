@@ -14,7 +14,6 @@ export default function StudentSectionNavigation({
   onSelect,
   accent = "#2563eb",
   surface = "#ffffff",
-  inline = false,
 }) {
   const [open, setOpen] = useState(false);
   const startY = useRef(null);
@@ -29,27 +28,11 @@ export default function StudentSectionNavigation({
     onSelectRef.current = onSelect;
   }, [onSelect]);
 
-  useEffect(() => {
-    const detail = {
-      sectionLabel,
-      activeLabel: activeItem?.shortLabel || activeItem?.label,
-      icon: activeItem?.icon,
-      accent,
-      open: () => setOpen(true),
-      close,
-    };
-    window.dispatchEvent(new CustomEvent("gradeflow:student-section-control", { detail }));
-    return () => {
-      window.dispatchEvent(new CustomEvent("gradeflow:student-section-control", { detail: null }));
-    };
-  }, [sectionLabel, activeItem, accent]);
-
   const close = () => {
+    setOpen(false);
     if (hasHistoryEntry.current) {
       hasHistoryEntry.current = false;
       window.history.back();
-    } else {
-      setOpen(false);
     }
   };
   const choose = (id) => {
@@ -90,7 +73,7 @@ export default function StudentSectionNavigation({
 
   return (
     <>
-      {inline && <div className="gf-section-nav" style={{ "--gf-section-accent": accent, background: surface }}>
+      <div className="gf-section-nav" style={{ "--gf-section-accent": accent, background: surface }}>
         <button
           type="button"
           className="gf-section-nav__trigger"
@@ -103,7 +86,7 @@ export default function StudentSectionNavigation({
           <span className="gf-section-nav__label">{activeItem.shortLabel || activeItem.label}</span>
           <ChevronDown className="gf-section-nav__chevron" size={18} aria-hidden="true" />
         </button>
-      </div>}
+      </div>
 
       <AnimatePresence>
         {open && (
@@ -140,6 +123,7 @@ export default function StudentSectionNavigation({
               <div className="gf-section-sheet__handle" aria-hidden="true" />
               <div className="gf-section-sheet__header">
                 <div>
+                  <p>Current section</p>
                   <h2>{sectionLabel}</h2>
                 </div>
                 <button type="button" className="gf-section-sheet__close" onClick={close} aria-label="Close section navigation">

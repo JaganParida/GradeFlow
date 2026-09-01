@@ -49,12 +49,10 @@ export default function Navbar() {
   const [analyticsDropdown, setAnalyticsDropdown] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [mobileAnalyticsOpen, setMobileAnalyticsOpen] = useState(false);
-  const [sectionControl, setSectionControl] = useState(null);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [searchModalOpen, setSearchModalOpen] = useState(false);
   const [searchRegNo, setSearchRegNo] = useState("");
-  const globalMenuTouchStart = useRef(null);
 
   const location = useLocation();
   const navigate = useNavigate();
@@ -90,14 +88,6 @@ export default function Navbar() {
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
-  // Student workspaces publish their existing local tab state here. This is a
-  // presentation bridge only: the page remains the sole owner of its view.
-  useEffect(() => {
-    const receiveSectionControl = (event) => setSectionControl(event.detail || null);
-    window.addEventListener("gradeflow:student-section-control", receiveSectionControl);
-    return () => window.removeEventListener("gradeflow:student-section-control", receiveSectionControl);
-  }, []);
-
   // Close dropdowns on outside click
   useEffect(() => {
     const handler = (e) => {
@@ -124,7 +114,6 @@ export default function Navbar() {
 
   const loggedInRegNo = studentSession?.regNo || "";
   const currentRegNo = studentData?.regNo || loggedInRegNo || "";
-  const useBottomStudentNavigation = Boolean(sectionControl) && viewportWidth <= 768;
 
   // When both admin device slots are active, keep the portal entry private while
   // preserving access for the authenticated admin and the designated student account.
@@ -161,17 +150,6 @@ export default function Navbar() {
         document.body.style.overflow = originalOverflow;
       };
     }
-  }, [mobileMenuOpen]);
-
-  // Give the navigation surface the same predictable dismissal behavior on
-  // keyboard-equipped phones and small tablets as it has by touch.
-  useEffect(() => {
-    if (!mobileMenuOpen) return undefined;
-    const handleKeyDown = (event) => {
-      if (event.key === "Escape") setMobileMenuOpen(false);
-    };
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
   }, [mobileMenuOpen]);
 
   // Auto-close mobile drawer when resizing beyond mobile breakpoint
@@ -305,48 +283,9 @@ export default function Navbar() {
     }
   };
 
-  const openSectionNavigation = () => {
-    setMobileMenuOpen(false);
-    sectionControl?.open?.();
-  };
-
-  const toggleGlobalNavigation = () => {
-    setMobileMenuOpen((previouslyOpen) => {
-      if (!previouslyOpen) sectionControl?.close?.();
-      return !previouslyOpen;
-    });
-  };
-
   return (
     <>
-      {useBottomStudentNavigation && (
-        <nav className="gf-mobile-bottom-nav" aria-label="Student navigation">
-          <button
-            type="button"
-            className="gf-mobile-bottom-nav__section"
-            onClick={openSectionNavigation}
-            aria-label={`Open ${sectionControl.sectionLabel}; current page ${sectionControl.activeLabel}`}
-          >
-            <span className="gf-mobile-bottom-nav__icon" style={{ color: sectionControl.accent }}>
-              {sectionControl.icon}
-            </span>
-            <span className="gf-mobile-bottom-nav__label">{sectionControl.activeLabel}</span>
-            <ChevronDown size={16} aria-hidden="true" />
-          </button>
-          <button
-            type="button"
-            className="gf-mobile-bottom-nav__menu"
-            onClick={toggleGlobalNavigation}
-            aria-label={mobileMenuOpen ? "Close global navigation" : "Open global navigation"}
-            aria-expanded={mobileMenuOpen}
-          >
-            <Menu size={21} aria-hidden="true" />
-            <span>Menu</span>
-          </button>
-        </nav>
-      )}
       <nav
-        className={sectionControl ? "gf-student-nav-active" : undefined}
         style={{
           position: "sticky",
           top: 0,
@@ -1058,7 +997,7 @@ export default function Navbar() {
             {/* Mobile Hamburger Toggle Button */}
             <button
               className="gf-mobile-toggle"
-              onClick={toggleGlobalNavigation}
+              onClick={() => setMobileMenuOpen((prev) => !prev)}
               aria-label={
                 mobileMenuOpen
                   ? "Close navigation menu"
@@ -1114,52 +1053,29 @@ export default function Navbar() {
         </div>
       </nav>
 
-      <AnimatePresence>
-        {mobileMenuOpen && useBottomStudentNavigation && (
-          <motion.button
-            type="button"
-            className="gf-global-sheet-backdrop"
-            aria-label="Close global navigation"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.16 }}
-            onClick={() => setMobileMenuOpen(false)}
-          />
-        )}
-      </AnimatePresence>
-
       {/* ── Mobile Navigation Drawer (Hardware-Accelerated 60/120fps Native Slide) ── */}
       <div
         id="gf-mobile-drawer"
-        className="gf-global-drawer"
         style={{
           position: "fixed",
-          top: useBottomStudentNavigation ? "auto" : 0,
+          top: 0,
           left: 0,
           right: 0,
           bottom: 0,
           width: "100%",
-          height: useBottomStudentNavigation ? "auto" : "100dvh",
-          maxHeight: useBottomStudentNavigation ? "min(64dvh, 560px)" : "none",
+          height: "100dvh",
           overflowY: "auto",
           WebkitOverflowScrolling: "touch",
           background: "#ffffff",
           zIndex: 9999,
-          padding: useBottomStudentNavigation
-            ? "8px 14px calc(14px + env(safe-area-inset-bottom))"
-            : "16px 18px 36px 18px",
+          padding: "16px 18px 36px 18px",
           display: "flex",
           flexDirection: "column",
           gap: 12,
           boxSizing: "border-box",
           overscrollBehavior: "contain",
           willChange: "transform, opacity",
-          transform: mobileMenuOpen
-            ? "translate3d(0, 0, 0)"
-            : useBottomStudentNavigation
-              ? "translate3d(0, 100%, 0)"
-              : "translate3d(100%, 0, 0)",
+          transform: mobileMenuOpen ? "translate3d(0, 0, 0)" : "translate3d(100%, 0, 0)",
           opacity: mobileMenuOpen ? 1 : 0,
           visibility: mobileMenuOpen ? "visible" : "hidden",
           pointerEvents: mobileMenuOpen ? "auto" : "none",
@@ -1168,28 +1084,8 @@ export default function Navbar() {
             : "transform 0.32s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.22s ease, visibility 0.32s",
           WebkitBackfaceVisibility: "hidden",
           backfaceVisibility: "hidden",
-          border: useBottomStudentNavigation ? "1px solid rgba(203, 213, 225, 0.92)" : "none",
-          borderRadius: useBottomStudentNavigation ? "22px 22px 0 0" : 0,
-          boxShadow: useBottomStudentNavigation ? "0 -12px 48px rgba(15, 23, 42, 0.22)" : "none",
-        }}
-        onTouchStart={(event) => {
-          if (useBottomStudentNavigation) {
-            globalMenuTouchStart.current = event.touches[0]?.clientY ?? null;
-          }
-        }}
-        onTouchEnd={(event) => {
-          const finishY = event.changedTouches[0]?.clientY;
-          if (
-            useBottomStudentNavigation &&
-            globalMenuTouchStart.current !== null &&
-            finishY - globalMenuTouchStart.current > 70
-          ) {
-            setMobileMenuOpen(false);
-          }
-          globalMenuTouchStart.current = null;
         }}
       >
-        {useBottomStudentNavigation && <div className="gf-global-drawer__handle" aria-hidden="true" />}
         {/* Drawer Header with Close Button */}
         <div
           style={{
@@ -1201,31 +1097,24 @@ export default function Navbar() {
             marginBottom: 2,
           }}
         >
-          {useBottomStudentNavigation ? (
-            <div style={{ display: "grid", gap: 2 }}>
-              <span style={{ fontFamily: "'DM Sans', sans-serif", fontWeight: 800, fontSize: 17, color: "#0f172a", letterSpacing: "-0.2px" }}>Menu</span>
-              <span style={{ color: "#64748b", fontSize: 12, fontWeight: 500 }}>Account, tools and settings</span>
-            </div>
-          ) : (
-            <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-              <img
-                src="/webisteLogo.png"
-                alt="GradeFlow"
-                style={{ height: 36, width: "auto", objectFit: "contain" }}
-              />
-              <span
-                style={{
-                  fontFamily: "'DM Sans', sans-serif",
-                  fontWeight: 800,
-                  fontSize: 20,
-                  color: "#0f172a",
-                  letterSpacing: "-0.4px",
-                }}
-              >
-                GradeFlow
-              </span>
-            </div>
-          )}
+          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+            <img
+              src="/webisteLogo.png"
+              alt="GradeFlow"
+              style={{ height: 36, width: "auto", objectFit: "contain" }}
+            />
+            <span
+              style={{
+                fontFamily: "'DM Sans', sans-serif",
+                fontWeight: 800,
+                fontSize: 20,
+                color: "#0f172a",
+                letterSpacing: "-0.4px",
+              }}
+            >
+              GradeFlow
+            </span>
+          </div>
           <button
             onClick={() => setMobileMenuOpen(false)}
             aria-label="Close menu"
@@ -1247,16 +1136,6 @@ export default function Navbar() {
             <X size={19} />
           </button>
         </div>
-
-        {useBottomStudentNavigation && hasActiveSession && (
-          <div className="gf-global-drawer__notification">
-            <div>
-              <strong>Notifications</strong>
-              <span>Updates and device approvals</span>
-            </div>
-            <NotificationBell placement="bottom" />
-          </div>
-        )}
 
         {/* Admin Search Bar inside Drawer (Admin Only) */}
         {adminToken && (
