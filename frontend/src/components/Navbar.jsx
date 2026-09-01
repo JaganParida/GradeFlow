@@ -54,6 +54,7 @@ export default function Navbar() {
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [searchModalOpen, setSearchModalOpen] = useState(false);
   const [searchRegNo, setSearchRegNo] = useState("");
+  const globalMenuTouchStart = useRef(null);
 
   const location = useLocation();
   const navigate = useNavigate();
@@ -123,6 +124,7 @@ export default function Navbar() {
 
   const loggedInRegNo = studentSession?.regNo || "";
   const currentRegNo = studentData?.regNo || loggedInRegNo || "";
+  const useBottomStudentNavigation = Boolean(sectionControl) && viewportWidth <= 768;
 
   // When both admin device slots are active, keep the portal entry private while
   // preserving access for the authenticated admin and the designated student account.
@@ -159,6 +161,17 @@ export default function Navbar() {
         document.body.style.overflow = originalOverflow;
       };
     }
+  }, [mobileMenuOpen]);
+
+  // Give the navigation surface the same predictable dismissal behavior on
+  // keyboard-equipped phones and small tablets as it has by touch.
+  useEffect(() => {
+    if (!mobileMenuOpen) return undefined;
+    const handleKeyDown = (event) => {
+      if (event.key === "Escape") setMobileMenuOpen(false);
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
   }, [mobileMenuOpen]);
 
   // Auto-close mobile drawer when resizing beyond mobile breakpoint
@@ -292,8 +305,46 @@ export default function Navbar() {
     }
   };
 
+  const openSectionNavigation = () => {
+    setMobileMenuOpen(false);
+    sectionControl?.open?.();
+  };
+
+  const toggleGlobalNavigation = () => {
+    setMobileMenuOpen((previouslyOpen) => {
+      if (!previouslyOpen) sectionControl?.close?.();
+      return !previouslyOpen;
+    });
+  };
+
   return (
     <>
+      {useBottomStudentNavigation && (
+        <nav className="gf-mobile-bottom-nav" aria-label="Student navigation">
+          <button
+            type="button"
+            className="gf-mobile-bottom-nav__section"
+            onClick={openSectionNavigation}
+            aria-label={`Open ${sectionControl.sectionLabel}; current page ${sectionControl.activeLabel}`}
+          >
+            <span className="gf-mobile-bottom-nav__icon" style={{ color: sectionControl.accent }}>
+              {sectionControl.icon}
+            </span>
+            <span className="gf-mobile-bottom-nav__label">{sectionControl.activeLabel}</span>
+            <ChevronDown size={16} aria-hidden="true" />
+          </button>
+          <button
+            type="button"
+            className="gf-mobile-bottom-nav__menu"
+            onClick={toggleGlobalNavigation}
+            aria-label={mobileMenuOpen ? "Close global navigation" : "Open global navigation"}
+            aria-expanded={mobileMenuOpen}
+          >
+            <Menu size={21} aria-hidden="true" />
+            <span>Menu</span>
+          </button>
+        </nav>
+      )}
       <nav
         className={sectionControl ? "gf-student-nav-active" : undefined}
         style={{
@@ -794,10 +845,7 @@ export default function Navbar() {
               <button
                 type="button"
                 className="gf-current-section-control"
-                onClick={() => {
-                  setMobileMenuOpen(false);
-                  sectionControl.open();
-                }}
+                onClick={openSectionNavigation}
                 aria-label={`Open ${sectionControl.sectionLabel} navigation; current page ${sectionControl.activeLabel}`}
               >
                 <span style={{ color: sectionControl.accent, display: "inline-flex", flexShrink: 0 }}>
@@ -1024,10 +1072,7 @@ export default function Navbar() {
             {/* Mobile Hamburger Toggle Button */}
             <button
               className="gf-mobile-toggle"
-              onClick={() => setMobileMenuOpen((prev) => {
-                if (!prev) sectionControl?.close?.();
-                return !prev;
-              })}
+              onClick={toggleGlobalNavigation}
               aria-label={
                 mobileMenuOpen
                   ? "Close navigation menu"
@@ -1083,30 +1128,52 @@ export default function Navbar() {
         </div>
       </nav>
 
+      <AnimatePresence>
+        {mobileMenuOpen && useBottomStudentNavigation && (
+          <motion.button
+            type="button"
+            className="gf-global-sheet-backdrop"
+            aria-label="Close global navigation"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.16 }}
+            onClick={() => setMobileMenuOpen(false)}
+          />
+        )}
+      </AnimatePresence>
+
       {/* ── Mobile Navigation Drawer (Hardware-Accelerated 60/120fps Native Slide) ── */}
       <div
         id="gf-mobile-drawer"
         className="gf-global-drawer"
         style={{
           position: "fixed",
-          top: 0,
+          top: useBottomStudentNavigation ? "auto" : 0,
           left: 0,
           right: 0,
           bottom: 0,
           width: "100%",
-          height: "100dvh",
+          height: useBottomStudentNavigation ? "auto" : "100dvh",
+          maxHeight: useBottomStudentNavigation ? "min(76dvh, 620px)" : "none",
           overflowY: "auto",
           WebkitOverflowScrolling: "touch",
           background: "#ffffff",
           zIndex: 9999,
-          padding: "16px 18px 36px 18px",
+          padding: useBottomStudentNavigation
+            ? "8px 16px calc(18px + env(safe-area-inset-bottom))"
+            : "16px 18px 36px 18px",
           display: "flex",
           flexDirection: "column",
           gap: 12,
           boxSizing: "border-box",
           overscrollBehavior: "contain",
           willChange: "transform, opacity",
-          transform: mobileMenuOpen ? "translate3d(0, 0, 0)" : "translate3d(100%, 0, 0)",
+          transform: mobileMenuOpen
+            ? "translate3d(0, 0, 0)"
+            : useBottomStudentNavigation
+              ? "translate3d(0, 100%, 0)"
+              : "translate3d(100%, 0, 0)",
           opacity: mobileMenuOpen ? 1 : 0,
           visibility: mobileMenuOpen ? "visible" : "hidden",
           pointerEvents: mobileMenuOpen ? "auto" : "none",
@@ -1115,8 +1182,26 @@ export default function Navbar() {
             : "transform 0.32s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.22s ease, visibility 0.32s",
           WebkitBackfaceVisibility: "hidden",
           backfaceVisibility: "hidden",
+          borderRadius: useBottomStudentNavigation ? "22px 22px 0 0" : 0,
+        }}
+        onTouchStart={(event) => {
+          if (useBottomStudentNavigation) {
+            globalMenuTouchStart.current = event.touches[0]?.clientY ?? null;
+          }
+        }}
+        onTouchEnd={(event) => {
+          const finishY = event.changedTouches[0]?.clientY;
+          if (
+            useBottomStudentNavigation &&
+            globalMenuTouchStart.current !== null &&
+            finishY - globalMenuTouchStart.current > 70
+          ) {
+            setMobileMenuOpen(false);
+          }
+          globalMenuTouchStart.current = null;
         }}
       >
+        {useBottomStudentNavigation && <div className="gf-global-drawer__handle" aria-hidden="true" />}
         {/* Drawer Header with Close Button */}
         <div
           style={{
@@ -1167,6 +1252,16 @@ export default function Navbar() {
             <X size={19} />
           </button>
         </div>
+
+        {useBottomStudentNavigation && hasActiveSession && (
+          <div className="gf-global-drawer__notification">
+            <div>
+              <strong>Notifications</strong>
+              <span>Updates and device approvals</span>
+            </div>
+            <NotificationBell placement="bottom" />
+          </div>
+        )}
 
         {/* Admin Search Bar inside Drawer (Admin Only) */}
         {adminToken && (

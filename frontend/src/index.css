@@ -2902,25 +2902,10 @@ html {
 .gf-section-sheet__item-copy strong { font-size: 14px; line-height: 1.25; }
 .gf-section-sheet__item-copy small { color: #64748b; font-size: 12px; font-weight: 500; line-height: 1.25; }
 
-@media (min-width: 768px) {
+@media (min-width: 769px) {
   .gf-section-nav__trigger { min-height: 48px; font-size: 14px; padding-inline: 14px; }
   .gf-section-sheet-overlay { align-items: center; }
   .gf-section-sheet { max-width: 520px; border-radius: 18px; }
-}
-
-/* The hamburger is the one global navigation entry point; on wide screens the
-   existing mobile drawer becomes a compact side drawer instead of a new menu. */
-@media (min-width: 1181px) {
-  .gf-desktop-nav { display: none !important; }
-  .gf-mobile-toggle { display: flex !important; }
-  .gf-global-drawer {
-    left: auto !important;
-    width: min(380px, 92vw) !important;
-    height: 100dvh !important;
-    padding-top: 20px !important;
-    border-left: 1px solid #e2e8f0;
-    box-shadow: -16px 0 44px rgba(15, 23, 42, 0.14);
-  }
 }
 
 @media (max-width: 1180px) {
@@ -2929,7 +2914,111 @@ html {
 }
 
 @media (max-width: 480px) {
-  .gf-current-section-control { height: 44px; gap: 6px; padding: 0 9px; font-size: 12px; }
+.gf-current-section-control { height: 44px; gap: 6px; padding: 0 9px; font-size: 12px; }
+}
+
+/* Compact student workspaces use a single, thumb-reachable navigation dock.
+   Desktop and tablet retain the established GradeFlow top navigation. */
+.gf-mobile-bottom-nav,
+.gf-global-sheet-backdrop,
+.gf-global-drawer__handle,
+.gf-global-drawer__notification { display: none; }
+
+@media (max-width: 768px) {
+  .gf-student-nav-active { display: none !important; }
+
+  .gf-mobile-bottom-nav {
+    position: fixed;
+    z-index: 9997;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    min-height: 70px;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 88px;
+    gap: 8px;
+    align-items: center;
+    padding: 9px 12px calc(9px + env(safe-area-inset-bottom));
+    border-top: 1px solid rgba(203, 213, 225, 0.9);
+    background: rgba(255, 255, 255, 0.96);
+    box-shadow: 0 -6px 24px rgba(15, 23, 42, 0.08);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    box-sizing: border-box;
+  }
+
+  .gf-mobile-bottom-nav button {
+    min-height: 48px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid #dbe3ee;
+    border-radius: 13px;
+    background: #ffffff;
+    color: #334155;
+    cursor: pointer;
+    font: 700 12px/1 "DM Sans", sans-serif;
+  }
+
+  .gf-mobile-bottom-nav__section {
+    min-width: 0;
+    justify-content: flex-start !important;
+    gap: 8px;
+    padding: 0 12px;
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+  }
+
+  .gf-mobile-bottom-nav__icon { display: inline-flex; flex: 0 0 auto; }
+  .gf-mobile-bottom-nav__label { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .gf-mobile-bottom-nav__section > svg { margin-left: auto; color: #64748b; flex: 0 0 auto; }
+
+  .gf-mobile-bottom-nav__menu {
+    flex-direction: column;
+    gap: 2px;
+    color: #0f172a !important;
+  }
+
+  .gf-mobile-bottom-nav button:focus-visible {
+    outline: 3px solid rgba(37, 99, 235, 0.28);
+    outline-offset: 2px;
+  }
+
+  .gf-global-sheet-backdrop {
+    position: fixed;
+    z-index: 9998;
+    inset: 0;
+    display: block;
+    width: 100%;
+    height: 100%;
+    border: 0;
+    background: rgba(15, 23, 42, 0.34);
+    cursor: default;
+  }
+
+  .gf-global-drawer__handle {
+    width: 36px;
+    height: 4px;
+    display: block;
+    flex: 0 0 auto;
+    margin: 2px auto -2px;
+    border-radius: 999px;
+    background: #cbd5e1;
+  }
+
+  .gf-global-drawer__notification {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 8px 10px;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    background: #f8fafc;
+  }
+
+  .gf-global-drawer__notification div { display: grid; gap: 2px; }
+  .gf-global-drawer__notification strong { color: #0f172a; font: 750 13px/1.2 "DM Sans", sans-serif; }
+  .gf-global-drawer__notification span { color: #64748b; font: 500 11px/1.25 "DM Sans", sans-serif; }
 }
 
 @media (prefers-reduced-motion: reduce) {

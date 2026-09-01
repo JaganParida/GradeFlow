@@ -648,7 +648,7 @@ export default function Analytics() {
       style={{
         minHeight: "100vh",
         background: "#f8fafc",
-        padding: isMobile ? "12px 10px 40px 10px" : "24px 20px 60px 20px",
+        padding: isMobile ? "12px 10px 108px 10px" : "24px 20px 60px 20px",
         fontFamily: "'DM Sans', sans-serif",
       }}
     >

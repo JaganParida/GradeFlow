@@ -1479,7 +1479,7 @@ export default function AttendanceTracker() {
         minHeight: "100vh",
         color: "#0f172a",
         fontFamily: "'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif",
-        paddingBottom: 80,
+        paddingBottom: isMobile ? 108 : 80,
         overflowX: "hidden",
         width: "100%",
         boxSizing: "border-box",
@@ -1489,7 +1489,7 @@ export default function AttendanceTracker() {
         style={{
           maxWidth: 1440,
           margin: "0 auto",
-          padding: isMobile ? "8px 8px 80px 8px" : "24px 32px 90px 32px",
+          padding: isMobile ? "8px 8px 108px 8px" : "24px 32px 90px 32px",
           display: "grid",
           gridTemplateColumns: isMobile ? "1fr" : "280px minmax(0, 1fr)",
           gap: isMobile ? 10 : 24,

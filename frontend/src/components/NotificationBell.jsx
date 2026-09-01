@@ -16,7 +16,7 @@ import {
   AlertTriangle,
 } from "lucide-react";
 
-export default function NotificationBell({ isMobile = false }) {
+export default function NotificationBell({ isMobile = false, placement = "default" }) {
   const {
     notifications,
     unreadCount,
@@ -51,6 +51,9 @@ export default function NotificationBell({ isMobile = false }) {
   if (!hasActiveSession) {
     return null;
   }
+
+  const isBottomSheetPlacement = placement === "bottom";
+  const controlSize = isBottomSheetPlacement ? 44 : isMobile ? 36 : 38;
 
   const handleToggle = () => {
     const nextState = !isOpen;
@@ -115,8 +118,8 @@ export default function NotificationBell({ isMobile = false }) {
         title="Notifications & Device Approvals"
         style={{
           position: "relative",
-          width: isMobile ? 36 : 38,
-          height: isMobile ? 36 : 38,
+          width: controlSize,
+          height: controlSize,
           borderRadius: 10,
           border: isOpen ? "1.5px solid #2563eb" : "1px solid #cbd5e1",
           background: isOpen ? "#eff6ff" : "#ffffff",
@@ -168,11 +171,12 @@ export default function NotificationBell({ isMobile = false }) {
             exit={{ opacity: 0, y: 6, scale: 0.96 }}
             transition={{ duration: 0.16, ease: "easeOut" }}
             style={{
-              position: isMobile ? "fixed" : "absolute",
-              top: isMobile ? 64 : "calc(100% + 10px)",
-              right: isMobile ? 12 : 0,
-              left: isMobile ? 12 : "auto",
-              width: isMobile ? "calc(100vw - 24px)" : "min(360px, calc(100vw - 24px))",
+              position: isBottomSheetPlacement || isMobile ? "fixed" : "absolute",
+              top: isBottomSheetPlacement ? "auto" : isMobile ? 64 : "calc(100% + 10px)",
+              bottom: isBottomSheetPlacement ? "calc(76px + env(safe-area-inset-bottom))" : "auto",
+              right: isBottomSheetPlacement || isMobile ? 12 : 0,
+              left: isBottomSheetPlacement || isMobile ? 12 : "auto",
+              width: isBottomSheetPlacement || isMobile ? "calc(100vw - 24px)" : "min(360px, calc(100vw - 24px))",
               maxWidth: "calc(100vw - 24px)",
               maxHeight: "min(80vh, 520px)",
               overflowY: "auto",
