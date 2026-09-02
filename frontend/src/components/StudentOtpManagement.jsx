@@ -204,7 +204,7 @@ export default function StudentOtpManagement({ API, authHeaders, isMobile }) {
         setStudentData(res.data.studentSummary);
         setTimeline(res.data.historyTimeline || []);
         setHistoryPage(1);
-        window.scrollTo({ top: 380, behavior: "smooth" });
+        window.scrollTo({ top: 0, behavior: "smooth" });
       } else {
         setErrorMsg(res.data?.message || "Failed to fetch student OTP details.");
         setStudentData(null);
@@ -365,696 +365,6 @@ export default function StudentOtpManagement({ API, authHeaders, isMobile }) {
         </div>
       </div>
 
-      {/* ── Registered Accounts & Live Login Monitor Directory ── */}
-      <div
-        style={{
-          background: "#ffffff",
-          borderRadius: isMob ? 16 : 18,
-          border: "1px solid #e2e8f0",
-          padding: isMob ? "14px 12px" : "22px 24px",
-          boxShadow: "0 2px 10px rgba(15, 23, 42, 0.03)",
-          display: "flex",
-          flexDirection: "column",
-          gap: isMob ? 14 : 18,
-        }}
-      >
-        {/* Top Header with title and refresh button */}
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: isMob ? "flex-start" : "center", flexWrap: "wrap", gap: 10 }}>
-          <div>
-            <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
-              <Users size={isMob ? 18 : 20} color="#4f46e5" />
-              <h3 style={{ margin: 0, fontSize: isMob ? 15 : 16, fontWeight: 800, color: "#0f172a" }}>
-                Registered Accounts & Live Monitor
-              </h3>
-            </div>
-            <p style={{ margin: "3px 0 0 0", fontSize: isMob ? 11.5 : 12.5, color: "#64748b" }}>
-              Live verified student accounts with active sessions in MongoDB.
-            </p>
-          </div>
-          <button
-            onClick={() => fetchAccounts(directorySearch, directoryFilter)}
-            disabled={accountsLoading}
-            style={{
-              display: "inline-flex",
-              alignItems: "center",
-              gap: 5,
-              padding: isMob ? "6px 11px" : "7px 14px",
-              borderRadius: 8,
-              background: "#f8fafc",
-              border: "1px solid #e2e8f0",
-              color: "#334155",
-              fontSize: isMob ? 11.5 : 12.5,
-              fontWeight: 700,
-              cursor: accountsLoading ? "not-allowed" : "pointer",
-            }}
-          >
-            <RefreshCw size={isMob ? 12 : 13} className={accountsLoading ? "spin" : ""} />
-            <span>Refresh</span>
-          </button>
-        </div>
-
-        {/* 3 Summary Mini Stats */}
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: isMob ? "repeat(3, 1fr)" : "repeat(auto-fit, minmax(180px, 1fr))",
-            gap: isMob ? 8 : 12,
-          }}
-        >
-          <div
-            style={{
-              background: "#f8fafc",
-              border: "1px solid #e2e8f0",
-              borderRadius: isMob ? 12 : 14,
-              padding: isMob ? "10px 8px" : "12px 16px",
-              display: "flex",
-              flexDirection: isMob ? "column" : "row",
-              alignItems: isMob ? "flex-start" : "center",
-              gap: isMob ? 6 : 12,
-            }}
-          >
-            <div
-              style={{
-                width: isMob ? 28 : 36,
-                height: isMob ? 28 : 36,
-                borderRadius: isMob ? 8 : 10,
-                background: "#eff6ff",
-                border: "1px solid #bfdbfe",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                flexShrink: 0,
-              }}
-            >
-              <KeyRound size={isMob ? 14 : 16} color="#2563eb" />
-            </div>
-            <div>
-              <div style={{ fontSize: isMob ? 9.5 : 11, fontWeight: 700, color: "#64748b", textTransform: "uppercase", letterSpacing: "0.2px" }}>
-                Created
-              </div>
-              <div style={{ fontSize: isMob ? 16 : 18, fontWeight: 800, color: "#0f172a" }}>
-                {accountsStats.totalRegistered}
-              </div>
-            </div>
-          </div>
-
-          <div
-            style={{
-              background: "#f8fafc",
-              border: "1px solid #e2e8f0",
-              borderRadius: isMob ? 12 : 14,
-              padding: isMob ? "10px 8px" : "12px 16px",
-              display: "flex",
-              flexDirection: isMob ? "column" : "row",
-              alignItems: isMob ? "flex-start" : "center",
-              gap: isMob ? 6 : 12,
-            }}
-          >
-            <div
-              style={{
-                width: isMob ? 28 : 36,
-                height: isMob ? 28 : 36,
-                borderRadius: isMob ? 8 : 10,
-                background: "#ecfdf5",
-                border: "1px solid #a7f3d0",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                flexShrink: 0,
-              }}
-            >
-              <Activity size={isMob ? 14 : 16} color="#059669" />
-            </div>
-            <div>
-              <div style={{ fontSize: isMob ? 9.5 : 11, fontWeight: 700, color: "#64748b", textTransform: "uppercase", letterSpacing: "0.2px" }}>
-                Online
-              </div>
-              <div style={{ fontSize: isMob ? 16 : 18, fontWeight: 800, color: "#059669" }}>
-                {accountsStats.totalActive}
-              </div>
-            </div>
-          </div>
-
-          <div
-            style={{
-              background: "#f8fafc",
-              border: "1px solid #e2e8f0",
-              borderRadius: isMob ? 12 : 14,
-              padding: isMob ? "10px 8px" : "12px 16px",
-              display: "flex",
-              flexDirection: isMob ? "column" : "row",
-              alignItems: isMob ? "flex-start" : "center",
-              gap: isMob ? 6 : 12,
-            }}
-          >
-            <div
-              style={{
-                width: isMob ? 28 : 36,
-                height: isMob ? 28 : 36,
-                borderRadius: isMob ? 8 : 10,
-                background: "#f1f5f9",
-                border: "1px solid #cbd5e1",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                flexShrink: 0,
-              }}
-            >
-              <User size={isMob ? 14 : 16} color="#64748b" />
-            </div>
-            <div>
-              <div style={{ fontSize: isMob ? 9.5 : 11, fontWeight: 700, color: "#64748b", textTransform: "uppercase", letterSpacing: "0.2px" }}>
-                Offline
-              </div>
-              <div style={{ fontSize: isMob ? 16 : 18, fontWeight: 800, color: "#64748b" }}>
-                {accountsStats.totalOffline}
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Filter Pills & Directory Search */}
-        <div style={{ display: "flex", flexDirection: isMob ? "column" : "row", justifyContent: "space-between", alignItems: isMob ? "stretch" : "center", gap: 10 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 6, overflowX: isMob ? "auto" : "visible", paddingBottom: isMob ? 4 : 0 }}>
-            {[
-              { id: "all", label: `All (${accountsStats.totalRegistered})`, icon: <Users size={12} /> },
-              { id: "active", label: `Online (${accountsStats.totalActive})`, icon: <Activity size={12} color="#16a34a" />, dotColor: "#16a34a" },
-              { id: "offline", label: `Offline (${accountsStats.totalOffline})`, icon: <Clock size={12} color="#64748b" />, dotColor: "#94a3b8" },
-            ].map((f) => (
-              <button
-                key={f.id}
-                onClick={() => setDirectoryFilter(f.id)}
-                style={{
-                  display: "inline-flex",
-                  alignItems: "center",
-                  gap: 5,
-                  padding: isMob ? "5px 10px" : "6px 12px",
-                  borderRadius: 8,
-                  border: directoryFilter === f.id ? "1.5px solid #4f46e5" : "1px solid #e2e8f0",
-                  background: directoryFilter === f.id ? "#eef2ff" : "#ffffff",
-                  color: directoryFilter === f.id ? "#4338ca" : "#64748b",
-                  fontSize: isMob ? 11.5 : 12,
-                  fontWeight: directoryFilter === f.id ? 700 : 600,
-                  cursor: "pointer",
-                  whiteSpace: "nowrap",
-                  flexShrink: 0,
-                }}
-              >
-                {f.dotColor ? (
-                  <span style={{ width: 6, height: 6, borderRadius: "50%", background: f.dotColor, display: "inline-block" }} />
-                ) : (
-                  f.icon
-                )}
-                <span>{f.label}</span>
-              </button>
-            ))}
-          </div>
-
-          <form onSubmit={handleDirectorySearchSubmit} style={{ display: "flex", gap: 6, width: isMob ? "100%" : "auto" }}>
-            <input
-              type="text"
-              placeholder="Search Reg No or Name..."
-              value={directorySearch}
-              onChange={(e) => setDirectorySearch(e.target.value)}
-              style={{
-                flex: isMob ? 1 : "initial",
-                width: isMob ? "auto" : 180,
-                padding: "6px 10px",
-                borderRadius: 8,
-                border: "1px solid #cbd5e1",
-                fontSize: 12,
-                outline: "none",
-              }}
-            />
-            <button
-              type="submit"
-              style={{
-                display: "inline-flex",
-                alignItems: "center",
-                gap: 4,
-                padding: "6px 12px",
-                borderRadius: 8,
-                border: "none",
-                background: "#4f46e5",
-                color: "#ffffff",
-                fontSize: 12,
-                fontWeight: 700,
-                cursor: "pointer",
-                flexShrink: 0,
-              }}
-            >
-              <Filter size={11} />
-              <span>Filter</span>
-            </button>
-          </form>
-        </div>
-
-        {/* ── Directory Accounts Content: Paginated (10 per page) ── */}
-        {(() => {
-          const totalAccounts = accountsList.length;
-          const dirTotalPages = Math.max(1, Math.ceil(totalAccounts / directoryPageSize));
-          const dirSafePage = Math.min(Math.max(1, directoryPage), dirTotalPages);
-          const dirStart = (dirSafePage - 1) * directoryPageSize;
-          const dirEnd = Math.min(dirStart + directoryPageSize, totalAccounts);
-          const paginatedAccounts = accountsList.slice(dirStart, dirEnd);
-
-          return (
-            <>
-              {isMob ? (
-                /* Mobile Sleek Cards List */
-                <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-                  {accountsLoading ? (
-                    <div style={{ padding: "24px", textAlign: "center", color: "#64748b" }}>
-                      <Loader2 size={20} className="spin" style={{ margin: "0 auto 8px" }} />
-                      <div style={{ fontSize: 12.5 }}>Loading accounts directory...</div>
-                    </div>
-                  ) : accountsList.length === 0 ? (
-                    <div style={{ padding: "24px", textAlign: "center", color: "#94a3b8", background: "#f8fafc", borderRadius: 12, border: "1px dashed #e2e8f0", fontSize: 12.5 }}>
-                      No student accounts found matching filter.
-                    </div>
-                  ) : (
-                    <AnimatePresence mode="wait">
-                      <motion.div
-                        key={`mob-page-${dirSafePage}`}
-                        initial={{ opacity: 0, x: 30 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        exit={{ opacity: 0, x: -30 }}
-                        transition={{ duration: 0.25, ease: "easeInOut" }}
-                        style={{ display: "flex", flexDirection: "column", gap: 10 }}
-                      >
-                        {paginatedAccounts.map((acc) => {
-                          const resolvedBranch = (acc.branch && acc.branch !== "N/A") ? acc.branch : getDynamicBranch(acc.regNo);
-                          const resolvedSection = (acc.section && acc.section !== "N/A") ? acc.section : getSectionFromRegNo(acc.regNo);
-
-                          return (
-                            <div
-                              key={acc.regNo}
-                              style={{
-                                background: "#ffffff",
-                                border: "1px solid #e2e8f0",
-                                borderRadius: 14,
-                                padding: "12px 14px",
-                                boxShadow: "0 1px 4px rgba(0,0,0,0.02)",
-                                display: "flex",
-                                flexDirection: "column",
-                                gap: 10,
-                              }}
-                            >
-                              {/* Top Row: Avatar + Name/Reg + Inspect Button */}
-                              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
-                                <div style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0, flex: 1 }}>
-                                  <div style={{ position: "relative", flexShrink: 0 }}>
-                                    <div
-                                      style={{
-                                        width: 36,
-                                        height: 36,
-                                        borderRadius: 10,
-                                        background: acc.isCurrentlyLoggedIn ? "#dcfce7" : "#f1f5f9",
-                                        color: acc.isCurrentlyLoggedIn ? "#15803d" : "#475569",
-                                        display: "flex",
-                                        alignItems: "center",
-                                        justifyContent: "center",
-                                        fontWeight: 800,
-                                        fontSize: 13,
-                                        border: `1px solid ${acc.isCurrentlyLoggedIn ? "#bbf7d0" : "#e2e8f0"}`,
-                                      }}
-                                    >
-                                      {acc.studentName ? acc.studentName.charAt(0).toUpperCase() : "S"}
-                                    </div>
-                                    <span
-                                      style={{
-                                        position: "absolute",
-                                        bottom: -2,
-                                        right: -2,
-                                        width: 9,
-                                        height: 9,
-                                        borderRadius: "50%",
-                                        background: acc.isCurrentlyLoggedIn ? "#16a34a" : "#94a3b8",
-                                        border: "1.5px solid #ffffff",
-                                      }}
-                                    />
-                                  </div>
-                                  <div style={{ minWidth: 0, flex: 1 }}>
-                                    <div style={{ color: "#0f172a", fontWeight: 800, fontSize: 13.5, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                                      {acc.studentName}
-                                    </div>
-                                    <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 1 }}>
-                                      <span style={{ fontSize: 11.5, color: "#4f46e5", fontFamily: "'Space Mono', monospace", fontWeight: 700 }}>
-                                        {acc.regNo}
-                                      </span>
-                                      <span style={{ fontSize: 10.5, color: "#64748b", background: "#f1f5f9", padding: "1px 5px", borderRadius: 4 }}>
-                                        {resolvedBranch} • Sec {resolvedSection}
-                                      </span>
-                                    </div>
-                                  </div>
-                                </div>
-
-                                <button
-                                  onClick={() => handleSearchWithReg(acc.regNo)}
-                                  style={{
-                                    display: "inline-flex",
-                                    alignItems: "center",
-                                    gap: 4,
-                                    padding: "6px 12px",
-                                    borderRadius: 8,
-                                    background: "#eef2ff",
-                                    border: "1px solid #c7d2fe",
-                                    color: "#4338ca",
-                                    fontSize: 12,
-                                    fontWeight: 700,
-                                    cursor: "pointer",
-                                    flexShrink: 0,
-                                  }}
-                                >
-                                  <Eye size={12} />
-                                  <span>Inspect</span>
-                                </button>
-                              </div>
-
-                              {/* Bottom Status Row */}
-                              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", paddingTop: 8, borderTop: "1px dashed #f1f5f9", gap: 6, flexWrap: "wrap" }}>
-                                <div>
-                                  {acc.isCurrentlyLoggedIn ? (
-                                    <span
-                                      style={{
-                                        display: "inline-flex",
-                                        alignItems: "center",
-                                        gap: 5,
-                                        background: "#dcfce7",
-                                        color: "#166534",
-                                        fontSize: 11,
-                                        fontWeight: 700,
-                                        padding: "3px 8px",
-                                        borderRadius: 6,
-                                        border: "1px solid #bbf7d0",
-                                      }}
-                                    >
-                                      <span style={{ width: 5, height: 5, borderRadius: "50%", background: "#16a34a", display: "inline-block" }} />
-                                      <span>Live Online ({acc.activeSessionsCount} dev)</span>
-                                      {acc.activeSessions?.[0]?.deviceType === "Mobile" ? (
-                                        <Smartphone size={10.5} />
-                                      ) : (
-                                        <Laptop size={10.5} />
-                                      )}
-                                    </span>
-                                  ) : (
-                                    <span
-                                      style={{
-                                        display: "inline-flex",
-                                        alignItems: "center",
-                                        gap: 4,
-                                        background: "#f1f5f9",
-                                        color: "#64748b",
-                                        fontSize: 11,
-                                        fontWeight: 600,
-                                        padding: "3px 8px",
-                                        borderRadius: 6,
-                                        border: "1px solid #e2e8f0",
-                                      }}
-                                    >
-                                      <span style={{ width: 5, height: 5, borderRadius: "50%", background: "#94a3b8", display: "inline-block" }} />
-                                      <span>Offline</span>
-                                    </span>
-                                  )}
-                                </div>
-
-                                <div style={{ fontSize: 10.5, color: "#94a3b8" }}>
-                                  Pwd: {formatISTDate(acc.passwordCreatedAt)}
-                                </div>
-                              </div>
-                            </div>
-                          );
-                        })}
-                      </motion.div>
-                    </AnimatePresence>
-                  )}
-                </div>
-              ) : (
-                /* Desktop Pristine Table View */
-                <div style={{ overflowX: "auto", border: "1px solid #e2e8f0", borderRadius: 12 }}>
-                  <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13, textAlign: "left" }}>
-                    <thead>
-                      <tr style={{ background: "#f8fafc", borderBottom: "1px solid #e2e8f0", color: "#64748b", fontSize: 11.5, textTransform: "uppercase", letterSpacing: "0.4px" }}>
-                        <th style={{ padding: "10px 14px", fontWeight: 700 }}>Student / Reg No</th>
-                        <th style={{ padding: "10px 14px", fontWeight: 700 }}>Batch / Branch</th>
-                        <th style={{ padding: "10px 14px", fontWeight: 700 }}>Password Created</th>
-                        <th style={{ padding: "10px 14px", fontWeight: 700 }}>Login Status</th>
-                        <th style={{ padding: "10px 14px", fontWeight: 700, textAlign: "right" }}>Action</th>
-                      </tr>
-                    </thead>
-                    <AnimatePresence mode="wait">
-                      <motion.tbody
-                        key={`desk-page-${dirSafePage}`}
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        exit={{ opacity: 0 }}
-                        transition={{ duration: 0.2, ease: "easeInOut" }}
-                      >
-                        {accountsLoading ? (
-                          <tr>
-                            <td colSpan={5} style={{ padding: "24px", textAlign: "center", color: "#64748b" }}>
-                              <Loader2 size={20} className="spin" style={{ margin: "0 auto 8px" }} />
-                              <div>Loading verified accounts directory...</div>
-                            </td>
-                          </tr>
-                        ) : accountsList.length === 0 ? (
-                          <tr>
-                            <td colSpan={5} style={{ padding: "24px", textAlign: "center", color: "#94a3b8" }}>
-                              No registered student accounts found matching filter.
-                            </td>
-                          </tr>
-                        ) : (
-                          paginatedAccounts.map((acc) => {
-                            const resolvedBranch = (acc.branch && acc.branch !== "N/A") ? acc.branch : getDynamicBranch(acc.regNo);
-                            const resolvedSection = (acc.section && acc.section !== "N/A") ? acc.section : getSectionFromRegNo(acc.regNo);
-
-                            return (
-                              <tr key={acc.regNo} style={{ borderBottom: "1px solid #f1f5f9" }}>
-                                <td style={{ padding: "12px 14px" }}>
-                                  <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                                    <div
-                                      style={{
-                                        width: 32,
-                                        height: 32,
-                                        borderRadius: "50%",
-                                        background: acc.isCurrentlyLoggedIn ? "#dcfce7" : "#f1f5f9",
-                                        color: acc.isCurrentlyLoggedIn ? "#15803d" : "#475569",
-                                        display: "flex",
-                                        alignItems: "center",
-                                        justifyContent: "center",
-                                        fontWeight: 700,
-                                        fontSize: 12,
-                                      }}
-                                    >
-                                      {acc.studentName ? acc.studentName.charAt(0).toUpperCase() : "S"}
-                                    </div>
-                                    <div>
-                                      <strong style={{ color: "#0f172a", display: "block" }}>{acc.studentName}</strong>
-                                      <span style={{ fontSize: 11.5, color: "#64748b", fontFamily: "'Space Mono', monospace" }}>
-                                        {acc.regNo}
-                                      </span>
-                                    </div>
-                                  </div>
-                                </td>
-                                <td style={{ padding: "12px 14px", color: "#334155" }}>
-                                  <div style={{ fontWeight: 600 }}>Batch {acc.batch || "2023"}</div>
-                                  <span style={{ fontSize: 11, color: "#64748b", fontWeight: 500 }}>
-                                    {resolvedBranch} (Sec {resolvedSection})
-                                  </span>
-                                </td>
-                                <td style={{ padding: "12px 14px", color: "#64748b", fontSize: 12 }}>
-                                  {formatISTDate(acc.passwordCreatedAt)}
-                                </td>
-                                <td style={{ padding: "12px 14px" }}>
-                                  {acc.isCurrentlyLoggedIn ? (
-                                    <div style={{ display: "inline-flex", flexDirection: "column", gap: 2 }}>
-                                      <span
-                                        style={{
-                                          display: "inline-flex",
-                                          alignItems: "center",
-                                          gap: 6,
-                                          background: "#dcfce7",
-                                          color: "#166534",
-                                          fontSize: 11.5,
-                                          fontWeight: 700,
-                                          padding: "3px 9px",
-                                          borderRadius: 6,
-                                          border: "1px solid #bbf7d0",
-                                        }}
-                                      >
-                                        <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#16a34a", display: "inline-block" }} />
-                                        <span>Live Online ({acc.activeSessionsCount} device)</span>
-                                      </span>
-                                      {acc.activeSessions?.[0] && (
-                                        <span style={{ fontSize: 10.5, color: "#64748b", display: "inline-flex", alignItems: "center", gap: 4 }}>
-                                          {acc.activeSessions[0].deviceType === "Mobile" ? (
-                                            <Smartphone size={11} color="#64748b" />
-                                          ) : (
-                                            <Laptop size={11} color="#64748b" />
-                                          )}
-                                          <span>{acc.activeSessions[0].deviceType} ({acc.activeSessions[0].browser})</span>
-                                        </span>
-                                      )}
-                                    </div>
-                                  ) : (
-                                    <span
-                                      style={{
-                                        display: "inline-flex",
-                                        alignItems: "center",
-                                        gap: 5,
-                                        background: "#f1f5f9",
-                                        color: "#64748b",
-                                        fontSize: 11.5,
-                                        fontWeight: 600,
-                                        padding: "3px 9px",
-                                        borderRadius: 6,
-                                        border: "1px solid #e2e8f0",
-                                      }}
-                                    >
-                                      <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#94a3b8", display: "inline-block" }} />
-                                      <span>Offline</span>
-                                    </span>
-                                  )}
-                                </td>
-                                <td style={{ padding: "12px 14px", textAlign: "right" }}>
-                                  <button
-                                    onClick={() => handleSearchWithReg(acc.regNo)}
-                                    style={{
-                                      display: "inline-flex",
-                                      alignItems: "center",
-                                      gap: 4,
-                                      padding: "6px 12px",
-                                      borderRadius: 8,
-                                      background: "#eef2ff",
-                                      border: "1px solid #c7d2fe",
-                                      color: "#4338ca",
-                                      fontSize: 12,
-                                      fontWeight: 700,
-                                      cursor: "pointer",
-                                    }}
-                                  >
-                                    <Eye size={13} />
-                                    <span>Inspect</span>
-                                  </button>
-                                </td>
-                              </tr>
-                            );
-                          })
-                        )}
-                      </motion.tbody>
-                    </AnimatePresence>
-                  </table>
-                </div>
-              )}
-
-              {/* ── Pagination Controls ── */}
-              {!accountsLoading && totalAccounts > directoryPageSize && (
-                <div
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "space-between",
-                    flexWrap: "wrap",
-                    gap: 10,
-                    marginTop: 14,
-                    paddingTop: 14,
-                    borderTop: "1px solid #e2e8f0",
-                  }}
-                >
-                  {/* Left: summary */}
-                  <span style={{ fontSize: isMob ? 11.5 : 12.5, color: "#64748b", fontWeight: 600 }}>
-                    Showing <strong>{dirStart + 1}–{dirEnd}</strong> of <strong>{totalAccounts}</strong> accounts
-                  </span>
-
-                  {/* Right: buttons */}
-                  <div
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 6,
-                      width: isMob ? "100%" : "auto",
-                      justifyContent: isMob ? "space-between" : "flex-end",
-                    }}
-                  >
-                    {/* Previous */}
-                    <button
-                      type="button"
-                      disabled={dirSafePage <= 1}
-                      onClick={() => setDirectoryPage((p) => Math.max(1, p - 1))}
-                      style={{
-                        flex: isMob ? "1 1 0" : "none",
-                        padding: isMob ? "10px 14px" : "8px 16px",
-                        borderRadius: 10,
-                        border: "1px solid",
-                        borderColor: dirSafePage <= 1 ? "#e2e8f0" : "#cbd5e1",
-                        background: dirSafePage <= 1 ? "#f8fafc" : "#ffffff",
-                        color: dirSafePage <= 1 ? "#94a3b8" : "#1e293b",
-                        fontSize: isMob ? 13 : 12.5,
-                        fontWeight: 700,
-                        cursor: dirSafePage <= 1 ? "not-allowed" : "pointer",
-                        display: "inline-flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        gap: 5,
-                        transition: "all 0.2s ease",
-                      }}
-                    >
-                      <ChevronLeft size={15} />
-                      <span>Previous</span>
-                    </button>
-
-                    {/* Page indicator */}
-                    <span
-                      style={{
-                        fontSize: isMob ? 12 : 12.5,
-                        fontWeight: 800,
-                        color: "#4f46e5",
-                        background: "#eef2ff",
-                        border: "1px solid #c7d2fe",
-                        padding: isMob ? "8px 14px" : "6px 14px",
-                        borderRadius: 10,
-                        whiteSpace: "nowrap",
-                        minWidth: isMob ? 0 : 90,
-                        textAlign: "center",
-                      }}
-                    >
-                      {dirSafePage} / {dirTotalPages}
-                    </span>
-
-                    {/* Next */}
-                    <button
-                      type="button"
-                      disabled={dirSafePage >= dirTotalPages}
-                      onClick={() => setDirectoryPage((p) => Math.min(dirTotalPages, p + 1))}
-                      style={{
-                        flex: isMob ? "1 1 0" : "none",
-                        padding: isMob ? "10px 14px" : "8px 16px",
-                        borderRadius: 10,
-                        border: "1px solid",
-                        borderColor: dirSafePage >= dirTotalPages ? "#e2e8f0" : "#cbd5e1",
-                        background: dirSafePage >= dirTotalPages ? "#f8fafc" : "#ffffff",
-                        color: dirSafePage >= dirTotalPages ? "#94a3b8" : "#1e293b",
-                        fontSize: isMob ? 13 : 12.5,
-                        fontWeight: 700,
-                        cursor: dirSafePage >= dirTotalPages ? "not-allowed" : "pointer",
-                        display: "inline-flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        gap: 5,
-                        transition: "all 0.2s ease",
-                      }}
-                    >
-                      <span>Next</span>
-                      <ChevronRight size={15} />
-                    </button>
-                  </div>
-                </div>
-              )}
-            </>
-          );
-        })()}
-      </div>
-
       {/* ── Search Bar Card ── */}
       <div
         style={{
@@ -1169,6 +479,65 @@ export default function StudentOtpManagement({ API, authHeaders, isMobile }) {
           animate={{ opacity: 1, y: 0 }}
           style={{ display: "flex", flexDirection: "column", gap: 20 }}
         >
+          {/* Active Inspect Header with Dismiss / Close Button */}
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              background: "#eff6ff",
+              border: "1.5px solid #bfdbfe",
+              borderRadius: 12,
+              padding: isMob ? "10px 12px" : "12px 16px",
+              flexWrap: "wrap",
+              gap: 10,
+              boxShadow: "0 1px 3px rgba(37,99,235,0.06)",
+            }}
+          >
+            <div style={{ display: "flex", alignItems: "center", gap: 9 }}>
+              <div style={{ width: 10, height: 10, borderRadius: "50%", background: "#2563eb", boxShadow: "0 0 0 3px rgba(37,99,235,0.2)" }} />
+              <span style={{ fontSize: isMob ? 12.5 : 13.5, fontWeight: 800, color: "#1e40af" }}>
+                Currently Inspecting: {studentData.name || studentData.studentName || "Student"} ({studentData.regNo})
+              </span>
+            </div>
+            <button
+              type="button"
+              onClick={() => {
+                setStudentData(null);
+                setTimeline([]);
+                setSearchReg("");
+                setErrorMsg("");
+                setSuccessMsg("");
+              }}
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 5,
+                padding: "6px 12px",
+                borderRadius: 8,
+                border: "1px solid #cbd5e1",
+                background: "#ffffff",
+                color: "#475569",
+                fontSize: 12,
+                fontWeight: 700,
+                cursor: "pointer",
+                boxShadow: "0 1px 2px rgba(0,0,0,0.04)",
+                transition: "all 0.15s ease",
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = "#f8fafc";
+                e.currentTarget.style.color = "#0f172a";
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = "#ffffff";
+                e.currentTarget.style.color = "#475569";
+              }}
+            >
+              <X size={13} />
+              <span>Close Inspection</span>
+            </button>
+          </div>
+
           {/* Summary Overview Grid */}
           <div
             style={{
@@ -1965,6 +1334,696 @@ export default function StudentOtpManagement({ API, authHeaders, isMobile }) {
           </div>
         </motion.div>
       )}
+
+      {/* ── Registered Accounts & Live Login Monitor Directory ── */}
+      <div
+        style={{
+          background: "#ffffff",
+          borderRadius: isMob ? 16 : 18,
+          border: "1px solid #e2e8f0",
+          padding: isMob ? "14px 12px" : "22px 24px",
+          boxShadow: "0 2px 10px rgba(15, 23, 42, 0.03)",
+          display: "flex",
+          flexDirection: "column",
+          gap: isMob ? 14 : 18,
+        }}
+      >
+        {/* Top Header with title and refresh button */}
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: isMob ? "flex-start" : "center", flexWrap: "wrap", gap: 10 }}>
+          <div>
+            <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
+              <Users size={isMob ? 18 : 20} color="#4f46e5" />
+              <h3 style={{ margin: 0, fontSize: isMob ? 15 : 16, fontWeight: 800, color: "#0f172a" }}>
+                Registered Accounts & Live Monitor
+              </h3>
+            </div>
+            <p style={{ margin: "3px 0 0 0", fontSize: isMob ? 11.5 : 12.5, color: "#64748b" }}>
+              Live verified student accounts with active sessions in MongoDB.
+            </p>
+          </div>
+          <button
+            onClick={() => fetchAccounts(directorySearch, directoryFilter)}
+            disabled={accountsLoading}
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 5,
+              padding: isMob ? "6px 11px" : "7px 14px",
+              borderRadius: 8,
+              background: "#f8fafc",
+              border: "1px solid #e2e8f0",
+              color: "#334155",
+              fontSize: isMob ? 11.5 : 12.5,
+              fontWeight: 700,
+              cursor: accountsLoading ? "not-allowed" : "pointer",
+            }}
+          >
+            <RefreshCw size={isMob ? 12 : 13} className={accountsLoading ? "spin" : ""} />
+            <span>Refresh</span>
+          </button>
+        </div>
+
+        {/* 3 Summary Mini Stats */}
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: isMob ? "repeat(3, 1fr)" : "repeat(auto-fit, minmax(180px, 1fr))",
+            gap: isMob ? 8 : 12,
+          }}
+        >
+          <div
+            style={{
+              background: "#f8fafc",
+              border: "1px solid #e2e8f0",
+              borderRadius: isMob ? 12 : 14,
+              padding: isMob ? "10px 8px" : "12px 16px",
+              display: "flex",
+              flexDirection: isMob ? "column" : "row",
+              alignItems: isMob ? "flex-start" : "center",
+              gap: isMob ? 6 : 12,
+            }}
+          >
+            <div
+              style={{
+                width: isMob ? 28 : 36,
+                height: isMob ? 28 : 36,
+                borderRadius: isMob ? 8 : 10,
+                background: "#eff6ff",
+                border: "1px solid #bfdbfe",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                flexShrink: 0,
+              }}
+            >
+              <KeyRound size={isMob ? 14 : 16} color="#2563eb" />
+            </div>
+            <div>
+              <div style={{ fontSize: isMob ? 9.5 : 11, fontWeight: 700, color: "#64748b", textTransform: "uppercase", letterSpacing: "0.2px" }}>
+                Created
+              </div>
+              <div style={{ fontSize: isMob ? 16 : 18, fontWeight: 800, color: "#0f172a" }}>
+                {accountsStats.totalRegistered}
+              </div>
+            </div>
+          </div>
+
+          <div
+            style={{
+              background: "#f8fafc",
+              border: "1px solid #e2e8f0",
+              borderRadius: isMob ? 12 : 14,
+              padding: isMob ? "10px 8px" : "12px 16px",
+              display: "flex",
+              flexDirection: isMob ? "column" : "row",
+              alignItems: isMob ? "flex-start" : "center",
+              gap: isMob ? 6 : 12,
+            }}
+          >
+            <div
+              style={{
+                width: isMob ? 28 : 36,
+                height: isMob ? 28 : 36,
+                borderRadius: isMob ? 8 : 10,
+                background: "#ecfdf5",
+                border: "1px solid #a7f3d0",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                flexShrink: 0,
+              }}
+            >
+              <Activity size={isMob ? 14 : 16} color="#059669" />
+            </div>
+            <div>
+              <div style={{ fontSize: isMob ? 9.5 : 11, fontWeight: 700, color: "#64748b", textTransform: "uppercase", letterSpacing: "0.2px" }}>
+                Online
+              </div>
+              <div style={{ fontSize: isMob ? 16 : 18, fontWeight: 800, color: "#059669" }}>
+                {accountsStats.totalActive}
+              </div>
+            </div>
+          </div>
+
+          <div
+            style={{
+              background: "#f8fafc",
+              border: "1px solid #e2e8f0",
+              borderRadius: isMob ? 12 : 14,
+              padding: isMob ? "10px 8px" : "12px 16px",
+              display: "flex",
+              flexDirection: isMob ? "column" : "row",
+              alignItems: isMob ? "flex-start" : "center",
+              gap: isMob ? 6 : 12,
+            }}
+          >
+            <div
+              style={{
+                width: isMob ? 28 : 36,
+                height: isMob ? 28 : 36,
+                borderRadius: isMob ? 8 : 10,
+                background: "#f1f5f9",
+                border: "1px solid #cbd5e1",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                flexShrink: 0,
+              }}
+            >
+              <User size={isMob ? 14 : 16} color="#64748b" />
+            </div>
+            <div>
+              <div style={{ fontSize: isMob ? 9.5 : 11, fontWeight: 700, color: "#64748b", textTransform: "uppercase", letterSpacing: "0.2px" }}>
+                Offline
+              </div>
+              <div style={{ fontSize: isMob ? 16 : 18, fontWeight: 800, color: "#64748b" }}>
+                {accountsStats.totalOffline}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Filter Pills & Directory Search */}
+        <div style={{ display: "flex", flexDirection: isMob ? "column" : "row", justifyContent: "space-between", alignItems: isMob ? "stretch" : "center", gap: 10 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 6, overflowX: isMob ? "auto" : "visible", paddingBottom: isMob ? 4 : 0 }}>
+            {[
+              { id: "all", label: `All (${accountsStats.totalRegistered})`, icon: <Users size={12} /> },
+              { id: "active", label: `Online (${accountsStats.totalActive})`, icon: <Activity size={12} color="#16a34a" />, dotColor: "#16a34a" },
+              { id: "offline", label: `Offline (${accountsStats.totalOffline})`, icon: <Clock size={12} color="#64748b" />, dotColor: "#94a3b8" },
+            ].map((f) => (
+              <button
+                key={f.id}
+                onClick={() => setDirectoryFilter(f.id)}
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 5,
+                  padding: isMob ? "5px 10px" : "6px 12px",
+                  borderRadius: 8,
+                  border: directoryFilter === f.id ? "1.5px solid #4f46e5" : "1px solid #e2e8f0",
+                  background: directoryFilter === f.id ? "#eef2ff" : "#ffffff",
+                  color: directoryFilter === f.id ? "#4338ca" : "#64748b",
+                  fontSize: isMob ? 11.5 : 12,
+                  fontWeight: directoryFilter === f.id ? 700 : 600,
+                  cursor: "pointer",
+                  whiteSpace: "nowrap",
+                  flexShrink: 0,
+                }}
+              >
+                {f.dotColor ? (
+                  <span style={{ width: 6, height: 6, borderRadius: "50%", background: f.dotColor, display: "inline-block" }} />
+                ) : (
+                  f.icon
+                )}
+                <span>{f.label}</span>
+              </button>
+            ))}
+          </div>
+
+          <form onSubmit={handleDirectorySearchSubmit} style={{ display: "flex", gap: 6, width: isMob ? "100%" : "auto" }}>
+            <input
+              type="text"
+              placeholder="Search Reg No or Name..."
+              value={directorySearch}
+              onChange={(e) => setDirectorySearch(e.target.value)}
+              style={{
+                flex: isMob ? 1 : "initial",
+                width: isMob ? "auto" : 180,
+                padding: "6px 10px",
+                borderRadius: 8,
+                border: "1px solid #cbd5e1",
+                fontSize: 12,
+                outline: "none",
+              }}
+            />
+            <button
+              type="submit"
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 4,
+                padding: "6px 12px",
+                borderRadius: 8,
+                border: "none",
+                background: "#4f46e5",
+                color: "#ffffff",
+                fontSize: 12,
+                fontWeight: 700,
+                cursor: "pointer",
+                flexShrink: 0,
+              }}
+            >
+              <Filter size={11} />
+              <span>Filter</span>
+            </button>
+          </form>
+        </div>
+
+        {/* ── Directory Accounts Content: Paginated (10 per page) ── */}
+        {(() => {
+          const totalAccounts = accountsList.length;
+          const dirTotalPages = Math.max(1, Math.ceil(totalAccounts / directoryPageSize));
+          const dirSafePage = Math.min(Math.max(1, directoryPage), dirTotalPages);
+          const dirStart = (dirSafePage - 1) * directoryPageSize;
+          const dirEnd = Math.min(dirStart + directoryPageSize, totalAccounts);
+          const paginatedAccounts = accountsList.slice(dirStart, dirEnd);
+
+          return (
+            <>
+              {isMob ? (
+                /* Mobile Sleek Cards List */
+                <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                  {accountsLoading ? (
+                    <div style={{ padding: "24px", textAlign: "center", color: "#64748b" }}>
+                      <Loader2 size={20} className="spin" style={{ margin: "0 auto 8px" }} />
+                      <div style={{ fontSize: 12.5 }}>Loading accounts directory...</div>
+                    </div>
+                  ) : accountsList.length === 0 ? (
+                    <div style={{ padding: "24px", textAlign: "center", color: "#94a3b8", background: "#f8fafc", borderRadius: 12, border: "1px dashed #e2e8f0", fontSize: 12.5 }}>
+                      No student accounts found matching filter.
+                    </div>
+                  ) : (
+                    <AnimatePresence mode="wait">
+                      <motion.div
+                        key={`mob-page-${dirSafePage}`}
+                        initial={{ opacity: 0, x: 30 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        exit={{ opacity: 0, x: -30 }}
+                        transition={{ duration: 0.25, ease: "easeInOut" }}
+                        style={{ display: "flex", flexDirection: "column", gap: 10 }}
+                      >
+                        {paginatedAccounts.map((acc) => {
+                          const resolvedBranch = (acc.branch && acc.branch !== "N/A") ? acc.branch : getDynamicBranch(acc.regNo);
+                          const resolvedSection = (acc.section && acc.section !== "N/A") ? acc.section : getSectionFromRegNo(acc.regNo);
+
+                          return (
+                            <div
+                              key={acc.regNo}
+                              style={{
+                                background: "#ffffff",
+                                border: "1px solid #e2e8f0",
+                                borderRadius: 14,
+                                padding: "12px 14px",
+                                boxShadow: "0 1px 4px rgba(0,0,0,0.02)",
+                                display: "flex",
+                                flexDirection: "column",
+                                gap: 10,
+                              }}
+                            >
+                              {/* Top Row: Avatar + Name/Reg + Inspect Button */}
+                              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
+                                <div style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0, flex: 1 }}>
+                                  <div style={{ position: "relative", flexShrink: 0 }}>
+                                    <div
+                                      style={{
+                                        width: 36,
+                                        height: 36,
+                                        borderRadius: 10,
+                                        background: acc.isCurrentlyLoggedIn ? "#dcfce7" : "#f1f5f9",
+                                        color: acc.isCurrentlyLoggedIn ? "#15803d" : "#475569",
+                                        display: "flex",
+                                        alignItems: "center",
+                                        justifyContent: "center",
+                                        fontWeight: 800,
+                                        fontSize: 13,
+                                        border: `1px solid ${acc.isCurrentlyLoggedIn ? "#bbf7d0" : "#e2e8f0"}`,
+                                      }}
+                                    >
+                                      {acc.studentName ? acc.studentName.charAt(0).toUpperCase() : "S"}
+                                    </div>
+                                    <span
+                                      style={{
+                                        position: "absolute",
+                                        bottom: -2,
+                                        right: -2,
+                                        width: 9,
+                                        height: 9,
+                                        borderRadius: "50%",
+                                        background: acc.isCurrentlyLoggedIn ? "#16a34a" : "#94a3b8",
+                                        border: "1.5px solid #ffffff",
+                                      }}
+                                    />
+                                  </div>
+                                  <div style={{ minWidth: 0, flex: 1 }}>
+                                    <div style={{ color: "#0f172a", fontWeight: 800, fontSize: 13.5, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                                      {acc.studentName}
+                                    </div>
+                                    <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 1 }}>
+                                      <span style={{ fontSize: 11.5, color: "#4f46e5", fontFamily: "'Space Mono', monospace", fontWeight: 700 }}>
+                                        {acc.regNo}
+                                      </span>
+                                      <span style={{ fontSize: 10.5, color: "#64748b", background: "#f1f5f9", padding: "1px 5px", borderRadius: 4 }}>
+                                        {resolvedBranch} • Sec {resolvedSection}
+                                      </span>
+                                    </div>
+                                  </div>
+                                </div>
+
+                                <button
+                                  onClick={() => handleSearchWithReg(acc.regNo)}
+                                  style={{
+                                    display: "inline-flex",
+                                    alignItems: "center",
+                                    gap: 4,
+                                    padding: "6px 12px",
+                                    borderRadius: 8,
+                                    background: "#eef2ff",
+                                    border: "1px solid #c7d2fe",
+                                    color: "#4338ca",
+                                    fontSize: 12,
+                                    fontWeight: 700,
+                                    cursor: "pointer",
+                                    flexShrink: 0,
+                                  }}
+                                >
+                                  <Eye size={12} />
+                                  <span>Inspect</span>
+                                </button>
+                              </div>
+
+                              {/* Bottom Status Row */}
+                              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", paddingTop: 8, borderTop: "1px dashed #f1f5f9", gap: 6, flexWrap: "wrap" }}>
+                                <div>
+                                  {acc.isCurrentlyLoggedIn ? (
+                                    <span
+                                      style={{
+                                        display: "inline-flex",
+                                        alignItems: "center",
+                                        gap: 5,
+                                        background: "#dcfce7",
+                                        color: "#166534",
+                                        fontSize: 11,
+                                        fontWeight: 700,
+                                        padding: "3px 8px",
+                                        borderRadius: 6,
+                                        border: "1px solid #bbf7d0",
+                                      }}
+                                    >
+                                      <span style={{ width: 5, height: 5, borderRadius: "50%", background: "#16a34a", display: "inline-block" }} />
+                                      <span>Live Online ({acc.activeSessionsCount} dev)</span>
+                                      {acc.activeSessions?.[0]?.deviceType === "Mobile" ? (
+                                        <Smartphone size={10.5} />
+                                      ) : (
+                                        <Laptop size={10.5} />
+                                      )}
+                                    </span>
+                                  ) : (
+                                    <span
+                                      style={{
+                                        display: "inline-flex",
+                                        alignItems: "center",
+                                        gap: 4,
+                                        background: "#f1f5f9",
+                                        color: "#64748b",
+                                        fontSize: 11,
+                                        fontWeight: 600,
+                                        padding: "3px 8px",
+                                        borderRadius: 6,
+                                        border: "1px solid #e2e8f0",
+                                      }}
+                                    >
+                                      <span style={{ width: 5, height: 5, borderRadius: "50%", background: "#94a3b8", display: "inline-block" }} />
+                                      <span>Offline</span>
+                                    </span>
+                                  )}
+                                </div>
+
+                                <div style={{ fontSize: 10.5, color: "#94a3b8" }}>
+                                  Pwd: {formatISTDate(acc.passwordCreatedAt)}
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </motion.div>
+                    </AnimatePresence>
+                  )}
+                </div>
+              ) : (
+                /* Desktop Pristine Table View */
+                <div style={{ overflowX: "auto", border: "1px solid #e2e8f0", borderRadius: 12 }}>
+                  <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13, textAlign: "left" }}>
+                    <thead>
+                      <tr style={{ background: "#f8fafc", borderBottom: "1px solid #e2e8f0", color: "#64748b", fontSize: 11.5, textTransform: "uppercase", letterSpacing: "0.4px" }}>
+                        <th style={{ padding: "10px 14px", fontWeight: 700 }}>Student / Reg No</th>
+                        <th style={{ padding: "10px 14px", fontWeight: 700 }}>Batch / Branch</th>
+                        <th style={{ padding: "10px 14px", fontWeight: 700 }}>Password Created</th>
+                        <th style={{ padding: "10px 14px", fontWeight: 700 }}>Login Status</th>
+                        <th style={{ padding: "10px 14px", fontWeight: 700, textAlign: "right" }}>Action</th>
+                      </tr>
+                    </thead>
+                    <AnimatePresence mode="wait">
+                      <motion.tbody
+                        key={`desk-page-${dirSafePage}`}
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        transition={{ duration: 0.2, ease: "easeInOut" }}
+                      >
+                        {accountsLoading ? (
+                          <tr>
+                            <td colSpan={5} style={{ padding: "24px", textAlign: "center", color: "#64748b" }}>
+                              <Loader2 size={20} className="spin" style={{ margin: "0 auto 8px" }} />
+                              <div>Loading verified accounts directory...</div>
+                            </td>
+                          </tr>
+                        ) : accountsList.length === 0 ? (
+                          <tr>
+                            <td colSpan={5} style={{ padding: "24px", textAlign: "center", color: "#94a3b8" }}>
+                              No registered student accounts found matching filter.
+                            </td>
+                          </tr>
+                        ) : (
+                          paginatedAccounts.map((acc) => {
+                            const resolvedBranch = (acc.branch && acc.branch !== "N/A") ? acc.branch : getDynamicBranch(acc.regNo);
+                            const resolvedSection = (acc.section && acc.section !== "N/A") ? acc.section : getSectionFromRegNo(acc.regNo);
+
+                            return (
+                              <tr key={acc.regNo} style={{ borderBottom: "1px solid #f1f5f9" }}>
+                                <td style={{ padding: "12px 14px" }}>
+                                  <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                                    <div
+                                      style={{
+                                        width: 32,
+                                        height: 32,
+                                        borderRadius: "50%",
+                                        background: acc.isCurrentlyLoggedIn ? "#dcfce7" : "#f1f5f9",
+                                        color: acc.isCurrentlyLoggedIn ? "#15803d" : "#475569",
+                                        display: "flex",
+                                        alignItems: "center",
+                                        justifyContent: "center",
+                                        fontWeight: 700,
+                                        fontSize: 12,
+                                      }}
+                                    >
+                                      {acc.studentName ? acc.studentName.charAt(0).toUpperCase() : "S"}
+                                    </div>
+                                    <div>
+                                      <strong style={{ color: "#0f172a", display: "block" }}>{acc.studentName}</strong>
+                                      <span style={{ fontSize: 11.5, color: "#64748b", fontFamily: "'Space Mono', monospace" }}>
+                                        {acc.regNo}
+                                      </span>
+                                    </div>
+                                  </div>
+                                </td>
+                                <td style={{ padding: "12px 14px", color: "#334155" }}>
+                                  <div style={{ fontWeight: 600 }}>Batch {acc.batch || "2023"}</div>
+                                  <span style={{ fontSize: 11, color: "#64748b", fontWeight: 500 }}>
+                                    {resolvedBranch} (Sec {resolvedSection})
+                                  </span>
+                                </td>
+                                <td style={{ padding: "12px 14px", color: "#64748b", fontSize: 12 }}>
+                                  {formatISTDate(acc.passwordCreatedAt)}
+                                </td>
+                                <td style={{ padding: "12px 14px" }}>
+                                  {acc.isCurrentlyLoggedIn ? (
+                                    <div style={{ display: "inline-flex", flexDirection: "column", gap: 2 }}>
+                                      <span
+                                        style={{
+                                          display: "inline-flex",
+                                          alignItems: "center",
+                                          gap: 6,
+                                          background: "#dcfce7",
+                                          color: "#166534",
+                                          fontSize: 11.5,
+                                          fontWeight: 700,
+                                          padding: "3px 9px",
+                                          borderRadius: 6,
+                                          border: "1px solid #bbf7d0",
+                                        }}
+                                      >
+                                        <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#16a34a", display: "inline-block" }} />
+                                        <span>Live Online ({acc.activeSessionsCount} device)</span>
+                                      </span>
+                                      {acc.activeSessions?.[0] && (
+                                        <span style={{ fontSize: 10.5, color: "#64748b", display: "inline-flex", alignItems: "center", gap: 4 }}>
+                                          {acc.activeSessions[0].deviceType === "Mobile" ? (
+                                            <Smartphone size={11} color="#64748b" />
+                                          ) : (
+                                            <Laptop size={11} color="#64748b" />
+                                          )}
+                                          <span>{acc.activeSessions[0].deviceType} ({acc.activeSessions[0].browser})</span>
+                                        </span>
+                                      )}
+                                    </div>
+                                  ) : (
+                                    <span
+                                      style={{
+                                        display: "inline-flex",
+                                        alignItems: "center",
+                                        gap: 5,
+                                        background: "#f1f5f9",
+                                        color: "#64748b",
+                                        fontSize: 11.5,
+                                        fontWeight: 600,
+                                        padding: "3px 9px",
+                                        borderRadius: 6,
+                                        border: "1px solid #e2e8f0",
+                                      }}
+                                    >
+                                      <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#94a3b8", display: "inline-block" }} />
+                                      <span>Offline</span>
+                                    </span>
+                                  )}
+                                </td>
+                                <td style={{ padding: "12px 14px", textAlign: "right" }}>
+                                  <button
+                                    onClick={() => handleSearchWithReg(acc.regNo)}
+                                    style={{
+                                      display: "inline-flex",
+                                      alignItems: "center",
+                                      gap: 4,
+                                      padding: "6px 12px",
+                                      borderRadius: 8,
+                                      background: "#eef2ff",
+                                      border: "1px solid #c7d2fe",
+                                      color: "#4338ca",
+                                      fontSize: 12,
+                                      fontWeight: 700,
+                                      cursor: "pointer",
+                                    }}
+                                  >
+                                    <Eye size={13} />
+                                    <span>Inspect</span>
+                                  </button>
+                                </td>
+                              </tr>
+                            );
+                          })
+                        )}
+                      </motion.tbody>
+                    </AnimatePresence>
+                  </table>
+                </div>
+              )}
+
+              {/* ── Pagination Controls ── */}
+              {!accountsLoading && totalAccounts > directoryPageSize && (
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    flexWrap: "wrap",
+                    gap: 10,
+                    marginTop: 14,
+                    paddingTop: 14,
+                    borderTop: "1px solid #e2e8f0",
+                  }}
+                >
+                  {/* Left: summary */}
+                  <span style={{ fontSize: isMob ? 11.5 : 12.5, color: "#64748b", fontWeight: 600 }}>
+                    Showing <strong>{dirStart + 1}–{dirEnd}</strong> of <strong>{totalAccounts}</strong> accounts
+                  </span>
+
+                  {/* Right: buttons */}
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 6,
+                      width: isMob ? "100%" : "auto",
+                      justifyContent: isMob ? "space-between" : "flex-end",
+                    }}
+                  >
+                    {/* Previous */}
+                    <button
+                      type="button"
+                      disabled={dirSafePage <= 1}
+                      onClick={() => setDirectoryPage((p) => Math.max(1, p - 1))}
+                      style={{
+                        flex: isMob ? "1 1 0" : "none",
+                        padding: isMob ? "10px 14px" : "8px 16px",
+                        borderRadius: 10,
+                        border: "1px solid",
+                        borderColor: dirSafePage <= 1 ? "#e2e8f0" : "#cbd5e1",
+                        background: dirSafePage <= 1 ? "#f8fafc" : "#ffffff",
+                        color: dirSafePage <= 1 ? "#94a3b8" : "#1e293b",
+                        fontSize: isMob ? 13 : 12.5,
+                        fontWeight: 700,
+                        cursor: dirSafePage <= 1 ? "not-allowed" : "pointer",
+                        display: "inline-flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        gap: 5,
+                        transition: "all 0.2s ease",
+                      }}
+                    >
+                      <ChevronLeft size={15} />
+                      <span>Previous</span>
+                    </button>
+
+                    {/* Page indicator */}
+                    <span
+                      style={{
+                        fontSize: isMob ? 12 : 12.5,
+                        fontWeight: 800,
+                        color: "#4f46e5",
+                        background: "#eef2ff",
+                        border: "1px solid #c7d2fe",
+                        padding: isMob ? "8px 14px" : "6px 14px",
+                        borderRadius: 10,
+                        whiteSpace: "nowrap",
+                        minWidth: isMob ? 0 : 90,
+                        textAlign: "center",
+                      }}
+                    >
+                      {dirSafePage} / {dirTotalPages}
+                    </span>
+
+                    {/* Next */}
+                    <button
+                      type="button"
+                      disabled={dirSafePage >= dirTotalPages}
+                      onClick={() => setDirectoryPage((p) => Math.min(dirTotalPages, p + 1))}
+                      style={{
+                        flex: isMob ? "1 1 0" : "none",
+                        padding: isMob ? "10px 14px" : "8px 16px",
+                        borderRadius: 10,
+                        border: "1px solid",
+                        borderColor: dirSafePage >= dirTotalPages ? "#e2e8f0" : "#cbd5e1",
+                        background: dirSafePage >= dirTotalPages ? "#f8fafc" : "#ffffff",
+                        color: dirSafePage >= dirTotalPages ? "#94a3b8" : "#1e293b",
+                        fontSize: isMob ? 13 : 12.5,
+                        fontWeight: 700,
+                        cursor: dirSafePage >= dirTotalPages ? "not-allowed" : "pointer",
+                        display: "inline-flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        gap: 5,
+                        transition: "all 0.2s ease",
+                      }}
+                    >
+                      <span>Next</span>
+                      <ChevronRight size={15} />
+                    </button>
+                  </div>
+                </div>
+              )}
+            </>
+          );
+        })()}
+      </div>
 
       {/* ── Confirmation Modal ── */}
       <AnimatePresence>
