@@ -13,6 +13,7 @@ import StudentReportCardEditor from "../components/StudentReportCardEditor";
 import TimetableAdminManager from "../components/TimetableAdminManager";
 import AdminManagement from "../components/AdminManagement";
 import StudentOtpManagement from "../components/StudentOtpManagement";
+import AdminAttendanceMonitor from "../components/AdminAttendanceMonitor";
 import { motion, AnimatePresence } from "framer-motion";
 import { formatDistanceToNow } from "date-fns";
 import {
@@ -3748,6 +3749,7 @@ export default function AdminDashboard() {
     { id: "backlogs", label: "Backlog Tracker", icon: <AlertTriangle size={15} /> },
     { id: "manage", label: "Manage Records", icon: <Database size={15} /> },
     { id: "feedback", label: "Student Feedback", icon: <MessageSquare size={15} /> },
+    { id: "attendance-monitor", label: "Attendance Monitor", icon: <UserCheck size={15} /> },
   ];
 
   if (isMainAdmin) {
@@ -4906,6 +4908,11 @@ export default function AdminDashboard() {
 
         {/* ── TAB 5: STUDENT FEEDBACK ── */}
         {tab === "feedback" && <FeedbackManager authHeaders={authHeaders} API={API} />}
+
+        {/* ── TAB: ATTENDANCE TRACKER USAGE MONITOR ── */}
+        {tab === "attendance-monitor" && (
+          <AdminAttendanceMonitor API={API} authHeaders={authHeaders} isMobile={isMobile} />
+        )}
 
         {/* ── TAB 6: STUDENT OTP ATTEMPT MANAGEMENT (MAIN ADMIN EXCLUSIVE) ── */}
         {tab === "otp-management" && isMainAdmin && (
