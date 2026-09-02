@@ -630,7 +630,8 @@ export default function StudentAuthModal({ isOpen, onClose }) {
       // Auto-sent OTP when cookies were deleted / logged out!
       setStep("OTP");
       setMaskedEmail(result.maskedEmail || "");
-      setOtpExpiresInSeconds(result.expiresInSeconds || 300);
+      setTimerSeconds(result.expiresInSeconds || 180);
+      setTimerActive(true);
       setStatusNotice(result.message || `A 6-digit verification code has been dispatched to ${result.maskedEmail || "your university email"}.`);
       return;
     }
@@ -664,8 +665,9 @@ export default function StudentAuthModal({ isOpen, onClose }) {
       if (res.success) {
         setStep("OTP");
         setMaskedEmail(res.data?.maskedEmail || "");
-        setOtpExpiresInSeconds(res.data?.expiresInSeconds || 300);
-        setSuccessMsg(`A 6-digit verification code has been dispatched to your university email.`);
+        setTimerSeconds(res.data?.expiresInSeconds || 180);
+        setTimerActive(true);
+        setStatusNotice(`A 6-digit verification code has been dispatched to your university email.`);
       } else {
         setErrorMsg(res.error || "Failed to send email verification code.");
       }

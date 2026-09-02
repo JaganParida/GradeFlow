@@ -1276,7 +1276,7 @@ const parseCutmOcrText = (text, catalog = []) => {
                       <button
                         type="button"
                         onClick={() => {
-                          handleAddCustomRow();
+                          handleAddRow();
                           setStep("review");
                         }}
                         style={{
