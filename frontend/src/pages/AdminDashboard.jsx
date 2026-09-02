@@ -2412,13 +2412,43 @@ function SectionToppersCard({ authHeaders, API }) {
                 </div>
 
                 {emailSuccessMsg && (
-                  <div style={{ color: "#065f46", background: "#ecfdf5", padding: "8px 12px", borderRadius: 8, fontSize: 12, marginBottom: 12 }}>
-                    {emailSuccessMsg}
+                  <div
+                    style={{
+                      color: "#065f46",
+                      background: "#ecfdf5",
+                      border: "1px solid #a7f3d0",
+                      padding: "10px 14px",
+                      borderRadius: 10,
+                      fontSize: 12.5,
+                      fontWeight: 600,
+                      marginBottom: 14,
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 8,
+                    }}
+                  >
+                    <CheckCircle size={15} color="#059669" style={{ flexShrink: 0 }} />
+                    <span>{emailSuccessMsg}</span>
                   </div>
                 )}
                 {emailErrorMsg && (
-                  <div style={{ color: "#991b1b", background: "#fef2f2", padding: "8px 12px", borderRadius: 8, fontSize: 12, marginBottom: 12 }}>
-                    {emailErrorMsg}
+                  <div
+                    style={{
+                      color: "#991b1b",
+                      background: "#fef2f2",
+                      border: "1px solid #fecaca",
+                      padding: "10px 14px",
+                      borderRadius: 10,
+                      fontSize: 12.5,
+                      fontWeight: 600,
+                      marginBottom: 14,
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 8,
+                    }}
+                  >
+                    <AlertTriangle size={15} color="#dc2626" style={{ flexShrink: 0 }} />
+                    <span>{emailErrorMsg}</span>
                   </div>
                 )}
 
@@ -3371,13 +3401,43 @@ function BacklogTrackerCard({ authHeaders, API }) {
                 </div>
 
                 {emailSuccessMsg && (
-                  <div style={{ color: "#065f46", background: "#ecfdf5", padding: "8px 12px", borderRadius: 8, fontSize: 12, marginBottom: 12 }}>
-                    {emailSuccessMsg}
+                  <div
+                    style={{
+                      color: "#065f46",
+                      background: "#ecfdf5",
+                      border: "1px solid #a7f3d0",
+                      padding: "10px 14px",
+                      borderRadius: 10,
+                      fontSize: 12.5,
+                      fontWeight: 600,
+                      marginBottom: 14,
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 8,
+                    }}
+                  >
+                    <CheckCircle size={15} color="#059669" style={{ flexShrink: 0 }} />
+                    <span>{emailSuccessMsg}</span>
                   </div>
                 )}
                 {emailErrorMsg && (
-                  <div style={{ color: "#991b1b", background: "#fef2f2", padding: "8px 12px", borderRadius: 8, fontSize: 12, marginBottom: 12 }}>
-                    {emailErrorMsg}
+                  <div
+                    style={{
+                      color: "#991b1b",
+                      background: "#fef2f2",
+                      border: "1px solid #fecaca",
+                      padding: "10px 14px",
+                      borderRadius: 10,
+                      fontSize: 12.5,
+                      fontWeight: 600,
+                      marginBottom: 14,
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 8,
+                    }}
+                  >
+                    <AlertTriangle size={15} color="#dc2626" style={{ flexShrink: 0 }} />
+                    <span>{emailErrorMsg}</span>
                   </div>
                 )}
 
