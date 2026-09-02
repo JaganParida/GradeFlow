@@ -33,7 +33,7 @@ export default function MaintenanceGuard({ children }) {
   }, [maintenance?.enabled, allowAccess]);
 
   // Initial startup barrier: Prevent 404 or student dashboard flash on hard refresh
-  if (!maintenanceChecked && authChecking && !isAdminLoginPage) {
+  if (!maintenanceChecked && authChecking && !isAdminRoute) {
     return (
       <div
         style={{
