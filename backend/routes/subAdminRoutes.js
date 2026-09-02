@@ -328,7 +328,7 @@ router.put("/:id/permissions", async (req, res) => {
 router.put("/:id/status", async (req, res) => {
   try {
     const { status } = req.body;
-    if (!["active", "disabled", "revoked"].includes(status)) {
+    if (!["active", "disabled", "revoked", "inactive"].includes(status)) {
       return res.status(400).json({ success: false, message: "Invalid status value." });
     }
 

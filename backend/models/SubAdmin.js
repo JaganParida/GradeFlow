@@ -8,7 +8,7 @@ const subAdminSchema = new mongoose.Schema(
     password: { type: String, required: true },
     status: {
       type: String,
-      enum: ["active", "disabled", "revoked"],
+      enum: ["active", "disabled", "revoked", "inactive"],
       default: "active",
       index: true,
     },
