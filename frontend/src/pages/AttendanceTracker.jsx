@@ -1231,18 +1231,12 @@ export default function AttendanceTracker() {
     );
   }, [savedSubjects]);
 
-  // Default tab auto-routing:
-  // - Students with existing attendance data -> default to "checkin" (Daily Check-In Hub)
-  // - First-time students with 0 attendance data -> default to "studio" (Quick Setup Guide page)
+  // Default tab routing: Keep default tab "checkin" unless specified via URL parameter
   useEffect(() => {
-    if (!hasUserManuallySelectedTabRef.current && !urlTabParam) {
-      if (hasSavedAttendance) {
-        setActiveTab("checkin");
-      } else {
-        setActiveTab("studio");
-      }
+    if (!hasUserManuallySelectedTabRef.current && urlTabParam) {
+      setActiveTab(getInitialTab());
     }
-  }, [hasSavedAttendance, urlTabParam]);
+  }, [urlTabParam]);
 
   // Overall Aggregate Attendance across all Semester Subjects
   const overallCalculation = useMemo(() => {
