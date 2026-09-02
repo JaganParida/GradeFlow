@@ -7,21 +7,26 @@ import {
 } from "../utils/gradeCalculations";
 
 function getDynamicBranch(regNo, fallbackBranch) {
-  if (!regNo) return fallbackBranch;
+  if (!regNo) return fallbackBranch || "—";
   const r = String(regNo).trim();
   
+  // Specific student administrative transfers / overrides
   if (r === "230301180026") return "CSE";
   if (["230301120110", "230301120186", "230301120371", "230301120481"].includes(r)) return "ECE";
   if (r === "230301231033") return "AERO";
 
-  if (r.startsWith("230301110") || r.startsWith("230301111")) return "CIVIL";
-  if (r.startsWith("230301120") || r.startsWith("230301121")) return "CSE";
-  if (r.startsWith("230301130") || r.startsWith("230301131") || r.startsWith("230301132")) return "ECE";
-  if (r.startsWith("230301150") || r.startsWith("230301151")) return "EEE";
-  if (r.startsWith("230301160") || r.startsWith("230301161")) return "ME";
-  if (r.startsWith("230301180")) return "BIO";
-  if (r.startsWith("230301190") || r.startsWith("230301191")) return "MI";
-  if (r.startsWith("230301230")) return "AERO";
+  // Dynamic branch mapping across all batches (2021, 2022, 2023, 2024, 2025, 2026...)
+  if (r.length >= 8) {
+    const dept = r.slice(2, 8);
+    if (dept === "030111") return "CIVIL";
+    if (dept === "030112") return "CSE";
+    if (dept === "030113") return "ECE";
+    if (dept === "030115") return "EEE";
+    if (dept === "030116") return "ME";
+    if (dept === "030118") return "BIO";
+    if (dept === "030119") return "MI";
+    if (dept === "030123") return "AERO";
+  }
   
   return fallbackBranch || "—";
 }

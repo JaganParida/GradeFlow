@@ -45,7 +45,7 @@ router.get("/", async (req, res) => {
 });
 
 // POST /api/feedback - Submit new feedback with strict schema validation
-router.post("/", validateFeedbackInput, async (req, res) => {
+router.post("/", publicLimiter, validateFeedbackInput, async (req, res) => {
   try {
     const { name, regNo, rating, comment, category } = req.body;
 

@@ -1720,32 +1720,26 @@ export default function StudentAuthModal({ isOpen, onClose }) {
                   <span>Change Reg. No.</span>
                 </button>
 
-                {isForgotPasswordMode ? (
-                  <span style={{ fontSize: 11.5, color: "#64748b", fontStyle: "italic" }}>
-                    Single-use recovery code (10m). Resend disabled.
-                  </span>
-                ) : (
-                  <button
-                    type="button"
-                    disabled={resendCooldown > 0 || remainingDailyAttempts <= 0 || loading}
-                    onClick={triggerSendOtp}
-                    style={{
-                      background: "none",
-                      border: "none",
-                      color: resendCooldown > 0 || remainingDailyAttempts <= 0 ? "#94a3b8" : "#2563eb",
-                      fontSize: 12,
-                      fontWeight: 700,
-                      cursor: resendCooldown > 0 || remainingDailyAttempts <= 0 ? "not-allowed" : "pointer",
-                      display: "inline-flex",
-                      alignItems: "center",
-                      gap: 4,
-                      padding: 0,
-                    }}
-                  >
-                    <RefreshCw size={12} className={loading ? "spin" : ""} />
-                    <span>Resend Code {resendCooldown > 0 ? `(${resendCooldown}s)` : ""}</span>
-                  </button>
-                )}
+                <button
+                  type="button"
+                  disabled={resendCooldown > 0 || remainingDailyAttempts <= 0 || loading}
+                  onClick={triggerSendOtp}
+                  style={{
+                    background: "none",
+                    border: "none",
+                    color: resendCooldown > 0 || remainingDailyAttempts <= 0 ? "#94a3b8" : "#2563eb",
+                    fontSize: 12,
+                    fontWeight: 700,
+                    cursor: resendCooldown > 0 || remainingDailyAttempts <= 0 ? "not-allowed" : "pointer",
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 4,
+                    padding: 0,
+                  }}
+                >
+                  <RefreshCw size={12} className={loading ? "spin" : ""} />
+                  <span>Resend Code {resendCooldown > 0 ? `(${resendCooldown}s)` : ""}</span>
+                </button>
               </div>
             </form>
           )}
