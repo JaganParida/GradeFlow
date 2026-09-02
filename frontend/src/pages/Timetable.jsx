@@ -3,6 +3,7 @@ import { useParams, useNavigate, useLocation } from "react-router-dom";
 import axios from "axios";
 import { useApp } from "../context/AppContext";
 import { encodeStudentId, decodeStudentId, isEncryptedToken } from "../utils/studentIdEncoder";
+import ModernMobileSubNav from "../components/ModernMobileSubNav";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Clock,
@@ -60,6 +61,13 @@ import {
   formatDurationMinutes,
 } from "../utils/timetableHelper";
 import { TimetableSkeleton } from "../components/LoadingSpinner";
+
+const TIMETABLE_VIEW_MODES = [
+  { id: "day", label: "Daily Routine", icon: <Clock size={16} />, desc: "Today's scheduled classes, timings & venues" },
+  { id: "week", label: "Weekly Matrix", icon: <Grid size={16} />, desc: "Complete Monday to Saturday timetable matrix" },
+  { id: "academic", label: "Academic Calendar", icon: <CalendarIcon size={16} />, desc: "University semester timeline & exam milestones" },
+  { id: "holidays", label: "Holidays & Offs", icon: <Sun size={16} />, desc: "Official university holidays & vacation list" },
+];
 
 export default function Timetable() {
   const { studentId: urlParam } = useParams();
@@ -862,166 +870,179 @@ export default function Timetable() {
               </div>
             )}
 
-            {/* View Mode Switcher Pills with Arrow Scroll Buttons */}
-            <div style={{ display: "flex", alignItems: "center", gap: 4, maxWidth: "100%", position: "relative" }}>
-              <button
-                type="button"
-                onClick={() => scrollModeSwitcher("left")}
-                disabled={!canScrollModeLeft}
-                aria-label="Scroll modes left"
-                style={{
-                  width: 26,
-                  height: 26,
-                  borderRadius: 7,
-                  border: "1px solid #cbd5e1",
-                  background: "#ffffff",
-                  color: canScrollModeLeft ? "#0f172a" : "#cbd5e1",
-                  cursor: canScrollModeLeft ? "pointer" : "default",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  flexShrink: 0,
-                }}
-              >
-                <ChevronLeft size={14} />
-              </button>
-
-              <div
-                ref={modeSwitcherRef}
-                onScroll={checkModeScroll}
-                style={{
-                  display: "inline-flex",
-                  background: "#f1f5f9",
-                  padding: 4,
-                  borderRadius: 12,
-                  gap: 3,
-                  border: "1px solid #e2e8f0",
-                  overflowX: "auto",
-                  scrollBehavior: "smooth",
-                  scrollbarWidth: "none",
-                  msOverflowStyle: "none",
-                  maxWidth: "100%",
-                }}
-              >
+            {/* View Mode Switcher: ModernMobileSubNav on Mobile, Clean Segmented Pills on Desktop */}
+            {isMobile ? (
+              <div style={{ width: "100%", marginTop: 6 }}>
+                <ModernMobileSubNav
+                  items={TIMETABLE_VIEW_MODES}
+                  activeTab={viewMode}
+                  onChange={(newMode) => setViewMode(newMode)}
+                  title="Timetable Views"
+                  themeColor="#2563eb"
+                  themeBg="#eff6ff"
+                />
+              </div>
+            ) : (
+              <div style={{ display: "flex", alignItems: "center", gap: 4, maxWidth: "100%", position: "relative" }}>
                 <button
                   type="button"
-                  onClick={() => setViewMode("day")}
+                  onClick={() => scrollModeSwitcher("left")}
+                  disabled={!canScrollModeLeft}
+                  aria-label="Scroll modes left"
                   style={{
-                    padding: isMobile ? "6px 10px" : "7px 14px",
-                    borderRadius: 9,
-                    border: "none",
-                    background: viewMode === "day" ? "#ffffff" : "transparent",
-                    color: viewMode === "day" ? "#2563eb" : "#64748b",
-                    fontSize: 12,
-                    fontWeight: 800,
-                    cursor: "pointer",
+                    width: 26,
+                    height: 26,
+                    borderRadius: 7,
+                    border: "1px solid #cbd5e1",
+                    background: "#ffffff",
+                    color: canScrollModeLeft ? "#0f172a" : "#cbd5e1",
+                    cursor: canScrollModeLeft ? "pointer" : "default",
                     display: "flex",
                     alignItems: "center",
-                    gap: 6,
-                    boxShadow: viewMode === "day" ? "0 1px 4px rgba(0,0,0,0.08)" : "none",
-                    whiteSpace: "nowrap",
+                    justifyContent: "center",
                     flexShrink: 0,
                   }}
                 >
-                  <Clock size={14} />
-                  <span>Daily Routine</span>
+                  <ChevronLeft size={14} />
                 </button>
 
-                <button
-                  type="button"
-                  onClick={() => setViewMode("week")}
+                <div
+                  ref={modeSwitcherRef}
+                  onScroll={checkModeScroll}
                   style={{
-                    padding: isMobile ? "6px 10px" : "7px 14px",
-                    borderRadius: 9,
-                    border: "none",
-                    background: viewMode === "week" ? "#ffffff" : "transparent",
-                    color: viewMode === "week" ? "#2563eb" : "#64748b",
-                    fontSize: 12,
-                    fontWeight: 800,
-                    cursor: "pointer",
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 6,
-                    boxShadow: viewMode === "week" ? "0 1px 4px rgba(0,0,0,0.08)" : "none",
-                    whiteSpace: "nowrap",
-                    flexShrink: 0,
+                    display: "inline-flex",
+                    background: "#f1f5f9",
+                    padding: 4,
+                    borderRadius: 12,
+                    gap: 3,
+                    border: "1px solid #e2e8f0",
+                    overflowX: "auto",
+                    scrollBehavior: "smooth",
+                    scrollbarWidth: "none",
+                    msOverflowStyle: "none",
+                    maxWidth: "100%",
                   }}
                 >
-                  <Grid size={14} />
-                  <span>Weekly Matrix</span>
-                </button>
+                  <button
+                    type="button"
+                    onClick={() => setViewMode("day")}
+                    style={{
+                      padding: "7px 14px",
+                      borderRadius: 9,
+                      border: "none",
+                      background: viewMode === "day" ? "#ffffff" : "transparent",
+                      color: viewMode === "day" ? "#2563eb" : "#64748b",
+                      fontSize: 12,
+                      fontWeight: 800,
+                      cursor: "pointer",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 6,
+                      boxShadow: viewMode === "day" ? "0 1px 4px rgba(0,0,0,0.08)" : "none",
+                      whiteSpace: "nowrap",
+                      flexShrink: 0,
+                    }}
+                  >
+                    <Clock size={14} />
+                    <span>Daily Routine</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setViewMode("week")}
+                    style={{
+                      padding: "7px 14px",
+                      borderRadius: 9,
+                      border: "none",
+                      background: viewMode === "week" ? "#ffffff" : "transparent",
+                      color: viewMode === "week" ? "#2563eb" : "#64748b",
+                      fontSize: 12,
+                      fontWeight: 800,
+                      cursor: "pointer",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 6,
+                      boxShadow: viewMode === "week" ? "0 1px 4px rgba(0,0,0,0.08)" : "none",
+                      whiteSpace: "nowrap",
+                      flexShrink: 0,
+                    }}
+                  >
+                    <Grid size={14} />
+                    <span>Weekly Matrix</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setViewMode("academic")}
+                    style={{
+                      padding: "7px 14px",
+                      borderRadius: 9,
+                      border: "none",
+                      background: viewMode === "academic" ? "#ffffff" : "transparent",
+                      color: viewMode === "academic" ? "#7c3aed" : "#64748b",
+                      fontSize: 12,
+                      fontWeight: 800,
+                      cursor: "pointer",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 6,
+                      boxShadow: viewMode === "academic" ? "0 1px 4px rgba(0,0,0,0.08)" : "none",
+                      whiteSpace: "nowrap",
+                      flexShrink: 0,
+                    }}
+                  >
+                    <CalendarIcon size={14} />
+                    <span>Academic Calendar</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setViewMode("holidays")}
+                    style={{
+                      padding: "7px 14px",
+                      borderRadius: 9,
+                      border: "none",
+                      background: viewMode === "holidays" ? "#ffffff" : "transparent",
+                      color: viewMode === "holidays" ? "#dc2626" : "#64748b",
+                      fontSize: 12,
+                      fontWeight: 800,
+                      cursor: "pointer",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 6,
+                      boxShadow: viewMode === "holidays" ? "0 1px 4px rgba(0,0,0,0.08)" : "none",
+                      whiteSpace: "nowrap",
+                      flexShrink: 0,
+                    }}
+                  >
+                    <Sun size={14} />
+                    <span>Holidays</span>
+                  </button>
+                </div>
 
                 <button
                   type="button"
-                  onClick={() => setViewMode("academic")}
+                  onClick={() => scrollModeSwitcher("right")}
+                  disabled={!canScrollModeRight}
+                  aria-label="Scroll modes right"
                   style={{
-                    padding: isMobile ? "6px 10px" : "7px 14px",
-                    borderRadius: 9,
-                    border: "none",
-                    background: viewMode === "academic" ? "#ffffff" : "transparent",
-                    color: viewMode === "academic" ? "#7c3aed" : "#64748b",
-                    fontSize: 12,
-                    fontWeight: 800,
-                    cursor: "pointer",
+                    width: 26,
+                    height: 26,
+                    borderRadius: 7,
+                    border: "1px solid #cbd5e1",
+                    background: "#ffffff",
+                    color: canScrollModeRight ? "#0f172a" : "#cbd5e1",
+                    cursor: canScrollModeRight ? "pointer" : "default",
                     display: "flex",
                     alignItems: "center",
-                    gap: 6,
-                    boxShadow: viewMode === "academic" ? "0 1px 4px rgba(0,0,0,0.08)" : "none",
-                    whiteSpace: "nowrap",
+                    justifyContent: "center",
                     flexShrink: 0,
                   }}
                 >
-                  <CalendarIcon size={14} />
-                  <span>Academic Calendar</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => setViewMode("holidays")}
-                  style={{
-                    padding: isMobile ? "6px 10px" : "7px 14px",
-                    borderRadius: 9,
-                    border: "none",
-                    background: viewMode === "holidays" ? "#ffffff" : "transparent",
-                    color: viewMode === "holidays" ? "#dc2626" : "#64748b",
-                    fontSize: 12,
-                    fontWeight: 800,
-                    cursor: "pointer",
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 6,
-                    boxShadow: viewMode === "holidays" ? "0 1px 4px rgba(0,0,0,0.08)" : "none",
-                    whiteSpace: "nowrap",
-                    flexShrink: 0,
-                  }}
-                >
-                  <Sun size={14} />
-                  <span>Holidays</span>
+                  <ChevronRight size={14} />
                 </button>
               </div>
-
-              <button
-                type="button"
-                onClick={() => scrollModeSwitcher("right")}
-                disabled={!canScrollModeRight}
-                aria-label="Scroll modes right"
-                style={{
-                  width: 26,
-                  height: 26,
-                  borderRadius: 7,
-                  border: "1px solid #cbd5e1",
-                  background: "#ffffff",
-                  color: canScrollModeRight ? "#0f172a" : "#cbd5e1",
-                  cursor: canScrollModeRight ? "pointer" : "default",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  flexShrink: 0,
-                }}
-              >
-                <ChevronRight size={14} />
-              </button>
-            </div>
+            )}
           </div>
 
           {searchError && (

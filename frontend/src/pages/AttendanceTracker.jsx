@@ -72,6 +72,7 @@ import SmartBunkAnalyzer from "../components/SmartBunkAnalyzer";
 import AttendanceTargetPredictor from "../components/AttendanceTargetPredictor";
 import AttendanceScreenshotModal from "../components/AttendanceScreenshotModal";
 import { AttendanceSkeleton } from "../components/LoadingSpinner";
+import ModernMobileSubNav from "../components/ModernMobileSubNav";
 import { getDailyScanStatus, MAX_DAILY_SCANS } from "../utils/scanLimitHelper";
 
 // Robust Subject Comparator (Handles aliases, normalized names, course codes, and baskets)
@@ -1443,10 +1444,10 @@ export default function AttendanceTracker() {
   const [isResetModalOpen, setIsResetModalOpen] = useState(false);
 
   const navMenuItems = [
-    { id: "checkin", label: "Daily Check-In Hub", shortLabel: "Daily Hub", icon: <CalendarCheck size={14} />, badge: "Routine" },
-    { id: "matrix", label: "Subject-wise Matrix", shortLabel: "Subjects", icon: <Grid size={14} />, badge: `${allSectionSubjects.length} Subs` },
-    { id: "studio", label: "Predictor Studio", shortLabel: "Predictor", icon: <Sliders size={14} />, badge: "Simulate" },
-    { id: "bunk_analyzer", label: "Smart Bunk Planner", shortLabel: "Planner", icon: <ShieldCheck size={14} />, badge: "Weekly" },
+    { id: "checkin", label: "Daily Check-In Hub", shortLabel: "Daily Hub", icon: <CalendarCheck size={16} />, badge: "Routine", desc: "Today's fast attendance logger & summary" },
+    { id: "matrix", label: "Subject-wise Matrix", shortLabel: "Subjects", icon: <Grid size={16} />, badge: `${allSectionSubjects.length} Subs`, desc: "Detailed attendance % across all subjects" },
+    { id: "studio", label: "Predictor Studio", shortLabel: "Predictor", icon: <Sliders size={16} />, badge: "Simulate", desc: "Safe bunk margin & target attendance goal" },
+    { id: "bunk_analyzer", label: "Smart Bunk Planner", shortLabel: "Planner", icon: <ShieldCheck size={16} />, badge: "Weekly", desc: "Weekly schedule & bunk strategy planner" },
   ];
 
   const handleResetAllAttendance = () => {
@@ -1918,122 +1919,16 @@ export default function AttendanceTracker() {
             </div>
           )}
 
-          {/* ── VIEWS NAVIGATION HORIZONTAL PILL BAR (Mobile Devices Only) ── */}
+          {/* Modern Interactive Mobile Sub-Navigation */}
           {isMobile && (
-            <div
-              className="flex md:hidden"
-              style={{
-                position: "sticky",
-                top: 0,
-                zIndex: 20,
-                background: "#f1f5f9",
-                padding: "4px 0 6px 0",
-                display: isMobile ? "flex" : "none",
-                alignItems: "center",
-                gap: 5,
-                width: "100%",
-              }}
-            >
-              {/* Left Arrow Button */}
-              <button
-                type="button"
-                onClick={() => scrollTabs("left")}
-                disabled={!canScrollTabsLeft}
-                aria-label="Scroll views left"
-                style={{
-                  width: 28,
-                  height: 28,
-                  borderRadius: "50%",
-                  border: canScrollTabsLeft ? "1px solid #cbd5e1" : "1px solid #e2e8f0",
-                  background: "#ffffff",
-                  color: canScrollTabsLeft ? "#059669" : "#94a3b8",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  cursor: canScrollTabsLeft ? "pointer" : "default",
-                  flexShrink: 0,
-                  opacity: canScrollTabsLeft ? 1 : 0.4,
-                  transition: "all 0.15s ease",
-                  padding: 0,
-                }}
-              >
-                <ChevronLeft size={15} />
-              </button>
-
-              {/* Scrollable Tabs Track */}
-              <div
-                ref={mobileTabsRef}
-                onScroll={checkTabsScroll}
-                style={{
-                  display: "flex",
-                  gap: 6,
-                  overflowX: "auto",
-                  width: "100%",
-                  WebkitOverflowScrolling: "touch",
-                  scrollbarWidth: "none",
-                  msOverflowStyle: "none",
-                  scrollBehavior: "smooth",
-                }}
-              >
-                {navMenuItems.map((item) => {
-                  const isActive = activeTab === item.id;
-                  return (
-                    <button
-                      key={item.id}
-                      data-tab-id={item.id}
-                      type="button"
-                      onClick={() => handleTabClick(item.id)}
-                      style={{
-                        display: "inline-flex",
-                        alignItems: "center",
-                        gap: 6,
-                        padding: "7px 14px",
-                        borderRadius: 999,
-                        border: isActive ? "1px solid #cbd5e1" : "1px solid #e2e8f0",
-                        background: isActive ? "#ffffff" : "#f8fafc",
-                        color: isActive ? "#059669" : "#475569",
-                        fontSize: 12,
-                        fontWeight: isActive ? 800 : 600,
-                        whiteSpace: "nowrap",
-                        cursor: "pointer",
-                        fontFamily: "'DM Sans', sans-serif",
-                        flexShrink: 0,
-                        transition: "all 0.15s ease",
-                      }}
-                    >
-                      <span style={{ color: isActive ? "#059669" : "#64748b" }}>{item.icon}</span>
-                      <span>{item.label}</span>
-                    </button>
-                  );
-                })}
-              </div>
-
-              {/* Right Arrow Button */}
-              <button
-                type="button"
-                onClick={() => scrollTabs("right")}
-                disabled={!canScrollTabsRight}
-                aria-label="Scroll views right"
-                style={{
-                  width: 28,
-                  height: 28,
-                  borderRadius: "50%",
-                  border: canScrollTabsRight ? "1px solid #cbd5e1" : "1px solid #e2e8f0",
-                  background: "#ffffff",
-                  color: canScrollTabsRight ? "#059669" : "#94a3b8",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  cursor: canScrollTabsRight ? "pointer" : "default",
-                  flexShrink: 0,
-                  opacity: canScrollTabsRight ? 1 : 0.4,
-                  transition: "all 0.15s ease",
-                  padding: 0,
-                }}
-              >
-                <ChevronRight size={15} />
-              </button>
-            </div>
+            <ModernMobileSubNav
+              items={navMenuItems}
+              activeTab={activeTab}
+              onChange={(newTab) => handleTabClick(newTab)}
+              title="Attendance Modules"
+              themeColor="#059669"
+              themeBg="#ecfdf5"
+            />
           )}
 
           {/* On Desktop: Always visible. On Mobile: Visible when on Daily Hub (checkin) or Subject Matrix (matrix) */}

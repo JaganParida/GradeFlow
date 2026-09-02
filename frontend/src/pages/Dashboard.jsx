@@ -11,6 +11,7 @@ import { encodeStudentId, decodeStudentId, isEncryptedToken } from "../utils/stu
 import GradeSheet from "../components/GradeSheet";
 import BasketDashboard from "../components/BasketDashboard";
 import TargetPredictor from "../components/TargetPredictor";
+import ModernMobileSubNav from "../components/ModernMobileSubNav";
 import axios from "axios";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -834,11 +835,11 @@ export default function Dashboard() {
   ].filter(Boolean);
 
   const navMenuItems = [
-    { id: "result", label: "Semester Result", icon: <FileText size={17} /> },
-    { id: "internal", label: "Internal Marks", icon: <FileEdit size={17} /> },
-    { id: "history", label: "Semester History", icon: <Calendar size={17} /> },
-    { id: "baskets", label: "Degree Progress", icon: <Layout size={17} /> },
-    { id: "predictor", label: "Target Predictor", icon: <Calculator size={17} /> },
+    { id: "result", label: "Semester Result", icon: <FileText size={17} />, desc: "SGPA, Grades & Official Ledger" },
+    { id: "internal", label: "Internal Marks", icon: <FileEdit size={17} />, desc: "Continuous Evaluation & Lab Marks" },
+    { id: "history", label: "Semester History", icon: <Calendar size={17} />, desc: "All Past Semesters Record" },
+    { id: "baskets", label: "Degree Progress", icon: <Layout size={17} />, desc: "Credits & Basket Completion" },
+    { id: "predictor", label: "Target Predictor", icon: <Calculator size={17} />, desc: "CGPA & Target Grade Forecast" },
   ];
 
   return (
@@ -1259,117 +1260,16 @@ export default function Dashboard() {
             RIGHT MAIN WORKSPACE PANEL
         ══════════════════════════════════════════════════════════ */}
         <main style={{ display: "flex", flexDirection: "column", gap: isMobile ? 12 : 20, minWidth: 0, width: "100%", boxSizing: "border-box" }}>
-          {/* Mobile Sticky Views Sub-Navigation Bar with Left & Right Arrow Buttons */}
+          {/* Modern Interactive Mobile Sub-Navigation */}
           {isMobile && (
-            <div
-              style={{
-                position: "sticky",
-                top: 0,
-                zIndex: 20,
-                background: "#f1f5f9",
-                padding: "4px 0 6px 0",
-                display: "flex",
-                alignItems: "center",
-                gap: 5,
-                width: "100%",
-              }}
-            >
-              {/* Left Arrow Button */}
-              <button
-                onClick={() => scrollTabs("left")}
-                disabled={!canScrollLeft}
-                aria-label="Scroll views left"
-                style={{
-                  width: 28,
-                  height: 28,
-                  borderRadius: "50%",
-                  border: canScrollLeft ? "1px solid #cbd5e1" : "1px solid #e2e8f0",
-                  background: "#ffffff",
-                  color: canScrollLeft ? "#2563eb" : "#94a3b8",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  cursor: canScrollLeft ? "pointer" : "default",
-                  flexShrink: 0,
-                  opacity: canScrollLeft ? 1 : 0.4,
-                  transition: "all 0.15s ease",
-                  padding: 0,
-                }}
-              >
-                <ChevronLeft size={15} />
-              </button>
-
-              {/* Scrollable Tabs Track */}
-              <div
-                ref={mobileTabsRef}
-                onScroll={checkTabsScroll}
-                style={{
-                  display: "flex",
-                  gap: 6,
-                  overflowX: "auto",
-                  width: "100%",
-                  WebkitOverflowScrolling: "touch",
-                  scrollbarWidth: "none",
-                  msOverflowStyle: "none",
-                  scrollBehavior: "smooth",
-                }}
-              >
-                {navMenuItems.map((item) => {
-                  const isActive = tab === item.id;
-                  return (
-                    <button
-                      key={item.id}
-                      data-tab-id={item.id}
-                      onClick={() => setTab(item.id)}
-                      style={{
-                        display: "inline-flex",
-                        alignItems: "center",
-                        gap: 6,
-                        padding: "7px 12px",
-                        borderRadius: 999,
-                        border: isActive ? "1px solid #cbd5e1" : "1px solid #e2e8f0",
-                        background: isActive ? "#ffffff" : "#f8fafc",
-                        color: isActive ? "#2563eb" : "#475569",
-                        fontSize: 12,
-                        fontWeight: isActive ? 800 : 600,
-                        whiteSpace: "nowrap",
-                        cursor: "pointer",
-                        fontFamily: "'DM Sans', sans-serif",
-                        flexShrink: 0,
-                      }}
-                    >
-                      <span style={{ color: isActive ? "#2563eb" : "#64748b" }}>{item.icon}</span>
-                      <span>{item.label}</span>
-                    </button>
-                  );
-                })}
-              </div>
-
-              {/* Right Arrow Button */}
-              <button
-                onClick={() => scrollTabs("right")}
-                disabled={!canScrollRight}
-                aria-label="Scroll views right"
-                style={{
-                  width: 28,
-                  height: 28,
-                  borderRadius: "50%",
-                  border: canScrollRight ? "1px solid #cbd5e1" : "1px solid #e2e8f0",
-                  background: "#ffffff",
-                  color: canScrollRight ? "#2563eb" : "#94a3b8",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  cursor: canScrollRight ? "pointer" : "default",
-                  flexShrink: 0,
-                  opacity: canScrollRight ? 1 : 0.4,
-                  transition: "all 0.15s ease",
-                  padding: 0,
-                }}
-              >
-                <ChevronRight size={15} />
-              </button>
-            </div>
+            <ModernMobileSubNav
+              items={navMenuItems}
+              activeTab={tab}
+              onChange={(newTab) => setTab(newTab)}
+              title="Dashboard Modules"
+              themeColor="#2563eb"
+              themeBg="#eff6ff"
+            />
           )}
 
           {/* Top Header Card */}
