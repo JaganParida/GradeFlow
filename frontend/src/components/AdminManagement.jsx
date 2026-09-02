@@ -192,6 +192,12 @@ export default function AdminManagement({ API, authHeaders, isMobile }) {
   const [showDisableConfirmModal, setShowDisableConfirmModal] = useState(false);
   const [maintenanceSuccess, setMaintenanceSuccess] = useState("");
   const [maintenanceError, setMaintenanceError] = useState("");
+  const [actionFeedback, setActionFeedback] = useState({ type: "", message: "" });
+
+  const showFeedback = (type, message) => {
+    setActionFeedback({ type, message });
+    setTimeout(() => setActionFeedback({ type: "", message: "" }), 5000);
+  };
 
   useEffect(() => {
     fetchSubAdmins();
@@ -523,10 +529,11 @@ export default function AdminManagement({ API, authHeaders, isMobile }) {
         authHeaders
       );
       if (data.success) {
+        showFeedback("success", `Sub-Admin '${subAdmin.name}' status updated to ${newStatus.toUpperCase()} successfully.`);
         fetchSubAdmins();
       }
     } catch (err) {
-      alert(err.response?.data?.message || "Failed to update status.");
+      showFeedback("error", err.response?.data?.message || "Failed to update status.");
     }
   }
 
@@ -544,10 +551,10 @@ export default function AdminManagement({ API, authHeaders, isMobile }) {
       if (data.success) {
         setActiveSessionsList([]);
         fetchSubAdmins();
-        alert(data.message);
+        showFeedback("success", data.message || "All active device sessions revoked successfully.");
       }
     } catch (err) {
-      alert(err.response?.data?.message || "Failed to revoke sessions.");
+      showFeedback("error", err.response?.data?.message || "Failed to revoke sessions.");
     }
   }
 
@@ -560,9 +567,10 @@ export default function AdminManagement({ API, authHeaders, isMobile }) {
       if (data.success) {
         setActiveSessionsList((prev) => prev.filter((s) => s.sessionId !== sessionId));
         fetchSubAdmins();
+        showFeedback("success", "Device session revoked successfully.");
       }
     } catch (err) {
-      alert(err.response?.data?.message || "Failed to revoke device session.");
+      showFeedback("error", err.response?.data?.message || "Failed to revoke device session.");
     }
   }
 
@@ -578,10 +586,11 @@ export default function AdminManagement({ API, authHeaders, isMobile }) {
     try {
       const { data } = await axios.delete(`${API}/admin/subadmins/${subAdmin._id}`, authHeaders);
       if (data.success) {
+        showFeedback("success", `Sub-Admin '${subAdmin.name}' permanently deleted.`);
         fetchSubAdmins();
       }
     } catch (err) {
-      alert(err.response?.data?.message || "Failed to delete sub-admin.");
+      showFeedback("error", err.response?.data?.message || "Failed to delete sub-admin.");
     }
   }
 
@@ -598,6 +607,35 @@ export default function AdminManagement({ API, authHeaders, isMobile }) {
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+      {actionFeedback.message && (
+        <AnimatePresence>
+          <motion.div
+            initial={{ opacity: 0, y: -6 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -6 }}
+            style={{
+              background: actionFeedback.type === "error" ? "#fef2f2" : "#ecfdf5",
+              border: `1px solid ${actionFeedback.type === "error" ? "#fecaca" : "#a7f3d0"}`,
+              color: actionFeedback.type === "error" ? "#991b1b" : "#065f46",
+              padding: "10px 14px",
+              borderRadius: 10,
+              fontSize: 13,
+              fontWeight: 600,
+              display: "flex",
+              alignItems: "center",
+              gap: 8,
+            }}
+          >
+            {actionFeedback.type === "error" ? (
+              <AlertTriangle size={16} color="#dc2626" style={{ flexShrink: 0 }} />
+            ) : (
+              <CheckCircle2 size={16} color="#059669" style={{ flexShrink: 0 }} />
+            )}
+            <span>{actionFeedback.message}</span>
+          </motion.div>
+        </AnimatePresence>
+      )}
+
       {/* ── Top Header & KPI Summary Cards ── */}
       <div
         className="gf-kpi-grid"
