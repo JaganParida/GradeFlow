@@ -111,6 +111,27 @@ function formatISTDate(dateVal) {
   }
 }
 
+function formatRelativeTime(dateVal) {
+  if (!dateVal) return "N/A";
+  try {
+    const d = new Date(dateVal);
+    if (isNaN(d.getTime())) return "N/A";
+    const diffMs = Date.now() - d.getTime();
+    if (diffMs < 0) return "Just now";
+    const diffSecs = Math.floor(diffMs / 1000);
+    if (diffSecs < 60) return `${diffSecs}s ago`;
+    const diffMins = Math.floor(diffSecs / 60);
+    if (diffMins < 60) return `${diffMins}m ago`;
+    const diffHours = Math.floor(diffMins / 60);
+    if (diffHours < 24) return `${diffHours}h ago`;
+    const diffDays = Math.floor(diffHours / 24);
+    if (diffDays < 30) return `${diffDays}d ago`;
+    return formatISTDate(dateVal);
+  } catch {
+    return "N/A";
+  }
+}
+
 export default function StudentOtpManagement({ API, authHeaders, isMobile }) {
   const [isMobileScreen, setIsMobileScreen] = useState(
     typeof window !== "undefined" ? window.innerWidth < 768 : Boolean(isMobile)
@@ -743,16 +764,110 @@ export default function StudentOtpManagement({ API, authHeaders, isMobile }) {
             {(!studentData.activeSessions || studentData.activeSessions.length === 0) ? (
               <div
                 style={{
-                  padding: "20px 16px",
-                  borderRadius: 12,
+                  padding: "18px 20px",
+                  borderRadius: 14,
                   background: "#f8fafc",
-                  border: "1px dashed #cbd5e1",
-                  textAlign: "center",
-                  color: "#64748b",
-                  fontSize: 13,
+                  border: "1.5px solid #e2e8f0",
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: 14,
                 }}
               >
-                No active device sessions found. Student is signed out on all devices.
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 10 }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                    <div
+                      style={{
+                        width: 38,
+                        height: 38,
+                        borderRadius: 10,
+                        background: "#f1f5f9",
+                        color: "#64748b",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        flexShrink: 0,
+                      }}
+                    >
+                      {(studentData.lastLogoutInfo?.device?.deviceType === "Mobile" || studentData.lastActiveDevice?.deviceType === "Mobile") ? (
+                        <Smartphone size={20} />
+                      ) : (studentData.lastLogoutInfo?.device?.deviceType === "Tablet" || studentData.lastActiveDevice?.deviceType === "Tablet") ? (
+                        <Tablet size={20} />
+                      ) : (
+                        <Laptop size={20} />
+                      )}
+                    </div>
+                    <div>
+                      <div style={{ fontSize: 14, fontWeight: 800, color: "#1e293b", display: "flex", alignItems: "center", gap: 6 }}>
+                        <span>Last Active Device:</span>
+                        <span style={{ color: "#2563eb" }}>
+                          {studentData.lastLogoutInfo?.device?.platform || studentData.lastActiveDevice?.platform || "Authorized Device"}
+                        </span>
+                      </div>
+                      <div style={{ fontSize: 11.5, color: "#64748b", marginTop: 2 }}>
+                        {studentData.lastLogoutInfo?.device?.os || studentData.lastActiveDevice?.os || "Unknown OS"} • {studentData.lastLogoutInfo?.device?.browser || studentData.lastActiveDevice?.browser || "Browser"} ({studentData.lastLogoutInfo?.device?.deviceType || studentData.lastActiveDevice?.deviceType || "Device"})
+                      </div>
+                    </div>
+                  </div>
+                  <span
+                    style={{
+                      fontSize: 11,
+                      fontWeight: 700,
+                      color: "#64748b",
+                      background: "#f1f5f9",
+                      border: "1px solid #cbd5e1",
+                      padding: "4px 10px",
+                      borderRadius: 8,
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: 5,
+                    }}
+                  >
+                    <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#94a3b8", display: "inline-block" }} />
+                    SIGNED OUT (OFFLINE)
+                  </span>
+                </div>
+
+                <div style={{ display: "grid", gridTemplateColumns: isMob ? "1fr" : "repeat(auto-fit, minmax(180px, 1fr))", gap: 10, fontSize: 12 }}>
+                  <div style={{ background: "#ffffff", padding: "10px 14px", borderRadius: 10, border: "1px solid #e2e8f0" }}>
+                    <div style={{ color: "#94a3b8", fontSize: 10.5, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.5px" }}>Logged Out At</div>
+                    <div style={{ color: "#0f172a", fontWeight: 800, marginTop: 3, fontSize: 13 }}>
+                      {formatISTDate(studentData.lastLogoutInfo?.loggedOutAt || studentData.lastActiveDevice?.loggedOutAt)}
+                    </div>
+                    {(studentData.lastLogoutInfo?.loggedOutAt || studentData.lastActiveDevice?.loggedOutAt) && (
+                      <div style={{ color: "#64748b", fontSize: 11, marginTop: 2 }}>
+                        {formatRelativeTime(studentData.lastLogoutInfo?.loggedOutAt || studentData.lastActiveDevice?.loggedOutAt)}
+                      </div>
+                    )}
+                  </div>
+
+                  <div style={{ background: "#ffffff", padding: "10px 14px", borderRadius: 10, border: "1px solid #e2e8f0" }}>
+                    <div style={{ color: "#94a3b8", fontSize: 10.5, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.5px" }}>Last Active Time</div>
+                    <div style={{ color: "#0f172a", fontWeight: 800, marginTop: 3, fontSize: 13 }}>
+                      {formatISTDate(studentData.lastLogoutInfo?.lastActiveAt || studentData.lastActiveDevice?.lastActiveAt)}
+                    </div>
+                    {(studentData.lastLogoutInfo?.lastActiveAt || studentData.lastActiveDevice?.lastActiveAt) && (
+                      <div style={{ color: "#64748b", fontSize: 11, marginTop: 2 }}>
+                        {formatRelativeTime(studentData.lastLogoutInfo?.lastActiveAt || studentData.lastActiveDevice?.lastActiveAt)}
+                      </div>
+                    )}
+                  </div>
+
+                  <div style={{ background: "#ffffff", padding: "10px 14px", borderRadius: 10, border: "1px solid #e2e8f0" }}>
+                    <div style={{ color: "#94a3b8", fontSize: 10.5, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.5px" }}>Logout Status / Method</div>
+                    <div style={{ color: "#0f172a", fontWeight: 700, marginTop: 3, display: "flex", alignItems: "center", gap: 5 }}>
+                      <LogOut size={13} color="#e11d48" />
+                      <span>{studentData.lastLogoutInfo?.reason || "Student signed out manually"}</span>
+                    </div>
+                  </div>
+
+                  <div style={{ background: "#ffffff", padding: "10px 14px", borderRadius: 10, border: "1px solid #e2e8f0" }}>
+                    <div style={{ color: "#94a3b8", fontSize: 10.5, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.5px" }}>Last Known IP</div>
+                    <div style={{ color: "#0f172a", fontWeight: 700, marginTop: 3, display: "flex", alignItems: "center", gap: 5 }}>
+                      <Globe size={13} color="#64748b" />
+                      <span>{studentData.lastLogoutInfo?.device?.maskedIp || studentData.lastActiveDevice?.maskedIp || "Hidden"}</span>
+                    </div>
+                  </div>
+                </div>
               </div>
             ) : (
               <div style={{ display: "grid", gridTemplateColumns: isMob ? "1fr" : "repeat(auto-fit, minmax(320px, 1fr))", gap: 12 }}>
@@ -882,6 +997,63 @@ export default function StudentOtpManagement({ API, authHeaders, isMobile }) {
                     </div>
                   );
                 })}
+              </div>
+            )}
+
+            {/* Recent Device Session History & Logout Audit */}
+            {studentData.recentSessions && studentData.recentSessions.length > 0 && (
+              <div style={{ marginTop: 14, paddingTop: 12, borderTop: "1px dashed #cbd5e1" }}>
+                <div style={{ fontSize: 12, fontWeight: 800, color: "#475569", marginBottom: 8, display: "flex", alignItems: "center", gap: 6, textTransform: "uppercase", letterSpacing: "0.5px" }}>
+                  <Clock size={13} color="#64748b" />
+                  <span>Recent Device Sessions &amp; Logout Log ({studentData.recentSessions.length})</span>
+                </div>
+                <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                  {studentData.recentSessions.slice(0, 5).map((sess, sIdx) => {
+                    const isMobD = sess.deviceType === "Mobile";
+                    const isTabD = sess.deviceType === "Tablet";
+                    return (
+                      <div
+                        key={sess.sessionId || sIdx}
+                        style={{
+                          background: sess.isActive ? "#f0fdf4" : "#ffffff",
+                          border: `1px solid ${sess.isActive ? "#bbf7d0" : "#e2e8f0"}`,
+                          borderRadius: 10,
+                          padding: "9px 12px",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "space-between",
+                          flexWrap: "wrap",
+                          gap: 8,
+                          fontSize: 12,
+                        }}
+                      >
+                        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                          <div style={{ color: sess.isActive ? "#16a34a" : "#64748b" }}>
+                            {isMobD ? <Smartphone size={15} /> : isTabD ? <Tablet size={15} /> : <Laptop size={15} />}
+                          </div>
+                          <div>
+                            <span style={{ fontWeight: 800, color: "#1e293b" }}>{sess.platform || "Authorized Device"}</span>
+                            <span style={{ color: "#94a3b8", marginLeft: 6, fontSize: 11 }}>({sess.os} • {sess.browser})</span>
+                          </div>
+                        </div>
+
+                        <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap", color: "#64748b", fontSize: 11.5 }}>
+                          <span>IP: <strong style={{ color: "#334155" }}>{sess.maskedIp}</strong></span>
+                          <span>Last Active: <strong style={{ color: "#334155" }}>{formatISTDate(sess.lastActiveAt)}</strong> ({formatRelativeTime(sess.lastActiveAt)})</span>
+                          {sess.isActive ? (
+                            <span style={{ color: "#16a34a", fontWeight: 700, background: "#dcfce7", border: "1px solid #bbf7d0", padding: "2px 7px", borderRadius: 6 }}>
+                              ACTIVE NOW
+                            </span>
+                          ) : (
+                            <span style={{ color: "#64748b", fontWeight: 600 }}>
+                              Logged out: <strong style={{ color: "#475569" }}>{formatISTDate(sess.loggedOutAt)}</strong> ({formatRelativeTime(sess.loggedOutAt)})
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
               </div>
             )}
           </div>
@@ -1728,23 +1900,36 @@ export default function StudentOtpManagement({ API, authHeaders, isMobile }) {
                                       )}
                                     </span>
                                   ) : (
-                                    <span
-                                      style={{
-                                        display: "inline-flex",
-                                        alignItems: "center",
-                                        gap: 4,
-                                        background: "#f1f5f9",
-                                        color: "#64748b",
-                                        fontSize: 11,
-                                        fontWeight: 600,
-                                        padding: "3px 8px",
-                                        borderRadius: 6,
-                                        border: "1px solid #e2e8f0",
-                                      }}
-                                    >
-                                      <span style={{ width: 5, height: 5, borderRadius: "50%", background: "#94a3b8", display: "inline-block" }} />
-                                      <span>Offline</span>
-                                    </span>
+                                    <div style={{ display: "inline-flex", flexDirection: "column", gap: 3 }}>
+                                      <span
+                                        style={{
+                                          display: "inline-flex",
+                                          alignItems: "center",
+                                          gap: 4,
+                                          background: "#f8fafc",
+                                          color: "#64748b",
+                                          fontSize: 11,
+                                          fontWeight: 600,
+                                          padding: "3px 8px",
+                                          borderRadius: 6,
+                                          border: "1px solid #e2e8f0",
+                                        }}
+                                      >
+                                        <span style={{ width: 5, height: 5, borderRadius: "50%", background: "#94a3b8", display: "inline-block" }} />
+                                        <span>Offline (Signed Out)</span>
+                                      </span>
+                                      {acc.lastActiveDevice && (
+                                        <span style={{ fontSize: 10, color: "#64748b", display: "inline-flex", alignItems: "center", gap: 4 }}>
+                                          {acc.lastActiveDevice.deviceType === "Mobile" ? <Smartphone size={10.5} /> : acc.lastActiveDevice.deviceType === "Tablet" ? <Tablet size={10.5} /> : <Laptop size={10.5} />}
+                                          <span>Last: {acc.lastActiveDevice.platform || acc.lastActiveDevice.deviceType}</span>
+                                        </span>
+                                      )}
+                                      {acc.lastLogoutAt && (
+                                        <span style={{ fontSize: 9.5, color: "#94a3b8" }}>
+                                          Logged out: {formatRelativeTime(acc.lastLogoutAt)}
+                                        </span>
+                                      )}
+                                    </div>
                                   )}
                                 </div>
 
@@ -1867,23 +2052,42 @@ export default function StudentOtpManagement({ API, authHeaders, isMobile }) {
                                       )}
                                     </div>
                                   ) : (
-                                    <span
-                                      style={{
-                                        display: "inline-flex",
-                                        alignItems: "center",
-                                        gap: 5,
-                                        background: "#f1f5f9",
-                                        color: "#64748b",
-                                        fontSize: 11.5,
-                                        fontWeight: 600,
-                                        padding: "3px 9px",
-                                        borderRadius: 6,
-                                        border: "1px solid #e2e8f0",
-                                      }}
-                                    >
-                                      <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#94a3b8", display: "inline-block" }} />
-                                      <span>Offline</span>
-                                    </span>
+                                    <div style={{ display: "inline-flex", flexDirection: "column", gap: 3 }}>
+                                      <span
+                                        style={{
+                                          display: "inline-flex",
+                                          alignItems: "center",
+                                          gap: 5,
+                                          background: "#f8fafc",
+                                          color: "#64748b",
+                                          fontSize: 11.5,
+                                          fontWeight: 600,
+                                          padding: "3px 9px",
+                                          borderRadius: 6,
+                                          border: "1px solid #e2e8f0",
+                                        }}
+                                      >
+                                        <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#94a3b8", display: "inline-block" }} />
+                                        <span>Offline (Signed Out)</span>
+                                      </span>
+                                      {acc.lastActiveDevice && (
+                                        <span style={{ fontSize: 10.5, color: "#64748b", display: "inline-flex", alignItems: "center", gap: 4 }}>
+                                          {acc.lastActiveDevice.deviceType === "Mobile" ? (
+                                            <Smartphone size={11} color="#64748b" />
+                                          ) : acc.lastActiveDevice.deviceType === "Tablet" ? (
+                                            <Tablet size={11} color="#64748b" />
+                                          ) : (
+                                            <Laptop size={11} color="#64748b" />
+                                          )}
+                                          <span>Last: {acc.lastActiveDevice.platform || acc.lastActiveDevice.deviceType}</span>
+                                        </span>
+                                      )}
+                                      {acc.lastLogoutAt && (
+                                        <span style={{ fontSize: 10, color: "#94a3b8" }}>
+                                          Logged out: {formatRelativeTime(acc.lastLogoutAt)}
+                                        </span>
+                                      )}
+                                    </div>
                                   )}
                                 </td>
                                 <td style={{ padding: "12px 14px", textAlign: "right" }}>

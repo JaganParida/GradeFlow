@@ -178,12 +178,15 @@ module.exports = async (req, res) => {
         }
       }
 
-      const activeSessions = await globalDbQueue.run(() =>
-        getActiveSessions(StudentSession, rawReg)
+      const allRecentSessions = await globalDbQueue.run(() =>
+        StudentSession.find({ regNo: rawReg })
+          .sort({ lastActiveAt: -1, updatedAt: -1 })
+          .limit(10)
+          .lean()
       );
       const maxAllowedDevices = getMaxAllowedDevices(rawReg);
 
-      const sanitizedSessions = activeSessions.map((s, idx) => {
+      const sanitizeSession = (s, idx) => {
         const ua = String(s.deviceInfo?.userAgent || "");
         const rawIp = String(s.deviceInfo?.ip || "");
         const maskedIp = rawIp.includes(".")
@@ -238,10 +241,38 @@ module.exports = async (req, res) => {
           maskedIp,
           loggedInAt: s.loggedInAt,
           lastActiveAt: s.lastActiveAt,
+          loggedOutAt: s.loggedOutAt || s.revokedAt || null,
+          logoutType: s.logoutType || (s.revokedAt ? "revoked" : null),
+          revokeReason: s.revokeReason || null,
           expiresAt: s.expiresAt,
-          status: "ACTIVE",
+          isActive: Boolean(s.isActive),
+          status: s.isActive ? "ACTIVE" : (s.logoutType === "student_manual" ? "SIGNED_OUT" : "REVOKED"),
         };
-      });
+      };
+
+      const sanitizedActiveSessions = allRecentSessions.filter((s) => s.isActive).map((s, idx) => sanitizeSession(s, idx));
+      const sanitizedRecentHistory = allRecentSessions.map((s, idx) => sanitizeSession(s, idx));
+
+      const latestLoggedOut = allRecentSessions.find((s) => !s.isActive && (s.loggedOutAt || s.revokedAt));
+      const mostRecentSession = allRecentSessions[0] ? sanitizeSession(allRecentSessions[0], 0) : null;
+
+      const lastLogoutInfo = latestLoggedOut
+        ? {
+            device: sanitizeSession(latestLoggedOut, 0),
+            loggedOutAt: latestLoggedOut.loggedOutAt || latestLoggedOut.revokedAt,
+            lastActiveAt: latestLoggedOut.lastActiveAt,
+            reason: latestLoggedOut.revokeReason || (latestLoggedOut.logoutType === "student_manual" ? "Signed out manually by student" : "Session ended"),
+            logoutType: latestLoggedOut.logoutType || "manual",
+          }
+        : (mostRecentSession && !mostRecentSession.isActive
+            ? {
+                device: mostRecentSession,
+                loggedOutAt: mostRecentSession.loggedOutAt || mostRecentSession.lastActiveAt,
+                lastActiveAt: mostRecentSession.lastActiveAt,
+                reason: mostRecentSession.revokeReason || "Previous session ended",
+                logoutType: "ended",
+              }
+            : null);
 
       const activeOtp = await globalDbQueue.run(() => OtpVerification.findOne({ regNo: rawReg }));
       let latestOtpStatus = "NONE";
@@ -311,9 +342,12 @@ module.exports = async (req, res) => {
           isCooldownActive,
           cooldownRemainingSeconds,
           cooldownStartedAt,
-          activeDevicesCount: activeSessions.length,
+          activeDevicesCount: sanitizedActiveSessions.length,
           maxAllowedDevices: isUnlimited ? 2 : 1,
-          activeSessions: sanitizedSessions,
+          activeSessions: sanitizedActiveSessions,
+          recentSessions: sanitizedRecentHistory,
+          lastLogoutInfo,
+          lastActiveDevice: mostRecentSession,
           latestOtpStatus,
         },
         historyTimeline: formattedHistory,
@@ -346,11 +380,25 @@ module.exports = async (req, res) => {
         });
       }
 
+      const now = new Date();
+      const safeReason = req.body?.reason ? String(req.body.reason).trim().slice(0, 200) : "Main Admin Session Revocation";
+
       await globalDbQueue.run(() =>
-        StudentSession.deleteOne({ regNo: rawReg, sessionId })
+        StudentSession.updateOne(
+          { regNo: rawReg, sessionId },
+          {
+            $set: {
+              isActive: false,
+              loggedOutAt: now,
+              lastActiveAt: now,
+              logoutType: "admin_revoked",
+              revokedAt: now,
+              revokeReason: safeReason,
+            },
+          }
+        )
       );
 
-      const safeReason = req.body?.reason ? String(req.body.reason).trim().slice(0, 200) : "Main Admin Session Revocation";
       const adminEmail = authResult.admin?.email || process.env.ADMIN_EMAIL || "main_admin";
 
       try {
@@ -404,11 +452,24 @@ module.exports = async (req, res) => {
       );
       const countToRevoke = activeSessions.length;
 
-      await globalDbQueue.run(() =>
-        StudentSession.deleteMany({ regNo: rawReg })
-      );
-
+      const now = new Date();
       const safeReason = req.body?.reason ? String(req.body.reason).trim().slice(0, 200) : "Main Admin Revoke All Sessions";
+
+      await globalDbQueue.run(() =>
+        StudentSession.updateMany(
+          { regNo: rawReg, isActive: true },
+          {
+            $set: {
+              isActive: false,
+              loggedOutAt: now,
+              lastActiveAt: now,
+              logoutType: "admin_revoked_all",
+              revokedAt: now,
+              revokeReason: safeReason,
+            },
+          }
+        )
+      );
       const adminEmail = authResult.admin?.email || process.env.ADMIN_EMAIL || "main_admin";
 
       try {

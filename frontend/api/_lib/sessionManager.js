@@ -28,10 +28,11 @@ function getMaxAllowedDevices(regNo) {
  * Cleans up explicitly revoked/inactive student sessions from MongoDB.
  */
 async function cleanExpiredSessions(StudentSession, regNo = null) {
+  const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
   const filter = {
     $or: [
-      { isActive: false },
-      { expiresAt: { $lte: new Date() } },
+      { isActive: false, updatedAt: { $lt: thirtyDaysAgo } },
+      { expiresAt: { $lte: thirtyDaysAgo } },
     ],
   };
   if (regNo) {
