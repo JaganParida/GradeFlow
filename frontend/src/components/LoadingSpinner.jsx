@@ -40,20 +40,33 @@ export function SkeletonGrid({ count = 4, h = 100 }) {
 }
 
 const fullPageStyle = {
-  maxWidth: 1280,
+  maxWidth: 1240,
   minHeight: "100vh",
   margin: "0 auto",
-  padding: "96px 24px 64px",
+  padding: "56px 24px 48px",
   display: "flex",
   flexDirection: "column",
-  gap: 22,
+  gap: 24,
   boxSizing: "border-box",
+  width: "100%",
 };
 
 /** ─── 1. Home / Landing Route Skeleton ────────────────────────── */
 export function LandingSkeleton() {
   return (
-    <main style={fullPageStyle} aria-label="Loading home page" aria-busy="true">
+    <div
+      className="gf-skeleton-page-bg"
+      style={{
+        minHeight: "100vh",
+        background: "#ffffff",
+        width: "100%",
+        boxSizing: "border-box",
+        overflowX: "hidden",
+      }}
+      aria-label="Loading home page"
+      aria-busy="true"
+    >
+      <main className="gf-landing-skeleton-wrap" style={fullPageStyle}>
       <div style={{ display: "grid", gridTemplateColumns: "minmax(0, 1.05fr) minmax(320px, .95fr)", gap: 32, alignItems: "center" }} className="gf-route-skeleton-hero">
         <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
           <SkeletonBlock w="140px" h="28px" r="999px" />
@@ -132,14 +145,32 @@ export function LandingSkeleton() {
           </div>
         ))}
       </div>
-    </main>
+      </main>
+    </div>
   );
 }
 
 /** ─── 2. Public Policy / About Dev Page Skeleton ──────────────── */
 export function PublicPageSkeleton() {
   return (
-    <main style={{ ...fullPageStyle, maxWidth: 920 }} aria-label="Loading page" aria-busy="true">
+    <div
+      className="gf-skeleton-page-bg"
+      style={{
+        minHeight: "100vh",
+        background: "#ffffff",
+        width: "100%",
+        boxSizing: "border-box",
+        overflowX: "hidden",
+      }}
+      aria-label="Loading page"
+      aria-busy="true"
+    >
+      <main
+        className="gf-public-skeleton-wrap"
+        style={{ ...fullPageStyle, maxWidth: 920, padding: "64px 20px 48px" }}
+        aria-label="Loading page"
+        aria-busy="true"
+      >
       <div
         style={{
           background: "#ffffff",
@@ -161,14 +192,32 @@ export function PublicPageSkeleton() {
         <SkeletonBlock w="100%" h="16px" r="4px" />
         <SkeletonBlock w="88%" h="16px" r="4px" />
       </div>
-    </main>
+      </main>
+    </div>
   );
 }
 
 /** ─── 3. Academic Resources Page Skeleton ─────────────────────── */
 export function ResourcesSkeleton() {
   return (
-    <main style={fullPageStyle} aria-label="Loading resources" aria-busy="true">
+    <div
+      className="gf-skeleton-page-bg"
+      style={{
+        minHeight: "100vh",
+        background: "#f8fafc",
+        width: "100%",
+        boxSizing: "border-box",
+        overflowX: "hidden",
+      }}
+      aria-label="Loading resources"
+      aria-busy="true"
+    >
+      <main
+        className="gf-resources-skeleton-wrap"
+        style={{ ...fullPageStyle, maxWidth: 1280, padding: "32px 24px 64px" }}
+        aria-label="Loading resources"
+        aria-busy="true"
+      >
       <div
         style={{
           background: "#ffffff",
@@ -235,7 +284,8 @@ export function ResourcesSkeleton() {
           ))}
         </div>
       </div>
-    </main>
+      </main>
+    </div>
   );
 }
 
@@ -361,17 +411,30 @@ export function AdminLoginSkeleton() {
 export function AdminDashboardSkeleton() {
   return (
     <div
+      className="gf-skeleton-page-bg"
       style={{
         background: "#fcfdfe",
         minHeight: "100vh",
-        padding: "24px 20px 80px",
+        width: "100%",
         boxSizing: "border-box",
-        fontFamily: "'DM Sans', sans-serif",
+        overflowX: "hidden",
       }}
       aria-label="Loading admin dashboard"
       aria-busy="true"
     >
-      <div style={{ maxWidth: 1380, margin: "0 auto", display: "flex", flexDirection: "column", gap: 20 }}>
+      <div
+        className="gf-admin-skeleton-wrap"
+        style={{
+          maxWidth: 1380,
+          margin: "0 auto",
+          padding: "24px 20px 80px",
+          display: "flex",
+          flexDirection: "column",
+          gap: 20,
+          boxSizing: "border-box",
+          width: "100%",
+        }}
+      >
         {/* Admin Top Navigation Header Card */}
         <div
           style={{
@@ -478,7 +541,32 @@ export function AdminDashboardSkeleton() {
 /** ─── 6. Student Dashboard Full-Page Skeleton (100% Content Match) */
 export function DashboardSkeleton() {
   return (
-    <div className="gf-dashboard-skeleton-wrap">
+    <div
+      className="gf-skeleton-page-bg"
+      style={{
+        minHeight: "100vh",
+        background: "#f8fafc",
+        width: "100%",
+        boxSizing: "border-box",
+        overflowX: "hidden",
+      }}
+      aria-label="Loading dashboard"
+      aria-busy="true"
+    >
+      <div
+        className="gf-dashboard-skeleton-wrap"
+        style={{
+          maxWidth: 1440,
+          margin: "0 auto",
+          padding: "24px 32px",
+          display: "grid",
+          gridTemplateColumns: "280px minmax(0, 1fr)",
+          gap: 24,
+          alignItems: "start",
+          boxSizing: "border-box",
+          width: "100%",
+        }}
+      >
       {/* ── Left Profile Card Sidebar Skeleton ── */}
       <div className="gf-dashboard-skeleton-sidebar">
         {/* Student Avatar + Name + Reg No */}
@@ -629,50 +717,7 @@ export function DashboardSkeleton() {
           </div>
         </div>
       </div>
-
-      <style>{`
-        .gf-dashboard-skeleton-wrap {
-          max-width: 1440px;
-          margin: 0 auto;
-          padding: 24px 32px;
-          display: grid;
-          grid-template-columns: 280px minmax(0, 1fr);
-          gap: 24px;
-          align-items: start;
-          box-sizing: border-box;
-          width: 100%;
-        }
-        .gf-dashboard-skeleton-sidebar {
-          background: #ffffff;
-          border: 1px solid #cbd5e1;
-          border-radius: 16px;
-          padding: 16px 14px;
-          display: flex;
-          flex-direction: column;
-          gap: 14px;
-          box-sizing: border-box;
-          width: 100%;
-        }
-        .gf-dashboard-skeleton-main {
-          display: flex;
-          flex-direction: column;
-          gap: 14px;
-          min-width: 0;
-          width: 100%;
-          box-sizing: border-box;
-        }
-        @media (max-width: 768px) {
-          .gf-dashboard-skeleton-wrap {
-            padding: 12px 10px !important;
-            grid-template-columns: 1fr !important;
-            gap: 14px !important;
-          }
-          .gf-dashboard-skeleton-sidebar {
-            padding: 14px 14px !important;
-            gap: 10px !important;
-          }
-        }
-      `}</style>
+      </div>
     </div>
   );
 }
@@ -750,20 +795,31 @@ export function InternalMarksSkeleton() {
 export function AnalyticsSkeleton() {
   return (
     <div
+      className="gf-skeleton-page-bg"
       style={{
-        maxWidth: 1320,
-        margin: "0 auto",
-        padding: "24px 16px 60px",
-        display: "flex",
-        flexDirection: "column",
-        gap: 20,
+        minHeight: "100vh",
+        background: "#f8fafc",
         width: "100%",
         boxSizing: "border-box",
-        fontFamily: "'DM Sans', sans-serif",
+        overflowX: "hidden",
       }}
       aria-label="Loading analytics"
       aria-busy="true"
     >
+      <div
+        className="gf-analytics-skeleton-wrap"
+        style={{
+          maxWidth: 1240,
+          margin: "0 auto",
+          padding: "24px 20px 60px",
+          display: "flex",
+          flexDirection: "column",
+          gap: 22,
+          width: "100%",
+          boxSizing: "border-box",
+          fontFamily: "'DM Sans', sans-serif",
+        }}
+      >
       {/* Top Banner Card */}
       <div
         style={{
@@ -895,24 +951,76 @@ export function AnalyticsSkeleton() {
             ))}
         </div>
       </div>
+      </div>
     </div>
   );
 }
 
 /** ─── 10. Leaderboard Page Skeleton (100% Content Match) ──────── */
-export function LeaderboardSkeleton() {
-  return (
-    <div
-      style={{
-        display: "flex",
-        flexDirection: "column",
-        gap: 16,
-        width: "100%",
-        boxSizing: "border-box",
-      }}
-      aria-label="Loading leaderboard"
-      aria-busy="true"
-    >
+export function LeaderboardSkeleton({ isFullPage = false }) {
+  const content = (
+    <>
+      {isFullPage && (
+        <div
+          style={{
+            background: "#ffffff",
+            border: "1px solid #cbd5e1",
+            borderRadius: 16,
+            padding: "20px 22px",
+            boxShadow: "0 1px 3px rgba(0,0,0,0.05), 0 4px 14px rgba(15,23,42,0.03)",
+            display: "flex",
+            flexDirection: "column",
+            gap: 14,
+            width: "100%",
+            boxSizing: "border-box",
+          }}
+        >
+          {/* Top Row: Title + SGPA/CGPA Switcher */}
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 12 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+              <div
+                style={{
+                  width: 36,
+                  height: 36,
+                  borderRadius: 10,
+                  background: "#eff6ff",
+                  border: "1px solid #bfdbfe",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                <SkeletonBlock w="18px" h="18px" r="4px" />
+              </div>
+              <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                <SkeletonBlock w="180px" h="22px" r="6px" />
+                <SkeletonBlock w="140px" h="12px" r="4px" />
+              </div>
+            </div>
+            {/* Segmented Switcher Pill */}
+            <div style={{ display: "flex", gap: 4, background: "#f1f5f9", padding: 3, borderRadius: 10 }}>
+              <SkeletonBlock w="75px" h="32px" r="7px" />
+              <SkeletonBlock w="75px" h="32px" r="7px" />
+            </div>
+          </div>
+
+          {/* Search Bar + Branch/Batch Dropdowns */}
+          <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
+            <SkeletonBlock w="320px" h="40px" r="10px" style={{ flex: 1, minWidth: 200 }} />
+            <SkeletonBlock w="120px" h="40px" r="10px" />
+            <SkeletonBlock w="120px" h="40px" r="10px" />
+            <SkeletonBlock w="80px" h="40px" r="10px" />
+          </div>
+
+          {/* Semester Selector Tabs */}
+          <div style={{ display: "flex", gap: 8, overflowX: "hidden" }}>
+            {Array(8).fill(0).map((_, i) => (
+              <SkeletonBlock key={i} w="65px" h="34px" r="8px" style={{ flexShrink: 0 }} />
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Top 3 Podium Cards */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: 14 }}>
         {/* Rank 1 (Gold) */}
@@ -1057,57 +1165,46 @@ export function LeaderboardSkeleton() {
         <div
           style={{
             background: "#f8fafc",
-            borderBottom: "1px solid #e2e8f0",
+            borderBottom: "1px solid #cbd5e1",
             padding: "12px 18px",
             display: "flex",
             justifyContent: "space-between",
             alignItems: "center",
-            gap: 12,
           }}
         >
-          <div style={{ display: "flex", alignItems: "center", gap: 16, flex: 1 }}>
-            <SkeletonBlock w="28px" h="14px" r="4px" />
-            <SkeletonBlock w="120px" h="14px" r="4px" />
-          </div>
-          <div style={{ display: "flex", alignItems: "center", gap: 20 }}>
-            <SkeletonBlock w="60px" h="14px" r="4px" />
-            <SkeletonBlock w="50px" h="14px" r="4px" />
-            <SkeletonBlock w="50px" h="14px" r="4px" />
-          </div>
+          <SkeletonBlock w="150px" h="14px" r="4px" />
+          <SkeletonBlock w="80px" h="14px" r="4px" />
         </div>
 
-        {/* 8 Realistic Detailed Rows */}
+        {/* 8 Detailed Student Rows */}
         <div style={{ display: "flex", flexDirection: "column" }}>
           {Array(8)
             .fill(0)
-            .map((_, i) => (
+            .map((_, index) => (
               <div
-                key={i}
+                key={index}
                 style={{
-                  padding: "13px 18px",
-                  borderBottom: i < 7 ? "1px solid #f1f5f9" : "none",
+                  padding: "12px 18px",
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "space-between",
                   gap: 12,
+                  borderBottom: index < 7 ? "1px solid #f1f5f9" : "none",
                 }}
               >
-                <div style={{ display: "flex", alignItems: "center", gap: 14, flex: 1, minWidth: 0 }}>
-                  {/* Rank Pill */}
-                  <SkeletonBlock w="32px" h="32px" r="8px" style={{ flexShrink: 0 }} />
-                  {/* Avatar Initial Circle */}
+                {/* Left: Rank badge + Avatar + Name + Reg No */}
+                <div style={{ display: "flex", alignItems: "center", gap: 12, flex: 1, minWidth: 0 }}>
+                  <SkeletonBlock w="28px" h="28px" r="8px" style={{ flexShrink: 0 }} />
                   <SkeletonBlock w="36px" h="36px" r="50%" style={{ flexShrink: 0 }} />
-                  {/* Name & RegNo */}
-                  <div style={{ display: "flex", flexDirection: "column", gap: 5, flex: 1, minWidth: 0 }}>
-                    <SkeletonBlock w={i % 2 === 0 ? "160px" : "130px"} h="15px" r="4px" />
-                    <SkeletonBlock w="95px" h="12px" r="4px" />
+                  <div style={{ display: "flex", flexDirection: "column", gap: 4, flex: 1, minWidth: 0 }}>
+                    <SkeletonBlock w="140px" h="14px" r="4px" />
+                    <SkeletonBlock w="90px" h="11px" r="3px" />
                   </div>
                 </div>
 
-                <div style={{ display: "flex", alignItems: "center", gap: 18, flexShrink: 0 }}>
-                  {/* Branch Badge */}
+                {/* Right: Branch badge + Scores */}
+                <div style={{ display: "flex", alignItems: "center", gap: 10, flexShrink: 0 }}>
                   <SkeletonBlock w="64px" h="24px" r="6px" />
-                  {/* SGPA & CGPA Scores */}
                   <SkeletonBlock w="48px" h="24px" r="6px" />
                   <SkeletonBlock w="48px" h="24px" r="6px" />
                 </div>
@@ -1115,6 +1212,55 @@ export function LeaderboardSkeleton() {
             ))}
         </div>
       </div>
+    </>
+  );
+
+  if (isFullPage) {
+    return (
+      <div
+        className="gf-skeleton-page-bg"
+        style={{
+          minHeight: "100vh",
+          background: "#f8fafc",
+          width: "100%",
+          boxSizing: "border-box",
+          overflowX: "hidden",
+        }}
+        aria-label="Loading leaderboard"
+        aria-busy="true"
+      >
+        <div
+          className="gf-leaderboard-skeleton-wrap"
+          style={{
+            maxWidth: 1240,
+            margin: "0 auto",
+            padding: "24px 20px 60px 20px",
+            display: "flex",
+            flexDirection: "column",
+            gap: 18,
+            boxSizing: "border-box",
+            width: "100%",
+          }}
+        >
+          {content}
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div
+      style={{
+        display: "flex",
+        flexDirection: "column",
+        gap: 16,
+        width: "100%",
+        boxSizing: "border-box",
+      }}
+      aria-label="Loading leaderboard"
+      aria-busy="true"
+    >
+      {content}
     </div>
   );
 }
@@ -1315,7 +1461,133 @@ export function AdminFeedbackSkeleton() {
 }
 
 /** ─── 15. Testimonials Page Skeleton ──────────────────────────── */
-export function TestimonialsSkeleton() {
+export function TestimonialsSkeleton({ isFullPage = false }) {
+  const content = (
+    <>
+      {isFullPage && (
+        <div
+          style={{
+            background: "#ffffff",
+            border: "1px solid #cbd5e1",
+            borderRadius: 20,
+            padding: "24px 28px",
+            display: "flex",
+            flexDirection: "column",
+            gap: 18,
+            boxShadow: "0 1px 3px rgba(0,0,0,0.02)",
+            boxSizing: "border-box",
+            width: "100%",
+          }}
+        >
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 14 }}>
+            <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+              <SkeletonBlock w="130px" h="24px" r="999px" />
+              <SkeletonBlock w="240px" h="28px" r="8px" />
+              <SkeletonBlock w="320px" h="14px" r="4px" />
+            </div>
+            <SkeletonBlock w="140px" h="44px" r="12px" />
+          </div>
+
+          {/* Category Filter Pills Bar */}
+          <div style={{ display: "flex", gap: 8, overflowX: "hidden" }}>
+            {Array(6)
+              .fill(0)
+              .map((_, i) => (
+                <SkeletonBlock key={i} w="110px" h="36px" r="999px" style={{ flexShrink: 0 }} />
+              ))}
+          </div>
+        </div>
+      )}
+
+      {/* Reviews Grid */}
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
+          gap: 16,
+          width: "100%",
+          boxSizing: "border-box",
+        }}
+      >
+        {Array(6)
+          .fill(0)
+          .map((_, i) => (
+            <div
+              key={i}
+              style={{
+                background: "#ffffff",
+                border: "1px solid #cbd5e1",
+                borderRadius: 16,
+                padding: 18,
+                display: "flex",
+                flexDirection: "column",
+                gap: 12,
+                boxShadow: "0 1px 3px rgba(0,0,0,0.02)",
+              }}
+            >
+              {/* Header: Avatar + Name + Rating */}
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                  <SkeletonBlock w="36px" h="36px" r="50%" />
+                  <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                    <SkeletonBlock w="110px" h="14px" r="4px" />
+                    <SkeletonBlock w="80px" h="10px" r="3px" />
+                  </div>
+                </div>
+                <SkeletonBlock w="70px" h="14px" r="4px" />
+              </div>
+
+              {/* Comment Lines */}
+              <div style={{ display: "flex", flexDirection: "column", gap: 6, margin: "4px 0" }}>
+                <SkeletonBlock w="100%" h="12px" r="3px" />
+                <SkeletonBlock w="92%" h="12px" r="3px" />
+                <SkeletonBlock w="65%" h="12px" r="3px" />
+              </div>
+
+              {/* Footer Pills */}
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", paddingTop: 6 }}>
+                <SkeletonBlock w="90px" h="22px" r="6px" />
+                <SkeletonBlock w="60px" h="22px" r="6px" />
+              </div>
+            </div>
+          ))}
+      </div>
+    </>
+  );
+
+  if (isFullPage) {
+    return (
+      <div
+        className="gf-skeleton-page-bg"
+        style={{
+          minHeight: "100vh",
+          background: "#f8fafc",
+          width: "100%",
+          boxSizing: "border-box",
+          overflowX: "hidden",
+        }}
+        aria-label="Loading testimonials"
+        aria-busy="true"
+      >
+        <div
+          className="gf-testimonials-skeleton-wrap"
+          style={{
+            maxWidth: 1320,
+            margin: "0 auto",
+            padding: "32px 20px 80px 20px",
+            display: "flex",
+            flexDirection: "column",
+            gap: 24,
+            boxSizing: "border-box",
+            width: "100%",
+          }}
+        >
+          {content}
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div
       style={{
@@ -1326,48 +1598,7 @@ export function TestimonialsSkeleton() {
         boxSizing: "border-box",
       }}
     >
-      {Array(6)
-        .fill(0)
-        .map((_, i) => (
-          <div
-            key={i}
-            style={{
-              background: "#ffffff",
-              border: "1px solid #cbd5e1",
-              borderRadius: 16,
-              padding: 18,
-              display: "flex",
-              flexDirection: "column",
-              gap: 12,
-              boxShadow: "0 1px 3px rgba(0,0,0,0.02)",
-            }}
-          >
-            {/* Header: Avatar + Name + Rating */}
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                <SkeletonBlock w="36px" h="36px" r="50%" />
-                <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-                  <SkeletonBlock w="110px" h="14px" r="4px" />
-                  <SkeletonBlock w="80px" h="10px" r="3px" />
-                </div>
-              </div>
-              <SkeletonBlock w="70px" h="14px" r="4px" />
-            </div>
-
-            {/* Comment Lines */}
-            <div style={{ display: "flex", flexDirection: "column", gap: 6, margin: "4px 0" }}>
-              <SkeletonBlock w="100%" h="12px" r="3px" />
-              <SkeletonBlock w="92%" h="12px" r="3px" />
-              <SkeletonBlock w="65%" h="12px" r="3px" />
-            </div>
-
-            {/* Footer Pills */}
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", paddingTop: 6 }}>
-              <SkeletonBlock w="90px" h="22px" r="6px" />
-              <SkeletonBlock w="60px" h="22px" r="6px" />
-            </div>
-          </div>
-        ))}
+      {content}
     </div>
   );
 }
@@ -1375,7 +1606,32 @@ export function TestimonialsSkeleton() {
 /** ─── 16. Attendance Tracker Skeleton (100% Content & Layout Match) */
 export function AttendanceSkeleton() {
   return (
-    <div className="gf-attendance-skeleton-wrap">
+    <div
+      className="gf-skeleton-page-bg"
+      style={{
+        minHeight: "100vh",
+        background: "#f1f5f9",
+        width: "100%",
+        boxSizing: "border-box",
+        overflowX: "hidden",
+      }}
+      aria-label="Loading attendance tracker"
+      aria-busy="true"
+    >
+      <div
+        className="gf-attendance-skeleton-wrap"
+        style={{
+          maxWidth: 1440,
+          margin: "0 auto",
+          padding: "24px 32px 90px",
+          display: "grid",
+          gridTemplateColumns: "280px minmax(0, 1fr)",
+          gap: 24,
+          alignItems: "start",
+          boxSizing: "border-box",
+          width: "100%",
+        }}
+      >
       {/* ── Left Sidebar Skeleton ── */}
       <div className="gf-attendance-skeleton-sidebar">
         {/* Student Profile Info */}
@@ -1576,67 +1832,7 @@ export function AttendanceSkeleton() {
           </div>
         </div>
       </div>
-
-      <style>{`
-        .gf-attendance-skeleton-wrap {
-          max-width: 1440px;
-          margin: 0 auto;
-          padding: 24px 32px 90px 32px;
-          display: grid;
-          grid-template-columns: 280px minmax(0, 1fr);
-          gap: 24px;
-          align-items: start;
-          box-sizing: border-box;
-          width: 100%;
-        }
-        .gf-attendance-skeleton-sidebar {
-          background: #ffffff;
-          border: 1px solid #cbd5e1;
-          border-radius: 12px;
-          padding: 16px 14px;
-          display: flex;
-          flex-direction: column;
-          gap: 14px;
-          box-sizing: border-box;
-          width: 100%;
-        }
-        .gf-attendance-skeleton-main {
-          display: flex;
-          flex-direction: column;
-          gap: 14px;
-          min-width: 0;
-          width: 100%;
-          box-sizing: border-box;
-        }
-        .gf-attendance-skeleton-mobile-top {
-          display: none;
-        }
-        .gf-attendance-skeleton-hero-grid {
-          display: grid;
-          grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-          gap: 12px;
-        }
-        @media (max-width: 768px) {
-          .gf-attendance-skeleton-wrap {
-            padding: 8px 8px 80px 8px !important;
-            grid-template-columns: 1fr !important;
-            gap: 10px !important;
-          }
-          .gf-attendance-skeleton-sidebar {
-            display: none !important;
-          }
-          .gf-attendance-skeleton-mobile-top {
-            display: flex !important;
-            flex-direction: column !important;
-            gap: 8px !important;
-            width: 100% !important;
-          }
-          .gf-attendance-skeleton-hero-grid {
-            grid-template-columns: repeat(2, 1fr) !important;
-            gap: 8px !important;
-          }
-        }
-      `}</style>
+      </div>
     </div>
   );
 }
@@ -1645,20 +1841,31 @@ export function AttendanceSkeleton() {
 export function TimetableSkeleton() {
   return (
     <div
+      className="gf-skeleton-page-bg"
       style={{
-        maxWidth: 1320,
-        margin: "0 auto",
-        padding: "24px 16px 60px",
-        display: "flex",
-        flexDirection: "column",
-        gap: 20,
+        minHeight: "100vh",
+        background: "#f8fafc",
         width: "100%",
         boxSizing: "border-box",
-        fontFamily: "'DM Sans', sans-serif",
+        overflowX: "hidden",
       }}
       aria-label="Loading timetable"
       aria-busy="true"
     >
+      <div
+        className="gf-timetable-skeleton-wrap"
+        style={{
+          maxWidth: 1360,
+          margin: "0 auto",
+          padding: "24px 24px 90px",
+          display: "flex",
+          flexDirection: "column",
+          gap: 16,
+          width: "100%",
+          boxSizing: "border-box",
+          fontFamily: "'DM Sans', sans-serif",
+        }}
+      >
       {/* Top Header Card Skeleton */}
       <div
         style={{
@@ -1740,6 +1947,7 @@ export function TimetableSkeleton() {
               </div>
             </div>
           ))}
+      </div>
       </div>
     </div>
   );

@@ -103,19 +103,33 @@ function ScrollToTop() {
 function RouteLoadingFallback() {
   const { pathname } = useLocation();
 
-  if (pathname.startsWith("/dashboard")) return <DashboardSkeleton />;
-  if (pathname.startsWith("/analytics")) return <AnalyticsSkeleton />;
-  if (pathname.startsWith("/attendance")) return <AttendanceSkeleton />;
-  if (pathname.startsWith("/timetable")) return <TimetableSkeleton />;
-  if (pathname.startsWith("/leaderboard")) return <LeaderboardSkeleton />;
-  if (pathname.startsWith("/testimonials")) return <TestimonialsSkeleton />;
-  if (pathname === "/admin" || pathname === "/admin/login") return <AdminLoginSkeleton />;
-  if (pathname.startsWith("/admin")) return <AdminDashboardSkeleton />;
-  if (pathname.startsWith("/resources")) return <ResourcesSkeleton />;
-  if (["/about", "/help", "/contact", "/privacy", "/terms", "/cookies", "/about-dev"].includes(pathname)) {
-    return <PublicPageSkeleton />;
+  let skeleton = <LandingSkeleton />;
+  if (pathname.startsWith("/dashboard")) skeleton = <DashboardSkeleton />;
+  else if (pathname.startsWith("/analytics")) skeleton = <AnalyticsSkeleton />;
+  else if (pathname.startsWith("/attendance")) skeleton = <AttendanceSkeleton />;
+  else if (pathname.startsWith("/timetable")) skeleton = <TimetableSkeleton />;
+  else if (pathname.startsWith("/leaderboard")) skeleton = <LeaderboardSkeleton isFullPage={true} />;
+  else if (pathname.startsWith("/testimonials")) skeleton = <TestimonialsSkeleton isFullPage={true} />;
+  else if (pathname === "/admin" || pathname === "/admin/login") skeleton = <AdminLoginSkeleton />;
+  else if (pathname.startsWith("/admin")) skeleton = <AdminDashboardSkeleton />;
+  else if (pathname.startsWith("/resources")) skeleton = <ResourcesSkeleton />;
+  else if (["/about", "/help", "/contact", "/privacy", "/terms", "/cookies", "/about-dev"].includes(pathname)) {
+    skeleton = <PublicPageSkeleton />;
   }
-  return <LandingSkeleton />;
+
+  return (
+    <div
+      style={{
+        width: "100%",
+        maxWidth: "100%",
+        minHeight: "100vh",
+        boxSizing: "border-box",
+        overflowX: "hidden",
+      }}
+    >
+      {skeleton}
+    </div>
+  );
 }
 
 function PageTransition({ children }) {
