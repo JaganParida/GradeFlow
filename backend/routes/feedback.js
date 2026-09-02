@@ -6,11 +6,36 @@ const { requirePermission } = require("../middleware/rbac");
 const { publicLimiter } = require("../middleware/rateLimiters");
 const { validateFeedbackInput } = require("../middleware/validation");
 
-// GET /api/feedback - Retrieve all feedbacks (sorted newest first, regNo projected out for privacy)
+const jwt = require("jsonwebtoken");
+
+// GET /api/feedback - Retrieve all feedbacks (sorted newest first, regNo included for admin moderation)
 router.get("/", async (req, res) => {
   try {
+    let token = null;
+    if (req.cookies && req.cookies.jwt && req.cookies.jwt !== "none") {
+      token = req.cookies.jwt;
+    } else if (req.headers.authorization && req.headers.authorization.startsWith("Bearer")) {
+      token = req.headers.authorization.split(" ")[1];
+    } else if (req.headers["x-admin-token"]) {
+      token = req.headers["x-admin-token"];
+    }
+
+    let isAdmin = false;
+    if (token && process.env.JWT_SECRET) {
+      try {
+        const decoded = jwt.verify(token, process.env.JWT_SECRET, { algorithms: ["HS256"] });
+        if (decoded && (decoded.role === "admin" || decoded.adminType === "subadmin" || decoded.email)) {
+          isAdmin = true;
+        }
+      } catch {}
+    }
+
+    const selectFields = isAdmin
+      ? "name regNo rating comment category likes createdAt"
+      : "name rating comment category likes createdAt";
+
     const feedbacks = await Feedback.find()
-      .select("name rating comment category likes createdAt")
+      .select(selectFields)
       .sort({ createdAt: -1 });
     res.json(feedbacks);
   } catch (error) {

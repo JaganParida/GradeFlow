@@ -42,7 +42,7 @@ function getRegNoQueryForBranch(branch) {
 function getSectionFromRegNo(regNo) {
   if (regNo === "230301180026") return "I";
   
-  if (/^\d{2}0301120/.test(regNo)) {
+  if (/^\d{2}030112[01]/.test(regNo)) {
      const num = parseInt(regNo.slice(-3), 10);
      if (num >= 1 && num <= 60) return "A";
      if (num >= 61 && num <= 120) return "B";

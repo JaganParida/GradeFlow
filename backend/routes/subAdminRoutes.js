@@ -158,6 +158,38 @@ router.post("/", async (req, res) => {
   }
 });
 
+// ─── GET AUDIT LOGS (MAIN ADMIN ONLY) ───────────────────────────
+router.get(["/audit/logs", "/logs"], async (req, res) => {
+  try {
+    const limit = Math.min(100, Math.max(1, parseInt(req.query.limit, 10) || 50));
+    const query = {};
+
+    if (req.query.actorType) {
+      query.actorType = req.query.actorType;
+    }
+    if (req.query.action) {
+      query.action = req.query.action;
+    }
+    if (req.query.result) {
+      query.result = req.query.result;
+    }
+
+    const logs = await AdminAuditLog.find(query)
+      .sort({ timestamp: -1, createdAt: -1 })
+      .limit(limit)
+      .lean();
+
+    return res.json({
+      success: true,
+      logs,
+      count: logs.length,
+    });
+  } catch (err) {
+    console.error("Error fetching audit logs:", err);
+    return res.status(500).json({ success: false, message: "Failed to retrieve audit logs." });
+  }
+});
+
 // ─── 3. GET SINGLE SUB-ADMIN WITH DETAILS & SESSIONS ────────────────
 router.get("/:id", async (req, res) => {
   try {
@@ -440,38 +472,6 @@ router.delete("/:id", async (req, res) => {
   } catch (err) {
     console.error("Error deleting sub-admin:", err);
     return res.status(500).json({ success: false, message: "Failed to delete sub-admin." });
-  }
-});
-
-// ─── 10. GET AUDIT LOGS (MAIN ADMIN ONLY) ───────────────────────────
-router.get("/audit/logs", async (req, res) => {
-  try {
-    const limit = Math.min(100, Math.max(1, parseInt(req.query.limit, 10) || 50));
-    const query = {};
-
-    if (req.query.actorType) {
-      query.actorType = req.query.actorType;
-    }
-    if (req.query.action) {
-      query.action = req.query.action;
-    }
-    if (req.query.result) {
-      query.result = req.query.result;
-    }
-
-    const logs = await AdminAuditLog.find(query)
-      .sort({ timestamp: -1, createdAt: -1 })
-      .limit(limit)
-      .lean();
-
-    return res.json({
-      success: true,
-      logs,
-      count: logs.length,
-    });
-  } catch (err) {
-    console.error("Error fetching audit logs:", err);
-    return res.status(500).json({ success: false, message: "Failed to retrieve audit logs." });
   }
 });
 
