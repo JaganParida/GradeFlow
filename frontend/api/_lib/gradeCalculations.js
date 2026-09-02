@@ -206,7 +206,7 @@ function getSectionFromRegNo(regNo) {
   const r = String(regNo).trim();
   if (r === "230301180026") return "I";
   
-  if (/^\d{2}0301120/.test(r)) {
+  if (/^\d{2}030112[0-9]/.test(r)) {
      const num = parseInt(r.slice(-3), 10);
      if (num >= 1 && num <= 60) return "A";
      if (num >= 61 && num <= 120) return "B";

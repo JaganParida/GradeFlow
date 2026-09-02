@@ -12,31 +12,31 @@ function getRegNoQueryForBranch(branch) {
   if (b === "CSE") {
     return {
       $and: [
-        { $or: [{ regNo: /^\d{2}030112[01]/ }, { regNo: "230301180026" }] },
+        { $or: [{ regNo: /^\d{2}030112[0-9]/ }, { regNo: "230301180026" }] },
         { regNo: { $nin: ["230301120110", "230301120186", "230301120371", "230301120481"] } }
       ]
     };
   }
-  if (b === "CIVIL") return { regNo: /^\d{2}030111[01]/ };
-  if (b === "ME") return { regNo: /^\d{2}030116[01]/ };
+  if (b === "CIVIL") return { regNo: /^\d{2}030111[0-9]/ };
+  if (b === "ME") return { regNo: /^\d{2}030116[0-9]/ };
   if (b === "ECE") {
     return {
       $or: [
-        { regNo: /^\d{2}030113[012]/ },
+        { regNo: /^\d{2}030113[0-9]/ },
         { regNo: { $in: ["230301120110", "230301120186", "230301120371", "230301120481"] } }
       ]
     };
   }
-  if (b === "EEE") return { regNo: /^\d{2}030115[01]/ };
-  if (b === "BIO") return { regNo: { $regex: /^\d{2}0301180/, $ne: "230301180026" } };
-  if (b === "MI") return { regNo: /^\d{2}030119[01]/ };
-  if (b === "AERO") return { $or: [{ regNo: /^\d{2}0301230/ }, { regNo: "230301231033" }] };
+  if (b === "EEE") return { regNo: /^\d{2}030115[0-9]/ };
+  if (b === "BIO") return { regNo: { $regex: /^\d{2}030118[0-9]/, $ne: "230301180026" } };
+  if (b === "MI") return { regNo: /^\d{2}030119[0-9]/ };
+  if (b === "AERO") return { $or: [{ regNo: /^\d{2}030123[0-9]/ }, { regNo: "230301231033" }] };
   return null;
 }
 
 function getSectionFromRegNo(regNo) {
   if (regNo === "230301180026") return "I";
-  if (/^\d{2}0301120/.test(regNo)) {
+  if (/^\d{2}030112[0-9]/.test(regNo)) {
      const num = parseInt(regNo.slice(-3), 10);
      if (num >= 1 && num <= 60) return "A";
      if (num >= 61 && num <= 120) return "B";
