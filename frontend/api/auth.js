@@ -1448,13 +1448,49 @@ module.exports = async function handler(req, res) {
         token = req.headers.authorization.split(" ")[1];
       }
 
+      const regNoFromBody = req.body?.regNo;
+      let sessionId = null;
+      let decodedRegNo = null;
+
       if (token && token !== "none") {
         try {
           const decoded = jwt.verify(token, process.env.JWT_SECRET);
-          if (decoded && decoded.sessionId) {
-            await StudentSession.deleteOne({ sessionId: decoded.sessionId });
-          }
+          sessionId = decoded?.sessionId;
+          decodedRegNo = decoded?.regNo;
         } catch {}
+      }
+
+      const targetReg = String(decodedRegNo || regNoFromBody || "").toUpperCase().trim();
+      const now = new Date();
+
+      if (sessionId) {
+        await StudentSession.updateOne(
+          { sessionId },
+          {
+            $set: {
+              isActive: false,
+              loggedOutAt: now,
+              lastActiveAt: now,
+              logoutType: "student_manual",
+              revokedAt: now,
+              revokeReason: "Signed out manually by student",
+            },
+          }
+        );
+      } else if (targetReg) {
+        await StudentSession.updateMany(
+          { regNo: targetReg, isActive: true },
+          {
+            $set: {
+              isActive: false,
+              loggedOutAt: now,
+              lastActiveAt: now,
+              logoutType: "student_manual",
+              revokedAt: now,
+              revokeReason: "Signed out manually by student",
+            },
+          }
+        );
       }
 
       clearStudentCookie(res);

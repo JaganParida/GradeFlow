@@ -19,6 +19,8 @@ const studentSessionSchema = new mongoose.Schema(
     expiresAt: { type: Date, default: () => new Date(Date.now() + 100 * 365 * 24 * 60 * 60 * 1000) },
     revokedAt: { type: Date, default: null },
     revokeReason: { type: String, default: null },
+    loggedOutAt: { type: Date, default: null },
+    logoutType: { type: String, default: null },
     isActive: { type: Boolean, default: true, index: true },
   },
   { timestamps: true }

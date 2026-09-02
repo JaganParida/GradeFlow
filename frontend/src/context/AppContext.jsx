@@ -709,7 +709,15 @@ export function AppProvider({ children }) {
 
     // 2. Clear session on server
     try {
-      await axios.post(`${API_BASE}/auth/student/logout`);
+      const reg = studentProfile?.regNo || "";
+      await axios.post(
+        `${API_BASE}/auth/student/logout`,
+        { regNo: reg },
+        {
+          withCredentials: true,
+          headers: studentToken ? { "x-student-token": studentToken } : {},
+        }
+      );
     } catch (err) {
       console.warn("Student logout server sync:", err);
     } finally {

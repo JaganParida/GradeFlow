@@ -2111,25 +2111,32 @@ router.get("/student-accounts", protect, async (req, res) => {
 
     const regNos = registeredStudents.map((s) => s.regNo);
 
-    // Active sessions lookup
-    const activeSessions = await StudentSession.find({
+    // All sessions lookup (active + recent for logout audit)
+    const studentSessions = await StudentSession.find({
       regNo: { $in: regNos },
-      isActive: true,
-    }).lean();
+    }).sort({ lastActiveAt: -1, updatedAt: -1 }).lean();
 
     const sessionMap = new Map();
-    activeSessions.forEach((s) => {
-      if (!sessionMap.has(s.regNo)) {
-        sessionMap.set(s.regNo, []);
+    const latestSessionMap = new Map();
+
+    studentSessions.forEach((s) => {
+      if (!latestSessionMap.has(s.regNo)) {
+        latestSessionMap.set(s.regNo, s);
       }
-      sessionMap.get(s.regNo).push({
-        sessionId: s.sessionId,
-        deviceType: s.deviceInfo?.deviceType || "Desktop",
-        browser: s.deviceInfo?.browser || "Unknown",
-        os: s.deviceInfo?.os || "Unknown",
-        lastActiveAt: s.lastActiveAt,
-        loggedInAt: s.loggedInAt,
-      });
+      if (s.isActive) {
+        if (!sessionMap.has(s.regNo)) {
+          sessionMap.set(s.regNo, []);
+        }
+        sessionMap.get(s.regNo).push({
+          sessionId: s.sessionId,
+          deviceType: s.deviceInfo?.deviceType || "Desktop",
+          browser: s.deviceInfo?.browser || "Unknown",
+          os: s.deviceInfo?.os || "Unknown",
+          platform: s.deviceInfo?.platform || "",
+          lastActiveAt: s.lastActiveAt,
+          loggedInAt: s.loggedInAt,
+        });
+      }
     });
 
     // Student names and batch info
@@ -2155,6 +2162,25 @@ router.get("/student-accounts", protect, async (req, res) => {
       let branch = (meta.branch && meta.branch !== "N/A") ? meta.branch : (detectBranch(st.regNo) || "CSE");
       let section = (meta.section && meta.section !== "N/A") ? meta.section : (getSectionFromRegNo(st.regNo) || "A");
 
+      const latestSess = latestSessionMap.get(st.regNo);
+      let lastActiveDevice = null;
+      if (latestSess) {
+        const dType = latestSess.deviceInfo?.deviceType || "Desktop";
+        const dOs = latestSess.deviceInfo?.os || "Unknown";
+        const dBrowser = latestSess.deviceInfo?.browser || "Unknown";
+        const dPlatform = latestSess.deviceInfo?.platform || (dOs !== "Unknown" && dBrowser !== "Unknown" ? `${dOs} / ${dBrowser}` : dOs);
+        lastActiveDevice = {
+          deviceType: dType,
+          os: dOs,
+          browser: dBrowser,
+          platform: dPlatform,
+          lastActiveAt: latestSess.lastActiveAt,
+          loggedOutAt: latestSess.loggedOutAt || latestSess.revokedAt || null,
+          logoutType: latestSess.logoutType || (latestSess.revokedAt ? "revoked" : null),
+          revokeReason: latestSess.revokeReason || null,
+        };
+      }
+
       return {
         regNo: st.regNo,
         studentName: meta.studentName || "Registered Student",
@@ -2166,6 +2192,9 @@ router.get("/student-accounts", protect, async (req, res) => {
         isCurrentlyLoggedIn,
         activeSessionsCount: sessions.length,
         activeSessions: sessions,
+        lastActiveAt: latestSess?.lastActiveAt || null,
+        lastLogoutAt: latestSess?.loggedOutAt || latestSess?.revokedAt || null,
+        lastActiveDevice,
         failedPasswordAttempts: st.failedPasswordAttempts || 0,
         isLocked,
         lockedUntil: st.lockedUntil,
@@ -3160,11 +3189,14 @@ router.get("/student-otp-management/history/:regNo", requireMainAdmin, async (re
       }
     }
 
-    // Active Sessions / Devices (Authoritative session query)
-    const activeSessions = await getActiveSessions(StudentSession, rawReg);
+    // Sessions / Devices (Authoritative session query + recent history for logout audit)
+    const allRecentSessions = await StudentSession.find({ regNo: rawReg })
+      .sort({ lastActiveAt: -1, updatedAt: -1 })
+      .limit(10)
+      .lean();
     const maxAllowedDevices = getMaxAllowedDevices(rawReg);
 
-    const sanitizedSessions = activeSessions.map((s, idx) => {
+    const formatSessionRecord = (s, idx = 0) => {
       const ua = String(s.deviceInfo?.userAgent || "");
       const rawIp = String(s.deviceInfo?.ip || "");
       const maskedIp = rawIp.includes(".")
@@ -3219,10 +3251,38 @@ router.get("/student-otp-management/history/:regNo", requireMainAdmin, async (re
         maskedIp,
         loggedInAt: s.loggedInAt,
         lastActiveAt: s.lastActiveAt,
+        loggedOutAt: s.loggedOutAt || s.revokedAt || null,
+        logoutType: s.logoutType || (s.revokedAt ? "revoked" : null),
+        revokeReason: s.revokeReason || null,
         expiresAt: s.expiresAt,
-        status: "ACTIVE",
+        isActive: Boolean(s.isActive),
+        status: s.isActive ? "ACTIVE" : (s.logoutType === "student_manual" ? "SIGNED_OUT" : "REVOKED"),
       };
-    });
+    };
+
+    const sanitizedActiveSessions = allRecentSessions.filter((s) => s.isActive).map((s, idx) => formatSessionRecord(s, idx));
+    const sanitizedRecentHistory = allRecentSessions.map((s, idx) => formatSessionRecord(s, idx));
+
+    const latestLoggedOut = allRecentSessions.find((s) => !s.isActive && (s.loggedOutAt || s.revokedAt));
+    const mostRecentSession = allRecentSessions[0] ? formatSessionRecord(allRecentSessions[0], 0) : null;
+
+    const lastLogoutInfo = latestLoggedOut
+      ? {
+          device: formatSessionRecord(latestLoggedOut, 0),
+          loggedOutAt: latestLoggedOut.loggedOutAt || latestLoggedOut.revokedAt,
+          lastActiveAt: latestLoggedOut.lastActiveAt,
+          reason: latestLoggedOut.revokeReason || (latestLoggedOut.logoutType === "student_manual" ? "Signed out manually by student" : "Session ended"),
+          logoutType: latestLoggedOut.logoutType || "manual",
+        }
+      : (mostRecentSession && !mostRecentSession.isActive
+          ? {
+              device: mostRecentSession,
+              loggedOutAt: mostRecentSession.loggedOutAt || mostRecentSession.lastActiveAt,
+              lastActiveAt: mostRecentSession.lastActiveAt,
+              reason: mostRecentSession.revokeReason || "Previous session ended",
+              logoutType: "ended",
+            }
+          : null);
 
     // Active OTP Status
     const activeOtp = await OtpVerification.findOne({ regNo: rawReg });
@@ -3295,9 +3355,12 @@ router.get("/student-otp-management/history/:regNo", requireMainAdmin, async (re
         isCooldownActive,
         cooldownRemainingSeconds,
         cooldownStartedAt,
-        activeDevicesCount: activeSessions.length,
+        activeDevicesCount: sanitizedActiveSessions.length,
         maxAllowedDevices: isUnlimited ? 2 : 1,
-        activeSessions: sanitizedSessions,
+        activeSessions: sanitizedActiveSessions,
+        recentSessions: sanitizedRecentHistory,
+        lastLogoutInfo,
+        lastActiveDevice: mostRecentSession,
         latestOtpStatus,
       },
       historyTimeline: formattedHistory,
@@ -3415,10 +3478,24 @@ router.post("/student-otp-management/revoke-session/:regNo", requireMainAdmin, a
       });
     }
 
-    // Revoke the specific session
-    await StudentSession.deleteOne({ regNo: rawReg, sessionId });
-
+    const now = new Date();
     const safeReason = req.body?.reason ? String(req.body.reason).trim().slice(0, 200) : "Main Admin Session Revocation";
+
+    // Revoke the specific session (preserve for audit & last logout tracking)
+    await StudentSession.updateOne(
+      { regNo: rawReg, sessionId },
+      {
+        $set: {
+          isActive: false,
+          loggedOutAt: now,
+          lastActiveAt: now,
+          logoutType: "admin_revoked",
+          revokedAt: now,
+          revokeReason: safeReason,
+        },
+      }
+    );
+
     const adminEmail = req.admin?.email || process.env.ADMIN_EMAIL || "main_admin";
 
     // Write audit log
@@ -3476,10 +3553,23 @@ router.post("/student-otp-management/revoke-all-sessions/:regNo", requireMainAdm
     const activeSessions = await getActiveSessions(StudentSession, rawReg);
     const countToRevoke = activeSessions.length;
 
-    // Delete all sessions for this registration number
-    await StudentSession.deleteMany({ regNo: rawReg });
-
+    const now = new Date();
     const safeReason = req.body?.reason ? String(req.body.reason).trim().slice(0, 200) : "Main Admin Revoke All Sessions";
+
+    // Revoke all active sessions (preserve for audit & last logout tracking)
+    await StudentSession.updateMany(
+      { regNo: rawReg, isActive: true },
+      {
+        $set: {
+          isActive: false,
+          loggedOutAt: now,
+          lastActiveAt: now,
+          logoutType: "admin_revoked_all",
+          revokedAt: now,
+          revokeReason: safeReason,
+        },
+      }
+    );
     const adminEmail = req.admin?.email || process.env.ADMIN_EMAIL || "main_admin";
 
     // Write audit log

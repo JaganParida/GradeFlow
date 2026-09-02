@@ -372,24 +372,32 @@ module.exports = async function handler(req, res) {
 
       const regNos = registeredStudents.map((s) => s.regNo);
 
-      const activeSessions = await StudentSession.find({
+      // All sessions lookup (active + recent for logout audit)
+      const studentSessions = await StudentSession.find({
         regNo: { $in: regNos },
-        isActive: true,
-      }).lean();
+      }).sort({ lastActiveAt: -1, updatedAt: -1 }).lean();
 
       const sessionMap = new Map();
-      activeSessions.forEach((s) => {
-        if (!sessionMap.has(s.regNo)) {
-          sessionMap.set(s.regNo, []);
+      const latestSessionMap = new Map();
+
+      studentSessions.forEach((s) => {
+        if (!latestSessionMap.has(s.regNo)) {
+          latestSessionMap.set(s.regNo, s);
         }
-        sessionMap.get(s.regNo).push({
-          sessionId: s.sessionId,
-          deviceType: s.deviceInfo?.deviceType || "Desktop",
-          browser: s.deviceInfo?.browser || "Unknown",
-          os: s.deviceInfo?.os || "Unknown",
-          lastActiveAt: s.lastActiveAt,
-          loggedInAt: s.loggedInAt,
-        });
+        if (s.isActive) {
+          if (!sessionMap.has(s.regNo)) {
+            sessionMap.set(s.regNo, []);
+          }
+          sessionMap.get(s.regNo).push({
+            sessionId: s.sessionId,
+            deviceType: s.deviceInfo?.deviceType || "Desktop",
+            browser: s.deviceInfo?.browser || "Unknown",
+            os: s.deviceInfo?.os || "Unknown",
+            platform: s.deviceInfo?.platform || "",
+            lastActiveAt: s.lastActiveAt,
+            loggedInAt: s.loggedInAt,
+          });
+        }
       });
 
       const studentMetaDocs = await SemesterResult.find(
@@ -414,6 +422,25 @@ module.exports = async function handler(req, res) {
         let branch = (meta.branch && meta.branch !== "N/A") ? meta.branch : (detectBranch(st.regNo) || "CSE");
         let section = (meta.section && meta.section !== "N/A") ? meta.section : (getSectionFromRegNo(st.regNo) || "A");
 
+        const latestSess = latestSessionMap.get(st.regNo);
+        let lastActiveDevice = null;
+        if (latestSess) {
+          const dType = latestSess.deviceInfo?.deviceType || "Desktop";
+          const dOs = latestSess.deviceInfo?.os || "Unknown";
+          const dBrowser = latestSess.deviceInfo?.browser || "Unknown";
+          const dPlatform = latestSess.deviceInfo?.platform || (dOs !== "Unknown" && dBrowser !== "Unknown" ? `${dOs} / ${dBrowser}` : dOs);
+          lastActiveDevice = {
+            deviceType: dType,
+            os: dOs,
+            browser: dBrowser,
+            platform: dPlatform,
+            lastActiveAt: latestSess.lastActiveAt,
+            loggedOutAt: latestSess.loggedOutAt || latestSess.revokedAt || null,
+            logoutType: latestSess.logoutType || (latestSess.revokedAt ? "revoked" : null),
+            revokeReason: latestSess.revokeReason || null,
+          };
+        }
+
         return {
           regNo: st.regNo,
           studentName: meta.studentName || "Registered Student",
@@ -425,6 +452,9 @@ module.exports = async function handler(req, res) {
           isCurrentlyLoggedIn,
           activeSessionsCount: sessions.length,
           activeSessions: sessions,
+          lastActiveAt: latestSess?.lastActiveAt || null,
+          lastLogoutAt: latestSess?.loggedOutAt || latestSess?.revokedAt || null,
+          lastActiveDevice,
           failedPasswordAttempts: st.failedPasswordAttempts || 0,
           isLocked,
           lockedUntil: st.lockedUntil,

@@ -3,14 +3,17 @@ import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import { RefreshCw, Home as HomeIcon } from "lucide-react";
 
-export default function ServerErrorPage({ onRetry }) {
+export default function ServerErrorPage({ onRetry, onReset }) {
   const [retrying, setRetrying] = useState(false);
 
   const handleRetry = async () => {
     setRetrying(true);
     try {
       if (onRetry) await onRetry();
+      else if (onReset) onReset();
       else window.location.reload();
+    } catch {
+      window.location.reload();
     } finally {
       setTimeout(() => setRetrying(false), 800);
     }
@@ -182,8 +185,12 @@ export default function ServerErrorPage({ onRetry }) {
           <span>{retrying ? "Reloading..." : "Try Again"}</span>
         </button>
 
-        <Link
-          to="/"
+        <button
+          type="button"
+          onClick={() => {
+            if (onReset) onReset();
+            else window.location.href = "/";
+          }}
           style={{
             display: "inline-flex",
             alignItems: "center",
@@ -195,13 +202,13 @@ export default function ServerErrorPage({ onRetry }) {
             background: "#ffffff",
             color: "#334155",
             border: "1px solid #cbd5e1",
-            textDecoration: "none",
+            cursor: "pointer",
             transition: "all 0.15s ease",
           }}
         >
           <HomeIcon size={16} />
           <span>Return to Home</span>
-        </Link>
+        </button>
       </motion.div>
     </div>
   );

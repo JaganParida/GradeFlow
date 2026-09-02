@@ -1412,13 +1412,49 @@ router.post("/student/logout", async (req, res) => {
       studentToken = req.headers.authorization.split(" ")[1];
     }
 
+    const regNoFromBody = req.body?.regNo;
+    let sessionId = null;
+    let decodedRegNo = null;
+
     if (studentToken && studentToken !== "none") {
       try {
         const decoded = jwt.verify(studentToken, process.env.JWT_SECRET);
-        if (decoded?.sessionId) {
-          await StudentSession.deleteOne({ sessionId: decoded.sessionId });
-        }
+        sessionId = decoded?.sessionId;
+        decodedRegNo = decoded?.regNo;
       } catch {}
+    }
+
+    const targetReg = String(decodedRegNo || regNoFromBody || "").toUpperCase().trim();
+    const now = new Date();
+
+    if (sessionId) {
+      await StudentSession.updateOne(
+        { sessionId },
+        {
+          $set: {
+            isActive: false,
+            loggedOutAt: now,
+            lastActiveAt: now,
+            logoutType: "student_manual",
+            revokedAt: now,
+            revokeReason: "Signed out manually by student",
+          },
+        }
+      );
+    } else if (targetReg) {
+      await StudentSession.updateMany(
+        { regNo: targetReg, isActive: true },
+        {
+          $set: {
+            isActive: false,
+            loggedOutAt: now,
+            lastActiveAt: now,
+            logoutType: "student_manual",
+            revokedAt: now,
+            revokeReason: "Signed out manually by student",
+          },
+        }
+      );
     }
 
     res.clearCookie("student_jwt", getCookieOptions(req, new Date(0)));
