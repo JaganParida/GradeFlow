@@ -312,6 +312,7 @@ export default function Dashboard() {
     } catch (_) {}
     return "result";
   });
+  const [subnavAnim, setSubnavAnim] = useState("fade-up");
 
   useEffect(() => {
     try {
@@ -1267,15 +1268,21 @@ export default function Dashboard() {
             <ModernMobileSubNav
               items={navMenuItems}
               activeTab={tab}
-              onChange={(newTab) => setTab(newTab)}
+              onChange={(newTab, meta) => {
+                if (meta?.animation) setSubnavAnim(meta.animation);
+                setTab(newTab);
+              }}
               title="Dashboard Modules"
               themeColor="#2563eb"
               themeBg="#eff6ff"
             />
           )}
 
-          {/* Top Header Card */}
-          <div
+          {/* Top Profile, 4 KPI Summary Cards & Standings (Mobile: ONLY visible on default 'result' tab) */}
+          {(!isMobile || tab === "result") && (
+            <>
+              {/* Top Header Card */}
+              <div
             style={{
               background: "#ffffff",
               border: "1px solid #cbd5e1",
@@ -2061,6 +2068,8 @@ export default function Dashboard() {
               </div>
             );
           })()}
+            </>
+          )}
 
           {/* ══════════════════════════════════════════════════════════
               DYNAMIC ACTIVE TAB VIEW
@@ -2075,14 +2084,43 @@ export default function Dashboard() {
               return <ReportCardSkeleton />;
             }
 
+            const animVariants = {
+              "slide-left": {
+                initial: { opacity: 0, x: 24 },
+                animate: { opacity: 1, x: 0 },
+                exit: { opacity: 0, x: -24 },
+                transition: { duration: 0.22, ease: [0.16, 1, 0.3, 1] },
+              },
+              "slide-right": {
+                initial: { opacity: 0, x: -24 },
+                animate: { opacity: 1, x: 0 },
+                exit: { opacity: 0, x: 24 },
+                transition: { duration: 0.22, ease: [0.16, 1, 0.3, 1] },
+              },
+              "fade-up": {
+                initial: { opacity: 0, y: 16 },
+                animate: { opacity: 1, y: 0 },
+                exit: { opacity: 0, y: -10 },
+                transition: { duration: 0.26, ease: [0.16, 1, 0.3, 1] },
+              },
+            };
+            const currentVariant = isMobile
+              ? animVariants[subnavAnim] || animVariants["fade-up"]
+              : {
+                  initial: { opacity: 0.95 },
+                  animate: { opacity: 1 },
+                  exit: { opacity: 0.95 },
+                  transition: { duration: 0.12 },
+                };
+
             return (
               <AnimatePresence mode="wait">
                 <motion.div
                   key={tab}
-                  initial={{ opacity: 0.95 }}
-                  animate={{ opacity: 1 }}
-                  exit={{ opacity: 0.95 }}
-                  transition={{ duration: 0.12 }}
+                  initial={currentVariant.initial}
+                  animate={currentVariant.animate}
+                  exit={currentVariant.exit}
+                  transition={currentVariant.transition}
                   style={{ width: "100%", minWidth: 0 }}
                 >
                   {/* Tab 1: Semester Result (GradeSheet) */}

@@ -439,10 +439,41 @@ export default function AttendanceTracker() {
     return () => clearTimeout(timer);
   }, []);
 
-  const handleTabClick = (tabKey) => {
+  const [subnavAnim, setSubnavAnim] = useState("fade-up");
+  const handleTabClick = (tabKey, meta) => {
+    if (meta?.animation) setSubnavAnim(meta.animation);
     hasUserManuallySelectedTabRef.current = true;
     setActiveTab(tabKey);
   };
+
+  const animVariants = {
+    "slide-left": {
+      initial: { opacity: 0, x: 24 },
+      animate: { opacity: 1, x: 0 },
+      exit: { opacity: 0, x: -24 },
+      transition: { duration: 0.22, ease: [0.16, 1, 0.3, 1] },
+    },
+    "slide-right": {
+      initial: { opacity: 0, x: -24 },
+      animate: { opacity: 1, x: 0 },
+      exit: { opacity: 0, x: 24 },
+      transition: { duration: 0.22, ease: [0.16, 1, 0.3, 1] },
+    },
+    "fade-up": {
+      initial: { opacity: 0, y: 16 },
+      animate: { opacity: 1, y: 0 },
+      exit: { opacity: 0, y: -10 },
+      transition: { duration: 0.26, ease: [0.16, 1, 0.3, 1] },
+    },
+  };
+  const activeTabMotion = isMobile
+    ? animVariants[subnavAnim] || animVariants["fade-up"]
+    : {
+        initial: { opacity: 0, y: 10 },
+        animate: { opacity: 1, y: 0 },
+        exit: { opacity: 0, y: -8 },
+        transition: { duration: 0.22, ease: "easeOut" },
+      };
 
   const [isScreenshotModalOpen, setIsScreenshotModalOpen] = useState(false);
   const [isVerifiedDisclaimerChecked, setIsVerifiedDisclaimerChecked] = useState(false);
@@ -1926,15 +1957,15 @@ export default function AttendanceTracker() {
             <ModernMobileSubNav
               items={navMenuItems}
               activeTab={activeTab}
-              onChange={(newTab) => handleTabClick(newTab)}
+              onChange={(newTab, meta) => handleTabClick(newTab, meta)}
               title="Attendance Modules"
               themeColor="#059669"
               themeBg="#ecfdf5"
             />
           )}
 
-          {/* On Desktop: Always visible. On Mobile: Visible when on Daily Hub (checkin) or Subject Matrix (matrix) */}
-          {(!isMobile || activeTab === "checkin" || activeTab === "matrix") && (
+          {/* On Desktop: Always visible. On Mobile: ONLY visible on default Daily Hub (checkin) */}
+          {(!isMobile || activeTab === "checkin") && (
             <>
               {/* Top Academic & Attendance Overview Header Card */}
               <div
@@ -2367,10 +2398,10 @@ export default function AttendanceTracker() {
               {activeTab === "checkin" && (
                 <motion.div
                   key="checkin"
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -8 }}
-                  transition={{ duration: 0.22, ease: "easeOut" }}
+                  initial={activeTabMotion.initial}
+                  animate={activeTabMotion.animate}
+                  exit={activeTabMotion.exit}
+                  transition={activeTabMotion.transition}
                   style={{ display: "flex", flexDirection: "column", gap: isMobile ? 10 : 14, width: "100%" }}
                 >
 
@@ -2874,10 +2905,10 @@ export default function AttendanceTracker() {
         {activeTab === "matrix" && (
           <motion.div
             key="matrix"
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -8 }}
-            transition={{ duration: 0.22, ease: "easeOut" }}
+            initial={activeTabMotion.initial}
+            animate={activeTabMotion.animate}
+            exit={activeTabMotion.exit}
+            transition={activeTabMotion.transition}
             style={{ display: "flex", flexDirection: "column", gap: isMobile ? 10 : 14, width: "100%" }}
           >
             {allSectionSubjects.length > 0 && (
@@ -3227,10 +3258,10 @@ export default function AttendanceTracker() {
         {activeTab === "studio" && (
           <motion.div
             key="studio"
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -8 }}
-            transition={{ duration: 0.22, ease: "easeOut" }}
+            initial={activeTabMotion.initial}
+            animate={activeTabMotion.animate}
+            exit={activeTabMotion.exit}
+            transition={activeTabMotion.transition}
             style={{ display: "flex", flexDirection: "column", gap: isMobile ? 10 : 14, width: "100%" }}
           >
             {/* ═══════════════════════════════════════════════════════════════
@@ -4694,10 +4725,10 @@ export default function AttendanceTracker() {
     {activeTab === "bunk_analyzer" && (
       <motion.div
         key="bunk_analyzer"
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        exit={{ opacity: 0, y: -8 }}
-        transition={{ duration: 0.22, ease: "easeOut" }}
+        initial={activeTabMotion.initial}
+        animate={activeTabMotion.animate}
+        exit={activeTabMotion.exit}
+        transition={activeTabMotion.transition}
         style={{ width: "100%" }}
       >
         <SmartBunkAnalyzer
