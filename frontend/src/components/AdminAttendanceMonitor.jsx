@@ -69,7 +69,10 @@ export default function AdminAttendanceMonitor({ API = "/api", authHeaders = {},
         section: targetSection,
       });
 
-      const res = await axios.get(`${API}/admin/attendance-tracker/monitor?${params.toString()}`, authHeaders);
+      const res = await axios.get(`${API}/admin/attendance-tracker/monitor?${params.toString()}`, {
+        ...authHeaders,
+        withCredentials: true,
+      });
       if (res.data?.success) {
         setStudents(res.data.students || []);
         if (res.data.summary) {

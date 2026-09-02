@@ -141,6 +141,10 @@
       "destination": "/api/admin.js?action=student-accounts"
     },
     {
+      "source": "/api/admin/attendance-tracker/monitor",
+      "destination": "/api/admin.js?action=attendance-monitor"
+    },
+    {
       "source": "/api/admin/purge-logs/:id",
       "destination": "/api/admin.js?action=purge-logs&id=:id"
     },
