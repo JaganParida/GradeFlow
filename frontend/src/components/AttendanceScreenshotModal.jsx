@@ -2308,7 +2308,7 @@ const parseCutmOcrText = (text, catalog = []) => {
                 width: "100%",
                 maxHeight: "90vh",
                 overflowY: "auto",
-                boxShadow: "0 25px 50px rgba(0,0,0,0.25)",
+                boxShadow: "0 20px 25px -5px rgba(15, 23, 42, 0.1), 0 0 0 1px rgba(15, 23, 42, 0.05)",
                 border: "1px solid #e2e8f0",
                 display: "flex",
                 flexDirection: "column",

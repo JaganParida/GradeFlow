@@ -233,7 +233,7 @@ export default function GradeSheet({ result, studentData, highlightedSubject }) 
               transformOrigin: "top left",
               fontFamily: "'DM Sans', 'Inter', sans-serif",
               fontSize: 13,
-              boxShadow: "0 2px 16px rgba(0,0,0,0.10)",
+              boxShadow: "0 1px 3px rgba(0, 0, 0, 0.04), 0 4px 12px rgba(15, 23, 42, 0.03)",
               border: "1px solid #e0e0e0",
             }}
           >

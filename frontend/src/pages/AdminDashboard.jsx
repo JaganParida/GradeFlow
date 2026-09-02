@@ -2370,7 +2370,7 @@ function SectionToppersCard({ authHeaders, API }) {
                 padding: "26px 24px",
                 maxWidth: 440,
                 width: "100%",
-                boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.25)",
+                boxShadow: "0 20px 25px -5px rgba(15, 23, 42, 0.1), 0 0 0 1px rgba(15, 23, 42, 0.05)",
                 border: "1px solid #e2e8f0",
               }}
             >
@@ -3357,7 +3357,7 @@ function BacklogTrackerCard({ authHeaders, API }) {
                 padding: "26px 24px",
                 maxWidth: 440,
                 width: "100%",
-                boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.25)",
+                boxShadow: "0 20px 25px -5px rgba(15, 23, 42, 0.1), 0 0 0 1px rgba(15, 23, 42, 0.05)",
                 border: "1px solid #e2e8f0",
               }}
             >
@@ -4983,7 +4983,7 @@ export default function AdminDashboard() {
                   background: "#ffffff",
                   borderRadius: 20,
                   padding: "28px 24px 22px",
-                  boxShadow: "0 25px 60px -12px rgba(15, 23, 42, 0.25), 0 0 0 1px rgba(15, 23, 42, 0.06)",
+                  boxShadow: "0 20px 25px -5px rgba(15, 23, 42, 0.1), 0 0 0 1px rgba(15, 23, 42, 0.05)",
                   display: "flex",
                   flexDirection: "column",
                   alignItems: "center",

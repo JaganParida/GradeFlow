@@ -263,7 +263,7 @@ export default function ModernMobileSubNav({
                 background: "#ffffff",
                 borderTopLeftRadius: 24,
                 borderTopRightRadius: 24,
-                boxShadow: "0 -8px 32px rgba(15, 23, 42, 0.18)",
+                boxShadow: "0 -4px 20px rgba(15, 23, 42, 0.08)",
                 padding: "12px 18px 28px 18px",
                 maxHeight: "82vh",
                 display: "flex",

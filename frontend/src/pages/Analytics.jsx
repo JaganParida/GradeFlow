@@ -625,7 +625,13 @@ export default function Analytics() {
     };
   }, [studentData, targetCGPA, remainingSems, creditsCleared, latestSemester, cgpa]);
 
-  if (loading || !studentData) return <AnalyticsSkeleton />;
+  if (loading || !studentData) {
+    return (
+      <div className="gf-skeleton-fade">
+        <AnalyticsSkeleton />
+      </div>
+    );
+  }
 
   const latestResult = results[results.length - 1];
   const latestSubjects = latestResult?.subjects || [];
@@ -650,6 +656,7 @@ export default function Analytics() {
 
   return (
     <div
+      className="gf-content-appear"
       style={{
         minHeight: "100vh",
         background: "#f8fafc",

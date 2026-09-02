@@ -87,7 +87,7 @@ export default function BlockedLoginDeviceModal({
             maxWidth: devicesList.length > 1 ? "680px" : "480px",
             backgroundColor: "#ffffff",
             borderRadius: isMobile ? "16px" : "20px",
-            boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.25), 0 0 0 1px rgba(0, 0, 0, 0.05)",
+            boxShadow: "0 20px 25px -5px rgba(15, 23, 42, 0.1), 0 0 0 1px rgba(15, 23, 42, 0.05)",
             overflow: "hidden",
             display: "flex",
             flexDirection: "column",

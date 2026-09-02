@@ -1457,6 +1457,7 @@ export default function AttendanceTracker() {
   if (pageLoading || isSearching) {
     return (
       <div
+        className="gf-skeleton-fade"
         style={{
           background: "#f8fafc",
           minHeight: "100vh",
@@ -1474,6 +1475,7 @@ export default function AttendanceTracker() {
 
   return (
     <div
+      className="gf-content-appear"
       style={{
         background: "#f1f5f9",
         minHeight: "100vh",
@@ -4796,7 +4798,7 @@ export default function AttendanceTracker() {
                 maxWidth: 420,
                 width: "100%",
                 border: "1px solid #e2e8f0",
-                boxShadow: "0 25px 50px -12px rgba(15, 23, 42, 0.25)",
+                boxShadow: "0 20px 25px -5px rgba(15, 23, 42, 0.1), 0 0 0 1px rgba(15, 23, 42, 0.05)",
                 display: "flex",
                 flexDirection: "column",
                 gap: 16,

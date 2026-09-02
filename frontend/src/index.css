@@ -215,7 +215,7 @@ h6 {
 
 .card:hover {
   border-color: var(--border-strong);
-  box-shadow: 0 2px 20px rgba(0, 0, 0, 0.5);
+  box-shadow: 0 2px 10px rgba(15, 23, 42, 0.05);
 }
 
 /* ── Glass Card ────────────────────────────────────────────── */
@@ -277,9 +277,9 @@ h6 {
 }
 
 .stat-card:hover {
-  transform: translateY(-4px);
+  transform: translateY(-2px);
   border-color: var(--border-strong);
-  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.5);
+  box-shadow: 0 4px 14px rgba(15, 23, 42, 0.05);
 }
 
 .stat-card .label {
@@ -611,13 +611,13 @@ h6 {
 .btn-primary {
   background: #ffffff;
   color: #0f0f0f;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
   font-weight: 700;
 }
 
 .btn-primary:hover {
   background: #e5e5e5;
-  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.5);
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.08);
   transform: translateY(-1px);
 }
 
@@ -978,7 +978,7 @@ table tbody tr:last-child td {
 .leaderboard-mobile-card:hover {
   border-color: var(--border-strong);
   transform: translateY(-2px);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+  box-shadow: 0 4px 14px rgba(15, 23, 42, 0.05);
 }
 
 .leaderboard-mobile-top {
@@ -1290,7 +1290,7 @@ table tbody tr:last-child td {
 
 .placement-company-card:hover {
   border-color: var(--border-strong);
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 2px 10px rgba(15, 23, 42, 0.05);
 }
 
 .placement-company-card.eligible {
@@ -1646,8 +1646,8 @@ input[type="number"].no-spin-button {
 }
 
 .testimonial-card:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.5);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 16px rgba(15, 23, 42, 0.06);
   border-color: var(--border-strong);
 }
 
@@ -1876,7 +1876,7 @@ input[type="number"].no-spin-button {
   border: 1px solid var(--border);
   align-items: center;
   justify-content: space-between;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04), 0 2px 8px rgba(15, 23, 42, 0.03);
   width: 100%;
   max-width: 820px;
 }
@@ -3033,7 +3033,7 @@ html {
 
 .gf-hero-float-wrapper:hover .gf-hero-report-card {
   transform: translate3d(0, -3px, 0) rotate(1.8deg) scale(1.015);
-  box-shadow: 0 30px 60px -12px rgba(15, 23, 42, 0.16), 0 0 1px rgba(15, 23, 42, 0.2);
+  box-shadow: 0 12px 32px -4px rgba(15, 23, 42, 0.08), 0 0 1px rgba(15, 23, 42, 0.1);
 }
 
 /* ── Mobile & Small Device Optimization (max-width: 768px) ── */
@@ -3149,7 +3149,7 @@ html {
 /* ── GradeFlow Unified System States & Error Presentation ─────── */
 .gf-state-btn-primary:hover {
   background: #1d4ed8 !important;
-  box-shadow: 0 4px 14px rgba(37, 99, 235, 0.32) !important;
+  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.18) !important;
   transform: translateY(-1px);
 }
 .gf-state-btn-primary:active {
@@ -3187,4 +3187,34 @@ html {
   .gf-spin {
     animation: none !important;
   }
+}
+
+/* ── Smooth Skeleton-to-Content Transitions ────────────────── */
+@keyframes gfContentFadeIn {
+  0% {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.gf-content-appear {
+  animation: gfContentFadeIn 0.26s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  will-change: opacity, transform;
+}
+
+@keyframes gfSkeletonFadeIn {
+  0% {
+    opacity: 0.6;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
+.gf-skeleton-fade {
+  animation: gfSkeletonFadeIn 0.2s ease-out forwards;
 }

@@ -2093,7 +2093,8 @@ export default function Testimonials() {
                 maxWidth: 400,
                 width: "100%",
                 textAlign: "center",
-                boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.25)",
+                border: "1px solid #e2e8f0",
+                boxShadow: "0 20px 25px -5px rgba(15, 23, 42, 0.1), 0 0 0 1px rgba(15, 23, 42, 0.05)",
                 fontFamily: "'DM Sans', sans-serif",
               }}
             >
@@ -2233,7 +2234,8 @@ export default function Testimonials() {
                 maxWidth: 420,
                 width: "100%",
                 textAlign: "center",
-                boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.25)",
+                border: "1px solid #e2e8f0",
+                boxShadow: "0 20px 25px -5px rgba(15, 23, 42, 0.1), 0 0 0 1px rgba(15, 23, 42, 0.05)",
                 fontFamily: "'DM Sans', sans-serif",
               }}
             >
