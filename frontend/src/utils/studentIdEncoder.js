@@ -29,6 +29,7 @@ export function encodeStudentId(regNo) {
     }
     
     // Convert to URL-safe base64
+    const binStr = String.fromCharCode(...xorBytes);
     const rawB64 = typeof btoa !== "undefined" ? btoa(binStr) : typeof Buffer !== "undefined" ? Buffer.from(binStr, "binary").toString("base64") : "";
     const b64 = rawB64
       .replace(/\+/g, "-")

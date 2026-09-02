@@ -100,6 +100,7 @@ export default function Timetable() {
     return normalizeSection("CSE-A", currentRegNo);
   });
 
+  const [isMobile, setIsMobile] = useState(() => (typeof window !== "undefined" ? window.innerWidth < 1024 : false));
   const [viewMode, setViewMode] = useState("day"); // "day" | "week" | "academic" | "holidays"
   const [subnavAnim, setSubnavAnim] = useState("fade-up");
 
@@ -140,7 +141,6 @@ export default function Timetable() {
   const [searchRegInput, setSearchRegInput] = useState("");
   const [searchError, setSearchError] = useState("");
   const [isSearching, setIsSearching] = useState(false);
-  const [isMobile, setIsMobile] = useState(() => window.innerWidth < 1024);
   const [inspectedClass, setInspectedClass] = useState(null);
 
   // Holiday Month Scroll State & Methods
@@ -1104,7 +1104,7 @@ export default function Timetable() {
         {/* ═══════════════════════════════════════════════════════════════
             LIVE STATUS BANNER (If classes are scheduled today - Mobile: ONLY default 'day' view)
         ═══════════════════════════════════════════════════════════════ */}
-        {(!isMobile || viewMode === "day") && (liveOverview.activeClass ? (
+        {(isEligibleBatch || (!studentData && !currentRegNo)) && (!isMobile || viewMode === "day") && (liveOverview?.activeClass ? (
           <motion.div
             initial={{ opacity: 0, y: -4 }}
             animate={{ opacity: 1, y: 0 }}
@@ -1181,7 +1181,7 @@ export default function Timetable() {
               )}
             </div>
           </motion.div>
-        ) : liveOverview.nextClass ? (
+        ) : liveOverview?.nextClass ? (
           <motion.div
             initial={{ opacity: 0, y: -4 }}
             animate={{ opacity: 1, y: 0 }}
@@ -1302,7 +1302,7 @@ export default function Timetable() {
         )}
 
         {/* ── ERP Master Schedule Variance Disclaimer Banner (Mobile: ONLY default 'day' view) ── */}
-        {(!isMobile || viewMode === "day") && (
+        {(isEligibleBatch || (!studentData && !currentRegNo)) && (!isMobile || viewMode === "day") && (
           <div
             style={{
               background: "linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%)",
