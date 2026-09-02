@@ -225,6 +225,7 @@ function UploadCard({
 
       setTimeout(() => {
         setMsg(data.message);
+        setTimeout(() => setMsg(""), 7000);
         setFile(null);
         if (inputRef.current) inputRef.current.value = "";
         if (onSuccess) onSuccess();
@@ -1358,6 +1359,7 @@ function ManualGradeUpdateCard({ authHeaders, API, onSuccess }) {
       );
 
       setMsg(data.message);
+      setTimeout(() => setMsg(""), 6000);
       await fetchStudent(selectedRegNo);
       if (onSuccess) onSuccess();
     } catch (e) {
