@@ -566,12 +566,13 @@ export default function StudentAuthModal({ isOpen, onClose }) {
   };
 
   const triggerSendOtp = async (isForgot = false) => {
+    const isForgotMode = typeof isForgot === "boolean" ? isForgot : isForgotPasswordMode;
     setLoading(true);
     setErrorMsg("");
     setErrorCode("");
-    setIsForgotPasswordMode(Boolean(isForgot));
+    setIsForgotPasswordMode(isForgotMode);
 
-    const result = await sendStudentOtp(cleanReg, { isForgotPassword: Boolean(isForgot) });
+    const result = await sendStudentOtp(cleanReg, { isForgotPassword: isForgotMode });
     setLoading(false);
 
     if (result.success) {
@@ -1723,7 +1724,7 @@ export default function StudentAuthModal({ isOpen, onClose }) {
                 <button
                   type="button"
                   disabled={resendCooldown > 0 || remainingDailyAttempts <= 0 || loading}
-                  onClick={triggerSendOtp}
+                  onClick={() => triggerSendOtp(isForgotPasswordMode)}
                   style={{
                     background: "none",
                     border: "none",
