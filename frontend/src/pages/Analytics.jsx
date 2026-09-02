@@ -21,6 +21,7 @@ import {
   PolarRadiusAxis,
 } from "recharts";
 import { AnalyticsSkeleton } from "../components/LoadingSpinner";
+import ModernMobileSubNav from "../components/ModernMobileSubNav";
 import { encodeStudentId, decodeStudentId, isEncryptedToken } from "../utils/studentIdEncoder";
 import { motion, animate, AnimatePresence } from "framer-motion";
 import {
@@ -639,12 +640,12 @@ export default function Analytics() {
   };
 
   const navTabs = [
-    { id: "overview", label: "Performance Trajectory", icon: <TrendingUp size={15} color="#2563eb" /> },
-    { id: "grades", label: "Grade Distribution", icon: <BarChart2 size={15} color="#8b5cf6" /> },
-    { id: "placement", label: "Placement & Companies", icon: <Briefcase size={15} color="#10b981" /> },
-    { id: "mastery", label: "Subject Mastery & Insights", icon: <Target size={15} color="#d97706" /> },
-    { id: "predictor", label: "CGPA Goal Predictor", icon: <Award size={15} color="#16a34a" /> },
-    { id: "whatif", label: "What-If Simulator", icon: <PieChart size={15} color="#6366f1" /> },
+    { id: "overview", label: "Performance Trajectory", icon: <TrendingUp size={16} color="#2563eb" />, desc: "SGPA, CGPA trends & semester momentum" },
+    { id: "grades", label: "Grade Distribution", icon: <BarChart2 size={16} color="#8b5cf6" />, desc: "Grade frequency, breakdown & credits" },
+    { id: "placement", label: "Placement & Companies", icon: <Briefcase size={16} color="#10b981" />, desc: "Tier-1 eligibility & company criteria" },
+    { id: "mastery", label: "Subject Mastery & Insights", icon: <Target size={16} color="#d97706" />, desc: "Strongest vs growth areas & feedback" },
+    { id: "predictor", label: "CGPA Goal Predictor", icon: <Award size={16} color="#16a34a" />, desc: "Required grades to reach target CGPA" },
+    { id: "whatif", label: "What-If Simulator", icon: <PieChart size={16} color="#6366f1" />, desc: "Simulate grades for upcoming sems" },
   ];
 
   return (
@@ -778,117 +779,17 @@ export default function Analytics() {
           </div>
 
           {/* ══════════════════════════════════════════════════════════
-              SUB-NAV SEGMENTED TAB SWITCHER (With Scroll Arrows on Mobile)
+              SUB-NAV SEGMENTED TAB SWITCHER
           ══════════════════════════════════════════════════════════ */}
           {isMobile ? (
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 6,
-                background: "#f1f5f9",
-                border: "1px solid #e2e8f0",
-                borderRadius: 12,
-                padding: "4px 6px",
-              }}
-            >
-              {/* Left Arrow Button */}
-              <button
-                onClick={() => scrollTabs("left")}
-                disabled={!canScrollLeft}
-                aria-label="Scroll sub-nav left"
-                style={{
-                  width: 26,
-                  height: 26,
-                  borderRadius: "50%",
-                  border: canScrollLeft ? "1px solid #cbd5e1" : "1px solid #e2e8f0",
-                  background: "#ffffff",
-                  color: canScrollLeft ? "#2563eb" : "#94a3b8",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  cursor: canScrollLeft ? "pointer" : "default",
-                  flexShrink: 0,
-                  opacity: canScrollLeft ? 1 : 0.4,
-                  transition: "all 0.15s ease",
-                  padding: 0,
-                }}
-              >
-                <ChevronLeft size={14} />
-              </button>
-
-              {/* Scrollable Track */}
-              <div
-                ref={mobileTabsRef}
-                onScroll={checkTabsScroll}
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 6,
-                  overflowX: "auto",
-                  scrollbarWidth: "none",
-                  msOverflowStyle: "none",
-                  WebkitOverflowScrolling: "touch",
-                  flex: 1,
-                }}
-              >
-                {navTabs.map((t) => {
-                  const isActive = tab === t.id;
-                  return (
-                    <button
-                      key={t.id}
-                      data-tab-id={t.id}
-                      onClick={() => handleTabChange(t.id)}
-                      style={{
-                        display: "inline-flex",
-                        alignItems: "center",
-                        gap: 5,
-                        padding: "6px 12px",
-                        borderRadius: 8,
-                        border: isActive ? "1px solid #cbd5e1" : "1px solid transparent",
-                        background: isActive ? "#ffffff" : "transparent",
-                        color: isActive ? "#2563eb" : "#475569",
-                        fontSize: 12,
-                        fontWeight: isActive ? 800 : 600,
-                        cursor: "pointer",
-                        whiteSpace: "nowrap",
-                        flexShrink: 0,
-                        boxShadow: isActive ? "0 1px 3px rgba(0,0,0,0.06)" : "none",
-                        fontFamily: "'DM Sans', sans-serif",
-                      }}
-                    >
-                      {t.icon}
-                      <span>{t.label}</span>
-                    </button>
-                  );
-                })}
-              </div>
-
-              {/* Right Arrow Button */}
-              <button
-                onClick={() => scrollTabs("right")}
-                disabled={!canScrollRight}
-                aria-label="Scroll sub-nav right"
-                style={{
-                  width: 26,
-                  height: 26,
-                  borderRadius: "50%",
-                  border: canScrollRight ? "1px solid #cbd5e1" : "1px solid #e2e8f0",
-                  background: "#ffffff",
-                  color: canScrollRight ? "#2563eb" : "#94a3b8",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  cursor: canScrollRight ? "pointer" : "default",
-                  flexShrink: 0,
-                  opacity: canScrollRight ? 1 : 0.4,
-                  transition: "all 0.15s ease",
-                  padding: 0,
-                }}
-              >
-                <ChevronRight size={14} />
-              </button>
-            </div>
+            <ModernMobileSubNav
+              items={navTabs}
+              activeTab={tab}
+              onChange={(newTab) => handleTabChange(newTab)}
+              title="Analytics Views"
+              themeColor="#2563eb"
+              themeBg="#eff6ff"
+            />
           ) : (
             <div
               style={{

@@ -3741,15 +3741,15 @@ export default function AdminDashboard() {
 
   // Build granular tab list based on authenticated identity
   const ALL_ADMIN_TABS = [
-    { id: "overview", label: "Upload Results", icon: <CloudUpload size={15} /> },
-    { id: "timetable", label: "Timetable & Calendar", icon: <Clock size={15} /> },
-    { id: "report-card", label: "Report Card Editor", icon: <FileText size={15} /> },
-    { id: "missing-uploader", label: "Missing Students Ingestion", icon: <UserPlus size={15} /> },
-    { id: "toppers", label: "Section Toppers", icon: <Trophy size={15} /> },
-    { id: "backlogs", label: "Backlog Tracker", icon: <AlertTriangle size={15} /> },
-    { id: "manage", label: "Manage Records", icon: <Database size={15} /> },
-    { id: "feedback", label: "Student Feedback", icon: <MessageSquare size={15} /> },
-    { id: "attendance-monitor", label: "Attendance Monitor", icon: <UserCheck size={15} /> },
+    { id: "overview", label: "Upload Results", icon: <CloudUpload size={15} />, desc: "Upload and process semester results & scorecards" },
+    { id: "timetable", label: "Timetable & Calendar", icon: <Clock size={15} />, desc: "Manage class schedules, routines and academic calendar" },
+    { id: "report-card", label: "Report Card Editor", icon: <FileText size={15} />, desc: "Official student grade sheets and report cards" },
+    { id: "missing-uploader", label: "Missing Students Ingestion", icon: <UserPlus size={15} />, desc: "Manual student entry & individual score records" },
+    { id: "toppers", label: "Section Toppers", icon: <Trophy size={15} />, desc: "Top academic performers and section rank lists" },
+    { id: "backlogs", label: "Backlog Tracker", icon: <AlertTriangle size={15} />, desc: "Students with backlogs, year-down & arrears" },
+    { id: "manage", label: "Manage Records", icon: <Database size={15} />, desc: "Batch purges, student database audits and tools" },
+    { id: "feedback", label: "Student Feedback", icon: <MessageSquare size={15} />, desc: "Student reviews, issues and feature requests" },
+    { id: "attendance-monitor", label: "Attendance Monitor", icon: <UserCheck size={15} />, desc: "Live student attendance tracker adoption & stats" },
   ];
 
   if (isMainAdmin) {
@@ -4149,55 +4149,68 @@ export default function AdminDashboard() {
           </div>
         )}
 
-        {/* ── Segmented Navigation Tabs ── */}
+        {/* ── Navigation Tabs: Modern Mobile Sub-Nav on Mobile, Segmented Bar on Desktop ── */}
         {ADMIN_TABS.length > 0 && (
-          <div
-            ref={adminTabsRef}
-            style={{
-              background: "#f1f5f9",
-              borderRadius: 14,
-              padding: 4,
-              marginBottom: 24,
-              display: "flex",
-              alignItems: "center",
-              gap: 4,
-              overflowX: "auto",
-              scrollbarWidth: "none",
-              msOverflowStyle: "none",
-              WebkitOverflowScrolling: "touch",
-            }}
-          >
-            {ADMIN_TABS.map((t) => {
-              const isActive = tab === t.id;
-              return (
-                <button
-                  key={t.id}
-                  data-tab-id={t.id}
-                  onClick={() => setTab(t.id)}
-                  style={{
-                    display: "inline-flex",
-                    alignItems: "center",
-                    gap: 6,
-                    padding: "9px 16px",
-                    borderRadius: 10,
-                    border: "none",
-                    background: isActive ? "#ffffff" : "transparent",
-                    color: isActive ? "#0f172a" : "#64748b",
-                    fontSize: 13,
-                    fontWeight: isActive ? 800 : 600,
-                    cursor: "pointer",
-                    whiteSpace: "nowrap",
-                    boxShadow: isActive ? "0 2px 6px rgba(0,0,0,0.06)" : "none",
-                    transition: "all 0.15s ease",
-                    fontFamily: "'DM Sans', sans-serif",
-                  }}
-                >
-                  <span style={{ color: isActive ? "#2563eb" : "#64748b" }}>{t.icon}</span>
-                  <span>{t.label}</span>
-                </button>
-              );
-            })}
-          </div>
+          isMobile ? (
+            <div style={{ marginBottom: 16 }}>
+              <ModernMobileSubNav
+                items={ADMIN_TABS}
+                activeTab={tab}
+                onChange={(newTab) => setTab(newTab)}
+                title="Admin Modules"
+                themeColor="#2563eb"
+                themeBg="#eff6ff"
+              />
+            </div>
+          ) : (
+            <div
+              ref={adminTabsRef}
+              style={{
+                background: "#f1f5f9",
+                borderRadius: 14,
+                padding: 4,
+                marginBottom: 24,
+                display: "flex",
+                alignItems: "center",
+                gap: 4,
+                overflowX: "auto",
+                scrollbarWidth: "none",
+                msOverflowStyle: "none",
+                WebkitOverflowScrolling: "touch",
+              }}
+            >
+              {ADMIN_TABS.map((t) => {
+                const isActive = tab === t.id;
+                return (
+                  <button
+                    key={t.id}
+                    data-tab-id={t.id}
+                    onClick={() => setTab(t.id)}
+                    style={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: 6,
+                      padding: "9px 16px",
+                      borderRadius: 10,
+                      border: "none",
+                      background: isActive ? "#ffffff" : "transparent",
+                      color: isActive ? "#0f172a" : "#64748b",
+                      fontSize: 13,
+                      fontWeight: isActive ? 800 : 600,
+                      cursor: "pointer",
+                      whiteSpace: "nowrap",
+                      boxShadow: isActive ? "0 2px 6px rgba(0,0,0,0.06)" : "none",
+                      transition: "all 0.15s ease",
+                      fontFamily: "'DM Sans', sans-serif",
+                    }}
+                  >
+                    <span style={{ color: isActive ? "#2563eb" : "#64748b" }}>{t.icon}</span>
+                    <span>{t.label}</span>
+                  </button>
+                );
+              })}
+            </div>
+          )
         )}
 
         <AnimatePresence mode="wait">

@@ -1,6 +1,8 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate, Link, useLocation, useSearchParams } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
+import { ResourcesSkeleton } from "../components/LoadingSpinner";
+import ModernMobileSubNav from "../components/ModernMobileSubNav";
 import {
   Calculator,
   BarChart2,
@@ -100,15 +102,15 @@ const EXAMPLE_CALC_ROWS = [
 ];
 
 const ALL_RESOURCE_TABS = [
-  { id: "all-overview", label: "How SGPA & CGPA Are Calculated", shortLabel: "Overview & Formulas", icon: <Calculator size={15} /> },
-  { id: "grading-scale", label: "Grading Scale", shortLabel: "Grading Scale", icon: <Star size={15} /> },
-  { id: "academic-health", label: "Academic Health", shortLabel: "Academic Health", icon: <Activity size={15} /> },
-  { id: "badges-tab", label: "Badges & Achievements", shortLabel: "Badges", icon: <Medal size={15} /> },
-  { id: "sgpa-calc", label: "SGPA Calculator", shortLabel: "SGPA Calc", icon: <Calculator size={15} /> },
-  { id: "cgpa-calc", label: "CGPA Calculator", shortLabel: "CGPA Calc", icon: <BarChart2 size={15} /> },
-  { id: "target-predictor", label: "Target GPA Predictor", shortLabel: "Goal Predictor", icon: <Target size={15} /> },
-  { id: "academic-report", label: "Academic Report", shortLabel: "Report Card", icon: <FileText size={15} /> },
-  { id: "help-faq", label: "Help & FAQ", shortLabel: "Help & FAQ", icon: <HelpCircle size={15} /> },
+  { id: "all-overview", label: "Overview & Formulas", shortLabel: "Overview", icon: <Calculator size={16} />, desc: "How SGPA & CGPA are officially calculated" },
+  { id: "grading-scale", label: "Grading Scale", shortLabel: "Grading Scale", icon: <Star size={16} />, desc: "Grade point scale & cutoff guidelines" },
+  { id: "academic-health", label: "Academic Health", shortLabel: "Academic Health", icon: <Activity size={16} />, desc: "Performance index & risk assessment" },
+  { id: "badges-tab", label: "Badges & Achievements", shortLabel: "Badges", icon: <Medal size={16} />, desc: "Milestones, badges & scholar awards" },
+  { id: "sgpa-calc", label: "SGPA Calculator", shortLabel: "SGPA Calc", icon: <Calculator size={16} />, desc: "Interactive semester GPA simulator" },
+  { id: "cgpa-calc", label: "CGPA Calculator", shortLabel: "CGPA Calc", icon: <BarChart2 size={16} />, desc: "Multi-semester cumulative GPA calculator" },
+  { id: "target-predictor", label: "Target GPA Predictor", shortLabel: "Goal Predictor", icon: <Target size={16} />, desc: "Forecast future semester target requirements" },
+  { id: "academic-report", label: "Academic Report", shortLabel: "Report Card", icon: <FileText size={16} />, desc: "Summary sheet & official ledger overview" },
+  { id: "help-faq", label: "Help & FAQ", shortLabel: "Help & FAQ", icon: <HelpCircle size={16} />, desc: "Frequently asked questions & student guide" },
 ];
 
 const resolveResourceTab = (raw) => {
@@ -310,123 +312,17 @@ export default function Resources() {
         boxSizing: "border-box",
       }}
     >
-      {/* ── Mobile Sleek Horizontal Sub-Nav Bar with Compact Arrow Controls ── */}
+      {/* Modern Interactive Mobile Sub-Navigation */}
       {isMobile && (
-        <div
-          style={{
-            background: "#ffffff",
-            borderBottom: "1px solid #f1f5f9",
-            padding: "8px 8px 6px 8px",
-            display: "flex",
-            alignItems: "center",
-            gap: 6,
-            width: "100%",
-            maxWidth: "100%",
-            boxSizing: "border-box",
-            overflowX: "hidden",
-          }}
-        >
-          {/* Compact Left Arrow */}
-          <button
-            type="button"
-            onClick={() => scrollTabs("left")}
-            disabled={!canScrollLeft}
-            aria-label="Scroll tabs left"
-            style={{
-              width: 26,
-              height: 26,
-              borderRadius: "50%",
-              border: "1px solid #e2e8f0",
-              background: canScrollLeft ? "#ffffff" : "#f8fafc",
-              color: canScrollLeft ? "#2563eb" : "#cbd5e1",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              cursor: canScrollLeft ? "pointer" : "default",
-              flexShrink: 0,
-              boxShadow: canScrollLeft ? "0 1px 3px rgba(0,0,0,0.06)" : "none",
-              padding: 0,
-            }}
-          >
-            <ChevronLeft size={13} />
-          </button>
-
-          {/* Horizontally Scrollable Pills Track */}
-          <div
-            ref={mobileTabsRef}
-            onScroll={checkScroll}
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 5,
-              overflowX: "auto",
-              scrollbarWidth: "none",
-              msOverflowStyle: "none",
-              WebkitOverflowScrolling: "touch",
-              flex: 1,
-              paddingBottom: 2,
-            }}
-          >
-            {ALL_RESOURCE_TABS.map((tab) => {
-              const isSelected = activeTab === tab.id;
-              return (
-                <button
-                  key={tab.id}
-                  type="button"
-                  onClick={() => {
-                    handleTabChange(tab.id);
-                  }}
-                  style={{
-                    display: "inline-flex",
-                    alignItems: "center",
-                    gap: 5,
-                    padding: "5px 11px",
-                    borderRadius: 99,
-                    border: isSelected ? "1px solid #2563eb" : "1px solid #e2e8f0",
-                    background: isSelected ? "#2563eb" : "#f8fafc",
-                    color: isSelected ? "#ffffff" : "#475569",
-                    fontSize: 11.5,
-                    fontWeight: isSelected ? 800 : 600,
-                    cursor: "pointer",
-                    whiteSpace: "nowrap",
-                    flexShrink: 0,
-                    transition: "all 0.15s ease",
-                    boxShadow: isSelected ? "0 2px 6px rgba(37, 99, 235, 0.2)" : "none",
-                  }}
-                >
-                  <span style={{ color: isSelected ? "#ffffff" : "#2563eb", display: "flex", alignItems: "center" }}>
-                    {tab.icon}
-                  </span>
-                  <span>{tab.shortLabel}</span>
-                </button>
-              );
-            })}
-          </div>
-
-          {/* Compact Right Arrow */}
-          <button
-            type="button"
-            onClick={() => scrollTabs("right")}
-            disabled={!canScrollRight}
-            aria-label="Scroll tabs right"
-            style={{
-              width: 26,
-              height: 26,
-              borderRadius: "50%",
-              border: "1px solid #e2e8f0",
-              background: canScrollRight ? "#ffffff" : "#f8fafc",
-              color: canScrollRight ? "#2563eb" : "#cbd5e1",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              cursor: canScrollRight ? "pointer" : "default",
-              flexShrink: 0,
-              boxShadow: canScrollRight ? "0 1px 3px rgba(0,0,0,0.06)" : "none",
-              padding: 0,
-            }}
-          >
-            <ChevronRight size={13} />
-          </button>
+        <div style={{ padding: "6px 12px 0 12px" }}>
+          <ModernMobileSubNav
+            items={ALL_RESOURCE_TABS}
+            activeTab={activeTab}
+            onChange={(newTab) => handleTabChange(newTab)}
+            title="Resource Library"
+            themeColor="#2563eb"
+            themeBg="#eff6ff"
+          />
         </div>
       )}
 
