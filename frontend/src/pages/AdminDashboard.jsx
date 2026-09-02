@@ -14,6 +14,7 @@ import TimetableAdminManager from "../components/TimetableAdminManager";
 import AdminManagement from "../components/AdminManagement";
 import StudentOtpManagement from "../components/StudentOtpManagement";
 import AdminAttendanceMonitor from "../components/AdminAttendanceMonitor";
+import ModernMobileSubNav from "../components/ModernMobileSubNav";
 import { motion, AnimatePresence } from "framer-motion";
 import { formatDistanceToNow } from "date-fns";
 import {
@@ -3723,15 +3724,15 @@ export default function AdminDashboard() {
           fetchPurgeLogs();
         }
       } else if (data && data.authenticated === false) {
-        setAdminToken(false);
         setAdminProfile(null);
+        adminLogout();
         navigate("/admin");
       }
     } catch (err) {
       console.warn("Failed to fetch admin profile:", err.message);
       if (err.response?.status === 401 || err.response?.status === 403) {
-        setAdminToken(false);
         setAdminProfile(null);
+        adminLogout();
         navigate("/admin");
       }
     }
