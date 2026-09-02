@@ -71,7 +71,7 @@ function getSectionFromRegNo(regNo) {
   const r = String(regNo).trim();
   if (r === "230301180026") return "I";
   
-  if (/^\d{2}0301120/.test(r)) {
+  if (/^\d{2}030112[01]/.test(r)) {
      const num = parseInt(r.slice(-3), 10);
      if (num >= 1 && num <= 60) return "A";
      if (num >= 61 && num <= 120) return "B";
@@ -266,9 +266,9 @@ async function generateRankingForSemester(semester, preloadedAllResults = null) 
   }
 }
 
-// Upload semester results
+// Upload semester results & backlogs
 router.post(
-  "/upload/results",
+  ["/upload", "/upload/results", "/upload-backlogs", "/upload/backlogs"],
   protect,
   requirePermission("results.upload", "overview", "overview.upload-results"),
   upload.single("file"),
@@ -283,7 +283,11 @@ router.post(
       const formBatch = req.body.batch;
       const formProgram = req.body.program;
       const formSession = req.body.session;
-      const uploadType = req.body.uploadType || "regular";
+      const reqUrl = req.originalUrl || req.url || "";
+      let uploadType = req.body.uploadType || "regular";
+      if (reqUrl.includes("backlog")) {
+        uploadType = "backlog";
+      }
 
       const grouped = {};
       let totalParsedRows = 0;
@@ -402,8 +406,11 @@ router.post(
               "SI No",
             ) || idx + 1;
 
+          const excelSem = col(row, "Semester", "semester", "Sem", "sem");
           const semRaw =
-            formSemester || col(row, "Semester", "semester", "Sem", "sem");
+            excelSem !== undefined && excelSem !== null && excelSem !== ""
+              ? excelSem
+              : formSemester;
           let semester = Number(semRaw);
           let batch = detectBatch(regNo);
           if (!batch) {
@@ -428,7 +435,7 @@ router.post(
           );
 
           const isEodOrRecheck =
-            uploadType === "eod" || uploadType === "rechecking";
+            uploadType === "eod" || uploadType === "rechecking" || uploadType === "backlog";
 
           if (!regNo) {
             console.warn(`Row ${idx + 2}: skipped — missing RegNo`);
@@ -494,7 +501,7 @@ router.post(
       const affectedSemesters = new Set();
       const bulkOps = [];
       const isEodOrRecheck =
-        uploadType === "eod" || uploadType === "rechecking";
+        uploadType === "eod" || uploadType === "rechecking" || uploadType === "backlog";
       let allExistingRecordsByRegNo = {};
 
       // ALWAYS fetch all existing records to allow smart merging and prevent downgrading
@@ -632,7 +639,7 @@ router.post(
 
 // Upload internal marks
 router.post(
-  "/upload/internal",
+  ["/upload/internal", "/upload-internal"],
   protect,
   requirePermission("results.upload", "overview", "overview.upload-internal"),
   upload.single("file"),

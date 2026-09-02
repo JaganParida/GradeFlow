@@ -3755,10 +3755,12 @@ export default function AdminDashboard() {
         {},
         authHeaders
       );
-      setRegenAllMsg(data.message);
+      setRegenAllMsg(data.message || "All student rankings regenerated successfully.");
+      setTimeout(() => setRegenAllMsg(""), 6000);
       fetchStats();
     } catch (e) {
-      setRegenAllErr(e.response?.data?.message || "Failed");
+      setRegenAllErr(e.response?.data?.message || "Failed to regenerate rankings");
+      setTimeout(() => setRegenAllErr(""), 6000);
     } finally {
       setRegenAllLoading(false);
     }
@@ -3774,9 +3776,11 @@ export default function AdminDashboard() {
         {},
         authHeaders
       );
-      setClearCacheMsg(data.message);
+      setClearCacheMsg(data.message || "Server cache cleared successfully.");
+      setTimeout(() => setClearCacheMsg(""), 5000);
     } catch (e) {
       setClearCacheErr(e.response?.data?.message || "Failed to clear cache");
+      setTimeout(() => setClearCacheErr(""), 5000);
     } finally {
       setClearCacheLoading(false);
     }
@@ -3858,7 +3862,54 @@ export default function AdminDashboard() {
             </div>
           </div>
 
-          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+            <AnimatePresence>
+              {clearCacheMsg && (
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.95 }}
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 6,
+                    padding: "6px 12px",
+                    borderRadius: 8,
+                    background: "#ecfdf5",
+                    border: "1px solid #a7f3d0",
+                    color: "#065f46",
+                    fontSize: 12,
+                    fontWeight: 700,
+                  }}
+                >
+                  <CheckCircle size={14} color="#059669" />
+                  <span>{clearCacheMsg}</span>
+                </motion.div>
+              )}
+              {clearCacheErr && (
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.95 }}
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 6,
+                    padding: "6px 12px",
+                    borderRadius: 8,
+                    background: "#fef2f2",
+                    border: "1px solid #fecaca",
+                    color: "#991b1b",
+                    fontSize: 12,
+                    fontWeight: 700,
+                  }}
+                >
+                  <AlertTriangle size={14} color="#dc2626" />
+                  <span>{clearCacheErr}</span>
+                </motion.div>
+              )}
+            </AnimatePresence>
+
             <button
               onClick={clearServerCache}
               disabled={clearCacheLoading}
@@ -4262,6 +4313,54 @@ export default function AdminDashboard() {
                 {regenAllLoading ? "Recalculating..." : "Regenerate All Rankings"}
               </button>
             </div>
+
+            {/* Live Ranking Regeneration Feedback */}
+            <AnimatePresence>
+              {regenAllMsg && (
+                <motion.div
+                  initial={{ opacity: 0, y: -6 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -6 }}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 8,
+                    padding: "10px 14px",
+                    borderRadius: 10,
+                    background: "#ecfdf5",
+                    border: "1px solid #a7f3d0",
+                    color: "#065f46",
+                    fontSize: 13,
+                    fontWeight: 600,
+                  }}
+                >
+                  <CheckCircle size={16} color="#059669" style={{ flexShrink: 0 }} />
+                  <span>{regenAllMsg}</span>
+                </motion.div>
+              )}
+              {regenAllErr && (
+                <motion.div
+                  initial={{ opacity: 0, y: -6 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -6 }}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 8,
+                    padding: "10px 14px",
+                    borderRadius: 10,
+                    background: "#fef2f2",
+                    border: "1px solid #fecaca",
+                    color: "#991b1b",
+                    fontSize: 13,
+                    fontWeight: 600,
+                  }}
+                >
+                  <AlertTriangle size={16} color="#dc2626" style={{ flexShrink: 0 }} />
+                  <span>{regenAllErr}</span>
+                </motion.div>
+              )}
+            </AnimatePresence>
 
             {/* ── BATCH-WISE ACTIVE STUDENT & RANKING BREAKDOWN (LIVE FROM BACKEND) ── */}
             {stats && stats.batchBreakdown && stats.batchBreakdown.length > 0 && (
