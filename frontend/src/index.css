@@ -3184,7 +3184,12 @@ html {
 
 @media (prefers-reduced-motion: reduce) {
   .skeleton,
-  .gf-spin {
+  .gf-spin,
+  .gf-content-appear,
+  .gf-skeleton-fade,
+  .gf-anim-slide-left,
+  .gf-anim-slide-right,
+  .gf-anim-fade-up {
     animation: none !important;
   }
 }
@@ -3217,4 +3222,53 @@ html {
 
 .gf-skeleton-fade {
   animation: gfSkeletonFadeIn 0.2s ease-out forwards;
+}
+
+/* ── Directional Sub-Nav Transition Animations ──────────────── */
+@keyframes gfSlideFromRight {
+  0% {
+    opacity: 0;
+    transform: translateX(20px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes gfSlideFromLeft {
+  0% {
+    opacity: 0;
+    transform: translateX(-20px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes gfFadeInUp {
+  0% {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.gf-anim-slide-left {
+  animation: gfSlideFromRight 0.24s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  will-change: opacity, transform;
+}
+
+.gf-anim-slide-right {
+  animation: gfSlideFromLeft 0.24s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  will-change: opacity, transform;
+}
+
+.gf-anim-fade-up {
+  animation: gfFadeInUp 0.28s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  will-change: opacity, transform;
 }

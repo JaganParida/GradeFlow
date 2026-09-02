@@ -101,6 +101,36 @@ export default function Timetable() {
   });
 
   const [viewMode, setViewMode] = useState("day"); // "day" | "week" | "academic" | "holidays"
+  const [subnavAnim, setSubnavAnim] = useState("fade-up");
+
+  const animVariants = {
+    "slide-left": {
+      initial: { opacity: 0, x: 24 },
+      animate: { opacity: 1, x: 0 },
+      exit: { opacity: 0, x: -24 },
+      transition: { duration: 0.22, ease: [0.16, 1, 0.3, 1] },
+    },
+    "slide-right": {
+      initial: { opacity: 0, x: -24 },
+      animate: { opacity: 1, x: 0 },
+      exit: { opacity: 0, x: 24 },
+      transition: { duration: 0.22, ease: [0.16, 1, 0.3, 1] },
+    },
+    "fade-up": {
+      initial: { opacity: 0, y: 16 },
+      animate: { opacity: 1, y: 0 },
+      exit: { opacity: 0, y: -10 },
+      transition: { duration: 0.26, ease: [0.16, 1, 0.3, 1] },
+    },
+  };
+  const activeModeMotion = isMobile
+    ? animVariants[subnavAnim] || animVariants["fade-up"]
+    : {
+        initial: { opacity: 0, y: 6 },
+        animate: { opacity: 1, y: 0 },
+        exit: { opacity: 0, y: -6 },
+        transition: { duration: 0.18, ease: "easeOut" },
+      };
   const [academicSemFilter, setAcademicSemFilter] = useState("all"); // "all" | "odd" | "even" | "events"
   const [mobileWeekDay, setMobileWeekDay] = useState("Monday");
   const [selectedDate, setSelectedDate] = useState(() => new Date());
@@ -878,7 +908,10 @@ export default function Timetable() {
                 <ModernMobileSubNav
                   items={TIMETABLE_VIEW_MODES}
                   activeTab={viewMode}
-                  onChange={(newMode) => setViewMode(newMode)}
+                  onChange={(newMode, meta) => {
+                    if (meta?.animation) setSubnavAnim(meta.animation);
+                    setViewMode(newMode);
+                  }}
                   title="Timetable Views"
                   themeColor="#2563eb"
                   themeBg="#eff6ff"
@@ -1069,9 +1102,9 @@ export default function Timetable() {
         </div>
 
         {/* ═══════════════════════════════════════════════════════════════
-            LIVE STATUS BANNER (If classes are scheduled today)
+            LIVE STATUS BANNER (If classes are scheduled today - Mobile: ONLY default 'day' view)
         ═══════════════════════════════════════════════════════════════ */}
-        {liveOverview.activeClass ? (
+        {(!isMobile || viewMode === "day") && (liveOverview.activeClass ? (
           <motion.div
             initial={{ opacity: 0, y: -4 }}
             animate={{ opacity: 1, y: 0 }}
@@ -1194,7 +1227,7 @@ export default function Timetable() {
               </span>
             )}
           </motion.div>
-        ) : null}
+        ) : null)}
 
         {/* Notice for non-2023 CSE students */}
         {!isEligibleBatch && (studentData || currentRegNo) && (viewMode === "day" || viewMode === "week") && (
@@ -1268,28 +1301,30 @@ export default function Timetable() {
           </div>
         )}
 
-        {/* ── ERP Master Schedule Variance Disclaimer Banner ── */}
-        <div
-          style={{
-            background: "linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%)",
-            border: "1px solid #cbd5e1",
-            borderRadius: 14,
-            padding: isMobile ? "10px 14px" : "12px 18px",
-            display: "flex",
-            alignItems: "flex-start",
-            gap: 10,
-            fontSize: 12,
-            color: "#475569",
-            lineHeight: 1.5,
-            boxShadow: "0 1px 3px rgba(0,0,0,0.02)",
-          }}
-        >
-          <Info size={16} color="#2563eb" style={{ flexShrink: 0, marginTop: 1 }} />
-          <div>
-            <strong style={{ color: "#0f172a", fontWeight: 800 }}>Schedule Disclaimer: </strong>
-            Class routines displayed on GradeFlow reflect the semester master timetable. Daily period schedules or room allocations on the official university ERP may occasionally vary due to day-to-day faculty adjustments, compensatory classes, or university event schedules.
+        {/* ── ERP Master Schedule Variance Disclaimer Banner (Mobile: ONLY default 'day' view) ── */}
+        {(!isMobile || viewMode === "day") && (
+          <div
+            style={{
+              background: "linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%)",
+              border: "1px solid #cbd5e1",
+              borderRadius: 14,
+              padding: isMobile ? "10px 14px" : "12px 18px",
+              display: "flex",
+              alignItems: "flex-start",
+              gap: 10,
+              fontSize: 12,
+              color: "#475569",
+              lineHeight: 1.5,
+              boxShadow: "0 1px 3px rgba(0,0,0,0.02)",
+            }}
+          >
+            <Info size={16} color="#2563eb" style={{ flexShrink: 0, marginTop: 1 }} />
+            <div>
+              <strong style={{ color: "#0f172a", fontWeight: 800 }}>Schedule Disclaimer: </strong>
+              Class routines displayed on GradeFlow reflect the semester master timetable. Daily period schedules or room allocations on the official university ERP may occasionally vary due to day-to-day faculty adjustments, compensatory classes, or university event schedules.
+            </div>
           </div>
-        </div>
+        )}
 
         {/* ═══════════════════════════════════════════════════════════════
             TAB SWITCHER CONTAINER (AnimatePresence smooth fade-in/fade-out)
@@ -1301,10 +1336,10 @@ export default function Timetable() {
           {viewMode === "day" && (isEligibleBatch || (!studentData && !currentRegNo)) && (
             <motion.div
               key="day"
-              initial={{ opacity: 0, y: 6 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -6 }}
-              transition={{ duration: 0.18, ease: "easeOut" }}
+              initial={activeModeMotion.initial}
+              animate={activeModeMotion.animate}
+              exit={activeModeMotion.exit}
+              transition={activeModeMotion.transition}
               style={{ display: "flex", flexDirection: "column", gap: 14, width: "100%" }}
             >
               {/* Day / Date Navigation Toolbar */}
@@ -1921,10 +1956,10 @@ export default function Timetable() {
         {viewMode === "week" && (isEligibleBatch || (!studentData && !currentRegNo)) && (
           <motion.div
             key="week"
-            initial={{ opacity: 0, y: 6 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -6 }}
-            transition={{ duration: 0.18, ease: "easeOut" }}
+            initial={activeModeMotion.initial}
+            animate={activeModeMotion.animate}
+            exit={activeModeMotion.exit}
+            transition={activeModeMotion.transition}
             style={{ width: "100%" }}
           >
             <div
@@ -2331,10 +2366,10 @@ export default function Timetable() {
       {viewMode === "academic" && (
         <motion.div
           key="academic"
-          initial={{ opacity: 0, y: 6 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: -6 }}
-          transition={{ duration: 0.18, ease: "easeOut" }}
+          initial={activeModeMotion.initial}
+          animate={activeModeMotion.animate}
+          exit={activeModeMotion.exit}
+          transition={activeModeMotion.transition}
           style={{ display: "flex", flexDirection: "column", gap: 16, width: "100%" }}
         >
           {/* Top Academic Scope Card & Filter Toolbar */}
@@ -2842,10 +2877,10 @@ export default function Timetable() {
       {viewMode === "holidays" && (
         <motion.div
           key="holidays"
-          initial={{ opacity: 0, y: 6 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: -6 }}
-          transition={{ duration: 0.18, ease: "easeOut" }}
+          initial={activeModeMotion.initial}
+          animate={activeModeMotion.animate}
+          exit={activeModeMotion.exit}
+          transition={activeModeMotion.transition}
           style={{ display: "flex", flexDirection: "column", gap: 14, width: "100%" }}
         >
           {/* Filter Toolbar */}

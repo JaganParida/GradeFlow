@@ -50,68 +50,94 @@ export default function ModernMobileSubNav({
   const currentIndex = items.findIndex((it) => it.id === activeTab);
   const activeItem = items[currentIndex] || items[0] || {};
 
+  const scrollToActiveContent = () => {
+    try {
+      const navEl = document.getElementById("gf-mobile-subnav");
+      if (navEl) {
+        const rect = navEl.getBoundingClientRect();
+        const targetY = window.pageYOffset + rect.top - 8;
+        window.scrollTo({ top: Math.max(0, targetY), behavior: "smooth" });
+      }
+    } catch (err) {
+      // ignore
+    }
+  };
+
   const handlePrev = (e) => {
     e.stopPropagation();
-    if (currentIndex > 0) {
-      onChange(items[currentIndex - 1].id);
-    } else {
-      onChange(items[items.length - 1].id);
+    const nextIdx = currentIndex > 0 ? currentIndex - 1 : items.length - 1;
+    const targetId = items[nextIdx]?.id;
+    if (targetId) {
+      onChange(targetId, { animation: "slide-right", direction: -1 });
+      scrollToActiveContent();
     }
   };
 
   const handleNext = (e) => {
     e.stopPropagation();
-    if (currentIndex < items.length - 1) {
-      onChange(items[currentIndex + 1].id);
-    } else {
-      onChange(items[0].id);
+    const nextIdx = currentIndex < items.length - 1 ? currentIndex + 1 : 0;
+    const targetId = items[nextIdx]?.id;
+    if (targetId) {
+      onChange(targetId, { animation: "slide-left", direction: 1 });
+      scrollToActiveContent();
     }
   };
 
   const handleSelect = (id) => {
-    onChange(id);
+    onChange(id, { animation: "fade-up", direction: 0 });
     setIsOpen(false);
+    scrollToActiveContent();
   };
 
   return (
     <>
-      {/* ── Main Sticky Anchor Bar ── */}
+      {/* ── Main Sticky Anchor Bar (Clean Big-Tech Professional UI) ── */}
       <div
+        id="gf-mobile-subnav"
         style={{
           position: "sticky",
           top: 0,
-          zIndex: 25,
-          background: "#f1f5f9",
+          zIndex: 30,
+          background: "rgba(241, 245, 249, 0.96)",
+          backdropFilter: "blur(8px)",
+          WebkitBackdropFilter: "blur(8px)",
           padding: "4px 0 8px 0",
           width: "100%",
         }}
       >
         <div
-          onClick={() => setIsOpen(true)}
           style={{
             background: "#ffffff",
-            border: "1.5px solid #cbd5e1",
+            border: "1px solid #e2e8f0",
             borderRadius: 14,
-            padding: "8px 10px",
-            boxShadow: "0 2px 8px rgba(15, 23, 42, 0.04)",
+            padding: "6px 8px 6px 10px",
+            boxShadow: "0 1px 3px rgba(15, 23, 42, 0.04), 0 2px 8px rgba(15, 23, 42, 0.02)",
             display: "flex",
             alignItems: "center",
             justifyContent: "space-between",
-            gap: 8,
-            cursor: "pointer",
+            gap: 10,
             userSelect: "none",
-            transition: "border-color 0.15s ease, box-shadow 0.15s ease",
           }}
         >
-          {/* Left: Active Module Icon & Labels */}
-          <div style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0, flex: 1 }}>
+          {/* Left: Active Module Clickable Pill (Opens Drawer) */}
+          <div
+            onClick={() => setIsOpen(true)}
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 10,
+              minWidth: 0,
+              flex: 1,
+              cursor: "pointer",
+            }}
+          >
             <div
               style={{
                 width: 36,
                 height: 36,
                 borderRadius: 10,
                 background: themeBg,
-                border: `1.5px solid ${themeColor}33`,
+                border: `1px solid ${themeColor}33`,
                 color: themeColor,
                 display: "flex",
                 alignItems: "center",
@@ -122,102 +148,123 @@ export default function ModernMobileSubNav({
               {activeItem.icon}
             </div>
             <div style={{ display: "flex", flexDirection: "column", minWidth: 0, flex: 1 }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                <span
-                  style={{
-                    fontSize: 13.5,
-                    fontWeight: 800,
-                    color: "#0f172a",
-                    overflow: "hidden",
-                    textOverflow: "ellipsis",
-                    whiteSpace: "nowrap",
-                    letterSpacing: "-0.2px",
-                  }}
-                >
-                  {activeItem.label}
-                </span>
-              </div>
-              <span style={{ fontSize: 11, fontWeight: 600, color: "#64748b" }}>
-                View {currentIndex + 1} of {items.length} • Tap to switch
+              <span
+                style={{
+                  fontSize: 13.5,
+                  fontWeight: 800,
+                  color: "#0f172a",
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                  whiteSpace: "nowrap",
+                  letterSpacing: "-0.2px",
+                  lineHeight: 1.25,
+                }}
+              >
+                {activeItem.label}
+              </span>
+              <span style={{ fontSize: 11, fontWeight: 600, color: "#64748b", lineHeight: 1.2 }}>
+                View {currentIndex + 1} of {items.length} · Tap to browse
               </span>
             </div>
           </div>
 
-          {/* Right: Prev, Next & All Switcher Pills */}
-          <div style={{ display: "flex", alignItems: "center", gap: 5, flexShrink: 0 }}>
-            {/* Prev Arrow */}
-            <button
-              type="button"
-              onClick={handlePrev}
-              title="Previous Module"
-              aria-label="Previous view"
-              style={{
-                width: 30,
-                height: 30,
-                borderRadius: 8,
-                border: "1px solid #e2e8f0",
-                background: "#f8fafc",
-                color: "#475569",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                cursor: "pointer",
-                padding: 0,
-                transition: "all 0.15s ease",
-              }}
-            >
-              <ChevronLeft size={16} />
-            </button>
-
-            {/* Next Arrow */}
-            <button
-              type="button"
-              onClick={handleNext}
-              title="Next Module"
-              aria-label="Next view"
-              style={{
-                width: 30,
-                height: 30,
-                borderRadius: 8,
-                border: "1px solid #e2e8f0",
-                background: "#f8fafc",
-                color: "#475569",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                cursor: "pointer",
-                padding: 0,
-                transition: "all 0.15s ease",
-              }}
-            >
-              <ChevronRight size={16} />
-            </button>
-
-            {/* "All Views" Action Pill */}
+          {/* Right: Modern Segmented Navigation & "All" Pill */}
+          <div style={{ display: "flex", alignItems: "center", gap: 6, flexShrink: 0 }}>
+            {/* Segmented Prev / Next Dual Buttons */}
             <div
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                background: "#f1f5f9",
+                borderRadius: 10,
+                padding: 2,
+                border: "1px solid #e2e8f0",
+              }}
+            >
+              <motion.button
+                type="button"
+                whileTap={{ scale: 0.92 }}
+                onClick={handlePrev}
+                title="Previous Module"
+                aria-label="Previous view"
+                style={{
+                  width: 28,
+                  height: 28,
+                  borderRadius: 8,
+                  border: "none",
+                  background: "#ffffff",
+                  color: "#334155",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  cursor: "pointer",
+                  padding: 0,
+                  boxShadow: "0 1px 2px rgba(0,0,0,0.04)",
+                  transition: "all 0.15s ease",
+                }}
+              >
+                <ChevronLeft size={16} strokeWidth={2.4} />
+              </motion.button>
+              <div style={{ width: 1, height: 16, background: "#e2e8f0", margin: "0 1px" }} />
+              <motion.button
+                type="button"
+                whileTap={{ scale: 0.92 }}
+                onClick={handleNext}
+                title="Next Module"
+                aria-label="Next view"
+                style={{
+                  width: 28,
+                  height: 28,
+                  borderRadius: 8,
+                  border: "none",
+                  background: "#ffffff",
+                  color: "#334155",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  cursor: "pointer",
+                  padding: 0,
+                  boxShadow: "0 1px 2px rgba(0,0,0,0.04)",
+                  transition: "all 0.15s ease",
+                }}
+              >
+                <ChevronRight size={16} strokeWidth={2.4} />
+              </motion.button>
+            </div>
+
+            {/* "All" Dropdown Pill */}
+            <motion.button
+              type="button"
+              whileTap={{ scale: 0.95 }}
+              onClick={() => setIsOpen(true)}
+              title="Open all modules menu"
+              aria-label="All views"
               style={{
                 display: "inline-flex",
                 alignItems: "center",
                 gap: 5,
                 padding: "6px 10px",
-                borderRadius: 8,
-                background: `${themeColor}12`,
+                borderRadius: 10,
+                background: themeBg,
                 border: `1px solid ${themeColor}33`,
                 color: themeColor,
                 fontSize: 12,
                 fontWeight: 800,
                 letterSpacing: "-0.2px",
+                cursor: "pointer",
+                height: 32,
+                boxSizing: "border-box",
               }}
             >
-              <LayoutGrid size={13} />
+              <LayoutGrid size={13} strokeWidth={2.4} />
               <span>All</span>
-              <ChevronDown size={12} />
-            </div>
+              <ChevronDown size={12} strokeWidth={2.4} />
+            </motion.button>
           </div>
         </div>
       </div>
 
-      {/* ── Interactive Bottom Sheet Drawer (Framer Motion) ── */}
+      {/* ── Interactive Bottom Sheet Drawer (Smooth Easing) ── */}
       <AnimatePresence>
         {isOpen && (
           <div
@@ -238,7 +285,7 @@ export default function ModernMobileSubNav({
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              transition={{ duration: 0.2 }}
+              transition={{ duration: 0.22, ease: "easeOut" }}
               onClick={() => setIsOpen(false)}
               style={{
                 position: "absolute",
@@ -246,18 +293,18 @@ export default function ModernMobileSubNav({
                 left: 0,
                 right: 0,
                 bottom: 0,
-                background: "rgba(15, 23, 42, 0.55)",
+                background: "rgba(15, 23, 42, 0.45)",
                 backdropFilter: "blur(6px)",
                 WebkitBackdropFilter: "blur(6px)",
               }}
             />
 
-            {/* Sheet Card */}
+            {/* Sheet Card (Silky Smooth iOS Easing) */}
             <motion.div
-              initial={{ y: "100%" }}
-              animate={{ y: 0 }}
-              exit={{ y: "100%" }}
-              transition={{ type: "spring", damping: 28, stiffness: 320 }}
+              initial={{ y: "100%", opacity: 0.7 }}
+              animate={{ y: 0, opacity: 1 }}
+              exit={{ y: "100%", opacity: 0.7 }}
+              transition={{ duration: 0.32, ease: [0.16, 1, 0.3, 1] }}
               style={{
                 position: "relative",
                 background: "#ffffff",
