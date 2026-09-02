@@ -28,6 +28,7 @@ const semesterResultSchema = new mongoose.Schema(
     totalCredits: Number,
     creditsCleared: Number,
     sgpa: Number,
+    cgpa: Number,
     uploadedAt: { type: Date, default: Date.now },
   },
   { timestamps: true },
