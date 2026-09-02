@@ -618,8 +618,19 @@ router.post(
         await SemesterResult.bulkWrite(bulkOps);
       }
 
-      // Automatically generate rankings for affected semesters
-      for (const sem of affectedSemesters) {
+      // Cascade rankings to any higher semesters that exist for these students so CGPA stays strictly synchronized
+      if (affectedSemesters.size > 0 && allRegNos.length > 0) {
+        const subsequentSemesters = await SemesterResult.find({
+          regNo: { $in: allRegNos },
+          semester: { $gt: Math.max(...affectedSemesters) },
+        }).distinct("semester");
+
+        subsequentSemesters.forEach((s) => affectedSemesters.add(Number(s)));
+      }
+
+      // Automatically generate rankings for affected and cascaded semesters
+      const sortedSemesters = Array.from(affectedSemesters).sort((a, b) => a - b);
+      for (const sem of sortedSemesters) {
         await generateRankingForSemester(sem);
       }
 
@@ -628,7 +639,7 @@ router.post(
       allRegNos.forEach((rn) => clearStudentCache(rn));
 
       res.json({
-        message: `✅ Successfully uploaded ${count} student semester record(s) and auto-updated rankings!`,
+        message: `Successfully uploaded ${count} student semester record(s) and auto-updated rankings & CGPA!`,
       });
     } catch (err) {
       console.error("Upload error:", err);
@@ -1101,7 +1112,7 @@ router.post(
       Object.keys(grouped).forEach((k) => clearStudentCache(grouped[k].regNo));
 
       res.json({
-        message: `✅ Uploaded internal marks for ${count} student(s)`,
+        message: `Uploaded internal marks for ${count} student(s)`,
       });
     } catch (err) {
       console.error("Internal marks upload error:", err);
@@ -1122,7 +1133,7 @@ router.post("/rankings/generate", protect, requirePermission("rankings.regenerat
 
     await generateRankingForSemester(Number(semester));
     res.json({
-      message: `✅ Rankings generated successfully for Semester ${semester}`,
+      message: `Rankings generated successfully for Semester ${semester}`,
     });
   } catch (err) {
     console.error("Rankings generation error:", err);
@@ -1149,7 +1160,7 @@ router.post("/rankings/regenerate-all", protect, requirePermission("rankings.reg
     // Clear ALL in-memory student cache so fresh data is served immediately
     clearStudentCache();
     res.json({
-      message: `✅ All rankings regenerated for ${semesters.length} semester(s): ${semesters.join(", ")}. Cache cleared.`,
+      message: `All rankings regenerated for ${semesters.length} semester(s): ${semesters.join(", ")}. Cache cleared.`,
     });
   } catch (err) {
     console.error("Rankings regeneration error:", err);
@@ -1311,7 +1322,7 @@ router.post("/student/update-grade", protect, requirePermission("students.update
 
     res.json({
       success: true,
-      message: `✅ Grade for "${targetSubject.subName}" (${targetSubject.subCode}) updated from ${oldGrade} to ${normalizedGrade} for ${semResult.studentName} (${trimmedRegNo})! SGPA, CGPA, Backlogs, Rankings & Website synchronized!`,
+      message: `Grade for "${targetSubject.subName}" (${targetSubject.subCode}) updated from ${oldGrade} to ${normalizedGrade} for ${semResult.studentName} (${trimmedRegNo})! SGPA, CGPA, Backlogs, Rankings & Website synchronized!`,
       studentName: semResult.studentName,
       regNo: trimmedRegNo,
       semester: semNum,
@@ -1514,7 +1525,7 @@ router.post("/student/update-semester-record", protect, requirePermission("stude
 
     res.json({
       success: true,
-      message: `✅ Full Report Card synchronized for ${updatedTargetSem.studentName || cleanRegNo} (Semester ${semNum})! SGPA: ${updatedTargetSem.sgpa.toFixed(2)}, CGPA: ${updatedTargetSem.cgpa.toFixed(2)}, Credits: ${updatedTargetSem.creditsCleared}/${updatedTargetSem.totalCredits}. Rankings & Dashboard updated!`,
+      message: `Full Report Card synchronized for ${updatedTargetSem.studentName || cleanRegNo} (Semester ${semNum})! SGPA: ${updatedTargetSem.sgpa.toFixed(2)}, CGPA: ${updatedTargetSem.cgpa.toFixed(2)}, Credits: ${updatedTargetSem.creditsCleared}/${updatedTargetSem.totalCredits}. Rankings & Dashboard updated!`,
       student: {
         regNo: cleanRegNo,
         studentName: updatedTargetSem.studentName,
@@ -2200,7 +2211,7 @@ router.post("/purge-expired", protect, requirePermission("manage.purge-batches",
     const result = await purgeExpiredBatches();
     clearStudentCache();
     res.json({
-      message: `✅ Batch purge complete. ${result.purgedCount} expired batch(es) purged.`,
+      message: `Batch purge complete. ${result.purgedCount} expired batch(es) purged.`,
       result,
     });
   } catch (err) {
@@ -2700,7 +2711,7 @@ router.post(
 
       return res.json({
         success: true,
-        message: `✅ Successfully ingested ${addedStudents.length} missing student record(s) into database! (Skipped ${skippedCount} existing records for Sem ${allSemestersInFile.join(", ")}). Auto-generated rankings & metrics.`,
+        message: `Successfully ingested ${addedStudents.length} missing student record(s) into database! (Skipped ${skippedCount} existing records for Sem ${allSemestersInFile.join(", ")}). Auto-generated rankings & metrics.`,
         totalInFile,
         skippedCount,
         addedCount: addedStudents.length,
@@ -3000,7 +3011,7 @@ router.post(
 
       return res.json({
         success: true,
-        message: `✅ Successfully ingested internal marks for ${addedStudents.length} missing student(s)! (Skipped ${skippedCount} existing records for Sem ${allSemestersInFile.join(", ")}).`,
+        message: `Successfully ingested internal marks for ${addedStudents.length} missing student(s)! (Skipped ${skippedCount} existing records for Sem ${allSemestersInFile.join(", ")}).`,
         totalInFile,
         skippedCount,
         addedCount: addedStudents.length,
