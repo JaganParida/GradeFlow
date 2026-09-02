@@ -14,6 +14,7 @@ const BatchPurgeLog = require("../models/BatchPurgeLog");
 const StudentDailyLimit = require("../models/StudentDailyLimit");
 const StudentSession = require("../models/StudentSession");
 const OtpVerification = require("../models/OtpVerification");
+const Attendance = require("../models/Attendance");
 const OtpRequestLog = require("../models/OtpRequestLog");
 const { getActiveSessions, getMaxAllowedDevices } = require("../utils/sessionManager");
 const { isBatchExpired, purgeExpiredBatches } = require("../utils/batchLifecycle");
@@ -3518,6 +3519,204 @@ router.post("/student-otp-management/revoke-all-sessions/:regNo", requireMainAdm
   } catch (err) {
     console.error("POST /student-otp-management/revoke-all-sessions error:", err);
     return res.status(500).json({ success: false, message: "Failed to revoke student device sessions." });
+  }
+});
+
+// GET /attendance-tracker/monitor — Live Attendance Tracker Usage & Analytics Directory
+router.get("/attendance-tracker/monitor", protect, async (req, res) => {
+  try {
+    const search = String(req.query.search || "").trim().toUpperCase();
+    const filter = String(req.query.filter || "all").toLowerCase();
+    const branchFilter = String(req.query.branch || "").trim().toUpperCase();
+    const sectionFilter = String(req.query.section || "").trim().toUpperCase();
+    const page = Math.max(1, parseInt(req.query.page, 10) || 1);
+    const limit = Math.max(1, Math.min(100, parseInt(req.query.limit, 10) || 10));
+
+    // Fetch all attendance records from MongoDB
+    const attendanceDocs = await Attendance.find().sort({ updatedAt: -1, lastSyncedAt: -1 }).lean();
+    const regNos = attendanceDocs.map((a) => a.regNo);
+
+    // Fetch student metadata (Name, batch, branch, section)
+    const studentMetaDocs = await SemesterResult.find(
+      { regNo: { $in: regNos } },
+      "regNo studentName batch branch section"
+    ).lean();
+
+    const metaMap = new Map();
+    studentMetaDocs.forEach((doc) => {
+      if (doc.regNo && !metaMap.has(doc.regNo)) {
+        metaMap.set(doc.regNo, doc);
+      }
+    });
+
+    // Also check Student collection for registered students
+    const studentUsers = await Student.find(
+      { regNo: { $in: regNos } },
+      "regNo studentName createdAt updatedAt"
+    ).lean();
+    const studentUserMap = new Map();
+    studentUsers.forEach((u) => {
+      if (u.regNo && !studentUserMap.has(u.regNo)) {
+        studentUserMap.set(u.regNo, u);
+      }
+    });
+
+    let processedStudents = attendanceDocs.map((doc) => {
+      const meta = metaMap.get(doc.regNo) || {};
+      const userMeta = studentUserMap.get(doc.regNo) || {};
+      const studentName = meta.studentName || userMeta.studentName || "Student";
+      const batch = meta.batch || detectBatch(doc.regNo) || "N/A";
+      const branch = meta.branch || detectBranch(doc.regNo) || "CSE";
+      const section = doc.section || meta.section || getSectionFromRegNo(doc.regNo) || "A";
+
+      const subjects = Array.isArray(doc.savedSubjects) ? doc.savedSubjects : [];
+      let totalDelivered = 0;
+      let totalAttended = 0;
+
+      const subjectsBreakdown = subjects.map((sub) => {
+        let subDelivered = 0;
+        let subAttended = 0;
+        (sub.components || []).forEach((c) => {
+          subDelivered += Number(c.delivered) || 0;
+          subAttended += Number(c.attended) || 0;
+        });
+        totalDelivered += subDelivered;
+        totalAttended += subAttended;
+
+        const subPct = subDelivered > 0 ? Number(((subAttended / subDelivered) * 100).toFixed(1)) : 0;
+        return {
+          subjectName: sub.subjectName || "Subject",
+          code: sub.code || "",
+          attended: subAttended,
+          delivered: subDelivered,
+          percentage: subPct,
+          components: (sub.components || []).map((c) => ({
+            type: c.type || "PP",
+            attended: Number(c.attended) || 0,
+            delivered: Number(c.delivered) || 0,
+          })),
+          lastUpdated: sub.lastUpdated,
+        };
+      });
+
+      const overallPercentage = totalDelivered > 0 ? Number(((totalAttended / totalDelivered) * 100).toFixed(1)) : 0;
+      const isTrackerActive = overallPercentage > 0;
+      const isReset = subjects.length === 0 || totalDelivered === 0;
+      const targetGoal = Number(doc.targetGoal) || 75;
+
+      let dailyLogsCount = 0;
+      if (doc.dailyLogs) {
+        if (doc.dailyLogs instanceof Map) {
+          dailyLogsCount = doc.dailyLogs.size;
+        } else if (typeof doc.dailyLogs === "object") {
+          dailyLogsCount = Object.keys(doc.dailyLogs).length;
+        }
+      }
+
+      return {
+        regNo: doc.regNo,
+        studentName,
+        batch,
+        branch,
+        section,
+        overallPercentage,
+        totalAttended,
+        totalDelivered,
+        totalSubjects: subjects.length,
+        targetGoal,
+        dailyLogsCount,
+        isTrackerActive,
+        isReset,
+        status: isTrackerActive ? "active" : "reset",
+        lastSyncedAt: doc.lastSyncedAt || doc.updatedAt,
+        subjectsBreakdown,
+      };
+    });
+
+    // Compute global summary metrics before pagination & filters
+    const totalTracked = processedStudents.length;
+    const activeStudents = processedStudents.filter((s) => s.isTrackerActive);
+    const resetStudents = processedStudents.filter((s) => s.isReset);
+    const safeStudents = activeStudents.filter((s) => s.overallPercentage >= s.targetGoal);
+    const criticalStudents = activeStudents.filter((s) => s.overallPercentage < s.targetGoal);
+
+    const sumActivePct = activeStudents.reduce((acc, s) => acc + s.overallPercentage, 0);
+    const avgActivePercentage = activeStudents.length > 0 ? Number((sumActivePct / activeStudents.length).toFixed(1)) : 0;
+
+    // Apply search filter
+    if (search) {
+      processedStudents = processedStudents.filter(
+        (s) =>
+          s.regNo.includes(search) ||
+          s.studentName.toUpperCase().includes(search) ||
+          s.section.toUpperCase().includes(search)
+      );
+    }
+
+    // Apply branch filter
+    if (branchFilter && branchFilter !== "ALL") {
+      processedStudents = processedStudents.filter((s) => s.branch === branchFilter);
+    }
+
+    // Apply section filter
+    if (sectionFilter && sectionFilter !== "ALL") {
+      processedStudents = processedStudents.filter(
+        (s) => s.section === sectionFilter || s.section === `SEC ${sectionFilter}` || s.section === `CSE-${sectionFilter}`
+      );
+    }
+
+    // Apply category filter
+    if (filter === "active") {
+      processedStudents = processedStudents.filter((s) => s.isTrackerActive);
+    } else if (filter === "reset") {
+      processedStudents = processedStudents.filter((s) => s.isReset);
+    } else if (filter === "safe") {
+      processedStudents = processedStudents.filter((s) => s.isTrackerActive && s.overallPercentage >= s.targetGoal);
+    } else if (filter === "critical") {
+      processedStudents = processedStudents.filter((s) => s.isTrackerActive && s.overallPercentage < s.targetGoal);
+    }
+
+    // Sort: Active users first (highest attendance first), then Reset users
+    processedStudents.sort((a, b) => {
+      if (a.isTrackerActive && !b.isTrackerActive) return -1;
+      if (!a.isTrackerActive && b.isTrackerActive) return 1;
+      if (b.overallPercentage !== a.overallPercentage) {
+        return b.overallPercentage - a.overallPercentage;
+      }
+      return new Date(b.lastSyncedAt || 0) - new Date(a.lastSyncedAt || 0);
+    });
+
+    const totalRecords = processedStudents.length;
+    const totalPages = Math.ceil(totalRecords / limit) || 1;
+    const currentPage = Math.min(page, totalPages);
+    const startIndex = (currentPage - 1) * limit;
+    const paginatedStudents = processedStudents.slice(startIndex, startIndex + limit);
+
+    return res.json({
+      success: true,
+      summary: {
+        totalTracked,
+        activeCount: activeStudents.length,
+        resetCount: resetStudents.length,
+        safeCount: safeStudents.length,
+        criticalCount: criticalStudents.length,
+        avgActivePercentage,
+      },
+      pagination: {
+        currentPage,
+        totalPages,
+        totalRecords,
+        limit,
+        startIndex: totalRecords === 0 ? 0 : startIndex + 1,
+        endIndex: Math.min(startIndex + limit, totalRecords),
+        hasNextPage: currentPage < totalPages,
+        hasPrevPage: currentPage > 1,
+      },
+      students: paginatedStudents,
+    });
+  } catch (err) {
+    console.error("GET /attendance-tracker/monitor error:", err);
+    return res.status(500).json({ success: false, message: "Failed to fetch attendance tracker monitor data." });
   }
 });
 
