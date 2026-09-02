@@ -196,11 +196,19 @@ module.exports = async function handler(req, res) {
 
     // Public / semi-public maintenance read
     if ((action === "maintenance" || cleanUrl.includes("/maintenance")) && req.method === "GET") {
-      const config = await SystemConfig.findOne({ key: "maintenance" }).lean();
-      return res.json({
-        enabled: config?.maintenance?.enabled || false,
+      const config = (await SystemConfig.findOne({ key: "maintenance" }).lean()) ||
+                     (await SystemConfig.findOne({ key: "system_maintenance" }).lean());
+      const mState = {
+        enabled: Boolean(config?.maintenance?.enabled),
         message: config?.maintenance?.message || "",
         enabledAt: config?.maintenance?.enabledAt || null,
+      };
+      return res.json({
+        success: true,
+        enabled: mState.enabled,
+        message: mState.message,
+        enabledAt: mState.enabledAt,
+        maintenance: mState,
       });
     }
 
@@ -1059,24 +1067,41 @@ module.exports = async function handler(req, res) {
     }
 
     // 16. PUT /maintenance
-    if (action === "maintenance" && req.method === "PUT") {
+    if ((action === "maintenance" || cleanUrl.includes("/maintenance")) && req.method === "PUT") {
       const { enabled, message } = req.body || {};
-      const updated = await SystemConfig.findOneAndUpdate(
-        { key: "maintenance" },
-        {
-          $set: {
-            maintenance: {
-              enabled: Boolean(enabled),
-              message: String(message || ""),
-              enabledAt: enabled ? new Date() : null,
-              updatedAt: new Date(),
-              updatedBy: admin.username,
-            },
-          },
-        },
-        { upsert: true, new: true }
-      );
-      return res.json({ success: true, maintenance: updated.maintenance });
+      const isEnabled = Boolean(enabled);
+      const cleanMessage = String(message || "").trim().slice(0, 300);
+      const now = new Date();
+      const adminIdentity = admin.email || admin.name || "main_admin";
+
+      const maintenanceDoc = {
+        enabled: isEnabled,
+        message: cleanMessage,
+        enabledAt: isEnabled ? now : null,
+        updatedAt: now,
+        updatedBy: adminIdentity,
+      };
+
+      await Promise.all([
+        SystemConfig.findOneAndUpdate(
+          { key: "maintenance" },
+          { $set: { maintenance: maintenanceDoc } },
+          { upsert: true, new: true }
+        ),
+        SystemConfig.findOneAndUpdate(
+          { key: "system_maintenance" },
+          { $set: { maintenance: maintenanceDoc } },
+          { upsert: true, new: true }
+        ),
+      ]);
+
+      return res.json({
+        success: true,
+        message: isEnabled
+          ? "Global Maintenance Mode enabled successfully. Student access is now restricted."
+          : "Global Maintenance Mode disabled successfully. Student access has been restored.",
+        maintenance: maintenanceDoc,
+      });
     }
 
     return res.status(404).json({ success: false, message: `Unknown admin action: ${action || cleanUrl}` });

@@ -237,7 +237,10 @@ export default function AdminManagement({ API, authHeaders, isMobile }) {
         if (setMaintenance) setMaintenance(data.maintenance);
         if (checkMaintenanceStatus) await checkMaintenanceStatus(true);
         setShowEnableConfirmModal(false);
-        setMaintenanceSuccess("Global Maintenance Mode enabled successfully. Student access is now restricted.");
+        const succMsg = maintenanceData.enabled
+          ? "Maintenance broadcast notice updated successfully."
+          : (data.message || "Global Maintenance Mode enabled successfully. Student access is now restricted.");
+        setMaintenanceSuccess(succMsg);
         setTimeout(() => setMaintenanceSuccess(""), 5000);
       }
     } catch (err) {
@@ -262,7 +265,7 @@ export default function AdminManagement({ API, authHeaders, isMobile }) {
         if (setMaintenance) setMaintenance(data.maintenance);
         if (checkMaintenanceStatus) await checkMaintenanceStatus(true);
         setShowDisableConfirmModal(false);
-        setMaintenanceSuccess("Global Maintenance Mode disabled successfully. Student access has been restored.");
+        setMaintenanceSuccess(data.message || "Global Maintenance Mode disabled successfully. Student access has been restored.");
         setTimeout(() => setMaintenanceSuccess(""), 5000);
       }
     } catch (err) {
