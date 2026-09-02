@@ -685,6 +685,7 @@ export default function Dashboard() {
   if (loading || (!studentData && !error)) {
     return (
       <div
+        className="gf-skeleton-fade"
         style={{
           background: "#f1f5f9",
           minHeight: "100vh",
@@ -844,6 +845,7 @@ export default function Dashboard() {
 
   return (
     <div
+      className="gf-content-appear"
       style={{
         background: "#f1f5f9",
         minHeight: "100vh",

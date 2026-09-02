@@ -457,6 +457,7 @@ export default function Timetable() {
   if (pageLoading || isSearching) {
     return (
       <div
+        className="gf-skeleton-fade"
         style={{
           background: "#f8fafc",
           minHeight: "100vh",
@@ -474,6 +475,7 @@ export default function Timetable() {
 
   return (
     <div
+      className="gf-content-appear"
       style={{
         background: "#f8fafc",
         minHeight: "100vh",

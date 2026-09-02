@@ -119,6 +119,7 @@ function RouteLoadingFallback() {
 
   return (
     <div
+      className="gf-skeleton-fade"
       style={{
         width: "100%",
         maxWidth: "100%",

@@ -987,9 +987,12 @@ export default function Leaderboard() {
 
         {/* 3. Main Leaderboard: Mobile Card List or Desktop Table */}
         {loading ? (
-          <LeaderboardSkeleton />
+          <div className="gf-skeleton-fade">
+            <LeaderboardSkeleton />
+          </div>
         ) : processedRankings.length === 0 ? (
           <div
+            className="gf-content-appear"
             style={{
               textAlign: "center",
               padding: "50px 20px",
@@ -1010,7 +1013,7 @@ export default function Leaderboard() {
           </div>
         ) : isMobile ? (
           /* Mobile Card List View (ZERO Horizontal Scroll & Beautiful Spacing) */
-          <div style={{ display: "flex", flexDirection: "column", gap: 10, width: "100%" }}>
+          <div className="gf-content-appear" style={{ display: "flex", flexDirection: "column", gap: 10, width: "100%" }}>
             {visibleRankings.map((r) => {
               const isGold = r.displayRank === 1;
               const isSilver = r.displayRank === 2;
@@ -1229,11 +1232,12 @@ export default function Leaderboard() {
         ) : (
           /* Desktop Table View */
           <div
+            className="gf-content-appear"
             style={{
               background: "#ffffff",
               border: "1px solid #cbd5e1",
               borderRadius: 16,
-              boxShadow: "0 1px 3px rgba(0,0,0,0.05), 0 4px 14px rgba(15,23,42,0.03)",
+              boxShadow: "0 1px 3px rgba(0,0,0,0.04), 0 2px 6px rgba(15,23,42,0.02)",
               overflow: "hidden",
             }}
           >

@@ -2177,7 +2177,7 @@ export default function AdminManagement({ API, authHeaders, isMobile }) {
                 display: "flex",
                 flexDirection: "column",
                 overflow: "hidden",
-                boxShadow: "0 25px 60px -15px rgba(0, 0, 0, 0.3)",
+                boxShadow: "0 20px 30px -10px rgba(15, 23, 42, 0.12), 0 0 0 1px rgba(15, 23, 42, 0.05)",
                 border: "1px solid #e2e8f0",
               }}
             >
@@ -2865,7 +2865,7 @@ export default function AdminManagement({ API, authHeaders, isMobile }) {
                 display: "flex",
                 flexDirection: "column",
                 overflow: "hidden",
-                boxShadow: "0 25px 60px -15px rgba(0, 0, 0, 0.3)",
+                boxShadow: "0 20px 30px -10px rgba(15, 23, 42, 0.12), 0 0 0 1px rgba(15, 23, 42, 0.05)",
                 border: "1px solid #e2e8f0",
               }}
             >
@@ -3372,7 +3372,8 @@ export default function AdminManagement({ API, authHeaders, isMobile }) {
                 display: "flex",
                 flexDirection: "column",
                 overflow: "hidden",
-                boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.25)",
+                border: "1px solid #e2e8f0",
+                boxShadow: "0 20px 25px -5px rgba(15, 23, 42, 0.1), 0 0 0 1px rgba(15, 23, 42, 0.05)",
               }}
             >
               <div
@@ -3535,7 +3536,8 @@ export default function AdminManagement({ API, authHeaders, isMobile }) {
                 width: "100%",
                 maxWidth: 480,
                 overflow: "hidden",
-                boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.25)",
+                border: "1px solid #e2e8f0",
+                boxShadow: "0 20px 25px -5px rgba(15, 23, 42, 0.1), 0 0 0 1px rgba(15, 23, 42, 0.05)",
               }}
             >
               <div
