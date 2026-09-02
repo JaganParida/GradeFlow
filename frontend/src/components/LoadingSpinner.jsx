@@ -1,3 +1,5 @@
+import React from "react";
+
 export function SkeletonBlock({ w = "100%", h = 20, r = "8px", style = {} }) {
   return (
     <div
@@ -13,8 +15,8 @@ export function SkeletonBlock({ w = "100%", h = 20, r = "8px", style = {} }) {
   );
 }
 
-export function SkeletonCard({ h = 100, r = "14px" }) {
-  return <SkeletonBlock h={h} r={r} />;
+export function SkeletonCard({ h = 100, r = "14px", style = {} }) {
+  return <SkeletonBlock h={h} r={r} style={style} />;
 }
 
 export function SkeletonGrid({ count = 4, h = 100 }) {
@@ -48,91 +50,440 @@ const fullPageStyle = {
   boxSizing: "border-box",
 };
 
-/** Content-shaped fallbacks used while route chunks load on slow networks. */
+/** ─── 1. Home / Landing Route Skeleton ────────────────────────── */
 export function LandingSkeleton() {
   return (
     <main style={fullPageStyle} aria-label="Loading home page" aria-busy="true">
       <div style={{ display: "grid", gridTemplateColumns: "minmax(0, 1.05fr) minmax(320px, .95fr)", gap: 32, alignItems: "center" }} className="gf-route-skeleton-hero">
         <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-          <SkeletonBlock w="132px" h="26px" r="999px" />
+          <SkeletonBlock w="140px" h="28px" r="999px" />
           <SkeletonBlock w="92%" h="52px" r="10px" />
           <SkeletonBlock w="76%" h="52px" r="10px" />
           <SkeletonBlock w="88%" h="18px" r="6px" />
           <SkeletonBlock w="68%" h="18px" r="6px" />
-          <div style={{ display: "flex", gap: 10, marginTop: 8 }}><SkeletonBlock w="144px" h="46px" r="12px" /><SkeletonBlock w="124px" h="46px" r="12px" /></div>
+          <div style={{ display: "flex", gap: 12, marginTop: 8 }}>
+            <SkeletonBlock w="150px" h="46px" r="12px" />
+            <SkeletonBlock w="130px" h="46px" r="12px" />
+          </div>
         </div>
-        <SkeletonBlock h="340px" r="22px" />
+        <div
+          style={{
+            background: "#ffffff",
+            border: "1px solid #cbd5e1",
+            borderRadius: 22,
+            padding: 24,
+            boxShadow: "0 8px 30px rgba(15,23,42,0.06)",
+            display: "flex",
+            flexDirection: "column",
+            gap: 16,
+          }}
+        >
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <SkeletonBlock w="140px" h="22px" r="6px" />
+            <SkeletonBlock w="70px" h="24px" r="999px" />
+          </div>
+          <SkeletonBlock w="100%" h="180px" r="14px" />
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+            <SkeletonBlock h="50px" r="10px" />
+            <SkeletonBlock h="50px" r="10px" />
+          </div>
+        </div>
       </div>
-      <SkeletonGrid count={4} h={132} />
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: 18 }} className="gf-route-skeleton-cards">
-        <SkeletonBlock h="220px" r="20px" /><SkeletonBlock h="220px" r="20px" /><SkeletonBlock h="220px" r="20px" />
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 14 }}>
+        {Array(4).fill(0).map((_, i) => (
+          <div
+            key={i}
+            style={{
+              background: "#ffffff",
+              border: "1px solid #cbd5e1",
+              borderRadius: 16,
+              padding: "20px 18px",
+              display: "flex",
+              flexDirection: "column",
+              gap: 10,
+            }}
+          >
+            <SkeletonBlock w="36px" h="36px" r="10px" />
+            <SkeletonBlock w="70px" h="26px" r="6px" />
+            <SkeletonBlock w="120px" h="13px" r="4px" />
+          </div>
+        ))}
+      </div>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: 18 }} className="gf-route-skeleton-cards">
+        {Array(3).fill(0).map((_, i) => (
+          <div
+            key={i}
+            style={{
+              background: "#ffffff",
+              border: "1px solid #cbd5e1",
+              borderRadius: 20,
+              padding: 22,
+              display: "flex",
+              flexDirection: "column",
+              gap: 14,
+              boxShadow: "0 2px 10px rgba(0,0,0,0.02)",
+            }}
+          >
+            <SkeletonBlock w="42px" h="42px" r="12px" />
+            <SkeletonBlock w="160px" h="20px" r="6px" />
+            <SkeletonBlock w="100%" h="14px" r="4px" />
+            <SkeletonBlock w="85%" h="14px" r="4px" />
+            <SkeletonBlock w="100px" h="28px" r="8px" style={{ marginTop: 6 }} />
+          </div>
+        ))}
       </div>
     </main>
   );
 }
 
+/** ─── 2. Public Policy / About Dev Page Skeleton ──────────────── */
 export function PublicPageSkeleton() {
   return (
     <main style={{ ...fullPageStyle, maxWidth: 920 }} aria-label="Loading page" aria-busy="true">
-      <SkeletonBlock w="120px" h="24px" r="999px" />
-      <SkeletonBlock w="65%" h="46px" r="10px" />
-      <SkeletonBlock w="100%" h="18px" r="6px" />
-      <SkeletonBlock w="88%" h="18px" r="6px" />
-      <SkeletonBlock w="94%" h="220px" r="20px" />
-      <SkeletonBlock w="100%" h="160px" r="20px" />
+      <div
+        style={{
+          background: "#ffffff",
+          border: "1px solid #cbd5e1",
+          borderRadius: 20,
+          padding: "36px 32px",
+          display: "flex",
+          flexDirection: "column",
+          gap: 18,
+          boxShadow: "0 2px 12px rgba(15,23,42,0.03)",
+        }}
+      >
+        <SkeletonBlock w="120px" h="24px" r="999px" />
+        <SkeletonBlock w="65%" h="42px" r="10px" />
+        <SkeletonBlock w="100%" h="16px" r="4px" />
+        <SkeletonBlock w="92%" h="16px" r="4px" />
+        <SkeletonBlock w="80%" h="16px" r="4px" />
+        <SkeletonBlock w="100%" h="220px" r="16px" style={{ margin: "10px 0" }} />
+        <SkeletonBlock w="100%" h="16px" r="4px" />
+        <SkeletonBlock w="88%" h="16px" r="4px" />
+      </div>
     </main>
   );
 }
 
+/** ─── 3. Academic Resources Page Skeleton ─────────────────────── */
 export function ResourcesSkeleton() {
   return (
     <main style={fullPageStyle} aria-label="Loading resources" aria-busy="true">
-      <SkeletonBlock w="240px" h="38px" r="8px" />
-      <SkeletonBlock w="100%" h="48px" r="12px" />
+      <div
+        style={{
+          background: "#ffffff",
+          border: "1px solid #cbd5e1",
+          borderRadius: 18,
+          padding: "20px 24px",
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          flexWrap: "wrap",
+          gap: 16,
+        }}
+      >
+        <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+          <SkeletonBlock w="240px" h="28px" r="8px" />
+          <SkeletonBlock w="160px" h="14px" r="4px" />
+        </div>
+        <SkeletonBlock w="280px" h="44px" r="10px" />
+      </div>
+
       <div style={{ display: "grid", gridTemplateColumns: "260px minmax(0, 1fr)", gap: 22 }} className="gf-route-skeleton-resources">
-        <SkeletonBlock h="420px" r="18px" />
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 16 }}>
-          {Array.from({ length: 6 }, (_, index) => <SkeletonBlock key={index} h="154px" r="18px" />)}
+        {/* Sidebar Categories */}
+        <div
+          style={{
+            background: "#ffffff",
+            border: "1px solid #cbd5e1",
+            borderRadius: 16,
+            padding: 16,
+            display: "flex",
+            flexDirection: "column",
+            gap: 8,
+          }}
+        >
+          <SkeletonBlock w="100px" h="14px" r="4px" style={{ marginBottom: 4 }} />
+          {Array(6).fill(0).map((_, i) => (
+            <SkeletonBlock key={i} w="100%" h="40px" r="8px" />
+          ))}
+        </div>
+
+        {/* Resources Grid */}
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: 16 }}>
+          {Array.from({ length: 6 }, (_, index) => (
+            <div
+              key={index}
+              style={{
+                background: "#ffffff",
+                border: "1px solid #cbd5e1",
+                borderRadius: 16,
+                padding: 18,
+                display: "flex",
+                flexDirection: "column",
+                gap: 12,
+                boxShadow: "0 1px 3px rgba(0,0,0,0.02)",
+              }}
+            >
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <SkeletonBlock w="36px" h="36px" r="10px" />
+                <SkeletonBlock w="60px" h="22px" r="6px" />
+              </div>
+              <SkeletonBlock w="85%" h="18px" r="5px" />
+              <SkeletonBlock w="60%" h="13px" r="4px" />
+              <SkeletonBlock w="100%" h="36px" r="8px" style={{ marginTop: 4 }} />
+            </div>
+          ))}
         </div>
       </div>
     </main>
   );
 }
 
+/** ─── 4. Admin Login Split-Screen Skeleton (100% Content Match) ── */
 export function AdminLoginSkeleton() {
   return (
-    <main style={{ ...fullPageStyle, maxWidth: 460, alignItems: "stretch", justifyContent: "center" }} aria-label="Loading sign in" aria-busy="true">
-      <SkeletonBlock w="56px" h="56px" r="16px" />
-      <SkeletonBlock w="72%" h="32px" r="8px" />
-      <SkeletonBlock w="100%" h="18px" r="5px" />
-      <SkeletonBlock w="100%" h="48px" r="10px" />
-      <SkeletonBlock w="100%" h="48px" r="10px" />
-    </main>
+    <div
+      style={{
+        minHeight: "100vh",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        background: "#fcfdfe",
+        padding: "40px 20px 80px",
+        boxSizing: "border-box",
+        fontFamily: "'DM Sans', sans-serif",
+      }}
+      aria-label="Loading admin sign in"
+      aria-busy="true"
+    >
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))",
+          gap: 40,
+          maxWidth: 1120,
+          width: "100%",
+          alignItems: "center",
+        }}
+      >
+        {/* Left Column: Security Features & Info */}
+        <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+          <SkeletonBlock w="160px" h="30px" r="999px" />
+          <SkeletonBlock w="92%" h="42px" r="10px" />
+          <SkeletonBlock w="76%" h="42px" r="10px" />
+          <SkeletonBlock w="88%" h="16px" r="4px" />
+          <SkeletonBlock w="68%" h="16px" r="4px" />
+
+          {/* 3 Security Cards */}
+          <div style={{ display: "flex", flexDirection: "column", gap: 12, marginTop: 8 }}>
+            {Array(3)
+              .fill(0)
+              .map((_, i) => (
+                <div
+                  key={i}
+                  style={{
+                    padding: "14px 18px",
+                    borderRadius: 14,
+                    background: "#ffffff",
+                    border: "1px solid #cbd5e1",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 14,
+                    boxShadow: "0 2px 8px rgba(0,0,0,0.02)",
+                  }}
+                >
+                  <SkeletonBlock w="38px" h="38px" r="10px" />
+                  <div style={{ display: "flex", flexDirection: "column", gap: 6, flex: 1 }}>
+                    <SkeletonBlock w="160px" h="15px" r="4px" />
+                    <SkeletonBlock w="85%" h="12px" r="4px" />
+                  </div>
+                </div>
+              ))}
+          </div>
+
+          {/* Bottom Trust Badges */}
+          <div style={{ display: "flex", gap: 16, marginTop: 8 }}>
+            <SkeletonBlock w="160px" h="22px" r="6px" />
+            <SkeletonBlock w="160px" h="22px" r="6px" />
+          </div>
+        </div>
+
+        {/* Right Column: High-Fidelity Auth Card */}
+        <div style={{ display: "flex", justifyContent: "center", width: "100%" }}>
+          <div
+            style={{
+              width: "100%",
+              maxWidth: 440,
+              background: "#ffffff",
+              border: "1px solid #cbd5e1",
+              borderRadius: 20,
+              padding: "32px 28px",
+              boxShadow: "0 10px 30px rgba(0,0,0,0.06)",
+              display: "flex",
+              flexDirection: "column",
+              gap: 16,
+              boxSizing: "border-box",
+            }}
+          >
+            <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+              <SkeletonBlock w="44px" h="44px" r="12px" />
+              <div style={{ display: "flex", flexDirection: "column", gap: 6, flex: 1 }}>
+                <SkeletonBlock w="180px" h="20px" r="6px" />
+                <SkeletonBlock w="120px" h="12px" r="4px" />
+              </div>
+            </div>
+
+            {/* Segmented Mode Tab Switcher */}
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6, background: "#f1f5f9", padding: 4, borderRadius: 10 }}>
+              <SkeletonBlock h="36px" r="8px" />
+              <SkeletonBlock h="36px" r="8px" />
+            </div>
+
+            {/* Password Input Placeholder */}
+            <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 4 }}>
+              <SkeletonBlock w="100px" h="14px" r="4px" />
+              <SkeletonBlock w="100%" h="48px" r="10px" />
+            </div>
+
+            {/* Submit Button Placeholder */}
+            <SkeletonBlock w="100%" h="48px" r="10px" style={{ marginTop: 6 }} />
+
+            {/* Advisory Notice */}
+            <SkeletonBlock w="100%" h="40px" r="10px" />
+          </div>
+        </div>
+      </div>
+    </div>
   );
 }
 
+/** ─── 5. Admin Dashboard Full-Page Skeleton ───────────────────── */
 export function AdminDashboardSkeleton() {
   return (
-    <main style={fullPageStyle} aria-label="Loading administration" aria-busy="true">
-      <SkeletonBlock w="250px" h="34px" r="8px" />
-      <SkeletonGrid count={4} h={124} />
-      <div style={{ display: "grid", gridTemplateColumns: "minmax(0, 1.2fr) minmax(300px, .8fr)", gap: 18 }} className="gf-route-skeleton-admin">
-        <SkeletonBlock h="360px" r="20px" />
-        <SkeletonBlock h="360px" r="20px" />
+    <div
+      style={{
+        background: "#fcfdfe",
+        minHeight: "100vh",
+        padding: "24px 20px 80px",
+        boxSizing: "border-box",
+        fontFamily: "'DM Sans', sans-serif",
+      }}
+      aria-label="Loading admin dashboard"
+      aria-busy="true"
+    >
+      <div style={{ maxWidth: 1380, margin: "0 auto", display: "flex", flexDirection: "column", gap: 20 }}>
+        {/* Admin Top Navigation Header Card */}
+        <div
+          style={{
+            background: "#ffffff",
+            border: "1px solid #cbd5e1",
+            borderRadius: 18,
+            padding: "18px 22px",
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            flexWrap: "wrap",
+            gap: 12,
+            boxShadow: "0 2px 10px rgba(15, 23, 42, 0.02)",
+          }}
+        >
+          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+            <SkeletonBlock w="42px" h="42px" r="12px" />
+            <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <SkeletonBlock w="200px" h="22px" r="6px" />
+                <SkeletonBlock w="120px" h="20px" r="999px" />
+              </div>
+              <SkeletonBlock w="260px" h="13px" r="4px" />
+            </div>
+          </div>
+          <div style={{ display: "flex", gap: 8 }}>
+            <SkeletonBlock w="130px" h="38px" r="10px" />
+            <SkeletonBlock w="130px" h="38px" r="10px" />
+          </div>
+        </div>
+
+        {/* Tab Pill Bar */}
+        <div style={{ display: "flex", gap: 8, overflowX: "hidden", paddingBottom: 2 }}>
+          {Array(8)
+            .fill(0)
+            .map((_, i) => (
+              <SkeletonBlock key={i} w="135px" h="38px" r="999px" style={{ flexShrink: 0 }} />
+            ))}
+        </div>
+
+        {/* 4 Metric Stats */}
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 14 }}>
+          {Array(4)
+            .fill(0)
+            .map((_, i) => (
+              <div
+                key={i}
+                style={{
+                  background: "#ffffff",
+                  border: "1px solid #cbd5e1",
+                  borderRadius: 16,
+                  padding: "20px",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 14,
+                  boxShadow: "0 2px 10px rgba(15, 23, 42, 0.02)",
+                }}
+              >
+                <SkeletonBlock w="44px" h="44px" r="12px" />
+                <div style={{ display: "flex", flexDirection: "column", gap: 6, flex: 1 }}>
+                  <SkeletonBlock w="100px" h="11px" r="4px" />
+                  <SkeletonBlock w="70px" h="24px" r="6px" />
+                </div>
+              </div>
+            ))}
+        </div>
+
+        {/* Main Action / Dropzone Card */}
+        <div
+          style={{
+            background: "#ffffff",
+            border: "1px solid #cbd5e1",
+            borderRadius: 18,
+            padding: 24,
+            display: "flex",
+            flexDirection: "column",
+            gap: 18,
+            boxShadow: "0 2px 10px rgba(15, 23, 42, 0.02)",
+          }}
+        >
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+              <SkeletonBlock w="220px" h="20px" r="6px" />
+              <SkeletonBlock w="340px" h="14px" r="4px" />
+            </div>
+            <SkeletonBlock w="100px" h="32px" r="8px" />
+          </div>
+
+          <SkeletonBlock w="100%" h="180px" r="14px" />
+
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12 }}>
+            <div style={{ display: "flex", gap: 10 }}>
+              <SkeletonBlock w="140px" h="38px" r="8px" />
+              <SkeletonBlock w="140px" h="38px" r="8px" />
+            </div>
+            <SkeletonBlock w="160px" h="40px" r="10px" />
+          </div>
+        </div>
       </div>
-    </main>
+    </div>
   );
 }
 
-/* ─── Dashboard Full-Page Skeleton (100% Pixel Match to Dashboard Page Layout) ─── */
+/** ─── 6. Student Dashboard Full-Page Skeleton (100% Content Match) */
 export function DashboardSkeleton() {
   return (
     <div className="gf-dashboard-skeleton-wrap">
-      {/* ── Left / Mobile-Top Profile Card Skeleton ── */}
+      {/* ── Left Profile Card Sidebar Skeleton ── */}
       <div className="gf-dashboard-skeleton-sidebar">
         {/* Student Avatar + Name + Reg No */}
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          <SkeletonBlock w="40px" h="40px" r="12px" />
+          <SkeletonBlock w="42px" h="42px" r="12px" />
           <div style={{ display: "flex", flexDirection: "column", gap: 6, flex: 1 }}>
             <SkeletonBlock w="60%" h="18px" r="6px" />
             <SkeletonBlock w="40%" h="14px" r="4px" />
@@ -148,23 +499,23 @@ export function DashboardSkeleton() {
 
         {/* Semester Selector Grid (6 Pills) */}
         <div style={{ display: "flex", flexDirection: "column", gap: 6, marginTop: 4 }}>
-          <SkeletonBlock w="70px" h="12px" r="4px" />
+          <SkeletonBlock w="80px" h="12px" r="4px" />
           <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 6 }}>
             {Array(6)
               .fill(0)
               .map((_, i) => (
-                <SkeletonBlock key={i} h="34px" r="8px" />
+                <SkeletonBlock key={i} h="36px" r="8px" />
               ))}
           </div>
         </div>
 
         {/* Tools Action Row (3 Buttons) */}
         <div style={{ display: "flex", flexDirection: "column", gap: 6, marginTop: 4 }}>
-          <SkeletonBlock w="50px" h="12px" r="4px" />
+          <SkeletonBlock w="60px" h="12px" r="4px" />
           <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 6 }}>
-            <SkeletonBlock h="50px" r="8px" />
-            <SkeletonBlock h="50px" r="8px" />
-            <SkeletonBlock h="50px" r="8px" />
+            <SkeletonBlock h="50px" r="10px" />
+            <SkeletonBlock h="50px" r="10px" />
+            <SkeletonBlock h="50px" r="10px" />
           </div>
         </div>
       </div>
@@ -203,10 +554,11 @@ export function DashboardSkeleton() {
               background: "#ffffff",
               border: "1px solid #cbd5e1",
               borderRadius: 16,
-              padding: "14px 16px",
+              padding: "16px 18px",
               display: "flex",
               flexDirection: "column",
               gap: 8,
+              boxShadow: "0 1px 3px rgba(0,0,0,0.02)",
             }}
           >
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
@@ -223,10 +575,11 @@ export function DashboardSkeleton() {
               background: "#ffffff",
               border: "1px solid #cbd5e1",
               borderRadius: 16,
-              padding: "14px 16px",
+              padding: "16px 18px",
               display: "flex",
               flexDirection: "column",
               gap: 8,
+              boxShadow: "0 1px 3px rgba(0,0,0,0.02)",
             }}
           >
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
@@ -251,7 +604,7 @@ export function DashboardSkeleton() {
             background: "#ffffff",
             border: "1px solid #cbd5e1",
             borderRadius: 16,
-            padding: "16px 16px",
+            padding: "18px 20px",
             display: "flex",
             flexDirection: "column",
             gap: 12,
@@ -260,18 +613,18 @@ export function DashboardSkeleton() {
         >
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
             <SkeletonBlock w="180px" h="20px" r="6px" />
-            <SkeletonBlock w="90px" h="30px" r="8px" />
+            <SkeletonBlock w="100px" h="32px" r="8px" />
           </div>
 
           {/* Table Header Bar */}
-          <SkeletonBlock w="100%" h="38px" r="8px" />
+          <SkeletonBlock w="100%" h="40px" r="8px" />
 
           {/* 6 Subject Rows */}
           <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
             {Array(6)
               .fill(0)
               .map((_, i) => (
-                <SkeletonBlock key={i} w="100%" h="44px" r="8px" />
+                <SkeletonBlock key={i} w="100%" h="48px" r="8px" />
               ))}
           </div>
         </div>
@@ -290,7 +643,7 @@ export function DashboardSkeleton() {
           width: 100%;
         }
         .gf-dashboard-skeleton-sidebar {
-          background: "#ffffff";
+          background: #ffffff;
           border: 1px solid #cbd5e1;
           border-radius: 16px;
           padding: 16px 14px;
@@ -324,15 +677,15 @@ export function DashboardSkeleton() {
   );
 }
 
-/* ─── Grade Report Card Skeleton ──────────────────────────────── */
+/** ─── 7. Grade Report Card Skeleton ──────────────────────────── */
 export function ReportCardSkeleton() {
   return (
     <div
       style={{
         background: "#ffffff",
-        border: "1px solid #e2e8f0",
+        border: "1px solid #cbd5e1",
         borderRadius: 20,
-        padding: 20,
+        padding: 22,
         display: "flex",
         flexDirection: "column",
         gap: 16,
@@ -359,14 +712,14 @@ export function ReportCardSkeleton() {
   );
 }
 
-/* ─── Internal Assessment Marks Skeleton ─────────────────────── */
+/** ─── 8. Internal Assessment Marks Skeleton ─────────────────── */
 export function InternalMarksSkeleton() {
   return (
     <div
       style={{
         display: "flex",
         flexDirection: "column",
-        gap: 12,
+        gap: 14,
         width: "100%",
         padding: "12px 0",
         boxSizing: "border-box",
@@ -375,11 +728,11 @@ export function InternalMarksSkeleton() {
       {/* Search & Action Bar */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12 }}>
         <SkeletonBlock w="240px" h="38px" r="10px" />
-        <SkeletonBlock w="100px" h="38px" r="10px" />
+        <SkeletonBlock w="110px" h="38px" r="10px" />
       </div>
 
       {/* Table Header Row */}
-      <SkeletonBlock w="100%" h="40px" r="8px" />
+      <SkeletonBlock w="100%" h="42px" r="8px" />
 
       {/* 6 Assessment Subject Rows */}
       <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
@@ -393,7 +746,7 @@ export function InternalMarksSkeleton() {
   );
 }
 
-/* ─── Analytics Page Skeleton ─────────────────────────────────── */
+/** ─── 9. Analytics Page Skeleton (100% Content Match) ────────── */
 export function AnalyticsSkeleton() {
   return (
     <div
@@ -403,60 +756,150 @@ export function AnalyticsSkeleton() {
         padding: "24px 16px 60px",
         display: "flex",
         flexDirection: "column",
-        gap: 24,
+        gap: 20,
         width: "100%",
         boxSizing: "border-box",
+        fontFamily: "'DM Sans', sans-serif",
       }}
+      aria-label="Loading analytics"
+      aria-busy="true"
     >
-      {/* Top Banner Skeleton */}
+      {/* Top Banner Card */}
       <div
         style={{
           background: "#ffffff",
-          border: "1px solid #e2e8f0",
-          borderRadius: 20,
-          padding: 24,
+          border: "1px solid #cbd5e1",
+          borderRadius: 18,
+          padding: "20px 24px",
           display: "flex",
           justifyContent: "space-between",
           alignItems: "center",
           flexWrap: "wrap",
           gap: 16,
+          boxShadow: "0 1px 3px rgba(0,0,0,0.03)",
         }}
       >
         <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-          <SkeletonBlock w="140px" h="14px" r="4px" />
-          <SkeletonBlock w="240px" h="28px" r="6px" />
+          <SkeletonBlock w="150px" h="14px" r="4px" />
+          <SkeletonBlock w="260px" h="28px" r="8px" />
         </div>
-        <SkeletonBlock w="140px" h="40px" r="10px" />
+        <div style={{ display: "flex", gap: 10 }}>
+          <SkeletonBlock w="130px" h="40px" r="10px" />
+          <SkeletonBlock w="110px" h="40px" r="10px" />
+        </div>
       </div>
 
       {/* Tab Pills */}
-      <div style={{ display: "flex", gap: 10 }}>
+      <div style={{ display: "flex", gap: 10, overflowX: "hidden" }}>
         {Array(4)
           .fill(0)
           .map((_, i) => (
-            <SkeletonBlock key={i} w="120px" h="38px" r="10px" />
+            <SkeletonBlock key={i} w="130px" h="38px" r="10px" style={{ flexShrink: 0 }} />
           ))}
       </div>
 
-      {/* 4 Metric Stats */}
+      {/* 4 Metric KPI Stats */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 14 }}>
         {Array(4)
           .fill(0)
           .map((_, i) => (
-            <SkeletonCard key={i} h={110} r="16px" />
+            <div
+              key={i}
+              style={{
+                background: "#ffffff",
+                border: "1px solid #cbd5e1",
+                borderRadius: 16,
+                padding: "18px 20px",
+                display: "flex",
+                flexDirection: "column",
+                gap: 8,
+                boxShadow: "0 1px 3px rgba(0,0,0,0.02)",
+              }}
+            >
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <SkeletonBlock w="90px" h="12px" r="4px" />
+                <SkeletonBlock w="28px" h="28px" r="8px" />
+              </div>
+              <SkeletonBlock w="70px" h="28px" r="6px" />
+              <SkeletonBlock w="120px" h="11px" r="3px" />
+            </div>
           ))}
       </div>
 
-      {/* Charts Grid */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(340px, 1fr))", gap: 18 }}>
-        <SkeletonBlock h="320px" r="20px" />
-        <SkeletonBlock h="320px" r="20px" />
+      {/* 2 Large Chart Cards */}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(360px, 1fr))", gap: 18 }}>
+        {/* Progression Line Chart */}
+        <div
+          style={{
+            background: "#ffffff",
+            border: "1px solid #cbd5e1",
+            borderRadius: 18,
+            padding: "20px 22px",
+            display: "flex",
+            flexDirection: "column",
+            gap: 16,
+            boxShadow: "0 1px 3px rgba(0,0,0,0.02)",
+          }}
+        >
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <SkeletonBlock w="180px" h="20px" r="6px" />
+            <SkeletonBlock w="80px" h="24px" r="6px" />
+          </div>
+          <SkeletonBlock w="100%" h="260px" r="12px" />
+        </div>
+
+        {/* Grade Distribution Bar/Pie Chart */}
+        <div
+          style={{
+            background: "#ffffff",
+            border: "1px solid #cbd5e1",
+            borderRadius: 18,
+            padding: "20px 22px",
+            display: "flex",
+            flexDirection: "column",
+            gap: 16,
+            boxShadow: "0 1px 3px rgba(0,0,0,0.02)",
+          }}
+        >
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <SkeletonBlock w="190px" h="20px" r="6px" />
+            <SkeletonBlock w="70px" h="24px" r="6px" />
+          </div>
+          <SkeletonBlock w="100%" h="260px" r="12px" />
+        </div>
+      </div>
+
+      {/* Subject Performance Breakdown Table Card */}
+      <div
+        style={{
+          background: "#ffffff",
+          border: "1px solid #cbd5e1",
+          borderRadius: 18,
+          padding: "20px 22px",
+          display: "flex",
+          flexDirection: "column",
+          gap: 14,
+          boxShadow: "0 1px 3px rgba(0,0,0,0.02)",
+        }}
+      >
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <SkeletonBlock w="220px" h="20px" r="6px" />
+          <SkeletonBlock w="100px" h="30px" r="8px" />
+        </div>
+        <SkeletonBlock w="100%" h="40px" r="8px" />
+        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+          {Array(5)
+            .fill(0)
+            .map((_, i) => (
+              <SkeletonBlock key={i} w="100%" h="48px" r="8px" />
+            ))}
+        </div>
       </div>
     </div>
   );
 }
 
-/* ─── Leaderboard Page Skeleton ───────────────────────────────── */
+/** ─── 10. Leaderboard Page Skeleton (100% Content Match) ──────── */
 export function LeaderboardSkeleton() {
   return (
     <div
@@ -467,34 +910,221 @@ export function LeaderboardSkeleton() {
         width: "100%",
         boxSizing: "border-box",
       }}
+      aria-label="Loading leaderboard"
+      aria-busy="true"
     >
-      {/* Podium Top 3 Cards Skeleton */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 12 }}>
-        {Array(3)
-          .fill(0)
-          .map((_, i) => (
-            <SkeletonBlock key={i} h="140px" r="16px" />
-          ))}
+      {/* Top 3 Podium Cards */}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: 14 }}>
+        {/* Rank 1 (Gold) */}
+        <div
+          style={{
+            background: "#ffffff",
+            border: "1.5px solid #fde68a",
+            borderRadius: 16,
+            padding: "16px 18px",
+            boxShadow: "0 4px 14px rgba(245, 158, 11, 0.08)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            gap: 12,
+            boxSizing: "border-box",
+          }}
+        >
+          <div style={{ display: "flex", alignItems: "center", gap: 12, minWidth: 0, flex: 1 }}>
+            <div
+              style={{
+                width: 44,
+                height: 44,
+                borderRadius: 10,
+                background: "#fef3c7",
+                border: "2px solid #fde68a",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                flexShrink: 0,
+              }}
+            >
+              <SkeletonBlock w="24px" h="24px" r="6px" />
+            </div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 6, flex: 1, minWidth: 0 }}>
+              <SkeletonBlock w="75%" h="16px" r="4px" />
+              <SkeletonBlock w="45%" h="12px" r="4px" />
+            </div>
+          </div>
+          <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 4, flexShrink: 0 }}>
+            <SkeletonBlock w="36px" h="10px" r="3px" />
+            <SkeletonBlock w="52px" h="24px" r="6px" />
+          </div>
+        </div>
+
+        {/* Rank 2 (Silver) */}
+        <div
+          style={{
+            background: "#ffffff",
+            border: "1.5px solid #cbd5e1",
+            borderRadius: 16,
+            padding: "16px 18px",
+            boxShadow: "0 1px 3px rgba(0,0,0,0.03)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            gap: 12,
+            boxSizing: "border-box",
+          }}
+        >
+          <div style={{ display: "flex", alignItems: "center", gap: 12, minWidth: 0, flex: 1 }}>
+            <div
+              style={{
+                width: 44,
+                height: 44,
+                borderRadius: 10,
+                background: "#f1f5f9",
+                border: "1.5px solid #cbd5e1",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                flexShrink: 0,
+              }}
+            >
+              <SkeletonBlock w="24px" h="24px" r="6px" />
+            </div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 6, flex: 1, minWidth: 0 }}>
+              <SkeletonBlock w="70%" h="15px" r="4px" />
+              <SkeletonBlock w="45%" h="12px" r="4px" />
+            </div>
+          </div>
+          <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 4, flexShrink: 0 }}>
+            <SkeletonBlock w="36px" h="10px" r="3px" />
+            <SkeletonBlock w="50px" h="22px" r="6px" />
+          </div>
+        </div>
+
+        {/* Rank 3 (Bronze) */}
+        <div
+          style={{
+            background: "#ffffff",
+            border: "1.5px solid #fed7aa",
+            borderRadius: 16,
+            padding: "16px 18px",
+            boxShadow: "0 1px 3px rgba(0,0,0,0.03)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            gap: 12,
+            boxSizing: "border-box",
+          }}
+        >
+          <div style={{ display: "flex", alignItems: "center", gap: 12, minWidth: 0, flex: 1 }}>
+            <div
+              style={{
+                width: 44,
+                height: 44,
+                borderRadius: 10,
+                background: "#ffedd5",
+                border: "1.5px solid #fed7aa",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                flexShrink: 0,
+              }}
+            >
+              <SkeletonBlock w="24px" h="24px" r="6px" />
+            </div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 6, flex: 1, minWidth: 0 }}>
+              <SkeletonBlock w="65%" h="15px" r="4px" />
+              <SkeletonBlock w="45%" h="12px" r="4px" />
+            </div>
+          </div>
+          <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 4, flexShrink: 0 }}>
+            <SkeletonBlock w="36px" h="10px" r="3px" />
+            <SkeletonBlock w="50px" h="22px" r="6px" />
+          </div>
+        </div>
       </div>
 
-      {/* Leaderboard Table Rows */}
-      <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-        {Array(8)
-          .fill(0)
-          .map((_, i) => (
-            <SkeletonBlock key={i} w="100%" h="58px" r="12px" />
-          ))}
+      {/* Main Leaderboard Table Card */}
+      <div
+        style={{
+          background: "#ffffff",
+          border: "1px solid #cbd5e1",
+          borderRadius: 16,
+          overflow: "hidden",
+          boxShadow: "0 1px 3px rgba(0,0,0,0.04)",
+          boxSizing: "border-box",
+        }}
+      >
+        {/* Table Header Row */}
+        <div
+          style={{
+            background: "#f8fafc",
+            borderBottom: "1px solid #e2e8f0",
+            padding: "12px 18px",
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            gap: 12,
+          }}
+        >
+          <div style={{ display: "flex", alignItems: "center", gap: 16, flex: 1 }}>
+            <SkeletonBlock w="28px" h="14px" r="4px" />
+            <SkeletonBlock w="120px" h="14px" r="4px" />
+          </div>
+          <div style={{ display: "flex", alignItems: "center", gap: 20 }}>
+            <SkeletonBlock w="60px" h="14px" r="4px" />
+            <SkeletonBlock w="50px" h="14px" r="4px" />
+            <SkeletonBlock w="50px" h="14px" r="4px" />
+          </div>
+        </div>
+
+        {/* 8 Realistic Detailed Rows */}
+        <div style={{ display: "flex", flexDirection: "column" }}>
+          {Array(8)
+            .fill(0)
+            .map((_, i) => (
+              <div
+                key={i}
+                style={{
+                  padding: "13px 18px",
+                  borderBottom: i < 7 ? "1px solid #f1f5f9" : "none",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  gap: 12,
+                }}
+              >
+                <div style={{ display: "flex", alignItems: "center", gap: 14, flex: 1, minWidth: 0 }}>
+                  {/* Rank Pill */}
+                  <SkeletonBlock w="32px" h="32px" r="8px" style={{ flexShrink: 0 }} />
+                  {/* Avatar Initial Circle */}
+                  <SkeletonBlock w="36px" h="36px" r="50%" style={{ flexShrink: 0 }} />
+                  {/* Name & RegNo */}
+                  <div style={{ display: "flex", flexDirection: "column", gap: 5, flex: 1, minWidth: 0 }}>
+                    <SkeletonBlock w={i % 2 === 0 ? "160px" : "130px"} h="15px" r="4px" />
+                    <SkeletonBlock w="95px" h="12px" r="4px" />
+                  </div>
+                </div>
+
+                <div style={{ display: "flex", alignItems: "center", gap: 18, flexShrink: 0 }}>
+                  {/* Branch Badge */}
+                  <SkeletonBlock w="64px" h="24px" r="6px" />
+                  {/* SGPA & CGPA Scores */}
+                  <SkeletonBlock w="48px" h="24px" r="6px" />
+                  <SkeletonBlock w="48px" h="24px" r="6px" />
+                </div>
+              </div>
+            ))}
+        </div>
       </div>
     </div>
   );
 }
 
-/* ─── Admin Section Toppers Skeleton ─────────────────────────── */
+/** ─── 11. Admin Section Toppers Skeleton ──────────────────────── */
 export function SectionToppersSkeleton() {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 14, width: "100%", boxSizing: "border-box" }}>
       {/* Top 3 Highlights Skeleton */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 12 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: 12 }}>
         {Array(3)
           .fill(0)
           .map((_, i) => (
@@ -502,12 +1132,13 @@ export function SectionToppersSkeleton() {
               key={i}
               style={{
                 background: "#ffffff",
-                border: "1px solid #e2e8f0",
+                border: "1px solid #cbd5e1",
                 borderRadius: 14,
                 padding: "16px",
                 display: "flex",
                 flexDirection: "column",
                 gap: 10,
+                boxShadow: "0 1px 3px rgba(0,0,0,0.02)",
               }}
             >
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
@@ -524,19 +1155,29 @@ export function SectionToppersSkeleton() {
           ))}
       </div>
 
-      {/* Table Rows Skeleton */}
-      <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+      {/* Table Rows Skeleton Card */}
+      <div
+        style={{
+          background: "#ffffff",
+          border: "1px solid #cbd5e1",
+          borderRadius: 14,
+          padding: 12,
+          display: "flex",
+          flexDirection: "column",
+          gap: 8,
+        }}
+      >
         {Array(6)
           .fill(0)
           .map((_, i) => (
-            <SkeletonBlock key={i} w="100%" h="52px" r="10px" />
+            <SkeletonBlock key={i} w="100%" h="48px" r="8px" />
           ))}
       </div>
     </div>
   );
 }
 
-/* ─── Admin Backlog Tracker Skeleton ─────────────────────────── */
+/** ─── 12. Admin Backlog Tracker Skeleton ──────────────────────── */
 export function BacklogTrackerSkeleton() {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 14, width: "100%", boxSizing: "border-box" }}>
@@ -549,7 +1190,7 @@ export function BacklogTrackerSkeleton() {
               key={i}
               style={{
                 background: "#ffffff",
-                border: "1px solid #e2e8f0",
+                border: "1px solid #cbd5e1",
                 borderRadius: 12,
                 padding: "14px",
                 display: "flex",
@@ -563,19 +1204,29 @@ export function BacklogTrackerSkeleton() {
           ))}
       </div>
 
-      {/* Backlog List Rows */}
-      <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+      {/* Backlog List Rows Card */}
+      <div
+        style={{
+          background: "#ffffff",
+          border: "1px solid #cbd5e1",
+          borderRadius: 14,
+          padding: 12,
+          display: "flex",
+          flexDirection: "column",
+          gap: 8,
+        }}
+      >
         {Array(6)
           .fill(0)
           .map((_, i) => (
-            <SkeletonBlock key={i} w="100%" h="60px" r="10px" />
+            <SkeletonBlock key={i} w="100%" h="56px" r="10px" />
           ))}
       </div>
     </div>
   );
 }
 
-/* ─── Admin Dashboard Stats Cards Skeleton ───────────────────── */
+/** ─── 13. Admin Dashboard Stats Cards Skeleton ────────────────── */
 export function AdminStatsSkeleton() {
   return (
     <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 14, width: "100%", boxSizing: "border-box" }}>
@@ -586,7 +1237,7 @@ export function AdminStatsSkeleton() {
             key={i}
             style={{
               background: "#ffffff",
-              border: "1px solid #e2e8f0",
+              border: "1px solid #cbd5e1",
               borderRadius: 16,
               padding: "20px",
               display: "flex",
@@ -606,7 +1257,7 @@ export function AdminStatsSkeleton() {
   );
 }
 
-/* ─── Admin Feedback Skeleton ────────────────────────────────── */
+/** ─── 14. Admin Feedback Skeleton ─────────────────────────────── */
 export function AdminFeedbackSkeleton() {
   return (
     <div
@@ -625,7 +1276,7 @@ export function AdminFeedbackSkeleton() {
             key={i}
             style={{
               background: "#ffffff",
-              border: "1px solid #e2e8f0",
+              border: "1px solid #cbd5e1",
               borderRadius: 16,
               padding: 18,
               display: "flex",
@@ -663,7 +1314,7 @@ export function AdminFeedbackSkeleton() {
   );
 }
 
-/* ─── Testimonials Page Skeleton ──────────────────────────────── */
+/** ─── 15. Testimonials Page Skeleton ──────────────────────────── */
 export function TestimonialsSkeleton() {
   return (
     <div
@@ -682,7 +1333,7 @@ export function TestimonialsSkeleton() {
             key={i}
             style={{
               background: "#ffffff",
-              border: "1px solid #e2e8f0",
+              border: "1px solid #cbd5e1",
               borderRadius: 16,
               padding: 18,
               display: "flex",
@@ -691,7 +1342,7 @@ export function TestimonialsSkeleton() {
               boxShadow: "0 1px 3px rgba(0,0,0,0.02)",
             }}
           >
-            {/* Header: Avatar + Name + Stars */}
+            {/* Header: Avatar + Name + Rating */}
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
               <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                 <SkeletonBlock w="36px" h="36px" r="50%" />
@@ -721,11 +1372,11 @@ export function TestimonialsSkeleton() {
   );
 }
 
-/* ─── Attendance Tracker Page Skeleton (100% Content & Layout Match) ─── */
+/** ─── 16. Attendance Tracker Skeleton (100% Content & Layout Match) */
 export function AttendanceSkeleton() {
   return (
     <div className="gf-attendance-skeleton-wrap">
-      {/* ── Left / Mobile-Hidden Sidebar Skeleton ── */}
+      {/* ── Left Sidebar Skeleton ── */}
       <div className="gf-attendance-skeleton-sidebar">
         {/* Student Profile Info */}
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
@@ -766,8 +1417,8 @@ export function AttendanceSkeleton() {
         <div
           style={{
             background: "#ffffff",
-            border: "1px solid #e2e8f0",
-            borderRadius: 10,
+            border: "1px solid #cbd5e1",
+            borderRadius: 12,
             padding: "14px 16px",
             display: "flex",
             justifyContent: "space-between",
@@ -789,7 +1440,7 @@ export function AttendanceSkeleton() {
           </div>
         </div>
 
-        {/* 4 Hero KPI Stat Cards (2x2 Grid on Mobile, 4-col on Desktop) */}
+        {/* 4 Hero KPI Stat Cards */}
         <div className="gf-attendance-skeleton-hero-grid">
           {Array(4)
             .fill(0)
@@ -798,8 +1449,8 @@ export function AttendanceSkeleton() {
                 key={i}
                 style={{
                   background: "#ffffff",
-                  border: "1px solid #e2e8f0",
-                  borderRadius: 10,
+                  border: "1px solid #cbd5e1",
+                  borderRadius: 12,
                   padding: "14px 16px",
                   display: "flex",
                   flexDirection: "column",
@@ -820,8 +1471,8 @@ export function AttendanceSkeleton() {
         <div
           style={{
             background: "#ffffff",
-            border: "1px solid #e2e8f0",
-            borderRadius: 10,
+            border: "1px solid #cbd5e1",
+            borderRadius: 12,
             padding: "16px 18px",
             display: "flex",
             flexDirection: "column",
@@ -853,8 +1504,8 @@ export function AttendanceSkeleton() {
                   key={i}
                   style={{
                     background: "#ffffff",
-                    border: "1px solid #e2e8f0",
-                    borderRadius: 8,
+                    border: "1px solid #cbd5e1",
+                    borderRadius: 10,
                     padding: "12px 14px",
                     display: "flex",
                     flexDirection: "column",
@@ -879,8 +1530,8 @@ export function AttendanceSkeleton() {
         <div
           style={{
             background: "#ffffff",
-            border: "1px solid #e2e8f0",
-            borderRadius: 10,
+            border: "1px solid #cbd5e1",
+            borderRadius: 12,
             padding: "16px 18px",
             display: "flex",
             flexDirection: "column",
@@ -892,7 +1543,7 @@ export function AttendanceSkeleton() {
             <SkeletonBlock w="140px" h="30px" r="8px" />
           </div>
 
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: 12 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: 12 }}>
             {Array(6)
               .fill(0)
               .map((_, i) => (
@@ -900,8 +1551,8 @@ export function AttendanceSkeleton() {
                   key={i}
                   style={{
                     background: "#ffffff",
-                    border: "1px solid #e2e8f0",
-                    borderRadius: 8,
+                    border: "1px solid #cbd5e1",
+                    borderRadius: 10,
                     padding: "14px 16px",
                     display: "flex",
                     flexDirection: "column",
@@ -941,7 +1592,7 @@ export function AttendanceSkeleton() {
         .gf-attendance-skeleton-sidebar {
           background: #ffffff;
           border: 1px solid #cbd5e1;
-          border-radius: 10px;
+          border-radius: 12px;
           padding: 16px 14px;
           display: flex;
           flex-direction: column;
@@ -990,7 +1641,7 @@ export function AttendanceSkeleton() {
   );
 }
 
-/* ─── Timetable Page Skeleton ─────────────────────────────────── */
+/** ─── 17. Timetable Page Skeleton (100% Content Match) ────────── */
 export function TimetableSkeleton() {
   return (
     <div
@@ -1003,13 +1654,16 @@ export function TimetableSkeleton() {
         gap: 20,
         width: "100%",
         boxSizing: "border-box",
+        fontFamily: "'DM Sans', sans-serif",
       }}
+      aria-label="Loading timetable"
+      aria-busy="true"
     >
       {/* Top Header Card Skeleton */}
       <div
         style={{
           background: "#ffffff",
-          border: "1px solid #e2e8f0",
+          border: "1px solid #cbd5e1",
           borderRadius: 20,
           padding: 24,
           display: "flex",
@@ -1054,18 +1708,44 @@ export function TimetableSkeleton() {
           ))}
       </div>
 
-      {/* Routine Cards Skeleton */}
+      {/* Routine Schedule Cards */}
       <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
         {Array(6)
           .fill(0)
           .map((_, i) => (
-            <SkeletonBlock key={i} h="80px" r="14px" />
+            <div
+              key={i}
+              style={{
+                background: "#ffffff",
+                border: "1px solid #cbd5e1",
+                borderRadius: 14,
+                padding: "16px 20px",
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                gap: 14,
+                boxShadow: "0 1px 3px rgba(0,0,0,0.02)",
+              }}
+            >
+              <div style={{ display: "flex", alignItems: "center", gap: 14, flex: 1, minWidth: 0 }}>
+                <SkeletonBlock w="36px" h="36px" r="8px" style={{ flexShrink: 0 }} />
+                <div style={{ display: "flex", flexDirection: "column", gap: 6, flex: 1, minWidth: 0 }}>
+                  <SkeletonBlock w="50%" h="16px" r="4px" />
+                  <SkeletonBlock w="35%" h="12px" r="4px" />
+                </div>
+              </div>
+              <div style={{ display: "flex", alignItems: "center", gap: 12, flexShrink: 0 }}>
+                <SkeletonBlock w="110px" h="28px" r="6px" />
+                <SkeletonBlock w="60px" h="24px" r="6px" />
+              </div>
+            </div>
           ))}
       </div>
     </div>
   );
 }
 
+/** ─── 18. Spinner ────────────────────────────────────────────── */
 export function Spinner({ size = 32 }) {
   return (
     <div style={{ display: "flex", justifyContent: "center", padding: "30px 0" }}>
