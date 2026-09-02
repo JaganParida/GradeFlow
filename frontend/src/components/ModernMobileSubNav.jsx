@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   ChevronDown,
@@ -264,22 +265,27 @@ export default function ModernMobileSubNav({
         </div>
       </div>
 
-      {/* ── Interactive Bottom Sheet Drawer (Smooth Easing) ── */}
-      <AnimatePresence>
-        {isOpen && (
-          <div
-            style={{
-              position: "fixed",
-              top: 0,
-              left: 0,
-              right: 0,
-              bottom: 0,
-              zIndex: 9999,
-              display: "flex",
-              flexDirection: "column",
-              justifyContent: "flex-end",
-            }}
-          >
+      {/* ── Interactive Bottom Sheet Drawer (Portaled to document.body for true viewport attachment) ── */}
+      {typeof document !== "undefined" &&
+        createPortal(
+          <AnimatePresence>
+            {isOpen && (
+              <div
+                style={{
+                  position: "fixed",
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  bottom: 0,
+                  width: "100vw",
+                  height: "100dvh",
+                  zIndex: 999999,
+                  display: "flex",
+                  flexDirection: "column",
+                  justifyContent: "flex-end",
+                  overflow: "hidden",
+                }}
+              >
             {/* Backdrop Blur Overlay */}
             <motion.div
               initial={{ opacity: 0 }}
@@ -310,15 +316,19 @@ export default function ModernMobileSubNav({
                 background: "#ffffff",
                 borderTopLeftRadius: 24,
                 borderTopRightRadius: 24,
-                boxShadow: "0 -4px 20px rgba(15, 23, 42, 0.08)",
-                padding: "12px 18px 28px 18px",
-                maxHeight: "82vh",
+                boxShadow: "0 -8px 32px rgba(15, 23, 42, 0.14)",
+                padding: "14px 18px",
+                paddingBottom: "calc(20px + env(safe-area-inset-bottom, 0px))",
+                maxHeight: "82dvh",
+                width: "100%",
+                maxWidth: "100%",
                 display: "flex",
                 flexDirection: "column",
                 gap: 14,
                 zIndex: 10,
                 boxSizing: "border-box",
                 overflowY: "auto",
+                WebkitOverflowScrolling: "touch",
               }}
             >
               {/* Drag Handle Bar */}
@@ -478,7 +488,9 @@ export default function ModernMobileSubNav({
             </motion.div>
           </div>
         )}
-      </AnimatePresence>
+      </AnimatePresence>,
+      document.body
+    )}
     </>
   );
 }
