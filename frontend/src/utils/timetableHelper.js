@@ -595,7 +595,7 @@ export function normalizeSection(rawSection, regNo = "") {
   }
 
   // Detect section from RegNo if available
-  if (regNo && /^\d{2}0301120/.test(String(regNo))) {
+  if (regNo && /^\d{2}030112[0-9]/.test(String(regNo))) {
     const num = parseInt(String(regNo).slice(-3), 10);
     if (num >= 1 && num <= 60) return "CSE-A";
     if (num >= 61 && num <= 120) return "CSE-B";

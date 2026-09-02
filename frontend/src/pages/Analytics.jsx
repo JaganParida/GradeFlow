@@ -72,6 +72,9 @@ const GRADE_META = {
   C: { pts: 6, label: "Fair", color: "#c2410c", bg: "#ffedd5", border: "#fed7aa" },
   D: { pts: 5, label: "Pass", color: "#475569", bg: "#f1f5f9", border: "#cbd5e1" },
   F: { pts: 2, label: "Fail", color: "#b91c1c", bg: "#fee2e2", border: "#fecaca" },
+  R: { pts: 0, label: "Repeat", color: "#dc2626", bg: "#fef2f2", border: "#fca5a5" },
+  S: { pts: 0, label: "Absent", color: "#dc2626", bg: "#fef2f2", border: "#fca5a5" },
+  M: { pts: 0, label: "Malpractice", color: "#dc2626", bg: "#fef2f2", border: "#fca5a5" },
 };
 
 function AnimatedNumber({ value }) {
@@ -394,7 +397,7 @@ export default function Analytics() {
   // Grade Distribution Calculation across all semesters
   const gradeDistributionData = useMemo(() => {
     if (!studentData || !studentData.results) return [];
-    const counts = { O: 0, E: 0, A: 0, B: 0, C: 0, D: 0, F: 0 };
+    const counts = { O: 0, E: 0, A: 0, B: 0, C: 0, D: 0, F: 0, R: 0, S: 0, M: 0 };
     let totalSubs = 0;
 
     studentData.results.forEach((r) => {
@@ -407,22 +410,24 @@ export default function Analytics() {
       });
     });
 
-    return Object.keys(counts).map((g) => ({
-      grade: g,
-      count: counts[g],
-      label: GRADE_META[g]?.label || g,
-      pts: GRADE_META[g]?.pts || 0,
-      color: GRADE_META[g]?.color || "#475569",
-      bg: GRADE_META[g]?.bg || "#f1f5f9",
-      border: GRADE_META[g]?.border || "#cbd5e1",
-      pct: totalSubs > 0 ? ((counts[g] / totalSubs) * 100).toFixed(1) : "0.0",
-    }));
+    return Object.keys(counts)
+      .filter((g) => counts[g] > 0 || !["R", "S", "M"].includes(g))
+      .map((g) => ({
+        grade: g,
+        count: counts[g],
+        label: GRADE_META[g]?.label || g,
+        pts: GRADE_META[g]?.pts || 0,
+        color: GRADE_META[g]?.color || "#475569",
+        bg: GRADE_META[g]?.bg || "#f1f5f9",
+        border: GRADE_META[g]?.border || "#cbd5e1",
+        pct: totalSubs > 0 ? ((counts[g] / totalSubs) * 100).toFixed(1) : "0.0",
+      }));
   }, [studentData]);
 
   // Group all subjects across all semesters by grade for detailed card view
   const subjectsByGrade = useMemo(() => {
     if (!studentData || !studentData.results) return {};
-    const map = { O: [], E: [], A: [], B: [], C: [], D: [], F: [] };
+    const map = { O: [], E: [], A: [], B: [], C: [], D: [], F: [], R: [], S: [], M: [] };
 
     studentData.results.forEach((r) => {
       r.subjects?.forEach((s) => {

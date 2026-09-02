@@ -855,7 +855,7 @@ router.post("/student/send-otp", otpSendLimiter, async (req, res) => {
       remainingDailyAttempts: isUnlimited ? 99 : Math.max(0, maxDailyLimit - dailyLimit.otpSendCount),
       isUnlimited,
       isForgotPassword,
-      resendAllowed: !isForgotPassword,
+      resendAllowed: isUnlimited || dailyLimit.otpSendCount < maxDailyLimit,
     });
   } catch (err) {
     console.error("Student send-otp error:", err);
