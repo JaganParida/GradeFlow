@@ -29,6 +29,8 @@ import {
   X,
   Lock,
   Unlock,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 
 export default function AdminLiveTrafficManager({ authHeaders, API }) {
@@ -63,6 +65,12 @@ export default function AdminLiveTrafficManager({ authHeaders, API }) {
   const [filterDevice, setFilterDevice] = useState("ALL"); // ALL | Mobile | Laptop | Desktop | Tablet
   const [activeAnalyticsTab, setActiveAnalyticsTab] = useState("MOST"); // MOST | MEDIUM | LEAST | ALL
   const [studentListTab, setStudentListTab] = useState("LIVE_NOW"); // LIVE_NOW | ALL_LOGGED_IN
+  const [currentPage, setCurrentPage] = useState(1);
+  const PAGE_SIZE = 10;
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [studentListTab, searchTerm, filterUserType, filterDevice]);
 
   // Queue Configuration Local State
   const [capacityInput, setCapacityInput] = useState(200);
@@ -339,6 +347,13 @@ export default function AdminLiveTrafficManager({ authHeaders, API }) {
       return true;
     });
   }, [liveData.activeStudents, liveData.allLoggedInStudents, studentListTab, searchTerm, filterUserType, filterDevice]);
+
+  // ─── Paginated Active Students (10 items per page by default) ─────────────
+  const totalPages = Math.max(1, Math.ceil(filteredActiveStudents.length / PAGE_SIZE));
+  const paginatedStudents = useMemo(() => {
+    const start = (currentPage - 1) * PAGE_SIZE;
+    return filteredActiveStudents.slice(start, start + PAGE_SIZE);
+  }, [filteredActiveStudents, currentPage]);
 
   // Capacity Percentage
   const capacityPct = Math.min(
@@ -649,6 +664,464 @@ export default function AdminLiveTrafficManager({ authHeaders, API }) {
             Across {liveData.analytics?.allPages?.length || 0} tracked routes
           </div>
         </div>
+      </div>
+
+      {/* ── Active Students Table & Filter (Live on Site & DB Logged-in with 10-Item Pagination) ── */}
+      <div
+        style={{
+          background: "#ffffff",
+          border: "1px solid #e2e8f0",
+          borderRadius: 20,
+          padding: isMobile ? "16px" : "20px 24px",
+          boxShadow: "0 2px 12px rgba(15, 23, 42, 0.03)",
+        }}
+      >
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16, flexWrap: "wrap", gap: 10 }}>
+          <div>
+            <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+              <button
+                type="button"
+                onClick={() => setStudentListTab("LIVE_NOW")}
+                style={{
+                  padding: "6px 14px",
+                  borderRadius: 99,
+                  border: studentListTab === "LIVE_NOW" ? "1.5px solid #10b981" : "1px solid #e2e8f0",
+                  background: studentListTab === "LIVE_NOW" ? "#ecfdf5" : "#ffffff",
+                  color: studentListTab === "LIVE_NOW" ? "#065f46" : "#64748b",
+                  fontSize: 13,
+                  fontWeight: 800,
+                  cursor: "pointer",
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 6,
+                  transition: "all 0.15s ease",
+                }}
+              >
+                <span
+                  style={{
+                    width: 7,
+                    height: 7,
+                    borderRadius: "50%",
+                    background: "#10b981",
+                    display: "inline-block",
+                    boxShadow: "0 0 0 2px rgba(16, 185, 129, 0.3)",
+                  }}
+                />
+                Live On Site Right Now ({liveData.activeStudents?.length || 0})
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setStudentListTab("ALL_LOGGED_IN")}
+                style={{
+                  padding: "6px 14px",
+                  borderRadius: 99,
+                  border: studentListTab === "ALL_LOGGED_IN" ? "1.5px solid #2563eb" : "1px solid #e2e8f0",
+                  background: studentListTab === "ALL_LOGGED_IN" ? "#eff6ff" : "#ffffff",
+                  color: studentListTab === "ALL_LOGGED_IN" ? "#1d4ed8" : "#64748b",
+                  fontSize: 13,
+                  fontWeight: 800,
+                  cursor: "pointer",
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 6,
+                  transition: "all 0.15s ease",
+                }}
+              >
+                <Users size={14} color="#2563eb" />
+                All Logged-In Student Accounts ({liveData.allLoggedInStudents?.length || liveData.totalLoggedInSessions || 65})
+              </button>
+            </div>
+            <p style={{ fontSize: 12, color: "#64748b", margin: "6px 0 0 0" }}>
+              {studentListTab === "LIVE_NOW"
+                ? "Showing visitors with active tabs right now (pings received in last 2.5 minutes)."
+                : "Showing all registered student accounts with active sessions stored in MongoDB."}
+            </p>
+          </div>
+
+          {/* Search Bar & Filters */}
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center", width: isMobile ? "100%" : "auto" }}>
+            <div
+              style={{
+                position: "relative",
+                flex: isMobile ? 1 : "initial",
+                minWidth: isMobile ? "auto" : 220,
+              }}
+            >
+              <Search size={14} color="#94a3b8" style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)" }} />
+              <input
+                type="text"
+                placeholder="Search RegNo, Name, Route..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                style={{
+                  width: "100%",
+                  padding: "7px 10px 7px 30px",
+                  borderRadius: 10,
+                  border: "1.5px solid #cbd5e1",
+                  fontSize: 12.5,
+                  outline: "none",
+                  boxSizing: "border-box",
+                }}
+              />
+            </div>
+
+            {/* Type Filter */}
+            <select
+              value={filterUserType}
+              onChange={(e) => setFilterUserType(e.target.value)}
+              style={{
+                padding: "7px 10px",
+                borderRadius: 10,
+                border: "1.5px solid #cbd5e1",
+                background: "#ffffff",
+                fontSize: 12.5,
+                fontWeight: 600,
+                color: "#0f172a",
+                cursor: "pointer",
+              }}
+            >
+              <option value="ALL">All Users</option>
+              <option value="STUDENTS">Students Only</option>
+              <option value="GUESTS">Guests Only</option>
+            </select>
+
+            {/* Device Filter */}
+            <select
+              value={filterDevice}
+              onChange={(e) => setFilterDevice(e.target.value)}
+              style={{
+                padding: "7px 10px",
+                borderRadius: 10,
+                border: "1.5px solid #cbd5e1",
+                background: "#ffffff",
+                fontSize: 12.5,
+                fontWeight: 600,
+                color: "#0f172a",
+                cursor: "pointer",
+              }}
+            >
+              <option value="ALL">All Devices</option>
+              <option value="Mobile">Mobile Only</option>
+              <option value="Desktop">Desktop Only</option>
+              <option value="Tablet">Tablet Only</option>
+            </select>
+          </div>
+        </div>
+
+        {/* Empty State */}
+        {filteredActiveStudents.length === 0 ? (
+          <div style={{ textAlign: "center", padding: "40px 20px", color: "#64748b" }}>
+            <div style={{ width: 44, height: 44, borderRadius: "50%", background: "#f1f5f9", display: "inline-flex", alignItems: "center", justifyContent: "center", marginBottom: 10 }}>
+              <Users size={20} color="#94a3b8" />
+            </div>
+            <div style={{ fontSize: 14, fontWeight: 700, color: "#334155" }}>
+              {studentListTab === "LIVE_NOW" ? "No Active Visitors Online Right Now" : "No Registered Student Sessions Found"}
+            </div>
+            <div style={{ fontSize: 12, color: "#94a3b8", marginTop: 4 }}>
+              {searchTerm || filterUserType !== "ALL" || filterDevice !== "ALL"
+                ? "No users match your active filters. Try clearing the search."
+                : studentListTab === "LIVE_NOW"
+                ? "Students browsing GradeFlow will appear here in real time as they open tabs."
+                : "Active student login sessions in MongoDB will appear here."}
+            </div>
+          </div>
+        ) : isMobile ? (
+          /* Mobile Card View (Zero Horizontal Scroll) with Pagination */
+          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+            {paginatedStudents.map((st) => (
+              <div
+                key={st.token}
+                style={{
+                  background: "#f8fafc",
+                  border: "1px solid #e2e8f0",
+                  borderRadius: 12,
+                  padding: "12px 14px",
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: 8,
+                }}
+              >
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+                  <div>
+                    <div style={{ fontWeight: 800, color: "#0f172a", fontSize: 14 }}>
+                      {st.studentName}
+                    </div>
+                    {st.regNo ? (
+                      <div style={{ fontSize: 12, color: "#2563eb", fontWeight: 700 }}>
+                        {st.regNo} · {st.branch} ({st.batch})
+                      </div>
+                    ) : (
+                      <div style={{ fontSize: 11.5, color: "#64748b" }}>Guest Visitor</div>
+                    )}
+                  </div>
+
+                  <span
+                    style={{
+                      background: "#eff6ff",
+                      color: "#2563eb",
+                      border: "1px solid #dbeafe",
+                      padding: "2px 8px",
+                      borderRadius: 6,
+                      fontSize: 11,
+                      fontWeight: 700,
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 4,
+                    }}
+                  >
+                    {renderDeviceIcon(st.deviceType)} {st.deviceType}
+                  </span>
+                </div>
+
+                <div
+                  style={{
+                    background: "#ffffff",
+                    border: "1px solid #e2e8f0",
+                    borderRadius: 8,
+                    padding: "8px 10px",
+                    fontSize: 12,
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                  }}
+                >
+                  <span style={{ color: "#64748b", fontWeight: 600 }}>Active Route:</span>
+                  <span style={{ color: "#0f172a", fontWeight: 700, fontFamily: "monospace" }}>
+                    {st.currentRoute}
+                  </span>
+                </div>
+
+                <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11.5, color: "#64748b" }}>
+                  <span>{st.browser} on {st.os}</span>
+                  <span style={{ display: "flex", alignItems: "center", gap: 4, color: "#059669", fontWeight: 700 }}>
+                    <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#059669" }} />
+                    Active
+                  </span>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          /* Desktop Table View with Pagination */
+          <div style={{ overflowX: "auto" }}>
+            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13, textAlign: "left" }}>
+              <thead>
+                <tr style={{ borderBottom: "1.5px solid #e2e8f0", color: "#64748b", fontSize: 11.5, textTransform: "uppercase" }}>
+                  <th style={{ padding: "10px 12px" }}>Student / Visitor</th>
+                  <th style={{ padding: "10px 12px" }}>Academic Info</th>
+                  <th style={{ padding: "10px 12px" }}>Active Route / Page</th>
+                  <th style={{ padding: "10px 12px" }}>Device & Browser</th>
+                  <th style={{ padding: "10px 12px" }}>Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {paginatedStudents.map((st) => (
+                  <tr key={st.token} style={{ borderBottom: "1px solid #f1f5f9" }}>
+                    <td style={{ padding: "12px" }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                        <div
+                          style={{
+                            width: 32,
+                            height: 32,
+                            borderRadius: "50%",
+                            background: st.isGuest ? "#f1f5f9" : "#eff6ff",
+                            color: st.isGuest ? "#64748b" : "#2563eb",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            fontWeight: 800,
+                            fontSize: 12,
+                          }}
+                        >
+                          {st.studentName ? st.studentName.slice(0, 2).toUpperCase() : "GV"}
+                        </div>
+                        <div>
+                          <div style={{ fontWeight: 800, color: "#0f172a" }}>{st.studentName}</div>
+                          {st.regNo && <div style={{ fontSize: 11.5, color: "#2563eb", fontWeight: 700 }}>{st.regNo}</div>}
+                        </div>
+                      </div>
+                    </td>
+
+                    <td style={{ padding: "12px", color: "#475569" }}>
+                      {st.regNo ? (
+                        <div>
+                          <span style={{ fontWeight: 700 }}>{st.branch}</span> ({st.batch})
+                        </div>
+                      ) : (
+                        <span style={{ color: "#94a3b8" }}>—</span>
+                      )}
+                    </td>
+
+                    <td style={{ padding: "12px" }}>
+                      <div style={{ display: "inline-flex", alignItems: "center", gap: 6, background: "#f8fafc", border: "1px solid #e2e8f0", padding: "4px 8px", borderRadius: 8 }}>
+                        <span style={{ color: "#2563eb", fontWeight: 700, fontFamily: "monospace", fontSize: 12 }}>
+                          {st.currentRoute}
+                        </span>
+                        <span style={{ fontSize: 11, color: "#64748b" }}>
+                          ({st.pageTitle || "Page"})
+                        </span>
+                      </div>
+                    </td>
+
+                    <td style={{ padding: "12px" }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                        {renderDeviceIcon(st.deviceType)}
+                        <span style={{ fontSize: 12, color: "#334155", fontWeight: 600 }}>
+                          {st.deviceType} · {st.browser}
+                        </span>
+                      </div>
+                      <div style={{ fontSize: 11, color: "#94a3b8" }}>{st.os}</div>
+                    </td>
+
+                    <td style={{ padding: "12px" }}>
+                      <span
+                        style={{
+                          display: "inline-flex",
+                          alignItems: "center",
+                          gap: 5,
+                          background: "#ecfdf5",
+                          border: "1px solid #a7f3d0",
+                          color: "#065f46",
+                          fontSize: 11.5,
+                          fontWeight: 800,
+                          padding: "3px 9px",
+                          borderRadius: 99,
+                        }}
+                      >
+                        <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#059669" }} />
+                        Active
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+
+        {/* ── Responsive Pagination Bar (Default 10 per page) ── */}
+        {filteredActiveStudents.length > 0 && (
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              marginTop: 18,
+              paddingTop: 14,
+              borderTop: "1px solid #e2e8f0",
+              flexWrap: "wrap",
+              gap: 12,
+            }}
+          >
+            <div style={{ fontSize: 12.5, color: "#64748b", fontWeight: 600 }}>
+              Showing{" "}
+              <span style={{ fontWeight: 800, color: "#0f172a" }}>
+                {(currentPage - 1) * PAGE_SIZE + 1}
+              </span>
+              –
+              <span style={{ fontWeight: 800, color: "#0f172a" }}>
+                {Math.min(currentPage * PAGE_SIZE, filteredActiveStudents.length)}
+              </span>{" "}
+              of{" "}
+              <span style={{ fontWeight: 800, color: "#0f172a" }}>
+                {filteredActiveStudents.length}
+              </span>{" "}
+              students {studentListTab === "LIVE_NOW" ? "(Live on Site)" : "(Database Sessions)"}
+            </div>
+
+            <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+              <button
+                type="button"
+                onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                disabled={currentPage === 1}
+                style={{
+                  padding: "6px 12px",
+                  borderRadius: 8,
+                  border: "1.5px solid #cbd5e1",
+                  background: currentPage === 1 ? "#f8fafc" : "#ffffff",
+                  color: currentPage === 1 ? "#94a3b8" : "#1e293b",
+                  fontSize: 12.5,
+                  fontWeight: 700,
+                  cursor: currentPage === 1 ? "not-allowed" : "pointer",
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 4,
+                  transition: "all 0.15s ease",
+                }}
+              >
+                <ChevronLeft size={14} /> Prev
+              </button>
+
+              {/* Page Number Pills */}
+              <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                {Array.from({ length: totalPages }, (_, idx) => idx + 1)
+                  .filter((p) => p === 1 || p === totalPages || Math.abs(p - currentPage) <= 1)
+                  .reduce((acc, p, idx, arr) => {
+                    if (idx > 0 && p - arr[idx - 1] > 1) {
+                      acc.push("ellipsis-" + p);
+                    }
+                    acc.push(p);
+                    return acc;
+                  }, [])
+                  .map((item) => {
+                    if (typeof item === "string") {
+                      return (
+                        <span key={item} style={{ fontSize: 12, color: "#94a3b8", padding: "0 4px" }}>
+                          …
+                        </span>
+                      );
+                    }
+                    const isCurrent = item === currentPage;
+                    return (
+                      <button
+                        key={item}
+                        type="button"
+                        onClick={() => setCurrentPage(item)}
+                        style={{
+                          minWidth: 32,
+                          height: 32,
+                          padding: "0 6px",
+                          borderRadius: 8,
+                          border: isCurrent ? "1.5px solid #2563eb" : "1px solid #e2e8f0",
+                          background: isCurrent ? "#2563eb" : "#ffffff",
+                          color: isCurrent ? "#ffffff" : "#475569",
+                          fontSize: 12.5,
+                          fontWeight: isCurrent ? 800 : 600,
+                          cursor: "pointer",
+                          transition: "all 0.15s ease",
+                        }}
+                      >
+                        {item}
+                      </button>
+                    );
+                  })}
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                disabled={currentPage === totalPages}
+                style={{
+                  padding: "6px 12px",
+                  borderRadius: 8,
+                  border: "1.5px solid #cbd5e1",
+                  background: currentPage === totalPages ? "#f8fafc" : "#ffffff",
+                  color: currentPage === totalPages ? "#94a3b8" : "#1e293b",
+                  fontSize: 12.5,
+                  fontWeight: 700,
+                  cursor: currentPage === totalPages ? "not-allowed" : "pointer",
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 4,
+                  transition: "all 0.15s ease",
+                }}
+              >
+                Next <ChevronRight size={14} />
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* ── Traffic & Queue Control Center (Admin Only) ── */}
@@ -1113,328 +1586,6 @@ export default function AdminLiveTrafficManager({ authHeaders, API }) {
         </div>
       )}
 
-      {/* ── Active Students Table & Filter (Live) ── */}
-      <div
-        style={{
-          background: "#ffffff",
-          border: "1px solid #e2e8f0",
-          borderRadius: 20,
-          padding: isMobile ? "16px" : "20px 24px",
-          boxShadow: "0 2px 12px rgba(15, 23, 42, 0.03)",
-        }}
-      >
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16, flexWrap: "wrap", gap: 10 }}>
-          <div>
-            <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-              <button
-                type="button"
-                onClick={() => setStudentListTab("LIVE_NOW")}
-                style={{
-                  padding: "6px 14px",
-                  borderRadius: 99,
-                  border: studentListTab === "LIVE_NOW" ? "1.5px solid #10b981" : "1px solid #e2e8f0",
-                  background: studentListTab === "LIVE_NOW" ? "#ecfdf5" : "#ffffff",
-                  color: studentListTab === "LIVE_NOW" ? "#065f46" : "#64748b",
-                  fontSize: 13,
-                  fontWeight: 800,
-                  cursor: "pointer",
-                  display: "inline-flex",
-                  alignItems: "center",
-                  gap: 6,
-                  transition: "all 0.15s ease",
-                }}
-              >
-                <span
-                  style={{
-                    width: 7,
-                    height: 7,
-                    borderRadius: "50%",
-                    background: "#10b981",
-                    display: "inline-block",
-                    boxShadow: "0 0 0 2px rgba(16, 185, 129, 0.3)",
-                  }}
-                />
-                Live On Site Right Now ({liveData.activeStudents?.length || 0})
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setStudentListTab("ALL_LOGGED_IN")}
-                style={{
-                  padding: "6px 14px",
-                  borderRadius: 99,
-                  border: studentListTab === "ALL_LOGGED_IN" ? "1.5px solid #2563eb" : "1px solid #e2e8f0",
-                  background: studentListTab === "ALL_LOGGED_IN" ? "#eff6ff" : "#ffffff",
-                  color: studentListTab === "ALL_LOGGED_IN" ? "#1d4ed8" : "#64748b",
-                  fontSize: 13,
-                  fontWeight: 800,
-                  cursor: "pointer",
-                  display: "inline-flex",
-                  alignItems: "center",
-                  gap: 6,
-                  transition: "all 0.15s ease",
-                }}
-              >
-                <Users size={14} color="#2563eb" />
-                All Logged-In Student Accounts ({liveData.allLoggedInStudents?.length || liveData.totalLoggedInSessions || 65})
-              </button>
-            </div>
-            <p style={{ fontSize: 12, color: "#64748b", margin: "6px 0 0 0" }}>
-              {studentListTab === "LIVE_NOW"
-                ? "Showing visitors with active tabs right now (pings received in last 2.5 minutes)."
-                : "Showing all registered student accounts with active sessions stored in MongoDB."}
-            </p>
-          </div>
-
-          {/* Search Bar & Filters */}
-          <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center", width: isMobile ? "100%" : "auto" }}>
-            <div
-              style={{
-                position: "relative",
-                flex: isMobile ? 1 : "initial",
-                minWidth: isMobile ? "auto" : 220,
-              }}
-            >
-              <Search size={14} color="#94a3b8" style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)" }} />
-              <input
-                type="text"
-                placeholder="Search RegNo, Name, Route..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                style={{
-                  width: "100%",
-                  padding: "7px 10px 7px 30px",
-                  borderRadius: 10,
-                  border: "1.5px solid #cbd5e1",
-                  fontSize: 12.5,
-                  outline: "none",
-                  boxSizing: "border-box",
-                }}
-              />
-            </div>
-
-            {/* Type Filter */}
-            <select
-              value={filterUserType}
-              onChange={(e) => setFilterUserType(e.target.value)}
-              style={{
-                padding: "7px 10px",
-                borderRadius: 10,
-                border: "1.5px solid #cbd5e1",
-                background: "#ffffff",
-                fontSize: 12.5,
-                fontWeight: 600,
-                color: "#0f172a",
-                cursor: "pointer",
-              }}
-            >
-              <option value="ALL">All Users</option>
-              <option value="STUDENTS">Students Only</option>
-              <option value="GUESTS">Guests Only</option>
-            </select>
-
-            {/* Device Filter */}
-            <select
-              value={filterDevice}
-              onChange={(e) => setFilterDevice(e.target.value)}
-              style={{
-                padding: "7px 10px",
-                borderRadius: 10,
-                border: "1.5px solid #cbd5e1",
-                background: "#ffffff",
-                fontSize: 12.5,
-                fontWeight: 600,
-                color: "#0f172a",
-                cursor: "pointer",
-              }}
-            >
-              <option value="ALL">All Devices</option>
-              <option value="Mobile">Mobile Only</option>
-              <option value="Desktop">Desktop Only</option>
-              <option value="Tablet">Tablet Only</option>
-            </select>
-          </div>
-        </div>
-
-        {/* Student Cards (Mobile) or Table (Desktop) */}
-        {filteredActiveStudents.length === 0 ? (
-          <div style={{ textAlign: "center", padding: "36px 0", color: "#94a3b8", fontSize: 13 }}>
-            No active visitors match your current filters.
-          </div>
-        ) : isMobile ? (
-          /* Mobile Card View */
-          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-            {filteredActiveStudents.map((st) => (
-              <div
-                key={st.token}
-                style={{
-                  background: "#f8fafc",
-                  border: "1px solid #e2e8f0",
-                  borderRadius: 14,
-                  padding: "14px",
-                  display: "flex",
-                  flexDirection: "column",
-                  gap: 8,
-                }}
-              >
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
-                  <div>
-                    <div style={{ fontWeight: 800, color: "#0f172a", fontSize: 14 }}>
-                      {st.studentName}
-                    </div>
-                    {st.regNo ? (
-                      <div style={{ fontSize: 12, color: "#2563eb", fontWeight: 700 }}>
-                        {st.regNo} · {st.branch} ({st.batch})
-                      </div>
-                    ) : (
-                      <div style={{ fontSize: 11.5, color: "#64748b" }}>Guest Visitor</div>
-                    )}
-                  </div>
-
-                  <span
-                    style={{
-                      background: "#eff6ff",
-                      color: "#2563eb",
-                      border: "1px solid #dbeafe",
-                      padding: "2px 8px",
-                      borderRadius: 6,
-                      fontSize: 11,
-                      fontWeight: 700,
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 4,
-                    }}
-                  >
-                    {renderDeviceIcon(st.deviceType)} {st.deviceType}
-                  </span>
-                </div>
-
-                <div
-                  style={{
-                    background: "#ffffff",
-                    border: "1px solid #e2e8f0",
-                    borderRadius: 8,
-                    padding: "8px 10px",
-                    fontSize: 12,
-                    display: "flex",
-                    justifyContent: "space-between",
-                    alignItems: "center",
-                  }}
-                >
-                  <span style={{ color: "#64748b", fontWeight: 600 }}>Active Route:</span>
-                  <span style={{ color: "#0f172a", fontWeight: 700, fontFamily: "monospace" }}>
-                    {st.currentRoute}
-                  </span>
-                </div>
-
-                <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11.5, color: "#64748b" }}>
-                  <span>{st.browser} on {st.os}</span>
-                  <span style={{ display: "flex", alignItems: "center", gap: 4, color: "#059669", fontWeight: 700 }}>
-                    <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#059669" }} />
-                    Online Now
-                  </span>
-                </div>
-              </div>
-            ))}
-          </div>
-        ) : (
-          /* Desktop Table View */
-          <div style={{ overflowX: "auto" }}>
-            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13, textAlign: "left" }}>
-              <thead>
-                <tr style={{ borderBottom: "1.5px solid #e2e8f0", color: "#64748b", fontSize: 11.5, textTransform: "uppercase" }}>
-                  <th style={{ padding: "10px 12px" }}>Student / Visitor</th>
-                  <th style={{ padding: "10px 12px" }}>Academic Info</th>
-                  <th style={{ padding: "10px 12px" }}>Active Route / Page</th>
-                  <th style={{ padding: "10px 12px" }}>Device & Browser</th>
-                  <th style={{ padding: "10px 12px" }}>Status</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredActiveStudents.map((st) => (
-                  <tr key={st.token} style={{ borderBottom: "1px solid #f1f5f9" }}>
-                    <td style={{ padding: "12px" }}>
-                      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                        <div
-                          style={{
-                            width: 32,
-                            height: 32,
-                            borderRadius: "50%",
-                            background: st.isGuest ? "#f1f5f9" : "#eff6ff",
-                            color: st.isGuest ? "#64748b" : "#2563eb",
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "center",
-                            fontWeight: 800,
-                            fontSize: 12,
-                          }}
-                        >
-                          {st.studentName ? st.studentName.slice(0, 2).toUpperCase() : "GV"}
-                        </div>
-                        <div>
-                          <div style={{ fontWeight: 800, color: "#0f172a" }}>{st.studentName}</div>
-                          {st.regNo && <div style={{ fontSize: 11.5, color: "#2563eb", fontWeight: 700 }}>{st.regNo}</div>}
-                        </div>
-                      </div>
-                    </td>
-
-                    <td style={{ padding: "12px", color: "#475569" }}>
-                      {st.regNo ? (
-                        <div>
-                          <span style={{ fontWeight: 700 }}>{st.branch}</span> ({st.batch})
-                        </div>
-                      ) : (
-                        <span style={{ color: "#94a3b8" }}>—</span>
-                      )}
-                    </td>
-
-                    <td style={{ padding: "12px" }}>
-                      <div style={{ display: "inline-flex", alignItems: "center", gap: 6, background: "#f8fafc", border: "1px solid #e2e8f0", padding: "4px 8px", borderRadius: 8 }}>
-                        <span style={{ color: "#2563eb", fontWeight: 700, fontFamily: "monospace", fontSize: 12 }}>
-                          {st.currentRoute}
-                        </span>
-                        <span style={{ fontSize: 11, color: "#64748b" }}>
-                          ({st.pageTitle || "Page"})
-                        </span>
-                      </div>
-                    </td>
-
-                    <td style={{ padding: "12px" }}>
-                      <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                        {renderDeviceIcon(st.deviceType)}
-                        <span style={{ fontSize: 12, color: "#334155", fontWeight: 600 }}>
-                          {st.deviceType} · {st.browser}
-                        </span>
-                      </div>
-                      <div style={{ fontSize: 11, color: "#94a3b8" }}>{st.os}</div>
-                    </td>
-
-                    <td style={{ padding: "12px" }}>
-                      <span
-                        style={{
-                          display: "inline-flex",
-                          alignItems: "center",
-                          gap: 5,
-                          background: "#ecfdf5",
-                          border: "1px solid #a7f3d0",
-                          color: "#065f46",
-                          fontSize: 11.5,
-                          fontWeight: 800,
-                          padding: "3px 9px",
-                          borderRadius: 99,
-                        }}
-                      >
-                        <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#059669" }} />
-                        Active
-                      </span>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
 
       <style>{`
         @keyframes pulseDot {
