@@ -48,19 +48,34 @@ async function authenticateStudent(req) {
   }
 }
 
+async function authenticateAdmin(req) {
+  const cookies = parseCookies(req.headers.cookie);
+  let token = cookies.jwt || cookies.token;
+  if (!token && req.headers.authorization && req.headers.authorization.startsWith("Bearer")) {
+    token = req.headers.authorization.split(" ")[1];
+  }
+
+  if (!token || token === "none") return null;
+
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET, { algorithms: ["HS256"] });
+    if (decoded.role === "student" || decoded.regNo) {
+      return null;
+    }
+    if (decoded.role === "admin" || decoded.adminType === "main" || decoded.adminType === "subadmin") {
+      return decoded;
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
+
 module.exports = async function handler(req, res) {
-  if (applyCors(req, res, "GET,POST,OPTIONS")) return;
+  if (applyCors(req, res, "GET,POST,DELETE,OPTIONS")) return;
 
   try {
     await connectToDatabase();
-
-    const student = await authenticateStudent(req);
-    if (!student) {
-      return res.status(401).json({
-        success: false,
-        message: "Unauthorized: Active student authentication required.",
-      });
-    }
 
     let action = req.query.action;
     if (!action && req.url) {
@@ -69,48 +84,275 @@ module.exports = async function handler(req, res) {
       else if (cleanUrl.includes("/approve")) action = "approve";
       else if (cleanUrl.includes("/deny")) action = "deny";
       else if (cleanUrl.includes("/mark-read")) action = "mark-read";
+      else if (cleanUrl.includes("/action")) action = "action";
+      else if (cleanUrl.includes("/broadcasts")) action = "admin-broadcast-list";
+      else if (cleanUrl.includes("/broadcast")) action = req.method === "DELETE" ? "admin-broadcast-delete" : "admin-broadcast";
       else if (cleanUrl.includes("/stream")) action = "stream";
     }
 
-    // 1. Fetch notifications
+    // ─────────────────────────────────────────────────────────────────────────
+    // ADMIN ENDPOINTS (Broadcasts)
+    // ─────────────────────────────────────────────────────────────────────────
+
+    // A. Send Broadcast Notification to All Students
+    if ((action === "admin-broadcast" || action === "broadcast") && req.method === "POST") {
+      const admin = await authenticateAdmin(req);
+      if (!admin) {
+        return res.status(401).json({ success: false, message: "Unauthorized: Admin authentication required." });
+      }
+
+      const {
+        title,
+        message,
+        type = "BROADCAST_ANNOUNCEMENT",
+        badge = "Announcement",
+        badgeColor = "blue",
+        primaryButton = { label: "Check Now", action: "NAVIGATE", targetRoute: "/leaderboard" },
+        secondaryButton = { label: "Understood", action: "DISMISS" },
+        targetAudience = "ALL",
+        expiresInHours = 72,
+      } = req.body || {};
+
+      if (!title || !message) {
+        return res.status(400).json({ success: false, message: "Title and message are required." });
+      }
+
+      const notificationId = `notif_bc_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+      const expiresAt = expiresInHours ? new Date(Date.now() + expiresInHours * 60 * 60 * 1000) : null;
+
+      const newBroadcast = await StudentNotification.create({
+        notificationId,
+        regNo: "ALL",
+        type,
+        title: title.trim(),
+        message: message.trim(),
+        primaryButton: {
+          label: primaryButton?.label?.trim() || "Check Now",
+          action: primaryButton?.action || "NAVIGATE",
+          targetRoute: primaryButton?.targetRoute?.trim() || "",
+        },
+        secondaryButton: {
+          label: secondaryButton?.label?.trim() || "Understood",
+          action: secondaryButton?.action || "DISMISS",
+        },
+        badge: badge?.trim() || "Announcement",
+        badgeColor: badgeColor || "blue",
+        sender: {
+          name: admin.name || "Administrator",
+          role: "ADMIN",
+        },
+        targetAudience,
+        status: "UNREAD",
+        expiresAt,
+        createdAt: new Date(),
+      });
+
+      // Broadcast real-time SSE event to all connected clients
+      try {
+        authEventBus.emit("notification:ALL", {
+          type: "BROADCAST",
+          notification: newBroadcast,
+        });
+      } catch {}
+
+      return res.json({
+        success: true,
+        message: "Broadcast notification published to all students successfully!",
+        notification: newBroadcast,
+      });
+    }
+
+    // B. List Broadcast Notifications (Admin View)
+    if ((action === "admin-broadcast-list" || action === "broadcast-list" || action === "broadcasts") && req.method === "GET") {
+      const admin = await authenticateAdmin(req);
+      if (!admin) {
+        return res.status(401).json({ success: false, message: "Unauthorized: Admin authentication required." });
+      }
+
+      const broadcasts = await StudentNotification.find({ regNo: "ALL" })
+        .sort({ createdAt: -1 })
+        .limit(50)
+        .lean();
+
+      const enriched = broadcasts.map((b) => ({
+        ...b,
+        readCount: b.readBy?.length || 0,
+        dismissedCount: b.dismissedBy?.length || 0,
+      }));
+
+      return res.json({
+        success: true,
+        broadcasts: enriched,
+      });
+    }
+
+    // C. Delete Broadcast Notification (Admin)
+    if (action === "admin-broadcast-delete" || action === "broadcast-delete" || (action === "broadcast" && req.method === "DELETE")) {
+      const admin = await authenticateAdmin(req);
+      if (!admin) {
+        return res.status(401).json({ success: false, message: "Unauthorized: Admin authentication required." });
+      }
+
+      const { notificationId } = req.body || req.query || {};
+      if (!notificationId) {
+        return res.status(400).json({ success: false, message: "Notification ID is required." });
+      }
+
+      await StudentNotification.deleteOne({ notificationId, regNo: "ALL" });
+      return res.json({ success: true, message: "Broadcast notification removed." });
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // STUDENT ENDPOINTS
+    // ─────────────────────────────────────────────────────────────────────────
+
+    const student = await authenticateStudent(req);
+
+    // 1. Fetch Student Notifications (Personal + Active Broadcasts)
     if (action === "student" && req.method === "GET") {
-      const regNo = student.regNo;
-      const currentSessionId = student.sessionId;
+      const regNo = student?.regNo || null;
+      const currentSessionId = student?.sessionId || null;
 
       // Clean up expired notifications
       await StudentNotification.updateMany(
         {
-          regNo,
           status: "UNREAD",
           expiresAt: { $lte: new Date() },
         },
         { $set: { status: "EXPIRED" } }
-      );
+      ).catch(() => {});
 
-      const notifications = await StudentNotification.find({
-        regNo,
-        $or: [{ targetSessionId: null }, { targetSessionId: currentSessionId }],
-        createdAt: { $gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) },
-      })
-        .sort({ createdAt: -1 })
-        .limit(20);
+      const now = new Date();
+      const directFilter = regNo
+        ? {
+            regNo,
+            $or: [{ targetSessionId: null }, { targetSessionId: currentSessionId }],
+            createdAt: { $gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) },
+          }
+        : null;
 
-      const unreadCount = await StudentNotification.countDocuments({
-        regNo,
-        $or: [{ targetSessionId: null }, { targetSessionId: currentSessionId }],
-        status: "UNREAD",
-        $and: [{ $or: [{ expiresAt: null }, { expiresAt: { $gt: new Date() } }] }],
+      const broadcastFilter = {
+        regNo: "ALL",
+        ...(regNo ? { dismissedBy: { $ne: regNo } } : {}),
+        $or: [{ expiresAt: null }, { expiresAt: { $gt: now } }],
+        createdAt: { $gte: new Date(Date.now() - 14 * 24 * 60 * 60 * 1000) },
+      };
+
+      const [directList, broadcastList] = await Promise.all([
+        directFilter ? StudentNotification.find(directFilter).sort({ createdAt: -1 }).limit(20).lean() : [],
+        StudentNotification.find(broadcastFilter).sort({ createdAt: -1 }).limit(20).lean(),
+      ]);
+
+      const combined = [...directList, ...broadcastList];
+      combined.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+
+      let unreadCount = 0;
+      const mapped = combined.map((item) => {
+        const isBroadcast = item.regNo === "ALL";
+        let isRead = false;
+
+        if (isBroadcast) {
+          isRead = regNo ? (item.readBy || []).some((r) => r.regNo === regNo) : false;
+        } else {
+          isRead = item.status === "READ" || item.status === "APPROVED" || item.status === "DENIED" || item.status === "EXPIRED";
+        }
+
+        if (!isRead) unreadCount++;
+
+        return {
+          ...item,
+          isBroadcast,
+          isRead,
+        };
       });
 
       return res.json({
         success: true,
         unreadCount,
-        notifications,
+        notifications: mapped,
       });
     }
 
-    // 2. Approve device request
+    // 2. Notification Action (Click "Check Now" or "Understood")
+    if ((action === "action" || action === "button-action") && req.method === "POST") {
+      const { notificationId, actionType } = req.body || {};
+      if (!notificationId) {
+        return res.status(400).json({ success: false, message: "Notification ID is required." });
+      }
+
+      const notif = await StudentNotification.findOne({ notificationId });
+      if (!notif) {
+        return res.status(404).json({ success: false, message: "Notification not found." });
+      }
+
+      const regNo = student?.regNo || "GUEST";
+
+      if (actionType === "CHECK_NOW") {
+        if (notif.regNo === "ALL") {
+          await StudentNotification.updateOne(
+            { notificationId },
+            {
+              $addToSet: {
+                readBy: {
+                  regNo,
+                  readAt: new Date(),
+                  actionTaken: "CHECK_NOW",
+                },
+              },
+            }
+          );
+        } else if (student && notif.regNo === student.regNo) {
+          await StudentNotification.updateOne(
+            { notificationId },
+            { $set: { status: "READ", readAt: new Date() } }
+          );
+        }
+
+        return res.json({
+          success: true,
+          action: "NAVIGATE",
+          targetRoute: notif.primaryButton?.targetRoute || "",
+          message: "Marked as read.",
+        });
+      }
+
+      if (actionType === "UNDERSTOOD" || actionType === "DISMISS") {
+        if (notif.regNo === "ALL") {
+          await StudentNotification.updateOne(
+            { notificationId },
+            {
+              $addToSet: {
+                dismissedBy: regNo,
+                readBy: {
+                  regNo,
+                  readAt: new Date(),
+                  actionTaken: "UNDERSTOOD",
+                },
+              },
+            }
+          );
+        } else if (student && notif.regNo === student.regNo) {
+          await StudentNotification.updateOne(
+            { notificationId },
+            { $set: { status: "READ", readAt: new Date() } }
+          );
+        }
+
+        return res.json({
+          success: true,
+          action: "DISMISSED",
+          message: "Notification dismissed.",
+        });
+      }
+
+      return res.status(400).json({ success: false, message: "Invalid action type." });
+    }
+
+    // 3. Approve Device Request (Multi-device login handover)
     if (action === "approve" && req.method === "POST") {
+      if (!student) {
+        return res.status(401).json({ success: false, message: "Authentication required." });
+      }
       const { requestId } = req.body || {};
       if (!requestId) {
         return res.status(400).json({ success: false, message: "Request ID is required." });
@@ -123,15 +365,15 @@ module.exports = async function handler(req, res) {
         "ALLOW"
       );
 
-      if (result.success) {
-        return res.json(result);
-      } else {
-        return res.status(400).json(result);
-      }
+      if (result.success) return res.json(result);
+      return res.status(400).json(result);
     }
 
-    // 3. Deny device request
+    // 4. Deny Device Request
     if (action === "deny" && req.method === "POST") {
+      if (!student) {
+        return res.status(401).json({ success: false, message: "Authentication required." });
+      }
       const { requestId } = req.body || {};
       if (!requestId) {
         return res.status(400).json({ success: false, message: "Request ID is required." });
@@ -144,37 +386,48 @@ module.exports = async function handler(req, res) {
         "DENY"
       );
 
-      if (result.success) {
-        return res.json(result);
-      } else {
-        return res.status(400).json(result);
-      }
+      if (result.success) return res.json(result);
+      return res.status(400).json(result);
     }
 
-    // 4. Mark notifications read
+    // 5. Mark All Notifications as Read
     if (action === "mark-read" && req.method === "POST") {
       const { notificationId } = req.body || {};
-      const regNo = student.regNo;
+      const regNo = student?.regNo || null;
 
       if (notificationId) {
-        await StudentNotification.updateOne(
-          { notificationId, regNo },
-          { $set: { status: "READ", readAt: new Date() } }
-        );
-      } else {
+        const notif = await StudentNotification.findOne({ notificationId });
+        if (notif) {
+          if (notif.regNo === "ALL" && regNo) {
+            await StudentNotification.updateOne(
+              { notificationId },
+              { $addToSet: { readBy: { regNo, readAt: new Date(), actionTaken: "MARK_READ" } } }
+            );
+          } else {
+            await StudentNotification.updateOne(
+              { notificationId },
+              { $set: { status: "READ", readAt: new Date() } }
+            );
+          }
+        }
+      } else if (regNo) {
         await StudentNotification.updateMany(
           { regNo, status: "UNREAD" },
           { $set: { status: "READ", readAt: new Date() } }
+        );
+        await StudentNotification.updateMany(
+          { regNo: "ALL" },
+          { $addToSet: { readBy: { regNo, readAt: new Date(), actionTaken: "MARK_READ" } } }
         );
       }
 
       return res.json({ success: true, message: "Notifications marked as read." });
     }
 
-    // 5. SSE Stream
+    // 6. SSE Real-time Notification Stream
     if (action === "stream" && req.method === "GET") {
-      const regNo = student.regNo;
-      const currentSessionId = student.sessionId;
+      const regNo = student?.regNo || "GUEST";
+      const currentSessionId = student?.sessionId || "GUEST";
 
       res.setHeader("Content-Type", "text/event-stream");
       res.setHeader("Cache-Control", "no-cache, no-transform");
@@ -182,15 +435,11 @@ module.exports = async function handler(req, res) {
       res.setHeader("X-Accel-Buffering", "no");
 
       res.flushHeaders?.();
-
       res.write(`event: connected\ndata: ${JSON.stringify({ connected: true, regNo })}\n\n`);
 
       const onNotification = (data) => {
         try {
-          const targetId = data.notification?.targetSessionId || data.approvalRequest?.targetSessionId;
-          if (!targetId || targetId === currentSessionId) {
-            res.write(`event: notification\ndata: ${JSON.stringify(data)}\n\n`);
-          }
+          res.write(`event: notification\ndata: ${JSON.stringify(data)}\n\n`);
         } catch {}
       };
 
@@ -202,9 +451,12 @@ module.exports = async function handler(req, res) {
         } catch {}
       };
 
-      authEventBus.on(`notification:${regNo}:${currentSessionId}`, onNotification);
-      authEventBus.on(`notification:${regNo}`, onNotification);
-      authEventBus.on(`session_revoked:${regNo}`, onSessionRevoked);
+      if (regNo !== "GUEST") {
+        authEventBus.on(`notification:${regNo}:${currentSessionId}`, onNotification);
+        authEventBus.on(`notification:${regNo}`, onNotification);
+        authEventBus.on(`session_revoked:${regNo}`, onSessionRevoked);
+      }
+      authEventBus.on("notification:ALL", onNotification);
 
       const heartbeat = setInterval(() => {
         try {
@@ -214,9 +466,12 @@ module.exports = async function handler(req, res) {
 
       req.on("close", () => {
         clearInterval(heartbeat);
-        authEventBus.off(`notification:${regNo}:${currentSessionId}`, onNotification);
-        authEventBus.off(`notification:${regNo}`, onNotification);
-        authEventBus.off(`session_revoked:${regNo}`, onSessionRevoked);
+        if (regNo !== "GUEST") {
+          authEventBus.off(`notification:${regNo}:${currentSessionId}`, onNotification);
+          authEventBus.off(`notification:${regNo}`, onNotification);
+          authEventBus.off(`session_revoked:${regNo}`, onSessionRevoked);
+        }
+        authEventBus.off("notification:ALL", onNotification);
         res.end();
       });
 
