@@ -352,9 +352,14 @@ export function AppProvider({ children }) {
     }
 
     try {
+      const regNo = studentSession?.regNo || "";
+      const isMobileDevice = /Mobi|Android|iPhone|iPad/i.test(navigator?.userAgent || "");
+      const deviceType = isMobileDevice ? "Mobile" : "Desktop";
+      const platform = navigator?.platform || (isMobileDevice ? "Android / iOS" : "Windows / Mac");
+
       const res = await axios.post(
         `${API_BASE}/notifications/action`,
-        { notificationId, actionType },
+        { notificationId, actionType, regNo, deviceType, platform },
         { withCredentials: true }
       );
       if (res.data?.success && res.data?.targetRoute && actionType === "CHECK_NOW") {

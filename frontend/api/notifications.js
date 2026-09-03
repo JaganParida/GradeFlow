@@ -1,6 +1,7 @@
 const connectToDatabase = require("./_lib/db");
 const StudentNotification = require("./_lib/models/StudentNotification");
 const StudentSession = require("./_lib/models/StudentSession");
+const Student = require("./_lib/models/Student");
 const jwt = require("jsonwebtoken");
 const {
   respondDeviceApproval,
@@ -174,11 +175,76 @@ module.exports = async function handler(req, res) {
         .limit(50)
         .lean();
 
-      const enriched = broadcasts.map((b) => ({
-        ...b,
-        readCount: b.readBy?.length || 0,
-        dismissedCount: b.dismissedBy?.length || 0,
-      }));
+      // Collect all student regNos across all broadcasts to fetch their profiles in 1 single fast query
+      const allRegNos = new Set();
+      broadcasts.forEach((b) => {
+        (b.readBy || []).forEach((r) => {
+          if (r.regNo && r.regNo !== "GUEST") allRegNos.add(String(r.regNo).toUpperCase());
+        });
+        (b.dismissedBy || []).forEach((d) => {
+          const reg = typeof d === "string" ? d : d?.regNo;
+          if (reg && reg !== "GUEST") allRegNos.add(String(reg).toUpperCase());
+        });
+      });
+
+      // Query student names/branches in one batch
+      const studentMap = new Map();
+      if (allRegNos.size > 0) {
+        const studentDocs = await Student.find(
+          { regNo: { $in: Array.from(allRegNos) } },
+          "regNo name branch section"
+        ).lean().catch(() => []);
+        (studentDocs || []).forEach((s) => {
+          studentMap.set(String(s.regNo).toUpperCase(), {
+            name: s.name || "",
+            branch: s.branch || "",
+            section: s.section || "",
+          });
+        });
+      }
+
+      const enriched = broadcasts.map((b) => {
+        // Unique read entries
+        const readEntries = (b.readBy || []).map((r) => {
+          const reg = String(r.regNo || "GUEST").toUpperCase();
+          const info = studentMap.get(reg) || {};
+          return {
+            regNo: reg,
+            name: info.name || "",
+            branch: info.branch || "",
+            section: info.section || "",
+            readAt: r.readAt || null,
+            actionTaken: r.actionTaken || "CHECK_NOW",
+            device: r.device || "Unknown Device",
+          };
+        });
+        const uniqueReaders = new Map();
+        readEntries.forEach((r) => uniqueReaders.set(r.regNo, r));
+
+        // Unique dismissed entries
+        const dismissEntries = (b.dismissedBy || []).map((d) => {
+          const reg = String(typeof d === "string" ? d : (d?.regNo || "GUEST")).toUpperCase();
+          const info = studentMap.get(reg) || {};
+          return {
+            regNo: reg,
+            name: info.name || "",
+            branch: info.branch || "",
+            section: info.section || "",
+            dismissedAt: typeof d === "object" ? d.dismissedAt : null,
+            device: typeof d === "object" ? (d.device || "Unknown Device") : "Unknown Device",
+          };
+        });
+        const uniqueDismissers = new Map();
+        dismissEntries.forEach((d) => uniqueDismissers.set(d.regNo, d));
+
+        return {
+          ...b,
+          readCount: uniqueReaders.size,
+          dismissedCount: uniqueDismissers.size,
+          readDetails: Array.from(uniqueReaders.values()),
+          dismissedDetails: Array.from(uniqueDismissers.values()),
+        };
+      });
 
       return res.json({
         success: true,
@@ -233,15 +299,24 @@ module.exports = async function handler(req, res) {
 
       const broadcastFilter = {
         regNo: "ALL",
-        ...(regNo ? { dismissedBy: { $ne: regNo } } : {}),
         $or: [{ expiresAt: null }, { expiresAt: { $gt: now } }],
         createdAt: { $gte: new Date(Date.now() - 14 * 24 * 60 * 60 * 1000) },
       };
 
-      const [directList, broadcastList] = await Promise.all([
+      const [directList, rawBroadcastList] = await Promise.all([
         directFilter ? StudentNotification.find(directFilter).sort({ createdAt: -1 }).limit(20).lean() : [],
-        StudentNotification.find(broadcastFilter).sort({ createdAt: -1 }).limit(20).lean(),
+        StudentNotification.find(broadcastFilter).sort({ createdAt: -1 }).limit(30).lean(),
       ]);
+
+      // Filter out broadcasts that this student has dismissed (supports both old string and new object entries)
+      const broadcastList = rawBroadcastList.filter((b) => {
+        if (!regNo || !b.dismissedBy || b.dismissedBy.length === 0) return true;
+        return !b.dismissedBy.some((d) => {
+          if (typeof d === "string") return d === regNo;
+          if (d && typeof d === "object" && d.regNo) return d.regNo === regNo;
+          return false;
+        });
+      });
 
       const combined = [...directList, ...broadcastList];
       combined.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
@@ -285,27 +360,28 @@ module.exports = async function handler(req, res) {
         return res.status(404).json({ success: false, message: "Notification not found." });
       }
 
-      const regNo = student?.regNo || "GUEST";
+      const regNo = (student?.regNo || req.body?.regNo || "GUEST").trim().toUpperCase();
+      const ua = req.headers["user-agent"] || "";
+      const rawDevice = req.body?.deviceType || (/Mobile|Android|iPhone/i.test(ua) ? "Mobile" : "Desktop");
+      const cleanDevice = req.body?.platform ? `${rawDevice} · ${req.body.platform}` : (/Mobile|Android|iPhone/i.test(ua) ? "Mobile" : "Desktop");
 
       if (actionType === "CHECK_NOW") {
         if (notif.regNo === "ALL") {
-          await StudentNotification.updateOne(
-            { notificationId },
-            {
-              $addToSet: {
-                readBy: {
-                  regNo,
-                  readAt: new Date(),
-                  actionTaken: "CHECK_NOW",
-                },
-              },
-            }
-          );
+          const existingReads = Array.isArray(notif.readBy) ? notif.readBy : [];
+          const updatedReads = existingReads.filter((r) => String(r.regNo || "").toUpperCase() !== regNo);
+          updatedReads.push({
+            regNo,
+            readAt: new Date(),
+            actionTaken: "CHECK_NOW",
+            device: cleanDevice,
+          });
+          notif.readBy = updatedReads;
+          notif.markModified("readBy");
+          await notif.save();
         } else if (student && notif.regNo === student.regNo) {
-          await StudentNotification.updateOne(
-            { notificationId },
-            { $set: { status: "READ", readAt: new Date() } }
-          );
+          notif.status = "READ";
+          notif.readAt = new Date();
+          await notif.save();
         }
 
         return res.json({
@@ -318,24 +394,38 @@ module.exports = async function handler(req, res) {
 
       if (actionType === "UNDERSTOOD" || actionType === "DISMISS") {
         if (notif.regNo === "ALL") {
-          await StudentNotification.updateOne(
-            { notificationId },
-            {
-              $addToSet: {
-                dismissedBy: regNo,
-                readBy: {
-                  regNo,
-                  readAt: new Date(),
-                  actionTaken: "UNDERSTOOD",
-                },
-              },
-            }
-          );
+          // 1. Filter out existing readBy entry for this regNo, then push new UNDERSTOOD entry
+          const existingReads = Array.isArray(notif.readBy) ? notif.readBy : [];
+          const updatedReads = existingReads.filter((r) => String(r.regNo || "").toUpperCase() !== regNo);
+          updatedReads.push({
+            regNo,
+            readAt: new Date(),
+            actionTaken: "UNDERSTOOD",
+            device: cleanDevice,
+          });
+          notif.readBy = updatedReads;
+
+          // 2. Filter out existing dismissedBy entry for this regNo, then push new dismissed entry
+          const existingDismissed = Array.isArray(notif.dismissedBy) ? notif.dismissedBy : [];
+          const updatedDismissed = existingDismissed.filter((d) => {
+            if (typeof d === "string") return d.toUpperCase() !== regNo;
+            if (d && typeof d === "object" && d.regNo) return String(d.regNo).toUpperCase() !== regNo;
+            return true;
+          });
+          updatedDismissed.push({
+            regNo,
+            dismissedAt: new Date(),
+            device: cleanDevice,
+          });
+          notif.dismissedBy = updatedDismissed;
+
+          notif.markModified("readBy");
+          notif.markModified("dismissedBy");
+          await notif.save();
         } else if (student && notif.regNo === student.regNo) {
-          await StudentNotification.updateOne(
-            { notificationId },
-            { $set: { status: "READ", readAt: new Date() } }
-          );
+          notif.status = "READ";
+          notif.readAt = new Date();
+          await notif.save();
         }
 
         return res.json({

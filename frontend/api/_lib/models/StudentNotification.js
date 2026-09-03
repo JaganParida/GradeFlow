@@ -69,12 +69,12 @@ const StudentNotificationSchema = new mongoose.Schema(
         regNo: { type: String, uppercase: true },
         readAt: { type: Date, default: Date.now },
         actionTaken: { type: String, default: "CHECK_NOW" },
+        device: { type: String, default: "" },
       },
     ],
     dismissedBy: [
       {
-        type: String,
-        uppercase: true,
+        type: mongoose.Schema.Types.Mixed,
       },
     ],
     approvalRequestId: {
