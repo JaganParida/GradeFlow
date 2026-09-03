@@ -92,17 +92,17 @@ export default function ModernMobileSubNav({
 
   return (
     <>
-      {/* ── Main Sticky Anchor Bar (Clean Big-Tech Professional Flat UI, Zero Box Shadow) ── */}
+      {/* ── Main Sticky Anchor Bar (Modern, Spacious, Mobile-First UI, Zero Wrapping) ── */}
       <div
         id="gf-mobile-subnav"
         style={{
           position: "sticky",
           top: 0,
           zIndex: 30,
-          background: "rgba(241, 245, 249, 0.98)",
-          backdropFilter: "blur(10px)",
-          WebkitBackdropFilter: "blur(10px)",
-          padding: "3px 0 6px 0",
+          background: "rgba(248, 250, 252, 0.96)",
+          backdropFilter: "blur(12px)",
+          WebkitBackdropFilter: "blur(12px)",
+          padding: "4px 0 8px 0",
           width: "100%",
         }}
       >
@@ -110,35 +110,38 @@ export default function ModernMobileSubNav({
           style={{
             background: "#ffffff",
             border: "1px solid #e2e8f0",
-            borderRadius: 10,
-            padding: "8px 10px",
-            boxShadow: "none",
+            borderRadius: 14,
+            padding: "10px 13px",
+            minHeight: 58,
+            boxSizing: "border-box",
+            boxShadow: "0 1px 3px rgba(15, 23, 42, 0.04)",
             display: "flex",
             alignItems: "center",
             justifyContent: "space-between",
-            gap: 10,
+            gap: 12,
             userSelect: "none",
           }}
         >
-          {/* Left: Active Module Clickable Pill (Opens Drawer) */}
+          {/* Left: Active Module Clickable Pill (Opens Drawer, Guaranteed No Wrapping) */}
           <div
             onClick={() => setIsOpen(true)}
             style={{
               display: "flex",
               alignItems: "center",
-              gap: 9,
+              gap: 11,
               minWidth: 0,
               flex: 1,
               cursor: "pointer",
             }}
           >
+            {/* Active Icon Container (Comfortable 40x40 touch-friendly tile) */}
             <div
               style={{
-                width: 34,
-                height: 34,
-                borderRadius: 8,
-                background: "#f8fafc",
-                border: "1px solid #e2e8f0",
+                width: 40,
+                height: 40,
+                borderRadius: 10,
+                background: themeBg,
+                border: `1px solid ${themeColor}22`,
                 color: themeColor,
                 display: "flex",
                 alignItems: "center",
@@ -146,70 +149,103 @@ export default function ModernMobileSubNav({
                 flexShrink: 0,
               }}
             >
-              {activeItem.icon}
+              {React.isValidElement(activeItem.icon)
+                ? React.cloneElement(activeItem.icon, { size: 20 })
+                : activeItem.icon}
             </div>
-            <div style={{ display: "flex", flexDirection: "column", minWidth: 0, flex: 1 }}>
+
+            {/* Title & Status Indicator Stack */}
+            <div
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                justifyContent: "center",
+                minWidth: 0,
+                flex: 1,
+              }}
+            >
               <span
                 style={{
-                  fontSize: 13,
+                  fontSize: 13.5,
                   fontWeight: 800,
                   color: "#0f172a",
                   overflow: "hidden",
                   textOverflow: "ellipsis",
                   whiteSpace: "nowrap",
-                  letterSpacing: "-0.2px",
+                  letterSpacing: "-0.25px",
                   lineHeight: 1.25,
                 }}
               >
                 {activeItem.label}
               </span>
-              <div style={{ display: "flex", alignItems: "center", gap: 5, marginTop: 1.5 }}>
+
+              {/* Sub-row: Pill counter + Browse action hint (Guaranteed single line, never wraps!) */}
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 6,
+                  marginTop: 2.5,
+                  flexWrap: "nowrap",
+                  whiteSpace: "nowrap",
+                  overflow: "hidden",
+                }}
+              >
                 <span
                   style={{
                     fontSize: 10.5,
                     fontWeight: 700,
-                    color: "#475569",
-                    background: "#f1f5f9",
-                    padding: "1px 5px",
-                    borderRadius: 4,
+                    color: themeColor,
+                    background: themeBg,
+                    padding: "1.5px 6.5px",
+                    borderRadius: 5,
                     lineHeight: 1.3,
+                    flexShrink: 0,
+                    whiteSpace: "nowrap",
                   }}
                 >
-                  {currentIndex + 1} / {items.length}
+                  {currentIndex + 1} of {items.length}
                 </span>
-                <span style={{ fontSize: 10, fontWeight: 600, color: "#94a3b8" }}>•</span>
+
+                <span style={{ fontSize: 9, color: "#cbd5e1", flexShrink: 0 }}>•</span>
+
                 <span
                   style={{
                     fontSize: 11,
                     fontWeight: 600,
-                    color: themeColor,
+                    color: "#64748b",
                     display: "inline-flex",
                     alignItems: "center",
-                    gap: 2,
+                    gap: 3,
                     lineHeight: 1.3,
+                    flexShrink: 0,
+                    whiteSpace: "nowrap",
                   }}
                 >
-                  Tap to browse
-                  <ChevronDown size={10} strokeWidth={2.4} />
+                  <span>Change</span>
+                  <ChevronDown size={11} strokeWidth={2.4} color={themeColor} />
                 </span>
               </div>
             </div>
           </div>
 
-          {/* Right: Unified Sleek Action Toolbar (Zero Shadow, Crisp Segmented Control) */}
+          {/* Right: Modern Segmented Action Toolbar (36px Height, Tactile Touch Targets) */}
           <div
             style={{
               display: "inline-flex",
               alignItems: "center",
               background: "#f8fafc",
               border: "1px solid #e2e8f0",
-              borderRadius: 8,
-              padding: 2,
+              borderRadius: 10,
+              padding: 3,
               gap: 2,
+              height: 36,
+              boxSizing: "border-box",
               flexShrink: 0,
               boxShadow: "none",
             }}
           >
+            {/* Prev Button */}
             <motion.button
               type="button"
               whileTap={{ scale: 0.92 }}
@@ -217,9 +253,9 @@ export default function ModernMobileSubNav({
               title="Previous module"
               aria-label="Previous view"
               style={{
-                width: 28,
+                width: 31,
                 height: 28,
-                borderRadius: 6,
+                borderRadius: 7,
                 border: "none",
                 background: "transparent",
                 color: "#475569",
@@ -235,8 +271,9 @@ export default function ModernMobileSubNav({
               <ChevronLeft size={16} strokeWidth={2.4} />
             </motion.button>
 
-            <div style={{ width: 1, height: 14, background: "#e2e8f0" }} />
+            <div style={{ width: 1, height: 16, background: "#e2e8f0" }} />
 
+            {/* Next Button */}
             <motion.button
               type="button"
               whileTap={{ scale: 0.92 }}
@@ -244,9 +281,9 @@ export default function ModernMobileSubNav({
               title="Next module"
               aria-label="Next view"
               style={{
-                width: 28,
+                width: 31,
                 height: 28,
-                borderRadius: 6,
+                borderRadius: 7,
                 border: "none",
                 background: "transparent",
                 color: "#475569",
@@ -262,8 +299,9 @@ export default function ModernMobileSubNav({
               <ChevronRight size={16} strokeWidth={2.4} />
             </motion.button>
 
-            <div style={{ width: 1, height: 14, background: "#e2e8f0" }} />
+            <div style={{ width: 1, height: 16, background: "#e2e8f0" }} />
 
+            {/* All Views Grid Button */}
             <motion.button
               type="button"
               whileTap={{ scale: 0.95 }}
@@ -273,21 +311,21 @@ export default function ModernMobileSubNav({
               style={{
                 display: "inline-flex",
                 alignItems: "center",
-                gap: 4,
+                gap: 5,
                 height: 28,
-                padding: "0 8px",
-                borderRadius: 6,
+                padding: "0 9px",
+                borderRadius: 7,
                 border: "1px solid #e2e8f0",
                 background: "#ffffff",
                 color: "#0f172a",
-                fontSize: 11.5,
+                fontSize: 12,
                 fontWeight: 800,
                 cursor: "pointer",
-                boxShadow: "none",
+                boxShadow: "0 1px 2px rgba(15, 23, 42, 0.04)",
                 transition: "all 0.15s ease",
               }}
             >
-              <LayoutGrid size={12} strokeWidth={2.4} color={themeColor} />
+              <LayoutGrid size={13} strokeWidth={2.4} color={themeColor} />
               <span>All</span>
               <ChevronDown size={11} strokeWidth={2.4} color="#64748b" />
             </motion.button>
