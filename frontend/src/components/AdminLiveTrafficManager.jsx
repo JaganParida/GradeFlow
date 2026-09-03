@@ -326,7 +326,7 @@ export default function AdminLiveTrafficManager({ authHeaders, API }) {
   };
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+    <div id="admin-live-traffic-monitor" data-tab-content="live-traffic" style={{ display: "flex", flexDirection: "column", gap: 20 }}>
       {/* ── Notification Banners ── */}
       <AnimatePresence>
         {successMsg && (
