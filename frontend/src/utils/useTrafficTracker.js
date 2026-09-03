@@ -168,20 +168,11 @@ export function useTrafficTracker({ studentSession, studentData, adminToken }) {
     };
   }, [studentSession?.regNo, isAuthorizedAdmin]);
 
-  // 2. Track Route Changes on Navigation
+  // 2. Mobile-Optimized Presence Tracking (Full Page Lifecycle API)
   useEffect(() => {
     const token = clientTokenRef.current;
     const currentPath = location.pathname;
 
-    // Send route change to socket
-    if (socketRef.current && socketRef.current.connected) {
-      socketRef.current.emit("student:route_change", {
-        token,
-        route: currentPath,
-      });
-    }
-
-    // Also send HTTP beacon for persistent database logging and queue validation
     const deviceInfo = parseDeviceDetails({
       userAgent: typeof navigator !== "undefined" ? navigator.userAgent : "",
       platform: typeof navigator !== "undefined" ? navigator.platform : "",
@@ -192,46 +183,16 @@ export function useTrafficTracker({ studentSession, studentData, adminToken }) {
     const branch = studentData?.branch || studentSession?.branch || null;
     const batch = studentData?.batch || studentSession?.batch || null;
 
-    axios
-      .post(
-        "/api/traffic/page-view",
-        {
-          token,
-          route: currentPath,
-          regNo,
-          studentName,
-          branch,
-          batch,
-          deviceType: deviceInfo.deviceType,
-          os: deviceInfo.os,
-          browser: deviceInfo.browser,
-          isAdmin: isAuthorizedAdmin,
-        },
-        { timeout: 5000 }
-      )
-      .then((res) => {
-        if (res.data?.queued && !isAuthorizedAdmin && !hasValidAdmissionTicket()) {
-          setQueueState({
-            inQueue: true,
-            position: res.data.queueInfo?.position || 1,
-            totalInQueue: res.data.queueInfo?.totalInQueue || 1,
-            estimatedWaitSecs: res.data.queueInfo?.estimatedWaitSecs || 15,
-            message: res.data.message || "High traffic waiting queue.",
-            isAdmitted: false,
-          });
-        } else if (res.data?.admitted) {
-          if (res.data.bypass) {
-            setQueueState((prev) => ({ ...prev, inQueue: false, isAdmitted: true }));
-          }
-        }
-      })
-      .catch(() => {});
+    // Send route change to socket if connected
+    if (socketRef.current && socketRef.current.connected) {
+      socketRef.current.emit("student:route_change", {
+        token,
+        route: currentPath,
+      });
+    }
 
-    // Periodic heartbeat every 60 seconds (only when tab is actively visible) to protect Vercel quotas
-    const heartbeatInterval = setInterval(() => {
-      if (typeof document !== "undefined" && document.hidden) {
-        return; // Zero requests when student tab is in background, minimized, or phone is locked!
-      }
+    // A. Online Presence Beacon (Entering / Active Tab)
+    const sendEnterBeacon = () => {
       axios
         .post(
           "/api/traffic/page-view",
@@ -249,10 +210,91 @@ export function useTrafficTracker({ studentSession, studentData, adminToken }) {
           },
           { timeout: 5000 }
         )
+        .then((res) => {
+          if (res.data?.queued && !isAuthorizedAdmin && !hasValidAdmissionTicket()) {
+            setQueueState({
+              inQueue: true,
+              position: res.data.queueInfo?.position || 1,
+              totalInQueue: res.data.queueInfo?.totalInQueue || 1,
+              estimatedWaitSecs: res.data.queueInfo?.estimatedWaitSecs || 15,
+              message: res.data.message || "High traffic waiting queue.",
+              isAdmitted: false,
+            });
+          } else if (res.data?.admitted) {
+            if (res.data.bypass) {
+              setQueueState((prev) => ({ ...prev, inQueue: false, isAdmitted: true }));
+            }
+          }
+        })
         .catch(() => {});
-    }, 60000);
+    };
 
-    return () => clearInterval(heartbeatInterval);
+    // B. Offline Presence Beacon (Leaving / Mobile App Switch / Tab Close)
+    const sendExitBeacon = () => {
+      if (isAdminRoute || !token) return;
+      const payload = JSON.stringify({ token });
+      if (typeof navigator !== "undefined" && navigator.sendBeacon) {
+        const blob = new Blob([payload], { type: "application/json" });
+        navigator.sendBeacon("/api/traffic/leave", blob);
+      } else {
+        fetch("/api/traffic/leave", {
+          method: "POST",
+          body: payload,
+          headers: { "Content-Type": "application/json" },
+          keepalive: true,
+        }).catch(() => {});
+      }
+    };
+
+    // Send initial page enter beacon
+    sendEnterBeacon();
+
+    // C. Mobile-Optimized Page Lifecycle Handlers
+    const handleVisibilityChange = () => {
+      if (typeof document === "undefined") return;
+      if (document.visibilityState === "hidden") {
+        // Mobile user closed tab, switched app (WhatsApp/Insta), or locked phone
+        sendExitBeacon();
+      } else if (document.visibilityState === "visible") {
+        // Mobile user unlocked phone or returned to GradeFlow tab
+        sendEnterBeacon();
+      }
+    };
+
+    const handlePageHide = () => {
+      // Primary mobile event when user swipes away or navigates away
+      sendExitBeacon();
+    };
+
+    const handleBeforeUnload = () => {
+      // Primary desktop event when user closes tab
+      sendExitBeacon();
+    };
+
+    if (typeof document !== "undefined") {
+      document.addEventListener("visibilitychange", handleVisibilityChange);
+    }
+    if (typeof window !== "undefined") {
+      window.addEventListener("pagehide", handlePageHide, { capture: true });
+      window.addEventListener("beforeunload", handleBeforeUnload);
+    }
+
+    // D. Periodic heartbeat (every 45s while tab is visible)
+    const heartbeatInterval = setInterval(() => {
+      if (typeof document !== "undefined" && document.hidden) return;
+      sendEnterBeacon();
+    }, 45000);
+
+    return () => {
+      clearInterval(heartbeatInterval);
+      if (typeof document !== "undefined") {
+        document.removeEventListener("visibilitychange", handleVisibilityChange);
+      }
+      if (typeof window !== "undefined") {
+        window.removeEventListener("pagehide", handlePageHide, { capture: true });
+        window.removeEventListener("beforeunload", handleBeforeUnload);
+      }
+    };
   }, [location.pathname, isAuthorizedAdmin, studentSession?.regNo, studentData?.studentName]);
 
   // Method for student to voluntarily leave queue

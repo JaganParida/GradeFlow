@@ -96,8 +96,8 @@ module.exports = async function handler(req, res) {
         const leastVisited = pages.slice(tierSize * 2).map((p) => ({ ...p, tier: "LEAST_VISITED", liveViewers: 0 }));
 
         // ─── Real-Time Live Detection Window (Vercel / Google Analytics Style) ───
-        // Active Right Now = Ping/Interaction received within the last 2.5 minutes
-        const LIVE_WINDOW_MS = 2.5 * 60 * 1000;
+        // Active Right Now = Ping/Interaction received within the last 90 seconds
+        const LIVE_WINDOW_MS = 90 * 1000;
         const liveCutoff = new Date(Date.now() - LIVE_WINDOW_MS);
 
         // 1. Query users who have pinged within the live window
@@ -374,6 +374,25 @@ module.exports = async function handler(req, res) {
 
     if (action === "queue-leave") {
       return res.json({ success: true, message: "Queue left." });
+    }
+
+    if (action === "leave" || action === "offline") {
+      let token = null;
+      if (req.body && typeof req.body === "object") {
+        token = req.body.token;
+      } else if (typeof req.body === "string") {
+        try {
+          const parsed = JSON.parse(req.body);
+          token = parsed.token;
+        } catch {
+          token = req.body;
+        }
+      }
+
+      if (token) {
+        await LiveVisitor.deleteOne({ token: String(token).trim() }).catch(() => {});
+      }
+      return res.json({ success: true, message: "Visitor marked offline." });
     }
 
     if (action === "heartbeat") {
