@@ -239,11 +239,11 @@
     },
     {
       "source": "/api/admin/traffic/:path*",
-      "destination": "/api/admin-traffic.js"
+      "destination": "/api/traffic.js"
     },
     {
       "source": "/api/admin/traffic",
-      "destination": "/api/admin-traffic.js"
+      "destination": "/api/traffic.js"
     },
     {
       "source": "/api/admin/subadmins/:id/sessions/:sessionId",
@@ -403,15 +403,15 @@
     },
     {
       "source": "/api/feedback/:id/like",
-      "destination": "/api/feedback.js?id=:id&action=like"
+      "destination": "/api/student.js?action=feedback-like&id=:id"
     },
     {
       "source": "/api/feedback/:id",
-      "destination": "/api/feedback.js?id=:id"
+      "destination": "/api/student.js?action=feedback-item&id=:id"
     },
     {
       "source": "/api/feedback",
-      "destination": "/api/feedback.js"
+      "destination": "/api/student.js?action=feedback"
     },
     {
       "source": "/api/admin/upload/:path*",
