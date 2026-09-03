@@ -6,10 +6,13 @@ import { parseDeviceDetails } from "./deviceHelper";
 
 function getOrCreateClientToken() {
   try {
-    let token = sessionStorage.getItem("gf_traffic_client_token");
+    let token = localStorage.getItem("gf_traffic_client_token") || sessionStorage.getItem("gf_traffic_client_token");
     if (!token) {
       token = `gf_cli_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
-      sessionStorage.setItem("gf_traffic_client_token", token);
+      try {
+        localStorage.setItem("gf_traffic_client_token", token);
+        sessionStorage.setItem("gf_traffic_client_token", token);
+      } catch {}
     }
     return token;
   } catch {
@@ -237,7 +240,11 @@ export function useTrafficTracker({ studentSession, studentData, adminToken }) {
     // B. Offline Presence Beacon (Leaving / Mobile App Switch / Tab Close)
     const sendExitBeacon = () => {
       if (isAdminRoute || !token) return;
-      const payload = JSON.stringify({ token });
+      const payload = JSON.stringify({
+        token,
+        regNo,
+        deviceType: deviceInfo.deviceType,
+      });
       if (typeof navigator !== "undefined" && navigator.sendBeacon) {
         const blob = new Blob([payload], { type: "application/json" });
         navigator.sendBeacon("/api/traffic/leave", blob);
@@ -284,11 +291,11 @@ export function useTrafficTracker({ studentSession, studentData, adminToken }) {
       window.addEventListener("beforeunload", handleBeforeUnload);
     }
 
-    // D. Periodic heartbeat (every 45s while tab is visible)
+    // D. Periodic heartbeat (every 25s while tab is visible)
     const heartbeatInterval = setInterval(() => {
       if (typeof document !== "undefined" && document.hidden) return;
       sendEnterBeacon();
-    }, 45000);
+    }, 25000);
 
     return () => {
       clearInterval(heartbeatInterval);

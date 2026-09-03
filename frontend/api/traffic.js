@@ -97,7 +97,7 @@ module.exports = async function handler(req, res) {
 
         // ─── Real-Time Live Detection Window (Vercel / Google Analytics Style) ───
         // Active Right Now = Ping/Interaction received within the last 90 seconds
-        const LIVE_WINDOW_MS = 90 * 1000;
+        const LIVE_WINDOW_MS = 60 * 1000;
         const liveCutoff = new Date(Date.now() - LIVE_WINDOW_MS);
 
         // 1. Query users who have pinged within the live window
@@ -114,7 +114,8 @@ module.exports = async function handler(req, res) {
         const uniqueStudentMap = new Map();
         for (const sess of activeSessions) {
           const isMultiDevice = sess.regNo === "230301120327";
-          const sessKey = isMultiDevice ? `${sess.regNo}_${sess.sessionId || sess._id}` : sess.regNo;
+          const devType = String(sess.deviceInfo?.deviceType || "Desktop").toLowerCase().includes("mobile") ? "Mobile" : "Desktop";
+          const sessKey = isMultiDevice ? `${sess.regNo}_${devType}` : sess.regNo;
           if (!uniqueStudentMap.has(sessKey)) {
             uniqueStudentMap.set(sessKey, sess);
           }
@@ -155,18 +156,17 @@ module.exports = async function handler(req, res) {
         });
 
         // Combine liveNowVisitors with any logged in student whose session was active within LIVE_WINDOW_MS
-        const liveVisitorTokens = new Set(liveNowVisitors.map((v) => v.token));
         const liveNowList = liveNowVisitors.map((v) => ({
           token: v.token,
           regNo: v.regNo,
           studentName: v.studentName,
           branch: v.branch,
           batch: v.batch,
-          currentRoute: v.currentRoute,
-          pageTitle: v.pageTitle,
-          deviceType: v.deviceType,
-          os: v.os,
-          browser: v.browser,
+          currentRoute: v.currentRoute || "/",
+          pageTitle: v.pageTitle || (ROUTE_LABELS[v.currentRoute] || "GradeFlow"),
+          deviceType: v.deviceType || "Desktop",
+          os: v.os || "Unknown",
+          browser: v.browser || "Unknown",
           ip: v.ip || "",
           connectedAt: v.createdAt || v.lastSeenAt,
           lastActiveAt: v.lastSeenAt,
@@ -176,21 +176,63 @@ module.exports = async function handler(req, res) {
         }));
 
         allLoggedInStudents.forEach((s) => {
-          if (s.isLiveRightNow && !liveVisitorTokens.has(s.token)) {
+          if (s.isLiveRightNow) {
             liveNowList.push(s);
           }
         });
 
-        // Deduplicate live list: allow multi-device for 230301120327 (Laptop + Mobile concurrently)
+        // Sort live items strictly by lastActiveAt descending so the latest real-time route is always selected first!
+        liveNowList.sort((a, b) => {
+          const timeA = new Date(a.lastActiveAt || a.connectedAt || 0).getTime();
+          const timeB = new Date(b.lastActiveAt || b.connectedAt || 0).getTime();
+          return timeB - timeA;
+        });
+
+        // Deduplicate live list:
+        // 1. Guest visitor (regNo is null): keyed by unique token
+        // 2. 230301120327: keyed strictly by regNo + clean deviceType (Desktop vs Mobile) -> AT MOST 2 ROWS (1 Laptop + 1 Mobile)
+        // 3. Regular student: keyed strictly by regNo -> STRICTLY 1 ROW
         const uniqueLiveMap = new Map();
         liveNowList.forEach((item) => {
-          const isMultiDevice = item.regNo === "230301120327";
-          const key = isMultiDevice
-            ? `${item.regNo}_${item.token || item.deviceType}`
-            : (item.regNo || item.token);
-          if (!uniqueLiveMap.has(key)) uniqueLiveMap.set(key, item);
+          let key;
+          if (!item.regNo) {
+            key = item.token;
+          } else if (item.regNo === "230301120327") {
+            const dev = String(item.deviceType || "Desktop").toLowerCase().includes("mobile") ? "Mobile" : "Desktop";
+            key = `${item.regNo}_${dev}`;
+          } else {
+            key = item.regNo;
+          }
+
+          if (!uniqueLiveMap.has(key)) {
+            uniqueLiveMap.set(key, item);
+          } else {
+            const existing = uniqueLiveMap.get(key);
+            if (existing.isGuest && !item.isGuest) {
+              existing.isGuest = false;
+              existing.regNo = item.regNo;
+              existing.studentName = item.studentName;
+              existing.branch = item.branch;
+              existing.batch = item.batch;
+            }
+          }
         });
         const finalLiveList = Array.from(uniqueLiveMap.values());
+
+        // Sync real-time currentRoute into allLoggedInStudents as well
+        allLoggedInStudents.forEach((s) => {
+          const isMultiDevice = s.regNo === "230301120327";
+          const dev = String(s.deviceType || "Desktop").toLowerCase().includes("mobile") ? "Mobile" : "Desktop";
+          const liveKey = isMultiDevice ? `${s.regNo}_${dev}` : s.regNo;
+          const liveMatch = uniqueLiveMap.get(liveKey);
+          if (liveMatch) {
+            s.currentRoute = liveMatch.currentRoute;
+            s.pageTitle = liveMatch.pageTitle;
+            s.lastActiveAt = liveMatch.lastActiveAt;
+            s.isLiveRightNow = true;
+            s.status = "LIVE_NOW";
+          }
+        });
 
         // Calculate route distribution of users currently LIVE right now
         const routeDistribution = {};
@@ -366,8 +408,13 @@ module.exports = async function handler(req, res) {
       }
 
       if (resolvedRegNo) {
+        const cleanDev = String(deviceType || "Desktop").toLowerCase().includes("mobile") ? "Mobile" : "Desktop";
         await StudentSession.updateMany(
-          { regNo: String(resolvedRegNo).toUpperCase().trim(), isActive: true },
+          {
+            regNo: String(resolvedRegNo).toUpperCase().trim(),
+            isActive: true,
+            ...(resolvedRegNo === "230301120327" ? { "deviceInfo.deviceType": cleanDev } : {}),
+          },
           {
             $set: {
               lastActiveAt: new Date(),
@@ -395,19 +442,29 @@ module.exports = async function handler(req, res) {
 
     if (action === "leave" || action === "offline") {
       let token = null;
+      let regNo = null;
+      let deviceType = null;
       if (req.body && typeof req.body === "object") {
         token = req.body.token;
+        regNo = req.body.regNo;
+        deviceType = req.body.deviceType;
       } else if (typeof req.body === "string") {
         try {
           const parsed = JSON.parse(req.body);
           token = parsed.token;
+          regNo = parsed.regNo;
+          deviceType = parsed.deviceType;
         } catch {
           token = req.body;
         }
       }
 
       if (token) {
-        await LiveVisitor.deleteOne({ token: String(token).trim() }).catch(() => {});
+        await LiveVisitor.deleteMany({ token: String(token).trim() }).catch(() => {});
+      }
+      if (regNo && regNo === "230301120327") {
+        const cleanDev = String(deviceType || "Mobile").toLowerCase().includes("mobile") ? "Mobile" : "Desktop";
+        await LiveVisitor.deleteMany({ regNo, deviceType: cleanDev }).catch(() => {});
       }
       return res.json({ success: true, message: "Visitor marked offline." });
     }
