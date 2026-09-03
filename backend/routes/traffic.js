@@ -180,4 +180,14 @@ router.post("/queue-leave", (req, res) => {
   res.json({ success: true });
 });
 
+// ─── POST /api/traffic/leave ─────────────────────────────────────────────────
+router.post("/leave", (req, res) => {
+  const { token } = req.body || {};
+  if (token) {
+    removeFromQueue(token);
+    removeActiveUser(token);
+  }
+  res.json({ success: true, message: "Visitor marked offline." });
+});
+
 module.exports = router;

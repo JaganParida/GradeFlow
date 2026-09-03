@@ -178,7 +178,12 @@ export function useTrafficTracker({ studentSession, studentData, adminToken }) {
       platform: typeof navigator !== "undefined" ? navigator.platform : "",
     });
 
-    const regNo = studentSession?.regNo || null;
+    let storedRegNo = null;
+    try {
+      storedRegNo = localStorage.getItem("gf_student_reg");
+    } catch {}
+
+    const regNo = studentSession?.regNo || storedRegNo || null;
     const studentName = studentData?.studentName || studentSession?.studentName || null;
     const branch = studentData?.branch || studentSession?.branch || null;
     const batch = studentData?.batch || studentSession?.batch || null;
