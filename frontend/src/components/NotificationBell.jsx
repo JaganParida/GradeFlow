@@ -60,11 +60,7 @@ export default function NotificationBell({ isMobile = false }) {
   }, [isOpen]);
 
   const handleToggle = () => {
-    const nextState = !isOpen;
-    setIsOpen(nextState);
-    if (nextState && unreadCount > 0) {
-      markNotificationsRead();
-    }
+    setIsOpen((prev) => !prev);
   };
 
   const handleApprove = async (e, notif) => {

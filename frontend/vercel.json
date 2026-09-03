@@ -370,6 +370,10 @@
       "destination": "/api/notifications.js?action=mark-read"
     },
     {
+      "source": "/api/notifications/action",
+      "destination": "/api/notifications.js?action=action"
+    },
+    {
       "source": "/api/notifications/stream",
       "destination": "/api/notifications.js?action=stream"
     },

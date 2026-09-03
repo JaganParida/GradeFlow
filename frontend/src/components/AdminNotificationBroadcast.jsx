@@ -108,9 +108,16 @@ export default function AdminNotificationBroadcast({ API, authHeaders, isMobile 
 
   const [broadcasts, setBroadcasts] = useState([]);
   const [historyLoading, setHistoryLoading] = useState(false);
+  const [expandedBroadcast, setExpandedBroadcast] = useState(null);
 
   useEffect(() => {
     fetchBroadcasts();
+    // Auto-refresh broadcast counts every 8s for real-time read/dismiss tracking
+    const interval = setInterval(() => {
+      if (typeof document !== "undefined" && document.hidden) return;
+      fetchBroadcasts();
+    }, 8000);
+    return () => clearInterval(interval);
   }, []);
 
   const fetchBroadcasts = async () => {
@@ -859,74 +866,230 @@ export default function AdminNotificationBroadcast({ API, authHeaders, isMobile 
                   const badgeVisual = getBadgeVisual(b.badge);
 
                   return (
-                    <tr key={b.notificationId} style={{ borderBottom: "1px solid #f1f5f9" }}>
-                      <td style={{ padding: "12px" }}>
-                        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                          <span
-                            style={{
-                              fontSize: 10.5,
-                              fontWeight: 700,
-                              padding: "2px 7px",
-                              borderRadius: 5,
-                              background: badgeVisual.bg,
-                              color: badgeVisual.color,
-                              border: `1px solid ${badgeVisual.border}`,
-                            }}
-                          >
-                            {b.badge || "Announcement"}
-                          </span>
-                          <div>
-                            <strong style={{ color: "#0f172a" }}>{b.title}</strong>
-                            <div style={{ fontSize: 11.5, color: "#64748b", maxWidth: 280, textOverflow: "ellipsis", overflow: "hidden", whiteSpace: "nowrap" }}>
-                              {b.message}
+                    <React.Fragment key={b.notificationId}>
+                      <tr style={{ borderBottom: "1px solid #f1f5f9" }}>
+                        <td style={{ padding: "12px" }}>
+                          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                            <span
+                              style={{
+                                fontSize: 10.5,
+                                fontWeight: 700,
+                                padding: "2px 7px",
+                                borderRadius: 5,
+                                background: badgeVisual.bg,
+                                color: badgeVisual.color,
+                                border: `1px solid ${badgeVisual.border}`,
+                              }}
+                            >
+                              {b.badge || "Announcement"}
+                            </span>
+                            <div>
+                              <strong style={{ color: "#0f172a" }}>{b.title}</strong>
+                              <div style={{ fontSize: 11.5, color: "#64748b", maxWidth: 280, textOverflow: "ellipsis", overflow: "hidden", whiteSpace: "nowrap" }}>
+                                {b.message}
+                              </div>
                             </div>
                           </div>
-                        </div>
-                      </td>
+                        </td>
 
-                      <td style={{ padding: "12px" }}>
-                        <code style={{ background: "#f1f5f9", padding: "2px 6px", borderRadius: 4, fontSize: 11.5, color: "#2563eb" }}>
-                          {b.primaryButton?.targetRoute || "/dashboard"}
-                        </code>
-                      </td>
+                        <td style={{ padding: "12px" }}>
+                          <code style={{ background: "#f1f5f9", padding: "2px 6px", borderRadius: 4, fontSize: 11.5, color: "#2563eb" }}>
+                            {b.primaryButton?.targetRoute || "/dashboard"}
+                          </code>
+                        </td>
 
-                      <td style={{ padding: "12px", color: "#64748b" }}>
-                        {new Date(b.createdAt).toLocaleDateString()} · {new Date(b.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
-                        {isExpired && <span style={{ marginLeft: 6, color: "#dc2626", fontWeight: 700 }}>(Expired)</span>}
-                      </td>
+                        <td style={{ padding: "12px", color: "#64748b" }}>
+                          {new Date(b.createdAt).toLocaleDateString()} · {new Date(b.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                          {isExpired && <span style={{ marginLeft: 6, color: "#dc2626", fontWeight: 700 }}>(Expired)</span>}
+                        </td>
 
-                      <td style={{ padding: "12px" }}>
-                        <strong style={{ color: "#059669" }}>{b.readCount || 0}</strong> students
-                      </td>
+                        <td style={{ padding: "12px" }}>
+                          <button
+                            type="button"
+                            onClick={() => setExpandedBroadcast(expandedBroadcast === b.notificationId ? null : b.notificationId)}
+                            style={{
+                              background: expandedBroadcast === b.notificationId ? "#ecfdf5" : "none",
+                              border: expandedBroadcast === b.notificationId ? "1px solid #a7f3d0" : "none",
+                              borderRadius: 6,
+                              cursor: "pointer",
+                              padding: "2px 6px",
+                              display: "inline-flex",
+                              alignItems: "center",
+                              gap: 5,
+                              transition: "all 0.15s ease",
+                            }}
+                            title="Click to view students who read this"
+                          >
+                            <strong style={{ color: "#059669" }}>{b.readCount || 0}</strong>
+                            <span style={{ color: "#64748b" }}>students</span>
+                            <Eye size={12} color="#059669" />
+                          </button>
+                        </td>
 
-                      <td style={{ padding: "12px", color: "#64748b" }}>
-                        {b.dismissedCount || 0} students
-                      </td>
+                        <td style={{ padding: "12px" }}>
+                          <button
+                            type="button"
+                            onClick={() => setExpandedBroadcast(expandedBroadcast === b.notificationId ? null : b.notificationId)}
+                            style={{
+                              background: expandedBroadcast === b.notificationId ? "#f5f3ff" : "none",
+                              border: expandedBroadcast === b.notificationId ? "1px solid #ddd6fe" : "none",
+                              borderRadius: 6,
+                              cursor: "pointer",
+                              padding: "2px 6px",
+                              display: "inline-flex",
+                              alignItems: "center",
+                              gap: 5,
+                              transition: "all 0.15s ease",
+                            }}
+                            title="Click to view students who dismissed this"
+                          >
+                            <span style={{ color: "#64748b" }}>{b.dismissedCount || 0} students</span>
+                            <Eye size={12} color="#7c3aed" />
+                          </button>
+                        </td>
 
-                      <td style={{ padding: "12px", textAlign: "right" }}>
-                        <button
-                          type="button"
-                          onClick={() => handleDeleteBroadcast(b.notificationId)}
-                          style={{
-                            background: "#fef2f2",
-                            border: "1px solid #fecaca",
-                            color: "#dc2626",
-                            padding: "4px 8px",
-                            borderRadius: 6,
-                            fontSize: 11.5,
-                            fontWeight: 600,
-                            cursor: "pointer",
-                            display: "inline-flex",
-                            alignItems: "center",
-                            gap: 4,
-                          }}
-                          title="Delete this broadcast"
-                        >
-                          <Trash2 size={13} />
-                          <span>Delete</span>
-                        </button>
-                      </td>
-                    </tr>
+                        <td style={{ padding: "12px", textAlign: "right" }}>
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteBroadcast(b.notificationId)}
+                            style={{
+                              background: "#fef2f2",
+                              border: "1px solid #fecaca",
+                              color: "#dc2626",
+                              padding: "4px 8px",
+                              borderRadius: 6,
+                              fontSize: 11.5,
+                              fontWeight: 600,
+                              cursor: "pointer",
+                              display: "inline-flex",
+                              alignItems: "center",
+                              gap: 4,
+                            }}
+                            title="Delete this broadcast"
+                          >
+                            <Trash2 size={13} />
+                            <span>Delete</span>
+                          </button>
+                        </td>
+                      </tr>
+
+                      {/* Expandable Real-Time Student Details Row */}
+                      {expandedBroadcast === b.notificationId && (
+                        <tr>
+                          <td colSpan={6} style={{ padding: "0 12px 14px 12px", background: "#f8fafc" }}>
+                            <div style={{ display: "flex", gap: 16, flexWrap: "wrap", padding: "12px 0" }}>
+                              {/* Read / Clicked Details */}
+                              <div style={{ flex: 1, minWidth: 280 }}>
+                                <div style={{ fontWeight: 700, fontSize: 12, color: "#059669", marginBottom: 8, display: "flex", alignItems: "center", gap: 5 }}>
+                                  <CheckCircle2 size={14} color="#059669" />
+                                  <span>Students Read / Interacted ({b.readDetails?.length || 0})</span>
+                                </div>
+                                {(!b.readDetails || b.readDetails.length === 0) ? (
+                                  <div style={{ fontSize: 11.5, color: "#94a3b8", padding: "8px 0" }}>
+                                    No students have read or clicked this announcement yet.
+                                  </div>
+                                ) : (
+                                  <div style={{ display: "flex", flexDirection: "column", gap: 6, maxHeight: 240, overflowY: "auto" }}>
+                                    {b.readDetails.map((r, idx) => (
+                                      <div
+                                        key={`${r.regNo}-${idx}`}
+                                        style={{
+                                          fontSize: 11.5,
+                                          padding: "7px 10px",
+                                          background: "#ffffff",
+                                          border: "1px solid #e2e8f0",
+                                          borderRadius: 8,
+                                          display: "flex",
+                                          justifyContent: "space-between",
+                                          alignItems: "center",
+                                          gap: 10,
+                                          flexWrap: "wrap",
+                                        }}
+                                      >
+                                        <div>
+                                          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                                            <strong style={{ color: "#0f172a" }}>
+                                              {r.name ? `${r.name} · ` : ""}{r.regNo}
+                                            </strong>
+                                            {r.branch && (
+                                              <span style={{ fontSize: 10, color: "#64748b", background: "#f1f5f9", padding: "1px 5px", borderRadius: 4 }}>
+                                                {r.branch} {r.section ? `(${r.section})` : ""}
+                                              </span>
+                                            )}
+                                          </div>
+                                          <div style={{ fontSize: 10.5, color: "#64748b", marginTop: 2, display: "flex", alignItems: "center", gap: 6 }}>
+                                            <span style={{ color: r.actionTaken === "CHECK_NOW" ? "#2563eb" : "#7c3aed", fontWeight: 700 }}>
+                                              {r.actionTaken === "CHECK_NOW" ? "Clicked Check Now" : "Clicked Understood"}
+                                            </span>
+                                            {r.device && <span>· {r.device}</span>}
+                                          </div>
+                                        </div>
+                                        <span style={{ color: "#94a3b8", fontSize: 10.5, whiteSpace: "nowrap" }}>
+                                          {r.readAt ? new Date(r.readAt).toLocaleString([], { dateStyle: "short", timeStyle: "short" }) : "—"}
+                                        </span>
+                                      </div>
+                                    ))}
+                                  </div>
+                                )}
+                              </div>
+
+                              {/* Dismissed Details */}
+                              <div style={{ flex: 1, minWidth: 280 }}>
+                                <div style={{ fontWeight: 700, fontSize: 12, color: "#7c3aed", marginBottom: 8, display: "flex", alignItems: "center", gap: 5 }}>
+                                  <Check size={14} color="#7c3aed" />
+                                  <span>Students Dismissed ({b.dismissedDetails?.length || 0})</span>
+                                </div>
+                                {(!b.dismissedDetails || b.dismissedDetails.length === 0) ? (
+                                  <div style={{ fontSize: 11.5, color: "#94a3b8", padding: "8px 0" }}>
+                                    No students have dismissed this announcement yet.
+                                  </div>
+                                ) : (
+                                  <div style={{ display: "flex", flexDirection: "column", gap: 6, maxHeight: 240, overflowY: "auto" }}>
+                                    {b.dismissedDetails.map((d, idx) => (
+                                      <div
+                                        key={`${d.regNo}-${idx}`}
+                                        style={{
+                                          fontSize: 11.5,
+                                          padding: "7px 10px",
+                                          background: "#ffffff",
+                                          border: "1px solid #e2e8f0",
+                                          borderRadius: 8,
+                                          display: "flex",
+                                          justifyContent: "space-between",
+                                          alignItems: "center",
+                                          gap: 10,
+                                          flexWrap: "wrap",
+                                        }}
+                                      >
+                                        <div>
+                                          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                                            <strong style={{ color: "#0f172a" }}>
+                                              {d.name ? `${d.name} · ` : ""}{d.regNo}
+                                            </strong>
+                                            {d.branch && (
+                                              <span style={{ fontSize: 10, color: "#64748b", background: "#f1f5f9", padding: "1px 5px", borderRadius: 4 }}>
+                                                {d.branch} {d.section ? `(${d.section})` : ""}
+                                              </span>
+                                            )}
+                                          </div>
+                                          <div style={{ fontSize: 10.5, color: "#64748b", marginTop: 2 }}>
+                                            <span style={{ color: "#7c3aed", fontWeight: 700 }}>Dismissed ("Understood")</span>
+                                            {d.device && <span> · {d.device}</span>}
+                                          </div>
+                                        </div>
+                                        <span style={{ color: "#94a3b8", fontSize: 10.5, whiteSpace: "nowrap" }}>
+                                          {d.dismissedAt ? new Date(d.dismissedAt).toLocaleString([], { dateStyle: "short", timeStyle: "short" }) : "—"}
+                                        </span>
+                                      </div>
+                                    ))}
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          </td>
+                        </tr>
+                      )}
+                    </React.Fragment>
                   );
                 })}
               </tbody>
