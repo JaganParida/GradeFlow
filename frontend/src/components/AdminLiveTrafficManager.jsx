@@ -135,10 +135,10 @@ export default function AdminLiveTrafficManager({ authHeaders, API }) {
       }
     });
 
-    // Poll periodically every 15s to keep DB analytics in sync
+    // Poll periodically every 4s to keep live active student data and DB analytics in sync in real time
     const pollInterval = setInterval(() => {
       fetchOverview();
-    }, 15000);
+    }, 4000);
 
     return () => {
       clearInterval(pollInterval);

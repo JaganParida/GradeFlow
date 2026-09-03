@@ -215,7 +215,31 @@ export function useTrafficTracker({ studentSession, studentData, adminToken }) {
         }
       })
       .catch(() => {});
-  }, [location.pathname, isAuthorizedAdmin]);
+
+    // Periodic heartbeat every 20 seconds to keep student presence fresh in DB
+    const heartbeatInterval = setInterval(() => {
+      axios
+        .post(
+          "/api/traffic/page-view",
+          {
+            token,
+            route: currentPath,
+            regNo,
+            studentName,
+            branch,
+            batch,
+            deviceType: deviceInfo.deviceType,
+            os: deviceInfo.os,
+            browser: deviceInfo.browser,
+            isAdmin: isAuthorizedAdmin,
+          },
+          { timeout: 5000 }
+        )
+        .catch(() => {});
+    }, 20000);
+
+    return () => clearInterval(heartbeatInterval);
+  }, [location.pathname, isAuthorizedAdmin, studentSession?.regNo]);
 
   // Method for student to voluntarily leave queue
   const leaveQueue = () => {
