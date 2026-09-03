@@ -57,7 +57,20 @@ export function AppProvider({ children }) {
   const [authChecking, setAuthChecking] = useState(true);
 
   const [studentData, setStudentData] = useState(null);
-  const [studentSession, setStudentSession] = useState(null);
+  const [studentSession, rawSetStudentSession] = useState(null);
+
+  const setStudentSession = useCallback((studentOrUpdater) => {
+    rawSetStudentSession((prev) => {
+      const next = typeof studentOrUpdater === "function" ? studentOrUpdater(prev) : studentOrUpdater;
+      if (next && next.regNo) {
+        try { localStorage.setItem("gf_student_reg", String(next.regNo).trim()); } catch {}
+      } else if (!next) {
+        try { localStorage.removeItem("gf_student_reg"); } catch {}
+      }
+      return next;
+    });
+  }, []);
+
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");

@@ -113,12 +113,14 @@ module.exports = async function handler(req, res) {
 
         const uniqueStudentMap = new Map();
         for (const sess of activeSessions) {
-          if (!uniqueStudentMap.has(sess.regNo)) {
-            uniqueStudentMap.set(sess.regNo, sess);
+          const isMultiDevice = sess.regNo === "230301120327";
+          const sessKey = isMultiDevice ? `${sess.regNo}_${sess.sessionId || sess._id}` : sess.regNo;
+          if (!uniqueStudentMap.has(sessKey)) {
+            uniqueStudentMap.set(sessKey, sess);
           }
         }
 
-        const regNos = Array.from(uniqueStudentMap.keys());
+        const regNos = Array.from(new Set(Array.from(uniqueStudentMap.values()).map((s) => s.regNo)));
         const rankings = await Ranking.find({ regNo: { $in: regNos } }).select("regNo studentName branch batch").lean();
         const rankingMap = new Map(rankings.map((r) => [r.regNo, r]));
 
@@ -179,10 +181,13 @@ module.exports = async function handler(req, res) {
           }
         });
 
-        // Deduplicate live list
+        // Deduplicate live list: allow multi-device for 230301120327 (Laptop + Mobile concurrently)
         const uniqueLiveMap = new Map();
         liveNowList.forEach((item) => {
-          const key = item.regNo || item.token;
+          const isMultiDevice = item.regNo === "230301120327";
+          const key = isMultiDevice
+            ? `${item.regNo}_${item.token || item.deviceType}`
+            : (item.regNo || item.token);
           if (!uniqueLiveMap.has(key)) uniqueLiveMap.set(key, item);
         });
         const finalLiveList = Array.from(uniqueLiveMap.values());
@@ -300,6 +305,18 @@ module.exports = async function handler(req, res) {
       const normRoute = normalizeRoute(route);
       const pageTitle = ROUTE_LABELS[normRoute] || normRoute;
 
+      // Extract student registration number from cookies if not provided in payload (essential for mobile browser hydration)
+      const cookies = parseCookies(req.headers.cookie);
+      let resolvedRegNo = regNo;
+      if (!resolvedRegNo && cookies.student_jwt && cookies.student_jwt !== "none") {
+        try {
+          const decoded = jwt.verify(cookies.student_jwt, process.env.JWT_SECRET);
+          if (decoded && decoded.regNo) {
+            resolvedRegNo = decoded.regNo;
+          }
+        } catch {}
+      }
+
       await PageAnalytics.findOneAndUpdate(
         { route: normRoute },
         {
@@ -313,17 +330,17 @@ module.exports = async function handler(req, res) {
 
       // Record in LiveVisitor for real-time live presence detection (like Vercel Analytics)
       if (token && !isAdmin) {
-        const isStudent = Boolean(regNo && /^[a-zA-Z0-9]{5,20}$/.test(String(regNo).trim()));
+        const isStudent = Boolean(resolvedRegNo && /^[a-zA-Z0-9]{5,20}$/.test(String(resolvedRegNo).trim()));
         let resolvedName = studentName;
         let resolvedBranch = branch;
         let resolvedBatch = batch;
 
-        if (isStudent && !resolvedName) {
-          const rank = await Ranking.findOne({ regNo: String(regNo).toUpperCase().trim() }).select("studentName branch batch").lean();
+        if (isStudent) {
+          const rank = await Ranking.findOne({ regNo: String(resolvedRegNo).toUpperCase().trim() }).select("studentName branch batch").lean();
           if (rank) {
-            resolvedName = rank.studentName;
-            resolvedBranch = rank.branch;
-            resolvedBatch = rank.batch;
+            if (!resolvedName || resolvedName === "Guest Visitor") resolvedName = rank.studentName;
+            if (!resolvedBranch || resolvedBranch === "Guest") resolvedBranch = rank.branch;
+            if (!resolvedBatch) resolvedBatch = rank.batch;
           }
         }
 
@@ -331,8 +348,8 @@ module.exports = async function handler(req, res) {
           { token: String(token) },
           {
             $set: {
-              regNo: isStudent ? String(regNo).toUpperCase().trim() : null,
-              studentName: resolvedName || (isStudent ? `Student (${regNo})` : "Guest Visitor"),
+              regNo: isStudent ? String(resolvedRegNo).toUpperCase().trim() : null,
+              studentName: resolvedName || (isStudent ? `Student (${resolvedRegNo})` : "Guest Visitor"),
               branch: resolvedBranch || (isStudent ? "CSE" : "Guest"),
               batch: resolvedBatch || "2023",
               currentRoute: normRoute,
@@ -348,9 +365,9 @@ module.exports = async function handler(req, res) {
         ).catch(() => {});
       }
 
-      if (regNo) {
+      if (resolvedRegNo) {
         await StudentSession.updateMany(
-          { regNo: String(regNo).toUpperCase().trim(), isActive: true },
+          { regNo: String(resolvedRegNo).toUpperCase().trim(), isActive: true },
           {
             $set: {
               lastActiveAt: new Date(),
