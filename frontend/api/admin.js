@@ -515,6 +515,7 @@ module.exports = async function handler(req, res) {
       const filter = String(req.query.filter || "all").toLowerCase();
       const branchFilter = String(req.query.branch || "").trim().toUpperCase();
       const sectionFilter = String(req.query.section || "").trim().toUpperCase();
+      const sortBy = String(req.query.sortBy || "last-synced").toLowerCase();
       const page = Math.max(1, parseInt(req.query.page, 10) || 1);
       const limit = Math.max(1, Math.min(100, parseInt(req.query.limit, 10) || 10));
 
@@ -655,12 +656,28 @@ module.exports = async function handler(req, res) {
       }
 
       processedStudents.sort((a, b) => {
-        if (a.isTrackerActive && !b.isTrackerActive) return -1;
-        if (!a.isTrackerActive && b.isTrackerActive) return 1;
-        if (b.overallPercentage !== a.overallPercentage) {
-          return b.overallPercentage - a.overallPercentage;
+        if (sortBy === "attendance-high") {
+          if (b.overallPercentage !== a.overallPercentage) {
+            return b.overallPercentage - a.overallPercentage;
+          }
+          return new Date(b.lastSyncedAt || 0) - new Date(a.lastSyncedAt || 0);
         }
-        return new Date(b.lastSyncedAt || 0) - new Date(a.lastSyncedAt || 0);
+        if (sortBy === "attendance-low") {
+          if (a.overallPercentage !== b.overallPercentage) {
+            return a.overallPercentage - b.overallPercentage;
+          }
+          return new Date(b.lastSyncedAt || 0) - new Date(a.lastSyncedAt || 0);
+        }
+        if (sortBy === "regno") {
+          return String(a.regNo).localeCompare(String(b.regNo));
+        }
+        if (sortBy === "name") {
+          return String(a.studentName || "").localeCompare(String(b.studentName || ""));
+        }
+        // Default: "last-synced" (Most recent sync timestamp first)
+        const timeDiff = new Date(b.lastSyncedAt || 0) - new Date(a.lastSyncedAt || 0);
+        if (timeDiff !== 0) return timeDiff;
+        return b.overallPercentage - a.overallPercentage;
       });
 
       const totalRecords = processedStudents.length;

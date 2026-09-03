@@ -4056,21 +4056,24 @@ export default function AdminDashboard({ defaultTab = null }) {
         </div>
 
         {/* ── 4 Top Metrics Stats Grid ── */}
+        {/* ── 4 Top Metrics Stats Grid (Clean Professional Redesign) ── */}
         {stats ? (
           <div
             style={{
               display: "grid",
-              gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
-              gap: 14,
+              gridTemplateColumns: isMobile
+                ? "repeat(2, 1fr)"
+                : "repeat(auto-fit, minmax(230px, 1fr))",
+              gap: isMobile ? 10 : 14,
               marginBottom: 24,
             }}
           >
             {[
               {
-                label: "Created Student Accounts",
+                label: "Student Accounts",
                 sublabel: "Passwords Created",
                 value: (stats.totalAccountsCreated ?? 0).toLocaleString(),
-                icon: <KeyRound size={18} color="#2563eb" />,
+                icon: <KeyRound size={isMobile ? 16 : 18} color="#2563eb" />,
                 bg: "#eff6ff",
                 border: "#dbeafe",
                 badge: "Registered",
@@ -4081,7 +4084,7 @@ export default function AdminDashboard({ defaultTab = null }) {
                 label: "Currently Logged In",
                 sublabel: "Active Live Sessions",
                 value: (stats.activeLoggedInCount ?? 0).toLocaleString(),
-                icon: <Activity size={18} color="#10b981" />,
+                icon: <Activity size={isMobile ? 16 : 18} color="#059669" />,
                 bg: "#ecfdf5",
                 border: "#a7f3d0",
                 badge: "Live Online",
@@ -4089,30 +4092,36 @@ export default function AdminDashboard({ defaultTab = null }) {
                 badgeBg: "#d1fae5",
                 isLive: true,
                 targetTab: "live-traffic",
-                cta: "View Live Student Monitor →",
+                cta: "View Live Monitor",
               },
               {
-                label: "University Academic Records",
+                label: "Academic Records",
                 sublabel: "Total Students in DB",
                 value: (stats.totalStudents ?? 0).toLocaleString(),
-                icon: <Users size={18} color="#6366f1" />,
+                icon: <Users size={isMobile ? 16 : 18} color="#6366f1" />,
                 bg: "#eef2ff",
                 border: "#e0e7ff",
+                badge: "Enrolled",
+                badgeColor: "#4f46e5",
+                badgeBg: "#e0e7ff",
               },
               {
-                label: "Semester Result Records",
+                label: "Semester Results",
                 sublabel: "Result Sheets Stored",
                 value: (stats.totalResults ?? 0).toLocaleString(),
-                icon: <FileSpreadsheet size={18} color="#f59e0b" />,
+                icon: <FileSpreadsheet size={isMobile ? 16 : 18} color="#d97706" />,
                 bg: "#fffbeb",
                 border: "#fde68a",
+                badge: "Published",
+                badgeColor: "#b45309",
+                badgeBg: "#fef3c7",
               },
             ].map((stat, i) => (
               <motion.div
                 key={i}
                 initial={{ opacity: 0, y: 8 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: i * 0.05 }}
+                transition={{ delay: i * 0.04 }}
                 onClick={() => {
                   if (stat.targetTab) {
                     setTab(stat.targetTab);
@@ -4126,27 +4135,71 @@ export default function AdminDashboard({ defaultTab = null }) {
                     }, 120);
                   }
                 }}
-                whileHover={stat.targetTab ? { y: -2, transition: { duration: 0.15 } } : {}}
+                whileHover={stat.targetTab ? { y: -2, transition: { duration: 0.15 } } : { y: -1 }}
                 style={{
                   background: "#ffffff",
                   border: stat.targetTab && tab === stat.targetTab ? "1.5px solid #10b981" : "1px solid #e2e8f0",
                   borderRadius: 16,
-                  padding: "18px 20px",
-                  boxShadow: "0 2px 8px rgba(15, 23, 42, 0.02)",
+                  padding: isMobile ? "14px 12px" : "18px 20px",
+                  boxShadow: "0 1px 3px rgba(15, 23, 42, 0.03)",
                   display: "flex",
-                  alignItems: "center",
+                  flexDirection: "column",
                   justifyContent: "space-between",
-                  gap: 14,
+                  gap: 12,
                   cursor: stat.targetTab ? "pointer" : "default",
-                  transition: "all 0.15s ease",
+                  transition: "all 0.18s ease",
+                  position: "relative",
+                  boxSizing: "border-box",
                 }}
               >
-                <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+                {/* Header Row: Label + Badge */}
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 6, flexWrap: "wrap" }}>
+                  <span style={{ fontSize: isMobile ? 10.5 : 11.5, fontWeight: 700, color: "#64748b", textTransform: "uppercase", letterSpacing: "0.4px" }}>
+                    {stat.label}
+                  </span>
+                  {stat.badge && (
+                    <span
+                      style={{
+                        fontSize: 10,
+                        fontWeight: 700,
+                        padding: "2px 7px",
+                        borderRadius: 6,
+                        background: stat.badgeBg,
+                        color: stat.badgeColor,
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: 4,
+                        letterSpacing: "0.02em",
+                      }}
+                    >
+                      {stat.isLive && (
+                        <span
+                          style={{
+                            width: 6,
+                            height: 6,
+                            borderRadius: "50%",
+                            background: "#10b981",
+                            boxShadow: "0 0 0 2px rgba(16, 185, 129, 0.25)",
+                            display: "inline-block",
+                          }}
+                        />
+                      )}
+                      {stat.badge}
+                    </span>
+                  )}
+                </div>
+
+                {/* Middle Row: Big Number Value + Icon Tile */}
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10 }}>
+                  <div style={{ fontSize: isMobile ? 22 : 26, fontWeight: 800, color: "#0f172a", letterSpacing: "-0.5px", lineHeight: 1.1 }}>
+                    {stat.value || "0"}
+                  </div>
+
                   <div
                     style={{
-                      width: 42,
-                      height: 42,
-                      borderRadius: 12,
+                      width: isMobile ? 36 : 40,
+                      height: isMobile ? 36 : 40,
+                      borderRadius: 10,
                       background: stat.bg,
                       border: `1px solid ${stat.border}`,
                       display: "flex",
@@ -4157,60 +4210,35 @@ export default function AdminDashboard({ defaultTab = null }) {
                   >
                     {stat.icon}
                   </div>
-                  <div>
-                    <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                      <span style={{ fontSize: 11.5, fontWeight: 700, color: "#64748b", textTransform: "uppercase", letterSpacing: "0.4px" }}>
-                        {stat.label}
-                      </span>
-                      {stat.badge && (
-                        <span
-                          style={{
-                            fontSize: 10,
-                            fontWeight: 700,
-                            padding: "2px 6px",
-                            borderRadius: 6,
-                            background: stat.badgeBg,
-                            color: stat.badgeColor,
-                            display: "inline-flex",
-                            alignItems: "center",
-                            gap: 3,
-                          }}
-                        >
-                          {stat.isLive && (
-                            <span
-                              style={{
-                                width: 5,
-                                height: 5,
-                                borderRadius: "50%",
-                                background: "#10b981",
-                                display: "inline-block",
-                              }}
-                            />
-                          )}
-                          {stat.badge}
-                        </span>
-                      )}
+                </div>
+
+                {/* Footer Row: Sublabel or Clean CTA Button (NO UNDERLINE!) */}
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 6, paddingTop: 4, borderTop: "1px solid #f8fafc" }}>
+                  <span style={{ fontSize: 11, color: "#94a3b8", fontWeight: 500 }}>
+                    {stat.sublabel}
+                  </span>
+
+                  {stat.cta && (
+                    <div
+                      style={{
+                        fontSize: 11,
+                        fontWeight: 700,
+                        color: "#059669",
+                        background: "#ecfdf5",
+                        border: "1px solid #a7f3d0",
+                        padding: "2px 7px",
+                        borderRadius: 6,
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: 3,
+                        textDecoration: "none",
+                        transition: "all 0.15s ease",
+                      }}
+                    >
+                      <span>{stat.cta}</span>
+                      <ArrowRight size={11} strokeWidth={2.5} />
                     </div>
-                    <div style={{ fontSize: 22, fontWeight: 800, color: "#0f172a", marginTop: 2 }}>
-                      {stat.value || "0"}
-                    </div>
-                    {stat.cta && (
-                      <div
-                        style={{
-                          fontSize: 11,
-                          fontWeight: 700,
-                          color: "#059669",
-                          marginTop: 3,
-                          display: "inline-flex",
-                          alignItems: "center",
-                          gap: 4,
-                          textDecoration: "underline",
-                        }}
-                      >
-                        {stat.cta}
-                      </div>
-                    )}
-                  </div>
+                  )}
                 </div>
               </motion.div>
             ))}

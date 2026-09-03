@@ -24,7 +24,6 @@ import {
   ArrowUpRight,
   TrendingUp,
   Target,
-  Sparkles,
 } from "lucide-react";
 
 export default function AdminAttendanceMonitor({ API = "/api", authHeaders = {}, isMobile = false }) {
@@ -53,11 +52,19 @@ export default function AdminAttendanceMonitor({ API = "/api", authHeaders = {},
   const [filter, setFilter] = useState("all"); // "all" | "active" | "reset" | "critical" | "safe"
   const [branch, setBranch] = useState("ALL");
   const [section, setSection] = useState("ALL");
+  const [sortBy, setSortBy] = useState("last-synced"); // "last-synced" | "attendance-high" | "attendance-low" | "regno" | "name"
   const [page, setPage] = useState(1);
   const [selectedStudent, setSelectedStudent] = useState(null);
 
   // Fetch Attendance Monitor data
-  const fetchAttendanceData = async (targetPage = page, targetFilter = filter, targetSearch = search, targetBranch = branch, targetSection = section) => {
+  const fetchAttendanceData = async (
+    targetPage = page,
+    targetFilter = filter,
+    targetSearch = search,
+    targetBranch = branch,
+    targetSection = section,
+    targetSortBy = sortBy
+  ) => {
     setLoading(true);
     try {
       const params = new URLSearchParams({
@@ -67,6 +74,7 @@ export default function AdminAttendanceMonitor({ API = "/api", authHeaders = {},
         search: targetSearch.trim(),
         branch: targetBranch,
         section: targetSection,
+        sortBy: targetSortBy,
       });
 
       const res = await axios.get(`${API}/admin/attendance-tracker/monitor?${params.toString()}`, {
@@ -90,19 +98,19 @@ export default function AdminAttendanceMonitor({ API = "/api", authHeaders = {},
   };
 
   useEffect(() => {
-    fetchAttendanceData(page, filter, search, branch, section);
-  }, [page, filter, branch, section]);
+    fetchAttendanceData(page, filter, search, branch, section, sortBy);
+  }, [page, filter, branch, section, sortBy]);
 
   const handleSearchSubmit = (e) => {
     if (e) e.preventDefault();
     setPage(1);
-    fetchAttendanceData(1, filter, search, branch, section);
+    fetchAttendanceData(1, filter, search, branch, section, sortBy);
   };
 
   const handleClearSearch = () => {
     setSearch("");
     setPage(1);
-    fetchAttendanceData(1, filter, "", branch, section);
+    fetchAttendanceData(1, filter, "", branch, section, sortBy);
   };
 
   const handleFilterChange = (newFilter) => {
@@ -117,6 +125,11 @@ export default function AdminAttendanceMonitor({ API = "/api", authHeaders = {},
 
   const handleSectionChange = (newSection) => {
     setSection(newSection);
+    setPage(1);
+  };
+
+  const handleSortChange = (newSort) => {
+    setSortBy(newSort);
     setPage(1);
   };
 
@@ -526,6 +539,30 @@ export default function AdminAttendanceMonitor({ API = "/api", authHeaders = {},
                 Section {sec}
               </option>
             ))}
+          </select>
+
+          {/* Sort By Filter */}
+          <select
+            value={sortBy}
+            onChange={(e) => handleSortChange(e.target.value)}
+            style={{
+              height: 38,
+              padding: "0 10px",
+              borderRadius: 8,
+              border: "1px solid #cbd5e1",
+              background: "#ffffff",
+              fontSize: 12.5,
+              fontWeight: 600,
+              color: "#0f172a",
+              cursor: "pointer",
+              outline: "none",
+            }}
+          >
+            <option value="last-synced">Sort: Last Synced (Newest)</option>
+            <option value="attendance-high">Sort: Attendance (High → Low)</option>
+            <option value="attendance-low">Sort: Attendance (Low → High)</option>
+            <option value="regno">Sort: Roll Number (Ascending)</option>
+            <option value="name">Sort: Student Name (A → Z)</option>
           </select>
         </div>
       </div>
