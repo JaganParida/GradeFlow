@@ -92,17 +92,17 @@ export default function ModernMobileSubNav({
 
   return (
     <>
-      {/* ── Main Sticky Anchor Bar (Clean Big-Tech Professional UI) ── */}
+      {/* ── Main Sticky Anchor Bar (Clean Big-Tech Professional Flat UI, Zero Box Shadow) ── */}
       <div
         id="gf-mobile-subnav"
         style={{
           position: "sticky",
           top: 0,
           zIndex: 30,
-          background: "rgba(241, 245, 249, 0.96)",
-          backdropFilter: "blur(8px)",
-          WebkitBackdropFilter: "blur(8px)",
-          padding: "2px 0 6px 0",
+          background: "rgba(241, 245, 249, 0.98)",
+          backdropFilter: "blur(10px)",
+          WebkitBackdropFilter: "blur(10px)",
+          padding: "3px 0 6px 0",
           width: "100%",
         }}
       >
@@ -110,8 +110,8 @@ export default function ModernMobileSubNav({
           style={{
             background: "#ffffff",
             border: "1px solid #e2e8f0",
-            borderRadius: 12,
-            padding: "6px 8px 6px 10px",
+            borderRadius: 10,
+            padding: "8px 10px",
             boxShadow: "none",
             display: "flex",
             alignItems: "center",
@@ -126,7 +126,7 @@ export default function ModernMobileSubNav({
             style={{
               display: "flex",
               alignItems: "center",
-              gap: 10,
+              gap: 9,
               minWidth: 0,
               flex: 1,
               cursor: "pointer",
@@ -137,8 +137,8 @@ export default function ModernMobileSubNav({
                 width: 34,
                 height: 34,
                 borderRadius: 8,
-                background: themeBg,
-                border: `1px solid ${themeColor}33`,
+                background: "#f8fafc",
+                border: "1px solid #e2e8f0",
                 color: themeColor,
                 display: "flex",
                 alignItems: "center",
@@ -163,77 +163,107 @@ export default function ModernMobileSubNav({
               >
                 {activeItem.label}
               </span>
-              <span style={{ fontSize: 11, fontWeight: 600, color: "#64748b", lineHeight: 1.2 }}>
-                View {currentIndex + 1} of {items.length} · Tap to browse
-              </span>
+              <div style={{ display: "flex", alignItems: "center", gap: 5, marginTop: 1.5 }}>
+                <span
+                  style={{
+                    fontSize: 10.5,
+                    fontWeight: 700,
+                    color: "#475569",
+                    background: "#f1f5f9",
+                    padding: "1px 5px",
+                    borderRadius: 4,
+                    lineHeight: 1.3,
+                  }}
+                >
+                  {currentIndex + 1} / {items.length}
+                </span>
+                <span style={{ fontSize: 10, fontWeight: 600, color: "#94a3b8" }}>•</span>
+                <span
+                  style={{
+                    fontSize: 11,
+                    fontWeight: 600,
+                    color: themeColor,
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 2,
+                    lineHeight: 1.3,
+                  }}
+                >
+                  Tap to browse
+                  <ChevronDown size={10} strokeWidth={2.4} />
+                </span>
+              </div>
             </div>
           </div>
 
-          {/* Right: Modern Segmented Navigation & "All" Pill */}
-          <div style={{ display: "flex", alignItems: "center", gap: 6, flexShrink: 0 }}>
-            {/* Segmented Prev / Next Dual Buttons */}
-            <div
+          {/* Right: Unified Sleek Action Toolbar (Zero Shadow, Crisp Segmented Control) */}
+          <div
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              background: "#f8fafc",
+              border: "1px solid #e2e8f0",
+              borderRadius: 8,
+              padding: 2,
+              gap: 2,
+              flexShrink: 0,
+              boxShadow: "none",
+            }}
+          >
+            <motion.button
+              type="button"
+              whileTap={{ scale: 0.92 }}
+              onClick={handlePrev}
+              title="Previous module"
+              aria-label="Previous view"
               style={{
-                display: "inline-flex",
+                width: 28,
+                height: 28,
+                borderRadius: 6,
+                border: "none",
+                background: "transparent",
+                color: "#475569",
+                display: "flex",
                 alignItems: "center",
-                background: "#f1f5f9",
-                borderRadius: 8,
-                padding: 2,
-                border: "1px solid #e2e8f0",
+                justifyContent: "center",
+                cursor: "pointer",
+                padding: 0,
+                boxShadow: "none",
+                transition: "all 0.15s ease",
               }}
             >
-              <motion.button
-                type="button"
-                whileTap={{ scale: 0.92 }}
-                onClick={handlePrev}
-                title="Previous Module"
-                aria-label="Previous view"
-                style={{
-                  width: 28,
-                  height: 28,
-                  borderRadius: 6,
-                  border: "none",
-                  background: "#ffffff",
-                  color: "#334155",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  cursor: "pointer",
-                  padding: 0,
-                  boxShadow: "none",
-                  transition: "all 0.15s ease",
-                }}
-              >
-                <ChevronLeft size={16} strokeWidth={2.4} />
-              </motion.button>
-              <div style={{ width: 1, height: 16, background: "#e2e8f0", margin: "0 1px" }} />
-              <motion.button
-                type="button"
-                whileTap={{ scale: 0.92 }}
-                onClick={handleNext}
-                title="Next Module"
-                aria-label="Next view"
-                style={{
-                  width: 28,
-                  height: 28,
-                  borderRadius: 6,
-                  border: "none",
-                  background: "#ffffff",
-                  color: "#334155",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  cursor: "pointer",
-                  padding: 0,
-                  boxShadow: "none",
-                  transition: "all 0.15s ease",
-                }}
-              >
-                <ChevronRight size={16} strokeWidth={2.4} />
-              </motion.button>
-            </div>
+              <ChevronLeft size={16} strokeWidth={2.4} />
+            </motion.button>
 
-            {/* "All" Dropdown Pill */}
+            <div style={{ width: 1, height: 14, background: "#e2e8f0" }} />
+
+            <motion.button
+              type="button"
+              whileTap={{ scale: 0.92 }}
+              onClick={handleNext}
+              title="Next module"
+              aria-label="Next view"
+              style={{
+                width: 28,
+                height: 28,
+                borderRadius: 6,
+                border: "none",
+                background: "transparent",
+                color: "#475569",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                cursor: "pointer",
+                padding: 0,
+                boxShadow: "none",
+                transition: "all 0.15s ease",
+              }}
+            >
+              <ChevronRight size={16} strokeWidth={2.4} />
+            </motion.button>
+
+            <div style={{ width: 1, height: 14, background: "#e2e8f0" }} />
+
             <motion.button
               type="button"
               whileTap={{ scale: 0.95 }}
@@ -243,23 +273,23 @@ export default function ModernMobileSubNav({
               style={{
                 display: "inline-flex",
                 alignItems: "center",
-                gap: 5,
-                padding: "6px 10px",
-                borderRadius: 10,
-                background: themeBg,
-                border: `1px solid ${themeColor}33`,
-                color: themeColor,
-                fontSize: 12,
+                gap: 4,
+                height: 28,
+                padding: "0 8px",
+                borderRadius: 6,
+                border: "1px solid #e2e8f0",
+                background: "#ffffff",
+                color: "#0f172a",
+                fontSize: 11.5,
                 fontWeight: 800,
-                letterSpacing: "-0.2px",
                 cursor: "pointer",
-                height: 32,
-                boxSizing: "border-box",
+                boxShadow: "none",
+                transition: "all 0.15s ease",
               }}
             >
-              <LayoutGrid size={13} strokeWidth={2.4} />
+              <LayoutGrid size={12} strokeWidth={2.4} color={themeColor} />
               <span>All</span>
-              <ChevronDown size={12} strokeWidth={2.4} />
+              <ChevronDown size={11} strokeWidth={2.4} color="#64748b" />
             </motion.button>
           </div>
         </div>
