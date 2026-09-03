@@ -4,6 +4,7 @@ const { sortByScore } = require("./_lib/gradeCalculations");
 const { globalDbQueue } = require("./_lib/dbProtection");
 
 function escapeRegex(str) {
+  if (typeof str !== "string") return "";
   return str.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
@@ -85,16 +86,10 @@ function verifyAuth(req) {
   return null;
 }
 
-const CORS_HEADERS = {
-  "Access-Control-Allow-Credentials": "true",
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Methods": "GET,OPTIONS",
-  "Access-Control-Allow-Headers": "X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version, Authorization, Cookie",
-};
+const { applyCors } = require("./_lib/cors");
 
 module.exports = async function handler(req, res) {
-  Object.entries(CORS_HEADERS).forEach(([k, v]) => res.setHeader(k, v));
-  if (req.method === "OPTIONS") return res.status(200).end();
+  if (applyCors(req, res, "GET,OPTIONS")) return;
   if (req.method !== "GET") return res.status(405).json({ message: "Method Not Allowed" });
 
   try {
@@ -119,22 +114,28 @@ module.exports = async function handler(req, res) {
     }
 
     const { semester, branch, search, limit = 50, sortBy = "sgpa", section, batch } = req.query;
+    const cleanSearch = typeof search === "string" ? search.trim().slice(0, 100) : "";
+    const cleanBranch = typeof branch === "string" ? branch.trim().slice(0, 30) : "";
+    const cleanBatch = typeof batch === "string" ? batch.trim().slice(0, 20) : "";
+    const cleanSection = typeof section === "string" ? section.trim().slice(0, 20) : "";
+    const cleanSortBy = sortBy === "cgpa" ? "cgpa" : "sgpa";
+    const maxRank = Math.min(200, Math.max(1, Number(limit) || 50));
+
     const query = {};
     const andClauses = [];
-    const maxRank = Math.max(1, Number(limit) || 50);
 
-    if (semester) query.semester = Number(semester);
-    if (batch) query.batch = batch;
+    if (semester && !isNaN(Number(semester))) query.semester = Number(semester);
+    if (cleanBatch) query.batch = cleanBatch;
     
-    if (branch) {
-      const bq = getRegNoQueryForBranch(branch);
+    if (cleanBranch) {
+      const bq = getRegNoQueryForBranch(cleanBranch);
       if (bq) andClauses.push(bq);
-      else query.branch = branch;
+      else query.branch = cleanBranch;
     }
 
-    const isGlobalSearch = search && !branch;
+    const isGlobalSearch = Boolean(cleanSearch && !cleanBranch);
     if (isGlobalSearch) {
-      const escaped = escapeRegex(search);
+      const escaped = escapeRegex(cleanSearch);
       andClauses.push({
         $or: [
           { studentName: { $regex: escaped, $options: "i" } },
@@ -193,27 +194,27 @@ module.exports = async function handler(req, res) {
       }
     }
 
-    if (search && branch) {
-      const s = search.toLowerCase();
+    if (cleanSearch && cleanBranch) {
+      const s = cleanSearch.toLowerCase();
       rankings = rankings.filter(r => {
-        const nameMatch = r.studentName && r.studentName.toLowerCase().includes(s);
-        const regMatch = r.regNo && r.regNo.toLowerCase().includes(s);
+        const nameMatch = r.studentName && String(r.studentName).toLowerCase().includes(s);
+        const regMatch = r.regNo && String(r.regNo).toLowerCase().includes(s);
         return nameMatch || regMatch;
       });
     }
 
     let bounded = [];
-    if (branch || search) {
-      if (branch && !search) {
+    if (cleanBranch || cleanSearch) {
+      if (cleanBranch && !cleanSearch) {
         for (const r of rankings) {
           if (r.dynamicRank > maxRank) break;
           bounded.push(r);
         }
-      } else if (search) {
+      } else if (cleanSearch) {
         bounded = rankings.slice(0, maxRank);
       }
     } else {
-      const rankKey = sortBy === "cgpa" ? "cgpaRank" : "sgpaRank";
+      const rankKey = cleanSortBy === "cgpa" ? "cgpaRank" : "sgpaRank";
       bounded = rankings.filter((ranking) => {
         const rank = Number(ranking[rankKey] || ranking.universityRank);
         return Number.isFinite(rank) && rank <= maxRank;

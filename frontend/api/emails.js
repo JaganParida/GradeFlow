@@ -6,6 +6,7 @@ const SubAdminSession = require("./_lib/models/SubAdminSession");
 const { isAdminSessionValid } = require("./_lib/sessionManager");
 const { generateBacklogEmailHtml, generateBacklogEmailText } = require("./_lib/emailTemplate.js");
 const { generateTopperEmailHtml, generateTopperEmailText } = require("./_lib/topperEmailTemplate.js");
+const { applyCors } = require("./_lib/cors");
 
 function createTransporter() {
   const emailUser = process.env.EMAIL_USER;
@@ -151,17 +152,7 @@ function sanitizeText(val, maxLen = 80) {
 }
 
 module.exports = async function handler(req, res) {
-  res.setHeader("Access-Control-Allow-Credentials", "true");
-  res.setHeader("Access-Control-Allow-Origin", "*");
-  res.setHeader("Access-Control-Allow-Methods", "POST,OPTIONS");
-  res.setHeader(
-    "Access-Control-Allow-Headers",
-    "X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version, Authorization, Cookie, x-admin-token"
-  );
-
-  if (req.method === "OPTIONS") {
-    return res.status(200).end();
-  }
+  if (applyCors(req, res, "POST,OPTIONS")) return;
 
   if (req.method !== "POST") {
     return res.status(405).json({ message: "Method not allowed" });

@@ -42,13 +42,7 @@ const {
   getActiveSubAdminSessions,
 } = require("./_lib/sessionManager");
 
-const CORS_HEADERS = {
-  "Access-Control-Allow-Credentials": "true",
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Methods": "GET,POST,OPTIONS",
-  "Access-Control-Allow-Headers":
-    "X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version, Authorization, Cookie, x-student-token, x-admin-token",
-};
+const { applyCors } = require("./_lib/cors");
 
 function parseCookies(cookieHeader) {
   const cookies = {};
@@ -202,8 +196,7 @@ function getTimeUntilIstMidnight() {
 }
 
 module.exports = async function handler(req, res) {
-  Object.entries(CORS_HEADERS).forEach(([k, v]) => res.setHeader(k, v));
-  if (req.method === "OPTIONS") return res.status(200).end();
+  if (applyCors(req, res, "GET,POST,OPTIONS")) return;
 
   try {
     await connectToDatabase();
@@ -1776,27 +1769,22 @@ module.exports = async function handler(req, res) {
       const cleanEmail = String(email || "").trim().toLowerCase();
       const candidatePassword = String(password || "");
 
-      if (!candidatePassword) {
-        return res.status(400).json({ success: false, message: "Password is required.", code: "CREDENTIALS_REQUIRED" });
+      if (!cleanEmail || !candidatePassword) {
+        return res.status(400).json({
+          success: false,
+          message: "Both email and password are required.",
+          code: "CREDENTIALS_REQUIRED",
+        });
       }
 
-      let subAdmin = cleanEmail ? await SubAdmin.findOne({ email: cleanEmail }) : null;
-      if (!subAdmin && !cleanEmail) {
-        const activeSubAdmins = await SubAdmin.find({ status: "active" });
-        for (const sa of activeSubAdmins) {
-          if (await sa.comparePassword(candidatePassword)) {
-            subAdmin = sa;
-            break;
-          }
-        }
-      }
-
+      const subAdmin = await SubAdmin.findOne({ email: cleanEmail });
       if (!subAdmin) {
         return res.status(401).json({ success: false, message: "Invalid Sub-Admin credentials.", code: "INVALID_CREDENTIALS" });
       }
 
-      if (cleanEmail && !(await subAdmin.comparePassword(candidatePassword))) {
-        return res.status(401).json({ success: false, message: "Invalid Sub-Admin password.", code: "INVALID_CREDENTIALS" });
+      const isMatch = await subAdmin.comparePassword(candidatePassword);
+      if (!isMatch) {
+        return res.status(401).json({ success: false, message: "Invalid Sub-Admin credentials.", code: "INVALID_CREDENTIALS" });
       }
 
       if (subAdmin.status !== "active") {

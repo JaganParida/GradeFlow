@@ -200,13 +200,18 @@ GradeFlow/
     - Attempting passwords while locked returns HTTP 429 (`ACCOUNT_TEMPORARILY_LOCKED`).
     - Successful OTP authentication resets `failedPasswordAttempts = 0` and clears `lockedUntil`.
 - **Admin Authentication**: Multi-step verification. Main Admin submits email and password, followed by an administrative 2FA OTP sent to the authorized institutional email.
-- **Sub-Admin Authentication**: Sub-Admins log in with assigned credentials + 2FA email OTP, receiving an RBAC-scoped session token.
+- **Sub-Admin Authentication & CPU DoS Protection**:
+  - Sub-Admins log in with assigned credentials + 2FA email OTP, receiving an RBAC-scoped session token.
+  - Mandatory email validation prevents unbounded CPU DoS: the system never loops over active accounts to evaluate bcrypt hashes without a matching email address.
 
 ---
 
 ## 13. Device & Session Experience & Data Isolation
 
 - **Single-Device Policy (Normal Students)**: Students are permitted **1 active device**. Attempting to sign in on a second device requires in-website authorization or session transfer.
+- **Lost Cookie Deadlock Resolution (Session Handover)**:
+  - When students clear browser cookies or open Incognito windows while an existing session is registered, the approval modal provides an actionable **"Lost access to old device? Transfer via Email OTP"** pathway.
+  - Verifying the 6-digit email OTP revokes the orphan device session and establishes an active session on the current device without admin intervention.
 - **Superuser Policy (`230301120327`)**: Permitted up to **2 concurrent active devices** for cross-device development/testing.
 - **Strict Academic Data Isolation (Zero IDOR)**:
   - Every student endpoint (`/api/student`, `/api/student/records`, etc.) authoritatively enforces `decodedStudent.regNo.toUpperCase() === cleanRegNo`.
@@ -361,6 +366,12 @@ GradeFlow/
 - [x] Main Admin and Sub-Admin database-backed session validation across Express and Serverless
 - [x] Protected email dispatch relay (/api/emails.js restricted to authenticated administrators)
 - [x] Authenticated Attendance OCR API with payload memory caps
+- [x] Sub-Admin mandatory email check preventing CPU DoS bcrypt loops
+- [x] Rankings NoSQL & TypeError protection with type-guarded regex escaping
+- [x] Compound database indexing on `Ranking` ({ regNo: 1, semester: 1 }, { semester: 1, batch: 1 })
+- [x] Centralized CORS dynamic origin reflection complying with Fetch/CORS credentials standard
+- [x] Global Vercel production security headers (nosniff, SAMEORIGIN, strict-origin, Permissions-Policy)
+- [x] Lost Cookie deadlock resolution with in-website Email OTP session handover
 
 ---
 

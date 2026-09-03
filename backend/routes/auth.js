@@ -1878,48 +1878,29 @@ router.post("/subadmin/login", async (req, res) => {
     const cleanEmail = String(email || "").trim().toLowerCase();
     const candidatePassword = String(password || "");
 
-    if (!candidatePassword) {
+    if (!cleanEmail || !candidatePassword) {
       return res.status(400).json({
         success: false,
-        message: "Password is required.",
+        message: "Both email and password are required.",
         code: "CREDENTIALS_REQUIRED",
       });
     }
 
-    let subAdmin = null;
-    if (cleanEmail) {
-      subAdmin = await SubAdmin.findOne({ email: cleanEmail });
-      if (!subAdmin) {
-        return res.status(401).json({
-          success: false,
-          message: "Invalid Sub-Admin credentials.",
-          code: "INVALID_CREDENTIALS",
-        });
-      }
-      const isMatch = await subAdmin.comparePassword(candidatePassword);
-      if (!isMatch) {
-        return res.status(401).json({
-          success: false,
-          message: "Invalid Sub-Admin password.",
-          code: "INVALID_CREDENTIALS",
-        });
-      }
-    } else {
-      const activeSubAdmins = await SubAdmin.find({ status: "active" });
-      for (const sa of activeSubAdmins) {
-        const isMatch = await sa.comparePassword(candidatePassword);
-        if (isMatch) {
-          subAdmin = sa;
-          break;
-        }
-      }
-      if (!subAdmin) {
-        return res.status(401).json({
-          success: false,
-          message: "The Sub-Admin password entered does not match institutional records.",
-          code: "INVALID_CREDENTIALS",
-        });
-      }
+    const subAdmin = await SubAdmin.findOne({ email: cleanEmail });
+    if (!subAdmin) {
+      return res.status(401).json({
+        success: false,
+        message: "Invalid Sub-Admin credentials.",
+        code: "INVALID_CREDENTIALS",
+      });
+    }
+    const isMatch = await subAdmin.comparePassword(candidatePassword);
+    if (!isMatch) {
+      return res.status(401).json({
+        success: false,
+        message: "Invalid Sub-Admin credentials.",
+        code: "INVALID_CREDENTIALS",
+      });
     }
 
     if (subAdmin.status !== "active") {

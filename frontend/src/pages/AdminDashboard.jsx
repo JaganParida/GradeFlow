@@ -14,6 +14,7 @@ import TimetableAdminManager from "../components/TimetableAdminManager";
 import AdminManagement from "../components/AdminManagement";
 import StudentOtpManagement from "../components/StudentOtpManagement";
 import AdminAttendanceMonitor from "../components/AdminAttendanceMonitor";
+import AdminLiveTrafficManager from "../components/AdminLiveTrafficManager";
 import ModernMobileSubNav from "../components/ModernMobileSubNav";
 import { motion, AnimatePresence } from "framer-motion";
 import { formatDistanceToNow } from "date-fns";
@@ -3743,6 +3744,7 @@ export default function AdminDashboard() {
   // Build granular tab list based on authenticated identity
   const ALL_ADMIN_TABS = [
     { id: "overview", label: "Upload Results", icon: <CloudUpload size={15} />, desc: "Upload and process semester results & scorecards" },
+    { id: "live-traffic", label: "Live Active Students", icon: <Activity size={15} />, desc: "Real-time active student monitor, route analytics & waiting queue control" },
     { id: "timetable", label: "Timetable & Calendar", icon: <Clock size={15} />, desc: "Manage class schedules, routines and academic calendar" },
     { id: "report-card", label: "Report Card Editor", icon: <FileText size={15} />, desc: "Official student grade sheets and report cards" },
     { id: "missing-uploader", label: "Missing Students Ingestion", icon: <UserPlus size={15} />, desc: "Manual student entry & individual score records" },
@@ -4926,6 +4928,11 @@ export default function AdminDashboard() {
         {/* ── TAB: ATTENDANCE TRACKER USAGE MONITOR ── */}
         {tab === "attendance-monitor" && (
           <AdminAttendanceMonitor API={API} authHeaders={authHeaders} isMobile={isMobile} />
+        )}
+
+        {/* ── TAB: LIVE ACTIVE STUDENTS & TRAFFIC INTELLIGENCE ── */}
+        {tab === "live-traffic" && (
+          <AdminLiveTrafficManager API={API} authHeaders={authHeaders} isMobile={isMobile} />
         )}
 
         {/* ── TAB 6: STUDENT OTP ATTEMPT MANAGEMENT (MAIN ADMIN EXCLUSIVE) ── */}

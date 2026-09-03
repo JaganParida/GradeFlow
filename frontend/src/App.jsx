@@ -65,6 +65,8 @@ import ErrorBoundary from "./components/system/ErrorBoundary";
 import NetworkStatusListener from "./components/system/NetworkStatusListener";
 import SmoothScroll from "./components/system/SmoothScroll";
 import MaintenanceGuard from "./components/system/MaintenanceGuard";
+import WaitingRoomGuard from "./components/system/WaitingRoomGuard";
+import { useTrafficTracker } from "./utils/useTrafficTracker";
 import {
   NotFoundState,
   RateLimitState,
@@ -211,7 +213,20 @@ export default function App() {
   const [rateLimitError, setRateLimitError] = useState(null);
   const location = useLocation();
   const navigate = useNavigate();
-  const { setSessionRevokedNotice, setStudentSession, setStudentData } = useApp();
+  const {
+    setSessionRevokedNotice,
+    setStudentSession,
+    setStudentData,
+    studentSession,
+    studentData,
+    adminToken,
+  } = useApp();
+
+  const { queueState, leaveQueue, isAuthorizedAdmin } = useTrafficTracker({
+    studentSession,
+    studentData,
+    adminToken,
+  });
 
   // Keep public pages crawlable and prevent protected/error routes from being indexed.
   useEffect(() => {
@@ -274,8 +289,13 @@ export default function App() {
       )}
 
       <MaintenanceGuard>
-        <FeedbackModal />
-        <UpgradeModal />
+        <WaitingRoomGuard
+          queueState={queueState}
+          leaveQueue={leaveQueue}
+          isAuthorizedAdmin={isAuthorizedAdmin}
+        >
+          <FeedbackModal />
+          <UpgradeModal />
         <Suspense fallback={<RouteLoadingFallback />}>
           <AnimatePresence mode="wait">
             <Routes location={location} key={location.pathname}>
@@ -502,6 +522,7 @@ export default function App() {
           </Routes>
         </AnimatePresence>
         </Suspense>
+        </WaitingRoomGuard>
       </MaintenanceGuard>
     </ErrorBoundary>
   );

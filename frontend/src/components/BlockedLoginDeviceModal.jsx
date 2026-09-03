@@ -21,6 +21,7 @@ export default function BlockedLoginDeviceModal({
   activeDevices = [],
   accountIdentifier = "",
   maxAllowed = 1,
+  onTransferSession,
 }) {
   const [isMobile, setIsMobile] = useState(
     typeof window !== "undefined" ? window.innerWidth < 640 : false
@@ -389,25 +390,54 @@ export default function BlockedLoginDeviceModal({
             </div>
           </div>
 
-          {/* Modal Footer (Purely Informational Action) */}
+          {/* Modal Footer */}
           <div
             style={{
               padding: isMobile ? "12px 16px" : "14px 24px",
               backgroundColor: "#f8fafc",
               borderTop: "1px solid #e2e8f0",
               display: "flex",
-              justifyContent: "flex-end",
+              alignItems: "center",
+              justifyContent: onTransferSession ? "space-between" : "flex-end",
+              flexWrap: isMobile ? "wrap" : "nowrap",
+              gap: 10,
               boxSizing: "border-box",
             }}
           >
+            {onTransferSession && (
+              <button
+                type="button"
+                onClick={() => {
+                  onClose();
+                  onTransferSession();
+                }}
+                style={{
+                  padding: isMobile ? "10px 16px" : "9px 18px",
+                  backgroundColor: "#2563eb",
+                  color: "#ffffff",
+                  border: "none",
+                  borderRadius: "10px",
+                  fontSize: isMobile ? "13.5px" : "13px",
+                  fontWeight: "700",
+                  cursor: "pointer",
+                  transition: "background 0.15s ease",
+                  width: isMobile ? "100%" : "auto",
+                  textAlign: "center",
+                }}
+                onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "#1d4ed8")}
+                onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "#2563eb")}
+              >
+                Transfer Session to this Device
+              </button>
+            )}
             <button
               type="button"
               onClick={onClose}
               style={{
                 padding: isMobile ? "10px 16px" : "9px 20px",
-                backgroundColor: "#0f172a",
-                color: "#ffffff",
-                border: "none",
+                backgroundColor: onTransferSession ? "#ffffff" : "#0f172a",
+                color: onTransferSession ? "#334155" : "#ffffff",
+                border: onTransferSession ? "1.5px solid #cbd5e1" : "none",
                 borderRadius: "10px",
                 fontSize: isMobile ? "13.5px" : "13px",
                 fontWeight: "700",
@@ -416,10 +446,10 @@ export default function BlockedLoginDeviceModal({
                 width: isMobile ? "100%" : "auto",
                 textAlign: "center",
               }}
-              onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "#1e293b")}
-              onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "#0f172a")}
+              onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = onTransferSession ? "#f1f5f9" : "#1e293b")}
+              onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = onTransferSession ? "#ffffff" : "#0f172a")}
             >
-              Understood
+              {onTransferSession ? "Close" : "Understood"}
             </button>
           </div>
         </motion.div>
