@@ -3,6 +3,7 @@ import { useLocation } from "react-router-dom";
 import { io } from "socket.io-client";
 import axios from "axios";
 import { parseDeviceDetails } from "./deviceHelper";
+import { API_BASE } from "../context/AppContext";
 
 function getOrCreateClientToken() {
   try {
@@ -203,9 +204,10 @@ export function useTrafficTracker({ studentSession, studentData, adminToken }) {
     const sendEnterBeacon = () => {
       axios
         .post(
-          "/api/traffic/page-view",
+          `${API_BASE}/traffic/page-view`,
           {
             token,
+            sessionId: studentSession?.sessionId,
             route: currentPath,
             regNo,
             studentName,
@@ -216,7 +218,7 @@ export function useTrafficTracker({ studentSession, studentData, adminToken }) {
             browser: deviceInfo.browser,
             isAdmin: isAuthorizedAdmin,
           },
-          { timeout: 5000 }
+          { withCredentials: true, timeout: 5000 }
         )
         .then((res) => {
           if (res.data?.queued && !isAuthorizedAdmin && !hasValidAdmissionTicket()) {
@@ -242,17 +244,19 @@ export function useTrafficTracker({ studentSession, studentData, adminToken }) {
       if (isAdminRoute || !token) return;
       const payload = JSON.stringify({
         token,
+        sessionId: studentSession?.sessionId,
         regNo,
         deviceType: deviceInfo.deviceType,
       });
       if (typeof navigator !== "undefined" && navigator.sendBeacon) {
         const blob = new Blob([payload], { type: "application/json" });
-        navigator.sendBeacon("/api/traffic/leave", blob);
+        navigator.sendBeacon(`${API_BASE}/traffic/leave`, blob);
       } else {
-        fetch("/api/traffic/leave", {
+        fetch(`${API_BASE}/traffic/leave`, {
           method: "POST",
           body: payload,
           headers: { "Content-Type": "application/json" },
+          credentials: "include",
           keepalive: true,
         }).catch(() => {});
       }
@@ -307,7 +311,7 @@ export function useTrafficTracker({ studentSession, studentData, adminToken }) {
         window.removeEventListener("beforeunload", handleBeforeUnload);
       }
     };
-  }, [location.pathname, isAuthorizedAdmin, studentSession?.regNo, studentData?.studentName]);
+  }, [location.pathname, isAuthorizedAdmin, studentSession?.regNo, studentSession?.sessionId, studentData?.studentName]);
 
   // Method for student to voluntarily leave queue
   const leaveQueue = () => {

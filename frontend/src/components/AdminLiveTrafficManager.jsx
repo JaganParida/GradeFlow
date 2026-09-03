@@ -31,6 +31,7 @@ import {
   Unlock,
   ChevronLeft,
   ChevronRight,
+  Loader2,
 } from "lucide-react";
 
 export default function AdminLiveTrafficManager({ authHeaders, API }) {
@@ -552,26 +553,41 @@ export default function AdminLiveTrafficManager({ authHeaders, API }) {
             </div>
           </div>
           <div style={{ display: "flex", alignItems: "baseline", gap: 8 }}>
-            <span style={{ fontSize: 32, fontWeight: 900, color: "#0f172a", letterSpacing: "-1px" }}>
-              {liveData.totalActiveUsers}
-            </span>
-            <span style={{ fontSize: 12, fontWeight: 700, color: "#059669", display: "inline-flex", alignItems: "center", gap: 4 }}>
-              <span
-                style={{
-                  width: 6,
-                  height: 6,
-                  borderRadius: "50%",
-                  background: "#10b981",
-                  display: "inline-block",
-                  boxShadow: "0 0 0 2px rgba(16, 185, 129, 0.3)",
-                }}
-              />
-              Live on Site
-            </span>
+            {loading ? (
+              <div style={{ display: "inline-flex", alignItems: "center", gap: 8, height: 38 }}>
+                <span className="skeleton" style={{ width: 44, height: 30, borderRadius: 6, display: "inline-block" }} />
+                <Loader2 size={16} className="spin" color="#059669" />
+              </div>
+            ) : (
+              <>
+                <span style={{ fontSize: 32, fontWeight: 900, color: "#0f172a", letterSpacing: "-1px" }}>
+                  {liveData.totalActiveUsers}
+                </span>
+                <span style={{ fontSize: 12, fontWeight: 700, color: "#059669", display: "inline-flex", alignItems: "center", gap: 4 }}>
+                  <span
+                    style={{
+                      width: 6,
+                      height: 6,
+                      borderRadius: "50%",
+                      background: "#10b981",
+                      display: "inline-block",
+                      boxShadow: "0 0 0 2px rgba(16, 185, 129, 0.3)",
+                    }}
+                  />
+                  Live on Site
+                </span>
+              </>
+            )}
           </div>
           <div style={{ fontSize: 11.5, color: "#64748b", marginTop: 4, display: "flex", justifyContent: "space-between", flexWrap: "wrap", gap: 4 }}>
-            <span>{liveData.activeStudents.filter((s) => !s.isGuest).length} Students · {liveData.activeStudents.filter((s) => s.isGuest).length} Guests</span>
-            <span style={{ fontWeight: 600, color: "#2563eb" }}>{liveData.totalLoggedInSessions ?? 65} DB Sessions</span>
+            {loading ? (
+              <span className="skeleton" style={{ width: 140, height: 14, borderRadius: 4, display: "inline-block" }} />
+            ) : (
+              <>
+                <span>{liveData.activeStudents.filter((s) => !s.isGuest).length} Students · {liveData.activeStudents.filter((s) => s.isGuest).length} Guests</span>
+                <span style={{ fontWeight: 600, color: "#2563eb" }}>{liveData.totalLoggedInSessions ?? 65} DB Sessions</span>
+              </>
+            )}
           </div>
         </div>
 
@@ -594,15 +610,28 @@ export default function AdminLiveTrafficManager({ authHeaders, API }) {
             </div>
           </div>
           <div style={{ display: "flex", alignItems: "baseline", gap: 8 }}>
-            <span style={{ fontSize: 32, fontWeight: 900, color: liveData.totalQueuedUsers > 0 ? "#ea580c" : "#0f172a", letterSpacing: "-1px" }}>
-              {liveData.totalQueuedUsers}
-            </span>
-            <span style={{ fontSize: 11.5, fontWeight: 700, color: liveData.isQueueActive ? "#dc2626" : "#059669" }}>
-              {liveData.isQueueActive ? "Queue Active" : "No Wait"}
-            </span>
+            {loading ? (
+              <div style={{ display: "inline-flex", alignItems: "center", gap: 8, height: 38 }}>
+                <span className="skeleton" style={{ width: 44, height: 30, borderRadius: 6, display: "inline-block" }} />
+                <Loader2 size={16} className="spin" color="#94a3b8" />
+              </div>
+            ) : (
+              <>
+                <span style={{ fontSize: 32, fontWeight: 900, color: liveData.totalQueuedUsers > 0 ? "#ea580c" : "#0f172a", letterSpacing: "-1px" }}>
+                  {liveData.totalQueuedUsers}
+                </span>
+                <span style={{ fontSize: 11.5, fontWeight: 700, color: liveData.isQueueActive ? "#dc2626" : "#059669" }}>
+                  {liveData.isQueueActive ? "Queue Active" : "No Wait"}
+                </span>
+              </>
+            )}
           </div>
           <div style={{ fontSize: 11.5, color: "#64748b", marginTop: 4 }}>
-            {liveData.totalQueuedUsers > 0 ? "Throttled traffic waiting in line" : "All traffic proceeding directly"}
+            {loading ? (
+              <span className="skeleton" style={{ width: 150, height: 14, borderRadius: 4, display: "inline-block" }} />
+            ) : (
+              liveData.totalQueuedUsers > 0 ? "Throttled traffic waiting in line" : "All traffic proceeding directly"
+            )}
           </div>
         </div>
 
@@ -625,12 +654,21 @@ export default function AdminLiveTrafficManager({ authHeaders, API }) {
             </div>
           </div>
           <div style={{ display: "flex", alignItems: "baseline", gap: 8 }}>
-            <span style={{ fontSize: 32, fontWeight: 900, color: "#0f172a", letterSpacing: "-1px" }}>
-              {liveData.maxActiveCapacity}
-            </span>
-            <span style={{ fontSize: 11.5, fontWeight: 700, color: capacityPct >= 90 ? "#dc2626" : "#2563eb" }}>
-              {capacityPct}% Load
-            </span>
+            {loading ? (
+              <div style={{ display: "inline-flex", alignItems: "center", gap: 8, height: 38 }}>
+                <span className="skeleton" style={{ width: 56, height: 30, borderRadius: 6, display: "inline-block" }} />
+                <Loader2 size={16} className="spin" color="#7c3aed" />
+              </div>
+            ) : (
+              <>
+                <span style={{ fontSize: 32, fontWeight: 900, color: "#0f172a", letterSpacing: "-1px" }}>
+                  {liveData.maxActiveCapacity}
+                </span>
+                <span style={{ fontSize: 11.5, fontWeight: 700, color: capacityPct >= 90 ? "#dc2626" : "#2563eb" }}>
+                  {capacityPct}% Load
+                </span>
+              </>
+            )}
           </div>
           {/* Load Progress bar */}
           <div style={{ width: "100%", height: 5, background: "#f1f5f9", borderRadius: 99, marginTop: 8, overflow: "hidden" }}>
@@ -665,15 +703,28 @@ export default function AdminLiveTrafficManager({ authHeaders, API }) {
             </div>
           </div>
           <div style={{ display: "flex", alignItems: "baseline", gap: 8 }}>
-            <span style={{ fontSize: 32, fontWeight: 900, color: "#0f172a", letterSpacing: "-1px" }}>
-              {liveData.analytics?.totalTrackedViews?.toLocaleString() || 0}
-            </span>
-            <span style={{ fontSize: 11.5, fontWeight: 700, color: "#059669" }}>
-              Recorded
-            </span>
+            {loading ? (
+              <div style={{ display: "inline-flex", alignItems: "center", gap: 8, height: 38 }}>
+                <span className="skeleton" style={{ width: 64, height: 30, borderRadius: 6, display: "inline-block" }} />
+                <Loader2 size={16} className="spin" color="#059669" />
+              </div>
+            ) : (
+              <>
+                <span style={{ fontSize: 32, fontWeight: 900, color: "#0f172a", letterSpacing: "-1px" }}>
+                  {liveData.analytics?.totalTrackedViews?.toLocaleString() || 0}
+                </span>
+                <span style={{ fontSize: 11.5, fontWeight: 700, color: "#059669" }}>
+                  Recorded
+                </span>
+              </>
+            )}
           </div>
           <div style={{ fontSize: 11.5, color: "#64748b", marginTop: 4 }}>
-            Across {liveData.analytics?.allPages?.length || 0} tracked routes
+            {loading ? (
+              <span className="skeleton" style={{ width: 130, height: 14, borderRadius: 4, display: "inline-block" }} />
+            ) : (
+              `Across ${liveData.analytics?.allPages?.length || 0} tracked routes`
+            )}
           </div>
         </div>
       </div>
@@ -731,7 +782,12 @@ export default function AdminLiveTrafficManager({ authHeaders, API }) {
                     boxShadow: "0 0 0 2px rgba(16, 185, 129, 0.3)",
                   }}
                 />
-                Live On Site ({liveData.activeStudents?.length || 0})
+                Live On Site{" "}
+                {loading ? (
+                  <Loader2 size={12} className="spin" style={{ display: "inline-block", marginLeft: 3 }} />
+                ) : (
+                  `(${liveData.activeStudents?.length || 0})`
+                )}
               </button>
 
               <button
@@ -756,7 +812,12 @@ export default function AdminLiveTrafficManager({ authHeaders, API }) {
                 }}
               >
                 <Users size={14} color={studentListTab === "ALL_LOGGED_IN" ? "#2563eb" : "#64748b"} />
-                All Logged-In ({liveData.allLoggedInStudents?.length || liveData.totalLoggedInSessions || 65})
+                All Logged-In{" "}
+                {loading ? (
+                  <Loader2 size={12} className="spin" style={{ display: "inline-block", marginLeft: 3 }} />
+                ) : (
+                  `(${liveData.allLoggedInStudents?.length || liveData.totalLoggedInSessions || 0})`
+                )}
               </button>
             </div>
             <p style={{ fontSize: 12, color: "#64748b", margin: "6px 0 0 0" }}>
@@ -846,8 +907,78 @@ export default function AdminLiveTrafficManager({ authHeaders, API }) {
           </div>
         </div>
 
-        {/* Empty State */}
-        {filteredActiveStudents.length === 0 ? (
+        {/* Loading Skeleton State */}
+        {loading ? (
+          isMobile ? (
+            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+              {[1, 2, 3].map((n) => (
+                <div
+                  key={n}
+                  style={{
+                    background: "#f8fafc",
+                    border: "1px solid #e2e8f0",
+                    borderRadius: 12,
+                    padding: "12px 14px",
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: 10,
+                  }}
+                >
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                    <span className="skeleton" style={{ width: 130, height: 16, borderRadius: 4, display: "inline-block" }} />
+                    <span className="skeleton" style={{ width: 70, height: 20, borderRadius: 6, display: "inline-block" }} />
+                  </div>
+                  <span className="skeleton" style={{ width: "100%", height: 32, borderRadius: 8, display: "inline-block" }} />
+                  <div style={{ display: "flex", justifyContent: "space-between" }}>
+                    <span className="skeleton" style={{ width: 90, height: 14, borderRadius: 4, display: "inline-block" }} />
+                    <span className="skeleton" style={{ width: 50, height: 14, borderRadius: 4, display: "inline-block" }} />
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div style={{ overflowX: "auto" }}>
+              <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13, textAlign: "left" }}>
+                <thead>
+                  <tr style={{ borderBottom: "1.5px solid #e2e8f0", color: "#64748b", fontSize: 11.5, textTransform: "uppercase" }}>
+                    <th style={{ padding: "10px 12px" }}>Student / Visitor</th>
+                    <th style={{ padding: "10px 12px" }}>Academic Info</th>
+                    <th style={{ padding: "10px 12px" }}>Active Route / Page</th>
+                    <th style={{ padding: "10px 12px" }}>Device & Browser</th>
+                    <th style={{ padding: "10px 12px" }}>Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {[1, 2, 3, 4].map((n) => (
+                    <tr key={n} style={{ borderBottom: "1px solid #f1f5f9" }}>
+                      <td style={{ padding: "12px" }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                          <span className="skeleton" style={{ width: 32, height: 32, borderRadius: "50%", display: "inline-block" }} />
+                          <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                            <span className="skeleton" style={{ width: 120, height: 14, borderRadius: 4, display: "inline-block" }} />
+                            <span className="skeleton" style={{ width: 80, height: 12, borderRadius: 4, display: "inline-block" }} />
+                          </div>
+                        </div>
+                      </td>
+                      <td style={{ padding: "12px" }}>
+                        <span className="skeleton" style={{ width: 90, height: 14, borderRadius: 4, display: "inline-block" }} />
+                      </td>
+                      <td style={{ padding: "12px" }}>
+                        <span className="skeleton" style={{ width: 140, height: 26, borderRadius: 8, display: "inline-block" }} />
+                      </td>
+                      <td style={{ padding: "12px" }}>
+                        <span className="skeleton" style={{ width: 110, height: 14, borderRadius: 4, display: "inline-block" }} />
+                      </td>
+                      <td style={{ padding: "12px" }}>
+                        <span className="skeleton" style={{ width: 60, height: 22, borderRadius: 12, display: "inline-block" }} />
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )
+        ) : filteredActiveStudents.length === 0 ? (
           <div style={{ textAlign: "center", padding: "40px 20px", color: "#64748b" }}>
             <div style={{ width: 44, height: 44, borderRadius: "50%", background: "#f1f5f9", display: "inline-flex", alignItems: "center", justifyContent: "center", marginBottom: 10 }}>
               <Users size={20} color="#94a3b8" />
