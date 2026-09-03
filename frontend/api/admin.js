@@ -714,7 +714,7 @@ module.exports = async function handler(req, res) {
     if (action === "purge-expired" || cleanUrl.includes("/purge-expired")) {
       return res.json({
         success: true,
-        message: "✅ Batch purge complete. 0 expired batch(es) purged.",
+        message: "Batch purge complete. 0 expired batch(es) purged.",
         purgedCount: 0,
       });
     }
@@ -1001,7 +1001,7 @@ module.exports = async function handler(req, res) {
 
       return res.json({
         success: true,
-        message: `✅ All rankings regenerated for ${semesters.length} semester(s): ${semesters.join(", ")}.`,
+        message: `All rankings regenerated for ${semesters.length} semester(s): ${semesters.join(", ")}.`,
       });
     }
 

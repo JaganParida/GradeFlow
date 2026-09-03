@@ -15,7 +15,8 @@ import {
   Eye,
   CheckCircle2,
   Clock,
-  Sparkles,
+  Radio,
+  Info,
   Link2,
   Users,
   Loader2,
@@ -330,7 +331,7 @@ export default function AdminNotificationBroadcast({ API, authHeaders, isMobile 
               gap: 6,
             }}
           >
-            <Sparkles size={14} color="#2563eb" />
+            <Radio size={14} color="#2563eb" />
             <span style={{ color: "#64748b" }}>Active Broadcasts:</span>
             <strong style={{ color: "#0f172a" }}>{activeBroadcastCount}</strong>
           </div>
@@ -818,8 +819,11 @@ export default function AdminNotificationBroadcast({ API, authHeaders, isMobile 
               </div>
             </div>
 
-            <div style={{ marginTop: 14, fontSize: 11.5, color: "#64748b", lineHeight: 1.4 }}>
-              💡 <strong>How it behaves:</strong> When a student clicks <strong>"{primaryLabel || "Check Now"}"</strong>, it marks the announcement as read and directly redirects them to <code>{targetRoute === "custom" ? customRoute || "/..." : targetRoute}</code>. Clicking <strong>"{secondaryLabel || "Understood"}"</strong> dismisses the card.
+            <div style={{ marginTop: 14, fontSize: 11.5, color: "#64748b", lineHeight: 1.4, display: "flex", alignItems: "flex-start", gap: 6 }}>
+              <Info size={14} color="#2563eb" style={{ flexShrink: 0, marginTop: 2 }} />
+              <div>
+                <strong>How it behaves:</strong> When a student clicks <strong>"{primaryLabel || "Check Now"}"</strong>, it marks the announcement as read and directly redirects them to <code>{targetRoute === "custom" ? customRoute || "/..." : targetRoute}</code>. Clicking <strong>"{secondaryLabel || "Understood"}"</strong> dismisses the card.
+              </div>
             </div>
           </div>
         </div>

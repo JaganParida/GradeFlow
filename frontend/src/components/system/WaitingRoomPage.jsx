@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Clock, Users, ShieldCheck, RefreshCw, AlertCircle, ArrowRight, CheckCircle, Sparkles } from "lucide-react";
+import { Clock, Users, ShieldCheck, RefreshCw, AlertCircle, ArrowRight, CheckCircle } from "lucide-react";
 
 export default function WaitingRoomPage({
   position = 1,
@@ -255,7 +255,7 @@ export default function WaitingRoomPage({
             gap: 10,
           }}
         >
-          <Sparkles size={16} color="#3b82f6" style={{ flexShrink: 0, marginTop: 2 }} />
+          <ShieldCheck size={16} color="#3b82f6" style={{ flexShrink: 0, marginTop: 2 }} />
           <div style={{ fontSize: 12, color: "#475569", lineHeight: 1.5 }}>
             <strong>Please keep this tab open.</strong> Your spot is safely reserved. As soon as a slot opens, you will automatically transition directly into GradeFlow.
           </div>
