@@ -102,7 +102,7 @@ export default function ModernMobileSubNav({
           background: "rgba(241, 245, 249, 0.96)",
           backdropFilter: "blur(8px)",
           WebkitBackdropFilter: "blur(8px)",
-          padding: "4px 0 8px 0",
+          padding: "2px 0 6px 0",
           width: "100%",
         }}
       >
@@ -110,9 +110,9 @@ export default function ModernMobileSubNav({
           style={{
             background: "#ffffff",
             border: "1px solid #e2e8f0",
-            borderRadius: 14,
+            borderRadius: 12,
             padding: "6px 8px 6px 10px",
-            boxShadow: "0 1px 3px rgba(15, 23, 42, 0.04), 0 2px 8px rgba(15, 23, 42, 0.02)",
+            boxShadow: "none",
             display: "flex",
             alignItems: "center",
             justifyContent: "space-between",
@@ -134,9 +134,9 @@ export default function ModernMobileSubNav({
           >
             <div
               style={{
-                width: 36,
-                height: 36,
-                borderRadius: 10,
+                width: 34,
+                height: 34,
+                borderRadius: 8,
                 background: themeBg,
                 border: `1px solid ${themeColor}33`,
                 color: themeColor,
@@ -151,7 +151,7 @@ export default function ModernMobileSubNav({
             <div style={{ display: "flex", flexDirection: "column", minWidth: 0, flex: 1 }}>
               <span
                 style={{
-                  fontSize: 13.5,
+                  fontSize: 13,
                   fontWeight: 800,
                   color: "#0f172a",
                   overflow: "hidden",
@@ -177,7 +177,7 @@ export default function ModernMobileSubNav({
                 display: "inline-flex",
                 alignItems: "center",
                 background: "#f1f5f9",
-                borderRadius: 10,
+                borderRadius: 8,
                 padding: 2,
                 border: "1px solid #e2e8f0",
               }}
@@ -191,7 +191,7 @@ export default function ModernMobileSubNav({
                 style={{
                   width: 28,
                   height: 28,
-                  borderRadius: 8,
+                  borderRadius: 6,
                   border: "none",
                   background: "#ffffff",
                   color: "#334155",
@@ -200,7 +200,7 @@ export default function ModernMobileSubNav({
                   justifyContent: "center",
                   cursor: "pointer",
                   padding: 0,
-                  boxShadow: "0 1px 2px rgba(0,0,0,0.04)",
+                  boxShadow: "none",
                   transition: "all 0.15s ease",
                 }}
               >
@@ -216,7 +216,7 @@ export default function ModernMobileSubNav({
                 style={{
                   width: 28,
                   height: 28,
-                  borderRadius: 8,
+                  borderRadius: 6,
                   border: "none",
                   background: "#ffffff",
                   color: "#334155",
@@ -225,7 +225,7 @@ export default function ModernMobileSubNav({
                   justifyContent: "center",
                   cursor: "pointer",
                   padding: 0,
-                  boxShadow: "0 1px 2px rgba(0,0,0,0.04)",
+                  boxShadow: "none",
                   transition: "all 0.15s ease",
                 }}
               >
@@ -422,14 +422,14 @@ export default function ModernMobileSubNav({
                       style={{
                         padding: "12px 14px",
                         borderRadius: 14,
-                        border: isActive ? `2px solid ${themeColor}` : "1.5px solid #e2e8f0",
+                        border: isActive ? `1.5px solid ${themeColor}` : "1px solid #e2e8f0",
                         background: isActive ? themeBg : "#ffffff",
                         display: "flex",
                         alignItems: "flex-start",
                         gap: 10,
                         textAlign: "left",
                         cursor: "pointer",
-                        boxShadow: isActive ? `0 4px 12px ${themeColor}20` : "0 1px 3px rgba(0,0,0,0.02)",
+                        boxShadow: "none",
                         transition: "all 0.15s ease",
                         position: "relative",
                       }}

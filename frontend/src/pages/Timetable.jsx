@@ -537,12 +537,12 @@ export default function Timetable() {
           style={{
             background: "#ffffff",
             border: "1px solid #e2e8f0",
-            borderRadius: 20,
-            padding: isMobile ? "16px 14px" : "22px 26px",
-            boxShadow: "0 1px 3px rgba(0, 0, 0, 0.04), 0 10px 24px -6px rgba(15, 23, 42, 0.04)",
+            borderRadius: 14,
+            padding: isMobile ? "14px 12px" : "20px 24px",
+            boxShadow: "none",
             display: "flex",
             flexDirection: "column",
-            gap: 16,
+            gap: 14,
           }}
         >
           {/* Top Row: Title, Subtitle, and Section Controls */}
@@ -552,26 +552,27 @@ export default function Timetable() {
               justifyContent: "space-between",
               alignItems: "center",
               flexWrap: "wrap",
-              gap: 14,
+              gap: 12,
             }}
           >
             {/* Left: Branding & Section Title */}
-            <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
               <div
                 style={{
-                  width: isMobile ? 44 : 50,
-                  height: isMobile ? 44 : 50,
-                  borderRadius: 14,
-                  background: "linear-gradient(135deg, #1e40af 0%, #2563eb 100%)",
-                  color: "#ffffff",
+                  width: isMobile ? 40 : 46,
+                  height: isMobile ? 40 : 46,
+                  borderRadius: 10,
+                  background: "#eff6ff",
+                  border: "1px solid #dbeafe",
+                  color: "#2563eb",
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
                   flexShrink: 0,
-                  boxShadow: "0 4px 14px rgba(37, 99, 235, 0.25)",
+                  boxShadow: "none",
                 }}
               >
-                <Clock size={isMobile ? 22 : 26} />
+                <Clock size={isMobile ? 20 : 24} />
               </div>
 
               <div>
@@ -581,7 +582,7 @@ export default function Timetable() {
                     alignItems: "center",
                     gap: 6,
                     color: "#2563eb",
-                    fontSize: 11.5,
+                    fontSize: 11,
                     fontWeight: 800,
                     textTransform: "uppercase",
                     letterSpacing: "0.5px",
@@ -592,11 +593,11 @@ export default function Timetable() {
                 </div>
                 <h1
                   style={{
-                    fontSize: isMobile ? 20 : 24,
+                    fontSize: isMobile ? 18 : 22,
                     fontWeight: 800,
                     color: "#0f172a",
                     margin: "2px 0 0 0",
-                    letterSpacing: "-0.4px",
+                    letterSpacing: "-0.3px",
                   }}
                 >
                   Section {selectedSection} Routine & Academic Schedule
@@ -612,12 +613,12 @@ export default function Timetable() {
                     display: "inline-flex",
                     alignItems: "center",
                     gap: 6,
-                    padding: "7px 14px",
-                    borderRadius: 10,
+                    padding: "6px 12px",
+                    borderRadius: 8,
                     background: "#eff6ff",
-                    border: "1.5px solid #2563eb",
+                    border: "1px solid #bfdbfe",
                     color: "#1d4ed8",
-                    fontSize: 13,
+                    fontSize: 12.5,
                     fontWeight: 800,
                   }}
                 >
@@ -626,23 +627,23 @@ export default function Timetable() {
                 </div>
               ) : (
                 <>
-                  <span style={{ fontSize: 12.5, fontWeight: 700, color: "#64748b" }}>
+                  <span style={{ fontSize: 12, fontWeight: 700, color: "#64748b" }}>
                     Section:
                   </span>
                   <select
                     value={selectedSection}
                     onChange={(e) => setSelectedSection(e.target.value)}
                     style={{
-                      padding: "8px 14px",
-                      borderRadius: 10,
-                      border: "1.5px solid #2563eb",
-                      background: "#eff6ff",
+                      padding: "7px 12px",
+                      borderRadius: 8,
+                      border: "1px solid #cbd5e1",
+                      background: "#f8fafc",
                       color: "#1d4ed8",
-                      fontSize: 13,
+                      fontSize: 12.5,
                       fontWeight: 800,
                       cursor: "pointer",
                       outline: "none",
-                      boxShadow: "0 1px 3px rgba(37, 99, 235, 0.1)",
+                      boxShadow: "none",
                     }}
                   >
                     {ALL_SECTIONS.map((sec) => (
@@ -963,8 +964,8 @@ export default function Timetable() {
                     onClick={() => setViewMode("day")}
                     style={{
                       padding: "7px 14px",
-                      borderRadius: 9,
-                      border: "none",
+                      borderRadius: 8,
+                      border: viewMode === "day" ? "1px solid #cbd5e1" : "1px solid transparent",
                       background: viewMode === "day" ? "#ffffff" : "transparent",
                       color: viewMode === "day" ? "#2563eb" : "#64748b",
                       fontSize: 12,
@@ -973,7 +974,7 @@ export default function Timetable() {
                       display: "flex",
                       alignItems: "center",
                       gap: 6,
-                      boxShadow: viewMode === "day" ? "0 1px 4px rgba(0,0,0,0.08)" : "none",
+                      boxShadow: "none",
                       whiteSpace: "nowrap",
                       flexShrink: 0,
                     }}
@@ -987,8 +988,8 @@ export default function Timetable() {
                     onClick={() => setViewMode("week")}
                     style={{
                       padding: "7px 14px",
-                      borderRadius: 9,
-                      border: "none",
+                      borderRadius: 8,
+                      border: viewMode === "week" ? "1px solid #cbd5e1" : "1px solid transparent",
                       background: viewMode === "week" ? "#ffffff" : "transparent",
                       color: viewMode === "week" ? "#2563eb" : "#64748b",
                       fontSize: 12,
@@ -997,7 +998,7 @@ export default function Timetable() {
                       display: "flex",
                       alignItems: "center",
                       gap: 6,
-                      boxShadow: viewMode === "week" ? "0 1px 4px rgba(0,0,0,0.08)" : "none",
+                      boxShadow: "none",
                       whiteSpace: "nowrap",
                       flexShrink: 0,
                     }}
@@ -1011,8 +1012,8 @@ export default function Timetable() {
                     onClick={() => setViewMode("academic")}
                     style={{
                       padding: "7px 14px",
-                      borderRadius: 9,
-                      border: "none",
+                      borderRadius: 8,
+                      border: viewMode === "academic" ? "1px solid #cbd5e1" : "1px solid transparent",
                       background: viewMode === "academic" ? "#ffffff" : "transparent",
                       color: viewMode === "academic" ? "#7c3aed" : "#64748b",
                       fontSize: 12,
@@ -1021,7 +1022,7 @@ export default function Timetable() {
                       display: "flex",
                       alignItems: "center",
                       gap: 6,
-                      boxShadow: viewMode === "academic" ? "0 1px 4px rgba(0,0,0,0.08)" : "none",
+                      boxShadow: "none",
                       whiteSpace: "nowrap",
                       flexShrink: 0,
                     }}
@@ -1035,8 +1036,8 @@ export default function Timetable() {
                     onClick={() => setViewMode("holidays")}
                     style={{
                       padding: "7px 14px",
-                      borderRadius: 9,
-                      border: "none",
+                      borderRadius: 8,
+                      border: viewMode === "holidays" ? "1px solid #cbd5e1" : "1px solid transparent",
                       background: viewMode === "holidays" ? "#ffffff" : "transparent",
                       color: viewMode === "holidays" ? "#dc2626" : "#64748b",
                       fontSize: 12,
@@ -1045,7 +1046,7 @@ export default function Timetable() {
                       display: "flex",
                       alignItems: "center",
                       gap: 6,
-                      boxShadow: viewMode === "holidays" ? "0 1px 4px rgba(0,0,0,0.08)" : "none",
+                      boxShadow: "none",
                       whiteSpace: "nowrap",
                       flexShrink: 0,
                     }}
@@ -1111,14 +1112,14 @@ export default function Timetable() {
             style={{
               background: "linear-gradient(135deg, #f0fdf4 0%, #ecfdf5 100%)",
               border: "1.5px solid #86efac",
-              borderRadius: 16,
+              borderRadius: 12,
               padding: "14px 20px",
               display: "flex",
               justifyContent: "space-between",
               alignItems: "center",
               flexWrap: "wrap",
               gap: 12,
-              boxShadow: "0 4px 14px rgba(22, 163, 74, 0.08)",
+              boxShadow: "none",
             }}
           >
             <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
@@ -1234,13 +1235,13 @@ export default function Timetable() {
           <div
             style={{
               background: "#fffbeb",
-              border: "1.5px solid #fde68a",
-              borderRadius: 18,
+              border: "1px solid #fde68a",
+              borderRadius: 12,
               padding: "26px 28px",
               display: "flex",
               alignItems: "flex-start",
               gap: 16,
-              boxShadow: "0 2px 8px rgba(245, 158, 11, 0.08)",
+              boxShadow: "none",
             }}
           >
             <div
@@ -1306,8 +1307,8 @@ export default function Timetable() {
           <div
             style={{
               background: "linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%)",
-              border: "1px solid #cbd5e1",
-              borderRadius: 14,
+              border: "1px solid #e2e8f0",
+              borderRadius: 12,
               padding: isMobile ? "10px 14px" : "12px 18px",
               display: "flex",
               alignItems: "flex-start",
@@ -1315,7 +1316,7 @@ export default function Timetable() {
               fontSize: 12,
               color: "#475569",
               lineHeight: 1.5,
-              boxShadow: "0 1px 3px rgba(0,0,0,0.02)",
+              boxShadow: "none",
             }}
           >
             <Info size={16} color="#2563eb" style={{ flexShrink: 0, marginTop: 1 }} />
@@ -1347,14 +1348,14 @@ export default function Timetable() {
               style={{
                 background: "#ffffff",
                 border: "1px solid #e2e8f0",
-                borderRadius: 16,
+                borderRadius: 12,
                 padding: isMobile ? "10px 12px" : "12px 18px",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "space-between",
                 flexWrap: "wrap",
                 gap: 10,
-                boxShadow: "0 1px 3px rgba(0,0,0,0.02)",
+                boxShadow: "none",
               }}
             >
               {/* Stepper Buttons */}
@@ -1524,34 +1525,34 @@ export default function Timetable() {
                 animate={{ opacity: 1, scale: 1 }}
                 style={{
                   background: holidayInfo.bg || "#fef2f2",
-                  border: `1.5px solid ${holidayInfo.color || "#dc2626"}30`,
-                  borderRadius: 18,
-                  padding: isMobile ? "28px 16px" : "38px 24px",
+                  border: `1px solid ${holidayInfo.color || "#dc2626"}30`,
+                  borderRadius: 14,
+                  padding: isMobile ? "24px 16px" : "32px 24px",
                   textAlign: "center",
                   color: holidayInfo.color || "#dc2626",
-                  boxShadow: "0 2px 8px rgba(0,0,0,0.03)",
+                  boxShadow: "none",
                 }}
               >
                 <div
                   style={{
-                    width: 50,
-                    height: 50,
-                    borderRadius: 14,
+                    width: 44,
+                    height: 44,
+                    borderRadius: 12,
                     background: "#ffffff",
                     color: holidayInfo.color || "#dc2626",
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "center",
                     margin: "0 auto 12px auto",
-                    boxShadow: "0 2px 8px rgba(0,0,0,0.06)",
+                    boxShadow: "none",
                   }}
                 >
-                  <Sun size={26} />
+                  <Sun size={24} />
                 </div>
-                <h3 style={{ fontSize: 20, fontWeight: 900, margin: 0 }}>
+                <h3 style={{ fontSize: 18, fontWeight: 800, margin: 0 }}>
                   {holidayInfo.title}
                 </h3>
-                <p style={{ fontSize: 13.5, opacity: 0.9, margin: "6px auto 0 auto", maxWidth: 480 }}>
+                <p style={{ fontSize: 13, opacity: 0.9, margin: "6px auto 0 auto", maxWidth: 480 }}>
                   {holidayInfo.description}
                 </p>
                 <div
@@ -1559,10 +1560,10 @@ export default function Timetable() {
                     display: "inline-flex",
                     alignItems: "center",
                     gap: 6,
-                    marginTop: 16,
+                    marginTop: 14,
                     background: "#ffffff",
                     border: `1px solid ${holidayInfo.color}40`,
-                    padding: "6px 18px",
+                    padding: "5px 16px",
                     borderRadius: 999,
                     fontSize: 12,
                     fontWeight: 800,
@@ -1579,34 +1580,34 @@ export default function Timetable() {
                 animate={{ opacity: 1, scale: 1 }}
                 style={{
                   background: academicDateStatus.bg || "#f8fafc",
-                  border: `1.5px solid ${academicDateStatus.color}35`,
-                  borderRadius: 18,
-                  padding: isMobile ? "28px 16px" : "38px 24px",
+                  border: `1px solid ${academicDateStatus.color}35`,
+                  borderRadius: 14,
+                  padding: isMobile ? "24px 16px" : "32px 24px",
                   textAlign: "center",
                   color: academicDateStatus.color,
-                  boxShadow: "0 2px 8px rgba(0,0,0,0.03)",
+                  boxShadow: "none",
                 }}
               >
                 <div
                   style={{
-                    width: 50,
-                    height: 50,
-                    borderRadius: 14,
+                    width: 44,
+                    height: 44,
+                    borderRadius: 12,
                     background: "#ffffff",
                     color: academicDateStatus.color,
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "center",
                     margin: "0 auto 12px auto",
-                    boxShadow: "0 2px 8px rgba(0,0,0,0.06)",
+                    boxShadow: "none",
                   }}
                 >
-                  {academicDateStatus.isExam ? <AlertTriangle size={26} /> : <GraduationCap size={26} />}
+                  {academicDateStatus.isExam ? <AlertTriangle size={24} /> : <GraduationCap size={24} />}
                 </div>
-                <h3 style={{ fontSize: 20, fontWeight: 900, margin: 0, color: "#0f172a" }}>
+                <h3 style={{ fontSize: 18, fontWeight: 800, margin: 0, color: "#0f172a" }}>
                   {academicDateStatus.title}
                 </h3>
-                <p style={{ fontSize: 13.5, color: "#475569", margin: "8px auto 0 auto", maxWidth: 520, lineHeight: 1.5 }}>
+                <p style={{ fontSize: 13, color: "#475569", margin: "8px auto 0 auto", maxWidth: 520, lineHeight: 1.5 }}>
                   {academicDateStatus.message}
                 </p>
                 <div
@@ -1614,10 +1615,10 @@ export default function Timetable() {
                     display: "inline-flex",
                     alignItems: "center",
                     gap: 6,
-                    marginTop: 16,
+                    marginTop: 14,
                     background: "#ffffff",
                     border: `1px solid ${academicDateStatus.color}40`,
-                    padding: "6px 18px",
+                    padding: "5px 16px",
                     borderRadius: 999,
                     fontSize: 12,
                     fontWeight: 800,
@@ -1635,7 +1636,7 @@ export default function Timetable() {
                       color: "#ffffff",
                       border: "none",
                       padding: "8px 18px",
-                      borderRadius: 10,
+                      borderRadius: 8,
                       fontSize: 12.5,
                       fontWeight: 700,
                       cursor: "pointer",
@@ -1647,22 +1648,22 @@ export default function Timetable() {
               </motion.div>
             ) : (
               /* 3. Regular Scheduled Routine */
-              <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                 {/* Last Date of Instruction Celebration Banner */}
                 {academicDateStatus?.isLastInstruction && (
                   <motion.div
                     initial={{ opacity: 0, y: -4 }}
                     animate={{ opacity: 1, y: 0 }}
                     style={{
-                      background: "linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%)",
-                      border: "1.5px solid #3b82f6",
-                      borderRadius: 14,
-                      padding: "14px 18px",
+                      background: "#eff6ff",
+                      border: "1px solid #bfdbfe",
+                      borderRadius: 12,
+                      padding: "12px 16px",
                       display: "flex",
                       alignItems: "center",
                       gap: 12,
                       color: "#1e40af",
-                      boxShadow: "0 2px 8px rgba(59, 130, 246, 0.08)",
+                      boxShadow: "none",
                     }}
                   >
                     <GraduationCap size={22} color="#2563eb" style={{ flexShrink: 0 }} />
@@ -1678,24 +1679,24 @@ export default function Timetable() {
                     initial={{ opacity: 0, y: -4 }}
                     animate={{ opacity: 1, y: 0 }}
                     style={{
-                      background: "linear-gradient(135deg, #faf5ff 0%, #f5f3ff 100%)",
-                      border: "1.5px solid #c084fc",
-                      borderRadius: 14,
-                      padding: "14px 18px",
+                      background: "#faf5ff",
+                      border: "1px solid #e9d5ff",
+                      borderRadius: 12,
+                      padding: "12px 16px",
                       display: "flex",
                       justifyContent: "space-between",
                       alignItems: "center",
                       flexWrap: "wrap",
                       gap: 12,
-                      boxShadow: "0 2px 8px rgba(124, 58, 237, 0.08)",
+                      boxShadow: "none",
                     }}
                   >
                     <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
                       <div
                         style={{
-                          width: 36,
-                          height: 36,
-                          borderRadius: 10,
+                          width: 34,
+                          height: 34,
+                          borderRadius: 8,
                           background: "#7c3aed",
                           color: "#ffffff",
                           display: "flex",
@@ -1710,7 +1711,7 @@ export default function Timetable() {
                         <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 11, fontWeight: 800, color: "#7c3aed", textTransform: "uppercase", letterSpacing: "0.5px" }}>
                           <span>Optional University Holiday · Classes Running as Scheduled</span>
                         </div>
-                        <div style={{ fontSize: 14.5, fontWeight: 800, color: "#0f172a", marginTop: 2 }}>
+                        <div style={{ fontSize: 14, fontWeight: 800, color: "#0f172a", marginTop: 2 }}>
                           {holidayInfo.title}
                         </div>
                         <div style={{ fontSize: 12, color: "#6b21a8", marginTop: 2 }}>
@@ -1720,7 +1721,7 @@ export default function Timetable() {
                     </div>
 
                     <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                      <span style={{ fontSize: 11, fontWeight: 800, background: "#ede9fe", color: "#6d28d9", padding: "4px 10px", borderRadius: 8, border: "1px solid #ddd6fe" }}>
+                      <span style={{ fontSize: 11, fontWeight: 800, background: "#ede9fe", color: "#6d28d9", padding: "4px 10px", borderRadius: 6, border: "1px solid #ddd6fe" }}>
                         Optional Leave Eligible
                       </span>
                     </div>
@@ -1762,20 +1763,18 @@ export default function Timetable() {
                           ? "#f8fafc"
                           : "#ffffff",
                         border: isLiveNow
-                          ? "2px solid #16a34a"
+                          ? "1.5px solid #16a34a"
                           : isCompleted
                           ? "1px solid #e2e8f0"
                           : "1px solid #e2e8f0",
-                        borderRadius: 14,
-                        padding: isMobile ? "12px 14px" : "14px 20px",
+                        borderRadius: 12,
+                        padding: isMobile ? "11px 13px" : "13px 18px",
                         display: "grid",
                         gridTemplateColumns: isMobile ? "1fr" : "170px 1fr auto",
                         gap: isMobile ? 8 : 16,
                         alignItems: "center",
                         opacity: isCompleted ? 0.9 : 1,
-                        boxShadow: isLiveNow
-                          ? "0 4px 14px rgba(22, 163, 74, 0.12)"
-                          : "0 1px 3px rgba(0,0,0,0.02)",
+                        boxShadow: "none",
                       }}
                     >
                       {/* Period Time Slot */}
@@ -1966,18 +1965,18 @@ export default function Timetable() {
               style={{
                 background: "#ffffff",
                 border: "1px solid #e2e8f0",
-                borderRadius: 18,
+                borderRadius: 14,
                 overflow: "hidden",
-                boxShadow: "0 1px 4px rgba(0,0,0,0.03)",
+                boxShadow: "none",
                 width: "100%",
               }}
             >
             {/* Header Toolbar */}
             <div
               style={{
-                padding: "16px 22px",
+                padding: isMobile ? "12px 14px" : "14px 20px",
                 borderBottom: "1px solid #e2e8f0",
-                background: "linear-gradient(135deg, #f8fafc 0%, #ffffff 100%)",
+                background: "#f8fafc",
                 display: "flex",
                 justifyContent: "space-between",
                 alignItems: "center",
@@ -1986,11 +1985,11 @@ export default function Timetable() {
               }}
             >
               <div>
-                <h4 style={{ fontSize: 15, fontWeight: 800, color: "#0f172a", margin: 0, display: "flex", alignItems: "center", gap: 8 }}>
-                  <Grid size={16} color="#2563eb" />
+                <h4 style={{ fontSize: 14.5, fontWeight: 800, color: "#0f172a", margin: 0, display: "flex", alignItems: "center", gap: 8 }}>
+                  <Grid size={15} color="#2563eb" />
                   Weekly Routine Matrix · Section {selectedSection}
                 </h4>
-                <p style={{ fontSize: 12, color: "#64748b", margin: "2px 0 0 0" }}>
+                <p style={{ fontSize: 11.5, color: "#64748b", margin: "2px 0 0 0" }}>
                   Full 6-day (Monday to Saturday) period matrix fitted across your viewport.
                 </p>
               </div>
@@ -2283,43 +2282,45 @@ export default function Timetable() {
                 </table>
               </div>
             ) : (
-              /* Mobile View: Day Routine Cards */
-              <div style={{ padding: "12px 14px", display: "flex", flexDirection: "column", gap: 8 }}>
-                {getDaySchedule(selectedSection, mobileWeekDay).map((period, idx) => {
+              /* Mobile View: Clean Divided Schedule List (No Nested Boxes) */
+              <div style={{ display: "flex", flexDirection: "column" }}>
+                {getDaySchedule(selectedSection, mobileWeekDay).map((period, idx, arr) => {
                   const slot = TIME_SLOTS[idx] || {};
+                  const isLast = idx === arr.length - 1;
                   return (
                     <div
                       key={idx}
                       style={{
-                        background: period.isFree ? "#f8fafc" : "#ffffff",
-                        border: "1px solid #e2e8f0",
-                        borderRadius: 10,
-                        padding: "10px 12px",
+                        background: period.isFree ? "#fafbfc" : "#ffffff",
+                        borderBottom: isLast ? "none" : "1px solid #f1f5f9",
+                        padding: "11px 14px",
                         display: "flex",
                         justifyContent: "space-between",
                         alignItems: "center",
+                        gap: 10,
                       }}
                     >
-                      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0, flex: 1 }}>
                         <div
                           style={{
-                            width: 28,
-                            height: 28,
+                            width: 26,
+                            height: 26,
                             borderRadius: 6,
-                            background: "#eff6ff",
-                            color: "#2563eb",
-                            fontSize: 11,
+                            background: period.isFree ? "#f1f5f9" : "#eff6ff",
+                            color: period.isFree ? "#94a3b8" : "#2563eb",
+                            fontSize: 10.5,
                             fontWeight: 800,
                             display: "flex",
                             alignItems: "center",
                             justifyContent: "center",
+                            flexShrink: 0,
                           }}
                         >
                           P{idx + 1}
                         </div>
-                        <div>
+                        <div style={{ minWidth: 0, flex: 1 }}>
                           <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
-                            <span style={{ fontSize: 13, fontWeight: 800, color: period.isFree ? "#94a3b8" : "#0f172a" }}>
+                            <span style={{ fontSize: 13, fontWeight: 700, color: period.isFree ? "#94a3b8" : "#0f172a" }}>
                               {cleanSubjectBaseName(period.subject) || period.subject}
                             </span>
                             {!period.isFree && resolveSubjectCode(period, studentData) && (
@@ -2327,10 +2328,9 @@ export default function Timetable() {
                                 style={{
                                   fontSize: 10,
                                   fontFamily: "'Space Mono', monospace",
-                                  fontWeight: 800,
+                                  fontWeight: 700,
                                   color: "#2563eb",
                                   background: "#eff6ff",
-                                  border: "1px solid #bfdbfe",
                                   padding: "1px 5px",
                                   borderRadius: 4,
                                 }}
@@ -2339,7 +2339,7 @@ export default function Timetable() {
                               </span>
                             )}
                           </div>
-                          <div style={{ fontSize: 11, color: "#64748b" }}>
+                          <div style={{ fontSize: 11, color: "#64748b", marginTop: 2 }}>
                             {slot.startTime} - {slot.endTime}
                             {period.room && ` · ${period.room}`}
                           </div>
@@ -2347,7 +2347,7 @@ export default function Timetable() {
                       </div>
 
                       {period.type && (
-                        <span style={{ fontSize: 10, fontWeight: 900, background: "#f1f5f9", padding: "2px 6px", borderRadius: 4 }}>
+                        <span style={{ fontSize: 9.5, fontWeight: 800, color: "#475569", background: "#f1f5f9", padding: "2px 6px", borderRadius: 4, flexShrink: 0 }}>
                           {period.type}
                         </span>
                       )}
@@ -2377,14 +2377,14 @@ export default function Timetable() {
               style={{
                 background: "#ffffff",
                 border: "1px solid #e2e8f0",
-                borderRadius: 18,
+                borderRadius: 14,
                 padding: isMobile ? "14px 14px" : "18px 22px",
                 display: "flex",
                 justifyContent: "space-between",
                 alignItems: "center",
                 flexWrap: "wrap",
                 gap: 12,
-                boxShadow: "0 1px 3px rgba(0,0,0,0.03)",
+                boxShadow: "none",
               }}
             >
               <div>
@@ -2432,9 +2432,9 @@ export default function Timetable() {
                 style={{
                   background: "#ffffff",
                   border: "1px solid #e2e8f0",
-                  borderRadius: 18,
+                  borderRadius: 14,
                   overflow: "hidden",
-                  boxShadow: "0 1px 3px rgba(0,0,0,0.03)",
+                  boxShadow: "none",
                 }}
               >
                 <div
@@ -2575,9 +2575,9 @@ export default function Timetable() {
                 style={{
                   background: "#ffffff",
                   border: "1px solid #e2e8f0",
-                  borderRadius: 18,
+                  borderRadius: 14,
                   overflow: "hidden",
-                  boxShadow: "0 1px 3px rgba(0,0,0,0.03)",
+                  boxShadow: "none",
                 }}
               >
                 <div
@@ -2738,9 +2738,9 @@ export default function Timetable() {
                 style={{
                   background: "#ffffff",
                   border: "1px solid #e2e8f0",
-                  borderRadius: 18,
+                  borderRadius: 14,
                   overflow: "hidden",
-                  boxShadow: "0 1px 3px rgba(0,0,0,0.03)",
+                  boxShadow: "none",
                 }}
               >
                 <div
@@ -2806,12 +2806,12 @@ export default function Timetable() {
                         style={{
                           background: statusInfo.status === "ACTIVE" ? "#f0fdf4" : "#ffffff",
                           border: statusInfo.status === "ACTIVE" ? "1.5px solid #16a34a" : "1px solid #e2e8f0",
-                          borderRadius: 14,
+                          borderRadius: 12,
                           padding: "14px 16px",
                           display: "flex",
                           justifyContent: "space-between",
                           alignItems: "center",
-                          boxShadow: "0 1px 3px rgba(0,0,0,0.03)",
+                          boxShadow: "none",
                         }}
                       >
                         <div>
@@ -2888,14 +2888,14 @@ export default function Timetable() {
               style={{
                 background: "#ffffff",
                 border: "1px solid #e2e8f0",
-                borderRadius: 16,
+                borderRadius: 12,
                 padding: "12px 18px",
                 display: "flex",
                 justifyContent: "space-between",
                 alignItems: "center",
                 flexWrap: "wrap",
                 gap: 10,
-                boxShadow: "0 1px 3px rgba(0,0,0,0.02)",
+                boxShadow: "none",
               }}
             >
               <div>
@@ -2937,12 +2937,12 @@ export default function Timetable() {
               style={{
                 background: "#ffffff",
                 border: "1px solid #e2e8f0",
-                borderRadius: 14,
+                borderRadius: 12,
                 padding: "8px 10px",
                 display: "flex",
                 alignItems: "center",
                 gap: 8,
-                boxShadow: "0 1px 3px rgba(0,0,0,0.02)",
+                boxShadow: "none",
                 position: "relative",
               }}
             >
@@ -3097,14 +3097,14 @@ export default function Timetable() {
             {/* CUTM Optional Holidays & Guidelines Policy Showcase */}
             <div
               style={{
-                background: "linear-gradient(135deg, #faf5ff 0%, #ffffff 100%)",
-                border: "1.5px solid #d8b4fe",
-                borderRadius: 16,
+                background: "#faf5ff",
+                border: "1px solid #e9d5ff",
+                borderRadius: 14,
                 padding: isMobile ? "14px 14px" : "18px 22px",
                 display: "flex",
                 flexDirection: "column",
                 gap: 12,
-                boxShadow: "0 2px 8px rgba(147, 51, 234, 0.05)",
+                boxShadow: "none",
               }}
             >
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 8 }}>
@@ -3192,13 +3192,13 @@ export default function Timetable() {
                     style={{
                       background: "#ffffff",
                       border: h.isToday ? "2px solid #16a34a" : "1px solid #e2e8f0",
-                      borderRadius: 14,
+                      borderRadius: 12,
                       padding: "14px 16px",
                       display: "flex",
                       justifyContent: "space-between",
                       alignItems: "center",
                       gap: 12,
-                      boxShadow: "0 1px 3px rgba(0,0,0,0.02)",
+                      boxShadow: "none",
                     }}
                   >
                     <div style={{ flex: 1, minWidth: 0 }}>

@@ -314,6 +314,16 @@ export default function Dashboard() {
   });
   const [subnavAnim, setSubnavAnim] = useState("fade-up");
 
+  const handleTabClick = (tabKey, meta) => {
+    if (tab === tabKey) return;
+    if (meta?.animation) {
+      setSubnavAnim(meta.animation);
+    } else {
+      setSubnavAnim("fade-up");
+    }
+    setTab(tabKey);
+  };
+
   useEffect(() => {
     try {
       const qTab = new URLSearchParams(window.location.search).get("tab");
@@ -1040,7 +1050,8 @@ export default function Dashboard() {
                     return (
                       <button
                         key={item.id}
-                        onClick={() => setTab(item.id)}
+                        type="button"
+                        onClick={() => handleTabClick(item.id)}
                         style={{
                           width: "100%",
                           display: "flex",
@@ -1268,10 +1279,7 @@ export default function Dashboard() {
             <ModernMobileSubNav
               items={navMenuItems}
               activeTab={tab}
-              onChange={(newTab, meta) => {
-                if (meta?.animation) setSubnavAnim(meta.animation);
-                setTab(newTab);
-              }}
+              onChange={(newTab, meta) => handleTabClick(newTab, meta)}
               title="Dashboard Modules"
               themeColor="#2563eb"
               themeBg="#eff6ff"
@@ -2107,16 +2115,16 @@ export default function Dashboard() {
             const currentVariant = isMobile
               ? animVariants[subnavAnim] || animVariants["fade-up"]
               : {
-                  initial: { opacity: 0.95 },
-                  animate: { opacity: 1 },
-                  exit: { opacity: 0.95 },
-                  transition: { duration: 0.12 },
+                  initial: { opacity: 0, y: 10 },
+                  animate: { opacity: 1, y: 0 },
+                  exit: { opacity: 0, y: -8 },
+                  transition: { duration: 0.22, ease: "easeOut" },
                 };
 
             return (
               <AnimatePresence mode="wait">
                 <motion.div
-                  key={tab}
+                  key={`${tab}-${selectedSem || ""}`}
                   initial={currentVariant.initial}
                   animate={currentVariant.animate}
                   exit={currentVariant.exit}
@@ -2908,7 +2916,7 @@ export default function Dashboard() {
                               if (selectedSem === r.semester && semResult && tab === "result") return;
                               setSelectedSem(r.semester);
                               loadSemester(r.semester);
-                              setTab("result");
+                              handleTabClick("result");
                             }}
                             style={{
                               background: isSelected ? "#eff6ff" : "#ffffff",
