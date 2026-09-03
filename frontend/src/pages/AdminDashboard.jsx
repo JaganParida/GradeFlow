@@ -4111,7 +4111,17 @@ export default function AdminDashboard({ defaultTab = null }) {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: i * 0.05 }}
                 onClick={() => {
-                  if (stat.targetTab) setTab(stat.targetTab);
+                  if (stat.targetTab) {
+                    setTab(stat.targetTab);
+                    setTimeout(() => {
+                      const el =
+                        document.getElementById("admin-live-traffic-monitor") ||
+                        document.querySelector(`[data-tab-content="${stat.targetTab}"]`);
+                      if (el) {
+                        el.scrollIntoView({ behavior: "smooth", block: "start" });
+                      }
+                    }, 120);
+                  }
                 }}
                 whileHover={stat.targetTab ? { y: -2, transition: { duration: 0.15 } } : {}}
                 style={{
@@ -4182,7 +4192,18 @@ export default function AdminDashboard({ defaultTab = null }) {
                       {stat.value || "0"}
                     </div>
                     {stat.cta && (
-                      <div style={{ fontSize: 11, fontWeight: 700, color: "#059669", marginTop: 3 }}>
+                      <div
+                        style={{
+                          fontSize: 11,
+                          fontWeight: 700,
+                          color: "#059669",
+                          marginTop: 3,
+                          display: "inline-flex",
+                          alignItems: "center",
+                          gap: 4,
+                          textDecoration: "underline",
+                        }}
+                      >
                         {stat.cta}
                       </div>
                     )}
@@ -5008,7 +5029,9 @@ export default function AdminDashboard({ defaultTab = null }) {
 
         {/* ── TAB: LIVE ACTIVE STUDENTS & TRAFFIC INTELLIGENCE ── */}
         {tab === "live-traffic" && (
-          <AdminLiveTrafficManager API={API} authHeaders={authHeaders} isMobile={isMobile} />
+          <div id="admin-live-traffic-monitor" data-tab-content="live-traffic">
+            <AdminLiveTrafficManager API={API} authHeaders={authHeaders} isMobile={isMobile} />
+          </div>
         )}
 
         {/* ── TAB 6: STUDENT OTP ATTEMPT MANAGEMENT (MAIN ADMIN EXCLUSIVE) ── */}
