@@ -132,8 +132,8 @@ module.exports = async function handler(req, res) {
           const isLiveRightNow = (now - lastActiveTime) <= LIVE_WINDOW_MS;
           const isRecentlyActive = (now - lastActiveTime) <= 15 * 60 * 1000;
 
-          const currRoute = sess.deviceInfo?.currentRoute || "/dashboard";
-          const pageTitle = sess.deviceInfo?.pageTitle || (ROUTE_LABELS[currRoute] || "Student Dashboard");
+          const currRoute = sess.currentRoute || sess.deviceInfo?.currentRoute || "/dashboard";
+          const pageTitle = sess.pageTitle || sess.deviceInfo?.pageTitle || (ROUTE_LABELS[currRoute] || "Student Dashboard");
 
           return {
             token: sess.sessionId || sess._id.toString(),
@@ -214,6 +214,13 @@ module.exports = async function handler(req, res) {
               existing.studentName = item.studentName;
               existing.branch = item.branch;
               existing.batch = item.batch;
+            }
+            const timeExisting = new Date(existing.lastActiveAt || existing.connectedAt || 0).getTime();
+            const timeItem = new Date(item.lastActiveAt || item.connectedAt || 0).getTime();
+            if (timeItem >= timeExisting && item.currentRoute && item.currentRoute !== "/") {
+              existing.currentRoute = item.currentRoute;
+              existing.pageTitle = item.pageTitle;
+              existing.lastActiveAt = item.lastActiveAt;
             }
           }
         });
@@ -343,18 +350,22 @@ module.exports = async function handler(req, res) {
     }
 
     if (action === "page-view" || (req.method === "POST" && req.body?.route)) {
-      const { token, route = "/", regNo, studentName, branch, batch, deviceType, os, browser, isAdmin = false } = req.body || {};
+      const { token, sessionId, route = "/", regNo, studentName, branch, batch, deviceType, os, browser, isAdmin = false } = req.body || {};
       const normRoute = normalizeRoute(route);
       const pageTitle = ROUTE_LABELS[normRoute] || normRoute;
 
-      // Extract student registration number from cookies if not provided in payload (essential for mobile browser hydration)
+      // Extract student registration number and session ID from cookies if not provided in payload (essential for mobile browser hydration)
       const cookies = parseCookies(req.headers.cookie);
       let resolvedRegNo = regNo;
-      if (!resolvedRegNo && cookies.student_jwt && cookies.student_jwt !== "none") {
+      let resolvedSessionId = sessionId;
+      if (cookies.student_jwt && cookies.student_jwt !== "none") {
         try {
           const decoded = jwt.verify(cookies.student_jwt, process.env.JWT_SECRET);
-          if (decoded && decoded.regNo) {
+          if (decoded && decoded.regNo && !resolvedRegNo) {
             resolvedRegNo = decoded.regNo;
+          }
+          if (decoded && decoded.sessionId && !resolvedSessionId) {
+            resolvedSessionId = decoded.sessionId;
           }
         } catch {}
       }
@@ -407,7 +418,21 @@ module.exports = async function handler(req, res) {
         ).catch(() => {});
       }
 
-      if (resolvedRegNo) {
+      // Update StudentSession for registered student
+      if (resolvedSessionId) {
+        await StudentSession.updateOne(
+          { sessionId: resolvedSessionId, isActive: true },
+          {
+            $set: {
+              lastActiveAt: new Date(),
+              currentRoute: normRoute,
+              pageTitle,
+              "deviceInfo.currentRoute": normRoute,
+              "deviceInfo.pageTitle": pageTitle,
+            },
+          }
+        ).catch(() => {});
+      } else if (resolvedRegNo) {
         const cleanDev = String(deviceType || "Desktop").toLowerCase().includes("mobile") ? "Mobile" : "Desktop";
         await StudentSession.updateMany(
           {
@@ -418,6 +443,8 @@ module.exports = async function handler(req, res) {
           {
             $set: {
               lastActiveAt: new Date(),
+              currentRoute: normRoute,
+              pageTitle,
               "deviceInfo.currentRoute": normRoute,
               "deviceInfo.pageTitle": pageTitle,
             },
