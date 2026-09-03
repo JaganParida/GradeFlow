@@ -1302,10 +1302,7 @@ export default function AttendanceTracker() {
     isAdmin ||
     userRole === "admin" ||
     userRole === "subadmin" ||
-    userRole === "superadmin" ||
-    currentRegNo === "230301120327" ||
-    studentSession?.regNo === "230301120327" ||
-    studentSession?.registrationNo === "230301120327"
+    userRole === "superadmin"
   );
 
   const shortageSubjects = useMemo(() => {

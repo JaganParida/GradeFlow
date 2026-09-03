@@ -5,7 +5,9 @@ const Ranking = require("./_lib/models/Ranking");
 const Student = require("./_lib/models/Student");
 const Attendance = require("./_lib/models/Attendance");
 const StudentSession = require("./_lib/models/StudentSession");
-const { isSessionValid, touchSession } = require("./_lib/sessionManager");
+const AdminSession = require("./_lib/models/AdminSession");
+const SubAdminSession = require("./_lib/models/SubAdminSession");
+const { isSessionValid, touchSession, isAdminSessionValid } = require("./_lib/sessionManager");
 const { globalDbQueue } = require("./_lib/dbProtection");
 const {
   calculateBacklogs,
@@ -80,8 +82,18 @@ module.exports = async function handler(req, res) {
     if (adminToken && adminToken !== "none") {
       try {
         const decodedAdmin = jwt.verify(adminToken, process.env.JWT_SECRET);
-        if (decodedAdmin && (decodedAdmin.role === "admin" || decodedAdmin.id || decodedAdmin.email) && decodedAdmin.role !== "student") {
-          isAdmin = true;
+        if (decodedAdmin && (decodedAdmin.role === "admin" || decodedAdmin.id || decodedAdmin.email) && decodedAdmin.role !== "student" && !decodedAdmin.regNo) {
+          if (decodedAdmin.adminType === "subadmin") {
+            if (decodedAdmin.sessionId) {
+              const saSess = await SubAdminSession.findOne({ sessionId: decodedAdmin.sessionId, isActive: true });
+              if (saSess) isAdmin = true;
+            }
+          } else {
+            if (decodedAdmin.sessionId) {
+              const aSess = await AdminSession.findOne({ sessionId: decodedAdmin.sessionId, isActive: true });
+              if (aSess && isAdminSessionValid(aSess)) isAdmin = true;
+            }
+          }
         }
       } catch {}
     }
@@ -129,19 +141,10 @@ module.exports = async function handler(req, res) {
       // Touch activity timestamp (sessions are permanent until manual logout)
       await touchSession(activeSession);
 
-      // Check strict data isolation & device authorization
-      const isSuperUser = decodedStudent.regNo === "230301120327";
-      if (!isSuperUser && decodedStudent.regNo.toUpperCase() !== cleanRegNo) {
+      // Strict Data Isolation: A student can ONLY access their own records
+      if (decodedStudent.regNo.toUpperCase() !== cleanRegNo) {
         return res.status(403).json({
-          message: cleanRegNo === "230301120327"
-            ? "Access Denied: You are not allowed to access this student's data. This profile is private and only accessible from authorized devices."
-            : "Access Denied: You are not allowed to access another student's records.",
-          code: "DATA_ISOLATION_FORBIDDEN",
-        });
-      }
-      if (cleanRegNo === "230301120327" && decodedStudent.regNo !== "230301120327") {
-        return res.status(403).json({
-          message: "Access Denied: You are not allowed to access this student's data. This profile is private and only accessible from authorized devices.",
+          message: "Access Denied: You are not allowed to access another student's records.",
           code: "DATA_ISOLATION_FORBIDDEN",
         });
       }

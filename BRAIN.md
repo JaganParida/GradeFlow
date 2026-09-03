@@ -190,34 +190,49 @@ GradeFlow/
 
 ---
 
-## 12. Authentication Overview
+## 12. Authentication & Account Lockout Security
 
-- **Student Authentication**: Passwordless two-factor authentication. Students enter their university registration number, receive a 6-digit cryptographic OTP on their verified `@centurionuniv.edu.in` email, verify the code, and receive a signed session JWT.
+- **Student Authentication**: Hybrid secure authentication:
+  - **Passwordless OTP (2FA)**: Students enter their registration number, receive a 6-digit cryptographic OTP on their verified `@centurionuniv.edu.in` email, and verify to obtain a signed session JWT.
+  - **Password Login**: Optional password login with **strict brute-force defense**:
+    - Evaluates `lockedUntil` timestamp *before* executing password hashes.
+    - 3 consecutive failed password attempts trigger a **15-minute temporary lockout** (`lockedUntil = Date.now() + 15min`).
+    - Attempting passwords while locked returns HTTP 429 (`ACCOUNT_TEMPORARILY_LOCKED`).
+    - Successful OTP authentication resets `failedPasswordAttempts = 0` and clears `lockedUntil`.
 - **Admin Authentication**: Multi-step verification. Main Admin submits email and password, followed by an administrative 2FA OTP sent to the authorized institutional email.
 - **Sub-Admin Authentication**: Sub-Admins log in with assigned credentials + 2FA email OTP, receiving an RBAC-scoped session token.
 
 ---
 
-## 13. Device & Session Experience
+## 13. Device & Session Experience & Data Isolation
 
-- **Single-Device Policy (Normal Students)**: Students are permitted **1 active device**. Attempting to sign in on a second device is blocked before OTP dispatch, prompting the student to log out from their existing device.
-- **Superuser Policy (`230301120327`)**: Permitted up to **2 concurrent active devices**. A 3rd device attempt is blocked.
-- **Admin Device Policy**: Strictly **1 active administrative session**.
-- **Session Lifecycle**: Sessions expire after **7 continuous days of inactivity**. Active user actions refresh the last active timestamp (`touchSession`). Explicit logout immediately revokes the session in the database.
+- **Single-Device Policy (Normal Students)**: Students are permitted **1 active device**. Attempting to sign in on a second device requires in-website authorization or session transfer.
+- **Superuser Policy (`230301120327`)**: Permitted up to **2 concurrent active devices** for cross-device development/testing.
+- **Strict Academic Data Isolation (Zero IDOR)**:
+  - Every student endpoint (`/api/student`, `/api/student/records`, etc.) authoritatively enforces `decodedStudent.regNo.toUpperCase() === cleanRegNo`.
+  - No student token can query another student's exam results, marks, or attendance under any condition.
+  - Administrative inspections of student records are strictly restricted to authenticated Admin routes with active admin sessions.
+- **Admin Device Policy**: Maximum 2 active administrative sessions.
+- **Database Session Invalidation (Express & Serverless)**:
+  - Both Express and Vercel Serverless layers query MongoDB `AdminSession` and `StudentSession` on every protected request.
+  - Explicit logout or remote session revocation terminates JWT authorization immediately across all environments.
 
 ---
 
-## 14. OTP & Email Architecture
+## 14. OTP & Email Relay Architecture
 
 - **Cryptographic Generation**: 6-digit numerical codes generated via `crypto.randomInt(100000, 999999)` and stored exclusively as salted `bcrypt` hashes.
 - **Dual-Provider Failover**:
   - **Primary**: Brevo SMTP (`smtp-relay.brevo.com:587`).
   - **Fallback**: Gmail SMTP (`smtp.gmail.com:465/587`).
-  - **Failover Invariance**: In case of Brevo credit exhaustion or connection timeout, the system seamlessly routes through Gmail using the **exact same OTP code** without generating conflicting duplicates.
+  - **Failover Invariance**: Seamless failover to Gmail using the **exact same OTP code** without generating conflicting duplicates.
 - **Limits & Cooldown**:
   - **Cooldown**: 180-second (3-minute) atomic cooldown between OTP requests.
-  - **Daily Limit**: Strictly **2 OTP attempts per calendar day** per student (quota deducted **only upon successful email delivery**).
+  - **Daily Limit**: Strictly **2 OTP attempts per calendar day** per student.
   - **TTL**: Codes expire automatically after 3 minutes (180 seconds).
+- **Authenticated Email Relay Guard**:
+  - Transactional academic update emails (topper recognitions, backlog alerts via `/api/emails.js`) require **active Admin authentication**.
+  - Arbitrary open email relaying is strictly prohibited; recipient addresses default to official student emails (`@centurionuniv.edu.in`) and any admin-specified custom address is sanitized and validated.
 
 ---
 
@@ -260,8 +275,10 @@ GradeFlow/
 
 ## 17. API Architecture
 
-- `/api/auth/*`: Student check-status, send-otp, verify-otp, logout, admin login, 2FA verify, and sub-admin auth.
-- `/api/student/*`: Student academic profile, semester results, 5-basket credit progress, and backlog analytics.
+- `/api/auth/*`: Student check-status, send-otp, verify-otp, login-password (with 15m lockout), logout, admin login, 2FA verify, and sub-admin auth.
+- `/api/student/*`: Student academic profile, semester results, 5-basket credit progress, and backlog analytics (strictly isolated to authenticated owner).
+- `/api/emails.js`: Authenticated transactional email relay for toppers and backlog notices (Admin session required).
+- `/api/attendance/ocr` & `/api/attendance-ocr.js`: Authenticated Gemini Vision OCR parser for ERP attendance screenshots.
 - `/api/timetable/*`: Public/student schedule lookup, branch schedules, and active batch listings.
 - `/api/rankings/*`: University leaderboards, top CGPA performers, and branch statistics.
 - `/api/admin/*`: Result spreadsheet upload, student management, timetable editor, feedback moderation, and maintenance mode controls.
@@ -338,8 +355,12 @@ GradeFlow/
 - [x] Placement Readiness Tier Matrix
 - [x] Timetable schedule viewing and Edge CDN caching
 - [x] In-memory result caching (zero database hits on tab switch)
-- [x] 40-slot bounded database concurrency semaphore queue
 - [x] Shared college Wi-Fi composite rate-limiting
+- [x] Strict student academic data isolation (Zero IDOR: students can only access their own records)
+- [x] Password brute-force defense (3 failed attempts trigger 15m lockout with `lockedUntil`)
+- [x] Main Admin and Sub-Admin database-backed session validation across Express and Serverless
+- [x] Protected email dispatch relay (/api/emails.js restricted to authenticated administrators)
+- [x] Authenticated Attendance OCR API with payload memory caps
 
 ---
 

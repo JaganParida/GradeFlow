@@ -389,6 +389,26 @@
       "destination": "/api/feedback.js"
     },
     {
+      "source": "/api/admin/upload/:path*",
+      "destination": "/api/admin.js?action=upload-endpoint"
+    },
+    {
+      "source": "/api/admin/upload-internal",
+      "destination": "/api/admin.js?action=upload-endpoint"
+    },
+    {
+      "source": "/api/admin/upload-missing-results",
+      "destination": "/api/admin.js?action=upload-endpoint"
+    },
+    {
+      "source": "/api/admin/upload-backlogs",
+      "destination": "/api/admin.js?action=upload-endpoint"
+    },
+    {
+      "source": "/api/admin/upload",
+      "destination": "/api/admin.js?action=upload-endpoint"
+    },
+    {
       "source": "/(.*)",
       "destination": "/index.html"
     }

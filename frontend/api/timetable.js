@@ -6,6 +6,7 @@ const SubAdminSession = require("./_lib/models/SubAdminSession");
 const SubAdmin = require("./_lib/models/SubAdmin");
 const AdminSession = require("./_lib/models/AdminSession");
 const jwt = require("jsonwebtoken");
+const { isAdminSessionValid, touchAdminSession } = require("./_lib/sessionManager");
 
 const CORS_HEADERS = {
   "Access-Control-Allow-Credentials": "true",
@@ -41,7 +42,7 @@ async function authenticateAdmin(req) {
 
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET, { algorithms: ["HS256"] });
-    if (decoded.role === "student" || (decoded.regNo && decoded.regNo !== "230301120327")) {
+    if (decoded.role === "student" || decoded.regNo) {
       return { error: { status: 403, message: "Forbidden: Administrative access restricted.", code: "STUDENT_ADMIN_ACCESS_FORBIDDEN" } };
     }
 
@@ -67,9 +68,34 @@ async function authenticateAdmin(req) {
           name: subAdmin.name,
           email: subAdmin.email,
           permissions: subAdmin.permissions || { routes: [], actions: [] },
+          sessionId: decoded.sessionId,
         },
       };
     }
+
+    // Main Admin: Authoritative MongoDB session validation
+    if (!decoded.sessionId) {
+      return {
+        error: {
+          status: 401,
+          message: "Administrative session token invalid or missing session identifier.",
+          code: "AUTH_SESSION_INVALID",
+        },
+      };
+    }
+
+    const session = await AdminSession.findOne({ sessionId: decoded.sessionId, isActive: true });
+    if (!session || !isAdminSessionValid(session)) {
+      return {
+        error: {
+          status: 401,
+          message: "Admin session ended because this device was logged out.",
+          code: "ADMIN_SESSION_TERMINATED",
+        },
+      };
+    }
+
+    await touchAdminSession(session);
 
     return {
       admin: {
@@ -77,6 +103,7 @@ async function authenticateAdmin(req) {
         adminType: "main",
         email: decoded.email || process.env.ADMIN_EMAIL,
         permissions: { routes: ["*"], actions: ["*"] },
+        sessionId: session.sessionId,
       },
     };
   } catch {
@@ -89,10 +116,17 @@ module.exports = async function handler(req, res) {
   if (req.method === "OPTIONS") return res.status(200).end();
 
   try {
-    await connectToDatabase();
-
     const action = req.query.action || "";
     const cleanUrl = req.url || "";
+
+    // For administrative routes, authenticate first before connecting to database
+    if (action.startsWith("admin-") || cleanUrl.includes("/admin")) {
+      const auth = await authenticateAdmin(req);
+      if (auth.error) return res.status(auth.error.status).json(auth.error);
+      req.adminAuth = auth;
+    }
+
+    await connectToDatabase();
 
     // 1. GET /api/timetable/schedule
     if (action === "schedule" || (cleanUrl.includes("/timetable/schedule") && !cleanUrl.includes("admin"))) {

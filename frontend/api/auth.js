@@ -868,6 +868,42 @@ module.exports = async function handler(req, res) {
         });
       }
 
+      // ── Brute-Force Defense: Verify lockout state BEFORE evaluating password ──
+      const now = new Date();
+      if (studentAccount.lockedUntil && new Date(studentAccount.lockedUntil) > now) {
+        const remainingMinutes = Math.max(1, Math.ceil((new Date(studentAccount.lockedUntil).getTime() - now.getTime()) / (60 * 1000)));
+        return res.status(429).json({
+          success: false,
+          code: "ACCOUNT_TEMPORARILY_LOCKED",
+          message: `Account is temporarily locked due to 3 failed password attempts. Please try again in ${remainingMinutes} minute${remainingMinutes === 1 ? "" : "s"} or sign in using email OTP.`,
+          lockedUntil: studentAccount.lockedUntil,
+          remainingMinutes,
+          otpFallbackAllowed: true,
+        });
+      }
+
+      // If lockout period has expired, automatically reset attempt counters
+      if (studentAccount.lockedUntil && new Date(studentAccount.lockedUntil) <= now) {
+        studentAccount.failedPasswordAttempts = 0;
+        studentAccount.lockedUntil = null;
+        studentAccount.lastFailedPasswordAt = null;
+        await studentAccount.save();
+      }
+
+      // If already at or above 3 failed attempts without future timestamp, lock for 15 minutes now
+      if ((studentAccount.failedPasswordAttempts || 0) >= 3) {
+        studentAccount.lockedUntil = new Date(Date.now() + 15 * 60 * 1000);
+        await studentAccount.save();
+        return res.status(429).json({
+          success: false,
+          code: "ACCOUNT_TEMPORARILY_LOCKED",
+          message: "Account is temporarily locked for 15 minutes due to 3 consecutive failed password attempts. You can sign in using email OTP.",
+          lockedUntil: studentAccount.lockedUntil,
+          remainingMinutes: 15,
+          otpFallbackAllowed: true,
+        });
+      }
+
       const maxAllowedDevices = getMaxAllowedDevices(rawReg);
       const activeSessions = await getActiveSessions(StudentSession, rawReg);
 
@@ -1059,24 +1095,29 @@ module.exports = async function handler(req, res) {
       // IF PASSWORD INCORRECT:
       studentAccount.failedPasswordAttempts = (studentAccount.failedPasswordAttempts || 0) + 1;
       studentAccount.lastFailedPasswordAt = new Date();
-      await studentAccount.save();
-
-      const remainingAttempts = Math.max(0, 3 - studentAccount.failedPasswordAttempts);
 
       if (studentAccount.failedPasswordAttempts >= 3) {
-        return res.status(401).json({
+        studentAccount.lockedUntil = new Date(Date.now() + 15 * 60 * 1000); // 15-minute temporary lockout
+        await studentAccount.save();
+
+        return res.status(429).json({
           success: false,
           code: "PASSWORD_ATTEMPTS_EXCEEDED",
-          message: "Incorrect password. 3 consecutive attempts failed. You can sign in using OTP verification to reset your password.",
+          message: "Incorrect password. 3 consecutive attempts failed. Account is temporarily locked for 15 minutes. You can sign in using OTP verification to reset your password.",
           failedAttempts: studentAccount.failedPasswordAttempts,
+          lockedUntil: studentAccount.lockedUntil,
+          remainingMinutes: 15,
           otpFallbackAllowed: true,
         });
       }
 
+      await studentAccount.save();
+      const remainingAttempts = Math.max(0, 3 - studentAccount.failedPasswordAttempts);
+
       return res.status(401).json({
         success: false,
         code: "INVALID_PASSWORD",
-        message: `Incorrect password. ${remainingAttempts} attempt${remainingAttempts === 1 ? "" : "s"} remaining before OTP verification is required.`,
+        message: `Incorrect password. ${remainingAttempts} attempt${remainingAttempts === 1 ? "" : "s"} remaining before account is temporarily locked.`,
         failedAttempts: studentAccount.failedPasswordAttempts,
         remainingAttempts,
       });

@@ -1,9 +1,90 @@
+const connectToDatabase = require("./_lib/db");
+const jwt = require("jsonwebtoken");
+const StudentSession = require("./_lib/models/StudentSession");
+const AdminSession = require("./_lib/models/AdminSession");
+const SubAdminSession = require("./_lib/models/SubAdminSession");
+const { isSessionValid, isAdminSessionValid } = require("./_lib/sessionManager");
+
 const CORS_HEADERS = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Credentials": "true",
   "Access-Control-Allow-Methods": "GET,POST,PUT,DELETE,OPTIONS",
-  "Access-Control-Allow-Headers": "Content-Type, Authorization, x-requested-with",
+  "Access-Control-Allow-Headers": "Content-Type, Authorization, x-requested-with, Cookie, x-student-token, x-admin-token",
 };
+
+function parseCookies(cookieHeader) {
+  const cookies = {};
+  if (!cookieHeader) return cookies;
+  cookieHeader.split(";").forEach((cookie) => {
+    const [name, ...rest] = cookie.trim().split("=");
+    if (name) cookies[name] = rest.join("=");
+  });
+  return cookies;
+}
+
+async function authenticateCaller(req) {
+  const cookies = parseCookies(req.headers.cookie);
+  let studentToken = req.headers["x-student-token"] || cookies.student_jwt;
+  let adminToken = req.headers["x-admin-token"] || cookies.jwt;
+
+  if (!studentToken && !adminToken && req.headers.authorization && req.headers.authorization.startsWith("Bearer")) {
+    const bearer = req.headers.authorization.split(" ")[1];
+    studentToken = bearer;
+  }
+
+  if ((!studentToken || studentToken === "none") && (!adminToken || adminToken === "none")) {
+    return {
+      error: {
+        status: 401,
+        message: "Authentication required to use the Attendance OCR Scanner.",
+        code: "AUTH_REQUIRED",
+      },
+    };
+  }
+
+  // 1. Authenticate Student
+  if (studentToken && studentToken !== "none") {
+    try {
+      const decoded = jwt.verify(studentToken, process.env.JWT_SECRET, { algorithms: ["HS256"] });
+      if (decoded.role === "student" && decoded.regNo && decoded.sessionId) {
+        await connectToDatabase();
+        const session = await StudentSession.findOne({ sessionId: decoded.sessionId, isActive: true });
+        if (session && isSessionValid(session)) {
+          return { caller: { type: "student", regNo: decoded.regNo } };
+        }
+      }
+    } catch {}
+  }
+
+  // 2. Authenticate Admin or Sub-Admin
+  if (adminToken && adminToken !== "none") {
+    try {
+      const decoded = jwt.verify(adminToken, process.env.JWT_SECRET, { algorithms: ["HS256"] });
+      await connectToDatabase();
+      if (decoded.adminType === "subadmin") {
+        if (decoded.sessionId) {
+          const session = await SubAdminSession.findOne({ sessionId: decoded.sessionId, isActive: true });
+          if (session) return { caller: { type: "subadmin" } };
+        }
+      } else {
+        if (decoded.sessionId) {
+          const session = await AdminSession.findOne({ sessionId: decoded.sessionId, isActive: true });
+          if (session && isAdminSessionValid(session)) {
+            return { caller: { type: "admin" } };
+          }
+        }
+      }
+    } catch {}
+  }
+
+  return {
+    error: {
+      status: 401,
+      message: "Authentication required to use the Attendance OCR Scanner.",
+      code: "AUTH_REQUIRED",
+    },
+  };
+}
 
 module.exports = async function handler(req, res) {
   Object.entries(CORS_HEADERS).forEach(([k, v]) => res.setHeader(k, v));
@@ -14,10 +95,30 @@ module.exports = async function handler(req, res) {
   }
 
   try {
+    // Enforce Caller Authentication (Rejects unauthenticated in <1ms without DB hit)
+    const authResult = await authenticateCaller(req);
+    if (authResult.error) {
+      return res.status(authResult.error.status).json({
+        success: false,
+        message: authResult.error.message,
+        code: authResult.error.code,
+      });
+    }
+
     const { imageBase64, mimeType = "image/jpeg" } = req.body || {};
 
     if (!imageBase64) {
       return res.status(400).json({ message: "imageBase64 is required." });
+    }
+
+    // Payload Size Limit: 7MB base64 string corresponds to ~5MB binary image.
+    const MAX_BASE64_LENGTH = 7 * 1024 * 1024;
+    if (typeof imageBase64 !== "string" || imageBase64.length > MAX_BASE64_LENGTH) {
+      return res.status(413).json({
+        success: false,
+        message: "Image payload exceeds maximum permitted size (5MB). Please upload a compressed image.",
+        code: "PAYLOAD_TOO_LARGE",
+      });
     }
 
     // Clean base64 data
