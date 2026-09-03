@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, Fragment } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams, useLocation } from "react-router-dom";
 import axios from "axios";
 import { useApp } from "../context/AppContext";
 import {
@@ -3637,9 +3637,11 @@ function FeedbackManager({ authHeaders, API }) {
 /* ════════════════════════════════════════════════════════════════
    7. MAIN ADMIN DASHBOARD SHELL
    ════════════════════════════════════════════════════════════════ */
-export default function AdminDashboard() {
+export default function AdminDashboard({ defaultTab = null }) {
   const { adminToken, adminLogout, authChecking, API = "/api" } = useApp();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const location = useLocation();
   const getAuthHeaders = () => ({ headers: { "X-Requested-With": "XMLHttpRequest" } });
 
   const authHeaders = getAuthHeaders();
@@ -3655,7 +3657,29 @@ export default function AdminDashboard() {
   const [clearCacheMsg, setClearCacheMsg] = useState("");
   const [clearCacheErr, setClearCacheErr] = useState("");
   const [clearCacheLoading, setClearCacheLoading] = useState(false);
-  const [tab, setTab] = useState("overview");
+  
+  // Resolve initial tab from prop, URL search param ?tab=..., or URL route
+  const urlTab = searchParams.get("tab");
+  const pathTab = location.pathname.includes("traffic") ? "live-traffic" : null;
+  const initialTab = defaultTab || urlTab || pathTab || "overview";
+  
+  const [tab, setTabState] = useState(initialTab);
+
+  const setTab = (newTab) => {
+    setTabState(newTab);
+    try {
+      setSearchParams({ tab: newTab }, { replace: true });
+    } catch {}
+  };
+
+  // Sync tab if URL param changes externally
+  useEffect(() => {
+    const currentParam = searchParams.get("tab");
+    if (currentParam && currentParam !== tab) {
+      setTabState(currentParam);
+    }
+  }, [searchParams]);
+
   const [isMobile, setIsMobile] = useState(() => typeof window !== "undefined" && window.innerWidth < 768);
   const [showAdminLogoutConfirm, setShowAdminLogoutConfirm] = useState(false);
   const adminTabsRef = useRef(null);
@@ -3770,7 +3794,12 @@ export default function AdminDashboard() {
 
   const ADMIN_TABS = isMainAdmin
     ? ALL_ADMIN_TABS
-    : ALL_ADMIN_TABS.filter((t) => (adminProfile?.permissions?.routes || []).includes(t.id));
+    : ALL_ADMIN_TABS.filter(
+        (t) =>
+          t.id === "live-traffic" ||
+          (adminProfile?.permissions?.routes || []).includes(t.id) ||
+          (adminProfile?.permissions?.routes || []).includes("*")
+      );
 
   // Fallback if current tab is not permitted for this Sub-Admin
   useEffect(() => {
@@ -3779,7 +3808,10 @@ export default function AdminDashboard() {
       if (
         tab === "admin-management" ||
         tab === "otp-management" ||
-        (!permittedRoutes.includes(tab) && permittedRoutes.length > 0)
+        (tab !== "live-traffic" &&
+          !permittedRoutes.includes(tab) &&
+          !permittedRoutes.includes("*") &&
+          permittedRoutes.length > 0)
       ) {
         setTab(permittedRoutes[0] || "overview");
       }
@@ -4053,6 +4085,8 @@ export default function AdminDashboard() {
                 badgeColor: "#059669",
                 badgeBg: "#d1fae5",
                 isLive: true,
+                targetTab: "live-traffic",
+                cta: "View Live Student Monitor →",
               },
               {
                 label: "University Academic Records",
@@ -4076,9 +4110,13 @@ export default function AdminDashboard() {
                 initial={{ opacity: 0, y: 8 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: i * 0.05 }}
+                onClick={() => {
+                  if (stat.targetTab) setTab(stat.targetTab);
+                }}
+                whileHover={stat.targetTab ? { y: -2, transition: { duration: 0.15 } } : {}}
                 style={{
                   background: "#ffffff",
-                  border: "1px solid #e2e8f0",
+                  border: stat.targetTab && tab === stat.targetTab ? "1.5px solid #10b981" : "1px solid #e2e8f0",
                   borderRadius: 16,
                   padding: "18px 20px",
                   boxShadow: "0 2px 8px rgba(15, 23, 42, 0.02)",
@@ -4086,6 +4124,8 @@ export default function AdminDashboard() {
                   alignItems: "center",
                   justifyContent: "space-between",
                   gap: 14,
+                  cursor: stat.targetTab ? "pointer" : "default",
+                  transition: "all 0.15s ease",
                 }}
               >
                 <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
@@ -4141,6 +4181,11 @@ export default function AdminDashboard() {
                     <div style={{ fontSize: 22, fontWeight: 800, color: "#0f172a", marginTop: 2 }}>
                       {stat.value || "0"}
                     </div>
+                    {stat.cta && (
+                      <div style={{ fontSize: 11, fontWeight: 700, color: "#059669", marginTop: 3 }}>
+                        {stat.cta}
+                      </div>
+                    )}
                   </div>
                 </div>
               </motion.div>
@@ -4195,9 +4240,9 @@ export default function AdminDashboard() {
                       gap: 6,
                       padding: "9px 16px",
                       borderRadius: 10,
-                      border: "none",
-                      background: isActive ? "#ffffff" : "transparent",
-                      color: isActive ? "#0f172a" : "#64748b",
+                      border: t.id === "live-traffic" && !isActive ? "1px dashed #a7f3d0" : "none",
+                      background: isActive ? "#ffffff" : t.id === "live-traffic" ? "#f0fdf4" : "transparent",
+                      color: isActive ? (t.id === "live-traffic" ? "#059669" : "#0f172a") : (t.id === "live-traffic" ? "#047857" : "#64748b"),
                       fontSize: 13,
                       fontWeight: isActive ? 800 : 600,
                       cursor: "pointer",
@@ -4207,8 +4252,39 @@ export default function AdminDashboard() {
                       fontFamily: "'DM Sans', sans-serif",
                     }}
                   >
-                    <span style={{ color: isActive ? "#2563eb" : "#64748b" }}>{t.icon}</span>
+                    <span style={{ color: isActive ? (t.id === "live-traffic" ? "#059669" : "#2563eb") : (t.id === "live-traffic" ? "#10b981" : "#64748b") }}>
+                      {t.icon}
+                    </span>
                     <span>{t.label}</span>
+                    {t.id === "live-traffic" && (
+                      <span
+                        style={{
+                          display: "inline-flex",
+                          alignItems: "center",
+                          gap: 3,
+                          fontSize: 9.5,
+                          fontWeight: 800,
+                          background: isActive ? "#dcfce7" : "#d1fae5",
+                          color: "#059669",
+                          padding: "1px 5px",
+                          borderRadius: 6,
+                          border: "1px solid #a7f3d0",
+                          marginLeft: 2,
+                          letterSpacing: "0.03em",
+                        }}
+                      >
+                        <span
+                          style={{
+                            width: 5,
+                            height: 5,
+                            borderRadius: "50%",
+                            background: "#10b981",
+                            display: "inline-block",
+                          }}
+                        />
+                        LIVE
+                      </span>
+                    )}
                   </button>
                 );
               })}

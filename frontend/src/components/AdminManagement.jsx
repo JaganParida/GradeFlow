@@ -50,6 +50,7 @@ import {
 export const AVAILABLE_PERMISSIONS = {
   routes: [
     { id: "overview", label: "Upload Results", desc: "Access to upload semester results and internal marks" },
+    { id: "live-traffic", label: "Live Active Students", desc: "Access to real-time active student monitoring, traffic analytics, and queue control" },
     { id: "timetable", label: "Timetable & Calendar", desc: "Access to view, create, and manage timetables" },
     { id: "report-card", label: "Report Card Editor", desc: "Access to student search and report card editor" },
     { id: "missing-uploader", label: "Missing Ingestion", desc: "Access to missing students ingestion" },
@@ -76,6 +77,7 @@ export const AVAILABLE_PERMISSIONS = {
 
 export const ROUTE_ICONS = {
   overview: UploadCloud,
+  "live-traffic": Activity,
   timetable: Calendar,
   "report-card": FileText,
   "missing-uploader": UserCheck,
@@ -89,9 +91,9 @@ export const ROLE_PRESETS = [
   {
     id: "full",
     label: "Full Access",
-    desc: "All 8 routes & 12 actions",
+    desc: "All 9 routes & 12 actions",
     icon: Zap,
-    routes: ["overview", "timetable", "report-card", "missing-uploader", "toppers", "backlogs", "manage", "feedback"],
+    routes: ["overview", "live-traffic", "timetable", "report-card", "missing-uploader", "toppers", "backlogs", "manage", "feedback"],
     actions: [
       "students.search", "students.view", "students.update", "results.upload", "results.delete",
       "toppers.view", "backlogs.view", "emails.send", "rankings.regenerate",
