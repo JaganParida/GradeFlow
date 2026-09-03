@@ -4,13 +4,7 @@ const StudentSession = require("./_lib/models/StudentSession");
 const AdminSession = require("./_lib/models/AdminSession");
 const SubAdminSession = require("./_lib/models/SubAdminSession");
 const { isSessionValid, isAdminSessionValid } = require("./_lib/sessionManager");
-
-const CORS_HEADERS = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Credentials": "true",
-  "Access-Control-Allow-Methods": "GET,POST,PUT,DELETE,OPTIONS",
-  "Access-Control-Allow-Headers": "Content-Type, Authorization, x-requested-with, Cookie, x-student-token, x-admin-token",
-};
+const { applyCors } = require("./_lib/cors");
 
 function parseCookies(cookieHeader) {
   const cookies = {};
@@ -87,8 +81,7 @@ async function authenticateCaller(req) {
 }
 
 module.exports = async function handler(req, res) {
-  Object.entries(CORS_HEADERS).forEach(([k, v]) => res.setHeader(k, v));
-  if (req.method === "OPTIONS") return res.status(200).end();
+  if (applyCors(req, res, "POST,OPTIONS")) return;
 
   if (req.method !== "POST") {
     return res.status(405).json({ message: "Method Not Allowed" });

@@ -1517,6 +1517,30 @@ export default function StudentAuthModal({ isOpen, onClose }) {
 
               <button
                 type="button"
+                onClick={handleRequestEmailOtpHandover}
+                disabled={loading}
+                style={{
+                  background: "#f0fdf4",
+                  border: "1.5px solid #86efac",
+                  borderRadius: 10,
+                  padding: "10px 16px",
+                  color: "#15803d",
+                  fontSize: 12.5,
+                  fontWeight: 700,
+                  cursor: loading ? "not-allowed" : "pointer",
+                  width: "100%",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: 8,
+                }}
+              >
+                <Mail size={15} />
+                <span>Lost access to old device? Transfer via Email OTP</span>
+              </button>
+
+              <button
+                type="button"
                 onClick={() => {
                   if (errorCode !== "APPROVAL_DENIED" && errorCode !== "APPROVAL_EXPIRED") {
                     cancelApprovalRequest(approvalRequestId);
@@ -2058,6 +2082,10 @@ export default function StudentAuthModal({ isOpen, onClose }) {
         activeDevices={blockedDevicesData}
         accountIdentifier={regNo}
         maxAllowed={regNo.trim().toUpperCase() === "230301120327" ? 2 : 1}
+        onTransferSession={() => {
+          setIsBlockedModalOpen(false);
+          triggerSendOtp();
+        }}
       />
     </AnimatePresence>
   );

@@ -12,12 +12,7 @@ const jwt = require("jsonwebtoken");
 const { globalDbQueue } = require("./_lib/dbProtection");
 const { getActiveSessions, getMaxAllowedDevices } = require("./_lib/sessionManager");
 
-const CORS_HEADERS = {
-  "Access-Control-Allow-Credentials": "true",
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Methods": "GET,POST,OPTIONS",
-  "Access-Control-Allow-Headers": "X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version, Authorization, Cookie, x-admin-token",
-};
+const { applyCors } = require("./_lib/cors");
 
 function parseCookies(cookieHeader) {
   const cookies = {};
@@ -114,14 +109,7 @@ async function authenticateMainAdmin(req) {
 }
 
 module.exports = async (req, res) => {
-  res.setHeader("Access-Control-Allow-Origin", CORS_HEADERS["Access-Control-Allow-Origin"]);
-  res.setHeader("Access-Control-Allow-Credentials", CORS_HEADERS["Access-Control-Allow-Credentials"]);
-  res.setHeader("Access-Control-Allow-Methods", CORS_HEADERS["Access-Control-Allow-Methods"]);
-  res.setHeader("Access-Control-Allow-Headers", CORS_HEADERS["Access-Control-Allow-Headers"]);
-
-  if (req.method === "OPTIONS") {
-    return res.status(200).end();
-  }
+  if (applyCors(req, res, "GET,POST,OPTIONS")) return;
 
   const authResult = await authenticateMainAdmin(req);
   if (authResult.error) {

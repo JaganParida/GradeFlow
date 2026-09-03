@@ -8,13 +8,7 @@ const AdminSession = require("./_lib/models/AdminSession");
 const jwt = require("jsonwebtoken");
 const { isAdminSessionValid, touchAdminSession } = require("./_lib/sessionManager");
 
-const CORS_HEADERS = {
-  "Access-Control-Allow-Credentials": "true",
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Methods": "GET,POST,PUT,DELETE,OPTIONS",
-  "Access-Control-Allow-Headers":
-    "X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version, Authorization, Cookie, x-admin-token",
-};
+const { applyCors } = require("./_lib/cors");
 
 function parseCookies(cookieHeader) {
   const cookies = {};
@@ -112,8 +106,7 @@ async function authenticateAdmin(req) {
 }
 
 module.exports = async function handler(req, res) {
-  Object.entries(CORS_HEADERS).forEach(([k, v]) => res.setHeader(k, v));
-  if (req.method === "OPTIONS") return res.status(200).end();
+  if (applyCors(req, res, "GET,POST,PUT,DELETE,OPTIONS")) return;
 
   try {
     const action = req.query.action || "";

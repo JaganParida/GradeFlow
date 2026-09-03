@@ -122,6 +122,8 @@ app.use("/api/rankings", publicLimiter, require("./routes/rankings"));
 app.use("/api/feedback", publicLimiter, require("./routes/feedback"));
 app.use("/api/timetable", publicLimiter, require("./routes/timetable"));
 app.use("/api/notifications", require("./routes/notifications"));
+app.use("/api/traffic", publicLimiter, require("./routes/traffic"));
+app.use("/api/admin/traffic", adminLimiter, csrfProtect, require("./routes/adminTraffic"));
 
 // ─── Attendance OCR Endpoint ───────────────────────────────────
 app.post("/api/attendance/ocr", publicLimiter, async (req, res) => {
@@ -346,6 +348,8 @@ app.use(errorHandler);
 
 const http = require("http");
 const server = http.createServer(app);
+const { initLiveTrafficServer } = require("./utils/liveTrafficManager");
+const io = initLiveTrafficServer(server, corsOptions);
 
 // Seed or update admin on first run
 async function seedAdmin() {

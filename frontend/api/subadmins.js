@@ -6,12 +6,7 @@ const AdminAuditLog = require("./_lib/models/AdminAuditLog");
 const jwt = require("jsonwebtoken");
 const bcrypt = require("bcryptjs");
 
-const CORS_HEADERS = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
-  "Access-Control-Allow-Headers": "Content-Type, Authorization, x-admin-token, x-student-token",
-  "Access-Control-Allow-Credentials": "true",
-};
+const { applyCors } = require("./_lib/cors");
 
 function parseCookies(cookieHeader) {
   const list = {};
@@ -27,8 +22,7 @@ function parseCookies(cookieHeader) {
 }
 
 module.exports = async function handler(req, res) {
-  Object.entries(CORS_HEADERS).forEach(([k, v]) => res.setHeader(k, v));
-  if (req.method === "OPTIONS") return res.status(200).end();
+  if (applyCors(req, res, "GET,POST,PUT,DELETE,OPTIONS")) return;
 
   try {
     // ── Authentication Check ──
