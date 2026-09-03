@@ -782,7 +782,7 @@ export default function Navbar() {
           <div className="gf-navbar-right" style={{ display: "flex", alignItems: "center", gap: 10 }}>
             {/* In-App Notification Bell & Device Approvals (Desktop) */}
             <div className="gf-desktop-bell-wrapper">
-              {hasActiveSession && <NotificationBell isMobile={false} />}
+              <NotificationBell isMobile={false} />
             </div>
 
             {/* Search button (Accessible ONLY for Admin) */}
@@ -991,7 +991,7 @@ export default function Navbar() {
 
             {/* Mobile Notification Bell */}
             <div className="gf-mobile-bell-wrapper" style={{ display: "none" }}>
-              {hasActiveSession && <NotificationBell isMobile={true} />}
+              <NotificationBell isMobile={true} />
             </div>
 
             {/* Mobile Hamburger Toggle Button */}

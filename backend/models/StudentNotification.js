@@ -17,7 +17,16 @@ const StudentNotificationSchema = new mongoose.Schema(
     },
     type: {
       type: String,
-      enum: ["LOGIN_APPROVAL_REQUEST", "SECURITY_NOTICE", "SYSTEM_ALERT"],
+      enum: [
+        "LOGIN_APPROVAL_REQUEST",
+        "SECURITY_NOTICE",
+        "SYSTEM_ALERT",
+        "BROADCAST_ANNOUNCEMENT",
+        "RESULT_ANNOUNCEMENT",
+        "TIMETABLE_UPDATE",
+        "FEATURE_EXPLORE",
+        "URGENT_ALERT",
+      ],
       default: "LOGIN_APPROVAL_REQUEST",
       index: true,
     },
@@ -29,6 +38,45 @@ const StudentNotificationSchema = new mongoose.Schema(
       type: String,
       required: true,
     },
+    primaryButton: {
+      label: { type: String, default: "Check Now" },
+      action: { type: String, default: "NAVIGATE" },
+      targetRoute: { type: String, default: "" },
+    },
+    secondaryButton: {
+      label: { type: String, default: "Understood" },
+      action: { type: String, default: "DISMISS" },
+    },
+    badge: {
+      type: String,
+      default: "Announcement",
+    },
+    badgeColor: {
+      type: String,
+      default: "blue",
+    },
+    sender: {
+      name: { type: String, default: "Admin Team" },
+      role: { type: String, default: "ADMIN" },
+    },
+    targetAudience: {
+      type: String,
+      default: "ALL",
+      index: true,
+    },
+    readBy: [
+      {
+        regNo: { type: String, uppercase: true },
+        readAt: { type: Date, default: Date.now },
+        actionTaken: { type: String, default: "CHECK_NOW" },
+      },
+    ],
+    dismissedBy: [
+      {
+        type: String,
+        uppercase: true,
+      },
+    ],
     approvalRequestId: {
       type: String,
       default: null,

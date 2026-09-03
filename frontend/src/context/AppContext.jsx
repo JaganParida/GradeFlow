@@ -331,7 +331,6 @@ export function AppProvider({ children }) {
   const [sessionRevokedNotice, setSessionRevokedNotice] = useState(null);
 
   const fetchNotifications = async () => {
-    if (!studentSession?.regNo || !studentSession?.sessionId) return;
     try {
       const res = await axios.get(`${API_BASE}/notifications/student`, { withCredentials: true });
       if (res.data?.success) {
@@ -339,6 +338,38 @@ export function AppProvider({ children }) {
         setUnreadCount(res.data.unreadCount || 0);
       }
     } catch {}
+  };
+
+  const handleNotificationAction = async (notificationId, actionType) => {
+    if (actionType === "CHECK_NOW") {
+      setNotifications((prev) =>
+        prev.map((n) => (n.notificationId === notificationId ? { ...n, isRead: true, status: "READ" } : n))
+      );
+      setUnreadCount((c) => Math.max(0, c - 1));
+    } else if (actionType === "UNDERSTOOD" || actionType === "DISMISS") {
+      setNotifications((prev) => prev.filter((n) => n.notificationId !== notificationId));
+      setUnreadCount((c) => Math.max(0, c - 1));
+    }
+
+    try {
+      const res = await axios.post(
+        `${API_BASE}/notifications/action`,
+        { notificationId, actionType },
+        { withCredentials: true }
+      );
+      if (res.data?.success && res.data?.targetRoute && actionType === "CHECK_NOW") {
+        const route = res.data.targetRoute;
+        if (route.startsWith("http://") || route.startsWith("https://")) {
+          window.open(route, "_blank", "noopener,noreferrer");
+        } else {
+          navigate(route);
+        }
+      }
+      return res.data;
+    } catch (err) {
+      console.warn("Notification action error:", err);
+      return { success: false };
+    }
   };
 
   const approveLoginRequest = async (requestId) => {
@@ -989,6 +1020,7 @@ export function AppProvider({ children }) {
         approveLoginRequest,
         denyLoginRequest,
         markNotificationsRead,
+        handleNotificationAction,
         checkApprovalStatus,
         cancelApprovalRequest,
         sessionRevokedNotice,

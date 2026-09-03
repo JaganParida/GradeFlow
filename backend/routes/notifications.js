@@ -134,6 +134,74 @@ router.post("/mark-read", protectStudent, async (req, res) => {
   }
 });
 
+// 4b. Handle 2-Button Action (Check Now / Understood)
+router.post("/action", protectStudent, async (req, res) => {
+  try {
+    const { notificationId, actionType } = req.body || {};
+    if (!notificationId) {
+      return res.status(400).json({ success: false, message: "Notification ID is required." });
+    }
+
+    const notif = await StudentNotification.findOne({ notificationId });
+    if (!notif) {
+      return res.status(404).json({ success: false, message: "Notification not found." });
+    }
+
+    const regNo = req.student.regNo;
+
+    if (actionType === "CHECK_NOW") {
+      if (notif.regNo === "ALL") {
+        await StudentNotification.updateOne(
+          { notificationId },
+          { $addToSet: { readBy: { regNo, readAt: new Date(), actionTaken: "CHECK_NOW" } } }
+        );
+      } else {
+        await StudentNotification.updateOne(
+          { notificationId },
+          { $set: { status: "READ", readAt: new Date() } }
+        );
+      }
+
+      return res.json({
+        success: true,
+        action: "NAVIGATE",
+        targetRoute: notif.primaryButton?.targetRoute || "",
+        message: "Marked as read.",
+      });
+    }
+
+    if (actionType === "UNDERSTOOD" || actionType === "DISMISS") {
+      if (notif.regNo === "ALL") {
+        await StudentNotification.updateOne(
+          { notificationId },
+          {
+            $addToSet: {
+              dismissedBy: regNo,
+              readBy: { regNo, readAt: new Date(), actionTaken: "UNDERSTOOD" },
+            },
+          }
+        );
+      } else {
+        await StudentNotification.updateOne(
+          { notificationId },
+          { $set: { status: "READ", readAt: new Date() } }
+        );
+      }
+
+      return res.json({
+        success: true,
+        action: "DISMISSED",
+        message: "Notification dismissed.",
+      });
+    }
+
+    return res.status(400).json({ success: false, message: "Invalid action type." });
+  } catch (err) {
+    console.error("Notification action error:", err);
+    return res.status(500).json({ success: false, message: "Server error processing notification action." });
+  }
+});
+
 // 5. Server-Sent Events (SSE) real-time notification & revocation stream
 router.get("/stream", protectStudent, (req, res) => {
   const regNo = req.student.regNo;

@@ -246,6 +246,22 @@
       "destination": "/api/traffic.js"
     },
     {
+      "source": "/api/admin/notifications/:path*",
+      "destination": "/api/notifications.js"
+    },
+    {
+      "source": "/api/admin/notifications",
+      "destination": "/api/notifications.js"
+    },
+    {
+      "source": "/api/notifications/:path*",
+      "destination": "/api/notifications.js"
+    },
+    {
+      "source": "/api/notifications",
+      "destination": "/api/notifications.js"
+    },
+    {
       "source": "/api/admin/subadmins/:id/sessions/:sessionId",
       "destination": "/api/subadmins.js?id=:id&sessionId=:sessionId&action=revoke-session"
     },

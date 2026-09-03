@@ -16,9 +16,11 @@ import StudentOtpManagement from "../components/StudentOtpManagement";
 import AdminAttendanceMonitor from "../components/AdminAttendanceMonitor";
 import AdminLiveTrafficManager from "../components/AdminLiveTrafficManager";
 import ModernMobileSubNav from "../components/ModernMobileSubNav";
+import AdminNotificationBroadcast from "../components/AdminNotificationBroadcast";
 import { motion, AnimatePresence } from "framer-motion";
 import { formatDistanceToNow } from "date-fns";
 import {
+  Bell,
   Upload,
   Trash2,
   Settings,
@@ -3777,6 +3779,7 @@ export default function AdminDashboard({ defaultTab = null }) {
     { id: "manage", label: "Manage Records", icon: <Database size={15} />, desc: "Batch purges, student database audits and tools" },
     { id: "feedback", label: "Student Feedback", icon: <MessageSquare size={15} />, desc: "Student reviews, issues and feature requests" },
     { id: "attendance-monitor", label: "Attendance Monitor", icon: <UserCheck size={15} />, desc: "Live student attendance tracker adoption & stats" },
+    { id: "broadcast-notifications", label: "Broadcast Notifications", icon: <Bell size={15} />, desc: "Publish real-time announcements & alerts with 2-button action links to all students" },
   ];
 
   if (isMainAdmin) {
@@ -5031,6 +5034,13 @@ export default function AdminDashboard({ defaultTab = null }) {
         {tab === "live-traffic" && (
           <div id="admin-live-traffic-monitor" data-tab-content="live-traffic">
             <AdminLiveTrafficManager API={API} authHeaders={authHeaders} isMobile={isMobile} />
+          </div>
+        )}
+
+        {/* ── TAB: BROADCAST NOTIFICATIONS & ALERTS ── */}
+        {tab === "broadcast-notifications" && (
+          <div id="admin-broadcast-notifications" data-tab-content="broadcast-notifications">
+            <AdminNotificationBroadcast API={API} authHeaders={authHeaders} isMobile={isMobile} />
           </div>
         )}
 
