@@ -86,7 +86,6 @@ router.post("/page-view", async (req, res) => {
       });
     }
 
-    // Normal active registration
     await registerOrUpdateActiveUser({
       token,
       regNo,
@@ -99,6 +98,9 @@ router.post("/page-view", async (req, res) => {
       browser,
       ip: req.ip,
     });
+
+    // Record page view in MongoDB analytics
+    await recordPageView(route, token).catch(() => {});
 
     return res.json({
       success: true,

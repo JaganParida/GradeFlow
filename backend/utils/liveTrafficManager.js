@@ -59,7 +59,7 @@ function getFriendlyPageTitle(route) {
 }
 
 function normalizeRoute(route) {
-  if (!route) return "/";
+  if (!route || typeof route !== "string") return "/";
   const clean = route.split("?")[0].replace(/\/$/, "") || "/";
   // Group dynamic student routes to maintain aggregate statistics
   if (clean.startsWith("/dashboard/")) return "/dashboard";
@@ -378,14 +378,20 @@ function checkAndAutoAdmitFromQueue() {
 }
 
 // ─── Route Visit Analytics (Persistent in MongoDB) ───────────────────────────
-async function recordPageView(rawRoute, visitorToken) {
-  if (!rawRoute) return;
+async function recordPageView(rawRouteOrObj, visitorToken) {
+  let rawRoute = rawRouteOrObj;
+  let token = visitorToken;
+  if (typeof rawRouteOrObj === "object" && rawRouteOrObj !== null) {
+    rawRoute = rawRouteOrObj.route;
+    token = rawRouteOrObj.token || visitorToken;
+  }
+  if (!rawRoute || typeof rawRoute !== "string") return;
   const route = normalizeRoute(rawRoute);
   const pageTitle = getFriendlyPageTitle(route);
 
   try {
     const now = new Date();
-    const tokenHash = visitorToken ? String(visitorToken).slice(0, 32) : null;
+    const tokenHash = token ? String(token).slice(0, 32) : null;
 
     await PageAnalytics.findOneAndUpdate(
       { route },
