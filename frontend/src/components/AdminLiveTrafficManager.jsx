@@ -167,13 +167,13 @@ export default function AdminLiveTrafficManager({ authHeaders, API }) {
       } catch {}
     }
 
-    // Poll periodically every 12s ONLY when tab is actively visible to protect Vercel quotas
+    // Poll periodically every 6s ONLY when tab is actively visible for near-instant real-time updates
     const pollInterval = setInterval(() => {
       if (typeof document !== "undefined" && document.hidden) {
         return; // Zero requests when admin minimizes or switches tab!
       }
       fetchOverview();
-    }, 12000);
+    }, 6000);
 
     // Refresh immediately when admin switches back to tab
     const handleVisibilityChange = () => {
