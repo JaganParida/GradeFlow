@@ -11,6 +11,8 @@ import {
   TrendingUp,
   Info,
   ChevronRight,
+  ChevronDown,
+  ChevronUp,
   Zap,
   Check,
   X,
@@ -18,6 +20,10 @@ import {
   Layers,
   ArrowRight,
   Sun,
+  MapPin,
+  User,
+  Compass,
+  Target,
 } from "lucide-react";
 import {
   getDaySchedule,
@@ -25,6 +31,7 @@ import {
   cleanSubjectBaseName,
   calculateAttendance,
   estimateTargetReachDate,
+  generateDateWiseRecoveryRoadmap,
   TIME_SLOTS,
 } from "../utils/timetableHelper";
 
@@ -43,6 +50,15 @@ export default function SmartBunkAnalyzer({
     DAYS.includes(todayDayName) ? todayDayName : "Monday"
   );
   const [selectedLeaveDays, setSelectedLeaveDays] = useState([]);
+  const [expandedSubjectRoadmaps, setExpandedSubjectRoadmaps] = useState({});
+  const [leaveRoadmapTab, setLeaveRoadmapTab] = useState("by_subject"); // "by_subject" | "chronological"
+
+  const toggleSubjectRoadmap = (subName) => {
+    setExpandedSubjectRoadmaps((prev) => ({
+      ...prev,
+      [subName]: !prev[subName],
+    }));
+  };
 
   // 1. Weekly Day-by-Day Bunk Safety Intelligence Engine
   const weeklyBunkAnalysis = useMemo(() => {
@@ -181,6 +197,7 @@ export default function SmartBunkAnalyzer({
       return {
         day,
         dateFormatted,
+        calendarDate: new Date(calendarDate),
         dayRelativeState,
         totalClasses: scheduledPeriods.length,
         periods,
@@ -208,14 +225,21 @@ export default function SmartBunkAnalyzer({
     let totalMissedPeriods = 0;
     const affectedSubjects = new Map();
     const dayByDayBreakdown = [];
+    let maxLeaveDate = null;
 
     selectedLeaveDays.forEach((dayName) => {
       const dayData = weeklyBunkAnalysis.find((d) => d.day === dayName);
       if (dayData) {
         totalMissedPeriods += dayData.totalClasses;
+        if (dayData.calendarDate) {
+          if (!maxLeaveDate || dayData.calendarDate > maxLeaveDate) {
+            maxLeaveDate = new Date(dayData.calendarDate);
+          }
+        }
         dayByDayBreakdown.push({
           day: dayName,
           dateFormatted: dayData.dateFormatted,
+          calendarDate: dayData.calendarDate,
           totalClasses: dayData.totalClasses,
           periods: dayData.periods,
         });
@@ -241,6 +265,19 @@ export default function SmartBunkAnalyzer({
     const simPct =
       simDelivered > 0 ? (totalAtt / simDelivered) * 100 : currentPct;
     const delta = simPct - currentPct;
+
+    // Determine estimated student return date
+    const returnDateObj = maxLeaveDate ? new Date(maxLeaveDate) : new Date();
+    returnDateObj.setDate(returnDateObj.getDate() + 1);
+    if (returnDateObj.getDay() === 0) {
+      // If Sunday, resume Monday
+      returnDateObj.setDate(returnDateObj.getDate() + 1);
+    }
+    const returnDateFormatted = returnDateObj.toLocaleDateString("en-IN", {
+      weekday: "short",
+      day: "numeric",
+      month: "short",
+    });
 
     const affectedSubjectBreakdown = [];
     const criticalSubjectList = [];
@@ -271,23 +308,23 @@ export default function SmartBunkAnalyzer({
         // Classes needed to recover to 75% after leave
         let classesToRecover = 0;
         if (!isSafe) {
-          // (subTotAtt + X) / (subSimDel + X) >= 0.75 => subTotAtt + X >= 0.75*subSimDel + 0.75*X => 0.25*X >= 0.75*subSimDel - subTotAtt
           const num = 0.75 * subSimDel - subTotAtt;
           classesToRecover = Math.max(0, Math.ceil(num / 0.25));
         }
 
-        // Recovery Reach Date
-        const recoveryProjection =
-          classesToRecover > 0 && sub.weeklyOccurrences && sub.weeklyOccurrences.length > 0
-            ? estimateTargetReachDate(
-                classesToRecover,
-                sub.weeklyOccurrences,
-                new Date(),
-                subTotAtt,
-                subSimDel,
-                75
-              )
-            : null;
+        // Full Date-Wise Recovery Roadmap strictly mapped to section timetable & calendar
+        const recoveryRoadmap = generateDateWiseRecoveryRoadmap({
+          subjectName: subName,
+          subCode,
+          weeklyOccurrences: sub.weeklyOccurrences || [],
+          currentAttended: subTotAtt,
+          currentDelivered: subTotDel,
+          missedCount: info.missedCount,
+          leaveEndDate: maxLeaveDate,
+          targetPercentage: 75,
+          bufferExtraClasses: 2,
+          maxSessionsLimit: 25,
+        });
 
         const subjectEntry = {
           subjectName: subName,
@@ -299,8 +336,8 @@ export default function SmartBunkAnalyzer({
           delta,
           isSafe,
           classesToRecover,
-          recoveryReachDate: recoveryProjection?.estimatedDate || null,
-          recoveryWeeks: recoveryProjection?.estimatedWeeks || null,
+          recoveryReachDate: recoveryRoadmap.milestoneDate || (classesToRecover > 0 ? "Beyond instruction period" : null),
+          recoveryRoadmap,
           components: sub.components || [],
         };
 
@@ -310,6 +347,30 @@ export default function SmartBunkAnalyzer({
           criticalSubjectList.push(subjectEntry);
         }
       }
+    });
+
+    // Chronological Master Recovery Timeline across all affected subjects
+    const masterRecoveryTimeline = [];
+    affectedSubjectBreakdown.forEach((subItem) => {
+      if (subItem.recoveryRoadmap?.recoverySessions) {
+        subItem.recoveryRoadmap.recoverySessions.forEach((sess) => {
+          masterRecoveryTimeline.push({
+            ...sess,
+            subjectName: subItem.subjectName,
+            subCode: subItem.subCode,
+            currentPct: subItem.currentPct,
+            projectedPct: subItem.projectedPct,
+            isSubjectSafe: subItem.isSafe,
+          });
+        });
+      }
+    });
+
+    // Sort chronologically by date timestamp, then period slot
+    masterRecoveryTimeline.sort((a, b) => {
+      const diff = a.date.getTime() - b.date.getTime();
+      if (diff !== 0) return diff;
+      return (a.timeSlot || "").localeCompare(b.timeSlot || "");
     });
 
     // Overall Recovery calculation if grand percentage drops below 75%
@@ -329,6 +390,8 @@ export default function SmartBunkAnalyzer({
       affectedSubjectBreakdown,
       dayByDayBreakdown,
       overallClassesToRecover,
+      returnDateFormatted,
+      masterRecoveryTimeline,
     };
   }, [
     selectedLeaveDays,
@@ -1390,109 +1453,395 @@ export default function SmartBunkAnalyzer({
                   </div>
                 </div>
 
-                {/* 2. Granular Per-Subject Impact Cards */}
+                {/* 2. Granular Per-Subject Impact & Date-Wise Recovery Roadmap */}
                 <div>
-                  <div style={{ fontSize: 12.5, fontWeight: 800, color: "#0f172a", marginBottom: 8, display: "flex", alignItems: "center", gap: 6 }}>
-                    <BookOpen size={15} color="#2563eb" />
-                    <span>Subject-by-Subject Leave Impact Breakdown:</span>
+                  <div
+                    style={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: "center",
+                      flexWrap: "wrap",
+                      gap: 8,
+                      marginBottom: 10,
+                    }}
+                  >
+                    <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                      <div style={{ fontSize: 13, fontWeight: 800, color: "#0f172a", display: "flex", alignItems: "center", gap: 6 }}>
+                        <BookOpen size={16} color="#2563eb" />
+                        <span>Leave Impact & Date-Wise Recovery Roadmap:</span>
+                      </div>
+                      <span
+                        style={{
+                          fontSize: 11,
+                          fontWeight: 800,
+                          background: "#eff6ff",
+                          color: "#1d4ed8",
+                          border: "1px solid #bfdbfe",
+                          padding: "2px 8px",
+                          borderRadius: 6,
+                          display: "inline-flex",
+                          alignItems: "center",
+                          gap: 4,
+                        }}
+                      >
+                        <CalendarCheck size={12} />
+                        Classes Resume: {multiDaySimulation.returnDateFormatted}
+                      </span>
+                    </div>
+
+                    {/* View Switcher: By Course vs Master Chronological Timeline */}
+                    <div style={{ display: "inline-flex", background: "#f1f5f9", padding: 3, borderRadius: 8, border: "1px solid #e2e8f0" }}>
+                      <button
+                        type="button"
+                        onClick={() => setLeaveRoadmapTab("by_subject")}
+                        style={{
+                          padding: "4px 10px",
+                          borderRadius: 6,
+                          border: "none",
+                          background: leaveRoadmapTab === "by_subject" ? "#ffffff" : "transparent",
+                          color: leaveRoadmapTab === "by_subject" ? "#0f172a" : "#64748b",
+                          fontSize: 11,
+                          fontWeight: 800,
+                          cursor: "pointer",
+                          display: "inline-flex",
+                          alignItems: "center",
+                          gap: 5,
+                          boxShadow: leaveRoadmapTab === "by_subject" ? "0 1px 3px rgba(0,0,0,0.05)" : "none",
+                        }}
+                      >
+                        <Layers size={12} />
+                        <span>By Course ({multiDaySimulation.affectedSubjectBreakdown.length})</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setLeaveRoadmapTab("chronological")}
+                        style={{
+                          padding: "4px 10px",
+                          borderRadius: 6,
+                          border: "none",
+                          background: leaveRoadmapTab === "chronological" ? "#ffffff" : "transparent",
+                          color: leaveRoadmapTab === "chronological" ? "#0f172a" : "#64748b",
+                          fontSize: 11,
+                          fontWeight: 800,
+                          cursor: "pointer",
+                          display: "inline-flex",
+                          alignItems: "center",
+                          gap: 5,
+                          boxShadow: leaveRoadmapTab === "chronological" ? "0 1px 3px rgba(0,0,0,0.05)" : "none",
+                        }}
+                      >
+                        <CalendarIcon size={12} />
+                        <span>Master Schedule ({multiDaySimulation.masterRecoveryTimeline?.length || 0})</span>
+                      </button>
+                    </div>
                   </div>
 
-                  <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(auto-fill, minmax(360px, 1fr))", gap: 10 }}>
-                    {multiDaySimulation.affectedSubjectBreakdown.map((subItem, sIdx) => {
-                      const missedCompKeys = Object.keys(subItem.componentsMissed || {});
-                      return (
-                        <div
-                          key={sIdx}
-                          style={{
-                            background: "#ffffff",
-                            border: `1.5px solid ${subItem.isSafe ? "#e2e8f0" : "#fca5a5"}`,
-                            borderRadius: 12,
-                            padding: "12px 14px",
-                            display: "flex",
-                            flexDirection: "column",
-                            gap: 8,
-                            boxShadow: "0 1px 3px rgba(0,0,0,0.02)",
-                          }}
-                        >
-                          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 8 }}>
-                            <div>
-                              <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
-                                <span style={{ fontSize: 13, fontWeight: 800, color: "#0f172a" }}>
-                                  {subItem.subjectName}
-                                </span>
-                                {subItem.subCode && (
-                                  <span style={{ fontSize: 10.5, fontFamily: "'Space Mono', monospace", fontWeight: 800, background: "#eff6ff", color: "#2563eb", padding: "1px 5px", borderRadius: 4 }}>
-                                    {subItem.subCode}
+                  {/* TAB 1: SUBJECT BY SUBJECT BREAKDOWN WITH EXPANDABLE ROADMAPS */}
+                  {leaveRoadmapTab === "by_subject" && (
+                    <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(auto-fill, minmax(360px, 1fr))", gap: 12 }}>
+                      {multiDaySimulation.affectedSubjectBreakdown.map((subItem, sIdx) => {
+                        const missedCompKeys = Object.keys(subItem.componentsMissed || {});
+                        const isRoadmapOpen = Boolean(expandedSubjectRoadmaps[subItem.subjectName]);
+                        const roadmap = subItem.recoveryRoadmap;
+                        const sessions = roadmap?.recoverySessions || [];
+
+                        return (
+                          <div
+                            key={sIdx}
+                            style={{
+                              background: "#ffffff",
+                              border: `1.5px solid ${subItem.isSafe ? "#e2e8f0" : "#fca5a5"}`,
+                              borderRadius: 12,
+                              padding: "13px 15px",
+                              display: "flex",
+                              flexDirection: "column",
+                              gap: 10,
+                              boxShadow: "0 1px 3px rgba(0,0,0,0.02)",
+                            }}
+                          >
+                            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 8 }}>
+                              <div>
+                                <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+                                  <span style={{ fontSize: 13.5, fontWeight: 800, color: "#0f172a" }}>
+                                    {subItem.subjectName}
                                   </span>
-                                )}
+                                  {subItem.subCode && (
+                                    <span style={{ fontSize: 10.5, fontFamily: "'Space Mono', monospace", fontWeight: 800, background: "#eff6ff", color: "#2563eb", padding: "1px 5px", borderRadius: 4 }}>
+                                      {subItem.subCode}
+                                    </span>
+                                  )}
+                                </div>
+                                <div style={{ fontSize: 11, color: "#64748b", marginTop: 2, display: "flex", alignItems: "center", gap: 4 }}>
+                                  <span>Missed on Leave: <strong>{subItem.missedCount} class(es)</strong></span>
+                                  {missedCompKeys.length > 0 && (
+                                    <span style={{ color: "#94a3b8" }}>
+                                      ({missedCompKeys.map((k) => `${subItem.componentsMissed[k]}x ${k}`).join(", ")})
+                                    </span>
+                                  )}
+                                </div>
                               </div>
-                              <div style={{ fontSize: 11, color: "#64748b", marginTop: 2, display: "flex", alignItems: "center", gap: 4 }}>
-                                <span>Missed on Leave: <strong>{subItem.missedCount} class(es)</strong></span>
-                                {missedCompKeys.length > 0 && (
-                                  <span style={{ color: "#94a3b8" }}>
-                                    ({missedCompKeys.map((k) => `${subItem.componentsMissed[k]}x ${k}`).join(", ")})
-                                  </span>
+
+                              <span
+                                style={{
+                                  fontSize: 10,
+                                  fontWeight: 900,
+                                  background: subItem.isSafe ? "#f0fdf4" : "#fef2f2",
+                                  color: subItem.isSafe ? "#16a34a" : "#dc2626",
+                                  border: `1px solid ${subItem.isSafe ? "#bbf7d0" : "#fecaca"}`,
+                                  padding: "2px 7px",
+                                  borderRadius: 6,
+                                  whiteSpace: "nowrap",
+                                  display: "inline-flex",
+                                  alignItems: "center",
+                                  gap: 4,
+                                }}
+                              >
+                                {subItem.isSafe ? (
+                                  <>
+                                    <CheckCircle2 size={11} color="#16a34a" />
+                                    <span>SAFE (&ge;75%)</span>
+                                  </>
+                                ) : (
+                                  <>
+                                    <AlertTriangle size={11} color="#dc2626" />
+                                    <span>SHORTFALL</span>
+                                  </>
                                 )}
-                              </div>
+                              </span>
                             </div>
 
-                            <span
+                            {/* Score Progression Bar */}
+                            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", background: "#f8fafc", padding: "6px 10px", borderRadius: 8, border: "1px solid #f1f5f9" }}>
+                              <span style={{ fontSize: 11.5, color: "#64748b" }}>
+                                Current: <strong>{subItem.currentPct}%</strong> &rarr; Projected:{" "}
+                                <strong style={{ color: subItem.isSafe ? "#16a34a" : "#dc2626" }}>{subItem.projectedPct}%</strong>
+                              </span>
+                              <span style={{ fontSize: 11, fontWeight: 800, color: subItem.delta < 0 ? "#dc2626" : "#16a34a" }}>
+                                {subItem.delta}%
+                              </span>
+                            </div>
+
+                            {/* Recovery Intelligence Banner */}
+                            {!subItem.isSafe ? (
+                              <div style={{ fontSize: 11, background: "#fef2f2", border: "1px solid #fecaca", padding: "8px 10px", borderRadius: 8, color: "#991b1b", display: "flex", flexDirection: "column", gap: 4 }}>
+                                <div style={{ display: "flex", alignItems: "center", gap: 6, fontWeight: 800 }}>
+                                  <Zap size={13} color="#dc2626" style={{ flexShrink: 0 }} />
+                                  <span>Required Action: Attend {subItem.classesToRecover} consecutive classes</span>
+                                </div>
+                                <div style={{ fontSize: 10.5, color: "#7f1d1d", marginLeft: 19 }}>
+                                  {roadmap?.milestoneDate ? (
+                                    <span>Target restored on <strong>{roadmap.milestoneDate}</strong> (Session #{roadmap.milestoneSessionNumber})</span>
+                                  ) : (
+                                    <span>All scheduled classes after leave must be attended strictly.</span>
+                                  )}
+                                </div>
+                              </div>
+                            ) : (
+                              <div style={{ fontSize: 11, background: "#f0fdf4", border: "1px solid #bbf7d0", padding: "8px 10px", borderRadius: 8, color: "#166534", display: "flex", flexDirection: "column", gap: 4 }}>
+                                <div style={{ display: "flex", alignItems: "center", gap: 6, fontWeight: 800 }}>
+                                  <ShieldCheck size={13} color="#16a34a" style={{ flexShrink: 0 }} />
+                                  <span>Safe Buffer Preserved (&ge;75%)</span>
+                                </div>
+                                <div style={{ fontSize: 10.5, color: "#14532d", marginLeft: 19 }}>
+                                  {roadmap?.bufferRestoredDate ? (
+                                    <span>Pre-leave buffer restored on <strong>{roadmap.bufferRestoredDate}</strong></span>
+                                  ) : (
+                                    <span>Attendance stays safely above the university minimum.</span>
+                                  )}
+                                </div>
+                              </div>
+                            )}
+
+                            {/* Accordion Trigger Button */}
+                            {sessions.length > 0 && (
+                              <button
+                                type="button"
+                                onClick={() => toggleSubjectRoadmap(subItem.subjectName)}
+                                style={{
+                                  padding: "6px 10px",
+                                  borderRadius: 7,
+                                  border: "1px solid #e2e8f0",
+                                  background: isRoadmapOpen ? "#eff6ff" : "#f8fafc",
+                                  color: isRoadmapOpen ? "#2563eb" : "#475569",
+                                  fontSize: 11,
+                                  fontWeight: 800,
+                                  cursor: "pointer",
+                                  display: "flex",
+                                  justifyContent: "space-between",
+                                  alignItems: "center",
+                                  transition: "all 0.15s ease",
+                                }}
+                              >
+                                <span style={{ display: "inline-flex", alignItems: "center", gap: 5 }}>
+                                  <CalendarIcon size={12} />
+                                  <span>{isRoadmapOpen ? "Hide Recovery Schedule" : "View Date-Wise Recovery Roadmap"} ({sessions.length} classes)</span>
+                                </span>
+                                {isRoadmapOpen ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
+                              </button>
+                            )}
+
+                            {/* Expandable Step-by-Step Date-Wise Recovery Schedule */}
+                            <AnimatePresence>
+                              {isRoadmapOpen && sessions.length > 0 && (
+                                <motion.div
+                                  initial={{ opacity: 0, height: 0 }}
+                                  animate={{ opacity: 1, height: "auto" }}
+                                  exit={{ opacity: 0, height: 0 }}
+                                  transition={{ duration: 0.2 }}
+                                  style={{ overflow: "hidden" }}
+                                >
+                                  <div style={{ display: "flex", flexDirection: "column", gap: 6, paddingTop: 4 }}>
+                                    <div style={{ fontSize: 10.5, fontWeight: 800, color: "#64748b", textTransform: "uppercase", letterSpacing: "0.3px" }}>
+                                      Step-by-Step Class Schedule & Attendance Growth:
+                                    </div>
+                                    {sessions.map((sess, sessIdx) => (
+                                      <div
+                                        key={sessIdx}
+                                        style={{
+                                          background: sess.is75Milestone ? "#f0fdf4" : sess.isBufferRestored ? "#eff6ff" : "#f8fafc",
+                                          border: `1px solid ${sess.is75Milestone ? "#86efac" : sess.isBufferRestored ? "#bfdbfe" : "#e2e8f0"}`,
+                                          borderRadius: 8,
+                                          padding: "8px 10px",
+                                          display: "flex",
+                                          flexDirection: "column",
+                                          gap: 4,
+                                        }}
+                                      >
+                                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                                          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                                            <span style={{ fontSize: 10, fontWeight: 900, background: "#e2e8f0", color: "#334155", padding: "1px 5px", borderRadius: 4 }}>
+                                              #{sess.sessionNumber}
+                                            </span>
+                                            <span style={{ fontSize: 11.5, fontWeight: 800, color: "#0f172a" }}>
+                                              {sess.day}, {sess.dateStr}
+                                            </span>
+                                          </div>
+                                          <span style={{ fontSize: 10.5, fontWeight: 900, color: "#16a34a", background: "#dcfce7", padding: "1px 6px", borderRadius: 4 }}>
+                                            +{sess.stepDelta}%
+                                          </span>
+                                        </div>
+
+                                        <div style={{ fontSize: 10.5, color: "#64748b", display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 4 }}>
+                                          <span>
+                                            {sess.timeSlot} &bull; {sess.room} {sess.faculty ? `&bull; ${sess.faculty}` : ""}
+                                          </span>
+                                          <span style={{ fontFamily: "'Space Mono', monospace", fontWeight: 700 }}>
+                                            {sess.runningAttended}/{sess.runningDelivered} ({sess.pctBefore}% &rarr;{" "}
+                                            <strong style={{ color: sess.pctAfter >= 75 ? "#16a34a" : "#dc2626" }}>{sess.pctAfter}%</strong>)
+                                          </span>
+                                        </div>
+
+                                        {sess.is75Milestone && (
+                                          <div style={{ background: "#dcfce7", color: "#15803d", padding: "3px 6px", borderRadius: 5, fontSize: 10, fontWeight: 800, display: "flex", alignItems: "center", gap: 4, marginTop: 2 }}>
+                                            <CheckCircle2 size={11} color="#16a34a" />
+                                            <span>Milestone: Crosses mandatory 75.0% cutoff on this date!</span>
+                                          </div>
+                                        )}
+
+                                        {sess.isBufferRestored && (
+                                          <div style={{ background: "#dbeafe", color: "#1e40af", padding: "3px 6px", borderRadius: 5, fontSize: 10, fontWeight: 800, display: "flex", alignItems: "center", gap: 4, marginTop: 2 }}>
+                                            <ShieldCheck size={11} color="#2563eb" />
+                                            <span>Pre-leave buffer level restored ({sess.pctAfter}%)</span>
+                                          </div>
+                                        )}
+                                      </div>
+                                    ))}
+                                  </div>
+                                </motion.div>
+                              )}
+                            </AnimatePresence>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+
+                  {/* TAB 2: MASTER UNIFIED CHRONOLOGICAL SCHEDULE ACROSS ALL COURSES */}
+                  {leaveRoadmapTab === "chronological" && (
+                    <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                      <div style={{ background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: 10, padding: "10px 14px", display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 8 }}>
+                        <div style={{ fontSize: 12, color: "#334155" }}>
+                          Showing <strong>{multiDaySimulation.masterRecoveryTimeline.length} total upcoming classes</strong> across all affected courses starting from <strong>{multiDaySimulation.returnDateFormatted}</strong>.
+                        </div>
+                        <span style={{ fontSize: 11, fontWeight: 700, color: "#2563eb", background: "#eff6ff", padding: "2px 8px", borderRadius: 6 }}>
+                          Chronological Timetable Order
+                        </span>
+                      </div>
+
+                      {multiDaySimulation.masterRecoveryTimeline.length === 0 ? (
+                        <div style={{ padding: "20px", textAlign: "center", color: "#64748b", background: "#ffffff", borderRadius: 10, border: "1px solid #e2e8f0" }}>
+                          No upcoming recovery classes found before the end of instruction (31 Oct 2026).
+                        </div>
+                      ) : (
+                        <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                          {multiDaySimulation.masterRecoveryTimeline.map((sess, mIdx) => (
+                            <div
+                              key={mIdx}
                               style={{
-                                fontSize: 10,
-                                fontWeight: 900,
-                                background: subItem.isSafe ? "#f0fdf4" : "#fef2f2",
-                                color: subItem.isSafe ? "#16a34a" : "#dc2626",
-                                border: `1px solid ${subItem.isSafe ? "#bbf7d0" : "#fecaca"}`,
-                                padding: "2px 7px",
-                                borderRadius: 6,
-                                whiteSpace: "nowrap",
-                                display: "inline-flex",
-                                alignItems: "center",
+                                background: sess.is75Milestone ? "#f0fdf4" : sess.isBufferRestored ? "#eff6ff" : "#ffffff",
+                                border: `1px solid ${sess.is75Milestone ? "#86efac" : sess.isBufferRestored ? "#bfdbfe" : "#e2e8f0"}`,
+                                borderRadius: 9,
+                                padding: "10px 14px",
+                                display: "flex",
+                                flexDirection: "column",
                                 gap: 4,
+                                boxShadow: "0 1px 2px rgba(0,0,0,0.02)",
                               }}
                             >
-                              {subItem.isSafe ? (
-                                <>
-                                  <CheckCircle2 size={11} color="#16a34a" />
-                                  <span>SAFE (&ge;75%)</span>
-                                </>
-                              ) : (
-                                <>
-                                  <AlertTriangle size={11} color="#dc2626" />
-                                  <span>SHORTFALL</span>
-                                </>
-                              )}
-                            </span>
-                          </div>
+                              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 6 }}>
+                                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                                  <span style={{ fontSize: 11, fontWeight: 800, background: "#f1f5f9", color: "#0f172a", padding: "2px 6px", borderRadius: 4 }}>
+                                    {sess.day.slice(0, 3)}, {sess.dateStr}
+                                  </span>
+                                  <span style={{ fontSize: 12.5, fontWeight: 800, color: "#0f172a" }}>
+                                    {sess.subjectName}
+                                  </span>
+                                  {sess.subCode && (
+                                    <span style={{ fontSize: 10, fontFamily: "'Space Mono', monospace", fontWeight: 700, background: "#eff6ff", color: "#2563eb", padding: "1px 5px", borderRadius: 4 }}>
+                                      {sess.subCode}
+                                    </span>
+                                  )}
+                                </div>
 
-                          {/* Score Progression */}
-                          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", background: "#f8fafc", padding: "6px 10px", borderRadius: 8, border: "1px solid #f1f5f9" }}>
-                            <span style={{ fontSize: 11.5, color: "#64748b" }}>
-                              Current: <strong>{subItem.currentPct}%</strong> &rarr; Projected:{" "}
-                              <strong style={{ color: subItem.isSafe ? "#16a34a" : "#dc2626" }}>{subItem.projectedPct}%</strong>
-                            </span>
-                            <span style={{ fontSize: 11, fontWeight: 800, color: subItem.delta < 0 ? "#dc2626" : "#16a34a" }}>
-                              {subItem.delta}%
-                            </span>
-                          </div>
-
-                          {/* Recovery roadmap if below 75 */}
-                          {!subItem.isSafe && subItem.classesToRecover > 0 && (
-                            <div style={{ fontSize: 11, background: "#fef2f2", border: "1px solid #fecaca", padding: "6px 8px", borderRadius: 6, color: "#991b1b", display: "flex", alignItems: "flex-start", gap: 5 }}>
-                              <Zap size={13} color="#dc2626" style={{ flexShrink: 0, marginTop: 1 }} />
-                              <div>
-                                <span style={{ fontWeight: 800 }}>Recovery Action:</span> Need to attend{" "}
-                                <strong>{subItem.classesToRecover} consecutive classes</strong> after returning to restore &ge;75%
-                                {subItem.recoveryReachDate && (
-                                  <span> (est. by <strong>{subItem.recoveryReachDate}</strong>)</span>
-                                )}
+                                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                                  <span style={{ fontSize: 11, fontWeight: 700, color: "#64748b" }}>
+                                    {sess.pctBefore}% &rarr;{" "}
+                                    <strong style={{ color: sess.pctAfter >= 75 ? "#16a34a" : "#dc2626" }}>{sess.pctAfter}%</strong>
+                                  </span>
+                                  <span style={{ fontSize: 11, fontWeight: 900, color: "#16a34a", background: "#dcfce7", padding: "1px 6px", borderRadius: 4 }}>
+                                    +{sess.stepDelta}%
+                                  </span>
+                                </div>
                               </div>
+
+                              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: 11, color: "#64748b", flexWrap: "wrap", gap: 4 }}>
+                                <span>
+                                  {sess.timeSlot} &bull; {sess.room} {sess.faculty ? `&bull; ${sess.faculty}` : ""} &bull; {sess.type}
+                                </span>
+                                <span style={{ fontFamily: "'Space Mono', monospace", fontSize: 10.5 }}>
+                                  Attended: {sess.runningAttended} / {sess.runningDelivered}
+                                </span>
+                              </div>
+
+                              {sess.is75Milestone && (
+                                <div style={{ background: "#dcfce7", color: "#15803d", padding: "3px 8px", borderRadius: 5, fontSize: 10.5, fontWeight: 800, display: "flex", alignItems: "center", gap: 5, marginTop: 2 }}>
+                                  <CheckCircle2 size={12} color="#16a34a" />
+                                  <span>Milestone: Crosses 75.0% threshold for {sess.subjectName}!</span>
+                                </div>
+                              )}
+
+                              {sess.isBufferRestored && (
+                                <div style={{ background: "#dbeafe", color: "#1e40af", padding: "3px 8px", borderRadius: 5, fontSize: 10.5, fontWeight: 800, display: "flex", alignItems: "center", gap: 5, marginTop: 2 }}>
+                                  <ShieldCheck size={12} color="#2563eb" />
+                                  <span>Pre-leave buffer level restored for {sess.subjectName} ({sess.pctAfter}%)</span>
+                                </div>
+                              )}
                             </div>
-                          )}
+                          ))}
                         </div>
-                      );
-                    })}
-                  </div>
+                      )}
+                    </div>
+                  )}
                 </div>
 
                 {/* 3. Day-by-Day Timeline of Missed Periods */}

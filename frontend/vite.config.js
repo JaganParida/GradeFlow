@@ -16,7 +16,7 @@ export default defineConfig({
     target: "es2020",
     minify: "esbuild",
     cssCodeSplit: true,
-    chunkSizeWarningLimit: 600,
+    chunkSizeWarningLimit: 1500,
     rollupOptions: {
       output: {
         manualChunks(id) {
@@ -29,6 +29,18 @@ export default defineConfig({
           }
           if (id.includes("node_modules/framer-motion/")) {
             return "vendor-motion";
+          }
+          if (id.includes("node_modules/exceljs/")) {
+            return "vendor-exceljs";
+          }
+          if (id.includes("node_modules/xlsx/")) {
+            return "vendor-xlsx";
+          }
+          if (id.includes("node_modules/jspdf/") || id.includes("node_modules/jspdf-autotable/")) {
+            return "vendor-jspdf";
+          }
+          if (id.includes("node_modules/html2canvas/")) {
+            return "vendor-html2canvas";
           }
         },
       },

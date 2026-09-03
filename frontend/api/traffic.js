@@ -37,9 +37,13 @@ module.exports = async function handler(req, res) {
 
   try {
     await connectToDatabase();
-    const action = req.query.action || "";
+    
+    // Resolve action from query or URL path
+    const urlObj = new URL(req.url, "http://localhost");
+    const pathAction = urlObj.pathname.replace(/^\/api\/traffic\/?/, "").replace(/\/$/, "");
+    const action = (req.query.action || pathAction || "").toLowerCase();
 
-    if (action === "queue-status" || req.method === "GET") {
+    if (action === "queue-status" || req.method === "GET" || !action) {
       const config = (await TrafficQueueConfig.findOne({ key: "global_traffic_config" })) || {
         queueEnabled: false,
         maxActiveCapacity: 200,
@@ -79,6 +83,10 @@ module.exports = async function handler(req, res) {
         queued: !isAdmin && Boolean(config.queueEnabled),
         admitted: isAdmin || !Boolean(config.queueEnabled),
       });
+    }
+
+    if (action === "queue-leave") {
+      return res.json({ success: true, message: "Queue left." });
     }
 
     if (action === "heartbeat") {

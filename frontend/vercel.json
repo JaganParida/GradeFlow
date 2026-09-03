@@ -231,7 +231,7 @@
     },
     {
       "source": "/api/traffic/:path*",
-      "destination": "/api/traffic.js?action=:path*"
+      "destination": "/api/traffic.js"
     },
     {
       "source": "/api/traffic",
@@ -239,7 +239,7 @@
     },
     {
       "source": "/api/admin/traffic/:path*",
-      "destination": "/api/admin-traffic.js?action=:path*"
+      "destination": "/api/admin-traffic.js"
     },
     {
       "source": "/api/admin/traffic",

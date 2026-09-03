@@ -56,9 +56,15 @@ const corsOptions = {
     return callback(null, false);
   },
   credentials: true,
-  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-  allowedHeaders: ["Content-Type", "Authorization", "x-requested-with", "x-csrf-token"],
-  optionsSuccessStatus: 200,
+  allowedHeaders: [
+    "Content-Type",
+    "Authorization",
+    "x-requested-with",
+    "x-csrf-token",
+    "x-gradeflow-csrf",
+    "x-student-token",
+    "x-admin-token",
+  ],
 };
 
 app.use(cors(corsOptions));

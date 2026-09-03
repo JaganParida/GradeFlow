@@ -1143,6 +1143,201 @@ export function simulateMissPenalty({
 }
 
 /**
+ * Generate a comprehensive Date-Wise Class Recovery Roadmap for a subject affected by leave.
+ * Calculates exact step-by-step attendance increase date-by-date and marks 75% cutoff recovery milestones.
+ * Strictly respects the student's section timetable, CUTM Academic Calendar, and official university holidays.
+ */
+export function generateDateWiseRecoveryRoadmap({
+  subjectName = "",
+  subCode = "",
+  weeklyOccurrences = [],
+  currentAttended = 0,
+  currentDelivered = 0,
+  missedCount = 0,
+  leaveEndDate = null,
+  targetPercentage = 75,
+  bufferExtraClasses = 2,
+  maxSessionsLimit = 50,
+}) {
+  const target = Math.min(99.9, Math.max(1, Number(targetPercentage) || 75));
+  const att0 = Math.max(0, Number(currentAttended) || 0);
+  const del0 = Math.max(att0, Number(currentDelivered) || 0);
+  const missed = Math.max(0, Number(missedCount) || 0);
+
+  // Post-leave attendance state
+  const postLeaveAttended = att0;
+  const postLeaveDelivered = del0 + missed;
+  const preLeavePct = del0 > 0 ? Number(((att0 / del0) * 100).toFixed(2)) : 100;
+  const postLeavePct = postLeaveDelivered > 0 ? Number(((postLeaveAttended / postLeaveDelivered) * 100).toFixed(2)) : 100;
+  const leaveDelta = Number((postLeavePct - preLeavePct).toFixed(2));
+  const isPostLeaveSafe = postLeavePct >= target;
+
+  // Calculate classes needed to reach target percentage
+  let classesNeededToTarget = 0;
+  if (postLeavePct < target) {
+    const num = (target / 100) * postLeaveDelivered - postLeaveAttended;
+    const denom = 1 - (target / 100);
+    classesNeededToTarget = Math.max(1, Math.ceil(num / denom));
+  }
+
+  // Calculate sessions to schedule:
+  // If below target: classesNeededToTarget + bufferExtraClasses (so student builds a safe buffer)
+  // If already at or above target: enough classes to restore pre-leave percentage or at least 3-5 sessions to show growth
+  let totalSessionsToSchedule = 0;
+  if (!isPostLeaveSafe) {
+    totalSessionsToSchedule = classesNeededToTarget + Math.max(1, bufferExtraClasses);
+  } else if (missed > 0) {
+    // Classes to restore preLeavePct or at least missed count
+    const num = (preLeavePct / 100) * postLeaveDelivered - postLeaveAttended;
+    const denom = 1 - (preLeavePct / 100);
+    const neededToRestore = denom > 0 && num > 0 ? Math.ceil(num / denom) : missed;
+    totalSessionsToSchedule = Math.min(10, Math.max(missed, neededToRestore));
+  } else {
+    totalSessionsToSchedule = 4;
+  }
+
+  if (weeklyOccurrences.length === 0 || totalSessionsToSchedule <= 0) {
+    return {
+      subjectName,
+      subCode,
+      preLeavePct,
+      postLeavePct,
+      leaveDelta,
+      isPostLeaveSafe,
+      classesNeededToTarget,
+      totalSessionsToSchedule,
+      isAttainable: true,
+      milestoneDate: null,
+      milestoneSessionNumber: null,
+      recoverySessions: [],
+    };
+  }
+
+  const daysOfWeek = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+  const lastInstructionDate = new Date("2026-10-31T23:59:59");
+
+  // Determine starting date: Must start AFTER the leave ends!
+  let simCurrent;
+  if (leaveEndDate) {
+    simCurrent = new Date(leaveEndDate);
+  } else {
+    simCurrent = new Date();
+  }
+
+  let curAtt = postLeaveAttended;
+  let curDel = postLeaveDelivered;
+  let runningPct = postLeavePct;
+
+  const recoverySessions = [];
+  let milestoneDate = null;
+  let milestoneSessionNumber = null;
+  let bufferRestoredDate = null;
+  let bufferRestoredSessionNumber = null;
+
+  // Scan upcoming calendar days
+  while (simCurrent <= lastInstructionDate && recoverySessions.length < totalSessionsToSchedule && recoverySessions.length < maxSessionsLimit) {
+    simCurrent.setDate(simCurrent.getDate() + 1);
+    if (simCurrent > lastInstructionDate) break;
+
+    // Skip Sundays
+    if (simCurrent.getDay() === 0) continue;
+
+    // Skip official academic holidays
+    const hol = getHolidayInfo(simCurrent);
+    if (hol?.isHoliday) continue;
+
+    // Skip examination weeks where classes are suspended
+    const acStatus = getAcademicCalendarDateStatus(simCurrent);
+    if (acStatus?.classesSuspended || acStatus?.isExam) continue;
+
+    const dayName = daysOfWeek[simCurrent.getDay()];
+    const matchingOccurrences = weeklyOccurrences.filter((occ) => occ.day === dayName);
+
+    for (const occ of matchingOccurrences) {
+      if (recoverySessions.length >= totalSessionsToSchedule || recoverySessions.length >= maxSessionsLimit) break;
+
+      const prevPct = runningPct;
+      curAtt += 1;
+      curDel += 1;
+      runningPct = Number(((curAtt / curDel) * 100).toFixed(2));
+      const stepDelta = Number((runningPct - prevPct).toFixed(2));
+
+      const is75Milestone = !milestoneDate && prevPct < target && runningPct >= target;
+      if (is75Milestone) {
+        milestoneDate = simCurrent.toLocaleDateString("en-IN", {
+          weekday: "short",
+          day: "numeric",
+          month: "short",
+          year: "numeric",
+        });
+        milestoneSessionNumber = recoverySessions.length + 1;
+      }
+
+      const isBufferRestored = !bufferRestoredDate && runningPct >= preLeavePct;
+      if (isBufferRestored && !is75Milestone) {
+        bufferRestoredDate = simCurrent.toLocaleDateString("en-IN", {
+          weekday: "short",
+          day: "numeric",
+          month: "short",
+          year: "numeric",
+        });
+        bufferRestoredSessionNumber = recoverySessions.length + 1;
+      }
+
+      recoverySessions.push({
+        sessionNumber: recoverySessions.length + 1,
+        date: new Date(simCurrent),
+        dateKey: formatDateKey(simCurrent),
+        dateStr: simCurrent.toLocaleDateString("en-IN", {
+          weekday: "short",
+          day: "numeric",
+          month: "short",
+        }),
+        fullDateStr: simCurrent.toLocaleDateString("en-IN", {
+          weekday: "short",
+          day: "numeric",
+          month: "short",
+          year: "numeric",
+        }),
+        day: occ.day,
+        timeSlot: occ.timeSlot || "Scheduled Slot",
+        room: occ.room || "Classroom",
+        type: occ.type || "Theory",
+        faculty: occ.faculty || "",
+        subjectName,
+        subCode,
+        runningAttended: curAtt,
+        runningDelivered: curDel,
+        pctBefore: prevPct,
+        pctAfter: runningPct,
+        stepDelta,
+        is75Milestone,
+        isBufferRestored: Boolean(isBufferRestored && !is75Milestone),
+      });
+    }
+  }
+
+  const isAttainable = classesNeededToTarget === 0 || Boolean(milestoneDate);
+
+  return {
+    subjectName,
+    subCode,
+    preLeavePct,
+    postLeavePct,
+    leaveDelta,
+    isPostLeaveSafe,
+    classesNeededToTarget,
+    totalSessionsToSchedule,
+    isAttainable,
+    milestoneDate,
+    milestoneSessionNumber,
+    bufferRestoredDate,
+    bufferRestoredSessionNumber,
+    recoverySessions,
+  };
+}
+
+/**
  * Multi-Phase Attendance Goal & Future Bunk Strategy Simulator:
  * Phase 1: Attend consecutively to reach primary Target Goal T1% (e.g. 80%) on Date D1.
  * Phase 2: Take B planned absent classes (e.g. 6 bunks for fest/leave) from Date D1 -> Date D_bunk.
