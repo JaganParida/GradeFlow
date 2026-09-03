@@ -69,90 +69,101 @@ export function useTrafficTracker({ studentSession, studentData, adminToken }) {
     const branch = studentData?.branch || studentSession?.branch || null;
     const batch = studentData?.batch || studentSession?.batch || null;
 
-    // Connect to backend via socket.io (uses root path which Vite or Vercel proxies)
-    const socket = io({
-      transports: ["websocket", "polling"],
-      reconnectionAttempts: 5,
-      reconnectionDelay: 2000,
-    });
+    const wsTarget =
+      import.meta.env.VITE_WS_URL ||
+      (import.meta.env.VITE_API_URL?.startsWith("http")
+        ? import.meta.env.VITE_API_URL.replace(/\/api\/?$/, "")
+        : null);
 
-    socketRef.current = socket;
+    const isVercelServerless =
+      typeof window !== "undefined" &&
+      window.location.hostname.includes("vercel.app") &&
+      !wsTarget;
 
-    socket.on("connect", () => {
-      // Register with backend traffic manager
-      socket.emit("student:register", {
-        token,
-        regNo,
-        studentName,
-        branch,
-        batch,
-        route: location.pathname,
-        deviceType: deviceInfo.deviceType,
-        os: deviceInfo.os,
-        browser: deviceInfo.browser,
-        isAdmin: isAuthorizedAdmin,
-      });
-    });
+    let socket = null;
+    let pingInterval = null;
 
-    // Received when queue is active and student must enter waiting room
-    socket.on("queue:required", (data = {}) => {
-      if (isAuthorizedAdmin) return;
-      if (hasValidAdmissionTicket()) return;
-
-      setQueueState({
-        inQueue: true,
-        position: data.position || 1,
-        totalInQueue: data.totalInQueue || 1,
-        estimatedWaitSecs: data.estimatedWaitSecs || 15,
-        message: data.message || "High traffic event. You are in line.",
-        isAdmitted: false,
-      });
-    });
-
-    // Real-time queue progress (position moves up #12 -> #11 -> #10...)
-    socket.on("queue:status_update", (data = {}) => {
-      if (isAuthorizedAdmin) return;
-      setQueueState((prev) => ({
-        ...prev,
-        inQueue: true,
-        position: data.position ?? prev.position,
-        totalInQueue: data.totalInQueue ?? prev.totalInQueue,
-        estimatedWaitSecs: data.estimatedWaitSecs ?? prev.estimatedWaitSecs,
-        message: data.message || prev.message,
-      }));
-    });
-
-    // Student has been admitted by server
-    socket.on("queue:admitted", (data = {}) => {
-      setAdmissionTicket(60 * 60 * 1000);
-      setQueueState({
-        inQueue: false,
-        position: 0,
-        totalInQueue: 0,
-        estimatedWaitSecs: 0,
-        message: "",
-        isAdmitted: true,
-      });
-    });
-
-    socket.on("queue:bypass", () => {
-      setQueueState((prev) => ({ ...prev, inQueue: false, isAdmitted: true }));
-    });
-
-    // Periodic Heartbeat Ping (every 25 seconds)
-    const pingInterval = setInterval(() => {
-      if (socket.connected) {
-        socket.emit("student:ping", {
-          token,
-          route: location.pathname,
+    if (!isVercelServerless) {
+      try {
+        socket = io(wsTarget || undefined, {
+          transports: ["websocket", "polling"],
+          reconnectionAttempts: 2,
+          timeout: 4000,
+          autoConnect: true,
         });
-      }
-    }, 25000);
+
+        socketRef.current = socket;
+
+        socket.on("connect", () => {
+          socket.emit("student:register", {
+            token,
+            regNo,
+            studentName,
+            branch,
+            batch,
+            route: location.pathname,
+            deviceType: deviceInfo.deviceType,
+            os: deviceInfo.os,
+            browser: deviceInfo.browser,
+            isAdmin: isAuthorizedAdmin,
+          });
+        });
+
+        socket.on("connect_error", () => {
+          if (socket) socket.disconnect();
+        });
+
+        // Received when queue is active and student must enter waiting room
+        socket.on("queue:required", (data = {}) => {
+          if (isAuthorizedAdmin) return;
+          if (hasValidAdmissionTicket()) return;
+
+          setQueueState({
+            inQueue: true,
+            position: data.position || 1,
+            totalInQueue: data.totalInQueue || 1,
+            estimatedWaitSecs: data.estimatedWaitSecs || 15,
+            message: data.message || "High traffic event. You are in line.",
+            isAdmitted: false,
+          });
+        });
+
+        // Received when admin admits student into site
+        socket.on("queue:admitted", (data = {}) => {
+          if (data.token && data.token !== token) return;
+          setAdmissionTicket(data.ttlMs || 60 * 60 * 1000);
+          setQueueState({
+            inQueue: false,
+            position: 0,
+            totalInQueue: 0,
+            estimatedWaitSecs: 0,
+            message: "",
+            isAdmitted: true,
+          });
+        });
+
+        socket.on("queue:bypass", () => {
+          setQueueState((prev) => ({ ...prev, inQueue: false, isAdmitted: true }));
+        });
+
+        // Periodic Heartbeat Ping (every 25 seconds)
+        pingInterval = setInterval(() => {
+          if (socket && socket.connected) {
+            socket.emit("student:ping", {
+              token,
+              route: location.pathname,
+            });
+          }
+        }, 25000);
+      } catch {}
+    }
 
     return () => {
-      clearInterval(pingInterval);
+      if (pingInterval) clearInterval(pingInterval);
       if (socket) {
-        socket.disconnect();
+        try {
+          socket.disconnect();
+        } catch {}
       }
     };
   }, [studentSession?.regNo, isAuthorizedAdmin]);

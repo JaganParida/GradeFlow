@@ -60,6 +60,7 @@ export default function AdminLiveTrafficManager({ authHeaders, API }) {
   // Search & Filter state
   const [searchTerm, setSearchTerm] = useState("");
   const [filterUserType, setFilterUserType] = useState("ALL"); // ALL | STUDENTS | GUESTS
+  const [filterDevice, setFilterDevice] = useState("ALL"); // ALL | Mobile | Laptop | Desktop | Tablet
   const [activeAnalyticsTab, setActiveAnalyticsTab] = useState("MOST"); // MOST | MEDIUM | LEAST | ALL
   const [studentListTab, setStudentListTab] = useState("LIVE_NOW"); // LIVE_NOW | ALL_LOGGED_IN
 
@@ -102,38 +103,61 @@ export default function AdminLiveTrafficManager({ authHeaders, API }) {
     }
   };
 
-  // ─── Connect to Live Socket.IO Stream ──────────────────────────────────────
+  // ─── Connect to Live Socket.IO Stream (Guarded for serverless) ─────────────
   useEffect(() => {
     fetchOverview();
 
-    const socket = io({
-      transports: ["websocket", "polling"],
-      reconnectionAttempts: 5,
-    });
-    socketRef.current = socket;
+    const wsTarget =
+      import.meta.env.VITE_WS_URL ||
+      (import.meta.env.VITE_API_URL?.startsWith("http")
+        ? import.meta.env.VITE_API_URL.replace(/\/api\/?$/, "")
+        : null);
 
-    socket.on("connect", () => {
-      // Join administrative live monitor room
-      socket.emit("admin:join_traffic_monitor");
-    });
+    const isVercelServerless =
+      typeof window !== "undefined" &&
+      window.location.hostname.includes("vercel.app") &&
+      !wsTarget;
 
-    // Real-time live statistics stream pushed on any student join/leave/route change
-    socket.on("traffic:live_stats", (data) => {
-      if (data) {
-        setLiveData((prev) => ({
-          ...prev,
-          totalActiveUsers: data.totalActiveUsers ?? prev.totalActiveUsers,
-          totalQueuedUsers: data.totalQueuedUsers ?? prev.totalQueuedUsers,
-          maxActiveCapacity: data.maxActiveCapacity ?? prev.maxActiveCapacity,
-          queueEnabled: data.queueEnabled ?? prev.queueEnabled,
-          autoTriggerEnabled: data.autoTriggerEnabled ?? prev.autoTriggerEnabled,
-          isQueueActive: data.isQueueActive ?? prev.isQueueActive,
-          activeStudents: data.activeStudents || prev.activeStudents,
-          queuedStudents: data.queuedStudents || prev.queuedStudents,
-          routeDistribution: data.routeDistribution || prev.routeDistribution,
-        }));
-      }
-    });
+    let socket = null;
+    if (!isVercelServerless) {
+      try {
+        socket = io(wsTarget || undefined, {
+          transports: ["websocket", "polling"],
+          reconnectionAttempts: 2,
+          timeout: 4000,
+          autoConnect: true,
+        });
+        socketRef.current = socket;
+
+        socket.on("connect", () => {
+          socket.emit("admin:join_traffic_monitor");
+        });
+
+        socket.on("traffic:live_stats", (data) => {
+          if (data) {
+            setLiveData((prev) => ({
+              ...prev,
+              totalActiveUsers: data.totalActiveUsers ?? prev.totalActiveUsers,
+              totalQueuedUsers: data.totalQueuedUsers ?? prev.totalQueuedUsers,
+              maxActiveCapacity: data.maxActiveCapacity ?? prev.maxActiveCapacity,
+              queueEnabled: data.queueEnabled ?? prev.queueEnabled,
+              autoTriggerEnabled: data.autoTriggerEnabled ?? prev.autoTriggerEnabled,
+              isQueueActive: data.isQueueActive ?? prev.isQueueActive,
+              activeStudents: data.activeStudents || prev.activeStudents,
+              allLoggedInStudents: data.allLoggedInStudents || prev.allLoggedInStudents,
+              totalLoggedInSessions: data.totalLoggedInSessions ?? prev.totalLoggedInSessions,
+              queuedStudents: data.queuedStudents || prev.queuedStudents,
+              routeDistribution: data.routeDistribution || prev.routeDistribution,
+            }));
+          }
+        });
+
+        socket.on("connect_error", () => {
+          // Gracefully disconnect on error so it never spams console
+          if (socket) socket.disconnect();
+        });
+      } catch {}
+    }
 
     // Poll periodically every 4s to keep live active student data and DB analytics in sync in real time
     const pollInterval = setInterval(() => {
@@ -143,8 +167,10 @@ export default function AdminLiveTrafficManager({ authHeaders, API }) {
     return () => {
       clearInterval(pollInterval);
       if (socket) {
-        socket.emit("admin:leave_traffic_monitor");
-        socket.disconnect();
+        try {
+          socket.emit("admin:leave_traffic_monitor");
+          socket.disconnect();
+        } catch {}
       }
     };
   }, []);
