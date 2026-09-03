@@ -1388,14 +1388,25 @@ module.exports = async function handler(req, res) {
         } catch {}
       }
 
-      // 3. Admin Device Occupancy & Maintenance status
+      // 3. Admin Device Occupancy & Maintenance status & Portal Visibility
       let activeAdminCount = 0;
       let maintenanceState = { enabled: false, message: "", enabledAt: null };
+      let buttonVisibilityConfig = {
+        mode: "AUTO",
+        allowedRoles: {
+          mainAdmin: true,
+          subAdmin: true,
+          specialStudent: true,
+          allStudents: false,
+          guests: false,
+        },
+      };
 
       try {
-        const [activeAdminSessions, config] = await Promise.all([
+        const [activeAdminSessions, config, vConfigDoc] = await Promise.all([
           AdminSession.find({ isActive: true, expiresAt: { $gt: new Date() } }).lean(),
           SystemConfig.findOne({ key: "maintenance" }).lean(),
+          SystemConfig.findOne({ key: "admin_button_config" }).lean(),
         ]);
         activeAdminCount = activeAdminSessions?.length || 0;
         if (config?.maintenance) {
@@ -1405,7 +1416,25 @@ module.exports = async function handler(req, res) {
             enabledAt: config.maintenance.enabledAt || null,
           };
         }
+        if (vConfigDoc?.adminButtonVisibility) {
+          buttonVisibilityConfig = vConfigDoc.adminButtonVisibility;
+        }
       } catch {}
+
+      // Calculate resolved visibility (Manual override vs Automatic system logic)
+      let resolvedButtonVisible = activeAdminCount < 2; // Default system logic (preserved untouched)
+      if (buttonVisibilityConfig && buttonVisibilityConfig.mode === "MANUAL") {
+        const roles = buttonVisibilityConfig.allowedRoles || {};
+        if (adminAuth) {
+          resolvedButtonVisible = adminAuth.isSubAdmin ? (roles.subAdmin !== false) : (roles.mainAdmin !== false);
+        } else if (studentAuth?.regNo === "230301120327") {
+          resolvedButtonVisible = roles.specialStudent !== false;
+        } else if (studentAuth?.regNo) {
+          resolvedButtonVisible = Boolean(roles.allStudents);
+        } else {
+          resolvedButtonVisible = Boolean(roles.guests);
+        }
+      }
 
       return res.json({
         success: true,
@@ -1413,7 +1442,8 @@ module.exports = async function handler(req, res) {
         student: studentAuth,
         admin: adminAuth,
         adminDeviceCount: activeAdminCount,
-        isAdminButtonVisible: activeAdminCount < 2,
+        isAdminButtonVisible: resolvedButtonVisible,
+        adminButtonConfig: buttonVisibilityConfig,
         maintenance: maintenanceState,
       });
     }
@@ -1567,6 +1597,34 @@ module.exports = async function handler(req, res) {
         status: "ACTIVE",
       }));
 
+      let buttonVisibilityConfig = {
+        mode: "AUTO",
+        allowedRoles: {
+          mainAdmin: true,
+          subAdmin: true,
+          specialStudent: true,
+          allStudents: false,
+          guests: false,
+        },
+      };
+
+      try {
+        const vConfigDoc = await SystemConfig.findOne({ key: "admin_button_config" }).lean();
+        if (vConfigDoc?.adminButtonVisibility) {
+          buttonVisibilityConfig = vConfigDoc.adminButtonVisibility;
+        }
+      } catch {}
+
+      let resolvedButtonVisible = activeSessions.length < MAX_ADMIN_DEVICES;
+      if (buttonVisibilityConfig && buttonVisibilityConfig.mode === "MANUAL") {
+        const roles = buttonVisibilityConfig.allowedRoles || {};
+        if (isCurrentDevice) {
+          resolvedButtonVisible = roles.mainAdmin !== false;
+        } else {
+          resolvedButtonVisible = Boolean(roles.guests);
+        }
+      }
+
       return res.json({
         success: true,
         isCurrentDevice,
@@ -1577,6 +1635,8 @@ module.exports = async function handler(req, res) {
         loginAllowed: !isBlocked,
         blockReason: isBlocked ? "ADMIN_DEVICE_LIMIT_REACHED" : null,
         activeDevices: sanitizedDevices,
+        isAdminButtonVisible: resolvedButtonVisible,
+        adminButtonConfig: buttonVisibilityConfig,
       });
     }
 

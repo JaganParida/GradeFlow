@@ -68,6 +68,8 @@ export default function Navbar() {
     loading,
     error,
     adminToken,
+    adminProfile,
+    adminButtonConfig,
     isAuthModalOpen,
     openStudentAuthModal,
     closeStudentAuthModal,
@@ -115,10 +117,30 @@ export default function Navbar() {
   const loggedInRegNo = studentSession?.regNo || "";
   const currentRegNo = studentData?.regNo || loggedInRegNo || "";
 
-  // When both admin device slots are active, keep the portal entry private while
-  // preserving access for the authenticated admin and the designated student account.
+  // Dedicated special student account
   const isSpecialAdminPortalViewer = loggedInRegNo === "230301120327";
-  const canSeeAdmin = Boolean(adminToken || isSpecialAdminPortalViewer || isAdminButtonVisible);
+  const isSubAdminViewer = Boolean(adminProfile?.isSubAdmin);
+  const isMainAdminViewer = Boolean(adminToken && !isSubAdminViewer);
+
+  // Manual Override vs Logical Automatic Behavior (Preserved untouched)
+  let canSeeAdmin = false;
+  if (adminButtonConfig && adminButtonConfig.mode === "MANUAL") {
+    const roles = adminButtonConfig.allowedRoles || {};
+    if (isMainAdminViewer) {
+      canSeeAdmin = roles.mainAdmin !== false;
+    } else if (isSubAdminViewer) {
+      canSeeAdmin = roles.subAdmin !== false;
+    } else if (isSpecialAdminPortalViewer) {
+      canSeeAdmin = roles.specialStudent !== false;
+    } else if (loggedInRegNo) {
+      canSeeAdmin = Boolean(roles.allStudents);
+    } else {
+      canSeeAdmin = Boolean(roles.guests);
+    }
+  } else {
+    // Exact original automatic logic (Preserved untouched as requested)
+    canSeeAdmin = Boolean(adminToken || isSpecialAdminPortalViewer || isAdminButtonVisible);
+  }
 
   // Extract currently viewed student token from URL if present (e.g. /dashboard/:id, /analytics/:id)
   const getActiveViewedRegNo = () => {

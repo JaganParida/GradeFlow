@@ -233,6 +233,36 @@ module.exports = async function handler(req, res) {
       });
     }
 
+    // Public / semi-public portal visibility read
+    if ((action === "portal-visibility" || cleanUrl.includes("/portal-visibility")) && req.method === "GET") {
+      const config = (await SystemConfig.findOne({ key: "admin_button_config" }).lean()) ||
+                     (await SystemConfig.findOne({ key: "system_config" }).lean());
+      const vConfig = config?.adminButtonVisibility || {
+        mode: "AUTO",
+        allowedRoles: {
+          mainAdmin: true,
+          subAdmin: true,
+          specialStudent: true,
+          allStudents: false,
+          guests: false,
+        },
+      };
+
+      // Also get active admin sessions count to display dynamic auto status
+      let activeAdminCount = 0;
+      try {
+        const activeSessions = await AdminSession.find({ isActive: true, expiresAt: { $gt: new Date() } }).lean();
+        activeAdminCount = activeSessions?.length || 0;
+      } catch {}
+
+      return res.json({
+        success: true,
+        config: vConfig,
+        activeAdminCount,
+        isAutoVisible: activeAdminCount < 2,
+      });
+    }
+
     const authResult = await authenticateAdmin(req);
     if (authResult.error) {
       return res.status(authResult.error.status).json({ success: false, message: authResult.error.message, code: authResult.error.code });
@@ -1362,6 +1392,48 @@ module.exports = async function handler(req, res) {
           ? "Global Maintenance Mode enabled successfully. Student access is now restricted."
           : "Global Maintenance Mode disabled successfully. Student access has been restored.",
         maintenance: maintenanceDoc,
+      });
+    }
+
+    // 17. PUT /portal-visibility
+    if ((action === "portal-visibility" || cleanUrl.includes("/portal-visibility")) && req.method === "PUT") {
+      const { mode, allowedRoles } = req.body || {};
+      const targetMode = mode === "MANUAL" ? "MANUAL" : "AUTO";
+      const now = new Date();
+      const adminIdentity = admin.email || admin.name || "main_admin";
+
+      const visibilityDoc = {
+        mode: targetMode,
+        allowedRoles: {
+          mainAdmin: allowedRoles?.mainAdmin !== false,
+          subAdmin: allowedRoles?.subAdmin !== false,
+          specialStudent: allowedRoles?.specialStudent !== false,
+          allStudents: Boolean(allowedRoles?.allStudents),
+          guests: Boolean(allowedRoles?.guests),
+        },
+        updatedAt: now,
+        updatedBy: adminIdentity,
+      };
+
+      await Promise.all([
+        SystemConfig.findOneAndUpdate(
+          { key: "admin_button_config" },
+          { $set: { adminButtonVisibility: visibilityDoc } },
+          { upsert: true, new: true }
+        ),
+        SystemConfig.findOneAndUpdate(
+          { key: "system_config" },
+          { $set: { adminButtonVisibility: visibilityDoc } },
+          { upsert: true, new: true }
+        ),
+      ]);
+
+      return res.json({
+        success: true,
+        message: targetMode === "MANUAL"
+          ? "Manual Admin button visibility overrides activated successfully."
+          : "System restored to Automatic (Device Limits) visibility logic.",
+        config: visibilityDoc,
       });
     }
 

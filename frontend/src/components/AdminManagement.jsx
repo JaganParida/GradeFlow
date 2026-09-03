@@ -44,6 +44,9 @@ import {
   Copy,
   Settings,
   Wrench,
+  Globe,
+  Star,
+  Save,
 } from "lucide-react";
 
 // Master dictionary of configurable permission capabilities
@@ -146,10 +149,10 @@ function formatTimeAgo(dateStr) {
 }
 
 export default function AdminManagement({ API, authHeaders, isMobile }) {
-  const { setMaintenance, checkMaintenanceStatus } = useApp();
+  const { setMaintenance, checkMaintenanceStatus, adminButtonConfig, updateAdminButtonConfig } = useApp();
   const [subAdmins, setSubAdmins] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState("accounts"); // 'accounts' | 'audit-logs'
+  const [activeTab, setActiveTab] = useState("accounts"); // 'accounts' | 'audit-logs' | 'maintenance' | 'portal-visibility'
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
 
@@ -196,6 +199,24 @@ export default function AdminManagement({ API, authHeaders, isMobile }) {
   const [maintenanceError, setMaintenanceError] = useState("");
   const [actionFeedback, setActionFeedback] = useState({ type: "", message: "" });
 
+  // Portal Visibility State (Manual Override vs Dynamic System Logic)
+  const [visibilityData, setVisibilityData] = useState({
+    mode: "AUTO",
+    allowedRoles: {
+      mainAdmin: true,
+      subAdmin: true,
+      specialStudent: true,
+      allStudents: false,
+      guests: false,
+    },
+    activeAdminCount: 0,
+    isAutoVisible: true,
+  });
+  const [visibilityLoading, setVisibilityLoading] = useState(false);
+  const [visibilitySaving, setVisibilitySaving] = useState(false);
+  const [visibilitySuccess, setVisibilitySuccess] = useState("");
+  const [visibilityError, setVisibilityError] = useState("");
+
   const showFeedback = (type, message) => {
     setActionFeedback({ type, message });
     setTimeout(() => setActionFeedback({ type: "", message: "" }), 5000);
@@ -204,6 +225,7 @@ export default function AdminManagement({ API, authHeaders, isMobile }) {
   useEffect(() => {
     fetchSubAdmins();
     fetchMaintenanceSettings();
+    fetchVisibilitySettings();
   }, []);
 
   useEffect(() => {
@@ -211,8 +233,67 @@ export default function AdminManagement({ API, authHeaders, isMobile }) {
       fetchAuditLogs();
     } else if (activeTab === "maintenance") {
       fetchMaintenanceSettings();
+    } else if (activeTab === "portal-visibility") {
+      fetchVisibilitySettings();
     }
   }, [activeTab, logFilterAction, logFilterResult]);
+
+  async function fetchVisibilitySettings() {
+    setVisibilityLoading(true);
+    try {
+      const { data } = await axios.get(`${API}/admin/portal-visibility`, authHeaders);
+      if (data && data.success) {
+        setVisibilityData({
+          mode: data.config?.mode || "AUTO",
+          allowedRoles: {
+            mainAdmin: data.config?.allowedRoles?.mainAdmin !== false,
+            subAdmin: data.config?.allowedRoles?.subAdmin !== false,
+            specialStudent: data.config?.allowedRoles?.specialStudent !== false,
+            allStudents: Boolean(data.config?.allowedRoles?.allStudents),
+            guests: Boolean(data.config?.allowedRoles?.guests),
+          },
+          activeAdminCount: data.activeAdminCount ?? 0,
+          isAutoVisible: data.isAutoVisible ?? true,
+        });
+      }
+    } catch (err) {
+      console.warn("Failed to fetch visibility settings:", err);
+    } finally {
+      setVisibilityLoading(false);
+    }
+  }
+
+  async function handleSaveVisibilitySettings(overridePayload = null) {
+    setVisibilitySaving(true);
+    setVisibilityError("");
+    setVisibilitySuccess("");
+    const payload = overridePayload || {
+      mode: visibilityData.mode,
+      allowedRoles: visibilityData.allowedRoles,
+    };
+    try {
+      const { data } = await axios.put(`${API}/admin/portal-visibility`, payload, authHeaders);
+      if (data && data.success) {
+        setVisibilityData((prev) => ({
+          ...prev,
+          mode: data.config.mode,
+          allowedRoles: data.config.allowedRoles,
+        }));
+        if (updateAdminButtonConfig) {
+          await updateAdminButtonConfig(data.config).catch(() => {});
+        }
+        showFeedback("success", data.message || "Portal visibility configuration updated!");
+        setVisibilitySuccess(data.message || "Settings saved successfully!");
+        setTimeout(() => setVisibilitySuccess(""), 4000);
+      }
+    } catch (err) {
+      const msg = err.response?.data?.message || "Failed to update portal visibility.";
+      setVisibilityError(msg);
+      showFeedback("error", msg);
+    } finally {
+      setVisibilitySaving(false);
+    }
+  }
 
   async function fetchMaintenanceSettings() {
     setMaintenanceLoading(true);
@@ -821,6 +902,46 @@ export default function AdminManagement({ API, authHeaders, isMobile }) {
                   boxShadow: "0 0 6px rgba(239, 68, 68, 0.6)",
                 }}
               />
+            )}
+          </button>
+
+          <button
+            onClick={() => setActiveTab("portal-visibility")}
+            className={`gf-mgmt-tab-btn ${activeTab === "portal-visibility" ? "active" : ""}`}
+            style={{
+              padding: "8px 14px",
+              borderRadius: 10,
+              border: "none",
+              background: activeTab === "portal-visibility" ? "#eff6ff" : "transparent",
+              color: activeTab === "portal-visibility" ? "#2563eb" : "#64748b",
+              fontWeight: 700,
+              fontSize: 13,
+              cursor: "pointer",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: 6,
+              transition: "all 0.15s ease",
+            }}
+          >
+            <Eye size={15} />
+            Admin Button Visibility
+            {visibilityData.mode === "MANUAL" && (
+              <span
+                style={{
+                  fontSize: 10,
+                  fontWeight: 800,
+                  padding: "1px 6px",
+                  borderRadius: 6,
+                  background: "#fef3c7",
+                  color: "#b45309",
+                  border: "1px solid #fde68a",
+                  textTransform: "uppercase",
+                  letterSpacing: "0.4px",
+                }}
+              >
+                Manual
+              </span>
             )}
           </button>
         </div>
@@ -1902,6 +2023,702 @@ export default function AdminManagement({ API, authHeaders, isMobile }) {
                     {maintenanceUpdating ? "Updating..." : "Save Notice Update"}
                   </button>
                 )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── TAB 4: ADMIN BUTTON PORTAL VISIBILITY MANAGEMENT ── */}
+      {activeTab === "portal-visibility" && (
+        <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+          {/* Status Feedback Banner */}
+          {visibilitySuccess && (
+            <div
+              style={{
+                background: "#ecfdf5",
+                border: "1px solid #a7f3d0",
+                borderRadius: 12,
+                padding: "12px 16px",
+                display: "flex",
+                alignItems: "center",
+                gap: 10,
+                color: "#065f46",
+                fontSize: 13.5,
+                fontWeight: 600,
+              }}
+            >
+              <CheckCircle2 size={18} color="#059669" />
+              <span>{visibilitySuccess}</span>
+            </div>
+          )}
+
+          {visibilityError && (
+            <div
+              style={{
+                background: "#fef2f2",
+                border: "1px solid #fecaca",
+                borderRadius: 12,
+                padding: "12px 16px",
+                display: "flex",
+                alignItems: "center",
+                gap: 10,
+                color: "#991b1b",
+                fontSize: 13.5,
+                fontWeight: 600,
+              }}
+            >
+              <AlertTriangle size={18} color="#dc2626" />
+              <span>{visibilityError}</span>
+            </div>
+          )}
+
+          {/* Master Control Card */}
+          <div
+            style={{
+              background: "#ffffff",
+              border: "1px solid #e2e8f0",
+              borderRadius: 16,
+              padding: isMobile ? "18px" : "24px 26px",
+              boxShadow: "0 2px 8px rgba(15, 23, 42, 0.03)",
+              display: "flex",
+              flexDirection: "column",
+              gap: 22,
+            }}
+          >
+            {/* Header with Live Status Badge */}
+            <div
+              style={{
+                display: "flex",
+                alignItems: isMobile ? "flex-start" : "center",
+                justifyContent: "space-between",
+                flexDirection: isMobile ? "column" : "row",
+                gap: 14,
+                borderBottom: "1px solid #f1f5f9",
+                paddingBottom: 18,
+              }}
+            >
+              <div>
+                <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+                  <div
+                    style={{
+                      width: 36,
+                      height: 36,
+                      borderRadius: 10,
+                      background: visibilityData.mode === "MANUAL" ? "#f5f3ff" : "#eff6ff",
+                      color: visibilityData.mode === "MANUAL" ? "#7c3aed" : "#2563eb",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                    }}
+                  >
+                    <Eye size={20} />
+                  </div>
+                  <div>
+                    <h3 style={{ margin: 0, fontSize: 18, fontWeight: 800, color: "#0f172a" }}>
+                      Admin Portal Button Visibility
+                    </h3>
+                    <p style={{ margin: "2px 0 0", fontSize: 13, color: "#64748b" }}>
+                      Control whether the Admin button across GradeFlow navbar & footer is managed dynamically or manually overridden.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Live Badge */}
+              <div
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 8,
+                  padding: "6px 14px",
+                  borderRadius: 99,
+                  background: visibilityData.mode === "MANUAL" ? "#f5f3ff" : "#ecfdf5",
+                  border: `1px solid ${visibilityData.mode === "MANUAL" ? "#ddd6fe" : "#a7f3d0"}`,
+                  color: visibilityData.mode === "MANUAL" ? "#6d28d9" : "#065f46",
+                  fontSize: 12.5,
+                  fontWeight: 750,
+                  alignSelf: isMobile ? "flex-start" : "center",
+                }}
+              >
+                <span
+                  style={{
+                    width: 8,
+                    height: 8,
+                    borderRadius: "50%",
+                    background: visibilityData.mode === "MANUAL" ? "#7c3aed" : "#10b981",
+                    boxShadow: `0 0 6px ${visibilityData.mode === "MANUAL" ? "rgba(124,58,237,0.5)" : "rgba(16,185,129,0.5)"}`,
+                  }}
+                />
+                {visibilityData.mode === "MANUAL" ? "Manual Override Active" : "Automatic System Logic Active"}
+              </div>
+            </div>
+
+            {/* Mode Selection Cards */}
+            <div>
+              <label style={{ display: "block", fontSize: 12, fontWeight: 800, color: "#475569", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 10 }}>
+                Choose Visibility Governance Mode
+              </label>
+
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr",
+                  gap: 14,
+                }}
+              >
+                {/* Option 1: Automatic System Logic */}
+                <div
+                  onClick={() => setVisibilityData((prev) => ({ ...prev, mode: "AUTO" }))}
+                  style={{
+                    border: `1.5px solid ${visibilityData.mode === "AUTO" ? "#3b82f6" : "#e2e8f0"}`,
+                    background: visibilityData.mode === "AUTO" ? "#f8fafc" : "#ffffff",
+                    borderRadius: 14,
+                    padding: "16px 18px",
+                    cursor: "pointer",
+                    position: "relative",
+                    transition: "all 0.2s ease",
+                    boxShadow: visibilityData.mode === "AUTO" ? "0 2px 10px rgba(59, 130, 246, 0.08)" : "none",
+                  }}
+                >
+                  <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 10 }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                      <div
+                        style={{
+                          width: 32,
+                          height: 32,
+                          borderRadius: 8,
+                          background: "#eff6ff",
+                          color: "#2563eb",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                        }}
+                      >
+                        <Sliders size={18} />
+                      </div>
+                      <div>
+                        <div style={{ fontWeight: 800, fontSize: 14.5, color: "#0f172a" }}>
+                          Automatic System Logic
+                        </div>
+                        <span style={{ fontSize: 11, fontWeight: 700, color: "#2563eb", background: "#dbeafe", padding: "1px 6px", borderRadius: 4 }}>
+                          Default System Behavior
+                        </span>
+                      </div>
+                    </div>
+                    <input
+                      type="radio"
+                      checked={visibilityData.mode === "AUTO"}
+                      onChange={() => setVisibilityData((prev) => ({ ...prev, mode: "AUTO" }))}
+                      style={{ cursor: "pointer", accentColor: "#2563eb" }}
+                    />
+                  </div>
+
+                  <p style={{ margin: "0 0 12px", fontSize: 12.5, color: "#64748b", lineHeight: 1.5 }}>
+                    The existing logical detection runs uninterrupted. When 0 or 1 admin device is active, the button is visible to all visitors. When both 2 admin device slots are filled, the button automatically hides from public visitors while remaining accessible to Main Admin and Special Student (<code>230301120327</code>).
+                  </p>
+
+                  <div
+                    style={{
+                      background: "#f1f5f9",
+                      borderRadius: 8,
+                      padding: "8px 12px",
+                      fontSize: 12,
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                      color: "#334155",
+                    }}
+                  >
+                    <span>Active Admin Slots: <strong>{visibilityData.activeAdminCount} / 2</strong></span>
+                    <span style={{ fontWeight: 700, color: visibilityData.isAutoVisible ? "#059669" : "#ea580c" }}>
+                      {visibilityData.isAutoVisible ? "Currently: Visible to Public" : "Currently: Hidden from Public"}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Option 2: Manual Role Override */}
+                <div
+                  onClick={() => setVisibilityData((prev) => ({ ...prev, mode: "MANUAL" }))}
+                  style={{
+                    border: `1.5px solid ${visibilityData.mode === "MANUAL" ? "#7c3aed" : "#e2e8f0"}`,
+                    background: visibilityData.mode === "MANUAL" ? "#faf5ff" : "#ffffff",
+                    borderRadius: 14,
+                    padding: "16px 18px",
+                    cursor: "pointer",
+                    position: "relative",
+                    transition: "all 0.2s ease",
+                    boxShadow: visibilityData.mode === "MANUAL" ? "0 2px 10px rgba(124, 58, 237, 0.08)" : "none",
+                  }}
+                >
+                  <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 10 }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                      <div
+                        style={{
+                          width: 32,
+                          height: 32,
+                          borderRadius: 8,
+                          background: "#f5f3ff",
+                          color: "#7c3aed",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                        }}
+                      >
+                        <Lock size={18} />
+                      </div>
+                      <div>
+                        <div style={{ fontWeight: 800, fontSize: 14.5, color: "#0f172a" }}>
+                          Manual Role Override
+                        </div>
+                        <span style={{ fontSize: 11, fontWeight: 700, color: "#7c3aed", background: "#ede9fe", padding: "1px 6px", borderRadius: 4 }}>
+                          Admin Control Mode
+                        </span>
+                      </div>
+                    </div>
+                    <input
+                      type="radio"
+                      checked={visibilityData.mode === "MANUAL"}
+                      onChange={() => setVisibilityData((prev) => ({ ...prev, mode: "MANUAL" }))}
+                      style={{ cursor: "pointer", accentColor: "#7c3aed" }}
+                    />
+                  </div>
+
+                  <p style={{ margin: "0 0 12px", fontSize: 12.5, color: "#64748b", lineHeight: 1.5 }}>
+                    Completely overrides the automatic device limit logic. You explicitly decide who can see the Admin portal button on the site: Main Admin, Sub-Admins, Special Student (<code>230301120327</code>), All Students, or Public Guests.
+                  </p>
+
+                  <div
+                    style={{
+                      background: visibilityData.mode === "MANUAL" ? "#ede9fe" : "#f1f5f9",
+                      borderRadius: 8,
+                      padding: "8px 12px",
+                      fontSize: 12,
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                      color: visibilityData.mode === "MANUAL" ? "#5b21b6" : "#334155",
+                      fontWeight: 600,
+                    }}
+                  >
+                    <span>Override Status:</span>
+                    <span>{visibilityData.mode === "MANUAL" ? "Active (Custom Roles Applied)" : "Inactive (Select to Configure)"}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Role Visibility Matrix (Configurable in both, active when MANUAL) */}
+            <div
+              style={{
+                border: "1px solid #e2e8f0",
+                borderRadius: 14,
+                padding: "18px 20px",
+                background: visibilityData.mode === "MANUAL" ? "#ffffff" : "#f8fafc",
+                opacity: visibilityData.mode === "MANUAL" ? 1 : 0.85,
+                transition: "all 0.2s ease",
+              }}
+            >
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 10, marginBottom: 14 }}>
+                <div>
+                  <div style={{ fontWeight: 800, fontSize: 14, color: "#0f172a" }}>
+                    Audience Visibility Matrix
+                  </div>
+                  <div style={{ fontSize: 12, color: "#64748b" }}>
+                    {visibilityData.mode === "MANUAL"
+                      ? "Toggle each audience to grant or deny visibility of the Admin button on their devices."
+                      : "Preview of custom role preferences. Switch to Manual Override above to enforce these custom rules."}
+                  </div>
+                </div>
+
+                {/* Quick Presets Toolbar */}
+                <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setVisibilityData((prev) => ({
+                        ...prev,
+                        mode: "MANUAL",
+                        allowedRoles: {
+                          mainAdmin: true,
+                          subAdmin: true,
+                          specialStudent: true,
+                          allStudents: true,
+                          guests: true,
+                        },
+                      }));
+                    }}
+                    style={{
+                      padding: "5px 10px",
+                      borderRadius: 6,
+                      border: "1px solid #cbd5e1",
+                      background: "#ffffff",
+                      fontSize: 11.5,
+                      fontWeight: 700,
+                      color: "#334155",
+                      cursor: "pointer",
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: 4,
+                    }}
+                  >
+                    <Eye size={13} color="#2563eb" />
+                    Show to Everyone
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setVisibilityData((prev) => ({
+                        ...prev,
+                        mode: "MANUAL",
+                        allowedRoles: {
+                          mainAdmin: true,
+                          subAdmin: true,
+                          specialStudent: true,
+                          allStudents: false,
+                          guests: false,
+                        },
+                      }));
+                    }}
+                    style={{
+                      padding: "5px 10px",
+                      borderRadius: 6,
+                      border: "1px solid #cbd5e1",
+                      background: "#ffffff",
+                      fontSize: 11.5,
+                      fontWeight: 700,
+                      color: "#334155",
+                      cursor: "pointer",
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: 4,
+                    }}
+                  >
+                    <ShieldCheck size={13} color="#059669" />
+                    Admins & Special Student Only
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setVisibilityData((prev) => ({
+                        ...prev,
+                        mode: "MANUAL",
+                        allowedRoles: {
+                          mainAdmin: true,
+                          subAdmin: false,
+                          specialStudent: false,
+                          allStudents: false,
+                          guests: false,
+                        },
+                      }));
+                    }}
+                    style={{
+                      padding: "5px 10px",
+                      borderRadius: 6,
+                      border: "1px solid #cbd5e1",
+                      background: "#ffffff",
+                      fontSize: 11.5,
+                      fontWeight: 700,
+                      color: "#334155",
+                      cursor: "pointer",
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: 4,
+                    }}
+                  >
+                    <Lock size={13} color="#7c3aed" />
+                    Strictly Main Admin Only
+                  </button>
+                </div>
+              </div>
+
+              {/* 5 Audience Rows */}
+              <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                {/* 1. Main Admin */}
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    padding: "12px 14px",
+                    borderRadius: 10,
+                    background: "#ffffff",
+                    border: "1px solid #e2e8f0",
+                  }}
+                >
+                  <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                    <div style={{ width: 32, height: 32, borderRadius: 8, background: "#ecfdf5", color: "#059669", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                      <ShieldCheck size={17} />
+                    </div>
+                    <div>
+                      <div style={{ fontWeight: 800, fontSize: 13.5, color: "#0f172a" }}>
+                        Main Admin
+                      </div>
+                      <div style={{ fontSize: 11.5, color: "#64748b" }}>
+                        Primary administrator authenticated with master credentials
+                      </div>
+                    </div>
+                  </div>
+                  <label style={{ display: "inline-flex", alignItems: "center", gap: 8, cursor: "pointer" }}>
+                    <span style={{ fontSize: 12, fontWeight: 700, color: visibilityData.allowedRoles.mainAdmin ? "#059669" : "#64748b" }}>
+                      {visibilityData.allowedRoles.mainAdmin ? "Visible" : "Hidden"}
+                    </span>
+                    <input
+                      type="checkbox"
+                      checked={Boolean(visibilityData.allowedRoles.mainAdmin)}
+                      onChange={(e) => {
+                        setVisibilityData((prev) => ({
+                          ...prev,
+                          allowedRoles: { ...prev.allowedRoles, mainAdmin: e.target.checked },
+                        }));
+                      }}
+                      style={{ width: 18, height: 18, cursor: "pointer", accentColor: "#059669" }}
+                    />
+                  </label>
+                </div>
+
+                {/* 2. Sub-Admins */}
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    padding: "12px 14px",
+                    borderRadius: 10,
+                    background: "#ffffff",
+                    border: "1px solid #e2e8f0",
+                  }}
+                >
+                  <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                    <div style={{ width: 32, height: 32, borderRadius: 8, background: "#eff6ff", color: "#2563eb", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                      <UserCheck size={17} />
+                    </div>
+                    <div>
+                      <div style={{ fontWeight: 800, fontSize: 13.5, color: "#0f172a" }}>
+                        Sub-Admins
+                      </div>
+                      <div style={{ fontSize: 11.5, color: "#64748b" }}>
+                        Delegated administrators with module and action-level permissions
+                      </div>
+                    </div>
+                  </div>
+                  <label style={{ display: "inline-flex", alignItems: "center", gap: 8, cursor: "pointer" }}>
+                    <span style={{ fontSize: 12, fontWeight: 700, color: visibilityData.allowedRoles.subAdmin ? "#2563eb" : "#64748b" }}>
+                      {visibilityData.allowedRoles.subAdmin ? "Visible" : "Hidden"}
+                    </span>
+                    <input
+                      type="checkbox"
+                      checked={Boolean(visibilityData.allowedRoles.subAdmin)}
+                      onChange={(e) => {
+                        setVisibilityData((prev) => ({
+                          ...prev,
+                          allowedRoles: { ...prev.allowedRoles, subAdmin: e.target.checked },
+                        }));
+                      }}
+                      style={{ width: 18, height: 18, cursor: "pointer", accentColor: "#2563eb" }}
+                    />
+                  </label>
+                </div>
+
+                {/* 3. Special Student (230301120327) */}
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    padding: "12px 14px",
+                    borderRadius: 10,
+                    background: "#ffffff",
+                    border: "1px solid #e2e8f0",
+                  }}
+                >
+                  <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                    <div style={{ width: 32, height: 32, borderRadius: 8, background: "#fffbeb", color: "#d97706", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                      <Star size={17} />
+                    </div>
+                    <div>
+                      <div style={{ fontWeight: 800, fontSize: 13.5, color: "#0f172a" }}>
+                        Special Student (<code>230301120327</code>)
+                      </div>
+                      <div style={{ fontSize: 11.5, color: "#64748b" }}>
+                        Designated student account with multi-device login & direct admin visibility
+                      </div>
+                    </div>
+                  </div>
+                  <label style={{ display: "inline-flex", alignItems: "center", gap: 8, cursor: "pointer" }}>
+                    <span style={{ fontSize: 12, fontWeight: 700, color: visibilityData.allowedRoles.specialStudent ? "#d97706" : "#64748b" }}>
+                      {visibilityData.allowedRoles.specialStudent ? "Visible" : "Hidden"}
+                    </span>
+                    <input
+                      type="checkbox"
+                      checked={Boolean(visibilityData.allowedRoles.specialStudent)}
+                      onChange={(e) => {
+                        setVisibilityData((prev) => ({
+                          ...prev,
+                          allowedRoles: { ...prev.allowedRoles, specialStudent: e.target.checked },
+                        }));
+                      }}
+                      style={{ width: 18, height: 18, cursor: "pointer", accentColor: "#d97706" }}
+                    />
+                  </label>
+                </div>
+
+                {/* 4. All Registered Students */}
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    padding: "12px 14px",
+                    borderRadius: 10,
+                    background: "#ffffff",
+                    border: "1px solid #e2e8f0",
+                  }}
+                >
+                  <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                    <div style={{ width: 32, height: 32, borderRadius: 8, background: "#eef2ff", color: "#6366f1", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                      <Users size={17} />
+                    </div>
+                    <div>
+                      <div style={{ fontWeight: 800, fontSize: 13.5, color: "#0f172a" }}>
+                        All Registered Students
+                      </div>
+                      <div style={{ fontSize: 11.5, color: "#64748b" }}>
+                        Standard enrolled students logged in with college roll numbers
+                      </div>
+                    </div>
+                  </div>
+                  <label style={{ display: "inline-flex", alignItems: "center", gap: 8, cursor: "pointer" }}>
+                    <span style={{ fontSize: 12, fontWeight: 700, color: visibilityData.allowedRoles.allStudents ? "#6366f1" : "#64748b" }}>
+                      {visibilityData.allowedRoles.allStudents ? "Visible" : "Hidden"}
+                    </span>
+                    <input
+                      type="checkbox"
+                      checked={Boolean(visibilityData.allowedRoles.allStudents)}
+                      onChange={(e) => {
+                        setVisibilityData((prev) => ({
+                          ...prev,
+                          allowedRoles: { ...prev.allowedRoles, allStudents: e.target.checked },
+                        }));
+                      }}
+                      style={{ width: 18, height: 18, cursor: "pointer", accentColor: "#6366f1" }}
+                    />
+                  </label>
+                </div>
+
+                {/* 5. Public Guests & Visitors */}
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    padding: "12px 14px",
+                    borderRadius: 10,
+                    background: "#ffffff",
+                    border: "1px solid #e2e8f0",
+                  }}
+                >
+                  <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                    <div style={{ width: 32, height: 32, borderRadius: 8, background: "#f1f5f9", color: "#64748b", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                      <Globe size={17} />
+                    </div>
+                    <div>
+                      <div style={{ fontWeight: 800, fontSize: 13.5, color: "#0f172a" }}>
+                        Public Guests & Visitors
+                      </div>
+                      <div style={{ fontSize: 11.5, color: "#64748b" }}>
+                        Unauthenticated visitors browsing the landing page and public timetables
+                      </div>
+                    </div>
+                  </div>
+                  <label style={{ display: "inline-flex", alignItems: "center", gap: 8, cursor: "pointer" }}>
+                    <span style={{ fontSize: 12, fontWeight: 700, color: visibilityData.allowedRoles.guests ? "#0f172a" : "#64748b" }}>
+                      {visibilityData.allowedRoles.guests ? "Visible" : "Hidden"}
+                    </span>
+                    <input
+                      type="checkbox"
+                      checked={Boolean(visibilityData.allowedRoles.guests)}
+                      onChange={(e) => {
+                        setVisibilityData((prev) => ({
+                          ...prev,
+                          allowedRoles: { ...prev.allowedRoles, guests: e.target.checked },
+                        }));
+                      }}
+                      style={{ width: 18, height: 18, cursor: "pointer", accentColor: "#0f172a" }}
+                    />
+                  </label>
+                </div>
+              </div>
+            </div>
+
+            {/* Action Buttons */}
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                flexWrap: "wrap",
+                gap: 12,
+                borderTop: "1px solid #f1f5f9",
+                paddingTop: 16,
+              }}
+            >
+              <div style={{ fontSize: 12, color: "#64748b" }}>
+                Changes take effect across the Navbar and Landing Footer immediately upon saving.
+              </div>
+
+              <div style={{ display: "flex", gap: 10 }}>
+                <button
+                  type="button"
+                  onClick={() => fetchVisibilitySettings()}
+                  disabled={visibilityLoading || visibilitySaving}
+                  style={{
+                    padding: "9px 16px",
+                    borderRadius: 10,
+                    border: "1px solid #cbd5e1",
+                    background: "#ffffff",
+                    fontSize: 13,
+                    fontWeight: 700,
+                    color: "#475569",
+                    cursor: "pointer",
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 6,
+                  }}
+                >
+                  <RefreshCw size={14} className={visibilityLoading ? "spin" : ""} />
+                  Reset Form
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => handleSaveVisibilitySettings()}
+                  disabled={visibilitySaving}
+                  style={{
+                    padding: "9px 22px",
+                    borderRadius: 10,
+                    border: "none",
+                    background: visibilityData.mode === "MANUAL"
+                      ? "linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%)"
+                      : "linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)",
+                    fontSize: 13,
+                    fontWeight: 700,
+                    color: "#ffffff",
+                    cursor: "pointer",
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 6,
+                    boxShadow: visibilityData.mode === "MANUAL"
+                      ? "0 2px 8px rgba(124, 58, 237, 0.25)"
+                      : "0 2px 8px rgba(37, 99, 235, 0.25)",
+                    transition: "all 0.15s ease",
+                  }}
+                >
+                  <Save size={15} />
+                  {visibilitySaving ? "Saving..." : "Save Visibility Settings"}
+                </button>
               </div>
             </div>
           </div>
