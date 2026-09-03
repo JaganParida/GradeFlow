@@ -5,11 +5,30 @@ import { useApp } from "../../context/AppContext";
 
 export default function LandingFooter({ onNavigateSection }) {
   const navigate = useNavigate();
-  const { adminToken, isAdminButtonVisible, studentSession } = useApp();
-  // When both admin device slots are active, keep the portal entry private while
-  // preserving access for the authenticated admin and the designated student account.
-  const isSpecialAdminPortalViewer = studentSession?.regNo === "230301120327";
-  const canSeeAdmin = Boolean(adminToken || isSpecialAdminPortalViewer || isAdminButtonVisible);
+  const { adminToken, adminProfile, adminButtonConfig, isAdminButtonVisible, studentSession } = useApp();
+  const loggedInRegNo = studentSession?.regNo || "";
+  const isSpecialAdminPortalViewer = loggedInRegNo === "230301120327";
+  const isSubAdminViewer = Boolean(adminProfile?.isSubAdmin);
+  const isMainAdminViewer = Boolean(adminToken && !isSubAdminViewer);
+
+  let canSeeAdmin = false;
+  if (adminButtonConfig && adminButtonConfig.mode === "MANUAL") {
+    const roles = adminButtonConfig.allowedRoles || {};
+    if (isMainAdminViewer) {
+      canSeeAdmin = roles.mainAdmin !== false;
+    } else if (isSubAdminViewer) {
+      canSeeAdmin = roles.subAdmin !== false;
+    } else if (isSpecialAdminPortalViewer) {
+      canSeeAdmin = roles.specialStudent !== false;
+    } else if (loggedInRegNo) {
+      canSeeAdmin = Boolean(roles.allStudents);
+    } else {
+      canSeeAdmin = Boolean(roles.guests);
+    }
+  } else {
+    // Exact original automatic logic (Preserved untouched)
+    canSeeAdmin = Boolean(adminToken || isSpecialAdminPortalViewer || isAdminButtonVisible);
+  }
 
   return (
     <footer

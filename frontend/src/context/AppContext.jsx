@@ -80,12 +80,22 @@ export function AppProvider({ children }) {
   const [adminProfile, setAdminProfile] = useState(null);
   const [adminDeviceCount, setAdminDeviceCount] = useState(0);
   const [isAdminButtonVisible, setIsAdminButtonVisible] = useState(true);
+  const [adminButtonConfig, setAdminButtonConfig] = useState(() => ({
+    mode: "AUTO",
+    allowedRoles: {
+      mainAdmin: true,
+      subAdmin: true,
+      specialStudent: true,
+      allStudents: false,
+      guests: false,
+    },
+  }));
 
   // In-flight bootstrap promise ref for 100% request deduplication
   const inFlightBootstrapRef = useRef(null);
   const navigate = useNavigate();
 
-  // Check live admin device occupancy (0 or 1 device -> button visible to all; 2 devices -> button hidden from public)
+  // Check live admin device occupancy & portal visibility config
   const checkAdminStatus = async () => {
     try {
       const res = await axios.get(`${API_BASE}/auth/admin/check-status`, {
@@ -95,11 +105,34 @@ export function AppProvider({ children }) {
       if (res.data && res.data.success) {
         const count = res.data.activeDeviceCount ?? 0;
         setAdminDeviceCount(count);
-        setIsAdminButtonVisible(count < 2);
+        if (res.data.adminButtonConfig) {
+          setAdminButtonConfig(res.data.adminButtonConfig);
+        }
+        if (typeof res.data.isAdminButtonVisible === "boolean") {
+          setIsAdminButtonVisible(res.data.isAdminButtonVisible);
+        } else {
+          setIsAdminButtonVisible(count < 2);
+        }
         return res.data;
       }
     } catch (err) {
       console.warn("Failed to check admin device status:", err.message);
+    }
+    return null;
+  };
+
+  const fetchAdminButtonConfig = async () => {
+    try {
+      const res = await axios.get(`${API_BASE}/admin/portal-visibility`, {
+        withCredentials: true,
+        timeout: 4000,
+      });
+      if (res.data && res.data.success && res.data.config) {
+        setAdminButtonConfig(res.data.config);
+        return res.data;
+      }
+    } catch (err) {
+      console.warn("Failed to fetch admin button config:", err.message);
     }
     return null;
   };
@@ -184,7 +217,7 @@ export function AppProvider({ children }) {
         });
 
         if (res.data && res.data.success) {
-          const { student, admin, adminDeviceCount: devCount, isAdminButtonVisible: btnVis, maintenance: maint } = res.data;
+          const { student, admin, adminDeviceCount: devCount, isAdminButtonVisible: btnVis, adminButtonConfig: btnConfig, maintenance: maint } = res.data;
 
           // 1. Hydrate Student Session
           if (student && student.regNo && student.sessionId) {
@@ -219,9 +252,16 @@ export function AppProvider({ children }) {
           }
 
           // 3. Hydrate Admin Occupancy & Button Visibility
+          if (btnConfig) {
+            setAdminButtonConfig(btnConfig);
+          }
           if (typeof devCount === "number") {
             setAdminDeviceCount(devCount);
-            setIsAdminButtonVisible(Boolean(btnVis));
+            if (typeof btnVis === "boolean") {
+              setIsAdminButtonVisible(btnVis);
+            } else {
+              setIsAdminButtonVisible(devCount < 2);
+            }
           }
 
           // 4. Hydrate Maintenance State
@@ -998,6 +1038,25 @@ export function AppProvider({ children }) {
     studentLogout();
   };
 
+  const updateAdminButtonConfig = async (payload) => {
+    try {
+      const res = await axios.put(`${API_BASE}/admin/portal-visibility`, payload, {
+        withCredentials: true,
+        headers: {
+          "Content-Type": "application/json",
+          "X-Requested-With": "XMLHttpRequest",
+        },
+      });
+      if (res.data && res.data.success) {
+        setAdminButtonConfig(res.data.config);
+        return res.data;
+      }
+    } catch (err) {
+      console.error("Failed to update portal visibility:", err);
+      throw err;
+    }
+  };
+
   const getAdminAuthHeaders = () => ({ headers: { "X-Requested-With": "XMLHttpRequest" } });
   const hasActiveSession = Boolean(studentSession && studentSession.regNo && studentSession.sessionId);
 
@@ -1036,6 +1095,10 @@ export function AppProvider({ children }) {
         adminProfile,
         adminDeviceCount,
         isAdminButtonVisible,
+        adminButtonConfig,
+        setAdminButtonConfig,
+        fetchAdminButtonConfig,
+        updateAdminButtonConfig,
         checkAdminStatus,
         notifications,
         unreadCount,
