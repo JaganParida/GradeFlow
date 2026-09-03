@@ -227,8 +227,11 @@ export function useTrafficTracker({ studentSession, studentData, adminToken }) {
       })
       .catch(() => {});
 
-    // Periodic heartbeat every 20 seconds to keep student presence fresh in DB
+    // Periodic heartbeat every 60 seconds (only when tab is actively visible) to protect Vercel quotas
     const heartbeatInterval = setInterval(() => {
+      if (typeof document !== "undefined" && document.hidden) {
+        return; // Zero requests when student tab is in background, minimized, or phone is locked!
+      }
       axios
         .post(
           "/api/traffic/page-view",
@@ -247,10 +250,10 @@ export function useTrafficTracker({ studentSession, studentData, adminToken }) {
           { timeout: 5000 }
         )
         .catch(() => {});
-    }, 20000);
+    }, 60000);
 
     return () => clearInterval(heartbeatInterval);
-  }, [location.pathname, isAuthorizedAdmin, studentSession?.regNo]);
+  }, [location.pathname, isAuthorizedAdmin, studentSession?.regNo, studentData?.studentName]);
 
   // Method for student to voluntarily leave queue
   const leaveQueue = () => {

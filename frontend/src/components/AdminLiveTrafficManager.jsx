@@ -167,13 +167,25 @@ export default function AdminLiveTrafficManager({ authHeaders, API }) {
       } catch {}
     }
 
-    // Poll periodically every 4s to keep live active student data and DB analytics in sync in real time
+    // Poll periodically every 12s ONLY when tab is actively visible to protect Vercel quotas
     const pollInterval = setInterval(() => {
+      if (typeof document !== "undefined" && document.hidden) {
+        return; // Zero requests when admin minimizes or switches tab!
+      }
       fetchOverview();
-    }, 4000);
+    }, 12000);
+
+    // Refresh immediately when admin switches back to tab
+    const handleVisibilityChange = () => {
+      if (typeof document !== "undefined" && !document.hidden) {
+        fetchOverview();
+      }
+    };
+    document.addEventListener("visibilitychange", handleVisibilityChange);
 
     return () => {
       clearInterval(pollInterval);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
       if (socket) {
         try {
           socket.emit("admin:leave_traffic_monitor");
@@ -676,24 +688,36 @@ export default function AdminLiveTrafficManager({ authHeaders, API }) {
           boxShadow: "0 2px 12px rgba(15, 23, 42, 0.03)",
         }}
       >
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16, flexWrap: "wrap", gap: 10 }}>
-          <div>
-            <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16, flexWrap: "wrap", gap: 12 }}>
+          <div style={{ width: isMobile ? "100%" : "auto" }}>
+            <div
+              style={{
+                display: "inline-flex",
+                background: "#f1f5f9",
+                padding: 3,
+                borderRadius: 9,
+                gap: 4,
+                width: isMobile ? "100%" : "auto",
+              }}
+            >
               <button
                 type="button"
                 onClick={() => setStudentListTab("LIVE_NOW")}
                 style={{
-                  padding: "6px 14px",
-                  borderRadius: 99,
-                  border: studentListTab === "LIVE_NOW" ? "1.5px solid #10b981" : "1px solid #e2e8f0",
-                  background: studentListTab === "LIVE_NOW" ? "#ecfdf5" : "#ffffff",
-                  color: studentListTab === "LIVE_NOW" ? "#065f46" : "#64748b",
-                  fontSize: 13,
-                  fontWeight: 800,
+                  flex: isMobile ? 1 : "initial",
+                  padding: "7px 14px",
+                  borderRadius: 7,
+                  border: studentListTab === "LIVE_NOW" ? "1px solid #e2e8f0" : "1px solid transparent",
+                  background: studentListTab === "LIVE_NOW" ? "#ffffff" : "transparent",
+                  color: studentListTab === "LIVE_NOW" ? "#0f172a" : "#64748b",
+                  fontSize: 12.5,
+                  fontWeight: studentListTab === "LIVE_NOW" ? 800 : 600,
                   cursor: "pointer",
                   display: "inline-flex",
                   alignItems: "center",
+                  justifyContent: "center",
                   gap: 6,
+                  boxShadow: studentListTab === "LIVE_NOW" ? "0 1px 3px rgba(15,23,42,0.06)" : "none",
                   transition: "all 0.15s ease",
                 }}
               >
@@ -707,29 +731,32 @@ export default function AdminLiveTrafficManager({ authHeaders, API }) {
                     boxShadow: "0 0 0 2px rgba(16, 185, 129, 0.3)",
                   }}
                 />
-                Live On Site Right Now ({liveData.activeStudents?.length || 0})
+                Live On Site ({liveData.activeStudents?.length || 0})
               </button>
 
               <button
                 type="button"
                 onClick={() => setStudentListTab("ALL_LOGGED_IN")}
                 style={{
-                  padding: "6px 14px",
-                  borderRadius: 99,
-                  border: studentListTab === "ALL_LOGGED_IN" ? "1.5px solid #2563eb" : "1px solid #e2e8f0",
-                  background: studentListTab === "ALL_LOGGED_IN" ? "#eff6ff" : "#ffffff",
-                  color: studentListTab === "ALL_LOGGED_IN" ? "#1d4ed8" : "#64748b",
-                  fontSize: 13,
-                  fontWeight: 800,
+                  flex: isMobile ? 1 : "initial",
+                  padding: "7px 14px",
+                  borderRadius: 7,
+                  border: studentListTab === "ALL_LOGGED_IN" ? "1px solid #e2e8f0" : "1px solid transparent",
+                  background: studentListTab === "ALL_LOGGED_IN" ? "#ffffff" : "transparent",
+                  color: studentListTab === "ALL_LOGGED_IN" ? "#2563eb" : "#64748b",
+                  fontSize: 12.5,
+                  fontWeight: studentListTab === "ALL_LOGGED_IN" ? 800 : 600,
                   cursor: "pointer",
                   display: "inline-flex",
                   alignItems: "center",
+                  justifyContent: "center",
                   gap: 6,
+                  boxShadow: studentListTab === "ALL_LOGGED_IN" ? "0 1px 3px rgba(15,23,42,0.06)" : "none",
                   transition: "all 0.15s ease",
                 }}
               >
-                <Users size={14} color="#2563eb" />
-                All Logged-In Student Accounts ({liveData.allLoggedInStudents?.length || liveData.totalLoggedInSessions || 65})
+                <Users size={14} color={studentListTab === "ALL_LOGGED_IN" ? "#2563eb" : "#64748b"} />
+                All Logged-In ({liveData.allLoggedInStudents?.length || liveData.totalLoggedInSessions || 65})
               </button>
             </div>
             <p style={{ fontSize: 12, color: "#64748b", margin: "6px 0 0 0" }}>
@@ -739,13 +766,21 @@ export default function AdminLiveTrafficManager({ authHeaders, API }) {
             </p>
           </div>
 
-          {/* Search Bar & Filters */}
-          <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center", width: isMobile ? "100%" : "auto" }}>
+          {/* Search Bar & Filters (Mobile responsive layout) */}
+          <div
+            style={{
+              display: "flex",
+              gap: 8,
+              flexWrap: "wrap",
+              alignItems: "center",
+              width: isMobile ? "100%" : "auto",
+            }}
+          >
             <div
               style={{
                 position: "relative",
-                flex: isMobile ? 1 : "initial",
-                minWidth: isMobile ? "auto" : 220,
+                width: isMobile ? "100%" : "auto",
+                minWidth: isMobile ? "100%" : 220,
               }}
             >
               <Search size={14} color="#94a3b8" style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)" }} />
@@ -756,8 +791,8 @@ export default function AdminLiveTrafficManager({ authHeaders, API }) {
                 onChange={(e) => setSearchTerm(e.target.value)}
                 style={{
                   width: "100%",
-                  padding: "7px 10px 7px 30px",
-                  borderRadius: 10,
+                  padding: "8px 10px 8px 30px",
+                  borderRadius: 8,
                   border: "1.5px solid #cbd5e1",
                   fontSize: 12.5,
                   outline: "none",
@@ -771,8 +806,9 @@ export default function AdminLiveTrafficManager({ authHeaders, API }) {
               value={filterUserType}
               onChange={(e) => setFilterUserType(e.target.value)}
               style={{
-                padding: "7px 10px",
-                borderRadius: 10,
+                flex: isMobile ? 1 : "initial",
+                padding: "8px 10px",
+                borderRadius: 8,
                 border: "1.5px solid #cbd5e1",
                 background: "#ffffff",
                 fontSize: 12.5,
@@ -791,8 +827,9 @@ export default function AdminLiveTrafficManager({ authHeaders, API }) {
               value={filterDevice}
               onChange={(e) => setFilterDevice(e.target.value)}
               style={{
-                padding: "7px 10px",
-                borderRadius: 10,
+                flex: isMobile ? 1 : "initial",
+                padding: "8px 10px",
+                borderRadius: 8,
                 border: "1.5px solid #cbd5e1",
                 background: "#ffffff",
                 fontSize: 12.5,
@@ -1248,15 +1285,17 @@ export default function AdminLiveTrafficManager({ authHeaders, API }) {
                 onClick={() => handleAdmitNext(10)}
                 disabled={actionLoading || liveData.totalQueuedUsers === 0}
                 style={{
+                  flex: isMobile ? "1 1 calc(50% - 4px)" : "initial",
                   padding: "8px 14px",
-                  borderRadius: 10,
+                  borderRadius: 8,
                   background: "#ffffff",
-                  border: "1px solid #cbd5e1",
+                  border: "1.5px solid #cbd5e1",
                   color: "#0f172a",
                   fontSize: 12,
                   fontWeight: 700,
                   cursor: liveData.totalQueuedUsers === 0 ? "not-allowed" : "pointer",
                   opacity: liveData.totalQueuedUsers === 0 ? 0.6 : 1,
+                  transition: "all 0.15s ease",
                 }}
               >
                 Admit 10
@@ -1265,15 +1304,17 @@ export default function AdminLiveTrafficManager({ authHeaders, API }) {
                 onClick={() => handleAdmitNext(25)}
                 disabled={actionLoading || liveData.totalQueuedUsers === 0}
                 style={{
+                  flex: isMobile ? "1 1 calc(50% - 4px)" : "initial",
                   padding: "8px 14px",
-                  borderRadius: 10,
+                  borderRadius: 8,
                   background: "#ffffff",
-                  border: "1px solid #cbd5e1",
+                  border: "1.5px solid #cbd5e1",
                   color: "#0f172a",
                   fontSize: 12,
                   fontWeight: 700,
                   cursor: liveData.totalQueuedUsers === 0 ? "not-allowed" : "pointer",
                   opacity: liveData.totalQueuedUsers === 0 ? 0.6 : 1,
+                  transition: "all 0.15s ease",
                 }}
               >
                 Admit 25
@@ -1282,22 +1323,24 @@ export default function AdminLiveTrafficManager({ authHeaders, API }) {
                 onClick={() => handleFlushQueue(true)}
                 disabled={actionLoading || liveData.totalQueuedUsers === 0}
                 style={{
+                  flex: isMobile ? "1 1 100%" : "initial",
                   padding: "8px 14px",
-                  borderRadius: 10,
+                  borderRadius: 8,
                   background: "#eff6ff",
-                  border: "1px solid #bfdbfe",
+                  border: "1.5px solid #bfdbfe",
                   color: "#2563eb",
                   fontSize: 12,
                   fontWeight: 700,
                   cursor: liveData.totalQueuedUsers === 0 ? "not-allowed" : "pointer",
                   opacity: liveData.totalQueuedUsers === 0 ? 0.6 : 1,
+                  transition: "all 0.15s ease",
                 }}
               >
                 Admit All ({liveData.totalQueuedUsers})
               </button>
             </div>
             <p style={{ fontSize: 11.5, color: "#64748b", margin: "8px 0 0 0" }}>
-              Students admitted receive an instant WebSocket push & transition directly to their route.
+              Students admitted receive immediate admission tickets and transition directly to their route.
             </p>
           </div>
         </div>
@@ -1313,7 +1356,7 @@ export default function AdminLiveTrafficManager({ authHeaders, API }) {
           boxShadow: "0 2px 12px rgba(15, 23, 42, 0.03)",
         }}
       >
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16, flexWrap: "wrap", gap: 10 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16, flexWrap: "wrap", gap: 12 }}>
           <div>
             <h3 style={{ fontSize: 16, fontWeight: 800, color: "#0f172a", margin: 0, display: "flex", alignItems: "center", gap: 8 }}>
               <Compass size={18} color="#2563eb" /> Page Route Traffic Analytics
@@ -1323,23 +1366,37 @@ export default function AdminLiveTrafficManager({ authHeaders, API }) {
             </p>
           </div>
 
-          {/* Tier Tabs: Most / Medium / Least */}
-          <div style={{ display: "flex", gap: 6, background: "#f1f5f9", padding: 3, borderRadius: 12 }}>
+          {/* Tier Tabs: Most / Medium / Least (Sleek Modern Segmented Control) */}
+          <div
+            style={{
+              display: "inline-flex",
+              background: "#f1f5f9",
+              padding: 3,
+              borderRadius: 8,
+              gap: 3,
+              maxWidth: "100%",
+              overflowX: "auto",
+              WebkitOverflowScrolling: "touch",
+              scrollbarWidth: "none",
+            }}
+          >
             <button
               onClick={() => setActiveAnalyticsTab("MOST")}
               style={{
                 padding: "6px 12px",
-                borderRadius: 9,
-                border: "none",
+                borderRadius: 6,
+                border: activeAnalyticsTab === "MOST" ? "1px solid #e2e8f0" : "1px solid transparent",
                 background: activeAnalyticsTab === "MOST" ? "#ffffff" : "transparent",
                 color: activeAnalyticsTab === "MOST" ? "#ea580c" : "#64748b",
                 fontSize: 12,
                 fontWeight: 700,
                 cursor: "pointer",
-                display: "flex",
+                display: "inline-flex",
                 alignItems: "center",
                 gap: 5,
-                boxShadow: activeAnalyticsTab === "MOST" ? "0 2px 5px rgba(0,0,0,0.05)" : "none",
+                whiteSpace: "nowrap",
+                boxShadow: activeAnalyticsTab === "MOST" ? "0 1px 3px rgba(15,23,42,0.06)" : "none",
+                transition: "all 0.15s ease",
               }}
             >
               <Flame size={13} color="#ea580c" /> Most Visited
@@ -1348,17 +1405,19 @@ export default function AdminLiveTrafficManager({ authHeaders, API }) {
               onClick={() => setActiveAnalyticsTab("MEDIUM")}
               style={{
                 padding: "6px 12px",
-                borderRadius: 9,
-                border: "none",
+                borderRadius: 6,
+                border: activeAnalyticsTab === "MEDIUM" ? "1px solid #e2e8f0" : "1px solid transparent",
                 background: activeAnalyticsTab === "MEDIUM" ? "#ffffff" : "transparent",
                 color: activeAnalyticsTab === "MEDIUM" ? "#2563eb" : "#64748b",
                 fontSize: 12,
                 fontWeight: 700,
                 cursor: "pointer",
-                display: "flex",
+                display: "inline-flex",
                 alignItems: "center",
                 gap: 5,
-                boxShadow: activeAnalyticsTab === "MEDIUM" ? "0 2px 5px rgba(0,0,0,0.05)" : "none",
+                whiteSpace: "nowrap",
+                boxShadow: activeAnalyticsTab === "MEDIUM" ? "0 1px 3px rgba(15,23,42,0.06)" : "none",
+                transition: "all 0.15s ease",
               }}
             >
               <Zap size={13} color="#2563eb" /> Medium Visited
@@ -1367,17 +1426,19 @@ export default function AdminLiveTrafficManager({ authHeaders, API }) {
               onClick={() => setActiveAnalyticsTab("LEAST")}
               style={{
                 padding: "6px 12px",
-                borderRadius: 9,
-                border: "none",
+                borderRadius: 6,
+                border: activeAnalyticsTab === "LEAST" ? "1px solid #e2e8f0" : "1px solid transparent",
                 background: activeAnalyticsTab === "LEAST" ? "#ffffff" : "transparent",
                 color: activeAnalyticsTab === "LEAST" ? "#475569" : "#64748b",
                 fontSize: 12,
                 fontWeight: 700,
                 cursor: "pointer",
-                display: "flex",
+                display: "inline-flex",
                 alignItems: "center",
                 gap: 5,
-                boxShadow: activeAnalyticsTab === "LEAST" ? "0 2px 5px rgba(0,0,0,0.05)" : "none",
+                whiteSpace: "nowrap",
+                boxShadow: activeAnalyticsTab === "LEAST" ? "0 1px 3px rgba(15,23,42,0.06)" : "none",
+                transition: "all 0.15s ease",
               }}
             >
               <Moon size={13} color="#64748b" /> Least Visited
@@ -1386,14 +1447,18 @@ export default function AdminLiveTrafficManager({ authHeaders, API }) {
               onClick={() => setActiveAnalyticsTab("ALL")}
               style={{
                 padding: "6px 12px",
-                borderRadius: 9,
-                border: "none",
+                borderRadius: 6,
+                border: activeAnalyticsTab === "ALL" ? "1px solid #e2e8f0" : "1px solid transparent",
                 background: activeAnalyticsTab === "ALL" ? "#ffffff" : "transparent",
                 color: activeAnalyticsTab === "ALL" ? "#0f172a" : "#64748b",
                 fontSize: 12,
                 fontWeight: 700,
                 cursor: "pointer",
-                boxShadow: activeAnalyticsTab === "ALL" ? "0 2px 5px rgba(0,0,0,0.05)" : "none",
+                display: "inline-flex",
+                alignItems: "center",
+                whiteSpace: "nowrap",
+                boxShadow: activeAnalyticsTab === "ALL" ? "0 1px 3px rgba(15,23,42,0.06)" : "none",
+                transition: "all 0.15s ease",
               }}
             >
               All Pages
