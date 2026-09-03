@@ -1,6 +1,8 @@
 const connectToDatabase = require("./_lib/db");
 const PageAnalytics = require("./_lib/models/PageAnalytics");
 const TrafficQueueConfig = require("./_lib/models/TrafficQueueConfig");
+const StudentSession = require("./_lib/models/StudentSession");
+const Ranking = require("./_lib/models/Ranking");
 const { applyCors } = require("./_lib/cors");
 const jwt = require("jsonwebtoken");
 
@@ -92,17 +94,70 @@ module.exports = async function handler(req, res) {
         const mediumVisited = pages.slice(tierSize, tierSize * 2).map((p) => ({ ...p, tier: "MEDIUM_VISITED", liveViewers: 0 }));
         const leastVisited = pages.slice(tierSize * 2).map((p) => ({ ...p, tier: "LEAST_VISITED", liveViewers: 0 }));
 
+        // Query real active student sessions from MongoDB
+        const activeSessions = await StudentSession.find({ isActive: true })
+          .sort({ lastActiveAt: -1 })
+          .limit(150)
+          .lean();
+
+        // Deduplicate by regNo (keep latest active device session)
+        const uniqueStudentMap = new Map();
+        for (const sess of activeSessions) {
+          if (!uniqueStudentMap.has(sess.regNo)) {
+            uniqueStudentMap.set(sess.regNo, sess);
+          }
+        }
+
+        const regNos = Array.from(uniqueStudentMap.keys());
+        const rankings = await Ranking.find({ regNo: { $in: regNos } }).select("regNo studentName branch batch").lean();
+        const rankingMap = new Map(rankings.map((r) => [r.regNo, r]));
+
+        const now = Date.now();
+        const activeStudents = Array.from(uniqueStudentMap.values()).map((sess) => {
+          const rank = rankingMap.get(sess.regNo);
+          const lastActiveTime = new Date(sess.lastActiveAt || sess.updatedAt || sess.loggedInAt).getTime();
+          const isOnline = (now - lastActiveTime) < 30 * 60 * 1000;
+
+          const currRoute = sess.deviceInfo?.currentRoute || "/dashboard";
+          const pageTitle = sess.deviceInfo?.pageTitle || (ROUTE_LABELS[currRoute] || "Student Dashboard");
+
+          return {
+            token: sess.sessionId || sess._id.toString(),
+            regNo: sess.regNo,
+            studentName: rank?.studentName || `Student (${sess.regNo})`,
+            branch: rank?.branch || "CSE",
+            batch: rank?.batch || (sess.regNo.startsWith("23") ? "2023" : "2024"),
+            currentRoute: currRoute,
+            pageTitle,
+            deviceType: sess.deviceInfo?.deviceType || "Desktop",
+            os: sess.deviceInfo?.os || "Windows",
+            browser: sess.deviceInfo?.browser || "Chrome",
+            ip: sess.deviceInfo?.ip || "",
+            connectedAt: sess.loggedInAt,
+            lastActiveAt: sess.lastActiveAt,
+            isGuest: false,
+            status: isOnline ? "ACTIVE" : "IDLE",
+          };
+        });
+
+        // Calculate route distribution of active students
+        const routeDistribution = {};
+        for (const s of activeStudents) {
+          const r = s.currentRoute || "/dashboard";
+          routeDistribution[r] = (routeDistribution[r] || 0) + 1;
+        }
+
         return res.json({
           success: true,
-          totalActiveUsers: 0,
+          totalActiveUsers: activeStudents.length,
           totalQueuedUsers: 0,
           maxActiveCapacity: config.maxActiveCapacity || 200,
           queueEnabled: Boolean(config.queueEnabled),
           autoTriggerEnabled: Boolean(config.autoTriggerEnabled),
           isQueueActive: Boolean(config.queueEnabled),
-          activeStudents: [],
+          activeStudents,
           queuedStudents: [],
-          routeDistribution: {},
+          routeDistribution,
           analytics: {
             allPages: pages,
             mostVisited,
@@ -188,7 +243,7 @@ module.exports = async function handler(req, res) {
     }
 
     if (action === "page-view" || (req.method === "POST" && req.body?.route)) {
-      const { token, route = "/", isAdmin = false } = req.body || {};
+      const { token, route = "/", regNo, isAdmin = false } = req.body || {};
       const normRoute = normalizeRoute(route);
       const pageTitle = ROUTE_LABELS[normRoute] || normRoute;
 
@@ -202,6 +257,19 @@ module.exports = async function handler(req, res) {
         },
         { upsert: true, new: true }
       ).catch(() => {});
+
+      if (regNo) {
+        await StudentSession.updateMany(
+          { regNo: String(regNo).toUpperCase().trim(), isActive: true },
+          {
+            $set: {
+              lastActiveAt: new Date(),
+              "deviceInfo.currentRoute": normRoute,
+              "deviceInfo.pageTitle": pageTitle,
+            },
+          }
+        ).catch(() => {});
+      }
 
       const config = (await TrafficQueueConfig.findOne({ key: "global_traffic_config" })) || {
         queueEnabled: false,
