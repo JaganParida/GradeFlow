@@ -239,6 +239,23 @@ export default function AdminNotificationBroadcast({ API, authHeaders, isMobile 
     return { bg: "#fffbeb", color: "#b45309", border: "#fde68a" };
   };
 
+  const formatFullDateTime = (dateStr) => {
+    if (!dateStr) return "Just now";
+    const d = new Date(dateStr);
+    if (isNaN(d.getTime())) return "Just now";
+    const day = String(d.getDate()).padStart(2, "0");
+    const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+    const month = monthNames[d.getMonth()];
+    const year = d.getFullYear();
+    let hours = d.getHours();
+    const minutes = String(d.getMinutes()).padStart(2, "0");
+    const ampm = hours >= 12 ? "PM" : "AM";
+    hours = hours % 12;
+    hours = hours ? hours : 12;
+    const hoursStr = String(hours).padStart(2, "0");
+    return `${day} ${month} ${year} · ${hoursStr}:${minutes} ${ampm}`;
+  };
+
   const activeBroadcastCount = broadcasts.filter((b) => !b.expiresAt || new Date(b.expiresAt) > new Date()).length;
   const totalReadCount = broadcasts.reduce((sum, b) => sum + (b.readCount || 0), 0);
 
@@ -899,7 +916,7 @@ export default function AdminNotificationBroadcast({ API, authHeaders, isMobile 
                         </td>
 
                         <td style={{ padding: "12px", color: "#64748b" }}>
-                          {new Date(b.createdAt).toLocaleDateString()} · {new Date(b.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                          {formatFullDateTime(b.createdAt)}
                           {isExpired && <span style={{ marginLeft: 6, color: "#dc2626", fontWeight: 700 }}>(Expired)</span>}
                         </td>
 
@@ -1025,7 +1042,7 @@ export default function AdminNotificationBroadcast({ API, authHeaders, isMobile 
                                           </div>
                                         </div>
                                         <span style={{ color: "#94a3b8", fontSize: 10.5, whiteSpace: "nowrap" }}>
-                                          {r.readAt ? new Date(r.readAt).toLocaleString([], { dateStyle: "short", timeStyle: "short" }) : "—"}
+                                          {formatFullDateTime(r.readAt)}
                                         </span>
                                       </div>
                                     ))}
@@ -1078,7 +1095,7 @@ export default function AdminNotificationBroadcast({ API, authHeaders, isMobile 
                                           </div>
                                         </div>
                                         <span style={{ color: "#94a3b8", fontSize: 10.5, whiteSpace: "nowrap" }}>
-                                          {d.dismissedAt ? new Date(d.dismissedAt).toLocaleString([], { dateStyle: "short", timeStyle: "short" }) : "—"}
+                                          {formatFullDateTime(d.dismissedAt)}
                                         </span>
                                       </div>
                                     ))}
