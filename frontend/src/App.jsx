@@ -499,6 +499,26 @@ export default function App() {
                 </AdminRouteGuard>
               }
             />
+            <Route
+              path="/admin/traffic"
+              element={
+                <AdminRouteGuard allowGate={false}>
+                  <PageTransition>
+                    <AdminDashboard defaultTab="live-traffic" />
+                  </PageTransition>
+                </AdminRouteGuard>
+              }
+            />
+            <Route
+              path="/admin/live-traffic"
+              element={
+                <AdminRouteGuard allowGate={false}>
+                  <PageTransition>
+                    <AdminDashboard defaultTab="live-traffic" />
+                  </PageTransition>
+                </AdminRouteGuard>
+              }
+            />
 
             {/* ── Direct System State & Preview Routes ── */}
             <Route path="/403" element={<PageTransition><UnauthorizedState /></PageTransition>} />
