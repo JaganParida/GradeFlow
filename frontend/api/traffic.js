@@ -3,6 +3,7 @@ const PageAnalytics = require("./_lib/models/PageAnalytics");
 const TrafficQueueConfig = require("./_lib/models/TrafficQueueConfig");
 const StudentSession = require("./_lib/models/StudentSession");
 const Ranking = require("./_lib/models/Ranking");
+const LiveVisitor = require("./_lib/models/LiveVisitor");
 const { applyCors } = require("./_lib/cors");
 const jwt = require("jsonwebtoken");
 
@@ -94,13 +95,22 @@ module.exports = async function handler(req, res) {
         const mediumVisited = pages.slice(tierSize, tierSize * 2).map((p) => ({ ...p, tier: "MEDIUM_VISITED", liveViewers: 0 }));
         const leastVisited = pages.slice(tierSize * 2).map((p) => ({ ...p, tier: "LEAST_VISITED", liveViewers: 0 }));
 
-        // Query real active student sessions from MongoDB
-        const activeSessions = await StudentSession.find({ isActive: true })
-          .sort({ lastActiveAt: -1 })
-          .limit(150)
+        // ─── Real-Time Live Detection Window (Vercel / Google Analytics Style) ───
+        // Active Right Now = Ping/Interaction received within the last 2.5 minutes
+        const LIVE_WINDOW_MS = 2.5 * 60 * 1000;
+        const liveCutoff = new Date(Date.now() - LIVE_WINDOW_MS);
+
+        // 1. Query users who have pinged within the live window
+        const liveNowVisitors = await LiveVisitor.find({ lastSeenAt: { $gte: liveCutoff } })
+          .sort({ lastSeenAt: -1 })
           .lean();
 
-        // Deduplicate by regNo (keep latest active device session)
+        // 2. Query all registered student accounts who have logged-in active sessions in DB
+        const activeSessions = await StudentSession.find({ isActive: true })
+          .sort({ lastActiveAt: -1 })
+          .limit(100)
+          .lean();
+
         const uniqueStudentMap = new Map();
         for (const sess of activeSessions) {
           if (!uniqueStudentMap.has(sess.regNo)) {
@@ -113,10 +123,11 @@ module.exports = async function handler(req, res) {
         const rankingMap = new Map(rankings.map((r) => [r.regNo, r]));
 
         const now = Date.now();
-        const activeStudents = Array.from(uniqueStudentMap.values()).map((sess) => {
+        const allLoggedInStudents = Array.from(uniqueStudentMap.values()).map((sess) => {
           const rank = rankingMap.get(sess.regNo);
           const lastActiveTime = new Date(sess.lastActiveAt || sess.updatedAt || sess.loggedInAt).getTime();
-          const isOnline = (now - lastActiveTime) < 30 * 60 * 1000;
+          const isLiveRightNow = (now - lastActiveTime) <= LIVE_WINDOW_MS;
+          const isRecentlyActive = (now - lastActiveTime) <= 15 * 60 * 1000;
 
           const currRoute = sess.deviceInfo?.currentRoute || "/dashboard";
           const pageTitle = sess.deviceInfo?.pageTitle || (ROUTE_LABELS[currRoute] || "Student Dashboard");
@@ -136,26 +147,68 @@ module.exports = async function handler(req, res) {
             connectedAt: sess.loggedInAt,
             lastActiveAt: sess.lastActiveAt,
             isGuest: false,
-            status: isOnline ? "ACTIVE" : "IDLE",
+            isLiveRightNow,
+            status: isLiveRightNow ? "LIVE_NOW" : isRecentlyActive ? "RECENT" : "OFFLINE",
           };
         });
 
-        // Calculate route distribution of active students
+        // Combine liveNowVisitors with any logged in student whose session was active within LIVE_WINDOW_MS
+        const liveVisitorTokens = new Set(liveNowVisitors.map((v) => v.token));
+        const liveNowList = liveNowVisitors.map((v) => ({
+          token: v.token,
+          regNo: v.regNo,
+          studentName: v.studentName,
+          branch: v.branch,
+          batch: v.batch,
+          currentRoute: v.currentRoute,
+          pageTitle: v.pageTitle,
+          deviceType: v.deviceType,
+          os: v.os,
+          browser: v.browser,
+          ip: v.ip || "",
+          connectedAt: v.createdAt || v.lastSeenAt,
+          lastActiveAt: v.lastSeenAt,
+          isGuest: v.isGuest,
+          isLiveRightNow: true,
+          status: "LIVE_NOW",
+        }));
+
+        allLoggedInStudents.forEach((s) => {
+          if (s.isLiveRightNow && !liveVisitorTokens.has(s.token)) {
+            liveNowList.push(s);
+          }
+        });
+
+        // Deduplicate live list
+        const uniqueLiveMap = new Map();
+        liveNowList.forEach((item) => {
+          const key = item.regNo || item.token;
+          if (!uniqueLiveMap.has(key)) uniqueLiveMap.set(key, item);
+        });
+        const finalLiveList = Array.from(uniqueLiveMap.values());
+
+        // Calculate route distribution of users currently LIVE right now
         const routeDistribution = {};
-        for (const s of activeStudents) {
+        const sourceForDist = finalLiveList.length > 0 ? finalLiveList : allLoggedInStudents;
+        for (const s of sourceForDist) {
           const r = s.currentRoute || "/dashboard";
           routeDistribution[r] = (routeDistribution[r] || 0) + 1;
         }
 
+        const liveCount = finalLiveList.length;
+        const loggedInCount = allLoggedInStudents.length;
+
         return res.json({
           success: true,
-          totalActiveUsers: activeStudents.length,
+          totalActiveUsers: liveCount, // REAL-TIME LIVE USERS BROWSING RIGHT NOW (like Vercel Analytics)
+          totalLoggedInSessions: loggedInCount, // Total registered accounts with active sessions (e.g. 65)
           totalQueuedUsers: 0,
           maxActiveCapacity: config.maxActiveCapacity || 200,
           queueEnabled: Boolean(config.queueEnabled),
           autoTriggerEnabled: Boolean(config.autoTriggerEnabled),
           isQueueActive: Boolean(config.queueEnabled),
-          activeStudents,
+          activeStudents: finalLiveList, // Users on site right now
+          allLoggedInStudents: allLoggedInStudents, // Full list of 65 sessions
           queuedStudents: [],
           routeDistribution,
           analytics: {
@@ -243,7 +296,7 @@ module.exports = async function handler(req, res) {
     }
 
     if (action === "page-view" || (req.method === "POST" && req.body?.route)) {
-      const { token, route = "/", regNo, isAdmin = false } = req.body || {};
+      const { token, route = "/", regNo, studentName, branch, batch, deviceType, os, browser, isAdmin = false } = req.body || {};
       const normRoute = normalizeRoute(route);
       const pageTitle = ROUTE_LABELS[normRoute] || normRoute;
 
@@ -257,6 +310,43 @@ module.exports = async function handler(req, res) {
         },
         { upsert: true, new: true }
       ).catch(() => {});
+
+      // Record in LiveVisitor for real-time live presence detection (like Vercel Analytics)
+      if (token && !isAdmin) {
+        const isStudent = Boolean(regNo && /^[a-zA-Z0-9]{5,20}$/.test(String(regNo).trim()));
+        let resolvedName = studentName;
+        let resolvedBranch = branch;
+        let resolvedBatch = batch;
+
+        if (isStudent && !resolvedName) {
+          const rank = await Ranking.findOne({ regNo: String(regNo).toUpperCase().trim() }).select("studentName branch batch").lean();
+          if (rank) {
+            resolvedName = rank.studentName;
+            resolvedBranch = rank.branch;
+            resolvedBatch = rank.batch;
+          }
+        }
+
+        await LiveVisitor.findOneAndUpdate(
+          { token: String(token) },
+          {
+            $set: {
+              regNo: isStudent ? String(regNo).toUpperCase().trim() : null,
+              studentName: resolvedName || (isStudent ? `Student (${regNo})` : "Guest Visitor"),
+              branch: resolvedBranch || (isStudent ? "CSE" : "Guest"),
+              batch: resolvedBatch || "2023",
+              currentRoute: normRoute,
+              pageTitle,
+              deviceType: deviceType || "Desktop",
+              os: os || "Unknown",
+              browser: browser || "Unknown",
+              isGuest: !isStudent,
+              lastSeenAt: new Date(),
+            },
+          },
+          { upsert: true, new: true }
+        ).catch(() => {});
+      }
 
       if (regNo) {
         await StudentSession.updateMany(

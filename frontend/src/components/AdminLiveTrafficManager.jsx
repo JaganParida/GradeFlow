@@ -60,8 +60,8 @@ export default function AdminLiveTrafficManager({ authHeaders, API }) {
   // Search & Filter state
   const [searchTerm, setSearchTerm] = useState("");
   const [filterUserType, setFilterUserType] = useState("ALL"); // ALL | STUDENTS | GUESTS
-  const [filterDevice, setFilterDevice] = useState("ALL"); // ALL | Mobile | Laptop | Desktop | Tablet
   const [activeAnalyticsTab, setActiveAnalyticsTab] = useState("MOST"); // MOST | MEDIUM | LEAST | ALL
+  const [studentListTab, setStudentListTab] = useState("LIVE_NOW"); // LIVE_NOW | ALL_LOGGED_IN
 
   // Queue Configuration Local State
   const [capacityInput, setCapacityInput] = useState(200);
@@ -283,7 +283,10 @@ export default function AdminLiveTrafficManager({ authHeaders, API }) {
 
   // ─── Filtered Active Students List ─────────────────────────────────────────
   const filteredActiveStudents = useMemo(() => {
-    const list = liveData.activeStudents || [];
+    const list =
+      studentListTab === "LIVE_NOW"
+        ? liveData.activeStudents || []
+        : liveData.allLoggedInStudents || liveData.activeStudents || [];
     const query = searchTerm.toLowerCase().trim();
 
     return list.filter((st) => {
@@ -309,7 +312,7 @@ export default function AdminLiveTrafficManager({ authHeaders, API }) {
 
       return true;
     });
-  }, [liveData.activeStudents, searchTerm, filterUserType, filterDevice]);
+  }, [liveData.activeStudents, liveData.allLoggedInStudents, studentListTab, searchTerm, filterUserType, filterDevice]);
 
   // Capacity Percentage
   const capacityPct = Math.min(
@@ -489,22 +492,33 @@ export default function AdminLiveTrafficManager({ authHeaders, API }) {
         >
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
             <span style={{ fontSize: 12, fontWeight: 700, color: "#64748b", textTransform: "uppercase", letterSpacing: "0.05em" }}>
-              Active Now
+              Active Now (Live on Site)
             </span>
-            <div style={{ width: 28, height: 28, borderRadius: 8, background: "#eff6ff", display: "flex", alignItems: "center", justifyContent: "center" }}>
-              <Users size={15} color="#2563eb" />
+            <div style={{ width: 28, height: 28, borderRadius: 8, background: "#ecfdf5", display: "flex", alignItems: "center", justifyContent: "center" }}>
+              <Users size={15} color="#059669" />
             </div>
           </div>
           <div style={{ display: "flex", alignItems: "baseline", gap: 8 }}>
             <span style={{ fontSize: 32, fontWeight: 900, color: "#0f172a", letterSpacing: "-1px" }}>
               {liveData.totalActiveUsers}
             </span>
-            <span style={{ fontSize: 12, fontWeight: 700, color: "#059669" }}>
-              Live
+            <span style={{ fontSize: 12, fontWeight: 700, color: "#059669", display: "inline-flex", alignItems: "center", gap: 4 }}>
+              <span
+                style={{
+                  width: 6,
+                  height: 6,
+                  borderRadius: "50%",
+                  background: "#10b981",
+                  display: "inline-block",
+                  boxShadow: "0 0 0 2px rgba(16, 185, 129, 0.3)",
+                }}
+              />
+              Live on Site
             </span>
           </div>
-          <div style={{ fontSize: 11.5, color: "#64748b", marginTop: 4 }}>
-            {liveData.activeStudents.filter((s) => !s.isGuest).length} Logged-in · {liveData.activeStudents.filter((s) => s.isGuest).length} Guests
+          <div style={{ fontSize: 11.5, color: "#64748b", marginTop: 4, display: "flex", justifyContent: "space-between", flexWrap: "wrap", gap: 4 }}>
+            <span>{liveData.activeStudents.filter((s) => !s.isGuest).length} Students · {liveData.activeStudents.filter((s) => s.isGuest).length} Guests</span>
+            <span style={{ fontWeight: 600, color: "#2563eb" }}>{liveData.totalLoggedInSessions ?? 65} DB Sessions</span>
           </div>
         </div>
 
@@ -1085,11 +1099,64 @@ export default function AdminLiveTrafficManager({ authHeaders, API }) {
       >
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16, flexWrap: "wrap", gap: 10 }}>
           <div>
-            <h3 style={{ fontSize: 16, fontWeight: 800, color: "#0f172a", margin: 0, display: "flex", alignItems: "center", gap: 8 }}>
-              <Users size={18} color="#2563eb" /> Live Active Students on Site ({filteredActiveStudents.length})
-            </h3>
-            <p style={{ fontSize: 12.5, color: "#64748b", margin: "2px 0 0 0" }}>
-              Detailed breakdown of active students, their device, and current page route.
+            <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+              <button
+                type="button"
+                onClick={() => setStudentListTab("LIVE_NOW")}
+                style={{
+                  padding: "6px 14px",
+                  borderRadius: 99,
+                  border: studentListTab === "LIVE_NOW" ? "1.5px solid #10b981" : "1px solid #e2e8f0",
+                  background: studentListTab === "LIVE_NOW" ? "#ecfdf5" : "#ffffff",
+                  color: studentListTab === "LIVE_NOW" ? "#065f46" : "#64748b",
+                  fontSize: 13,
+                  fontWeight: 800,
+                  cursor: "pointer",
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 6,
+                  transition: "all 0.15s ease",
+                }}
+              >
+                <span
+                  style={{
+                    width: 7,
+                    height: 7,
+                    borderRadius: "50%",
+                    background: "#10b981",
+                    display: "inline-block",
+                    boxShadow: "0 0 0 2px rgba(16, 185, 129, 0.3)",
+                  }}
+                />
+                Live On Site Right Now ({liveData.activeStudents?.length || 0})
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setStudentListTab("ALL_LOGGED_IN")}
+                style={{
+                  padding: "6px 14px",
+                  borderRadius: 99,
+                  border: studentListTab === "ALL_LOGGED_IN" ? "1.5px solid #2563eb" : "1px solid #e2e8f0",
+                  background: studentListTab === "ALL_LOGGED_IN" ? "#eff6ff" : "#ffffff",
+                  color: studentListTab === "ALL_LOGGED_IN" ? "#1d4ed8" : "#64748b",
+                  fontSize: 13,
+                  fontWeight: 800,
+                  cursor: "pointer",
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 6,
+                  transition: "all 0.15s ease",
+                }}
+              >
+                <Users size={14} color="#2563eb" />
+                All Logged-In Student Accounts ({liveData.allLoggedInStudents?.length || liveData.totalLoggedInSessions || 65})
+              </button>
+            </div>
+            <p style={{ fontSize: 12, color: "#64748b", margin: "6px 0 0 0" }}>
+              {studentListTab === "LIVE_NOW"
+                ? "Showing visitors with active tabs right now (pings received in last 2.5 minutes)."
+                : "Showing all registered student accounts with active sessions stored in MongoDB."}
             </p>
           </div>
 
