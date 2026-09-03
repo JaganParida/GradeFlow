@@ -11,6 +11,7 @@ const AdminSession = require("./_lib/models/AdminSession");
 const Attendance = require("./_lib/models/Attendance");
 const SystemConfig = require("./_lib/models/SystemConfig");
 const jwt = require("jsonwebtoken");
+const { isAdminSessionValid, touchAdminSession } = require("./_lib/sessionManager");
 const {
   GRADE_POINTS,
   calculateSGPA,
@@ -95,7 +96,7 @@ async function authenticateAdmin(req) {
 
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET, { algorithms: ["HS256"] });
-    if (decoded.role === "student" || (decoded.regNo && decoded.regNo !== "230301120327")) {
+    if (decoded.role === "student" || decoded.regNo) {
       return { error: { status: 403, message: "Forbidden: Administrative access restricted to administrators.", code: "STUDENT_ADMIN_ACCESS_FORBIDDEN" } };
     }
 
@@ -122,9 +123,34 @@ async function authenticateAdmin(req) {
           name: subAdmin.name,
           email: subAdmin.email,
           permissions: subAdmin.permissions || { routes: [], actions: [] },
+          sessionId: decoded.sessionId,
         },
       };
     }
+
+    // Main Admin: Authoritative MongoDB session validation
+    if (!decoded.sessionId) {
+      return {
+        error: {
+          status: 401,
+          message: "Administrative session token invalid or missing session identifier.",
+          code: "AUTH_SESSION_INVALID",
+        },
+      };
+    }
+
+    const session = await AdminSession.findOne({ sessionId: decoded.sessionId, isActive: true });
+    if (!session || !isAdminSessionValid(session)) {
+      return {
+        error: {
+          status: 401,
+          message: "Admin session ended because this device was logged out.",
+          code: "ADMIN_SESSION_TERMINATED",
+        },
+      };
+    }
+
+    await touchAdminSession(session);
 
     return {
       admin: {
@@ -133,6 +159,7 @@ async function authenticateAdmin(req) {
         username: decoded.username || "admin",
         email: decoded.email || process.env.ADMIN_EMAIL,
         permissions: { routes: ["*"], actions: ["*"] },
+        sessionId: session.sessionId,
       },
     };
   } catch {
@@ -218,6 +245,15 @@ module.exports = async function handler(req, res) {
       return res.status(authResult.error.status).json({ success: false, message: authResult.error.message, code: authResult.error.code });
     }
     const admin = authResult.admin;
+
+    // 0. Handle Spreadsheet Uploads on Serverless (Route alignment)
+    if (action === "upload-endpoint" || cleanUrl.includes("/upload")) {
+      return res.status(400).json({
+        success: false,
+        message: "Spreadsheet file uploads require the persistent Express backend container. Please ensure VITE_API_URL points to the backend deployment.",
+        code: "BACKEND_SERVICE_REQUIRED",
+      });
+    }
 
     // 1. GET /stats
     if (action === "stats" || cleanUrl.includes("/stats")) {

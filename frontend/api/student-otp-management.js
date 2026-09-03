@@ -56,13 +56,11 @@ async function authenticateMainAdmin(req) {
       try {
         const decodedStudent = jwt.verify(studentToken, process.env.JWT_SECRET, { algorithms: ["HS256"] });
         if (decodedStudent && (decodedStudent.role === "student" || decodedStudent.regNo)) {
-          if (decodedStudent.regNo !== "230301120327") {
-            return {
-              error: "FORBIDDEN",
-              status: 403,
-              message: "Forbidden: Administrative access restricted. Student accounts cannot access administrative endpoints.",
-            };
-          }
+          return {
+            error: "FORBIDDEN",
+            status: 403,
+            message: "Forbidden: Administrative access restricted. Student accounts cannot access administrative endpoints.",
+          };
         }
       } catch {}
     }
@@ -72,9 +70,7 @@ async function authenticateMainAdmin(req) {
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET, { algorithms: ["HS256"] });
     if (decoded.role === "student" || decoded.regNo) {
-      if (decoded.regNo !== "230301120327") {
-        return { error: "FORBIDDEN", status: 403, message: "Forbidden: Admin privileges required. Student accounts cannot access administrative endpoints." };
-      }
+      return { error: "FORBIDDEN", status: 403, message: "Forbidden: Admin privileges required. Student accounts cannot access administrative endpoints." };
     }
 
     if (decoded.adminType === "subadmin") {
@@ -100,6 +96,9 @@ async function authenticateMainAdmin(req) {
       };
     }
 
+    // Connect to database only after cryptographic verification
+    await connectToDatabase();
+
     // Main Admin Session Verification
     if (decoded.sessionId) {
       const session = await AdminSession.findOne({ sessionId: decoded.sessionId, isActive: true });
@@ -123,8 +122,6 @@ module.exports = async (req, res) => {
   if (req.method === "OPTIONS") {
     return res.status(200).end();
   }
-
-  await connectToDatabase();
 
   const authResult = await authenticateMainAdmin(req);
   if (authResult.error) {

@@ -1809,7 +1809,7 @@ function SectionToppersCard({ authHeaders, API }) {
             section: selectedStudentForEmail.section,
             customEmail: customEmailInput,
           },
-          { timeout: 30000 }
+          { headers: authHeaders?.headers, withCredentials: true, timeout: 30000 }
         );
         resData = res2.data;
         success = true;
@@ -2572,7 +2572,7 @@ function BacklogTrackerCard({ authHeaders, API }) {
             regNo: selectedStudentForEmail.regNo,
             customEmail: customEmailInput,
           },
-          { timeout: 30000 }
+          { headers: authHeaders?.headers, withCredentials: true, timeout: 30000 }
         );
         resData = res2.data;
         success = true;

@@ -31,8 +31,6 @@ module.exports = async function handler(req, res) {
   if (req.method === "OPTIONS") return res.status(200).end();
 
   try {
-    await connectToDatabase();
-
     // ── Authentication Check ──
     const cookies = parseCookies(req.headers.cookie);
     let token = req.headers["x-admin-token"];
@@ -49,13 +47,11 @@ module.exports = async function handler(req, res) {
         try {
           const decodedStudent = jwt.verify(studentToken, process.env.JWT_SECRET);
           if (decodedStudent && (decodedStudent.role === "student" || decodedStudent.regNo)) {
-            if (decodedStudent.regNo !== "230301120327") {
-              return res.status(403).json({
-                success: false,
-                message: "Forbidden: Administrative access restricted. Student accounts cannot access administrative endpoints.",
-                code: "STUDENT_ADMIN_ACCESS_FORBIDDEN",
-              });
-            }
+            return res.status(403).json({
+              success: false,
+              message: "Forbidden: Administrative access restricted. Student accounts cannot access administrative endpoints.",
+              code: "STUDENT_ADMIN_ACCESS_FORBIDDEN",
+            });
           }
         } catch {}
       }
@@ -66,17 +62,18 @@ module.exports = async function handler(req, res) {
     try {
       decoded = jwt.verify(token, process.env.JWT_SECRET);
       if (decoded.role === "student" || decoded.regNo) {
-        if (decoded.regNo !== "230301120327") {
-          return res.status(403).json({
-            success: false,
-            message: "Forbidden: Administrative access restricted. Student accounts cannot access administrative endpoints.",
-            code: "STUDENT_ADMIN_ACCESS_FORBIDDEN",
-          });
-        }
+        return res.status(403).json({
+          success: false,
+          message: "Forbidden: Administrative access restricted. Student accounts cannot access administrative endpoints.",
+          code: "STUDENT_ADMIN_ACCESS_FORBIDDEN",
+        });
       }
     } catch {
       return res.status(401).json({ success: false, message: "Invalid or expired token.", code: "INVALID_TOKEN" });
     }
+
+    // Connect to database only after cryptographic verification
+    await connectToDatabase();
 
     // ── Strictly Main Admin Authorization ──
     if (decoded.role !== "admin" || decoded.adminType === "subadmin") {

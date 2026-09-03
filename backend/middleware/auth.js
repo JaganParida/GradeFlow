@@ -30,13 +30,11 @@ const protect = async (req, res, next) => {
     try {
       const decodedStudent = jwt.verify(incomingStudentToken, process.env.JWT_SECRET, { algorithms: ["HS256"] });
       if (decodedStudent && (decodedStudent.role === "student" || decodedStudent.regNo)) {
-        if (decodedStudent.regNo !== "230301120327") {
-          return res.status(403).json({
-            success: false,
-            message: "Forbidden: Administrative access restricted. Student accounts cannot access administrative endpoints.",
-            code: "STUDENT_ADMIN_ACCESS_FORBIDDEN",
-          });
-        }
+        return res.status(403).json({
+          success: false,
+          message: "Forbidden: Administrative access restricted. Student accounts cannot access administrative endpoints.",
+          code: "STUDENT_ADMIN_ACCESS_FORBIDDEN",
+        });
       }
     } catch {}
   }
@@ -48,13 +46,11 @@ const protect = async (req, res, next) => {
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET, { algorithms: ["HS256"] });
     if (decoded.role === "student" || decoded.regNo) {
-      if (decoded.regNo !== "230301120327") {
-        return res.status(403).json({
-          success: false,
-          message: "Forbidden: Administrative access restricted. Student accounts cannot access administrative endpoints.",
-          code: "STUDENT_ADMIN_ACCESS_FORBIDDEN",
-        });
-      }
+      return res.status(403).json({
+        success: false,
+        message: "Forbidden: Administrative access restricted. Student accounts cannot access administrative endpoints.",
+        code: "STUDENT_ADMIN_ACCESS_FORBIDDEN",
+      });
     }
 
     if (decoded.adminType === "subadmin") {
@@ -276,19 +272,10 @@ const requireStudentOrAdmin = async (req, res, next) => {
       sessionId: session.sessionId,
     };
 
-    // Strict Data Isolation Check & Authorized Device Protection
-    const isSuperUser = session.regNo === "230301120327";
-    if (targetRegNo && !isSuperUser && session.regNo.toUpperCase() !== targetRegNo) {
+    // Strict Data Isolation Check
+    if (targetRegNo && session.regNo.toUpperCase() !== targetRegNo) {
       return res.status(403).json({
-        message: targetRegNo === "230301120327"
-          ? "Access Denied: You are not allowed to access this student's data. This profile is private and only accessible from authorized devices."
-          : "Access Denied: You are not allowed to access another student's records.",
-        code: "DATA_ISOLATION_FORBIDDEN",
-      });
-    }
-    if (targetRegNo === "230301120327" && session.regNo !== "230301120327") {
-      return res.status(403).json({
-        message: "Access Denied: You are not allowed to access this student's data. This profile is private and only accessible from authorized devices.",
+        message: "Access Denied: You are not allowed to access another student's records.",
         code: "DATA_ISOLATION_FORBIDDEN",
       });
     }

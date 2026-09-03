@@ -669,7 +669,7 @@ const parseCutmOcrText = (text, catalog = []) => {
       if (extracted.length > 0) break;
       try {
         setProcessingStatus(`Scanning ERP rows via ${endpoint.label}...`);
-        const res = await axios.post(endpoint.url, ocrPayload, { timeout: 60000 });
+        const res = await axios.post(endpoint.url, ocrPayload, { timeout: 60000, withCredentials: true });
 
         if (
           res?.data?.success &&
