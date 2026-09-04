@@ -677,100 +677,54 @@ export default function Timetable() {
             </div>
           </div>
 
-          {/* Quick Section Switcher Pills with Arrow Buttons (In Guest / Generic Mode) */}
+          {/* Quick Section Switcher Pills (In Guest / Generic Mode) */}
           {!activeStudentName && !currentRegNo && (
-            <div style={{ display: "flex", alignItems: "center", gap: 4, width: "100%", position: "relative" }}>
-              <button
-                type="button"
-                onClick={() => scrollSectionPills("left")}
-                disabled={!canScrollSectionLeft}
-                aria-label="Scroll sections left"
-                style={{
-                  width: 26,
-                  height: 26,
-                  borderRadius: 7,
-                  border: "1px solid #cbd5e1",
-                  background: "#ffffff",
-                  color: canScrollSectionLeft ? "#0f172a" : "#cbd5e1",
-                  cursor: canScrollSectionLeft ? "pointer" : "default",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  flexShrink: 0,
-                }}
-              >
-                <ChevronLeft size={14} />
-              </button>
-
-              <div
-                ref={sectionPillsRef}
-                onScroll={checkSectionScroll}
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 5,
-                  padding: "6px 8px",
-                  borderRadius: 10,
-                  background: "#f8fafc",
-                  border: "1px solid #e2e8f0",
-                  overflowX: "auto",
-                  scrollBehavior: "smooth",
-                  scrollbarWidth: "none",
-                  msOverflowStyle: "none",
-                  flex: 1,
-                }}
-              >
-                <span style={{ fontSize: 11, fontWeight: 800, color: "#64748b", textTransform: "uppercase", marginRight: 2, flexShrink: 0 }}>
-                  Sec:
-                </span>
-                {ALL_SECTIONS.map((sec) => {
-                  const isActive = selectedSection === sec;
-                  return (
-                    <button
-                      key={sec}
-                      type="button"
-                      onClick={() => setSelectedSection(sec)}
-                      style={{
-                        padding: "3px 9px",
-                        borderRadius: 7,
-                        fontSize: 11.5,
-                        fontWeight: 800,
-                        cursor: "pointer",
-                        border: isActive ? "1.5px solid #2563eb" : "1px solid transparent",
-                        background: isActive ? "#2563eb" : "transparent",
-                        color: isActive ? "#ffffff" : "#475569",
-                        transition: "all 0.15s ease",
-                        whiteSpace: "nowrap",
-                        flexShrink: 0,
-                      }}
-                    >
-                      {sec}
-                    </button>
-                  );
-                })}
-              </div>
-
-              <button
-                type="button"
-                onClick={() => scrollSectionPills("right")}
-                disabled={!canScrollSectionRight}
-                aria-label="Scroll sections right"
-                style={{
-                  width: 26,
-                  height: 26,
-                  borderRadius: 7,
-                  border: "1px solid #cbd5e1",
-                  background: "#ffffff",
-                  color: canScrollSectionRight ? "#0f172a" : "#cbd5e1",
-                  cursor: canScrollSectionRight ? "pointer" : "default",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  flexShrink: 0,
-                }}
-              >
-                <ChevronRight size={14} />
-              </button>
+            <div
+              ref={sectionPillsRef}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 5,
+                padding: "6px 8px",
+                borderRadius: 10,
+                background: "#f8fafc",
+                border: "1px solid #e2e8f0",
+                overflowX: "auto",
+                scrollBehavior: "smooth",
+                scrollbarWidth: "none",
+                msOverflowStyle: "none",
+                width: "100%",
+                boxSizing: "border-box",
+              }}
+            >
+              <span style={{ fontSize: 11, fontWeight: 800, color: "#64748b", textTransform: "uppercase", marginRight: 2, flexShrink: 0 }}>
+                Sec:
+              </span>
+              {ALL_SECTIONS.map((sec) => {
+                const isActive = selectedSection === sec;
+                return (
+                  <button
+                    key={sec}
+                    type="button"
+                    onClick={() => setSelectedSection(sec)}
+                    style={{
+                      padding: "3px 9px",
+                      borderRadius: 7,
+                      fontSize: 11.5,
+                      fontWeight: 800,
+                      cursor: "pointer",
+                      border: isActive ? "1.5px solid #2563eb" : "1px solid transparent",
+                      background: isActive ? "#2563eb" : "transparent",
+                      color: isActive ? "#ffffff" : "#475569",
+                      transition: "all 0.15s ease",
+                      whiteSpace: "nowrap",
+                      flexShrink: 0,
+                    }}
+                  >
+                    {sec}
+                  </button>
+                );
+              })}
             </div>
           )}
 
@@ -919,163 +873,122 @@ export default function Timetable() {
                 />
               </div>
             ) : (
-              <div style={{ display: "flex", alignItems: "center", gap: 4, maxWidth: "100%", position: "relative" }}>
+              <div
+                ref={modeSwitcherRef}
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  background: "#f1f5f9",
+                  padding: 4,
+                  borderRadius: 12,
+                  gap: 3,
+                  border: "1px solid #e2e8f0",
+                  overflowX: "auto",
+                  scrollBehavior: "smooth",
+                  scrollbarWidth: "none",
+                  msOverflowStyle: "none",
+                  maxWidth: "100%",
+                  boxSizing: "border-box",
+                }}
+              >
                 <button
                   type="button"
-                  onClick={() => scrollModeSwitcher("left")}
-                  disabled={!canScrollModeLeft}
-                  aria-label="Scroll modes left"
+                  onClick={() => setViewMode("day")}
                   style={{
-                    width: 26,
-                    height: 26,
-                    borderRadius: 7,
-                    border: "1px solid #cbd5e1",
-                    background: "#ffffff",
-                    color: canScrollModeLeft ? "#0f172a" : "#cbd5e1",
-                    cursor: canScrollModeLeft ? "pointer" : "default",
+                    padding: "7px 14px",
+                    borderRadius: 8,
+                    border: viewMode === "day" ? "1px solid #cbd5e1" : "1px solid transparent",
+                    background: viewMode === "day" ? "#ffffff" : "transparent",
+                    color: viewMode === "day" ? "#2563eb" : "#64748b",
+                    fontSize: 12,
+                    fontWeight: 800,
+                    cursor: "pointer",
                     display: "flex",
                     alignItems: "center",
-                    justifyContent: "center",
+                    gap: 6,
+                    boxShadow: viewMode === "day" ? "0 1px 2px rgba(0,0,0,0.05)" : "none",
+                    whiteSpace: "nowrap",
                     flexShrink: 0,
+                    transition: "all 0.15s ease",
                   }}
                 >
-                  <ChevronLeft size={14} />
+                  <Clock size={14} />
+                  <span>Daily Routine</span>
                 </button>
 
-                <div
-                  ref={modeSwitcherRef}
-                  onScroll={checkModeScroll}
+                <button
+                  type="button"
+                  onClick={() => setViewMode("week")}
                   style={{
-                    display: "inline-flex",
-                    background: "#f1f5f9",
-                    padding: 4,
-                    borderRadius: 12,
-                    gap: 3,
-                    border: "1px solid #e2e8f0",
-                    overflowX: "auto",
-                    scrollBehavior: "smooth",
-                    scrollbarWidth: "none",
-                    msOverflowStyle: "none",
-                    maxWidth: "100%",
+                    padding: "7px 14px",
+                    borderRadius: 8,
+                    border: viewMode === "week" ? "1px solid #cbd5e1" : "1px solid transparent",
+                    background: viewMode === "week" ? "#ffffff" : "transparent",
+                    color: viewMode === "week" ? "#2563eb" : "#64748b",
+                    fontSize: 12,
+                    fontWeight: 800,
+                    cursor: "pointer",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 6,
+                    boxShadow: viewMode === "week" ? "0 1px 2px rgba(0,0,0,0.05)" : "none",
+                    whiteSpace: "nowrap",
+                    flexShrink: 0,
+                    transition: "all 0.15s ease",
                   }}
                 >
-                  <button
-                    type="button"
-                    onClick={() => setViewMode("day")}
-                    style={{
-                      padding: "7px 14px",
-                      borderRadius: 8,
-                      border: viewMode === "day" ? "1px solid #cbd5e1" : "1px solid transparent",
-                      background: viewMode === "day" ? "#ffffff" : "transparent",
-                      color: viewMode === "day" ? "#2563eb" : "#64748b",
-                      fontSize: 12,
-                      fontWeight: 800,
-                      cursor: "pointer",
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 6,
-                      boxShadow: "none",
-                      whiteSpace: "nowrap",
-                      flexShrink: 0,
-                    }}
-                  >
-                    <Clock size={14} />
-                    <span>Daily Routine</span>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => setViewMode("week")}
-                    style={{
-                      padding: "7px 14px",
-                      borderRadius: 8,
-                      border: viewMode === "week" ? "1px solid #cbd5e1" : "1px solid transparent",
-                      background: viewMode === "week" ? "#ffffff" : "transparent",
-                      color: viewMode === "week" ? "#2563eb" : "#64748b",
-                      fontSize: 12,
-                      fontWeight: 800,
-                      cursor: "pointer",
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 6,
-                      boxShadow: "none",
-                      whiteSpace: "nowrap",
-                      flexShrink: 0,
-                    }}
-                  >
-                    <Grid size={14} />
-                    <span>Weekly Matrix</span>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => setViewMode("academic")}
-                    style={{
-                      padding: "7px 14px",
-                      borderRadius: 8,
-                      border: viewMode === "academic" ? "1px solid #cbd5e1" : "1px solid transparent",
-                      background: viewMode === "academic" ? "#ffffff" : "transparent",
-                      color: viewMode === "academic" ? "#7c3aed" : "#64748b",
-                      fontSize: 12,
-                      fontWeight: 800,
-                      cursor: "pointer",
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 6,
-                      boxShadow: "none",
-                      whiteSpace: "nowrap",
-                      flexShrink: 0,
-                    }}
-                  >
-                    <CalendarIcon size={14} />
-                    <span>Academic Calendar</span>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => setViewMode("holidays")}
-                    style={{
-                      padding: "7px 14px",
-                      borderRadius: 8,
-                      border: viewMode === "holidays" ? "1px solid #cbd5e1" : "1px solid transparent",
-                      background: viewMode === "holidays" ? "#ffffff" : "transparent",
-                      color: viewMode === "holidays" ? "#dc2626" : "#64748b",
-                      fontSize: 12,
-                      fontWeight: 800,
-                      cursor: "pointer",
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 6,
-                      boxShadow: "none",
-                      whiteSpace: "nowrap",
-                      flexShrink: 0,
-                    }}
-                  >
-                    <Sun size={14} />
-                    <span>Holidays</span>
-                  </button>
-                </div>
+                  <Grid size={14} />
+                  <span>Weekly Matrix</span>
+                </button>
 
                 <button
                   type="button"
-                  onClick={() => scrollModeSwitcher("right")}
-                  disabled={!canScrollModeRight}
-                  aria-label="Scroll modes right"
+                  onClick={() => setViewMode("academic")}
                   style={{
-                    width: 26,
-                    height: 26,
-                    borderRadius: 7,
-                    border: "1px solid #cbd5e1",
-                    background: "#ffffff",
-                    color: canScrollModeRight ? "#0f172a" : "#cbd5e1",
-                    cursor: canScrollModeRight ? "pointer" : "default",
+                    padding: "7px 14px",
+                    borderRadius: 8,
+                    border: viewMode === "academic" ? "1px solid #e9d5ff" : "1px solid transparent",
+                    background: viewMode === "academic" ? "#ffffff" : "transparent",
+                    color: viewMode === "academic" ? "#7c3aed" : "#64748b",
+                    fontSize: 12,
+                    fontWeight: 800,
+                    cursor: "pointer",
                     display: "flex",
                     alignItems: "center",
-                    justifyContent: "center",
+                    gap: 6,
+                    boxShadow: viewMode === "academic" ? "0 1px 2px rgba(124,58,237,0.08)" : "none",
+                    whiteSpace: "nowrap",
                     flexShrink: 0,
+                    transition: "all 0.15s ease",
                   }}
                 >
-                  <ChevronRight size={14} />
+                  <CalendarIcon size={14} />
+                  <span>Academic Calendar</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setViewMode("holidays")}
+                  style={{
+                    padding: "7px 14px",
+                    borderRadius: 8,
+                    border: viewMode === "holidays" ? "1px solid #fecaca" : "1px solid transparent",
+                    background: viewMode === "holidays" ? "#ffffff" : "transparent",
+                    color: viewMode === "holidays" ? "#dc2626" : "#64748b",
+                    fontSize: 12,
+                    fontWeight: 800,
+                    cursor: "pointer",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 6,
+                    boxShadow: viewMode === "holidays" ? "0 1px 2px rgba(220,38,38,0.08)" : "none",
+                    whiteSpace: "nowrap",
+                    flexShrink: 0,
+                    transition: "all 0.15s ease",
+                  }}
+                >
+                  <Sun size={14} />
+                  <span>Holidays</span>
                 </button>
               </div>
             )}
