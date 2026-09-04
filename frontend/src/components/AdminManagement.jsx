@@ -687,6 +687,7 @@ export default function AdminManagement({ API, authHeaders, isMobile }) {
   });
 
   const totalActiveSessions = subAdmins.reduce((acc, curr) => acc + (curr.activeSessionCount || 0), 0);
+  const isMobileView = isMobile !== undefined ? isMobile : (typeof window !== "undefined" ? window.innerWidth < 768 : false);
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
@@ -719,133 +720,197 @@ export default function AdminManagement({ API, authHeaders, isMobile }) {
         </AnimatePresence>
       )}
 
-      {/* ── Top Header & KPI Summary Cards ── */}
+      {/* ── Top Header & KPI Summary Cards (Mobile Responsive 2x2 Grid with Zero Hyphenation) ── */}
       <div
         className="gf-kpi-grid"
         style={{
           display: "grid",
-          gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))",
-          gap: 12,
+          gridTemplateColumns: isMobileView ? "repeat(2, 1fr)" : "repeat(auto-fit, minmax(180px, 1fr))",
+          gap: isMobileView ? 10 : 12,
         }}
       >
-        <div
-          style={{
-            background: "#ffffff",
-            border: "1px solid #e2e8f0",
-            borderRadius: 14,
-            padding: "16px 18px",
-            boxShadow: "0 1px 3px rgba(0,0,0,0.03)",
-          }}
-        >
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-            <span style={{ fontSize: 12, fontWeight: 700, color: "#64748b", textTransform: "uppercase" }}>
-              Total Sub-Admins
-            </span>
-            <Users size={16} color="#3b82f6" />
-          </div>
-          <div style={{ fontSize: 24, fontWeight: 800, color: "#0f172a", marginTop: 4 }}>
-            {subAdmins.length}
-          </div>
-        </div>
+        {[
+          {
+            label: isMobileView ? "Sub-Admins" : "Total Sub-Admins",
+            sublabel: isMobileView ? "Total Accounts" : "Configured Accounts",
+            value: subAdmins.length,
+            badge: "Total",
+            icon: <Users size={isMobileView ? 15 : 17} />,
+            color: "#2563eb",
+            valColor: "#0f172a",
+            bg: "#eff6ff",
+            border: "#dbeafe",
+          },
+          {
+            label: isMobileView ? "Active" : "Active Accounts",
+            sublabel: isMobileView ? "Operational" : "Permitted Logins",
+            value: subAdmins.filter((s) => s.status === "active").length,
+            badge: "Active",
+            icon: <CheckCircle2 size={isMobileView ? 15 : 17} />,
+            color: "#059669",
+            valColor: "#059669",
+            bg: "#ecfdf5",
+            border: "#a7f3d0",
+          },
+          {
+            label: isMobileView ? "Disabled / Off" : "Disabled / Revoked",
+            sublabel: isMobileView ? "Restricted" : "Restricted Access",
+            value: subAdmins.filter((s) => s.status !== "active").length,
+            badge: "Off",
+            icon: <XCircle size={isMobileView ? 15 : 17} />,
+            color: "#dc2626",
+            valColor: "#dc2626",
+            bg: "#fef2f2",
+            border: "#fecaca",
+          },
+          {
+            label: isMobileView ? "Active Devices" : "Connected Devices",
+            sublabel: isMobileView ? "Live Sessions" : "Active Device Sessions",
+            value: totalActiveSessions,
+            badge: "Sessions",
+            icon: <Smartphone size={isMobileView ? 15 : 17} />,
+            color: "#7c3aed",
+            valColor: "#7c3aed",
+            bg: "#f5f3ff",
+            border: "#ede9fe",
+          },
+        ].map((card, idx) => (
+          <div
+            key={idx}
+            style={{
+              background: "#ffffff",
+              border: "1px solid #e2e8f0",
+              borderRadius: isMobileView ? 14 : 16,
+              padding: isMobileView ? "12px 14px" : "16px 18px",
+              boxShadow: "0 1px 3px rgba(0,0,0,0.03)",
+              display: "flex",
+              flexDirection: "column",
+              justifyContent: "space-between",
+              gap: isMobileView ? 8 : 10,
+              boxSizing: "border-box",
+            }}
+          >
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 6 }}>
+              <div
+                style={{
+                  width: isMobileView ? 30 : 34,
+                  height: isMobileView ? 30 : 34,
+                  borderRadius: 8,
+                  background: card.bg,
+                  border: `1px solid ${card.border}`,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  color: card.color,
+                  flexShrink: 0,
+                }}
+              >
+                {card.icon}
+              </div>
+              <span
+                style={{
+                  fontSize: isMobileView ? 9.5 : 10.5,
+                  fontWeight: 750,
+                  color: card.color,
+                  background: card.bg,
+                  border: `1px solid ${card.border}`,
+                  padding: isMobileView ? "1.5px 6px" : "2px 7px",
+                  borderRadius: 6,
+                  whiteSpace: "nowrap",
+                  letterSpacing: "0.2px",
+                }}
+              >
+                {card.badge}
+              </span>
+            </div>
 
-        <div
-          style={{
-            background: "#ffffff",
-            border: "1px solid #e2e8f0",
-            borderRadius: 14,
-            padding: "16px 18px",
-            boxShadow: "0 1px 3px rgba(0,0,0,0.03)",
-          }}
-        >
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-            <span style={{ fontSize: 12, fontWeight: 700, color: "#64748b", textTransform: "uppercase" }}>
-              Active Accounts
-            </span>
-            <CheckCircle2 size={16} color="#10b981" />
+            <div>
+              <div style={{ fontSize: isMobileView ? 22 : 26, fontWeight: 850, color: card.valColor || "#0f172a", lineHeight: 1.1 }}>
+                {card.value}
+              </div>
+              <div
+                style={{
+                  fontSize: isMobileView ? 11.5 : 12.5,
+                  fontWeight: 750,
+                  color: "#1e293b",
+                  marginTop: 4,
+                  whiteSpace: "nowrap",
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                }}
+              >
+                {card.label}
+              </div>
+              <div
+                style={{
+                  fontSize: isMobileView ? 10 : 11,
+                  color: "#94a3b8",
+                  fontWeight: 500,
+                  marginTop: 1,
+                  whiteSpace: "nowrap",
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                }}
+              >
+                {card.sublabel}
+              </div>
+            </div>
           </div>
-          <div style={{ fontSize: 24, fontWeight: 800, color: "#10b981", marginTop: 4 }}>
-            {subAdmins.filter((s) => s.status === "active").length}
-          </div>
-        </div>
-
-        <div
-          style={{
-            background: "#ffffff",
-            border: "1px solid #e2e8f0",
-            borderRadius: 14,
-            padding: "16px 18px",
-            boxShadow: "0 1px 3px rgba(0,0,0,0.03)",
-          }}
-        >
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-            <span style={{ fontSize: 12, fontWeight: 700, color: "#64748b", textTransform: "uppercase" }}>
-              Disabled / Revoked
-            </span>
-            <XCircle size={16} color="#ef4444" />
-          </div>
-          <div style={{ fontSize: 24, fontWeight: 800, color: "#ef4444", marginTop: 4 }}>
-            {subAdmins.filter((s) => s.status !== "active").length}
-          </div>
-        </div>
-
-        <div
-          style={{
-            background: "#ffffff",
-            border: "1px solid #e2e8f0",
-            borderRadius: 14,
-            padding: "16px 18px",
-            boxShadow: "0 1px 3px rgba(0,0,0,0.03)",
-          }}
-        >
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-            <span style={{ fontSize: 12, fontWeight: 700, color: "#64748b", textTransform: "uppercase" }}>
-              Active Devices
-            </span>
-            <Smartphone size={16} color="#8b5cf6" />
-          </div>
-          <div style={{ fontSize: 24, fontWeight: 800, color: "#8b5cf6", marginTop: 4 }}>
-            {totalActiveSessions}
-          </div>
-        </div>
+        ))}
       </div>
 
-      {/* ── Sub-Navigation & Actions Bar ── */}
+      {/* ── Sub-Navigation & Actions Bar (Horizontal Touch Scroll, Zero Cramming) ── */}
       <div
         className="gf-management-action-bar"
         style={{
           background: "#ffffff",
           border: "1px solid #e2e8f0",
           borderRadius: 16,
-          padding: "14px 18px",
+          padding: isMobileView ? "12px 14px" : "14px 18px",
           display: "flex",
-          alignItems: "center",
+          alignItems: isMobileView ? "stretch" : "center",
           justifyContent: "space-between",
-          flexWrap: "wrap",
+          flexDirection: isMobileView ? "column" : "row",
           gap: 12,
         }}
       >
-        <div className="gf-mgmt-tabs" style={{ display: "flex", alignItems: "center", gap: 8 }}>
+        <div
+          className="gf-mgmt-tabs"
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 6,
+            overflowX: "auto",
+            scrollbarWidth: "none",
+            msOverflowStyle: "none",
+            WebkitOverflowScrolling: "touch",
+            paddingBottom: isMobileView ? 2 : 0,
+            width: isMobileView ? "100%" : "auto",
+          }}
+        >
           <button
             onClick={() => setActiveTab("accounts")}
             className={`gf-mgmt-tab-btn ${activeTab === "accounts" ? "active" : ""}`}
             style={{
               padding: "8px 14px",
               borderRadius: 10,
-              border: "none",
+              border: activeTab === "accounts" ? "1px solid #bfdbfe" : "1px solid transparent",
               background: activeTab === "accounts" ? "#eff6ff" : "transparent",
               color: activeTab === "accounts" ? "#2563eb" : "#64748b",
               fontWeight: 700,
               fontSize: 13,
               cursor: "pointer",
-              display: "flex",
+              display: "inline-flex",
               alignItems: "center",
               justifyContent: "center",
               gap: 6,
+              whiteSpace: "nowrap",
+              flexShrink: 0,
               transition: "all 0.15s ease",
             }}
           >
             <Users size={15} />
-            Sub-Admin Accounts
+            <span>Sub-Admin Accounts</span>
           </button>
 
           <button
@@ -854,21 +919,23 @@ export default function AdminManagement({ API, authHeaders, isMobile }) {
             style={{
               padding: "8px 14px",
               borderRadius: 10,
-              border: "none",
+              border: activeTab === "audit-logs" ? "1px solid #bfdbfe" : "1px solid transparent",
               background: activeTab === "audit-logs" ? "#eff6ff" : "transparent",
               color: activeTab === "audit-logs" ? "#2563eb" : "#64748b",
               fontWeight: 700,
               fontSize: 13,
               cursor: "pointer",
-              display: "flex",
+              display: "inline-flex",
               alignItems: "center",
               justifyContent: "center",
               gap: 6,
+              whiteSpace: "nowrap",
+              flexShrink: 0,
               transition: "all 0.15s ease",
             }}
           >
             <Activity size={15} />
-            Security & Audit Logs
+            <span>Security & Audit Logs</span>
           </button>
 
           <button
@@ -877,21 +944,38 @@ export default function AdminManagement({ API, authHeaders, isMobile }) {
             style={{
               padding: "8px 14px",
               borderRadius: 10,
-              border: "none",
-              background: activeTab === "maintenance" ? (maintenanceData.enabled ? "#fef2f2" : "#eff6ff") : "transparent",
-              color: activeTab === "maintenance" ? (maintenanceData.enabled ? "#dc2626" : "#2563eb") : "#64748b",
+              border:
+                activeTab === "maintenance"
+                  ? maintenanceData.enabled
+                    ? "1px solid #fecaca"
+                    : "1px solid #bfdbfe"
+                  : "1px solid transparent",
+              background:
+                activeTab === "maintenance"
+                  ? maintenanceData.enabled
+                    ? "#fef2f2"
+                    : "#eff6ff"
+                  : "transparent",
+              color:
+                activeTab === "maintenance"
+                  ? maintenanceData.enabled
+                    ? "#dc2626"
+                    : "#2563eb"
+                  : "#64748b",
               fontWeight: 700,
               fontSize: 13,
               cursor: "pointer",
-              display: "flex",
+              display: "inline-flex",
               alignItems: "center",
               justifyContent: "center",
               gap: 6,
+              whiteSpace: "nowrap",
+              flexShrink: 0,
               transition: "all 0.15s ease",
             }}
           >
             <Wrench size={15} />
-            Maintenance Mode
+            <span>Maintenance Mode</span>
             {maintenanceData.enabled && (
               <span
                 style={{
@@ -911,21 +995,23 @@ export default function AdminManagement({ API, authHeaders, isMobile }) {
             style={{
               padding: "8px 14px",
               borderRadius: 10,
-              border: "none",
+              border: activeTab === "portal-visibility" ? "1px solid #bfdbfe" : "1px solid transparent",
               background: activeTab === "portal-visibility" ? "#eff6ff" : "transparent",
               color: activeTab === "portal-visibility" ? "#2563eb" : "#64748b",
               fontWeight: 700,
               fontSize: 13,
               cursor: "pointer",
-              display: "flex",
+              display: "inline-flex",
               alignItems: "center",
               justifyContent: "center",
               gap: 6,
+              whiteSpace: "nowrap",
+              flexShrink: 0,
               transition: "all 0.15s ease",
             }}
           >
             <Eye size={15} />
-            Admin Button Visibility
+            <span>Admin Button Visibility</span>
             {visibilityData.mode === "MANUAL" && (
               <span
                 style={{
@@ -955,7 +1041,7 @@ export default function AdminManagement({ API, authHeaders, isMobile }) {
               alignItems: "center",
               justifyContent: "center",
               gap: 6,
-              padding: "9px 18px",
+              padding: isMobileView ? "11px 18px" : "9px 18px",
               borderRadius: 10,
               border: "none",
               background: "linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)",
@@ -964,10 +1050,12 @@ export default function AdminManagement({ API, authHeaders, isMobile }) {
               fontSize: 13,
               cursor: "pointer",
               boxShadow: "0 2px 8px rgba(37, 99, 235, 0.25)",
+              width: isMobileView ? "100%" : "auto",
+              boxSizing: "border-box",
             }}
           >
             <UserPlus size={16} />
-            Create Sub-Admin
+            <span>Create Sub-Admin</span>
           </button>
         )}
       </div>
@@ -987,16 +1075,16 @@ export default function AdminManagement({ API, authHeaders, isMobile }) {
           <div
             className="gf-search-filter-toolbar"
             style={{
-              padding: "14px 18px",
+              padding: isMobileView ? "12px 14px" : "14px 18px",
               borderBottom: "1px solid #f1f5f9",
               display: "flex",
-              alignItems: "center",
+              alignItems: isMobileView ? "stretch" : "center",
               justifyContent: "space-between",
-              flexWrap: "wrap",
-              gap: 12,
+              flexDirection: isMobileView ? "column" : "row",
+              gap: 10,
             }}
           >
-            <div className="gf-search-input-wrap" style={{ position: "relative", minWidth: 260, flex: 1 }}>
+            <div className="gf-search-input-wrap" style={{ position: "relative", minWidth: isMobileView ? "100%" : 260, flex: 1 }}>
               <Search
                 size={15}
                 color="#94a3b8"
@@ -1009,36 +1097,51 @@ export default function AdminManagement({ API, authHeaders, isMobile }) {
                 onChange={(e) => setSearchQuery(e.target.value)}
                 style={{
                   width: "100%",
-                  padding: "8px 12px 8px 36px",
-                  borderRadius: 9,
+                  padding: "9px 12px 9px 36px",
+                  borderRadius: 10,
                   border: "1px solid #e2e8f0",
                   fontSize: 13,
                   outline: "none",
                   boxSizing: "border-box",
+                  background: "#f8fafc",
                 }}
               />
             </div>
 
-            <div className="gf-filter-select-wrap" style={{ display: "flex", alignItems: "center", gap: 8 }}>
-              <span style={{ fontSize: 12.5, fontWeight: 600, color: "#64748b" }}>Status:</span>
+            <div
+              className="gf-filter-select-wrap"
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: isMobileView ? "space-between" : "flex-start",
+                gap: 8,
+                width: isMobileView ? "100%" : "auto",
+              }}
+            >
+              <span style={{ fontSize: 12.5, fontWeight: 700, color: "#64748b", display: "inline-flex", alignItems: "center", gap: 5, flexShrink: 0 }}>
+                <Filter size={13} />
+                <span>Status:</span>
+              </span>
               <select
                 value={statusFilter}
                 onChange={(e) => setStatusFilter(e.target.value)}
                 style={{
-                  padding: "6px 12px",
-                  borderRadius: 8,
+                  padding: "8px 12px",
+                  borderRadius: 9,
                   border: "1px solid #e2e8f0",
                   fontSize: 12.5,
                   fontWeight: 600,
                   color: "#334155",
                   outline: "none",
                   background: "#ffffff",
+                  flex: isMobileView ? 1 : "initial",
+                  cursor: "pointer",
                 }}
               >
-                <option value="all">All Statuses</option>
-                <option value="active">Active</option>
-                <option value="disabled">Disabled</option>
-                <option value="revoked">Revoked</option>
+                <option value="all">All Statuses ({subAdmins.length})</option>
+                <option value="active">Active Only ({subAdmins.filter((s) => s.status === "active").length})</option>
+                <option value="disabled">Disabled Only ({subAdmins.filter((s) => s.status === "disabled").length})</option>
+                <option value="revoked">Revoked Only ({subAdmins.filter((s) => s.status === "revoked").length})</option>
               </select>
             </div>
           </div>
@@ -1465,92 +1568,109 @@ export default function AdminManagement({ API, authHeaders, isMobile }) {
                       </div>
                     </div>
 
-                    {/* Actions Bar */}
+                    {/* Actions Bar: Ergonomic 2-tier layout for mobile */}
                     <div
                       style={{
-                        display: "grid",
-                        gridTemplateColumns: "1fr auto auto auto",
-                        gap: 6,
-                        paddingTop: 10,
+                        display: "flex",
+                        flexDirection: "column",
+                        gap: 8,
+                        paddingTop: 12,
                         borderTop: "1px solid #f1f5f9",
-                        alignItems: "center",
                       }}
                     >
+                      {/* Primary Action: Permissions Matrix */}
                       <button
                         onClick={() => openPermissionsEditor(subAdmin)}
                         style={{
-                          padding: "7px 10px",
-                          borderRadius: 8,
-                          border: "1px solid #e0e7ff",
-                          background: "#eef2ff",
-                          color: "#4f46e5",
-                          fontSize: 12,
-                          fontWeight: 700,
-                          cursor: "pointer",
-                          display: "inline-flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                          gap: 4,
-                        }}
-                      >
-                        <Sliders size={13} />
-                        Permissions
-                      </button>
-
-                      <button
-                        onClick={() => openInfoEditor(subAdmin)}
-                        title="Edit Info"
-                        style={{
-                          padding: "7px 10px",
-                          borderRadius: 8,
-                          border: "1px solid #e2e8f0",
-                          background: "#ffffff",
-                          color: "#475569",
+                          width: "100%",
+                          padding: "9px 12px",
+                          borderRadius: 9,
+                          border: "1px solid #c7d2fe",
+                          background: "linear-gradient(135deg, #eef2ff 0%, #e0e7ff 100%)",
+                          color: "#4338ca",
+                          fontSize: 12.5,
+                          fontWeight: 750,
                           cursor: "pointer",
                           display: "flex",
                           alignItems: "center",
                           justifyContent: "center",
+                          gap: 6,
+                          boxShadow: "0 1px 2px rgba(79, 70, 229, 0.08)",
                         }}
                       >
-                        <Edit3 size={13} />
+                        <Sliders size={14} />
+                        <span>Configure Permissions Matrix</span>
                       </button>
 
-                      <select
-                        value={subAdmin.status}
-                        onChange={(e) => handleToggleStatus(subAdmin, e.target.value)}
+                      {/* Secondary Actions Row: Status Select + Edit Info + Delete */}
+                      <div
                         style={{
-                          padding: "6px 8px",
-                          borderRadius: 8,
-                          border: "1px solid #e2e8f0",
-                          fontSize: 11.5,
-                          fontWeight: 600,
-                          background: "#ffffff",
-                          color: "#334155",
-                          cursor: "pointer",
-                        }}
-                      >
-                        <option value="active">Active</option>
-                        <option value="disabled">Disable</option>
-                        <option value="revoked">Revoke</option>
-                      </select>
-
-                      <button
-                        onClick={() => handleDeleteSubAdmin(subAdmin)}
-                        title="Delete Sub-Admin"
-                        style={{
-                          padding: "7px 10px",
-                          borderRadius: 8,
-                          border: "1px solid #fee2e2",
-                          background: "#fff5f5",
-                          color: "#ef4444",
-                          cursor: "pointer",
-                          display: "flex",
+                          display: "grid",
+                          gridTemplateColumns: "1fr auto auto",
+                          gap: 8,
                           alignItems: "center",
-                          justifyContent: "center",
                         }}
                       >
-                        <Trash2 size={13} />
-                      </button>
+                        <select
+                          value={subAdmin.status}
+                          onChange={(e) => handleToggleStatus(subAdmin, e.target.value)}
+                          style={{
+                            padding: "8px 10px",
+                            borderRadius: 8,
+                            border: "1px solid #cbd5e1",
+                            fontSize: 12,
+                            fontWeight: 650,
+                            background: "#ffffff",
+                            color: "#1e293b",
+                            cursor: "pointer",
+                            outline: "none",
+                            width: "100%",
+                          }}
+                        >
+                          <option value="active">Active (Permitted)</option>
+                          <option value="disabled">Disable Access</option>
+                          <option value="revoked">Revoke Access</option>
+                        </select>
+
+                        <button
+                          onClick={() => openInfoEditor(subAdmin)}
+                          title="Edit Info"
+                          style={{
+                            padding: "8px 12px",
+                            borderRadius: 8,
+                            border: "1px solid #cbd5e1",
+                            background: "#ffffff",
+                            color: "#334155",
+                            fontSize: 12,
+                            fontWeight: 700,
+                            cursor: "pointer",
+                            display: "inline-flex",
+                            alignItems: "center",
+                            gap: 4,
+                          }}
+                        >
+                          <Edit3 size={13} />
+                          <span>Edit</span>
+                        </button>
+
+                        <button
+                          onClick={() => handleDeleteSubAdmin(subAdmin)}
+                          title="Delete Sub-Admin"
+                          style={{
+                            padding: "8px 12px",
+                            borderRadius: 8,
+                            border: "1px solid #fee2e2",
+                            background: "#fff5f5",
+                            color: "#ef4444",
+                            cursor: "pointer",
+                            display: "inline-flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                          }}
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      </div>
                     </div>
                   </div>
                 );
@@ -1574,33 +1694,37 @@ export default function AdminManagement({ API, authHeaders, isMobile }) {
           <div
             className="gf-audit-toolbar"
             style={{
-              padding: "14px 18px",
+              padding: isMobileView ? "12px 14px" : "14px 18px",
               borderBottom: "1px solid #f1f5f9",
               display: "flex",
-              alignItems: "center",
+              alignItems: isMobileView ? "stretch" : "center",
               justifyContent: "space-between",
-              flexWrap: "wrap",
-              gap: 12,
+              flexDirection: isMobileView ? "column" : "row",
+              gap: 10,
             }}
           >
             <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
               <Activity size={16} color="#2563eb" />
-              <span style={{ fontSize: 14, fontWeight: 700, color: "#0f172a" }}>
-                Sub-Admin Security & Authorization Logs
+              <span style={{ fontSize: isMobileView ? 13.5 : 14, fontWeight: 750, color: "#0f172a" }}>
+                {isMobileView ? "Security & Audit Logs" : "Sub-Admin Security & Authorization Logs"}
               </span>
             </div>
 
-            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8, width: isMobileView ? "100%" : "auto" }}>
               <select
                 value={logFilterResult}
                 onChange={(e) => setLogFilterResult(e.target.value)}
                 style={{
-                  padding: "6px 12px",
+                  padding: "7px 12px",
                   borderRadius: 8,
                   border: "1px solid #e2e8f0",
                   fontSize: 12.5,
                   fontWeight: 600,
                   outline: "none",
+                  background: "#ffffff",
+                  color: "#334155",
+                  flex: isMobileView ? 1 : "initial",
+                  cursor: "pointer",
                 }}
               >
                 <option value="">All Results</option>
@@ -1611,20 +1735,22 @@ export default function AdminManagement({ API, authHeaders, isMobile }) {
               <button
                 onClick={fetchAuditLogs}
                 style={{
-                  padding: "6px 12px",
+                  padding: "7px 14px",
                   borderRadius: 8,
                   border: "1px solid #e2e8f0",
                   background: "#ffffff",
                   fontSize: 12.5,
-                  fontWeight: 600,
+                  fontWeight: 650,
+                  color: "#0f172a",
                   cursor: "pointer",
-                  display: "flex",
+                  display: "inline-flex",
                   alignItems: "center",
-                  gap: 4,
+                  gap: 5,
+                  flexShrink: 0,
                 }}
               >
                 <RefreshCw size={13} className={logsLoading ? "animate-spin" : ""} />
-                Refresh
+                <span>Refresh</span>
               </button>
             </div>
           </div>
@@ -1699,59 +1825,69 @@ export default function AdminManagement({ API, authHeaders, isMobile }) {
           <div className="gf-audit-mobile-cards" style={{ display: "none", flexDirection: "column", padding: "12px", gap: 10 }}>
             {logsLoading ? (
               <div style={{ padding: "30px", textAlign: "center", color: "#64748b" }}>
-                Loading audit logs...
+                <RefreshCw size={20} className="animate-spin" style={{ margin: "0 auto 8px" }} />
+                <span>Loading audit logs...</span>
               </div>
             ) : auditLogs.length === 0 ? (
               <div style={{ padding: "30px", textAlign: "center", color: "#64748b" }}>
-                No audit events found.
+                <Activity size={32} color="#cbd5e1" style={{ margin: "0 auto 8px" }} />
+                <div style={{ fontWeight: 700, color: "#334155" }}>No Audit Events Found</div>
+                <div style={{ fontSize: 12, marginTop: 2 }}>Sub-admin actions and access attempts will appear here.</div>
               </div>
             ) : (
-              auditLogs.map((log) => (
-                <div
-                  key={log._id}
-                  style={{
-                    background: "#f8fafc",
-                    border: "1px solid #e2e8f0",
-                    borderRadius: 12,
-                    padding: "12px 14px",
-                    display: "flex",
-                    flexDirection: "column",
-                    gap: 6,
-                  }}
-                >
-                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
-                    <span style={{ fontSize: 11, color: "#64748b", fontWeight: 600 }}>
-                      {new Date(log.timestamp).toLocaleString("en-IN", { timeZone: "Asia/Kolkata" })}
-                    </span>
-                    <span
-                      style={{
-                        fontSize: 10,
-                        fontWeight: 700,
-                        padding: "2px 6px",
-                        borderRadius: 4,
-                        background: log.result === "SUCCESS" ? "#ecfdf5" : "#fef2f2",
-                        color: log.result === "SUCCESS" ? "#059669" : "#dc2626",
-                      }}
-                    >
-                      {log.result}
-                    </span>
-                  </div>
-
-                  <div style={{ fontSize: 13, fontWeight: 700, color: "#0f172a" }}>
-                    {log.action}
-                  </div>
-
-                  <div style={{ fontSize: 11.5, color: "#475569" }}>
-                    <strong>Actor:</strong> {log.actorEmail} ({log.actorType})
-                  </div>
-
-                  {log.route && (
-                    <div style={{ fontSize: 11, color: "#64748b", fontFamily: "monospace" }}>
-                      Target: {log.route}
+              auditLogs.map((log) => {
+                const isSuccess = log.result === "SUCCESS";
+                return (
+                  <div
+                    key={log._id}
+                    style={{
+                      background: "#ffffff",
+                      border: "1px solid #e2e8f0",
+                      borderLeft: `4px solid ${isSuccess ? "#10b981" : "#ef4444"}`,
+                      borderRadius: 12,
+                      padding: "12px 14px",
+                      display: "flex",
+                      flexDirection: "column",
+                      gap: 7,
+                      boxShadow: "0 1px 3px rgba(15, 23, 42, 0.03)",
+                    }}
+                  >
+                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
+                      <span style={{ fontSize: 11, color: "#64748b", fontWeight: 600 }}>
+                        {new Date(log.timestamp).toLocaleString("en-IN", { timeZone: "Asia/Kolkata" })}
+                      </span>
+                      <span
+                        style={{
+                          fontSize: 10,
+                          fontWeight: 750,
+                          padding: "2px 7px",
+                          borderRadius: 5,
+                          background: isSuccess ? "#ecfdf5" : "#fef2f2",
+                          color: isSuccess ? "#059669" : "#dc2626",
+                          border: `1px solid ${isSuccess ? "#a7f3d0" : "#fecaca"}`,
+                          letterSpacing: "0.2px",
+                        }}
+                      >
+                        {log.result}
+                      </span>
                     </div>
-                  )}
-                </div>
-              ))
+
+                    <div style={{ fontSize: 13.5, fontWeight: 750, color: "#0f172a", lineHeight: 1.3 }}>
+                      {log.action}
+                    </div>
+
+                    <div style={{ fontSize: 11.5, color: "#475569" }}>
+                      <strong style={{ color: "#334155" }}>Actor:</strong> {log.actorEmail} <span style={{ color: "#94a3b8" }}>({log.actorType})</span>
+                    </div>
+
+                    {log.route && (
+                      <div style={{ fontSize: 11, color: "#2563eb", fontFamily: "monospace", background: "#eff6ff", border: "1px solid #dbeafe", padding: "2px 7px", borderRadius: 5, alignSelf: "flex-start" }}>
+                        Target: {log.route}
+                      </div>
+                    )}
+                  </div>
+                );
+              })
             )}
           </div>
         </div>
@@ -1807,7 +1943,7 @@ export default function AdminManagement({ API, authHeaders, isMobile }) {
               background: "#ffffff",
               border: "1px solid #e2e8f0",
               borderRadius: 16,
-              padding: "24px 26px",
+              padding: isMobileView ? "16px 18px" : "24px 26px",
               boxShadow: "0 2px 8px rgba(15, 23, 42, 0.03)",
               display: "flex",
               flexDirection: "column",
@@ -1820,7 +1956,7 @@ export default function AdminManagement({ API, authHeaders, isMobile }) {
                 display: "flex",
                 alignItems: "flex-start",
                 justifyContent: "space-between",
-                flexWrap: "wrap",
+                flexDirection: isMobileView ? "column" : "row",
                 gap: 14,
                 borderBottom: "1px solid #f1f5f9",
                 paddingBottom: 18,
@@ -1843,10 +1979,10 @@ export default function AdminManagement({ API, authHeaders, isMobile }) {
                   <Wrench size={22} />
                 </div>
                 <div>
-                  <h3 style={{ fontSize: 18, fontWeight: 800, color: "#0f172a", margin: "0 0 4px 0" }}>
+                  <h3 style={{ fontSize: isMobileView ? 16.5 : 18, fontWeight: 800, color: "#0f172a", margin: "0 0 4px 0" }}>
                     Global System Maintenance Mode
                   </h3>
-                  <p style={{ fontSize: 13.5, color: "#64748b", margin: 0, maxWidth: 540 }}>
+                  <p style={{ fontSize: 13, color: "#64748b", margin: 0, maxWidth: 540, lineHeight: 1.45 }}>
                     Temporarily pause student portal access and APIs while making database or system upgrades.
                     Your Main Admin access remains active at all times.
                   </p>
@@ -1854,7 +1990,7 @@ export default function AdminManagement({ API, authHeaders, isMobile }) {
               </div>
 
               {/* Status Badge */}
-              <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 6 }}>
+              <div style={{ display: "flex", flexDirection: "column", alignItems: isMobileView ? "flex-start" : "flex-end", gap: 6, width: isMobileView ? "100%" : "auto" }}>
                 <span
                   style={{
                     display: "inline-flex",
@@ -1862,7 +1998,7 @@ export default function AdminManagement({ API, authHeaders, isMobile }) {
                     gap: 6,
                     padding: "6px 14px",
                     borderRadius: 999,
-                    fontSize: 12.5,
+                    fontSize: 12,
                     fontWeight: 800,
                     background: maintenanceData.enabled ? "#fef2f2" : "#ecfdf5",
                     color: maintenanceData.enabled ? "#dc2626" : "#059669",
@@ -1897,15 +2033,15 @@ export default function AdminManagement({ API, authHeaders, isMobile }) {
                 background: maintenanceData.enabled ? "#fff1f2" : "#f8fafc",
                 border: `1px solid ${maintenanceData.enabled ? "#fecdd3" : "#e2e8f0"}`,
                 borderRadius: 14,
-                padding: "18px 20px",
+                padding: isMobileView ? "14px 16px" : "18px 20px",
                 display: "flex",
-                alignItems: "center",
+                alignItems: isMobileView ? "stretch" : "center",
                 justifyContent: "space-between",
-                flexWrap: "wrap",
+                flexDirection: isMobileView ? "column" : "row",
                 gap: 16,
               }}
             >
-              <div style={{ flex: 1, minWidth: 260 }}>
+              <div style={{ flex: 1, minWidth: isMobileView ? "100%" : 260 }}>
                 <div
                   style={{
                     fontSize: 14,
@@ -1918,14 +2054,14 @@ export default function AdminManagement({ API, authHeaders, isMobile }) {
                     ? "Maintenance Mode is currently restricting student access"
                     : "Student access is fully active"}
                 </div>
-                <div style={{ fontSize: 12.5, color: maintenanceData.enabled ? "#be123c" : "#64748b" }}>
+                <div style={{ fontSize: 12.5, color: maintenanceData.enabled ? "#be123c" : "#64748b", lineHeight: 1.45 }}>
                   {maintenanceData.enabled
                     ? "Students visiting GradeFlow will see the maintenance state. Click disable when ready to restore access."
                     : "Clicking enable will display the maintenance overlay to all non-admin visitors immediately."}
                 </div>
               </div>
 
-              <div>
+              <div style={{ width: isMobileView ? "100%" : "auto" }}>
                 {maintenanceData.enabled ? (
                   <button
                     type="button"
@@ -1935,19 +2071,22 @@ export default function AdminManagement({ API, authHeaders, isMobile }) {
                       background: "#059669",
                       color: "#ffffff",
                       border: "none",
-                      padding: "10px 20px",
+                      padding: "11px 20px",
                       borderRadius: 10,
                       fontSize: 13.5,
                       fontWeight: 700,
                       cursor: "pointer",
                       display: "flex",
                       alignItems: "center",
+                      justifyContent: "center",
                       gap: 8,
                       boxShadow: "0 2px 8px rgba(5, 150, 105, 0.25)",
+                      width: isMobileView ? "100%" : "auto",
+                      boxSizing: "border-box",
                     }}
                   >
                     <CheckCircle2 size={16} />
-                    Disable Maintenance Mode
+                    <span>Disable Maintenance Mode</span>
                   </button>
                 ) : (
                   <button
@@ -1958,19 +2097,22 @@ export default function AdminManagement({ API, authHeaders, isMobile }) {
                       background: "#dc2626",
                       color: "#ffffff",
                       border: "none",
-                      padding: "10px 20px",
+                      padding: "11px 20px",
                       borderRadius: 10,
                       fontSize: 13.5,
                       fontWeight: 700,
                       cursor: "pointer",
                       display: "flex",
                       alignItems: "center",
+                      justifyContent: "center",
                       gap: 8,
                       boxShadow: "0 2px 8px rgba(220, 38, 38, 0.25)",
+                      width: isMobileView ? "100%" : "auto",
+                      boxSizing: "border-box",
                     }}
                   >
                     <AlertTriangle size={16} />
-                    Enable Maintenance Mode
+                    <span>Enable Maintenance Mode</span>
                   </button>
                 )}
               </div>
@@ -2332,7 +2474,20 @@ export default function AdminManagement({ API, authHeaders, isMobile }) {
                 </div>
 
                 {/* Quick Presets Toolbar */}
-                <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                <div
+                  className="gf-visibility-presets-bar"
+                  style={{
+                    display: "flex",
+                    gap: 6,
+                    flexWrap: isMobileView ? "nowrap" : "wrap",
+                    overflowX: isMobileView ? "auto" : "visible",
+                    scrollbarWidth: "none",
+                    msOverflowStyle: "none",
+                    WebkitOverflowScrolling: "touch",
+                    width: isMobileView ? "100%" : "auto",
+                    paddingBottom: isMobileView ? 4 : 0,
+                  }}
+                >
                   <button
                     type="button"
                     onClick={() => {
@@ -2349,8 +2504,8 @@ export default function AdminManagement({ API, authHeaders, isMobile }) {
                       }));
                     }}
                     style={{
-                      padding: "5px 10px",
-                      borderRadius: 6,
+                      padding: "6px 11px",
+                      borderRadius: 7,
                       border: "1px solid #cbd5e1",
                       background: "#ffffff",
                       fontSize: 11.5,
@@ -2360,10 +2515,12 @@ export default function AdminManagement({ API, authHeaders, isMobile }) {
                       display: "inline-flex",
                       alignItems: "center",
                       gap: 4,
+                      whiteSpace: "nowrap",
+                      flexShrink: 0,
                     }}
                   >
                     <Eye size={13} color="#2563eb" />
-                    Show to Everyone
+                    <span>Show to Everyone</span>
                   </button>
 
                   <button
@@ -2382,8 +2539,8 @@ export default function AdminManagement({ API, authHeaders, isMobile }) {
                       }));
                     }}
                     style={{
-                      padding: "5px 10px",
-                      borderRadius: 6,
+                      padding: "6px 11px",
+                      borderRadius: 7,
                       border: "1px solid #cbd5e1",
                       background: "#ffffff",
                       fontSize: 11.5,
@@ -2393,10 +2550,12 @@ export default function AdminManagement({ API, authHeaders, isMobile }) {
                       display: "inline-flex",
                       alignItems: "center",
                       gap: 4,
+                      whiteSpace: "nowrap",
+                      flexShrink: 0,
                     }}
                   >
                     <ShieldCheck size={13} color="#059669" />
-                    Admins & Special Student Only
+                    <span>Admins & Special Only</span>
                   </button>
 
                   <button
@@ -2415,8 +2574,8 @@ export default function AdminManagement({ API, authHeaders, isMobile }) {
                       }));
                     }}
                     style={{
-                      padding: "5px 10px",
-                      borderRadius: 6,
+                      padding: "6px 11px",
+                      borderRadius: 7,
                       border: "1px solid #cbd5e1",
                       background: "#ffffff",
                       fontSize: 11.5,
@@ -2426,10 +2585,12 @@ export default function AdminManagement({ API, authHeaders, isMobile }) {
                       display: "inline-flex",
                       alignItems: "center",
                       gap: 4,
+                      whiteSpace: "nowrap",
+                      flexShrink: 0,
                     }}
                   >
                     <Lock size={13} color="#7c3aed" />
-                    Strictly Main Admin Only
+                    <span>Strictly Main Admin Only</span>
                   </button>
                 </div>
               </div>
@@ -2657,9 +2818,9 @@ export default function AdminManagement({ API, authHeaders, isMobile }) {
             <div
               style={{
                 display: "flex",
-                alignItems: "center",
+                alignItems: isMobileView ? "stretch" : "center",
                 justifyContent: "space-between",
-                flexWrap: "wrap",
+                flexDirection: isMobileView ? "column" : "row",
                 gap: 12,
                 borderTop: "1px solid #f1f5f9",
                 paddingTop: 16,
@@ -2669,13 +2830,13 @@ export default function AdminManagement({ API, authHeaders, isMobile }) {
                 Changes take effect across the Navbar and Landing Footer immediately upon saving.
               </div>
 
-              <div style={{ display: "flex", gap: 10 }}>
+              <div style={{ display: "flex", gap: 10, width: isMobileView ? "100%" : "auto" }}>
                 <button
                   type="button"
                   onClick={() => fetchVisibilitySettings()}
                   disabled={visibilityLoading || visibilitySaving}
                   style={{
-                    padding: "9px 16px",
+                    padding: "10px 16px",
                     borderRadius: 10,
                     border: "1px solid #cbd5e1",
                     background: "#ffffff",
@@ -2685,11 +2846,13 @@ export default function AdminManagement({ API, authHeaders, isMobile }) {
                     cursor: "pointer",
                     display: "inline-flex",
                     alignItems: "center",
+                    justifyContent: "center",
                     gap: 6,
+                    flex: isMobileView ? 1 : "initial",
                   }}
                 >
                   <RefreshCw size={14} className={visibilityLoading ? "spin" : ""} />
-                  Reset Form
+                  <span>Reset Form</span>
                 </button>
 
                 <button
@@ -2697,27 +2860,31 @@ export default function AdminManagement({ API, authHeaders, isMobile }) {
                   onClick={() => handleSaveVisibilitySettings()}
                   disabled={visibilitySaving}
                   style={{
-                    padding: "9px 22px",
+                    padding: "10px 22px",
                     borderRadius: 10,
                     border: "none",
-                    background: visibilityData.mode === "MANUAL"
-                      ? "linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%)"
-                      : "linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)",
+                    background:
+                      visibilityData.mode === "MANUAL"
+                        ? "linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%)"
+                        : "linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)",
                     fontSize: 13,
                     fontWeight: 700,
                     color: "#ffffff",
                     cursor: "pointer",
                     display: "inline-flex",
                     alignItems: "center",
+                    justifyContent: "center",
                     gap: 6,
-                    boxShadow: visibilityData.mode === "MANUAL"
-                      ? "0 2px 8px rgba(124, 58, 237, 0.25)"
-                      : "0 2px 8px rgba(37, 99, 235, 0.25)",
+                    boxShadow:
+                      visibilityData.mode === "MANUAL"
+                        ? "0 2px 8px rgba(124, 58, 237, 0.25)"
+                        : "0 2px 8px rgba(37, 99, 235, 0.25)",
                     transition: "all 0.15s ease",
+                    flex: isMobileView ? 1 : "initial",
                   }}
                 >
                   <Save size={15} />
-                  {visibilitySaving ? "Saving..." : "Save Visibility Settings"}
+                  <span>{visibilitySaving ? "Saving..." : "Save Visibility"}</span>
                 </button>
               </div>
             </div>
@@ -4476,12 +4643,23 @@ export default function AdminManagement({ API, authHeaders, isMobile }) {
           }
           .gf-mgmt-tabs {
             width: 100% !important;
+            display: flex !important;
+            overflow-x: auto !important;
+            scrollbar-width: none !important;
+            -ms-overflow-style: none !important;
+            -webkit-overflow-scrolling: touch !important;
+            gap: 6px !important;
+            padding-bottom: 2px !important;
+          }
+          .gf-mgmt-tabs::-webkit-scrollbar,
+          .gf-visibility-presets-bar::-webkit-scrollbar {
+            display: none !important;
           }
           .gf-mgmt-tab-btn {
-            flex: 1 !important;
-            text-align: center !important;
-            font-size: 12px !important;
-            padding: 8px 6px !important;
+            flex: 0 0 auto !important;
+            white-space: nowrap !important;
+            font-size: 12.5px !important;
+            padding: 8px 14px !important;
           }
           .gf-create-subadmin-btn {
             width: 100% !important;
@@ -4507,11 +4685,13 @@ export default function AdminManagement({ API, authHeaders, isMobile }) {
             grid-template-columns: repeat(2, 1fr) !important;
             gap: 10px !important;
           }
-          .gf-modal-presets-bar {
+          .gf-modal-presets-bar,
+          .gf-visibility-presets-bar {
             overflow-x: auto !important;
             flex-wrap: nowrap !important;
-            padding-bottom: 4px !important;
+            scrollbar-width: none !important;
             -webkit-overflow-scrolling: touch !important;
+            padding-bottom: 4px !important;
           }
         }
         @media (max-width: 480px) {
