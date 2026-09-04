@@ -161,43 +161,31 @@ export default function AttendanceTracker() {
     studentData?.regNo ||
     "";
 
-  // Section State (Loaded from cached choice, student profile, or auto-detected)
-  const [selectedSection, setSelectedSection] = useState(() => {
+  // Section State: Strictly locked to student profile and registration number (Manual switching not allowed)
+  const detectedStudentSection = useMemo(() => {
+    if (studentData?.section || studentData?.branch) {
+      return normalizeSection(studentData.section || studentData.branch, currentRegNo);
+    }
+    if (currentRegNo) {
+      return normalizeSection("", currentRegNo);
+    }
     try {
       const cached = localStorage.getItem("gradeflow_selected_section");
       if (cached && ALL_SECTIONS.includes(cached)) {
         return cached;
       }
     } catch {}
-    if (studentData?.section || studentData?.branch) {
-      return normalizeSection(studentData.section || studentData.branch, currentRegNo);
-    }
-    return normalizeSection("CSE-A", currentRegNo);
-  });
+    return "CSE-A";
+  }, [studentData, currentRegNo]);
 
-  // Auto-sync section if studentData arrives asynchronously
+  const [selectedSection, setSelectedSection] = useState(detectedStudentSection);
+
+  // Auto-sync section whenever studentData or registration number is available
   useEffect(() => {
-    if (studentData?.section || studentData?.branch || studentData?.regNo) {
-      const detected = normalizeSection(studentData.section || studentData.branch, studentData.regNo);
-      setSelectedSection((prev) => {
-        if (prev === "CSE-A" && detected !== "CSE-A") {
-          try { localStorage.setItem("gradeflow_selected_section", detected); } catch {}
-          return detected;
-        }
-        return prev;
-      });
+    if (detectedStudentSection) {
+      setSelectedSection(detectedStudentSection);
     }
-  }, [studentData]);
-
-  // Handler for manual section switcher (instantly updates timetable & syncs to cloud)
-  function handleSectionChange(newSec) {
-    if (!newSec || !ALL_SECTIONS.includes(newSec)) return;
-    setSelectedSection(newSec);
-    try {
-      localStorage.setItem("gradeflow_selected_section", newSec);
-    } catch {}
-    syncAttendanceToDb(savedSubjects, allDailyLogs, targetGoal, newSec);
-  }
+  }, [detectedStudentSection]);
 
   // Helper for local calendar date key (YYYY-MM-DD in user's local timezone, resets at exact 12:00 AM midnight)
   function getLocalCalendarDateKey(d = new Date()) {
@@ -2026,7 +2014,7 @@ export default function AttendanceTracker() {
                   {isMobile ? (
                     /* Mobile: Name + Section Badge + Target Selector */
                     <div style={{ display: "flex", flexDirection: "column", gap: 10, width: "100%" }}>
-                      {/* Row 1: Name + Section Badge */}
+                      {/* Row 1: Student Name & Section Info */}
                       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
                         <div style={{ minWidth: 0, flex: 1 }}>
                           <h2
@@ -2043,46 +2031,10 @@ export default function AttendanceTracker() {
                           >
                             {activeStudentName || `Section ${selectedSection}`}
                           </h2>
-                        </div>
-
-                        <div
-                          style={{
-                            display: "inline-flex",
-                            alignItems: "center",
-                            gap: 4,
-                            background: "linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%)",
-                            color: "#047857",
-                            padding: "3px 6px 3px 8px",
-                            borderRadius: 8,
-                            fontSize: 11.5,
-                            fontWeight: 750,
-                            border: "1px solid #a7f3d0",
-                            flexShrink: 0,
-                          }}
-                        >
-                          <Building size={12} color="#047857" />
-                          <select
-                            value={selectedSection}
-                            onChange={(e) => handleSectionChange(e.target.value)}
-                            aria-label="Change Section"
-                            style={{
-                              border: "none",
-                              background: "transparent",
-                              color: "#047857",
-                              fontSize: 11.5,
-                              fontWeight: 800,
-                              cursor: "pointer",
-                              outline: "none",
-                              padding: "0 2px",
-                              fontFamily: "'DM Sans', sans-serif",
-                            }}
-                          >
-                            {ALL_SECTIONS.map((sec) => (
-                              <option key={sec} value={sec}>
-                                {sec}
-                              </option>
-                            ))}
-                          </select>
+                          <div style={{ fontSize: 11, fontWeight: 700, color: "#059669", marginTop: 2, display: "flex", alignItems: "center", gap: 4 }}>
+                            <Activity size={11} />
+                            <span>Section {selectedSection} Routine</span>
+                          </div>
                         </div>
                       </div>
 
@@ -2184,33 +2136,6 @@ export default function AttendanceTracker() {
                       </div>
 
                       <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-                        {/* Section Selector */}
-                        <div style={{ display: "flex", alignItems: "center", gap: 5, background: "#ecfdf5", padding: "4px 8px", borderRadius: 6, border: "1px solid #a7f3d0" }}>
-                          <Building size={13} color="#059669" />
-                          <span style={{ fontSize: 11, fontWeight: 800, color: "#065f46" }}>Section:</span>
-                          <select
-                            value={selectedSection}
-                            onChange={(e) => handleSectionChange(e.target.value)}
-                            aria-label="Select Class Section"
-                            style={{
-                              border: "none",
-                              background: "transparent",
-                              color: "#059669",
-                              fontSize: 11.5,
-                              fontWeight: 800,
-                              cursor: "pointer",
-                              outline: "none",
-                              fontFamily: "'DM Sans', sans-serif",
-                            }}
-                          >
-                            {ALL_SECTIONS.map((sec) => (
-                              <option key={sec} value={sec}>
-                                {sec}
-                              </option>
-                            ))}
-                          </select>
-                        </div>
-
                         {/* Target Goal Selector */}
                         <div style={{ display: "flex", alignItems: "center", gap: 4, background: "#f8fafc", padding: "3px 6px", borderRadius: 6, border: "1px solid #e2e8f0" }}>
                           <span style={{ fontSize: 11, fontWeight: 800, color: "#64748b", marginRight: 2 }}>Target:</span>
@@ -2573,7 +2498,7 @@ export default function AttendanceTracker() {
                       Optional Holiday ({selectedHolidayInfo.title}) · Classes Held
                     </span>
                   )}
-                  {/* Inline Section Routine Selector */}
+                  {/* Section Routine Badge (Read-only) */}
                   <div
                     style={{
                       display: "inline-flex",
@@ -2590,28 +2515,7 @@ export default function AttendanceTracker() {
                   >
                     <Building size={11} color="#059669" />
                     <span style={{ color: "#065f46" }}>Timetable:</span>
-                    <select
-                      value={selectedSection}
-                      onChange={(e) => handleSectionChange(e.target.value)}
-                      aria-label="Select Timetable Section for Daily Check-in"
-                      style={{
-                        border: "none",
-                        background: "transparent",
-                        color: "#059669",
-                        fontSize: 11,
-                        fontWeight: 800,
-                        cursor: "pointer",
-                        outline: "none",
-                        fontFamily: "'DM Sans', sans-serif",
-                        padding: 0,
-                      }}
-                    >
-                      {ALL_SECTIONS.map((sec) => (
-                        <option key={sec} value={sec}>
-                          {sec}
-                        </option>
-                      ))}
-                    </select>
+                    <span style={{ fontWeight: 800, color: "#059669" }}>{selectedSection}</span>
                   </div>
                 </div>
                 <p style={{ fontSize: 12, color: "#64748b", margin: "2px 0 0 0" }}>
@@ -2941,7 +2845,7 @@ export default function AttendanceTracker() {
                   ? `Regular classroom teaching is suspended in accordance with the official academic calendar for examinations.`
                   : isSelectedOutsideSession
                   ? `${selectedCalendarStatus?.message || "Class instruction is not active outside the semester boundaries (July 6, 2026 - October 31, 2026)."}`
-                  : `There are no scheduled lectures, tutorials, or labs on ${selectedDayName} for Section ${selectedSection}. You can switch sections above if you belong to another batch.`}
+                  : `There are no scheduled lectures, tutorials, or labs on ${selectedDayName} for Section ${selectedSection}.`}
               </div>
             </div>
           ) : (
