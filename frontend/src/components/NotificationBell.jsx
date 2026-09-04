@@ -181,6 +181,11 @@ export default function NotificationBell({ isMobile = false }) {
     return { bg: "#fffbeb", color: "#b45309", border: "#fde68a" };
   };
 
+  // Only render the notification bell when the user has an authenticated active session
+  if (!hasActiveSession) {
+    return null;
+  }
+
   return (
     <div ref={dropdownRef} style={{ position: "relative", display: "inline-block" }}>
       {/* Bell Button */}

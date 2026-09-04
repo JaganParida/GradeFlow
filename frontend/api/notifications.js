@@ -302,15 +302,24 @@ module.exports = async function handler(req, res) {
     }
 
     // ─────────────────────────────────────────────────────────────────────────
-    // STUDENT ENDPOINTS
+    // STUDENT ENDPOINTS (Strictly Protected - Authenticated Student Session Required)
     // ─────────────────────────────────────────────────────────────────────────
 
     const student = await authenticateStudent(req);
 
+    // Strict authentication guard: all student notification actions require an active logged-in session
+    if (!student || !student.regNo || !student.sessionId) {
+      return res.status(401).json({
+        success: false,
+        message: "Authentication required. Notifications are strictly available for logged-in students.",
+        code: "AUTH_REQUIRED",
+      });
+    }
+
     // 1. Fetch Student Notifications (Personal + Active Broadcasts)
     if (action === "student" && req.method === "GET") {
-      const regNo = student?.regNo || null;
-      const currentSessionId = student?.sessionId || null;
+      const regNo = student.regNo;
+      const currentSessionId = student.sessionId;
 
       // Clean up expired notifications
       await StudentNotification.updateMany(
@@ -396,7 +405,7 @@ module.exports = async function handler(req, res) {
         return res.status(404).json({ success: false, message: "Notification not found." });
       }
 
-      const regNo = (student?.regNo || req.body?.regNo || "GUEST").trim().toUpperCase();
+      const regNo = student.regNo;
       const ua = req.headers["user-agent"] || "";
       let cleanDevice = req.body?.device;
       if (!cleanDevice || cleanDevice === "Unknown Device") {
@@ -557,8 +566,8 @@ module.exports = async function handler(req, res) {
 
     // 6. SSE Real-time Notification Stream
     if (action === "stream" && req.method === "GET") {
-      const regNo = student?.regNo || "GUEST";
-      const currentSessionId = student?.sessionId || "GUEST";
+      const regNo = student.regNo;
+      const currentSessionId = student.sessionId;
 
       res.setHeader("Content-Type", "text/event-stream");
       res.setHeader("Cache-Control", "no-cache, no-transform");
@@ -582,11 +591,9 @@ module.exports = async function handler(req, res) {
         } catch {}
       };
 
-      if (regNo !== "GUEST") {
-        authEventBus.on(`notification:${regNo}:${currentSessionId}`, onNotification);
-        authEventBus.on(`notification:${regNo}`, onNotification);
-        authEventBus.on(`session_revoked:${regNo}`, onSessionRevoked);
-      }
+      authEventBus.on(`notification:${regNo}:${currentSessionId}`, onNotification);
+      authEventBus.on(`notification:${regNo}`, onNotification);
+      authEventBus.on(`session_revoked:${regNo}`, onSessionRevoked);
       authEventBus.on("notification:ALL", onNotification);
 
       const heartbeat = setInterval(() => {
@@ -597,11 +604,9 @@ module.exports = async function handler(req, res) {
 
       req.on("close", () => {
         clearInterval(heartbeat);
-        if (regNo !== "GUEST") {
-          authEventBus.off(`notification:${regNo}:${currentSessionId}`, onNotification);
-          authEventBus.off(`notification:${regNo}`, onNotification);
-          authEventBus.off(`session_revoked:${regNo}`, onSessionRevoked);
-        }
+        authEventBus.off(`notification:${regNo}:${currentSessionId}`, onNotification);
+        authEventBus.off(`notification:${regNo}`, onNotification);
+        authEventBus.off(`session_revoked:${regNo}`, onSessionRevoked);
         authEventBus.off("notification:ALL", onNotification);
         res.end();
       });
