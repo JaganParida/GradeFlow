@@ -3,8 +3,6 @@ import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   ChevronDown,
-  ChevronLeft,
-  ChevronRight,
   LayoutGrid,
   CheckCircle2,
   X,
@@ -61,26 +59,6 @@ export default function ModernMobileSubNav({
       }
     } catch (err) {
       // ignore
-    }
-  };
-
-  const handlePrev = (e) => {
-    e.stopPropagation();
-    const nextIdx = currentIndex > 0 ? currentIndex - 1 : items.length - 1;
-    const targetId = items[nextIdx]?.id;
-    if (targetId) {
-      onChange(targetId, { animation: "slide-right", direction: -1 });
-      scrollToActiveContent();
-    }
-  };
-
-  const handleNext = (e) => {
-    e.stopPropagation();
-    const nextIdx = currentIndex < items.length - 1 ? currentIndex + 1 : 0;
-    const targetId = items[nextIdx]?.id;
-    if (targetId) {
-      onChange(targetId, { animation: "slide-left", direction: 1 });
-      scrollToActiveContent();
     }
   };
 
@@ -229,111 +207,36 @@ export default function ModernMobileSubNav({
             </div>
           </div>
 
-          {/* Right: Modern Segmented Action Toolbar (36px Height, Tactile Touch Targets) */}
-          <div
-            className="gf-subnav-toolbar"
+          {/* Right: Modern Compact All Modules Pill Button */}
+          <motion.button
+            type="button"
+            className="gf-subnav-all-btn"
+            whileTap={{ scale: 0.94 }}
+            onClick={() => setIsOpen(true)}
+            title="Open all modules menu"
+            aria-label="All views"
             style={{
               display: "inline-flex",
               alignItems: "center",
-              background: "#f8fafc",
+              gap: 5,
+              height: 34,
+              padding: "0 10px",
+              borderRadius: 9,
               border: "1px solid #e2e8f0",
-              borderRadius: 10,
-              padding: 3,
-              gap: 2,
-              height: 36,
-              boxSizing: "border-box",
+              background: "#ffffff",
+              color: "#0f172a",
+              fontSize: 12,
+              fontWeight: 800,
+              cursor: "pointer",
+              boxShadow: "0 1px 3px rgba(15, 23, 42, 0.04)",
+              transition: "all 0.15s ease",
               flexShrink: 0,
-              boxShadow: "none",
             }}
           >
-            {/* Prev Button */}
-            <motion.button
-              type="button"
-              className="gf-subnav-arrow-btn"
-              whileTap={{ scale: 0.92 }}
-              onClick={handlePrev}
-              title="Previous module"
-              aria-label="Previous view"
-              style={{
-                width: 31,
-                height: 28,
-                borderRadius: 7,
-                border: "none",
-                background: "transparent",
-                color: "#475569",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                cursor: "pointer",
-                padding: 0,
-                boxShadow: "none",
-                transition: "all 0.15s ease",
-              }}
-            >
-              <ChevronLeft size={16} strokeWidth={2.4} />
-            </motion.button>
-
-            <div className="gf-subnav-arrow-divider" style={{ width: 1, height: 16, background: "#e2e8f0" }} />
-
-            {/* Next Button */}
-            <motion.button
-              type="button"
-              className="gf-subnav-arrow-btn"
-              whileTap={{ scale: 0.92 }}
-              onClick={handleNext}
-              title="Next module"
-              aria-label="Next view"
-              style={{
-                width: 31,
-                height: 28,
-                borderRadius: 7,
-                border: "none",
-                background: "transparent",
-                color: "#475569",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                cursor: "pointer",
-                padding: 0,
-                boxShadow: "none",
-                transition: "all 0.15s ease",
-              }}
-            >
-              <ChevronRight size={16} strokeWidth={2.4} />
-            </motion.button>
-
-            <div className="gf-subnav-arrow-divider" style={{ width: 1, height: 16, background: "#e2e8f0" }} />
-
-            {/* All Views Grid Button */}
-            <motion.button
-              type="button"
-              className="gf-subnav-all-btn"
-              whileTap={{ scale: 0.95 }}
-              onClick={() => setIsOpen(true)}
-              title="Open all modules menu"
-              aria-label="All views"
-              style={{
-                display: "inline-flex",
-                alignItems: "center",
-                gap: 5,
-                height: 28,
-                padding: "0 9px",
-                borderRadius: 7,
-                border: "1px solid #e2e8f0",
-                background: "#ffffff",
-                color: "#0f172a",
-                fontSize: 12,
-                fontWeight: 800,
-                cursor: "pointer",
-                boxShadow: "0 1px 2px rgba(15, 23, 42, 0.04)",
-                transition: "all 0.15s ease",
-              }}
-            >
-              <LayoutGrid size={13} strokeWidth={2.4} color={themeColor} />
-              <span>All</span>
-              <ChevronDown size={11} strokeWidth={2.4} color="#64748b" />
-            </motion.button>
-          </div>
+            <LayoutGrid size={13} strokeWidth={2.4} color={themeColor} />
+            <span>All</span>
+            <ChevronDown size={11} strokeWidth={2.4} color="#64748b" />
+          </motion.button>
         </div>
       </div>
 
@@ -564,27 +467,6 @@ export default function ModernMobileSubNav({
       document.body
     )}
 
-    <style>{`
-      @media (max-width: 520px) {
-        .gf-subnav-arrow-btn,
-        .gf-subnav-arrow-divider {
-          display: none !important;
-        }
-        .gf-subnav-toolbar {
-          padding: 2px !important;
-          background: transparent !important;
-          border: none !important;
-        }
-        .gf-subnav-all-btn {
-          height: 32px !important;
-          padding: 0 10px !important;
-          border-radius: 8px !important;
-          background: #ffffff !important;
-          border: 1px solid #e2e8f0 !important;
-          box-shadow: 0 1px 3px rgba(15, 23, 42, 0.05) !important;
-        }
-      }
-    `}</style>
     </>
   );
 }

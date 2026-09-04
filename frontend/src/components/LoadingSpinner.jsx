@@ -6,6 +6,7 @@ export function SkeletonBlock({ w = "100%", h = 20, r = "8px", style = {} }) {
       className="skeleton"
       style={{
         width: w,
+        maxWidth: "100%",
         height: h,
         borderRadius: r,
         boxSizing: "border-box",
@@ -427,47 +428,117 @@ export function AdminDashboardSkeleton() {
         style={{
           maxWidth: 1380,
           margin: "0 auto",
-          padding: "24px 20px 80px",
-          display: "flex",
-          flexDirection: "column",
-          gap: 20,
           boxSizing: "border-box",
           width: "100%",
+          display: "flex",
+          flexDirection: "column",
+          gap: 16,
         }}
       >
         {/* Admin Top Navigation Header Card */}
         <div
+          className="gf-admin-skeleton-header-card"
           style={{
             background: "#ffffff",
             border: "1px solid #cbd5e1",
             borderRadius: 18,
-            padding: "18px 22px",
             display: "flex",
             justifyContent: "space-between",
-            alignItems: "center",
-            flexWrap: "wrap",
-            gap: 12,
             boxShadow: "0 2px 10px rgba(15, 23, 42, 0.02)",
+            boxSizing: "border-box",
+            width: "100%",
+            overflow: "hidden",
           }}
         >
-          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-            <SkeletonBlock w="42px" h="42px" r="12px" />
-            <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                <SkeletonBlock w="200px" h="22px" r="6px" />
-                <SkeletonBlock w="120px" h="20px" r="999px" />
+          <div style={{ display: "flex", alignItems: "flex-start", gap: 12, flex: 1, minWidth: 0 }}>
+            <SkeletonBlock w="40px" h="40px" r="11px" style={{ flexShrink: 0 }} />
+            <div style={{ display: "flex", flexDirection: "column", gap: 6, flex: 1, minWidth: 0 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                <SkeletonBlock w="170px" h="20px" r="6px" style={{ maxWidth: "60%" }} />
+                <SkeletonBlock w="100px" h="18px" r="999px" />
               </div>
-              <SkeletonBlock w="260px" h="13px" r="4px" />
+              <SkeletonBlock w="240px" h="12px" r="4px" style={{ maxWidth: "85%" }} />
             </div>
           </div>
-          <div style={{ display: "flex", gap: 8 }}>
-            <SkeletonBlock w="130px" h="38px" r="10px" />
-            <SkeletonBlock w="130px" h="38px" r="10px" />
+          <div className="gf-admin-skeleton-header-btns" style={{ display: "flex", gap: 8 }}>
+            <SkeletonBlock w="120px" h="36px" r="10px" className="gf-admin-skel-btn" />
+            <SkeletonBlock w="120px" h="36px" r="10px" className="gf-admin-skel-btn" />
           </div>
         </div>
 
-        {/* Tab Pill Bar */}
-        <div style={{ display: "flex", gap: 8, overflowX: "hidden", paddingBottom: 2 }}>
+        {/* 4 Metric Stats (Matches 2x2 on Mobile, 4-col on Desktop) */}
+        <div
+          className="gf-admin-skeleton-stats-grid"
+          style={{
+            display: "grid",
+            width: "100%",
+            boxSizing: "border-box",
+          }}
+        >
+          {Array(4)
+            .fill(0)
+            .map((_, i) => (
+              <div
+                key={i}
+                className="gf-admin-skeleton-stat-card"
+                style={{
+                  background: "#ffffff",
+                  border: "1px solid #cbd5e1",
+                  borderRadius: 16,
+                  display: "flex",
+                  flexDirection: "column",
+                  justifyContent: "space-between",
+                  boxShadow: "0 2px 8px rgba(15, 23, 42, 0.02)",
+                  boxSizing: "border-box",
+                  minWidth: 0,
+                  overflow: "hidden",
+                }}
+              >
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 6 }}>
+                  <SkeletonBlock w="30px" h="30px" r="8px" style={{ flexShrink: 0 }} />
+                  <SkeletonBlock w="52px" h="16px" r="6px" />
+                </div>
+                <div style={{ margin: "6px 0" }}>
+                  <SkeletonBlock w="60px" h="22px" r="6px" />
+                </div>
+                <div style={{ borderTop: "1px solid #f1f5f9", paddingTop: 6, display: "flex", flexDirection: "column", gap: 4 }}>
+                  <SkeletonBlock w="80px" h="11px" r="4px" />
+                  <SkeletonBlock w="50px" h="9px" r="3px" />
+                </div>
+              </div>
+            ))}
+        </div>
+
+        {/* Navigation Tabs Skeleton: Single modern pill card on Mobile, Horizontal pills on Desktop */}
+        <div className="gf-admin-skeleton-mobile-subnav" style={{ width: "100%", boxSizing: "border-box" }}>
+          <div
+            style={{
+              background: "#ffffff",
+              border: "1px solid #e2e8f0",
+              borderRadius: 14,
+              padding: "10px 13px",
+              minHeight: 58,
+              boxSizing: "border-box",
+              boxShadow: "0 1px 3px rgba(15, 23, 42, 0.04)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              gap: 12,
+              width: "100%",
+            }}
+          >
+            <div style={{ display: "flex", alignItems: "center", gap: 11, flex: 1, minWidth: 0 }}>
+              <SkeletonBlock w="38px" h="38px" r="10px" style={{ flexShrink: 0 }} />
+              <div style={{ display: "flex", flexDirection: "column", gap: 5, flex: 1, minWidth: 0 }}>
+                <SkeletonBlock w="130px" h="14px" r="4px" style={{ maxWidth: "70%" }} />
+                <SkeletonBlock w="80px" h="11px" r="4px" style={{ maxWidth: "45%" }} />
+              </div>
+            </div>
+            <SkeletonBlock w="56px" h="32px" r="8px" style={{ flexShrink: 0 }} />
+          </div>
+        </div>
+
+        <div className="gf-admin-skeleton-desktop-tabs" style={{ display: "flex", gap: 8, overflowX: "hidden", paddingBottom: 2 }}>
           {Array(8)
             .fill(0)
             .map((_, i) => (
@@ -475,65 +546,113 @@ export function AdminDashboardSkeleton() {
             ))}
         </div>
 
-        {/* 4 Metric Stats */}
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 14 }}>
-          {Array(4)
-            .fill(0)
-            .map((_, i) => (
-              <div
-                key={i}
-                style={{
-                  background: "#ffffff",
-                  border: "1px solid #cbd5e1",
-                  borderRadius: 16,
-                  padding: "20px",
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 14,
-                  boxShadow: "0 2px 10px rgba(15, 23, 42, 0.02)",
-                }}
-              >
-                <SkeletonBlock w="44px" h="44px" r="12px" />
-                <div style={{ display: "flex", flexDirection: "column", gap: 6, flex: 1 }}>
-                  <SkeletonBlock w="100px" h="11px" r="4px" />
-                  <SkeletonBlock w="70px" h="24px" r="6px" />
-                </div>
-              </div>
-            ))}
-        </div>
-
         {/* Main Action / Dropzone Card */}
         <div
+          className="gf-admin-skeleton-content-card"
           style={{
             background: "#ffffff",
             border: "1px solid #cbd5e1",
             borderRadius: 18,
-            padding: 24,
             display: "flex",
             flexDirection: "column",
-            gap: 18,
+            gap: 16,
             boxShadow: "0 2px 10px rgba(15, 23, 42, 0.02)",
+            boxSizing: "border-box",
+            width: "100%",
+            overflow: "hidden",
           }}
         >
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-            <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-              <SkeletonBlock w="220px" h="20px" r="6px" />
-              <SkeletonBlock w="340px" h="14px" r="4px" />
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 10 }}>
+            <div style={{ display: "flex", flexDirection: "column", gap: 6, flex: 1, minWidth: 0 }}>
+              <SkeletonBlock w="200px" h="18px" r="6px" style={{ maxWidth: "60%" }} />
+              <SkeletonBlock w="280px" h="12px" r="4px" style={{ maxWidth: "85%" }} />
             </div>
-            <SkeletonBlock w="100px" h="32px" r="8px" />
+            <SkeletonBlock w="90px" h="30px" r="8px" style={{ flexShrink: 0 }} />
           </div>
 
-          <SkeletonBlock w="100%" h="180px" r="14px" />
+          <SkeletonBlock w="100%" h="160px" r="14px" />
 
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12 }}>
-            <div style={{ display: "flex", gap: 10 }}>
-              <SkeletonBlock w="140px" h="38px" r="8px" />
-              <SkeletonBlock w="140px" h="38px" r="8px" />
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 10 }}>
+            <div style={{ display: "flex", gap: 8, flex: 1, minWidth: 0 }}>
+              <SkeletonBlock w="120px" h="36px" r="8px" style={{ maxWidth: "45%" }} />
+              <SkeletonBlock w="120px" h="36px" r="8px" style={{ maxWidth: "45%" }} />
             </div>
-            <SkeletonBlock w="160px" h="40px" r="10px" />
+            <SkeletonBlock w="140px" h="36px" r="10px" style={{ flexShrink: 0 }} />
           </div>
         </div>
       </div>
+
+      <style>{`
+        .gf-admin-skeleton-wrap {
+          padding: 24px 20px 80px;
+        }
+        .gf-admin-skeleton-header-card {
+          padding: 18px 22px;
+          align-items: center;
+          flex-direction: row;
+          gap: 12px;
+        }
+        .gf-admin-skeleton-header-btns {
+          width: auto;
+        }
+        .gf-admin-skel-btn {
+          width: 120px;
+        }
+        .gf-admin-skeleton-stats-grid {
+          grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+          gap: 14px;
+        }
+        .gf-admin-skeleton-stat-card {
+          padding: 18px 20px;
+        }
+        .gf-admin-skeleton-mobile-subnav {
+          display: none;
+        }
+        .gf-admin-skeleton-desktop-tabs {
+          display: flex;
+        }
+        .gf-admin-skeleton-content-card {
+          padding: 24px;
+        }
+
+        @media (max-width: 768px) {
+          .gf-admin-skeleton-wrap {
+            padding: 14px 12px 60px 12px !important;
+            gap: 14px !important;
+          }
+          .gf-admin-skeleton-header-card {
+            padding: 14px 14px !important;
+            flex-direction: column !important;
+            align-items: stretch !important;
+            gap: 12px !important;
+          }
+          .gf-admin-skeleton-header-btns {
+            display: grid !important;
+            grid-template-columns: 1fr 1fr !important;
+            width: 100% !important;
+            gap: 8px !important;
+          }
+          .gf-admin-skel-btn {
+            width: 100% !important;
+          }
+          .gf-admin-skeleton-stats-grid {
+            grid-template-columns: repeat(2, 1fr) !important;
+            gap: 10px !important;
+          }
+          .gf-admin-skeleton-stat-card {
+            padding: 12px 11px !important;
+          }
+          .gf-admin-skeleton-mobile-subnav {
+            display: block !important;
+          }
+          .gf-admin-skeleton-desktop-tabs {
+            display: none !important;
+          }
+          .gf-admin-skeleton-content-card {
+            padding: 14px !important;
+          }
+        }
+      `}</style>
     </div>
   );
 }
@@ -1375,31 +1494,60 @@ export function BacklogTrackerSkeleton() {
 /** ─── 13. Admin Dashboard Stats Cards Skeleton ────────────────── */
 export function AdminStatsSkeleton() {
   return (
-    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 14, width: "100%", boxSizing: "border-box" }}>
-      {Array(4)
-        .fill(0)
-        .map((_, i) => (
-          <div
-            key={i}
-            style={{
-              background: "#ffffff",
-              border: "1px solid #cbd5e1",
-              borderRadius: 16,
-              padding: "20px",
-              display: "flex",
-              alignItems: "center",
-              gap: 14,
-              boxShadow: "0 2px 10px rgba(15, 23, 42, 0.02)",
-            }}
-          >
-            <SkeletonBlock w="44px" h="44px" r="12px" />
-            <div style={{ display: "flex", flexDirection: "column", gap: 6, flex: 1 }}>
-              <SkeletonBlock w="110px" h="11px" r="4px" />
-              <SkeletonBlock w="70px" h="24px" r="6px" />
+    <>
+      <div className="gf-admin-stats-skeleton-grid" style={{ display: "grid", width: "100%", boxSizing: "border-box" }}>
+        {Array(4)
+          .fill(0)
+          .map((_, i) => (
+            <div
+              key={i}
+              className="gf-admin-stats-skel-card"
+              style={{
+                background: "#ffffff",
+                border: "1px solid #cbd5e1",
+                borderRadius: 16,
+                display: "flex",
+                flexDirection: "column",
+                justifyContent: "space-between",
+                boxShadow: "0 2px 8px rgba(15, 23, 42, 0.02)",
+                boxSizing: "border-box",
+                minWidth: 0,
+                overflow: "hidden",
+              }}
+            >
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 6 }}>
+                <SkeletonBlock w="30px" h="30px" r="8px" style={{ flexShrink: 0 }} />
+                <SkeletonBlock w="52px" h="16px" r="6px" />
+              </div>
+              <div style={{ margin: "6px 0" }}>
+                <SkeletonBlock w="65px" h="22px" r="6px" />
+              </div>
+              <div style={{ borderTop: "1px solid #f1f5f9", paddingTop: 6, display: "flex", flexDirection: "column", gap: 4 }}>
+                <SkeletonBlock w="85px" h="11px" r="4px" />
+                <SkeletonBlock w="50px" h="9px" r="3px" />
+              </div>
             </div>
-          </div>
-        ))}
-    </div>
+          ))}
+      </div>
+      <style>{`
+        .gf-admin-stats-skeleton-grid {
+          grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+          gap: 14px;
+        }
+        .gf-admin-stats-skel-card {
+          padding: 18px 20px;
+        }
+        @media (max-width: 768px) {
+          .gf-admin-stats-skeleton-grid {
+            grid-template-columns: repeat(2, 1fr) !important;
+            gap: 10px !important;
+          }
+          .gf-admin-stats-skel-card {
+            padding: 12px 11px !important;
+          }
+        }
+      `}</style>
+    </>
   );
 }
 
