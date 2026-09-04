@@ -912,7 +912,7 @@ export default function Dashboard() {
           >
             {/* 1. Student Profile Header */}
             <div>
-              <div style={{ display: "flex", alignItems: isMobile ? "flex-start" : "center", gap: 10, marginBottom: isMobile ? 8 : 10 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: isMobile ? 8 : 10 }}>
                 <div
                   style={{
                     width: isMobile ? 38 : 42,
@@ -926,7 +926,6 @@ export default function Dashboard() {
                     fontSize: isMobile ? 15 : 17,
                     fontWeight: 800,
                     flexShrink: 0,
-                    marginTop: isMobile ? 1 : 0,
                   }}
                 >
                   {studentName ? studentName.charAt(0).toUpperCase() : "S"}
@@ -963,46 +962,58 @@ export default function Dashboard() {
                       {regNo}
                     </span>
                   </div>
-
-                  {/* Badges - Mobile Only (Clean Professional UI/UX Just Bottom of Reg No) */}
-                  {isMobile && badges.length > 0 && (
-                    <div
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        gap: 5,
-                        flexWrap: "wrap",
-                        marginTop: 6,
-                      }}
-                    >
-                      {badges.map((b, i) => (
-                        <span
-                          key={i}
-                          style={{
-                            background: b.color + "12",
-                            color: b.color,
-                            border: `1px solid ${b.color}2e`,
-                            padding: "2px 7px",
-                            borderRadius: 999,
-                            fontSize: 10,
-                            fontWeight: 700,
-                            display: "inline-flex",
-                            alignItems: "center",
-                            gap: 4,
-                            whiteSpace: "nowrap",
-                            lineHeight: 1.2,
-                          }}
-                        >
-                          <span style={{ display: "inline-flex", alignItems: "center", flexShrink: 0 }}>
-                            {b.icon}
-                          </span>
-                          <span>{b.label}</span>
-                        </span>
-                      ))}
-                    </div>
-                  )}
                 </div>
               </div>
+
+              {/* Badges - Mobile Only (Balanced 2-Column Grid: Exactly 2 Badges Per Row) */}
+              {isMobile && badges.length > 0 && (
+                <div
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: "repeat(2, 1fr)",
+                    gap: 6,
+                    marginBottom: 8,
+                    width: "100%",
+                  }}
+                >
+                  {badges.map((b, i) => (
+                    <span
+                      key={i}
+                      style={{
+                        background: b.color + "12",
+                        color: b.color,
+                        border: `1px solid ${b.color}2e`,
+                        padding: "3.5px 6px",
+                        borderRadius: 999,
+                        fontSize: 10.5,
+                        fontWeight: 700,
+                        display: "inline-flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        gap: 4.5,
+                        whiteSpace: "nowrap",
+                        lineHeight: 1.2,
+                        boxSizing: "border-box",
+                        minWidth: 0,
+                      }}
+                    >
+                      <span style={{ display: "inline-flex", alignItems: "center", flexShrink: 0 }}>
+                        {b.icon}
+                      </span>
+                      <span
+                        style={{
+                          overflow: "hidden",
+                          textOverflow: "ellipsis",
+                          whiteSpace: "nowrap",
+                          letterSpacing: "-0.1px",
+                        }}
+                      >
+                        {b.label}
+                      </span>
+                    </span>
+                  ))}
+                </div>
+              )}
 
               {/* Student Meta Details */}
               <div
