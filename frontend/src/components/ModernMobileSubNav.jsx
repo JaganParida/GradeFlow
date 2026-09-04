@@ -231,6 +231,7 @@ export default function ModernMobileSubNav({
 
           {/* Right: Modern Segmented Action Toolbar (36px Height, Tactile Touch Targets) */}
           <div
+            className="gf-subnav-toolbar"
             style={{
               display: "inline-flex",
               alignItems: "center",
@@ -248,6 +249,7 @@ export default function ModernMobileSubNav({
             {/* Prev Button */}
             <motion.button
               type="button"
+              className="gf-subnav-arrow-btn"
               whileTap={{ scale: 0.92 }}
               onClick={handlePrev}
               title="Previous module"
@@ -271,11 +273,12 @@ export default function ModernMobileSubNav({
               <ChevronLeft size={16} strokeWidth={2.4} />
             </motion.button>
 
-            <div style={{ width: 1, height: 16, background: "#e2e8f0" }} />
+            <div className="gf-subnav-arrow-divider" style={{ width: 1, height: 16, background: "#e2e8f0" }} />
 
             {/* Next Button */}
             <motion.button
               type="button"
+              className="gf-subnav-arrow-btn"
               whileTap={{ scale: 0.92 }}
               onClick={handleNext}
               title="Next module"
@@ -299,11 +302,12 @@ export default function ModernMobileSubNav({
               <ChevronRight size={16} strokeWidth={2.4} />
             </motion.button>
 
-            <div style={{ width: 1, height: 16, background: "#e2e8f0" }} />
+            <div className="gf-subnav-arrow-divider" style={{ width: 1, height: 16, background: "#e2e8f0" }} />
 
             {/* All Views Grid Button */}
             <motion.button
               type="button"
+              className="gf-subnav-all-btn"
               whileTap={{ scale: 0.95 }}
               onClick={() => setIsOpen(true)}
               title="Open all modules menu"
@@ -559,6 +563,28 @@ export default function ModernMobileSubNav({
       </AnimatePresence>,
       document.body
     )}
+
+    <style>{`
+      @media (max-width: 520px) {
+        .gf-subnav-arrow-btn,
+        .gf-subnav-arrow-divider {
+          display: none !important;
+        }
+        .gf-subnav-toolbar {
+          padding: 2px !important;
+          background: transparent !important;
+          border: none !important;
+        }
+        .gf-subnav-all-btn {
+          height: 32px !important;
+          padding: 0 10px !important;
+          border-radius: 8px !important;
+          background: #ffffff !important;
+          border: 1px solid #e2e8f0 !important;
+          box-shadow: 0 1px 3px rgba(15, 23, 42, 0.05) !important;
+        }
+      }
+    `}</style>
     </>
   );
 }
