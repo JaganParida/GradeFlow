@@ -1869,16 +1869,17 @@ input[type="number"].no-spin-button {
 .gradesheet-toolbar {
   display: flex;
   gap: 16px;
-  margin: 0 auto 24px auto;
+  margin: 0 auto 20px auto;
   background: var(--surface);
-  padding: 12px 16px;
-  border-radius: 16px;
+  padding: 10px 16px;
+  border-radius: 14px;
   border: 1px solid var(--border);
   align-items: center;
   justify-content: space-between;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04), 0 2px 8px rgba(15, 23, 42, 0.03);
   width: 100%;
   max-width: 820px;
+  box-sizing: border-box;
 }
 
 .gradesheet-toolbar-btns {
@@ -1888,19 +1889,70 @@ input[type="number"].no-spin-button {
   flex: 3;
 }
 
-.gradesheet-toolbar-btns button {
+.gradesheet-btn {
   flex: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+  min-width: 0;
+  height: 38px;
+  box-sizing: border-box;
+  transition: all 0.15s ease;
+}
+
+.gradesheet-btn-icon {
+  flex-shrink: 0;
+  width: 15px;
+  height: 15px;
+  display: inline-flex;
+}
+
+.gradesheet-btn span {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .gradesheet-toolbar-zoom {
   display: flex;
   align-items: center;
   background: var(--bg);
-  border-radius: 10px;
-  padding: 4px;
+  border-radius: 9px;
+  padding: 3px 5px;
   border: 1px solid var(--border);
   flex: 1;
   justify-content: space-between;
+  box-sizing: border-box;
+  height: 38px;
+}
+
+.gradesheet-zoom-btn {
+  padding: 6px 10px !important;
+  border: none !important;
+  color: var(--secondary) !important;
+  background: transparent !important;
+  border-radius: 6px !important;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.gradesheet-zoom-val {
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--text);
+  width: 44px;
+  text-align: center;
+  font-family: 'Space Mono', monospace;
+  user-select: none;
 }
 
 /* ── Dashboard Navigation ──────────────────────────────────── */
@@ -1921,21 +1973,70 @@ input[type="number"].no-spin-button {
 
 @media (max-width: 600px) {
   .gradesheet-toolbar {
-    flex-wrap: wrap;
-    justify-content: center;
-    gap: 12px;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+    padding: 10px;
+    border-radius: 12px;
+    margin: 0 auto 16px auto;
   }
   .gradesheet-toolbar-btns {
     width: 100%;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 6px;
+    flex: unset;
   }
-  .gradesheet-toolbar-btns button {
-    flex: 1;
-    justify-content: center;
-    padding: 8px 4px !important;
+  .gradesheet-btn {
+    width: 100%;
+    min-width: 0;
+    padding: 7px 6px !important;
+    font-size: 12px !important;
+    gap: 5px !important;
+    border-radius: 8px !important;
+    height: 36px;
+    box-sizing: border-box;
+  }
+  .gradesheet-btn-icon {
+    width: 14px !important;
+    height: 14px !important;
+  }
+  .gradesheet-btn span {
+    font-size: 12px !important;
+    letter-spacing: -0.2px;
   }
   .gradesheet-toolbar-zoom {
     width: 100%;
+    height: 34px;
+    padding: 2px 4px;
+    border-radius: 8px;
     justify-content: space-between;
+    flex: unset;
+  }
+  .gradesheet-zoom-btn {
+    padding: 4px 10px !important;
+  }
+  .gradesheet-zoom-val {
+    font-size: 12px;
+  }
+}
+
+@media (max-width: 360px) {
+  .gradesheet-toolbar-btns {
+    gap: 4px;
+  }
+  .gradesheet-btn {
+    padding: 6px 3px !important;
+    font-size: 11px !important;
+    gap: 3.5px !important;
+    height: 34px;
+  }
+  .gradesheet-btn-icon {
+    width: 13px !important;
+    height: 13px !important;
+  }
+  .gradesheet-btn span {
+    font-size: 11px !important;
   }
 }
 

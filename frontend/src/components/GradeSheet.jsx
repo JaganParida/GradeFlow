@@ -186,26 +186,39 @@ export default function GradeSheet({ result, studentData, highlightedSubject }) 
       {/* ── Action Buttons & Toolbar ── */}
       <div data-html2canvas-ignore="true" className="gradesheet-toolbar">
         <div className="gradesheet-toolbar-btns">
-          <button className="btn btn-primary" onClick={downloadPDF} style={{ borderRadius: 8, padding: "8px 16px" }}>
-            <Download size={16} /> <span>Download</span>
+          <button type="button" className="btn btn-primary gradesheet-btn" onClick={downloadPDF}>
+            <Download size={15} className="gradesheet-btn-icon" />
+            <span>Download</span>
           </button>
-          <button className="btn btn-ghost" onClick={saveImage} style={{ borderRadius: 8, padding: "8px 16px", background: "rgba(255,255,255,0.03)" }}>
-            <ImageIcon size={16} /> <span>Image</span>
+          <button type="button" className="btn btn-ghost gradesheet-btn" onClick={saveImage}>
+            <ImageIcon size={15} className="gradesheet-btn-icon" />
+            <span>Image</span>
           </button>
-          <button className="btn btn-ghost" onClick={printSheet} style={{ borderRadius: 8, padding: "8px 16px", background: "rgba(255,255,255,0.03)" }}>
-            <Printer size={16} /> <span>Print</span>
+          <button type="button" className="btn btn-ghost gradesheet-btn" onClick={printSheet}>
+            <Printer size={15} className="gradesheet-btn-icon" />
+            <span>Print</span>
           </button>
         </div>
 
         <div className="gradesheet-toolbar-zoom">
-          <button className="btn btn-ghost" onClick={() => setZoomLevel(prev => Math.max(prev - 0.1, 0.3))} style={{ padding: "6px 10px", border: "none", color: "var(--secondary)", borderRadius: 6 }}>
-            <ZoomOut size={16} />
+          <button
+            type="button"
+            className="btn btn-ghost gradesheet-zoom-btn"
+            onClick={() => setZoomLevel(prev => Math.max(prev - 0.1, 0.3))}
+            aria-label="Zoom out"
+          >
+            <ZoomOut size={15} />
           </button>
-          <span style={{ fontSize: 13, fontWeight: 700, color: "var(--text)", width: 48, textAlign: "center", fontFamily: "'Space Mono', monospace" }}>
+          <span className="gradesheet-zoom-val">
             {Math.round(zoomLevel * 100)}%
           </span>
-          <button className="btn btn-ghost" onClick={() => setZoomLevel(prev => Math.min(prev + 0.1, 1.5))} style={{ padding: "6px 10px", border: "none", color: "var(--secondary)", borderRadius: 6 }}>
-            <ZoomIn size={16} />
+          <button
+            type="button"
+            className="btn btn-ghost gradesheet-zoom-btn"
+            onClick={() => setZoomLevel(prev => Math.min(prev + 0.1, 1.5))}
+            aria-label="Zoom in"
+          >
+            <ZoomIn size={15} />
           </button>
         </div>
       </div>

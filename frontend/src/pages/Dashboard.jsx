@@ -912,7 +912,7 @@ export default function Dashboard() {
           >
             {/* 1. Student Profile Header */}
             <div>
-              <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: isMobile ? 8 : 10 }}>
+              <div style={{ display: "flex", alignItems: isMobile ? "flex-start" : "center", gap: 10, marginBottom: isMobile ? 8 : 10 }}>
                 <div
                   style={{
                     width: isMobile ? 38 : 42,
@@ -926,6 +926,7 @@ export default function Dashboard() {
                     fontSize: isMobile ? 15 : 17,
                     fontWeight: 800,
                     flexShrink: 0,
+                    marginTop: isMobile ? 1 : 0,
                   }}
                 >
                   {studentName ? studentName.charAt(0).toUpperCase() : "S"}
@@ -945,21 +946,61 @@ export default function Dashboard() {
                   >
                     {studentName}
                   </h3>
-                  <span
-                    style={{
-                      fontFamily: "'Space Mono', monospace",
-                      fontSize: 10.5,
-                      color: "#64748b",
-                      fontWeight: 700,
-                      background: "#f1f5f9",
-                      padding: "2px 6px",
-                      borderRadius: 5,
-                      border: "1px solid #e2e8f0",
-                      display: "inline-block",
-                    }}
-                  >
-                    {regNo}
-                  </span>
+                  <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+                    <span
+                      style={{
+                        fontFamily: "'Space Mono', monospace",
+                        fontSize: 10.5,
+                        color: "#64748b",
+                        fontWeight: 700,
+                        background: "#f1f5f9",
+                        padding: "2px 6px",
+                        borderRadius: 5,
+                        border: "1px solid #e2e8f0",
+                        display: "inline-block",
+                      }}
+                    >
+                      {regNo}
+                    </span>
+                  </div>
+
+                  {/* Badges - Mobile Only (Clean Professional UI/UX Just Bottom of Reg No) */}
+                  {isMobile && badges.length > 0 && (
+                    <div
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 5,
+                        flexWrap: "wrap",
+                        marginTop: 6,
+                      }}
+                    >
+                      {badges.map((b, i) => (
+                        <span
+                          key={i}
+                          style={{
+                            background: b.color + "12",
+                            color: b.color,
+                            border: `1px solid ${b.color}2e`,
+                            padding: "2px 7px",
+                            borderRadius: 999,
+                            fontSize: 10,
+                            fontWeight: 700,
+                            display: "inline-flex",
+                            alignItems: "center",
+                            gap: 4,
+                            whiteSpace: "nowrap",
+                            lineHeight: 1.2,
+                          }}
+                        >
+                          <span style={{ display: "inline-flex", alignItems: "center", flexShrink: 0 }}>
+                            {b.icon}
+                          </span>
+                          <span>{b.label}</span>
+                        </span>
+                      ))}
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -1289,176 +1330,132 @@ export default function Dashboard() {
           {/* Top Profile, 4 KPI Summary Cards & Standings (Mobile: ONLY visible on default 'result' tab) */}
           {(!isMobile || tab === "result") && (
             <>
-              {/* Top Header Card */}
-              <div
-            style={{
-              background: "#ffffff",
-              border: "1px solid #cbd5e1",
-              borderRadius: 16,
-              padding: isMobile ? "12px 14px" : "20px 24px",
-              display: "flex",
-              flexDirection: "column",
-              gap: isMobile ? 8 : 14,
-            }}
-          >
-            {/* Header Content */}
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "space-between",
-                gap: 10,
-              }}
-            >
-              {isMobile ? (
-                /* Mobile Clean Single-Row Name + Semester Badge */
-                <>
-                  <div style={{ minWidth: 0, flex: 1 }}>
-                    <h2
-                      style={{
-                        fontSize: 16,
-                        fontWeight: 800,
-                        color: "#0f172a",
-                        margin: 0,
-                        letterSpacing: "-0.3px",
-                        overflow: "hidden",
-                        textOverflow: "ellipsis",
-                        whiteSpace: "nowrap",
-                      }}
-                    >
-                      {studentName}
-                    </h2>
-                  </div>
-
-                  <span
+              {/* Top Header Card (Desktop Only - on mobile, student identity and badges are in top profile card) */}
+              {!isMobile && (
+                <div
+                  style={{
+                    background: "#ffffff",
+                    border: "1px solid #cbd5e1",
+                    borderRadius: 16,
+                    padding: "20px 24px",
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: 14,
+                  }}
+                >
+                  {/* Header Content */}
+                  <div
                     style={{
-                      display: "inline-flex",
+                      display: "flex",
                       alignItems: "center",
-                      gap: 4,
-                      background: "#eff6ff",
-                      color: "#2563eb",
-                      padding: "4px 9px",
-                      borderRadius: 7,
-                      fontSize: 11,
-                      fontWeight: 700,
-                      border: "1px solid #dbeafe",
-                      flexShrink: 0,
+                      justifyContent: "space-between",
+                      gap: 10,
                     }}
                   >
-                    <Activity size={12} />
-                    <span>Sem {selectedSem}</span>
-                  </span>
-                </>
-              ) : (
-                /* Desktop Header with Title & Action Buttons */
-                <>
-                  <div style={{ minWidth: 0, flex: 1 }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: 6, color: "#2563eb", fontSize: 12, fontWeight: 700, marginBottom: 2 }}>
-                      <Activity size={13} />
-                      <span>Academic Overview · Semester {selectedSem}</span>
+                    {/* Desktop Header with Title & Action Buttons */}
+                    <div style={{ minWidth: 0, flex: 1 }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 6, color: "#2563eb", fontSize: 12, fontWeight: 700, marginBottom: 2 }}>
+                        <Activity size={13} />
+                        <span>Academic Overview · Semester {selectedSem}</span>
+                      </div>
+                      <h1
+                        style={{
+                          fontSize: "clamp(22px, 2.5vw, 28px)",
+                          fontWeight: 800,
+                          color: "#0f172a",
+                          margin: 0,
+                          letterSpacing: "-0.4px",
+                        }}
+                      >
+                        {studentName}
+                      </h1>
                     </div>
-                    <h1
-                      style={{
-                        fontSize: "clamp(22px, 2.5vw, 28px)",
-                        fontWeight: 800,
-                        color: "#0f172a",
-                        margin: 0,
-                        letterSpacing: "-0.4px",
-                      }}
-                    >
-                      {studentName}
-                    </h1>
+
+                    <div style={{ display: "flex", gap: 8 }}>
+                      <button
+                        onClick={downloadFullTranscript}
+                        disabled={isDownloadingBatch}
+                        style={{
+                          display: "inline-flex",
+                          alignItems: "center",
+                          gap: 6,
+                          padding: "9px 16px",
+                          borderRadius: 9,
+                          border: "1px solid #cbd5e1",
+                          background: "#ffffff",
+                          color: "#334155",
+                          fontSize: 12.5,
+                          fontWeight: 600,
+                          cursor: isDownloadingBatch ? "not-allowed" : "pointer",
+                          fontFamily: "'DM Sans', sans-serif",
+                          transition: "all 0.15s",
+                        }}
+                      >
+                        <DownloadCloud size={14} color="#2563eb" />
+                        <span>Transcript</span>
+                      </button>
+                      <button
+                        onClick={() => navigate(`/analytics/${encodeStudentId(regNo)}`)}
+                        style={{
+                          display: "inline-flex",
+                          alignItems: "center",
+                          gap: 6,
+                          padding: "9px 18px",
+                          borderRadius: 9,
+                          border: "none",
+                          background: "#2563eb",
+                          color: "#ffffff",
+                          fontSize: 12.5,
+                          fontWeight: 700,
+                          cursor: "pointer",
+                          fontFamily: "'DM Sans', sans-serif",
+                          transition: "all 0.15s",
+                        }}
+                      >
+                        <TrendingUp size={14} />
+                        <span>Analytics</span>
+                      </button>
+                    </div>
                   </div>
 
-                  <div style={{ display: "flex", gap: 8 }}>
-                    <button
-                      onClick={downloadFullTranscript}
-                      disabled={isDownloadingBatch}
+                  {/* Achievement Badges Row (Smooth, Gap-Free Single Row) */}
+                  {badges.length > 0 && (
+                    <div
                       style={{
-                        display: "inline-flex",
-                        alignItems: "center",
+                        display: "flex",
                         gap: 6,
-                        padding: "9px 16px",
-                        borderRadius: 9,
-                        border: "1px solid #cbd5e1",
-                        background: "#ffffff",
-                        color: "#334155",
-                        fontSize: 12.5,
-                        fontWeight: 600,
-                        cursor: isDownloadingBatch ? "not-allowed" : "pointer",
-                        fontFamily: "'DM Sans', sans-serif",
-                        transition: "all 0.15s",
+                        overflowX: "visible",
+                        flexWrap: "wrap",
+                        paddingTop: 8,
+                        borderTop: "1px solid #f1f5f9",
+                        alignItems: "center",
                       }}
                     >
-                      <DownloadCloud size={14} color="#2563eb" />
-                      <span>Transcript</span>
-                    </button>
-                    <button
-                      onClick={() => navigate(`/analytics/${encodeStudentId(regNo)}`)}
-                      style={{
-                        display: "inline-flex",
-                        alignItems: "center",
-                        gap: 6,
-                        padding: "9px 18px",
-                        borderRadius: 9,
-                        border: "none",
-                        background: "#2563eb",
-                        color: "#ffffff",
-                        fontSize: 12.5,
-                        fontWeight: 700,
-                        cursor: "pointer",
-                        fontFamily: "'DM Sans', sans-serif",
-                        transition: "all 0.15s",
-                      }}
-                    >
-                      <TrendingUp size={14} />
-                      <span>Analytics</span>
-                    </button>
-                  </div>
-                </>
+                      {badges.map((b, i) => (
+                        <span
+                          key={i}
+                          style={{
+                            background: b.color + "12",
+                            color: b.color,
+                            border: `1px solid ${b.color}30`,
+                            padding: "4px 10px",
+                            borderRadius: 999,
+                            fontSize: 11,
+                            fontWeight: 700,
+                            display: "inline-flex",
+                            alignItems: "center",
+                            gap: 5,
+                            whiteSpace: "nowrap",
+                            flexShrink: 0,
+                          }}
+                        >
+                          {b.icon} {b.label}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                </div>
               )}
-            </div>
-
-            {/* Achievement Badges Row (Smooth, Gap-Free Single Row) */}
-            {badges.length > 0 && (
-              <div
-                style={{
-                  display: "flex",
-                  gap: 6,
-                  overflowX: isMobile ? "auto" : "visible",
-                  flexWrap: isMobile ? "nowrap" : "wrap",
-                  paddingTop: isMobile ? 6 : 8,
-                  borderTop: "1px solid #f1f5f9",
-                  alignItems: "center",
-                  WebkitOverflowScrolling: "touch",
-                  scrollbarWidth: "none",
-                  msOverflowStyle: "none",
-                }}
-              >
-                {badges.map((b, i) => (
-                  <span
-                    key={i}
-                    style={{
-                      background: b.color + "12",
-                      color: b.color,
-                      border: `1px solid ${b.color}30`,
-                      padding: "4px 10px",
-                      borderRadius: 999,
-                      fontSize: 11,
-                      fontWeight: 700,
-                      display: "inline-flex",
-                      alignItems: "center",
-                      gap: 5,
-                      whiteSpace: "nowrap",
-                      flexShrink: 0,
-                    }}
-                  >
-                    {b.icon} {b.label}
-                  </span>
-                ))}
-              </div>
-            )}
-          </div>
 
           {/* 4 Hero Stat Cards (2x2 on Mobile, 4 in row on Desktop) */}
           <div
