@@ -32,6 +32,8 @@ import {
   calculateAttendance,
   estimateTargetReachDate,
   generateDateWiseRecoveryRoadmap,
+  getHolidayInfo,
+  getAcademicCalendarDateStatus,
   TIME_SLOTS,
 } from "../utils/timetableHelper";
 
@@ -60,7 +62,7 @@ export default function SmartBunkAnalyzer({
     }));
   };
 
-  // 1. Weekly Day-by-Day Bunk Safety Intelligence Engine
+  // 1. Weekly Day-by-Day Bunk Safety Intelligence Engine (Follows Timetable & Academic Calendar)
   const weeklyBunkAnalysis = useMemo(() => {
     const subjectMap = new Map();
     allSectionSubjects.forEach((s) => subjectMap.set(s.subjectName, s));
@@ -74,14 +76,9 @@ export default function SmartBunkAnalyzer({
     const dayMap = { Monday: 1, Tuesday: 2, Wednesday: 3, Thursday: 4, Friday: 5, Saturday: 6 };
 
     return DAYS.map((day) => {
-      const daySchedule = getDaySchedule(selectedSection, day) || [];
-      const scheduledPeriods = daySchedule.filter(
-        (p) => !p.isFree && p.subject && p.subject !== "No Class / Free"
-      );
-
-      // Compute actual calendar date for this day in current week
+      // Compute actual calendar date for this day in current/upcoming week
       const targetDayNum = dayMap[day];
-      const dayDiff = targetDayNum - (currentDayNum === 0 ? 7 : currentDayNum);
+      const dayDiff = currentDayNum === 0 ? targetDayNum : targetDayNum - currentDayNum;
       const calendarDate = new Date(today);
       calendarDate.setDate(today.getDate() + dayDiff);
       const dateFormatted = calendarDate.toLocaleDateString("en-IN", {
@@ -98,6 +95,37 @@ export default function SmartBunkAnalyzer({
       } else if (dayDiff === 1) {
         dayRelativeState = "tomorrow";
       }
+
+      // Check official university holiday and examination suspension
+      const hol = getHolidayInfo(calendarDate);
+      const acStatus = getAcademicCalendarDateStatus(calendarDate);
+      const isHoliday = Boolean(hol?.isHoliday);
+      const isExam = Boolean(acStatus?.classesSuspended || acStatus?.isExam);
+
+      if (isHoliday || isExam) {
+        return {
+          day,
+          dateFormatted,
+          calendarDate: new Date(calendarDate),
+          dayRelativeState,
+          isHoliday,
+          holidayTitle: hol?.title || "University Holiday",
+          isExam,
+          examTitle: acStatus?.title || "Examinations",
+          totalClasses: 0,
+          periods: [],
+          canBunkAllDay: true,
+          criticalPeriodsCount: 0,
+          dayStatus: isHoliday ? "HOLIDAY" : "EXAM",
+          simulatedOverallPercentage: Number(currentOverallPct.toFixed(2)),
+          overallDelta: 0,
+        };
+      }
+
+      const daySchedule = getDaySchedule(selectedSection, day) || [];
+      const scheduledPeriods = daySchedule.filter(
+        (p) => !p.isFree && p.subject && p.subject !== "No Class / Free"
+      );
 
       let canBunkAllDay = true;
       let criticalPeriodsCount = 0;
@@ -571,7 +599,7 @@ export default function SmartBunkAnalyzer({
                   color: isSelected ? "#94a3b8" : isPast ? "#94a3b8" : "#64748b",
                 }}
               >
-                {dayData.dateFormatted} &bull; {dayData.totalClasses} Cls
+                {dayData.dateFormatted} &bull; {dayData.isHoliday ? "Holiday" : dayData.isExam ? "Exams" : `${dayData.totalClasses} Cls`}
               </span>
 
               <span
@@ -583,6 +611,10 @@ export default function SmartBunkAnalyzer({
                   background: isSelected
                     ? isPast
                       ? "#334155"
+                      : dayData.isHoliday
+                      ? "#d97706"
+                      : dayData.isExam
+                      ? "#2563eb"
                       : isSafe
                       ? "#059669"
                       : isWarning
@@ -590,6 +622,10 @@ export default function SmartBunkAnalyzer({
                       : "#dc2626"
                     : isPast
                     ? "#f1f5f9"
+                    : dayData.isHoliday
+                    ? "#fffbeb"
+                    : dayData.isExam
+                    ? "#eff6ff"
                     : isToday
                     ? "#eff6ff"
                     : isSafe
@@ -601,6 +637,10 @@ export default function SmartBunkAnalyzer({
                     ? "#ffffff"
                     : isPast
                     ? "#64748b"
+                    : dayData.isHoliday
+                    ? "#d97706"
+                    : dayData.isExam
+                    ? "#2563eb"
                     : isToday
                     ? "#1d4ed8"
                     : isSafe
@@ -614,6 +654,10 @@ export default function SmartBunkAnalyzer({
               >
                 {isPast
                   ? "Completed"
+                  : dayData.isHoliday
+                  ? "Holiday"
+                  : dayData.isExam
+                  ? "Exams"
                   : isToday
                   ? "Today"
                   : isTomorrow
@@ -645,161 +689,215 @@ export default function SmartBunkAnalyzer({
             {/* Day Hero Verdict Card */}
             <div
               style={{
-                background: selectedDayData.canBunkAllDay
+                background: selectedDayData.isHoliday
+                  ? "#fffbeb"
+                  : selectedDayData.isExam
+                  ? "#eff6ff"
+                  : selectedDayData.canBunkAllDay
                   ? "#f0fdf4"
                   : selectedDayData.dayStatus === "WARNING"
                   ? "#fffbeb"
                   : "#fef2f2",
                 border: `1.5px solid ${
-                  selectedDayData.canBunkAllDay
+                  selectedDayData.isHoliday
+                    ? "#fde68a"
+                    : selectedDayData.isExam
+                    ? "#bfdbfe"
+                    : selectedDayData.canBunkAllDay
                     ? "#86efac"
                     : selectedDayData.dayStatus === "WARNING"
                     ? "#fde68a"
                     : "#fca5a5"
                 }`,
-              borderRadius: 16,
-              padding: isMobile ? "14px 16px" : "18px 22px",
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-              flexWrap: "wrap",
-              gap: 12,
-              boxShadow: "0 2px 8px rgba(0,0,0,0.02)",
-            }}
-          >
-            <div style={{ flex: 1, minWidth: 260 }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                {selectedDayData.canBunkAllDay ? (
-                  <CheckCircle2 size={18} color="#16a34a" />
-                ) : (
-                  <AlertTriangle
-                    size={18}
-                    color={
-                      selectedDayData.dayStatus === "WARNING"
-                        ? "#d97706"
-                        : "#dc2626"
-                    }
-                  />
-                )}
-                <h3
-                  style={{
-                    fontSize: isMobile ? 15 : 17,
-                    fontWeight: 800,
-                    color: selectedDayData.canBunkAllDay
-                      ? "#166534"
-                      : selectedDayData.dayStatus === "WARNING"
-                      ? "#92400e"
-                      : "#991b1b",
-                    margin: 0,
-                  }}
-                >
-                  {selectedDayData.canBunkAllDay
-                    ? `Full Day Leave is 100% Safe on ${selectedDayData.day}`
-                    : `Caution on ${selectedDayData.day} — ${selectedDayData.criticalPeriodsCount} Critical Class(es)`}
-                </h3>
-              </div>
-
-              <p
-                style={{
-                  fontSize: 12.5,
-                  color: selectedDayData.canBunkAllDay
-                    ? "#15803d"
-                    : selectedDayData.dayStatus === "WARNING"
-                    ? "#b45309"
-                    : "#b91c1c",
-                  margin: "6px 0 0 0",
-                  lineHeight: 1.45,
-                }}
-              >
-                {selectedDayData.canBunkAllDay
-                  ? `You can safely miss all ${selectedDayData.totalClasses} classes scheduled on ${selectedDayData.day}. Your overall aggregate will remain at ${selectedDayData.simulatedOverallPercentage}% (well above 75%), and all individual subjects will stay eligible.`
-                  : `Skipping the entire day causes ${selectedDayData.criticalPeriodsCount} subject(s) to fall below the 75% cutoff. You can skip the green-badged classes, but you must attend the red-badged classes.`}
-              </p>
-            </div>
-
-            <div
-              style={{
-                background: "#ffffff",
-                border: "1px solid #e2e8f0",
-                padding: "10px 16px",
-                borderRadius: 12,
-                textAlign: "center",
-                minWidth: 140,
-              }}
-            >
-              <span
-                style={{ fontSize: 10.5, fontWeight: 700, color: "#64748b" }}
-              >
-                Aggregate if Day Skipped
-              </span>
-              <div
-                style={{
-                  fontSize: isMobile ? 18 : 22,
-                  fontWeight: 900,
-                  color:
-                    selectedDayData.simulatedOverallPercentage >= 75
-                      ? "#059669"
-                      : "#dc2626",
-                  marginTop: 2,
-                }}
-              >
-                {selectedDayData.simulatedOverallPercentage}%
-              </div>
-              <span
-                style={{ fontSize: 10, fontWeight: 800, color: "#64748b" }}
-              >
-                Delta: {selectedDayData.overallDelta}%
-              </span>
-            </div>
-          </div>
-
-          {/* ═══════════════════════════════════════════════════════════════
-              PERIOD-BY-PERIOD SAFETY BREAKDOWN FOR THIS DAY
-          ═══════════════════════════════════════════════════════════════ */}
-          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-            <div
-              style={{
+                borderRadius: 16,
+                padding: isMobile ? "14px 16px" : "18px 22px",
                 display: "flex",
                 justifyContent: "space-between",
                 alignItems: "center",
+                flexWrap: "wrap",
+                gap: 12,
+                boxShadow: "0 2px 8px rgba(0,0,0,0.02)",
               }}
             >
-              <h4
-                style={{
-                  fontSize: 14.5,
-                  fontWeight: 800,
-                  color: "#0f172a",
-                  margin: 0,
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 6,
-                }}
-              >
-                <Clock size={16} color="#2563eb" />
-                <span>
-                  Period-by-Period Safety Breakdown for {selectedDayData.day}
-                </span>
-              </h4>
-              <span style={{ fontSize: 12, color: "#64748b", fontWeight: 700 }}>
-                {selectedDayData.periods.length} Scheduled Classes
-              </span>
-            </div>
+              <div style={{ flex: 1, minWidth: 260 }}>
+                {selectedDayData.isHoliday ? (
+                  <>
+                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                      <Sun size={18} color="#d97706" />
+                      <h3 style={{ fontSize: isMobile ? 15 : 17, fontWeight: 800, color: "#92400e", margin: 0 }}>
+                        Official University Holiday &bull; {selectedDayData.holidayTitle}
+                      </h3>
+                    </div>
+                    <p style={{ fontSize: 12.5, color: "#b45309", margin: "6px 0 0 0", lineHeight: 1.45 }}>
+                      University is closed on {selectedDayData.day} in observance of {selectedDayData.holidayTitle}. No classroom lectures or labs are conducted, so your attendance is unaffected (0% change).
+                    </p>
+                  </>
+                ) : selectedDayData.isExam ? (
+                  <>
+                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                      <Info size={18} color="#2563eb" />
+                      <h3 style={{ fontSize: isMobile ? 15 : 17, fontWeight: 800, color: "#1e40af", margin: 0 }}>
+                        Examinations &bull; {selectedDayData.examTitle}
+                      </h3>
+                    </div>
+                    <p style={{ fontSize: 12.5, color: "#1d4ed8", margin: "6px 0 0 0", lineHeight: 1.45 }}>
+                      Regular classroom teaching is suspended on {selectedDayData.day} as per official academic calendar for examinations.
+                    </p>
+                  </>
+                ) : (
+                  <>
+                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                      {selectedDayData.canBunkAllDay ? (
+                        <CheckCircle2 size={18} color="#16a34a" />
+                      ) : (
+                        <AlertTriangle
+                          size={18}
+                          color={
+                            selectedDayData.dayStatus === "WARNING"
+                              ? "#d97706"
+                              : "#dc2626"
+                          }
+                        />
+                      )}
+                      <h3
+                        style={{
+                          fontSize: isMobile ? 15 : 17,
+                          fontWeight: 800,
+                          color: selectedDayData.canBunkAllDay
+                            ? "#166534"
+                            : selectedDayData.dayStatus === "WARNING"
+                            ? "#92400e"
+                            : "#991b1b",
+                          margin: 0,
+                        }}
+                      >
+                        {selectedDayData.canBunkAllDay
+                          ? `Full Day Leave is 100% Safe on ${selectedDayData.day}`
+                          : `Caution on ${selectedDayData.day} — ${selectedDayData.criticalPeriodsCount} Critical Class(es)`}
+                      </h3>
+                    </div>
 
-            {selectedDayData.periods.length === 0 ? (
+                    <p
+                      style={{
+                        fontSize: 12.5,
+                        color: selectedDayData.canBunkAllDay
+                          ? "#15803d"
+                          : selectedDayData.dayStatus === "WARNING"
+                          ? "#b45309"
+                          : "#b91c1c",
+                        margin: "6px 0 0 0",
+                        lineHeight: 1.45,
+                      }}
+                    >
+                      {selectedDayData.canBunkAllDay
+                        ? `You can safely miss all ${selectedDayData.totalClasses} classes scheduled on ${selectedDayData.day}. Your overall aggregate will remain at ${selectedDayData.simulatedOverallPercentage}% (well above 75%), and all individual subjects will stay eligible.`
+                        : `Skipping the entire day causes ${selectedDayData.criticalPeriodsCount} subject(s) to fall below the 75% cutoff. You can skip the green-badged classes, but you must attend the red-badged classes.`}
+                    </p>
+                  </>
+                )}
+              </div>
+
               <div
                 style={{
-                  background: "#ffffff",
-                  padding: 24,
-                  borderRadius: 14,
+                  background: selectedDayData.isHoliday ? "#fffbeb" : selectedDayData.isExam ? "#eff6ff" : "#ffffff",
+                  border: `1px solid ${selectedDayData.isHoliday ? "#fde68a" : selectedDayData.isExam ? "#bfdbfe" : "#e2e8f0"}`,
+                  padding: "10px 16px",
+                  borderRadius: 12,
                   textAlign: "center",
-                  color: "#64748b",
-                  fontSize: 13,
-                  border: "1px solid #e2e8f0",
+                  minWidth: 140,
                 }}
               >
-                No classes scheduled on this day.
+                <span
+                  style={{ fontSize: 10.5, fontWeight: 700, color: selectedDayData.isHoliday ? "#92400e" : selectedDayData.isExam ? "#1e40af" : "#64748b" }}
+                >
+                  {selectedDayData.isHoliday || selectedDayData.isExam ? "Calendar Status" : "Aggregate if Day Skipped"}
+                </span>
+                <div
+                  style={{
+                    fontSize: isMobile ? 18 : 22,
+                    fontWeight: 900,
+                    color: selectedDayData.isHoliday
+                      ? "#d97706"
+                      : selectedDayData.isExam
+                      ? "#2563eb"
+                      : selectedDayData.simulatedOverallPercentage >= 75
+                      ? "#059669"
+                      : "#dc2626",
+                    marginTop: 2,
+                  }}
+                >
+                  {selectedDayData.isHoliday
+                    ? "Holiday"
+                    : selectedDayData.isExam
+                    ? "Exams"
+                    : `${selectedDayData.simulatedOverallPercentage}%`}
+                </div>
+                <span
+                  style={{ fontSize: 10, fontWeight: 800, color: selectedDayData.isHoliday ? "#b45309" : selectedDayData.isExam ? "#3b82f6" : "#64748b" }}
+                >
+                  {selectedDayData.isHoliday
+                    ? "No Classes Held"
+                    : selectedDayData.isExam
+                    ? "Classes Suspended"
+                    : `Delta: ${selectedDayData.overallDelta}%`}
+                </span>
               </div>
-            ) : (
+            </div>
+
+            {/* ═══════════════════════════════════════════════════════════════
+                PERIOD-BY-PERIOD SAFETY BREAKDOWN FOR THIS DAY
+            ═══════════════════════════════════════════════════════════════ */}
+            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                }}
+              >
+                <h4
+                  style={{
+                    fontSize: 14.5,
+                    fontWeight: 800,
+                    color: "#0f172a",
+                    margin: 0,
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 6,
+                  }}
+                >
+                  <Clock size={16} color="#2563eb" />
+                  <span>
+                    Period-by-Period Safety Breakdown for {selectedDayData.day}
+                  </span>
+                </h4>
+                <span style={{ fontSize: 12, color: "#64748b", fontWeight: 700 }}>
+                  {selectedDayData.isHoliday || selectedDayData.isExam
+                    ? "0 Scheduled Classes"
+                    : `${selectedDayData.periods.length} Scheduled Classes`}
+                </span>
+              </div>
+
+              {selectedDayData.periods.length === 0 ? (
+                <div
+                  style={{
+                    background: selectedDayData.isHoliday ? "#fffbeb" : selectedDayData.isExam ? "#eff6ff" : "#ffffff",
+                    padding: 24,
+                    borderRadius: 14,
+                    textAlign: "center",
+                    color: selectedDayData.isHoliday ? "#92400e" : selectedDayData.isExam ? "#1e40af" : "#64748b",
+                    fontSize: 13,
+                    fontWeight: 600,
+                    border: `1px solid ${selectedDayData.isHoliday ? "#fde68a" : selectedDayData.isExam ? "#bfdbfe" : "#e2e8f0"}`,
+                  }}
+                >
+                  {selectedDayData.isHoliday
+                    ? `Official Holiday: ${selectedDayData.holidayTitle || "Holiday"}. No academic classes or laboratory sessions scheduled for Section ${selectedSection}.`
+                    : selectedDayData.isExam
+                    ? `Classes Suspended: ${selectedDayData.examTitle || "Examination Period"}. Regular timetable lectures are suspended.`
+                    : `No classes scheduled on this day.`}
+                </div>
+              ) : (
               <div
                 style={{
                   display: "grid",
@@ -1256,7 +1354,7 @@ export default function SmartBunkAnalyzer({
                         fontWeight: 700,
                       }}
                     >
-                      {classCount} classes
+                      {dayAnalysis?.isHoliday ? "Holiday" : dayAnalysis?.isExam ? "Exams" : `${classCount} classes`}
                     </span>
                   </button>
                 );
@@ -1352,17 +1450,17 @@ export default function SmartBunkAnalyzer({
                             style={{
                               fontSize: 9,
                               fontWeight: 900,
-                              background: d.canBunkAllDay ? "#f0fdf4" : "#fff7ed",
-                              color: d.canBunkAllDay ? "#16a34a" : "#ea580c",
+                              background: d.isHoliday ? "#fffbeb" : d.isExam ? "#eff6ff" : d.canBunkAllDay ? "#f0fdf4" : "#fff7ed",
+                              color: d.isHoliday ? "#d97706" : d.isExam ? "#2563eb" : d.canBunkAllDay ? "#16a34a" : "#ea580c",
                               padding: "1px 4px",
                               borderRadius: 4,
                             }}
                           >
-                            {d.canBunkAllDay ? "SAFE" : "RISK"}
+                            {d.isHoliday ? "HOLIDAY" : d.isExam ? "EXAMS" : d.canBunkAllDay ? "SAFE" : "RISK"}
                           </span>
                         </div>
                         <div style={{ fontSize: 10.5, color: "#64748b" }}>
-                          {d.totalClasses} classes ({d.overallDelta}%)
+                          {d.isHoliday ? "Official Holiday" : d.isExam ? "Exams Suspended" : `${d.totalClasses} classes (${d.overallDelta}%)`}
                         </div>
                       </div>
                     ))}
