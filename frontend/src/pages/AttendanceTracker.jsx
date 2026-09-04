@@ -2570,6 +2570,22 @@ export default function AttendanceTracker() {
                   >
                     {selectedDayName}, {formatFriendlyDate(selectedCheckInDateKey)}
                   </span>
+                  {selectedHolidayInfo?.isOptional && (
+                    <span
+                      style={{
+                        fontSize: 10.5,
+                        fontWeight: 800,
+                        padding: "2px 8px",
+                        borderRadius: 999,
+                        background: "#fffbeb",
+                        color: "#92400e",
+                        border: "1px solid #fde68a",
+                      }}
+                      title="Optional Holiday: Classes are held as normal according to CUTM academic rules"
+                    >
+                      Optional Holiday ({selectedHolidayInfo.title}) · Classes Held
+                    </span>
+                  )}
                   {/* Inline Section Routine Selector */}
                   <div
                     style={{
@@ -2618,6 +2634,8 @@ export default function AttendanceTracker() {
                     ? `Official Holiday: ${selectedHolidayInfo?.title || "University Holiday"}. Regular classes are not scheduled.`
                     : isSelectedExam
                     ? `Examination Suspension: ${selectedCalendarStatus?.title || "Regular classes suspended for exams"}.`
+                    : selectedHolidayInfo?.isOptional
+                    ? `Optional Holiday (${selectedHolidayInfo.title}): Classes conducted as scheduled. Following Section ${selectedSection} routine.`
                     : `Following Section ${selectedSection} routine. Mark or adjust attendance per class to auto-sync cloud records.`}
                 </p>
               </div>
