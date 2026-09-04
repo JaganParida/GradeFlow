@@ -26,30 +26,69 @@ router.get("/student", protectStudent, async (req, res) => {
       { $set: { status: "EXPIRED" } }
     );
 
-    const notifications = await StudentNotification.find({
+    const now = new Date();
+    const directFilter = {
       regNo,
       $or: [{ targetSessionId: null }, { targetSessionId: currentSessionId }],
       createdAt: { $gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) }, // Last 7 days
-    }).sort({ createdAt: -1 }).limit(10);
+    };
 
-    const unreadCount = await StudentNotification.countDocuments({
-      regNo,
-      $or: [{ targetSessionId: null }, { targetSessionId: currentSessionId }],
-      status: "UNREAD",
-      $and: [
-        {
-          $or: [
-            { expiresAt: null },
-            { expiresAt: { $gt: new Date() } },
-          ],
-        }
-      ],
+    const broadcastFilter = {
+      regNo: "ALL",
+      $or: [{ expiresAt: null }, { expiresAt: { $gt: now } }],
+      createdAt: { $gte: new Date(Date.now() - 14 * 24 * 60 * 60 * 1000) },
+    };
+
+    const [directList, rawBroadcastList] = await Promise.all([
+      StudentNotification.find(directFilter).sort({ createdAt: -1 }).limit(20).lean(),
+      StudentNotification.find(broadcastFilter).sort({ createdAt: -1 }).limit(30).lean(),
+    ]);
+
+    // Filter out broadcasts that this student has dismissed
+    const broadcastList = rawBroadcastList.filter((b) => {
+      if (!b.dismissedBy || b.dismissedBy.length === 0) return true;
+      return !b.dismissedBy.some((d) => {
+        if (typeof d === "string") return d === regNo;
+        if (d && typeof d === "object" && d.regNo) return d.regNo === regNo;
+        return false;
+      });
     });
+
+    // Map read status for broadcast notifications per student
+    const mappedBroadcasts = broadcastList.map((b) => {
+      const readEntry = (b.readBy || []).find((r) => {
+        if (typeof r === "string") return r === regNo;
+        if (r && typeof r === "object" && r.regNo) return r.regNo === regNo;
+        return false;
+      });
+      const isRead = Boolean(readEntry);
+      return {
+        ...b,
+        isRead,
+        status: isRead ? "READ" : "UNREAD",
+        readAt: (readEntry && typeof readEntry === "object") ? readEntry.readAt : (isRead ? b.createdAt : null),
+      };
+    });
+
+    // Combine direct notifications + active broadcast announcements
+    const combined = [...directList, ...mappedBroadcasts];
+    combined.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+
+    // Strictly limit to the 10 most recent notifications
+    const recentTen = combined.slice(0, 10);
+
+    // Count unread strictly among the recent 10 items
+    const unreadCount = recentTen.filter((n) => {
+      if (n.regNo === "ALL") {
+        return !n.isRead;
+      }
+      return n.status === "UNREAD";
+    }).length;
 
     return res.json({
       success: true,
       unreadCount,
-      notifications,
+      notifications: recentTen,
     });
   } catch (err) {
     console.error("Fetch notifications error:", err);
@@ -239,6 +278,7 @@ router.get("/stream", protectStudent, (req, res) => {
   authEventBus.on(`notification:${regNo}:${currentSessionId}`, onNotification);
   authEventBus.on(`notification:${regNo}`, onNotification);
   authEventBus.on(`session_revoked:${regNo}`, onSessionRevoked);
+  authEventBus.on("notification:ALL", onNotification);
 
   // Keep-alive heartbeat every 25s
   const heartbeat = setInterval(() => {
@@ -252,6 +292,7 @@ router.get("/stream", protectStudent, (req, res) => {
     authEventBus.off(`notification:${regNo}:${currentSessionId}`, onNotification);
     authEventBus.off(`notification:${regNo}`, onNotification);
     authEventBus.off(`session_revoked:${regNo}`, onSessionRevoked);
+    authEventBus.off("notification:ALL", onNotification);
     res.end();
   });
 });

@@ -371,6 +371,11 @@ export function AppProvider({ children }) {
   const [sessionRevokedNotice, setSessionRevokedNotice] = useState(null);
 
   const fetchNotifications = async () => {
+    if (!studentSession?.regNo || !studentSession?.sessionId) {
+      setNotifications([]);
+      setUnreadCount(0);
+      return;
+    }
     try {
       const res = await axios.get(`${API_BASE}/notifications/student`, { withCredentials: true });
       if (res.data?.success) {
@@ -807,6 +812,8 @@ export function AppProvider({ children }) {
     // 1. Immediately wipe in-memory state
     setStudentSession(null);
     setStudentData(null);
+    setNotifications([]);
+    setUnreadCount(0);
     setError("");
     setPendingDestination(null);
     setIsAuthModalOpen(false);
@@ -1034,6 +1041,8 @@ export function AppProvider({ children }) {
 
   const clearStudentData = () => {
     setStudentData(null);
+    setNotifications([]);
+    setUnreadCount(0);
     setError("");
   };
 

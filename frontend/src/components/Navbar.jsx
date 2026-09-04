@@ -802,10 +802,12 @@ export default function Navbar() {
 
           {/* Right Controls */}
           <div className="gf-navbar-right" style={{ display: "flex", alignItems: "center", gap: 10 }}>
-            {/* In-App Notification Bell & Device Approvals (Desktop) */}
-            <div className="gf-desktop-bell-wrapper">
-              <NotificationBell isMobile={false} />
-            </div>
+            {/* In-App Notification Bell & Device Approvals (Desktop) - Only when user is logged in */}
+            {hasActiveSession && (
+              <div className="gf-desktop-bell-wrapper">
+                <NotificationBell isMobile={false} />
+              </div>
+            )}
 
             {/* Search button (Accessible ONLY for Admin) */}
             {adminToken && (
@@ -1011,10 +1013,12 @@ export default function Navbar() {
               )}
             </div>
 
-            {/* Mobile Notification Bell */}
-            <div className="gf-mobile-bell-wrapper" style={{ display: "none" }}>
-              <NotificationBell isMobile={true} />
-            </div>
+            {/* Mobile Notification Bell - Only when user is logged in */}
+            {hasActiveSession && (
+              <div className="gf-mobile-bell-wrapper" style={{ display: "none" }}>
+                <NotificationBell isMobile={true} />
+              </div>
+            )}
 
             {/* Mobile Hamburger Toggle Button */}
             <button
