@@ -66,6 +66,8 @@ import {
   cleanSubjectBaseName,
   calculateAttendance,
   estimateTargetReachDate,
+  getHolidayInfo,
+  getAcademicCalendarDateStatus,
 } from "../utils/timetableHelper";
 import { isMatch } from "../utils/basketLogic";
 import SmartBunkAnalyzer from "../components/SmartBunkAnalyzer";
@@ -156,13 +158,43 @@ export default function AttendanceTracker() {
     studentData?.regNo ||
     "";
 
-  // Section State
+  // Section State (Loaded from cached choice, student profile, or auto-detected)
   const [selectedSection, setSelectedSection] = useState(() => {
+    try {
+      const cached = localStorage.getItem("gradeflow_selected_section");
+      if (cached && ALL_SECTIONS.includes(cached)) {
+        return cached;
+      }
+    } catch {}
     if (studentData?.section || studentData?.branch) {
       return normalizeSection(studentData.section || studentData.branch, currentRegNo);
     }
     return normalizeSection("CSE-A", currentRegNo);
   });
+
+  // Auto-sync section if studentData arrives asynchronously
+  useEffect(() => {
+    if (studentData?.section || studentData?.branch || studentData?.regNo) {
+      const detected = normalizeSection(studentData.section || studentData.branch, studentData.regNo);
+      setSelectedSection((prev) => {
+        if (prev === "CSE-A" && detected !== "CSE-A") {
+          try { localStorage.setItem("gradeflow_selected_section", detected); } catch {}
+          return detected;
+        }
+        return prev;
+      });
+    }
+  }, [studentData]);
+
+  // Handler for manual section switcher (instantly updates timetable & syncs to cloud)
+  function handleSectionChange(newSec) {
+    if (!newSec || !ALL_SECTIONS.includes(newSec)) return;
+    setSelectedSection(newSec);
+    try {
+      localStorage.setItem("gradeflow_selected_section", newSec);
+    } catch {}
+    syncAttendanceToDb(savedSubjects, allDailyLogs, targetGoal, newSec);
+  }
 
   // Helper for local calendar date key (YYYY-MM-DD in user's local timezone, resets at exact 12:00 AM midnight)
   function getLocalCalendarDateKey(d = new Date()) {
@@ -232,14 +264,20 @@ export default function AttendanceTracker() {
   const isSelectedToday = selectedCheckInDateKey === todayDateKey;
   const isSelectedYesterday = selectedCheckInDateKey === yesterdayDateKey;
 
+  // Check Official Holiday & Academic Calendar Status
+  const selectedHolidayInfo = useMemo(() => getHolidayInfo(selectedDateObj), [selectedDateObj]);
+  const selectedCalendarStatus = useMemo(() => getAcademicCalendarDateStatus(selectedDateObj), [selectedDateObj]);
+  const isSelectedHoliday = Boolean(selectedHolidayInfo?.isHoliday);
+  const isSelectedExam = Boolean(selectedCalendarStatus?.classesSuspended || selectedCalendarStatus?.isExam);
+
   const canGoPrev = selectedCheckInDateKey > minTrackingDateKey;
   const canGoNext = selectedCheckInDateKey < todayDateKey;
 
-  // Selected Day Timetable Schedule
+  // Selected Day Timetable Schedule (Respects Section Routine + Calendar Holidays & Exams)
   const selectedDayScheduleRaw = useMemo(() => {
-    if (isSelectedSunday) return [];
+    if (isSelectedSunday || isSelectedHoliday || isSelectedExam) return [];
     return getDaySchedule(selectedSection, selectedDayName);
-  }, [selectedSection, selectedDayName, isSelectedSunday, timetableVersion]);
+  }, [selectedSection, selectedDayName, isSelectedSunday, isSelectedHoliday, isSelectedExam, timetableVersion]);
 
   const selectedDayClasses = useMemo(() => {
     return (selectedDayScheduleRaw || [])
@@ -659,14 +697,15 @@ export default function AttendanceTracker() {
   const syncAttendanceToDb = async (
     updatedSaved = savedSubjects,
     updatedAllLogs = allDailyLogs,
-    goal = targetGoal
+    goal = targetGoal,
+    sectionToSync = selectedSection
   ) => {
     const regToSync = currentRegNo || studentSession?.regNo || studentData?.regNo;
     if (!regToSync) return;
     try {
       setAllDailyLogs(updatedAllLogs);
       await axios.post(`${API}/student/${regToSync}/attendance`, {
-        section: selectedSection,
+        section: sectionToSync || selectedSection,
         targetGoal: goal,
         savedSubjects: updatedSaved,
         dailyLogs: updatedAllLogs,
@@ -696,10 +735,6 @@ export default function AttendanceTracker() {
         if (!studentData || studentData.regNo !== targetReg) {
           sData = await fetchStudent(targetReg, 2, 800);
         }
-        if (sData && isMounted) {
-          const detected = normalizeSection(sData.section || sData.branch, sData.regNo);
-          setSelectedSection(detected);
-        }
 
         // 2. Fetch saved attendance from MongoDB
         const res = await axios.get(`${API}/student/${targetReg}/attendance`);
@@ -707,6 +742,27 @@ export default function AttendanceTracker() {
           const att = res.data.attendance;
           const loadedSubs = Array.isArray(att.savedSubjects) ? att.savedSubjects : [];
           setSavedSubjects(loadedSubs);
+
+          // Restore saved section from Database, student profile, or saved subject metadata
+          const savedSectionCandidate =
+            att.section ||
+            sData?.section ||
+            sData?.branch ||
+            loadedSubs.find((s) => s.section)?.section;
+
+          if (savedSectionCandidate) {
+            const detected = normalizeSection(savedSectionCandidate, sData?.regNo || targetReg);
+            setSelectedSection(detected);
+            try {
+              localStorage.setItem("gradeflow_selected_section", detected);
+            } catch {}
+          } else if (sData) {
+            const detected = normalizeSection(sData.section || sData.branch, sData.regNo);
+            setSelectedSection(detected);
+            try {
+              localStorage.setItem("gradeflow_selected_section", detected);
+            } catch {}
+          }
 
           // Check if student has actual non-zero saved attendance data in DB
           const hasRealAttendance = loadedSubs.length > 0 && loadedSubs.some((s) =>
@@ -2002,14 +2058,14 @@ export default function AttendanceTracker() {
                           </h2>
                         </div>
 
-                        <span
+                        <div
                           style={{
                             display: "inline-flex",
                             alignItems: "center",
-                            gap: 4.5,
+                            gap: 4,
                             background: "linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%)",
                             color: "#047857",
-                            padding: "4px 9px",
+                            padding: "3px 6px 3px 8px",
                             borderRadius: 8,
                             fontSize: 11.5,
                             fontWeight: 750,
@@ -2017,9 +2073,30 @@ export default function AttendanceTracker() {
                             flexShrink: 0,
                           }}
                         >
-                          <Building size={12} />
-                          <span>Sec {selectedSection}</span>
-                        </span>
+                          <Building size={12} color="#047857" />
+                          <select
+                            value={selectedSection}
+                            onChange={(e) => handleSectionChange(e.target.value)}
+                            aria-label="Change Section"
+                            style={{
+                              border: "none",
+                              background: "transparent",
+                              color: "#047857",
+                              fontSize: 11.5,
+                              fontWeight: 800,
+                              cursor: "pointer",
+                              outline: "none",
+                              padding: "0 2px",
+                              fontFamily: "'DM Sans', sans-serif",
+                            }}
+                          >
+                            {ALL_SECTIONS.map((sec) => (
+                              <option key={sec} value={sec}>
+                                {sec}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
                       </div>
 
                       {/* Row 2: Target Goal Segmented Control */}
@@ -2104,7 +2181,7 @@ export default function AttendanceTracker() {
                       <div style={{ minWidth: 0, flex: 1 }}>
                         <div style={{ display: "flex", alignItems: "center", gap: 6, color: "#059669", fontSize: 12, fontWeight: 700, marginBottom: 2 }}>
                           <Activity size={13} />
-                          <span>Attendance Intelligence · Section {selectedSection}</span>
+                          <span>Attendance Intelligence · Section {selectedSection} Routine</span>
                         </div>
                         <h1
                           style={{
@@ -2120,6 +2197,33 @@ export default function AttendanceTracker() {
                       </div>
 
                       <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                        {/* Section Selector */}
+                        <div style={{ display: "flex", alignItems: "center", gap: 5, background: "#ecfdf5", padding: "4px 8px", borderRadius: 6, border: "1px solid #a7f3d0" }}>
+                          <Building size={13} color="#059669" />
+                          <span style={{ fontSize: 11, fontWeight: 800, color: "#065f46" }}>Section:</span>
+                          <select
+                            value={selectedSection}
+                            onChange={(e) => handleSectionChange(e.target.value)}
+                            aria-label="Select Class Section"
+                            style={{
+                              border: "none",
+                              background: "transparent",
+                              color: "#059669",
+                              fontSize: 11.5,
+                              fontWeight: 800,
+                              cursor: "pointer",
+                              outline: "none",
+                              fontFamily: "'DM Sans', sans-serif",
+                            }}
+                          >
+                            {ALL_SECTIONS.map((sec) => (
+                              <option key={sec} value={sec}>
+                                {sec}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+
                         {/* Target Goal Selector */}
                         <div style={{ display: "flex", alignItems: "center", gap: 4, background: "#f8fafc", padding: "3px 6px", borderRadius: 6, border: "1px solid #e2e8f0" }}>
                           <span style={{ fontSize: 11, fontWeight: 800, color: "#64748b", marginRight: 2 }}>Target:</span>
@@ -2466,11 +2570,55 @@ export default function AttendanceTracker() {
                   >
                     {selectedDayName}, {formatFriendlyDate(selectedCheckInDateKey)}
                   </span>
+                  {/* Inline Section Routine Selector */}
+                  <div
+                    style={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: 4,
+                      background: "#f0fdf4",
+                      border: "1px solid #bbf7d0",
+                      padding: "2px 8px",
+                      borderRadius: 999,
+                      fontSize: 11,
+                      fontWeight: 700,
+                      color: "#15803d",
+                    }}
+                  >
+                    <Building size={11} color="#059669" />
+                    <span style={{ color: "#065f46" }}>Timetable:</span>
+                    <select
+                      value={selectedSection}
+                      onChange={(e) => handleSectionChange(e.target.value)}
+                      aria-label="Select Timetable Section for Daily Check-in"
+                      style={{
+                        border: "none",
+                        background: "transparent",
+                        color: "#059669",
+                        fontSize: 11,
+                        fontWeight: 800,
+                        cursor: "pointer",
+                        outline: "none",
+                        fontFamily: "'DM Sans', sans-serif",
+                        padding: 0,
+                      }}
+                    >
+                      {ALL_SECTIONS.map((sec) => (
+                        <option key={sec} value={sec}>
+                          {sec}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
                 </div>
                 <p style={{ fontSize: 12, color: "#64748b", margin: "2px 0 0 0" }}>
                   {isSelectedSunday
                     ? "Sunday is a scheduled weekend holiday. No academic attendance is recorded."
-                    : "Mark or adjust attendance per class to auto-increment and sync your cloud records in real time."}
+                    : isSelectedHoliday
+                    ? `Official Holiday: ${selectedHolidayInfo?.title || "University Holiday"}. Regular classes are not scheduled.`
+                    : isSelectedExam
+                    ? `Examination Suspension: ${selectedCalendarStatus?.title || "Regular classes suspended for exams"}.`
+                    : `Following Section ${selectedSection} routine. Mark or adjust attendance per class to auto-sync cloud records.`}
                 </p>
               </div>
             </div>
@@ -2505,20 +2653,30 @@ export default function AttendanceTracker() {
                 const absentCount = Object.values(activeDateLogs).filter((v) => v === "absent").length;
                 const totalLogged = presentCount + absentCount;
 
-                if (isSelectedSunday || selectedDayClasses.length === 0) {
+                if (isSelectedSunday || isSelectedHoliday || isSelectedExam || selectedDayClasses.length === 0) {
+                  const label = isSelectedSunday
+                    ? "Weekend · No Classes"
+                    : isSelectedHoliday
+                    ? `Holiday · ${selectedHolidayInfo?.title || "No Classes"}`
+                    : isSelectedExam
+                    ? `Exams · Classes Suspended`
+                    : "No Classes";
+                  const isGold = isSelectedSunday || isSelectedHoliday;
+                  const isBlue = isSelectedExam;
+
                   return (
                     <span
                       style={{
                         fontSize: 11.5,
                         fontWeight: 800,
-                        color: isSelectedSunday ? "#d97706" : "#64748b",
-                        background: isSelectedSunday ? "#fffbeb" : "#f1f5f9",
-                        border: `1px solid ${isSelectedSunday ? "#fde68a" : "#e2e8f0"}`,
+                        color: isGold ? "#d97706" : isBlue ? "#2563eb" : "#64748b",
+                        background: isGold ? "#fffbeb" : isBlue ? "#eff6ff" : "#f1f5f9",
+                        border: `1px solid ${isGold ? "#fde68a" : isBlue ? "#bfdbfe" : "#e2e8f0"}`,
                         padding: "4px 10px",
                         borderRadius: 8,
                       }}
                     >
-                      {isSelectedSunday ? "Weekend · No Classes" : "No Classes"}
+                      {label}
                     </span>
                   );
                 }
@@ -2697,27 +2855,85 @@ export default function AttendanceTracker() {
           {selectedDayClasses.length === 0 ? (
             <div
               style={{
-                background: isSelectedSunday ? "#fffbeb" : "#f8fafc",
-                border: `1.5px dashed ${isSelectedSunday ? "#fde68a" : "#cbd5e1"}`,
+                background: isSelectedSunday
+                  ? "#fffbeb"
+                  : isSelectedHoliday
+                  ? "#fffbeb"
+                  : isSelectedExam
+                  ? "#eff6ff"
+                  : "#f8fafc",
+                border: `1.5px dashed ${
+                  isSelectedSunday
+                    ? "#fde68a"
+                    : isSelectedHoliday
+                    ? "#fde68a"
+                    : isSelectedExam
+                    ? "#bfdbfe"
+                    : "#cbd5e1"
+                }`,
                 borderRadius: 14,
-                padding: "20px 24px",
+                padding: "24px 20px",
                 textAlign: "center",
-                color: isSelectedSunday ? "#92400e" : "#64748b",
+                color: isSelectedSunday || isSelectedHoliday
+                  ? "#92400e"
+                  : isSelectedExam
+                  ? "#1e40af"
+                  : "#64748b",
                 fontSize: 13.5,
                 fontWeight: 600,
                 display: "flex",
-                flexDirection: isMobile ? "column" : "row",
+                flexDirection: "column",
                 alignItems: "center",
                 justifyContent: "center",
-                gap: 10,
+                gap: 8,
               }}
             >
-              <Info size={18} color={isSelectedSunday ? "#d97706" : "#64748b"} />
-              <span>
+              <div
+                style={{
+                  width: 38,
+                  height: 38,
+                  borderRadius: "50%",
+                  background: isSelectedSunday || isSelectedHoliday
+                    ? "#fef3c7"
+                    : isSelectedExam
+                    ? "#dbeafe"
+                    : "#f1f5f9",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  marginBottom: 2,
+                }}
+              >
+                {isSelectedSunday ? (
+                  <CalendarIcon size={18} color="#d97706" />
+                ) : isSelectedHoliday ? (
+                  <Sun size={18} color="#d97706" />
+                ) : isSelectedExam ? (
+                  <Info size={18} color="#2563eb" />
+                ) : (
+                  <Info size={18} color="#64748b" />
+                )}
+              </div>
+
+              <div style={{ fontSize: 15, fontWeight: 800 }}>
                 {isSelectedSunday
-                  ? `Sunday is a weekend holiday. No classes are scheduled for Section ${selectedSection}.`
-                  : `No academic classes scheduled for ${selectedDayName} (Section ${selectedSection}).`}
-              </span>
+                  ? "Sunday Weekend Holiday"
+                  : isSelectedHoliday
+                  ? `Official Holiday · ${selectedHolidayInfo?.title || "University Holiday"}`
+                  : isSelectedExam
+                  ? `Academic Routine Suspended · ${selectedCalendarStatus?.title || "Examination"}`
+                  : `No Classes Scheduled for ${selectedDayName}`}
+              </div>
+
+              <div style={{ fontSize: 12.5, fontWeight: 500, maxWidth: 520, lineHeight: 1.45, opacity: 0.9 }}>
+                {isSelectedSunday
+                  ? `No academic classes are scheduled on Sundays for Section ${selectedSection}.`
+                  : isSelectedHoliday
+                  ? `Today is recognized as an official holiday (${selectedHolidayInfo?.title || "Holiday"}). No classes are conducted for Section ${selectedSection}.`
+                  : isSelectedExam
+                  ? `Regular classroom teaching is suspended in accordance with the official academic calendar for examinations.`
+                  : `There are no scheduled lectures, tutorials, or labs on ${selectedDayName} for Section ${selectedSection}. You can switch sections above if you belong to another batch.`}
+              </div>
             </div>
           ) : (
             <AnimatePresence mode="wait">

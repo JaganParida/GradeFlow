@@ -586,15 +586,24 @@ export function getDayName(dateObj) {
 export function normalizeSection(rawSection, regNo = "") {
   let sec = String(rawSection || "").trim().toUpperCase();
 
-  if (sec.startsWith("CSE-")) {
-    if (ALL_SECTIONS.includes(sec)) return sec;
+  if (sec.startsWith("CSE-") && ALL_SECTIONS.includes(sec)) {
+    return sec;
   }
 
-  if (sec.length === 1 && ALL_SECTIONS.includes(`CSE-${sec}`)) {
+  if (ALL_SECTIONS.includes(`CSE-${sec}`)) {
     return `CSE-${sec}`;
   }
 
-  // Detect section from RegNo if available
+  // Match patterns like "SECTION B", "SEC B", "SEC-B", "CSE B", "CSE_B", "BATCH B", "B (CSE)"
+  const secLetterMatch = sec.match(/(?:CSE[-_\s]*|SEC(?:TION)?[-_\s]*|BATCH[-_\s]*|^)([A-J])(?:\b|\s|\))/i);
+  if (secLetterMatch && secLetterMatch[1]) {
+    const candidate = `CSE-${secLetterMatch[1].toUpperCase()}`;
+    if (ALL_SECTIONS.includes(candidate)) {
+      return candidate;
+    }
+  }
+
+  // Detect section from RegNo if available (for 2023 batch CSE)
   if (regNo && /^\d{2}030112[0-9]/.test(String(regNo))) {
     const num = parseInt(String(regNo).slice(-3), 10);
     if (num >= 1 && num <= 60) return "CSE-A";
