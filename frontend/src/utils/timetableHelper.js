@@ -663,35 +663,181 @@ export function formatDurationMinutes(minutes = 0) {
 }
 
 /**
- * Find Current Active Period & Next Upcoming Period
+ * CUTM Academic Session Core Boundaries (Odd Semester 2026)
  */
-export function getLiveScheduleOverview(section, dateObj = new Date()) {
-  const holidayInfo = getHolidayInfo(dateObj);
-  const dayName = getDayName(dateObj);
+export const CUTM_SESSION_BOUNDARIES = {
+  sessionStart: "2026-07-06",
+  lastDateOfInstruction: "2026-10-31",
+  oddSemesterEnd: "2026-11-28",
+};
 
-  if (holidayInfo?.isHoliday) {
+/**
+ * Evaluates full academic calendar and holiday context for any given date:
+ * - Checks if date is outside session (before July 6, 2026 or after Oct 31, 2026)
+ * - Checks Sundays & 2nd Saturdays (closed non-instructional days)
+ * - Checks Official University Holidays & Observations (closed non-instructional days)
+ * - Checks University Examination periods (classes suspended)
+ * - Checks Optional Holidays (OPEN, instructional classes ARE conducted)
+ * - Returns unified status, user-friendly labels, and working status
+ */
+export function getDateInstructionalContext(dateObj = new Date()) {
+  const d = new Date(dateObj);
+  d.setHours(0, 0, 0, 0);
+  const dateKey = formatDateKey(d);
+  const dayName = getDayName(d);
+  const isSun = isSunday(d);
+  const is2ndSat = isSecondSaturday(d);
+
+  // 1. Check Holiday Information
+  const holidayInfo = getHolidayInfo(d);
+  const isOptionalHoliday = Boolean(holidayInfo?.isOptional);
+  const isOfficialHoliday = Boolean(holidayInfo?.isHoliday); // true for gazetted holidays, observation days, sundays, 2nd saturdays; false for optional holidays!
+
+  // 2. Check Academic Calendar Status (Session boundaries, exam suspensions)
+  const calendarStatus = getAcademicCalendarDateStatus(d);
+  const isExam = Boolean(calendarStatus?.classesSuspended || calendarStatus?.isExam);
+  const isOutsideSession = Boolean(calendarStatus?.isOutsideSession);
+
+  // 3. Determine if instructional classes are conducted
+  let isInstructional = true;
+  let statusType = "INSTRUCTIONAL";
+  let title = "Regular Academic Day";
+  let description = "Classes are conducted as per timetable schedule.";
+
+  if (isSun) {
+    isInstructional = false;
+    statusType = "SUNDAY";
+    title = "Sunday (Weekend Holiday)";
+    description = "University is closed on Sundays. No classes are scheduled.";
+  } else if (is2ndSat) {
+    isInstructional = false;
+    statusType = "SECOND_SATURDAY";
+    title = "2nd Saturday (University Holiday)";
+    description = "2nd Saturday is an official university non-instructional holiday.";
+  } else if (isOfficialHoliday) {
+    isInstructional = false;
+    statusType = holidayInfo?.isObservation ? "OBSERVATION" : "OFFICIAL_HOLIDAY";
+    title = holidayInfo?.title || "University Holiday";
+    description = holidayInfo?.description || "University is closed for official holiday.";
+  } else if (isExam) {
+    isInstructional = false;
+    statusType = "EXAM_SUSPENSION";
+    title = calendarStatus?.title || "Examinations";
+    description = calendarStatus?.message || "Regular classes suspended for examinations.";
+  } else if (isOutsideSession) {
+    isInstructional = false;
+    statusType = calendarStatus?.type === "pre_session" ? "PRE_SESSION" : "POST_INSTRUCTION";
+    title = calendarStatus?.title || "Outside Academic Session";
+    description = calendarStatus?.message || "Outside instructional teaching period.";
+  } else if (isOptionalHoliday) {
+    // Note: Optional holidays are instructional working days where university classes ARE conducted!
+    isInstructional = true;
+    statusType = "OPTIONAL_HOLIDAY";
+    title = `Optional Holiday · ${holidayInfo?.title}`;
+    description = `Optional University Holiday: ${holidayInfo?.title}. University remains open and classes are conducted as scheduled.`;
+  }
+
+  return {
+    date: d,
+    dateKey,
+    dayName,
+    isInstructional,
+    isClosed: !isInstructional,
+    statusType,
+    title,
+    description,
+    isSunday: isSun,
+    isSecondSaturday: is2ndSat,
+    isOfficialHoliday,
+    isOptionalHoliday,
+    optionalHolidayTitle: isOptionalHoliday ? holidayInfo?.title : null,
+    holidayInfo,
+    isExam,
+    calendarStatus,
+    isOutsideSession,
+    lastDateOfInstruction: CUTM_SESSION_BOUNDARIES.lastDateOfInstruction,
+  };
+}
+
+/**
+ * Unified Master Routine Engine:
+ * Returns the exact scheduled classes and academic calendar context for any section and date.
+ * Single source of truth for Daily Check-In, Predictor, Safe Bunk Analyzer, and Timetable.
+ */
+export function getSectionScheduleForDate(section = "CSE-A", dateObj = new Date()) {
+  const normSec = normalizeSection(section);
+  const context = getDateInstructionalContext(dateObj);
+
+  if (!context.isInstructional) {
     return {
-      isHoliday: true,
-      holidayInfo,
-      dayName,
-      activeClass: null,
-      nextClass: null,
-      classesToday: [],
+      ...context,
+      section: normSec,
+      classes: [],
+      totalClasses: 0,
+      rawSchedule: [],
     };
   }
 
-  const schedule = getDaySchedule(section, dayName);
-  const currentMinutes = dateObj.getHours() * 60 + dateObj.getMinutes();
+  // Active instructional day (regular weekday or optional holiday)
+  const daySchedule = getDaySchedule(normSec, context.dayName) || [];
+  const classes = daySchedule
+    .map((period, idx) => ({
+      ...period,
+      slotIndex: idx,
+      slot: TIME_SLOTS[idx] || {},
+      cleanName: cleanSubjectBaseName(period.subject),
+    }))
+    .filter(
+      (p) =>
+        !p.isFree &&
+        !p.isBreak &&
+        p.subject &&
+        p.subject !== "No Class / Free" &&
+        !/lunch\s*break|recess/i.test(p.subject)
+    );
 
+  return {
+    ...context,
+    section: normSec,
+    classes,
+    totalClasses: classes.length,
+    rawSchedule: daySchedule,
+  };
+}
+
+/**
+ * Find Current Active Period & Next Upcoming Period (Strictly aligned with unified master schedule)
+ */
+export function getLiveScheduleOverview(section, dateObj = new Date()) {
+  const schedCtx = getSectionScheduleForDate(section, dateObj);
+
+  if (!schedCtx.isInstructional) {
+    return {
+      isHoliday: schedCtx.isClosed,
+      holidayInfo: schedCtx.holidayInfo,
+      isExam: schedCtx.isExam,
+      calendarStatus: schedCtx.calendarStatus,
+      statusType: schedCtx.statusType,
+      title: schedCtx.title,
+      description: schedCtx.description,
+      dayName: schedCtx.dayName,
+      activeClass: null,
+      nextClass: null,
+      classesToday: [],
+      remainingClassesCount: 0,
+    };
+  }
+
+  const currentMinutes = dateObj.getHours() * 60 + dateObj.getMinutes();
   let activeClass = null;
   let nextClass = null;
   let remainingClassesCount = 0;
 
-  schedule.forEach((period, idx) => {
-    const slot = TIME_SLOTS[idx] || {};
-    const status = getLivePeriodStatus(idx, dateObj);
+  schedCtx.classes.forEach((period) => {
+    const slot = period.slot || {};
+    const status = getLivePeriodStatus(period.slotIndex, dateObj);
 
-    if (status === "LIVE_NOW" && !period.isFree) {
+    if (status === "LIVE_NOW") {
       const remainingMins = slot.endMin ? Math.max(0, slot.endMin - currentMinutes) : 0;
       activeClass = {
         ...period,
@@ -702,7 +848,7 @@ export function getLiveScheduleOverview(section, dateObj = new Date()) {
       };
     }
 
-    if (status === "UPCOMING" && !period.isFree) {
+    if (status === "UPCOMING") {
       remainingClassesCount++;
       if (!nextClass) {
         const startsInMins = slot.startMin ? Math.max(0, slot.startMin - currentMinutes) : 0;
@@ -719,12 +865,13 @@ export function getLiveScheduleOverview(section, dateObj = new Date()) {
 
   return {
     isHoliday: false,
-    holidayInfo: null,
-    dayName,
+    holidayInfo: schedCtx.holidayInfo,
+    isOptional: schedCtx.isOptionalHoliday,
+    dayName: schedCtx.dayName,
     activeClass,
     nextClass,
     remainingClassesCount,
-    classesToday: schedule,
+    classesToday: schedCtx.classes,
   };
 }
 
@@ -924,13 +1071,9 @@ export function estimateTargetReachDate(
     simCurrent.setDate(simCurrent.getDate() + 1);
     if (simCurrent > lastInstructionDate) break;
 
-    // Skip official non-working academic calendar holidays
-    const hol = getHolidayInfo(simCurrent);
-    if (hol?.isHoliday) continue;
-
-    // Skip examination weeks when regular classes are suspended
-    const acStatus = getAcademicCalendarDateStatus(simCurrent);
-    if (acStatus?.classesSuspended || acStatus?.isExam) continue;
+    // Unified check: Skip non-instructional dates (Sundays, 2nd Saturdays, Official Holidays, Exams, Outside Session)
+    const dateCtx = getDateInstructionalContext(simCurrent);
+    if (!dateCtx.isInstructional) continue;
 
     const dayIdx = simCurrent.getDay();
     const dayName = daysOfWeek[dayIdx];
@@ -1054,11 +1197,8 @@ export function simulateMissPenalty({
     simMissDate.setDate(simMissDate.getDate() + 1);
     if (simMissDate > lastInstructionDate) break;
 
-    const hol = getHolidayInfo(simMissDate);
-    if (hol?.isHoliday) continue;
-
-    const acStatus = getAcademicCalendarDateStatus(simMissDate);
-    if (acStatus?.classesSuspended || acStatus?.isExam) continue;
+    const dateCtx = getDateInstructionalContext(simMissDate);
+    if (!dateCtx.isInstructional) continue;
 
     const dayIdx = simMissDate.getDay();
     const dayName = daysOfWeek[dayIdx];
@@ -1248,16 +1388,9 @@ export function generateDateWiseRecoveryRoadmap({
     simCurrent.setDate(simCurrent.getDate() + 1);
     if (simCurrent > lastInstructionDate) break;
 
-    // Skip Sundays
-    if (simCurrent.getDay() === 0) continue;
-
-    // Skip official academic holidays
-    const hol = getHolidayInfo(simCurrent);
-    if (hol?.isHoliday) continue;
-
-    // Skip examination weeks where classes are suspended
-    const acStatus = getAcademicCalendarDateStatus(simCurrent);
-    if (acStatus?.classesSuspended || acStatus?.isExam) continue;
+    // Unified check: Skip non-instructional dates (Sundays, 2nd Saturdays, Official Holidays, Exams, Outside Session)
+    const dateCtx = getDateInstructionalContext(simCurrent);
+    if (!dateCtx.isInstructional) continue;
 
     const dayName = daysOfWeek[simCurrent.getDay()];
     const matchingOccurrences = weeklyOccurrences.filter((occ) => occ.day === dayName);
@@ -1399,11 +1532,9 @@ export function simulateMultiPhaseAttendance({
     simCurrent.setDate(simCurrent.getDate() + 1);
     if (simCurrent > lastInstructionDate) break;
 
-    const hol = getHolidayInfo(simCurrent);
-    if (hol?.isHoliday) continue;
-
-    const acStatus = getAcademicCalendarDateStatus(simCurrent);
-    if (acStatus?.classesSuspended || acStatus?.isExam) continue;
+    // Unified check: Skip non-instructional dates (Sundays, 2nd Saturdays, Official Holidays, Exams, Outside Session)
+    const dateCtx = getDateInstructionalContext(simCurrent);
+    if (!dateCtx.isInstructional) continue;
 
     const dayIdx = simCurrent.getDay();
     const dayName = daysOfWeek[dayIdx];
@@ -1664,6 +1795,9 @@ export default {
   ACADEMIC_HOLIDAYS_2026_27,
   CUTM_ACADEMIC_CALENDAR_2026_27,
   CUTM_OPTIONAL_HOLIDAYS_RULES,
+  CUTM_SESSION_BOUNDARIES,
+  getDateInstructionalContext,
+  getSectionScheduleForDate,
   cleanSubjectBaseName,
   getSectionSubjectCatalog,
   calculateAttendance,

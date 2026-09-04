@@ -30,7 +30,7 @@ router.get("/student", protectStudent, async (req, res) => {
       regNo,
       $or: [{ targetSessionId: null }, { targetSessionId: currentSessionId }],
       createdAt: { $gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) }, // Last 7 days
-    }).sort({ createdAt: -1 }).limit(20);
+    }).sort({ createdAt: -1 }).limit(10);
 
     const unreadCount = await StudentNotification.countDocuments({
       regNo,
