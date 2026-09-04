@@ -3909,45 +3909,46 @@ export default function AdminDashboard({ defaultTab = null }) {
             background: "#ffffff",
             border: "1px solid #e2e8f0",
             borderRadius: 18,
-            padding: isMobile ? "14px 16px" : "18px 22px",
-            marginBottom: 20,
+            padding: isMobile ? "14px 14px" : "18px 22px",
+            marginBottom: isMobile ? 12 : 20,
             display: "flex",
+            flexDirection: isMobile ? "column" : "row",
             justifyContent: "space-between",
-            alignItems: "center",
-            flexWrap: "wrap",
-            gap: 12,
+            alignItems: isMobile ? "stretch" : "center",
+            gap: isMobile ? 12 : 12,
             boxShadow: "0 2px 10px rgba(15, 23, 42, 0.02)",
           }}
         >
-          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+          <div style={{ display: "flex", alignItems: isMobile ? "flex-start" : "center", gap: 12 }}>
             <div
               style={{
-                width: 42,
-                height: 42,
-                borderRadius: 12,
+                width: isMobile ? 38 : 42,
+                height: isMobile ? 38 : 42,
+                borderRadius: 11,
                 background: "#eff6ff",
                 color: "#2563eb",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
                 flexShrink: 0,
+                marginTop: isMobile ? 1 : 0,
               }}
             >
-              <ShieldCheck size={22} />
+              <ShieldCheck size={isMobile ? 20 : 22} />
             </div>
-            <div>
-              <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-                <h1 style={{ fontSize: isMobile ? 18 : 20, fontWeight: 800, color: "#0f172a", margin: 0, letterSpacing: "-0.4px" }}>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 7, flexWrap: "wrap" }}>
+                <h1 style={{ fontSize: isMobile ? 16.5 : 20, fontWeight: 800, color: "#0f172a", margin: 0, letterSpacing: "-0.4px", lineHeight: 1.2 }}>
                   Admin Control Console
                 </h1>
                 <span
                   style={{
-                    fontSize: 10.5,
-                    fontWeight: 700,
+                    fontSize: 10,
+                    fontWeight: 750,
                     background: isMainAdmin ? "#eff6ff" : "#f5f3ff",
                     color: isMainAdmin ? "#2563eb" : "#7c3aed",
                     border: isMainAdmin ? "1px solid #dbeafe" : "1px solid #ede9fe",
-                    padding: "2px 8px",
+                    padding: "2px 7px",
                     borderRadius: 99,
                     whiteSpace: "nowrap",
                     display: "inline-block",
@@ -3956,15 +3957,23 @@ export default function AdminDashboard({ defaultTab = null }) {
                   {isMainAdmin ? "Master Administrator" : `Sub-Admin (${adminProfile?.name || "Scoped"})`}
                 </span>
               </div>
-              <p style={{ fontSize: 12.5, color: "#64748b", margin: "2px 0 0 0" }}>
+              <p style={{ fontSize: isMobile ? 12 : 12.5, color: "#64748b", margin: "4px 0 0 0", lineHeight: 1.45 }}>
                 {isMainAdmin
-                  ? "Full administrative control — manage institutional results, granular sub-admins, and server state."
+                  ? "Full administrative control — manage results, granular sub-admins, and server state."
                   : "Authorized Sub-Admin Console — access restricted to assigned academic modules."}
               </p>
             </div>
           </div>
 
-          <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+          <div
+            style={{
+              display: isMobile ? "grid" : "flex",
+              gridTemplateColumns: isMobile ? "1fr 1fr" : "none",
+              alignItems: "center",
+              gap: 8,
+              width: isMobile ? "100%" : "auto",
+            }}
+          >
             <AnimatePresence>
               {clearCacheMsg && (
                 <motion.div
@@ -4018,19 +4027,22 @@ export default function AdminDashboard({ defaultTab = null }) {
               style={{
                 display: "inline-flex",
                 alignItems: "center",
+                justifyContent: "center",
                 gap: 6,
-                padding: "8px 14px",
+                padding: isMobile ? "8px 10px" : "8px 14px",
                 borderRadius: 10,
                 background: "#f8fafc",
                 border: "1px solid #e2e8f0",
                 color: "#0f172a",
-                fontSize: 12.5,
-                fontWeight: 600,
+                fontSize: 12,
+                fontWeight: 650,
                 cursor: "pointer",
+                width: isMobile ? "100%" : "auto",
+                boxSizing: "border-box",
               }}
               title="Purge in-memory cache"
             >
-              <RefreshCw size={14} className={clearCacheLoading ? "spin" : ""} />
+              <RefreshCw size={13} className={clearCacheLoading ? "spin" : ""} />
               <span>{clearCacheLoading ? "Purging..." : "Clear Cache"}</span>
             </button>
 
@@ -4039,24 +4051,26 @@ export default function AdminDashboard({ defaultTab = null }) {
               style={{
                 display: "inline-flex",
                 alignItems: "center",
+                justifyContent: "center",
                 gap: 6,
-                padding: "8px 14px",
+                padding: isMobile ? "8px 10px" : "8px 14px",
                 borderRadius: 10,
                 background: "#fef2f2",
                 border: "1px solid #fecaca",
                 color: "#ef4444",
-                fontSize: 12.5,
+                fontSize: 12,
                 fontWeight: 700,
                 cursor: "pointer",
+                width: isMobile ? "100%" : "auto",
+                boxSizing: "border-box",
               }}
             >
-              <LogOut size={14} /> Logout
+              <LogOut size={13} /> <span>Logout</span>
             </button>
           </div>
         </div>
 
-        {/* ── 4 Top Metrics Stats Grid ── */}
-        {/* ── 4 Top Metrics Stats Grid (Clean Professional Redesign) ── */}
+        {/* ── 4 Top Metrics Stats Grid (Clean Professional Mobile-Friendly Redesign) ── */}
         {stats ? (
           <div
             style={{
@@ -4065,15 +4079,16 @@ export default function AdminDashboard({ defaultTab = null }) {
                 ? "repeat(2, 1fr)"
                 : "repeat(auto-fit, minmax(230px, 1fr))",
               gap: isMobile ? 10 : 14,
-              marginBottom: 24,
+              marginBottom: isMobile ? 18 : 24,
             }}
           >
             {[
               {
                 label: "Student Accounts",
                 sublabel: "Passwords Created",
+                mobileSublabel: "Created",
                 value: (stats.totalAccountsCreated ?? 0).toLocaleString(),
-                icon: <KeyRound size={isMobile ? 16 : 18} color="#2563eb" />,
+                icon: <KeyRound size={isMobile ? 15 : 18} color="#2563eb" />,
                 bg: "#eff6ff",
                 border: "#dbeafe",
                 badge: "Registered",
@@ -4083,8 +4098,9 @@ export default function AdminDashboard({ defaultTab = null }) {
               {
                 label: "Currently Logged In",
                 sublabel: "Active Live Sessions",
+                mobileSublabel: "Live Sessions",
                 value: (stats.activeLoggedInCount ?? 0).toLocaleString(),
-                icon: <Activity size={isMobile ? 16 : 18} color="#059669" />,
+                icon: <Activity size={isMobile ? 15 : 18} color="#059669" />,
                 bg: "#ecfdf5",
                 border: "#a7f3d0",
                 badge: "Live Online",
@@ -4093,12 +4109,14 @@ export default function AdminDashboard({ defaultTab = null }) {
                 isLive: true,
                 targetTab: "live-traffic",
                 cta: "View Live Monitor",
+                mobileCta: "Monitor",
               },
               {
                 label: "Academic Records",
                 sublabel: "Total Students in DB",
+                mobileSublabel: "Total in DB",
                 value: (stats.totalStudents ?? 0).toLocaleString(),
-                icon: <Users size={isMobile ? 16 : 18} color="#6366f1" />,
+                icon: <Users size={isMobile ? 15 : 18} color="#6366f1" />,
                 bg: "#eef2ff",
                 border: "#e0e7ff",
                 badge: "Enrolled",
@@ -4108,8 +4126,9 @@ export default function AdminDashboard({ defaultTab = null }) {
               {
                 label: "Semester Results",
                 sublabel: "Result Sheets Stored",
+                mobileSublabel: "Sheets Stored",
                 value: (stats.totalResults ?? 0).toLocaleString(),
-                icon: <FileSpreadsheet size={isMobile ? 16 : 18} color="#d97706" />,
+                icon: <FileSpreadsheet size={isMobile ? 15 : 18} color="#d97706" />,
                 bg: "#fffbeb",
                 border: "#fde68a",
                 badge: "Published",
@@ -4139,44 +4158,58 @@ export default function AdminDashboard({ defaultTab = null }) {
                 style={{
                   background: "#ffffff",
                   border: stat.targetTab && tab === stat.targetTab ? "1.5px solid #10b981" : "1px solid #e2e8f0",
-                  borderRadius: 16,
-                  padding: isMobile ? "14px 12px" : "18px 20px",
+                  borderRadius: isMobile ? 14 : 16,
+                  padding: isMobile ? "12px 11px" : "18px 20px",
                   boxShadow: "0 1px 3px rgba(15, 23, 42, 0.03)",
                   display: "flex",
                   flexDirection: "column",
                   justifyContent: "space-between",
-                  gap: 12,
+                  gap: isMobile ? 8 : 12,
                   cursor: stat.targetTab ? "pointer" : "default",
                   transition: "all 0.18s ease",
                   position: "relative",
                   boxSizing: "border-box",
                 }}
               >
-                {/* Header Row: Label + Badge */}
-                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 6, flexWrap: "wrap" }}>
-                  <span style={{ fontSize: isMobile ? 10.5 : 11.5, fontWeight: 700, color: "#64748b", textTransform: "uppercase", letterSpacing: "0.4px" }}>
-                    {stat.label}
-                  </span>
+                {/* Top Row: Icon on left + Badge on right (Never wraps on mobile!) */}
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 6 }}>
+                  <div
+                    style={{
+                      width: isMobile ? 30 : 38,
+                      height: isMobile ? 30 : 38,
+                      borderRadius: isMobile ? 8 : 10,
+                      background: stat.bg,
+                      border: `1px solid ${stat.border}`,
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      flexShrink: 0,
+                    }}
+                  >
+                    {stat.icon}
+                  </div>
+
                   {stat.badge && (
                     <span
                       style={{
-                        fontSize: 10,
-                        fontWeight: 700,
-                        padding: "2px 7px",
+                        fontSize: isMobile ? 9.5 : 10,
+                        fontWeight: 750,
+                        padding: isMobile ? "2px 6px" : "2px 7px",
                         borderRadius: 6,
                         background: stat.badgeBg,
                         color: stat.badgeColor,
                         display: "inline-flex",
                         alignItems: "center",
-                        gap: 4,
+                        gap: 3.5,
                         letterSpacing: "0.02em",
+                        whiteSpace: "nowrap",
                       }}
                     >
                       {stat.isLive && (
                         <span
                           style={{
-                            width: 6,
-                            height: 6,
+                            width: 5.5,
+                            height: 5.5,
                             borderRadius: "50%",
                             background: "#10b981",
                             boxShadow: "0 0 0 2px rgba(16, 185, 129, 0.25)",
@@ -4189,56 +4222,74 @@ export default function AdminDashboard({ defaultTab = null }) {
                   )}
                 </div>
 
-                {/* Middle Row: Big Number Value + Icon Tile */}
-                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10 }}>
-                  <div style={{ fontSize: isMobile ? 22 : 26, fontWeight: 800, color: "#0f172a", letterSpacing: "-0.5px", lineHeight: 1.1 }}>
+                {/* Middle: Big Metric Value */}
+                <div style={{ marginTop: isMobile ? 2 : 4 }}>
+                  <div style={{ fontSize: isMobile ? 22 : 26, fontWeight: 900, color: "#0f172a", letterSpacing: "-0.5px", lineHeight: 1 }}>
                     {stat.value || "0"}
+                  </div>
+                </div>
+
+                {/* Bottom: Label & Sublabel / CTA */}
+                <div style={{ borderTop: "1px solid #f8fafc", paddingTop: isMobile ? 5 : 6 }}>
+                  <div
+                    style={{
+                      fontSize: isMobile ? 11 : 12,
+                      fontWeight: 800,
+                      color: "#1e293b",
+                      lineHeight: 1.25,
+                      whiteSpace: isMobile ? "nowrap" : "normal",
+                      overflow: "hidden",
+                      textOverflow: "ellipsis",
+                    }}
+                    title={stat.label}
+                  >
+                    {stat.label}
                   </div>
 
                   <div
                     style={{
-                      width: isMobile ? 36 : 40,
-                      height: isMobile ? 36 : 40,
-                      borderRadius: 10,
-                      background: stat.bg,
-                      border: `1px solid ${stat.border}`,
                       display: "flex",
                       alignItems: "center",
-                      justifyContent: "center",
-                      flexShrink: 0,
+                      justifyContent: "space-between",
+                      gap: 4,
+                      marginTop: 2,
                     }}
                   >
-                    {stat.icon}
-                  </div>
-                </div>
-
-                {/* Footer Row: Sublabel or Clean CTA Button (NO UNDERLINE!) */}
-                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 6, paddingTop: 4, borderTop: "1px solid #f8fafc" }}>
-                  <span style={{ fontSize: 11, color: "#94a3b8", fontWeight: 500 }}>
-                    {stat.sublabel}
-                  </span>
-
-                  {stat.cta && (
-                    <div
+                    <span
                       style={{
-                        fontSize: 11,
-                        fontWeight: 700,
-                        color: "#059669",
-                        background: "#ecfdf5",
-                        border: "1px solid #a7f3d0",
-                        padding: "2px 7px",
-                        borderRadius: 6,
-                        display: "inline-flex",
-                        alignItems: "center",
-                        gap: 3,
-                        textDecoration: "none",
-                        transition: "all 0.15s ease",
+                        fontSize: isMobile ? 10 : 11,
+                        color: "#94a3b8",
+                        fontWeight: 500,
+                        whiteSpace: "nowrap",
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
                       }}
                     >
-                      <span>{stat.cta}</span>
-                      <ArrowRight size={11} strokeWidth={2.5} />
-                    </div>
-                  )}
+                      {isMobile && stat.mobileSublabel ? stat.mobileSublabel : stat.sublabel}
+                    </span>
+
+                    {stat.cta && (
+                      <span
+                        style={{
+                          fontSize: isMobile ? 9.5 : 11,
+                          fontWeight: 750,
+                          color: "#059669",
+                          background: "#ecfdf5",
+                          border: "1px solid #a7f3d0",
+                          padding: "1px 5px",
+                          borderRadius: 5,
+                          display: "inline-flex",
+                          alignItems: "center",
+                          gap: 2,
+                          whiteSpace: "nowrap",
+                          flexShrink: 0,
+                        }}
+                      >
+                        <span>{isMobile && stat.mobileCta ? stat.mobileCta : stat.cta}</span>
+                        <ArrowRight size={isMobile ? 9 : 11} strokeWidth={2.5} />
+                      </span>
+                    )}
+                  </div>
                 </div>
               </motion.div>
             ))}
