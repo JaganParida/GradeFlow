@@ -68,6 +68,9 @@ import {
   estimateTargetReachDate,
   getHolidayInfo,
   getAcademicCalendarDateStatus,
+  getSectionScheduleForDate,
+  getDateInstructionalContext,
+  CUTM_SESSION_BOUNDARIES,
 } from "../utils/timetableHelper";
 import { isMatch } from "../utils/basketLogic";
 import SmartBunkAnalyzer from "../components/SmartBunkAnalyzer";
@@ -259,36 +262,27 @@ export default function AttendanceTracker() {
 
   // Computed Date Properties for Selected Check-in Day
   const selectedDateObj = useMemo(() => new Date(selectedCheckInDateKey + "T00:00:00"), [selectedCheckInDateKey]);
-  const selectedDayName = useMemo(() => getDayName(selectedDateObj), [selectedDateObj]);
-  const isSelectedSunday = useMemo(() => isSunday(selectedDateObj), [selectedDateObj]);
   const isSelectedToday = selectedCheckInDateKey === todayDateKey;
   const isSelectedYesterday = selectedCheckInDateKey === yesterdayDateKey;
 
-  // Check Official Holiday & Academic Calendar Status
-  const selectedHolidayInfo = useMemo(() => getHolidayInfo(selectedDateObj), [selectedDateObj]);
-  const selectedCalendarStatus = useMemo(() => getAcademicCalendarDateStatus(selectedDateObj), [selectedDateObj]);
-  const isSelectedHoliday = Boolean(selectedHolidayInfo?.isHoliday);
-  const isSelectedExam = Boolean(selectedCalendarStatus?.classesSuspended || selectedCalendarStatus?.isExam);
+  // Single Master Engine Call: Evaluates section routine, Sundays, 2nd Saturdays, official holidays, optional holidays & exams
+  const selectedDateScheduleCtx = useMemo(() => {
+    return getSectionScheduleForDate(selectedSection, selectedDateObj);
+  }, [selectedSection, selectedDateObj, timetableVersion]);
+
+  const selectedDayName = selectedDateScheduleCtx.dayName;
+  const isSelectedSunday = selectedDateScheduleCtx.isSunday;
+  const isSelectedHoliday = selectedDateScheduleCtx.isOfficialHoliday;
+  const isSelectedOptionalHoliday = selectedDateScheduleCtx.isOptionalHoliday;
+  const isSelectedExam = selectedDateScheduleCtx.isExam;
+  const isSelectedOutsideSession = selectedDateScheduleCtx.isOutsideSession;
+  const selectedHolidayInfo = selectedDateScheduleCtx.holidayInfo;
+  const selectedCalendarStatus = selectedDateScheduleCtx.calendarStatus;
+  const selectedDayScheduleRaw = selectedDateScheduleCtx.rawSchedule;
+  const selectedDayClasses = selectedDateScheduleCtx.classes;
 
   const canGoPrev = selectedCheckInDateKey > minTrackingDateKey;
   const canGoNext = selectedCheckInDateKey < todayDateKey;
-
-  // Selected Day Timetable Schedule (Respects Section Routine + Calendar Holidays & Exams)
-  const selectedDayScheduleRaw = useMemo(() => {
-    if (isSelectedSunday || isSelectedHoliday || isSelectedExam) return [];
-    return getDaySchedule(selectedSection, selectedDayName);
-  }, [selectedSection, selectedDayName, isSelectedSunday, isSelectedHoliday, isSelectedExam, timetableVersion]);
-
-  const selectedDayClasses = useMemo(() => {
-    return (selectedDayScheduleRaw || [])
-      .map((period, idx) => ({
-        ...period,
-        slotIndex: idx,
-        slot: TIME_SLOTS[idx],
-        cleanName: cleanSubjectBaseName(period.subject),
-      }))
-      .filter((p) => !p.isFree && !p.isBreak && p.subject && p.subject !== "No Class / Free" && !/lunch\s*break|recess/i.test(p.subject));
-  }, [selectedDayScheduleRaw]);
 
   // Backwards compatibility alias for components expecting today classes
   const todayClasses = selectedDayClasses;
@@ -1133,15 +1127,8 @@ export default function AttendanceTracker() {
     if (!dateLogs || Object.keys(dateLogs).length === 0) return;
 
     const targetDateObj = new Date(dateKey + "T00:00:00");
-    const targetDayName = getDayName(targetDateObj);
-    const daySchedule = getDaySchedule(selectedSection, targetDayName) || [];
-    const dayClasses = daySchedule
-      .map((period, idx) => ({
-        ...period,
-        slotIndex: idx,
-        cleanName: cleanSubjectBaseName(period.subject),
-      }))
-      .filter((p) => !p.isFree && !p.isBreak && p.subject && p.subject !== "No Class / Free" && !/lunch\s*break|recess/i.test(p.subject));
+    const targetSchedCtx = getSectionScheduleForDate(selectedSection, targetDateObj);
+    const dayClasses = targetSchedCtx.classes || [];
 
     let nextSavedList = [...savedSubjects];
 
@@ -2634,8 +2621,10 @@ export default function AttendanceTracker() {
                     ? `Official Holiday: ${selectedHolidayInfo?.title || "University Holiday"}. Regular classes are not scheduled.`
                     : isSelectedExam
                     ? `Examination Suspension: ${selectedCalendarStatus?.title || "Regular classes suspended for exams"}.`
-                    : selectedHolidayInfo?.isOptional
-                    ? `Optional Holiday (${selectedHolidayInfo.title}): Classes conducted as scheduled. Following Section ${selectedSection} routine.`
+                    : isSelectedOutsideSession
+                    ? `Outside Teaching Session: ${selectedCalendarStatus?.title || "Academic term completed"}.`
+                    : isSelectedOptionalHoliday
+                    ? `Optional Holiday (${selectedHolidayInfo?.title}): Classes conducted as scheduled. Following Section ${selectedSection} routine.`
                     : `Following Section ${selectedSection} routine. Mark or adjust attendance per class to auto-sync cloud records.`}
                 </p>
               </div>
@@ -2873,17 +2862,15 @@ export default function AttendanceTracker() {
           {selectedDayClasses.length === 0 ? (
             <div
               style={{
-                background: isSelectedSunday
-                  ? "#fffbeb"
-                  : isSelectedHoliday
+                background: isSelectedSunday || isSelectedHoliday
                   ? "#fffbeb"
                   : isSelectedExam
                   ? "#eff6ff"
+                  : isSelectedOutsideSession
+                  ? "#f8fafc"
                   : "#f8fafc",
                 border: `1.5px dashed ${
-                  isSelectedSunday
-                    ? "#fde68a"
-                    : isSelectedHoliday
+                  isSelectedSunday || isSelectedHoliday
                     ? "#fde68a"
                     : isSelectedExam
                     ? "#bfdbfe"
@@ -2940,6 +2927,8 @@ export default function AttendanceTracker() {
                   ? `Official Holiday · ${selectedHolidayInfo?.title || "University Holiday"}`
                   : isSelectedExam
                   ? `Academic Routine Suspended · ${selectedCalendarStatus?.title || "Examination"}`
+                  : isSelectedOutsideSession
+                  ? `Outside Instructional Session · ${selectedCalendarStatus?.title || "Semester Break"}`
                   : `No Classes Scheduled for ${selectedDayName}`}
               </div>
 
@@ -2950,6 +2939,8 @@ export default function AttendanceTracker() {
                   ? `Today is recognized as an official holiday (${selectedHolidayInfo?.title || "Holiday"}). No classes are conducted for Section ${selectedSection}.`
                   : isSelectedExam
                   ? `Regular classroom teaching is suspended in accordance with the official academic calendar for examinations.`
+                  : isSelectedOutsideSession
+                  ? `${selectedCalendarStatus?.message || "Class instruction is not active outside the semester boundaries (July 6, 2026 - October 31, 2026)."}`
                   : `There are no scheduled lectures, tutorials, or labs on ${selectedDayName} for Section ${selectedSection}. You can switch sections above if you belong to another batch.`}
               </div>
             </div>

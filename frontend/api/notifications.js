@@ -374,10 +374,13 @@ module.exports = async function handler(req, res) {
         };
       });
 
+      // User requirement: Only recent 10 notifications
+      const recentTen = mapped.slice(0, 10);
+
       return res.json({
         success: true,
         unreadCount,
-        notifications: mapped,
+        notifications: recentTen,
       });
     }
 

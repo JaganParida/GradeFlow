@@ -389,27 +389,45 @@ export default function NotificationBell({ isMobile = false }) {
               </div>
             ) : (
               <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-                {notifications.map((notif) => {
+                {/* User requirement: Only recent 10 notifications displayed */}
+                {notifications.slice(0, 10).map((notif) => {
                   const currentAction = processingState[notif.notificationId];
                   const isProcessing = Boolean(currentAction);
-                  const isUnread = !notif.isRead && notif.status !== "APPROVED" && notif.status !== "DENIED" && notif.status !== "EXPIRED";
+                  const isUnread = !notif.isRead && notif.status !== "APPROVED" && notif.status !== "DENIED" && notif.status !== "EXPIRED" && notif.status !== "READ";
                   const isApproved = notif.status === "APPROVED";
                   const isDenied = notif.status === "DENIED";
                   const isExpired = notif.status === "EXPIRED";
+                  const isRead = !isUnread;
                   const badgeStyle = getBadgeStyle(notif);
 
                   return (
                     <div
                       key={notif.notificationId}
                       style={{
-                        background: isUnread ? "#f8faff" : "#ffffff",
+                        background: isUnread ? "#f8faff" : "#f8fafc",
                         border: isUnread ? "1.5px solid #bfdbfe" : "1px solid #e2e8f0",
                         borderRadius: 12,
                         padding: "12px 14px",
                         display: "flex",
                         flexDirection: "column",
                         gap: 8,
-                        transition: "all 0.15s ease",
+                        transition: "all 0.22s cubic-bezier(0.16, 1, 0.3, 1)",
+                        opacity: isUnread ? 1 : 0.62,
+                        filter: isUnread ? "none" : "blur(0.28px) grayscale(15%)",
+                        boxShadow: isUnread ? "0 2px 8px rgba(37, 99, 235, 0.08)" : "none",
+                        position: "relative",
+                      }}
+                      onMouseEnter={(e) => {
+                        if (isRead) {
+                          e.currentTarget.style.opacity = "0.95";
+                          e.currentTarget.style.filter = "none";
+                        }
+                      }}
+                      onMouseLeave={(e) => {
+                        if (isRead) {
+                          e.currentTarget.style.opacity = "0.62";
+                          e.currentTarget.style.filter = "blur(0.28px) grayscale(15%)";
+                        }
                       }}
                     >
                       {/* Top Row: Icon + Title + Time + Badge */}
@@ -445,12 +463,40 @@ export default function NotificationBell({ isMobile = false }) {
                               <span
                                 style={{
                                   fontSize: 13,
-                                  fontWeight: 800,
-                                  color: "#0f172a",
+                                  fontWeight: isUnread ? 800 : 700,
+                                  color: isUnread ? "#0f172a" : "#475569",
                                 }}
                               >
                                 {notif.title || "Announcement"}
                               </span>
+
+                              {isUnread ? (
+                                <span
+                                  style={{
+                                    width: 6,
+                                    height: 6,
+                                    borderRadius: "50%",
+                                    background: "#2563eb",
+                                    boxShadow: "0 0 6px rgba(37, 99, 235, 0.6)",
+                                    flexShrink: 0,
+                                  }}
+                                  title="Unread"
+                                />
+                              ) : (
+                                <span
+                                  style={{
+                                    fontSize: 10,
+                                    fontWeight: 700,
+                                    color: "#94a3b8",
+                                    display: "inline-flex",
+                                    alignItems: "center",
+                                    gap: 2.5,
+                                  }}
+                                >
+                                  <CheckCheck size={11} color="#94a3b8" />
+                                  Read
+                                </span>
+                              )}
 
                               {notif.badge && (
                                 <span
@@ -565,16 +611,16 @@ export default function NotificationBell({ isMobile = false }) {
                             style={{
                               padding: "6px 14px",
                               borderRadius: 8,
-                              background: "#2563eb",
-                              border: "none",
-                              color: "#ffffff",
+                              background: isUnread ? "#2563eb" : "#ffffff",
+                              border: isUnread ? "none" : "1px solid #cbd5e1",
+                              color: isUnread ? "#ffffff" : "#475569",
                               fontSize: 12,
                               fontWeight: 700,
                               cursor: isProcessing ? "not-allowed" : "pointer",
                               display: "inline-flex",
                               alignItems: "center",
                               gap: 5,
-                              boxShadow: "0 2px 6px rgba(37, 99, 235, 0.22)",
+                              boxShadow: isUnread ? "0 2px 6px rgba(37, 99, 235, 0.22)" : "none",
                               transition: "all 0.15s ease",
                             }}
                           >

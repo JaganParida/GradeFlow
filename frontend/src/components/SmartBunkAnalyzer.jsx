@@ -34,6 +34,8 @@ import {
   generateDateWiseRecoveryRoadmap,
   getHolidayInfo,
   getAcademicCalendarDateStatus,
+  getSectionScheduleForDate,
+  getDateInstructionalContext,
   TIME_SLOTS,
 } from "../utils/timetableHelper";
 
@@ -96,36 +98,32 @@ export default function SmartBunkAnalyzer({
         dayRelativeState = "tomorrow";
       }
 
-      // Check official university holiday and examination suspension
-      const hol = getHolidayInfo(calendarDate);
-      const acStatus = getAcademicCalendarDateStatus(calendarDate);
-      const isHoliday = Boolean(hol?.isHoliday);
-      const isExam = Boolean(acStatus?.classesSuspended || acStatus?.isExam);
+      // Query unified master timetable routine engine (single source of truth)
+      const schedCtx = getSectionScheduleForDate(selectedSection, calendarDate);
 
-      if (isHoliday || isExam) {
+      if (!schedCtx.isInstructional) {
         return {
           day,
           dateFormatted,
           calendarDate: new Date(calendarDate),
           dayRelativeState,
-          isHoliday,
-          holidayTitle: hol?.title || "University Holiday",
-          isExam,
-          examTitle: acStatus?.title || "Examinations",
+          isHoliday: schedCtx.isClosed,
+          holidayTitle: schedCtx.title,
+          isExam: schedCtx.isExam,
+          examTitle: schedCtx.calendarStatus?.title || "Examinations",
+          isOptionalHoliday: false,
+          optionalHolidayTitle: null,
           totalClasses: 0,
           periods: [],
           canBunkAllDay: true,
           criticalPeriodsCount: 0,
-          dayStatus: isHoliday ? "HOLIDAY" : "EXAM",
+          dayStatus: schedCtx.isExam ? "EXAM" : "HOLIDAY",
           simulatedOverallPercentage: Number(currentOverallPct.toFixed(2)),
           overallDelta: 0,
         };
       }
 
-      const daySchedule = getDaySchedule(selectedSection, day) || [];
-      const scheduledPeriods = daySchedule.filter(
-        (p) => !p.isFree && p.subject && p.subject !== "No Class / Free"
-      );
+      const scheduledPeriods = schedCtx.classes || [];
 
       let canBunkAllDay = true;
       let criticalPeriodsCount = 0;
@@ -227,6 +225,12 @@ export default function SmartBunkAnalyzer({
         dateFormatted,
         calendarDate: new Date(calendarDate),
         dayRelativeState,
+        isHoliday: false,
+        holidayTitle: null,
+        isExam: false,
+        examTitle: null,
+        isOptionalHoliday: Boolean(schedCtx?.isOptionalHoliday),
+        optionalHolidayTitle: schedCtx?.optionalHolidayTitle || null,
         totalClasses: scheduledPeriods.length,
         periods,
         canBunkAllDay: canBunkAllDay && isOverallSafeIfAllDayBunked,
@@ -294,12 +298,13 @@ export default function SmartBunkAnalyzer({
       simDelivered > 0 ? (totalAtt / simDelivered) * 100 : currentPct;
     const delta = simPct - currentPct;
 
-    // Determine estimated student return date
+    // Determine estimated student return date (first instructional academic day following leave)
     const returnDateObj = maxLeaveDate ? new Date(maxLeaveDate) : new Date();
     returnDateObj.setDate(returnDateObj.getDate() + 1);
-    if (returnDateObj.getDay() === 0) {
-      // If Sunday, resume Monday
+    let guardLoops = 0;
+    while (!getDateInstructionalContext(returnDateObj).isInstructional && guardLoops < 45) {
       returnDateObj.setDate(returnDateObj.getDate() + 1);
+      guardLoops++;
     }
     const returnDateFormatted = returnDateObj.toLocaleDateString("en-IN", {
       weekday: "short",
@@ -599,7 +604,7 @@ export default function SmartBunkAnalyzer({
                   color: isSelected ? "#94a3b8" : isPast ? "#94a3b8" : "#64748b",
                 }}
               >
-                {dayData.dateFormatted} &bull; {dayData.isHoliday ? "Holiday" : dayData.isExam ? "Exams" : `${dayData.totalClasses} Cls`}
+                {dayData.dateFormatted} &bull; {dayData.isHoliday ? "Holiday" : dayData.isExam ? "Exams" : dayData.isOptionalHoliday ? `${dayData.totalClasses} Cls (Opt)` : `${dayData.totalClasses} Cls`}
               </span>
 
               <span
@@ -789,6 +794,11 @@ export default function SmartBunkAnalyzer({
                         lineHeight: 1.45,
                       }}
                     >
+                      {selectedDayData.isOptionalHoliday && (
+                        <span style={{ display: "block", marginBottom: 4, fontWeight: 700, color: "#7c3aed" }}>
+                          ℹ️ Optional Holiday ({selectedDayData.optionalHolidayTitle}): University is open and classes are conducted as scheduled.
+                        </span>
+                      )}
                       {selectedDayData.canBunkAllDay
                         ? `You can safely miss all ${selectedDayData.totalClasses} classes scheduled on ${selectedDayData.day}. Your overall aggregate will remain at ${selectedDayData.simulatedOverallPercentage}% (well above 75%), and all individual subjects will stay eligible.`
                         : `Skipping the entire day causes ${selectedDayData.criticalPeriodsCount} subject(s) to fall below the 75% cutoff. You can skip the green-badged classes, but you must attend the red-badged classes.`}

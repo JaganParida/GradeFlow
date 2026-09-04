@@ -493,7 +493,11 @@ export function AppProvider({ children }) {
     try {
       await axios.post(`${API_BASE}/notifications/mark-read`, {}, { withCredentials: true });
       setUnreadCount(0);
-      setNotifications((prev) => prev.map((n) => (n.status === "UNREAD" ? { ...n, status: "READ" } : n)));
+      setNotifications((prev) =>
+        prev.map((n) =>
+          n.status === "UNREAD" || !n.isRead ? { ...n, status: "READ", isRead: true } : n
+        )
+      );
     } catch {}
   };
 
