@@ -511,6 +511,10 @@ export function AdminDashboardSkeleton() {
 
         {/* Navigation Tabs Skeleton: Single modern pill card on Mobile, Horizontal pills on Desktop */}
         <div className="gf-admin-skeleton-mobile-subnav" style={{ width: "100%", boxSizing: "border-box" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "2px 4px 6px 4px" }}>
+            <SkeletonBlock w="90px" h="10px" r="3px" />
+            <SkeletonBlock w="130px" h="10px" r="3px" />
+          </div>
           <div
             style={{
               background: "#ffffff",

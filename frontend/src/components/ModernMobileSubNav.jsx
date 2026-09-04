@@ -24,10 +24,14 @@ export default function ModernMobileSubNav({
   activeTab = "",
   onChange = () => {},
   title = "Select View",
+  subtitle = "",
   themeColor = "#2563eb",
   themeBg = "#eff6ff",
 }) {
   const [isOpen, setIsOpen] = useState(false);
+
+  const unitName = (title || "").toLowerCase().includes("module") ? "modules" : "views";
+  const hintText = subtitle || `Tap below to switch (${items.length} ${unitName})`;
 
   // Close drawer on escape key
   useEffect(() => {
@@ -84,6 +88,60 @@ export default function ModernMobileSubNav({
           width: "100%",
         }}
       >
+        {/* Micro-Header above nav card: Informs user what this section is and how to use it */}
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            padding: "2px 4px 6px 4px",
+            userSelect: "none",
+            gap: 6,
+          }}
+        >
+          <div style={{ display: "inline-flex", alignItems: "center", gap: 5, minWidth: 0 }}>
+            <span
+              style={{
+                width: 6,
+                height: 6,
+                borderRadius: "50%",
+                background: themeColor,
+                display: "inline-block",
+                flexShrink: 0,
+              }}
+            />
+            <span
+              style={{
+                fontSize: 11,
+                fontWeight: 800,
+                color: "#475569",
+                letterSpacing: "0.04em",
+                textTransform: "uppercase",
+                whiteSpace: "nowrap",
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+              }}
+            >
+              {title || "Navigation Menu"}
+            </span>
+          </div>
+
+          <span
+            style={{
+              fontSize: 10.5,
+              fontWeight: 600,
+              color: "#64748b",
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 4,
+              flexShrink: 0,
+              whiteSpace: "nowrap",
+            }}
+          >
+            <span>{hintText}</span>
+          </span>
+        </div>
+
         <div
           style={{
             background: "#ffffff",
