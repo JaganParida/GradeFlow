@@ -440,6 +440,9 @@ export default function AttendanceTracker() {
 
   const [activeTab, setActiveTab] = useState(getInitialTab);
   const hasUserManuallySelectedTabRef = useRef(Boolean(urlTabParam));
+  // Subject-wise Attendance Matrix Filter & Search State
+  const [matrixFilter, setMatrixFilter] = useState("all"); // "all" | "shortage" | "eligible" | "recovery" | "safe"
+  const [matrixSearchQuery, setMatrixSearchQuery] = useState("");
 
   const isStudioTab =
     activeTab === "studio" ||
@@ -1485,6 +1488,105 @@ export default function AttendanceTracker() {
   const recoverySubjectsCount = recoveryAnalysis.neededCount;
   const unattainableSubjectsCount = recoveryAnalysis.unattainableCount;
 
+  // Matrix Subject Analytics & Filter Calculations
+  const matrixSubjectsAnalysis = useMemo(() => {
+    return allSectionSubjects.map((sub, idx) => {
+      const catMatch = sectionCatalog.find((c) => isSameSubject(c, sub));
+      const weeklyOccurrences = catMatch?.weeklyOccurrences || [];
+
+      const subCalc = calculateAttendance({
+        components: sub.components,
+        targetPercentage: targetGoal,
+      });
+      const subCode = resolveSubjectCode({ subject: sub.subjectName }, studentData);
+      const hasConductedClasses = subCalc.totalDelivered > 0;
+      const isPassing75 = hasConductedClasses ? subCalc.currentPercentage >= 75 : true;
+      const isPassingTarget = hasConductedClasses ? subCalc.currentPercentage >= targetGoal : true;
+
+      let dateProj = null;
+      if (subCalc.classesNeeded > 0 && weeklyOccurrences.length > 0) {
+        dateProj = estimateTargetReachDate(
+          subCalc.classesNeeded,
+          weeklyOccurrences,
+          new Date(),
+          subCalc.totalAttended,
+          subCalc.totalDelivered,
+          targetGoal,
+          1
+        );
+      }
+
+      const isUnattainable = Boolean(dateProj && !dateProj.isAttainable);
+      const isRecovery = hasConductedClasses && subCalc.classesNeeded > 0;
+      const isShortage = hasConductedClasses && !isPassing75;
+      const isSafe = hasConductedClasses && subCalc.safeBunks > 0;
+
+      return {
+        sub,
+        idx,
+        subCalc,
+        subCode,
+        dateProj,
+        hasConductedClasses,
+        isPassing75,
+        isPassingTarget,
+        isUnattainable,
+        isRecovery,
+        isShortage,
+        isSafe,
+      };
+    });
+  }, [allSectionSubjects, sectionCatalog, studentData, targetGoal]);
+
+  const matrixCounts = useMemo(() => {
+    let shortage = 0;
+    let eligible = 0;
+    let recovery = 0;
+    let safe = 0;
+
+    matrixSubjectsAnalysis.forEach((item) => {
+      if (item.hasConductedClasses) {
+        if (item.isShortage) shortage++;
+        else eligible++;
+        if (item.isRecovery) recovery++;
+        if (item.isSafe) safe++;
+      }
+    });
+
+    return {
+      all: matrixSubjectsAnalysis.length,
+      shortage,
+      eligible,
+      recovery,
+      safe,
+    };
+  }, [matrixSubjectsAnalysis]);
+
+  const filteredMatrixSubjects = useMemo(() => {
+    let list = matrixSubjectsAnalysis;
+
+    if (matrixFilter === "shortage") {
+      list = list.filter((i) => i.isShortage);
+    } else if (matrixFilter === "eligible") {
+      list = list.filter((i) => i.isPassing75 && i.hasConductedClasses);
+    } else if (matrixFilter === "recovery") {
+      list = list.filter((i) => i.isRecovery);
+    } else if (matrixFilter === "safe") {
+      list = list.filter((i) => i.isSafe);
+    }
+
+    if (matrixSearchQuery.trim()) {
+      const q = matrixSearchQuery.trim().toLowerCase();
+      list = list.filter((i) => {
+        const nameMatch = i.sub.subjectName?.toLowerCase().includes(q);
+        const codeMatch = i.subCode?.toLowerCase().includes(q);
+        return nameMatch || codeMatch;
+      });
+    }
+
+    return list;
+  }, [matrixSubjectsAnalysis, matrixFilter, matrixSearchQuery]);
+
   const [isRecoveryHighlightActive, setIsRecoveryHighlightActive] = useState(false);
   const [isShortageHighlightActive, setIsShortageHighlightActive] = useState(false);
   const [isSafeMarginHighlightActive, setIsSafeMarginHighlightActive] = useState(false);
@@ -1503,6 +1605,8 @@ export default function AttendanceTracker() {
     if (recoverySubjectsCount <= 0 && overallCalculation.classesNeeded <= 0) return;
     if (highlightTimerRef.current) clearTimeout(highlightTimerRef.current);
 
+    setMatrixFilter("all");
+    setMatrixSearchQuery("");
     setIsShortageHighlightActive(false);
     setIsSafeMarginHighlightActive(false);
     setIsRecoveryHighlightActive(true);
@@ -1525,6 +1629,8 @@ export default function AttendanceTracker() {
     if (shortageCount <= 0) return;
     if (highlightTimerRef.current) clearTimeout(highlightTimerRef.current);
 
+    setMatrixFilter("all");
+    setMatrixSearchQuery("");
     setIsSafeMarginHighlightActive(false);
     setIsRecoveryHighlightActive(false);
     setIsShortageHighlightActive(true);
@@ -1547,6 +1653,8 @@ export default function AttendanceTracker() {
     if (overallCalculation.safeBunks <= 0) return;
     if (highlightTimerRef.current) clearTimeout(highlightTimerRef.current);
 
+    setMatrixFilter("all");
+    setMatrixSearchQuery("");
     setIsShortageHighlightActive(false);
     setIsRecoveryHighlightActive(false);
     setIsSafeMarginHighlightActive(true);
@@ -3432,346 +3540,766 @@ export default function AttendanceTracker() {
             animate={activeTabMotion.animate}
             exit={activeTabMotion.exit}
             transition={activeTabMotion.transition}
-            style={{ display: "flex", flexDirection: "column", gap: isMobile ? 10 : 14, width: "100%" }}
+            style={{ display: "flex", flexDirection: "column", gap: isMobile ? 12 : 16, width: "100%" }}
           >
-            {allSectionSubjects.length > 0 && (
+            <div
+              id="attendance-subject-matrix-section"
+              style={{
+                background: "#ffffff",
+                border: "1px solid #e2e8f0",
+                borderRadius: 14,
+                padding: isMobile ? "16px 14px" : "20px 22px",
+                display: "flex",
+                flexDirection: "column",
+                gap: 16,
+                boxShadow: "0 1px 3px rgba(15, 23, 42, 0.03)",
+              }}
+            >
+              {/* Header: Title, Description & Executive Health Scorecard */}
               <div
-                id="attendance-subject-matrix-section"
                 style={{
-                  background: "#ffffff",
-                  border: "1px solid #e2e8f0",
-                  borderRadius: 10,
-                  padding: isMobile ? "14px 12px" : "18px 20px",
                   display: "flex",
-                  flexDirection: "column",
+                  justifyContent: "space-between",
+                  alignItems: isMobile ? "stretch" : "center",
+                  flexDirection: isMobile ? "column" : "row",
                   gap: 14,
-                  boxShadow: "none",
                 }}
               >
-            {/* Header */}
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 10 }}>
-              <div>
-                <h3 style={{ fontSize: isMobile ? 15.5 : 17, fontWeight: 800, color: "#0f172a", margin: 0, display: "flex", alignItems: "center", gap: 8 }}>
-                  <Layers size={17} color="#059669" />
-                  Subject-wise Attendance Matrix ({allSectionSubjects.length})
-                </h3>
-                <p style={{ fontSize: 12, color: "#64748b", margin: "2px 0 0 0" }}>
-                  Full multi-component breakdown (theory PP, practical PR, tutorial TUT) with target prediction for Section {selectedSection}.
-                </p>
-              </div>
+                <div>
+                  <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                    <div
+                      style={{
+                        width: 34,
+                        height: 34,
+                        borderRadius: 9,
+                        background: "#0f172a",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        color: "#ffffff",
+                        boxShadow: "0 2px 5px rgba(15, 23, 42, 0.15)",
+                        flexShrink: 0,
+                      }}
+                    >
+                      <Layers size={18} color="#38bdf8" />
+                    </div>
+                    <div>
+                      <h3
+                        style={{
+                          fontSize: isMobile ? 16.5 : 18.5,
+                          fontWeight: 800,
+                          color: "#0f172a",
+                          margin: 0,
+                          letterSpacing: "-0.3px",
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 8,
+                          flexWrap: "wrap",
+                        }}
+                      >
+                        <span>Subject-wise Attendance</span>
+                        <span
+                          style={{
+                            fontSize: 11,
+                            fontWeight: 700,
+                            padding: "2px 8px",
+                            borderRadius: 6,
+                            background: "#f1f5f9",
+                            color: "#475569",
+                            border: "1px solid #e2e8f0",
+                          }}
+                        >
+                          {allSectionSubjects.length} Subjects
+                        </span>
+                      </h3>
+                    </div>
+                  </div>
+                  <p
+                    style={{
+                      fontSize: 12.5,
+                      color: "#64748b",
+                      margin: "5px 0 0 0",
+                      lineHeight: 1.45,
+                    }}
+                  >
+                    Theory (PP), Practical (PR) & Tutorial (TUT) breakdown with real-time target projection for Section {selectedSection}.
+                  </p>
+                </div>
 
-              <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                {/* Overall Semester Score Card */}
                 <div
                   style={{
-                    background: "linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%)",
-                    border: "1px solid #a7f3d0",
-                    borderRadius: 8,
-                    padding: "6px 12px",
+                    background: overallAggregate.percentage >= 75 ? "#f0fdf4" : "#fef2f2",
+                    border: `1px solid ${overallAggregate.percentage >= 75 ? "#bbf7d0" : "#fecaca"}`,
+                    borderRadius: 10,
+                    padding: "9px 14px",
                     display: "flex",
                     alignItems: "center",
-                    gap: 8,
+                    gap: 12,
+                    boxShadow: "0 1px 2px rgba(0, 0, 0, 0.02)",
+                    flexShrink: 0,
                   }}
                 >
+                  <div
+                    style={{
+                      width: 36,
+                      height: 36,
+                      borderRadius: "50%",
+                      background: overallAggregate.percentage >= 75 ? "#dcfce7" : "#fee2e2",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      flexShrink: 0,
+                    }}
+                  >
+                    {overallAggregate.percentage >= 75 ? (
+                      <CheckCircle2 size={20} color="#15803d" />
+                    ) : (
+                      <AlertTriangle size={20} color="#dc2626" />
+                    )}
+                  </div>
                   <div>
-                    <div style={{ fontSize: 10, fontWeight: 800, color: "#065f46", textTransform: "uppercase" }}>Overall Semester Score</div>
-                    <div style={{ fontSize: 16, fontWeight: 800, color: overallAggregate.percentage >= 75 ? "#059669" : "#dc2626", fontFamily: "'DM Sans', sans-serif" }}>
-                      {overallAggregate.percentage}% <span style={{ fontSize: 11, fontWeight: 700, color: "#065f46" }}>({overallAggregate.totalAttended}/{overallAggregate.totalDelivered})</span>
+                    <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                      <span
+                        style={{
+                          fontSize: 10,
+                          fontWeight: 800,
+                          color: overallAggregate.percentage >= 75 ? "#166534" : "#991b1b",
+                          textTransform: "uppercase",
+                          letterSpacing: "0.5px",
+                        }}
+                      >
+                        Overall Semester Score
+                      </span>
+                      <span
+                        style={{
+                          fontSize: 9.5,
+                          fontWeight: 800,
+                          padding: "1px 6px",
+                          borderRadius: 4,
+                          background: overallAggregate.percentage >= 75 ? "#15803d" : "#dc2626",
+                          color: "#ffffff",
+                        }}
+                      >
+                        {overallAggregate.percentage >= 75 ? "ELIGIBLE" : "SHORTAGE"}
+                      </span>
+                    </div>
+                    <div style={{ display: "flex", alignItems: "baseline", gap: 6, marginTop: 1 }}>
+                      <span
+                        style={{
+                          fontSize: 18,
+                          fontWeight: 900,
+                          color: overallAggregate.percentage >= 75 ? "#15803d" : "#dc2626",
+                          fontFamily: "'DM Sans', sans-serif",
+                        }}
+                      >
+                        {overallAggregate.percentage}%
+                      </span>
+                      <span style={{ fontSize: 11.5, fontWeight: 600, color: "#64748b" }}>
+                        ({overallAggregate.totalAttended}/{overallAggregate.totalDelivered} classes)
+                      </span>
                     </div>
                   </div>
                 </div>
               </div>
-            </div>
 
-            {/* Subject Cards Grid */}
-            <div
-              style={{
-                display: "grid",
-                gridTemplateColumns: isMobile ? "1fr" : "repeat(auto-fit, minmax(320px, 1fr))",
-                gap: 12,
-              }}
-            >
-              {allSectionSubjects.map((sub, idx) => {
-                const catMatch = sectionCatalog.find((c) => isSameSubject(c, sub));
-                const weeklyOccurrences = catMatch?.weeklyOccurrences || [];
-
-                const subCalc = calculateAttendance({
-                  components: sub.components,
-                  targetPercentage: targetGoal,
-                });
-                const subCode = resolveSubjectCode({ subject: sub.subjectName }, studentData);
-                const hasConductedClasses = subCalc.totalDelivered > 0;
-                const isPassing75 = hasConductedClasses ? subCalc.currentPercentage >= 75 : true;
-                const isPassingTarget = hasConductedClasses ? subCalc.currentPercentage >= targetGoal : true;
-
-                let dateProj = null;
-                if (subCalc.classesNeeded > 0 && weeklyOccurrences.length > 0) {
-                  dateProj = estimateTargetReachDate(
-                    subCalc.classesNeeded,
-                    weeklyOccurrences,
-                    new Date(),
-                    subCalc.totalAttended,
-                    subCalc.totalDelivered,
-                    targetGoal,
-                    1
-                  );
-                }
-
-                const isUnattainable = Boolean(dateProj && !dateProj.isAttainable);
-                const isRecoveryAndHighlighted = isRecoveryHighlightActive && hasConductedClasses && subCalc.classesNeeded > 0;
-                const isShortageAndHighlighted = isShortageHighlightActive && hasConductedClasses && !isPassing75;
-                const isSafeAndHighlighted = isSafeMarginHighlightActive && hasConductedClasses && subCalc.safeBunks > 0;
-
-                return (
-                  <div
-                    key={idx}
-                    onClick={() => {
-                      setSelectedSubjectName(sub.subjectName); setComponentInputs(sub.components || []); handleTabClick("studio"); window.scrollTo({ top: 400, behavior: "smooth" });
-                    }}
-                    style={{
-                      background: isRecoveryAndHighlighted
-                        ? (isUnattainable ? "#fff1f2" : "#fffbeb")
-                        : isSafeAndHighlighted
-                        ? "#f0fdf4"
-                        : isShortageAndHighlighted
-                        ? "#fff8f8"
-                        : "#ffffff",
-                      border: isRecoveryAndHighlighted
-                        ? (isUnattainable ? "2px solid #e11d48" : "2px solid #d97706")
-                        : isSafeAndHighlighted
-                        ? "1.5px solid #16a34a"
-                        : isShortageAndHighlighted
-                        ? "1.5px solid #ef4444"
-                        : isUnattainable
-                        ? "1.5px solid #fecdd3"
-                        : `1px solid ${!hasConductedClasses ? "#e2e8f0" : (isPassing75 ? "#e2e8f0" : "#fca5a5")}`,
-                      borderRadius: 8,
-                      padding: "14px 16px",
-                      display: "flex",
-                      flexDirection: "column",
-                      justifyContent: "space-between",
-                      gap: 10,
-                      cursor: "pointer",
-                      boxShadow: isRecoveryAndHighlighted
-                        ? (isUnattainable ? "0 0 0 3px rgba(225, 29, 72, 0.25)" : "0 0 0 3px rgba(217, 119, 6, 0.25)")
-                        : isSafeAndHighlighted
-                        ? "0 0 0 2px rgba(22, 163, 74, 0.2)"
-                        : isShortageAndHighlighted
-                        ? "0 0 0 2px rgba(239, 68, 68, 0.15)"
-                        : "none",
-                      transition: "all 0.35s ease",
-                    }}
-                  >
-                    <div>
-                      {/* Card Header: Name + Code + Overall % */}
-                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 10 }}>
-                        <div>
-                          <h4 style={{ fontSize: 14.5, fontWeight: 800, color: "#0f172a", margin: 0, lineHeight: 1.3 }}>
-                            {sub.subjectName}
-                          </h4>
-                          <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 4, flexWrap: "wrap" }}>
-                            {subCode && (
-                              <span
-                                style={{
-                                  fontSize: 10.5,
-                                  fontFamily: "'DM Sans', monospace",
-                                  fontWeight: 800,
-                                  color: "#2563eb",
-                                  background: "#eff6ff",
-                                  border: "1px solid #bfdbfe",
-                                  padding: "1px 6px",
-                                  borderRadius: 4,
-                                }}
-                              >
-                                {subCode}
-                              </span>
-                            )}
-                            <span style={{ fontSize: 11, color: "#64748b", fontWeight: 700 }}>
-                              {subCalc.totalAttended} / {subCalc.totalDelivered} classes
-                            </span>
-                          </div>
-                        </div>
-
-                        <div style={{ textAlign: "right" }}>
-                          <div
-                            style={{
-                              fontSize: 18,
-                              fontWeight: 900,
-                              color: !hasConductedClasses ? "#64748b" : (isPassing75 ? "#059669" : "#dc2626"),
-                              fontFamily: "'DM Sans', sans-serif",
-                            }}
-                          >
-                            {hasConductedClasses ? `${subCalc.currentPercentage}%` : "0%"}
-                          </div>
-                          <span
-                            style={{
-                              fontSize: 9.5,
-                              fontWeight: 900,
-                              background: !hasConductedClasses
-                                ? "#f1f5f9"
-                                : isUnattainable
-                                ? "#fff1f2"
-                                : (isPassing75 ? "#ecfdf5" : "#fef2f2"),
-                              color: !hasConductedClasses
-                                ? "#64748b"
-                                : isUnattainable
-                                ? "#e11d48"
-                                : (isPassing75 ? "#059669" : "#dc2626"),
-                              border: isUnattainable ? "1px solid #fecdd3" : "none",
-                              padding: "1px 6px",
-                              borderRadius: 4,
-                            }}
-                          >
-                            {!hasConductedClasses
-                              ? "NO CLASSES"
-                              : isUnattainable
-                              ? `UNATTAINABLE (${targetGoal}%)`
-                              : (isPassing75 ? "ELIGIBLE" : "SHORTAGE")}
-                          </span>
-                        </div>
-                      </div>
-
-                      {/* Progress Bar */}
-                      <div style={{ width: "100%", height: 5, background: "#f1f5f9", borderRadius: 999, margin: "10px 0 8px 0", overflow: "hidden" }}>
-                        <div
+              {/* Filter Chips & Search Toolbar */}
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  flexWrap: "wrap",
+                  gap: 10,
+                  paddingTop: 6,
+                  borderTop: "1px solid #f1f5f9",
+                }}
+              >
+                {/* Horizontal Scrollable Filter Chips */}
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 6,
+                    overflowX: "auto",
+                    maxWidth: "100%",
+                    paddingBottom: 2,
+                  }}
+                  className="hide-scrollbar"
+                >
+                  {[
+                    { id: "all", label: "All Subjects", count: matrixCounts.all },
+                    { id: "shortage", label: "Shortage (<75%)", count: matrixCounts.shortage, alert: matrixCounts.shortage > 0 },
+                    { id: "eligible", label: "Eligible (≥75%)", count: matrixCounts.eligible },
+                    { id: "recovery", label: `Needs Recovery (${targetGoal}%)`, count: matrixCounts.recovery },
+                    { id: "safe", label: "Safe Buffer", count: matrixCounts.safe },
+                  ].map((tab) => {
+                    const isActive = matrixFilter === tab.id;
+                    return (
+                      <button
+                        key={tab.id}
+                        type="button"
+                        onClick={() => setMatrixFilter(tab.id)}
+                        style={{
+                          padding: "5.5px 11px",
+                          borderRadius: 8,
+                          fontSize: 11.5,
+                          fontWeight: isActive ? 800 : 600,
+                          cursor: "pointer",
+                          whiteSpace: "nowrap",
+                          border: isActive
+                            ? "1px solid #0f172a"
+                            : tab.alert
+                            ? "1px solid #fca5a5"
+                            : "1px solid #e2e8f0",
+                          background: isActive
+                            ? "#0f172a"
+                            : tab.alert
+                            ? "#fff1f2"
+                            : "#ffffff",
+                          color: isActive
+                            ? "#ffffff"
+                            : tab.alert
+                            ? "#be123c"
+                            : "#475569",
+                          display: "inline-flex",
+                          alignItems: "center",
+                          gap: 5,
+                          transition: "all 0.15s ease",
+                          boxShadow: isActive ? "0 1px 3px rgba(15, 23, 42, 0.12)" : "none",
+                        }}
+                      >
+                        <span>{tab.label}</span>
+                        <span
                           style={{
-                            width: `${Math.min(100, Math.max(0, subCalc.currentPercentage))}%`,
-                            height: "100%",
-                            background: isPassing75 ? "linear-gradient(90deg, #10b981, #059669)" : "linear-gradient(90deg, #f87171, #dc2626)",
-                            borderRadius: 999,
-                          }}
-                        />
-                      </div>
-
-                      {/* Component breakdown list */}
-                      <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 4 }}>
-                        {(sub.components || []).map((c, cIdx) => {
-                          const cPct = c.delivered > 0 ? ((c.attended / c.delivered) * 100).toFixed(1) : "0.0";
-                          return (
-                            <span
-                              key={cIdx}
-                              style={{
-                                fontSize: 11,
-                                fontWeight: 700,
-                                background: c.type === "PR" ? "#faf5ff" : c.type === "TUT" ? "#fffbeb" : "#eff6ff",
-                                color: c.type === "PR" ? "#7c3aed" : c.type === "TUT" ? "#b45309" : "#1e40af",
-                                border: `1px solid ${c.type === "PR" ? "#ddd6fe" : c.type === "TUT" ? "#fde68a" : "#bfdbfe"}`,
-                                padding: "2px 8px",
-                                borderRadius: 6,
-                              }}
-                            >
-                              {c.type === "PR" ? "PR (Practice)" : c.type === "TUT" ? "TUT (Project)" : "PP (Theory)"}: {c.attended}/{c.delivered} ({cPct}%)
-                            </span>
-                          );
-                        })}
-                      </div>
-                    </div>
-
-                    {/* Smart Target & Safe Bunk Prediction Footer */}
-                    <div
-                      style={{
-                        background: isUnattainable
-                          ? "#fff1f2"
-                          : subCalc.classesNeeded > 0
-                          ? "#fffbeb"
-                          : "#f0fdf4",
-                        border: `1px solid ${
-                          isUnattainable
-                            ? "#fecdd3"
-                            : subCalc.classesNeeded > 0
-                            ? "#fde68a"
-                            : "#bbf7d0"
-                        }`,
-                        borderRadius: 10,
-                        padding: "8px 10px",
-                        display: "flex",
-                        justifyContent: "space-between",
-                        alignItems: "center",
-                        gap: 8,
-                      }}
-                    >
-                      <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 11.5 }}>
-                        {isUnattainable && dateProj ? (
-                          <>
-                            <AlertTriangle size={13} color="#e11d48" />
-                            <span style={{ fontWeight: 800, color: "#9f1239" }}>
-                              Unattainable for {targetGoal}% &middot; Max possible: <strong>{dateProj.maxAttainablePercentage}%</strong> (only {dateProj.totalRemainingSemClasses} classes left)
-                            </span>
-                          </>
-                        ) : subCalc.classesNeeded > 0 ? (
-                          <>
-                            <AlertTriangle size={13} color="#d97706" />
-                            <span style={{ fontWeight: 800, color: "#92400e" }}>
-                              Need {subCalc.classesNeeded} {subCalc.classesNeeded === 1 ? "class" : "classes"} to reach {targetGoal}%
-                              {dateProj?.estimatedDate && (
-                                <span style={{ fontWeight: 700, color: "#b45309", marginLeft: 4 }}>
-                                  (Reach by {dateProj.estimatedDate})
-                                </span>
-                              )}
-                            </span>
-                          </>
-                        ) : subCalc.safeBunks > 0 ? (
-                          <>
-                            <ShieldCheck size={13} color="#16a34a" />
-                            <span style={{ fontWeight: 800, color: "#166534" }}>
-                              Safe buffer: Can miss {subCalc.safeBunks} {subCalc.safeBunks === 1 ? "class" : "classes"} (stays &ge; {targetGoal}%)
-                            </span>
-                          </>
-                        ) : (
-                          <>
-                            <CheckCircle2 size={13} color="#2563eb" />
-                            <span style={{ fontWeight: 800, color: "#1e40af" }}>
-                              At {targetGoal}% threshold &mdash; Maintain regular attendance
-                            </span>
-                          </>
-                        )}
-                      </div>
-
-                      <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setSelectedSubjectName(sub.subjectName); setComponentInputs(sub.components || []); handleTabClick("studio"); window.scrollTo({ top: 400, behavior: "smooth" });
-                          }}
-                          style={{
-                            border: "none",
-                            background: "transparent",
-                            color: "#2563eb",
-                            fontSize: 11,
+                            fontSize: 10.5,
                             fontWeight: 800,
-                            cursor: "pointer",
-                            padding: "2px 4px",
+                            padding: "1px 5.5px",
+                            borderRadius: 4,
+                            background: isActive
+                              ? "rgba(255, 255, 255, 0.2)"
+                              : tab.alert
+                              ? "#fee2e2"
+                              : "#f1f5f9",
+                            color: isActive ? "#ffffff" : tab.alert ? "#991b1b" : "#64748b",
                           }}
                         >
-                          Simulate &rarr;
-                        </button>
-                        {sub.isSaved && (
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleDeleteSavedSubject(sub.subjectName);
-                            }}
-                            style={{
-                              border: "none",
-                              background: "transparent",
-                              color: "#94a3b8",
-                              cursor: "pointer",
-                              padding: 2,
-                            }}
-                            title="Reset Subject to Default"
-                          >
-                            <Trash2 size={13} />
-                          </button>
-                        )}
-                      </div>
-                    </div>
+                          {tab.count}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {/* Search Input Box */}
+                <div
+                  style={{
+                    position: "relative",
+                    width: isMobile ? "100%" : 230,
+                  }}
+                >
+                  <Search
+                    size={13}
+                    color="#94a3b8"
+                    style={{
+                      position: "absolute",
+                      left: 10,
+                      top: "50%",
+                      transform: "translateY(-50%)",
+                      pointerEvents: "none",
+                    }}
+                  />
+                  <input
+                    type="text"
+                    placeholder="Search subject or code..."
+                    value={matrixSearchQuery}
+                    onChange={(e) => setMatrixSearchQuery(e.target.value)}
+                    style={{
+                      width: "100%",
+                      boxSizing: "border-box",
+                      padding: "6.5px 28px 6.5px 30px",
+                      borderRadius: 8,
+                      border: "1px solid #cbd5e1",
+                      background: "#f8fafc",
+                      fontSize: 12,
+                      color: "#0f172a",
+                      outline: "none",
+                      fontFamily: "'DM Sans', sans-serif",
+                      transition: "all 0.15s ease",
+                    }}
+                    onFocus={(e) => {
+                      e.target.style.borderColor = "#2563eb";
+                      e.target.style.background = "#ffffff";
+                    }}
+                    onBlur={(e) => {
+                      e.target.style.borderColor = "#cbd5e1";
+                      e.target.style.background = "#f8fafc";
+                    }}
+                  />
+                  {matrixSearchQuery && (
+                    <button
+                      type="button"
+                      onClick={() => setMatrixSearchQuery("")}
+                      style={{
+                        position: "absolute",
+                        right: 8,
+                        top: "50%",
+                        transform: "translateY(-50%)",
+                        background: "transparent",
+                        border: "none",
+                        color: "#94a3b8",
+                        cursor: "pointer",
+                        padding: 2,
+                        display: "flex",
+                      }}
+                      title="Clear search"
+                    >
+                      <X size={13} />
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {/* Subject Cards Grid or Filter Empty State */}
+              {filteredMatrixSubjects.length === 0 ? (
+                <div
+                  style={{
+                    background: "#f8fafc",
+                    border: "1px dashed #cbd5e1",
+                    borderRadius: 12,
+                    padding: "36px 20px",
+                    textAlign: "center",
+                    display: "flex",
+                    flexDirection: "column",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: 8,
+                  }}
+                >
+                  <div
+                    style={{
+                      width: 44,
+                      height: 44,
+                      borderRadius: "50%",
+                      background: matrixFilter === "shortage" ? "#ecfdf5" : "#f1f5f9",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                    }}
+                  >
+                    {matrixFilter === "shortage" ? (
+                      <Sparkles size={22} color="#059669" />
+                    ) : (
+                      <Search size={22} color="#64748b" />
+                    )}
                   </div>
-                );
-              })}
+                  <div style={{ fontSize: 15, fontWeight: 800, color: "#0f172a" }}>
+                    {matrixFilter === "shortage"
+                      ? "No Attendance Shortages!"
+                      : `No subjects matching "${matrixSearchQuery || matrixFilter}"`}
+                  </div>
+                  <p style={{ fontSize: 12.5, color: "#64748b", margin: 0, maxWidth: 400, lineHeight: 1.45 }}>
+                    {matrixFilter === "shortage"
+                      ? "Congratulations! All your semester routine subjects are currently at or above the 75% statutory requirement."
+                      : "Try resetting your filter or clearing your search keywords to view all semester subjects."}
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setMatrixFilter("all");
+                      setMatrixSearchQuery("");
+                    }}
+                    style={{
+                      marginTop: 8,
+                      padding: "6px 14px",
+                      borderRadius: 7,
+                      background: "#0f172a",
+                      color: "#ffffff",
+                      fontSize: 12,
+                      fontWeight: 700,
+                      border: "none",
+                      cursor: "pointer",
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: 5,
+                    }}
+                  >
+                    <RotateCcw size={12} />
+                    <span>View All Subjects</span>
+                  </button>
+                </div>
+              ) : (
+                <div
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: isMobile ? "1fr" : "repeat(auto-fit, minmax(320px, 1fr))",
+                    gap: 12,
+                  }}
+                >
+                  {filteredMatrixSubjects.map((item) => {
+                    const {
+                      sub,
+                      idx,
+                      subCalc,
+                      subCode,
+                      dateProj,
+                      hasConductedClasses,
+                      isPassing75,
+                      isUnattainable,
+                      isShortage,
+                      isRecovery,
+                      isSafe,
+                    } = item;
+
+                    const isRecoveryAndHighlighted = isRecoveryHighlightActive && hasConductedClasses && subCalc.classesNeeded > 0;
+                    const isShortageAndHighlighted = isShortageHighlightActive && hasConductedClasses && !isPassing75;
+                    const isSafeAndHighlighted = isSafeMarginHighlightActive && hasConductedClasses && subCalc.safeBunks > 0;
+
+                    return (
+                      <motion.div
+                        layout
+                        initial={{ opacity: 0, y: 12 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, scale: 0.96 }}
+                        transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
+                        key={sub.subjectName || idx}
+                        onClick={() => {
+                          setSelectedSubjectName(sub.subjectName);
+                          setComponentInputs(sub.components || []);
+                          handleTabClick("studio");
+                          window.scrollTo({ top: 400, behavior: "smooth" });
+                        }}
+                        style={{
+                          background: isRecoveryAndHighlighted
+                            ? (isUnattainable ? "#fff1f2" : "#fffbeb")
+                            : isSafeAndHighlighted
+                            ? "#f0fdf4"
+                            : isShortageAndHighlighted
+                            ? "#fff8f8"
+                            : isShortage
+                            ? "#fffdfd"
+                            : "#ffffff",
+                          border: isRecoveryAndHighlighted
+                            ? (isUnattainable ? "2px solid #e11d48" : "2px solid #d97706")
+                            : isSafeAndHighlighted
+                            ? "1.5px solid #16a34a"
+                            : isShortageAndHighlighted
+                            ? "2px solid #ef4444"
+                            : isUnattainable
+                            ? "1.5px solid #fecdd3"
+                            : isShortage
+                            ? "1.5px solid #fca5a5"
+                            : "1px solid #e2e8f0",
+                          borderRadius: 11,
+                          padding: isMobile ? "14px" : "16px 17px",
+                          display: "flex",
+                          flexDirection: "column",
+                          justifyContent: "space-between",
+                          gap: 12,
+                          cursor: "pointer",
+                          boxShadow: isRecoveryAndHighlighted
+                            ? (isUnattainable ? "0 0 0 3px rgba(225, 29, 72, 0.25)" : "0 0 0 3px rgba(217, 119, 6, 0.25)")
+                            : isSafeAndHighlighted
+                            ? "0 0 0 2px rgba(22, 163, 74, 0.2)"
+                            : isShortageAndHighlighted
+                            ? "0 0 0 2px rgba(239, 68, 68, 0.2)"
+                            : "0 1px 2px rgba(0, 0, 0, 0.02)",
+                          transition: "all 0.2s ease",
+                        }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.transform = "translateY(-2px)";
+                          e.currentTarget.style.boxShadow = "0 6px 16px rgba(15, 23, 42, 0.06)";
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.transform = "translateY(0)";
+                          e.currentTarget.style.boxShadow = isRecoveryAndHighlighted
+                            ? (isUnattainable ? "0 0 0 3px rgba(225, 29, 72, 0.25)" : "0 0 0 3px rgba(217, 119, 6, 0.25)")
+                            : isSafeAndHighlighted
+                            ? "0 0 0 2px rgba(22, 163, 74, 0.2)"
+                            : isShortageAndHighlighted
+                            ? "0 0 0 2px rgba(239, 68, 68, 0.2)"
+                            : "0 1px 2px rgba(0, 0, 0, 0.02)";
+                        }}
+                      >
+                        <div>
+                          {/* Card Header: Subject Name, Code & Large % */}
+                          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 10 }}>
+                            <div style={{ minWidth: 0, flex: 1 }}>
+                              <h4
+                                style={{
+                                  fontSize: 14.5,
+                                  fontWeight: 800,
+                                  color: "#0f172a",
+                                  margin: 0,
+                                  lineHeight: 1.35,
+                                  wordBreak: "break-word",
+                                }}
+                              >
+                                {sub.subjectName}
+                              </h4>
+                              <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 4, flexWrap: "wrap" }}>
+                                {subCode && (
+                                  <span
+                                    style={{
+                                      fontSize: 10.5,
+                                      fontFamily: "'DM Sans', monospace",
+                                      fontWeight: 800,
+                                      color: "#2563eb",
+                                      background: "#eff6ff",
+                                      border: "1px solid #bfdbfe",
+                                      padding: "1.5px 6px",
+                                      borderRadius: 4,
+                                    }}
+                                  >
+                                    {subCode}
+                                  </span>
+                                )}
+                                <span style={{ fontSize: 11, color: "#64748b", fontWeight: 700 }}>
+                                  {subCalc.totalAttended} / {subCalc.totalDelivered} classes
+                                </span>
+                              </div>
+                            </div>
+
+                            <div style={{ textAlign: "right", flexShrink: 0 }}>
+                              <div
+                                style={{
+                                  fontSize: 19,
+                                  fontWeight: 900,
+                                  color: !hasConductedClasses ? "#64748b" : isPassing75 ? "#059669" : "#dc2626",
+                                  fontFamily: "'DM Sans', sans-serif",
+                                  lineHeight: 1.1,
+                                }}
+                              >
+                                {hasConductedClasses ? `${subCalc.currentPercentage}%` : "0%"}
+                              </div>
+                              <span
+                                style={{
+                                  fontSize: 9.5,
+                                  fontWeight: 900,
+                                  background: !hasConductedClasses
+                                    ? "#f1f5f9"
+                                    : isUnattainable
+                                    ? "#fff1f2"
+                                    : isPassing75
+                                    ? "#ecfdf5"
+                                    : "#fef2f2",
+                                  color: !hasConductedClasses
+                                    ? "#64748b"
+                                    : isUnattainable
+                                    ? "#e11d48"
+                                    : isPassing75
+                                    ? "#059669"
+                                    : "#dc2626",
+                                  border: isUnattainable ? "1px solid #fecdd3" : isPassing75 ? "1px solid #bbf7d0" : "1px solid #fecaca",
+                                  padding: "1.5px 6px",
+                                  borderRadius: 4,
+                                  display: "inline-block",
+                                  marginTop: 3,
+                                }}
+                              >
+                                {!hasConductedClasses
+                                  ? "NO CLASSES"
+                                  : isUnattainable
+                                  ? `UNATTAINABLE (${targetGoal}%)`
+                                  : isPassing75
+                                  ? "ELIGIBLE"
+                                  : "SHORTAGE"}
+                              </span>
+                            </div>
+                          </div>
+
+                          {/* Animated Progress Bar with 75% Statutory Marker */}
+                          <div
+                            style={{
+                              position: "relative",
+                              width: "100%",
+                              height: 6,
+                              background: "#f1f5f9",
+                              borderRadius: 999,
+                              margin: "12px 0 10px 0",
+                              overflow: "hidden",
+                            }}
+                          >
+                            <div
+                              style={{
+                                width: `${Math.min(100, Math.max(0, subCalc.currentPercentage))}%`,
+                                height: "100%",
+                                background: isPassing75
+                                  ? "linear-gradient(90deg, #10b981 0%, #059669 100%)"
+                                  : "linear-gradient(90deg, #f87171 0%, #dc2626 100%)",
+                                borderRadius: 999,
+                                transition: "width 0.4s ease",
+                              }}
+                            />
+                            {/* 75% Statutory Marker Line */}
+                            <div
+                              style={{
+                                position: "absolute",
+                                left: "75%",
+                                top: 0,
+                                bottom: 0,
+                                width: 2,
+                                background: "#0f172a",
+                                opacity: 0.35,
+                              }}
+                              title="75% Minimum Statutory Requirement"
+                            />
+                          </div>
+
+                          {/* Component Breakdown List (PP / PR / TUT) */}
+                          <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 4 }}>
+                            {(sub.components || []).map((c, cIdx) => {
+                              const cPct = c.delivered > 0 ? ((c.attended / c.delivered) * 100).toFixed(1) : "0.0";
+                              return (
+                                <span
+                                  key={cIdx}
+                                  style={{
+                                    fontSize: 11,
+                                    fontWeight: 700,
+                                    background: c.type === "PR" ? "#faf5ff" : c.type === "TUT" ? "#fffbeb" : "#eff6ff",
+                                    color: c.type === "PR" ? "#7c3aed" : c.type === "TUT" ? "#b45309" : "#1e40af",
+                                    border: `1px solid ${c.type === "PR" ? "#ddd6fe" : c.type === "TUT" ? "#fde68a" : "#bfdbfe"}`,
+                                    padding: "2.5px 8px",
+                                    borderRadius: 6,
+                                  }}
+                                >
+                                  {c.type === "PR" ? "Lab PR" : c.type === "TUT" ? "Tutorial TUT" : "Theory PP"}: {c.attended}/{c.delivered} ({cPct}%)
+                                </span>
+                              );
+                            })}
+                          </div>
+                        </div>
+
+                        {/* Smart Target & Safe Bunk Prediction Footer */}
+                        <div
+                          style={{
+                            background: isUnattainable
+                              ? "#fff1f2"
+                              : subCalc.classesNeeded > 0
+                              ? "#fffbeb"
+                              : "#f0fdf4",
+                            border: `1px solid ${
+                              isUnattainable
+                                ? "#fecdd3"
+                                : subCalc.classesNeeded > 0
+                                ? "#fde68a"
+                                : "#bbf7d0"
+                            }`,
+                            borderRadius: 9,
+                            padding: "8px 10px",
+                            display: "flex",
+                            justifyContent: "space-between",
+                            alignItems: "center",
+                            gap: 8,
+                          }}
+                        >
+                          <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 11.5, flex: 1, minWidth: 0 }}>
+                            {isUnattainable && dateProj ? (
+                              <>
+                                <AlertTriangle size={14} color="#e11d48" style={{ flexShrink: 0 }} />
+                                <span style={{ fontWeight: 800, color: "#9f1239", lineHeight: 1.35 }}>
+                                  Unattainable for {targetGoal}% &middot; Max possible: <strong>{dateProj.maxAttainablePercentage}%</strong> ({dateProj.totalRemainingSemClasses} left)
+                                </span>
+                              </>
+                            ) : subCalc.classesNeeded > 0 ? (
+                              <>
+                                <AlertTriangle size={14} color="#d97706" style={{ flexShrink: 0 }} />
+                                <span style={{ fontWeight: 800, color: "#92400e", lineHeight: 1.35 }}>
+                                  Need {subCalc.classesNeeded} {subCalc.classesNeeded === 1 ? "class" : "classes"} to reach {targetGoal}%
+                                  {dateProj?.estimatedDate && (
+                                    <span style={{ fontWeight: 700, color: "#b45309", marginLeft: 4 }}>
+                                      (Reach by {dateProj.estimatedDate})
+                                    </span>
+                                  )}
+                                </span>
+                              </>
+                            ) : subCalc.safeBunks > 0 ? (
+                              <>
+                                <ShieldCheck size={14} color="#16a34a" style={{ flexShrink: 0 }} />
+                                <span style={{ fontWeight: 800, color: "#166534", lineHeight: 1.35 }}>
+                                  Safe buffer: Can miss {subCalc.safeBunks} {subCalc.safeBunks === 1 ? "class" : "classes"} (stays &ge; {targetGoal}%)
+                                </span>
+                              </>
+                            ) : (
+                              <>
+                                <CheckCircle2 size={14} color="#2563eb" style={{ flexShrink: 0 }} />
+                                <span style={{ fontWeight: 800, color: "#1e40af", lineHeight: 1.35 }}>
+                                  At {targetGoal}% threshold &mdash; Maintain regular attendance
+                                </span>
+                              </>
+                            )}
+                          </div>
+
+                          <div style={{ display: "flex", alignItems: "center", gap: 4, flexShrink: 0 }}>
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setSelectedSubjectName(sub.subjectName);
+                                setComponentInputs(sub.components || []);
+                                handleTabClick("studio");
+                                window.scrollTo({ top: 400, behavior: "smooth" });
+                              }}
+                              style={{
+                                border: "none",
+                                background: "transparent",
+                                color: "#2563eb",
+                                fontSize: 11,
+                                fontWeight: 800,
+                                cursor: "pointer",
+                                padding: "3px 6px",
+                                borderRadius: 5,
+                                display: "inline-flex",
+                                alignItems: "center",
+                                gap: 3,
+                              }}
+                              onMouseEnter={(e) => {
+                                e.currentTarget.style.background = "#eff6ff";
+                              }}
+                              onMouseLeave={(e) => {
+                                e.currentTarget.style.background = "transparent";
+                              }}
+                            >
+                              <span>Simulate</span>
+                              <ArrowRight size={11} />
+                            </button>
+                            {sub.isSaved && (
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleDeleteSavedSubject(sub.subjectName);
+                                }}
+                                style={{
+                                  border: "none",
+                                  background: "transparent",
+                                  color: "#94a3b8",
+                                  cursor: "pointer",
+                                  padding: 4,
+                                  borderRadius: 4,
+                                  display: "flex",
+                                }}
+                                title="Reset Subject to Default"
+                                onMouseEnter={(e) => {
+                                  e.currentTarget.style.color = "#dc2626";
+                                  e.currentTarget.style.background = "#fee2e2";
+                                }}
+                                onMouseLeave={(e) => {
+                                  e.currentTarget.style.color = "#94a3b8";
+                                  e.currentTarget.style.background = "transparent";
+                                }}
+                              >
+                                <Trash2 size={13} />
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      </motion.div>
+                    );
+                  })}
+                </div>
+              )}
             </div>
-          </div>
-        )}
           </motion.div>
         )}
 
