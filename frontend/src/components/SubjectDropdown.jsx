@@ -138,6 +138,7 @@ export default function SubjectDropdown({
           border: isOpen ? "1.5px solid #0f172a" : "1px solid #cbd5e1",
           borderRadius: 10,
           padding: isMobile ? "9px 12px" : "10px 14px",
+          height: isMobile ? 42 : 44,
           display: "flex",
           alignItems: "center",
           justifyContent: "space-between",
