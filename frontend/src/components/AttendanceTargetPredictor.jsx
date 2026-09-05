@@ -215,53 +215,25 @@ export default function AttendanceTargetPredictor({
           </p>
         </div>
 
-        {/* Target Goal Selector */}
-        <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap", width: isMobile ? "100%" : "auto" }}>
-          <span style={{ fontSize: 11, fontWeight: 800, color: "#64748b", textTransform: "uppercase" }}>
-            Target Goal:
-          </span>
-          <div
+        {/* Active Target Goal Indicator */}
+        <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+          <span
             style={{
-              display: "flex",
-              gap: 4,
-              background: "#f8fafc",
-              padding: 3,
-              borderRadius: 10,
-              border: "1px solid #e2e8f0",
-              width: isMobile ? "100%" : "auto",
-              boxSizing: "border-box",
+              fontSize: 11.5,
+              fontWeight: 800,
+              background: "#eff6ff",
+              color: "#2563eb",
+              border: "1px solid #bfdbfe",
+              padding: "4px 10px",
+              borderRadius: 8,
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 5,
             }}
           >
-            {[
-              { val: 75, label: "75%" },
-              { val: 80, label: "80%" },
-              { val: 85, label: "85%" },
-              { val: 90, label: "90%" },
-            ].map(({ val, label }) => (
-              <button
-                key={val}
-                type="button"
-                onClick={() => setTargetGoal(val)}
-                style={{
-                  flex: isMobile ? 1 : "none",
-                  background: targetGoal === val ? "#2563eb" : "transparent",
-                  color: targetGoal === val ? "#ffffff" : "#475569",
-                  border: "none",
-                  borderRadius: 7,
-                  padding: isMobile ? "6px 4px" : "5px 12px",
-                  fontSize: isMobile ? 12 : 12.5,
-                  fontWeight: 800,
-                  cursor: "pointer",
-                  transition: "all 0.15s ease",
-                  boxShadow: targetGoal === val ? "0 2px 6px rgba(37, 99, 235, 0.22)" : "none",
-                  textAlign: "center",
-                  whiteSpace: "nowrap",
-                }}
-              >
-                {label}
-              </button>
-            ))}
-          </div>
+            <Target size={13} color="#2563eb" />
+            Target: <strong>{targetGoal}%</strong>
+          </span>
         </div>
       </div>
 

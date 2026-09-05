@@ -2131,31 +2131,28 @@ export default function AttendanceTracker() {
             />
           )}
 
-          {/* On Desktop: Always visible. On Mobile: ONLY visible on default Daily Hub (checkin) */}
-          {(!isMobile || activeTab === "checkin") && (
-            <>
-              {/* Top Academic & Attendance Overview Header Card */}
-              <div
-                style={{
-                  background: "#ffffff",
-                  border: "1px solid #cbd5e1",
-                  borderRadius: 10,
-                  padding: isMobile ? "12px 14px" : "18px 20px",
-                  display: "flex",
-                  flexDirection: "column",
-                  gap: isMobile ? 8 : 12,
-                  boxShadow: "none",
-                }}
-              >
-                {/* Header Content */}
-                <div
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "space-between",
-                    gap: 10,
-                  }}
-                >
+          {/* Top Academic & Attendance Overview Header Card (Master Target Selector Always Available) */}
+          <div
+            style={{
+              background: "#ffffff",
+              border: "1px solid #cbd5e1",
+              borderRadius: 10,
+              padding: isMobile ? "12px 14px" : "18px 20px",
+              display: "flex",
+              flexDirection: "column",
+              gap: isMobile ? 8 : 12,
+              boxShadow: "none",
+            }}
+          >
+            {/* Header Content */}
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                gap: 10,
+              }}
+            >
                   {isMobile ? (
                     /* Mobile: Name + Section Badge + Target Selector */
                     <div style={{ display: "flex", flexDirection: "column", gap: 10, width: "100%" }}>
@@ -2341,15 +2338,16 @@ export default function AttendanceTracker() {
                 </div>
               </div>
 
-              {/* 4 Hero Stat Cards */}
-              <div
-                style={{
-                  display: "grid",
-                  gridTemplateColumns: isMobile ? "repeat(2, 1fr)" : "repeat(auto-fit, minmax(200px, 1fr))",
-                  gap: isMobile ? 8 : 12,
-                  width: "100%",
-                }}
-              >
+              {/* 4 Hero Stat Cards: Always visible on Desktop; On Mobile visible on default Daily Hub (checkin) */}
+              {(!isMobile || activeTab === "checkin") && (
+                <div
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: isMobile ? "repeat(2, 1fr)" : "repeat(auto-fit, minmax(200px, 1fr))",
+                    gap: isMobile ? 8 : 12,
+                    width: "100%",
+                  }}
+                >
                 {/* 1. Overall Score */}
                 <div
                   style={{
@@ -2536,8 +2534,7 @@ export default function AttendanceTracker() {
                   </span>
                 </div>
               </div>
-            </>
-          )}
+            )}
 
           {/* ═══════════════════════════════════════════════════════════════
               ANIMATED TAB CONTENT SWITCHER (Analytics-Style Smooth Fade Up)
@@ -4806,33 +4803,25 @@ export default function AttendanceTracker() {
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                 <span style={{ fontSize: 13, fontWeight: 800, color: "#0f172a", display: "flex", alignItems: "center", gap: 6 }}>
                   <Target size={15} color="#2563eb" />
-                  Target Goal Milestone:
+                  Target Goal Milestone
                 </span>
-                <span style={{ fontSize: 12, fontWeight: 900, color: "#2563eb" }}>{targetGoal}%</span>
-              </div>
-
-              <div style={{ display: "flex", gap: 6 }}>
-                {[75, 80, 85, 90].map((goal) => (
-                  <button
-                    key={goal}
-                    type="button"
-                    onClick={() => setTargetGoal(goal)}
-                    style={{
-                      flex: 1,
-                      padding: "6px 0",
-                      borderRadius: 8,
-                      border: targetGoal === goal ? "1.5px solid #2563eb" : "1px solid #cbd5e1",
-                      background: targetGoal === goal ? "#2563eb" : "#ffffff",
-                      color: targetGoal === goal ? "#ffffff" : "#475569",
-                      fontSize: 12,
-                      fontWeight: 800,
-                      cursor: "pointer",
-                      transition: "all 0.15s",
-                    }}
-                  >
-                    {goal}%
-                  </button>
-                ))}
+                <span
+                  style={{
+                    fontSize: 11.5,
+                    fontWeight: 800,
+                    background: "#eff6ff",
+                    color: "#2563eb",
+                    border: "1px solid #bfdbfe",
+                    padding: "3px 9px",
+                    borderRadius: 6,
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 4,
+                  }}
+                >
+                  <Target size={12} color="#2563eb" />
+                  Goal: {targetGoal}%
+                </span>
               </div>
 
               {/* Requirement or Safe Bunk Result Card */}
