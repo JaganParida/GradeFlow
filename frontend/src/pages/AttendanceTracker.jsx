@@ -2661,604 +2661,688 @@ export default function AttendanceTracker() {
               style={{
                 background: "#ffffff",
                 border: "1px solid #e2e8f0",
-                borderRadius: 10,
-                padding: isMobile ? "14px 12px" : "18px 20px",
+                borderRadius: 14,
+                padding: isMobile ? "16px 14px" : "20px 22px",
                 display: "flex",
                 flexDirection: "column",
-                gap: 12,
-                boxShadow: "none",
+                gap: 16,
+                boxShadow: "0 1px 3px rgba(0, 0, 0, 0.02)",
                 overflow: "hidden",
               }}
             >
-          {/* Header & Date Navigation Toolbar */}
-          <div
-            style={{
-              display: "flex",
-              flexDirection: isMobile ? "column" : "row",
-              justifyContent: "space-between",
-              alignItems: isMobile ? "flex-start" : "center",
-              gap: 12,
-              paddingBottom: 12,
-              borderBottom: "1px solid #f1f5f9",
-            }}
-          >
-            {/* Title & Info */}
-            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+              {/* Header & Date Navigation Toolbar */}
               <div
                 style={{
-                  width: 38,
-                  height: 38,
-                  borderRadius: 10,
-                  background: isSelectedToday
-                    ? "linear-gradient(135deg, #059669 0%, #10b981 100%)"
-                    : isSelectedYesterday
-                    ? "linear-gradient(135deg, #2563eb 0%, #3b82f6 100%)"
-                    : "linear-gradient(135deg, #475569 0%, #64748b 100%)",
-                  color: "#ffffff",
                   display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  flexShrink: 0,
-                  boxShadow: isSelectedToday ? "0 2px 8px rgba(16, 185, 129, 0.25)" : "none",
+                  flexDirection: isMobile ? "column" : "row",
+                  justifyContent: "space-between",
+                  alignItems: isMobile ? "flex-start" : "center",
+                  gap: 14,
+                  paddingBottom: 14,
+                  borderBottom: "1px solid #f1f5f9",
                 }}
               >
-                <CalendarIcon size={19} />
-              </div>
-              <div>
-                <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-                  <h3 style={{ fontSize: isMobile ? 15 : 17, fontWeight: 800, color: "#0f172a", margin: 0 }}>
-                    {isSelectedToday
-                      ? `Today's Attendance`
-                      : isSelectedYesterday
-                      ? `Yesterday's Attendance`
-                      : `Daily Attendance`}
-                  </h3>
-                  <span
-                    style={{
-                      fontSize: 10.5,
-                      fontWeight: 800,
-                      padding: "2px 8px",
-                      borderRadius: 999,
-                      background: isSelectedToday ? "#dcfce7" : isSelectedYesterday ? "#eff6ff" : "#f1f5f9",
-                      color: isSelectedToday ? "#15803d" : isSelectedYesterday ? "#1d4ed8" : "#475569",
-                      border: `1px solid ${isSelectedToday ? "#bbf7d0" : isSelectedYesterday ? "#bfdbfe" : "#e2e8f0"}`,
-                    }}
-                  >
-                    {selectedDayName}, {formatFriendlyDate(selectedCheckInDateKey)}
-                  </span>
-                  {selectedHolidayInfo?.isOptional && (
-                    <span
-                      style={{
-                        fontSize: 10.5,
-                        fontWeight: 800,
-                        padding: "2px 8px",
-                        borderRadius: 999,
-                        background: "#fffbeb",
-                        color: "#92400e",
-                        border: "1px solid #fde68a",
-                      }}
-                      title="Optional Holiday: Classes are held as normal according to CUTM academic rules"
-                    >
-                      Optional Holiday ({selectedHolidayInfo.title}) · Classes Held
-                    </span>
-                  )}
-                  {/* Section Routine Badge (Read-only) */}
+                {/* Title & Info */}
+                <div style={{ display: "flex", alignItems: "flex-start", gap: 12 }}>
                   <div
                     style={{
+                      width: 40,
+                      height: 40,
+                      borderRadius: 10,
+                      background: isSelectedToday
+                        ? "#0f172a"
+                        : isSelectedYesterday
+                        ? "#1e293b"
+                        : "#334155",
+                      color: "#ffffff",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      flexShrink: 0,
+                      boxShadow: "0 2px 6px rgba(15, 23, 42, 0.12)",
+                    }}
+                  >
+                    <CalendarIcon size={18} />
+                  </div>
+                  <div>
+                    <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                      <h3 style={{ fontSize: isMobile ? 16 : 17, fontWeight: 800, color: "#0f172a", margin: 0, letterSpacing: "-0.2px" }}>
+                        {isSelectedToday
+                          ? `Today's Attendance`
+                          : isSelectedYesterday
+                          ? `Yesterday's Attendance`
+                          : `Daily Attendance`}
+                      </h3>
+                      <span
+                        style={{
+                          fontSize: 11,
+                          fontWeight: 700,
+                          padding: "2.5px 9px",
+                          borderRadius: 999,
+                          background: isSelectedToday ? "#f0fdf4" : isSelectedYesterday ? "#eff6ff" : "#f8fafc",
+                          color: isSelectedToday ? "#15803d" : isSelectedYesterday ? "#1d4ed8" : "#475569",
+                          border: `1px solid ${isSelectedToday ? "#bbf7d0" : isSelectedYesterday ? "#bfdbfe" : "#e2e8f0"}`,
+                          display: "inline-flex",
+                          alignItems: "center",
+                          gap: 5,
+                        }}
+                      >
+                        {isSelectedToday && <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#16a34a" }} />}
+                        {selectedDayName}, {formatFriendlyDate(selectedCheckInDateKey)}
+                      </span>
+                      {selectedHolidayInfo?.isOptional && (
+                        <span
+                          style={{
+                            fontSize: 11,
+                            fontWeight: 700,
+                            padding: "2.5px 9px",
+                            borderRadius: 999,
+                            background: "#fffbeb",
+                            color: "#92400e",
+                            border: "1px solid #fde68a",
+                          }}
+                          title="Optional Holiday: Classes are held as normal according to CUTM academic rules"
+                        >
+                          Optional Holiday ({selectedHolidayInfo.title}) · Classes Held
+                        </span>
+                      )}
+                      {/* Section Routine Badge (Read-only) */}
+                      <div
+                        style={{
+                          display: "inline-flex",
+                          alignItems: "center",
+                          gap: 4,
+                          background: "#f8fafc",
+                          border: "1px solid #e2e8f0",
+                          padding: "2.5px 9px",
+                          borderRadius: 999,
+                          fontSize: 11,
+                          fontWeight: 700,
+                          color: "#475569",
+                        }}
+                      >
+                        <Building size={11} color="#64748b" />
+                        <span style={{ color: "#64748b" }}>Routine:</span>
+                        <span style={{ fontWeight: 800, color: "#0f172a" }}>Sec {selectedSection}</span>
+                      </div>
+                    </div>
+                    <p style={{ fontSize: 12.5, color: "#64748b", margin: "4px 0 0 0", lineHeight: 1.45 }}>
+                      {isSelectedSunday
+                        ? "Sunday is a scheduled weekend holiday. No academic attendance is recorded."
+                        : isSelectedHoliday
+                        ? `Official Holiday: ${selectedHolidayInfo?.title || "University Holiday"}. Regular classes are not scheduled.`
+                        : isSelectedExam
+                        ? `Examination Suspension: ${selectedCalendarStatus?.title || "Regular classes suspended for exams"}.`
+                        : isSelectedOutsideSession
+                        ? `Outside Teaching Session: ${selectedCalendarStatus?.title || "Academic term completed"}.`
+                        : isSelectedOptionalHoliday
+                        ? `Optional Holiday (${selectedHolidayInfo?.title}): Classes conducted as scheduled. Following Section ${selectedSection} routine.`
+                        : `Mark each routine period as Present or Absent. Changes automatically sync to your saved attendance.`}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Quick Stats & Reset Action */}
+                <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", width: isMobile ? "100%" : "auto", justifyContent: isMobile ? "space-between" : "flex-end" }}>
+                  {Object.keys(activeDateLogs).length > 0 && (
+                    <button
+                      type="button"
+                      onClick={() => handleResetDateCheckins(selectedCheckInDateKey)}
+                      style={{
+                        fontSize: 11.5,
+                        fontWeight: 700,
+                        color: "#dc2626",
+                        background: "#ffffff",
+                        border: "1px solid #fecaca",
+                        padding: "5px 10px",
+                        borderRadius: 8,
+                        cursor: "pointer",
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: 5,
+                        transition: "all 0.15s ease",
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.background = "#fef2f2";
+                        e.currentTarget.style.borderColor = "#f87171";
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.background = "#ffffff";
+                        e.currentTarget.style.borderColor = "#fecaca";
+                      }}
+                    >
+                      <RotateCcw size={12} />
+                      <span>Reset {isSelectedToday ? "Today" : isSelectedYesterday ? "Yesterday" : "Date"}</span>
+                    </button>
+                  )}
+
+                  {(() => {
+                    const presentCount = Object.values(activeDateLogs).filter((v) => v === "present").length;
+                    const absentCount = Object.values(activeDateLogs).filter((v) => v === "absent").length;
+                    const totalLogged = presentCount + absentCount;
+
+                    if (isSelectedSunday || isSelectedHoliday || isSelectedExam || selectedDayClasses.length === 0) {
+                      const label = isSelectedSunday
+                        ? "Weekend · No Classes"
+                        : isSelectedHoliday
+                        ? `Holiday · ${selectedHolidayInfo?.title || "No Classes"}`
+                        : isSelectedExam
+                        ? `Exams · Classes Suspended`
+                        : "No Classes";
+                      const isGold = isSelectedSunday || isSelectedHoliday;
+                      const isBlue = isSelectedExam;
+
+                      return (
+                        <span
+                          style={{
+                            fontSize: 11.5,
+                            fontWeight: 700,
+                            color: isGold ? "#92400e" : isBlue ? "#1e40af" : "#475569",
+                            background: isGold ? "#fef3c7" : isBlue ? "#eff6ff" : "#f1f5f9",
+                            border: `1px solid ${isGold ? "#fde68a" : isBlue ? "#bfdbfe" : "#e2e8f0"}`,
+                            padding: "4px 10px",
+                            borderRadius: 8,
+                          }}
+                        >
+                          {label}
+                        </span>
+                      );
+                    }
+
+                    return (
+                      <div
+                        style={{
+                          display: "inline-flex",
+                          alignItems: "center",
+                          background: "#f8fafc",
+                          border: "1px solid #e2e8f0",
+                          borderRadius: 8,
+                          padding: "4px 9px",
+                          gap: 8,
+                          fontSize: 11.5,
+                        }}
+                      >
+                        <span style={{ display: "inline-flex", alignItems: "center", gap: 4, fontWeight: 700, color: "#15803d" }}>
+                          <CheckCircle2 size={12} color="#16a34a" /> {presentCount} Present
+                        </span>
+                        <span style={{ color: "#cbd5e1" }}>•</span>
+                        <span style={{ display: "inline-flex", alignItems: "center", gap: 4, fontWeight: 700, color: "#b91c1c" }}>
+                          <XCircle size={12} color="#dc2626" /> {absentCount} Absent
+                        </span>
+                        <span style={{ color: "#cbd5e1" }}>•</span>
+                        <span style={{ fontWeight: 600, color: "#64748b" }}>
+                          {totalLogged}/{selectedDayClasses.length} Logged
+                        </span>
+                      </div>
+                    );
+                  })()}
+                </div>
+              </div>
+
+              {/* Date Navigation Bar (Prev Day, Date Picker, Next Day, Shortcut Chips) */}
+              <div
+                style={{
+                  background: "#f8fafc",
+                  border: "1px solid #e2e8f0",
+                  borderRadius: 10,
+                  padding: "8px 12px",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  flexWrap: "wrap",
+                  gap: 8,
+                }}
+              >
+                {/* Stepper Controls */}
+                <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+                  {/* Prev Day Button */}
+                  <button
+                    type="button"
+                    onClick={handlePrevDay}
+                    disabled={!canGoPrev}
+                    style={{
+                      padding: "6px 11px",
+                      borderRadius: 7,
+                      border: `1px solid ${canGoPrev ? "#cbd5e1" : "#e2e8f0"}`,
+                      background: canGoPrev ? "#ffffff" : "#f1f5f9",
+                      color: canGoPrev ? "#0f172a" : "#94a3b8",
+                      fontSize: 12,
+                      fontWeight: 600,
+                      cursor: canGoPrev ? "pointer" : "not-allowed",
                       display: "inline-flex",
                       alignItems: "center",
                       gap: 4,
-                      background: "#f0fdf4",
-                      border: "1px solid #bbf7d0",
-                      padding: "2px 8px",
-                      borderRadius: 999,
-                      fontSize: 11,
+                      transition: "all 0.15s ease",
+                      boxShadow: canGoPrev ? "0 1px 2px rgba(0,0,0,0.02)" : "none",
+                    }}
+                    title={canGoPrev ? "Go to previous day" : `Initial tracking start date (${formatFriendlyDate(minTrackingDateKey)})`}
+                  >
+                    <ChevronLeft size={14} />
+                    <span>Prev Day</span>
+                  </button>
+
+                  {/* Native / Interactive Date Picker Centerpiece */}
+                  <label
+                    style={{
+                      position: "relative",
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: 6,
+                      padding: "6px 12px",
+                      borderRadius: 7,
+                      background: "#ffffff",
+                      border: "1px solid #cbd5e1",
+                      fontSize: 12,
                       fontWeight: 700,
-                      color: "#15803d",
+                      color: "#0f172a",
+                      cursor: "pointer",
+                      boxShadow: "0 1px 2px rgba(0,0,0,0.02)",
                     }}
                   >
-                    <Building size={11} color="#059669" />
-                    <span style={{ color: "#065f46" }}>Timetable:</span>
-                    <span style={{ fontWeight: 800, color: "#059669" }}>{selectedSection}</span>
-                  </div>
-                </div>
-                <p style={{ fontSize: 12, color: "#64748b", margin: "2px 0 0 0" }}>
-                  {isSelectedSunday
-                    ? "Sunday is a scheduled weekend holiday. No academic attendance is recorded."
-                    : isSelectedHoliday
-                    ? `Official Holiday: ${selectedHolidayInfo?.title || "University Holiday"}. Regular classes are not scheduled.`
-                    : isSelectedExam
-                    ? `Examination Suspension: ${selectedCalendarStatus?.title || "Regular classes suspended for exams"}.`
-                    : isSelectedOutsideSession
-                    ? `Outside Teaching Session: ${selectedCalendarStatus?.title || "Academic term completed"}.`
-                    : isSelectedOptionalHoliday
-                    ? `Optional Holiday (${selectedHolidayInfo?.title}): Classes conducted as scheduled. Following Section ${selectedSection} routine.`
-                    : `Following Section ${selectedSection} routine. Mark or adjust attendance per class to auto-sync cloud records.`}
-                </p>
-              </div>
-            </div>
+                    <CalendarIcon size={13} color="#2563eb" />
+                    <span>{formatFriendlyDate(selectedCheckInDateKey)}</span>
+                    <ChevronDown size={12} color="#64748b" />
+                    <input
+                      type="date"
+                      min={minTrackingDateKey}
+                      max={todayDateKey}
+                      value={selectedCheckInDateKey}
+                      onChange={(e) => {
+                        if (e.target.value) {
+                          handleSelectDate(e.target.value);
+                        }
+                      }}
+                      style={{
+                        position: "absolute",
+                        inset: 0,
+                        opacity: 0,
+                        cursor: "pointer",
+                        width: "100%",
+                        height: "100%",
+                      }}
+                    />
+                  </label>
 
-            {/* Quick Stats & Reset Action */}
-            <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", width: isMobile ? "100%" : "auto", justifyContent: isMobile ? "space-between" : "flex-end" }}>
-              {Object.keys(activeDateLogs).length > 0 && (
-                <button
-                  type="button"
-                  onClick={() => handleResetDateCheckins(selectedCheckInDateKey)}
+                  {/* Next Day Button */}
+                  <button
+                    type="button"
+                    onClick={handleNextDay}
+                    disabled={!canGoNext}
+                    style={{
+                      padding: "6px 11px",
+                      borderRadius: 7,
+                      border: `1px solid ${canGoNext ? "#cbd5e1" : "#e2e8f0"}`,
+                      background: canGoNext ? "#ffffff" : "#f1f5f9",
+                      color: canGoNext ? "#0f172a" : "#94a3b8",
+                      fontSize: 12,
+                      fontWeight: 600,
+                      cursor: canGoNext ? "pointer" : "not-allowed",
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: 4,
+                      transition: "all 0.15s ease",
+                      boxShadow: canGoNext ? "0 1px 2px rgba(0,0,0,0.02)" : "none",
+                    }}
+                    title={canGoNext ? "Go to next day" : "Cannot mark future dates beyond today"}
+                  >
+                    <span>Next Day</span>
+                    <ChevronRight size={14} />
+                  </button>
+                </div>
+
+                {/* Quick Date Shortcut Segmented Controls */}
+                <div
                   style={{
-                    fontSize: 11,
-                    fontWeight: 700,
-                    color: "#dc2626",
-                    background: "#fef2f2",
-                    border: "1px solid #fecaca",
-                    padding: "5px 10px",
-                    borderRadius: 8,
-                    cursor: "pointer",
                     display: "inline-flex",
                     alignItems: "center",
-                    gap: 4,
+                    background: "#e2e8f0",
+                    padding: "2px",
+                    borderRadius: 7,
+                    gap: 2,
                   }}
                 >
-                  <RotateCcw size={12} />
-                  <span>Reset {isSelectedToday ? "Today" : isSelectedYesterday ? "Yesterday" : "Date"}</span>
-                </button>
-              )}
+                  <button
+                    type="button"
+                    onClick={() => setSelectedCheckInDateKey(todayDateKey)}
+                    style={{
+                      padding: "4px 11px",
+                      borderRadius: 6,
+                      fontSize: 11.5,
+                      fontWeight: isSelectedToday ? 800 : 600,
+                      cursor: "pointer",
+                      border: "none",
+                      background: isSelectedToday ? "#ffffff" : "transparent",
+                      color: isSelectedToday ? "#0f172a" : "#64748b",
+                      boxShadow: isSelectedToday ? "0 1px 2px rgba(0,0,0,0.06)" : "none",
+                      transition: "all 0.15s ease",
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: 4,
+                    }}
+                  >
+                    {isSelectedToday && <span style={{ width: 5, height: 5, borderRadius: "50%", background: "#16a34a" }} />}
+                    Today
+                  </button>
 
-              {(() => {
-                const presentCount = Object.values(activeDateLogs).filter((v) => v === "present").length;
-                const absentCount = Object.values(activeDateLogs).filter((v) => v === "absent").length;
-                const totalLogged = presentCount + absentCount;
-
-                if (isSelectedSunday || isSelectedHoliday || isSelectedExam || selectedDayClasses.length === 0) {
-                  const label = isSelectedSunday
-                    ? "Weekend · No Classes"
-                    : isSelectedHoliday
-                    ? `Holiday · ${selectedHolidayInfo?.title || "No Classes"}`
-                    : isSelectedExam
-                    ? `Exams · Classes Suspended`
-                    : "No Classes";
-                  const isGold = isSelectedSunday || isSelectedHoliday;
-                  const isBlue = isSelectedExam;
-
-                  return (
-                    <span
+                  {yesterdayDateKey >= minTrackingDateKey && (
+                    <button
+                      type="button"
+                      onClick={() => setSelectedCheckInDateKey(yesterdayDateKey)}
                       style={{
+                        padding: "4px 11px",
+                        borderRadius: 6,
                         fontSize: 11.5,
-                        fontWeight: 800,
-                        color: isGold ? "#d97706" : isBlue ? "#2563eb" : "#64748b",
-                        background: isGold ? "#fffbeb" : isBlue ? "#eff6ff" : "#f1f5f9",
-                        border: `1px solid ${isGold ? "#fde68a" : isBlue ? "#bfdbfe" : "#e2e8f0"}`,
-                        padding: "4px 10px",
-                        borderRadius: 8,
+                        fontWeight: isSelectedYesterday ? 800 : 600,
+                        cursor: "pointer",
+                        border: "none",
+                        background: isSelectedYesterday ? "#ffffff" : "transparent",
+                        color: isSelectedYesterday ? "#0f172a" : "#64748b",
+                        boxShadow: isSelectedYesterday ? "0 1px 2px rgba(0,0,0,0.06)" : "none",
+                        transition: "all 0.15s ease",
                       }}
                     >
-                      {label}
-                    </span>
-                  );
-                }
+                      Yesterday
+                    </button>
+                  )}
+                </div>
+              </div>
 
-                return (
-                  <span
-                    style={{
-                      fontSize: 11.5,
-                      fontWeight: 800,
-                      color: totalLogged > 0 ? "#0f766e" : "#059669",
-                      background: totalLogged > 0 ? "#f0fdfa" : "#ecfdf5",
-                      border: `1px solid ${totalLogged > 0 ? "#99f6e4" : "#a7f3d0"}`,
-                      padding: "4px 10px",
-                      borderRadius: 8,
-                    }}
-                  >
-                    {totalLogged === 0
-                      ? `0 / ${selectedDayClasses.length} Logged`
-                      : `${presentCount} Present · ${absentCount} Absent (${totalLogged}/${selectedDayClasses.length})`}
-                  </span>
-                );
-              })()}
-            </div>
-          </div>
-
-          {/* Date Navigation Bar (Prev Day, Date Picker, Next Day, Shortcut Chips) */}
-          <div
-            style={{
-              background: "#f8fafc",
-              border: "1px solid #e2e8f0",
-              borderRadius: 12,
-              padding: "8px 12px",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "space-between",
-              flexWrap: "wrap",
-              gap: 8,
-            }}
-          >
-            {/* Stepper Controls */}
-            <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
-              {/* Prev Day Button */}
-              <button
-                type="button"
-                onClick={handlePrevDay}
-                disabled={!canGoPrev}
-                style={{
-                  padding: "6px 12px",
-                  borderRadius: 8,
-                  border: `1px solid ${canGoPrev ? "#cbd5e1" : "#e2e8f0"}`,
-                  background: canGoPrev ? "#ffffff" : "#f1f5f9",
-                  color: canGoPrev ? "#0f172a" : "#94a3b8",
-                  fontSize: 12,
-                  fontWeight: 700,
-                  cursor: canGoPrev ? "pointer" : "not-allowed",
-                  display: "inline-flex",
-                  alignItems: "center",
-                  gap: 4,
-                  transition: "all 0.15s ease",
-                }}
-                title={canGoPrev ? "Go to previous day" : `Initial tracking start date (${formatFriendlyDate(minTrackingDateKey)})`}
-              >
-                <ChevronLeft size={14} />
-                <span>Prev Day</span>
-              </button>
-
-              {/* Native / Interactive Date Picker Centerpiece */}
-              <label
-                style={{
-                  position: "relative",
-                  display: "inline-flex",
-                  alignItems: "center",
-                  gap: 6,
-                  padding: "6px 12px",
-                  borderRadius: 8,
-                  background: "#ffffff",
-                  border: "1px solid #cbd5e1",
-                  fontSize: 12,
-                  fontWeight: 800,
-                  color: "#0f172a",
-                  cursor: "pointer",
-                  boxShadow: "0 1px 2px rgba(0,0,0,0.03)",
-                }}
-              >
-                <CalendarIcon size={14} color="#2563eb" />
-                <span>{formatFriendlyDate(selectedCheckInDateKey)}</span>
-                <input
-                  type="date"
-                  min={minTrackingDateKey}
-                  max={todayDateKey}
-                  value={selectedCheckInDateKey}
-                  onChange={(e) => {
-                    if (e.target.value) {
-                      handleSelectDate(e.target.value);
-                    }
-                  }}
+              {selectedDayClasses.length === 0 ? (
+                <div
                   style={{
-                    position: "absolute",
-                    inset: 0,
-                    opacity: 0,
-                    cursor: "pointer",
-                    width: "100%",
-                    height: "100%",
-                  }}
-                />
-              </label>
-
-              {/* Next Day Button */}
-              <button
-                type="button"
-                onClick={handleNextDay}
-                disabled={!canGoNext}
-                style={{
-                  padding: "6px 12px",
-                  borderRadius: 8,
-                  border: `1px solid ${canGoNext ? "#cbd5e1" : "#e2e8f0"}`,
-                  background: canGoNext ? "#ffffff" : "#f1f5f9",
-                  color: canGoNext ? "#0f172a" : "#94a3b8",
-                  fontSize: 12,
-                  fontWeight: 700,
-                  cursor: canGoNext ? "pointer" : "not-allowed",
-                  display: "inline-flex",
-                  alignItems: "center",
-                  gap: 4,
-                  transition: "all 0.15s ease",
-                }}
-                title={canGoNext ? "Go to next day" : "Cannot mark future dates beyond today"}
-              >
-                <span>Next Day</span>
-                <ChevronRight size={14} />
-              </button>
-            </div>
-
-            {/* Quick Date Shortcut Chips */}
-            <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-              <button
-                type="button"
-                onClick={() => setSelectedCheckInDateKey(todayDateKey)}
-                style={{
-                  padding: "5px 10px",
-                  borderRadius: 7,
-                  fontSize: 11,
-                  fontWeight: 800,
-                  cursor: "pointer",
-                  border: isSelectedToday ? "1px solid #86efac" : "1px solid #e2e8f0",
-                  background: isSelectedToday ? "#dcfce7" : "#ffffff",
-                  color: isSelectedToday ? "#15803d" : "#475569",
-                  transition: "all 0.15s ease",
-                }}
-              >
-                Today
-              </button>
-
-              {yesterdayDateKey >= minTrackingDateKey && (
-                <button
-                  type="button"
-                  onClick={() => setSelectedCheckInDateKey(yesterdayDateKey)}
-                  style={{
-                    padding: "5px 10px",
-                    borderRadius: 7,
-                    fontSize: 11,
-                    fontWeight: 800,
-                    cursor: "pointer",
-                    border: isSelectedYesterday ? "1px solid #bfdbfe" : "1px solid #e2e8f0",
-                    background: isSelectedYesterday ? "#eff6ff" : "#ffffff",
-                    color: isSelectedYesterday ? "#1d4ed8" : "#475569",
-                    transition: "all 0.15s ease",
+                    background: isSelectedSunday || isSelectedHoliday
+                      ? "#fffdf5"
+                      : isSelectedExam
+                      ? "#f8faff"
+                      : "#f8fafc",
+                    border: `1px solid ${
+                      isSelectedSunday || isSelectedHoliday
+                        ? "#fde68a"
+                        : isSelectedExam
+                        ? "#bfdbfe"
+                        : "#e2e8f0"
+                    }`,
+                    borderRadius: 12,
+                    padding: "32px 20px",
+                    textAlign: "center",
+                    color: isSelectedSunday || isSelectedHoliday
+                      ? "#92400e"
+                      : isSelectedExam
+                      ? "#1e40af"
+                      : "#64748b",
+                    fontSize: 13,
+                    fontWeight: 600,
+                    display: "flex",
+                    flexDirection: "column",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: 10,
                   }}
                 >
-                  Yesterday
-                </button>
-              )}
-            </div>
-          </div>
-
-          {selectedDayClasses.length === 0 ? (
-            <div
-              style={{
-                background: isSelectedSunday || isSelectedHoliday
-                  ? "#fffbeb"
-                  : isSelectedExam
-                  ? "#eff6ff"
-                  : isSelectedOutsideSession
-                  ? "#f8fafc"
-                  : "#f8fafc",
-                border: `1.5px dashed ${
-                  isSelectedSunday || isSelectedHoliday
-                    ? "#fde68a"
-                    : isSelectedExam
-                    ? "#bfdbfe"
-                    : "#cbd5e1"
-                }`,
-                borderRadius: 14,
-                padding: "24px 20px",
-                textAlign: "center",
-                color: isSelectedSunday || isSelectedHoliday
-                  ? "#92400e"
-                  : isSelectedExam
-                  ? "#1e40af"
-                  : "#64748b",
-                fontSize: 13.5,
-                fontWeight: 600,
-                display: "flex",
-                flexDirection: "column",
-                alignItems: "center",
-                justifyContent: "center",
-                gap: 8,
-              }}
-            >
-              <div
-                style={{
-                  width: 38,
-                  height: 38,
-                  borderRadius: "50%",
-                  background: isSelectedSunday || isSelectedHoliday
-                    ? "#fef3c7"
-                    : isSelectedExam
-                    ? "#dbeafe"
-                    : "#f1f5f9",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  marginBottom: 2,
-                }}
-              >
-                {isSelectedSunday ? (
-                  <CalendarIcon size={18} color="#d97706" />
-                ) : isSelectedHoliday ? (
-                  <Sun size={18} color="#d97706" />
-                ) : isSelectedExam ? (
-                  <Info size={18} color="#2563eb" />
-                ) : (
-                  <Info size={18} color="#64748b" />
-                )}
-              </div>
-
-              <div style={{ fontSize: 15, fontWeight: 800 }}>
-                {isSelectedSunday
-                  ? "Sunday Weekend Holiday"
-                  : isSelectedHoliday
-                  ? `Official Holiday · ${selectedHolidayInfo?.title || "University Holiday"}`
-                  : isSelectedExam
-                  ? `Academic Routine Suspended · ${selectedCalendarStatus?.title || "Examination"}`
-                  : isSelectedOutsideSession
-                  ? `Outside Instructional Session · ${selectedCalendarStatus?.title || "Semester Break"}`
-                  : `No Classes Scheduled for ${selectedDayName}`}
-              </div>
-
-              <div style={{ fontSize: 12.5, fontWeight: 500, maxWidth: 520, lineHeight: 1.45, opacity: 0.9 }}>
-                {isSelectedSunday
-                  ? `No academic classes are scheduled on Sundays for Section ${selectedSection}.`
-                  : isSelectedHoliday
-                  ? `Today is recognized as an official holiday (${selectedHolidayInfo?.title || "Holiday"}). No classes are conducted for Section ${selectedSection}.`
-                  : isSelectedExam
-                  ? `Regular classroom teaching is suspended in accordance with the official academic calendar for examinations.`
-                  : isSelectedOutsideSession
-                  ? `${selectedCalendarStatus?.message || "Class instruction is not active outside the semester boundaries (July 6, 2026 - October 31, 2026)."}`
-                  : `There are no scheduled lectures, tutorials, or labs on ${selectedDayName} for Section ${selectedSection}.`}
-              </div>
-            </div>
-          ) : (
-            <AnimatePresence mode="wait">
-              <motion.div
-                key={selectedCheckInDateKey}
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -8 }}
-                transition={{ duration: 0.22, ease: "easeOut" }}
-                style={{
-                  display: "grid",
-                  gridTemplateColumns: isMobile ? "1fr" : "repeat(auto-fill, minmax(280px, 1fr))",
-                  gap: 10,
-                }}
-              >
-                {selectedDayClasses.map((period) => {
-                const status = activeDateLogs[period.slotIndex]; // "present" | "absent" | undefined
-                const isPresent = status === "present";
-                const isAbsent = status === "absent";
-                const subCode = resolveSubjectCode(period, studentData);
-
-                return (
                   <div
-                    key={`${selectedCheckInDateKey}-p${period.slotIndex}`}
                     style={{
-                      background: isPresent ? "#f0fdf4" : isAbsent ? "#fff1f2" : "#ffffff",
-                      border: `1px solid ${isPresent ? "#86efac" : isAbsent ? "#fca5a5" : "#e2e8f0"}`,
-                      borderRadius: 8,
-                      padding: "12px 14px",
+                      width: 44,
+                      height: 44,
+                      borderRadius: "50%",
+                      background: isSelectedSunday || isSelectedHoliday
+                        ? "#fef3c7"
+                        : isSelectedExam
+                        ? "#dbeafe"
+                        : "#f1f5f9",
                       display: "flex",
-                      flexDirection: "column",
-                      justifyContent: "space-between",
-                      gap: 10,
-                      boxShadow: "none",
-                      transition: "background 0.15s ease, border-color 0.15s ease",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      marginBottom: 2,
                     }}
                   >
-                    <div>
-                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 6 }}>
-                        <span style={{ fontSize: 10.5, fontWeight: 800, color: "#64748b", fontFamily: "'DM Sans', monospace" }}>
-                          P{period.slotIndex + 1} · {period.slot?.startTime} - {period.slot?.endTime}
-                        </span>
-                        <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
-                          {status && (
-                            <span
+                    {isSelectedSunday ? (
+                      <CalendarIcon size={20} color="#d97706" />
+                    ) : isSelectedHoliday ? (
+                      <Sun size={20} color="#d97706" />
+                    ) : isSelectedExam ? (
+                      <Info size={20} color="#2563eb" />
+                    ) : (
+                      <Info size={20} color="#64748b" />
+                    )}
+                  </div>
+
+                  <div style={{ fontSize: 15, fontWeight: 800, color: "#0f172a" }}>
+                    {isSelectedSunday
+                      ? "Sunday Weekend Holiday"
+                      : isSelectedHoliday
+                      ? `Official Holiday · ${selectedHolidayInfo?.title || "University Holiday"}`
+                      : isSelectedExam
+                      ? `Academic Routine Suspended · ${selectedCalendarStatus?.title || "Examination"}`
+                      : isSelectedOutsideSession
+                      ? `Outside Instructional Session · ${selectedCalendarStatus?.title || "Semester Break"}`
+                      : `No Classes Scheduled for ${selectedDayName}`}
+                  </div>
+
+                  <div style={{ fontSize: 12.5, fontWeight: 500, maxWidth: 520, lineHeight: 1.5, color: "#64748b" }}>
+                    {isSelectedSunday
+                      ? `No academic classes are scheduled on Sundays for Section ${selectedSection}.`
+                      : isSelectedHoliday
+                      ? `Today is recognized as an official holiday (${selectedHolidayInfo?.title || "Holiday"}). No classes are conducted for Section ${selectedSection}.`
+                      : isSelectedExam
+                      ? `Regular classroom teaching is suspended in accordance with the official academic calendar for examinations.`
+                      : isSelectedOutsideSession
+                      ? `${selectedCalendarStatus?.message || "Class instruction is not active outside the semester boundaries (July 6, 2026 - October 31, 2026)."}`
+                      : `There are no scheduled lectures, tutorials, or labs on ${selectedDayName} for Section ${selectedSection}.`}
+                  </div>
+                </div>
+              ) : (
+                <AnimatePresence mode="wait">
+                  <motion.div
+                    key={selectedCheckInDateKey}
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -8 }}
+                    transition={{ duration: 0.2, ease: "easeOut" }}
+                    style={{
+                      display: "grid",
+                      gridTemplateColumns: isMobile ? "1fr" : "repeat(auto-fill, minmax(290px, 1fr))",
+                      gap: 12,
+                    }}
+                  >
+                    {selectedDayClasses.map((period) => {
+                      const status = activeDateLogs[period.slotIndex]; // "present" | "absent" | undefined
+                      const isPresent = status === "present";
+                      const isAbsent = status === "absent";
+                      const subCode = resolveSubjectCode(period, studentData);
+
+                      return (
+                        <div
+                          key={`${selectedCheckInDateKey}-p${period.slotIndex}`}
+                          style={{
+                            background: isPresent ? "#f0fdf4" : isAbsent ? "#fff1f2" : "#ffffff",
+                            border: `1px solid ${isPresent ? "#86efac" : isAbsent ? "#fca5a5" : "#e2e8f0"}`,
+                            borderRadius: 10,
+                            padding: "14px 15px",
+                            display: "flex",
+                            flexDirection: "column",
+                            justifyContent: "space-between",
+                            gap: 12,
+                            boxShadow: isPresent
+                              ? "0 1px 3px rgba(16, 185, 129, 0.08)"
+                              : isAbsent
+                              ? "0 1px 3px rgba(244, 63, 94, 0.08)"
+                              : "0 1px 2px rgba(0, 0, 0, 0.02)",
+                            transition: "all 0.15s ease",
+                          }}
+                        >
+                          <div>
+                            {/* Top metadata row */}
+                            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 6 }}>
+                              <div style={{ display: "inline-flex", alignItems: "center", gap: 5 }}>
+                                <span
+                                  style={{
+                                    fontSize: 10.5,
+                                    fontWeight: 800,
+                                    padding: "2px 6px",
+                                    borderRadius: 5,
+                                    background: isPresent ? "#dcfce7" : isAbsent ? "#fee2e2" : "#f1f5f9",
+                                    color: isPresent ? "#15803d" : isAbsent ? "#b91c1c" : "#0f172a",
+                                    fontFamily: "'DM Sans', monospace",
+                                  }}
+                                >
+                                  P{period.slotIndex + 1}
+                                </span>
+                                <span style={{ fontSize: 11, fontWeight: 600, color: "#64748b", fontFamily: "'DM Sans', monospace" }}>
+                                  {period.slot?.startTime} - {period.slot?.endTime}
+                                </span>
+                              </div>
+
+                              <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                                {status && (
+                                  <span
+                                    style={{
+                                      fontSize: 10,
+                                      fontWeight: 700,
+                                      background: isPresent ? "#dcfce7" : "#fee2e2",
+                                      color: isPresent ? "#15803d" : "#b91c1c",
+                                      padding: "2px 7px",
+                                      borderRadius: 999,
+                                      border: `1px solid ${isPresent ? "#bbf7d0" : "#fecaca"}`,
+                                      display: "inline-flex",
+                                      alignItems: "center",
+                                      gap: 3,
+                                    }}
+                                  >
+                                    {isPresent ? (
+                                      <>
+                                        <CheckCircle2 size={11} color="#15803d" /> <span>Attended</span>
+                                      </>
+                                    ) : (
+                                      <>
+                                        <XCircle size={11} color="#b91c1c" /> <span>Missed</span>
+                                      </>
+                                    )}
+                                  </span>
+                                )}
+                                <span
+                                  style={{
+                                    fontSize: 10,
+                                    fontWeight: 800,
+                                    background: period.type === "PR" ? "#faf5ff" : period.type === "TUT" ? "#fffbeb" : "#f1f5f9",
+                                    color: period.type === "PR" ? "#7c3aed" : period.type === "TUT" ? "#b45309" : "#475569",
+                                    padding: "2px 6px",
+                                    borderRadius: 5,
+                                    border: `1px solid ${period.type === "PR" ? "#ddd6fe" : period.type === "TUT" ? "#fde68a" : "#e2e8f0"}`,
+                                  }}
+                                >
+                                  {period.type || "PP"}
+                                </span>
+                              </div>
+                            </div>
+
+                            {/* Subject Title and Code */}
+                            <div style={{ marginTop: 8 }}>
+                              <div style={{ fontSize: 14, fontWeight: 700, color: "#0f172a", lineHeight: 1.35 }}>
+                                {period.cleanName}
+                              </div>
+                              {subCode && (
+                                <span
+                                  style={{
+                                    fontSize: 10.5,
+                                    fontFamily: "'DM Sans', monospace",
+                                    fontWeight: 700,
+                                    color: "#475569",
+                                    background: isPresent || isAbsent ? "#ffffff" : "#f8fafc",
+                                    border: "1px solid #e2e8f0",
+                                    padding: "1.5px 6px",
+                                    borderRadius: 4,
+                                    display: "inline-block",
+                                    marginTop: 4,
+                                  }}
+                                >
+                                  {subCode}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+
+                          {/* Dual Action Buttons: Present & Absent */}
+                          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 7, paddingTop: 4 }}>
+                            {/* Mark Present Button */}
+                            <button
+                              type="button"
+                              onClick={() => handleMarkDailyAttendance(period, "present")}
                               style={{
-                                fontSize: 9.5,
-                                fontWeight: 900,
-                                background: isPresent ? "#dcfce7" : "#fee2e2",
-                                color: isPresent ? "#15803d" : "#b91c1c",
-                                padding: "2px 6px",
-                                borderRadius: 6,
-                                border: `1px solid ${isPresent ? "#bbf7d0" : "#fecaca"}`,
-                                display: "inline-flex",
+                                height: 34,
+                                borderRadius: 7,
+                                border: isPresent ? "1px solid #047857" : "1px solid #bbf7d0",
+                                background: isPresent ? "#059669" : "#ffffff",
+                                color: isPresent ? "#ffffff" : "#059669",
+                                fontSize: 12,
+                                fontWeight: 700,
+                                cursor: "pointer",
+                                display: "flex",
                                 alignItems: "center",
-                                gap: 3,
+                                justifyContent: "center",
+                                gap: 5,
+                                transition: "all 0.15s ease",
+                                boxShadow: isPresent ? "0 2px 4px rgba(5, 150, 105, 0.25)" : "none",
+                              }}
+                              onMouseEnter={(e) => {
+                                if (!isPresent) {
+                                  e.currentTarget.style.background = "#f0fdf4";
+                                  e.currentTarget.style.borderColor = "#86efac";
+                                }
+                              }}
+                              onMouseLeave={(e) => {
+                                if (!isPresent) {
+                                  e.currentTarget.style.background = "#ffffff";
+                                  e.currentTarget.style.borderColor = "#bbf7d0";
+                                }
                               }}
                             >
-                              {isPresent ? (
-                                <>
-                                  <CheckCircle2 size={11} color="#15803d" /> <span>+1 Attended</span>
-                                </>
-                              ) : (
-                                <>
-                                  <XCircle size={11} color="#b91c1c" /> <span>+1 Conducted</span>
-                                </>
-                              )}
-                            </span>
-                          )}
-                          <span
-                            style={{
-                              fontSize: 9.5,
-                              fontWeight: 900,
-                              background: period.type === "PR" ? "#faf5ff" : period.type === "TUT" ? "#fffbeb" : "#eff6ff",
-                              color: period.type === "PR" ? "#7c3aed" : period.type === "TUT" ? "#b45309" : "#2563eb",
-                              padding: "2px 6px",
-                              borderRadius: 6,
-                              border: `1px solid ${period.type === "PR" ? "#ddd6fe" : period.type === "TUT" ? "#fde68a" : "#bfdbfe"}`,
-                            }}
-                          >
-                            {period.type || "PP"}
-                          </span>
+                              <CheckCircle2 size={13} color={isPresent ? "#ffffff" : "#059669"} />
+                              <span>Present</span>
+                            </button>
+
+                            {/* Mark Absent Button */}
+                            <button
+                              type="button"
+                              onClick={() => handleMarkDailyAttendance(period, "absent")}
+                              style={{
+                                height: 34,
+                                borderRadius: 7,
+                                border: isAbsent ? "1px solid #be123c" : "1px solid #fecaca",
+                                background: isAbsent ? "#e11d48" : "#ffffff",
+                                color: isAbsent ? "#ffffff" : "#dc2626",
+                                fontSize: 12,
+                                fontWeight: 700,
+                                cursor: "pointer",
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "center",
+                                gap: 5,
+                                transition: "all 0.15s ease",
+                                boxShadow: isAbsent ? "0 2px 4px rgba(225, 29, 72, 0.25)" : "none",
+                              }}
+                              onMouseEnter={(e) => {
+                                if (!isAbsent) {
+                                  e.currentTarget.style.background = "#fef2f2";
+                                  e.currentTarget.style.borderColor = "#fca5a5";
+                                }
+                              }}
+                              onMouseLeave={(e) => {
+                                if (!isAbsent) {
+                                  e.currentTarget.style.background = "#ffffff";
+                                  e.currentTarget.style.borderColor = "#fecaca";
+                                }
+                              }}
+                            >
+                              <XCircle size={13} color={isAbsent ? "#ffffff" : "#dc2626"} />
+                              <span>Absent</span>
+                            </button>
+                          </div>
                         </div>
-                      </div>
-
-                      <div style={{ marginTop: 4 }}>
-                        <div style={{ fontSize: 13.5, fontWeight: 800, color: "#0f172a", lineHeight: 1.3 }}>
-                          {period.cleanName}
-                        </div>
-                        {subCode && (
-                          <span
-                            style={{
-                              fontSize: 10,
-                              fontFamily: "'DM Sans', monospace",
-                              fontWeight: 800,
-                              color: "#2563eb",
-                              background: "#eff6ff",
-                              border: "1px solid #bfdbfe",
-                              padding: "1px 5px",
-                              borderRadius: 4,
-                              display: "inline-block",
-                              marginTop: 3,
-                            }}
-                          >
-                            {subCode}
-                          </span>
-                        )}
-                      </div>
-                    </div>
-
-                    {/* Dual Action Buttons: Present & Absent */}
-                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6, paddingTop: 4 }}>
-                      {/* Mark Present Button */}
-                      <button
-                        type="button"
-                        onClick={() => handleMarkDailyAttendance(period, "present")}
-                        style={{
-                          padding: "7px 10px",
-                          borderRadius: 8,
-                          border: isPresent ? "1.5px solid #059669" : "1px solid #86efac",
-                          background: isPresent ? "linear-gradient(135deg, #059669 0%, #047857 100%)" : "#f0fdf4",
-                          color: isPresent ? "#ffffff" : "#166534",
-                          fontSize: 11.5,
-                          fontWeight: 800,
-                          cursor: "pointer",
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                          gap: 5,
-                          transition: "all 0.15s ease",
-                          boxShadow: isPresent ? "0 2px 6px rgba(5, 150, 105, 0.25)" : "none",
-                        }}
-                      >
-                        <CheckCircle2 size={14} color={isPresent ? "#ffffff" : "#059669"} />
-                        <span>Present</span>
-                      </button>
-
-                      {/* Mark Absent Button */}
-                      <button
-                        type="button"
-                        onClick={() => handleMarkDailyAttendance(period, "absent")}
-                        style={{
-                          padding: "7px 10px",
-                          borderRadius: 8,
-                          border: isAbsent ? "1.5px solid #dc2626" : "1px solid #fca5a5",
-                          background: isAbsent ? "linear-gradient(135deg, #dc2626 0%, #b91c1c 100%)" : "#fef2f2",
-                          color: isAbsent ? "#ffffff" : "#991b1b",
-                          fontSize: 11.5,
-                          fontWeight: 800,
-                          cursor: "pointer",
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                          gap: 5,
-                          transition: "all 0.15s ease",
-                          boxShadow: isAbsent ? "0 2px 6px rgba(220, 38, 38, 0.25)" : "none",
-                        }}
-                      >
-                        <XCircle size={14} color={isAbsent ? "#ffffff" : "#dc2626"} />
-                        <span>Absent</span>
-                      </button>
-                    </div>
-                  </div>
-                );
-              })}
-              </motion.div>
-            </AnimatePresence>
-          )}
+                      );
+                    })}
+                  </motion.div>
+                </AnimatePresence>
+              )}
             </div>
           </motion.div>
         )}
