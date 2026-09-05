@@ -61,6 +61,7 @@ export default function FuturePredictor({
   studentData = null,
   todayDayName = "Monday",
   isMobile = false,
+  allDailyLogs = {},
 }) {
   // ── Baseline Attendance ──────────────────────────────────────────────────
   const currentOverallAtt = overallCalculation.totalAttended || 0;
@@ -70,7 +71,7 @@ export default function FuturePredictor({
       ? Number(((currentOverallAtt / currentOverallDel) * 100).toFixed(2))
       : (overallCalculation.percentage || 100);
 
-  // Reference Today (Midnight)
+  // Reference Today (Normalized to Midnight)
   const today = useMemo(() => {
     const d = new Date();
     d.setHours(0, 0, 0, 0);
@@ -79,6 +80,27 @@ export default function FuturePredictor({
 
   const todayKey = useMemo(() => toDateKey(today), [today]);
 
+  // Today's Daily Check-in Status (From Mongo / Tracker State)
+  const todayLogs = useMemo(() => allDailyLogs[todayKey] || {}, [allDailyLogs, todayKey]);
+  const todaySchedCtx = useMemo(() => getSectionScheduleForDate(selectedSection, today), [selectedSection, today]);
+  const todayClassesList = todaySchedCtx.classes || [];
+
+  const todayMarkedClasses = useMemo(() => {
+    return todayClassesList.filter((cls) => Boolean(todayLogs[cls.slotIndex]));
+  }, [todayClassesList, todayLogs]);
+
+  const todayUnmarkedClasses = useMemo(() => {
+    return todayClassesList.filter((cls) => !todayLogs[cls.slotIndex]);
+  }, [todayClassesList, todayLogs]);
+
+  const todayPresentCount = useMemo(() => {
+    return todayClassesList.filter((cls) => todayLogs[cls.slotIndex] === "present").length;
+  }, [todayClassesList, todayLogs]);
+
+  const todayAbsentCount = useMemo(() => {
+    return todayClassesList.filter((cls) => todayLogs[cls.slotIndex] === "absent").length;
+  }, [todayClassesList, todayLogs]);
+
   // ── State Management ─────────────────────────────────────────────────────
   // Week navigation offset (0 = current week, 1 = next week, etc.)
   const [weekOffset, setWeekOffset] = useState(0);
@@ -86,7 +108,7 @@ export default function FuturePredictor({
   // Selected Bunk Dates (Array of 'YYYY-MM-DD' strings)
   const [selectedBunkKeys, setSelectedBunkKeys] = useState([]);
 
-  // Non-instructional date notice (e.g. when user clicks on an exam or holiday date)
+  // Non-instructional date notice (e.g. when user clicks on an exam, holiday, or already-completed day)
   const [nonInstructionalNotice, setNonInstructionalNotice] = useState(null);
 
   // Recovery Target Percentage (default 75%, can be 80%, 85%, 90%)
@@ -155,10 +177,9 @@ export default function FuturePredictor({
     return `${activeWeekDays[0].dateFormatted} – ${activeWeekDays[activeWeekDays.length - 1].dateFormatted}`;
   }, [activeWeekDays]);
 
-  // ── Bunk Date Selection Handler (With Exam & Holiday Safeguards) ─────────
+  // ── Bunk Date Selection Handler (With Same-Day & Exam Safeguards) ────────
   const toggleBunkDate = (dayItem) => {
     if (!dayItem.isInstructional) {
-      // Show clean, accurate notice that this date has no regular timetable classes
       const reasonTitle = dayItem.isExam
         ? (dayItem.schedCtx.calendarStatus?.title || "Mid Semester Examination")
         : dayItem.isHoliday
@@ -173,7 +194,7 @@ export default function FuturePredictor({
         isHoliday: dayItem.isHoliday,
         isSunday: dayItem.isSunday,
         message: dayItem.isExam
-          ? `Examinations are scheduled on ${dayItem.dateFormatted} (${reasonTitle}). Regular theory & practice timetable classes are suspended, so routine attendance cannot be bunked.`
+          ? `Examinations are scheduled on ${dayItem.dateFormatted} (${reasonTitle}). Regular timetable classes are suspended, so routine attendance cannot be bunked.`
           : dayItem.isHoliday
           ? `University is closed on ${dayItem.dateFormatted} for ${reasonTitle}. No routine classes are conducted.`
           : `University is closed on Sundays. No classes are scheduled.`,
@@ -181,7 +202,17 @@ export default function FuturePredictor({
       return;
     }
 
-    // Dismiss notice when clicking an instructional day
+    // Special check for TODAY: If all classes today have already been marked
+    if (dayItem.isToday && todayClassesList.length > 0 && todayUnmarkedClasses.length === 0) {
+      setNonInstructionalNotice({
+        dateFormatted: dayItem.dateFormatted,
+        dayName: dayItem.dayName,
+        title: "All Classes Marked Today",
+        message: `All ${todayClassesList.length} scheduled classes for today have already been marked in your Daily Hub (${todayPresentCount} present, ${todayAbsentCount} absent). There are no remaining unmarked classes to bunk today.`,
+      });
+      return;
+    }
+
     setNonInstructionalNotice(null);
     setSelectedBunkKeys((prev) =>
       prev.includes(dayItem.dateKey)
@@ -190,7 +221,7 @@ export default function FuturePredictor({
     );
   };
 
-  // ── Quick Presets Handlers (Selects only instructional days) ─────────────
+  // ── Quick Presets Handlers ───────────────────────────────────────────────
   const applyPresetTomorrow = () => {
     const tomorrow = new Date(today);
     tomorrow.setDate(today.getDate() + 1);
@@ -264,7 +295,7 @@ export default function FuturePredictor({
   const lastBunkDate = sortedBunkDates[sortedBunkDates.length - 1] || null;
 
   // ═══════════════════════════════════════════════════════════════════════════
-  // 3-PHASE MASTER FUTURE PREDICTOR ENGINE
+  // 3-PHASE MASTER FUTURE PREDICTOR SIMULATION ENGINE
   // ═══════════════════════════════════════════════════════════════════════════
   const simulation = useMemo(() => {
     if (sortedBunkDates.length === 0) return null;
@@ -290,7 +321,7 @@ export default function FuturePredictor({
 
     // ─────────────────────────────────────────────────────────────────────────
     // PHASE 1: PRE-BUNK ACCUMULATION (Today <= d < firstBunkDate)
-    // Tracks day-by-day and subject-by-subject attendance climbing
+    // Seamlessly respects same-day marked classes to prevent double counting!
     // ─────────────────────────────────────────────────────────────────────────
     let preBunkTotalClasses = 0;
     const preBunkDays = [];
@@ -302,32 +333,39 @@ export default function FuturePredictor({
       while (scanDate < firstBunkDate) {
         const dKey = toDateKey(scanDate);
         const sched = getSectionScheduleForDate(selectedSection, scanDate);
+        const isScanDateToday = dKey === todayKey;
 
         if (sched.isInstructional && sched.classes && sched.classes.length > 0) {
           const dayClassesWithImpact = [];
 
           sched.classes.forEach((cls) => {
-            preBunkTotalClasses++;
             const cleanName = cls.cleanName || cleanSubjectBaseName(cls.subject);
             const subData = subjectMap.get(cleanName);
+
+            // If scanning TODAY: check if this class is ALREADY marked in dailyLogs
+            const isAlreadyMarkedToday = isScanDateToday && Boolean(todayLogs[cls.slotIndex]);
+            const markedStatusToday = isAlreadyMarkedToday ? todayLogs[cls.slotIndex] : null;
 
             const prevSubAtt = subData ? subData.preBunkAttended : 0;
             const prevSubDel = subData ? subData.preBunkDelivered : 0;
             const prevSubPct = prevSubDel > 0 ? (prevSubAtt / prevSubDel) * 100 : 100;
 
-            if (subData) {
-              subData.preBunkAttended += 1;
-              subData.preBunkDelivered += 1;
-              subData.preBunkClassesAdded += 1;
+            if (!isAlreadyMarkedToday) {
+              // Only upcoming/unmarked classes will be newly attended!
+              preBunkTotalClasses++;
+              if (subData) {
+                subData.preBunkAttended += 1;
+                subData.preBunkDelivered += 1;
+                subData.preBunkClassesAdded += 1;
+              }
+              runningAccumAtt += 1;
+              runningAccumDel += 1;
             }
 
             const newSubAtt = subData ? subData.preBunkAttended : 0;
             const newSubDel = subData ? subData.preBunkDelivered : 0;
             const newSubPct = newSubDel > 0 ? (newSubAtt / newSubDel) * 100 : 100;
-            const subDelta = Number((newSubPct - prevSubPct).toFixed(2));
-
-            runningAccumAtt += 1;
-            runningAccumDel += 1;
+            const subDelta = isAlreadyMarkedToday ? 0 : Number((newSubPct - prevSubPct).toFixed(2));
             const overallPctAfterClass = Number(((runningAccumAtt / runningAccumDel) * 100).toFixed(2));
 
             dayClassesWithImpact.push({
@@ -338,6 +376,8 @@ export default function FuturePredictor({
               type: cls.type || "PP",
               room: cls.room || "Room TBA",
               faculty: cls.faculty || "Faculty",
+              isAlreadyMarkedToday,
+              markedStatusToday,
               prevSubPct: Number(prevSubPct.toFixed(1)),
               newSubPct: Number(newSubPct.toFixed(1)),
               subDelta,
@@ -350,6 +390,7 @@ export default function FuturePredictor({
             dateKey: dKey,
             dayName: sched.dayName,
             dateFormatted: formatFriendlyDate(scanDate),
+            isToday: isScanDateToday,
             classesCount: sched.classes.length,
             classes: dayClassesWithImpact,
             dayEndOverallPct: Number(((runningAccumAtt / runningAccumDel) * 100).toFixed(2)),
@@ -359,7 +400,7 @@ export default function FuturePredictor({
       }
     }
 
-    // Overall Pre-Bunk Attendance State (Eve of Bunk)
+    // Overall Pre-Bunk Attendance State (At Eve of Bunk)
     const preBunkOverallAtt = currentOverallAtt + preBunkTotalClasses;
     const preBunkOverallDel = currentOverallDel + preBunkTotalClasses;
     const preBunkOverallPct =
@@ -368,7 +409,6 @@ export default function FuturePredictor({
         : currentOverallPct;
     const preBunkGainDelta = Number((preBunkOverallPct - currentOverallPct).toFixed(2));
 
-    // Calculate final pre-bunk percentage for each subject
     subjectMap.forEach((sub) => {
       sub.preBunkPct =
         sub.preBunkDelivered > 0
@@ -380,7 +420,9 @@ export default function FuturePredictor({
     });
 
     // ─────────────────────────────────────────────────────────────────────────
-    // PHASE 2: BUNK DROP SIMULATION (Selected Dates)
+    // PHASE 2: BUNK DROP SIMULATION (Selected Bunk Dates)
+    // If Today is selected: only UNMARKED remaining classes will be missed!
+    // Classes already marked present/absent earlier today are safely preserved!
     // ─────────────────────────────────────────────────────────────────────────
     const bunkDaysBreakdown = [];
     let cumulativeMissedClasses = 0;
@@ -389,25 +431,42 @@ export default function FuturePredictor({
 
     sortedBunkDates.forEach((bunkDate, index) => {
       const dKey = toDateKey(bunkDate);
+      const isBunkDateToday = dKey === todayKey;
       const sched = getSectionScheduleForDate(selectedSection, bunkDate);
       const scheduledClasses = sched.isInstructional ? sched.classes || [] : [];
-      const dayClassesCount = scheduledClasses.length;
 
-      cumulativeMissedClasses += dayClassesCount;
-      runningOverallDelivered += dayClassesCount;
+      // If bunking TODAY: separate already marked classes from remaining classes!
+      const classesToBunk = isBunkDateToday
+        ? scheduledClasses.filter((cls) => !todayLogs[cls.slotIndex])
+        : scheduledClasses;
+
+      const alreadyMarkedToday = isBunkDateToday
+        ? scheduledClasses.filter((cls) => Boolean(todayLogs[cls.slotIndex]))
+        : [];
+
+      const dayMissedCount = classesToBunk.length;
+      cumulativeMissedClasses += dayMissedCount;
+      runningOverallDelivered += dayMissedCount;
 
       const dayPostPct =
         runningOverallDelivered > 0
           ? Number(((runningOverallAttended / runningOverallDelivered) * 100).toFixed(2))
           : preBunkOverallPct;
 
-      const missedClassesDetail = scheduledClasses.map((cls) => {
+      const classesDetail = scheduledClasses.map((cls) => {
         const cleanName = cls.cleanName || cleanSubjectBaseName(cls.subject);
         const subData = subjectMap.get(cleanName);
-        if (subData) {
-          subData.bunkMissedCount += 1;
-          subData.postBunkDelivered += 1;
+        const isClassMarked = isBunkDateToday && Boolean(todayLogs[cls.slotIndex]);
+        const classMarkStatus = isClassMarked ? todayLogs[cls.slotIndex] : null;
+
+        if (!isClassMarked) {
+          // Missed in this simulation
+          if (subData) {
+            subData.bunkMissedCount += 1;
+            subData.postBunkDelivered += 1;
+          }
         }
+
         return {
           slotIndex: cls.slotIndex,
           timeSlot: cls.slot?.label || (TIME_SLOTS[cls.slotIndex]?.label || `Slot ${cls.slotIndex + 1}`),
@@ -416,6 +475,8 @@ export default function FuturePredictor({
           type: cls.type || "PP",
           room: cls.room || "Room TBA",
           faculty: cls.faculty || "Faculty",
+          isAlreadyMarked: isClassMarked,
+          markStatus: classMarkStatus,
         };
       });
 
@@ -423,14 +484,17 @@ export default function FuturePredictor({
         stepIndex: index + 1,
         date: bunkDate,
         dateKey: dKey,
+        isToday: isBunkDateToday,
         dayName: sched.dayName,
         dateFormatted: formatFriendlyDate(bunkDate),
         isInstructional: sched.isInstructional,
         isHoliday: sched.isOfficialHoliday,
         holidayTitle: sched.title,
         isExam: sched.isExam,
-        classesCount: dayClassesCount,
-        classes: missedClassesDetail,
+        totalClassesScheduled: scheduledClasses.length,
+        classesMissedCount: dayMissedCount,
+        alreadyMarkedCount: alreadyMarkedToday.length,
+        classes: classesDetail,
         cumulativeMissedSoFar: cumulativeMissedClasses,
         endOfDayOverallPct: dayPostPct,
         dayDelta: Number((dayPostPct - preBunkOverallPct).toFixed(2)),
@@ -479,7 +543,7 @@ export default function FuturePredictor({
     });
 
     // ─────────────────────────────────────────────────────────────────────────
-    // PHASE 3: POST-BUNK RECOVERY SCHEDULE (Strictly matches Image 3 Card Grid)
+    // PHASE 3: POST-BUNK RECOVERY SCHEDULE (Image 3 Grid Layout)
     // ─────────────────────────────────────────────────────────────────────────
     let overallClassesToTarget = 0;
     if (postBunkOverallPct < targetPct) {
@@ -560,7 +624,7 @@ export default function FuturePredictor({
       }
     }
 
-    // First instructional return date after bunk
+    // First instructional return date after leave
     const firstReturnDate = new Date(lastBunkDate);
     firstReturnDate.setDate(firstReturnDate.getDate() + 1);
     let returnGuard = 0;
@@ -602,6 +666,8 @@ export default function FuturePredictor({
     firstBunkDate,
     lastBunkDate,
     today,
+    todayKey,
+    todayLogs,
     currentOverallAtt,
     currentOverallDel,
     currentOverallPct,
@@ -723,7 +789,7 @@ export default function FuturePredictor({
           </div>
         </div>
 
-        {/* ── Quick Vacation Presets ── */}
+        {/* ── Quick Presets ── */}
         <div
           style={{
             display: "flex",
@@ -850,7 +916,7 @@ export default function FuturePredictor({
       </div>
 
       {/* ═══════════════════════════════════════════════════════════════════════
-          DATE WITH DAY SELECTOR (HONORS EXAMS & HOLIDAYS)
+          DATE WITH DAY STRIP (HONORS TODAY'S MARKED ATTENDANCE)
       ═══════════════════════════════════════════════════════════════════════ */}
       <div
         style={{
@@ -954,7 +1020,7 @@ export default function FuturePredictor({
           </div>
         </div>
 
-        {/* ── Notice Banner if week is suspended for Exams / Holidays ── */}
+        {/* Notice Banner if week is suspended for Exams / Holidays */}
         {weekInstructionalCount === 0 && (
           <div
             style={{
@@ -1002,7 +1068,7 @@ export default function FuturePredictor({
           </div>
         )}
 
-        {/* ── Non-Instructional Click Notice ── */}
+        {/* Non-Instructional / Today Notice Banner */}
         {nonInstructionalNotice && (
           <div
             style={{
@@ -1032,7 +1098,7 @@ export default function FuturePredictor({
           </div>
         )}
 
-        {/* ── Date Cards Grid (Follows getSectionScheduleForDate) ── */}
+        {/* Date Cards Grid */}
         <div
           style={{
             display: "grid",
@@ -1085,7 +1151,7 @@ export default function FuturePredictor({
                   position: "relative",
                 }}
               >
-                {/* Top Right Status: Checkbox (Instructional) or Lock (Non-Instructional) */}
+                {/* Top Right Status: Checkbox or Lock */}
                 <div
                   style={{
                     position: "absolute",
@@ -1162,7 +1228,9 @@ export default function FuturePredictor({
                       : dayItem.isHoliday
                       ? "#fffbeb"
                       : isInstructional
-                      ? "#ecfdf5"
+                      ? isToday && todayMarkedClasses.length > 0
+                        ? "#eff6ff"
+                        : "#ecfdf5"
                       : "#f1f5f9",
                     color: isSelected
                       ? "#b91c1c"
@@ -1171,18 +1239,24 @@ export default function FuturePredictor({
                       : dayItem.isHoliday
                       ? "#b45309"
                       : isInstructional
-                      ? "#047857"
+                      ? isToday && todayMarkedClasses.length > 0
+                        ? "#1d4ed8"
+                        : "#047857"
                       : "#64748b",
                   }}
                 >
                   {isSelected
-                    ? "Planned Bunk"
+                    ? isToday && todayMarkedClasses.length > 0
+                      ? `Bunk Left (${todayUnmarkedClasses.length})`
+                      : "Planned Bunk"
                     : dayItem.isExam
                     ? "Exams (No Class)"
                     : dayItem.isHoliday
                     ? "Holiday (Closed)"
                     : isInstructional
-                    ? `${dayItem.totalClasses} Classes`
+                    ? isToday && todayMarkedClasses.length > 0
+                      ? `${todayUnmarkedClasses.length} Left (${todayMarkedClasses.length} marked)`
+                      : `${dayItem.totalClasses} Classes`
                     : "No Class"}
                 </span>
               </button>
@@ -1192,7 +1266,7 @@ export default function FuturePredictor({
       </div>
 
       {/* ═══════════════════════════════════════════════════════════════════════
-          EMPTY STATE: WHEN NO DATES ARE SELECTED
+          EMPTY STATE
       ═══════════════════════════════════════════════════════════════════════ */}
       {!simulation && (
         <div
@@ -1240,7 +1314,7 @@ export default function FuturePredictor({
       {simulation && (
         <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
           {/* ─────────────────────────────────────────────────────────────────
-              PHASE 1: PRE-BUNK ATTENDANCE ACCUMULATION (MATCHES IMAGE 2 + DETAILS)
+              PHASE 1: PRE-BUNK ATTENDANCE ACCUMULATION
           ───────────────────────────────────────────────────────────────── */}
           {simulation.preBunkTotalClasses > 0 && (
             <motion.div
@@ -1304,10 +1378,32 @@ export default function FuturePredictor({
               </div>
 
               <p style={{ fontSize: 12.5, color: "#334155", margin: 0, lineHeight: 1.5 }}>
-                From today until the day before your planned leave ({formatFriendlyDate(new Date(simulation.firstBunkDate.getTime() - 86400000))}), if you attend all <strong>{simulation.preBunkTotalClasses} scheduled classes</strong> across your timetable, your overall attendance will rise from <strong>{currentOverallPct}%</strong> to <strong>{simulation.preBunkOverallPct}%</strong> before taking leave.
+                From today until the day before your planned leave ({formatFriendlyDate(new Date(simulation.firstBunkDate.getTime() - 86400000))}), if you attend all <strong>{simulation.preBunkTotalClasses} upcoming scheduled classes</strong> across your timetable, your overall attendance will rise from <strong>{currentOverallPct}%</strong> to <strong>{simulation.preBunkOverallPct}%</strong> before taking leave.
               </p>
 
-              {/* Summary Subject Chips (Exact Image 2) */}
+              {/* Same-Day Marked Classes Notice */}
+              {todayMarkedClasses.length > 0 && (
+                <div
+                  style={{
+                    background: "#ffffff",
+                    border: "1px solid #93c5fd",
+                    borderRadius: 8,
+                    padding: "6px 10px",
+                    fontSize: 11.5,
+                    color: "#1e40af",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 6,
+                  }}
+                >
+                  <Info size={14} color="#2563eb" style={{ flexShrink: 0 }} />
+                  <span>
+                    <strong>Today's Activity:</strong> {todayMarkedClasses.length} class(es) were already logged in Daily Hub ({todayPresentCount} present, {todayAbsentCount} absent) and are included in your current baseline. Only the {todayUnmarkedClasses.length} remaining upcoming class(es) today are added to this pre-bunk roadmap.
+                  </span>
+                </div>
+              )}
+
+              {/* Summary Subject Chips (Image 2) */}
               <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
                 {simulation.affectedSubjectsList
                   .filter((s) => s.preBunkClassesAdded > 0)
@@ -1379,7 +1475,7 @@ export default function FuturePredictor({
                     >
                       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                         <span style={{ fontSize: 12.5, fontWeight: 900, color: "#0f172a" }}>
-                          {pDay.dateFormatted} ({pDay.dayName}) &bull; {pDay.classesCount} Classes Attended
+                          {pDay.dateFormatted} ({pDay.dayName}) &bull; {pDay.classesCount} Classes {pDay.isToday ? "(Today)" : "Scheduled"}
                         </span>
                         <span style={{ fontSize: 11, fontWeight: 800, color: "#059669" }}>
                           Day-End Overall: {pDay.dayEndOverallPct}%
@@ -1391,13 +1487,14 @@ export default function FuturePredictor({
                           <div
                             key={cIdx}
                             style={{
-                              background: "#f8fafc",
-                              border: "1px solid #e2e8f0",
+                              background: cls.isAlreadyMarkedToday ? "#f1f5f9" : "#f8fafc",
+                              border: cls.isAlreadyMarkedToday ? "1px solid #cbd5e1" : "1px solid #e2e8f0",
                               borderRadius: 8,
                               padding: "6px 8px",
                               display: "flex",
                               flexDirection: "column",
                               gap: 3,
+                              opacity: cls.isAlreadyMarkedToday ? 0.85 : 1,
                             }}
                           >
                             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
@@ -1413,9 +1510,15 @@ export default function FuturePredictor({
                             </div>
                             <div style={{ display: "flex", justifyContent: "space-between", fontSize: 10.5, borderTop: "1px dashed #e2e8f0", paddingTop: 3, marginTop: 2 }}>
                               <span style={{ color: "#64748b" }}>Course %:</span>
-                              <strong style={{ color: "#059669" }}>
-                                {cls.prevSubPct}% &rarr; {cls.newSubPct}% (+{cls.subDelta}%)
-                              </strong>
+                              {cls.isAlreadyMarkedToday ? (
+                                <strong style={{ color: cls.markedStatusToday === "present" ? "#059669" : "#dc2626" }}>
+                                  Already marked {cls.markedStatusToday} ({cls.prevSubPct}%)
+                                </strong>
+                              ) : (
+                                <strong style={{ color: "#059669" }}>
+                                  {cls.prevSubPct}% &rarr; {cls.newSubPct}% (+{cls.subDelta}%)
+                                </strong>
+                              )}
                             </div>
                           </div>
                         ))}
@@ -1428,7 +1531,7 @@ export default function FuturePredictor({
           )}
 
           {/* ─────────────────────────────────────────────────────────────────
-              PHASE 2: BUNK DROP SIMULATION
+              PHASE 2: BUNK DROP SIMULATION (HONORS SAME-DAY LOGS)
           ───────────────────────────────────────────────────────────────── */}
           <motion.div
             initial={{ opacity: 0, y: 10 }}
@@ -1574,10 +1677,10 @@ export default function FuturePredictor({
               </div>
             </div>
 
-            {/* Sequential Bunk Days Breakdown */}
+            {/* Sequential Missed Days Breakdown (Showing Same-Day Marked Status) */}
             <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
               <span style={{ fontSize: 11.5, fontWeight: 800, color: "#475569", textTransform: "uppercase", letterSpacing: "0.5px" }}>
-                Sequential Drop After Each Missed Day:
+                Sequential Drop Breakdown:
               </span>
               <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
                 {simulation.bunkDaysBreakdown.map((bDay) => (
@@ -1625,7 +1728,11 @@ export default function FuturePredictor({
                           color: bDay.isInstructional ? "#dc2626" : "#b45309",
                         }}
                       >
-                        {bDay.isInstructional ? `${bDay.classesCount} Classes Missed` : bDay.holidayTitle || "Holiday (0 Missed)"}
+                        {bDay.isToday && bDay.alreadyMarkedCount > 0
+                          ? `${bDay.classesMissedCount} Remaining Missed (${bDay.alreadyMarkedCount} already marked)`
+                          : bDay.isInstructional
+                          ? `${bDay.classesMissedCount} Classes Missed`
+                          : bDay.holidayTitle || "Holiday (0 Missed)"}
                       </span>
                     </div>
 
@@ -1643,7 +1750,7 @@ export default function FuturePredictor({
               </div>
             </div>
 
-            {/* Course-Wise Bunk Impact Accordion */}
+            {/* Course-Wise Bunk Impact */}
             <div style={{ display: "flex", flexDirection: "column", gap: 6, marginTop: 4 }}>
               <span style={{ fontSize: 11.5, fontWeight: 800, color: "#475569", textTransform: "uppercase", letterSpacing: "0.5px" }}>
                 Course-Wise Bunk Impact:
@@ -1750,7 +1857,7 @@ export default function FuturePredictor({
           </motion.div>
 
           {/* ─────────────────────────────────────────────────────────────────
-              PHASE 3: MANDATORY POST-ABSENCE RECOVERY SCHEDULE (IMAGE 3 UI)
+              PHASE 3: MANDATORY POST-ABSENCE RECOVERY SCHEDULE (EXACT IMAGE 3)
           ───────────────────────────────────────────────────────────────── */}
           <motion.div
             initial={{ opacity: 0, y: 10 }}
