@@ -298,14 +298,24 @@ export default function AttendanceTargetPredictor({
         {/* ONE LINE: Subject Selector on Left + Miss Selector on Right, each with its own clear description */}
         <div
           style={{
-            display: "grid",
-            gridTemplateColumns: isMobile ? "1fr" : (isPenaltyView ? "repeat(2, 1fr)" : "1fr"),
+            display: "flex",
+            flexDirection: isMobile ? "column" : "row",
+            flexWrap: "wrap",
             gap: isMobile ? 12 : 16,
-            alignItems: "flex-end",
+            alignItems: isMobile ? "stretch" : "flex-end",
           }}
         >
-          {/* 1. Sub Choose (Subject Dropdown) with desc */}
-          <div style={{ display: "flex", flexDirection: "column", gap: 6, minWidth: 0 }}>
+          {/* 1. Sub Choose (Subject Dropdown) with desc - Expands when desktop, full-width on mobile */}
+          <div
+            style={{
+              flex: isMobile ? "1 1 100%" : (isPenaltyView ? "1 1 320px" : "1 1 100%"),
+              width: isMobile ? "100%" : "auto",
+              minWidth: 0,
+              display: "flex",
+              flexDirection: "column",
+              gap: 6,
+            }}
+          >
             <div>
               <div style={{ fontSize: 11, fontWeight: 800, color: "#334155", textTransform: "uppercase", letterSpacing: "0.5px" }}>
                 Select Subject
@@ -328,9 +338,18 @@ export default function AttendanceTargetPredictor({
             )}
           </div>
 
-          {/* 2. Miss Select (Full-width stepper matching subject dropdown) */}
+          {/* 2. Miss Select (Shrinks to compact on desktop, full-width on mobile) */}
           {isPenaltyView && (
-            <div style={{ display: "flex", flexDirection: "column", gap: 6, minWidth: 0 }}>
+            <div
+              style={{
+                flex: isMobile ? "1 1 100%" : "0 1 240px",
+                width: isMobile ? "100%" : "240px",
+                minWidth: isMobile ? "100%" : 210,
+                display: "flex",
+                flexDirection: "column",
+                gap: 6,
+              }}
+            >
               <div>
                 <div style={{ fontSize: 11, fontWeight: 800, color: "#334155", textTransform: "uppercase", letterSpacing: "0.5px" }}>
                   Planned Missed Classes
@@ -340,7 +359,7 @@ export default function AttendanceTargetPredictor({
                 </div>
               </div>
 
-              {/* Stepper Input box spanning 100% width matching dropdown */}
+              {/* Stepper Input box */}
               <div
                 style={{
                   width: "100%",

@@ -95,6 +95,11 @@ export default function SubjectDropdown({
     return getSubjectAttendance(activeItem);
   }, [activeItem, getSubjectAttendance]);
 
+  const activeCode = useMemo(() => {
+    if (!activeItem) return "";
+    return activeStats?.code || activeItem?.code || activeItem?.subCode || resolveSubjectCode({ subject: activeItem?.subjectName }, studentData) || "";
+  }, [activeItem, activeStats, studentData]);
+
   // Filtered catalog list
   const filteredCatalog = useMemo(() => {
     if (!searchTerm.trim()) return catalog;
@@ -165,22 +170,49 @@ export default function SubjectDropdown({
           }
         }}
       >
-        {/* Only subject name and dropdown icon as requested */}
-        <span
+        {/* Subject Name and Subject Code badge */}
+        <div
           style={{
-            fontSize: isMobile ? 13.5 : 14,
-            fontWeight: 700,
-            color: "#0f172a",
-            lineHeight: 1.3,
-            overflow: "hidden",
-            textOverflow: "ellipsis",
-            whiteSpace: "nowrap",
+            display: "flex",
+            alignItems: "center",
+            gap: 8,
             flex: 1,
             minWidth: 0,
+            overflow: "hidden",
           }}
         >
-          {activeItem ? activeItem.subjectName : placeholder}
-        </span>
+          <span
+            style={{
+              fontSize: isMobile ? 13.5 : 14,
+              fontWeight: 750,
+              color: "#0f172a",
+              lineHeight: 1.3,
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+              whiteSpace: "nowrap",
+            }}
+          >
+            {activeItem ? activeItem.subjectName : placeholder}
+          </span>
+
+          {activeCode && (
+            <span
+              style={{
+                fontSize: 11,
+                fontWeight: 750,
+                color: "#475569",
+                background: "#f1f5f9",
+                border: "1px solid #e2e8f0",
+                padding: "1.5px 7px",
+                borderRadius: 5,
+                letterSpacing: "0.2px",
+                flexShrink: 0,
+              }}
+            >
+              {activeCode}
+            </span>
+          )}
+        </div>
 
         <ChevronDown
           size={16}
@@ -189,7 +221,7 @@ export default function SubjectDropdown({
             transform: isOpen ? "rotate(180deg)" : "rotate(0deg)",
             transition: "transform 0.2s ease",
             flexShrink: 0,
-            marginLeft: 8,
+            marginLeft: 4,
           }}
         />
       </button>
@@ -202,12 +234,12 @@ export default function SubjectDropdown({
             position: "absolute",
             top: "calc(100% + 6px)",
             left: 0,
-            right: 0,
-            width: "100%",
+            width: isMobile ? "100%" : "max(100%, 380px)",
+            maxWidth: "calc(100vw - 28px)",
             background: "#ffffff",
-            border: "1.5px solid #cbd5e1",
-            borderRadius: 14,
-            boxShadow: "0 12px 30px -4px rgba(15, 23, 42, 0.16), 0 4px 10px rgba(0, 0, 0, 0.05)",
+            border: "1px solid #cbd5e1",
+            borderRadius: 12,
+            boxShadow: "0 10px 25px -5px rgba(15, 23, 42, 0.12), 0 8px 10px -6px rgba(15, 23, 42, 0.04)",
             padding: "8px",
             zIndex: 100,
             maxHeight: isMobile ? "70vh" : 420,
@@ -231,28 +263,48 @@ export default function SubjectDropdown({
               flexShrink: 0,
             }}
           >
+            <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+              <span
+                style={{
+                  fontSize: 11,
+                  fontWeight: 800,
+                  color: "#475569",
+                  textTransform: "uppercase",
+                  letterSpacing: "0.5px",
+                }}
+              >
+                Select Subject
+              </span>
+              <span
+                style={{
+                  fontSize: 10,
+                  fontWeight: 750,
+                  color: "#64748b",
+                  background: "#f1f5f9",
+                  border: "1px solid #e2e8f0",
+                  padding: "1px 6px",
+                  borderRadius: 4,
+                }}
+              >
+                {catalog.length} Available
+              </span>
+            </div>
+
             <span
               style={{
-                fontSize: 11,
-                fontWeight: 800,
-                color: "#64748b",
-                textTransform: "uppercase",
-                letterSpacing: "0.5px",
-              }}
-            >
-              Select Subject to Simulate ({catalog.length} Available)
-            </span>
-            <span
-              style={{
-                fontSize: 10,
+                fontSize: 10.5,
                 fontWeight: 700,
                 color: "#059669",
                 background: "#ecfdf5",
                 border: "1px solid #a7f3d0",
-                padding: "1px 6px",
-                borderRadius: 4,
+                padding: "2px 7px",
+                borderRadius: 5,
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 4,
               }}
             >
+              <span style={{ width: 5, height: 5, borderRadius: 999, background: "#059669" }} />
               Live Routine
             </span>
           </div>
@@ -260,18 +312,17 @@ export default function SubjectDropdown({
           {/* Custom Webkit scrollbar styles for dropdown */}
           <style>{`
             .subject-dropdown-scroll::-webkit-scrollbar {
-              width: 6px;
+              width: 5px;
             }
             .subject-dropdown-scroll::-webkit-scrollbar-track {
-              background: #f1f5f9;
-              border-radius: 8px;
+              background: transparent;
             }
             .subject-dropdown-scroll::-webkit-scrollbar-thumb {
-              background: #94a3b8;
-              border-radius: 8px;
+              background: #cbd5e1;
+              border-radius: 4px;
             }
             .subject-dropdown-scroll::-webkit-scrollbar-thumb:hover {
-              background: #64748b;
+              background: #94a3b8;
             }
           `}</style>
 
@@ -281,7 +332,7 @@ export default function SubjectDropdown({
               style={{
                 position: "relative",
                 marginBottom: 6,
-                padding: "2px 2px",
+                padding: "2px 0",
                 flexShrink: 0,
               }}
             >
@@ -293,6 +344,7 @@ export default function SubjectDropdown({
                   left: 10,
                   top: "50%",
                   transform: "translateY(-50%)",
+                  pointerEvents: "none",
                 }}
               />
               <input
@@ -303,7 +355,7 @@ export default function SubjectDropdown({
                 onChange={(e) => setSearchTerm(e.target.value)}
                 style={{
                   width: "100%",
-                  padding: "7px 28px 7px 30px",
+                  padding: "7.5px 28px 7.5px 30px",
                   fontSize: 12.5,
                   fontWeight: 600,
                   border: "1px solid #e2e8f0",
@@ -312,6 +364,17 @@ export default function SubjectDropdown({
                   color: "#0f172a",
                   outline: "none",
                   boxSizing: "border-box",
+                  transition: "all 0.15s ease",
+                }}
+                onFocus={(e) => {
+                  e.target.style.borderColor = "#94a3b8";
+                  e.target.style.background = "#ffffff";
+                  e.target.style.boxShadow = "0 0 0 2px rgba(15, 23, 42, 0.05)";
+                }}
+                onBlur={(e) => {
+                  e.target.style.borderColor = "#e2e8f0";
+                  e.target.style.background = "#f8fafc";
+                  e.target.style.boxShadow = "none";
                 }}
               />
               {searchTerm && (
@@ -355,7 +418,7 @@ export default function SubjectDropdown({
               WebkitOverflowScrolling: "touch",
               touchAction: "pan-y",
               scrollbarWidth: "thin",
-              scrollbarColor: "#94a3b8 #f1f5f9",
+              scrollbarColor: "#cbd5e1 transparent",
             }}
             onWheel={(e) => e.stopPropagation()}
           >
@@ -375,6 +438,7 @@ export default function SubjectDropdown({
               filteredCatalog.map((item) => {
                 const isSelected = activeItem && activeItem.subjectName === item.subjectName;
                 const stats = getSubjectAttendance(item);
+                const code = item.code || item.subCode || stats.code || resolveSubjectCode({ subject: item.subjectName }, studentData) || "";
 
                 return (
                   <button
@@ -388,15 +452,15 @@ export default function SubjectDropdown({
                       gap: 10,
                       padding: isMobile ? "8px 10px" : "9px 12px",
                       borderRadius: 9,
-                      border: isSelected ? "1.5px solid #a7f3d0" : "1px solid transparent",
-                      background: isSelected ? "#f0fdf4" : "transparent",
+                      border: isSelected ? "1px solid #cbd5e1" : "1px solid transparent",
+                      background: isSelected ? "#f8fafc" : "transparent",
                       cursor: "pointer",
                       textAlign: "left",
-                      transition: "background 0.12s ease",
+                      transition: "all 0.12s ease",
                       boxSizing: "border-box",
                       width: "100%",
                       flexShrink: 0,
-                      minHeight: 44,
+                      minHeight: 46,
                     }}
                     onMouseEnter={(e) => {
                       if (!isSelected) e.currentTarget.style.background = "#f8fafc";
@@ -405,85 +469,114 @@ export default function SubjectDropdown({
                       if (!isSelected) e.currentTarget.style.background = "transparent";
                     }}
                   >
-                    {/* Left: Checkmark & Name */}
-                    <div style={{ display: "flex", alignItems: "center", gap: 9, minWidth: 0, flex: 1 }}>
+                    {/* Left: Indicator & Info */}
+                    <div style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0, flex: 1 }}>
                       <div
                         style={{
                           width: 18,
                           height: 18,
                           borderRadius: 999,
                           border: isSelected ? "none" : "1.5px solid #cbd5e1",
-                          background: isSelected ? "#059669" : "transparent",
+                          background: isSelected ? "#0f172a" : "transparent",
                           display: "flex",
                           alignItems: "center",
                           justifyContent: "center",
                           color: "#ffffff",
                           flexShrink: 0,
+                          transition: "all 0.15s ease",
                         }}
                       >
                         {isSelected && <Check size={11} strokeWidth={3} />}
                       </div>
 
                       <div style={{ minWidth: 0, flex: 1 }}>
-                        <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+                        {/* Line 1: Subject Name + Code Badge */}
+                        <div style={{ display: "flex", alignItems: "center", gap: 6, minWidth: 0 }}>
                           <span
                             style={{
-                              fontSize: isMobile ? 12.5 : 13.5,
-                              fontWeight: isSelected ? 800 : 700,
-                              color: isSelected ? "#065f46" : "#1e293b",
-                              wordBreak: "break-word",
+                              fontSize: isMobile ? 13 : 13.5,
+                              fontWeight: isSelected ? 800 : 650,
+                              color: isSelected ? "#0f172a" : "#1e293b",
+                              overflow: "hidden",
+                              textOverflow: "ellipsis",
+                              whiteSpace: "nowrap",
                               lineHeight: 1.35,
                             }}
+                            title={item.subjectName}
                           >
                             {item.subjectName}
                           </span>
-                          {stats.code && (
+                          {code && (
                             <span
                               style={{
-                                fontSize: 10,
-                                fontWeight: 800,
-                                background: isSelected ? "#dcfce7" : "#eff6ff",
-                                color: isSelected ? "#15803d" : "#2563eb",
-                                border: `1px solid ${isSelected ? "#bbf7d0" : "#bfdbfe"}`,
-                                padding: "1px 5px",
+                                fontSize: 10.5,
+                                fontWeight: 750,
+                                background: isSelected ? "#e2e8f0" : "#f1f5f9",
+                                color: isSelected ? "#0f172a" : "#475569",
+                                border: `1px solid ${isSelected ? "#cbd5e1" : "#e2e8f0"}`,
+                                padding: "1px 6px",
                                 borderRadius: 4,
+                                flexShrink: 0,
+                                letterSpacing: "0.2px",
                               }}
                             >
-                              {stats.code}
+                              {code}
                             </span>
                           )}
                         </div>
 
-                        {/* Subject description for clear recognition */}
-                        <div style={{ fontSize: 11, color: "#64748b", marginTop: 2, display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
-                          <span>
-                            Current:{" "}
-                            <strong style={{ color: stats.pct >= targetGoal ? "#059669" : "#dc2626" }}>
-                              {stats.pct.toFixed(1)}%
-                            </strong>
-                            {stats.hasData && ` (${stats.attended}/${stats.delivered} attended)`}
-                          </span>
+                        {/* Line 2: Routine & Attendance Meta */}
+                        <div
+                          style={{
+                            fontSize: 11,
+                            color: "#64748b",
+                            marginTop: 2,
+                            display: "flex",
+                            alignItems: "center",
+                            gap: 6,
+                            whiteSpace: "nowrap",
+                            overflow: "hidden",
+                            textOverflow: "ellipsis",
+                          }}
+                        >
+                          {stats.hasData ? (
+                            <span>
+                              Current:{" "}
+                              <strong
+                                style={{
+                                  color: stats.pct >= targetGoal ? "#059669" : "#e11d48",
+                                  fontWeight: 750,
+                                }}
+                              >
+                                {stats.pct.toFixed(1)}%
+                              </strong>{" "}
+                              ({stats.attended}/{stats.delivered} attended)
+                            </span>
+                          ) : (
+                            <span>No attendance data</span>
+                          )}
+
                           {item.classesPerWeek > 0 && (
                             <>
                               <span style={{ color: "#cbd5e1" }}>•</span>
-                              <span>{item.classesPerWeek} classes/week</span>
+                              <span>{item.classesPerWeek} classes/wk</span>
                             </>
                           )}
                         </div>
                       </div>
                     </div>
 
-                    {/* Right: Stats pills */}
-                    <div style={{ display: "flex", alignItems: "center", gap: 6, flexShrink: 0 }}>
+                    {/* Right: Clean Percentage Badge */}
+                    <div style={{ display: "flex", alignItems: "center", gap: 6, flexShrink: 0, marginLeft: 8 }}>
                       {stats.hasData ? (
                         <span
                           style={{
                             fontSize: 11,
                             fontWeight: 800,
-                            padding: "2px 6px",
+                            padding: "2.5px 7px",
                             borderRadius: 6,
                             background: stats.isSafe ? "#ecfdf5" : "#fff1f2",
-                            color: stats.isSafe ? "#065f46" : "#e11d48",
+                            color: stats.isSafe ? "#059669" : "#e11d48",
                             border: `1px solid ${stats.isSafe ? "#a7f3d0" : "#fecdd3"}`,
                           }}
                         >
@@ -496,27 +589,11 @@ export default function SubjectDropdown({
                             fontWeight: 600,
                             color: "#94a3b8",
                             background: "#f1f5f9",
-                            padding: "1px 5px",
+                            padding: "1px 6px",
                             borderRadius: 5,
                           }}
                         >
                           0 / 0
-                        </span>
-                      )}
-
-                      {item.classesPerWeek > 0 && (
-                        <span
-                          style={{
-                            fontSize: 10.5,
-                            fontWeight: 700,
-                            color: "#64748b",
-                            background: "#f8fafc",
-                            border: "1px solid #e2e8f0",
-                            padding: "2px 6px",
-                            borderRadius: 5,
-                          }}
-                        >
-                          {item.classesPerWeek}/wk
                         </span>
                       )}
                     </div>
