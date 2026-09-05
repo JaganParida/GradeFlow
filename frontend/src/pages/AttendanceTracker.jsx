@@ -3960,38 +3960,15 @@ export default function AttendanceTracker() {
           >
             {/* Routine Quick Subject Selector */}
             {sectionCatalog.length > 0 && (
-              <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                  <span style={{ fontSize: isMobile ? 12 : 13, fontWeight: 800, color: "#1e293b", display: "flex", alignItems: "center", gap: 6 }}>
-                    <BookOpen size={isMobile ? 14 : 16} color="#059669" />
-                    Select Subject to Simulate:
-                  </span>
-                  {activeCatalogItem && activeCatalogItem.classesPerWeek > 0 && (
-                    <span
-                      style={{
-                        fontSize: isMobile ? 10.5 : 12,
-                        fontWeight: 800,
-                        color: "#2563eb",
-                        background: "#eff6ff",
-                        padding: isMobile ? "2px 8px" : "3px 10px",
-                        borderRadius: 8,
-                        border: "1px solid #bfdbfe",
-                      }}
-                    >
-                      {activeCatalogItem.classesPerWeek} classes / week
-                    </span>
-                  )}
-                </div>
-                <SubjectDropdown
-                  catalog={sectionCatalog}
-                  selectedSubjectName={selectedSubjectName}
-                  onSelectSubject={selectSubjectFromCatalog}
-                  savedSubjects={savedSubjects}
-                  studentData={studentData}
-                  targetGoal={targetGoal}
-                  isMobile={isMobile}
-                />
-              </div>
+              <SubjectDropdown
+                catalog={sectionCatalog}
+                selectedSubjectName={selectedSubjectName}
+                onSelectSubject={selectSubjectFromCatalog}
+                savedSubjects={savedSubjects}
+                studentData={studentData}
+                targetGoal={targetGoal}
+                isMobile={isMobile}
+              />
             )}
 
             {/* Component Breakdown Card Rows */}

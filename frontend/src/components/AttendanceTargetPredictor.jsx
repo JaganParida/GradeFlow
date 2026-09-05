@@ -182,24 +182,23 @@ export default function AttendanceTargetPredictor({
         marginTop: 10,
       }}
     >
-      {/* ── HEADER: TITLE, SUBJECT DROPDOWN & TARGET GOAL IN ONE ROW (RESPONSIVE WRAP) ── */}
+      {/* ── HEADER: TITLE & MASTER TARGET ROW ───────────────────────────────── */}
       <div
         style={{
           display: "flex",
           justifyContent: "space-between",
           alignItems: isMobile ? "flex-start" : "center",
           flexWrap: "wrap",
-          gap: isMobile ? 12 : 16,
-          paddingBottom: 16,
+          gap: 12,
+          paddingBottom: 14,
           borderBottom: "1.5px solid #f1f5f9",
         }}
       >
-        {/* Left Side: Title & Subtitle */}
-        <div style={{ flex: isMobile ? "1 1 100%" : "1 1 280px", minWidth: isMobile ? 0 : 260 }}>
+        <div>
           <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
             <h3
               style={{
-                fontSize: isMobile ? 16.5 : 19.5,
+                fontSize: isMobile ? 18 : 21,
                 fontWeight: 900,
                 color: "#0f172a",
                 margin: 0,
@@ -211,12 +210,12 @@ export default function AttendanceTargetPredictor({
             {activeSection === "schedule" && (
               <span
                 style={{
-                  fontSize: 10.5,
+                  fontSize: 11,
                   fontWeight: 800,
                   background: "#ecfdf5",
                   color: "#065f46",
                   border: "1px solid #a7f3d0",
-                  padding: "1.5px 7px",
+                  padding: "2px 8px",
                   borderRadius: 6,
                 }}
               >
@@ -226,12 +225,12 @@ export default function AttendanceTargetPredictor({
             {activeSection === "penalty" && (
               <span
                 style={{
-                  fontSize: 10.5,
+                  fontSize: 11,
                   fontWeight: 800,
                   background: "#fff1f2",
                   color: "#e11d48",
                   border: "1px solid #fecdd3",
-                  padding: "1.5px 7px",
+                  padding: "2px 8px",
                   borderRadius: 6,
                 }}
               >
@@ -241,12 +240,12 @@ export default function AttendanceTargetPredictor({
             {activeSection === "roadmap" && (
               <span
                 style={{
-                  fontSize: 10.5,
+                  fontSize: 11,
                   fontWeight: 800,
                   background: "#eff6ff",
                   color: "#2563eb",
                   border: "1px solid #bfdbfe",
-                  padding: "1.5px 7px",
+                  padding: "2px 8px",
                   borderRadius: 6,
                 }}
               >
@@ -254,65 +253,46 @@ export default function AttendanceTargetPredictor({
               </span>
             )}
           </div>
-          <p style={{ fontSize: isMobile ? 11.5 : 12.5, color: "#64748b", margin: "3px 0 0 0", lineHeight: 1.4 }}>
+          <p style={{ fontSize: isMobile ? 12 : 12.5, color: "#64748b", margin: "4px 0 0 0", lineHeight: 1.45 }}>
             Exact date-by-date timetable schedule, holiday exclusions, penalty multiplier facts &amp; post-target bunk planning.
           </p>
         </div>
 
-        {/* Right Side: Subject Dropdown + Target Badge (In ONE row on Desktop, wrapped on Mobile) */}
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: 10,
-            flex: isMobile ? "1 1 100%" : "0 1 auto",
-            width: isMobile ? "100%" : "auto",
-            justifyContent: isMobile ? "space-between" : "flex-end",
-            flexWrap: isMobile ? "wrap" : "nowrap",
-          }}
-        >
-          {sectionCatalog && sectionCatalog.length > 0 && onSelectSubject && (
-            <div
-              style={{
-                width: isMobile ? "100%" : "clamp(260px, 24vw, 360px)",
-                minWidth: isMobile ? "100%" : 260,
-                flex: isMobile ? "1 1 100%" : "0 1 auto",
-              }}
-            >
-              <SubjectDropdown
-                catalog={sectionCatalog}
-                selectedSubjectName={subjectName}
-                onSelectSubject={onSelectSubject}
-                savedSubjects={savedSubjects}
-                studentData={studentData}
-                targetGoal={targetGoal}
-                isMobile={isMobile}
-              />
-            </div>
-          )}
-
-          {/* Active Target Goal Indicator */}
+        {/* Master Target Goal Indicator */}
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
           <span
             style={{
-              fontSize: 11.5,
+              fontSize: 12,
               fontWeight: 800,
               background: "#eff6ff",
               color: "#2563eb",
-              border: "1px solid #bfdbfe",
-              padding: isMobile ? "6px 12px" : "8px 14px",
-              borderRadius: 10,
+              border: "1.5px solid #bfdbfe",
+              padding: isMobile ? "6px 12px" : "7px 14px",
+              borderRadius: 9,
               display: "inline-flex",
               alignItems: "center",
-              gap: 5,
+              gap: 6,
               whiteSpace: "nowrap",
-              flexShrink: 0,
             }}
           >
-            <Target size={13.5} color="#2563eb" />
+            <Target size={14} color="#2563eb" />
             Target: <strong>{targetGoal}%</strong>
           </span>
         </div>
       </div>
+
+      {/* ── ACTIVE SUBJECT COMMAND BAR & DROPDOWN (FULL-WIDTH, ZERO TRUNCATION) ── */}
+      {sectionCatalog && sectionCatalog.length > 0 && onSelectSubject && (
+        <SubjectDropdown
+          catalog={sectionCatalog}
+          selectedSubjectName={subjectName}
+          onSelectSubject={onSelectSubject}
+          savedSubjects={savedSubjects}
+          studentData={studentData}
+          targetGoal={targetGoal}
+          isMobile={isMobile}
+        />
+      )}
 
       {/* ── HIGH-LEVEL SUMMARY HERO CARDS ─────────────────────────────────── */}
       <div
