@@ -1102,13 +1102,14 @@ export default function FuturePredictor({
         <div
           style={{
             display: "flex",
+            flexDirection: effectiveIsMobile ? "column" : "row",
             justifyContent: "space-between",
-            alignItems: "flex-start",
-            flexWrap: "wrap",
+            alignItems: effectiveIsMobile ? "stretch" : "flex-start",
             gap: 12,
+            width: "100%",
           }}
         >
-          <div>
+          <div style={{ minWidth: 0, width: "100%" }}>
             <div
               style={{
                 display: "inline-flex",
@@ -1160,12 +1161,15 @@ export default function FuturePredictor({
             style={{
               background: "#f8fafc",
               border: "1px solid #e2e8f0",
-              padding: "10px 16px",
+              padding: effectiveIsMobile ? "10px 14px" : "10px 16px",
               borderRadius: 14,
               display: "flex",
-              flexDirection: "column",
-              alignItems: effectiveIsMobile ? "flex-start" : "flex-end",
-              gap: 2,
+              flexDirection: effectiveIsMobile ? "row" : "column",
+              alignItems: effectiveIsMobile ? "center" : "flex-end",
+              justifyContent: effectiveIsMobile ? "space-between" : "flex-start",
+              width: effectiveIsMobile ? "100%" : "auto",
+              boxSizing: "border-box",
+              gap: 4,
             }}
           >
             <span style={{ fontSize: 11, fontWeight: 700, color: "#64748b" }}>Current Baseline</span>
@@ -1333,10 +1337,11 @@ export default function FuturePredictor({
         <div
           style={{
             display: "flex",
-            alignItems: "center",
+            flexDirection: effectiveIsMobile ? "column" : "row",
+            alignItems: effectiveIsMobile ? "stretch" : "center",
             justifyContent: "space-between",
-            flexWrap: "wrap",
             gap: 10,
+            width: "100%",
           }}
         >
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
@@ -1352,7 +1357,14 @@ export default function FuturePredictor({
           </div>
 
           {/* Week Switcher */}
-          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: effectiveIsMobile ? "1fr 1.2fr 1fr" : "auto auto auto",
+              gap: 6,
+              width: effectiveIsMobile ? "100%" : "auto",
+            }}
+          >
             <button
               type="button"
               disabled={weekOffset <= 0}
@@ -1362,7 +1374,7 @@ export default function FuturePredictor({
                 setNonInstructionalNotice(null);
               }}
               style={{
-                padding: "5px 9px",
+                padding: "6px 8px",
                 borderRadius: 8,
                 border: "1px solid #cbd5e1",
                 background: weekOffset <= 0 ? "#f1f5f9" : "#f8fafc",
@@ -1373,12 +1385,13 @@ export default function FuturePredictor({
                 opacity: weekOffset <= 0 ? 0.45 : 1,
                 display: "inline-flex",
                 alignItems: "center",
+                justifyContent: "center",
                 gap: 4,
               }}
               title={weekOffset <= 0 ? "Cannot plan bunks in past completed weeks" : "Previous Week"}
             >
               <ChevronLeft size={14} />
-              <span>Prev Week</span>
+              <span>{effectiveIsMobile ? "Prev" : "Prev Week"}</span>
             </button>
             <button
               type="button"
@@ -1387,7 +1400,7 @@ export default function FuturePredictor({
                 setNonInstructionalNotice(null);
               }}
               style={{
-                padding: "5px 10px",
+                padding: "6px 10px",
                 borderRadius: 8,
                 border: weekOffset === 0 ? "1.5px solid #2563eb" : "1px solid #cbd5e1",
                 background: weekOffset === 0 ? "#eff6ff" : "#f8fafc",
@@ -1395,6 +1408,7 @@ export default function FuturePredictor({
                 fontSize: 11.5,
                 fontWeight: 800,
                 cursor: "pointer",
+                textAlign: "center",
               }}
             >
               This Week
@@ -1406,7 +1420,7 @@ export default function FuturePredictor({
                 setNonInstructionalNotice(null);
               }}
               style={{
-                padding: "5px 9px",
+                padding: "6px 8px",
                 borderRadius: 8,
                 border: "1px solid #cbd5e1",
                 background: "#f8fafc",
@@ -1416,10 +1430,11 @@ export default function FuturePredictor({
                 cursor: "pointer",
                 display: "inline-flex",
                 alignItems: "center",
+                justifyContent: "center",
                 gap: 4,
               }}
             >
-              <span>Next Week</span>
+              <span>{effectiveIsMobile ? "Next" : "Next Week"}</span>
               <ChevronRight size={14} />
             </button>
           </div>
@@ -1976,7 +1991,16 @@ export default function FuturePredictor({
                 overflow: "hidden",
               }}
             >
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 8 }}>
+              <div
+                style={{
+                  display: "flex",
+                  flexDirection: effectiveIsMobile ? "column" : "row",
+                  alignItems: effectiveIsMobile ? "flex-start" : "center",
+                  justifyContent: "space-between",
+                  gap: 8,
+                  width: "100%",
+                }}
+              >
                 <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                   <div
                     style={{
@@ -1988,6 +2012,7 @@ export default function FuturePredictor({
                       display: "flex",
                       alignItems: "center",
                       justifyContent: "center",
+                      flexShrink: 0,
                     }}
                   >
                     <TrendingUp size={16} />
@@ -2011,6 +2036,7 @@ export default function FuturePredictor({
                     display: "flex",
                     alignItems: "center",
                     gap: 6,
+                    alignSelf: effectiveIsMobile ? "flex-start" : "auto",
                   }}
                 >
                   <span style={{ fontSize: 11, color: "#64748b", fontWeight: 700 }}>Before Leave:</span>
@@ -2195,8 +2221,17 @@ export default function FuturePredictor({
               overflow: "hidden",
             }}
           >
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 10 }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0, flex: 1 }}>
+            <div
+              style={{
+                display: "flex",
+                flexDirection: effectiveIsMobile ? "column" : "row",
+                alignItems: effectiveIsMobile ? "flex-start" : "center",
+                justifyContent: "space-between",
+                gap: 10,
+                width: "100%",
+              }}
+            >
+              <div style={{ display: "flex", alignItems: "flex-start", gap: 8, minWidth: 0, width: "100%" }}>
                 <div
                   style={{
                     width: 28,
@@ -2208,15 +2243,16 @@ export default function FuturePredictor({
                     alignItems: "center",
                     justifyContent: "center",
                     flexShrink: 0,
+                    marginTop: 2,
                   }}
                 >
                   <TrendingDown size={16} />
                 </div>
-                <div style={{ minWidth: 0 }}>
+                <div style={{ minWidth: 0, flex: 1 }}>
                   <span style={{ fontSize: 11, fontWeight: 800, color: "#dc2626", textTransform: "uppercase", letterSpacing: "0.5px" }}>
                     Step 2 &bull; Attendance Drop If You Take Leave
                   </span>
-                  <h3 style={{ fontSize: effectiveIsMobile ? 14.5 : 16, fontWeight: 900, color: "#0f172a", margin: 0, wordBreak: "break-word" }}>
+                  <h3 style={{ fontSize: effectiveIsMobile ? 14.5 : 16, fontWeight: 900, color: "#0f172a", margin: 0, wordBreak: "break-word", lineHeight: 1.35 }}>
                     {simulation.interveningAttendedDaysCount > 0
                       ? `Attendance Impact (${simulation.bunkDaysCount} Bunk Days, ${simulation.interveningAttendedDaysCount} Attended Days)`
                       : simulation.bunkDaysBreakdown.length === 1
@@ -2224,7 +2260,7 @@ export default function FuturePredictor({
                       : `Leave for ${simulation.bunkDaysBreakdown.length} Days (${simulation.firstBunkDateFormatted} to ${simulation.lastBunkDateFormatted})`}
                   </h3>
                   {simulation.interveningAttendedDaysCount > 0 && (
-                    <div style={{ fontSize: 11, color: "#059669", fontWeight: 700, marginTop: 4, display: "flex", alignItems: "center", gap: 5 }}>
+                    <div style={{ fontSize: 11, color: "#059669", fontWeight: 700, marginTop: 4, display: "flex", alignItems: "center", gap: 5, lineHeight: 1.35 }}>
                       <CheckCircle2 size={13} color="#16a34a" style={{ flexShrink: 0 }} />
                       <span>In-between class days are counted as <strong>Attended</strong> — classes attended boost attendance before the next bunk!</span>
                     </div>
@@ -2242,6 +2278,10 @@ export default function FuturePredictor({
                   display: "inline-flex",
                   alignItems: "center",
                   gap: 6,
+                  alignSelf: effectiveIsMobile ? "flex-start" : "auto",
+                  maxWidth: "100%",
+                  boxSizing: "border-box",
+                  wordBreak: "break-word",
                   background: simulation.isOverallTargetImpossible
                     ? "#fff7ed"
                     : simulation.isOverallSafeAtTarget
@@ -2973,13 +3013,14 @@ export default function FuturePredictor({
             <div
               style={{
                 display: "flex",
-                alignItems: "flex-start",
+                flexDirection: effectiveIsMobile ? "column" : "row",
+                alignItems: effectiveIsMobile ? "stretch" : "flex-start",
                 justifyContent: "space-between",
-                flexWrap: "wrap",
-                gap: 12,
+                gap: effectiveIsMobile ? 12 : 14,
+                width: "100%",
               }}
             >
-              <div style={{ minWidth: 0, flex: 1 }}>
+              <div style={{ minWidth: 0, width: "100%" }}>
                 <div
                   style={{
                     display: "inline-flex",
@@ -2993,22 +3034,30 @@ export default function FuturePredictor({
                     background: "#ecfdf5",
                     padding: "3px 8px",
                     borderRadius: 6,
-                    marginBottom: 4,
+                    marginBottom: 6,
                   }}
                 >
                   <Target size={13} />
                   <span>Step 3 &bull; Attendance Recovery Roadmap</span>
                 </div>
-                <h3 style={{ fontSize: effectiveIsMobile ? 14.5 : 16, fontWeight: 900, color: "#0f172a", margin: 0, wordBreak: "break-word" }}>
+                <h3 style={{ fontSize: effectiveIsMobile ? 15 : 16.5, fontWeight: 900, color: "#0f172a", margin: 0, wordBreak: "break-word", lineHeight: 1.35 }}>
                   Classes You Must Attend to Recover Back to {recoveryTargetPct}% Target
                 </h3>
-                <p style={{ fontSize: 12, color: "#64748b", margin: "2px 0 0 0", wordBreak: "break-word" }}>
+                <p style={{ fontSize: 12, color: "#64748b", margin: "4px 0 0 0", wordBreak: "break-word", lineHeight: 1.45 }}>
                   Starting from {simulation.firstReturnDateFormatted} when regular classes resume, attend these scheduled timetable sessions to recover:
                 </p>
               </div>
 
               {/* Target Buttons */}
-              <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: effectiveIsMobile ? "repeat(2, 1fr)" : "repeat(4, auto)",
+                  gap: 6,
+                  width: effectiveIsMobile ? "100%" : "auto",
+                  flexShrink: 0,
+                }}
+              >
                 {[75, 80, 85, 90].map((tVal) => {
                   const isTargetSelected = recoveryTargetPct === tVal;
                   return (
@@ -3017,15 +3066,20 @@ export default function FuturePredictor({
                       type="button"
                       onClick={() => setRecoveryTargetPct(tVal)}
                       style={{
-                        padding: "6px 12px",
+                        padding: effectiveIsMobile ? "8px 10px" : "6px 12px",
                         borderRadius: 8,
                         border: isTargetSelected ? "2px solid #2563eb" : "1px solid #cbd5e1",
                         background: isTargetSelected ? "#eff6ff" : "#ffffff",
                         color: isTargetSelected ? "#1d4ed8" : "#334155",
-                        fontSize: 12,
+                        fontSize: effectiveIsMobile ? 11.5 : 12,
                         fontWeight: 800,
                         cursor: "pointer",
                         transition: "all 0.15s ease",
+                        textAlign: "center",
+                        whiteSpace: "nowrap",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
                       }}
                     >
                       {tVal}% {tVal === 75 ? "(Mandatory)" : ""}
@@ -3087,8 +3141,17 @@ export default function FuturePredictor({
                         overflow: "hidden",
                       }}
                     >
-                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 6 }}>
-                        <div style={{ minWidth: 0, flex: 1 }}>
+                      <div
+                        style={{
+                          display: "flex",
+                          flexDirection: effectiveIsMobile ? "column" : "row",
+                          justifyContent: "space-between",
+                          alignItems: "flex-start",
+                          gap: 6,
+                          width: "100%",
+                        }}
+                      >
+                        <div style={{ minWidth: 0, width: "100%" }}>
                           <div style={{ fontSize: 13, fontWeight: 900, color: "#0f172a", wordBreak: "break-word", lineHeight: 1.35 }}>
                             {sub.subjectName}
                           </div>
@@ -3304,9 +3367,18 @@ export default function FuturePredictor({
                 overflow: "hidden",
               }}
             >
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 10 }}>
-                <div style={{ minWidth: 0, flex: 1 }}>
-                  <h5 style={{ fontSize: effectiveIsMobile ? 13 : 14, fontWeight: 900, color: "#0f172a", margin: 0, display: "flex", alignItems: "center", gap: 6, wordBreak: "break-word" }}>
+              <div
+                style={{
+                  display: "flex",
+                  flexDirection: effectiveIsMobile ? "column" : "row",
+                  justifyContent: "space-between",
+                  alignItems: effectiveIsMobile ? "stretch" : "center",
+                  gap: 10,
+                  width: "100%",
+                }}
+              >
+                <div style={{ minWidth: 0, width: "100%" }}>
+                  <h5 style={{ fontSize: effectiveIsMobile ? 13.5 : 14, fontWeight: 900, color: "#0f172a", margin: 0, display: "flex", alignItems: "center", gap: 6, wordBreak: "break-word" }}>
                     <CalendarCheck size={16} color="#059669" style={{ flexShrink: 0 }} />
                     Classes You Need to Attend for Recovery ({filteredRecoverySessions.length} classes)
                   </h5>
@@ -3322,15 +3394,17 @@ export default function FuturePredictor({
                     style={{
                       display: "flex",
                       alignItems: "center",
+                      justifyContent: "center",
                       gap: 5,
                       background: "#f0fdf4",
-                      color: "#16a34a",
+                      color: "#166534",
                       border: "1px solid #bbf7d0",
-                      padding: "5px 12px",
+                      padding: "6px 12px",
                       borderRadius: 8,
                       fontSize: 12,
                       fontWeight: 800,
                       cursor: "pointer",
+                      width: effectiveIsMobile ? "100%" : "auto",
                     }}
                   >
                     {showAllRecoveryDates ? (
