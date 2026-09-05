@@ -312,6 +312,7 @@ export default function SubjectDropdown({
       {/* Floating Menu Popover */}
       {isOpen && (
         <div
+          data-lenis-prevent="true"
           style={{
             position: "absolute",
             top: "calc(100% + 6px)",
@@ -324,13 +325,33 @@ export default function SubjectDropdown({
             boxShadow: "0 12px 30px -4px rgba(15, 23, 42, 0.16), 0 4px 10px rgba(0, 0, 0, 0.05)",
             padding: "8px",
             zIndex: 100,
-            maxHeight: 340,
+            maxHeight: isMobile ? "70vh" : 420,
             display: "flex",
             flexDirection: "column",
             boxSizing: "border-box",
             animation: "fadeIn 0.15s ease-out",
+            overflow: "hidden",
           }}
+          onWheel={(e) => e.stopPropagation()}
         >
+          {/* Custom Webkit scrollbar styles for dropdown */}
+          <style>{`
+            .subject-dropdown-scroll::-webkit-scrollbar {
+              width: 6px;
+            }
+            .subject-dropdown-scroll::-webkit-scrollbar-track {
+              background: #f1f5f9;
+              border-radius: 8px;
+            }
+            .subject-dropdown-scroll::-webkit-scrollbar-thumb {
+              background: #94a3b8;
+              border-radius: 8px;
+            }
+            .subject-dropdown-scroll::-webkit-scrollbar-thumb:hover {
+              background: #64748b;
+            }
+          `}</style>
+
           {/* Quick Search Bar (if 3 or more subjects) */}
           {catalog.length >= 3 && (
             <div
@@ -338,6 +359,7 @@ export default function SubjectDropdown({
                 position: "relative",
                 marginBottom: 6,
                 padding: "2px 2px",
+                flexShrink: 0,
               }}
             >
               <Search
@@ -395,14 +417,24 @@ export default function SubjectDropdown({
 
           {/* Subjects List */}
           <div
+            className="subject-dropdown-scroll"
+            data-lenis-prevent="true"
             style={{
               overflowY: "auto",
-              maxHeight: 270,
+              flex: "1 1 auto",
+              minHeight: 0,
+              maxHeight: isMobile ? "55vh" : 350,
               display: "flex",
               flexDirection: "column",
               gap: 3,
-              paddingRight: 2,
+              paddingRight: 4,
+              overscrollBehavior: "contain",
+              WebkitOverflowScrolling: "touch",
+              touchAction: "pan-y",
+              scrollbarWidth: "thin",
+              scrollbarColor: "#94a3b8 #f1f5f9",
             }}
+            onWheel={(e) => e.stopPropagation()}
           >
             {filteredCatalog.length === 0 ? (
               <div
@@ -440,6 +472,8 @@ export default function SubjectDropdown({
                       transition: "background 0.12s ease",
                       boxSizing: "border-box",
                       width: "100%",
+                      flexShrink: 0,
+                      minHeight: 44,
                     }}
                     onMouseEnter={(e) => {
                       if (!isSelected) e.currentTarget.style.background = "#f8fafc";
