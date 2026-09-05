@@ -135,18 +135,18 @@ export default function SubjectDropdown({
         style={{
           width: "100%",
           background: isOpen ? "#f0fdf4" : "#ffffff",
-          border: isOpen ? "1.5px solid #059669" : "1.5px solid #cbd5e1",
-          borderRadius: 14,
-          padding: isMobile ? "12px 14px" : "14px 18px",
+          border: isOpen ? "1.5px solid #059669" : "1px solid #cbd5e1",
+          borderRadius: 12,
+          padding: isMobile ? "9px 12px" : "10px 16px",
           display: "flex",
           alignItems: isMobile ? "flex-start" : "center",
           justifyContent: "space-between",
-          gap: isMobile ? 12 : 16,
+          gap: isMobile ? 8 : 12,
           flexDirection: isMobile ? "column" : "row",
           cursor: "pointer",
           boxShadow: isOpen
-            ? "0 0 0 3.5px rgba(5, 150, 105, 0.15), 0 4px 12px rgba(0,0,0,0.05)"
-            : "0 2px 8px -2px rgba(15, 23, 42, 0.05), 0 1px 3px rgba(0,0,0,0.03)",
+            ? "0 0 0 3px rgba(5, 150, 105, 0.12)"
+            : "0 1px 2px rgba(0,0,0,0.02)",
           transition: "all 0.15s ease",
           textAlign: "left",
           outline: "none",
@@ -155,199 +155,133 @@ export default function SubjectDropdown({
         onMouseEnter={(e) => {
           if (!isOpen) {
             e.currentTarget.style.borderColor = "#94a3b8";
-            e.currentTarget.style.boxShadow = "0 4px 14px -2px rgba(15, 23, 42, 0.08)";
+            e.currentTarget.style.background = "#f8fafc";
           }
         }}
         onMouseLeave={(e) => {
           if (!isOpen) {
             e.currentTarget.style.borderColor = "#cbd5e1";
-            e.currentTarget.style.boxShadow = "0 2px 8px -2px rgba(15, 23, 42, 0.05), 0 1px 3px rgba(0,0,0,0.03)";
+            e.currentTarget.style.background = "#ffffff";
           }
         }}
       >
-        {/* Left: Icon & Subject Details (Full Subject Name Always Visible) */}
-        <div style={{ display: "flex", alignItems: "center", gap: 14, minWidth: 0, flex: 1, width: isMobile ? "100%" : "auto" }}>
+        {/* Left: Icon & Subject Name */}
+        <div style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0, flex: 1, width: isMobile ? "100%" : "auto" }}>
           <div
             style={{
-              width: isMobile ? 36 : 42,
-              height: isMobile ? 36 : 42,
-              borderRadius: 11,
-              background: "linear-gradient(135deg, #059669 0%, #10b981 100%)",
-              color: "#ffffff",
+              width: isMobile ? 28 : 32,
+              height: isMobile ? 28 : 32,
+              borderRadius: 8,
+              background: "#ecfdf5",
+              border: "1px solid #a7f3d0",
+              color: "#059669",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
               flexShrink: 0,
-              boxShadow: "0 3px 8px rgba(5, 150, 105, 0.25)",
             }}
           >
-            <BookOpen size={isMobile ? 18 : 22} strokeWidth={2.2} />
+            <BookOpen size={isMobile ? 14 : 16} strokeWidth={2.2} />
           </div>
 
-          <div style={{ minWidth: 0, flex: 1, display: "flex", flexDirection: "column", gap: 3 }}>
-            {/* Live Context Prompt */}
-            <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
-              <span
-                style={{
-                  display: "inline-block",
-                  width: 7,
-                  height: 7,
-                  borderRadius: "50%",
-                  background: "#10b981",
-                  boxShadow: "0 0 0 2.5px rgba(16, 185, 129, 0.25)",
-                }}
-              />
-              <span
-                style={{
-                  fontSize: 10.5,
-                  fontWeight: 800,
-                  color: "#475569",
-                  textTransform: "uppercase",
-                  letterSpacing: "0.5px",
-                }}
-              >
-                Subject Under Simulation
-              </span>
+          <div style={{ display: "flex", alignItems: "center", gap: 7, flexWrap: "wrap", minWidth: 0 }}>
+            <span
+              style={{
+                fontSize: isMobile ? 13.5 : 14.5,
+                fontWeight: 800,
+                color: "#0f172a",
+                lineHeight: 1.3,
+                wordBreak: "break-word",
+              }}
+            >
+              {activeItem ? activeItem.subjectName : placeholder}
+            </span>
+            {activeStats?.code && (
               <span
                 style={{
                   fontSize: 10,
-                  color: "#64748b",
-                  fontWeight: 700,
-                  background: "#f1f5f9",
-                  border: "1px solid #e2e8f0",
-                  padding: "0.5px 6px",
+                  fontWeight: 800,
+                  background: "#eff6ff",
+                  color: "#2563eb",
+                  border: "1px solid #bfdbfe",
+                  padding: "1px 6px",
                   borderRadius: 4,
+                  flexShrink: 0,
                 }}
               >
-                Click to Switch
+                {activeStats.code}
               </span>
-            </div>
-
-            {/* Subject Name & Subject Code Pill */}
-            <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-              <span
-                style={{
-                  fontSize: isMobile ? 14 : 16,
-                  fontWeight: 900,
-                  color: "#0f172a",
-                  lineHeight: 1.35,
-                  wordBreak: "break-word",
-                  letterSpacing: "-0.2px",
-                }}
-              >
-                {activeItem ? activeItem.subjectName : placeholder}
-              </span>
-              {activeStats?.code && (
-                <span
-                  style={{
-                    fontSize: 10.5,
-                    fontWeight: 800,
-                    background: "#eff6ff",
-                    color: "#1d4ed8",
-                    border: "1px solid #bfdbfe",
-                    padding: "1.5px 7px",
-                    borderRadius: 6,
-                    flexShrink: 0,
-                    letterSpacing: "0.3px",
-                  }}
-                >
-                  {activeStats.code}
-                </span>
-              )}
-            </div>
+            )}
           </div>
         </div>
 
-        {/* Right: Badges & Switch Action */}
+        {/* Right: Badges & Switch Button */}
         <div
           style={{
             display: "flex",
             alignItems: "center",
-            gap: isMobile ? 8 : 10,
+            gap: 7,
             flexWrap: "wrap",
             width: isMobile ? "100%" : "auto",
             justifyContent: isMobile ? "space-between" : "flex-end",
-            paddingTop: isMobile ? 8 : 0,
-            borderTop: isMobile ? "1px dashed #e2e8f0" : "none",
+            paddingTop: isMobile ? 6 : 0,
+            borderTop: isMobile ? "1px dashed #f1f5f9" : "none",
           }}
         >
           {activeStats && activeStats.hasData && (
             <span
               style={{
-                fontSize: isMobile ? 11.5 : 12,
+                fontSize: 11,
                 fontWeight: 800,
-                padding: isMobile ? "4px 9px" : "5px 12px",
-                borderRadius: 8,
+                padding: "2.5px 8px",
+                borderRadius: 6,
                 background: activeStats.isSafe ? "#ecfdf5" : "#fff1f2",
-                color: activeStats.isSafe ? "#065f46" : "#b91c1c",
-                border: `1.5px solid ${activeStats.isSafe ? "#a7f3d0" : "#fecdd3"}`,
-                display: "inline-flex",
-                alignItems: "center",
-                gap: 5,
+                color: activeStats.isSafe ? "#065f46" : "#e11d48",
+                border: `1px solid ${activeStats.isSafe ? "#a7f3d0" : "#fecdd3"}`,
                 whiteSpace: "nowrap",
-                boxShadow: "0 1px 2px rgba(0,0,0,0.02)",
               }}
             >
-              {activeStats.pct.toFixed(1)}%
-              <span
-                style={{
-                  fontSize: 9.5,
-                  fontWeight: 900,
-                  opacity: 0.9,
-                  letterSpacing: "0.3px",
-                  background: activeStats.isSafe ? "#d1fae5" : "#fee2e2",
-                  padding: "1px 5px",
-                  borderRadius: 4,
-                }}
-              >
-                {activeStats.isSafe ? "SAFE" : "SHORTAGE"}
-              </span>
+              {activeStats.pct.toFixed(1)}% {activeStats.isSafe ? "Safe" : "Shortage"}
             </span>
           )}
 
           {activeItem && activeItem.classesPerWeek > 0 && (
             <span
               style={{
-                fontSize: 11.5,
+                fontSize: 11,
                 fontWeight: 700,
-                color: "#1e293b",
+                color: "#64748b",
                 background: "#f8fafc",
-                border: "1.5px solid #e2e8f0",
-                padding: isMobile ? "4px 8px" : "5px 10px",
-                borderRadius: 8,
+                border: "1px solid #e2e8f0",
+                padding: "2.5px 7px",
+                borderRadius: 6,
                 whiteSpace: "nowrap",
-                display: "inline-flex",
-                alignItems: "center",
-                gap: 4,
               }}
             >
-              📅 {activeItem.classesPerWeek} classes / wk
+              {activeItem.classesPerWeek}/wk
             </span>
           )}
 
-          {/* Interactive Switch Subject CTA Button */}
           <div
             style={{
               display: "inline-flex",
               alignItems: "center",
-              gap: 6,
+              gap: 4,
               background: "#ffffff",
-              border: "1.5px solid #cbd5e1",
-              padding: isMobile ? "5px 10px" : "6px 14px",
-              borderRadius: 9,
-              fontSize: isMobile ? 12 : 12.5,
-              fontWeight: 800,
-              color: "#0f172a",
-              boxShadow: "0 1px 3px rgba(0,0,0,0.04)",
+              border: "1px solid #cbd5e1",
+              padding: "3.5px 9px",
+              borderRadius: 6,
+              fontSize: 11.5,
+              fontWeight: 700,
+              color: "#334155",
+              boxShadow: "0 1px 2px rgba(0,0,0,0.02)",
               flexShrink: 0,
-              transition: "all 0.15s ease",
             }}
           >
-            <ArrowUpDown size={13} color="#475569" />
-            <span>Switch Subject</span>
+            <span>Change</span>
             <ChevronDown
-              size={14}
-              color="#475569"
+              size={13}
+              color="#64748b"
               style={{
                 transform: isOpen ? "rotate(180deg)" : "rotate(0deg)",
                 transition: "transform 0.2s ease",
