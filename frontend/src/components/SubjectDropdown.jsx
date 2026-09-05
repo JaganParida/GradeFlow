@@ -134,18 +134,17 @@ export default function SubjectDropdown({
         aria-expanded={isOpen}
         style={{
           width: "100%",
-          background: isOpen ? "#f0fdf4" : "#ffffff",
-          border: isOpen ? "1.5px solid #059669" : "1px solid #cbd5e1",
-          borderRadius: 12,
-          padding: isMobile ? "9px 12px" : "10px 16px",
+          background: isOpen ? "#f8fafc" : "#ffffff",
+          border: isOpen ? "1.5px solid #0f172a" : "1px solid #cbd5e1",
+          borderRadius: 10,
+          padding: isMobile ? "9px 12px" : "10px 14px",
           display: "flex",
-          alignItems: isMobile ? "flex-start" : "center",
+          alignItems: "center",
           justifyContent: "space-between",
-          gap: isMobile ? 8 : 12,
-          flexDirection: isMobile ? "column" : "row",
+          gap: 10,
           cursor: "pointer",
           boxShadow: isOpen
-            ? "0 0 0 3px rgba(5, 150, 105, 0.12)"
+            ? "0 0 0 3px rgba(15, 23, 42, 0.08)"
             : "0 1px 2px rgba(0,0,0,0.02)",
           transition: "all 0.15s ease",
           textAlign: "left",
@@ -165,130 +164,33 @@ export default function SubjectDropdown({
           }
         }}
       >
-        {/* Left: Icon & Subject Name */}
-        <div style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0, flex: 1, width: isMobile ? "100%" : "auto" }}>
-          <div
-            style={{
-              width: isMobile ? 28 : 32,
-              height: isMobile ? 28 : 32,
-              borderRadius: 8,
-              background: "#ecfdf5",
-              border: "1px solid #a7f3d0",
-              color: "#059669",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              flexShrink: 0,
-            }}
-          >
-            <BookOpen size={isMobile ? 14 : 16} strokeWidth={2.2} />
-          </div>
-
-          <div style={{ display: "flex", alignItems: "center", gap: 7, flexWrap: "wrap", minWidth: 0 }}>
-            <span
-              style={{
-                fontSize: isMobile ? 13.5 : 14.5,
-                fontWeight: 800,
-                color: "#0f172a",
-                lineHeight: 1.3,
-                wordBreak: "break-word",
-              }}
-            >
-              {activeItem ? activeItem.subjectName : placeholder}
-            </span>
-            {activeStats?.code && (
-              <span
-                style={{
-                  fontSize: 10,
-                  fontWeight: 800,
-                  background: "#eff6ff",
-                  color: "#2563eb",
-                  border: "1px solid #bfdbfe",
-                  padding: "1px 6px",
-                  borderRadius: 4,
-                  flexShrink: 0,
-                }}
-              >
-                {activeStats.code}
-              </span>
-            )}
-          </div>
-        </div>
-
-        {/* Right: Badges & Switch Button */}
-        <div
+        {/* Only subject name and dropdown icon as requested */}
+        <span
           style={{
-            display: "flex",
-            alignItems: "center",
-            gap: 7,
-            flexWrap: "wrap",
-            width: isMobile ? "100%" : "auto",
-            justifyContent: isMobile ? "space-between" : "flex-end",
-            paddingTop: isMobile ? 6 : 0,
-            borderTop: isMobile ? "1px dashed #f1f5f9" : "none",
+            fontSize: isMobile ? 13.5 : 14,
+            fontWeight: 700,
+            color: "#0f172a",
+            lineHeight: 1.3,
+            overflow: "hidden",
+            textOverflow: "ellipsis",
+            whiteSpace: "nowrap",
+            flex: 1,
+            minWidth: 0,
           }}
         >
-          {activeStats && activeStats.hasData && (
-            <span
-              style={{
-                fontSize: 11,
-                fontWeight: 800,
-                padding: "2.5px 8px",
-                borderRadius: 6,
-                background: activeStats.isSafe ? "#ecfdf5" : "#fff1f2",
-                color: activeStats.isSafe ? "#065f46" : "#e11d48",
-                border: `1px solid ${activeStats.isSafe ? "#a7f3d0" : "#fecdd3"}`,
-                whiteSpace: "nowrap",
-              }}
-            >
-              {activeStats.pct.toFixed(1)}% {activeStats.isSafe ? "Safe" : "Shortage"}
-            </span>
-          )}
+          {activeItem ? activeItem.subjectName : placeholder}
+        </span>
 
-          {activeItem && activeItem.classesPerWeek > 0 && (
-            <span
-              style={{
-                fontSize: 11,
-                fontWeight: 700,
-                color: "#64748b",
-                background: "#f8fafc",
-                border: "1px solid #e2e8f0",
-                padding: "2.5px 7px",
-                borderRadius: 6,
-                whiteSpace: "nowrap",
-              }}
-            >
-              {activeItem.classesPerWeek}/wk
-            </span>
-          )}
-
-          <div
-            style={{
-              display: "inline-flex",
-              alignItems: "center",
-              gap: 4,
-              background: "#ffffff",
-              border: "1px solid #cbd5e1",
-              padding: "3.5px 9px",
-              borderRadius: 6,
-              fontSize: 11.5,
-              fontWeight: 700,
-              color: "#334155",
-              boxShadow: "0 1px 2px rgba(0,0,0,0.02)",
-              flexShrink: 0,
-            }}
-          >
-            <span>Change</span>
-            <ChevronDown
-              size={13}
-              color="#64748b"
-              style={{
-                transform: isOpen ? "rotate(180deg)" : "rotate(0deg)",
-                transition: "transform 0.2s ease",
-              }}
-            />
-          </div>
-        </div>
+        <ChevronDown
+          size={16}
+          color="#64748b"
+          style={{
+            transform: isOpen ? "rotate(180deg)" : "rotate(0deg)",
+            transition: "transform 0.2s ease",
+            flexShrink: 0,
+            marginLeft: 8,
+          }}
+        />
       </button>
 
       {/* Floating Menu Popover */}
@@ -548,6 +450,23 @@ export default function SubjectDropdown({
                             >
                               {stats.code}
                             </span>
+                          )}
+                        </div>
+
+                        {/* Subject description for clear recognition */}
+                        <div style={{ fontSize: 11, color: "#64748b", marginTop: 2, display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+                          <span>
+                            Current:{" "}
+                            <strong style={{ color: stats.pct >= targetGoal ? "#059669" : "#dc2626" }}>
+                              {stats.pct.toFixed(1)}%
+                            </strong>
+                            {stats.hasData && ` (${stats.attended}/${stats.delivered} attended)`}
+                          </span>
+                          {item.classesPerWeek > 0 && (
+                            <>
+                              <span style={{ color: "#cbd5e1" }}>•</span>
+                              <span>{item.classesPerWeek} classes/week</span>
+                            </>
                           )}
                         </div>
                       </div>
