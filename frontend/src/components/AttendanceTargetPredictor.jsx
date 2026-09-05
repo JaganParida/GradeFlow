@@ -211,7 +211,7 @@ export default function AttendanceTargetPredictor({
                 : activeSection === "penalty"
                 ? "Target Goal & Class Miss Impact"
                 : activeSection === "roadmap"
-                ? "Attendance Roadmap"
+                ? "Miss Classes After Target Achieved"
                 : "Target Predictor & Timetable Simulator"}
             </h3>
 
@@ -245,7 +245,7 @@ export default function AttendanceTargetPredictor({
             >
               {activeSection === "schedule" && "Target Schedule"}
               {activeSection === "penalty" && `Target ${targetGoal}% Impact`}
-              {activeSection === "roadmap" && "Roadmap"}
+              {activeSection === "roadmap" && "Post-Target Planner"}
               {activeSection !== "schedule" && activeSection !== "penalty" && activeSection !== "roadmap" && "Predictor"}
             </span>
           </div>
@@ -253,7 +253,7 @@ export default function AttendanceTargetPredictor({
           <p style={{ fontSize: 12, color: "#64748b", margin: "3px 0 0 0", lineHeight: 1.4 }}>
             {activeSection === "schedule" && "Routine timetable projection and date-by-date attendance forecast."}
             {activeSection === "penalty" && `Know how missing upcoming classes impacts your ${targetGoal}% target — see your safe miss margin, projected drop, and recovery needed.`}
-            {activeSection === "roadmap" && "Step-by-step milestone progression to hit your target goal safely."}
+            {activeSection === "roadmap" && "Plan how many classes you can afford to skip once you achieve your target goal, and preview your step-by-step timetable recovery path to protect statutory eligibility."}
             {activeSection !== "schedule" && activeSection !== "penalty" && activeSection !== "roadmap" && "Timetable projection & date-by-date attendance forecast."}
           </p>
         </div>
@@ -1306,41 +1306,44 @@ export default function AttendanceTargetPredictor({
             {/* ── Student-Friendly Multi-Phase Strategy Header ── */}
             <div
               style={{
-                background: "linear-gradient(135deg, #faf5ff 0%, #f3e8ff 100%)",
-                border: "1.5px solid #e9d5ff",
+                background: "#ffffff",
+                border: "1px solid #e2e8f0",
                 borderRadius: 16,
-                padding: isMobile ? "14px 12px" : "18px 20px",
+                padding: isMobile ? "15px 14px" : "18px 20px",
                 display: "flex",
                 flexDirection: "column",
                 gap: 14,
-                boxShadow: "0 2px 10px rgba(124, 58, 237, 0.05)",
+                boxShadow: "0 1px 3px rgba(15, 23, 42, 0.03)",
               }}
             >
-              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+              <div style={{ display: "flex", alignItems: "flex-start", gap: 12 }}>
                 <div
                   style={{
-                    width: 38,
-                    height: 38,
-                    borderRadius: 10,
-                    background: "#7c3aed",
-                    color: "#ffffff",
+                    width: 36,
+                    height: 36,
+                    borderRadius: 9,
+                    background: "#0f172a",
+                    color: "#38bdf8",
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "center",
                     flexShrink: 0,
+                    boxShadow: "0 2px 5px rgba(15, 23, 42, 0.12)",
                   }}
                 >
-                  <Compass size={20} />
+                  <Compass size={18} />
                 </div>
                 <div>
-                  <div style={{ fontSize: 11, fontWeight: 900, color: "#7c3aed", textTransform: "uppercase", letterSpacing: "0.5px" }}>
-                    Semester Strategy Planner
+                  <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                    <span style={{ fontSize: 10.5, fontWeight: 800, color: "#2563eb", textTransform: "uppercase", letterSpacing: "0.5px" }}>
+                      3-Phase Progression Strategy
+                    </span>
                   </div>
-                  <h4 style={{ fontSize: isMobile ? 14.5 : 16, fontWeight: 900, color: "#4c1d95", margin: 0 }}>
-                    Multi-Phase Strategy: Build Buffer &rarr; Take Planned Leave &rarr; Recover Safely
+                  <h4 style={{ fontSize: isMobile ? 15 : 16.5, fontWeight: 800, color: "#0f172a", margin: "2px 0 0 0", letterSpacing: "-0.2px" }}>
+                    Build Target Buffer &rarr; Plan Missed Classes &rarr; Safe Recovery
                   </h4>
-                  <p style={{ fontSize: 12, color: "#6b21a8", margin: "2px 0 0 0" }}>
-                    Plan ahead in 3 simple phases: First sprint to reach your target goal, then safely take your planned absences (e.g. for fests or travel), and finally follow a dedicated recovery roadmap.
+                  <p style={{ fontSize: 12, color: "#64748b", margin: "4px 0 0 0", lineHeight: 1.45 }}>
+                    First reach your target goal, then plan how many classes you can afford to skip (for fests, travel, or breaks), and follow the exact recovery roadmap to protect your final eligibility.
                   </p>
                 </div>
               </div>
@@ -1351,32 +1354,33 @@ export default function AttendanceTargetPredictor({
                   style={{
                     display: "grid",
                     gridTemplateColumns: isMobile ? "1fr" : "repeat(3, 1fr)",
-                    gap: 8,
-                    background: "#ffffff",
-                    padding: isMobile ? "10px" : "12px 14px",
-                    borderRadius: 14,
-                    border: "1px solid #ddd6fe",
+                    gap: 10,
+                    background: "#f8fafc",
+                    padding: isMobile ? "10px" : "12px",
+                    borderRadius: 12,
+                    border: "1px solid #e2e8f0",
                   }}
                 >
                   {/* Step 1 Pill */}
                   <div
                     style={{
-                      background: "#eff6ff",
+                      background: "#ffffff",
                       border: "1px solid #bfdbfe",
                       borderRadius: 10,
-                      padding: "8px 10px",
+                      padding: "9px 12px",
                       display: "flex",
                       flexDirection: "column",
                       gap: 2,
+                      boxShadow: "0 1px 2px rgba(0,0,0,0.02)",
                     }}
                   >
-                    <span style={{ fontSize: 10, fontWeight: 900, color: "#1d4ed8", textTransform: "uppercase" }}>
-                      Phase 1 &bull; Sprint Goal
+                    <span style={{ fontSize: 10, fontWeight: 800, color: "#1d4ed8", textTransform: "uppercase", letterSpacing: "0.4px" }}>
+                      Phase 1 &bull; Target Sprint
                     </span>
-                    <div style={{ fontSize: 13, fontWeight: 900, color: "#1e40af" }}>
+                    <div style={{ fontSize: 14, fontWeight: 900, color: "#0f172a", fontFamily: "'DM Sans', sans-serif" }}>
                       {currentPct}% &rarr; {multiPhaseData.primaryTarget}%
                     </div>
-                    <span style={{ fontSize: 10.5, color: "#2563eb" }}>
+                    <span style={{ fontSize: 11, color: "#64748b", fontWeight: 600 }}>
                       {multiPhaseData.phase1.classesNeeded} classes needed ({multiPhaseData.phase1.reachDateStr})
                     </span>
                   </div>
@@ -1384,22 +1388,23 @@ export default function AttendanceTargetPredictor({
                   {/* Step 2 Pill */}
                   <div
                     style={{
-                      background: multiPhaseData.phase2.isBelowRecoveryTarget ? "#fff1f2" : "#fffbeb",
-                      border: `1px solid ${multiPhaseData.phase2.isBelowRecoveryTarget ? "#fecdd3" : "#fde68a"}`,
+                      background: "#ffffff",
+                      border: `1px solid ${multiPhaseData.phase2.isBelowRecoveryTarget ? "#fca5a5" : "#fde68a"}`,
                       borderRadius: 10,
-                      padding: "8px 10px",
+                      padding: "9px 12px",
                       display: "flex",
                       flexDirection: "column",
                       gap: 2,
+                      boxShadow: "0 1px 2px rgba(0,0,0,0.02)",
                     }}
                   >
-                    <span style={{ fontSize: 10, fontWeight: 900, color: multiPhaseData.phase2.isBelowRecoveryTarget ? "#be123c" : "#b45309", textTransform: "uppercase" }}>
-                      Phase 2 &bull; Planned Leave
+                    <span style={{ fontSize: 10, fontWeight: 800, color: multiPhaseData.phase2.isBelowRecoveryTarget ? "#dc2626" : "#b45309", textTransform: "uppercase", letterSpacing: "0.4px" }}>
+                      Phase 2 &bull; Planned Miss
                     </span>
-                    <div style={{ fontSize: 13, fontWeight: 900, color: multiPhaseData.phase2.isBelowRecoveryTarget ? "#e11d48" : "#d97706" }}>
+                    <div style={{ fontSize: 14, fontWeight: 900, color: multiPhaseData.phase2.isBelowRecoveryTarget ? "#dc2626" : "#d97706", fontFamily: "'DM Sans', sans-serif" }}>
                       Miss {multiPhaseData.phase2.bunkCount} Classes (-{Math.abs(multiPhaseData.phase2.percentageDrop).toFixed(2)}%)
                     </div>
-                    <span style={{ fontSize: 10.5, color: multiPhaseData.phase2.isBelowRecoveryTarget ? "#be123c" : "#b45309" }}>
+                    <span style={{ fontSize: 11, color: multiPhaseData.phase2.isBelowRecoveryTarget ? "#be123c" : "#b45309", fontWeight: 600 }}>
                       Drops to {multiPhaseData.phase2.postBunkPercentage}% (by {multiPhaseData.phase2.lastBunkDateStr})
                     </span>
                   </div>
@@ -1407,24 +1412,25 @@ export default function AttendanceTargetPredictor({
                   {/* Step 3 Pill */}
                   <div
                     style={{
-                      background: multiPhaseData.phase3.classesNeeded === 0 ? "#f0fdf4" : "#f5f3ff",
-                      border: `1px solid ${multiPhaseData.phase3.classesNeeded === 0 ? "#bbf7d0" : "#ddd6fe"}`,
+                      background: "#ffffff",
+                      border: `1px solid ${multiPhaseData.phase3.classesNeeded === 0 ? "#86efac" : "#bfdbfe"}`,
                       borderRadius: 10,
-                      padding: "8px 10px",
+                      padding: "9px 12px",
                       display: "flex",
                       flexDirection: "column",
                       gap: 2,
+                      boxShadow: "0 1px 2px rgba(0,0,0,0.02)",
                     }}
                   >
-                    <span style={{ fontSize: 10, fontWeight: 900, color: multiPhaseData.phase3.classesNeeded === 0 ? "#15803d" : "#6d28d9", textTransform: "uppercase" }}>
-                      Phase 3 &bull; Recovery Goal
+                    <span style={{ fontSize: 10, fontWeight: 800, color: multiPhaseData.phase3.classesNeeded === 0 ? "#15803d" : "#1d4ed8", textTransform: "uppercase", letterSpacing: "0.4px" }}>
+                      Phase 3 &bull; Safe Recovery
                     </span>
-                    <div style={{ fontSize: 13, fontWeight: 900, color: multiPhaseData.phase3.classesNeeded === 0 ? "#16a34a" : "#7c3aed" }}>
+                    <div style={{ fontSize: 14, fontWeight: 900, color: multiPhaseData.phase3.classesNeeded === 0 ? "#16a34a" : "#2563eb", fontFamily: "'DM Sans', sans-serif" }}>
                       {multiPhaseData.phase3.classesNeeded === 0
                         ? `Maintained &ge; ${multiPhaseData.recoveryTarget}% (Safe)`
                         : `Attend ${multiPhaseData.phase3.classesNeeded} Classes`}
                     </div>
-                    <span style={{ fontSize: 10.5, color: multiPhaseData.phase3.classesNeeded === 0 ? "#15803d" : "#6d28d9" }}>
+                    <span style={{ fontSize: 11, color: multiPhaseData.phase3.classesNeeded === 0 ? "#15803d" : "#64748b", fontWeight: 600 }}>
                       {multiPhaseData.phase3.classesNeeded === 0
                         ? `${multiPhaseData.phase3.safeBunksRemaining} safe bunks remain`
                         : `Restores to ${multiPhaseData.recoveryTarget}% (${multiPhaseData.phase3.recoveryReachDateStr})`}
@@ -1443,27 +1449,33 @@ export default function AttendanceTargetPredictor({
                 }}
               >
                 {/* Control 1: Primary Target Goal */}
-                <div style={{ background: "#ffffff", border: "1px solid #ddd6fe", borderRadius: 12, padding: "10px 12px" }}>
-                  <label style={{ fontSize: 11, fontWeight: 800, color: "#6b21a8", textTransform: "uppercase", display: "block", marginBottom: 6 }}>
-                    1. Primary Target Goal
-                  </label>
+                <div style={{ background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: 12, padding: "12px 14px", display: "flex", flexDirection: "column", justifyContent: "space-between", gap: 6 }}>
+                  <div>
+                    <label style={{ fontSize: 11, fontWeight: 800, color: "#0f172a", textTransform: "uppercase", letterSpacing: "0.4px", display: "block" }}>
+                      1. Primary Target Goal
+                    </label>
+                    <div style={{ fontSize: 10.5, color: "#64748b", marginTop: 1 }}>
+                      Attendance % to build up to first
+                    </div>
+                  </div>
                   <select
                     value={multiPhaseTarget}
                     onChange={(e) => setMultiPhaseTarget(Number(e.target.value))}
                     style={{
                       width: "100%",
-                      padding: "7px 10px",
+                      padding: "8px 10px",
                       borderRadius: 8,
-                      border: "1.5px solid #c084fc",
+                      border: "1px solid #cbd5e1",
                       fontSize: 13,
-                      fontWeight: 800,
-                      color: "#4c1d95",
-                      background: "#faf5ff",
+                      fontWeight: 700,
+                      color: "#0f172a",
+                      background: "#ffffff",
                       cursor: "pointer",
                       outline: "none",
+                      boxShadow: "0 1px 2px rgba(0,0,0,0.02)",
                     }}
                   >
-                    <option value={75}>75% (Minimum Threshold)</option>
+                    <option value={75}>75% (Statutory Minimum)</option>
                     <option value={80}>80% (Recommended Buffer)</option>
                     <option value={85}>85% (High Safety)</option>
                     <option value={90}>90% (Top Distinction)</option>
@@ -1471,75 +1483,114 @@ export default function AttendanceTargetPredictor({
                 </div>
 
                 {/* Control 2: Planned Bunks Count */}
-                <div style={{ background: "#ffffff", border: "1px solid #ddd6fe", borderRadius: 12, padding: "10px 12px" }}>
-                  <label style={{ fontSize: 11, fontWeight: 800, color: "#6b21a8", textTransform: "uppercase", display: "block", marginBottom: 6 }}>
-                    2. Planned Absences After Goal
-                  </label>
-                  <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                <div style={{ background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: 12, padding: "12px 14px", display: "flex", flexDirection: "column", justifyContent: "space-between", gap: 6 }}>
+                  <div>
+                    <label style={{ fontSize: 11, fontWeight: 800, color: "#0f172a", textTransform: "uppercase", letterSpacing: "0.4px", display: "block" }}>
+                      2. Planned Absences After Goal
+                    </label>
+                    <div style={{ fontSize: 10.5, color: "#64748b", marginTop: 1 }}>
+                      Classes you plan to skip post-target
+                    </div>
+                  </div>
+                  <div
+                    style={{
+                      width: "100%",
+                      boxSizing: "border-box",
+                      background: "#ffffff",
+                      border: "1px solid #cbd5e1",
+                      borderRadius: 8,
+                      padding: "4px 8px",
+                      height: 38,
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                      gap: 8,
+                      boxShadow: "0 1px 2px rgba(0,0,0,0.02)",
+                    }}
+                  >
                     <button
                       type="button"
                       onClick={() => setPlannedBunkCount(Math.max(1, plannedBunkCount - 1))}
                       style={{
-                        background: "#f3e8ff",
-                        color: "#6b21a8",
-                        border: "1px solid #d8b4fe",
-                        width: 32,
-                        height: 32,
-                        borderRadius: 8,
-                        fontSize: 18,
-                        fontWeight: 900,
+                        background: "#f1f5f9",
+                        color: "#0f172a",
+                        border: "1px solid #e2e8f0",
+                        width: 28,
+                        height: 28,
+                        borderRadius: 6,
+                        fontSize: 16,
+                        fontWeight: 800,
                         cursor: "pointer",
                         display: "flex",
                         alignItems: "center",
                         justifyContent: "center",
-                        transition: "all 0.15s ease",
+                        transition: "all 0.12s ease",
+                        flexShrink: 0,
                       }}
                       title="Decrease planned absences"
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.background = "#e2e8f0";
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.background = "#f1f5f9";
+                      }}
                     >
                       -
                     </button>
-                    <input
-                      type="text"
-                      inputMode="numeric"
-                      pattern="[0-9]*"
-                      value={plannedBunkCount}
-                      onChange={(e) => {
-                        const raw = e.target.value.replace(/[^0-9]/g, "");
-                        const val = parseInt(raw, 10);
-                        setPlannedBunkCount(isNaN(val) ? 1 : Math.max(1, Math.min(50, val)));
-                      }}
-                      style={{
-                        flex: 1,
-                        textAlign: "center",
-                        padding: "5px 8px",
-                        borderRadius: 8,
-                        border: "1.5px solid #c084fc",
-                        fontSize: 14,
-                        fontWeight: 900,
-                        color: "#4c1d95",
-                        background: "#faf5ff",
-                        outline: "none",
-                      }}
-                    />
+                    <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 5, flex: 1 }}>
+                      <input
+                        type="text"
+                        inputMode="numeric"
+                        pattern="[0-9]*"
+                        value={plannedBunkCount}
+                        onChange={(e) => {
+                          const raw = e.target.value.replace(/[^0-9]/g, "");
+                          const val = parseInt(raw, 10);
+                          setPlannedBunkCount(isNaN(val) ? 1 : Math.max(1, Math.min(50, val)));
+                        }}
+                        style={{
+                          width: 32,
+                          textAlign: "center",
+                          border: "none",
+                          background: "transparent",
+                          fontSize: 14,
+                          fontWeight: 900,
+                          color: "#0f172a",
+                          outline: "none",
+                          padding: 0,
+                          fontFamily: "'DM Sans', sans-serif",
+                        }}
+                      />
+                      <span style={{ fontSize: 12, fontWeight: 700, color: "#475569" }}>
+                        {plannedBunkCount === 1 ? "Class" : "Classes"}
+                      </span>
+                    </div>
                     <button
                       type="button"
                       onClick={() => setPlannedBunkCount(Math.min(50, plannedBunkCount + 1))}
                       style={{
-                        background: "#f3e8ff",
-                        color: "#6b21a8",
-                        border: "1px solid #d8b4fe",
-                        width: 32,
-                        height: 32,
-                        borderRadius: 8,
-                        fontSize: 18,
-                        fontWeight: 900,
+                        background: "#f1f5f9",
+                        color: "#0f172a",
+                        border: "1px solid #e2e8f0",
+                        width: 28,
+                        height: 28,
+                        borderRadius: 6,
+                        fontSize: 16,
+                        fontWeight: 800,
                         cursor: "pointer",
                         display: "flex",
                         alignItems: "center",
                         justifyContent: "center",
-                        transition: "all 0.15s ease",
+                        transition: "all 0.12s ease",
+                        flexShrink: 0,
                       }}
                       title="Increase planned absences"
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.background = "#e2e8f0";
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.background = "#f1f5f9";
+                      }}
                     >
                       +
                     </button>
@@ -1547,24 +1598,30 @@ export default function AttendanceTargetPredictor({
                 </div>
 
                 {/* Control 3: Recovery Target Goal */}
-                <div style={{ background: "#ffffff", border: "1px solid #ddd6fe", borderRadius: 12, padding: "10px 12px" }}>
-                  <label style={{ fontSize: 11, fontWeight: 800, color: "#6b21a8", textTransform: "uppercase", display: "block", marginBottom: 6 }}>
-                    3. Recovery Target Goal
-                  </label>
+                <div style={{ background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: 12, padding: "12px 14px", display: "flex", flexDirection: "column", justifyContent: "space-between", gap: 6 }}>
+                  <div>
+                    <label style={{ fontSize: 11, fontWeight: 800, color: "#0f172a", textTransform: "uppercase", letterSpacing: "0.4px", display: "block" }}>
+                      3. Minimum Recovery Threshold
+                    </label>
+                    <div style={{ fontSize: 10.5, color: "#64748b", marginTop: 1 }}>
+                      Lowest % to maintain post-absence
+                    </div>
+                  </div>
                   <select
                     value={recoveryTarget}
                     onChange={(e) => setRecoveryTarget(Number(e.target.value))}
                     style={{
                       width: "100%",
-                      padding: "7px 10px",
+                      padding: "8px 10px",
                       borderRadius: 8,
-                      border: "1.5px solid #c084fc",
+                      border: "1px solid #cbd5e1",
                       fontSize: 13,
-                      fontWeight: 800,
-                      color: "#4c1d95",
-                      background: "#faf5ff",
+                      fontWeight: 700,
+                      color: "#0f172a",
+                      background: "#ffffff",
                       cursor: "pointer",
                       outline: "none",
+                      boxShadow: "0 1px 2px rgba(0,0,0,0.02)",
                     }}
                   >
                     <option value={75}>Recover to 75% (Safe Pass)</option>
