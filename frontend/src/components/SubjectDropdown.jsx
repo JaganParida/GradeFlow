@@ -1,4 +1,4 @@
-﻿import React, { useState, useRef, useEffect, useMemo } from "react";
+import React, { useState, useRef, useEffect, useMemo } from "react";
 import { BookOpen, ChevronDown, Check, Search, X, Sparkles } from "lucide-react";
 import { resolveSubjectCode } from "../utils/timetableHelper";
 
@@ -129,6 +129,7 @@ export default function SubjectDropdown({
       <button
         type="button"
         onClick={() => setIsOpen((prev) => !prev)}
+        title="Click to switch active subject from your routine"
         aria-haspopup="listbox"
         aria-expanded={isOpen}
         style={{
@@ -136,11 +137,11 @@ export default function SubjectDropdown({
           background: "#ffffff",
           border: isOpen ? "1.5px solid #059669" : "1.5px solid #cbd5e1",
           borderRadius: 12,
-          padding: isMobile ? "9px 12px" : "11px 16px",
+          padding: isMobile ? "7px 10px" : "8px 12px",
           display: "flex",
           alignItems: "center",
           justifyContent: "space-between",
-          gap: isMobile ? 8 : 12,
+          gap: isMobile ? 6 : 10,
           cursor: "pointer",
           boxShadow: isOpen
             ? "0 0 0 3px rgba(5, 150, 105, 0.12), 0 2px 8px rgba(0,0,0,0.04)"
@@ -152,12 +153,12 @@ export default function SubjectDropdown({
         }}
       >
         {/* Left: Icon & Subject Details */}
-        <div style={{ display: "flex", alignItems: "center", gap: isMobile ? 8 : 10, minWidth: 0, flex: 1 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: isMobile ? 6 : 8, minWidth: 0, flex: 1 }}>
           <div
             style={{
-              width: isMobile ? 30 : 34,
-              height: isMobile ? 30 : 34,
-              borderRadius: 8,
+              width: isMobile ? 26 : 28,
+              height: isMobile ? 26 : 28,
+              borderRadius: 7,
               background: "linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%)",
               border: "1px solid #a7f3d0",
               color: "#059669",
@@ -167,14 +168,14 @@ export default function SubjectDropdown({
               flexShrink: 0,
             }}
           >
-            <BookOpen size={isMobile ? 15 : 17} />
+            <BookOpen size={isMobile ? 13 : 15} />
           </div>
 
           <div style={{ minWidth: 0, flex: 1 }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "nowrap" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 5, flexWrap: "nowrap" }}>
               <span
                 style={{
-                  fontSize: isMobile ? 13 : 14.5,
+                  fontSize: isMobile ? 12 : 13,
                   fontWeight: 800,
                   color: "#0f172a",
                   overflow: "hidden",
@@ -187,13 +188,13 @@ export default function SubjectDropdown({
               {activeStats?.code && (
                 <span
                   style={{
-                    fontSize: 10.5,
+                    fontSize: 9.5,
                     fontWeight: 800,
                     background: "#eff6ff",
                     color: "#2563eb",
                     border: "1px solid #bfdbfe",
-                    padding: "1px 6px",
-                    borderRadius: 5,
+                    padding: "1px 5px",
+                    borderRadius: 4,
                     flexShrink: 0,
                   }}
                 >
@@ -201,33 +202,29 @@ export default function SubjectDropdown({
                 </span>
               )}
             </div>
-            {!isMobile && (
-              <span style={{ fontSize: 11, color: "#64748b", fontWeight: 600, display: "block", marginTop: 1 }}>
-                Click to switch active subject from your routine
-              </span>
-            )}
           </div>
         </div>
 
         {/* Right: Badges & Chevron */}
-        <div style={{ display: "flex", alignItems: "center", gap: isMobile ? 6 : 8, flexShrink: 0 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: isMobile ? 5 : 6, flexShrink: 0 }}>
           {activeStats && activeStats.hasData && (
             <span
               style={{
-                fontSize: isMobile ? 11 : 12,
+                fontSize: isMobile ? 10.5 : 11,
                 fontWeight: 800,
-                padding: isMobile ? "2px 7px" : "3px 9px",
-                borderRadius: 7,
+                padding: isMobile ? "2px 5px" : "2px 7px",
+                borderRadius: 6,
                 background: activeStats.isSafe ? "#ecfdf5" : "#fff1f2",
                 color: activeStats.isSafe ? "#065f46" : "#e11d48",
                 border: `1px solid ${activeStats.isSafe ? "#a7f3d0" : "#fecdd3"}`,
                 display: "inline-flex",
                 alignItems: "center",
-                gap: 4,
+                gap: 3,
+                whiteSpace: "nowrap",
               }}
             >
               {activeStats.pct.toFixed(1)}%
-              <span style={{ fontSize: 9.5, opacity: 0.85, fontWeight: 700 }}>
+              <span style={{ fontSize: 8.5, opacity: 0.85, fontWeight: 700 }}>
                 {activeStats.isSafe ? "SAFE" : "RISK"}
               </span>
             </span>
@@ -236,25 +233,25 @@ export default function SubjectDropdown({
           {activeItem && activeItem.classesPerWeek > 0 && (
             <span
               style={{
-                fontSize: isMobile ? 10 : 11,
+                fontSize: 10,
                 fontWeight: 700,
                 color: "#2563eb",
                 background: "#eff6ff",
                 border: "1px solid #dbeafe",
-                padding: isMobile ? "2px 6px" : "3px 8px",
-                borderRadius: 6,
+                padding: "2px 5px",
+                borderRadius: 5,
                 whiteSpace: "nowrap",
                 display: isMobile ? "none" : "inline-block",
               }}
             >
-              {activeItem.classesPerWeek} / wk
+              {activeItem.classesPerWeek}/wk
             </span>
           )}
 
           <div
             style={{
-              width: 26,
-              height: 26,
+              width: 22,
+              height: 22,
               borderRadius: 6,
               background: isOpen ? "#f1f5f9" : "transparent",
               display: "flex",
@@ -265,7 +262,7 @@ export default function SubjectDropdown({
               transition: "transform 0.2s ease",
             }}
           >
-            <ChevronDown size={isMobile ? 16 : 18} />
+            <ChevronDown size={isMobile ? 14 : 15} />
           </div>
         </div>
       </button>
@@ -276,8 +273,10 @@ export default function SubjectDropdown({
           style={{
             position: "absolute",
             top: "calc(100% + 6px)",
-            left: 0,
             right: 0,
+            left: isMobile ? 0 : "auto",
+            width: isMobile ? "100%" : 340,
+            maxWidth: "92vw",
             background: "#ffffff",
             border: "1.5px solid #cbd5e1",
             borderRadius: 14,
