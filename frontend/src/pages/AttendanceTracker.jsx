@@ -289,9 +289,28 @@ export default function AttendanceTracker() {
   // Active logs for the currently inspected date
   const activeDateLogs = allDailyLogs[selectedCheckInDateKey] || {};
 
+  // Date Navigation State & Direction (-1 = prev day, 1 = next day, 0 = neutral)
+  const [dateNavDirection, setDateNavDirection] = useState(0);
+  const checkInDateInputRef = useRef(null);
+
+  const handleOpenCheckInDatePicker = () => {
+    if (checkInDateInputRef.current) {
+      try {
+        if (typeof checkInDateInputRef.current.showPicker === "function") {
+          checkInDateInputRef.current.showPicker();
+        } else {
+          checkInDateInputRef.current.focus();
+        }
+      } catch {
+        checkInDateInputRef.current.focus();
+      }
+    }
+  };
+
   // Date Navigation Helpers
   const handlePrevDay = () => {
     if (!canGoPrev) return;
+    setDateNavDirection(-1);
     const d = new Date(selectedCheckInDateKey + "T00:00:00");
     d.setDate(d.getDate() - 1);
     const k = getLocalCalendarDateKey(d);
@@ -302,6 +321,7 @@ export default function AttendanceTracker() {
 
   const handleNextDay = () => {
     if (!canGoNext) return;
+    setDateNavDirection(1);
     const d = new Date(selectedCheckInDateKey + "T00:00:00");
     d.setDate(d.getDate() + 1);
     const k = getLocalCalendarDateKey(d);
@@ -311,13 +331,16 @@ export default function AttendanceTracker() {
   };
 
   const handleSelectDate = (dateKey) => {
-    if (!dateKey) return;
-    if (dateKey >= minTrackingDateKey && dateKey <= todayDateKey) {
-      setSelectedCheckInDateKey(dateKey);
-    } else if (dateKey > todayDateKey) {
-      setSelectedCheckInDateKey(todayDateKey);
-    } else if (dateKey < minTrackingDateKey) {
-      setSelectedCheckInDateKey(minTrackingDateKey);
+    if (!dateKey || dateKey === selectedCheckInDateKey) return;
+    const targetKey =
+      dateKey > todayDateKey
+        ? todayDateKey
+        : dateKey < minTrackingDateKey
+        ? minTrackingDateKey
+        : dateKey;
+    if (targetKey !== selectedCheckInDateKey) {
+      setDateNavDirection(targetKey > selectedCheckInDateKey ? 1 : -1);
+      setSelectedCheckInDateKey(targetKey);
     }
   };
 
@@ -2947,7 +2970,9 @@ export default function AttendanceTracker() {
                   </button>
 
                   {/* Native / Interactive Date Picker Centerpiece */}
-                  <label
+                  <button
+                    type="button"
+                    onClick={handleOpenCheckInDatePicker}
                     style={{
                       position: "relative",
                       display: "inline-flex",
@@ -2962,12 +2987,24 @@ export default function AttendanceTracker() {
                       color: "#0f172a",
                       cursor: "pointer",
                       boxShadow: "0 1px 2px rgba(0,0,0,0.02)",
+                      transition: "all 0.15s ease",
+                      overflow: "hidden",
                     }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.borderColor = "#94a3b8";
+                      e.currentTarget.style.background = "#f8fafc";
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.borderColor = "#cbd5e1";
+                      e.currentTarget.style.background = "#ffffff";
+                    }}
+                    title="Click anywhere to choose a date"
                   >
-                    <CalendarIcon size={13} color="#2563eb" />
-                    <span>{formatFriendlyDate(selectedCheckInDateKey)}</span>
-                    <ChevronDown size={12} color="#64748b" />
+                    <CalendarIcon size={13} color="#2563eb" style={{ pointerEvents: "none" }} />
+                    <span style={{ pointerEvents: "none" }}>{formatFriendlyDate(selectedCheckInDateKey)}</span>
+                    <ChevronDown size={12} color="#64748b" style={{ pointerEvents: "none" }} />
                     <input
+                      ref={checkInDateInputRef}
                       type="date"
                       min={minTrackingDateKey}
                       max={todayDateKey}
@@ -2977,16 +3014,25 @@ export default function AttendanceTracker() {
                           handleSelectDate(e.target.value);
                         }
                       }}
+                      onClick={(e) => {
+                        try {
+                          if (typeof e.currentTarget.showPicker === "function") {
+                            e.currentTarget.showPicker();
+                          }
+                        } catch {}
+                      }}
+                      className="gradeflow-datepicker-full-hitbox"
                       style={{
                         position: "absolute",
                         inset: 0,
-                        opacity: 0,
-                        cursor: "pointer",
                         width: "100%",
                         height: "100%",
+                        opacity: 0,
+                        cursor: "pointer",
+                        zIndex: 2,
                       }}
                     />
-                  </label>
+                  </button>
 
                   {/* Next Day Button */}
                   <button
@@ -3028,7 +3074,7 @@ export default function AttendanceTracker() {
                 >
                   <button
                     type="button"
-                    onClick={() => setSelectedCheckInDateKey(todayDateKey)}
+                    onClick={() => handleSelectDate(todayDateKey)}
                     style={{
                       padding: "4px 11px",
                       borderRadius: 6,
@@ -3052,7 +3098,7 @@ export default function AttendanceTracker() {
                   {yesterdayDateKey >= minTrackingDateKey && (
                     <button
                       type="button"
-                      onClick={() => setSelectedCheckInDateKey(yesterdayDateKey)}
+                      onClick={() => handleSelectDate(yesterdayDateKey)}
                       style={{
                         padding: "4px 11px",
                         borderRadius: 6,
@@ -3072,302 +3118,331 @@ export default function AttendanceTracker() {
                 </div>
               </div>
 
-              {selectedDayClasses.length === 0 ? (
-                <div
-                  style={{
-                    background: isSelectedSunday || isSelectedHoliday
-                      ? "#fffdf5"
-                      : isSelectedExam
-                      ? "#f8faff"
-                      : "#f8fafc",
-                    border: `1px solid ${
-                      isSelectedSunday || isSelectedHoliday
-                        ? "#fde68a"
-                        : isSelectedExam
-                        ? "#bfdbfe"
-                        : "#e2e8f0"
-                    }`,
-                    borderRadius: 12,
-                    padding: "32px 20px",
-                    textAlign: "center",
-                    color: isSelectedSunday || isSelectedHoliday
-                      ? "#92400e"
-                      : isSelectedExam
-                      ? "#1e40af"
-                      : "#64748b",
-                    fontSize: 13,
-                    fontWeight: 600,
-                    display: "flex",
-                    flexDirection: "column",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    gap: 10,
+              <AnimatePresence mode="wait" initial={false} custom={dateNavDirection}>
+                <motion.div
+                  key={selectedCheckInDateKey}
+                  custom={dateNavDirection}
+                  variants={{
+                    enter: (dir) => ({
+                      opacity: 0,
+                      x: dir > 0 ? 18 : dir < 0 ? -18 : 0,
+                      filter: "blur(3px)",
+                    }),
+                    center: {
+                      opacity: 1,
+                      x: 0,
+                      filter: "blur(0px)",
+                      transition: {
+                        duration: 0.22,
+                        ease: [0.16, 1, 0.3, 1],
+                      },
+                    },
+                    exit: (dir) => ({
+                      opacity: 0,
+                      x: dir > 0 ? -18 : dir < 0 ? 18 : 0,
+                      filter: "blur(3px)",
+                      transition: {
+                        duration: 0.15,
+                        ease: [0.16, 1, 0.3, 1],
+                      },
+                    }),
                   }}
+                  initial="enter"
+                  animate="center"
+                  exit="exit"
+                  style={{ willChange: "transform, opacity, filter" }}
                 >
-                  <div
-                    style={{
-                      width: 44,
-                      height: 44,
-                      borderRadius: "50%",
-                      background: isSelectedSunday || isSelectedHoliday
-                        ? "#fef3c7"
-                        : isSelectedExam
-                        ? "#dbeafe"
-                        : "#f1f5f9",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      marginBottom: 2,
-                    }}
-                  >
-                    {isSelectedSunday ? (
-                      <CalendarIcon size={20} color="#d97706" />
-                    ) : isSelectedHoliday ? (
-                      <Sun size={20} color="#d97706" />
-                    ) : isSelectedExam ? (
-                      <Info size={20} color="#2563eb" />
-                    ) : (
-                      <Info size={20} color="#64748b" />
-                    )}
-                  </div>
+                  {selectedDayClasses.length === 0 ? (
+                    <div
+                      style={{
+                        background: isSelectedSunday || isSelectedHoliday
+                          ? "#fffdf5"
+                          : isSelectedExam
+                          ? "#f8faff"
+                          : "#f8fafc",
+                        border: `1px solid ${
+                          isSelectedSunday || isSelectedHoliday
+                            ? "#fde68a"
+                            : isSelectedExam
+                            ? "#bfdbfe"
+                            : "#e2e8f0"
+                        }`,
+                        borderRadius: 12,
+                        padding: "32px 20px",
+                        textAlign: "center",
+                        color: isSelectedSunday || isSelectedHoliday
+                          ? "#92400e"
+                          : isSelectedExam
+                          ? "#1e40af"
+                          : "#64748b",
+                        fontSize: 13,
+                        fontWeight: 600,
+                        display: "flex",
+                        flexDirection: "column",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        gap: 10,
+                      }}
+                    >
+                      <div
+                        style={{
+                          width: 44,
+                          height: 44,
+                          borderRadius: "50%",
+                          background: isSelectedSunday || isSelectedHoliday
+                            ? "#fef3c7"
+                            : isSelectedExam
+                            ? "#dbeafe"
+                            : "#f1f5f9",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          marginBottom: 2,
+                        }}
+                      >
+                        {isSelectedSunday ? (
+                          <CalendarIcon size={20} color="#d97706" />
+                        ) : isSelectedHoliday ? (
+                          <Sun size={20} color="#d97706" />
+                        ) : isSelectedExam ? (
+                          <Info size={20} color="#2563eb" />
+                        ) : (
+                          <Info size={20} color="#64748b" />
+                        )}
+                      </div>
 
-                  <div style={{ fontSize: 15, fontWeight: 800, color: "#0f172a" }}>
-                    {isSelectedSunday
-                      ? "Sunday Weekend Holiday"
-                      : isSelectedHoliday
-                      ? `Official Holiday · ${selectedHolidayInfo?.title || "University Holiday"}`
-                      : isSelectedExam
-                      ? `Academic Routine Suspended · ${selectedCalendarStatus?.title || "Examination"}`
-                      : isSelectedOutsideSession
-                      ? `Outside Instructional Session · ${selectedCalendarStatus?.title || "Semester Break"}`
-                      : `No Classes Scheduled for ${selectedDayName}`}
-                  </div>
+                      <div style={{ fontSize: 15, fontWeight: 800, color: "#0f172a" }}>
+                        {isSelectedSunday
+                          ? "Sunday Weekend Holiday"
+                          : isSelectedHoliday
+                          ? `Official Holiday · ${selectedHolidayInfo?.title || "University Holiday"}`
+                          : isSelectedExam
+                          ? `Academic Routine Suspended · ${selectedCalendarStatus?.title || "Examination"}`
+                          : isSelectedOutsideSession
+                          ? `Outside Instructional Session · ${selectedCalendarStatus?.title || "Semester Break"}`
+                          : `No Classes Scheduled for ${selectedDayName}`}
+                      </div>
 
-                  <div style={{ fontSize: 12.5, fontWeight: 500, maxWidth: 520, lineHeight: 1.5, color: "#64748b" }}>
-                    {isSelectedSunday
-                      ? `No academic classes are scheduled on Sundays for Section ${selectedSection}.`
-                      : isSelectedHoliday
-                      ? `Today is recognized as an official holiday (${selectedHolidayInfo?.title || "Holiday"}). No classes are conducted for Section ${selectedSection}.`
-                      : isSelectedExam
-                      ? `Regular classroom teaching is suspended in accordance with the official academic calendar for examinations.`
-                      : isSelectedOutsideSession
-                      ? `${selectedCalendarStatus?.message || "Class instruction is not active outside the semester boundaries (July 6, 2026 - October 31, 2026)."}`
-                      : `There are no scheduled lectures, tutorials, or labs on ${selectedDayName} for Section ${selectedSection}.`}
-                  </div>
-                </div>
-              ) : (
-                <AnimatePresence mode="wait">
-                  <motion.div
-                    key={selectedCheckInDateKey}
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -8 }}
-                    transition={{ duration: 0.2, ease: "easeOut" }}
-                    style={{
-                      display: "grid",
-                      gridTemplateColumns: isMobile ? "1fr" : "repeat(auto-fill, minmax(290px, 1fr))",
-                      gap: 12,
-                    }}
-                  >
-                    {selectedDayClasses.map((period) => {
-                      const status = activeDateLogs[period.slotIndex]; // "present" | "absent" | undefined
-                      const isPresent = status === "present";
-                      const isAbsent = status === "absent";
-                      const subCode = resolveSubjectCode(period, studentData);
+                      <div style={{ fontSize: 12.5, fontWeight: 500, maxWidth: 520, lineHeight: 1.5, color: "#64748b" }}>
+                        {isSelectedSunday
+                          ? `No academic classes are scheduled on Sundays for Section ${selectedSection}.`
+                          : isSelectedHoliday
+                          ? `Today is recognized as an official holiday (${selectedHolidayInfo?.title || "Holiday"}). No classes are conducted for Section ${selectedSection}.`
+                          : isSelectedExam
+                          ? `Regular classroom teaching is suspended in accordance with the official academic calendar for examinations.`
+                          : isSelectedOutsideSession
+                          ? `${selectedCalendarStatus?.message || "Class instruction is not active outside the semester boundaries (July 6, 2026 - October 31, 2026)."}`
+                          : `There are no scheduled lectures, tutorials, or labs on ${selectedDayName} for Section ${selectedSection}.`}
+                      </div>
+                    </div>
+                  ) : (
+                    <div
+                      style={{
+                        display: "grid",
+                        gridTemplateColumns: isMobile ? "1fr" : "repeat(auto-fill, minmax(290px, 1fr))",
+                        gap: 12,
+                      }}
+                    >
+                      {selectedDayClasses.map((period) => {
+                        const status = activeDateLogs[period.slotIndex]; // "present" | "absent" | undefined
+                        const isPresent = status === "present";
+                        const isAbsent = status === "absent";
+                        const subCode = resolveSubjectCode(period, studentData);
 
-                      return (
-                        <div
-                          key={`${selectedCheckInDateKey}-p${period.slotIndex}`}
-                          style={{
-                            background: isPresent ? "#f0fdf4" : isAbsent ? "#fff1f2" : "#ffffff",
-                            border: `1px solid ${isPresent ? "#86efac" : isAbsent ? "#fca5a5" : "#e2e8f0"}`,
-                            borderRadius: 10,
-                            padding: "14px 15px",
-                            display: "flex",
-                            flexDirection: "column",
-                            justifyContent: "space-between",
-                            gap: 12,
-                            boxShadow: isPresent
-                              ? "0 1px 3px rgba(16, 185, 129, 0.08)"
-                              : isAbsent
-                              ? "0 1px 3px rgba(244, 63, 94, 0.08)"
-                              : "0 1px 2px rgba(0, 0, 0, 0.02)",
-                            transition: "all 0.15s ease",
-                          }}
-                        >
-                          <div>
-                            {/* Top metadata row */}
-                            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 6 }}>
-                              <div style={{ display: "inline-flex", alignItems: "center", gap: 5 }}>
-                                <span
-                                  style={{
-                                    fontSize: 10.5,
-                                    fontWeight: 800,
-                                    padding: "2px 6px",
-                                    borderRadius: 5,
-                                    background: isPresent ? "#dcfce7" : isAbsent ? "#fee2e2" : "#f1f5f9",
-                                    color: isPresent ? "#15803d" : isAbsent ? "#b91c1c" : "#0f172a",
-                                    fontFamily: "'DM Sans', monospace",
-                                  }}
-                                >
-                                  P{period.slotIndex + 1}
-                                </span>
-                                <span style={{ fontSize: 11, fontWeight: 600, color: "#64748b", fontFamily: "'DM Sans', monospace" }}>
-                                  {period.slot?.startTime} - {period.slot?.endTime}
-                                </span>
-                              </div>
+                        return (
+                          <div
+                            key={`${selectedCheckInDateKey}-p${period.slotIndex}`}
+                            style={{
+                              background: isPresent ? "#f0fdf4" : isAbsent ? "#fff1f2" : "#ffffff",
+                              border: `1px solid ${isPresent ? "#86efac" : isAbsent ? "#fca5a5" : "#e2e8f0"}`,
+                              borderRadius: 10,
+                              padding: "14px 15px",
+                              display: "flex",
+                              flexDirection: "column",
+                              justifyContent: "space-between",
+                              gap: 12,
+                              boxShadow: isPresent
+                                ? "0 1px 3px rgba(16, 185, 129, 0.08)"
+                                : isAbsent
+                                ? "0 1px 3px rgba(244, 63, 94, 0.08)"
+                                : "0 1px 2px rgba(0, 0, 0, 0.02)",
+                              transition: "all 0.15s ease",
+                            }}
+                          >
+                            <div>
+                              {/* Top metadata row */}
+                              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 6 }}>
+                                <div style={{ display: "inline-flex", alignItems: "center", gap: 5 }}>
+                                  <span
+                                    style={{
+                                      fontSize: 10.5,
+                                      fontWeight: 800,
+                                      padding: "2px 6px",
+                                      borderRadius: 5,
+                                      background: isPresent ? "#dcfce7" : isAbsent ? "#fee2e2" : "#f1f5f9",
+                                      color: isPresent ? "#15803d" : isAbsent ? "#b91c1c" : "#0f172a",
+                                      fontFamily: "'DM Sans', monospace",
+                                    }}
+                                  >
+                                    P{period.slotIndex + 1}
+                                  </span>
+                                  <span style={{ fontSize: 11, fontWeight: 600, color: "#64748b", fontFamily: "'DM Sans', monospace" }}>
+                                    {period.slot?.startTime} - {period.slot?.endTime}
+                                  </span>
+                                </div>
 
-                              <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
-                                {status && (
+                                <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                                  {status && (
+                                    <span
+                                      style={{
+                                        fontSize: 10,
+                                        fontWeight: 700,
+                                        background: isPresent ? "#dcfce7" : "#fee2e2",
+                                        color: isPresent ? "#15803d" : "#b91c1c",
+                                        padding: "2px 7px",
+                                        borderRadius: 999,
+                                        border: `1px solid ${isPresent ? "#bbf7d0" : "#fecaca"}`,
+                                        display: "inline-flex",
+                                        alignItems: "center",
+                                        gap: 3,
+                                      }}
+                                    >
+                                      {isPresent ? (
+                                        <>
+                                          <CheckCircle2 size={11} color="#15803d" /> <span>Attended</span>
+                                        </>
+                                      ) : (
+                                        <>
+                                          <XCircle size={11} color="#b91c1c" /> <span>Missed</span>
+                                        </>
+                                      )}
+                                    </span>
+                                  )}
                                   <span
                                     style={{
                                       fontSize: 10,
-                                      fontWeight: 700,
-                                      background: isPresent ? "#dcfce7" : "#fee2e2",
-                                      color: isPresent ? "#15803d" : "#b91c1c",
-                                      padding: "2px 7px",
-                                      borderRadius: 999,
-                                      border: `1px solid ${isPresent ? "#bbf7d0" : "#fecaca"}`,
-                                      display: "inline-flex",
-                                      alignItems: "center",
-                                      gap: 3,
+                                      fontWeight: 800,
+                                      background: period.type === "PR" ? "#faf5ff" : period.type === "TUT" ? "#fffbeb" : "#f1f5f9",
+                                      color: period.type === "PR" ? "#7c3aed" : period.type === "TUT" ? "#b45309" : "#475569",
+                                      padding: "2px 6px",
+                                      borderRadius: 5,
+                                      border: `1px solid ${period.type === "PR" ? "#ddd6fe" : period.type === "TUT" ? "#fde68a" : "#e2e8f0"}`,
                                     }}
                                   >
-                                    {isPresent ? (
-                                      <>
-                                        <CheckCircle2 size={11} color="#15803d" /> <span>Attended</span>
-                                      </>
-                                    ) : (
-                                      <>
-                                        <XCircle size={11} color="#b91c1c" /> <span>Missed</span>
-                                      </>
-                                    )}
+                                    {period.type || "PP"}
+                                  </span>
+                                </div>
+                              </div>
+
+                              {/* Subject Title and Code */}
+                              <div style={{ marginTop: 8 }}>
+                                <div style={{ fontSize: 14, fontWeight: 700, color: "#0f172a", lineHeight: 1.35 }}>
+                                  {period.cleanName}
+                                </div>
+                                {subCode && (
+                                  <span
+                                    style={{
+                                      fontSize: 10.5,
+                                      fontFamily: "'DM Sans', monospace",
+                                      fontWeight: 700,
+                                      color: "#475569",
+                                      background: isPresent || isAbsent ? "#ffffff" : "#f8fafc",
+                                      border: "1px solid #e2e8f0",
+                                      padding: "1.5px 6px",
+                                      borderRadius: 4,
+                                      display: "inline-block",
+                                      marginTop: 4,
+                                    }}
+                                  >
+                                    {subCode}
                                   </span>
                                 )}
-                                <span
-                                  style={{
-                                    fontSize: 10,
-                                    fontWeight: 800,
-                                    background: period.type === "PR" ? "#faf5ff" : period.type === "TUT" ? "#fffbeb" : "#f1f5f9",
-                                    color: period.type === "PR" ? "#7c3aed" : period.type === "TUT" ? "#b45309" : "#475569",
-                                    padding: "2px 6px",
-                                    borderRadius: 5,
-                                    border: `1px solid ${period.type === "PR" ? "#ddd6fe" : period.type === "TUT" ? "#fde68a" : "#e2e8f0"}`,
-                                  }}
-                                >
-                                  {period.type || "PP"}
-                                </span>
                               </div>
                             </div>
 
-                            {/* Subject Title and Code */}
-                            <div style={{ marginTop: 8 }}>
-                              <div style={{ fontSize: 14, fontWeight: 700, color: "#0f172a", lineHeight: 1.35 }}>
-                                {period.cleanName}
-                              </div>
-                              {subCode && (
-                                <span
-                                  style={{
-                                    fontSize: 10.5,
-                                    fontFamily: "'DM Sans', monospace",
-                                    fontWeight: 700,
-                                    color: "#475569",
-                                    background: isPresent || isAbsent ? "#ffffff" : "#f8fafc",
-                                    border: "1px solid #e2e8f0",
-                                    padding: "1.5px 6px",
-                                    borderRadius: 4,
-                                    display: "inline-block",
-                                    marginTop: 4,
-                                  }}
-                                >
-                                  {subCode}
-                                </span>
-                              )}
+                            {/* Dual Action Buttons: Present & Absent */}
+                            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 7, paddingTop: 4 }}>
+                              {/* Mark Present Button */}
+                              <button
+                                type="button"
+                                onClick={() => handleMarkDailyAttendance(period, "present")}
+                                style={{
+                                  height: 34,
+                                  borderRadius: 7,
+                                  border: isPresent ? "1px solid #047857" : "1px solid #bbf7d0",
+                                  background: isPresent ? "#059669" : "#ffffff",
+                                  color: isPresent ? "#ffffff" : "#059669",
+                                  fontSize: 12,
+                                  fontWeight: 700,
+                                  cursor: "pointer",
+                                  display: "flex",
+                                  alignItems: "center",
+                                  justifyContent: "center",
+                                  gap: 5,
+                                  transition: "all 0.15s ease",
+                                  boxShadow: isPresent ? "0 2px 4px rgba(5, 150, 105, 0.25)" : "none",
+                                }}
+                                onMouseEnter={(e) => {
+                                  if (!isPresent) {
+                                    e.currentTarget.style.background = "#f0fdf4";
+                                    e.currentTarget.style.borderColor = "#86efac";
+                                  }
+                                }}
+                                onMouseLeave={(e) => {
+                                  if (!isPresent) {
+                                    e.currentTarget.style.background = "#ffffff";
+                                    e.currentTarget.style.borderColor = "#bbf7d0";
+                                  }
+                                }}
+                              >
+                                <CheckCircle2 size={13} color={isPresent ? "#ffffff" : "#059669"} />
+                                <span>Present</span>
+                              </button>
+
+                              {/* Mark Absent Button */}
+                              <button
+                                type="button"
+                                onClick={() => handleMarkDailyAttendance(period, "absent")}
+                                style={{
+                                  height: 34,
+                                  borderRadius: 7,
+                                  border: isAbsent ? "1px solid #be123c" : "1px solid #fecaca",
+                                  background: isAbsent ? "#e11d48" : "#ffffff",
+                                  color: isAbsent ? "#ffffff" : "#dc2626",
+                                  fontSize: 12,
+                                  fontWeight: 700,
+                                  cursor: "pointer",
+                                  display: "flex",
+                                  alignItems: "center",
+                                  justifyContent: "center",
+                                  gap: 5,
+                                  transition: "all 0.15s ease",
+                                  boxShadow: isAbsent ? "0 2px 4px rgba(225, 29, 72, 0.25)" : "none",
+                                }}
+                                onMouseEnter={(e) => {
+                                  if (!isAbsent) {
+                                    e.currentTarget.style.background = "#fef2f2";
+                                    e.currentTarget.style.borderColor = "#fca5a5";
+                                  }
+                                }}
+                                onMouseLeave={(e) => {
+                                  if (!isAbsent) {
+                                    e.currentTarget.style.background = "#ffffff";
+                                    e.currentTarget.style.borderColor = "#fecaca";
+                                  }
+                                }}
+                              >
+                                <XCircle size={13} color={isAbsent ? "#ffffff" : "#dc2626"} />
+                                <span>Absent</span>
+                              </button>
                             </div>
                           </div>
-
-                          {/* Dual Action Buttons: Present & Absent */}
-                          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 7, paddingTop: 4 }}>
-                            {/* Mark Present Button */}
-                            <button
-                              type="button"
-                              onClick={() => handleMarkDailyAttendance(period, "present")}
-                              style={{
-                                height: 34,
-                                borderRadius: 7,
-                                border: isPresent ? "1px solid #047857" : "1px solid #bbf7d0",
-                                background: isPresent ? "#059669" : "#ffffff",
-                                color: isPresent ? "#ffffff" : "#059669",
-                                fontSize: 12,
-                                fontWeight: 700,
-                                cursor: "pointer",
-                                display: "flex",
-                                alignItems: "center",
-                                justifyContent: "center",
-                                gap: 5,
-                                transition: "all 0.15s ease",
-                                boxShadow: isPresent ? "0 2px 4px rgba(5, 150, 105, 0.25)" : "none",
-                              }}
-                              onMouseEnter={(e) => {
-                                if (!isPresent) {
-                                  e.currentTarget.style.background = "#f0fdf4";
-                                  e.currentTarget.style.borderColor = "#86efac";
-                                }
-                              }}
-                              onMouseLeave={(e) => {
-                                if (!isPresent) {
-                                  e.currentTarget.style.background = "#ffffff";
-                                  e.currentTarget.style.borderColor = "#bbf7d0";
-                                }
-                              }}
-                            >
-                              <CheckCircle2 size={13} color={isPresent ? "#ffffff" : "#059669"} />
-                              <span>Present</span>
-                            </button>
-
-                            {/* Mark Absent Button */}
-                            <button
-                              type="button"
-                              onClick={() => handleMarkDailyAttendance(period, "absent")}
-                              style={{
-                                height: 34,
-                                borderRadius: 7,
-                                border: isAbsent ? "1px solid #be123c" : "1px solid #fecaca",
-                                background: isAbsent ? "#e11d48" : "#ffffff",
-                                color: isAbsent ? "#ffffff" : "#dc2626",
-                                fontSize: 12,
-                                fontWeight: 700,
-                                cursor: "pointer",
-                                display: "flex",
-                                alignItems: "center",
-                                justifyContent: "center",
-                                gap: 5,
-                                transition: "all 0.15s ease",
-                                boxShadow: isAbsent ? "0 2px 4px rgba(225, 29, 72, 0.25)" : "none",
-                              }}
-                              onMouseEnter={(e) => {
-                                if (!isAbsent) {
-                                  e.currentTarget.style.background = "#fef2f2";
-                                  e.currentTarget.style.borderColor = "#fca5a5";
-                                }
-                              }}
-                              onMouseLeave={(e) => {
-                                if (!isAbsent) {
-                                  e.currentTarget.style.background = "#ffffff";
-                                  e.currentTarget.style.borderColor = "#fecaca";
-                                }
-                              }}
-                            >
-                              <XCircle size={13} color={isAbsent ? "#ffffff" : "#dc2626"} />
-                              <span>Absent</span>
-                            </button>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </motion.div>
-                </AnimatePresence>
-              )}
+                        );
+                      })}
+                    </div>
+                  )}
+                </motion.div>
+              </AnimatePresence>
             </div>
           </motion.div>
         )}
