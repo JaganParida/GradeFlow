@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   TrendingUp,
@@ -28,6 +28,7 @@ import {
   Building,
   GraduationCap,
   Lock,
+  Filter,
 } from "lucide-react";
 import {
   getSectionScheduleForDate,
@@ -108,7 +109,7 @@ export default function FuturePredictor({
   // Selected Bunk Dates (Array of 'YYYY-MM-DD' strings)
   const [selectedBunkKeys, setSelectedBunkKeys] = useState([]);
 
-  // Non-instructional date notice (e.g. when user clicks on an exam, holiday, or already-completed day)
+  // Non-instructional date notice
   const [nonInstructionalNotice, setNonInstructionalNotice] = useState(null);
 
   // Recovery Target Percentage (default 75%, can be 80%, 85%, 90%)
@@ -117,10 +118,14 @@ export default function FuturePredictor({
   // Phase 1 Detail Toggle: Summary vs Day-by-Day Detailed Schedule
   const [preBunkViewMode, setPreBunkViewMode] = useState("detailed"); // "detailed" | "summary"
 
-  // Phase 3 view controls
-  const [roadmapViewTab, setRoadmapViewTab] = useState("chronological"); // "chronological" | "by_subject"
+  // Phase 3 Subject Filter for recovery schedule
+  const [recoverySubjectFilter, setRecoverySubjectFilter] = useState("ALL");
   const [showAllRecoveryDates, setShowAllRecoveryDates] = useState(false);
   const [expandedSubjects, setExpandedSubjects] = useState({});
+
+  useEffect(() => {
+    setRecoverySubjectFilter("ALL");
+  }, [selectedBunkKeys]);
 
   const toggleSubjectExpand = (subName) => {
     setExpandedSubjects((prev) => ({
@@ -177,7 +182,7 @@ export default function FuturePredictor({
     return `${activeWeekDays[0].dateFormatted} – ${activeWeekDays[activeWeekDays.length - 1].dateFormatted}`;
   }, [activeWeekDays]);
 
-  // ── Bunk Date Selection Handler (With Same-Day & Exam Safeguards) ────────
+  // ── Bunk Date Selection Handler ──────────────────────────────────────────
   const toggleBunkDate = (dayItem) => {
     if (!dayItem.isInstructional) {
       const reasonTitle = dayItem.isExam
@@ -316,12 +321,13 @@ export default function FuturePredictor({
         bunkMissedCount: 0,
         postBunkAttended: totAtt,
         postBunkDelivered: totDel,
+        missedDates: [],
+        missedPeriodsDetail: [],
       });
     });
 
     // ─────────────────────────────────────────────────────────────────────────
     // PHASE 1: PRE-BUNK ACCUMULATION (Today <= d < firstBunkDate)
-    // Seamlessly respects same-day marked classes to prevent double counting!
     // ─────────────────────────────────────────────────────────────────────────
     let preBunkTotalClasses = 0;
     const preBunkDays = [];
@@ -342,7 +348,6 @@ export default function FuturePredictor({
             const cleanName = cls.cleanName || cleanSubjectBaseName(cls.subject);
             const subData = subjectMap.get(cleanName);
 
-            // If scanning TODAY: check if this class is ALREADY marked in dailyLogs
             const isAlreadyMarkedToday = isScanDateToday && Boolean(todayLogs[cls.slotIndex]);
             const markedStatusToday = isAlreadyMarkedToday ? todayLogs[cls.slotIndex] : null;
 
@@ -351,7 +356,6 @@ export default function FuturePredictor({
             const prevSubPct = prevSubDel > 0 ? (prevSubAtt / prevSubDel) * 100 : 100;
 
             if (!isAlreadyMarkedToday) {
-              // Only upcoming/unmarked classes will be newly attended!
               preBunkTotalClasses++;
               if (subData) {
                 subData.preBunkAttended += 1;
@@ -400,7 +404,6 @@ export default function FuturePredictor({
       }
     }
 
-    // Overall Pre-Bunk Attendance State (At Eve of Bunk)
     const preBunkOverallAtt = currentOverallAtt + preBunkTotalClasses;
     const preBunkOverallDel = currentOverallDel + preBunkTotalClasses;
     const preBunkOverallPct =
@@ -420,9 +423,7 @@ export default function FuturePredictor({
     });
 
     // ─────────────────────────────────────────────────────────────────────────
-    // PHASE 2: BUNK DROP SIMULATION (Selected Bunk Dates)
-    // If Today is selected: only UNMARKED remaining classes will be missed!
-    // Classes already marked present/absent earlier today are safely preserved!
+    // PHASE 2: BUNK DROP SIMULATION (Tracks exact subjects missed on each date)
     // ─────────────────────────────────────────────────────────────────────────
     const bunkDaysBreakdown = [];
     let cumulativeMissedClasses = 0;
@@ -434,8 +435,9 @@ export default function FuturePredictor({
       const isBunkDateToday = dKey === todayKey;
       const sched = getSectionScheduleForDate(selectedSection, bunkDate);
       const scheduledClasses = sched.isInstructional ? sched.classes || [] : [];
+      const dateFormatted = formatFriendlyDate(bunkDate);
 
-      // If bunking TODAY: separate already marked classes from remaining classes!
+      // If bunking TODAY: only unmarked remaining classes are missed
       const classesToBunk = isBunkDateToday
         ? scheduledClasses.filter((cls) => !todayLogs[cls.slotIndex])
         : scheduledClasses;
@@ -460,10 +462,20 @@ export default function FuturePredictor({
         const classMarkStatus = isClassMarked ? todayLogs[cls.slotIndex] : null;
 
         if (!isClassMarked) {
-          // Missed in this simulation
           if (subData) {
             subData.bunkMissedCount += 1;
             subData.postBunkDelivered += 1;
+            if (!subData.missedDates.includes(dateFormatted)) {
+              subData.missedDates.push(dateFormatted);
+            }
+            subData.missedPeriodsDetail.push({
+              dateFormatted,
+              dayName: sched.dayName,
+              slotIndex: cls.slotIndex,
+              timeSlot: cls.slot?.label || (TIME_SLOTS[cls.slotIndex]?.label || `Slot ${cls.slotIndex + 1}`),
+              type: cls.type || "PP",
+              room: cls.room || "Room TBA",
+            });
           }
         }
 
@@ -486,7 +498,7 @@ export default function FuturePredictor({
         dateKey: dKey,
         isToday: isBunkDateToday,
         dayName: sched.dayName,
-        dateFormatted: formatFriendlyDate(bunkDate),
+        dateFormatted,
         isInstructional: sched.isInstructional,
         isHoliday: sched.isOfficialHoliday,
         holidayTitle: sched.title,
@@ -501,7 +513,6 @@ export default function FuturePredictor({
       });
     });
 
-    // Final Post-Bunk Overall Stats
     const postBunkOverallAtt = preBunkOverallAtt;
     const postBunkOverallDel = preBunkOverallDel + cumulativeMissedClasses;
     const postBunkOverallPct =
@@ -511,10 +522,9 @@ export default function FuturePredictor({
     const totalBunkDropDelta = Number((postBunkOverallPct - preBunkOverallPct).toFixed(2));
     const netChangeFromCurrent = Number((postBunkOverallPct - currentOverallPct).toFixed(2));
 
-    // Calculate subject-wise post-bunk percentage and classes needed to reach target
     const targetPct = Number(recoveryTargetPct) || 75;
     const affectedSubjectsList = [];
-    const criticalSubjectsList = [];
+    const missedOnlySubjectsList = [];
 
     subjectMap.forEach((sub) => {
       if (sub.bunkMissedCount > 0 || sub.preBunkClassesAdded > 0) {
@@ -526,105 +536,124 @@ export default function FuturePredictor({
         sub.netChange = Number((sub.postBunkPct - sub.currentPct).toFixed(2));
         sub.isSafeAtTarget = sub.postBunkPct >= targetPct;
 
+        // Formula for classes needed to reach targetPct in this subject
         let classesToTarget = 0;
         if (sub.postBunkPct < targetPct) {
           const num = (targetPct / 100) * sub.postBunkDelivered - sub.postBunkAttended;
           const den = 1 - targetPct / 100;
           classesToTarget = Math.max(1, Math.ceil(num / den));
+        } else if (sub.bunkMissedCount > 0) {
+          classesToTarget = 1; // 1 class to maintain/demonstrate buffer
         }
         sub.classesToTarget = classesToTarget;
         sub.code = resolveSubjectCode({ subject: sub.subjectName }, studentData);
 
         affectedSubjectsList.push(sub);
-        if (!sub.isSafeAtTarget) {
-          criticalSubjectsList.push(sub);
+        if (sub.bunkMissedCount > 0) {
+          missedOnlySubjectsList.push(sub);
         }
       }
     });
 
     // ─────────────────────────────────────────────────────────────────────────
-    // PHASE 3: POST-BUNK RECOVERY SCHEDULE (Image 3 Grid Layout)
+    // PHASE 3: TIMETABLE RECOVERY ENGINE FOR MISSED SUBJECTS
+    // Scans exact upcoming calendar dates for the subjects missed during bunk!
     // ─────────────────────────────────────────────────────────────────────────
-    let overallClassesToTarget = 0;
-    if (postBunkOverallPct < targetPct) {
-      const num = (targetPct / 100) * postBunkOverallDel - postBunkOverallAtt;
-      const den = 1 - targetPct / 100;
-      overallClassesToTarget = Math.max(1, Math.ceil(num / den));
-    }
-
-    const recoverySessions = [];
-    const scanRecoveryDate = new Date(lastBunkDate);
     const lastSessionDate = new Date(CUTM_SESSION_BOUNDARIES?.lastDateOfInstruction || "2026-10-31T23:59:59");
+    const missedSubjectsNames = new Set(missedOnlySubjectsList.map((s) => s.subjectName));
 
-    let runningRecovAtt = postBunkOverallAtt;
-    let runningRecovDel = postBunkOverallDel;
-    let milestoneDateReached = null;
-    let milestoneSession = null;
-    let alreadyMarkedMilestone = false;
+    // Per-subject recovery sessions map & milestone projection
+    const subjectRecoverySessionsMap = new Map();
+    missedOnlySubjectsList.forEach((sub) => {
+      subjectRecoverySessionsMap.set(sub.subjectName, []);
+    });
 
-    let safetyGuard = 0;
-    const maxRecoverySessionsToSimulate = Math.max(overallClassesToTarget + 6, 20);
+    const masterMissedRecoverySessions = [];
+    const scanRecovDate = new Date(lastBunkDate);
+    let recovSafetyGuard = 0;
 
-    while (
-      scanRecoveryDate <= lastSessionDate &&
-      recoverySessions.length < maxRecoverySessionsToSimulate &&
-      safetyGuard < 60
-    ) {
-      scanRecoveryDate.setDate(scanRecoveryDate.getDate() + 1);
-      safetyGuard++;
+    // Track running stats for each missed subject
+    const subRunningStats = new Map();
+    missedOnlySubjectsList.forEach((sub) => {
+      subRunningStats.set(sub.subjectName, {
+        runningAtt: sub.postBunkAttended,
+        runningDel: sub.postBunkDelivered,
+        milestoneFound: false,
+        milestoneDateStr: null,
+        milestoneTimeSlot: null,
+      });
+    });
 
-      if (scanRecoveryDate > lastSessionDate) break;
+    while (scanRecovDate <= lastSessionDate && recovSafetyGuard < 60) {
+      scanRecovDate.setDate(scanRecovDate.getDate() + 1);
+      recovSafetyGuard++;
 
-      const sched = getSectionScheduleForDate(selectedSection, scanRecoveryDate);
+      if (scanRecovDate > lastSessionDate) break;
+
+      const sched = getSectionScheduleForDate(selectedSection, scanRecovDate);
       if (!sched.isInstructional || !sched.classes || sched.classes.length === 0) {
         continue;
       }
 
       for (const cls of sched.classes) {
-        if (recoverySessions.length >= maxRecoverySessionsToSimulate) break;
-
         const cleanName = cls.cleanName || cleanSubjectBaseName(cls.subject);
-        runningRecovAtt += 1;
-        runningRecovDel += 1;
-        const newOverallPct = Number(((runningRecovAtt / runningRecovDel) * 100).toFixed(2));
+        if (missedSubjectsNames.has(cleanName)) {
+          const stats = subRunningStats.get(cleanName);
+          const subTargetNeeded = subjectMap.get(cleanName)?.classesToTarget || 1;
+          const currentSessionsForSub = subjectRecoverySessionsMap.get(cleanName) || [];
 
-        const isMilestoneTarget = !alreadyMarkedMilestone && newOverallPct >= targetPct;
-        if (isMilestoneTarget) {
-          alreadyMarkedMilestone = true;
-          milestoneDateReached = formatFriendlyDate(scanRecoveryDate, {
-            weekday: "short",
-            day: "numeric",
-            month: "short",
-            year: "numeric",
-          });
+          // Record up to needed + 2 buffer sessions for this subject
+          if (currentSessionsForSub.length < Math.max(subTargetNeeded + 2, 4)) {
+            stats.runningAtt += 1;
+            stats.runningDel += 1;
+            const newPct = Number(((stats.runningAtt / stats.runningDel) * 100).toFixed(2));
+            const isMilestone = !stats.milestoneFound && newPct >= targetPct;
+
+            const timeSlotStr = cls.slot?.label || (TIME_SLOTS[cls.slotIndex]?.label || `Slot ${cls.slotIndex + 1}`);
+            const dateStr = formatFriendlyDate(scanRecovDate);
+
+            if (isMilestone) {
+              stats.milestoneFound = true;
+              stats.milestoneDateStr = dateStr;
+              stats.milestoneTimeSlot = timeSlotStr;
+            }
+
+            const sessionItem = {
+              sessionNumber: masterMissedRecoverySessions.length + 1,
+              subjectSessionNumber: currentSessionsForSub.length + 1,
+              date: new Date(scanRecovDate),
+              dateStr,
+              dayName: sched.dayName,
+              timeSlot: timeSlotStr,
+              subjectName: cleanName,
+              subCode: resolveSubjectCode({ subject: cleanName }, studentData),
+              room: cls.room || `CSE-F-AR-${310 + ((cls.slotIndex || 0) % 8)}`,
+              faculty: cls.faculty || "Faculty",
+              type: cls.type || "PP",
+              runningAttended: stats.runningAtt,
+              runningDelivered: stats.runningDel,
+              runningPercentage: newPct,
+              isMilestoneTarget: isMilestone,
+              missedOnDates: subjectMap.get(cleanName)?.missedDates || [],
+            };
+
+            currentSessionsForSub.push(sessionItem);
+            subjectRecoverySessionsMap.set(cleanName, currentSessionsForSub);
+            masterMissedRecoverySessions.push(sessionItem);
+          }
         }
-
-        const sessionItem = {
-          sessionNumber: recoverySessions.length + 1,
-          date: new Date(scanRecoveryDate),
-          dateStr: formatFriendlyDate(scanRecoveryDate),
-          dayName: sched.dayName,
-          timeSlot: cls.slot?.label || (TIME_SLOTS[cls.slotIndex]?.label || `Slot ${cls.slotIndex + 1}`),
-          subjectName: cleanName,
-          subCode: resolveSubjectCode({ subject: cleanName }, studentData),
-          room: cls.room || `CSE-F-AR-${310 + ((cls.slotIndex || 0) % 8)}`,
-          faculty: cls.faculty || "Faculty",
-          type: cls.type || "PP",
-          runningAttended: runningRecovAtt,
-          runningDelivered: runningRecovDel,
-          runningPercentage: newOverallPct,
-          isMilestoneTarget,
-        };
-
-        if (isMilestoneTarget) {
-          milestoneSession = sessionItem;
-        }
-
-        recoverySessions.push(sessionItem);
       }
     }
 
-    // First instructional return date after leave
+    // Attach computed milestones to missed subjects
+    missedOnlySubjectsList.forEach((sub) => {
+      const stats = subRunningStats.get(sub.subjectName);
+      sub.milestoneDateStr = stats?.milestoneDateStr || null;
+      sub.milestoneTimeSlot = stats?.milestoneTimeSlot || null;
+      sub.recoverySessionsList = subjectRecoverySessionsMap.get(sub.subjectName) || [];
+    });
+
+    // First instructional return date
     const firstReturnDate = new Date(lastBunkDate);
     firstReturnDate.setDate(firstReturnDate.getDate() + 1);
     let returnGuard = 0;
@@ -654,11 +683,9 @@ export default function FuturePredictor({
       netChangeFromCurrent,
       isOverallSafeAtTarget: postBunkOverallPct >= targetPct,
       affectedSubjectsList,
-      criticalSubjectsList,
-      overallClassesToTarget,
-      milestoneDateReached,
-      milestoneSession,
-      recoverySessions,
+      missedOnlySubjectsList,
+      criticalSubjectsList: affectedSubjectsList.filter((s) => !s.isSafeAtTarget),
+      masterMissedRecoverySessions,
       targetPct,
     };
   }, [
@@ -677,11 +704,20 @@ export default function FuturePredictor({
     recoveryTargetPct,
   ]);
 
+  // Filtered recovery sessions based on selected subject tab
+  const filteredRecoverySessions = useMemo(() => {
+    if (!simulation?.masterMissedRecoverySessions) return [];
+    let list = simulation.masterMissedRecoverySessions;
+    if (recoverySubjectFilter !== "ALL") {
+      list = list.filter((s) => s.subjectName === recoverySubjectFilter);
+    }
+    return list;
+  }, [simulation?.masterMissedRecoverySessions, recoverySubjectFilter]);
+
   const visibleRecoverySessions = useMemo(() => {
-    if (!simulation?.recoverySessions) return [];
-    if (showAllRecoveryDates) return simulation.recoverySessions;
-    return simulation.recoverySessions.slice(0, 15);
-  }, [simulation?.recoverySessions, showAllRecoveryDates]);
+    if (showAllRecoveryDates) return filteredRecoverySessions;
+    return filteredRecoverySessions.slice(0, 15);
+  }, [filteredRecoverySessions, showAllRecoveryDates]);
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 16, width: "100%", boxSizing: "border-box" }}>
@@ -916,7 +952,7 @@ export default function FuturePredictor({
       </div>
 
       {/* ═══════════════════════════════════════════════════════════════════════
-          DATE WITH DAY STRIP (HONORS TODAY'S MARKED ATTENDANCE)
+          DATE WITH DAY STRIP
       ═══════════════════════════════════════════════════════════════════════ */}
       <div
         style={{
@@ -1403,7 +1439,7 @@ export default function FuturePredictor({
                 </div>
               )}
 
-              {/* Summary Subject Chips (Image 2) */}
+              {/* Summary Subject Chips */}
               <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
                 {simulation.affectedSubjectsList
                   .filter((s) => s.preBunkClassesAdded > 0)
@@ -1531,7 +1567,7 @@ export default function FuturePredictor({
           )}
 
           {/* ─────────────────────────────────────────────────────────────────
-              PHASE 2: BUNK DROP SIMULATION (HONORS SAME-DAY LOGS)
+              PHASE 2: BUNK DROP SIMULATION
           ───────────────────────────────────────────────────────────────── */}
           <motion.div
             initial={{ opacity: 0, y: 10 }}
@@ -1568,7 +1604,7 @@ export default function FuturePredictor({
                   </span>
                   <h3 style={{ fontSize: 16, fontWeight: 900, color: "#0f172a", margin: 0 }}>
                     {simulation.bunkDaysBreakdown.length === 1
-                      ? `Single-Day Absence on ${simulation.firstBunkDateFormatted}`
+                      ? `Absence on ${simulation.firstBunkDateFormatted}`
                       : `Multi-Day Absence (${simulation.bunkDaysBreakdown.length} days: ${simulation.firstBunkDateFormatted} to ${simulation.lastBunkDateFormatted})`}
                   </h3>
                 </div>
@@ -1677,10 +1713,10 @@ export default function FuturePredictor({
               </div>
             </div>
 
-            {/* Sequential Missed Days Breakdown (Showing Same-Day Marked Status) */}
+            {/* Sequential Drop Breakdown per Bunk Date */}
             <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
               <span style={{ fontSize: 11.5, fontWeight: 800, color: "#475569", textTransform: "uppercase", letterSpacing: "0.5px" }}>
-                Sequential Drop Breakdown:
+                Subjects & Classes Missed on Chosen Bunk Dates:
               </span>
               <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
                 {simulation.bunkDaysBreakdown.map((bDay) => (
@@ -1688,176 +1724,101 @@ export default function FuturePredictor({
                     key={bDay.dateKey}
                     style={{
                       display: "flex",
-                      alignItems: "center",
-                      justifyContent: "space-between",
-                      padding: "8px 12px",
+                      flexDirection: "column",
+                      gap: 6,
+                      padding: "10px 12px",
                       borderRadius: 10,
                       background: "#f8fafc",
                       border: "1px solid #e2e8f0",
-                      flexWrap: "wrap",
-                      gap: 8,
                     }}
                   >
-                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                      <span
-                        style={{
-                          width: 22,
-                          height: 22,
-                          borderRadius: 6,
-                          background: "#e2e8f0",
-                          color: "#334155",
-                          fontSize: 11,
-                          fontWeight: 800,
-                          display: "inline-flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                        }}
-                      >
-                        {bDay.stepIndex}
-                      </span>
-                      <span style={{ fontSize: 12.5, fontWeight: 800, color: "#0f172a" }}>
-                        {bDay.dateFormatted} ({bDay.dayName})
-                      </span>
-                      <span
-                        style={{
-                          fontSize: 10.5,
-                          fontWeight: 700,
-                          padding: "1px 6px",
-                          borderRadius: 4,
-                          background: bDay.isInstructional ? "#fee2e2" : "#fffbeb",
-                          color: bDay.isInstructional ? "#dc2626" : "#b45309",
-                        }}
-                      >
-                        {bDay.isToday && bDay.alreadyMarkedCount > 0
-                          ? `${bDay.classesMissedCount} Remaining Missed (${bDay.alreadyMarkedCount} already marked)`
-                          : bDay.isInstructional
-                          ? `${bDay.classesMissedCount} Classes Missed`
-                          : bDay.holidayTitle || "Holiday (0 Missed)"}
-                      </span>
-                    </div>
-
-                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                      <span style={{ fontSize: 11, color: "#64748b" }}>Cumulative Overall:</span>
-                      <span style={{ fontSize: 12.5, fontWeight: 900, color: bDay.endOfDayOverallPct >= 75 ? "#0f172a" : "#dc2626" }}>
-                        {bDay.endOfDayOverallPct}%
-                      </span>
-                      <span style={{ fontSize: 11, fontWeight: 800, color: "#dc2626" }}>
-                        ({bDay.dayDelta}%)
-                      </span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Course-Wise Bunk Impact */}
-            <div style={{ display: "flex", flexDirection: "column", gap: 6, marginTop: 4 }}>
-              <span style={{ fontSize: 11.5, fontWeight: 800, color: "#475569", textTransform: "uppercase", letterSpacing: "0.5px" }}>
-                Course-Wise Bunk Impact:
-              </span>
-              <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-                {simulation.affectedSubjectsList.map((sub) => {
-                  const isSafe = sub.isSafeAtTarget;
-                  const isExpanded = expandedSubjects[sub.subjectName];
-
-                  return (
-                    <div
-                      key={sub.subjectName}
-                      style={{
-                        border: isSafe ? "1px solid #e2e8f0" : "1px solid #fca5a5",
-                        background: isSafe ? "#ffffff" : "#fff5f5",
-                        borderRadius: 12,
-                        padding: "10px 14px",
-                        display: "flex",
-                        flexDirection: "column",
-                        gap: 8,
-                      }}
-                    >
-                      <div
-                        style={{
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "space-between",
-                          cursor: "pointer",
-                        }}
-                        onClick={() => toggleSubjectExpand(sub.subjectName)}
-                      >
-                        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                          <BookOpen size={16} color={isSafe ? "#2563eb" : "#dc2626"} />
-                          <div>
-                            <div style={{ fontSize: 13, fontWeight: 800, color: "#0f172a" }}>
-                              {sub.subjectName}
-                            </div>
-                            {sub.code && (
-                              <div style={{ fontSize: 10.5, color: "#64748b", fontWeight: 700 }}>
-                                {sub.code}
-                              </div>
-                            )}
-                          </div>
-                        </div>
-
-                        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                          <div style={{ textAlign: "right" }}>
-                            <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                              <span style={{ fontSize: 12, color: "#64748b", textDecoration: "line-through" }}>
-                                {sub.preBunkPct}%
-                              </span>
-                              <ArrowRight size={11} color="#64748b" />
-                              <span
-                                style={{
-                                  fontSize: 13.5,
-                                  fontWeight: 900,
-                                  color: isSafe ? "#059669" : "#dc2626",
-                                }}
-                              >
-                                {sub.postBunkPct}%
-                              </span>
-                            </div>
-                            <span style={{ fontSize: 10, fontWeight: 800, color: "#dc2626" }}>
-                              {sub.bunkDropDelta}% ({sub.bunkMissedCount} missed)
-                            </span>
-                          </div>
-                          {isExpanded ? <ChevronUp size={16} color="#64748b" /> : <ChevronDown size={16} color="#64748b" />}
-                        </div>
-                      </div>
-
-                      {isExpanded && (
-                        <div
+                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 8 }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                        <span
                           style={{
-                            paddingTop: 8,
-                            borderTop: "1px solid #f1f5f9",
-                            display: "flex",
-                            flexDirection: "column",
-                            gap: 6,
-                            fontSize: 11.5,
-                            color: "#475569",
+                            width: 22,
+                            height: 22,
+                            borderRadius: 6,
+                            background: "#e2e8f0",
+                            color: "#334155",
+                            fontSize: 11,
+                            fontWeight: 800,
+                            display: "inline-flex",
+                            alignItems: "center",
+                            justifyContent: "center",
                           }}
                         >
-                          <div style={{ display: "flex", justifyContent: "space-between" }}>
-                            <span>Pre-Bunk Ratio (At Eve):</span>
-                            <strong>{sub.preBunkAttended} / {sub.preBunkDelivered} classes</strong>
-                          </div>
-                          <div style={{ display: "flex", justifyContent: "space-between" }}>
-                            <span>Post-Bunk Ratio:</span>
-                            <strong>{sub.postBunkAttended} / {sub.postBunkDelivered} classes</strong>
-                          </div>
-                          <div style={{ display: "flex", justifyContent: "space-between" }}>
-                            <span>Classes to Recover to {simulation.targetPct}%:</span>
-                            <strong style={{ color: sub.classesToTarget > 0 ? "#dc2626" : "#059669" }}>
-                              {sub.classesToTarget > 0 ? `${sub.classesToTarget} classes needed` : "Already above target"}
-                            </strong>
-                          </div>
-                        </div>
-                      )}
+                          {bDay.stepIndex}
+                        </span>
+                        <span style={{ fontSize: 13, fontWeight: 900, color: "#0f172a" }}>
+                          {bDay.dateFormatted} ({bDay.dayName})
+                        </span>
+                        <span
+                          style={{
+                            fontSize: 10.5,
+                            fontWeight: 700,
+                            padding: "1px 6px",
+                            borderRadius: 4,
+                            background: bDay.isInstructional ? "#fee2e2" : "#fffbeb",
+                            color: bDay.isInstructional ? "#dc2626" : "#b45309",
+                          }}
+                        >
+                          {bDay.isToday && bDay.alreadyMarkedCount > 0
+                            ? `${bDay.classesMissedCount} Remaining Missed (${bDay.alreadyMarkedCount} marked earlier)`
+                            : bDay.isInstructional
+                            ? `${bDay.classesMissedCount} Classes Missed`
+                            : bDay.holidayTitle || "Holiday (0 Missed)"}
+                        </span>
+                      </div>
+
+                      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                        <span style={{ fontSize: 11, color: "#64748b" }}>Overall after this day:</span>
+                        <span style={{ fontSize: 12.5, fontWeight: 900, color: bDay.endOfDayOverallPct >= 75 ? "#0f172a" : "#dc2626" }}>
+                          {bDay.endOfDayOverallPct}%
+                        </span>
+                        <span style={{ fontSize: 11, fontWeight: 800, color: "#dc2626" }}>
+                          ({bDay.dayDelta}%)
+                        </span>
+                      </div>
                     </div>
-                  );
-                })}
+
+                    {/* Classes missed on this specific day */}
+                    {bDay.classes.length > 0 && (
+                      <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 2 }}>
+                        {bDay.classes.map((cls, cIdx) => (
+                          <span
+                            key={cIdx}
+                            style={{
+                              fontSize: 11,
+                              background: cls.isAlreadyMarked ? "#f1f5f9" : "#ffffff",
+                              border: cls.isAlreadyMarked ? "1px solid #cbd5e1" : "1px solid #fecaca",
+                              color: cls.isAlreadyMarked ? "#64748b" : "#991b1b",
+                              padding: "3px 8px",
+                              borderRadius: 6,
+                              display: "inline-flex",
+                              alignItems: "center",
+                              gap: 5,
+                            }}
+                          >
+                            <strong>{cls.subjectName}</strong>
+                            <span style={{ fontSize: 9.5, opacity: 0.8 }}>({cls.timeSlot})</span>
+                            {cls.isAlreadyMarked && (
+                              <span style={{ fontSize: 9, fontWeight: 800, background: "#e2e8f0", padding: "1px 4px", borderRadius: 3 }}>
+                                Already {cls.markStatus}
+                              </span>
+                            )}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                ))}
               </div>
             </div>
           </motion.div>
 
           {/* ─────────────────────────────────────────────────────────────────
-              PHASE 3: MANDATORY POST-ABSENCE RECOVERY SCHEDULE (EXACT IMAGE 3)
+              PHASE 3: RECOVERY ROADMAP SPECIFICALLY FOR MISSED SUBJECTS
           ───────────────────────────────────────────────────────────────── */}
           <motion.div
             initial={{ opacity: 0, y: 10 }}
@@ -1872,7 +1833,7 @@ export default function FuturePredictor({
               gap: 14,
             }}
           >
-            {/* Phase 3 Header & Interactive Target Selector */}
+            {/* Header & Target Selector */}
             <div
               style={{
                 display: "flex",
@@ -1900,13 +1861,13 @@ export default function FuturePredictor({
                   }}
                 >
                   <Target size={13} />
-                  <span>Phase 3 &bull; Timetable Recovery Engine</span>
+                  <span>Phase 3 &bull; Recovery Engine For Missed Subjects</span>
                 </div>
                 <h3 style={{ fontSize: 16, fontWeight: 900, color: "#0f172a", margin: 0 }}>
-                  Attendance Recovery Target & Roadmap
+                  Timetable Recovery Plan (Starts {simulation.firstReturnDateFormatted})
                 </h3>
                 <p style={{ fontSize: 12, color: "#64748b", margin: "2px 0 0 0" }}>
-                  Select your recovery percentage target below to recalculate the exact timetable schedule:
+                  Every upcoming class you must attend to recover attendance in the subjects missed during your leave:
                 </p>
               </div>
 
@@ -1938,6 +1899,174 @@ export default function FuturePredictor({
               </div>
             </div>
 
+            {/* ── Missed Subjects Summary Cards ── */}
+            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+              <span style={{ fontSize: 11.5, fontWeight: 800, color: "#475569", textTransform: "uppercase", letterSpacing: "0.5px" }}>
+                Target Recovery Milestones for Missed Subjects:
+              </span>
+
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: isMobile ? "1fr" : "repeat(auto-fill, minmax(310px, 1fr))",
+                  gap: 10,
+                }}
+              >
+                {simulation.missedOnlySubjectsList.map((sub) => {
+                  const isSafe = sub.isSafeAtTarget;
+                  const isFiltered = recoverySubjectFilter === sub.subjectName;
+
+                  return (
+                    <div
+                      key={sub.subjectName}
+                      style={{
+                        background: isFiltered ? "#eff6ff" : isSafe ? "#ffffff" : "#fff8f8",
+                        border: isFiltered
+                          ? "2px solid #2563eb"
+                          : isSafe
+                          ? "1.5px solid #e2e8f0"
+                          : "1.5px solid #fca5a5",
+                        borderRadius: 14,
+                        padding: "12px 14px",
+                        display: "flex",
+                        flexDirection: "column",
+                        gap: 8,
+                        boxShadow: "0 1px 3px rgba(0,0,0,0.02)",
+                      }}
+                    >
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 6 }}>
+                        <div>
+                          <div style={{ fontSize: 13, fontWeight: 900, color: "#0f172a" }}>
+                            {sub.subjectName}
+                          </div>
+                          <div style={{ fontSize: 10.5, color: "#64748b", marginTop: 1 }}>
+                            Missed on: {sub.missedDates.join(", ")} ({sub.bunkMissedCount} class{sub.bunkMissedCount > 1 ? "es" : ""})
+                          </div>
+                        </div>
+
+                        <span
+                          style={{
+                            fontSize: 10,
+                            fontWeight: 900,
+                            padding: "2px 6px",
+                            borderRadius: 4,
+                            background: isSafe ? "#ecfdf5" : "#fef2f2",
+                            color: isSafe ? "#059669" : "#dc2626",
+                            border: `1px solid ${isSafe ? "#a7f3d0" : "#fecaca"}`,
+                            whiteSpace: "nowrap",
+                          }}
+                        >
+                          {isSafe ? "Above Target" : `${sub.classesToTarget} Cls Needed`}
+                        </span>
+                      </div>
+
+                      {/* Percentage drop */}
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: 11 }}>
+                        <span style={{ color: "#64748b" }}>Post-Bunk Score:</span>
+                        <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
+                          <span style={{ textDecoration: "line-through", color: "#94a3b8" }}>{sub.preBunkPct}%</span>
+                          <ArrowRight size={10} color="#64748b" />
+                          <strong style={{ color: isSafe ? "#059669" : "#dc2626" }}>{sub.postBunkPct}%</strong>
+                          <span style={{ fontSize: 10, color: "#dc2626", fontWeight: 800 }}>({sub.bunkDropDelta}%)</span>
+                        </div>
+                      </div>
+
+                      {/* Recovery Milestone Date Box */}
+                      <div
+                        style={{
+                          background: sub.milestoneDateStr ? "#f0fdf4" : "#f8fafc",
+                          border: `1px solid ${sub.milestoneDateStr ? "#bbf7d0" : "#e2e8f0"}`,
+                          borderRadius: 8,
+                          padding: "8px 10px",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "space-between",
+                          gap: 6,
+                        }}
+                      >
+                        <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                          <Sparkles size={14} color={sub.milestoneDateStr ? "#16a34a" : "#64748b"} />
+                          <div style={{ fontSize: 11, color: "#0f172a" }}>
+                            {sub.milestoneDateStr ? (
+                              <span>
+                                Recovers {simulation.targetPct}% on: <strong>{sub.milestoneDateStr}</strong>
+                              </span>
+                            ) : (
+                              <span>Attendance remains &ge; {simulation.targetPct}%</span>
+                            )}
+                          </div>
+                        </div>
+
+                        <button
+                          type="button"
+                          onClick={() => setRecoverySubjectFilter((prev) => (prev === sub.subjectName ? "ALL" : sub.subjectName))}
+                          style={{
+                            background: isFiltered ? "#2563eb" : "#ffffff",
+                            color: isFiltered ? "#ffffff" : "#2563eb",
+                            border: "1px solid #cbd5e1",
+                            padding: "3px 7px",
+                            borderRadius: 6,
+                            fontSize: 10.5,
+                            fontWeight: 800,
+                            cursor: "pointer",
+                            whiteSpace: "nowrap",
+                          }}
+                        >
+                          {isFiltered ? "Showing" : "Filter Dates"}
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* ── Subject Filter Pills for the Recovery Schedule ── */}
+            <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap", borderTop: "1px solid #f1f5f9", paddingTop: 10 }}>
+              <span style={{ fontSize: 11, fontWeight: 800, color: "#64748b", textTransform: "uppercase", display: "flex", alignItems: "center", gap: 4 }}>
+                <Filter size={12} /> Filter:
+              </span>
+              <button
+                type="button"
+                onClick={() => setRecoverySubjectFilter("ALL")}
+                style={{
+                  padding: "4px 9px",
+                  borderRadius: 7,
+                  border: recoverySubjectFilter === "ALL" ? "1.5px solid #0f172a" : "1px solid #cbd5e1",
+                  background: recoverySubjectFilter === "ALL" ? "#0f172a" : "#ffffff",
+                  color: recoverySubjectFilter === "ALL" ? "#ffffff" : "#475569",
+                  fontSize: 11,
+                  fontWeight: 800,
+                  cursor: "pointer",
+                }}
+              >
+                All Missed Subjects ({simulation.masterMissedRecoverySessions.length} classes)
+              </button>
+              {simulation.missedOnlySubjectsList.map((sub) => {
+                const isSelected = recoverySubjectFilter === sub.subjectName;
+                const count = sub.recoverySessionsList?.length || 0;
+                return (
+                  <button
+                    key={sub.subjectName}
+                    type="button"
+                    onClick={() => setRecoverySubjectFilter(sub.subjectName)}
+                    style={{
+                      padding: "4px 9px",
+                      borderRadius: 7,
+                      border: isSelected ? "1.5px solid #2563eb" : "1px solid #cbd5e1",
+                      background: isSelected ? "#eff6ff" : "#ffffff",
+                      color: isSelected ? "#1d4ed8" : "#475569",
+                      fontSize: 11,
+                      fontWeight: 800,
+                      cursor: "pointer",
+                    }}
+                  >
+                    {sub.subjectName} ({count})
+                  </button>
+                );
+              })}
+            </div>
+
             {/* ── Exact Image 3 Card Grid: Mandatory Post-Absence Recovery Schedule ── */}
             <div
               style={{
@@ -1954,14 +2083,14 @@ export default function FuturePredictor({
                 <div>
                   <h5 style={{ fontSize: 14, fontWeight: 900, color: "#0f172a", margin: 0, display: "flex", alignItems: "center", gap: 6 }}>
                     <CalendarCheck size={16} color="#059669" />
-                    Mandatory Post-Absence Recovery Schedule ({simulation.recoverySessions.length} total classes)
+                    Mandatory Post-Absence Recovery Schedule ({filteredRecoverySessions.length} total classes)
                   </h5>
                   <p style={{ fontSize: 12, color: "#64748b", margin: "2px 0 0 0" }}>
                     Every class you must consecutively attend post-absence to restore your {simulation.targetPct}% attendance goal:
                   </p>
                 </div>
 
-                {simulation.recoverySessions.length > 15 && (
+                {filteredRecoverySessions.length > 15 && (
                   <button
                     type="button"
                     onClick={() => setShowAllRecoveryDates(!showAllRecoveryDates)}
@@ -1985,7 +2114,7 @@ export default function FuturePredictor({
                       </>
                     ) : (
                       <>
-                        <ChevronDown size={14} /> View All {simulation.recoverySessions.length} Recovery Dates
+                        <ChevronDown size={14} /> View All {filteredRecoverySessions.length} Recovery Dates
                       </>
                     )}
                   </button>
@@ -2124,7 +2253,7 @@ export default function FuturePredictor({
                 })}
               </div>
 
-              {simulation.recoverySessions.length > 15 && !showAllRecoveryDates && (
+              {filteredRecoverySessions.length > 15 && !showAllRecoveryDates && (
                 <button
                   type="button"
                   onClick={() => setShowAllRecoveryDates(true)}
@@ -2141,7 +2270,7 @@ export default function FuturePredictor({
                     marginTop: 4,
                   }}
                 >
-                  + Show remaining {simulation.recoverySessions.length - 15} recovery class dates until target
+                  + Show remaining {filteredRecoverySessions.length - 15} recovery class dates until target
                 </button>
               )}
             </div>
