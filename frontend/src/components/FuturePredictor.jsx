@@ -423,27 +423,39 @@ export default function FuturePredictor({
     });
 
     // ─────────────────────────────────────────────────────────────────────────
-    // PHASE 2: BUNK DROP SIMULATION (Tracks exact subjects missed on each date)
+    // PHASE 2: BUNK DROP & INTERLEAVED ATTENDANCE SIMULATION
+    // Chronologically simulates every day from firstBunkDate to lastBunkDate
     // ─────────────────────────────────────────────────────────────────────────
     const bunkDaysBreakdown = [];
     let cumulativeMissedClasses = 0;
-    let runningOverallDelivered = preBunkOverallDel;
-    const runningOverallAttended = preBunkOverallAtt;
+    let cumulativeInterveningAttendedClasses = 0;
+    let interveningAttendedDaysCount = 0;
+    let bunkDaysCount = 0;
 
-    // Track sequential simulation running counts per subject across bunk dates
+    let runningOverallDelivered = preBunkOverallDel;
+    let runningOverallAttended = preBunkOverallAtt;
+
+    // Track sequential simulation running counts per subject across the entire window
     subjectMap.forEach((sub) => {
       sub.simRunningAtt = sub.preBunkAttended;
       sub.simRunningDel = sub.preBunkDelivered;
+      sub.interveningAttendedCount = 0;
     });
 
-    sortedBunkDates.forEach((bunkDate, index) => {
-      const dKey = toDateKey(bunkDate);
-      const isBunkDateToday = dKey === todayKey;
-      const sched = getSectionScheduleForDate(selectedSection, bunkDate);
-      const scheduledClasses = sched.isInstructional ? sched.classes || [] : [];
-      const dateFormatted = formatFriendlyDate(bunkDate);
+    const selectedBunkKeySet = new Set(sortedBunkDates.map((d) => toDateKey(d)));
+    const simDate = new Date(firstBunkDate);
+    let stepNumber = 0;
 
-      // Snapshot subject attendance at the start of this specific bunk date
+    while (simDate <= lastBunkDate) {
+      stepNumber++;
+      const dKey = toDateKey(simDate);
+      const isDateBunk = selectedBunkKeySet.has(dKey);
+      const isDateToday = dKey === todayKey;
+      const sched = getSectionScheduleForDate(selectedSection, simDate);
+      const scheduledClasses = sched.isInstructional ? sched.classes || [] : [];
+      const dateFormatted = formatFriendlyDate(simDate);
+
+      // Snapshot subject attendance at the start of this specific day
       const dayStartSubjectMap = new Map();
       subjectMap.forEach((sub, name) => {
         const sAtt = sub.simRunningAtt;
@@ -452,142 +464,291 @@ export default function FuturePredictor({
         dayStartSubjectMap.set(name, { startAtt: sAtt, startDel: sDel, startPct: sPct });
       });
 
-      // If bunking TODAY: only unmarked remaining classes are missed
-      const classesToBunk = isBunkDateToday
-        ? scheduledClasses.filter((cls) => !todayLogs[cls.slotIndex])
-        : scheduledClasses;
-
-      const alreadyMarkedToday = isBunkDateToday
-        ? scheduledClasses.filter((cls) => Boolean(todayLogs[cls.slotIndex]))
-        : [];
-
-      const dayMissedCount = classesToBunk.length;
-      cumulativeMissedClasses += dayMissedCount;
-      runningOverallDelivered += dayMissedCount;
-
-      const dayPostPct =
+      const dayStartOverallPct =
         runningOverallDelivered > 0
           ? Number(((runningOverallAttended / runningOverallDelivered) * 100).toFixed(2))
           : preBunkOverallPct;
 
-      const daySubjectsMap = new Map();
+      if (isDateBunk) {
+        // ── CASE A: PLANNED BUNK DAY ──
+        bunkDaysCount++;
+        const classesToBunk = isDateToday
+          ? scheduledClasses.filter((cls) => !todayLogs[cls.slotIndex])
+          : scheduledClasses;
 
-      const classesDetail = scheduledClasses.map((cls) => {
-        const cleanName = cls.cleanName || cleanSubjectBaseName(cls.subject);
-        const subData = subjectMap.get(cleanName);
-        const isClassMarked = isBunkDateToday && Boolean(todayLogs[cls.slotIndex]);
-        const classMarkStatus = isClassMarked ? todayLogs[cls.slotIndex] : null;
-        const timeSlotLabel = cls.slot?.label || (TIME_SLOTS[cls.slotIndex]?.label || `Slot ${cls.slotIndex + 1}`);
+        const alreadyMarkedToday = isDateToday
+          ? scheduledClasses.filter((cls) => Boolean(todayLogs[cls.slotIndex]))
+          : [];
 
-        if (!daySubjectsMap.has(cleanName)) {
-          daySubjectsMap.set(cleanName, {
+        const dayMissedCount = classesToBunk.length;
+        cumulativeMissedClasses += dayMissedCount;
+        runningOverallDelivered += dayMissedCount;
+
+        const dayPostPct =
+          runningOverallDelivered > 0
+            ? Number(((runningOverallAttended / runningOverallDelivered) * 100).toFixed(2))
+            : preBunkOverallPct;
+
+        const daySubjectsMap = new Map();
+
+        const classesDetail = scheduledClasses.map((cls) => {
+          const cleanName = cls.cleanName || cleanSubjectBaseName(cls.subject);
+          const subData = subjectMap.get(cleanName);
+          const isClassMarked = isDateToday && Boolean(todayLogs[cls.slotIndex]);
+          const classMarkStatus = isClassMarked ? todayLogs[cls.slotIndex] : null;
+          const timeSlotLabel = cls.slot?.label || (TIME_SLOTS[cls.slotIndex]?.label || `Slot ${cls.slotIndex + 1}`);
+
+          if (!daySubjectsMap.has(cleanName)) {
+            daySubjectsMap.set(cleanName, {
+              subjectName: cleanName,
+              subCode: resolveSubjectCode({ subject: cleanName }, studentData),
+              type: cls.type || "PP",
+              room: cls.room || "Room TBA",
+              faculty: cls.faculty || "Faculty",
+              missedSlots: [],
+              alreadyMarkedSlots: [],
+              missedCount: 0,
+            });
+          }
+
+          const group = daySubjectsMap.get(cleanName);
+
+          if (!isClassMarked) {
+            group.missedCount += 1;
+            group.missedSlots.push({
+              slotIndex: cls.slotIndex,
+              timeSlot: timeSlotLabel,
+              room: cls.room || "Room TBA",
+              type: cls.type || "PP",
+            });
+
+            if (subData) {
+              subData.bunkMissedCount += 1;
+              subData.simRunningDel += 1; // Delivered increases on this day (missed)
+              if (!subData.missedDates.includes(dateFormatted)) {
+                subData.missedDates.push(dateFormatted);
+              }
+              subData.missedPeriodsDetail.push({
+                dateFormatted,
+                dayName: sched.dayName,
+                slotIndex: cls.slotIndex,
+                timeSlot: timeSlotLabel,
+                type: cls.type || "PP",
+                room: cls.room || "Room TBA",
+              });
+            }
+          } else {
+            group.alreadyMarkedSlots.push({
+              slotIndex: cls.slotIndex,
+              timeSlot: timeSlotLabel,
+              room: cls.room || "Room TBA",
+              markStatus: classMarkStatus,
+            });
+          }
+
+          return {
+            slotIndex: cls.slotIndex,
+            timeSlot: timeSlotLabel,
             subjectName: cleanName,
             subCode: resolveSubjectCode({ subject: cleanName }, studentData),
             type: cls.type || "PP",
             room: cls.room || "Room TBA",
             faculty: cls.faculty || "Faculty",
-            missedSlots: [],
-            alreadyMarkedSlots: [],
-            missedCount: 0,
+            isAlreadyMarked: isClassMarked,
+            markStatus: classMarkStatus,
+          };
+        });
+
+        // Compute exact percentage drop for each subject on this day
+        const targetPct = Number(recoveryTargetPct) || 75;
+        const daySubjectsImpactList = [];
+        daySubjectsMap.forEach((grp) => {
+          const subData = subjectMap.get(grp.subjectName);
+          const startStats = dayStartSubjectMap.get(grp.subjectName) || { startPct: 100, startAtt: 0, startDel: 0 };
+          const endAtt = subData ? subData.simRunningAtt : startStats.startAtt;
+          const endDel = subData ? subData.simRunningDel : startStats.startDel;
+          const endPct = endDel > 0 ? Number(((endAtt / endDel) * 100).toFixed(2)) : startStats.startPct;
+          const dayDropDelta = Number((endPct - startStats.startPct).toFixed(2));
+          const breachedCutoffToday = startStats.startPct >= targetPct && endPct < targetPct;
+          const isSafeAfterDay = endPct >= targetPct;
+
+          daySubjectsImpactList.push({
+            ...grp,
+            startPct: startStats.startPct,
+            endPct,
+            dayDropDelta,
+            breachedCutoffToday,
+            isSafeAfterDay,
           });
-        }
+        });
 
-        const group = daySubjectsMap.get(cleanName);
+        bunkDaysBreakdown.push({
+          stepIndex: stepNumber,
+          isBunkDay: true,
+          isAttendedDay: false,
+          isNonInstructional: false,
+          date: new Date(simDate),
+          dateKey: dKey,
+          isToday: isDateToday,
+          dayName: sched.dayName,
+          dateFormatted,
+          isInstructional: sched.isInstructional,
+          isHoliday: sched.isOfficialHoliday,
+          holidayTitle: sched.title,
+          isExam: sched.isExam,
+          totalClassesScheduled: scheduledClasses.length,
+          classesMissedCount: dayMissedCount,
+          alreadyMarkedCount: alreadyMarkedToday.length,
+          classes: classesDetail,
+          daySubjectsImpactList,
+          cumulativeMissedSoFar: cumulativeMissedClasses,
+          startOfDayOverallPct: dayStartOverallPct,
+          endOfDayOverallPct: dayPostPct,
+          dayDelta: Number((dayPostPct - dayStartOverallPct).toFixed(2)),
+        });
+      } else if (sched.isInstructional && scheduledClasses.length > 0) {
+        // ── CASE B: IN-BETWEEN ATTENDED CLASS DAY ──
+        interveningAttendedDaysCount++;
+        const daySubjectsGainMap = new Map();
+        let dayAttendedCount = 0;
 
-        if (!isClassMarked) {
-          group.missedCount += 1;
-          group.missedSlots.push({
-            slotIndex: cls.slotIndex,
-            timeSlot: timeSlotLabel,
-            room: cls.room || "Room TBA",
-            type: cls.type || "PP",
-          });
+        const classesDetail = scheduledClasses.map((cls) => {
+          const cleanName = cls.cleanName || cleanSubjectBaseName(cls.subject);
+          const subData = subjectMap.get(cleanName);
+          const isClassMarked = isDateToday && Boolean(todayLogs[cls.slotIndex]);
+          const classMarkStatus = isClassMarked ? todayLogs[cls.slotIndex] : null;
+          const timeSlotLabel = cls.slot?.label || (TIME_SLOTS[cls.slotIndex]?.label || `Slot ${cls.slotIndex + 1}`);
 
-          if (subData) {
-            subData.bunkMissedCount += 1;
-            subData.postBunkDelivered += 1;
-            subData.simRunningDel += 1; // Delivered increases on this day
-            if (!subData.missedDates.includes(dateFormatted)) {
-              subData.missedDates.push(dateFormatted);
-            }
-            subData.missedPeriodsDetail.push({
-              dateFormatted,
-              dayName: sched.dayName,
-              slotIndex: cls.slotIndex,
-              timeSlot: timeSlotLabel,
+          if (!daySubjectsGainMap.has(cleanName)) {
+            daySubjectsGainMap.set(cleanName, {
+              subjectName: cleanName,
+              subCode: resolveSubjectCode({ subject: cleanName }, studentData),
               type: cls.type || "PP",
               room: cls.room || "Room TBA",
+              faculty: cls.faculty || "Faculty",
+              attendedSlots: [],
+              attendedCount: 0,
             });
           }
-        } else {
-          group.alreadyMarkedSlots.push({
+
+          const group = daySubjectsGainMap.get(cleanName);
+          const willAttend = !isClassMarked || classMarkStatus === "PRESENT";
+
+          if (willAttend) {
+            dayAttendedCount += 1;
+            runningOverallAttended += 1;
+            runningOverallDelivered += 1;
+            cumulativeInterveningAttendedClasses += 1;
+
+            if (subData) {
+              subData.simRunningAtt += 1;
+              subData.simRunningDel += 1;
+              subData.interveningAttendedCount += 1;
+            }
+
+            group.attendedCount += 1;
+            group.attendedSlots.push({
+              slotIndex: cls.slotIndex,
+              timeSlot: timeSlotLabel,
+              room: cls.room || "Room TBA",
+              type: cls.type || "PP",
+              faculty: cls.faculty || "Faculty",
+            });
+          } else {
+            // Marked absent earlier today on an attended day
+            runningOverallDelivered += 1;
+            if (subData) {
+              subData.simRunningDel += 1;
+            }
+          }
+
+          return {
             slotIndex: cls.slotIndex,
             timeSlot: timeSlotLabel,
+            subjectName: cleanName,
+            subCode: resolveSubjectCode({ subject: cleanName }, studentData),
+            type: cls.type || "PP",
             room: cls.room || "Room TBA",
+            faculty: cls.faculty || "Faculty",
+            isAlreadyMarked: isClassMarked,
             markStatus: classMarkStatus,
-          });
-        }
-
-        return {
-          slotIndex: cls.slotIndex,
-          timeSlot: timeSlotLabel,
-          subjectName: cleanName,
-          subCode: resolveSubjectCode({ subject: cleanName }, studentData),
-          type: cls.type || "PP",
-          room: cls.room || "Room TBA",
-          faculty: cls.faculty || "Faculty",
-          isAlreadyMarked: isClassMarked,
-          markStatus: classMarkStatus,
-        };
-      });
-
-      // Compute exact percentage drop for each subject on this day
-      const targetPct = Number(recoveryTargetPct) || 75;
-      const daySubjectsImpactList = [];
-      daySubjectsMap.forEach((grp) => {
-        const subData = subjectMap.get(grp.subjectName);
-        const startStats = dayStartSubjectMap.get(grp.subjectName) || { startPct: 100, startAtt: 0, startDel: 0 };
-        const endAtt = subData ? subData.simRunningAtt : startStats.startAtt;
-        const endDel = subData ? subData.simRunningDel : startStats.startDel;
-        const endPct = endDel > 0 ? Number(((endAtt / endDel) * 100).toFixed(2)) : startStats.startPct;
-        const dayDropDelta = Number((endPct - startStats.startPct).toFixed(2));
-        const breachedCutoffToday = startStats.startPct >= targetPct && endPct < targetPct;
-        const isSafeAfterDay = endPct >= targetPct;
-
-        daySubjectsImpactList.push({
-          ...grp,
-          startPct: startStats.startPct,
-          endPct,
-          dayDropDelta,
-          breachedCutoffToday,
-          isSafeAfterDay,
+          };
         });
-      });
 
-      bunkDaysBreakdown.push({
-        stepIndex: index + 1,
-        date: bunkDate,
-        dateKey: dKey,
-        isToday: isBunkDateToday,
-        dayName: sched.dayName,
-        dateFormatted,
-        isInstructional: sched.isInstructional,
-        isHoliday: sched.isOfficialHoliday,
-        holidayTitle: sched.title,
-        isExam: sched.isExam,
-        totalClassesScheduled: scheduledClasses.length,
-        classesMissedCount: dayMissedCount,
-        alreadyMarkedCount: alreadyMarkedToday.length,
-        classes: classesDetail,
-        daySubjectsImpactList,
-        cumulativeMissedSoFar: cumulativeMissedClasses,
-        endOfDayOverallPct: dayPostPct,
-        dayDelta: Number((dayPostPct - preBunkOverallPct).toFixed(2)),
-      });
-    });
+        const dayPostPct =
+          runningOverallDelivered > 0
+            ? Number(((runningOverallAttended / runningOverallDelivered) * 100).toFixed(2))
+            : preBunkOverallPct;
 
-    const postBunkOverallAtt = preBunkOverallAtt;
-    const postBunkOverallDel = preBunkOverallDel + cumulativeMissedClasses;
+        const targetPct = Number(recoveryTargetPct) || 75;
+        const daySubjectsGainList = [];
+        daySubjectsGainMap.forEach((grp) => {
+          const subData = subjectMap.get(grp.subjectName);
+          const startStats = dayStartSubjectMap.get(grp.subjectName) || { startPct: 100, startAtt: 0, startDel: 0 };
+          const endAtt = subData ? subData.simRunningAtt : startStats.startAtt;
+          const endDel = subData ? subData.simRunningDel : startStats.startDel;
+          const endPct = endDel > 0 ? Number(((endAtt / endDel) * 100).toFixed(2)) : startStats.startPct;
+          const dayGainDelta = Number((endPct - startStats.startPct).toFixed(2));
+          const isSafeAfterDay = endPct >= targetPct;
+
+          daySubjectsGainList.push({
+            ...grp,
+            startPct: startStats.startPct,
+            endPct,
+            dayGainDelta,
+            isSafeAfterDay,
+          });
+        });
+
+        bunkDaysBreakdown.push({
+          stepIndex: stepNumber,
+          isBunkDay: false,
+          isAttendedDay: true,
+          isNonInstructional: false,
+          date: new Date(simDate),
+          dateKey: dKey,
+          isToday: isDateToday,
+          dayName: sched.dayName,
+          dateFormatted,
+          isInstructional: true,
+          isHoliday: false,
+          totalClassesScheduled: scheduledClasses.length,
+          classesAttendedCount: dayAttendedCount,
+          classes: classesDetail,
+          daySubjectsGainList,
+          startOfDayOverallPct: dayStartOverallPct,
+          endOfDayOverallPct: dayPostPct,
+          dayDelta: Number((dayPostPct - dayStartOverallPct).toFixed(2)),
+        });
+      } else {
+        // ── CASE C: IN-BETWEEN NON-INSTRUCTIONAL / HOLIDAY / SUNDAY ──
+        bunkDaysBreakdown.push({
+          stepIndex: stepNumber,
+          isBunkDay: false,
+          isAttendedDay: false,
+          isNonInstructional: true,
+          date: new Date(simDate),
+          dateKey: dKey,
+          isToday: isDateToday,
+          dayName: sched.dayName,
+          dateFormatted,
+          isInstructional: false,
+          isHoliday: sched.isOfficialHoliday,
+          holidayTitle: sched.title || (sched.dayName === "Sunday" ? "Sunday (Weekend)" : "Non-Instructional Day"),
+          totalClassesScheduled: 0,
+          classes: [],
+          startOfDayOverallPct: dayStartOverallPct,
+          endOfDayOverallPct: dayStartOverallPct,
+          dayDelta: 0,
+        });
+      }
+
+      // Move to next calendar day in window
+      simDate.setDate(simDate.getDate() + 1);
+    }
+
+    const postBunkOverallAtt = runningOverallAttended;
+    const postBunkOverallDel = runningOverallDelivered;
     const postBunkOverallPct =
       postBunkOverallDel > 0
         ? Number(((postBunkOverallAtt / postBunkOverallDel) * 100).toFixed(2))
@@ -642,7 +803,9 @@ export default function FuturePredictor({
     const missedOnlySubjectsList = [];
 
     subjectMap.forEach((sub) => {
-      if (sub.bunkMissedCount > 0 || sub.preBunkClassesAdded > 0) {
+      if (sub.bunkMissedCount > 0 || sub.preBunkClassesAdded > 0 || (sub.interveningAttendedCount || 0) > 0) {
+        sub.postBunkAttended = sub.simRunningAtt;
+        sub.postBunkDelivered = sub.simRunningDel;
         sub.postBunkPct =
           sub.postBunkDelivered > 0
             ? Number(((sub.postBunkAttended / sub.postBunkDelivered) * 100).toFixed(2))
@@ -815,6 +978,9 @@ export default function FuturePredictor({
       preBunkGainDelta,
       bunkDaysBreakdown,
       cumulativeMissedClasses,
+      cumulativeInterveningAttendedClasses,
+      interveningAttendedDaysCount,
+      bunkDaysCount,
       postBunkOverallAtt,
       postBunkOverallDel,
       postBunkOverallPct,
@@ -1746,10 +1912,18 @@ export default function FuturePredictor({
                     Phase 2 &bull; Bunk Drop Simulation
                   </span>
                   <h3 style={{ fontSize: 16, fontWeight: 900, color: "#0f172a", margin: 0 }}>
-                    {simulation.bunkDaysBreakdown.length === 1
+                    {simulation.interveningAttendedDaysCount > 0
+                      ? `Interleaved Schedule (${simulation.bunkDaysCount} Bunk Days, ${simulation.interveningAttendedDaysCount} Attended Class Days)`
+                      : simulation.bunkDaysBreakdown.length === 1
                       ? `Absence on ${simulation.firstBunkDateFormatted}`
                       : `Multi-Day Absence (${simulation.bunkDaysBreakdown.length} days: ${simulation.firstBunkDateFormatted} to ${simulation.lastBunkDateFormatted})`}
                   </h3>
+                  {simulation.interveningAttendedDaysCount > 0 && (
+                    <div style={{ fontSize: 11.5, color: "#059669", fontWeight: 700, marginTop: 4, display: "flex", alignItems: "center", gap: 5 }}>
+                      <CheckCircle2 size={13} color="#16a34a" />
+                      <span>In-between class days are counted as <strong>Attended</strong> — classes attended on those days boost your attendance before the next bunk!</span>
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -1818,7 +1992,11 @@ export default function FuturePredictor({
             <div
               style={{
                 display: "grid",
-                gridTemplateColumns: isMobile ? "repeat(2, 1fr)" : "repeat(4, 1fr)",
+                gridTemplateColumns: isMobile
+                  ? "repeat(2, 1fr)"
+                  : simulation.interveningAttendedDaysCount > 0
+                  ? "repeat(5, 1fr)"
+                  : "repeat(4, 1fr)",
                 gap: 10,
               }}
             >
@@ -1830,16 +2008,27 @@ export default function FuturePredictor({
               </div>
 
               <div style={{ background: "#fef2f2", padding: "12px", borderRadius: 12, border: "1px solid #fee2e2" }}>
-                <span style={{ fontSize: 11, fontWeight: 700, color: "#991b1b" }}>Total Classes Missed</span>
+                <span style={{ fontSize: 11, fontWeight: 700, color: "#991b1b" }}>Bunk Missed Classes</span>
                 <div style={{ fontSize: 18, fontWeight: 900, color: "#dc2626", marginTop: 2 }}>
                   {simulation.cumulativeMissedClasses} Classes
                 </div>
               </div>
 
+              {simulation.interveningAttendedDaysCount > 0 && (
+                <div style={{ background: "#f0fdf4", padding: "12px", borderRadius: 12, border: "1px solid #bbf7d0" }}>
+                  <span style={{ fontSize: 11, fontWeight: 700, color: "#166534" }}>In-Between Attended</span>
+                  <div style={{ fontSize: 18, fontWeight: 900, color: "#15803d", marginTop: 2 }}>
+                    +{simulation.cumulativeInterveningAttendedClasses} Classes
+                  </div>
+                </div>
+              )}
+
               <div style={{ background: "#fff7ed", padding: "12px", borderRadius: 12, border: "1px solid #ffedd5" }}>
-                <span style={{ fontSize: 11, fontWeight: 700, color: "#9a3412" }}>Bunk Drop Delta</span>
-                <div style={{ fontSize: 18, fontWeight: 900, color: "#ea580c", marginTop: 2 }}>
-                  {simulation.totalBunkDropDelta}%
+                <span style={{ fontSize: 11, fontWeight: 700, color: "#9a3412" }}>
+                  {simulation.interveningAttendedDaysCount > 0 ? "Net Window Impact" : "Bunk Drop Delta"}
+                </span>
+                <div style={{ fontSize: 18, fontWeight: 900, color: simulation.totalBunkDropDelta < 0 ? "#ea580c" : "#15803d", marginTop: 2 }}>
+                  {simulation.totalBunkDropDelta >= 0 ? `+${simulation.totalBunkDropDelta}` : simulation.totalBunkDropDelta}%
                 </div>
               </div>
 
@@ -1852,7 +2041,7 @@ export default function FuturePredictor({
                 }}
               >
                 <span style={{ fontSize: 11, fontWeight: 700, color: simulation.isOverallSafeAtTarget ? "#166534" : "#991b1b" }}>
-                  Post-Bunk Attendance
+                  Post-Window Attendance
                 </span>
                 <div
                   style={{
@@ -1888,234 +2077,493 @@ export default function FuturePredictor({
               </div>
             )}
 
-            {/* Sequential Drop Breakdown per Bunk Date */}
+            {/* Sequential Schedule Breakdown across the Simulation Window */}
             <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
               <span style={{ fontSize: 11.5, fontWeight: 800, color: "#475569", textTransform: "uppercase", letterSpacing: "0.5px" }}>
-                Subjects & Classes Missed on Chosen Bunk Dates:
+                {simulation.interveningAttendedDaysCount > 0
+                  ? `Day-by-Day Schedule & Attendance Impact (${simulation.bunkDaysCount} Bunk Days, ${simulation.interveningAttendedDaysCount} Attended Days):`
+                  : "Subjects & Classes Missed on Chosen Bunk Dates:"}
               </span>
               <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-                {simulation.bunkDaysBreakdown.map((bDay) => (
-                  <div
-                    key={bDay.dateKey}
-                    style={{
-                      display: "flex",
-                      flexDirection: "column",
-                      gap: 6,
-                      padding: "10px 12px",
-                      borderRadius: 10,
-                      background: "#f8fafc",
-                      border: "1px solid #e2e8f0",
-                    }}
-                  >
-                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 8 }}>
-                      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                        <span
-                          style={{
-                            width: 22,
-                            height: 22,
-                            borderRadius: 6,
-                            background: "#e2e8f0",
-                            color: "#334155",
-                            fontSize: 11,
-                            fontWeight: 800,
-                            display: "inline-flex",
-                            alignItems: "center",
-                            justifyContent: "center",
-                          }}
-                        >
-                          {bDay.stepIndex}
-                        </span>
-                        <span style={{ fontSize: 13, fontWeight: 900, color: "#0f172a" }}>
-                          {bDay.dateFormatted} ({bDay.dayName})
-                        </span>
-                        <span
-                          style={{
-                            fontSize: 10.5,
-                            fontWeight: 700,
-                            padding: "1px 6px",
-                            borderRadius: 4,
-                            background: bDay.isInstructional ? "#fee2e2" : "#fffbeb",
-                            color: bDay.isInstructional ? "#dc2626" : "#b45309",
-                          }}
-                        >
-                          {bDay.isToday && bDay.alreadyMarkedCount > 0
-                            ? `${bDay.classesMissedCount} Remaining Missed (${bDay.alreadyMarkedCount} marked earlier)`
-                            : bDay.isInstructional
-                            ? `${bDay.classesMissedCount} Classes Missed`
-                            : bDay.holidayTitle || "Holiday (0 Missed)"}
-                        </span>
-                      </div>
+                {simulation.bunkDaysBreakdown.map((bDay) => {
+                  if (bDay.isAttendedDay) {
+                    return (
+                      <div
+                        key={bDay.dateKey}
+                        style={{
+                          display: "flex",
+                          flexDirection: "column",
+                          gap: 6,
+                          padding: "12px 14px",
+                          borderRadius: 12,
+                          background: "#f0fdf4",
+                          border: "1.5px solid #86efac",
+                          boxShadow: "0 2px 6px rgba(22, 163, 74, 0.06)",
+                        }}
+                      >
+                        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 8 }}>
+                          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                            <span
+                              style={{
+                                width: 22,
+                                height: 22,
+                                borderRadius: 6,
+                                background: "#dcfce7",
+                                color: "#166534",
+                                fontSize: 11,
+                                fontWeight: 800,
+                                display: "inline-flex",
+                                alignItems: "center",
+                                justifyContent: "center",
+                              }}
+                            >
+                              {bDay.stepIndex}
+                            </span>
+                            <span style={{ fontSize: 13, fontWeight: 900, color: "#0f172a" }}>
+                              {bDay.dateFormatted} ({bDay.dayName})
+                            </span>
+                            <span
+                              style={{
+                                fontSize: 10.5,
+                                fontWeight: 800,
+                                padding: "2px 8px",
+                                borderRadius: 6,
+                                background: "#dcfce7",
+                                color: "#15803d",
+                                border: "1px solid #bbf7d0",
+                                display: "inline-flex",
+                                alignItems: "center",
+                                gap: 4,
+                              }}
+                            >
+                              <CheckCircle2 size={11} />
+                              ✓ In-Between Classes Attended (+{bDay.classesAttendedCount} Classes)
+                            </span>
+                          </div>
 
-                      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                        <span style={{ fontSize: 11, color: "#64748b" }}>Overall after this day:</span>
-                        <span style={{ fontSize: 12.5, fontWeight: 900, color: bDay.endOfDayOverallPct >= 75 ? "#0f172a" : "#dc2626" }}>
-                          {bDay.endOfDayOverallPct}%
-                        </span>
-                        <span style={{ fontSize: 11, fontWeight: 800, color: "#dc2626" }}>
-                          ({bDay.dayDelta}%)
-                        </span>
-                      </div>
-                    </div>
-
-                    {/* Subject-wise drop details for this specific day */}
-                    {bDay.daySubjectsImpactList && bDay.daySubjectsImpactList.length > 0 ? (
-                      <div style={{ display: "flex", flexDirection: "column", gap: 6, marginTop: 4 }}>
-                        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 6 }}>
-                          <span style={{ fontSize: 11, fontWeight: 800, color: "#64748b", textTransform: "uppercase", letterSpacing: "0.5px", display: "inline-flex", alignItems: "center", gap: 4 }}>
-                            <TrendingDown size={12} color="#dc2626" />
-                            Subject-wise Attendance Drop on {bDay.dayName}:
-                          </span>
-                          <span style={{ fontSize: 10.5, color: "#94a3b8", fontWeight: 600 }}>
-                            {bDay.classesMissedCount} class{bDay.classesMissedCount > 1 ? "es" : ""} missed across {bDay.daySubjectsImpactList.filter((s) => s.missedCount > 0).length} subject(s)
-                          </span>
+                          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                            <span style={{ fontSize: 11, color: "#64748b" }}>Overall after this day:</span>
+                            <span style={{ fontSize: 13, fontWeight: 900, color: "#15803d" }}>
+                              {bDay.endOfDayOverallPct}%
+                            </span>
+                            <span style={{ fontSize: 11, fontWeight: 800, color: "#16a34a" }}>
+                              (+{bDay.dayDelta}%)
+                            </span>
+                          </div>
                         </div>
 
+                        {/* Explanatory Guidance Banner */}
                         <div
                           style={{
-                            display: "grid",
-                            gridTemplateColumns: isMobile ? "1fr" : "repeat(auto-fill, minmax(310px, 1fr))",
-                            gap: 8,
+                            background: "#ecfdf5",
+                            border: "1px solid #bbf7d0",
+                            borderRadius: 8,
+                            padding: "6px 10px",
+                            fontSize: 11.5,
+                            fontWeight: 700,
+                            color: "#166534",
+                            display: "flex",
+                            alignItems: "center",
+                            gap: 6,
+                            marginTop: 2,
                           }}
                         >
-                          {bDay.daySubjectsImpactList.map((subImp, sIdx) => {
-                            const isBreached = subImp.breachedCutoffToday;
-                            const isSafe = subImp.isSafeAfterDay;
-                            const hasMissed = subImp.missedCount > 0;
-                            const hasMarked = subImp.alreadyMarkedSlots && subImp.alreadyMarkedSlots.length > 0;
+                          <CheckCircle2 size={14} color="#16a34a" style={{ flexShrink: 0 }} />
+                          <span>
+                            <strong>Classes Scheduled & Attended:</strong> Apko ye classes attend karni hain — attendance increase hogi (<strong>+{bDay.dayDelta}%</strong>), jisse agle bunk se pehle buffer badhega!
+                          </span>
+                        </div>
 
-                            return (
-                              <div
-                                key={sIdx}
-                                style={{
-                                  background: isBreached ? "#fff5f5" : "#ffffff",
-                                  border: `1.5px solid ${isBreached ? "#fca5a5" : "#e2e8f0"}`,
-                                  borderRadius: 10,
-                                  padding: "9px 12px",
-                                  display: "flex",
-                                  flexDirection: "column",
-                                  gap: 6,
-                                  boxShadow: isBreached ? "0 2px 6px rgba(220, 38, 38, 0.08)" : "0 1px 2px rgba(0,0,0,0.02)",
-                                }}
-                              >
-                                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 6 }}>
-                                  <div style={{ minWidth: 0 }}>
-                                    <div style={{ fontSize: 12.5, fontWeight: 900, color: "#0f172a", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-                                      {subImp.subjectName}
-                                    </div>
-                                    <div style={{ fontSize: 10.5, color: "#64748b", marginTop: 1, display: "flex", alignItems: "center", gap: 5, flexWrap: "wrap" }}>
-                                      <span style={{ fontWeight: 700, color: "#475569" }}>
-                                        {hasMissed ? `${subImp.missedCount} class${subImp.missedCount > 1 ? "es" : ""} missed` : "0 missed"} ({subImp.type})
-                                      </span>
-                                      {hasMarked && (
-                                        <span style={{ fontSize: 9.5, fontWeight: 800, background: "#e2e8f0", color: "#475569", padding: "1px 5px", borderRadius: 4 }}>
-                                          {subImp.alreadyMarkedSlots.length} logged today
-                                        </span>
-                                      )}
-                                    </div>
-                                    {subImp.missedSlots && subImp.missedSlots.length > 0 && (
-                                      <div style={{ fontSize: 10, color: "#94a3b8", marginTop: 2 }}>
-                                        🕒 {subImp.missedSlots.map((s) => s.timeSlot).join(", ")}
-                                      </div>
-                                    )}
-                                  </div>
+                        {/* Subject-wise gain details for this day */}
+                        {bDay.daySubjectsGainList && bDay.daySubjectsGainList.length > 0 && (
+                          <div style={{ display: "flex", flexDirection: "column", gap: 6, marginTop: 4 }}>
+                            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 6 }}>
+                              <span style={{ fontSize: 11, fontWeight: 800, color: "#166534", textTransform: "uppercase", letterSpacing: "0.5px", display: "inline-flex", alignItems: "center", gap: 4 }}>
+                                <TrendingUp size={12} color="#16a34a" />
+                                Subject-wise Attendance Gain on {bDay.dayName}:
+                              </span>
+                              <span style={{ fontSize: 10.5, color: "#15803d", fontWeight: 700 }}>
+                                +{bDay.classesAttendedCount} class{bDay.classesAttendedCount > 1 ? "es" : ""} attended across {bDay.daySubjectsGainList.length} subject(s)
+                              </span>
+                            </div>
 
-                                  {/* Subject day drop badge */}
-                                  <span
-                                    style={{
-                                      fontSize: 11,
-                                      fontWeight: 900,
-                                      padding: "2px 7px",
-                                      borderRadius: 5,
-                                      background: subImp.dayDelta < 0 ? "#fef2f2" : "#f8fafc",
-                                      color: subImp.dayDelta < 0 ? "#dc2626" : "#64748b",
-                                      border: `1px solid ${subImp.dayDelta < 0 ? "#fecaca" : "#e2e8f0"}`,
-                                      whiteSpace: "nowrap",
-                                      display: "inline-flex",
-                                      alignItems: "center",
-                                      gap: 3,
-                                      flexShrink: 0,
-                                    }}
-                                  >
-                                    <TrendingDown size={11} /> {subImp.dayDelta}%
-                                  </span>
-                                </div>
-
-                                {/* Attendance Before -> After on this Day */}
+                            <div
+                              style={{
+                                display: "grid",
+                                gridTemplateColumns: isMobile ? "1fr" : "repeat(auto-fill, minmax(310px, 1fr))",
+                                gap: 8,
+                              }}
+                            >
+                              {bDay.daySubjectsGainList.map((subGain, gIdx) => (
                                 <div
+                                  key={gIdx}
                                   style={{
+                                    background: "#ffffff",
+                                    border: "1.5px solid #bbf7d0",
+                                    borderRadius: 10,
+                                    padding: "9px 12px",
                                     display: "flex",
-                                    alignItems: "center",
-                                    justifyContent: "space-between",
-                                    background: isBreached ? "#fee2e2" : "#f8fafc",
-                                    padding: "5px 8px",
-                                    borderRadius: 6,
-                                    fontSize: 11,
+                                    flexDirection: "column",
+                                    gap: 6,
+                                    boxShadow: "0 1px 3px rgba(22, 163, 74, 0.08)",
                                   }}
                                 >
-                                  <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
-                                    <span style={{ color: "#64748b" }}>Pre-Day:</span>
-                                    <span style={{ fontWeight: 700, color: "#334155" }}>{subImp.startPct}%</span>
-                                    <ArrowRight size={10} color="#64748b" />
-                                    <span style={{ color: "#64748b" }}>Post-Day:</span>
-                                    <strong style={{ color: isSafe ? "#059669" : "#dc2626" }}>{subImp.endPct}%</strong>
+                                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 6 }}>
+                                    <div style={{ minWidth: 0 }}>
+                                      <div style={{ fontSize: 12.5, fontWeight: 900, color: "#0f172a", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                                        {subGain.subjectName}
+                                      </div>
+                                      <div style={{ fontSize: 10.5, color: "#15803d", marginTop: 1, fontWeight: 700 }}>
+                                        +{subGain.attendedCount} class{subGain.attendedCount > 1 ? "es" : ""} attended ({subGain.type})
+                                      </div>
+                                      {subGain.attendedSlots && subGain.attendedSlots.length > 0 && (
+                                        <div style={{ fontSize: 10, color: "#64748b", marginTop: 2 }}>
+                                          🕒 {subGain.attendedSlots.map((s) => s.timeSlot).join(", ")}
+                                        </div>
+                                      )}
+                                    </div>
+
+                                    <span
+                                      style={{
+                                        fontSize: 11,
+                                        fontWeight: 900,
+                                        padding: "2px 7px",
+                                        borderRadius: 5,
+                                        background: "#dcfce7",
+                                        color: "#166534",
+                                        border: "1px solid #bbf7d0",
+                                        whiteSpace: "nowrap",
+                                        display: "inline-flex",
+                                        alignItems: "center",
+                                        gap: 3,
+                                        flexShrink: 0,
+                                      }}
+                                    >
+                                      <TrendingUp size={11} /> +{subGain.dayGainDelta}%
+                                    </span>
                                   </div>
 
-                                  <span
+                                  {/* Attendance Before -> After on this Day */}
+                                  <div
                                     style={{
-                                      fontSize: 9.5,
-                                      fontWeight: 900,
-                                      padding: "1px 5px",
-                                      borderRadius: 4,
-                                      background: isBreached
-                                        ? "#dc2626"
-                                        : isSafe
-                                        ? "#ecfdf5"
-                                        : "#fee2e2",
-                                      color: isBreached
-                                        ? "#ffffff"
-                                        : isSafe
-                                        ? "#059669"
-                                        : "#dc2626",
+                                      display: "flex",
+                                      alignItems: "center",
+                                      justifyContent: "space-between",
+                                      background: "#f0fdf4",
+                                      padding: "5px 8px",
+                                      borderRadius: 6,
+                                      fontSize: 11,
                                     }}
                                   >
-                                    {isBreached ? "⚠️ Drops Below Cutoff!" : isSafe ? "✓ Safe" : "Cutoff Breached"}
-                                  </span>
+                                    <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
+                                      <span style={{ color: "#64748b" }}>Pre-Day:</span>
+                                      <span style={{ fontWeight: 700, color: "#334155" }}>{subGain.startPct}%</span>
+                                      <ArrowRight size={10} color="#64748b" />
+                                      <span style={{ color: "#64748b" }}>Post-Day:</span>
+                                      <strong style={{ color: "#15803d" }}>{subGain.endPct}%</strong>
+                                    </div>
+
+                                    <span
+                                      style={{
+                                        fontSize: 9.5,
+                                        fontWeight: 900,
+                                        padding: "1px 5px",
+                                        borderRadius: 4,
+                                        background: "#dcfce7",
+                                        color: "#166534",
+                                      }}
+                                    >
+                                      ✓ Buffer Boosted
+                                    </span>
+                                  </div>
                                 </div>
-                              </div>
-                            );
-                          })}
-                        </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
                       </div>
-                    ) : bDay.classes.length > 0 ? (
-                      <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 2 }}>
-                        {bDay.classes.map((cls, cIdx) => (
+                    );
+                  }
+
+                  if (bDay.isNonInstructional) {
+                    return (
+                      <div
+                        key={bDay.dateKey}
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "space-between",
+                          padding: "9px 12px",
+                          borderRadius: 10,
+                          background: "#f8fafc",
+                          border: "1px dashed #cbd5e1",
+                        }}
+                      >
+                        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                           <span
-                            key={cIdx}
                             style={{
-                              fontSize: 11,
-                              background: cls.isAlreadyMarked ? "#f1f5f9" : "#ffffff",
-                              border: cls.isAlreadyMarked ? "1px solid #cbd5e1" : "1px solid #fecaca",
-                              color: cls.isAlreadyMarked ? "#64748b" : "#991b1b",
-                              padding: "3px 8px",
+                              width: 22,
+                              height: 22,
                               borderRadius: 6,
+                              background: "#e2e8f0",
+                              color: "#64748b",
+                              fontSize: 11,
+                              fontWeight: 800,
                               display: "inline-flex",
                               alignItems: "center",
-                              gap: 5,
+                              justifyContent: "center",
                             }}
                           >
-                            <strong>{cls.subjectName}</strong>
-                            <span style={{ fontSize: 9.5, opacity: 0.8 }}>({cls.timeSlot})</span>
-                            {cls.isAlreadyMarked && (
-                              <span style={{ fontSize: 9, fontWeight: 800, background: "#e2e8f0", padding: "1px 4px", borderRadius: 3 }}>
-                                Already {cls.markStatus}
-                              </span>
-                            )}
+                            {bDay.stepIndex}
                           </span>
-                        ))}
+                          <span style={{ fontSize: 12.5, fontWeight: 700, color: "#64748b" }}>
+                            {bDay.dateFormatted} ({bDay.dayName})
+                          </span>
+                          <span
+                            style={{
+                              fontSize: 10,
+                              fontWeight: 700,
+                              padding: "1px 6px",
+                              borderRadius: 4,
+                              background: "#f1f5f9",
+                              color: "#64748b",
+                            }}
+                          >
+                            {bDay.holidayTitle || "Holiday / Sunday (0 Classes)"}
+                          </span>
+                        </div>
+
+                        <div style={{ fontSize: 11, color: "#94a3b8" }}>
+                          Overall: <strong>{bDay.endOfDayOverallPct}%</strong> (No Change)
+                        </div>
                       </div>
-                    ) : null}
-                  </div>
-                ))}
+                    );
+                  }
+
+                  // Default: Bunk Day
+                  return (
+                    <div
+                      key={bDay.dateKey}
+                      style={{
+                        display: "flex",
+                        flexDirection: "column",
+                        gap: 6,
+                        padding: "10px 12px",
+                        borderRadius: 10,
+                        background: "#f8fafc",
+                        border: "1.5px solid #fed7aa",
+                      }}
+                    >
+                      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 8 }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                          <span
+                            style={{
+                              width: 22,
+                              height: 22,
+                              borderRadius: 6,
+                              background: "#fee2e2",
+                              color: "#dc2626",
+                              fontSize: 11,
+                              fontWeight: 800,
+                              display: "inline-flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                            }}
+                          >
+                            {bDay.stepIndex}
+                          </span>
+                          <span style={{ fontSize: 13, fontWeight: 900, color: "#0f172a" }}>
+                            {bDay.dateFormatted} ({bDay.dayName})
+                          </span>
+                          <span
+                            style={{
+                              fontSize: 10.5,
+                              fontWeight: 700,
+                              padding: "1px 6px",
+                              borderRadius: 4,
+                              background: bDay.isInstructional ? "#fee2e2" : "#fffbeb",
+                              color: bDay.isInstructional ? "#dc2626" : "#b45309",
+                            }}
+                          >
+                            {bDay.isToday && bDay.alreadyMarkedCount > 0
+                              ? `${bDay.classesMissedCount} Remaining Missed (${bDay.alreadyMarkedCount} marked earlier)`
+                              : bDay.isInstructional
+                              ? `${bDay.classesMissedCount} Classes Missed`
+                              : bDay.holidayTitle || "Holiday (0 Missed)"}
+                          </span>
+                        </div>
+
+                        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                          <span style={{ fontSize: 11, color: "#64748b" }}>Overall after this day:</span>
+                          <span style={{ fontSize: 12.5, fontWeight: 900, color: bDay.endOfDayOverallPct >= 75 ? "#0f172a" : "#dc2626" }}>
+                            {bDay.endOfDayOverallPct}%
+                          </span>
+                          <span style={{ fontSize: 11, fontWeight: 800, color: "#dc2626" }}>
+                            ({bDay.dayDelta}%)
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Subject-wise drop details for this specific day */}
+                      {bDay.daySubjectsImpactList && bDay.daySubjectsImpactList.length > 0 ? (
+                        <div style={{ display: "flex", flexDirection: "column", gap: 6, marginTop: 4 }}>
+                          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 6 }}>
+                            <span style={{ fontSize: 11, fontWeight: 800, color: "#64748b", textTransform: "uppercase", letterSpacing: "0.5px", display: "inline-flex", alignItems: "center", gap: 4 }}>
+                              <TrendingDown size={12} color="#dc2626" />
+                              Subject-wise Attendance Drop on {bDay.dayName}:
+                            </span>
+                            <span style={{ fontSize: 10.5, color: "#94a3b8", fontWeight: 600 }}>
+                              {bDay.classesMissedCount} class{bDay.classesMissedCount > 1 ? "es" : ""} missed across {bDay.daySubjectsImpactList.filter((s) => s.missedCount > 0).length} subject(s)
+                            </span>
+                          </div>
+
+                          <div
+                            style={{
+                              display: "grid",
+                              gridTemplateColumns: isMobile ? "1fr" : "repeat(auto-fill, minmax(310px, 1fr))",
+                              gap: 8,
+                            }}
+                          >
+                            {bDay.daySubjectsImpactList.map((subImp, sIdx) => {
+                              const isBreached = subImp.breachedCutoffToday;
+                              const isSafe = subImp.isSafeAfterDay;
+                              const hasMissed = subImp.missedCount > 0;
+                              const hasMarked = subImp.alreadyMarkedSlots && subImp.alreadyMarkedSlots.length > 0;
+
+                              return (
+                                <div
+                                  key={sIdx}
+                                  style={{
+                                    background: isBreached ? "#fff5f5" : "#ffffff",
+                                    border: `1.5px solid ${isBreached ? "#fca5a5" : "#e2e8f0"}`,
+                                    borderRadius: 10,
+                                    padding: "9px 12px",
+                                    display: "flex",
+                                    flexDirection: "column",
+                                    gap: 6,
+                                    boxShadow: isBreached ? "0 2px 6px rgba(220, 38, 38, 0.08)" : "0 1px 2px rgba(0,0,0,0.02)",
+                                  }}
+                                >
+                                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 6 }}>
+                                    <div style={{ minWidth: 0 }}>
+                                      <div style={{ fontSize: 12.5, fontWeight: 900, color: "#0f172a", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                                        {subImp.subjectName}
+                                      </div>
+                                      <div style={{ fontSize: 10.5, color: "#64748b", marginTop: 1, display: "flex", alignItems: "center", gap: 5, flexWrap: "wrap" }}>
+                                        <span style={{ fontWeight: 700, color: "#475569" }}>
+                                          {hasMissed ? `${subImp.missedCount} class${subImp.missedCount > 1 ? "es" : ""} missed` : "0 missed"} ({subImp.type})
+                                        </span>
+                                        {hasMarked && (
+                                          <span style={{ fontSize: 9.5, fontWeight: 800, background: "#e2e8f0", color: "#475569", padding: "1px 5px", borderRadius: 4 }}>
+                                            {subImp.alreadyMarkedSlots.length} logged today
+                                          </span>
+                                        )}
+                                      </div>
+                                      {subImp.missedSlots && subImp.missedSlots.length > 0 && (
+                                        <div style={{ fontSize: 10, color: "#94a3b8", marginTop: 2 }}>
+                                          🕒 {subImp.missedSlots.map((s) => s.timeSlot).join(", ")}
+                                        </div>
+                                      )}
+                                    </div>
+
+                                    {/* Subject day drop badge */}
+                                    <span
+                                      style={{
+                                        fontSize: 11,
+                                        fontWeight: 900,
+                                        padding: "2px 7px",
+                                        borderRadius: 5,
+                                        background: subImp.dayDelta < 0 ? "#fef2f2" : "#f8fafc",
+                                        color: subImp.dayDelta < 0 ? "#dc2626" : "#64748b",
+                                        border: `1px solid ${subImp.dayDelta < 0 ? "#fecaca" : "#e2e8f0"}`,
+                                        whiteSpace: "nowrap",
+                                        display: "inline-flex",
+                                        alignItems: "center",
+                                        gap: 3,
+                                        flexShrink: 0,
+                                      }}
+                                    >
+                                      <TrendingDown size={11} /> {subImp.dayDelta}%
+                                    </span>
+                                  </div>
+
+                                  {/* Attendance Before -> After on this Day */}
+                                  <div
+                                    style={{
+                                      display: "flex",
+                                      alignItems: "center",
+                                      justifyContent: "space-between",
+                                      background: isBreached ? "#fee2e2" : "#f8fafc",
+                                      padding: "5px 8px",
+                                      borderRadius: 6,
+                                      fontSize: 11,
+                                    }}
+                                  >
+                                    <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
+                                      <span style={{ color: "#64748b" }}>Pre-Day:</span>
+                                      <span style={{ fontWeight: 700, color: "#334155" }}>{subImp.startPct}%</span>
+                                      <ArrowRight size={10} color="#64748b" />
+                                      <span style={{ color: "#64748b" }}>Post-Day:</span>
+                                      <strong style={{ color: isSafe ? "#059669" : "#dc2626" }}>{subImp.endPct}%</strong>
+                                    </div>
+
+                                    <span
+                                      style={{
+                                        fontSize: 9.5,
+                                        fontWeight: 900,
+                                        padding: "1px 5px",
+                                        borderRadius: 4,
+                                        background: isBreached
+                                          ? "#dc2626"
+                                          : isSafe
+                                          ? "#ecfdf5"
+                                          : "#fee2e2",
+                                        color: isBreached
+                                          ? "#ffffff"
+                                          : isSafe
+                                          ? "#059669"
+                                          : "#dc2626",
+                                      }}
+                                    >
+                                      {isBreached ? "⚠️ Drops Below Cutoff!" : isSafe ? "✓ Safe" : "Cutoff Breached"}
+                                    </span>
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      ) : bDay.classes.length > 0 ? (
+                        <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 2 }}>
+                          {bDay.classes.map((cls, cIdx) => (
+                            <span
+                              key={cIdx}
+                              style={{
+                                fontSize: 11,
+                                background: cls.isAlreadyMarked ? "#f1f5f9" : "#ffffff",
+                                border: cls.isAlreadyMarked ? "1px solid #cbd5e1" : "1px solid #fecaca",
+                                color: cls.isAlreadyMarked ? "#64748b" : "#991b1b",
+                                padding: "3px 8px",
+                                borderRadius: 6,
+                                display: "inline-flex",
+                                alignItems: "center",
+                                gap: 5,
+                              }}
+                            >
+                              <strong>{cls.subjectName}</strong>
+                              <span style={{ fontSize: 9.5, opacity: 0.8 }}>({cls.timeSlot})</span>
+                              {cls.isAlreadyMarked && (
+                                <span style={{ fontSize: 9, fontWeight: 800, background: "#e2e8f0", padding: "1px 4px", borderRadius: 3 }}>
+                                  Already {cls.markStatus}
+                                </span>
+                              )}
+                            </span>
+                          ))}
+                        </div>
+                      ) : null}
+                    </div>
+                  );
+                })}
               </div>
             </div>
           </motion.div>
