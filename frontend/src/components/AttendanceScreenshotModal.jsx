@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo } from "react";
+import { createPortal } from "react-dom";
 import axios from "axios";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -920,21 +921,40 @@ const parseCutmOcrText = (text, catalog = []) => {
     handleClose();
   };
 
+  // Lock background body scrolling while modal is active
+  useEffect(() => {
+    if (!isOpen) return;
+    const originalOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = originalOverflow;
+    };
+  }, [isOpen]);
+
+  if (typeof document === "undefined") return null;
   if (!isOpen) return null;
 
-  return (
+  return createPortal(
     <AnimatePresence>
       <div
         style={{
           position: "fixed",
-          inset: 0,
-          background: "rgba(15, 23, 42, 0.55)",
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          width: "100vw",
+          height: "100vh",
+          background: "rgba(15, 23, 42, 0.65)",
           backdropFilter: "blur(6px)",
-          zIndex: 9999,
+          WebkitBackdropFilter: "blur(6px)",
+          zIndex: 999999,
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
-          padding: isMobile ? 8 : 16,
+          padding: isMobile ? "12px 10px" : "24px 20px",
+          boxSizing: "border-box",
+          overflowY: "auto",
         }}
         onClick={handleClose}
       >
@@ -948,12 +968,13 @@ const parseCutmOcrText = (text, catalog = []) => {
             borderRadius: isMobile ? 16 : 20,
             width: "100%",
             maxWidth: step === "upload" ? 540 : 780,
-            boxShadow: "0 20px 40px -15px rgba(0, 0, 0, 0.15)",
+            boxShadow: "0 25px 50px -12px rgba(15, 23, 42, 0.25)",
             border: "1px solid #e2e8f0",
             overflow: "hidden",
             display: "flex",
             flexDirection: "column",
-            maxHeight: isMobile ? "94vh" : "90vh",
+            maxHeight: isMobile ? "92vh" : "88vh",
+            margin: "auto",
           }}
           onClick={(e) => e.stopPropagation()}
         >
@@ -2287,14 +2308,22 @@ const parseCutmOcrText = (text, catalog = []) => {
           <div
             style={{
               position: "fixed",
-              inset: 0,
-              zIndex: 10000,
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              width: "100vw",
+              height: "100vh",
+              zIndex: 1000000,
               background: "rgba(15, 23, 42, 0.7)",
               backdropFilter: "blur(4px)",
+              WebkitBackdropFilter: "blur(4px)",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
               padding: isMobile ? 12 : 16,
+              boxSizing: "border-box",
+              overflowY: "auto",
             }}
           >
             <motion.div
@@ -2308,6 +2337,7 @@ const parseCutmOcrText = (text, catalog = []) => {
                 width: "100%",
                 maxHeight: "90vh",
                 overflowY: "auto",
+                margin: "auto",
                 boxShadow: "0 20px 25px -5px rgba(15, 23, 42, 0.1), 0 0 0 1px rgba(15, 23, 42, 0.05)",
                 border: "1px solid #e2e8f0",
                 display: "flex",
@@ -2632,6 +2662,7 @@ const parseCutmOcrText = (text, catalog = []) => {
           </div>
         )}
       </AnimatePresence>
-    </AnimatePresence>
+    </AnimatePresence>,
+    document.body
   );
 }
