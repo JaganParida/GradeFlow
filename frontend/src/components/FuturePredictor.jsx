@@ -649,7 +649,7 @@ export default function FuturePredictor({
           }
 
           const group = daySubjectsGainMap.get(cleanName);
-          const willAttend = !isClassMarked || classMarkStatus === "PRESENT";
+          const willAttend = !isClassMarked || String(classMarkStatus).toLowerCase() === "present";
 
           if (willAttend) {
             dayAttendedCount += 1;
