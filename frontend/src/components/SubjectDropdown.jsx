@@ -450,8 +450,8 @@ export default function SubjectDropdown({
                       alignItems: "center",
                       justifyContent: "space-between",
                       gap: 10,
-                      padding: isMobile ? "8px 10px" : "9px 12px",
-                      borderRadius: 9,
+                      padding: isMobile ? "9px 10px" : "10px 12px",
+                      borderRadius: 8,
                       border: isSelected ? "1px solid #cbd5e1" : "1px solid transparent",
                       background: isSelected ? "#f8fafc" : "transparent",
                       cursor: "pointer",
@@ -460,7 +460,6 @@ export default function SubjectDropdown({
                       boxSizing: "border-box",
                       width: "100%",
                       flexShrink: 0,
-                      minHeight: 46,
                     }}
                     onMouseEnter={(e) => {
                       if (!isSelected) e.currentTarget.style.background = "#f8fafc";
@@ -469,7 +468,7 @@ export default function SubjectDropdown({
                       if (!isSelected) e.currentTarget.style.background = "transparent";
                     }}
                   >
-                    {/* Left: Indicator & Info */}
+                    {/* Left: Indicator & Subject + Code */}
                     <div style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0, flex: 1 }}>
                       <div
                         style={{
@@ -489,113 +488,40 @@ export default function SubjectDropdown({
                         {isSelected && <Check size={11} strokeWidth={3} />}
                       </div>
 
-                      <div style={{ minWidth: 0, flex: 1 }}>
-                        {/* Line 1: Subject Name + Code Badge */}
-                        <div style={{ display: "flex", alignItems: "center", gap: 6, minWidth: 0 }}>
-                          <span
-                            style={{
-                              fontSize: isMobile ? 13 : 13.5,
-                              fontWeight: isSelected ? 800 : 650,
-                              color: isSelected ? "#0f172a" : "#1e293b",
-                              overflow: "hidden",
-                              textOverflow: "ellipsis",
-                              whiteSpace: "nowrap",
-                              lineHeight: 1.35,
-                            }}
-                            title={item.subjectName}
-                          >
-                            {item.subjectName}
-                          </span>
-                          {code && (
-                            <span
-                              style={{
-                                fontSize: 10.5,
-                                fontWeight: 750,
-                                background: isSelected ? "#e2e8f0" : "#f1f5f9",
-                                color: isSelected ? "#0f172a" : "#475569",
-                                border: `1px solid ${isSelected ? "#cbd5e1" : "#e2e8f0"}`,
-                                padding: "1px 6px",
-                                borderRadius: 4,
-                                flexShrink: 0,
-                                letterSpacing: "0.2px",
-                              }}
-                            >
-                              {code}
-                            </span>
-                          )}
-                        </div>
-
-                        {/* Line 2: Routine & Attendance Meta */}
-                        <div
+                      <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0, flex: 1, overflow: "hidden" }}>
+                        <span
                           style={{
-                            fontSize: 11,
-                            color: "#64748b",
-                            marginTop: 2,
-                            display: "flex",
-                            alignItems: "center",
-                            gap: 6,
-                            whiteSpace: "nowrap",
+                            fontSize: isMobile ? 13 : 13.5,
+                            fontWeight: isSelected ? 800 : 650,
+                            color: isSelected ? "#0f172a" : "#1e293b",
                             overflow: "hidden",
                             textOverflow: "ellipsis",
+                            whiteSpace: "nowrap",
+                            lineHeight: 1.35,
                           }}
+                          title={item.subjectName}
                         >
-                          {stats.hasData ? (
-                            <span>
-                              Current:{" "}
-                              <strong
-                                style={{
-                                  color: stats.pct >= targetGoal ? "#059669" : "#e11d48",
-                                  fontWeight: 750,
-                                }}
-                              >
-                                {stats.pct.toFixed(1)}%
-                              </strong>{" "}
-                              ({stats.attended}/{stats.delivered} attended)
-                            </span>
-                          ) : (
-                            <span>No attendance data</span>
-                          )}
+                          {item.subjectName}
+                        </span>
 
-                          {item.classesPerWeek > 0 && (
-                            <>
-                              <span style={{ color: "#cbd5e1" }}>•</span>
-                              <span>{item.classesPerWeek} classes/wk</span>
-                            </>
-                          )}
-                        </div>
+                        {code && (
+                          <span
+                            style={{
+                              fontSize: 10.5,
+                              fontWeight: 750,
+                              background: isSelected ? "#e2e8f0" : "#f1f5f9",
+                              color: isSelected ? "#0f172a" : "#475569",
+                              border: `1px solid ${isSelected ? "#cbd5e1" : "#e2e8f0"}`,
+                              padding: "1.5px 6px",
+                              borderRadius: 4,
+                              flexShrink: 0,
+                              letterSpacing: "0.2px",
+                            }}
+                          >
+                            {code}
+                          </span>
+                        )}
                       </div>
-                    </div>
-
-                    {/* Right: Clean Percentage Badge */}
-                    <div style={{ display: "flex", alignItems: "center", gap: 6, flexShrink: 0, marginLeft: 8 }}>
-                      {stats.hasData ? (
-                        <span
-                          style={{
-                            fontSize: 11,
-                            fontWeight: 800,
-                            padding: "2.5px 7px",
-                            borderRadius: 6,
-                            background: stats.isSafe ? "#ecfdf5" : "#fff1f2",
-                            color: stats.isSafe ? "#059669" : "#e11d48",
-                            border: `1px solid ${stats.isSafe ? "#a7f3d0" : "#fecdd3"}`,
-                          }}
-                        >
-                          {stats.pct.toFixed(1)}%
-                        </span>
-                      ) : (
-                        <span
-                          style={{
-                            fontSize: 10.5,
-                            fontWeight: 600,
-                            color: "#94a3b8",
-                            background: "#f1f5f9",
-                            padding: "1px 6px",
-                            borderRadius: 5,
-                          }}
-                        >
-                          0 / 0
-                        </span>
-                      )}
                     </div>
                   </button>
                 );
