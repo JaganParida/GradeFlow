@@ -186,7 +186,10 @@ export default function ModernMobileSubNav({
               }}
             >
               {React.isValidElement(activeItem.icon)
-                ? React.cloneElement(activeItem.icon, { size: 20 })
+                ? React.cloneElement(activeItem.icon, {
+                    size: 20,
+                    color: activeItem.icon.props?.color || themeColor,
+                  })
                 : activeItem.icon}
             </div>
 
@@ -350,14 +353,14 @@ export default function ModernMobileSubNav({
                 borderTopLeftRadius: 24,
                 borderTopRightRadius: 24,
                 boxShadow: "0 -8px 32px rgba(15, 23, 42, 0.14)",
-                padding: "14px 18px",
+                padding: "14px 14px",
                 paddingBottom: "calc(20px + env(safe-area-inset-bottom, 0px))",
-                maxHeight: "82dvh",
+                maxHeight: "85dvh",
                 width: "100%",
                 maxWidth: "100%",
                 display: "flex",
                 flexDirection: "column",
-                gap: 14,
+                gap: 12,
                 zIndex: 10,
                 boxSizing: "border-box",
                 overflowY: "auto",
@@ -434,12 +437,12 @@ export default function ModernMobileSubNav({
                 </button>
               </div>
 
-              {/* Visual Grid of All Views (Zero horizontal scrolling!) */}
+              {/* Visual Grid of All Views (Guaranteed Responsive, Zero Overflow) */}
               <div
                 style={{
                   display: "grid",
-                  gridTemplateColumns: items.length <= 4 ? "1fr" : "repeat(auto-fit, minmax(140px, 1fr))",
-                  gap: 10,
+                  gridTemplateColumns: items.length <= 4 ? "1fr" : "repeat(2, minmax(0, 1fr))",
+                  gap: 8,
                   width: "100%",
                   boxSizing: "border-box",
                 }}
@@ -453,26 +456,30 @@ export default function ModernMobileSubNav({
                       whileTap={{ scale: 0.97 }}
                       onClick={() => handleSelect(item.id)}
                       style={{
-                        padding: "12px 14px",
+                        position: "relative",
+                        minWidth: 0,
+                        width: "100%",
+                        padding: "11px 10px",
                         borderRadius: 14,
                         border: isActive ? `1.5px solid ${themeColor}` : "1px solid #e2e8f0",
                         background: isActive ? themeBg : "#ffffff",
                         display: "flex",
                         alignItems: "flex-start",
-                        gap: 10,
+                        gap: 8,
                         textAlign: "left",
                         cursor: "pointer",
                         boxShadow: "none",
                         transition: "all 0.15s ease",
-                        position: "relative",
+                        boxSizing: "border-box",
+                        overflow: "hidden",
                       }}
                     >
                       {/* Icon */}
                       <div
                         style={{
-                          width: 34,
-                          height: 34,
-                          borderRadius: 9,
+                          width: 32,
+                          height: 32,
+                          borderRadius: 8,
                           background: isActive ? themeColor : "#f1f5f9",
                           color: isActive ? "#ffffff" : "#475569",
                           display: "flex",
@@ -481,39 +488,72 @@ export default function ModernMobileSubNav({
                           flexShrink: 0,
                         }}
                       >
-                        {item.icon}
+                        {React.isValidElement(item.icon)
+                          ? React.cloneElement(item.icon, {
+                              size: 16,
+                              color: isActive ? "#ffffff" : (item.icon.props?.color || "#475569"),
+                            })
+                          : item.icon}
                       </div>
 
                       {/* Title & Description */}
-                      <div style={{ display: "flex", flexDirection: "column", gap: 3, flex: 1, minWidth: 0 }}>
-                        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 6 }}>
+                      <div
+                        style={{
+                          display: "flex",
+                          flexDirection: "column",
+                          gap: 2.5,
+                          flex: 1,
+                          minWidth: 0,
+                          paddingRight: isActive ? 18 : 0,
+                        }}
+                      >
+                        <div style={{ display: "flex", alignItems: "flex-start", minWidth: 0 }}>
                           <span
                             style={{
-                              fontSize: 13,
+                              fontSize: 12.5,
                               fontWeight: 800,
                               color: isActive ? themeColor : "#0f172a",
-                              lineHeight: 1.3,
+                              lineHeight: 1.25,
+                              wordBreak: "break-word",
+                              overflowWrap: "anywhere",
                             }}
                           >
                             {item.label}
                           </span>
-                          {isActive && (
-                            <CheckCircle2 size={16} color={themeColor} style={{ flexShrink: 0 }} />
-                          )}
                         </div>
                         {item.desc && (
                           <span
                             style={{
-                              fontSize: 11,
+                              fontSize: 10.5,
                               color: isActive ? "#334155" : "#64748b",
                               lineHeight: 1.35,
                               fontWeight: 500,
+                              wordBreak: "break-word",
+                              overflowWrap: "anywhere",
                             }}
                           >
                             {item.desc}
                           </span>
                         )}
                       </div>
+
+                      {/* Active Tick Badge - Safely pinned inside card corner, 0% overflow */}
+                      {isActive && (
+                        <div
+                          style={{
+                            position: "absolute",
+                            top: 9,
+                            right: 9,
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            flexShrink: 0,
+                            pointerEvents: "none",
+                          }}
+                        >
+                          <CheckCircle2 size={15} color={themeColor} strokeWidth={2.4} />
+                        </div>
+                      )}
                     </motion.button>
                   );
                 })}
