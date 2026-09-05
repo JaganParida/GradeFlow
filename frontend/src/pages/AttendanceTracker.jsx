@@ -2207,23 +2207,18 @@ export default function AttendanceTracker() {
                       width: 28,
                       height: 28,
                       borderRadius: 7,
-                      background: "rgba(255, 255, 255, 0.12)",
+                      background: "rgba(255, 255, 255, 0.15)",
                       display: "flex",
                       alignItems: "center",
                       justifyContent: "center",
                       flexShrink: 0,
                     }}
                   >
-                    <Camera size={14} color="#38bdf8" />
+                    <Camera size={14} color="#ffffff" strokeWidth={2.2} />
                   </div>
-                  <div style={{ textAlign: "left" }}>
-                    <div style={{ fontSize: 12.5, fontWeight: 800, color: "#ffffff", lineHeight: 1.2 }}>
-                      Auto-Import Screenshot
-                    </div>
-                    <div style={{ fontSize: 10, color: "#94a3b8", fontWeight: 500, marginTop: 1 }}>
-                      1-tap instant AI scan from ERP table
-                    </div>
-                  </div>
+                  <span style={{ fontSize: 12.5, fontWeight: 800, color: "#ffffff", lineHeight: 1.2 }}>
+                    Auto-Import Screenshot
+                  </span>
                 </div>
                 <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
                   <span
@@ -2232,15 +2227,15 @@ export default function AttendanceTracker() {
                       fontWeight: 800,
                       padding: "2px 7px",
                       borderRadius: 5,
-                      background: "rgba(56, 189, 248, 0.15)",
-                      color: "#38bdf8",
-                      border: "1px solid rgba(56, 189, 248, 0.3)",
+                      background: "rgba(255, 255, 255, 0.12)",
+                      color: "#ffffff",
+                      border: "1px solid rgba(255, 255, 255, 0.25)",
                       letterSpacing: "0.2px",
                     }}
                   >
                     {scanStatus.isExempt ? "Unlimited" : `${scanStatus.remaining}/${scanStatus.max} left`}
                   </span>
-                  <ArrowRight size={13} color="#94a3b8" />
+                  <ArrowRight size={13} color="#ffffff" />
                 </div>
               </button>
             </div>
@@ -2440,7 +2435,7 @@ export default function AttendanceTracker() {
                             }}
                           >
                             <Camera size={14} color="#ffffff" strokeWidth={2.2} />
-                            <span>Auto-Import Scan</span>
+                            <span>Auto-Import Screenshot</span>
                           </button>
                         </div>
                       </div>
