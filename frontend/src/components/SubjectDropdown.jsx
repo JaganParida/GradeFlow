@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, useMemo } from "react";
-import { BookOpen, ChevronDown, Check, Search, X, Sparkles } from "lucide-react";
+import { BookOpen, ChevronDown, Check, Search, X, Sparkles, ArrowUpDown } from "lucide-react";
 import { resolveSubjectCode } from "../utils/timetableHelper";
 
 // Helper to normalize and compare subject names
@@ -134,19 +134,19 @@ export default function SubjectDropdown({
         aria-expanded={isOpen}
         style={{
           width: "100%",
-          background: isOpen ? "#f0fdf4" : "#f8fafc",
-          border: isOpen ? "1.5px solid #059669" : "1.5px solid #e2e8f0",
+          background: isOpen ? "#f0fdf4" : "#ffffff",
+          border: isOpen ? "1.5px solid #059669" : "1.5px solid #cbd5e1",
           borderRadius: 14,
-          padding: isMobile ? "10px 12px" : "12px 16px",
+          padding: isMobile ? "12px 14px" : "14px 18px",
           display: "flex",
           alignItems: isMobile ? "flex-start" : "center",
           justifyContent: "space-between",
-          gap: isMobile ? 10 : 16,
+          gap: isMobile ? 12 : 16,
           flexDirection: isMobile ? "column" : "row",
           cursor: "pointer",
           boxShadow: isOpen
-            ? "0 0 0 3px rgba(5, 150, 105, 0.12), 0 2px 8px rgba(0,0,0,0.04)"
-            : "0 1px 2px rgba(0,0,0,0.02)",
+            ? "0 0 0 3.5px rgba(5, 150, 105, 0.15), 0 4px 12px rgba(0,0,0,0.05)"
+            : "0 2px 8px -2px rgba(15, 23, 42, 0.05), 0 1px 3px rgba(0,0,0,0.03)",
           transition: "all 0.15s ease",
           textAlign: "left",
           outline: "none",
@@ -154,56 +154,85 @@ export default function SubjectDropdown({
         }}
         onMouseEnter={(e) => {
           if (!isOpen) {
-            e.currentTarget.style.borderColor = "#cbd5e1";
-            e.currentTarget.style.background = "#ffffff";
+            e.currentTarget.style.borderColor = "#94a3b8";
+            e.currentTarget.style.boxShadow = "0 4px 14px -2px rgba(15, 23, 42, 0.08)";
           }
         }}
         onMouseLeave={(e) => {
           if (!isOpen) {
-            e.currentTarget.style.borderColor = "#e2e8f0";
-            e.currentTarget.style.background = "#f8fafc";
+            e.currentTarget.style.borderColor = "#cbd5e1";
+            e.currentTarget.style.boxShadow = "0 2px 8px -2px rgba(15, 23, 42, 0.05), 0 1px 3px rgba(0,0,0,0.03)";
           }
         }}
       >
         {/* Left: Icon & Subject Details (Full Subject Name Always Visible) */}
-        <div style={{ display: "flex", alignItems: "center", gap: 12, minWidth: 0, flex: 1, width: isMobile ? "100%" : "auto" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 14, minWidth: 0, flex: 1, width: isMobile ? "100%" : "auto" }}>
           <div
             style={{
-              width: isMobile ? 32 : 36,
-              height: isMobile ? 32 : 36,
-              borderRadius: 9,
+              width: isMobile ? 36 : 42,
+              height: isMobile ? 36 : 42,
+              borderRadius: 11,
               background: "linear-gradient(135deg, #059669 0%, #10b981 100%)",
               color: "#ffffff",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
               flexShrink: 0,
-              boxShadow: "0 2px 5px rgba(5, 150, 105, 0.2)",
+              boxShadow: "0 3px 8px rgba(5, 150, 105, 0.25)",
             }}
           >
-            <BookOpen size={isMobile ? 15 : 18} />
+            <BookOpen size={isMobile ? 18 : 22} strokeWidth={2.2} />
           </div>
 
-          <div style={{ minWidth: 0, flex: 1, display: "flex", flexDirection: "column", gap: 2 }}>
-            <span
-              style={{
-                fontSize: 10,
-                fontWeight: 800,
-                color: "#64748b",
-                textTransform: "uppercase",
-                letterSpacing: "0.5px",
-              }}
-            >
-              Active Routine Subject
-            </span>
+          <div style={{ minWidth: 0, flex: 1, display: "flex", flexDirection: "column", gap: 3 }}>
+            {/* Live Context Prompt */}
+            <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+              <span
+                style={{
+                  display: "inline-block",
+                  width: 7,
+                  height: 7,
+                  borderRadius: "50%",
+                  background: "#10b981",
+                  boxShadow: "0 0 0 2.5px rgba(16, 185, 129, 0.25)",
+                }}
+              />
+              <span
+                style={{
+                  fontSize: 10.5,
+                  fontWeight: 800,
+                  color: "#475569",
+                  textTransform: "uppercase",
+                  letterSpacing: "0.5px",
+                }}
+              >
+                Subject Under Simulation
+              </span>
+              <span
+                style={{
+                  fontSize: 10,
+                  color: "#64748b",
+                  fontWeight: 700,
+                  background: "#f1f5f9",
+                  border: "1px solid #e2e8f0",
+                  padding: "0.5px 6px",
+                  borderRadius: 4,
+                }}
+              >
+                Click to Switch
+              </span>
+            </div>
+
+            {/* Subject Name & Subject Code Pill */}
             <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
               <span
                 style={{
-                  fontSize: isMobile ? 13.5 : 15,
+                  fontSize: isMobile ? 14 : 16,
                   fontWeight: 900,
                   color: "#0f172a",
                   lineHeight: 1.35,
                   wordBreak: "break-word",
+                  letterSpacing: "-0.2px",
                 }}
               >
                 {activeItem ? activeItem.subjectName : placeholder}
@@ -214,11 +243,12 @@ export default function SubjectDropdown({
                     fontSize: 10.5,
                     fontWeight: 800,
                     background: "#eff6ff",
-                    color: "#2563eb",
+                    color: "#1d4ed8",
                     border: "1px solid #bfdbfe",
-                    padding: "1px 6px",
-                    borderRadius: 5,
+                    padding: "1.5px 7px",
+                    borderRadius: 6,
                     flexShrink: 0,
+                    letterSpacing: "0.3px",
                   }}
                 >
                   {activeStats.code}
@@ -233,33 +263,44 @@ export default function SubjectDropdown({
           style={{
             display: "flex",
             alignItems: "center",
-            gap: isMobile ? 6 : 8,
+            gap: isMobile ? 8 : 10,
             flexWrap: "wrap",
             width: isMobile ? "100%" : "auto",
             justifyContent: isMobile ? "space-between" : "flex-end",
-            paddingTop: isMobile ? 6 : 0,
+            paddingTop: isMobile ? 8 : 0,
             borderTop: isMobile ? "1px dashed #e2e8f0" : "none",
           }}
         >
           {activeStats && activeStats.hasData && (
             <span
               style={{
-                fontSize: isMobile ? 11 : 12,
+                fontSize: isMobile ? 11.5 : 12,
                 fontWeight: 800,
-                padding: isMobile ? "3px 8px" : "4px 10px",
-                borderRadius: 7,
+                padding: isMobile ? "4px 9px" : "5px 12px",
+                borderRadius: 8,
                 background: activeStats.isSafe ? "#ecfdf5" : "#fff1f2",
-                color: activeStats.isSafe ? "#065f46" : "#e11d48",
-                border: `1px solid ${activeStats.isSafe ? "#a7f3d0" : "#fecdd3"}`,
+                color: activeStats.isSafe ? "#065f46" : "#b91c1c",
+                border: `1.5px solid ${activeStats.isSafe ? "#a7f3d0" : "#fecdd3"}`,
                 display: "inline-flex",
                 alignItems: "center",
-                gap: 4,
+                gap: 5,
                 whiteSpace: "nowrap",
+                boxShadow: "0 1px 2px rgba(0,0,0,0.02)",
               }}
             >
               {activeStats.pct.toFixed(1)}%
-              <span style={{ fontSize: 9.5, opacity: 0.85, fontWeight: 700 }}>
-                {activeStats.isSafe ? "SAFE" : "RISK"}
+              <span
+                style={{
+                  fontSize: 9.5,
+                  fontWeight: 900,
+                  opacity: 0.9,
+                  letterSpacing: "0.3px",
+                  background: activeStats.isSafe ? "#d1fae5" : "#fee2e2",
+                  padding: "1px 5px",
+                  borderRadius: 4,
+                }}
+              >
+                {activeStats.isSafe ? "SAFE" : "SHORTAGE"}
               </span>
             </span>
           )}
@@ -267,39 +308,46 @@ export default function SubjectDropdown({
           {activeItem && activeItem.classesPerWeek > 0 && (
             <span
               style={{
-                fontSize: 11,
+                fontSize: 11.5,
                 fontWeight: 700,
-                color: "#2563eb",
-                background: "#eff6ff",
-                border: "1px solid #dbeafe",
-                padding: isMobile ? "3px 7px" : "4px 9px",
-                borderRadius: 7,
+                color: "#1e293b",
+                background: "#f8fafc",
+                border: "1.5px solid #e2e8f0",
+                padding: isMobile ? "4px 8px" : "5px 10px",
+                borderRadius: 8,
                 whiteSpace: "nowrap",
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 4,
               }}
             >
-              {activeItem.classesPerWeek} classes / wk
+              📅 {activeItem.classesPerWeek} classes / wk
             </span>
           )}
 
+          {/* Interactive Switch Subject CTA Button */}
           <div
             style={{
               display: "inline-flex",
               alignItems: "center",
-              gap: 5,
+              gap: 6,
               background: "#ffffff",
-              border: "1px solid #cbd5e1",
-              padding: isMobile ? "4px 9px" : "5px 12px",
-              borderRadius: 8,
-              fontSize: isMobile ? 11.5 : 12,
+              border: "1.5px solid #cbd5e1",
+              padding: isMobile ? "5px 10px" : "6px 14px",
+              borderRadius: 9,
+              fontSize: isMobile ? 12 : 12.5,
               fontWeight: 800,
-              color: "#334155",
-              boxShadow: "0 1px 2px rgba(0,0,0,0.03)",
+              color: "#0f172a",
+              boxShadow: "0 1px 3px rgba(0,0,0,0.04)",
               flexShrink: 0,
+              transition: "all 0.15s ease",
             }}
           >
-            <span>Change</span>
+            <ArrowUpDown size={13} color="#475569" />
+            <span>Switch Subject</span>
             <ChevronDown
               size={14}
+              color="#475569"
               style={{
                 transform: isOpen ? "rotate(180deg)" : "rotate(0deg)",
                 transition: "transform 0.2s ease",
@@ -334,6 +382,44 @@ export default function SubjectDropdown({
           }}
           onWheel={(e) => e.stopPropagation()}
         >
+          {/* Popover Header Guide */}
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              padding: "4px 6px 8px 6px",
+              borderBottom: "1px solid #f1f5f9",
+              marginBottom: 6,
+              flexShrink: 0,
+            }}
+          >
+            <span
+              style={{
+                fontSize: 11,
+                fontWeight: 800,
+                color: "#64748b",
+                textTransform: "uppercase",
+                letterSpacing: "0.5px",
+              }}
+            >
+              Select Subject to Simulate ({catalog.length} Available)
+            </span>
+            <span
+              style={{
+                fontSize: 10,
+                fontWeight: 700,
+                color: "#059669",
+                background: "#ecfdf5",
+                border: "1px solid #a7f3d0",
+                padding: "1px 6px",
+                borderRadius: 4,
+              }}
+            >
+              Live Routine
+            </span>
+          </div>
+
           {/* Custom Webkit scrollbar styles for dropdown */}
           <style>{`
             .subject-dropdown-scroll::-webkit-scrollbar {
