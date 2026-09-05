@@ -1116,7 +1116,7 @@ export default function FuturePredictor({
                 lineHeight: 1.45,
               }}
             >
-              Date-wise attendance simulation engine following official CUTM academic calendar & timetable. Simulates pre-bunk attendance accumulation, calculates sequential class drop, and generates exact post-absence recovery schedule.
+              Plan your leave smartly using your official timetable. See how taking leave will affect your attendance, and get a step-by-step recovery plan to stay above your target.
             </p>
           </div>
 
@@ -1735,10 +1735,10 @@ export default function FuturePredictor({
                   </div>
                   <div>
                     <span style={{ fontSize: 11, fontWeight: 800, color: "#1d4ed8", textTransform: "uppercase", letterSpacing: "0.5px" }}>
-                      Phase 1 &bull; Pre-Bunk Attendance Accumulation
+                      Step 1 &bull; Attendance Gain Before Leave
                     </span>
                     <h4 style={{ fontSize: 14.5, fontWeight: 900, color: "#0f172a", margin: 0 }}>
-                      Attend Scheduled Classes Before Bunking
+                      Attend Classes Before Your Leave Date
                     </h4>
                   </div>
                 </div>
@@ -1754,7 +1754,7 @@ export default function FuturePredictor({
                     gap: 6,
                   }}
                 >
-                  <span style={{ fontSize: 11, color: "#64748b", fontWeight: 700 }}>Eve of Bunk:</span>
+                  <span style={{ fontSize: 11, color: "#64748b", fontWeight: 700 }}>Before Leave:</span>
                   <span style={{ fontSize: 14, fontWeight: 900, color: "#059669" }}>
                     {simulation.preBunkOverallPct}%
                   </span>
@@ -1785,7 +1785,7 @@ export default function FuturePredictor({
                 >
                   <Info size={14} color="#2563eb" style={{ flexShrink: 0 }} />
                   <span>
-                    <strong>Today's Activity:</strong> {todayMarkedClasses.length} class(es) were already logged in Daily Hub ({todayPresentCount} present, {todayAbsentCount} absent) and are included in your current baseline. Only the {todayUnmarkedClasses.length} remaining upcoming class(es) today are added to this pre-bunk roadmap.
+                    <strong>Today's Activity:</strong> {todayMarkedClasses.length} class(es) were already logged in Daily Hub ({todayPresentCount} present, {todayAbsentCount} absent) and are included in your current baseline. Only the {todayUnmarkedClasses.length} remaining upcoming class(es) today are added to this pre-leave schedule.
                   </span>
                 </div>
               )}
@@ -1822,7 +1822,7 @@ export default function FuturePredictor({
               {/* View Toggle: Detailed Day-by-Day Pre-Bunk Breakdown */}
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 4 }}>
                 <span style={{ fontSize: 11, fontWeight: 800, color: "#475569", textTransform: "uppercase", letterSpacing: "0.5px" }}>
-                  Day-by-Day Pre-Bunk Schedule ({simulation.preBunkDays.length} Days):
+                  Day-by-Day Schedule Before Leave ({simulation.preBunkDays.length} Days):
                 </span>
                 <button
                   type="button"
@@ -1951,14 +1951,14 @@ export default function FuturePredictor({
                 </div>
                 <div>
                   <span style={{ fontSize: 11, fontWeight: 800, color: "#dc2626", textTransform: "uppercase", letterSpacing: "0.5px" }}>
-                    Phase 2 &bull; Bunk Drop Simulation
+                    Step 2 &bull; Attendance Drop If You Take Leave
                   </span>
                   <h3 style={{ fontSize: 16, fontWeight: 900, color: "#0f172a", margin: 0 }}>
                     {simulation.interveningAttendedDaysCount > 0
-                      ? `Interleaved Schedule (${simulation.bunkDaysCount} Bunk Days, ${simulation.interveningAttendedDaysCount} Attended Class Days)`
+                      ? `Attendance Impact (${simulation.bunkDaysCount} Bunk Days, ${simulation.interveningAttendedDaysCount} Attended Days)`
                       : simulation.bunkDaysBreakdown.length === 1
-                      ? `Absence on ${simulation.firstBunkDateFormatted}`
-                      : `Multi-Day Absence (${simulation.bunkDaysBreakdown.length} days: ${simulation.firstBunkDateFormatted} to ${simulation.lastBunkDateFormatted})`}
+                      ? `Leave on ${simulation.firstBunkDateFormatted}`
+                      : `Leave for ${simulation.bunkDaysBreakdown.length} Days (${simulation.firstBunkDateFormatted} to ${simulation.lastBunkDateFormatted})`}
                   </h3>
                   {simulation.interveningAttendedDaysCount > 0 && (
                     <div style={{ fontSize: 11.5, color: "#059669", fontWeight: 700, marginTop: 4, display: "flex", alignItems: "center", gap: 5 }}>
@@ -2043,14 +2043,14 @@ export default function FuturePredictor({
               }}
             >
               <div style={{ background: "#f8fafc", padding: "12px", borderRadius: 12, border: "1px solid #e2e8f0" }}>
-                <span style={{ fontSize: 11, fontWeight: 700, color: "#64748b" }}>Pre-Bunk Eve Pct</span>
+                <span style={{ fontSize: 11, fontWeight: 700, color: "#64748b" }}>Attendance Before Leave</span>
                 <div style={{ fontSize: 18, fontWeight: 900, color: "#0f172a", marginTop: 2 }}>
                   {simulation.preBunkOverallPct}%
                 </div>
               </div>
 
               <div style={{ background: "#fef2f2", padding: "12px", borderRadius: 12, border: "1px solid #fee2e2" }}>
-                <span style={{ fontSize: 11, fontWeight: 700, color: "#991b1b" }}>Bunk Missed Classes</span>
+                <span style={{ fontSize: 11, fontWeight: 700, color: "#991b1b" }}>Classes You Will Miss</span>
                 <div style={{ fontSize: 18, fontWeight: 900, color: "#dc2626", marginTop: 2 }}>
                   {simulation.cumulativeMissedClasses} Classes
                 </div>
@@ -2058,7 +2058,7 @@ export default function FuturePredictor({
 
               {simulation.interveningAttendedDaysCount > 0 && (
                 <div style={{ background: "#f0fdf4", padding: "12px", borderRadius: 12, border: "1px solid #bbf7d0" }}>
-                  <span style={{ fontSize: 11, fontWeight: 700, color: "#166534" }}>In-Between Attended</span>
+                  <span style={{ fontSize: 11, fontWeight: 700, color: "#166534" }}>Classes You Will Attend</span>
                   <div style={{ fontSize: 18, fontWeight: 900, color: "#15803d", marginTop: 2 }}>
                     +{simulation.cumulativeInterveningAttendedClasses} Classes
                   </div>
@@ -2067,7 +2067,7 @@ export default function FuturePredictor({
 
               <div style={{ background: "#fff7ed", padding: "12px", borderRadius: 12, border: "1px solid #ffedd5" }}>
                 <span style={{ fontSize: 11, fontWeight: 700, color: "#9a3412" }}>
-                  {simulation.interveningAttendedDaysCount > 0 ? "Net Window Impact" : "Bunk Drop Delta"}
+                  {simulation.interveningAttendedDaysCount > 0 ? "Net Attendance Change" : "Expected Attendance Drop"}
                 </span>
                 <div style={{ fontSize: 18, fontWeight: 900, color: simulation.totalBunkDropDelta < 0 ? "#ea580c" : "#15803d", marginTop: 2 }}>
                   {simulation.totalBunkDropDelta >= 0 ? `+${simulation.totalBunkDropDelta}` : simulation.totalBunkDropDelta}%
@@ -2083,7 +2083,7 @@ export default function FuturePredictor({
                 }}
               >
                 <span style={{ fontSize: 11, fontWeight: 700, color: simulation.isOverallSafeAtTarget ? "#166534" : "#991b1b" }}>
-                  Post-Window Attendance
+                  Attendance After Leave
                 </span>
                 <div
                   style={{
@@ -2114,7 +2114,7 @@ export default function FuturePredictor({
                 <AlertTriangle size={18} color="#ea580c" style={{ flexShrink: 0 }} />
                 <div style={{ fontSize: 12, color: "#9a3412", lineHeight: 1.45 }}>
                   <strong>Target {simulation.targetPct}% Unattainable in {simulation.impossibleSubjectsList.length} Subject(s):</strong>{" "}
-                  {simulation.impossibleSubjectsList.map((s) => `${s.subjectName} (Max: ${s.maxPossiblePct}%)`).join(", ")}. Even with 100% attendance in all scheduled classes until semester end (Oct 31), {simulation.targetPct}% cannot be achieved. See Phase 3 for full recovery roadmap up to maximum achievable ceiling.
+                  {simulation.impossibleSubjectsList.map((s) => `${s.subjectName} (Max: ${s.maxPossiblePct}%)`).join(", ")}. Even with 100% attendance in all scheduled classes until semester end (Oct 31), {simulation.targetPct}% cannot be achieved. See Step 3 (Recovery Plan) below for full recovery roadmap up to maximum achievable ceiling.
                 </div>
               </div>
             )}
@@ -2124,7 +2124,7 @@ export default function FuturePredictor({
               <span style={{ fontSize: 11.5, fontWeight: 800, color: "#475569", textTransform: "uppercase", letterSpacing: "0.5px" }}>
                 {simulation.interveningAttendedDaysCount > 0
                   ? `Day-by-Day Schedule & Attendance Impact (${simulation.bunkDaysCount} Bunk Days, ${simulation.interveningAttendedDaysCount} Attended Days):`
-                  : "Subjects & Classes Missed on Chosen Bunk Dates:"}
+                  : "Day-by-Day Bunk Impact & Missed Classes:"}
               </span>
               <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
                 {simulation.bunkDaysBreakdown.map((bDay) => {
@@ -2553,10 +2553,10 @@ export default function FuturePredictor({
                                     }}
                                   >
                                     <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
-                                      <span style={{ color: "#64748b" }}>Pre-Day:</span>
+                                      <span style={{ color: "#64748b" }}>Before:</span>
                                       <span style={{ fontWeight: 700, color: "#334155" }}>{subImp.startPct}%</span>
                                       <ArrowRight size={10} color="#64748b" />
-                                      <span style={{ color: "#64748b" }}>Post-Day:</span>
+                                      <span style={{ color: "#64748b" }}>After:</span>
                                       <strong style={{ color: isSafe ? "#059669" : "#dc2626" }}>{subImp.endPct}%</strong>
                                     </div>
 
@@ -2665,13 +2665,13 @@ export default function FuturePredictor({
                   }}
                 >
                   <Target size={13} />
-                  <span>Phase 3 &bull; Recovery Engine For Missed Subjects</span>
+                  <span>Step 3 &bull; Attendance Recovery Roadmap</span>
                 </div>
                 <h3 style={{ fontSize: 16, fontWeight: 900, color: "#0f172a", margin: 0 }}>
-                  Timetable Recovery Plan (Starts {simulation.firstReturnDateFormatted})
+                  Classes You Must Attend to Recover Back to {recoveryTargetPct}% Target
                 </h3>
                 <p style={{ fontSize: 12, color: "#64748b", margin: "2px 0 0 0" }}>
-                  Every upcoming class you must attend to recover attendance in the subjects missed during your leave:
+                  Starting from {simulation.firstReturnDateFormatted} when regular classes resume, attend these scheduled timetable sessions to recover:
                 </p>
               </div>
 
@@ -2706,7 +2706,7 @@ export default function FuturePredictor({
             {/* ── Missed Subjects Summary Cards ── */}
             <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
               <span style={{ fontSize: 11.5, fontWeight: 800, color: "#475569", textTransform: "uppercase", letterSpacing: "0.5px" }}>
-                Target Recovery Milestones for Missed Subjects:
+                Recovery Milestones for Missed Subjects:
               </span>
 
               <div
@@ -2788,7 +2788,7 @@ export default function FuturePredictor({
 
                       {/* Percentage drop */}
                       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: 11 }}>
-                        <span style={{ color: "#64748b" }}>Post-Bunk Score:</span>
+                        <span style={{ color: "#64748b" }}>Attendance After Leave:</span>
                         <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
                           <span style={{ textDecoration: "line-through", color: "#94a3b8" }}>{sub.preBunkPct}%</span>
                           <ArrowRight size={10} color="#64748b" />
@@ -2963,10 +2963,10 @@ export default function FuturePredictor({
                 <div>
                   <h5 style={{ fontSize: 14, fontWeight: 900, color: "#0f172a", margin: 0, display: "flex", alignItems: "center", gap: 6 }}>
                     <CalendarCheck size={16} color="#059669" />
-                    Mandatory Post-Absence Recovery Schedule ({filteredRecoverySessions.length} total classes)
+                    Classes You Need to Attend for Recovery ({filteredRecoverySessions.length} classes)
                   </h5>
                   <p style={{ fontSize: 12, color: "#64748b", margin: "2px 0 0 0" }}>
-                    Every class you must consecutively attend post-absence to restore your {simulation.targetPct}% attendance goal:
+                    Attend these scheduled timetable classes consecutively to restore your attendance back to {simulation.targetPct}%:
                   </p>
                 </div>
 
