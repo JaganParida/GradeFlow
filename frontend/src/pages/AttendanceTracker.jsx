@@ -2189,50 +2189,25 @@ export default function AttendanceTracker() {
                   {isMobile ? (
                     /* Mobile: Attendance Intelligence + Section Badge + Auto-Import + Target Selector */
                     <div style={{ display: "flex", flexDirection: "column", gap: 10, width: "100%" }}>
-                      {/* Row 1: Title & Section */}
-                      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
-                        <div style={{ minWidth: 0, flex: 1 }}>
-                          <h2
-                            style={{
-                              fontSize: 17,
-                              fontWeight: 800,
-                              color: "#0f172a",
-                              margin: 0,
-                              letterSpacing: "-0.3px",
-                              lineHeight: 1.2,
-                            }}
-                          >
-                            Attendance Intelligence
-                          </h2>
-                          <div style={{ fontSize: 11, fontWeight: 700, color: "#059669", marginTop: 2, display: "flex", alignItems: "center", gap: 4 }}>
-                            <Activity size={11} />
-                            <span>Section {selectedSection} Routine</span>
-                          </div>
-                        </div>
-
-                        {/* Mobile Auto-Import Button */}
-                        <button
-                          type="button"
-                          onClick={handleOpenScreenshotModal}
+                      {/* Row 1: Title & Section (Full width so Attendance Intelligence never wraps) */}
+                      <div>
+                        <h2
                           style={{
-                            display: "inline-flex",
-                            alignItems: "center",
-                            gap: 5,
-                            padding: "6px 12px",
-                            borderRadius: 7,
-                            border: "1px solid #0f172a",
-                            background: scanStatus.isLimitReached ? "#94a3b8" : "#0f172a",
-                            color: "#ffffff",
-                            fontSize: 11.5,
-                            fontWeight: 700,
-                            cursor: scanStatus.isLimitReached ? "not-allowed" : "pointer",
-                            fontFamily: "'DM Sans', sans-serif",
-                            flexShrink: 0,
+                            fontSize: 17,
+                            fontWeight: 800,
+                            color: "#0f172a",
+                            margin: 0,
+                            letterSpacing: "-0.3px",
+                            lineHeight: 1.2,
+                            whiteSpace: "nowrap",
                           }}
                         >
-                          <Camera size={12} color="#ffffff" />
-                          <span>Auto-Import</span>
-                        </button>
+                          Attendance Intelligence
+                        </h2>
+                        <div style={{ fontSize: 11, fontWeight: 700, color: "#059669", marginTop: 2, display: "flex", alignItems: "center", gap: 4 }}>
+                          <Activity size={11} />
+                          <span>Section {selectedSection} Routine</span>
+                        </div>
                       </div>
 
                       {/* Row 2: Target Goal Segmented Control with comfortable padding */}
