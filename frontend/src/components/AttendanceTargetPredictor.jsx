@@ -206,11 +206,11 @@ export default function AttendanceTargetPredictor({
               }}
             >
               {activeSection === "schedule"
-                ? "Class Schedule & Target Predictor"
+                ? "Target Date & Schedule"
                 : activeSection === "penalty"
-                ? "Bunk Impact & Risk Calculator"
+                ? "Miss Penalty & Recovery"
                 : activeSection === "roadmap"
-                ? "Attendance Target Roadmap"
+                ? "Attendance Roadmap"
                 : "Target Predictor & Timetable Simulator"}
             </h3>
 
@@ -223,26 +223,26 @@ export default function AttendanceTargetPredictor({
                 borderRadius: 5,
                 background:
                   activeSection === "schedule"
-                    ? "#ecfdf5"
+                    ? "#f1f5f9"
                     : activeSection === "penalty"
                     ? "#fff1f2"
                     : "#eff6ff",
                 color:
                   activeSection === "schedule"
-                    ? "#065f46"
+                    ? "#0f172a"
                     : activeSection === "penalty"
                     ? "#e11d48"
                     : "#2563eb",
                 border: `1px solid ${
                   activeSection === "schedule"
-                    ? "#a7f3d0"
+                    ? "#e2e8f0"
                     : activeSection === "penalty"
                     ? "#fecdd3"
                     : "#bfdbfe"
                 }`,
               }}
             >
-              {activeSection === "schedule" && "Schedule"}
+              {activeSection === "schedule" && "Target Schedule"}
               {activeSection === "penalty" && "Miss Penalty"}
               {activeSection === "roadmap" && "Roadmap"}
               {activeSection !== "schedule" && activeSection !== "penalty" && activeSection !== "roadmap" && "Predictor"}
