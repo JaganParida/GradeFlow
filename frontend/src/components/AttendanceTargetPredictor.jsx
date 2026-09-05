@@ -503,20 +503,17 @@ export default function AttendanceTargetPredictor({
                 background: "#ffffff",
                 border: "1px solid #e2e8f0",
                 borderRadius: mobileMode ? 12 : 14,
-                padding: mobileMode ? "10px 10px" : "15px 18px",
+                padding: mobileMode ? "11px 11px" : "16px 18px",
                 display: "flex",
                 flexDirection: "column",
                 justifyContent: "space-between",
-                gap: 4,
+                gap: 6,
                 boxSizing: "border-box",
                 boxShadow: "0 1px 3px rgba(15, 23, 42, 0.03)",
               }}
             >
-              <div style={{ fontSize: mobileMode ? 9.5 : 10.5, fontWeight: 700, color: "#64748b", textTransform: "uppercase", letterSpacing: "0.4px", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 4 }}>
-                <span>Current Status</span>
-                <span style={{ fontSize: 9.5, fontWeight: 700, color: isCurrentlySafe ? "#16a34a" : "#64748b", background: isCurrentlySafe ? "#f0fdf4" : "#f8fafc", padding: "1px 5px", borderRadius: 4, border: `1px solid ${isCurrentlySafe ? "#bbf7d0" : "#e2e8f0"}` }}>
-                  Baseline
-                </span>
+              <div style={{ fontSize: mobileMode ? 10 : 11, fontWeight: 700, color: "#64748b", textTransform: "uppercase", letterSpacing: "0.5px" }}>
+                Current Status
               </div>
               <div
                 style={{
@@ -544,22 +541,17 @@ export default function AttendanceTargetPredictor({
                 background: "#ffffff",
                 border: "1px solid #bfdbfe",
                 borderRadius: mobileMode ? 12 : 14,
-                padding: mobileMode ? "10px 10px" : "15px 18px",
+                padding: mobileMode ? "11px 11px" : "16px 18px",
                 display: "flex",
                 flexDirection: "column",
                 justifyContent: "space-between",
-                gap: 4,
+                gap: 6,
                 boxSizing: "border-box",
                 boxShadow: "0 1px 3px rgba(37, 99, 235, 0.04)",
               }}
             >
-              <div style={{ fontSize: mobileMode ? 9.5 : 10.5, fontWeight: 800, color: "#1d4ed8", textTransform: "uppercase", letterSpacing: "0.4px", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 4 }}>
-                <span style={{ display: "flex", alignItems: "center", gap: 3 }}>
-                  <Target size={11} color="#2563eb" /> Target Sprint
-                </span>
-                <span style={{ fontSize: 9.5, fontWeight: 800, color: "#1d4ed8", background: "#eff6ff", padding: "1px 5px", borderRadius: 4, border: "1px solid #bfdbfe" }}>
-                  {multiPhaseData?.primaryTarget || multiPhaseTarget}% Goal
-                </span>
+              <div style={{ fontSize: mobileMode ? 10 : 11, fontWeight: 800, color: "#1d4ed8", textTransform: "uppercase", letterSpacing: "0.5px", display: "flex", alignItems: "center", gap: 4 }}>
+                <Target size={12} color="#2563eb" /> Target Sprint
               </div>
               <div style={{ fontSize: mobileMode ? 16 : 22, fontWeight: 800, color: "#0f172a", lineHeight: 1.2, wordBreak: "break-word" }}>
                 {multiPhaseData?.phase1?.classesNeeded === 0
@@ -582,22 +574,17 @@ export default function AttendanceTargetPredictor({
                 background: "#ffffff",
                 border: `1px solid ${multiPhaseData?.phase2?.isBelowRecoveryTarget ? "#fca5a5" : "#fde68a"}`,
                 borderRadius: mobileMode ? 12 : 14,
-                padding: mobileMode ? "10px 10px" : "15px 18px",
+                padding: mobileMode ? "11px 11px" : "16px 18px",
                 display: "flex",
                 flexDirection: "column",
                 justifyContent: "space-between",
-                gap: 4,
+                gap: 6,
                 boxSizing: "border-box",
                 boxShadow: "0 1px 3px rgba(217, 119, 6, 0.04)",
               }}
             >
-              <div style={{ fontSize: mobileMode ? 9.5 : 10.5, fontWeight: 800, color: multiPhaseData?.phase2?.isBelowRecoveryTarget ? "#dc2626" : "#b45309", textTransform: "uppercase", letterSpacing: "0.4px", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 4 }}>
-                <span style={{ display: "flex", alignItems: "center", gap: 3 }}>
-                  <CalendarX size={11} color={multiPhaseData?.phase2?.isBelowRecoveryTarget ? "#dc2626" : "#d97706"} /> Planned Miss
-                </span>
-                <span style={{ fontSize: 9.5, fontWeight: 800, color: multiPhaseData?.phase2?.isBelowRecoveryTarget ? "#dc2626" : "#b45309", background: multiPhaseData?.phase2?.isBelowRecoveryTarget ? "#fef2f2" : "#fffbeb", padding: "1px 5px", borderRadius: 4, border: `1px solid ${multiPhaseData?.phase2?.isBelowRecoveryTarget ? "#fecdd3" : "#fde68a"}` }}>
-                  {multiPhaseData?.phase2?.isBelowRecoveryTarget ? `Below ${recoveryTarget}%` : `Above ${recoveryTarget}%`}
-                </span>
+              <div style={{ fontSize: mobileMode ? 10 : 11, fontWeight: 800, color: multiPhaseData?.phase2?.isBelowRecoveryTarget ? "#dc2626" : "#b45309", textTransform: "uppercase", letterSpacing: "0.5px", display: "flex", alignItems: "center", gap: 4 }}>
+                <CalendarX size={12} color={multiPhaseData?.phase2?.isBelowRecoveryTarget ? "#dc2626" : "#d97706"} /> Planned Miss
               </div>
               <div style={{ fontSize: mobileMode ? 16 : 22, fontWeight: 800, color: multiPhaseData?.phase2?.isBelowRecoveryTarget ? "#dc2626" : "#d97706", lineHeight: 1.2, wordBreak: "break-word" }}>
                 Miss {multiPhaseData?.phase2?.bunkCount ?? plannedBunkCount} Classes
@@ -615,22 +602,17 @@ export default function AttendanceTargetPredictor({
                 background: "#ffffff",
                 border: `1px solid ${multiPhaseData?.phase3?.classesNeeded === 0 ? "#86efac" : (multiPhaseData?.phase3?.isAttainable ? "#bfdbfe" : "#fca5a5")}`,
                 borderRadius: mobileMode ? 12 : 14,
-                padding: mobileMode ? "10px 10px" : "15px 18px",
+                padding: mobileMode ? "11px 11px" : "16px 18px",
                 display: "flex",
                 flexDirection: "column",
                 justifyContent: "space-between",
-                gap: 4,
+                gap: 6,
                 boxSizing: "border-box",
                 boxShadow: "0 1px 3px rgba(16, 185, 129, 0.04)",
               }}
             >
-              <div style={{ fontSize: mobileMode ? 9.5 : 10.5, fontWeight: 800, color: multiPhaseData?.phase3?.classesNeeded === 0 ? "#15803d" : (multiPhaseData?.phase3?.isAttainable ? "#1d4ed8" : "#dc2626"), textTransform: "uppercase", letterSpacing: "0.4px", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 4 }}>
-                <span style={{ display: "flex", alignItems: "center", gap: 3 }}>
-                  <ShieldCheck size={11} color={multiPhaseData?.phase3?.classesNeeded === 0 ? "#15803d" : (multiPhaseData?.phase3?.isAttainable ? "#2563eb" : "#dc2626")} /> Safe Recovery
-                </span>
-                <span style={{ fontSize: 9.5, fontWeight: 800, color: multiPhaseData?.phase3?.isAttainable ? "#059669" : "#dc2626", background: multiPhaseData?.phase3?.isAttainable ? "#f0fdf4" : "#fef2f2", padding: "1px 5px", borderRadius: 4, border: `1px solid ${multiPhaseData?.phase3?.isAttainable ? "#bbf7d0" : "#fecdd3"}` }}>
-                  {multiPhaseData?.phase3?.isAttainable ? "Attainable" : "Critical"}
-                </span>
+              <div style={{ fontSize: mobileMode ? 10 : 11, fontWeight: 800, color: multiPhaseData?.phase3?.classesNeeded === 0 ? "#15803d" : (multiPhaseData?.phase3?.isAttainable ? "#1d4ed8" : "#dc2626"), textTransform: "uppercase", letterSpacing: "0.5px", display: "flex", alignItems: "center", gap: 4 }}>
+                <ShieldCheck size={12} color={multiPhaseData?.phase3?.classesNeeded === 0 ? "#15803d" : (multiPhaseData?.phase3?.isAttainable ? "#2563eb" : "#dc2626")} /> Safe Recovery
               </div>
               <div style={{ fontSize: mobileMode ? 16 : 22, fontWeight: 800, color: multiPhaseData?.phase3?.classesNeeded === 0 ? "#16a34a" : (multiPhaseData?.phase3?.isAttainable ? "#2563eb" : "#dc2626"), lineHeight: 1.2, wordBreak: "break-word" }}>
                 {multiPhaseData?.phase3?.classesNeeded === 0
@@ -638,7 +620,7 @@ export default function AttendanceTargetPredictor({
                   : `Attend ${multiPhaseData?.phase3?.classesNeeded || 0} Classes`}
               </div>
               <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
-                <div style={{ fontSize: mobileMode ? 10 : 11, color: multiPhaseData?.phase3?.classesNeeded === 0 ? "#15803d" : "#1d4ed8", fontWeight: 700, lineHeight: 1.25 }}>
+                <div style={{ fontSize: mobileMode ? 10 : 11, color: multiPhaseData?.phase3?.classesNeeded === 0 ? "#15803d" : (multiPhaseData?.phase3?.isAttainable ? "#1d4ed8" : "#dc2626"), fontWeight: 700, lineHeight: 1.25 }}>
                   {multiPhaseData?.phase3?.classesNeeded === 0
                     ? `${multiPhaseData?.phase3?.safeBunksRemaining || 0} safe bunks remain (≥${multiPhaseData?.recoveryTarget || recoveryTarget}%)`
                     : `Restores to ${multiPhaseData?.recoveryTarget || recoveryTarget}% (${multiPhaseData?.phase3?.recoveryReachDateStr || "N/A"})`}
