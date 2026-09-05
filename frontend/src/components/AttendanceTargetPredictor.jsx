@@ -209,7 +209,7 @@ export default function AttendanceTargetPredictor({
               {activeSection === "schedule"
                 ? "Target Date & Schedule"
                 : activeSection === "penalty"
-                ? "Miss Penalty & Recovery"
+                ? "Target Goal & Class Miss Impact"
                 : activeSection === "roadmap"
                 ? "Attendance Roadmap"
                 : "Target Predictor & Timetable Simulator"}
@@ -244,7 +244,7 @@ export default function AttendanceTargetPredictor({
               }}
             >
               {activeSection === "schedule" && "Target Schedule"}
-              {activeSection === "penalty" && "Miss Penalty"}
+              {activeSection === "penalty" && `Target ${targetGoal}% Impact`}
               {activeSection === "roadmap" && "Roadmap"}
               {activeSection !== "schedule" && activeSection !== "penalty" && activeSection !== "roadmap" && "Predictor"}
             </span>
@@ -252,7 +252,7 @@ export default function AttendanceTargetPredictor({
 
           <p style={{ fontSize: 12, color: "#64748b", margin: "3px 0 0 0", lineHeight: 1.4 }}>
             {activeSection === "schedule" && "Routine timetable projection and date-by-date attendance forecast."}
-            {activeSection === "penalty" && "Simulate how missing upcoming classes directly impacts your attendance."}
+            {activeSection === "penalty" && `Know how missing upcoming classes impacts your ${targetGoal}% target — see your safe miss margin, projected drop, and recovery needed.`}
             {activeSection === "roadmap" && "Step-by-step milestone progression to hit your target goal safely."}
             {activeSection !== "schedule" && activeSection !== "penalty" && activeSection !== "roadmap" && "Timetable projection & date-by-date attendance forecast."}
           </p>
