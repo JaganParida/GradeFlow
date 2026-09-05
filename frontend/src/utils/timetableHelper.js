@@ -1237,6 +1237,8 @@ export function simulateMissPenalty({
           runningPercentage: Number(currPct.toFixed(1)),
           percentageDrop: Number(drop.toFixed(2)),
           isBelow75: currPct < 75,
+          isBelowTarget: currPct < target,
+          isSafeAtTarget: currPct >= target,
         });
       }
     });
@@ -1573,9 +1575,16 @@ export function simulateMultiPhaseAttendance({
           runningPercentage: Number(currPct.toFixed(1)),
           percentageDrop: Number(drop.toFixed(2)),
           isBelow75: currPct < 75,
+          isBelowTarget: currPct < t2,
+          isSafeAtTarget: currPct >= t2,
         });
       }
     });
+  }
+
+  // Ensure lastBunkDate is correctly set to the date of the final bunk session
+  if (bunkSessions.length > 0) {
+    lastBunkDate = new Date(bunkSessions[bunkSessions.length - 1].date);
   }
 
   const p2Attended = p1Attended;
