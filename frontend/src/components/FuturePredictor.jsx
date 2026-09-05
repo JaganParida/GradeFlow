@@ -1616,324 +1616,345 @@ export default function FuturePredictor({
       {/* ═══════════════════════════════════════════════════════════════════════
           CENTRAL DISPLAY CONTAINER: NOTICE OVERLAY / EXAM WEEK / EMPTY STATE / ACTIVE SIMULATION
       ═══════════════════════════════════════════════════════════════════════ */}
-      <AnimatePresence mode="wait">
-        {nonInstructionalNotice ? (
-          <motion.div
-            key={`notice-${nonInstructionalNotice.title}-${nonInstructionalNotice.dateFormatted || "info"}`}
-            initial={{ opacity: 0, y: 12, scale: 0.98 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: -12, scale: 0.98 }}
-            transition={{ duration: 0.22, ease: "easeOut" }}
-            style={{
-              background: nonInstructionalNotice.isExam
-                ? "linear-gradient(135deg, #fff1f2 0%, #fff7ed 100%)"
-                : nonInstructionalNotice.isHoliday
-                ? "linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%)"
-                : "#f8fafc",
-              border: `1.5px solid ${
-                nonInstructionalNotice.isExam
-                  ? "#fecdd3"
-                  : nonInstructionalNotice.isHoliday
-                  ? "#fde68a"
-                  : "#cbd5e1"
-              }`,
-              borderRadius: 18,
-              padding: effectiveIsMobile ? "24px 16px" : "32px 24px",
-              display: "flex",
-              flexDirection: "column",
-              alignItems: "center",
-              justifyContent: "center",
-              gap: 14,
-              textAlign: "center",
-              position: "relative",
-              boxShadow: "0 4px 16px rgba(0, 0, 0, 0.04)",
-              maxWidth: "100%",
-              boxSizing: "border-box",
-            }}
-          >
-            {/* Top Right Close 'X' Button */}
-            <button
-              type="button"
-              onClick={() => setNonInstructionalNotice(null)}
-              aria-label="Close Notice"
+      <div style={{ width: "100%", maxWidth: "100%", overflow: "hidden", boxSizing: "border-box" }}>
+        <AnimatePresence mode="wait">
+          {nonInstructionalNotice ? (
+            <motion.div
+              key={`notice-${nonInstructionalNotice.title}-${nonInstructionalNotice.dateFormatted || "info"}`}
+              initial={{ opacity: 0, scale: 0.985 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.985 }}
+              transition={{ duration: 0.18, ease: "easeOut" }}
               style={{
-                position: "absolute",
-                top: 14,
-                right: 14,
-                width: 32,
-                height: 32,
-                borderRadius: 8,
-                background: "rgba(0,0,0,0.06)",
-                border: "none",
-                color: "#475569",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                cursor: "pointer",
-                transition: "all 0.15s ease",
-              }}
-            >
-              <X size={17} />
-            </button>
-
-            {/* Visual Icon Badge */}
-            <div
-              style={{
-                width: 52,
-                height: 52,
-                borderRadius: 14,
                 background: nonInstructionalNotice.isExam
-                  ? "#ffe4e6"
+                  ? "linear-gradient(135deg, #fff1f2 0%, #fff7ed 100%)"
                   : nonInstructionalNotice.isHoliday
-                  ? "#fef3c7"
-                  : "#e2e8f0",
-                color: nonInstructionalNotice.isExam
-                  ? "#e11d48"
-                  : nonInstructionalNotice.isHoliday
-                  ? "#d97706"
-                  : "#64748b",
+                  ? "linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%)"
+                  : "#f8fafc",
+                border: `1.5px solid ${
+                  nonInstructionalNotice.isExam
+                    ? "#fecdd3"
+                    : nonInstructionalNotice.isHoliday
+                    ? "#fde68a"
+                    : "#cbd5e1"
+                }`,
+                borderRadius: 18,
+                padding: effectiveIsMobile ? "20px 16px" : "24px 22px",
+                minHeight: effectiveIsMobile ? 220 : 230,
                 display: "flex",
+                flexDirection: "column",
                 alignItems: "center",
                 justifyContent: "center",
-                boxShadow: "0 2px 8px rgba(0,0,0,0.06)",
+                gap: 10,
+                textAlign: "center",
+                position: "relative",
+                boxShadow: "0 4px 16px rgba(0, 0, 0, 0.04)",
+                maxWidth: "100%",
+                boxSizing: "border-box",
               }}
             >
-              {nonInstructionalNotice.isExam ? (
-                <AlertTriangle size={28} />
-              ) : nonInstructionalNotice.isHoliday ? (
-                <Sun size={28} />
-              ) : (
-                <Info size={28} />
-              )}
-            </div>
+              {/* Top Right Close 'X' Button */}
+              <button
+                type="button"
+                onClick={() => setNonInstructionalNotice(null)}
+                aria-label="Close Notice"
+                style={{
+                  position: "absolute",
+                  top: 12,
+                  right: 12,
+                  width: 30,
+                  height: 30,
+                  borderRadius: 8,
+                  background: "rgba(0,0,0,0.06)",
+                  border: "none",
+                  color: "#475569",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  cursor: "pointer",
+                  transition: "all 0.15s ease",
+                }}
+              >
+                <X size={16} />
+              </button>
 
-            <div style={{ maxWidth: 520 }}>
-              {nonInstructionalNotice.dateFormatted && (
+              {/* Visual Icon Badge */}
+              <div
+                style={{
+                  width: 46,
+                  height: 46,
+                  borderRadius: 12,
+                  background: nonInstructionalNotice.isExam
+                    ? "#ffe4e6"
+                    : nonInstructionalNotice.isHoliday
+                    ? "#fef3c7"
+                    : "#e2e8f0",
+                  color: nonInstructionalNotice.isExam
+                    ? "#e11d48"
+                    : nonInstructionalNotice.isHoliday
+                    ? "#d97706"
+                    : "#64748b",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  boxShadow: "0 2px 6px rgba(0,0,0,0.05)",
+                }}
+              >
+                {nonInstructionalNotice.isExam ? (
+                  <AlertTriangle size={24} />
+                ) : nonInstructionalNotice.isHoliday ? (
+                  <Sun size={24} />
+                ) : (
+                  <Info size={24} />
+                )}
+              </div>
+
+              <div style={{ maxWidth: 500 }}>
+                {nonInstructionalNotice.dateFormatted && (
+                  <div
+                    style={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: 5,
+                      fontSize: 11,
+                      fontWeight: 800,
+                      textTransform: "uppercase",
+                      letterSpacing: "0.5px",
+                      padding: "2px 8px",
+                      borderRadius: 6,
+                      background: "rgba(0,0,0,0.05)",
+                      color: "#475569",
+                      marginBottom: 4,
+                    }}
+                  >
+                    <span>
+                      {nonInstructionalNotice.dateFormatted} ({nonInstructionalNotice.dayName})
+                    </span>
+                  </div>
+                )}
+                <h4 style={{ fontSize: 15.5, fontWeight: 900, color: "#0f172a", margin: "0 0 3px 0", wordBreak: "break-word" }}>
+                  {nonInstructionalNotice.title || "Classes Suspended"}
+                </h4>
+                <p style={{ fontSize: 12.5, color: "#475569", margin: 0, lineHeight: 1.45, wordBreak: "break-word" }}>
+                  {nonInstructionalNotice.message}
+                </p>
+              </div>
+
+              {/* Action Buttons Row */}
+              <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap", justifyContent: "center", marginTop: 2 }}>
+                {nextInstructionalDateInfo && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setWeekOffset((prev) => prev + 1);
+                      setNonInstructionalNotice(null);
+                    }}
+                    style={{
+                      background: "#2563eb",
+                      color: "#ffffff",
+                      border: "none",
+                      borderRadius: 8,
+                      padding: "6px 13px",
+                      fontSize: 11.5,
+                      fontWeight: 800,
+                      cursor: "pointer",
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: 5,
+                      boxShadow: "0 2px 6px rgba(37, 99, 235, 0.2)",
+                    }}
+                  >
+                    <span>Jump to Class Week ({nextInstructionalDateInfo.dateFormatted})</span>
+                    <ArrowRight size={12} />
+                  </button>
+                )}
+                <button
+                  type="button"
+                  onClick={() => setNonInstructionalNotice(null)}
+                  style={{
+                    background: "#ffffff",
+                    color: "#475569",
+                    border: "1px solid #cbd5e1",
+                    borderRadius: 8,
+                    padding: "6px 12px",
+                    fontSize: 11.5,
+                    fontWeight: 700,
+                    cursor: "pointer",
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 4,
+                  }}
+                >
+                  <X size={12} />
+                  <span>{simulation ? "Return to Simulation" : "Dismiss Notice"}</span>
+                </button>
+              </div>
+            </motion.div>
+          ) : !simulation && weekInstructionalCount === 0 ? (
+            <motion.div
+              key="exam-week-card"
+              initial={{ opacity: 0, scale: 0.985 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.985 }}
+              transition={{ duration: 0.18, ease: "easeOut" }}
+              style={{
+                background: "linear-gradient(135deg, #fffbeb 0%, #fff7ed 100%)",
+                border: "1.5px solid #fed7aa",
+                borderRadius: 18,
+                padding: effectiveIsMobile ? "20px 16px" : "24px 22px",
+                minHeight: effectiveIsMobile ? 220 : 230,
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: 10,
+                textAlign: "center",
+                boxShadow: "0 4px 16px rgba(234, 88, 12, 0.06)",
+                maxWidth: "100%",
+                boxSizing: "border-box",
+              }}
+            >
+              <div
+                style={{
+                  width: 46,
+                  height: 46,
+                  borderRadius: 12,
+                  background: "#ffedd5",
+                  color: "#ea580c",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  boxShadow: "0 2px 6px rgba(234, 88, 12, 0.12)",
+                }}
+              >
+                <AlertTriangle size={24} />
+              </div>
+
+              <div style={{ maxWidth: 500 }}>
                 <div
                   style={{
                     display: "inline-flex",
                     alignItems: "center",
-                    gap: 6,
+                    gap: 5,
                     fontSize: 11,
                     fontWeight: 800,
                     textTransform: "uppercase",
                     letterSpacing: "0.5px",
-                    padding: "3px 8px",
+                    background: "#fed7aa",
+                    color: "#9a3412",
+                    padding: "2px 8px",
                     borderRadius: 6,
-                    background: "rgba(0,0,0,0.05)",
-                    color: "#475569",
-                    marginBottom: 6,
+                    marginBottom: 4,
                   }}
                 >
-                  <span>
-                    {nonInstructionalNotice.dateFormatted} ({nonInstructionalNotice.dayName})
-                  </span>
+                  <span>Week of {weekRangeTitle}</span>
                 </div>
-              )}
-              <h4 style={{ fontSize: 17, fontWeight: 900, color: "#0f172a", margin: "0 0 6px 0", wordBreak: "break-word" }}>
-                {nonInstructionalNotice.title || "Classes Suspended"}
-              </h4>
-              <p style={{ fontSize: 13, color: "#475569", margin: 0, lineHeight: 1.55, wordBreak: "break-word" }}>
-                {nonInstructionalNotice.message}
-              </p>
-            </div>
+                <h4 style={{ fontSize: 15.5, fontWeight: 900, color: "#0f172a", margin: "0 0 3px 0", wordBreak: "break-word" }}>
+                  Examinations / Holidays Scheduled This Week
+                </h4>
+                <p style={{ fontSize: 12.5, color: "#7c2d12", margin: 0, lineHeight: 1.45, wordBreak: "break-word" }}>
+                  Regular timetable classes are suspended during this week per the academic calendar. Routine classes resume next week {nextInstructionalDateInfo ? `(${nextInstructionalDateInfo.dateFormatted} onwards)` : ""}.
+                </p>
+              </div>
 
-            {/* Action Buttons Row */}
-            <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", justifyContent: "center", marginTop: 4 }}>
-              {nextInstructionalDateInfo && (
-                <button
-                  type="button"
-                  onClick={() => {
-                    setWeekOffset((prev) => prev + 1);
-                    setNonInstructionalNotice(null);
-                  }}
-                  style={{
-                    background: "#2563eb",
-                    color: "#ffffff",
-                    border: "none",
-                    borderRadius: 8,
-                    padding: "7px 14px",
-                    fontSize: 12,
-                    fontWeight: 800,
-                    cursor: "pointer",
-                    display: "inline-flex",
-                    alignItems: "center",
-                    gap: 5,
-                    boxShadow: "0 2px 8px rgba(37, 99, 235, 0.2)",
-                  }}
-                >
-                  <span>Jump to Class Week ({nextInstructionalDateInfo.dateFormatted})</span>
-                  <ArrowRight size={13} />
-                </button>
-              )}
               <button
                 type="button"
-                onClick={() => setNonInstructionalNotice(null)}
+                onClick={() => {
+                  setWeekOffset((prev) => prev + 1);
+                  setNonInstructionalNotice(null);
+                }}
                 style={{
-                  background: "#ffffff",
-                  color: "#475569",
-                  border: "1px solid #cbd5e1",
+                  background: "#ea580c",
+                  color: "#ffffff",
+                  border: "none",
                   borderRadius: 8,
-                  padding: "7px 14px",
+                  padding: "7px 16px",
                   fontSize: 12,
-                  fontWeight: 700,
+                  fontWeight: 800,
                   cursor: "pointer",
                   display: "inline-flex",
                   alignItems: "center",
                   gap: 5,
+                  boxShadow: "0 2px 8px rgba(234, 88, 12, 0.2)",
+                  transition: "all 0.15s ease",
+                  marginTop: 2,
                 }}
               >
-                <X size={13} />
-                <span>{simulation ? "Return to Bunk Simulation" : "Dismiss Notice"}</span>
+                <span>Jump to Class Week ({nextInstructionalDateInfo ? nextInstructionalDateInfo.dateFormatted : "Next Week"})</span>
+                <ArrowRight size={13} />
               </button>
-            </div>
-          </motion.div>
-        ) : !simulation && weekInstructionalCount === 0 ? (
-          <motion.div
-            key="exam-week-card"
-            initial={{ opacity: 0, y: 12, scale: 0.98 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: -12, scale: 0.98 }}
-            transition={{ duration: 0.22, ease: "easeOut" }}
-            style={{
-              background: "linear-gradient(135deg, #fffbeb 0%, #fff7ed 100%)",
-              border: "1.5px solid #fed7aa",
-              borderRadius: 18,
-              padding: effectiveIsMobile ? "24px 16px" : "32px 24px",
-              display: "flex",
-              flexDirection: "column",
-              alignItems: "center",
-              justifyContent: "center",
-              gap: 14,
-              textAlign: "center",
-              boxShadow: "0 4px 16px rgba(234, 88, 12, 0.06)",
-              maxWidth: "100%",
-              boxSizing: "border-box",
-            }}
-          >
-            <div
+            </motion.div>
+          ) : !simulation ? (
+            <motion.div
+              key="empty-state-card"
+              initial={{ opacity: 0, scale: 0.985 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.985 }}
+              transition={{ duration: 0.18, ease: "easeOut" }}
               style={{
-                width: 52,
-                height: 52,
-                borderRadius: 14,
-                background: "#ffedd5",
-                color: "#ea580c",
+                background: "#f8fafc",
+                border: "1.5px dashed #cbd5e1",
+                borderRadius: 18,
+                padding: effectiveIsMobile ? "20px 16px" : "24px 22px",
+                minHeight: effectiveIsMobile ? 220 : 230,
                 display: "flex",
+                flexDirection: "column",
                 alignItems: "center",
                 justifyContent: "center",
-                boxShadow: "0 2px 8px rgba(234, 88, 12, 0.15)",
+                gap: 10,
+                textAlign: "center",
+                maxWidth: "100%",
+                boxSizing: "border-box",
               }}
             >
-              <AlertTriangle size={28} />
-            </div>
-
-            <div style={{ maxWidth: 500 }}>
+              <div
+                style={{
+                  width: 46,
+                  height: 46,
+                  borderRadius: 12,
+                  background: "#eff6ff",
+                  color: "#2563eb",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                <CalendarIcon size={24} />
+              </div>
+              <div style={{ maxWidth: 480 }}>
+                <h4 style={{ fontSize: 15.5, fontWeight: 900, color: "#0f172a", margin: "0 0 3px 0" }}>
+                  No Bunk Date Selected
+                </h4>
+                <p style={{ fontSize: 12.5, color: "#64748b", margin: 0, lineHeight: 1.45 }}>
+                  Tap any date above with scheduled classes to simulate your future attendance, sequential class drops, and recovery roadmap. If viewing an examination week, tap <strong>"Next Week &gt;"</strong> to select regular class dates.
+                </p>
+              </div>
               <div
                 style={{
                   display: "inline-flex",
                   alignItems: "center",
-                  gap: 6,
+                  gap: 5,
                   fontSize: 11,
-                  fontWeight: 800,
-                  textTransform: "uppercase",
-                  letterSpacing: "0.5px",
-                  background: "#fed7aa",
-                  color: "#9a3412",
-                  padding: "3px 8px",
+                  color: "#64748b",
+                  background: "#f1f5f9",
+                  padding: "3px 9px",
                   borderRadius: 6,
-                  marginBottom: 6,
+                  fontWeight: 700,
+                  marginTop: 2,
                 }}
               >
-                <span>Week of {weekRangeTitle}</span>
+                <span>💡 Tip: Select any date with classes above or use Quick Presets</span>
               </div>
-              <h4 style={{ fontSize: 17, fontWeight: 900, color: "#0f172a", margin: "0 0 6px 0", wordBreak: "break-word" }}>
-                Examinations / Holidays Scheduled This Week
-              </h4>
-              <p style={{ fontSize: 13, color: "#7c2d12", margin: 0, lineHeight: 1.55, wordBreak: "break-word" }}>
-                Regular timetable classes are suspended during this week per the academic calendar. Routine classes resume next week {nextInstructionalDateInfo ? `(${nextInstructionalDateInfo.dateFormatted} onwards)` : ""}.
-              </p>
-            </div>
-
-            <button
-              type="button"
-              onClick={() => {
-                setWeekOffset((prev) => prev + 1);
-                setNonInstructionalNotice(null);
-              }}
-              style={{
-                background: "#ea580c",
-                color: "#ffffff",
-                border: "none",
-                borderRadius: 10,
-                padding: "9px 18px",
-                fontSize: 12.5,
-                fontWeight: 800,
-                cursor: "pointer",
-                display: "inline-flex",
-                alignItems: "center",
-                gap: 6,
-                boxShadow: "0 4px 12px rgba(234, 88, 12, 0.25)",
-                transition: "all 0.15s ease",
-              }}
+            </motion.div>
+          ) : (
+            <motion.div
+              key="simulation-results"
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -8 }}
+              transition={{ duration: 0.18, ease: "easeOut" }}
+              style={{ display: "flex", flexDirection: "column", gap: 16, maxWidth: "100%", boxSizing: "border-box" }}
             >
-              <span>Jump to Class Week ({nextInstructionalDateInfo ? nextInstructionalDateInfo.dateFormatted : "Next Week"})</span>
-              <ArrowRight size={14} />
-            </button>
-          </motion.div>
-        ) : !simulation ? (
-          <motion.div
-            key="empty-state-card"
-            initial={{ opacity: 0, y: 12, scale: 0.98 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: -12, scale: 0.98 }}
-            transition={{ duration: 0.22, ease: "easeOut" }}
-            style={{
-              background: "#f8fafc",
-              border: "1.5px dashed #cbd5e1",
-              borderRadius: 18,
-              padding: effectiveIsMobile ? "28px 16px" : "36px 20px",
-              display: "flex",
-              flexDirection: "column",
-              alignItems: "center",
-              justifyContent: "center",
-              gap: 12,
-              textAlign: "center",
-              maxWidth: "100%",
-              boxSizing: "border-box",
-            }}
-          >
-            <div
-              style={{
-                width: 50,
-                height: 50,
-                borderRadius: 14,
-                background: "#eff6ff",
-                color: "#2563eb",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-              }}
-            >
-              <CalendarIcon size={26} />
-            </div>
-            <div style={{ maxWidth: 460 }}>
-              <h4 style={{ fontSize: 16, fontWeight: 900, color: "#0f172a", margin: "0 0 4px 0" }}>
-                No Bunk Date Selected
-              </h4>
-              <p style={{ fontSize: 13, color: "#64748b", margin: 0, lineHeight: 1.5 }}>
-                Tap any date above with scheduled classes to simulate your future attendance, sequential class drops, and recovery roadmap. If viewing an examination week, tap <strong>"Next Week &gt;"</strong> to select regular class dates.
-              </p>
-            </div>
-          </motion.div>
-        ) : (
-          <motion.div
-            key="simulation-results"
-            initial={{ opacity: 0, y: 12 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -12 }}
-            transition={{ duration: 0.22, ease: "easeOut" }}
-            style={{ display: "flex", flexDirection: "column", gap: 16, maxWidth: "100%", boxSizing: "border-box" }}
-          >
           {/* ─────────────────────────────────────────────────────────────────
               PHASE 1: PRE-BUNK ATTENDANCE ACCUMULATION
           ───────────────────────────────────────────────────────────────── */}
@@ -3538,6 +3559,7 @@ export default function FuturePredictor({
         </motion.div>
       )}
     </AnimatePresence>
+    </div>
   </div>
   );
 }
