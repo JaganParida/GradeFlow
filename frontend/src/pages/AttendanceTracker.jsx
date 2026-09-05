@@ -53,6 +53,7 @@ import {
   HelpCircle,
   Upload,
   Edit3,
+  Sparkles,
 } from "lucide-react";
 import {
   ALL_SECTIONS,
@@ -411,7 +412,7 @@ export default function AttendanceTracker() {
     if (urlTabParam === "bunk" || urlTabParam === "bunk_analyzer" || urlTabParam === "planner" || urlTabParam === "future" || urlTabParam === "future_predictor") return "bunk_analyzer";
     if (urlTabParam === "matrix" || urlTabParam === "subjects" || urlTabParam === "subject_matrix") return "matrix";
     if (urlTabParam === "checkin" || urlTabParam === "hub" || urlTabParam === "daily") return "checkin";
-    return "checkin";
+    return "studio_simulator";
   };
 
   const [activeTab, setActiveTab] = useState(getInitialTab);
@@ -801,8 +802,8 @@ export default function AttendanceTracker() {
           // Auto-route default tab based on whether student has attendance data vs needs the guide
           if (!hasUserManuallySelectedTabRef.current && !urlTabParam) {
             if (!hasRealAttendance) {
-              // For students where the guide is shown (no saved attendance), default to "studio" (Attendance Predictor tab where Guide is present)
-              setActiveTab("studio");
+              // For new students where the guide is shown (no saved attendance), default to "Edit & What-If" (studio_simulator)
+              setActiveTab("studio_simulator");
             } else {
               // For students with saved attendance data, default to "checkin" (Daily Check-In Hub)
               setActiveTab("checkin");
@@ -850,13 +851,13 @@ export default function AttendanceTracker() {
         } else if (isMounted) {
           setSavedSubjects([]);
           if (!hasUserManuallySelectedTabRef.current && !urlTabParam) {
-            setActiveTab("studio");
+            setActiveTab("studio_simulator");
           }
         }
       } catch (err) {
         console.warn("Could not load student attendance:", err.message);
         if (isMounted && !hasUserManuallySelectedTabRef.current && !urlTabParam) {
-          setActiveTab("studio");
+          setActiveTab("studio_simulator");
         }
       } finally {
         if (isMounted) {
@@ -3630,30 +3631,34 @@ export default function AttendanceTracker() {
             {/* ═══════════════════════════════════════════════════════════════
                 FIRST-TIME STUDENT ONBOARDING & GUIDED SETUP HUB
             ═══════════════════════════════════════════════════════════════ */}
-            {!hasSavedAttendance && (
+            {/* ═══════════════════════════════════════════════════════════════
+                FIRST-TIME STUDENT ONBOARDING & GUIDED SETUP HUB
+                Rendered ONLY in "Edit & What-If" (simulator) for new students with no saved attendance
+            ═══════════════════════════════════════════════════════════════ */}
+            {currentStudioSection === "simulator" && !hasSavedAttendance && (
               <div
                 style={{
                   background: "#ffffff",
                   border: "1px solid #e2e8f0",
-                  borderRadius: 12,
-                  padding: isMobile ? "14px 14px" : "20px 22px",
+                  borderRadius: 14,
+                  padding: isMobile ? "16px 14px" : "20px 24px",
                   display: "flex",
                   flexDirection: "column",
                   gap: 16,
-                  boxShadow: "none",
+                  boxShadow: "0 1px 3px rgba(15, 23, 42, 0.04)",
                   position: "relative",
                   overflow: "hidden",
                 }}
               >
-                {/* Top Accent Gradient Bar */}
+                {/* Top Accent Line */}
                 <div
                   style={{
                     position: "absolute",
                     top: 0,
                     left: 0,
                     right: 0,
-                    height: 3.5,
-                    background: "linear-gradient(90deg, #2563eb 0%, #059669 100%)",
+                    height: 3,
+                    background: "linear-gradient(90deg, #0f172a 0%, #2563eb 50%, #10b981 100%)",
                   }}
                 />
 
@@ -3670,56 +3675,55 @@ export default function AttendanceTracker() {
                   <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
                     <div
                       style={{
-                        width: isMobile ? 38 : 44,
-                        height: isMobile ? 38 : 44,
-                        borderRadius: 12,
-                        background: "linear-gradient(135deg, #059669 0%, #2563eb 100%)",
+                        width: isMobile ? 38 : 42,
+                        height: isMobile ? 38 : 42,
+                        borderRadius: 10,
+                        background: "#0f172a",
                         color: "#ffffff",
                         display: "flex",
                         alignItems: "center",
                         justifyContent: "center",
                         flexShrink: 0,
-                        boxShadow: "0 2px 8px rgba(5, 150, 105, 0.22)",
                       }}
                     >
-                      <Zap size={isMobile ? 18 : 22} />
+                      <Sparkles size={isMobile ? 18 : 20} />
                     </div>
                     <div>
                       <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
                         <h3
                           style={{
-                            fontSize: isMobile ? 15.5 : 18,
-                            fontWeight: 900,
+                            fontSize: isMobile ? 16 : 17.5,
+                            fontWeight: 800,
                             color: "#0f172a",
                             margin: 0,
                             letterSpacing: "-0.3px",
                           }}
                         >
-                          Attendance Tracker Quick Setup Guide
+                          Quick Attendance Setup
                         </h3>
                         <span
                           style={{
                             fontSize: 11,
-                            fontWeight: 800,
-                            background: "#dcfce7",
-                            color: "#15803d",
+                            fontWeight: 700,
+                            background: "#eff6ff",
+                            color: "#1d4ed8",
                             padding: "2px 8px",
-                            borderRadius: 999,
-                            border: "1px solid #bbf7d0",
+                            borderRadius: 6,
+                            border: "1px solid #bfdbfe",
                           }}
                         >
-                          Fresh Setup (0 / 0)
+                          First-Time Setup
                         </span>
                       </div>
                       <p
                         style={{
-                          fontSize: isMobile ? 12 : 13,
-                          color: "#475569",
+                          fontSize: isMobile ? 12 : 12.5,
+                          color: "#64748b",
                           margin: "3px 0 0 0",
                           lineHeight: 1.45,
                         }}
                       >
-                        All subjects for <strong>Section {selectedSection}</strong> are pre-loaded. Choose a method below to sync your attendance in seconds:
+                        All subjects for <strong>Section {selectedSection}</strong> are ready. Choose how you want to add your current attendance:
                       </p>
                     </div>
                   </div>
@@ -3730,36 +3734,38 @@ export default function AttendanceTracker() {
                     style={{
                       width: isMobile ? "100%" : "auto",
                       padding: isMobile ? "10px 16px" : "9px 18px",
-                      borderRadius: 10,
+                      borderRadius: 9,
                       border: "none",
                       background: scanStatus.isLimitReached
                         ? "#64748b"
-                        : "linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)",
+                        : "#0f172a",
                       color: "#ffffff",
                       fontSize: isMobile ? 13 : 13.5,
-                      fontWeight: 800,
+                      fontWeight: 750,
                       cursor: scanStatus.isLimitReached ? "not-allowed" : "pointer",
                       opacity: scanStatus.isLimitReached ? 0.65 : 1,
                       display: "inline-flex",
                       alignItems: "center",
                       justifyContent: "center",
                       gap: 8,
-                      boxShadow: scanStatus.isLimitReached ? "none" : "0 2px 8px rgba(37, 99, 235, 0.25)",
-                      transition: "transform 0.15s ease",
+                      boxShadow: "0 1px 2px rgba(0,0,0,0.05)",
+                      transition: "background 0.15s ease",
                       flexShrink: 0,
                     }}
                     onMouseEnter={(e) => {
-                      if (!scanStatus.isLimitReached) e.currentTarget.style.transform = "translateY(-1px)";
+                      if (!scanStatus.isLimitReached) e.currentTarget.style.background = "#1e293b";
                     }}
-                    onMouseLeave={(e) => (e.currentTarget.style.transform = "translateY(0)")}
+                    onMouseLeave={(e) => {
+                      if (!scanStatus.isLimitReached) e.currentTarget.style.background = "#0f172a";
+                    }}
                   >
                     <Camera size={16} />
                     <span>
                       {scanStatus.isExempt
-                        ? "Auto-Import via Screenshot (Unlimited)"
+                        ? "Auto-Import via Screenshot"
                         : scanStatus.isLimitReached
-                        ? "Limit Reached (0/2 scans left)"
-                        : `Auto-Import via Screenshot (${scanStatus.remaining}/${scanStatus.max})`}
+                        ? "Daily Limit Reached (0/2)"
+                        : `Auto-Import Screenshot (${scanStatus.remaining}/${scanStatus.max} left)`}
                     </span>
                   </button>
                 </div>
@@ -3772,13 +3778,13 @@ export default function AttendanceTracker() {
                     gap: isMobile ? 12 : 16,
                   }}
                 >
-                  {/* Method 1: 1-Click Screenshot Import (Recommended) */}
+                  {/* Method 1: Screenshot Import (Recommended) */}
                   <div
                     style={{
-                      background: "linear-gradient(180deg, #f8fafc 0%, #ffffff 100%)",
+                      background: "#ffffff",
                       border: "1.5px solid #bfdbfe",
                       borderRadius: 12,
-                      padding: isMobile ? "14px 14px" : "16px 18px",
+                      padding: isMobile ? "14px" : "16px 18px",
                       display: "flex",
                       flexDirection: "column",
                       justifyContent: "space-between",
@@ -3790,9 +3796,9 @@ export default function AttendanceTracker() {
                         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                           <div
                             style={{
-                              width: 30,
-                              height: 30,
-                              borderRadius: 8,
+                              width: 28,
+                              height: 28,
+                              borderRadius: 7,
                               background: "#eff6ff",
                               color: "#2563eb",
                               display: "flex",
@@ -3801,7 +3807,7 @@ export default function AttendanceTracker() {
                               border: "1px solid #bfdbfe",
                             }}
                           >
-                            <Smartphone size={16} />
+                            <Camera size={15} />
                           </div>
                           <span style={{ fontSize: isMobile ? 13.5 : 14.5, fontWeight: 800, color: "#0f172a" }}>
                             Method 1: Screenshot Auto-Import
@@ -3810,63 +3816,58 @@ export default function AttendanceTracker() {
                         <span
                           style={{
                             fontSize: 10,
-                            fontWeight: 900,
+                            fontWeight: 800,
                             background: "#eff6ff",
                             color: "#1d4ed8",
-                            padding: "2px 8px",
-                            borderRadius: 6,
+                            padding: "2px 7px",
+                            borderRadius: 5,
                             border: "1px solid #bfdbfe",
-                            letterSpacing: "0.4px",
                             display: "inline-flex",
                             alignItems: "center",
                             gap: 4,
                           }}
                         >
-                          <Zap size={11} /> FASTEST & RECOMMENDED
+                          <Zap size={10} /> RECOMMENDED · 10 SEC
                         </span>
                       </div>
 
                       {/* Source Guide Box */}
                       <div
                         style={{
-                          background: "#eff6ff",
-                          border: "1px solid #dbeafe",
+                          background: "#f8fafc",
+                          border: "1px solid #e2e8f0",
                           borderRadius: 8,
                           padding: "8px 10px",
                           display: "flex",
                           flexDirection: "column",
                           gap: 4,
                           fontSize: 11.5,
-                          color: "#1e40af",
+                          color: "#334155",
                         }}
                       >
-                        <div style={{ display: "flex", alignItems: "center", gap: 6, fontWeight: 750 }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: 6, fontWeight: 600 }}>
                           <Monitor size={13} color="#2563eb" style={{ flexShrink: 0 }} />
                           <span><strong>Website ERP:</strong> Academic &rarr; Student Course Wise Attendance</span>
                         </div>
-                        <div style={{ display: "flex", alignItems: "center", gap: 6, fontWeight: 750 }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: 6, fontWeight: 600 }}>
                           <Smartphone size={13} color="#2563eb" style={{ flexShrink: 0 }} />
-                          <span><strong>Mobile App:</strong> Subject-wise Attendance (Full table screenshot)</span>
+                          <span><strong>Mobile App:</strong> Subject-wise Attendance table screenshot</span>
                         </div>
                       </div>
 
-                      {/* Numbered Steps */}
+                      {/* Simple 3 Steps */}
                       <div style={{ display: "flex", flexDirection: "column", gap: 8, fontSize: 12, color: "#475569" }}>
                         <div style={{ display: "flex", alignItems: "flex-start", gap: 8 }}>
-                          <span style={{ width: 18, height: 18, borderRadius: 999, background: "#eff6ff", color: "#2563eb", fontSize: 10, fontWeight: 900, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, marginTop: 1 }}>1</span>
-                          <span>Take a full screenshot of your ERP attendance table or copy the image to clipboard.</span>
+                          <span style={{ width: 18, height: 18, borderRadius: 999, background: "#eff6ff", color: "#2563eb", fontSize: 10, fontWeight: 800, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, marginTop: 1 }}>1</span>
+                          <span>Take a screenshot of your ERP attendance table or copy the image.</span>
                         </div>
                         <div style={{ display: "flex", alignItems: "flex-start", gap: 8 }}>
-                          <span style={{ width: 18, height: 18, borderRadius: 999, background: "#eff6ff", color: "#2563eb", fontSize: 10, fontWeight: 900, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, marginTop: 1 }}>2</span>
-                          <span>Click <strong>Upload / Paste Screenshot</strong> or press <kbd style={{ background: "#e2e8f0", padding: "1px 5px", borderRadius: 4, fontSize: 10.5, fontWeight: 800 }}>Ctrl + V</kbd> to paste directly.</span>
+                          <span style={{ width: 18, height: 18, borderRadius: 999, background: "#eff6ff", color: "#2563eb", fontSize: 10, fontWeight: 800, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, marginTop: 1 }}>2</span>
+                          <span>Click the button below or press <kbd style={{ background: "#e2e8f0", padding: "1px 5px", borderRadius: 4, fontSize: 10.5, fontWeight: 800 }}>Ctrl + V</kbd> to paste directly.</span>
                         </div>
                         <div style={{ display: "flex", alignItems: "flex-start", gap: 8 }}>
-                          <span style={{ width: 18, height: 18, borderRadius: 999, background: "#eff6ff", color: "#2563eb", fontSize: 10, fontWeight: 900, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, marginTop: 1 }}>3</span>
-                          <span>Auto-extracts Theory (<strong>PP</strong>), Practice (<strong>PR</strong>), and Tutorial (<strong>TUT</strong>) counts accurately.</span>
-                        </div>
-                        <div style={{ display: "flex", alignItems: "flex-start", gap: 8 }}>
-                          <span style={{ width: 18, height: 18, borderRadius: 999, background: "#eff6ff", color: "#2563eb", fontSize: 10, fontWeight: 900, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, marginTop: 1 }}>4</span>
-                          <span>Verify with the preview disclaimer and click <strong>Confirm & Save to Cloud</strong>!</span>
+                          <span style={{ width: 18, height: 18, borderRadius: 999, background: "#eff6ff", color: "#2563eb", fontSize: 10, fontWeight: 800, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, marginTop: 1 }}>3</span>
+                          <span>We'll read your classes automatically and save them to your dashboard!</span>
                         </div>
                       </div>
                     </div>
@@ -3878,11 +3879,11 @@ export default function AttendanceTracker() {
                         marginTop: 4,
                         padding: "9px 14px",
                         borderRadius: 8,
-                        border: `1px solid ${scanStatus.isLimitReached ? "#cbd5e1" : "#bfdbfe"}`,
+                        border: "1px solid #bfdbfe",
                         background: scanStatus.isLimitReached ? "#f1f5f9" : "#eff6ff",
                         color: scanStatus.isLimitReached ? "#64748b" : "#1d4ed8",
                         fontSize: 12.5,
-                        fontWeight: 800,
+                        fontWeight: 750,
                         cursor: scanStatus.isLimitReached ? "not-allowed" : "pointer",
                         opacity: scanStatus.isLimitReached ? 0.65 : 1,
                         display: "inline-flex",
@@ -3891,25 +3892,31 @@ export default function AttendanceTracker() {
                         gap: 6,
                         transition: "all 0.15s ease",
                       }}
+                      onMouseEnter={(e) => {
+                        if (!scanStatus.isLimitReached) e.currentTarget.style.background = "#dbeafe";
+                      }}
+                      onMouseLeave={(e) => {
+                        if (!scanStatus.isLimitReached) e.currentTarget.style.background = "#eff6ff";
+                      }}
                     >
                       <CloudUpload size={15} />
                       <span>
                         {scanStatus.isExempt
-                          ? "Upload / Paste ERP Screenshot Now (Unlimited)"
+                          ? "Upload or Paste ERP Screenshot (Ctrl + V)"
                           : scanStatus.isLimitReached
                           ? "Daily Limit Reached (0/2 today)"
-                          : `Upload / Paste Screenshot Now (${scanStatus.remaining}/${scanStatus.max} left)`}
+                          : `Upload / Paste Screenshot (${scanStatus.remaining}/${scanStatus.max} left)`}
                       </span>
                     </button>
                   </div>
 
-                  {/* Method 2: Manual Entry & Daily Check-in */}
+                  {/* Method 2: Manual Subject Entry */}
                   <div
                     style={{
-                      background: "linear-gradient(180deg, #f8fafc 0%, #ffffff 100%)",
-                      border: "1.5px solid #bbf7d0",
+                      background: "#ffffff",
+                      border: "1px solid #e2e8f0",
                       borderRadius: 12,
-                      padding: isMobile ? "14px 14px" : "16px 18px",
+                      padding: isMobile ? "14px" : "16px 18px",
                       display: "flex",
                       flexDirection: "column",
                       justifyContent: "space-between",
@@ -3921,18 +3928,18 @@ export default function AttendanceTracker() {
                         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                           <div
                             style={{
-                              width: 30,
-                              height: 30,
-                              borderRadius: 8,
-                              background: "#f0fdf4",
-                              color: "#16a34a",
+                              width: 28,
+                              height: 28,
+                              borderRadius: 7,
+                              background: "#f8fafc",
+                              color: "#334155",
                               display: "flex",
                               alignItems: "center",
                               justifyContent: "center",
-                              border: "1px solid #bbf7d0",
+                              border: "1px solid #e2e8f0",
                             }}
                           >
-                            <Sliders size={16} />
+                            <Sliders size={15} />
                           </div>
                           <span style={{ fontSize: isMobile ? 13.5 : 14.5, fontWeight: 800, color: "#0f172a" }}>
                             Method 2: Manual Subject Entry
@@ -3941,58 +3948,53 @@ export default function AttendanceTracker() {
                         <span
                           style={{
                             fontSize: 10,
-                            fontWeight: 900,
-                            background: "#f0fdf4",
-                            color: "#15803d",
-                            padding: "2px 8px",
-                            borderRadius: 6,
-                            border: "1px solid #bbf7d0",
-                            letterSpacing: "0.4px",
+                            fontWeight: 800,
+                            background: "#f1f5f9",
+                            color: "#475569",
+                            padding: "2px 7px",
+                            borderRadius: 5,
+                            border: "1px solid #e2e8f0",
                             display: "inline-flex",
                             alignItems: "center",
                             gap: 4,
                           }}
                         >
-                          <Edit3 size={11} /> MANUAL ENTRY
+                          <Edit3 size={10} /> TYPE DIRECTLY
                         </span>
                       </div>
 
                       {/* Helper Note Box */}
                       <div
                         style={{
-                          background: "#f0fdf4",
-                          border: "1px solid #dcfce7",
+                          background: "#f8fafc",
+                          border: "1px solid #e2e8f0",
                           borderRadius: 8,
                           padding: "8px 10px",
                           display: "flex",
                           alignItems: "center",
                           gap: 6,
                           fontSize: 11.5,
-                          color: "#166534",
-                          fontWeight: 750,
+                          color: "#334155",
+                          fontWeight: 600,
                         }}
                       >
-                        <BookOpen size={13} color="#16a34a" style={{ flexShrink: 0 }} />
-                        <span>All 7 semester courses are pre-loaded in the editor below.</span>
+                        <BookOpen size={13} color="#64748b" style={{ flexShrink: 0 }} />
+                        <span>All {sectionCatalog.length || 7} semester subjects are already listed in the editor below.</span>
                       </div>
 
-                      {/* Numbered Steps */}
+                      {/* Simple 3 Steps */}
                       <div style={{ display: "flex", flexDirection: "column", gap: 8, fontSize: 12, color: "#475569" }}>
                         <div style={{ display: "flex", alignItems: "flex-start", gap: 8 }}>
-                          <span style={{ width: 18, height: 18, borderRadius: 999, background: "#f0fdf4", color: "#16a34a", fontSize: 10, fontWeight: 900, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, marginTop: 1 }}>1</span>
-                          <span>Select each subject pill from the quick subject selector below.</span>
+                          <span style={{ width: 18, height: 18, borderRadius: 999, background: "#f1f5f9", color: "#475569", fontSize: 10, fontWeight: 800, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, marginTop: 1 }}>1</span>
+                          <span>Click on each subject pill below to open its class counts.</span>
                         </div>
                         <div style={{ display: "flex", alignItems: "flex-start", gap: 8 }}>
-                          <span style={{ width: 18, height: 18, borderRadius: 999, background: "#f0fdf4", color: "#16a34a", fontSize: 10, fontWeight: 900, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, marginTop: 1 }}>2</span>
-                          <span>Enter your current <strong>Attended</strong> and <strong>Conducted</strong> classes for Theory (PP), Lab (PR), and Tutorial (TUT).</span>
+                          <span style={{ width: 18, height: 18, borderRadius: 999, background: "#f1f5f9", color: "#475569", fontSize: 10, fontWeight: 800, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, marginTop: 1 }}>2</span>
+                          <span>Enter your current <strong>Attended</strong> and <strong>Conducted</strong> classes.</span>
                         </div>
                         <div style={{ display: "flex", alignItems: "flex-start", gap: 8 }}>
-                          <span style={{ width: 18, height: 18, borderRadius: 999, background: "#f0fdf4", color: "#16a34a", fontSize: 10, fontWeight: 900, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, marginTop: 1 }}>3</span>
-                          <span>Check the ERP verification box and click <strong>Save to Semester Dashboard</strong>.</span>
-                        </div>
-                        <div style={{ display: "flex", alignItems: "flex-start", gap: 8 }}>
-                          <span style={{ width: 18, height: 18, borderRadius: 999, background: "#f0fdf4", color: "#16a34a", fontSize: 10, fontWeight: 900, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, marginTop: 1 }}>4</span>
-                          <span>Once saved, use the <strong>Daily Check-In Hub</strong> to mark <strong>Present / Absent</strong> with 1 tap every day!</span>
+                          <span style={{ width: 18, height: 18, borderRadius: 999, background: "#f1f5f9", color: "#475569", fontSize: 10, fontWeight: 800, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, marginTop: 1 }}>3</span>
+                          <span>Check the confirmation box and click <strong>Save to Semester Dashboard</strong>.</span>
                         </div>
                       </div>
                     </div>
@@ -4013,7 +4015,7 @@ export default function AttendanceTracker() {
                       }}
                     >
                       <CheckCircle2 size={14} color="#16a34a" style={{ flexShrink: 0 }} />
-                      <span>Smart Bunk Analyzer & Predictor unlock instantly once saved!</span>
+                      <span>Daily check-ins & bunk calculators unlock as soon as you save!</span>
                     </div>
                   </div>
                 </div>
