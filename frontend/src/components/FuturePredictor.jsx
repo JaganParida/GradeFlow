@@ -55,6 +55,13 @@ function formatFriendlyDate(date, options = { weekday: "short", day: "numeric", 
   return d.toLocaleDateString("en-IN", options);
 }
 
+// Helper: Format percentage clean without trailing zeroes (e.g. 75%, 71.4%, 68.2%)
+function formatPercentage(num) {
+  if (num === null || num === undefined || isNaN(num)) return "0%";
+  const n = Number(Number(num).toFixed(1));
+  return `${n}%`;
+}
+
 export default function FuturePredictor({
   selectedSection = "CSE-A",
   allSectionSubjects = [],
@@ -131,13 +138,16 @@ export default function FuturePredictor({
   // Phase 1 Detail Toggle: Summary vs Day-by-Day Detailed Schedule
   const [preBunkViewMode, setPreBunkViewMode] = useState("detailed"); // "detailed" | "summary"
 
-  // Phase 3 Subject Filter for recovery schedule
+  // Subject Filter for missed & recovery schedules
   const [recoverySubjectFilter, setRecoverySubjectFilter] = useState("ALL");
   const [showAllRecoveryDates, setShowAllRecoveryDates] = useState(false);
+  const [showAllMissedDates, setShowAllMissedDates] = useState(false);
   const [expandedSubjects, setExpandedSubjects] = useState({});
 
   useEffect(() => {
     setRecoverySubjectFilter("ALL");
+    setShowAllRecoveryDates(false);
+    setShowAllMissedDates(false);
   }, [selectedBunkKeys]);
 
   const toggleSubjectExpand = (subName) => {
@@ -477,6 +487,7 @@ export default function FuturePredictor({
     // Chronologically simulates every day from firstBunkDate to lastBunkDate
     // ─────────────────────────────────────────────────────────────────────────
     const bunkDaysBreakdown = [];
+    const masterSimulatedMissedSessions = [];
     let cumulativeMissedClasses = 0;
     let cumulativeInterveningAttendedClasses = 0;
     let interveningAttendedDaysCount = 0;
@@ -490,6 +501,7 @@ export default function FuturePredictor({
       sub.simRunningAtt = sub.preBunkAttended;
       sub.simRunningDel = sub.preBunkDelivered;
       sub.interveningAttendedCount = 0;
+      sub.missedSessionsList = [];
     });
 
     const selectedBunkKeySet = new Set(sortedBunkDates.map((d) => toDateKey(d)));
@@ -572,6 +584,10 @@ export default function FuturePredictor({
               type: cls.type || "PP",
             });
 
+            const prevSubAtt = subData ? subData.simRunningAtt : 0;
+            const prevSubDel = subData ? subData.simRunningDel : 0;
+            const prevSubPct = prevSubDel > 0 ? (prevSubAtt / prevSubDel) * 100 : (subData?.preBunkPct || 100);
+
             if (subData) {
               subData.bunkMissedCount += 1;
               subData.simRunningDel += 1; // Delivered increases on this day (missed)
@@ -587,6 +603,43 @@ export default function FuturePredictor({
                 room: cls.room || "Room TBA",
               });
             }
+
+            const newSubAtt = subData ? subData.simRunningAtt : prevSubAtt;
+            const newSubDel = subData ? subData.simRunningDel : prevSubDel + 1;
+            const newSubPct = newSubDel > 0 ? Number(((newSubAtt / newSubDel) * 100).toFixed(2)) : 0;
+            const percentageDrop = Number(Math.abs(prevSubPct - newSubPct).toFixed(2));
+            const targetPct = Number(recoveryTargetPct) || 75;
+            const isBelowTarget = newSubPct < targetPct;
+            const room = cls.room || `CSE-F-AR-${310 + ((cls.slotIndex || 0) % 8)}`;
+            const faculty = cls.faculty || "Faculty";
+            const type = cls.type || "PP";
+
+            const missedItem = {
+              date: new Date(simDate),
+              dateKey: dKey,
+              dateStr: dateFormatted,
+              dayName: sched.dayName,
+              slotIndex: cls.slotIndex,
+              timeSlot: timeSlotLabel,
+              subjectName: cleanName,
+              subCode: resolveSubjectCode({ subject: cleanName }, studentData),
+              room,
+              faculty,
+              type,
+              runningAttended: newSubAtt,
+              runningDelivered: newSubDel,
+              runningPercentage: newSubPct,
+              percentageDrop,
+              isBelowTarget,
+            };
+
+            if (subData) {
+              if (!subData.missedSessionsList) {
+                subData.missedSessionsList = [];
+              }
+              subData.missedSessionsList.push(missedItem);
+            }
+            masterSimulatedMissedSessions.push(missedItem);
           } else {
             group.alreadyMarkedSlots.push({
               slotIndex: cls.slotIndex,
@@ -1028,6 +1081,23 @@ export default function FuturePredictor({
       ses.sessionNumber = idx + 1;
     });
 
+    // Sort simulated missed sessions chronologically and set sequence numbers
+    masterSimulatedMissedSessions.sort((a, b) => {
+      const dateDiff = a.date.getTime() - b.date.getTime();
+      if (dateDiff !== 0) return dateDiff;
+      return (a.slotIndex ?? 0) - (b.slotIndex ?? 0);
+    });
+    masterSimulatedMissedSessions.forEach((ses, idx) => {
+      ses.globalMissNumber = idx + 1;
+    });
+    missedOnlySubjectsList.forEach((sub) => {
+      if (sub.missedSessionsList) {
+        sub.missedSessionsList.forEach((ses, idx) => {
+          ses.subjectMissNumber = idx + 1;
+        });
+      }
+    });
+
     // First instructional return date
     const firstReturnDate = new Date(lastBunkDate);
     firstReturnDate.setDate(firstReturnDate.getDate() + 1);
@@ -1067,6 +1137,7 @@ export default function FuturePredictor({
       missedOnlySubjectsList,
       criticalSubjectsList: affectedSubjectsList.filter((s) => !s.isSafeAtTarget),
       impossibleSubjectsList: affectedSubjectsList.filter((s) => s.isTargetImpossible),
+      masterSimulatedMissedSessions,
       masterMissedRecoverySessions,
       targetPct,
     };
@@ -1100,6 +1171,34 @@ export default function FuturePredictor({
     if (showAllRecoveryDates) return filteredRecoverySessions;
     return filteredRecoverySessions.slice(0, 15);
   }, [filteredRecoverySessions, showAllRecoveryDates]);
+
+  // Filtered simulated missed sessions based on selected subject tab
+  const filteredMissedSessions = useMemo(() => {
+    if (!simulation?.masterSimulatedMissedSessions) return [];
+    let list = simulation.masterSimulatedMissedSessions;
+    if (recoverySubjectFilter !== "ALL") {
+      list = list.filter((s) => s.subjectName === recoverySubjectFilter);
+    }
+    return list;
+  }, [simulation?.masterSimulatedMissedSessions, recoverySubjectFilter]);
+
+  const visibleMissedSessions = useMemo(() => {
+    if (showAllMissedDates) return filteredMissedSessions;
+    return filteredMissedSessions.slice(0, 15);
+  }, [filteredMissedSessions, showAllMissedDates]);
+
+  // Dynamic drop display for Missed Classes breakdown header
+  const currentMissDropDisplay = useMemo(() => {
+    if (!simulation) return "0.00";
+    if (recoverySubjectFilter === "ALL") {
+      return Math.abs(simulation.totalBunkDropDelta || 0).toFixed(2);
+    }
+    const subObj = simulation.missedOnlySubjectsList?.find((s) => s.subjectName === recoverySubjectFilter);
+    if (subObj) {
+      return Math.abs(subObj.bunkDropDelta || 0).toFixed(2);
+    }
+    return "0.00";
+  }, [simulation, recoverySubjectFilter]);
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 16, width: "100%", maxWidth: "100%", boxSizing: "border-box", overflowX: "hidden" }}>
@@ -2449,572 +2548,355 @@ export default function FuturePredictor({
               </div>
             )}
 
-            {/* Sequential Schedule Breakdown across the Simulation Window */}
-            <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-              <span style={{ fontSize: 11.5, fontWeight: 800, color: "#475569", textTransform: "uppercase", letterSpacing: "0.5px" }}>
-                {simulation.interveningAttendedDaysCount > 0
-                  ? `Day-by-Day Schedule & Attendance Impact (${simulation.bunkDaysCount} Bunk Days, ${simulation.interveningAttendedDaysCount} Attended Days):`
-                  : "Day-by-Day Bunk Impact & Missed Classes:"}
-              </span>
-              <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-                {simulation.bunkDaysBreakdown.map((bDay) => {
-                  if (bDay.isAttendedDay) {
-                    return (
-                      <div
-                        key={bDay.dateKey}
-                        style={{
-                          display: "flex",
-                          flexDirection: "column",
-                          gap: 6,
-                          padding: effectiveIsMobile ? "10px 10px" : "12px 14px",
-                          borderRadius: 12,
-                          background: "#f0fdf4",
-                          border: "1.5px solid #86efac",
-                          boxShadow: "0 2px 6px rgba(22, 163, 74, 0.06)",
-                          maxWidth: "100%",
-                          boxSizing: "border-box",
-                          overflow: "hidden",
-                        }}
-                      >
-                        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 8 }}>
-                          <div style={{ display: "flex", alignItems: "center", flexWrap: "wrap", gap: 6, minWidth: 0, flex: 1 }}>
-                            <span
-                              style={{
-                                width: 22,
-                                height: 22,
-                                borderRadius: 6,
-                                background: "#dcfce7",
-                                color: "#166534",
-                                fontSize: 11,
-                                fontWeight: 800,
-                                display: "inline-flex",
-                                alignItems: "center",
-                                justifyContent: "center",
-                                flexShrink: 0,
-                              }}
-                            >
-                              {bDay.stepIndex}
-                            </span>
-                            <span style={{ fontSize: 13, fontWeight: 900, color: "#0f172a" }}>
-                              {bDay.dateFormatted} ({bDay.dayName})
-                            </span>
-                            <span
-                              style={{
-                                fontSize: 10.5,
-                                fontWeight: 800,
-                                padding: "2px 7px",
-                                borderRadius: 6,
-                                background: "#dcfce7",
-                                color: "#15803d",
-                                border: "1px solid #bbf7d0",
-                                display: "inline-flex",
-                                alignItems: "center",
-                                gap: 4,
-                                wordBreak: "break-word",
-                              }}
-                            >
-                              <CheckCircle2 size={11} style={{ flexShrink: 0 }} />
-                              In-Between Attended (+{bDay.classesAttendedCount} Classes)
-                            </span>
-                          </div>
+            {/* ── Optional Notice for In-Between Attended Classes ── */}
+            {simulation.interveningAttendedDaysCount > 0 && (
+              <div
+                style={{
+                  background: "#ecfdf5",
+                  border: "1px solid #bbf7d0",
+                  borderRadius: 12,
+                  padding: "10px 14px",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 10,
+                }}
+              >
+                <CheckCircle2 size={18} color="#16a34a" style={{ flexShrink: 0 }} />
+                <div style={{ fontSize: 12, color: "#166534", lineHeight: 1.45 }}>
+                  <strong>In-Between Attended Classes Boost:</strong> You have {simulation.cumulativeInterveningAttendedClasses} scheduled class(es) across {simulation.interveningAttendedDaysCount} instructional day(s) between your leave dates that you will attend. Attending them increases attendance by <strong>+{simulation.totalBunkDropDelta >= 0 ? simulation.totalBunkDropDelta : 0}%</strong> before later absences, as shown in the exact counts below.
+                </div>
+              </div>
+            )}
 
-                          <div style={{ display: "flex", alignItems: "center", gap: 6, flexShrink: 0 }}>
-                            <span style={{ fontSize: 11, color: "#64748b" }}>Overall:</span>
-                            <span style={{ fontSize: 13, fontWeight: 900, color: "#15803d" }}>
-                              {bDay.endOfDayOverallPct}%
-                            </span>
-                            <span style={{ fontSize: 11, fontWeight: 800, color: "#16a34a" }}>
-                              (+{bDay.dayDelta}%)
-                            </span>
-                          </div>
-                        </div>
+            {/* ── Subject Filter Pills for Missed & Recovery Breakdowns ── */}
+            {simulation.missedOnlySubjectsList.length > 1 && (
+              <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap", paddingTop: 4 }}>
+                <span style={{ fontSize: 11, fontWeight: 800, color: "#64748b", textTransform: "uppercase", display: "flex", alignItems: "center", gap: 4 }}>
+                  <Filter size={12} /> Filter Subject:
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setRecoverySubjectFilter("ALL")}
+                  style={{
+                    padding: "4px 9px",
+                    borderRadius: 7,
+                    border: recoverySubjectFilter === "ALL" ? "1.5px solid #0f172a" : "1px solid #cbd5e1",
+                    background: recoverySubjectFilter === "ALL" ? "#0f172a" : "#ffffff",
+                    color: recoverySubjectFilter === "ALL" ? "#ffffff" : "#475569",
+                    fontSize: 11,
+                    fontWeight: 800,
+                    cursor: "pointer",
+                  }}
+                >
+                  All Missed Subjects ({simulation.masterSimulatedMissedSessions.length} classes)
+                </button>
+                {simulation.missedOnlySubjectsList.map((sub) => {
+                  const isSelected = recoverySubjectFilter === sub.subjectName;
+                  const missedCount = sub.bunkMissedCount || 0;
+                  const isSafe = sub.isSafeAtTarget;
 
-                        {/* Explanatory Guidance Banner */}
-                        <div
-                          style={{
-                            background: "#ecfdf5",
-                            border: "1px solid #bbf7d0",
-                            borderRadius: 8,
-                            padding: "6px 10px",
-                            fontSize: 11.5,
-                            fontWeight: 700,
-                            color: "#166534",
-                            display: "flex",
-                            alignItems: "center",
-                            gap: 6,
-                            marginTop: 2,
-                          }}
-                        >
-                          <CheckCircle2 size={14} color="#16a34a" style={{ flexShrink: 0 }} />
-                          <span>
-                            <strong>Classes Scheduled & Attended:</strong> Apko ye classes attend karni hain — attendance increase hogi (<strong>+{bDay.dayDelta}%</strong>), jisse agle bunk se pehle buffer badhega!
-                          </span>
-                        </div>
-
-                        {/* Subject-wise gain details for this day */}
-                        {bDay.daySubjectsGainList && bDay.daySubjectsGainList.length > 0 && (
-                          <div style={{ display: "flex", flexDirection: "column", gap: 6, marginTop: 4 }}>
-                            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 6 }}>
-                              <span style={{ fontSize: 11, fontWeight: 800, color: "#166534", textTransform: "uppercase", letterSpacing: "0.5px", display: "inline-flex", alignItems: "center", gap: 4 }}>
-                                <TrendingUp size={12} color="#16a34a" />
-                                Subject-wise Attendance Gain on {bDay.dayName}:
-                              </span>
-                              <span style={{ fontSize: 10.5, color: "#15803d", fontWeight: 700 }}>
-                                +{bDay.classesAttendedCount} class{bDay.classesAttendedCount > 1 ? "es" : ""} attended across {bDay.daySubjectsGainList.length} subject(s)
-                              </span>
-                            </div>
-
-                            <div
-                              style={{
-                                display: "grid",
-                                gridTemplateColumns: effectiveIsMobile ? "1fr" : "repeat(auto-fill, minmax(280px, 1fr))",
-                                gap: 8,
-                                width: "100%",
-                                boxSizing: "border-box",
-                              }}
-                            >
-                              {bDay.daySubjectsGainList.map((subGain, gIdx) => (
-                                <div
-                                  key={gIdx}
-                                  style={{
-                                    background: "#ffffff",
-                                    border: "1.5px solid #bbf7d0",
-                                    borderRadius: 10,
-                                    padding: "9px 12px",
-                                    display: "flex",
-                                    flexDirection: "column",
-                                    gap: 6,
-                                    boxShadow: "0 1px 3px rgba(22, 163, 74, 0.08)",
-                                    minWidth: 0,
-                                    width: "100%",
-                                    boxSizing: "border-box",
-                                    overflow: "hidden",
-                                  }}
-                                >
-                                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 6 }}>
-                                    <div style={{ minWidth: 0, flex: 1 }}>
-                                      <div style={{ fontSize: 12.5, fontWeight: 900, color: "#0f172a", wordBreak: "break-word", lineHeight: 1.35 }}>
-                                        {subGain.subjectName}
-                                      </div>
-                                      <div style={{ fontSize: 10.5, color: "#15803d", marginTop: 1, fontWeight: 700 }}>
-                                        +{subGain.attendedCount} class{subGain.attendedCount > 1 ? "es" : ""} attended ({subGain.type})
-                                      </div>
-                                      {subGain.attendedSlots && subGain.attendedSlots.length > 0 && (
-                                        <div style={{ fontSize: 10, color: "#64748b", marginTop: 2, wordBreak: "break-word", display: "inline-flex", alignItems: "center", gap: 3.5 }}>
-                                          <Clock size={10} style={{ flexShrink: 0 }} />
-                                          <span>{subGain.attendedSlots.map((s) => s.timeSlot).join(", ")}</span>
-                                        </div>
-                                      )}
-                                    </div>
-
-                                    <span
-                                      style={{
-                                        fontSize: 11,
-                                        fontWeight: 900,
-                                        padding: "2px 7px",
-                                        borderRadius: 5,
-                                        background: "#dcfce7",
-                                        color: "#166534",
-                                        border: "1px solid #bbf7d0",
-                                        whiteSpace: "nowrap",
-                                        display: "inline-flex",
-                                        alignItems: "center",
-                                        gap: 3,
-                                        flexShrink: 0,
-                                      }}
-                                    >
-                                      <TrendingUp size={11} /> +{subGain.dayGainDelta}%
-                                    </span>
-                                  </div>
-
-                                  {/* Attendance Before -> After on this Day */}
-                                  <div
-                                    style={{
-                                      display: "flex",
-                                      alignItems: "center",
-                                      justifyContent: "space-between",
-                                      flexWrap: "wrap",
-                                      gap: 6,
-                                      background: "#f0fdf4",
-                                      padding: "5px 8px",
-                                      borderRadius: 6,
-                                      fontSize: 11,
-                                      minWidth: 0,
-                                      boxSizing: "border-box",
-                                    }}
-                                  >
-                                    <div style={{ display: "flex", alignItems: "center", gap: 5, flexWrap: "wrap" }}>
-                                      <span style={{ color: "#64748b" }}>Pre-Day:</span>
-                                      <span style={{ fontWeight: 700, color: "#334155" }}>{subGain.startPct}%</span>
-                                      <ArrowRight size={10} color="#64748b" />
-                                      <span style={{ color: "#64748b" }}>Post-Day:</span>
-                                      <strong style={{ color: "#15803d" }}>{subGain.endPct}%</strong>
-                                    </div>
-
-                                    <span
-                                      style={{
-                                        fontSize: 9.5,
-                                        fontWeight: 900,
-                                        padding: "1px 5px",
-                                        borderRadius: 4,
-                                        background: "#dcfce7",
-                                        color: "#166534",
-                                        flexShrink: 0,
-                                        display: "inline-flex",
-                                        alignItems: "center",
-                                        gap: 3,
-                                      }}
-                                    >
-                                      <Check size={10} />
-                                      Buffer Boosted
-                                    </span>
-                                  </div>
-                                </div>
-                              ))}
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    );
-                  }
-
-                  if (bDay.isNonInstructional) {
-                    return (
-                      <div
-                        key={bDay.dateKey}
-                        style={{
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "space-between",
-                          flexWrap: "wrap",
-                          gap: 8,
-                          padding: "9px 12px",
-                          borderRadius: 10,
-                          background: "#f8fafc",
-                          border: "1px dashed #cbd5e1",
-                          maxWidth: "100%",
-                          boxSizing: "border-box",
-                          overflow: "hidden",
-                        }}
-                      >
-                        <div style={{ display: "flex", alignItems: "center", flexWrap: "wrap", gap: 6, minWidth: 0, flex: 1 }}>
-                          <span
-                            style={{
-                              width: 22,
-                              height: 22,
-                              borderRadius: 6,
-                              background: "#e2e8f0",
-                              color: "#64748b",
-                              fontSize: 11,
-                              fontWeight: 800,
-                              display: "inline-flex",
-                              alignItems: "center",
-                              justifyContent: "center",
-                              flexShrink: 0,
-                            }}
-                          >
-                            {bDay.stepIndex}
-                          </span>
-                          <span style={{ fontSize: 12.5, fontWeight: 700, color: "#64748b" }}>
-                            {bDay.dateFormatted} ({bDay.dayName})
-                          </span>
-                          <span
-                            style={{
-                              fontSize: 10,
-                              fontWeight: 700,
-                              padding: "1px 6px",
-                              borderRadius: 4,
-                              background: "#f1f5f9",
-                              color: "#64748b",
-                              wordBreak: "break-word",
-                            }}
-                          >
-                            {bDay.holidayTitle || "Holiday / Sunday (0 Classes)"}
-                          </span>
-                        </div>
-
-                        <div style={{ fontSize: 11, color: "#94a3b8", flexShrink: 0 }}>
-                          Overall: <strong>{bDay.endOfDayOverallPct}%</strong> (No Change)
-                        </div>
-                      </div>
-                    );
-                  }
-
-                  // Default: Bunk Day
                   return (
-                    <div
-                      key={bDay.dateKey}
+                    <button
+                      key={sub.subjectName}
+                      type="button"
+                      onClick={() => setRecoverySubjectFilter(sub.subjectName)}
                       style={{
-                        display: "flex",
-                        flexDirection: "column",
-                        gap: 6,
-                        padding: effectiveIsMobile ? "10px 10px" : "12px 14px",
-                        borderRadius: 10,
-                        background: "#f8fafc",
-                        border: "1.5px solid #fed7aa",
-                        maxWidth: "100%",
-                        boxSizing: "border-box",
-                        overflow: "hidden",
+                        padding: "4px 9px",
+                        borderRadius: 7,
+                        border: isSelected
+                          ? isSafe
+                            ? "1.5px solid #16a34a"
+                            : "1.5px solid #e11d48"
+                          : isSafe
+                          ? "1px solid #bbf7d0"
+                          : "1px solid #fecdd3",
+                        background: isSelected
+                          ? isSafe
+                            ? "#f0fdf4"
+                            : "#fff1f2"
+                          : isSafe
+                          ? "#f8fafc"
+                          : "#ffffff",
+                        color: isSelected
+                          ? isSafe
+                            ? "#166534"
+                            : "#be123c"
+                          : isSafe
+                          ? "#166534"
+                          : "#475569",
+                        fontSize: 11,
+                        fontWeight: 800,
+                        cursor: "pointer",
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: 4,
                       }}
                     >
-                      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 8 }}>
-                        <div style={{ display: "flex", alignItems: "center", flexWrap: "wrap", gap: 6, minWidth: 0, flex: 1 }}>
-                          <span
-                            style={{
-                              width: 22,
-                              height: 22,
-                              borderRadius: 6,
-                              background: "#fee2e2",
-                              color: "#dc2626",
-                              fontSize: 11,
-                              fontWeight: 800,
-                              display: "inline-flex",
-                              alignItems: "center",
-                              justifyContent: "center",
-                              flexShrink: 0,
-                            }}
-                          >
-                            {bDay.stepIndex}
-                          </span>
-                          <span style={{ fontSize: 13, fontWeight: 900, color: "#0f172a" }}>
-                            {bDay.dateFormatted} ({bDay.dayName})
-                          </span>
-                          <span
-                            style={{
-                              fontSize: 10.5,
-                              fontWeight: 700,
-                              padding: "1px 6px",
-                              borderRadius: 4,
-                              background: bDay.isInstructional ? "#fee2e2" : "#fffbeb",
-                              color: bDay.isInstructional ? "#dc2626" : "#b45309",
-                              wordBreak: "break-word",
-                            }}
-                          >
-                            {bDay.isToday && bDay.alreadyMarkedCount > 0
-                              ? `${bDay.classesMissedCount} Remaining Missed (${bDay.alreadyMarkedCount} marked earlier)`
-                              : bDay.isInstructional
-                              ? `${bDay.classesMissedCount} Classes Missed`
-                              : bDay.holidayTitle || "Holiday (0 Missed)"}
-                          </span>
-                        </div>
-
-                        <div style={{ display: "flex", alignItems: "center", gap: 6, flexShrink: 0 }}>
-                          <span style={{ fontSize: 11, color: "#64748b" }}>Overall:</span>
-                          <span style={{ fontSize: 12.5, fontWeight: 900, color: bDay.endOfDayOverallPct >= 75 ? "#0f172a" : "#dc2626" }}>
-                            {bDay.endOfDayOverallPct}%
-                          </span>
-                          <span style={{ fontSize: 11, fontWeight: 800, color: "#dc2626" }}>
-                            ({bDay.dayDelta}%)
-                          </span>
-                        </div>
-                      </div>
-
-                      {/* Subject-wise drop details for this specific day */}
-                      {bDay.daySubjectsImpactList && bDay.daySubjectsImpactList.length > 0 ? (
-                        <div style={{ display: "flex", flexDirection: "column", gap: 6, marginTop: 4 }}>
-                          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 6 }}>
-                            <span style={{ fontSize: 11, fontWeight: 800, color: "#64748b", textTransform: "uppercase", letterSpacing: "0.5px", display: "inline-flex", alignItems: "center", gap: 4 }}>
-                              <TrendingDown size={12} color="#dc2626" />
-                              Subject-wise Attendance Drop on {bDay.dayName}:
-                            </span>
-                            <span style={{ fontSize: 10.5, color: "#94a3b8", fontWeight: 600 }}>
-                              {bDay.classesMissedCount} class{bDay.classesMissedCount > 1 ? "es" : ""} missed across {bDay.daySubjectsImpactList.filter((s) => s.missedCount > 0).length} subject(s)
-                            </span>
-                          </div>
-
-                          <div
-                            style={{
-                              display: "grid",
-                              gridTemplateColumns: effectiveIsMobile ? "1fr" : "repeat(auto-fill, minmax(280px, 1fr))",
-                              gap: 8,
-                              width: "100%",
-                              boxSizing: "border-box",
-                            }}
-                          >
-                            {bDay.daySubjectsImpactList.map((subImp, sIdx) => {
-                              const isBreached = subImp.breachedCutoffToday;
-                              const isSafe = subImp.isSafeAfterDay;
-                              const hasMissed = subImp.missedCount > 0;
-                              const hasMarked = subImp.alreadyMarkedSlots && subImp.alreadyMarkedSlots.length > 0;
-
-                              return (
-                                <div
-                                  key={sIdx}
-                                  style={{
-                                    background: isBreached ? "#fff5f5" : "#ffffff",
-                                    border: `1.5px solid ${isBreached ? "#fca5a5" : "#e2e8f0"}`,
-                                    borderRadius: 10,
-                                    padding: "9px 12px",
-                                    display: "flex",
-                                    flexDirection: "column",
-                                    gap: 6,
-                                    boxShadow: isBreached ? "0 2px 6px rgba(220, 38, 38, 0.08)" : "0 1px 2px rgba(0,0,0,0.02)",
-                                    minWidth: 0,
-                                    width: "100%",
-                                    boxSizing: "border-box",
-                                    overflow: "hidden",
-                                  }}
-                                >
-                                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 6 }}>
-                                    <div style={{ minWidth: 0, flex: 1 }}>
-                                      <div style={{ fontSize: 12.5, fontWeight: 900, color: "#0f172a", wordBreak: "break-word", lineHeight: 1.35 }}>
-                                        {subImp.subjectName}
-                                      </div>
-                                      <div style={{ fontSize: 10.5, color: "#64748b", marginTop: 1, display: "flex", alignItems: "center", gap: 5, flexWrap: "wrap" }}>
-                                        <span style={{ fontWeight: 700, color: "#475569" }}>
-                                          {hasMissed ? `${subImp.missedCount} class${subImp.missedCount > 1 ? "es" : ""} missed` : "0 missed"} ({subImp.type})
-                                        </span>
-                                        {hasMarked && (
-                                          <span style={{ fontSize: 9.5, fontWeight: 800, background: "#e2e8f0", color: "#475569", padding: "1px 5px", borderRadius: 4 }}>
-                                            {subImp.alreadyMarkedSlots.length} logged today
-                                          </span>
-                                        )}
-                                      </div>
-                                      {subImp.missedSlots && subImp.missedSlots.length > 0 && (
-                                        <div style={{ fontSize: 10, color: "#94a3b8", marginTop: 2, wordBreak: "break-word", display: "inline-flex", alignItems: "center", gap: 3.5 }}>
-                                          <Clock size={10} style={{ flexShrink: 0 }} />
-                                          <span>{subImp.missedSlots.map((s) => s.timeSlot).join(", ")}</span>
-                                        </div>
-                                      )}
-                                    </div>
-
-                                    {/* Subject day drop badge */}
-                                    {(() => {
-                                      const rawDrop =
-                                        subImp.dayDropDelta ??
-                                        subImp.dayDelta ??
-                                        (typeof subImp.endPct === "number" && typeof subImp.startPct === "number"
-                                          ? Number((subImp.endPct - subImp.startPct).toFixed(2))
-                                          : 0);
-                                      const isNegative = rawDrop < 0;
-                                      return (
-                                        <span
-                                          style={{
-                                            fontSize: 11,
-                                            fontWeight: 900,
-                                            padding: "2px 7px",
-                                            borderRadius: 5,
-                                            background: isNegative ? "#fef2f2" : "#f8fafc",
-                                            color: isNegative ? "#dc2626" : "#64748b",
-                                            border: `1px solid ${isNegative ? "#fecaca" : "#e2e8f0"}`,
-                                            whiteSpace: "nowrap",
-                                            display: "inline-flex",
-                                            alignItems: "center",
-                                            gap: 3,
-                                            flexShrink: 0,
-                                          }}
-                                        >
-                                          <TrendingDown size={11} /> {rawDrop}%
-                                        </span>
-                                      );
-                                    })()}
-                                  </div>
-
-                                  {/* Attendance Before -> After on this Day */}
-                                  <div
-                                    style={{
-                                      display: "flex",
-                                      alignItems: "center",
-                                      justifyContent: "space-between",
-                                      flexWrap: "wrap",
-                                      gap: 6,
-                                      background: isBreached ? "#fee2e2" : "#f8fafc",
-                                      padding: "5px 8px",
-                                      borderRadius: 6,
-                                      fontSize: 11,
-                                      minWidth: 0,
-                                      boxSizing: "border-box",
-                                    }}
-                                  >
-                                    <div style={{ display: "flex", alignItems: "center", gap: 5, flexWrap: "wrap" }}>
-                                      <span style={{ color: "#64748b" }}>Before:</span>
-                                      <span style={{ fontWeight: 700, color: "#334155" }}>{subImp.startPct}%</span>
-                                      <ArrowRight size={10} color="#64748b" />
-                                      <span style={{ color: "#64748b" }}>After:</span>
-                                      <strong style={{ color: isSafe ? "#059669" : "#dc2626" }}>{subImp.endPct}%</strong>
-                                    </div>
-
-                                    <span
-                                      style={{
-                                        fontSize: 9.5,
-                                        fontWeight: 900,
-                                        padding: "1px 5px",
-                                        borderRadius: 4,
-                                        background: isBreached
-                                          ? "#dc2626"
-                                          : isSafe
-                                          ? "#ecfdf5"
-                                          : "#fee2e2",
-                                        color: isBreached
-                                          ? "#ffffff"
-                                          : isSafe
-                                          ? "#059669"
-                                          : "#dc2626",
-                                        flexShrink: 0,
-                                        display: "inline-flex",
-                                        alignItems: "center",
-                                        gap: 3,
-                                      }}
-                                    >
-                                      {isBreached ? (
-                                        <>
-                                          <AlertTriangle size={9} />
-                                          Drops Below Cutoff!
-                                        </>
-                                      ) : isSafe ? (
-                                        <>
-                                          <Check size={9} />
-                                          Safe
-                                        </>
-                                      ) : (
-                                        "Cutoff Breached"
-                                      )}
-                                    </span>
-                                  </div>
-                                </div>
-                              );
-                            })}
-                          </div>
-                        </div>
-                      ) : bDay.classes.length > 0 ? (
-                        <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 2 }}>
-                          {bDay.classes.map((cls, cIdx) => (
-                            <span
-                              key={cIdx}
-                              style={{
-                                fontSize: 11,
-                                background: cls.isAlreadyMarked ? "#f1f5f9" : "#ffffff",
-                                border: cls.isAlreadyMarked ? "1px solid #cbd5e1" : "1px solid #fecaca",
-                                color: cls.isAlreadyMarked ? "#64748b" : "#991b1b",
-                                padding: "3px 8px",
-                                borderRadius: 6,
-                                display: "inline-flex",
-                                alignItems: "center",
-                                gap: 5,
-                                wordBreak: "break-word",
-                              }}
-                            >
-                              <strong>{cls.subjectName}</strong>
-                              <span style={{ fontSize: 9.5, opacity: 0.8 }}>({cls.timeSlot})</span>
-                              {cls.isAlreadyMarked && (
-                                <span style={{ fontSize: 9, fontWeight: 800, background: "#e2e8f0", padding: "1px 4px", borderRadius: 3 }}>
-                                  Already {cls.markStatus}
-                                </span>
-                              )}
-                            </span>
-                          ))}
-                        </div>
-                      ) : null}
-                    </div>
+                      <span>{sub.subjectName}</span>
+                      <span
+                        style={{
+                          fontSize: 9.5,
+                          fontWeight: 800,
+                          background: isSelected ? (isSafe ? "#16a34a" : "#e11d48") : (isSafe ? "#dcfce7" : "#fee2e2"),
+                          color: isSelected ? "#ffffff" : (isSafe ? "#166534" : "#dc2626"),
+                          padding: "1px 5px",
+                          borderRadius: 4,
+                        }}
+                      >
+                        {missedCount} missed
+                      </span>
+                    </button>
                   );
                 })}
               </div>
-            </div>
+            )}
+
+            {/* ── Simulated Missed Classes Breakdown (Exact Image Layout) ── */}
+            {filteredMissedSessions.length === 0 ? (
+              <div
+                style={{
+                  background: "#ffffff",
+                  border: "1.5px solid #e2e8f0",
+                  borderRadius: 14,
+                  padding: "16px 18px",
+                  color: "#64748b",
+                  fontSize: 12.5,
+                  textAlign: "center",
+                }}
+              >
+                No classes scheduled or missed for {recoverySubjectFilter === "ALL" ? "these dates" : recoverySubjectFilter}.
+              </div>
+            ) : (
+              <div
+                style={{
+                  background: "#fff1f2",
+                  border: "1.5px solid #fecdd3",
+                  borderRadius: 16,
+                  padding: effectiveIsMobile ? "14px 12px" : "16px 18px",
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: 12,
+                  maxWidth: "100%",
+                  boxSizing: "border-box",
+                }}
+              >
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: effectiveIsMobile ? "flex-start" : "center",
+                    flexDirection: effectiveIsMobile ? "column" : "row",
+                    gap: 8,
+                    width: "100%",
+                  }}
+                >
+                  <div>
+                    <h5
+                      style={{
+                        fontSize: effectiveIsMobile ? 13.5 : 14,
+                        fontWeight: 900,
+                        color: "#9f1239",
+                        margin: 0,
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 6,
+                        wordBreak: "break-word",
+                      }}
+                    >
+                      <TrendingDown size={16} color="#e11d48" style={{ flexShrink: 0 }} />
+                      Simulated Missed Classes Breakdown ({filteredMissedSessions.length} total)
+                    </h5>
+                    <p style={{ fontSize: 12, color: "#be123c", margin: "2px 0 0 0", wordBreak: "break-word" }}>
+                      Simulating consecutive absences on these exact dates and time slots:
+                    </p>
+                  </div>
+
+                  <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                    <span
+                      style={{
+                        fontSize: 11.5,
+                        fontWeight: 800,
+                        background: "#ffffff",
+                        color: "#e11d48",
+                        padding: "3px 9px",
+                        borderRadius: 8,
+                        border: "1px solid #fda4af",
+                        whiteSpace: "nowrap",
+                      }}
+                    >
+                      Attendance Drops by -{currentMissDropDisplay}%
+                    </span>
+
+                    {filteredMissedSessions.length > 15 && (
+                      <button
+                        type="button"
+                        onClick={() => setShowAllMissedDates(!showAllMissedDates)}
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 4,
+                          background: "#ffffff",
+                          color: "#e11d48",
+                          border: "1px solid #fda4af",
+                          padding: "3px 9px",
+                          borderRadius: 8,
+                          fontSize: 11.5,
+                          fontWeight: 800,
+                          cursor: "pointer",
+                          whiteSpace: "nowrap",
+                        }}
+                      >
+                        {showAllMissedDates ? (
+                          <>
+                            <ChevronUp size={13} /> Collapse (15)
+                          </>
+                        ) : (
+                          <>
+                            <ChevronDown size={13} /> View All ({filteredMissedSessions.length})
+                          </>
+                        )}
+                      </button>
+                    )}
+                  </div>
+                </div>
+
+                <div
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: effectiveIsMobile ? "1fr" : "repeat(auto-fill, minmax(280px, 1fr))",
+                    gap: 10,
+                    width: "100%",
+                    boxSizing: "border-box",
+                  }}
+                >
+                  {visibleMissedSessions.map((missSes, mIdx) => {
+                    const missNum =
+                      recoverySubjectFilter !== "ALL"
+                        ? missSes.subjectMissNumber || mIdx + 1
+                        : missSes.globalMissNumber || mIdx + 1;
+
+                    return (
+                      <div
+                        key={mIdx}
+                        style={{
+                          background: "#ffffff",
+                          border: "1.5px solid #fecdd3",
+                          borderRadius: 12,
+                          padding: "10px 12px",
+                          display: "flex",
+                          flexDirection: "column",
+                          gap: 6,
+                          boxShadow: "0 1px 4px rgba(225, 29, 72, 0.04)",
+                          minWidth: 0,
+                          width: "100%",
+                          boxSizing: "border-box",
+                          overflow: "hidden",
+                        }}
+                      >
+                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 6 }}>
+                          <div style={{ display: "flex", alignItems: "center", gap: 6, minWidth: 0, flexWrap: "wrap" }}>
+                            <span
+                              style={{
+                                fontSize: 10.5,
+                                fontWeight: 900,
+                                background: "#e11d48",
+                                color: "#ffffff",
+                                padding: "1px 6px",
+                                borderRadius: 5,
+                                flexShrink: 0,
+                              }}
+                            >
+                              Miss #{missNum}
+                            </span>
+                            <span style={{ fontSize: 12.5, fontWeight: 800, color: "#0f172a" }}>
+                              {missSes.dateStr}
+                            </span>
+                          </div>
+                          <span
+                            style={{
+                              fontSize: 10,
+                              fontWeight: 900,
+                              background: "#fff1f2",
+                              color: "#be123c",
+                              border: "1px solid #fecdd3",
+                              padding: "1px 6px",
+                              borderRadius: 4,
+                              display: "flex",
+                              alignItems: "center",
+                              gap: 3,
+                              flexShrink: 0,
+                              whiteSpace: "nowrap",
+                            }}
+                          >
+                            <TrendingDown size={11} color="#e11d48" /> ~-{missSes.percentageDrop}% Drop
+                          </span>
+                        </div>
+
+                        <div style={{ fontSize: 12.5, fontWeight: 800, color: "#0f172a", wordBreak: "break-word" }}>
+                          {missSes.subjectName}
+                        </div>
+
+                        <div style={{ fontSize: 11, color: "#64748b", display: "flex", justifyContent: "space-between", flexWrap: "wrap", gap: 4 }}>
+                          <span>
+                            <Clock size={11} style={{ display: "inline", verticalAlign: "middle" }} /> {missSes.timeSlot}
+                          </span>
+                          <span>Room {missSes.room} ({missSes.type})</span>
+                        </div>
+
+                        <div
+                          style={{
+                            marginTop: 4,
+                            paddingTop: 6,
+                            borderTop: "1px dashed #fecdd3",
+                            display: "flex",
+                            justifyContent: "space-between",
+                            alignItems: "center",
+                            flexWrap: "wrap",
+                            gap: 4,
+                          }}
+                        >
+                          <span style={{ fontSize: 10.5, color: "#881337", fontWeight: 600 }}>
+                            After this missed class:
+                          </span>
+                          <span
+                            style={{
+                              fontSize: 11.5,
+                              fontWeight: 900,
+                              color: missSes.isBelowTarget ? "#dc2626" : "#e11d48",
+                            }}
+                          >
+                            {missSes.runningAttended}/{missSes.runningDelivered} ({formatPercentage(missSes.runningPercentage)})
+                          </span>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {!showAllMissedDates && filteredMissedSessions.length > 15 && (
+                  <button
+                    type="button"
+                    onClick={() => setShowAllMissedDates(true)}
+                    style={{
+                      background: "#ffffff",
+                      border: "1px dashed #fda4af",
+                      padding: "8px 12px",
+                      borderRadius: 8,
+                      color: "#e11d48",
+                      fontSize: 11.5,
+                      fontWeight: 800,
+                      cursor: "pointer",
+                      textAlign: "center",
+                      marginTop: 4,
+                    }}
+                  >
+                    + Show remaining {filteredMissedSessions.length - 15} missed classes
+                  </button>
+                )}
+              </div>
+            )}
           </motion.div>
 
-          {/* ─────────────────────────────────────────────────────────────────
-              PHASE 3: RECOVERY ROADMAP SPECIFICALLY FOR MISSED SUBJECTS
-          ───────────────────────────────────────────────────────────────── */}
           <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
@@ -3504,14 +3386,10 @@ export default function FuturePredictor({
                         <>
                           <h5 style={{ fontSize: effectiveIsMobile ? 13.5 : 14, fontWeight: 900, color: "#0f172a", margin: 0, display: "flex", alignItems: "center", gap: 6, wordBreak: "break-word" }}>
                             <CalendarCheck size={16} color="#059669" style={{ flexShrink: 0 }} />
-                            {recoverySubjectFilter === "ALL"
-                              ? `Classes You Need to Attend for Recovery (${filteredRecoverySessions.length} classes)`
-                              : `${recoverySubjectFilter} Recovery Plan (${filteredRecoverySessions.length} classes)`}
+                            Mandatory Post-Absence Recovery Schedule ({filteredRecoverySessions.length} total classes)
                           </h5>
                           <p style={{ fontSize: 12, color: "#64748b", margin: "2px 0 0 0", wordBreak: "break-word" }}>
-                            {recoverySubjectFilter === "ALL"
-                              ? `Attend these scheduled timetable classes consecutively to restore your attendance back to ${simulation.targetPct}%:`
-                              : `Attend these scheduled ${recoverySubjectFilter} classes consecutively to restore your attendance back to ${simulation.targetPct}%:`}
+                            Every class you must consecutively attend post-absence to restore your {simulation.targetPct}% attendance goal:
                           </p>
                         </>
                       )}
@@ -3680,9 +3558,7 @@ export default function FuturePredictor({
                                     flexShrink: 0,
                                   }}
                                 >
-                                  {recSes.classesNeededTotal > 0
-                                    ? `Class ${recSes.subjectSessionNumber} of ${recSes.classesNeededTotal}`
-                                    : `Recovery #${recSes.sessionNumber}`}
+                                  Recovery #{recoverySubjectFilter !== "ALL" ? (recSes.subjectSessionNumber || rIdx + 1) : (recSes.sessionNumber || rIdx + 1)}
                                 </span>
                                 <span style={{ fontSize: 12.5, fontWeight: 800, color: "#0f172a" }}>
                                   {recSes.dateStr}
@@ -3797,7 +3673,7 @@ export default function FuturePredictor({
                                 : "#2563eb",
                             }}
                           >
-                            {recSes.runningAttended}/{recSes.runningDelivered} ({recSes.runningPercentage}%)
+                            {recSes.runningAttended}/{recSes.runningDelivered} ({formatPercentage(recSes.runningPercentage)})
                           </span>
                           {isImpossible && !isPeak && (
                             <span style={{ fontSize: 9, color: "#9a3412", fontWeight: 700 }}>
