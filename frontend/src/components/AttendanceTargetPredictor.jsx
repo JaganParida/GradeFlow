@@ -182,158 +182,136 @@ export default function AttendanceTargetPredictor({
         marginTop: 10,
       }}
     >
-      {/* ── HEADER & TARGET CONTROLS ────────────────────────────────────────── */}
+      {/* ── HEADER: TITLE, SUBJECT DROPDOWN & TARGET GOAL IN ONE ROW (RESPONSIVE WRAP) ── */}
       <div
         style={{
           display: "flex",
-          flexDirection: "column",
-          gap: 14,
+          justifyContent: "space-between",
+          alignItems: isMobile ? "flex-start" : "center",
+          flexWrap: "wrap",
+          gap: isMobile ? 12 : 16,
           paddingBottom: 16,
           borderBottom: "1.5px solid #f1f5f9",
         }}
       >
-        {/* Top Title & Target Row */}
+        {/* Left Side: Title & Subtitle */}
+        <div style={{ flex: isMobile ? "1 1 100%" : "1 1 280px", minWidth: isMobile ? 0 : 260 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+            <h3
+              style={{
+                fontSize: isMobile ? 16.5 : 19.5,
+                fontWeight: 900,
+                color: "#0f172a",
+                margin: 0,
+                letterSpacing: "-0.4px",
+              }}
+            >
+              Target Predictor &amp; Class Schedule
+            </h3>
+            {activeSection === "schedule" && (
+              <span
+                style={{
+                  fontSize: 10.5,
+                  fontWeight: 800,
+                  background: "#ecfdf5",
+                  color: "#065f46",
+                  border: "1px solid #a7f3d0",
+                  padding: "1.5px 7px",
+                  borderRadius: 6,
+                }}
+              >
+                Schedule
+              </span>
+            )}
+            {activeSection === "penalty" && (
+              <span
+                style={{
+                  fontSize: 10.5,
+                  fontWeight: 800,
+                  background: "#fff1f2",
+                  color: "#e11d48",
+                  border: "1px solid #fecdd3",
+                  padding: "1.5px 7px",
+                  borderRadius: 6,
+                }}
+              >
+                Miss Penalty
+              </span>
+            )}
+            {activeSection === "roadmap" && (
+              <span
+                style={{
+                  fontSize: 10.5,
+                  fontWeight: 800,
+                  background: "#eff6ff",
+                  color: "#2563eb",
+                  border: "1px solid #bfdbfe",
+                  padding: "1.5px 7px",
+                  borderRadius: 6,
+                }}
+              >
+                Roadmap
+              </span>
+            )}
+          </div>
+          <p style={{ fontSize: isMobile ? 11.5 : 12.5, color: "#64748b", margin: "3px 0 0 0", lineHeight: 1.4 }}>
+            Exact date-by-date timetable schedule, holiday exclusions, penalty multiplier facts &amp; post-target bunk planning.
+          </p>
+        </div>
+
+        {/* Right Side: Subject Dropdown + Target Badge (In ONE row on Desktop, wrapped on Mobile) */}
         <div
           style={{
             display: "flex",
-            justifyContent: "space-between",
-            alignItems: isMobile ? "flex-start" : "center",
-            flexWrap: "wrap",
-            gap: 12,
+            alignItems: "center",
+            gap: 10,
+            flex: isMobile ? "1 1 100%" : "0 1 auto",
+            width: isMobile ? "100%" : "auto",
+            justifyContent: isMobile ? "space-between" : "flex-end",
+            flexWrap: isMobile ? "wrap" : "nowrap",
           }}
         >
-          <div>
-            <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-              <h3
-                style={{
-                  fontSize: isMobile ? 18 : 22,
-                  fontWeight: 900,
-                  color: "#0f172a",
-                  margin: 0,
-                  letterSpacing: "-0.4px",
-                }}
-              >
-                Target Predictor &amp; Class Schedule
-              </h3>
-              {activeSection === "schedule" && (
-                <span
-                  style={{
-                    fontSize: 11,
-                    fontWeight: 800,
-                    background: "#ecfdf5",
-                    color: "#065f46",
-                    border: "1px solid #a7f3d0",
-                    padding: "2px 8px",
-                    borderRadius: 6,
-                  }}
-                >
-                  Schedule
-                </span>
-              )}
-              {activeSection === "penalty" && (
-                <span
-                  style={{
-                    fontSize: 11,
-                    fontWeight: 800,
-                    background: "#fff1f2",
-                    color: "#e11d48",
-                    border: "1px solid #fecdd3",
-                    padding: "2px 8px",
-                    borderRadius: 6,
-                  }}
-                >
-                  Miss Penalty
-                </span>
-              )}
-              {activeSection === "roadmap" && (
-                <span
-                  style={{
-                    fontSize: 11,
-                    fontWeight: 800,
-                    background: "#eff6ff",
-                    color: "#2563eb",
-                    border: "1px solid #bfdbfe",
-                    padding: "2px 8px",
-                    borderRadius: 6,
-                  }}
-                >
-                  Roadmap
-                </span>
-              )}
-            </div>
-            <p style={{ fontSize: isMobile ? 12 : 13, color: "#64748b", margin: "4px 0 0 0" }}>
-              Exact date-by-date timetable schedule, holiday exclusions, penalty multiplier facts &amp; post-target bunk planning.
-            </p>
-          </div>
-
-          {/* Active Target Goal Indicator */}
-          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-            <span
+          {sectionCatalog && sectionCatalog.length > 0 && onSelectSubject && (
+            <div
               style={{
-                fontSize: 12,
-                fontWeight: 800,
-                background: "#eff6ff",
-                color: "#2563eb",
-                border: "1px solid #bfdbfe",
-                padding: "5px 12px",
-                borderRadius: 8,
-                display: "inline-flex",
-                alignItems: "center",
-                gap: 6,
+                width: isMobile ? "100%" : "clamp(260px, 24vw, 360px)",
+                minWidth: isMobile ? "100%" : 260,
+                flex: isMobile ? "1 1 100%" : "0 1 auto",
               }}
             >
-              <Target size={14} color="#2563eb" />
-              Target: <strong>{targetGoal}%</strong>
-            </span>
-          </div>
-        </div>
-
-        {/* Professional Subject Dropdown Selector */}
-        {sectionCatalog && sectionCatalog.length > 0 && onSelectSubject && (
-          <div style={{ display: "flex", flexDirection: "column", gap: 6, paddingTop: 4 }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-              <span
-                style={{
-                  fontSize: isMobile ? 11.5 : 12.5,
-                  fontWeight: 800,
-                  color: "#475569",
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 6,
-                  textTransform: "uppercase",
-                  letterSpacing: "0.4px",
-                }}
-              >
-                <BookOpen size={isMobile ? 13 : 15} color="#059669" />
-                Select Subject to Inspect:
-              </span>
-              {weeklyOccurrences.length > 0 && (
-                <span
-                  style={{
-                    fontSize: 11,
-                    fontWeight: 800,
-                    color: "#2563eb",
-                    background: "#eff6ff",
-                    padding: "2px 8px",
-                    borderRadius: 6,
-                    border: "1px solid #bfdbfe",
-                  }}
-                >
-                  {weeklyOccurrences.length} classes / week
-                </span>
-              )}
+              <SubjectDropdown
+                catalog={sectionCatalog}
+                selectedSubjectName={subjectName}
+                onSelectSubject={onSelectSubject}
+                savedSubjects={savedSubjects}
+                studentData={studentData}
+                targetGoal={targetGoal}
+                isMobile={isMobile}
+              />
             </div>
-            <SubjectDropdown
-              catalog={sectionCatalog}
-              selectedSubjectName={subjectName}
-              onSelectSubject={onSelectSubject}
-              savedSubjects={savedSubjects}
-              studentData={studentData}
-              targetGoal={targetGoal}
-              isMobile={isMobile}
-            />
-          </div>
-        )}
+          )}
+
+          {/* Active Target Goal Indicator */}
+          <span
+            style={{
+              fontSize: 11.5,
+              fontWeight: 800,
+              background: "#eff6ff",
+              color: "#2563eb",
+              border: "1px solid #bfdbfe",
+              padding: isMobile ? "6px 12px" : "8px 14px",
+              borderRadius: 10,
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 5,
+              whiteSpace: "nowrap",
+              flexShrink: 0,
+            }}
+          >
+            <Target size={13.5} color="#2563eb" />
+            Target: <strong>{targetGoal}%</strong>
+          </span>
+        </div>
       </div>
 
       {/* ── HIGH-LEVEL SUMMARY HERO CARDS ─────────────────────────────────── */}
