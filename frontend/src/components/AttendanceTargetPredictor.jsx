@@ -260,8 +260,8 @@ export default function AttendanceTargetPredictor({
         </div>
 
         {/* Right side of Header */}
-        {!isPenaltyView && (
-          /* For schedule or roadmap tabs: Keep clean target badge */
+        {!isPenaltyView && !isMultiPhaseView && (
+          /* For schedule tab: Keep clean target badge */
           <div
             style={{
               display: "inline-flex",
