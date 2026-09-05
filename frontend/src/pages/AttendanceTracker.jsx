@@ -73,7 +73,7 @@ import {
   CUTM_SESSION_BOUNDARIES,
 } from "../utils/timetableHelper";
 import { isMatch } from "../utils/basketLogic";
-import SmartBunkAnalyzer from "../components/SmartBunkAnalyzer";
+import FuturePredictor from "../components/FuturePredictor";
 import AttendanceTargetPredictor from "../components/AttendanceTargetPredictor";
 import AttendanceScreenshotModal from "../components/AttendanceScreenshotModal";
 import { AttendanceSkeleton } from "../components/LoadingSpinner";
@@ -391,7 +391,7 @@ export default function AttendanceTracker() {
 
   const getInitialTab = () => {
     if (urlTabParam === "studio" || urlTabParam === "predictor") return "studio";
-    if (urlTabParam === "bunk" || urlTabParam === "bunk_analyzer" || urlTabParam === "planner") return "bunk_analyzer";
+    if (urlTabParam === "bunk" || urlTabParam === "bunk_analyzer" || urlTabParam === "planner" || urlTabParam === "future" || urlTabParam === "future_predictor") return "bunk_analyzer";
     if (urlTabParam === "matrix" || urlTabParam === "subjects" || urlTabParam === "subject_matrix") return "matrix";
     if (urlTabParam === "checkin" || urlTabParam === "hub" || urlTabParam === "daily") return "checkin";
     return "checkin";
@@ -1500,7 +1500,7 @@ export default function AttendanceTracker() {
     { id: "checkin", label: "Daily Check-In Hub", shortLabel: "Daily Hub", icon: <CalendarCheck size={16} />, badge: "Routine", desc: "Today's fast attendance logger & summary" },
     { id: "matrix", label: "Subject-wise Matrix", shortLabel: "Subjects", icon: <Grid size={16} />, badge: `${allSectionSubjects.length} Subs`, desc: "Detailed attendance % across all subjects" },
     { id: "studio", label: "Predictor Studio", shortLabel: "Predictor", icon: <Sliders size={16} />, badge: "Simulate", desc: "Safe bunk margin & target attendance goal" },
-    { id: "bunk_analyzer", label: "Smart Bunk Planner", shortLabel: "Planner", icon: <ShieldCheck size={16} />, badge: "Weekly", desc: "Weekly schedule & bunk strategy planner" },
+    { id: "bunk_analyzer", label: "Future Predictor", shortLabel: "Predictor", icon: <TrendingUp size={16} />, badge: "Date-wise", desc: "Date-wise bunk impact & timetable recovery roadmap" },
   ];
 
   const handleResetAllAttendance = () => {
@@ -4840,7 +4840,7 @@ export default function AttendanceTracker() {
     )}
 
     {/* ═══════════════════════════════════════════════════════════════
-        TAB 4: SMART BUNK & WEEKLY SAFE DAYS ANALYZER
+        TAB 4: FUTURE PREDICTOR (DATE-WISE BUNK & RECOVERY PLANNER)
     ═══════════════════════════════════════════════════════════════ */}
     {activeTab === "bunk_analyzer" && (
       <motion.div
@@ -4851,7 +4851,7 @@ export default function AttendanceTracker() {
         transition={activeTabMotion.transition}
         style={{ width: "100%" }}
       >
-        <SmartBunkAnalyzer
+        <FuturePredictor
           selectedSection={selectedSection}
           allSectionSubjects={allSectionSubjects}
           overallCalculation={overallCalculation}
