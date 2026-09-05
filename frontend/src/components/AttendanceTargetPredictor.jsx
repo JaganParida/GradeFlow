@@ -182,194 +182,103 @@ export default function AttendanceTargetPredictor({
         marginTop: 10,
       }}
     >
-      {/* ── HEADER: DYNAMIC SECTION IDENTITY & MASTER TARGET ROW ───────────────── */}
+      {/* ── CLEAN HEADER: TITLE & MASTER TARGET ───────────────────────────── */}
       <div
         style={{
           display: "flex",
           justifyContent: "space-between",
           alignItems: isMobile ? "flex-start" : "center",
           flexWrap: "wrap",
-          gap: 14,
-          paddingBottom: 16,
-          borderBottom: "1.5px solid #f1f5f9",
+          gap: 10,
+          paddingBottom: 12,
+          borderBottom: "1px solid #f1f5f9",
         }}
       >
-        <div style={{ display: "flex", alignItems: isMobile ? "flex-start" : "center", gap: 12, minWidth: 0, flex: 1 }}>
-          {/* Section Dynamic Themed Icon Badge */}
-          <div
-            style={{
-              width: isMobile ? 38 : 44,
-              height: isMobile ? 38 : 44,
-              borderRadius: 12,
-              background:
-                activeSection === "schedule"
-                  ? "linear-gradient(135deg, #059669 0%, #10b981 100%)"
-                  : activeSection === "penalty"
-                  ? "linear-gradient(135deg, #e11d48 0%, #f43f5e 100%)"
-                  : activeSection === "roadmap"
-                  ? "linear-gradient(135deg, #2563eb 0%, #4f46e5 100%)"
-                  : "linear-gradient(135deg, #0f172a 0%, #334155 100%)",
-              color: "#ffffff",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              flexShrink: 0,
-              boxShadow:
-                activeSection === "schedule"
-                  ? "0 3px 10px rgba(5, 150, 105, 0.25)"
-                  : activeSection === "penalty"
-                  ? "0 3px 10px rgba(225, 29, 72, 0.25)"
-                  : activeSection === "roadmap"
-                  ? "0 3px 10px rgba(37, 99, 235, 0.25)"
-                  : "0 3px 10px rgba(15, 23, 42, 0.2)",
-            }}
-          >
-            {activeSection === "schedule" && <CalendarIcon size={isMobile ? 18 : 22} />}
-            {activeSection === "penalty" && <AlertTriangle size={isMobile ? 18 : 22} />}
-            {activeSection === "roadmap" && <Compass size={isMobile ? 18 : 22} />}
-            {activeSection !== "schedule" && activeSection !== "penalty" && activeSection !== "roadmap" && (
-              <Target size={isMobile ? 18 : 22} />
-            )}
+        <div>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+            <h3
+              style={{
+                fontSize: isMobile ? 16 : 18,
+                fontWeight: 800,
+                color: "#0f172a",
+                margin: 0,
+                letterSpacing: "-0.3px",
+              }}
+            >
+              {activeSection === "schedule"
+                ? "Class Schedule & Target Predictor"
+                : activeSection === "penalty"
+                ? "Bunk Impact & Risk Calculator"
+                : activeSection === "roadmap"
+                ? "Attendance Target Roadmap"
+                : "Target Predictor & Timetable Simulator"}
+            </h3>
+
+            {/* Subtle Tag */}
+            <span
+              style={{
+                fontSize: 10.5,
+                fontWeight: 700,
+                padding: "2px 7px",
+                borderRadius: 5,
+                background:
+                  activeSection === "schedule"
+                    ? "#ecfdf5"
+                    : activeSection === "penalty"
+                    ? "#fff1f2"
+                    : "#eff6ff",
+                color:
+                  activeSection === "schedule"
+                    ? "#065f46"
+                    : activeSection === "penalty"
+                    ? "#e11d48"
+                    : "#2563eb",
+                border: `1px solid ${
+                  activeSection === "schedule"
+                    ? "#a7f3d0"
+                    : activeSection === "penalty"
+                    ? "#fecdd3"
+                    : "#bfdbfe"
+                }`,
+              }}
+            >
+              {activeSection === "schedule" && "Schedule"}
+              {activeSection === "penalty" && "Miss Penalty"}
+              {activeSection === "roadmap" && "Roadmap"}
+              {activeSection !== "schedule" && activeSection !== "penalty" && activeSection !== "roadmap" && "Predictor"}
+            </span>
           </div>
 
-          <div style={{ minWidth: 0, flex: 1 }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-              <h3
-                style={{
-                  fontSize: isMobile ? 17 : 21,
-                  fontWeight: 900,
-                  color: "#0f172a",
-                  margin: 0,
-                  letterSpacing: "-0.4px",
-                  lineHeight: 1.25,
-                }}
-              >
-                {activeSection === "schedule"
-                  ? "Class Schedule & Target Predictor"
-                  : activeSection === "penalty"
-                  ? "Bunk Impact & Risk Calculator"
-                  : activeSection === "roadmap"
-                  ? "Attendance Target Roadmap"
-                  : "Target Predictor & Timetable Simulator"}
-              </h3>
-
-              {/* Status Section Tag */}
-              <span
-                style={{
-                  fontSize: 11,
-                  fontWeight: 800,
-                  padding: "2px 8px",
-                  borderRadius: 6,
-                  display: "inline-flex",
-                  alignItems: "center",
-                  gap: 4,
-                  background:
-                    activeSection === "schedule"
-                      ? "#ecfdf5"
-                      : activeSection === "penalty"
-                      ? "#fff1f2"
-                      : activeSection === "roadmap"
-                      ? "#eff6ff"
-                      : "#f1f5f9",
-                  color:
-                    activeSection === "schedule"
-                      ? "#065f46"
-                      : activeSection === "penalty"
-                      ? "#e11d48"
-                      : activeSection === "roadmap"
-                      ? "#2563eb"
-                      : "#334155",
-                  border: `1px solid ${
-                    activeSection === "schedule"
-                      ? "#a7f3d0"
-                      : activeSection === "penalty"
-                      ? "#fecdd3"
-                      : activeSection === "roadmap"
-                      ? "#bfdbfe"
-                      : "#cbd5e1"
-                  }`,
-                }}
-              >
-                {activeSection === "schedule" && "📅 Date-by-Date Routine"}
-                {activeSection === "penalty" && "⚡ Penalty Multiplier"}
-                {activeSection === "roadmap" && "🚀 Milestone Journey"}
-                {activeSection !== "schedule" && activeSection !== "penalty" && activeSection !== "roadmap" && "🎯 Simulator"}
-              </span>
-            </div>
-
-            {/* Clear Student-Friendly Subtitle */}
-            <p style={{ fontSize: isMobile ? 12 : 12.5, color: "#64748b", margin: "4px 0 0 0", lineHeight: 1.45 }}>
-              {activeSection === "schedule" &&
-                "Simulate upcoming class dates from your university routine, exclude holidays, and see when you will reach your target attendance."}
-              {activeSection === "penalty" &&
-                "Calculate exactly how skipping upcoming classes impacts your percentage and how many extra classes you must attend to recover."}
-              {activeSection === "roadmap" &&
-                "Step-by-step milestone progression to reach your target safely, with post-target safe bunk cushion planning."}
-              {activeSection !== "schedule" &&
-                activeSection !== "penalty" &&
-                activeSection !== "roadmap" &&
-                "Exact date-by-date timetable schedule, holiday exclusions, penalty multiplier facts & post-target bunk planning."}
-            </p>
-          </div>
+          <p style={{ fontSize: 12, color: "#64748b", margin: "3px 0 0 0", lineHeight: 1.4 }}>
+            {activeSection === "schedule" && "Routine timetable projection and date-by-date attendance forecast."}
+            {activeSection === "penalty" && "Simulate how missing upcoming classes directly impacts your attendance."}
+            {activeSection === "roadmap" && "Step-by-step milestone progression to hit your target goal safely."}
+            {activeSection !== "schedule" && activeSection !== "penalty" && activeSection !== "roadmap" && "Timetable projection & date-by-date attendance forecast."}
+          </p>
         </div>
 
-        {/* Master Target Goal Indicator */}
+        {/* Clean Master Target Goal Badge */}
         <div
           style={{
-            display: "flex",
+            display: "inline-flex",
             alignItems: "center",
-            gap: 10,
+            gap: 6,
             background: "#eff6ff",
-            border: "1.5px solid #bfdbfe",
-            padding: isMobile ? "6px 12px" : "8px 16px",
-            borderRadius: 12,
-            boxShadow: "0 2px 6px rgba(37, 99, 235, 0.05)",
-            flexShrink: 0,
+            border: "1px solid #bfdbfe",
+            padding: isMobile ? "4px 10px" : "5px 12px",
+            borderRadius: 8,
+            fontSize: isMobile ? 12 : 12.5,
+            fontWeight: 800,
+            color: "#1d4ed8",
+            whiteSpace: "nowrap",
           }}
         >
-          <div
-            style={{
-              width: 34,
-              height: 34,
-              borderRadius: 9,
-              background: "linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              color: "#ffffff",
-              flexShrink: 0,
-              boxShadow: "0 2px 6px rgba(37, 99, 235, 0.25)",
-            }}
-          >
-            <Target size={17} strokeWidth={2.5} />
-          </div>
-          <div style={{ display: "flex", flexDirection: "column" }}>
-            <span
-              style={{
-                fontSize: 10,
-                fontWeight: 800,
-                color: "#64748b",
-                textTransform: "uppercase",
-                letterSpacing: "0.5px",
-              }}
-            >
-              Target Goal
-            </span>
-            <span
-              style={{
-                fontSize: isMobile ? 14 : 15.5,
-                fontWeight: 900,
-                color: "#1e3a8a",
-                lineHeight: 1.1,
-              }}
-            >
-              {targetGoal}% Aim
-            </span>
-          </div>
+          <Target size={14} color="#2563eb" />
+          <span>Target: <strong>{targetGoal}%</strong></span>
         </div>
       </div>
 
-      {/* ── ACTIVE SUBJECT COMMAND BAR & DROPDOWN (FULL-WIDTH, ZERO TRUNCATION) ── */}
+      {/* ── ACTIVE SUBJECT COMMAND BAR (CLEAN & NON-BULKY) ── */}
       {sectionCatalog && sectionCatalog.length > 0 && onSelectSubject && (
         <SubjectDropdown
           catalog={sectionCatalog}
@@ -380,117 +289,6 @@ export default function AttendanceTargetPredictor({
           targetGoal={targetGoal}
           isMobile={isMobile}
         />
-      )}
-
-      {/* ── STUDENT CLARITY INSIGHT BANNER ─────────────────────────────────── */}
-      {activeCalculation && (
-        <div
-          style={{
-            background: isCurrentlySafe
-              ? "linear-gradient(135deg, #f0fdf4 0%, #ecfdf5 100%)"
-              : "linear-gradient(135deg, #fffbeb 0%, #fff7ed 100%)",
-            border: `1.5px solid ${isCurrentlySafe ? "#bbf7d0" : "#fed7aa"}`,
-            borderRadius: 14,
-            padding: isMobile ? "12px 14px" : "14px 18px",
-            display: "flex",
-            alignItems: isMobile ? "flex-start" : "center",
-            justifyContent: "space-between",
-            gap: 12,
-            flexDirection: isMobile ? "column" : "row",
-            boxShadow: "0 2px 6px -1px rgba(0,0,0,0.03)",
-          }}
-        >
-          <div style={{ display: "flex", alignItems: "center", gap: 12, minWidth: 0, flex: 1 }}>
-            <div
-              style={{
-                width: 36,
-                height: 36,
-                borderRadius: 10,
-                background: isCurrentlySafe ? "#059669" : "#d97706",
-                color: "#ffffff",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                flexShrink: 0,
-                boxShadow: isCurrentlySafe
-                  ? "0 2px 6px rgba(5, 150, 105, 0.25)"
-                  : "0 2px 6px rgba(217, 119, 6, 0.25)",
-              }}
-            >
-              {isCurrentlySafe ? <CheckCircle2 size={18} /> : <AlertTriangle size={18} />}
-            </div>
-            <div style={{ display: "flex", flexDirection: "column", gap: 2, minWidth: 0 }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-                <span
-                  style={{
-                    fontSize: isMobile ? 13 : 13.5,
-                    fontWeight: 800,
-                    color: isCurrentlySafe ? "#065f46" : "#92400e",
-                  }}
-                >
-                  {isCurrentlySafe
-                    ? `Safe Zone (${currentPct.toFixed(1)}% Current Attendance)`
-                    : `Attendance Shortage (${currentPct.toFixed(1)}% Current Attendance)`}
-                </span>
-                <span
-                  style={{
-                    fontSize: 11,
-                    fontWeight: 700,
-                    background: isCurrentlySafe ? "#dcfce7" : "#fef3c7",
-                    color: isCurrentlySafe ? "#15803d" : "#b45309",
-                    padding: "1px 7px",
-                    borderRadius: 5,
-                    border: `1px solid ${isCurrentlySafe ? "#bbf7d0" : "#fde68a"}`,
-                  }}
-                >
-                  {totalAttended} / {totalDelivered} Attended
-                </span>
-              </div>
-              <p
-                style={{
-                  margin: 0,
-                  fontSize: isMobile ? 12 : 12.5,
-                  color: isCurrentlySafe ? "#047857" : "#78350f",
-                  lineHeight: 1.45,
-                  fontWeight: 600,
-                }}
-              >
-                {isCurrentlySafe ? (
-                  <>
-                    You are currently <strong>above your {targetGoal}% target</strong>. You can safely afford to miss up to{" "}
-                    <strong>
-                      {activeCalculation?.safeBunks || 0} class
-                      {(activeCalculation?.safeBunks || 0) === 1 ? "" : "es"}
-                    </strong>{" "}
-                    without falling below {targetGoal}%.
-                  </>
-                ) : (
-                  <>
-                    To achieve your <strong>{targetGoal}% target</strong>, you need to attend the next{" "}
-                    <strong>
-                      {activeCalculation?.classesNeeded || 0} consecutive class
-                      {(activeCalculation?.classesNeeded || 0) === 1 ? "" : "es"}
-                    </strong>{" "}
-                    without absence.
-                    {baseProjection?.targetDate && (
-                      <>
-                        {" "}Projected target date:{" "}
-                        <strong style={{ textDecoration: "underline" }}>
-                          {new Date(baseProjection.targetDate).toLocaleDateString("en-IN", {
-                            day: "numeric",
-                            month: "short",
-                            year: "numeric",
-                          })}
-                        </strong>
-                        .
-                      </>
-                    )}
-                  </>
-                )}
-              </p>
-            </div>
-          </div>
-        </div>
       )}
 
       {/* ── HIGH-LEVEL SUMMARY HERO CARDS ─────────────────────────────────── */}
