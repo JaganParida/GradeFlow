@@ -184,6 +184,17 @@ export default function FuturePredictor({
 
   // ── Bunk Date Selection Handler ──────────────────────────────────────────
   const toggleBunkDate = (dayItem) => {
+    // Past dates cannot be bunked because classes are already completed
+    if (dayItem.isPast) {
+      setNonInstructionalNotice({
+        dateFormatted: dayItem.dateFormatted,
+        dayName: dayItem.dayName,
+        title: "Past Date (Already Completed)",
+        message: `${dayItem.dateFormatted} has already passed. Routine classes on this date are already completed and logged. Future Predictor only plans bunks for today and upcoming dates.`,
+      });
+      return;
+    }
+
     if (!dayItem.isInstructional) {
       const reasonTitle = dayItem.isExam
         ? (dayItem.schedCtx.calendarStatus?.title || "Mid Semester Examination")
@@ -247,13 +258,13 @@ export default function FuturePredictor({
 
   const applyPresetWeekend = () => {
     const instructionalKeys = activeWeekDays
-      .filter((d) => (d.dayName === "Friday" || d.dayName === "Saturday") && d.isInstructional)
+      .filter((d) => (d.dayName === "Friday" || d.dayName === "Saturday") && d.isInstructional && !d.isPast)
       .map((d) => d.dateKey);
 
     if (instructionalKeys.length === 0) {
       setNonInstructionalNotice({
-        title: "No Weekend Classes This Week",
-        message: "Friday and Saturday in the currently viewed week have examinations or holidays. Use 'Next Week >' to plan for a weekend with regular classes.",
+        title: "No Available Weekend Classes",
+        message: "Friday and Saturday in this week have either already passed or have examinations/holidays. Use 'Next Week >' to plan for upcoming weekend classes.",
       });
       return;
     }
@@ -263,13 +274,13 @@ export default function FuturePredictor({
 
   const applyPreset3Day = () => {
     const instructionalKeys = activeWeekDays
-      .filter((d) => (d.dayName === "Thursday" || d.dayName === "Friday" || d.dayName === "Saturday") && d.isInstructional)
+      .filter((d) => (d.dayName === "Thursday" || d.dayName === "Friday" || d.dayName === "Saturday") && d.isInstructional && !d.isPast)
       .map((d) => d.dateKey);
 
     if (instructionalKeys.length === 0) {
       setNonInstructionalNotice({
-        title: "No Classes This Thu-Sat",
-        message: "Thursday through Saturday in this week have examinations or holidays. Use 'Next Week >' to select instructional days.",
+        title: "No Available Thu-Sat Classes",
+        message: "Thursday through Saturday in this week have either already passed or have examinations/holidays. Use 'Next Week >' to select upcoming days.",
       });
       return;
     }
@@ -278,11 +289,13 @@ export default function FuturePredictor({
   };
 
   const applyPresetFullWeek = () => {
-    const instructionalKeys = activeWeekDays.filter((d) => d.isInstructional).map((d) => d.dateKey);
+    const instructionalKeys = activeWeekDays
+      .filter((d) => d.isInstructional && !d.isPast)
+      .map((d) => d.dateKey);
     if (instructionalKeys.length === 0) {
       setNonInstructionalNotice({
-        title: "No Regular Classes This Week",
-        message: "This entire week is marked for examinations or holidays. Tap 'Next Week >' to view and plan for regular class weeks.",
+        title: "No Upcoming Classes This Week",
+        message: "All remaining class days in this week have already passed or have examinations/holidays. Tap 'Next Week >' to view and plan for upcoming weeks.",
       });
       return;
     }
@@ -290,11 +303,14 @@ export default function FuturePredictor({
     setSelectedBunkKeys(instructionalKeys);
   };
 
-  // ── Sorted Selected Bunk Dates ───────────────────────────────────────────
+  // ── Sorted Selected Bunk Dates (Guaranteed Today & Future Only) ───────────
   const sortedBunkDates = useMemo(() => {
     if (selectedBunkKeys.length === 0) return [];
-    return [...selectedBunkKeys].sort().map((k) => new Date(k + "T00:00:00"));
-  }, [selectedBunkKeys]);
+    return [...selectedBunkKeys]
+      .filter((k) => k >= todayKey)
+      .sort()
+      .map((k) => new Date(k + "T00:00:00"));
+  }, [selectedBunkKeys, todayKey]);
 
   const firstBunkDate = sortedBunkDates[0] || null;
   const lastBunkDate = sortedBunkDates[sortedBunkDates.length - 1] || null;
@@ -1299,23 +1315,27 @@ export default function FuturePredictor({
           <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
             <button
               type="button"
+              disabled={weekOffset <= 0}
               onClick={() => {
-                setWeekOffset((prev) => prev - 1);
+                if (weekOffset <= 0) return;
+                setWeekOffset((prev) => Math.max(0, prev - 1));
                 setNonInstructionalNotice(null);
               }}
               style={{
                 padding: "5px 9px",
                 borderRadius: 8,
                 border: "1px solid #cbd5e1",
-                background: "#f8fafc",
-                color: "#334155",
+                background: weekOffset <= 0 ? "#f1f5f9" : "#f8fafc",
+                color: weekOffset <= 0 ? "#94a3b8" : "#334155",
                 fontSize: 11.5,
                 fontWeight: 700,
-                cursor: "pointer",
+                cursor: weekOffset <= 0 ? "not-allowed" : "pointer",
+                opacity: weekOffset <= 0 ? 0.45 : 1,
                 display: "inline-flex",
                 alignItems: "center",
                 gap: 4,
               }}
+              title={weekOffset <= 0 ? "Cannot plan bunks in past completed weeks" : "Previous Week"}
             >
               <ChevronLeft size={14} />
               <span>Prev Week</span>
@@ -1342,7 +1362,7 @@ export default function FuturePredictor({
             <button
               type="button"
               onClick={() => {
-                setWeekOffset((prev) => prev + 1);
+                setWeekOffset((prev) => Math.min(10, prev + 1));
                 setNonInstructionalNotice(null);
               }}
               style={{
@@ -1461,21 +1481,24 @@ export default function FuturePredictor({
               <button
                 key={dayItem.dateKey}
                 type="button"
+                disabled={isPast}
                 onClick={() => toggleBunkDate(dayItem)}
                 style={{
                   background: isSelected
                     ? "#fef2f2"
+                    : isPast
+                    ? "#f8fafc"
                     : !isInstructional
                     ? "#f8fafc"
                     : isToday
                     ? "#f8fafc"
-                    : isPast
-                    ? "#fcfcfd"
                     : "#ffffff",
                   border: isSelected
                     ? "2px solid #dc2626"
                     : isToday
                     ? "2px solid #2563eb"
+                    : isPast
+                    ? "1px dashed #cbd5e1"
                     : !isInstructional
                     ? "1px dashed #cbd5e1"
                     : "1px solid #e2e8f0",
@@ -1485,9 +1508,9 @@ export default function FuturePredictor({
                   flexDirection: "column",
                   alignItems: "center",
                   gap: 4,
-                  cursor: "pointer",
+                  cursor: isPast ? "not-allowed" : "pointer",
                   transition: "all 0.15s ease",
-                  opacity: !isInstructional ? 0.85 : isPast && !isSelected ? 0.75 : 1,
+                  opacity: isPast ? 0.5 : !isInstructional ? 0.85 : 1,
                   boxShadow: isSelected
                     ? "0 4px 12px rgba(220, 38, 38, 0.12)"
                     : isToday
@@ -1496,7 +1519,7 @@ export default function FuturePredictor({
                   position: "relative",
                 }}
               >
-                {/* Top Right Status: Checkbox or Lock */}
+                {/* Top Right Status: Checkbox, Completed Check, or Lock */}
                 <div
                   style={{
                     position: "absolute",
@@ -1505,8 +1528,18 @@ export default function FuturePredictor({
                     width: 16,
                     height: 16,
                     borderRadius: 4,
-                    background: isSelected ? "#dc2626" : !isInstructional ? "#f1f5f9" : "transparent",
-                    border: isSelected ? "none" : !isInstructional ? "none" : "1px solid #cbd5e1",
+                    background: isSelected
+                      ? "#dc2626"
+                      : isPast
+                      ? "#e2e8f0"
+                      : !isInstructional
+                      ? "#f1f5f9"
+                      : "transparent",
+                    border: isSelected
+                      ? "none"
+                      : isPast || !isInstructional
+                      ? "none"
+                      : "1px solid #cbd5e1",
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "center",
@@ -1515,6 +1548,8 @@ export default function FuturePredictor({
                 >
                   {isSelected ? (
                     <Check size={11} strokeWidth={3} />
+                  ) : isPast ? (
+                    <Check size={10} color="#64748b" strokeWidth={2.5} />
                   ) : !isInstructional ? (
                     <Lock size={10} color="#94a3b8" />
                   ) : null}
@@ -1526,7 +1561,7 @@ export default function FuturePredictor({
                     style={{
                       fontSize: 12,
                       fontWeight: 800,
-                      color: isSelected ? "#991b1b" : !isInstructional ? "#64748b" : "#0f172a",
+                      color: isSelected ? "#991b1b" : isPast ? "#94a3b8" : !isInstructional ? "#64748b" : "#0f172a",
                     }}
                   >
                     {isMobile ? dayItem.dayName.slice(0, 3) : dayItem.dayName}
@@ -1552,7 +1587,7 @@ export default function FuturePredictor({
                   style={{
                     fontSize: 11,
                     fontWeight: 700,
-                    color: isSelected ? "#dc2626" : "#64748b",
+                    color: isSelected ? "#dc2626" : isPast ? "#94a3b8" : "#64748b",
                   }}
                 >
                   {dayItem.dateFormatted}
@@ -1568,6 +1603,8 @@ export default function FuturePredictor({
                     marginTop: 2,
                     background: isSelected
                       ? "#fee2e2"
+                      : isPast
+                      ? "#f1f5f9"
                       : dayItem.isExam
                       ? "#fff7ed"
                       : dayItem.isHoliday
@@ -1579,6 +1616,8 @@ export default function FuturePredictor({
                       : "#f1f5f9",
                     color: isSelected
                       ? "#b91c1c"
+                      : isPast
+                      ? "#64748b"
                       : dayItem.isExam
                       ? "#c2410c"
                       : dayItem.isHoliday
@@ -1594,6 +1633,8 @@ export default function FuturePredictor({
                     ? isToday && todayMarkedClasses.length > 0
                       ? `Bunk Left (${todayUnmarkedClasses.length})`
                       : "Planned Bunk"
+                    : isPast
+                    ? "Completed"
                     : dayItem.isExam
                     ? "Exams (No Class)"
                     : dayItem.isHoliday
