@@ -1773,20 +1773,8 @@ export default function AttendanceTracker() {
                     <strong style={{ color: "#0f172a", fontSize: 11.5, fontWeight: 800 }}>{selectedSection}</strong>
                   </div>
                   <div>
-                    <div style={{ color: "#64748b", fontSize: 9.5, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.4px" }}>Status</div>
-                    <div style={{ display: "inline-flex", alignItems: "center", gap: 3.5, justifyContent: "center" }}>
-                      <span
-                        style={{
-                          width: 5,
-                          height: 5,
-                          borderRadius: "50%",
-                          background: overallCalculation.isEligible ? "#10b981" : "#ef4444",
-                        }}
-                      />
-                      <strong style={{ color: overallCalculation.isEligible ? "#059669" : "#dc2626", fontSize: 11.5, fontWeight: 800 }}>
-                        {overallCalculation.isEligible ? "Eligible" : "Shortage"}
-                      </strong>
-                    </div>
+                    <div style={{ color: "#64748b", fontSize: 9.5, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.4px" }}>Sem</div>
+                    <strong style={{ color: "#0f172a", fontSize: 11.5, fontWeight: 800 }}>Sem 6</strong>
                   </div>
                 </div>
               </div>
@@ -2150,40 +2138,62 @@ export default function AttendanceTracker() {
               }}
             >
                   {isMobile ? (
-                    /* Mobile: Name + Section Badge + Target Selector */
+                    /* Mobile: Attendance Intelligence + Section Badge + Auto-Import + Target Selector */
                     <div style={{ display: "flex", flexDirection: "column", gap: 10, width: "100%" }}>
-                      {/* Row 1: Student Name & Section Info */}
+                      {/* Row 1: Title & Section */}
                       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
                         <div style={{ minWidth: 0, flex: 1 }}>
                           <h2
                             style={{
-                              fontSize: 16,
+                              fontSize: 17,
                               fontWeight: 800,
                               color: "#0f172a",
                               margin: 0,
                               letterSpacing: "-0.3px",
-                              overflow: "hidden",
-                              textOverflow: "ellipsis",
-                              whiteSpace: "nowrap",
+                              lineHeight: 1.2,
                             }}
                           >
-                            {activeStudentName || `Section ${selectedSection}`}
+                            Attendance Intelligence
                           </h2>
                           <div style={{ fontSize: 11, fontWeight: 700, color: "#059669", marginTop: 2, display: "flex", alignItems: "center", gap: 4 }}>
                             <Activity size={11} />
                             <span>Section {selectedSection} Routine</span>
                           </div>
                         </div>
+
+                        {/* Mobile Auto-Import Button */}
+                        <button
+                          type="button"
+                          onClick={handleOpenScreenshotModal}
+                          style={{
+                            display: "inline-flex",
+                            alignItems: "center",
+                            gap: 5,
+                            padding: "6px 12px",
+                            borderRadius: 7,
+                            border: "1px solid #0f172a",
+                            background: scanStatus.isLimitReached ? "#94a3b8" : "#0f172a",
+                            color: "#ffffff",
+                            fontSize: 11.5,
+                            fontWeight: 700,
+                            cursor: scanStatus.isLimitReached ? "not-allowed" : "pointer",
+                            fontFamily: "'DM Sans', sans-serif",
+                            flexShrink: 0,
+                          }}
+                        >
+                          <Camera size={12} color="#ffffff" />
+                          <span>Auto-Import</span>
+                        </button>
                       </div>
 
-                      {/* Row 2: Target Goal Segmented Control */}
+                      {/* Row 2: Target Goal Segmented Control with comfortable padding */}
                       <div
                         style={{
                           display: "flex",
                           alignItems: "center",
                           gap: 4,
                           background: "#f1f5f9",
-                          padding: 3,
+                          padding: "4px 5px",
                           borderRadius: 10,
                           border: "1px solid #e2e8f0",
                           width: "100%",
@@ -2195,8 +2205,8 @@ export default function AttendanceTracker() {
                             display: "inline-flex",
                             alignItems: "center",
                             gap: 4,
-                            padding: "0 6px 0 8px",
-                            fontSize: 11,
+                            padding: "0 8px",
+                            fontSize: 11.5,
                             fontWeight: 800,
                             color: "#64748b",
                             textTransform: "uppercase",
@@ -2212,7 +2222,7 @@ export default function AttendanceTracker() {
                           style={{
                             display: "grid",
                             gridTemplateColumns: "repeat(4, 1fr)",
-                            gap: 3,
+                            gap: 4,
                             flex: 1,
                           }}
                         >
@@ -2227,12 +2237,12 @@ export default function AttendanceTracker() {
                                   syncAttendanceToDb(savedSubjects, allDailyLogs, goal);
                                 }}
                                 style={{
-                                  padding: "6px 0",
+                                  padding: "7px 0",
                                   borderRadius: 7,
                                   border: isSelected ? "1px solid #0f172a" : "1px solid transparent",
                                   background: isSelected ? "#0f172a" : "transparent",
                                   color: isSelected ? "#ffffff" : "#475569",
-                                  fontSize: 12,
+                                  fontSize: 12.5,
                                   fontWeight: 700,
                                   cursor: "pointer",
                                   transition: "all 0.15s ease",
@@ -2254,39 +2264,86 @@ export default function AttendanceTracker() {
                     </div>
                   ) : (
                     /* Desktop Header with Title & Action Buttons */
-                    <>
-                      <div style={{ minWidth: 0, flex: 1 }}>
-                        <div style={{ display: "flex", alignItems: "center", gap: 6, color: "#64748b", fontSize: 12, fontWeight: 600, marginBottom: 2 }}>
-                          <Activity size={13} color="#059669" />
-                          <span>Attendance Intelligence · Section {selectedSection} Routine</span>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", width: "100%", flexWrap: "wrap", gap: 14 }}>
+                      <div style={{ display: "flex", flexDirection: "column", gap: 9, minWidth: 0 }}>
+                        <div>
+                          <div style={{ display: "flex", alignItems: "center", gap: 6, color: "#64748b", fontSize: 12, fontWeight: 600, marginBottom: 3 }}>
+                            <Activity size={13} color="#059669" />
+                            <span>Section {selectedSection} Routine · Academic Workspace</span>
+                          </div>
+                          <h1
+                            style={{
+                              fontSize: "clamp(22px, 2.3vw, 26px)",
+                              fontWeight: 800,
+                              color: "#0f172a",
+                              margin: 0,
+                              letterSpacing: "-0.4px",
+                              lineHeight: 1.2,
+                            }}
+                          >
+                            Attendance Intelligence
+                          </h1>
                         </div>
-                        <h1
-                          style={{
-                            fontSize: "clamp(20px, 2vw, 24px)",
-                            fontWeight: 800,
-                            color: "#0f172a",
-                            margin: 0,
-                            letterSpacing: "-0.4px",
-                          }}
-                        >
-                          {activeStudentName || `Section ${selectedSection} Attendance`}
-                        </h1>
+
+                        {/* Uske just niche: Auto-Import button (width bada + best padding) */}
+                        <div>
+                          <button
+                            type="button"
+                            onClick={handleOpenScreenshotModal}
+                            style={{
+                              display: "inline-flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                              gap: 8,
+                              padding: "8.5px 18px",
+                              minWidth: 145,
+                              borderRadius: 8,
+                              border: "1px solid #0f172a",
+                              background: scanStatus.isLimitReached ? "#94a3b8" : "#0f172a",
+                              color: "#ffffff",
+                              fontSize: 12.5,
+                              fontWeight: 700,
+                              cursor: scanStatus.isLimitReached ? "not-allowed" : "pointer",
+                              fontFamily: "'DM Sans', sans-serif",
+                              transition: "all 0.15s ease",
+                              boxShadow: "0 2px 4px rgba(15, 23, 42, 0.08)",
+                            }}
+                            onMouseEnter={(e) => {
+                              if (!scanStatus.isLimitReached) {
+                                e.currentTarget.style.background = "#1e293b";
+                                e.currentTarget.style.borderColor = "#1e293b";
+                              }
+                            }}
+                            onMouseLeave={(e) => {
+                              if (!scanStatus.isLimitReached) {
+                                e.currentTarget.style.background = "#0f172a";
+                                e.currentTarget.style.borderColor = "#0f172a";
+                              }
+                            }}
+                          >
+                            <Camera size={14} color="#ffffff" strokeWidth={2.2} />
+                            <span>Auto-Import Scan</span>
+                          </button>
+                        </div>
                       </div>
 
-                      <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-                        {/* Target Goal Selector */}
+                      {/* Right: Target Goal Selector with increased padding */}
+                      <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 5 }}>
+                        <span style={{ fontSize: 11, fontWeight: 700, color: "#64748b", textTransform: "uppercase", letterSpacing: "0.5px" }}>
+                          Target Criteria
+                        </span>
                         <div
                           style={{
                             display: "flex",
                             alignItems: "center",
-                            gap: 3,
+                            gap: 4,
                             background: "#f1f5f9",
-                            padding: "3px 4px",
-                            borderRadius: 8,
+                            padding: "4px 6px",
+                            borderRadius: 10,
                             border: "1px solid #e2e8f0",
                           }}
                         >
-                          <span style={{ fontSize: 11, fontWeight: 700, color: "#64748b", padding: "0 6px" }}>Target</span>
+                          <span style={{ fontSize: 11.5, fontWeight: 700, color: "#64748b", padding: "0 8px" }}>Target</span>
                           {[75, 80, 85, 90].map((goal) => {
                             const isSelected = targetGoal === goal;
                             return (
@@ -2298,16 +2355,16 @@ export default function AttendanceTracker() {
                                   syncAttendanceToDb(savedSubjects, allDailyLogs, goal);
                                 }}
                                 style={{
-                                  padding: "4px 9px",
-                                  borderRadius: 6,
+                                  padding: "6px 14px",
+                                  borderRadius: 7,
                                   border: isSelected ? "1px solid #0f172a" : "1px solid transparent",
                                   background: isSelected ? "#0f172a" : "transparent",
                                   color: isSelected ? "#ffffff" : "#64748b",
-                                  fontSize: 11.5,
+                                  fontSize: 12.5,
                                   fontWeight: 700,
                                   cursor: "pointer",
                                   transition: "all 0.15s ease",
-                                  boxShadow: isSelected ? "0 1px 2px rgba(0,0,0,0.12)" : "none",
+                                  boxShadow: isSelected ? "0 1px 3px rgba(0,0,0,0.12)" : "none",
                                 }}
                               >
                                 {goal}%
@@ -2315,44 +2372,8 @@ export default function AttendanceTracker() {
                             );
                           })}
                         </div>
-
-                        <button
-                          type="button"
-                          onClick={handleOpenScreenshotModal}
-                          style={{
-                            display: "inline-flex",
-                            alignItems: "center",
-                            gap: 6,
-                            padding: "6px 13px",
-                            borderRadius: 8,
-                            border: "1px solid #0f172a",
-                            background: scanStatus.isLimitReached ? "#94a3b8" : "#0f172a",
-                            color: "#ffffff",
-                            fontSize: 12,
-                            fontWeight: 700,
-                            cursor: scanStatus.isLimitReached ? "not-allowed" : "pointer",
-                            fontFamily: "'DM Sans', sans-serif",
-                            transition: "all 0.15s ease",
-                            boxShadow: "0 1px 2px rgba(0,0,0,0.06)",
-                          }}
-                          onMouseEnter={(e) => {
-                            if (!scanStatus.isLimitReached) {
-                              e.currentTarget.style.background = "#1e293b";
-                              e.currentTarget.style.borderColor = "#1e293b";
-                            }
-                          }}
-                          onMouseLeave={(e) => {
-                            if (!scanStatus.isLimitReached) {
-                              e.currentTarget.style.background = "#0f172a";
-                              e.currentTarget.style.borderColor = "#0f172a";
-                            }
-                          }}
-                        >
-                          <Camera size={13} color="#ffffff" />
-                          <span>Auto-Import</span>
-                        </button>
                       </div>
-                    </>
+                    </div>
                   )}
                 </div>
               </div>
