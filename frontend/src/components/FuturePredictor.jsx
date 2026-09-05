@@ -1943,7 +1943,8 @@ export default function FuturePredictor({
                   marginTop: 2,
                 }}
               >
-                <span>💡 Tip: Select any date with classes above or use Quick Presets</span>
+                <Info size={11} color="#64748b" style={{ flexShrink: 0 }} />
+                <span>Tip: Select any date with classes above or use Quick Presets</span>
               </div>
             </motion.div>
           ) : (
@@ -2451,7 +2452,7 @@ export default function FuturePredictor({
                               }}
                             >
                               <CheckCircle2 size={11} style={{ flexShrink: 0 }} />
-                              ✓ In-Between Attended (+{bDay.classesAttendedCount} Classes)
+                              In-Between Attended (+{bDay.classesAttendedCount} Classes)
                             </span>
                           </div>
 
@@ -2537,8 +2538,9 @@ export default function FuturePredictor({
                                         +{subGain.attendedCount} class{subGain.attendedCount > 1 ? "es" : ""} attended ({subGain.type})
                                       </div>
                                       {subGain.attendedSlots && subGain.attendedSlots.length > 0 && (
-                                        <div style={{ fontSize: 10, color: "#64748b", marginTop: 2, wordBreak: "break-word" }}>
-                                          🕒 {subGain.attendedSlots.map((s) => s.timeSlot).join(", ")}
+                                        <div style={{ fontSize: 10, color: "#64748b", marginTop: 2, wordBreak: "break-word", display: "inline-flex", alignItems: "center", gap: 3.5 }}>
+                                          <Clock size={10} style={{ flexShrink: 0 }} />
+                                          <span>{subGain.attendedSlots.map((s) => s.timeSlot).join(", ")}</span>
                                         </div>
                                       )}
                                     </div>
@@ -2596,9 +2598,13 @@ export default function FuturePredictor({
                                         background: "#dcfce7",
                                         color: "#166534",
                                         flexShrink: 0,
+                                        display: "inline-flex",
+                                        alignItems: "center",
+                                        gap: 3,
                                       }}
                                     >
-                                      ✓ Buffer Boosted
+                                      <Check size={10} />
+                                      Buffer Boosted
                                     </span>
                                   </div>
                                 </div>
@@ -2803,8 +2809,9 @@ export default function FuturePredictor({
                                         )}
                                       </div>
                                       {subImp.missedSlots && subImp.missedSlots.length > 0 && (
-                                        <div style={{ fontSize: 10, color: "#94a3b8", marginTop: 2, wordBreak: "break-word" }}>
-                                          🕒 {subImp.missedSlots.map((s) => s.timeSlot).join(", ")}
+                                        <div style={{ fontSize: 10, color: "#94a3b8", marginTop: 2, wordBreak: "break-word", display: "inline-flex", alignItems: "center", gap: 3.5 }}>
+                                          <Clock size={10} style={{ flexShrink: 0 }} />
+                                          <span>{subImp.missedSlots.map((s) => s.timeSlot).join(", ")}</span>
                                         </div>
                                       )}
                                     </div>
@@ -2882,9 +2889,24 @@ export default function FuturePredictor({
                                           ? "#059669"
                                           : "#dc2626",
                                         flexShrink: 0,
+                                        display: "inline-flex",
+                                        alignItems: "center",
+                                        gap: 3,
                                       }}
                                     >
-                                      {isBreached ? "⚠️ Drops Below Cutoff!" : isSafe ? "✓ Safe" : "Cutoff Breached"}
+                                      {isBreached ? (
+                                        <>
+                                          <AlertTriangle size={9} />
+                                          Drops Below Cutoff!
+                                        </>
+                                      ) : isSafe ? (
+                                        <>
+                                          <Check size={9} />
+                                          Safe
+                                        </>
+                                      ) : (
+                                        "Cutoff Breached"
+                                      )}
                                     </span>
                                   </div>
                                 </div>
