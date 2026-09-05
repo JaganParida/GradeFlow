@@ -100,6 +100,7 @@ export default function AttendanceTargetPredictor({
   const totalDelivered = activeCalculation?.totalDelivered || 0;
   const currentPct = activeCalculation?.currentPercentage || 0;
   const isCurrentlySafe = currentPct >= targetGoal;
+  const isPenaltyView = activeSection === "penalty" || engineView === "penalty_simulator";
 
   // Base calendar projection for current targetGoal
   const baseProjection = useMemo(() => {
@@ -257,25 +258,147 @@ export default function AttendanceTargetPredictor({
           </p>
         </div>
 
-        {/* Clean Master Target Goal Badge */}
-        <div
-          style={{
-            display: "inline-flex",
-            alignItems: "center",
-            gap: 6,
-            background: "#eff6ff",
-            border: "1px solid #bfdbfe",
-            padding: isMobile ? "4px 10px" : "5px 12px",
-            borderRadius: 8,
-            fontSize: isMobile ? 12 : 12.5,
-            fontWeight: 800,
-            color: "#1d4ed8",
-            whiteSpace: "nowrap",
-          }}
-        >
-          <Target size={14} color="#2563eb" />
-          <span>Target: <strong>{targetGoal}%</strong></span>
-        </div>
+        {/* Right side of Header */}
+        {isPenaltyView ? (
+          /* ── MISSED CLASSES SELECTOR (NEXT TO TITLE) ── */
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 8,
+              flexWrap: "wrap",
+            }}
+          >
+            {/* Quick Presets */}
+            <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
+              {[1, 2, 3, 5, 8].map((num) => (
+                <button
+                  key={num}
+                  type="button"
+                  onClick={() => setSimulateMissCount(num)}
+                  style={{
+                    background: simulateMissCount === num ? "#0f172a" : "#f8fafc",
+                    color: simulateMissCount === num ? "#ffffff" : "#475569",
+                    border: `1px solid ${simulateMissCount === num ? "#0f172a" : "#cbd5e1"}`,
+                    padding: "4px 8px",
+                    borderRadius: 6,
+                    fontSize: 11,
+                    fontWeight: 700,
+                    cursor: "pointer",
+                    transition: "all 0.15s ease",
+                  }}
+                >
+                  +{num} Miss
+                </button>
+              ))}
+            </div>
+
+            {/* Direct Type / Stepper Input */}
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 5,
+                background: "#ffffff",
+                border: "1px solid #cbd5e1",
+                borderRadius: 8,
+                padding: "3px 6px",
+                boxSizing: "border-box",
+              }}
+            >
+              <button
+                type="button"
+                onClick={() => setSimulateMissCount(Math.max(1, simulateMissCount - 1))}
+                style={{
+                  width: 26,
+                  height: 26,
+                  borderRadius: 5,
+                  border: "1px solid #e2e8f0",
+                  background: "#f8fafc",
+                  color: "#0f172a",
+                  fontSize: 15,
+                  fontWeight: 800,
+                  cursor: "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                -
+              </button>
+
+              <div style={{ display: "flex", alignItems: "center", gap: 3 }}>
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  pattern="[0-9]*"
+                  value={simulateMissCount}
+                  onChange={(e) => {
+                    const raw = e.target.value.replace(/[^0-9]/g, "");
+                    const val = parseInt(raw, 10);
+                    setSimulateMissCount(isNaN(val) ? 1 : Math.max(1, Math.min(50, val)));
+                  }}
+                  style={{
+                    width: 30,
+                    textAlign: "center",
+                    border: "none",
+                    background: "transparent",
+                    fontSize: 13.5,
+                    fontWeight: 800,
+                    color: "#0f172a",
+                    outline: "none",
+                    padding: 0,
+                    fontFamily: "'DM Sans', sans-serif",
+                  }}
+                />
+                <span style={{ fontSize: 11, fontWeight: 700, color: "#475569" }}>
+                  {simulateMissCount === 1 ? "Class" : "Classes"}
+                </span>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setSimulateMissCount(Math.min(50, simulateMissCount + 1))}
+                style={{
+                  width: 26,
+                  height: 26,
+                  borderRadius: 5,
+                  border: "1px solid #e2e8f0",
+                  background: "#f8fafc",
+                  color: "#0f172a",
+                  fontSize: 15,
+                  fontWeight: 800,
+                  cursor: "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                +
+              </button>
+            </div>
+          </div>
+        ) : (
+          /* For schedule or roadmap tabs: Keep clean target badge */
+          <div
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 6,
+              background: "#eff6ff",
+              border: "1px solid #bfdbfe",
+              padding: isMobile ? "4px 10px" : "5px 12px",
+              borderRadius: 8,
+              fontSize: isMobile ? 12 : 12.5,
+              fontWeight: 800,
+              color: "#1d4ed8",
+              whiteSpace: "nowrap",
+            }}
+          >
+            <Target size={14} color="#2563eb" />
+            <span>Target: <strong>{targetGoal}%</strong></span>
+          </div>
+        )}
       </div>
 
       {/* ── ACTIVE SUBJECT COMMAND BAR (CLEAN & NON-BULKY) ── */}
@@ -299,7 +422,7 @@ export default function AttendanceTargetPredictor({
           gap: isMobile ? 8 : 12,
         }}
       >
-        {/* Card 1: Current Status */}
+        {/* Card 1: Current Status / Status After Miss */}
         <div
           style={{
             background: "#ffffff",
@@ -315,17 +438,30 @@ export default function AttendanceTargetPredictor({
           }}
         >
           <div style={{ fontSize: 10.5, fontWeight: 700, color: "#64748b", textTransform: "uppercase", letterSpacing: "0.4px" }}>
-            Current Status
+            {isPenaltyView ? "Status After Miss" : "Current Status"}
           </div>
-          <div style={{ fontSize: isMobile ? 22 : 24, fontWeight: 800, color: isCurrentlySafe ? "#059669" : "#0f172a", lineHeight: 1.15 }}>
-            {currentPct}%
+          <div
+            style={{
+              fontSize: isMobile ? 22 : 24,
+              fontWeight: 800,
+              color: isPenaltyView
+                ? (Number(missPenaltyData?.missedSessions?.[missPenaltyData.missedSessions.length - 1]?.runningPercentage ?? currentPct) >= Number(targetGoal) ? "#059669" : "#dc2626")
+                : (isCurrentlySafe ? "#059669" : "#0f172a"),
+              lineHeight: 1.15,
+            }}
+          >
+            {isPenaltyView
+              ? `${missPenaltyData?.missedSessions?.[missPenaltyData.missedSessions.length - 1]?.runningPercentage ?? currentPct}%`
+              : `${currentPct}%`}
           </div>
-          <div style={{ fontSize: 11, color: "#64748b", lineHeight: 1.3 }}>
-            {totalAttended}/{totalDelivered} classes ({activeCalculation?.deficit || 0} deficit)
+          <div style={{ fontSize: 11, color: isPenaltyView ? "#dc2626" : "#64748b", lineHeight: 1.3, fontWeight: isPenaltyView ? 600 : 400 }}>
+            {isPenaltyView
+              ? `-${Math.abs(currentPct - (missPenaltyData?.missedSessions?.[missPenaltyData.missedSessions.length - 1]?.runningPercentage ?? currentPct)).toFixed(1)}% drop from ${currentPct}%`
+              : `${totalAttended}/${totalDelivered} classes (${activeCalculation?.deficit || 0} deficit)`}
           </div>
         </div>
 
-        {/* Card 2: Sprint Needed / Safe Bunks */}
+        {/* Card 2: Sprint Needed / Safe Bunks / Requirement After Miss */}
         <div
           style={{
             background: "#ffffff",
@@ -341,19 +477,25 @@ export default function AttendanceTargetPredictor({
           }}
         >
           <div style={{ fontSize: 10.5, fontWeight: 700, color: "#64748b", textTransform: "uppercase", letterSpacing: "0.4px" }}>
-            {isCurrentlySafe ? `Safe Bunks` : `Sprint for ${targetGoal}%`}
+            {isPenaltyView
+              ? "Requirement After Miss"
+              : (isCurrentlySafe ? "Safe Bunks" : `Sprint for ${targetGoal}%`)}
           </div>
           <div style={{ fontSize: isMobile ? 19 : 22, fontWeight: 800, color: "#0f172a", lineHeight: 1.2 }}>
-            {isCurrentlySafe
-              ? `${activeCalculation?.safeBunks || 0} Safe Bunks`
-              : `${activeCalculation?.classesNeeded || 0} Classes`}
+            {isPenaltyView
+              ? `${missPenaltyData?.newNeeded ?? 0} Classes`
+              : (isCurrentlySafe
+                  ? `${activeCalculation?.safeBunks || 0} Safe Bunks`
+                  : `${activeCalculation?.classesNeeded || 0} Classes`)}
           </div>
-          <div style={{ fontSize: 11, color: "#64748b", lineHeight: 1.3 }}>
-            {isCurrentlySafe ? `Can miss safely` : `100% streak needed`}
+          <div style={{ fontSize: 11, color: isPenaltyView ? (missPenaltyData?.extraClassesNeeded > 0 ? "#b45309" : "#16a34a") : "#64748b", lineHeight: 1.3, fontWeight: isPenaltyView ? 600 : 400 }}>
+            {isPenaltyView
+              ? `+${missPenaltyData?.extraClassesNeeded ?? 0} extra needed (orig: ${missPenaltyData?.baseNeeded ?? 0})`
+              : (isCurrentlySafe ? "Can miss safely" : "100% streak needed")}
           </div>
         </div>
 
-        {/* Card 3: Estimated Reach Date */}
+        {/* Card 3: Reach Date / New Reach Date */}
         <div
           style={{
             background: "#ffffff",
@@ -369,13 +511,17 @@ export default function AttendanceTargetPredictor({
           }}
         >
           <div style={{ fontSize: 10.5, fontWeight: 700, color: "#64748b", textTransform: "uppercase", display: "flex", alignItems: "center", gap: 4, letterSpacing: "0.4px" }}>
-            <CalendarIcon size={12} color="#64748b" /> Reach Date
+            <CalendarIcon size={12} color="#64748b" /> {isPenaltyView ? "New Reach Date" : "Reach Date"}
           </div>
           <div style={{ fontSize: isMobile ? 15.5 : 18, fontWeight: 800, color: "#0f172a", lineHeight: 1.25, wordBreak: "break-word" }}>
-            {baseProjection?.estimatedDate || (isCurrentlySafe ? "Achieved" : "Exceeds Sem")}
+            {isPenaltyView
+              ? (missPenaltyData?.delayedProjection?.estimatedDate || (missPenaltyData?.delayedProjection?.isAttainable === false ? "Beyond Sem" : (isCurrentlySafe ? "Achieved" : "Exceeds Sem")))
+              : (baseProjection?.estimatedDate || (isCurrentlySafe ? "Achieved" : "Exceeds Sem"))}
           </div>
-          <div style={{ fontSize: 11, color: "#64748b", lineHeight: 1.3 }}>
-            {baseProjection ? `~${baseProjection.estimatedWeeks} wks (${baseProjection.classesPerWeek}/wk)` : "Timetable active"}
+          <div style={{ fontSize: 11, color: isPenaltyView ? (missPenaltyData?.delayedProjection?.isAttainable === false ? "#dc2626" : "#b45309") : "#64748b", lineHeight: 1.3, fontWeight: isPenaltyView ? 600 : 400 }}>
+            {isPenaltyView
+              ? (missPenaltyData?.delayedProjection?.isAttainable === false ? "Exceeds timetable" : `+${missPenaltyData?.delayInDays ?? 0} days delay`)
+              : (baseProjection ? `~${baseProjection.estimatedWeeks} wks (${baseProjection.classesPerWeek}/wk)` : "Timetable active")}
           </div>
         </div>
 
@@ -395,21 +541,42 @@ export default function AttendanceTargetPredictor({
           }}
         >
           <div style={{ fontSize: 10.5, fontWeight: 700, color: "#64748b", textTransform: "uppercase", display: "flex", alignItems: "center", gap: 4, letterSpacing: "0.4px" }}>
-            <Activity size={12} color="#64748b" /> Timeline
+            <Activity size={12} color="#64748b" /> {isPenaltyView ? "Attainability" : "Timeline"}
           </div>
-          <div style={{ fontSize: isMobile ? 16 : 18, fontWeight: 800, color: baseProjection?.isAttainable ? "#059669" : "#dc2626", lineHeight: 1.2 }}>
-            {baseProjection?.isAttainable ? (
-              <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
-                Attainable <CheckCircle2 size={14} color="#059669" />
-              </span>
+          <div
+            style={{
+              fontSize: isMobile ? 16 : 18,
+              fontWeight: 800,
+              color: isPenaltyView
+                ? (missPenaltyData?.delayedProjection?.isAttainable ? "#059669" : "#dc2626")
+                : (baseProjection?.isAttainable ? "#059669" : "#dc2626"),
+              lineHeight: 1.2,
+            }}
+          >
+            {isPenaltyView ? (
+              missPenaltyData?.delayedProjection?.isAttainable ? (
+                <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
+                  Attainable <CheckCircle2 size={14} color="#059669" />
+                </span>
+              ) : (
+                <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
+                  Critical <AlertTriangle size={14} color="#dc2626" />
+                </span>
+              )
             ) : (
-              <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
-                Critical <AlertTriangle size={14} color="#dc2626" />
-              </span>
+              baseProjection?.isAttainable ? (
+                <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
+                  Attainable <CheckCircle2 size={14} color="#059669" />
+                </span>
+              ) : (
+                <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
+                  Critical <AlertTriangle size={14} color="#dc2626" />
+                </span>
+              )
             )}
           </div>
           <div style={{ fontSize: 11, color: "#64748b", lineHeight: 1.3 }}>
-            Max: {baseProjection?.maxAttainablePercentage || currentPct}% (31 Oct)
+            Max: {isPenaltyView ? (missPenaltyData?.delayedProjection?.maxAttainablePercentage || currentPct) : (baseProjection?.maxAttainablePercentage || currentPct)}% (31 Oct)
           </div>
         </div>
       </div>
@@ -659,309 +826,7 @@ export default function AttendanceTargetPredictor({
             style={{ display: "flex", flexDirection: "column", gap: 16 }}
           >
             {/* ══════════════════════════════════════════════════════════
-                SECTION 1: SIMULATE MISSED CLASSES (SELECT / SLIDE / TYPE)
-            ══════════════════════════════════════════════════════════ */}
-            <div
-              style={{
-                background: "#ffffff",
-                border: "1px solid #e2e8f0",
-                borderRadius: 16,
-                padding: isMobile ? "16px 14px" : "20px 22px",
-                display: "flex",
-                flexDirection: "column",
-                gap: 16,
-                boxShadow: "0 1px 3px rgba(15, 23, 42, 0.03)",
-              }}
-            >
-              {/* Header with Title & Presets */}
-              <div
-                style={{
-                  display: "flex",
-                  flexDirection: isMobile ? "column" : "row",
-                  justifyContent: "space-between",
-                  alignItems: isMobile ? "flex-start" : "center",
-                  gap: 12,
-                }}
-              >
-                <div>
-                  <h4 style={{ fontSize: isMobile ? 15 : 16.5, fontWeight: 800, color: "#0f172a", margin: 0 }}>
-                    Simulate Missed Classes
-                  </h4>
-                  <p style={{ fontSize: 12, color: "#64748b", margin: "3px 0 0 0" }}>
-                    Select or type the number of classes you might miss to see the delay and required recovery.
-                  </p>
-                </div>
-
-                {/* Quick Preset Buttons */}
-                <div
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 6,
-                    flexWrap: "wrap",
-                  }}
-                >
-                  <span style={{ fontSize: 11, fontWeight: 700, color: "#64748b" }}>
-                    Presets:
-                  </span>
-                  {[1, 2, 3, 5, 8].map((num) => (
-                    <button
-                      key={num}
-                      type="button"
-                      onClick={() => setSimulateMissCount(num)}
-                      style={{
-                        background: simulateMissCount === num ? "#0f172a" : "#f8fafc",
-                        color: simulateMissCount === num ? "#ffffff" : "#475569",
-                        border: `1px solid ${simulateMissCount === num ? "#0f172a" : "#cbd5e1"}`,
-                        padding: "5px 10px",
-                        borderRadius: 7,
-                        fontSize: 11.5,
-                        fontWeight: 700,
-                        cursor: "pointer",
-                        transition: "all 0.15s ease",
-                      }}
-                    >
-                      +{num} Miss
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Clean Interactive Slider & Direct Input Stepper */}
-              <div
-                style={{
-                  display: "flex",
-                  flexDirection: isMobile ? "column" : "row",
-                  alignItems: "center",
-                  gap: 16,
-                  background: "#f8fafc",
-                  padding: isMobile ? "12px 14px" : "14px 18px",
-                  borderRadius: 12,
-                  border: "1px solid #e2e8f0",
-                }}
-              >
-                {/* Visual Range Slider */}
-                <div style={{ flex: 1, width: "100%", display: "flex", flexDirection: "column", gap: 6 }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: 11, fontWeight: 700, color: "#64748b" }}>
-                    <span>1 class</span>
-                    <span style={{ color: "#0f172a", fontSize: 12, fontWeight: 800 }}>
-                      {simulateMissCount} {simulateMissCount === 1 ? "Class" : "Classes"} Missed
-                    </span>
-                    <span>20 classes</span>
-                  </div>
-                  <input
-                    type="range"
-                    min="1"
-                    max="20"
-                    value={simulateMissCount}
-                    onChange={(e) => setSimulateMissCount(Math.max(1, parseInt(e.target.value, 10) || 1))}
-                    style={{
-                      width: "100%",
-                      accentColor: "#0f172a",
-                      height: 6,
-                      borderRadius: 999,
-                      cursor: "pointer",
-                      outline: "none",
-                    }}
-                  />
-                </div>
-
-                {/* Clean Direct Input / Stepper */}
-                <div
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 6,
-                    background: "#ffffff",
-                    border: "1px solid #cbd5e1",
-                    borderRadius: 10,
-                    padding: "4px 8px",
-                    boxSizing: "border-box",
-                  }}
-                >
-                  <button
-                    type="button"
-                    onClick={() => setSimulateMissCount(Math.max(1, simulateMissCount - 1))}
-                    style={{
-                      width: 30,
-                      height: 30,
-                      borderRadius: 6,
-                      border: "1px solid #e2e8f0",
-                      background: "#f8fafc",
-                      color: "#0f172a",
-                      fontSize: 16,
-                      fontWeight: 800,
-                      cursor: "pointer",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                    }}
-                  >
-                    -
-                  </button>
-
-                  <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
-                    <input
-                      type="text"
-                      inputMode="numeric"
-                      pattern="[0-9]*"
-                      value={simulateMissCount}
-                      onChange={(e) => {
-                        const raw = e.target.value.replace(/[^0-9]/g, "");
-                        const val = parseInt(raw, 10);
-                        setSimulateMissCount(isNaN(val) ? 1 : Math.max(1, Math.min(50, val)));
-                      }}
-                      style={{
-                        width: 34,
-                        textAlign: "center",
-                        border: "none",
-                        background: "transparent",
-                        fontSize: 15,
-                        fontWeight: 800,
-                        color: "#0f172a",
-                        outline: "none",
-                        padding: 0,
-                        fontFamily: "'DM Sans', sans-serif",
-                      }}
-                    />
-                    <span style={{ fontSize: 11.5, fontWeight: 700, color: "#475569" }}>
-                      {simulateMissCount === 1 ? "Class" : "Classes"}
-                    </span>
-                  </div>
-
-                  <button
-                    type="button"
-                    onClick={() => setSimulateMissCount(Math.min(50, simulateMissCount + 1))}
-                    style={{
-                      width: 30,
-                      height: 30,
-                      borderRadius: 6,
-                      border: "1px solid #e2e8f0",
-                      background: "#f8fafc",
-                      color: "#0f172a",
-                      fontSize: 16,
-                      fontWeight: 800,
-                      cursor: "pointer",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                    }}
-                  >
-                    +
-                  </button>
-                </div>
-              </div>
-
-              {/* 4 Clean Impact Metric Cards */}
-              {missPenaltyData && (
-                <div
-                  style={{
-                    display: "grid",
-                    gridTemplateColumns: isMobile ? "repeat(2, 1fr)" : "repeat(4, 1fr)",
-                    gap: 10,
-                  }}
-                >
-                  {/* Card 1: Original Requirement */}
-                  <div
-                    style={{
-                      background: "#ffffff",
-                      border: "1px solid #e2e8f0",
-                      borderRadius: 10,
-                      padding: "12px 14px",
-                      display: "flex",
-                      flexDirection: "column",
-                      gap: 3,
-                    }}
-                  >
-                    <div style={{ fontSize: 10.5, fontWeight: 700, color: "#64748b", textTransform: "uppercase" }}>
-                      Original Sprint
-                    </div>
-                    <div style={{ fontSize: isMobile ? 17 : 19, fontWeight: 800, color: "#0f172a" }}>
-                      {missPenaltyData.baseNeeded} Classes
-                    </div>
-                    <div style={{ fontSize: 11, color: "#64748b" }}>
-                      Target: {missPenaltyData.baseProjection?.estimatedDate || "Attainable"}
-                    </div>
-                  </div>
-
-                  {/* Card 2: After Miss Requirement */}
-                  <div
-                    style={{
-                      background: "#ffffff",
-                      border: "1px solid #e2e8f0",
-                      borderRadius: 10,
-                      padding: "12px 14px",
-                      display: "flex",
-                      flexDirection: "column",
-                      gap: 3,
-                    }}
-                  >
-                    <div style={{ fontSize: 10.5, fontWeight: 700, color: "#64748b", textTransform: "uppercase" }}>
-                      After Miss
-                    </div>
-                    <div style={{ fontSize: isMobile ? 17 : 19, fontWeight: 800, color: "#0f172a" }}>
-                      {missPenaltyData.newNeeded} Classes
-                    </div>
-                    <div style={{ fontSize: 11, color: missPenaltyData.extraClassesNeeded > 0 ? "#b45309" : "#16a34a", fontWeight: 600 }}>
-                      +{missPenaltyData.extraClassesNeeded} extra needed
-                    </div>
-                  </div>
-
-                  {/* Card 3: Calendar Delay */}
-                  <div
-                    style={{
-                      background: "#ffffff",
-                      border: "1px solid #e2e8f0",
-                      borderRadius: 10,
-                      padding: "12px 14px",
-                      display: "flex",
-                      flexDirection: "column",
-                      gap: 3,
-                    }}
-                  >
-                    <div style={{ fontSize: 10.5, fontWeight: 700, color: "#64748b", textTransform: "uppercase" }}>
-                      Calendar Delay
-                    </div>
-                    <div style={{ fontSize: isMobile ? 17 : 19, fontWeight: 800, color: "#0f172a" }}>
-                      {missPenaltyData.delayedProjection?.isAttainable === false
-                        ? "Beyond Sem"
-                        : `+${missPenaltyData.delayInDays} Days`}
-                    </div>
-                    <div style={{ fontSize: 11, color: "#64748b" }}>
-                      {missPenaltyData.delayedProjection?.isAttainable === false
-                        ? "Exceeds timetable"
-                        : `New date: ${missPenaltyData.delayedProjection?.estimatedDate || "N/A"}`}
-                    </div>
-                  </div>
-
-                  {/* Card 4: Attendance Drop */}
-                  <div
-                    style={{
-                      background: "#ffffff",
-                      border: "1px solid #e2e8f0",
-                      borderRadius: 10,
-                      padding: "12px 14px",
-                      display: "flex",
-                      flexDirection: "column",
-                      gap: 3,
-                    }}
-                  >
-                    <div style={{ fontSize: 10.5, fontWeight: 700, color: "#64748b", textTransform: "uppercase" }}>
-                      Attendance Drop
-                    </div>
-                    <div style={{ fontSize: isMobile ? 17 : 19, fontWeight: 800, color: "#dc2626" }}>
-                      -{Math.abs(currentPct - (missPenaltyData.missedSessions?.[missPenaltyData.missedSessions.length - 1]?.runningPercentage || 0)).toFixed(1)}%
-                    </div>
-                    <div style={{ fontSize: 11, color: "#64748b" }}>
-                      Drops to {missPenaltyData.missedSessions?.[missPenaltyData.missedSessions.length - 1]?.runningPercentage || currentPct}%
-                    </div>
-                  </div>
-                </div>
-              )}
-            </div>
-
-            {/* ══════════════════════════════════════════════════════════
-                SECTION 2: PLANNED TO BE MISSED CLASSES
+                SECTION 1: PLANNED TO BE MISSED CLASSES
             ══════════════════════════════════════════════════════════ */}
             {missPenaltyData?.missedSessions && missPenaltyData.missedSessions.length > 0 && (
               <div
@@ -1151,7 +1016,7 @@ export default function AttendanceTargetPredictor({
             )}
 
             {/* ══════════════════════════════════════════════════════════
-                SECTION 3: RECOVERY SCHEDULE
+                SECTION 2: RECOVERY SCHEDULE
             ══════════════════════════════════════════════════════════ */}
             {recoverySessions.length > 0 && (
               <div
