@@ -28,6 +28,8 @@ import {
   Save,
   Trash2,
   Sliders,
+  Flame,
+  Compass,
   Award,
   Info,
   ChevronDown,
@@ -75,7 +77,6 @@ import {
 import { isMatch } from "../utils/basketLogic";
 import FuturePredictor from "../components/FuturePredictor";
 import AttendanceTargetPredictor from "../components/AttendanceTargetPredictor";
-import PredictorStudioNav from "../components/PredictorStudioNav";
 import AttendanceScreenshotModal from "../components/AttendanceScreenshotModal";
 import { AttendanceSkeleton } from "../components/LoadingSpinner";
 import ModernMobileSubNav from "../components/ModernMobileSubNav";
@@ -379,35 +380,6 @@ export default function AttendanceTracker() {
   const urlTabParam = searchParams.get("tab") || searchParams.get("view");
   const urlSectionParam = searchParams.get("section") || searchParams.get("sec");
 
-  const getInitialStudioSection = () => {
-    if (urlSectionParam === "schedule" || urlSectionParam === "complete_schedule") return "schedule";
-    if (urlSectionParam === "penalty" || urlSectionParam === "miss_penalty") return "penalty";
-    if (urlSectionParam === "roadmap" || urlSectionParam === "multiphase") return "roadmap";
-    if (urlSectionParam === "simulator" || urlSectionParam === "whatif" || urlSectionParam === "calculator") return "simulator";
-    return "simulator";
-  };
-
-  const [studioSection, setStudioSection] = useState(getInitialStudioSection);
-
-  const handleSelectStudioSection = (secId) => {
-    setStudioSection(secId);
-    setSearchParams(
-      (prev) => {
-        const next = new URLSearchParams(prev);
-        next.set("tab", "studio");
-        next.set("section", secId);
-        return next;
-      },
-      { replace: true }
-    );
-  };
-
-  useEffect(() => {
-    if (urlSectionParam && ["simulator", "schedule", "penalty", "roadmap"].includes(urlSectionParam)) {
-      setStudioSection(urlSectionParam);
-    }
-  }, [urlSectionParam]);
-
   // Section Subjects Catalog from Timetable Database
   const sectionCatalog = useMemo(() => {
     return getSectionSubjectCatalog(selectedSection);
@@ -421,7 +393,20 @@ export default function AttendanceTracker() {
   const [simulateAttendCount, setSimulateAttendCount] = useState(0);
 
   const getInitialTab = () => {
-    if (urlTabParam === "studio" || urlTabParam === "predictor") return "studio";
+    if (urlTabParam === "studio_schedule" || urlTabParam === "schedule") return "studio_schedule";
+    if (urlTabParam === "studio_penalty" || urlTabParam === "penalty") return "studio_penalty";
+    if (urlTabParam === "studio_roadmap" || urlTabParam === "roadmap") return "studio_roadmap";
+    if (
+      urlTabParam === "studio_simulator" ||
+      urlTabParam === "simulator" ||
+      urlTabParam === "studio" ||
+      urlTabParam === "predictor"
+    ) {
+      if (urlSectionParam === "schedule") return "studio_schedule";
+      if (urlSectionParam === "penalty") return "studio_penalty";
+      if (urlSectionParam === "roadmap") return "studio_roadmap";
+      return "studio_simulator";
+    }
     if (urlTabParam === "bunk" || urlTabParam === "bunk_analyzer" || urlTabParam === "planner" || urlTabParam === "future" || urlTabParam === "future_predictor") return "bunk_analyzer";
     if (urlTabParam === "matrix" || urlTabParam === "subjects" || urlTabParam === "subject_matrix") return "matrix";
     if (urlTabParam === "checkin" || urlTabParam === "hub" || urlTabParam === "daily") return "checkin";
@@ -430,6 +415,26 @@ export default function AttendanceTracker() {
 
   const [activeTab, setActiveTab] = useState(getInitialTab);
   const hasUserManuallySelectedTabRef = useRef(Boolean(urlTabParam));
+
+  const isStudioTab =
+    activeTab === "studio" ||
+    activeTab === "studio_simulator" ||
+    activeTab === "studio_schedule" ||
+    activeTab === "studio_penalty" ||
+    activeTab === "studio_roadmap";
+
+  const currentStudioSection =
+    activeTab === "studio_schedule" ? "schedule" :
+    activeTab === "studio_penalty" ? "penalty" :
+    activeTab === "studio_roadmap" ? "roadmap" :
+    "simulator";
+
+  const handleStudioSectionChange = (secId) => {
+    if (secId === "simulator") handleTabClick("studio_simulator");
+    else if (secId === "schedule") handleTabClick("studio_schedule");
+    else if (secId === "penalty") handleTabClick("studio_penalty");
+    else if (secId === "roadmap") handleTabClick("studio_roadmap");
+  };
 
   const mobileTabsRef = useRef(null);
   const [canScrollTabsLeft, setCanScrollTabsLeft] = useState(false);
@@ -492,9 +497,19 @@ export default function AttendanceTracker() {
 
   const [subnavAnim, setSubnavAnim] = useState("fade-up");
   const handleTabClick = (tabKey, meta) => {
+    const normalized = tabKey === "studio" ? "studio_simulator" : tabKey;
     if (meta?.animation) setSubnavAnim(meta.animation);
     hasUserManuallySelectedTabRef.current = true;
-    setActiveTab(tabKey);
+    setActiveTab(normalized);
+    setSearchParams(
+      (prev) => {
+        const next = new URLSearchParams(prev);
+        next.set("tab", normalized);
+        next.delete("section");
+        return next;
+      },
+      { replace: true }
+    );
   };
 
   const animVariants = {
@@ -1528,10 +1543,70 @@ export default function AttendanceTracker() {
   const [isResetModalOpen, setIsResetModalOpen] = useState(false);
 
   const navMenuItems = [
-    { id: "checkin", label: "Daily Check-In Hub", shortLabel: "Daily Hub", icon: <CalendarCheck size={16} />, badge: "Routine", desc: "Today's fast attendance logger & summary" },
-    { id: "matrix", label: "Subject-wise Matrix", shortLabel: "Subjects", icon: <Grid size={16} />, badge: `${allSectionSubjects.length} Subs`, desc: "Detailed attendance % across all subjects" },
-    { id: "studio", label: "Predictor Studio", shortLabel: "Predictor", icon: <Sliders size={16} />, badge: "4 Sections", desc: "Simulator, Schedule, Miss Penalty & Roadmap" },
-    { id: "bunk_analyzer", label: "Future Predictor", shortLabel: "Predictor", icon: <TrendingUp size={16} />, badge: "Date-wise", desc: "Date-wise bunk impact & timetable recovery roadmap" },
+    {
+      id: "checkin",
+      label: "Daily Check-In Hub",
+      shortLabel: "Daily Hub",
+      icon: <CalendarCheck size={16} />,
+      badge: "Routine",
+      desc: "Today's fast attendance logger & routine summary",
+    },
+    {
+      id: "matrix",
+      label: "Subject-wise Matrix",
+      shortLabel: "Subjects",
+      icon: <Grid size={16} />,
+      badge: `${allSectionSubjects.length} Subs`,
+      desc: "Detailed attendance % across all semester subjects",
+    },
+    {
+      id: "studio_simulator",
+      label: "Calculator & What-If",
+      shortLabel: "Simulator",
+      icon: <Sliders size={16} />,
+      badge: "Instant",
+      desc: "Adjust Theory/Lab counts & test instant miss/attend impact",
+      isStudio: true,
+      studioSec: "simulator",
+    },
+    {
+      id: "studio_schedule",
+      label: "Complete Class Schedule",
+      shortLabel: "Schedule",
+      icon: <CalendarCheck size={16} />,
+      badge: "Date-Wise",
+      desc: "Day-by-day timetable routine to reach your target milestone",
+      isStudio: true,
+      studioSec: "schedule",
+    },
+    {
+      id: "studio_penalty",
+      label: "Miss Penalty & Recovery",
+      shortLabel: "Miss Penalty",
+      icon: <Flame size={16} />,
+      badge: "Recovery",
+      desc: "See how skipping classes delays target & extra classes to recover",
+      isStudio: true,
+      studioSec: "penalty",
+    },
+    {
+      id: "studio_roadmap",
+      label: "Attendance Roadmap",
+      shortLabel: "Roadmap",
+      icon: <Compass size={16} />,
+      badge: "3-Phase Plan",
+      desc: "Plan semester: sprint to buffer, take planned leave & recover safely",
+      isStudio: true,
+      studioSec: "roadmap",
+    },
+    {
+      id: "bunk_analyzer",
+      label: "Future Predictor",
+      shortLabel: "Future",
+      icon: <TrendingUp size={16} />,
+      badge: "Date-wise",
+      desc: "Date-wise bunk impact & timetable recovery roadmap",
+    },
   ];
 
   const handleResetAllAttendance = () => {
@@ -1827,40 +1902,81 @@ export default function AttendanceTracker() {
                 </div>
 
                 {navMenuItems.map((item) => {
-                  const isActive = activeTab === item.id;
+                  const isActive =
+                    activeTab === item.id ||
+                    (item.id === "studio_simulator" && activeTab === "studio");
+                  const isFirstStudio = item.id === "studio_simulator";
+                  const isFirstAfterStudio = item.id === "bunk_analyzer";
+
                   return (
-                    <button
-                      key={item.id}
-                      type="button"
-                      onClick={() => handleTabClick(item.id)}
-                      style={{
-                        width: "100%",
-                        display: "flex",
-                        alignItems: "center",
-                        gap: 9,
-                        padding: "8px 10px",
-                        borderRadius: 8,
-                        border: "none",
-                        background: isActive ? "#ecfdf5" : "transparent",
-                        color: isActive ? "#059669" : "#475569",
-                        fontSize: 12.5,
-                        fontWeight: isActive ? 800 : 500,
-                        cursor: "pointer",
-                        fontFamily: "'DM Sans', sans-serif",
-                        transition: "all 0.15s ease",
-                        textAlign: "left",
-                      }}
-                      onMouseEnter={(e) => {
-                        if (!isActive) e.currentTarget.style.background = "#f8fafc";
-                      }}
-                      onMouseLeave={(e) => {
-                        if (!isActive) e.currentTarget.style.background = "transparent";
-                      }}
-                    >
-                      <span style={{ color: isActive ? "#059669" : "#64748b" }}>{item.icon}</span>
-                      <span style={{ flex: 1 }}>{item.label}</span>
-                      {isActive && <div style={{ width: 5, height: 5, borderRadius: "50%", background: "#059669" }} />}
-                    </button>
+                    <React.Fragment key={item.id}>
+                      {isFirstStudio && (
+                        <div
+                          style={{
+                            fontSize: 9.5,
+                            fontWeight: 900,
+                            color: "#64748b",
+                            textTransform: "uppercase",
+                            letterSpacing: "0.5px",
+                            padding: "8px 6px 3px 6px",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "space-between",
+                          }}
+                        >
+                          <span>PREDICTOR STUDIO</span>
+                          <span
+                            style={{
+                              fontSize: 8.5,
+                              background: "#eff6ff",
+                              color: "#2563eb",
+                              padding: "1px 5px",
+                              borderRadius: 4,
+                              fontWeight: 800,
+                            }}
+                          >
+                            4 TOOLS
+                          </span>
+                        </div>
+                      )}
+                      {isFirstAfterStudio && (
+                        <div style={{ height: 1, background: "#f1f5f9", margin: "4px 0" }} />
+                      )}
+                      <button
+                        type="button"
+                        onClick={() => handleTabClick(item.id)}
+                        style={{
+                          width: "100%",
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 9,
+                          padding: "8px 10px",
+                          borderRadius: 8,
+                          border: "none",
+                          background: isActive ? "#ecfdf5" : "transparent",
+                          color: isActive ? "#059669" : "#475569",
+                          fontSize: 12.5,
+                          fontWeight: isActive ? 800 : 500,
+                          cursor: "pointer",
+                          fontFamily: "'DM Sans', sans-serif",
+                          transition: "all 0.15s ease",
+                          textAlign: "left",
+                          paddingLeft: item.isStudio ? 14 : 10,
+                        }}
+                        onMouseEnter={(e) => {
+                          if (!isActive) e.currentTarget.style.background = "#f8fafc";
+                        }}
+                        onMouseLeave={(e) => {
+                          if (!isActive) e.currentTarget.style.background = "transparent";
+                        }}
+                      >
+                        <span style={{ color: isActive ? "#059669" : "#64748b" }}>{item.icon}</span>
+                        <span style={{ flex: 1, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                          {item.label}
+                        </span>
+                        {isActive && <div style={{ width: 5, height: 5, borderRadius: "50%", background: "#059669" }} />}
+                      </button>
+                    </React.Fragment>
                   );
                 })}
               </div>
@@ -3404,16 +3520,16 @@ export default function AttendanceTracker() {
         )}
 
         {/* ═══════════════════════════════════════════════════════════════
-            TAB 3: PREDICTOR STUDIO
+            TAB 3: PREDICTOR STUDIO (4 MODULAR TOOLS INTEGRATED IN SIDEBAR & BOTTOM SHEET)
         ═══════════════════════════════════════════════════════════════ */}
-        {activeTab === "studio" && (
+        {isStudioTab && (
           <motion.div
-            key="studio"
+            key={currentStudioSection}
             initial={activeTabMotion.initial}
             animate={activeTabMotion.animate}
             exit={activeTabMotion.exit}
             transition={activeTabMotion.transition}
-            style={{ display: "flex", flexDirection: "column", gap: isMobile ? 10 : 14, width: "100%" }}
+            style={{ display: "flex", flexDirection: "column", gap: isMobile ? 12 : 18, width: "100%", boxSizing: "border-box" }}
           >
             {/* ═══════════════════════════════════════════════════════════════
                 FIRST-TIME STUDENT ONBOARDING & GUIDED SETUP HUB
@@ -3810,54 +3926,145 @@ export default function AttendanceTracker() {
 
               
 
-        {/* ═══════════════════════════════════════════════════════════════
-            STUDIO 4-SECTION MASTER WORKSPACE WITH ROUTING SIDEBAR & BOTTOM SHEET
-        ═══════════════════════════════════════════════════════════════ */}
-        <div
-          style={{
-            display: "flex",
-            flexDirection: isMobile ? "column" : "row",
-            gap: isMobile ? 12 : 20,
-            alignItems: "flex-start",
-            width: "100%",
-            boxSizing: "border-box",
-          }}
-        >
-          {/* Studio Routing Sidebar (Desktop) + Mobile Bottom Sheet / Quick Pills (Mobile) */}
-          <PredictorStudioNav
-            activeSection={studioSection}
-            onSelectSection={handleSelectStudioSection}
-            isMobile={isMobile}
-            activeSubjectName={selectedSubjectName}
-            currentPercentage={activeCalculation.currentPercentage}
-            targetGoal={targetGoal}
-            setTargetGoal={setTargetGoal}
-          />
-
-          {/* Main Studio Dynamic Section Container */}
+        {/* ── SECTION 01: CALCULATOR & WHAT-IF SIMULATOR ── */}
+        {currentStudioSection === "simulator" && (
           <div
             style={{
-              flex: 1,
-              minWidth: 0,
-              width: "100%",
               display: "flex",
               flexDirection: "column",
               gap: 16,
+              width: "100%",
               boxSizing: "border-box",
             }}
           >
-            {/* ── SECTION 01: CALCULATOR & WHAT-IF SIMULATOR ── */}
-            {studioSection === "simulator" && (
-              <div
+            {/* Top 4-Tool Quick Switcher Pills */}
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "repeat(4, 1fr)",
+                background: "#f1f5f9",
+                padding: 4,
+                borderRadius: 12,
+                gap: 4,
+                width: "100%",
+                boxSizing: "border-box",
+              }}
+            >
+              <button
+                type="button"
+                onClick={() => handleStudioSectionChange("simulator")}
                 style={{
-                  display: "grid",
-                  gridTemplateColumns: isMobile ? "1fr" : "1.15fr 0.85fr",
-                  gap: 16,
-                  alignItems: "start",
-                  width: "100%",
-                  boxSizing: "border-box",
+                  display: "flex",
+                  flexDirection: isMobile ? "column" : "row",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: isMobile ? 2 : 6,
+                  padding: isMobile ? "8px 2px" : "9px 12px",
+                  borderRadius: 9,
+                  fontSize: isMobile ? 11 : 12.5,
+                  fontWeight: 800,
+                  background: "#ffffff",
+                  color: "#2563eb",
+                  border: "none",
+                  boxShadow: "0 2px 6px rgba(15, 23, 42, 0.08)",
+                  cursor: "pointer",
+                  transition: "all 0.15s ease",
+                  textAlign: "center",
                 }}
               >
+                <Sliders size={14} color="#2563eb" />
+                <span>{isMobile ? "1. Simulator" : "1. What-If Simulator"}</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => handleStudioSectionChange("schedule")}
+                style={{
+                  display: "flex",
+                  flexDirection: isMobile ? "column" : "row",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: isMobile ? 2 : 6,
+                  padding: isMobile ? "8px 2px" : "9px 12px",
+                  borderRadius: 9,
+                  fontSize: isMobile ? 11 : 12.5,
+                  fontWeight: 800,
+                  background: "transparent",
+                  color: "#64748b",
+                  border: "none",
+                  boxShadow: "none",
+                  cursor: "pointer",
+                  transition: "all 0.15s ease",
+                  textAlign: "center",
+                }}
+              >
+                <CalendarCheck size={14} color="#64748b" />
+                <span>{isMobile ? "2. Schedule" : "2. Complete Schedule"}</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => handleStudioSectionChange("penalty")}
+                style={{
+                  display: "flex",
+                  flexDirection: isMobile ? "column" : "row",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: isMobile ? 2 : 6,
+                  padding: isMobile ? "8px 2px" : "9px 12px",
+                  borderRadius: 9,
+                  fontSize: isMobile ? 11 : 12.5,
+                  fontWeight: 800,
+                  background: "transparent",
+                  color: "#64748b",
+                  border: "none",
+                  boxShadow: "none",
+                  cursor: "pointer",
+                  transition: "all 0.15s ease",
+                  textAlign: "center",
+                }}
+              >
+                <Flame size={14} color="#64748b" />
+                <span>{isMobile ? "3. Miss Penalty" : "3. Miss Penalty"}</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => handleStudioSectionChange("roadmap")}
+                style={{
+                  display: "flex",
+                  flexDirection: isMobile ? "column" : "row",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: isMobile ? 2 : 6,
+                  padding: isMobile ? "8px 2px" : "9px 12px",
+                  borderRadius: 9,
+                  fontSize: isMobile ? 11 : 12.5,
+                  fontWeight: 800,
+                  background: "transparent",
+                  color: "#64748b",
+                  border: "none",
+                  boxShadow: "none",
+                  cursor: "pointer",
+                  transition: "all 0.15s ease",
+                  textAlign: "center",
+                }}
+              >
+                <Compass size={14} color="#64748b" />
+                <span>{isMobile ? "4. Roadmap" : "4. Attendance Roadmap"}</span>
+              </button>
+            </div>
+
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: isMobile ? "1fr" : "1.15fr 0.85fr",
+                gap: 16,
+                alignItems: "start",
+                width: "100%",
+                boxSizing: "border-box",
+              }}
+            >
           {/* LEFT COLUMN: Subject & Multi-Component Breakdown Manager */}
           <div
             style={{
@@ -4890,95 +5097,94 @@ export default function AttendanceTracker() {
             </div>
           </div>
               </div>
-            )}
+            </div>
+          )}
 
-            {/* Quick Subject Selector for Sections 2, 3, 4 */}
-            {studioSection !== "simulator" && sectionCatalog.length > 0 && (
-              <div
-                style={{
-                  background: "#ffffff",
-                  border: "1px solid #e2e8f0",
-                  borderRadius: 14,
-                  padding: isMobile ? "10px 12px" : "12px 16px",
-                  display: "flex",
-                  flexDirection: "column",
-                  gap: 8,
-                  boxShadow: "0 1px 2px rgba(0,0,0,0.02)",
-                }}
-              >
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                  <span style={{ fontSize: isMobile ? 12 : 13, fontWeight: 800, color: "#1e293b", display: "flex", alignItems: "center", gap: 6 }}>
-                    <BookOpen size={isMobile ? 14 : 15} color="#059669" />
-                    Select Subject to Inspect:
+          {/* Quick Subject Selector for Sections 2, 3, 4 */}
+          {currentStudioSection !== "simulator" && sectionCatalog.length > 0 && (
+            <div
+              style={{
+                background: "#ffffff",
+                border: "1px solid #e2e8f0",
+                borderRadius: 14,
+                padding: isMobile ? "10px 12px" : "12px 16px",
+                display: "flex",
+                flexDirection: "column",
+                gap: 8,
+                boxShadow: "0 1px 2px rgba(0,0,0,0.02)",
+              }}
+            >
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <span style={{ fontSize: isMobile ? 12 : 13, fontWeight: 800, color: "#1e293b", display: "flex", alignItems: "center", gap: 6 }}>
+                  <BookOpen size={isMobile ? 14 : 15} color="#059669" />
+                  Select Subject to Inspect:
+                </span>
+                {activeCatalogItem && activeCatalogItem.classesPerWeek > 0 && (
+                  <span
+                    style={{
+                      fontSize: 11,
+                      fontWeight: 800,
+                      color: "#2563eb",
+                      background: "#eff6ff",
+                      padding: "2px 8px",
+                      borderRadius: 6,
+                      border: "1px solid #bfdbfe",
+                    }}
+                  >
+                    {activeCatalogItem.classesPerWeek} classes / week
                   </span>
-                  {activeCatalogItem && activeCatalogItem.classesPerWeek > 0 && (
-                    <span
+                )}
+              </div>
+
+              {/* Subject Pills */}
+              <div style={{ display: "flex", alignItems: "center", gap: 6, width: "100%", overflowX: "auto", scrollbarWidth: "none", padding: "2px 0" }}>
+                {sectionCatalog.map((s) => {
+                  const isSelected = selectedSubjectName === s.subjectName;
+                  return (
+                    <button
+                      key={s.subjectName}
+                      type="button"
+                      onClick={() => selectSubjectFromCatalog(s)}
                       style={{
-                        fontSize: 11,
-                        fontWeight: 800,
-                        color: "#2563eb",
-                        background: "#eff6ff",
-                        padding: "2px 8px",
-                        borderRadius: 6,
-                        border: "1px solid #bfdbfe",
+                        padding: isMobile ? "6px 12px" : "7px 14px",
+                        borderRadius: 8,
+                        fontSize: isMobile ? 11.5 : 12.5,
+                        fontWeight: 700,
+                        cursor: "pointer",
+                        border: isSelected ? "1.5px solid #059669" : "1px solid #e2e8f0",
+                        background: isSelected ? "linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%)" : "#ffffff",
+                        color: isSelected ? "#065f46" : "#475569",
+                        whiteSpace: "nowrap",
+                        flexShrink: 0,
+                        boxShadow: isSelected ? "0 2px 5px rgba(5, 150, 105, 0.15)" : "none",
+                        transition: "all 0.15s ease",
                       }}
                     >
-                      {activeCatalogItem.classesPerWeek} classes / week
-                    </span>
-                  )}
-                </div>
-
-                {/* Subject Pills */}
-                <div style={{ display: "flex", alignItems: "center", gap: 6, width: "100%", overflowX: "auto", scrollbarWidth: "none", padding: "2px 0" }}>
-                  {sectionCatalog.map((s) => {
-                    const isSelected = selectedSubjectName === s.subjectName;
-                    return (
-                      <button
-                        key={s.subjectName}
-                        type="button"
-                        onClick={() => selectSubjectFromCatalog(s)}
-                        style={{
-                          padding: isMobile ? "6px 12px" : "7px 14px",
-                          borderRadius: 8,
-                          fontSize: isMobile ? 11.5 : 12.5,
-                          fontWeight: 700,
-                          cursor: "pointer",
-                          border: isSelected ? "1.5px solid #059669" : "1px solid #e2e8f0",
-                          background: isSelected ? "linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%)" : "#ffffff",
-                          color: isSelected ? "#065f46" : "#475569",
-                          whiteSpace: "nowrap",
-                          flexShrink: 0,
-                          boxShadow: isSelected ? "0 2px 5px rgba(5, 150, 105, 0.15)" : "none",
-                          transition: "all 0.15s ease",
-                        }}
-                      >
-                        {s.subjectName}
-                      </button>
-                    );
-                  })}
-                </div>
+                      {s.subjectName}
+                    </button>
+                  );
+                })}
               </div>
-            )}
+            </div>
+          )}
 
-            {/* ── SECTIONS 02, 03, 04: SCHEDULE, MISS PENALTY, ROADMAP ── */}
-            {(studioSection === "schedule" || studioSection === "penalty" || studioSection === "roadmap") && (
-              <AttendanceTargetPredictor
-                activeCatalogItem={activeCatalogItem}
-                activeCalculation={activeCalculation}
-                targetGoal={targetGoal}
-                setTargetGoal={setTargetGoal}
-                componentInputs={componentInputs}
-                selectedSection={selectedSection}
-                studentData={studentData}
-                isMobile={isMobile}
-                activeSection={studioSection}
-                onSectionChange={handleSelectStudioSection}
-              />
-            )}
-          </div>
-        </div>
-      </motion.div>
-    )}
+          {/* ── SECTIONS 02, 03, 04: SCHEDULE, MISS PENALTY, ROADMAP ── */}
+          {(currentStudioSection === "schedule" || currentStudioSection === "penalty" || currentStudioSection === "roadmap") && (
+            <AttendanceTargetPredictor
+              activeCatalogItem={activeCatalogItem}
+              activeCalculation={activeCalculation}
+              targetGoal={targetGoal}
+              setTargetGoal={setTargetGoal}
+              componentInputs={componentInputs}
+              selectedSection={selectedSection}
+              studentData={studentData}
+              isMobile={isMobile}
+              activeSection={currentStudioSection}
+              onSectionChange={handleStudioSectionChange}
+            />
+          )}
+        </motion.div>
+      )}
 
     {/* ═══════════════════════════════════════════════════════════════
         TAB 4: FUTURE PREDICTOR (DATE-WISE BUNK & RECOVERY PLANNER)
