@@ -2775,18 +2775,22 @@ export default function FuturePredictor({
                         ? missSes.subjectMissNumber || mIdx + 1
                         : missSes.globalMissNumber || mIdx + 1;
 
+                    const isSafeAfterMiss = Number(missSes.runningPercentage) >= Number(simulation.targetPct);
+
                     return (
                       <div
                         key={mIdx}
                         style={{
                           background: "#ffffff",
-                          border: "1.5px solid #fecdd3",
+                          border: isSafeAfterMiss ? "1.5px solid #86efac" : "1.5px solid #fecdd3",
                           borderRadius: 12,
                           padding: "10px 12px",
                           display: "flex",
                           flexDirection: "column",
                           gap: 6,
-                          boxShadow: "0 1px 4px rgba(225, 29, 72, 0.04)",
+                          boxShadow: isSafeAfterMiss
+                            ? "0 1px 4px rgba(34, 197, 94, 0.08)"
+                            : "0 1px 4px rgba(225, 29, 72, 0.04)",
                           minWidth: 0,
                           width: "100%",
                           boxSizing: "border-box",
@@ -2799,7 +2803,7 @@ export default function FuturePredictor({
                               style={{
                                 fontSize: 10.5,
                                 fontWeight: 900,
-                                background: "#e11d48",
+                                background: isSafeAfterMiss ? "#059669" : "#e11d48",
                                 color: "#ffffff",
                                 padding: "1px 6px",
                                 borderRadius: 5,
@@ -2811,6 +2815,43 @@ export default function FuturePredictor({
                             <span style={{ fontSize: 12.5, fontWeight: 800, color: "#0f172a" }}>
                               {missSes.dateStr}
                             </span>
+                            {isSafeAfterMiss ? (
+                              <span
+                                style={{
+                                  fontSize: 9.5,
+                                  fontWeight: 900,
+                                  background: "#dcfce7",
+                                  color: "#15803d",
+                                  border: "1px solid #86efac",
+                                  padding: "1px 6px",
+                                  borderRadius: 4,
+                                  display: "inline-flex",
+                                  alignItems: "center",
+                                  gap: 3,
+                                  flexShrink: 0,
+                                }}
+                              >
+                                <Check size={10} /> Safe
+                              </span>
+                            ) : (
+                              <span
+                                style={{
+                                  fontSize: 9.5,
+                                  fontWeight: 900,
+                                  background: "#fee2e2",
+                                  color: "#dc2626",
+                                  border: "1px solid #fca5a5",
+                                  padding: "1px 5px",
+                                  borderRadius: 4,
+                                  display: "inline-flex",
+                                  alignItems: "center",
+                                  gap: 2.5,
+                                  flexShrink: 0,
+                                }}
+                              >
+                                <AlertTriangle size={9.5} /> Below {simulation.targetPct}%
+                              </span>
+                            )}
                           </div>
                           <span
                             style={{
@@ -2828,7 +2869,7 @@ export default function FuturePredictor({
                               whiteSpace: "nowrap",
                             }}
                           >
-                            <TrendingDown size={11} color="#e11d48" /> ~-{missSes.percentageDrop}% Drop
+                            <TrendingDown size={11} color="#e11d48" /> -{Math.abs(Number(missSes.percentageDrop || 0)).toFixed(2)}% Drop
                           </span>
                         </div>
 
@@ -2847,7 +2888,7 @@ export default function FuturePredictor({
                           style={{
                             marginTop: 4,
                             paddingTop: 6,
-                            borderTop: "1px dashed #fecdd3",
+                            borderTop: isSafeAfterMiss ? "1px dashed #bbf7d0" : "1px dashed #fecdd3",
                             display: "flex",
                             justifyContent: "space-between",
                             alignItems: "center",
@@ -2855,18 +2896,35 @@ export default function FuturePredictor({
                             gap: 4,
                           }}
                         >
-                          <span style={{ fontSize: 10.5, color: "#881337", fontWeight: 600 }}>
+                          <span style={{ fontSize: 10.5, color: isSafeAfterMiss ? "#166534" : "#881337", fontWeight: 600 }}>
                             After this missed class:
                           </span>
-                          <span
-                            style={{
-                              fontSize: 11.5,
-                              fontWeight: 900,
-                              color: missSes.isBelowTarget ? "#dc2626" : "#e11d48",
-                            }}
-                          >
-                            {missSes.runningAttended}/{missSes.runningDelivered} ({formatPercentage(missSes.runningPercentage)})
-                          </span>
+                          <div style={{ display: "flex", alignItems: "center", gap: 5, flexWrap: "wrap" }}>
+                            <span
+                              style={{
+                                fontSize: 11.5,
+                                fontWeight: 900,
+                                color: isSafeAfterMiss ? "#15803d" : "#dc2626",
+                              }}
+                            >
+                              {missSes.runningAttended}/{missSes.runningDelivered} ({formatPercentage(missSes.runningPercentage)})
+                            </span>
+                            {isSafeAfterMiss && (
+                              <span
+                                style={{
+                                  fontSize: 9,
+                                  fontWeight: 800,
+                                  background: "#ecfdf5",
+                                  color: "#047857",
+                                  padding: "1px 5px",
+                                  borderRadius: 3,
+                                  border: "1px solid #a7f3d0",
+                                }}
+                              >
+                                &ge; {simulation.targetPct}%
+                              </span>
+                            )}
+                          </div>
                         </div>
                       </div>
                     );
