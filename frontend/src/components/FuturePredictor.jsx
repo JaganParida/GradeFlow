@@ -593,6 +593,7 @@ export default function FuturePredictor({
             startPct: startStats.startPct,
             endPct,
             dayDropDelta,
+            dayDelta: dayDropDelta,
             breachedCutoffToday,
             isSafeAfterDay,
           });
@@ -2508,24 +2509,35 @@ export default function FuturePredictor({
                                     </div>
 
                                     {/* Subject day drop badge */}
-                                    <span
-                                      style={{
-                                        fontSize: 11,
-                                        fontWeight: 900,
-                                        padding: "2px 7px",
-                                        borderRadius: 5,
-                                        background: subImp.dayDelta < 0 ? "#fef2f2" : "#f8fafc",
-                                        color: subImp.dayDelta < 0 ? "#dc2626" : "#64748b",
-                                        border: `1px solid ${subImp.dayDelta < 0 ? "#fecaca" : "#e2e8f0"}`,
-                                        whiteSpace: "nowrap",
-                                        display: "inline-flex",
-                                        alignItems: "center",
-                                        gap: 3,
-                                        flexShrink: 0,
-                                      }}
-                                    >
-                                      <TrendingDown size={11} /> {subImp.dayDelta}%
-                                    </span>
+                                    {(() => {
+                                      const rawDrop =
+                                        subImp.dayDropDelta ??
+                                        subImp.dayDelta ??
+                                        (typeof subImp.endPct === "number" && typeof subImp.startPct === "number"
+                                          ? Number((subImp.endPct - subImp.startPct).toFixed(2))
+                                          : 0);
+                                      const isNegative = rawDrop < 0;
+                                      return (
+                                        <span
+                                          style={{
+                                            fontSize: 11,
+                                            fontWeight: 900,
+                                            padding: "2px 7px",
+                                            borderRadius: 5,
+                                            background: isNegative ? "#fef2f2" : "#f8fafc",
+                                            color: isNegative ? "#dc2626" : "#64748b",
+                                            border: `1px solid ${isNegative ? "#fecaca" : "#e2e8f0"}`,
+                                            whiteSpace: "nowrap",
+                                            display: "inline-flex",
+                                            alignItems: "center",
+                                            gap: 3,
+                                            flexShrink: 0,
+                                          }}
+                                        >
+                                          <TrendingDown size={11} /> {rawDrop}%
+                                        </span>
+                                      );
+                                    })()}
                                   </div>
 
                                   {/* Attendance Before -> After on this Day */}
