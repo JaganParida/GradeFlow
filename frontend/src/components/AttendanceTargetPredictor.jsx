@@ -101,6 +101,7 @@ export default function AttendanceTargetPredictor({
   const currentPct = activeCalculation?.currentPercentage || 0;
   const isCurrentlySafe = currentPct >= targetGoal;
   const isPenaltyView = activeSection === "penalty" || engineView === "penalty_simulator";
+  const isMultiPhaseView = activeSection === "roadmap" || engineView === "multiphase_planner";
 
   // Base calendar projection for current targetGoal
   const baseProjection = useMemo(() => {
@@ -472,7 +473,7 @@ export default function AttendanceTargetPredictor({
         </div>
       </div>
 
-      {/* ── HIGH-LEVEL SUMMARY HERO CARDS (CLEAN EXECUTIVE SAAS) ── */}
+      {/* ── HIGH-LEVEL SUMMARY HERO CARDS (CLEAN EXECUTIVE SAAS - EXACTLY 4 CARDS) ── */}
       <div
         style={{
           display: "grid",
@@ -480,175 +481,336 @@ export default function AttendanceTargetPredictor({
           gap: isMobile ? 8 : 12,
         }}
       >
-        {/* Card 1: Current Status / Status After Miss */}
-        <div
-          style={{
-            background: "#ffffff",
-            border: "1px solid #e2e8f0",
-            borderRadius: 14,
-            padding: isMobile ? "12px 14px" : "15px 18px",
-            display: "flex",
-            flexDirection: "column",
-            justifyContent: "space-between",
-            gap: 4,
-            boxSizing: "border-box",
-            boxShadow: "0 1px 3px rgba(15, 23, 42, 0.03)",
-          }}
-        >
-          <div style={{ fontSize: 10.5, fontWeight: 700, color: "#64748b", textTransform: "uppercase", letterSpacing: "0.4px" }}>
-            {isPenaltyView ? "Status After Miss" : "Current Status"}
-          </div>
-          <div
-            style={{
-              fontSize: isMobile ? 22 : 24,
-              fontWeight: 800,
-              color: isPenaltyView
-                ? (Number(missPenaltyData?.missedSessions?.[missPenaltyData.missedSessions.length - 1]?.runningPercentage ?? currentPct) >= Number(targetGoal) ? "#059669" : "#dc2626")
-                : (isCurrentlySafe ? "#059669" : "#0f172a"),
-              lineHeight: 1.15,
-            }}
-          >
-            {isPenaltyView
-              ? `${missPenaltyData?.missedSessions?.[missPenaltyData.missedSessions.length - 1]?.runningPercentage ?? currentPct}%`
-              : `${currentPct}%`}
-          </div>
-          {isPenaltyView ? (
-            <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
-              <div style={{ fontSize: 11, color: "#dc2626", fontWeight: 700, lineHeight: 1.3, display: "flex", alignItems: "center", gap: 5, flexWrap: "wrap" }}>
-                <span>-{Math.abs(currentPct - (missPenaltyData?.missedSessions?.[missPenaltyData.missedSessions.length - 1]?.runningPercentage ?? currentPct)).toFixed(1)}% drop</span>
-                <span style={{ color: "#64748b", fontWeight: 600 }}>(Current: {currentPct}%)</span>
+        {isMultiPhaseView ? (
+          <>
+            {/* Card 1: Current Attendance Baseline */}
+            <div
+              style={{
+                background: "#ffffff",
+                border: "1px solid #e2e8f0",
+                borderRadius: 14,
+                padding: isMobile ? "12px 14px" : "15px 18px",
+                display: "flex",
+                flexDirection: "column",
+                justifyContent: "space-between",
+                gap: 4,
+                boxSizing: "border-box",
+                boxShadow: "0 1px 3px rgba(15, 23, 42, 0.03)",
+              }}
+            >
+              <div style={{ fontSize: 10.5, fontWeight: 700, color: "#64748b", textTransform: "uppercase", letterSpacing: "0.4px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                <span>Current Status</span>
+                <span style={{ fontSize: 10, fontWeight: 700, color: isCurrentlySafe ? "#16a34a" : "#64748b", background: isCurrentlySafe ? "#f0fdf4" : "#f8fafc", padding: "1px 6px", borderRadius: 4, border: `1px solid ${isCurrentlySafe ? "#bbf7d0" : "#e2e8f0"}` }}>
+                  Baseline
+                </span>
               </div>
-              <div style={{ fontSize: 10.5, color: "#64748b", fontWeight: 600, lineHeight: 1.2 }}>
-                {weeklyOccurrences.length > 0 ? `${weeklyOccurrences.length} classes/week routine` : "Routine timetable"}
+              <div
+                style={{
+                  fontSize: isMobile ? 22 : 24,
+                  fontWeight: 800,
+                  color: isCurrentlySafe ? "#059669" : "#0f172a",
+                  lineHeight: 1.15,
+                }}
+              >
+                {currentPct}%
+              </div>
+              <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+                <div style={{ fontSize: 11, color: "#64748b", lineHeight: 1.3 }}>
+                  {totalAttended}/{totalDelivered} classes ({activeCalculation?.deficit || 0} deficit)
+                </div>
+                <div style={{ fontSize: 10.5, color: "#64748b", fontWeight: 600, lineHeight: 1.2 }}>
+                  {weeklyOccurrences.length > 0 ? `${weeklyOccurrences.length} classes/week routine` : "Routine timetable"}
+                </div>
               </div>
             </div>
-          ) : (
-            <div style={{ fontSize: 11, color: "#64748b", lineHeight: 1.3 }}>
-              {totalAttended}/{totalDelivered} classes ({activeCalculation?.deficit || 0} deficit)
+
+            {/* Card 2: Phase 1 • Target Sprint */}
+            <div
+              style={{
+                background: "#ffffff",
+                border: "1px solid #bfdbfe",
+                borderRadius: 14,
+                padding: isMobile ? "12px 14px" : "15px 18px",
+                display: "flex",
+                flexDirection: "column",
+                justifyContent: "space-between",
+                gap: 4,
+                boxSizing: "border-box",
+                boxShadow: "0 1px 3px rgba(37, 99, 235, 0.04)",
+              }}
+            >
+              <div style={{ fontSize: 10.5, fontWeight: 800, color: "#1d4ed8", textTransform: "uppercase", letterSpacing: "0.4px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                <span style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                  <Target size={12} color="#2563eb" /> Phase 1 • Target Sprint
+                </span>
+                <span style={{ fontSize: 10, fontWeight: 800, color: "#1d4ed8", background: "#eff6ff", padding: "1px 6px", borderRadius: 4, border: "1px solid #bfdbfe" }}>
+                  {multiPhaseData?.primaryTarget || multiPhaseTarget}% Goal
+                </span>
+              </div>
+              <div style={{ fontSize: isMobile ? 18 : 22, fontWeight: 800, color: "#0f172a", lineHeight: 1.2 }}>
+                {multiPhaseData?.phase1?.classesNeeded === 0
+                  ? "Goal Achieved"
+                  : `${multiPhaseData?.phase1?.classesNeeded || 0} Classes Needed`}
+              </div>
+              <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+                <div style={{ fontSize: 11, color: "#1d4ed8", fontWeight: 700, lineHeight: 1.3 }}>
+                  {currentPct}% &rarr; {multiPhaseData?.primaryTarget || multiPhaseTarget}% (100% streak)
+                </div>
+                <div style={{ fontSize: 10.5, color: "#64748b", fontWeight: 600, lineHeight: 1.2 }}>
+                  Reach: {multiPhaseData?.phase1?.reachDateStr || "N/A"}
+                </div>
+              </div>
             </div>
-          )}
-        </div>
 
-        {/* Card 2: Sprint Needed / Safe Bunks / Requirement After Miss */}
-        <div
-          style={{
-            background: "#ffffff",
-            border: "1px solid #e2e8f0",
-            borderRadius: 14,
-            padding: isMobile ? "12px 14px" : "15px 18px",
-            display: "flex",
-            flexDirection: "column",
-            justifyContent: "space-between",
-            gap: 4,
-            boxSizing: "border-box",
-            boxShadow: "0 1px 3px rgba(15, 23, 42, 0.03)",
-          }}
-        >
-          <div style={{ fontSize: 10.5, fontWeight: 700, color: "#64748b", textTransform: "uppercase", letterSpacing: "0.4px" }}>
-            {isPenaltyView
-              ? "Requirement After Miss"
-              : (isCurrentlySafe ? "Safe Bunks" : `Sprint for ${targetGoal}%`)}
-          </div>
-          <div style={{ fontSize: isMobile ? 19 : 22, fontWeight: 800, color: "#0f172a", lineHeight: 1.2 }}>
-            {isPenaltyView
-              ? `${missPenaltyData?.newNeeded ?? 0} Classes`
-              : (isCurrentlySafe
-                  ? `${activeCalculation?.safeBunks || 0} Safe Bunks`
-                  : `${activeCalculation?.classesNeeded || 0} Classes`)}
-          </div>
-          <div style={{ fontSize: 11, color: isPenaltyView ? (missPenaltyData?.extraClassesNeeded > 0 ? "#b45309" : "#16a34a") : "#64748b", lineHeight: 1.3, fontWeight: isPenaltyView ? 600 : 400 }}>
-            {isPenaltyView
-              ? `+${missPenaltyData?.extraClassesNeeded ?? 0} extra needed (orig: ${missPenaltyData?.baseNeeded ?? 0})`
-              : (isCurrentlySafe ? "Can miss safely" : "100% streak needed")}
-          </div>
-        </div>
-
-        {/* Card 3: Reach Date / New Reach Date */}
-        <div
-          style={{
-            background: "#ffffff",
-            border: "1px solid #e2e8f0",
-            borderRadius: 14,
-            padding: isMobile ? "12px 14px" : "15px 18px",
-            display: "flex",
-            flexDirection: "column",
-            justifyContent: "space-between",
-            gap: 4,
-            boxSizing: "border-box",
-            boxShadow: "0 1px 3px rgba(15, 23, 42, 0.03)",
-          }}
-        >
-          <div style={{ fontSize: 10.5, fontWeight: 700, color: "#64748b", textTransform: "uppercase", display: "flex", alignItems: "center", gap: 4, letterSpacing: "0.4px" }}>
-            <CalendarIcon size={12} color="#64748b" /> {isPenaltyView ? "New Reach Date" : "Reach Date"}
-          </div>
-          <div style={{ fontSize: isMobile ? 15.5 : 18, fontWeight: 800, color: "#0f172a", lineHeight: 1.25, wordBreak: "break-word" }}>
-            {isPenaltyView
-              ? (missPenaltyData?.delayedProjection?.estimatedDate || (missPenaltyData?.delayedProjection?.isAttainable === false ? "Beyond Sem" : (isCurrentlySafe ? "Achieved" : "Exceeds Sem")))
-              : (baseProjection?.estimatedDate || (isCurrentlySafe ? "Achieved" : "Exceeds Sem"))}
-          </div>
-          <div style={{ fontSize: 11, color: isPenaltyView ? (missPenaltyData?.delayedProjection?.isAttainable === false ? "#dc2626" : "#b45309") : "#64748b", lineHeight: 1.3, fontWeight: isPenaltyView ? 600 : 400 }}>
-            {isPenaltyView
-              ? (missPenaltyData?.delayedProjection?.isAttainable === false
-                  ? "Exceeds timetable"
-                  : `+${missPenaltyData?.delayInDays ?? 0} days delay (${weeklyOccurrences.length}/wk)`)
-              : (baseProjection ? `~${baseProjection.estimatedWeeks} wks (${baseProjection.classesPerWeek}/wk)` : "Timetable active")}
-          </div>
-        </div>
-
-        {/* Card 4: Semester Attainability */}
-        <div
-          style={{
-            background: "#ffffff",
-            border: "1px solid #e2e8f0",
-            borderRadius: 14,
-            padding: isMobile ? "12px 14px" : "15px 18px",
-            display: "flex",
-            flexDirection: "column",
-            justifyContent: "space-between",
-            gap: 4,
-            boxSizing: "border-box",
-            boxShadow: "0 1px 3px rgba(15, 23, 42, 0.03)",
-          }}
-        >
-          <div style={{ fontSize: 10.5, fontWeight: 700, color: "#64748b", textTransform: "uppercase", display: "flex", alignItems: "center", gap: 4, letterSpacing: "0.4px" }}>
-            <Activity size={12} color="#64748b" /> {isPenaltyView ? "Attainability" : "Timeline"}
-          </div>
-          <div
-            style={{
-              fontSize: isMobile ? 16 : 18,
-              fontWeight: 800,
-              color: isPenaltyView
-                ? (missPenaltyData?.delayedProjection?.isAttainable ? "#059669" : "#dc2626")
-                : (baseProjection?.isAttainable ? "#059669" : "#dc2626"),
-              lineHeight: 1.2,
-            }}
-          >
-            {isPenaltyView ? (
-              missPenaltyData?.delayedProjection?.isAttainable ? (
-                <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
-                  Attainable <CheckCircle2 size={14} color="#059669" />
+            {/* Card 3: Phase 2 • Planned Miss */}
+            <div
+              style={{
+                background: "#ffffff",
+                border: `1px solid ${multiPhaseData?.phase2?.isBelowRecoveryTarget ? "#fca5a5" : "#fde68a"}`,
+                borderRadius: 14,
+                padding: isMobile ? "12px 14px" : "15px 18px",
+                display: "flex",
+                flexDirection: "column",
+                justifyContent: "space-between",
+                gap: 4,
+                boxSizing: "border-box",
+                boxShadow: "0 1px 3px rgba(217, 119, 6, 0.04)",
+              }}
+            >
+              <div style={{ fontSize: 10.5, fontWeight: 800, color: multiPhaseData?.phase2?.isBelowRecoveryTarget ? "#dc2626" : "#b45309", textTransform: "uppercase", letterSpacing: "0.4px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                <span style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                  <CalendarX size={12} color={multiPhaseData?.phase2?.isBelowRecoveryTarget ? "#dc2626" : "#d97706"} /> Phase 2 • Planned Miss
                 </span>
+                <span style={{ fontSize: 10, fontWeight: 800, color: multiPhaseData?.phase2?.isBelowRecoveryTarget ? "#dc2626" : "#b45309", background: multiPhaseData?.phase2?.isBelowRecoveryTarget ? "#fef2f2" : "#fffbeb", padding: "1px 6px", borderRadius: 4, border: `1px solid ${multiPhaseData?.phase2?.isBelowRecoveryTarget ? "#fecdd3" : "#fde68a"}` }}>
+                  {multiPhaseData?.phase2?.isBelowRecoveryTarget ? `Below ${recoveryTarget}%` : `Above ${recoveryTarget}%`}
+                </span>
+              </div>
+              <div style={{ fontSize: isMobile ? 18 : 22, fontWeight: 800, color: multiPhaseData?.phase2?.isBelowRecoveryTarget ? "#dc2626" : "#d97706", lineHeight: 1.2 }}>
+                Miss {multiPhaseData?.phase2?.bunkCount ?? plannedBunkCount} Classes
+              </div>
+              <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+                <div style={{ fontSize: 11, color: multiPhaseData?.phase2?.isBelowRecoveryTarget ? "#dc2626" : "#d97706", fontWeight: 700, lineHeight: 1.3 }}>
+                  Drops to {multiPhaseData?.phase2?.postBunkPercentage ?? currentPct}% (-{Math.abs(multiPhaseData?.phase2?.percentageDrop || 0).toFixed(1)}%)
+                </div>
+                <div style={{ fontSize: 10.5, color: "#64748b", fontWeight: 600, lineHeight: 1.2 }}>
+                  Last miss: {multiPhaseData?.phase2?.lastBunkDateStr || "N/A"}
+                </div>
+              </div>
+            </div>
+
+            {/* Card 4: Phase 3 • Safe Recovery */}
+            <div
+              style={{
+                background: "#ffffff",
+                border: `1px solid ${multiPhaseData?.phase3?.classesNeeded === 0 ? "#86efac" : (multiPhaseData?.phase3?.isAttainable ? "#bfdbfe" : "#fca5a5")}`,
+                borderRadius: 14,
+                padding: isMobile ? "12px 14px" : "15px 18px",
+                display: "flex",
+                flexDirection: "column",
+                justifyContent: "space-between",
+                gap: 4,
+                boxSizing: "border-box",
+                boxShadow: "0 1px 3px rgba(16, 185, 129, 0.04)",
+              }}
+            >
+              <div style={{ fontSize: 10.5, fontWeight: 800, color: multiPhaseData?.phase3?.classesNeeded === 0 ? "#15803d" : (multiPhaseData?.phase3?.isAttainable ? "#1d4ed8" : "#dc2626"), textTransform: "uppercase", letterSpacing: "0.4px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                <span style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                  <ShieldCheck size={12} color={multiPhaseData?.phase3?.classesNeeded === 0 ? "#15803d" : (multiPhaseData?.phase3?.isAttainable ? "#2563eb" : "#dc2626")} /> Phase 3 • Safe Recovery
+                </span>
+                <span style={{ fontSize: 10, fontWeight: 800, color: multiPhaseData?.phase3?.isAttainable ? "#059669" : "#dc2626", background: multiPhaseData?.phase3?.isAttainable ? "#f0fdf4" : "#fef2f2", padding: "1px 6px", borderRadius: 4, border: `1px solid ${multiPhaseData?.phase3?.isAttainable ? "#bbf7d0" : "#fecdd3"}` }}>
+                  {multiPhaseData?.phase3?.isAttainable ? "Attainable" : "Critical"}
+                </span>
+              </div>
+              <div style={{ fontSize: isMobile ? 18 : 22, fontWeight: 800, color: multiPhaseData?.phase3?.classesNeeded === 0 ? "#16a34a" : (multiPhaseData?.phase3?.isAttainable ? "#2563eb" : "#dc2626"), lineHeight: 1.2 }}>
+                {multiPhaseData?.phase3?.classesNeeded === 0
+                  ? `Safe (0 Deficit)`
+                  : `Attend ${multiPhaseData?.phase3?.classesNeeded || 0} Classes`}
+              </div>
+              <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+                <div style={{ fontSize: 11, color: multiPhaseData?.phase3?.classesNeeded === 0 ? "#15803d" : "#1d4ed8", fontWeight: 700, lineHeight: 1.3 }}>
+                  {multiPhaseData?.phase3?.classesNeeded === 0
+                    ? `${multiPhaseData?.phase3?.safeBunksRemaining || 0} safe bunks remain (≥${multiPhaseData?.recoveryTarget || recoveryTarget}%)`
+                    : `Restores to ${multiPhaseData?.recoveryTarget || recoveryTarget}% (${multiPhaseData?.phase3?.recoveryReachDateStr || "N/A"})`}
+                </div>
+                <div style={{ fontSize: 10.5, color: "#64748b", fontWeight: 600, lineHeight: 1.2 }}>
+                  Max: {baseProjection?.maxAttainablePercentage || currentPct}% by Sem End (31 Oct)
+                </div>
+              </div>
+            </div>
+          </>
+        ) : (
+          <>
+            {/* Card 1: Current Status / Status After Miss */}
+            <div
+              style={{
+                background: "#ffffff",
+                border: "1px solid #e2e8f0",
+                borderRadius: 14,
+                padding: isMobile ? "12px 14px" : "15px 18px",
+                display: "flex",
+                flexDirection: "column",
+                justifyContent: "space-between",
+                gap: 4,
+                boxSizing: "border-box",
+                boxShadow: "0 1px 3px rgba(15, 23, 42, 0.03)",
+              }}
+            >
+              <div style={{ fontSize: 10.5, fontWeight: 700, color: "#64748b", textTransform: "uppercase", letterSpacing: "0.4px" }}>
+                {isPenaltyView ? "Status After Miss" : "Current Status"}
+              </div>
+              <div
+                style={{
+                  fontSize: isMobile ? 22 : 24,
+                  fontWeight: 800,
+                  color: isPenaltyView
+                    ? (Number(missPenaltyData?.missedSessions?.[missPenaltyData.missedSessions.length - 1]?.runningPercentage ?? currentPct) >= Number(targetGoal) ? "#059669" : "#dc2626")
+                    : (isCurrentlySafe ? "#059669" : "#0f172a"),
+                  lineHeight: 1.15,
+                }}
+              >
+                {isPenaltyView
+                  ? `${missPenaltyData?.missedSessions?.[missPenaltyData.missedSessions.length - 1]?.runningPercentage ?? currentPct}%`
+                  : `${currentPct}%`}
+              </div>
+              {isPenaltyView ? (
+                <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+                  <div style={{ fontSize: 11, color: "#dc2626", fontWeight: 700, lineHeight: 1.3, display: "flex", alignItems: "center", gap: 5, flexWrap: "wrap" }}>
+                    <span>-{Math.abs(currentPct - (missPenaltyData?.missedSessions?.[missPenaltyData.missedSessions.length - 1]?.runningPercentage ?? currentPct)).toFixed(1)}% drop</span>
+                    <span style={{ color: "#64748b", fontWeight: 600 }}>(Current: {currentPct}%)</span>
+                  </div>
+                  <div style={{ fontSize: 10.5, color: "#64748b", fontWeight: 600, lineHeight: 1.2 }}>
+                    {weeklyOccurrences.length > 0 ? `${weeklyOccurrences.length} classes/week routine` : "Routine timetable"}
+                  </div>
+                </div>
               ) : (
-                <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
-                  Critical <AlertTriangle size={14} color="#dc2626" />
-                </span>
-              )
-            ) : (
-              baseProjection?.isAttainable ? (
-                <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
-                  Attainable <CheckCircle2 size={14} color="#059669" />
-                </span>
-              ) : (
-                <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
-                  Critical <AlertTriangle size={14} color="#dc2626" />
-                </span>
-              )
-            )}
-          </div>
-          <div style={{ fontSize: 11, color: "#64748b", lineHeight: 1.3 }}>
-            Max: {isPenaltyView ? (missPenaltyData?.delayedProjection?.maxAttainablePercentage || currentPct) : (baseProjection?.maxAttainablePercentage || currentPct)}% (31 Oct)
-          </div>
-        </div>
+                <div style={{ fontSize: 11, color: "#64748b", lineHeight: 1.3 }}>
+                  {totalAttended}/{totalDelivered} classes ({activeCalculation?.deficit || 0} deficit)
+                </div>
+              )}
+            </div>
+
+            {/* Card 2: Sprint Needed / Safe Bunks / Requirement After Miss */}
+            <div
+              style={{
+                background: "#ffffff",
+                border: "1px solid #e2e8f0",
+                borderRadius: 14,
+                padding: isMobile ? "12px 14px" : "15px 18px",
+                display: "flex",
+                flexDirection: "column",
+                justifyContent: "space-between",
+                gap: 4,
+                boxSizing: "border-box",
+                boxShadow: "0 1px 3px rgba(15, 23, 42, 0.03)",
+              }}
+            >
+              <div style={{ fontSize: 10.5, fontWeight: 700, color: "#64748b", textTransform: "uppercase", letterSpacing: "0.4px" }}>
+                {isPenaltyView
+                  ? "Requirement After Miss"
+                  : (isCurrentlySafe ? "Safe Bunks" : `Sprint for ${targetGoal}%`)}
+              </div>
+              <div style={{ fontSize: isMobile ? 19 : 22, fontWeight: 800, color: "#0f172a", lineHeight: 1.2 }}>
+                {isPenaltyView
+                  ? `${missPenaltyData?.newNeeded ?? 0} Classes`
+                  : (isCurrentlySafe
+                      ? `${activeCalculation?.safeBunks || 0} Safe Bunks`
+                      : `${activeCalculation?.classesNeeded || 0} Classes`)}
+              </div>
+              <div style={{ fontSize: 11, color: isPenaltyView ? (missPenaltyData?.extraClassesNeeded > 0 ? "#b45309" : "#16a34a") : "#64748b", lineHeight: 1.3, fontWeight: isPenaltyView ? 600 : 400 }}>
+                {isPenaltyView
+                  ? `+${missPenaltyData?.extraClassesNeeded ?? 0} extra needed (orig: ${missPenaltyData?.baseNeeded ?? 0})`
+                  : (isCurrentlySafe ? "Can miss safely" : "100% streak needed")}
+              </div>
+            </div>
+
+            {/* Card 3: Reach Date / New Reach Date */}
+            <div
+              style={{
+                background: "#ffffff",
+                border: "1px solid #e2e8f0",
+                borderRadius: 14,
+                padding: isMobile ? "12px 14px" : "15px 18px",
+                display: "flex",
+                flexDirection: "column",
+                justifyContent: "space-between",
+                gap: 4,
+                boxSizing: "border-box",
+                boxShadow: "0 1px 3px rgba(15, 23, 42, 0.03)",
+              }}
+            >
+              <div style={{ fontSize: 10.5, fontWeight: 700, color: "#64748b", textTransform: "uppercase", display: "flex", alignItems: "center", gap: 4, letterSpacing: "0.4px" }}>
+                <CalendarIcon size={12} color="#64748b" /> {isPenaltyView ? "New Reach Date" : "Reach Date"}
+              </div>
+              <div style={{ fontSize: isMobile ? 15.5 : 18, fontWeight: 800, color: "#0f172a", lineHeight: 1.25, wordBreak: "break-word" }}>
+                {isPenaltyView
+                  ? (missPenaltyData?.delayedProjection?.estimatedDate || (missPenaltyData?.delayedProjection?.isAttainable === false ? "Beyond Sem" : (isCurrentlySafe ? "Achieved" : "Exceeds Sem")))
+                  : (baseProjection?.estimatedDate || (isCurrentlySafe ? "Achieved" : "Exceeds Sem"))}
+              </div>
+              <div style={{ fontSize: 11, color: isPenaltyView ? (missPenaltyData?.delayedProjection?.isAttainable === false ? "#dc2626" : "#b45309") : "#64748b", lineHeight: 1.3, fontWeight: isPenaltyView ? 600 : 400 }}>
+                {isPenaltyView
+                  ? (missPenaltyData?.delayedProjection?.isAttainable === false
+                      ? "Exceeds timetable"
+                      : `+${missPenaltyData?.delayInDays ?? 0} days delay (${weeklyOccurrences.length}/wk)`)
+                  : (baseProjection ? `~${baseProjection.estimatedWeeks} wks (${baseProjection.classesPerWeek}/wk)` : "Timetable active")}
+              </div>
+            </div>
+
+            {/* Card 4: Semester Attainability */}
+            <div
+              style={{
+                background: "#ffffff",
+                border: "1px solid #e2e8f0",
+                borderRadius: 14,
+                padding: isMobile ? "12px 14px" : "15px 18px",
+                display: "flex",
+                flexDirection: "column",
+                justifyContent: "space-between",
+                gap: 4,
+                boxSizing: "border-box",
+                boxShadow: "0 1px 3px rgba(15, 23, 42, 0.03)",
+              }}
+            >
+              <div style={{ fontSize: 10.5, fontWeight: 700, color: "#64748b", textTransform: "uppercase", display: "flex", alignItems: "center", gap: 4, letterSpacing: "0.4px" }}>
+                <Activity size={12} color="#64748b" /> {isPenaltyView ? "Attainability" : "Timeline"}
+              </div>
+              <div
+                style={{
+                  fontSize: isMobile ? 16 : 18,
+                  fontWeight: 800,
+                  color: isPenaltyView
+                    ? (missPenaltyData?.delayedProjection?.isAttainable ? "#059669" : "#dc2626")
+                    : (baseProjection?.isAttainable ? "#059669" : "#dc2626"),
+                  lineHeight: 1.2,
+                }}
+              >
+                {isPenaltyView ? (
+                  missPenaltyData?.delayedProjection?.isAttainable ? (
+                    <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
+                      Attainable <CheckCircle2 size={14} color="#059669" />
+                    </span>
+                  ) : (
+                    <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
+                      Critical <AlertTriangle size={14} color="#dc2626" />
+                    </span>
+                  )
+                ) : (
+                  baseProjection?.isAttainable ? (
+                    <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
+                      Attainable <CheckCircle2 size={14} color="#059669" />
+                    </span>
+                  ) : (
+                    <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
+                      Critical <AlertTriangle size={14} color="#dc2626" />
+                    </span>
+                  )
+                )}
+              </div>
+              <div style={{ fontSize: 11, color: "#64748b", lineHeight: 1.3 }}>
+                Max: {isPenaltyView ? (missPenaltyData?.delayedProjection?.maxAttainablePercentage || currentPct) : (baseProjection?.maxAttainablePercentage || currentPct)}% (31 Oct)
+              </div>
+            </div>
+          </>
+        )}
       </div>
 
       {/* ── ACTIVE SECTION VIEW WITH SMOOTH ANIMATION ───────────────────────────── */}
@@ -1348,104 +1510,13 @@ export default function AttendanceTargetPredictor({
                 </div>
               </div>
 
-              {/* ── Visual 3-Phase Attendance Journey Bar ── */}
-              {multiPhaseData && (
-                <div
-                  style={{
-                    display: "grid",
-                    gridTemplateColumns: isMobile ? "1fr" : "repeat(3, 1fr)",
-                    gap: 10,
-                    background: "#f8fafc",
-                    padding: isMobile ? "10px" : "12px",
-                    borderRadius: 12,
-                    border: "1px solid #e2e8f0",
-                  }}
-                >
-                  {/* Step 1 Pill */}
-                  <div
-                    style={{
-                      background: "#ffffff",
-                      border: "1px solid #bfdbfe",
-                      borderRadius: 10,
-                      padding: "9px 12px",
-                      display: "flex",
-                      flexDirection: "column",
-                      gap: 2,
-                      boxShadow: "0 1px 2px rgba(0,0,0,0.02)",
-                    }}
-                  >
-                    <span style={{ fontSize: 10, fontWeight: 800, color: "#1d4ed8", textTransform: "uppercase", letterSpacing: "0.4px" }}>
-                      Phase 1 &bull; Target Sprint
-                    </span>
-                    <div style={{ fontSize: 14, fontWeight: 900, color: "#0f172a", fontFamily: "'DM Sans', sans-serif" }}>
-                      {currentPct}% &rarr; {multiPhaseData.primaryTarget}%
-                    </div>
-                    <span style={{ fontSize: 11, color: "#64748b", fontWeight: 600 }}>
-                      {multiPhaseData.phase1.classesNeeded} classes needed ({multiPhaseData.phase1.reachDateStr})
-                    </span>
-                  </div>
-
-                  {/* Step 2 Pill */}
-                  <div
-                    style={{
-                      background: "#ffffff",
-                      border: `1px solid ${multiPhaseData.phase2.isBelowRecoveryTarget ? "#fca5a5" : "#fde68a"}`,
-                      borderRadius: 10,
-                      padding: "9px 12px",
-                      display: "flex",
-                      flexDirection: "column",
-                      gap: 2,
-                      boxShadow: "0 1px 2px rgba(0,0,0,0.02)",
-                    }}
-                  >
-                    <span style={{ fontSize: 10, fontWeight: 800, color: multiPhaseData.phase2.isBelowRecoveryTarget ? "#dc2626" : "#b45309", textTransform: "uppercase", letterSpacing: "0.4px" }}>
-                      Phase 2 &bull; Planned Miss
-                    </span>
-                    <div style={{ fontSize: 14, fontWeight: 900, color: multiPhaseData.phase2.isBelowRecoveryTarget ? "#dc2626" : "#d97706", fontFamily: "'DM Sans', sans-serif" }}>
-                      Miss {multiPhaseData.phase2.bunkCount} Classes (-{Math.abs(multiPhaseData.phase2.percentageDrop).toFixed(2)}%)
-                    </div>
-                    <span style={{ fontSize: 11, color: multiPhaseData.phase2.isBelowRecoveryTarget ? "#be123c" : "#b45309", fontWeight: 600 }}>
-                      Drops to {multiPhaseData.phase2.postBunkPercentage}% (by {multiPhaseData.phase2.lastBunkDateStr})
-                    </span>
-                  </div>
-
-                  {/* Step 3 Pill */}
-                  <div
-                    style={{
-                      background: "#ffffff",
-                      border: `1px solid ${multiPhaseData.phase3.classesNeeded === 0 ? "#86efac" : "#bfdbfe"}`,
-                      borderRadius: 10,
-                      padding: "9px 12px",
-                      display: "flex",
-                      flexDirection: "column",
-                      gap: 2,
-                      boxShadow: "0 1px 2px rgba(0,0,0,0.02)",
-                    }}
-                  >
-                    <span style={{ fontSize: 10, fontWeight: 800, color: multiPhaseData.phase3.classesNeeded === 0 ? "#15803d" : "#1d4ed8", textTransform: "uppercase", letterSpacing: "0.4px" }}>
-                      Phase 3 &bull; Safe Recovery
-                    </span>
-                    <div style={{ fontSize: 14, fontWeight: 900, color: multiPhaseData.phase3.classesNeeded === 0 ? "#16a34a" : "#2563eb", fontFamily: "'DM Sans', sans-serif" }}>
-                      {multiPhaseData.phase3.classesNeeded === 0
-                        ? `Maintained &ge; ${multiPhaseData.recoveryTarget}% (Safe)`
-                        : `Attend ${multiPhaseData.phase3.classesNeeded} Classes`}
-                    </div>
-                    <span style={{ fontSize: 11, color: multiPhaseData.phase3.classesNeeded === 0 ? "#15803d" : "#64748b", fontWeight: 600 }}>
-                      {multiPhaseData.phase3.classesNeeded === 0
-                        ? `${multiPhaseData.phase3.safeBunksRemaining} safe bunks remain`
-                        : `Restores to ${multiPhaseData.recoveryTarget}% (${multiPhaseData.phase3.recoveryReachDateStr})`}
-                    </span>
-                  </div>
-                </div>
-              )}
-
               {/* ── Controls Bar ── */}
               <div
                 style={{
                   display: "grid",
                   gridTemplateColumns: isMobile ? "1fr" : "repeat(3, 1fr)",
                   gap: 12,
-                  marginTop: 2,
+                  marginTop: 4,
                 }}
               >
                 {/* Control 1: Primary Target Goal */}
