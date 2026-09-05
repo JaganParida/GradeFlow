@@ -1546,15 +1546,15 @@ export default function AttendanceTracker() {
   const navMenuItems = [
     {
       id: "checkin",
-      label: "Daily Check-In Hub",
-      shortLabel: "Daily Hub",
+      label: "Daily Attendance",
+      shortLabel: "Daily",
       icon: <CalendarCheck size={16} />,
       badge: "Routine",
       desc: "Today's fast attendance logger & routine summary",
     },
     {
       id: "matrix",
-      label: "Subject-wise Matrix",
+      label: "Subject-wise Attendance",
       shortLabel: "Subjects",
       icon: <Grid size={16} />,
       badge: `${allSectionSubjects.length} Subs`,
@@ -1562,8 +1562,8 @@ export default function AttendanceTracker() {
     },
     {
       id: "studio_simulator",
-      label: "Calculator & What-If",
-      shortLabel: "Simulator",
+      label: "Edit & What-If",
+      shortLabel: "Edit & What-If",
       icon: <Sliders size={16} />,
       badge: "Instant",
       desc: "Adjust Theory/Lab counts & test instant miss/attend impact",
@@ -1572,7 +1572,7 @@ export default function AttendanceTracker() {
     },
     {
       id: "studio_schedule",
-      label: "Complete Class Schedule",
+      label: "Target Date & Schedule",
       shortLabel: "Schedule",
       icon: <CalendarCheck size={16} />,
       badge: "Date-Wise",
@@ -1603,7 +1603,7 @@ export default function AttendanceTracker() {
     {
       id: "bunk_analyzer",
       label: "Future Predictor",
-      shortLabel: "Future",
+      shortLabel: "Predictor",
       icon: <TrendingUp size={16} />,
       badge: "Date-wise",
       desc: "Date-wise bunk impact & timetable recovery roadmap",
@@ -1680,24 +1680,24 @@ export default function AttendanceTracker() {
             <div
               style={{
                 background: "#ffffff",
-                border: "1px solid #cbd5e1",
-                borderRadius: 10,
-                padding: "12px 11px",
+                border: "1px solid #e2e8f0",
+                borderRadius: 14,
+                padding: "16px 14px",
                 display: "flex",
                 flexDirection: "column",
-                gap: 10,
-                boxShadow: "none",
+                gap: 13,
+                boxShadow: "0 1px 3px rgba(15, 23, 42, 0.04), 0 1px 2px rgba(15, 23, 42, 0.02)",
               }}
             >
               {/* 1. Student Profile Header */}
               <div>
-                <div style={{ display: "flex", alignItems: "center", gap: 9, marginBottom: 8 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}>
                   <div
                     style={{
-                      width: 38,
-                      height: 38,
+                      width: 40,
+                      height: 40,
                       borderRadius: 10,
-                      background: "linear-gradient(135deg, #059669 0%, #10b981 100%)",
+                      background: "linear-gradient(135deg, #1e293b 0%, #0f172a 100%)",
                       color: "#ffffff",
                       display: "flex",
                       alignItems: "center",
@@ -1705,7 +1705,7 @@ export default function AttendanceTracker() {
                       fontSize: 16,
                       fontWeight: 800,
                       flexShrink: 0,
-                      boxShadow: "0 2px 6px rgba(16, 185, 129, 0.22)",
+                      boxShadow: "0 2px 6px rgba(15, 23, 42, 0.15)",
                     }}
                   >
                     {activeStudentName ? activeStudentName.charAt(0).toUpperCase() : "A"}
@@ -1716,10 +1716,11 @@ export default function AttendanceTracker() {
                         fontSize: 13.5,
                         fontWeight: 800,
                         color: "#0f172a",
-                        margin: "0 0 2px 0",
+                        margin: "0 0 3px 0",
                         overflow: "hidden",
                         textOverflow: "ellipsis",
                         whiteSpace: "nowrap",
+                        letterSpacing: "-0.2px",
                       }}
                       title={activeStudentName || `Section ${selectedSection}`}
                     >
@@ -1729,12 +1730,12 @@ export default function AttendanceTracker() {
                       <span
                         style={{
                           fontFamily: "'DM Sans', monospace",
-                          fontSize: 10.5,
+                          fontSize: 11,
                           color: "#475569",
                           fontWeight: 700,
-                          background: "#f1f5f9",
-                          padding: "1px 5px",
-                          borderRadius: 4,
+                          background: "#f8fafc",
+                          padding: "2px 7px",
+                          borderRadius: 5,
                           border: "1px solid #e2e8f0",
                           display: "inline-block",
                         }}
@@ -1742,40 +1743,50 @@ export default function AttendanceTracker() {
                         {currentRegNo}
                       </span>
                     ) : (
-                      <span style={{ fontSize: 10, color: "#64748b", fontWeight: 600 }}>
+                      <span style={{ fontSize: 10.5, color: "#64748b", fontWeight: 600 }}>
                         Section {selectedSection} Routine
                       </span>
                     )}
                   </div>
                 </div>
 
-                {/* Student Meta Details */}
+                {/* Student Meta Details Strip */}
                 <div
                   style={{
                     display: "grid",
                     gridTemplateColumns: "repeat(3, 1fr)",
-                    gap: 3,
-                    padding: "4px 6px",
+                    gap: 4,
+                    padding: "7px 8px",
                     background: "#f8fafc",
-                    borderRadius: 7,
-                    border: "1px solid #f1f5f9",
-                    fontSize: 10.5,
+                    borderRadius: 8,
+                    border: "1px solid #e2e8f0",
+                    fontSize: 11,
                     textAlign: "center",
                   }}
                 >
                   <div>
-                    <div style={{ color: "#94a3b8", fontSize: 9, fontWeight: 700, textTransform: "uppercase" }}>Branch</div>
-                    <strong style={{ color: "#0f172a" }}>CSE</strong>
+                    <div style={{ color: "#64748b", fontSize: 9.5, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.4px" }}>Branch</div>
+                    <strong style={{ color: "#0f172a", fontSize: 11.5, fontWeight: 800 }}>CSE</strong>
+                  </div>
+                  <div style={{ borderLeft: "1px solid #e2e8f0", borderRight: "1px solid #e2e8f0" }}>
+                    <div style={{ color: "#64748b", fontSize: 9.5, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.4px" }}>Sec</div>
+                    <strong style={{ color: "#0f172a", fontSize: 11.5, fontWeight: 800 }}>{selectedSection}</strong>
                   </div>
                   <div>
-                    <div style={{ color: "#94a3b8", fontSize: 9, fontWeight: 700, textTransform: "uppercase" }}>Sec</div>
-                    <strong style={{ color: "#059669" }}>{selectedSection}</strong>
-                  </div>
-                  <div>
-                    <div style={{ color: "#94a3b8", fontSize: 9, fontWeight: 700, textTransform: "uppercase" }}>Status</div>
-                    <strong style={{ color: overallCalculation.isEligible ? "#059669" : "#dc2626" }}>
-                      {overallCalculation.isEligible ? "Eligible" : "Shortage"}
-                    </strong>
+                    <div style={{ color: "#64748b", fontSize: 9.5, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.4px" }}>Status</div>
+                    <div style={{ display: "inline-flex", alignItems: "center", gap: 3.5, justifyContent: "center" }}>
+                      <span
+                        style={{
+                          width: 5,
+                          height: 5,
+                          borderRadius: "50%",
+                          background: overallCalculation.isEligible ? "#10b981" : "#ef4444",
+                        }}
+                      />
+                      <strong style={{ color: overallCalculation.isEligible ? "#059669" : "#dc2626", fontSize: 11.5, fontWeight: 800 }}>
+                        {overallCalculation.isEligible ? "Eligible" : "Shortage"}
+                      </strong>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -1787,25 +1798,25 @@ export default function AttendanceTracker() {
                     background: "#f8fafc",
                     border: "1px solid #e2e8f0",
                     borderRadius: 10,
-                    padding: "8px 9px",
+                    padding: "9px 10px",
                     display: "flex",
                     flexDirection: "column",
-                    gap: 5,
+                    gap: 6,
                   }}
                 >
                   <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 10, fontWeight: 800, color: "#2563eb", textTransform: "uppercase", letterSpacing: "0.5px" }}>
-                      <ShieldCheck size={11} color="#2563eb" />
+                    <div style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 10, fontWeight: 800, color: "#334155", textTransform: "uppercase", letterSpacing: "0.5px" }}>
+                      <ShieldCheck size={12} color="#475569" />
                       <span>Lookup Student</span>
                     </div>
-                    <span style={{ fontSize: 8.5, fontWeight: 800, background: "#eff6ff", color: "#2563eb", border: "1px solid #bfdbfe", padding: "1px 4px", borderRadius: 4 }}>
-                      Admin Mode
+                    <span style={{ fontSize: 9, fontWeight: 800, background: "#ffffff", color: "#475569", border: "1px solid #cbd5e1", padding: "1px 5px", borderRadius: 4 }}>
+                      Admin
                     </span>
                   </div>
 
-                  <form onSubmit={handleSearchStudent} style={{ display: "flex", gap: 4 }}>
+                  <form onSubmit={handleSearchStudent} style={{ display: "flex", gap: 5 }}>
                     <div style={{ position: "relative", flex: 1, display: "flex", alignItems: "center" }}>
-                      <Search size={11} color="#64748b" style={{ position: "absolute", left: 7, pointerEvents: "none" }} />
+                      <Search size={11} color="#64748b" style={{ position: "absolute", left: 8, pointerEvents: "none" }} />
                       <input
                         type="text"
                         placeholder="Reg No (e.g. 230301120001)"
@@ -1813,7 +1824,7 @@ export default function AttendanceTracker() {
                         onChange={(e) => setSearchRegInput(e.target.value)}
                         style={{
                           width: "100%",
-                          padding: "5px 5px 5px 23px",
+                          padding: "6px 6px 6px 26px",
                           borderRadius: 6,
                           border: "1px solid #cbd5e1",
                           background: "#ffffff",
@@ -1830,23 +1841,29 @@ export default function AttendanceTracker() {
                       type="submit"
                       disabled={isSearching}
                       style={{
-                        padding: "5px 8px",
+                        padding: "6px 9px",
                         borderRadius: 6,
                         border: "none",
-                        background: "linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)",
+                        background: "#0f172a",
                         color: "#ffffff",
                         fontSize: 11,
                         fontWeight: 800,
                         cursor: isSearching ? "not-allowed" : "pointer",
                         display: "inline-flex",
                         alignItems: "center",
-                        gap: 2,
+                        gap: 3,
                         flexShrink: 0,
-                        boxShadow: "0 2px 5px rgba(37,99,235,0.22)",
+                        transition: "background 0.15s ease",
+                      }}
+                      onMouseEnter={(e) => {
+                        if (!isSearching) e.currentTarget.style.background = "#334155";
+                      }}
+                      onMouseLeave={(e) => {
+                        if (!isSearching) e.currentTarget.style.background = "#0f172a";
                       }}
                     >
                       <span>{isSearching ? "..." : "Go"}</span>
-                      <ArrowRight size={9} />
+                      <ArrowRight size={10} />
                     </button>
                   </form>
 
@@ -1862,41 +1879,43 @@ export default function AttendanceTracker() {
 
               {/* 2. Enrolled Section (Locked / Assigned) */}
               <div>
-                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 4 }}>
-                  <span style={{ fontSize: 10, fontWeight: 800, color: "#64748b", textTransform: "uppercase", letterSpacing: "0.5px" }}>
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 5, paddingLeft: 2 }}>
+                  <span style={{ fontSize: 10, fontWeight: 800, color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.4px" }}>
                     Enrolled Section
                   </span>
-                  <span style={{ fontSize: 9.5, color: "#059669", fontWeight: 700, background: "#ecfdf5", padding: "1px 5px", borderRadius: 4 }}>
+                  <span style={{ fontSize: 9.5, color: "#475569", fontWeight: 700, background: "#f8fafc", border: "1px solid #e2e8f0", padding: "1px 6px", borderRadius: 4 }}>
                     Assigned
                   </span>
                 </div>
                 <div
                   style={{
-                    padding: "6px 10px",
-                    borderRadius: 7,
-                    border: "1px solid #a7f3d0",
-                    background: "#ecfdf5",
-                    color: "#065f46",
+                    padding: "8px 10px",
+                    borderRadius: 8,
+                    border: "1px solid #e2e8f0",
+                    background: "#f8fafc",
+                    color: "#0f172a",
                     fontSize: 12,
-                    fontWeight: 800,
+                    fontWeight: 700,
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "space-between",
                   }}
                 >
-                  <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
-                    <Building size={13} color="#059669" />
+                  <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                    <Building size={14} color="#64748b" />
                     <span>Section {selectedSection}</span>
                   </div>
-                  <span style={{ fontSize: 10, fontWeight: 700, color: "#059669" }}>Locked</span>
+                  <span style={{ fontSize: 9.5, fontWeight: 700, color: "#64748b", background: "#ffffff", border: "1px solid #e2e8f0", padding: "1.5px 6px", borderRadius: 4 }}>
+                    Locked
+                  </span>
                 </div>
               </div>
 
               <div style={{ height: 1, background: "#f1f5f9" }} />
 
               {/* 3. Dashboard Navigation Views Menu */}
-              <div style={{ display: "flex", flexDirection: "column", gap: 1 }}>
-                <div style={{ fontSize: 10, fontWeight: 800, color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.5px", paddingLeft: 4, marginBottom: 2 }}>
+              <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+                <div style={{ fontSize: 10, fontWeight: 800, color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.5px", paddingLeft: 4, marginBottom: 3 }}>
                   Views
                 </div>
 
@@ -1912,12 +1931,12 @@ export default function AttendanceTracker() {
                       {isFirstStudio && (
                         <div
                           style={{
-                            fontSize: 9,
-                            fontWeight: 900,
-                            color: "#64748b",
+                            fontSize: 9.5,
+                            fontWeight: 800,
+                            color: "#94a3b8",
                             textTransform: "uppercase",
                             letterSpacing: "0.5px",
-                            padding: "6px 5px 2px 5px",
+                            padding: "8px 5px 3px 5px",
                             display: "flex",
                             alignItems: "center",
                             justifyContent: "space-between",
@@ -1926,10 +1945,11 @@ export default function AttendanceTracker() {
                           <span>PREDICTOR STUDIO</span>
                           <span
                             style={{
-                              fontSize: 8,
-                              background: "#eff6ff",
-                              color: "#2563eb",
-                              padding: "1px 4px",
+                              fontSize: 8.5,
+                              background: "#f1f5f9",
+                              color: "#475569",
+                              border: "1px solid #e2e8f0",
+                              padding: "1px 5px",
                               borderRadius: 4,
                               fontWeight: 800,
                             }}
@@ -1939,7 +1959,7 @@ export default function AttendanceTracker() {
                         </div>
                       )}
                       {isFirstAfterStudio && (
-                        <div style={{ height: 1, background: "#f1f5f9", margin: "3px 0" }} />
+                        <div style={{ height: 1, background: "#f1f5f9", margin: "4px 0" }} />
                       )}
                       <button
                         type="button"
@@ -1948,32 +1968,50 @@ export default function AttendanceTracker() {
                           width: "100%",
                           display: "flex",
                           alignItems: "center",
-                          gap: 8,
-                          padding: "6px 8px",
-                          borderRadius: 7,
+                          gap: 9,
+                          padding: "7.5px 9px",
+                          borderRadius: 8,
                           border: "none",
-                          background: isActive ? "#ecfdf5" : "transparent",
-                          color: isActive ? "#059669" : "#475569",
+                          background: isActive ? "#f1f5f9" : "transparent",
+                          color: isActive ? "#0f172a" : "#475569",
                           fontSize: 12,
-                          fontWeight: isActive ? 800 : 500,
+                          fontWeight: isActive ? 800 : 600,
                           cursor: "pointer",
                           fontFamily: "'DM Sans', sans-serif",
                           transition: "all 0.15s ease",
                           textAlign: "left",
-                          paddingLeft: item.isStudio ? 12 : 8,
+                          paddingLeft: item.isStudio ? 14 : 9,
                         }}
                         onMouseEnter={(e) => {
-                          if (!isActive) e.currentTarget.style.background = "#f8fafc";
+                          if (!isActive) {
+                            e.currentTarget.style.background = "#f8fafc";
+                            e.currentTarget.style.color = "#0f172a";
+                          }
                         }}
                         onMouseLeave={(e) => {
-                          if (!isActive) e.currentTarget.style.background = "transparent";
+                          if (!isActive) {
+                            e.currentTarget.style.background = "transparent";
+                            e.currentTarget.style.color = "#475569";
+                          }
                         }}
                       >
-                        <span style={{ color: isActive ? "#059669" : "#64748b" }}>{item.icon}</span>
+                        <span style={{ color: isActive ? "#0f172a" : "#64748b", display: "flex", alignItems: "center" }}>
+                          {item.icon}
+                        </span>
                         <span style={{ flex: 1, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
                           {item.label}
                         </span>
-                        {isActive && <div style={{ width: 4.5, height: 4.5, borderRadius: "50%", background: "#059669" }} />}
+                        {isActive && (
+                          <div
+                            style={{
+                              width: 5,
+                              height: 5,
+                              borderRadius: "50%",
+                              background: "#0f172a",
+                              flexShrink: 0,
+                            }}
+                          />
+                        )}
                       </button>
                     </React.Fragment>
                   );
@@ -1983,8 +2021,8 @@ export default function AttendanceTracker() {
               <div style={{ height: 1, background: "#f1f5f9" }} />
 
               {/* 4. Quick Actions / Tools */}
-              <div style={{ display: "flex", flexDirection: "column", gap: 3 }}>
-                <div style={{ fontSize: 10, fontWeight: 800, color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.5px", paddingLeft: 4, marginBottom: 1 }}>
+              <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
+                <div style={{ fontSize: 10, fontWeight: 800, color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.5px", paddingLeft: 4, marginBottom: 2 }}>
                   Tools
                 </div>
 
@@ -1995,22 +2033,40 @@ export default function AttendanceTracker() {
                     width: "100%",
                     display: "flex",
                     alignItems: "center",
-                    gap: 7,
-                    padding: "6px 8px",
-                    borderRadius: 6,
-                    border: "1px solid #bbf7d0",
-                    background: "#f0fdf4",
-                    color: "#166534",
+                    gap: 8,
+                    padding: "7.5px 9px",
+                    borderRadius: 8,
+                    border: "1px solid #e2e8f0",
+                    background: "#f8fafc",
+                    color: "#0f172a",
                     fontSize: 11.5,
                     fontWeight: 700,
                     cursor: "pointer",
                     fontFamily: "'DM Sans', sans-serif",
                     transition: "all 0.15s ease",
                   }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.background = "#f1f5f9";
+                    e.currentTarget.style.borderColor = "#cbd5e1";
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.background = "#f8fafc";
+                    e.currentTarget.style.borderColor = "#e2e8f0";
+                  }}
                 >
-                  <Camera size={12} color="#059669" />
+                  <Camera size={13} color="#475569" />
                   <span style={{ flex: 1, textAlign: "left" }}>Auto-Import Scan</span>
-                  <span style={{ fontSize: 9, fontWeight: 900, background: "#dcfce7", color: "#15803d", padding: "1px 4px", borderRadius: 4 }}>
+                  <span
+                    style={{
+                      fontSize: 9,
+                      fontWeight: 800,
+                      background: "#ffffff",
+                      color: "#059669",
+                      border: "1px solid #e2e8f0",
+                      padding: "1.5px 5px",
+                      borderRadius: 4,
+                    }}
+                  >
                     {scanStatus.isExempt ? "Unlimited" : `${scanStatus.remaining}/${scanStatus.max}`}
                   </span>
                 </button>
@@ -2025,24 +2081,30 @@ export default function AttendanceTracker() {
                     width: "100%",
                     display: "flex",
                     alignItems: "center",
-                    gap: 7,
-                    padding: "6px 8px",
-                    borderRadius: 6,
-                    border: "1px solid #f1f5f9",
+                    gap: 8,
+                    padding: "7.5px 9px",
+                    borderRadius: 8,
+                    border: "1px solid #e2e8f0",
                     background: "#f8fafc",
-                    color: "#334155",
+                    color: "#0f172a",
                     fontSize: 11.5,
-                    fontWeight: 600,
+                    fontWeight: 700,
                     cursor: "pointer",
                     fontFamily: "'DM Sans', sans-serif",
                     transition: "all 0.15s ease",
                   }}
-                  onMouseEnter={(e) => (e.currentTarget.style.background = "#f1f5f9")}
-                  onMouseLeave={(e) => (e.currentTarget.style.background = "#f8fafc")}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.background = "#f1f5f9";
+                    e.currentTarget.style.borderColor = "#cbd5e1";
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.background = "#f8fafc";
+                    e.currentTarget.style.borderColor = "#e2e8f0";
+                  }}
                 >
-                  <CalendarIcon size={12} color="#2563eb" />
-                  <span style={{ flex: 1, textAlign: "left" }}>Mark Today's Attendance</span>
-                  <ArrowRight size={10} color="#94a3b8" />
+                  <CalendarIcon size={13} color="#475569" />
+                  <span style={{ flex: 1, textAlign: "left" }}>Mark Today</span>
+                  <ArrowRight size={11} color="#94a3b8" />
                 </button>
 
                 <button
@@ -2052,17 +2114,27 @@ export default function AttendanceTracker() {
                     width: "100%",
                     display: "flex",
                     alignItems: "center",
-                    gap: 7,
-                    padding: "6px 8px",
-                    borderRadius: 6,
-                    border: "1px solid #fee2e2",
-                    background: "#fff1f2",
-                    color: "#991b1b",
-                    fontSize: 11.5,
+                    gap: 8,
+                    padding: "7px 9px",
+                    borderRadius: 8,
+                    border: "1px solid transparent",
+                    background: "transparent",
+                    color: "#64748b",
+                    fontSize: 11,
                     fontWeight: 600,
                     cursor: "pointer",
                     fontFamily: "'DM Sans', sans-serif",
                     transition: "all 0.15s ease",
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.background = "#fff1f2";
+                    e.currentTarget.style.color = "#dc2626";
+                    e.currentTarget.style.borderColor = "#fecaca";
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.background = "transparent";
+                    e.currentTarget.style.color = "#64748b";
+                    e.currentTarget.style.borderColor = "transparent";
                   }}
                 >
                   <RotateCcw size={12} color="#dc2626" />
@@ -2607,10 +2679,10 @@ export default function AttendanceTracker() {
                 <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
                   <h3 style={{ fontSize: isMobile ? 15 : 17, fontWeight: 800, color: "#0f172a", margin: 0 }}>
                     {isSelectedToday
-                      ? `Today's Class Check-in`
+                      ? `Today's Attendance`
                       : isSelectedYesterday
-                      ? `Yesterday's Class Check-in`
-                      : `Class Check-in`}
+                      ? `Yesterday's Attendance`
+                      : `Daily Attendance`}
                   </h3>
                   <span
                     style={{
@@ -3193,7 +3265,7 @@ export default function AttendanceTracker() {
               <div>
                 <h3 style={{ fontSize: isMobile ? 15.5 : 17, fontWeight: 800, color: "#0f172a", margin: 0, display: "flex", alignItems: "center", gap: 8 }}>
                   <Layers size={17} color="#059669" />
-                  Semester Subjects Attendance & Target Matrix ({allSectionSubjects.length})
+                  Subject-wise Attendance Matrix ({allSectionSubjects.length})
                 </h3>
                 <p style={{ fontSize: 12, color: "#64748b", margin: "2px 0 0 0" }}>
                   Full multi-component breakdown (theory PP, practical PR, tutorial TUT) with target prediction for Section {selectedSection}.
