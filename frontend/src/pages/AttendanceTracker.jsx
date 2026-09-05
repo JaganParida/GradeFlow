@@ -1615,6 +1615,50 @@ export default function AttendanceTracker() {
     }, 3500);
   };
 
+  const handleOpenSubjectInEdit = (sub) => {
+    const catMatch = sectionCatalog.find((c) => isSameSubject(c, sub));
+    if (catMatch) {
+      selectSubjectFromCatalog(catMatch);
+    } else {
+      setSelectedSubjectName(sub.subjectName);
+      setComponentInputs(sub.components || [{ type: "PP", attended: 0, delivered: 0 }]);
+      setSimulateMissCount(0);
+      setSimulateAttendCount(0);
+      setIsVerifiedDisclaimerChecked(false);
+    }
+    handleStudioSectionChange("simulator");
+    setTimeout(() => {
+      const el = document.getElementById("attendance-predictor-studio");
+      if (el) {
+        el.scrollIntoView({ behavior: "smooth", block: "start" });
+      } else {
+        window.scrollTo({ top: 400, behavior: "smooth" });
+      }
+    }, 60);
+  };
+
+  const handleOpenSubjectInSchedule = (sub) => {
+    const catMatch = sectionCatalog.find((c) => isSameSubject(c, sub));
+    if (catMatch) {
+      selectSubjectFromCatalog(catMatch);
+    } else {
+      setSelectedSubjectName(sub.subjectName);
+      setComponentInputs(sub.components || [{ type: "PP", attended: 0, delivered: 0 }]);
+      setSimulateMissCount(0);
+      setSimulateAttendCount(0);
+      setIsVerifiedDisclaimerChecked(false);
+    }
+    handleStudioSectionChange("schedule");
+    setTimeout(() => {
+      const el = document.getElementById("attendance-predictor-studio");
+      if (el) {
+        el.scrollIntoView({ behavior: "smooth", block: "start" });
+      } else {
+        window.scrollTo({ top: 400, behavior: "smooth" });
+      }
+    }, 60);
+  };
+
   const [isResetModalOpen, setIsResetModalOpen] = useState(false);
 
   const navMenuItems = [
@@ -3630,12 +3674,7 @@ export default function AttendanceTracker() {
                         exit={{ opacity: 0, scale: 0.96 }}
                         transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
                         key={sub.subjectName || idx}
-                        onClick={() => {
-                          setSelectedSubjectName(sub.subjectName);
-                          setComponentInputs(sub.components || []);
-                          handleTabClick("studio");
-                          window.scrollTo({ top: 400, behavior: "smooth" });
-                        }}
+                        onClick={() => handleOpenSubjectInEdit(sub)}
                         style={{
                           background: isRecoveryAndHighlighted
                             ? (isUnattainable ? "#fff1f2" : "#fffbeb")
@@ -3902,10 +3941,7 @@ export default function AttendanceTracker() {
                               type="button"
                               onClick={(e) => {
                                 e.stopPropagation();
-                                setSelectedSubjectName(sub.subjectName);
-                                setComponentInputs(sub.components || []);
-                                handleTabClick("studio");
-                                window.scrollTo({ top: 400, behavior: "smooth" });
+                                handleOpenSubjectInSchedule(sub);
                               }}
                               style={{
                                 border: "none",
@@ -3976,11 +4012,12 @@ export default function AttendanceTracker() {
         {isStudioTab && (
           <motion.div
             key={currentStudioSection}
+            id="attendance-predictor-studio"
             initial={activeTabMotion.initial}
             animate={activeTabMotion.animate}
             exit={activeTabMotion.exit}
             transition={activeTabMotion.transition}
-            style={{ display: "flex", flexDirection: "column", gap: isMobile ? 12 : 18, width: "100%", boxSizing: "border-box" }}
+            style={{ display: "flex", flexDirection: "column", gap: isMobile ? 12 : 18, width: "100%", boxSizing: "border-box", scrollMarginTop: 90 }}
           >
             {/* ═══════════════════════════════════════════════════════════════
                 FIRST-TIME STUDENT ONBOARDING & GUIDED SETUP HUB
@@ -5310,6 +5347,52 @@ export default function AttendanceTracker() {
                   )}
                 </div>
               )}
+
+              {/* Quick Jump to Target Date & Schedule */}
+              <button
+                type="button"
+                onClick={() => {
+                  handleStudioSectionChange("schedule");
+                  setTimeout(() => {
+                    const el = document.getElementById("attendance-predictor-studio");
+                    if (el) {
+                      el.scrollIntoView({ behavior: "smooth", block: "start" });
+                    } else {
+                      window.scrollTo({ top: 400, behavior: "smooth" });
+                    }
+                  }, 60);
+                }}
+                style={{
+                  width: "100%",
+                  padding: "9px 14px",
+                  borderRadius: 8,
+                  background: "#0f172a",
+                  color: "#ffffff",
+                  border: "none",
+                  fontSize: 12,
+                  fontWeight: 700,
+                  cursor: "pointer",
+                  display: "inline-flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: 7,
+                  boxShadow: "0 1px 3px rgba(15, 23, 42, 0.12)",
+                  transition: "all 0.15s ease",
+                  marginTop: 2,
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = "#1e293b";
+                  e.currentTarget.style.transform = "translateY(-1px)";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = "#0f172a";
+                  e.currentTarget.style.transform = "translateY(0)";
+                }}
+              >
+                <CalendarCheck size={14} color="#38bdf8" />
+                <span>View Target Date &amp; Schedule Breakdown</span>
+                <ArrowRight size={13} color="#94a3b8" />
+              </button>
             </div>
           </div>
               </div>
