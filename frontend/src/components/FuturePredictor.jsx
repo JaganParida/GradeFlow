@@ -27,6 +27,7 @@ import {
   RotateCcw,
   Building,
   GraduationCap,
+  Lock,
 } from "lucide-react";
 import {
   getSectionScheduleForDate,
@@ -37,7 +38,7 @@ import {
   CUTM_SESSION_BOUNDARIES,
 } from "../utils/timetableHelper";
 
-// Date key helper (YYYY-MM-DD)
+// Helper: Format Date to YYYY-MM-DD
 function toDateKey(date) {
   const d = new Date(date);
   const year = d.getFullYear();
@@ -46,7 +47,7 @@ function toDateKey(date) {
   return `${year}-${month}-${day}`;
 }
 
-// Format friendly date (e.g. "Thu, 10 Sep")
+// Helper: Friendly formatted date string (e.g. "Thu, 10 Sept")
 function formatFriendlyDate(date, options = { weekday: "short", day: "numeric", month: "short" }) {
   if (!date) return "";
   const d = typeof date === "string" ? new Date(date + "T00:00:00") : new Date(date);
@@ -69,7 +70,7 @@ export default function FuturePredictor({
       ? Number(((currentOverallAtt / currentOverallDel) * 100).toFixed(2))
       : (overallCalculation.percentage || 100);
 
-  // Today reference (normalized to midnight)
+  // Reference Today (Midnight)
   const today = useMemo(() => {
     const d = new Date();
     d.setHours(0, 0, 0, 0);
@@ -82,16 +83,21 @@ export default function FuturePredictor({
   // Week navigation offset (0 = current week, 1 = next week, etc.)
   const [weekOffset, setWeekOffset] = useState(0);
 
-  // Selected Bunk Dates (Set of 'YYYY-MM-DD' strings)
+  // Selected Bunk Dates (Array of 'YYYY-MM-DD' strings)
   const [selectedBunkKeys, setSelectedBunkKeys] = useState([]);
 
-  // Recovery Target Percentage (default 75%, can be 80%, 85%, 90%, or custom)
-  const [recoveryTargetPct, setRecoveryTargetPct] = useState(75);
-  const [customTargetInput, setCustomTargetInput] = useState("75");
-  const [isCustomTargetActive, setIsCustomTargetActive] = useState(false);
+  // Non-instructional date notice (e.g. when user clicks on an exam or holiday date)
+  const [nonInstructionalNotice, setNonInstructionalNotice] = useState(null);
 
-  // Active view tabs for post-bunk roadmap
+  // Recovery Target Percentage (default 75%, can be 80%, 85%, 90%)
+  const [recoveryTargetPct, setRecoveryTargetPct] = useState(75);
+
+  // Phase 1 Detail Toggle: Summary vs Day-by-Day Detailed Schedule
+  const [preBunkViewMode, setPreBunkViewMode] = useState("detailed"); // "detailed" | "summary"
+
+  // Phase 3 view controls
   const [roadmapViewTab, setRoadmapViewTab] = useState("chronological"); // "chronological" | "by_subject"
+  const [showAllRecoveryDates, setShowAllRecoveryDates] = useState(false);
   const [expandedSubjects, setExpandedSubjects] = useState({});
 
   const toggleSubjectExpand = (subName) => {
@@ -104,13 +110,11 @@ export default function FuturePredictor({
   // ── Week Window Generator (Mon to Sat for the active weekOffset) ─────────
   const activeWeekDays = useMemo(() => {
     const startOfWeek = new Date(today);
-    // Find Monday of the target week
-    const currentDay = today.getDay(); // 0 is Sun, 1 is Mon
+    const currentDay = today.getDay(); // 0: Sun, 1: Mon
     const diffToMonday = currentDay === 0 ? -6 : 1 - currentDay;
     startOfWeek.setDate(today.getDate() + diffToMonday + weekOffset * 7);
 
     const days = [];
-    // Generate Monday through Saturday (6 days per standard academic week)
     for (let i = 0; i < 6; i++) {
       const dayDate = new Date(startOfWeek);
       dayDate.setDate(startOfWeek.getDate() + i);
@@ -142,44 +146,112 @@ export default function FuturePredictor({
     return days;
   }, [today, todayKey, weekOffset, selectedSection]);
 
-  // ── Quick Presets Handlers ───────────────────────────────────────────────
+  const weekInstructionalCount = useMemo(() => {
+    return activeWeekDays.reduce((acc, d) => acc + d.totalClasses, 0);
+  }, [activeWeekDays]);
+
+  const weekRangeTitle = useMemo(() => {
+    if (activeWeekDays.length === 0) return "";
+    return `${activeWeekDays[0].dateFormatted} – ${activeWeekDays[activeWeekDays.length - 1].dateFormatted}`;
+  }, [activeWeekDays]);
+
+  // ── Bunk Date Selection Handler (With Exam & Holiday Safeguards) ─────────
+  const toggleBunkDate = (dayItem) => {
+    if (!dayItem.isInstructional) {
+      // Show clean, accurate notice that this date has no regular timetable classes
+      const reasonTitle = dayItem.isExam
+        ? (dayItem.schedCtx.calendarStatus?.title || "Mid Semester Examination")
+        : dayItem.isHoliday
+        ? (dayItem.holidayTitle || "University Holiday")
+        : "Weekend (Closed)";
+
+      setNonInstructionalNotice({
+        dateFormatted: dayItem.dateFormatted,
+        dayName: dayItem.dayName,
+        title: reasonTitle,
+        isExam: dayItem.isExam,
+        isHoliday: dayItem.isHoliday,
+        isSunday: dayItem.isSunday,
+        message: dayItem.isExam
+          ? `Examinations are scheduled on ${dayItem.dateFormatted} (${reasonTitle}). Regular theory & practice timetable classes are suspended, so routine attendance cannot be bunked.`
+          : dayItem.isHoliday
+          ? `University is closed on ${dayItem.dateFormatted} for ${reasonTitle}. No routine classes are conducted.`
+          : `University is closed on Sundays. No classes are scheduled.`,
+      });
+      return;
+    }
+
+    // Dismiss notice when clicking an instructional day
+    setNonInstructionalNotice(null);
+    setSelectedBunkKeys((prev) =>
+      prev.includes(dayItem.dateKey)
+        ? prev.filter((k) => k !== dayItem.dateKey)
+        : [...prev, dayItem.dateKey]
+    );
+  };
+
+  // ── Quick Presets Handlers (Selects only instructional days) ─────────────
   const applyPresetTomorrow = () => {
     const tomorrow = new Date(today);
     tomorrow.setDate(today.getDate() + 1);
-    setSelectedBunkKeys([toDateKey(tomorrow)]);
+    const tomorrowKey = toDateKey(tomorrow);
+    const sched = getSectionScheduleForDate(selectedSection, tomorrow);
+    if (!sched.isInstructional) {
+      setNonInstructionalNotice({
+        dateFormatted: formatFriendlyDate(tomorrow),
+        dayName: sched.dayName,
+        title: sched.title,
+        message: `Tomorrow (${formatFriendlyDate(tomorrow)}) has no regular classes (${sched.title}). Jump to an instructional week to plan a bunk.`,
+      });
+      return;
+    }
+    setNonInstructionalNotice(null);
+    setSelectedBunkKeys([tomorrowKey]);
   };
 
   const applyPresetWeekend = () => {
-    // Select Friday & Saturday of current week view
-    const fri = activeWeekDays.find((d) => d.dayName === "Friday");
-    const sat = activeWeekDays.find((d) => d.dayName === "Saturday");
-    const keys = [];
-    if (fri) keys.push(fri.dateKey);
-    if (sat) keys.push(sat.dateKey);
-    setSelectedBunkKeys(keys);
+    const instructionalKeys = activeWeekDays
+      .filter((d) => (d.dayName === "Friday" || d.dayName === "Saturday") && d.isInstructional)
+      .map((d) => d.dateKey);
+
+    if (instructionalKeys.length === 0) {
+      setNonInstructionalNotice({
+        title: "No Weekend Classes This Week",
+        message: "Friday and Saturday in the currently viewed week have examinations or holidays. Use 'Next Week >' to plan for a weekend with regular classes.",
+      });
+      return;
+    }
+    setNonInstructionalNotice(null);
+    setSelectedBunkKeys(instructionalKeys);
   };
 
   const applyPreset3Day = () => {
-    const thu = activeWeekDays.find((d) => d.dayName === "Thursday");
-    const fri = activeWeekDays.find((d) => d.dayName === "Friday");
-    const sat = activeWeekDays.find((d) => d.dayName === "Saturday");
-    const keys = [];
-    if (thu) keys.push(thu.dateKey);
-    if (fri) keys.push(fri.dateKey);
-    if (sat) keys.push(sat.dateKey);
-    setSelectedBunkKeys(keys);
+    const instructionalKeys = activeWeekDays
+      .filter((d) => (d.dayName === "Thursday" || d.dayName === "Friday" || d.dayName === "Saturday") && d.isInstructional)
+      .map((d) => d.dateKey);
+
+    if (instructionalKeys.length === 0) {
+      setNonInstructionalNotice({
+        title: "No Classes This Thu-Sat",
+        message: "Thursday through Saturday in this week have examinations or holidays. Use 'Next Week >' to select instructional days.",
+      });
+      return;
+    }
+    setNonInstructionalNotice(null);
+    setSelectedBunkKeys(instructionalKeys);
   };
 
   const applyPresetFullWeek = () => {
-    setSelectedBunkKeys(activeWeekDays.map((d) => d.dateKey));
-  };
-
-  const toggleBunkDate = (dateKey) => {
-    setSelectedBunkKeys((prev) =>
-      prev.includes(dateKey)
-        ? prev.filter((k) => k !== dateKey)
-        : [...prev, dateKey]
-    );
+    const instructionalKeys = activeWeekDays.filter((d) => d.isInstructional).map((d) => d.dateKey);
+    if (instructionalKeys.length === 0) {
+      setNonInstructionalNotice({
+        title: "No Regular Classes This Week",
+        message: "This entire week is marked for examinations or holidays. Tap 'Next Week >' to view and plan for regular class weeks.",
+      });
+      return;
+    }
+    setNonInstructionalNotice(null);
+    setSelectedBunkKeys(instructionalKeys);
   };
 
   // ── Sorted Selected Bunk Dates ───────────────────────────────────────────
@@ -192,15 +264,12 @@ export default function FuturePredictor({
   const lastBunkDate = sortedBunkDates[sortedBunkDates.length - 1] || null;
 
   // ═══════════════════════════════════════════════════════════════════════════
-  // 3-PHASE MASTER FUTURE PREDICTOR SIMULATION ENGINE
+  // 3-PHASE MASTER FUTURE PREDICTOR ENGINE
   // ═══════════════════════════════════════════════════════════════════════════
   const simulation = useMemo(() => {
     if (sortedBunkDates.length === 0) return null;
 
-    const firstDateKey = toDateKey(firstBunkDate);
-    const lastDateKey = toDateKey(lastBunkDate);
-
-    // Map subjects for quick lookup
+    // Subject data map
     const subjectMap = new Map();
     allSectionSubjects.forEach((sub) => {
       const totAtt = (sub.components || []).reduce((acc, c) => acc + (Number(c.attended) || 0), 0);
@@ -221,10 +290,12 @@ export default function FuturePredictor({
 
     // ─────────────────────────────────────────────────────────────────────────
     // PHASE 1: PRE-BUNK ACCUMULATION (Today <= d < firstBunkDate)
-    // If student attends all classes leading up to their planned bunk
+    // Tracks day-by-day and subject-by-subject attendance climbing
     // ─────────────────────────────────────────────────────────────────────────
     let preBunkTotalClasses = 0;
     const preBunkDays = [];
+    let runningAccumAtt = currentOverallAtt;
+    let runningAccumDel = currentOverallDel;
 
     if (firstBunkDate > today) {
       const scanDate = new Date(today);
@@ -233,31 +304,62 @@ export default function FuturePredictor({
         const sched = getSectionScheduleForDate(selectedSection, scanDate);
 
         if (sched.isInstructional && sched.classes && sched.classes.length > 0) {
+          const dayClassesWithImpact = [];
+
+          sched.classes.forEach((cls) => {
+            preBunkTotalClasses++;
+            const cleanName = cls.cleanName || cleanSubjectBaseName(cls.subject);
+            const subData = subjectMap.get(cleanName);
+
+            const prevSubAtt = subData ? subData.preBunkAttended : 0;
+            const prevSubDel = subData ? subData.preBunkDelivered : 0;
+            const prevSubPct = prevSubDel > 0 ? (prevSubAtt / prevSubDel) * 100 : 100;
+
+            if (subData) {
+              subData.preBunkAttended += 1;
+              subData.preBunkDelivered += 1;
+              subData.preBunkClassesAdded += 1;
+            }
+
+            const newSubAtt = subData ? subData.preBunkAttended : 0;
+            const newSubDel = subData ? subData.preBunkDelivered : 0;
+            const newSubPct = newSubDel > 0 ? (newSubAtt / newSubDel) * 100 : 100;
+            const subDelta = Number((newSubPct - prevSubPct).toFixed(2));
+
+            runningAccumAtt += 1;
+            runningAccumDel += 1;
+            const overallPctAfterClass = Number(((runningAccumAtt / runningAccumDel) * 100).toFixed(2));
+
+            dayClassesWithImpact.push({
+              slotIndex: cls.slotIndex,
+              timeSlot: cls.slot?.label || (TIME_SLOTS[cls.slotIndex]?.label || `Slot ${cls.slotIndex + 1}`),
+              subjectName: cleanName,
+              subCode: resolveSubjectCode({ subject: cleanName }, studentData),
+              type: cls.type || "PP",
+              room: cls.room || "Room TBA",
+              faculty: cls.faculty || "Faculty",
+              prevSubPct: Number(prevSubPct.toFixed(1)),
+              newSubPct: Number(newSubPct.toFixed(1)),
+              subDelta,
+              overallPctAfterClass,
+            });
+          });
+
           preBunkDays.push({
             date: new Date(scanDate),
             dateKey: dKey,
             dayName: sched.dayName,
             dateFormatted: formatFriendlyDate(scanDate),
             classesCount: sched.classes.length,
-            classes: sched.classes,
-          });
-
-          sched.classes.forEach((cls) => {
-            preBunkTotalClasses++;
-            const cleanName = cls.cleanName || cleanSubjectBaseName(cls.subject);
-            const subData = subjectMap.get(cleanName);
-            if (subData) {
-              subData.preBunkAttended += 1;
-              subData.preBunkDelivered += 1;
-              subData.preBunkClassesAdded += 1;
-            }
+            classes: dayClassesWithImpact,
+            dayEndOverallPct: Number(((runningAccumAtt / runningAccumDel) * 100).toFixed(2)),
           });
         }
         scanDate.setDate(scanDate.getDate() + 1);
       }
     }
 
-    // Pre-Bunk Overall Stats (At eve of first bunk date)
+    // Overall Pre-Bunk Attendance State (Eve of Bunk)
     const preBunkOverallAtt = currentOverallAtt + preBunkTotalClasses;
     const preBunkOverallDel = currentOverallDel + preBunkTotalClasses;
     const preBunkOverallPct =
@@ -266,21 +368,19 @@ export default function FuturePredictor({
         : currentOverallPct;
     const preBunkGainDelta = Number((preBunkOverallPct - currentOverallPct).toFixed(2));
 
-    // Calculate Pre-Bunk Pct for each subject
+    // Calculate final pre-bunk percentage for each subject
     subjectMap.forEach((sub) => {
       sub.preBunkPct =
         sub.preBunkDelivered > 0
           ? Number(((sub.preBunkAttended / sub.preBunkDelivered) * 100).toFixed(2))
           : sub.currentPct;
       sub.preBunkGain = Number((sub.preBunkPct - sub.currentPct).toFixed(2));
-      // Base post-bunk starts with pre-bunk state
       sub.postBunkAttended = sub.preBunkAttended;
       sub.postBunkDelivered = sub.preBunkDelivered;
     });
 
     // ─────────────────────────────────────────────────────────────────────────
-    // PHASE 2: BUNK DROP SIMULATION (Selected Bunk Dates)
-    // Student misses all classes on these specific days
+    // PHASE 2: BUNK DROP SIMULATION (Selected Dates)
     // ─────────────────────────────────────────────────────────────────────────
     const bunkDaysBreakdown = [];
     let cumulativeMissedClasses = 0;
@@ -301,13 +401,22 @@ export default function FuturePredictor({
           ? Number(((runningOverallAttended / runningOverallDelivered) * 100).toFixed(2))
           : preBunkOverallPct;
 
-      scheduledClasses.forEach((cls) => {
+      const missedClassesDetail = scheduledClasses.map((cls) => {
         const cleanName = cls.cleanName || cleanSubjectBaseName(cls.subject);
         const subData = subjectMap.get(cleanName);
         if (subData) {
           subData.bunkMissedCount += 1;
           subData.postBunkDelivered += 1;
         }
+        return {
+          slotIndex: cls.slotIndex,
+          timeSlot: cls.slot?.label || (TIME_SLOTS[cls.slotIndex]?.label || `Slot ${cls.slotIndex + 1}`),
+          subjectName: cleanName,
+          subCode: resolveSubjectCode({ subject: cleanName }, studentData),
+          type: cls.type || "PP",
+          room: cls.room || "Room TBA",
+          faculty: cls.faculty || "Faculty",
+        };
       });
 
       bunkDaysBreakdown.push({
@@ -321,14 +430,14 @@ export default function FuturePredictor({
         holidayTitle: sched.title,
         isExam: sched.isExam,
         classesCount: dayClassesCount,
-        classes: scheduledClasses,
+        classes: missedClassesDetail,
         cumulativeMissedSoFar: cumulativeMissedClasses,
         endOfDayOverallPct: dayPostPct,
         dayDelta: Number((dayPostPct - preBunkOverallPct).toFixed(2)),
       });
     });
 
-    // Final Post-Bunk Overall Attendance
+    // Final Post-Bunk Overall Stats
     const postBunkOverallAtt = preBunkOverallAtt;
     const postBunkOverallDel = preBunkOverallDel + cumulativeMissedClasses;
     const postBunkOverallPct =
@@ -338,7 +447,7 @@ export default function FuturePredictor({
     const totalBunkDropDelta = Number((postBunkOverallPct - preBunkOverallPct).toFixed(2));
     const netChangeFromCurrent = Number((postBunkOverallPct - currentOverallPct).toFixed(2));
 
-    // Calculate Subject Post-Bunk Stats & Required Classes
+    // Calculate subject-wise post-bunk percentage and classes needed to reach target
     const targetPct = Number(recoveryTargetPct) || 75;
     const affectedSubjectsList = [];
     const criticalSubjectsList = [];
@@ -353,19 +462,14 @@ export default function FuturePredictor({
         sub.netChange = Number((sub.postBunkPct - sub.currentPct).toFixed(2));
         sub.isSafeAtTarget = sub.postBunkPct >= targetPct;
 
-        // Formula for classes needed to reach targetPct:
-        // (postAtt + n) / (postDel + n) >= target / 100
-        // => n >= (target * postDel - 100 * postAtt) / (100 - target)
         let classesToTarget = 0;
         if (sub.postBunkPct < targetPct) {
-          const numerator = (targetPct / 100) * sub.postBunkDelivered - sub.postBunkAttended;
-          const denominator = 1 - targetPct / 100;
-          classesToTarget = Math.max(1, Math.ceil(numerator / denominator));
+          const num = (targetPct / 100) * sub.postBunkDelivered - sub.postBunkAttended;
+          const den = 1 - targetPct / 100;
+          classesToTarget = Math.max(1, Math.ceil(num / den));
         }
         sub.classesToTarget = classesToTarget;
-
-        const subCode = resolveSubjectCode({ subject: sub.subjectName }, studentData);
-        sub.code = subCode;
+        sub.code = resolveSubjectCode({ subject: sub.subjectName }, studentData);
 
         affectedSubjectsList.push(sub);
         if (!sub.isSafeAtTarget) {
@@ -375,8 +479,7 @@ export default function FuturePredictor({
     });
 
     // ─────────────────────────────────────────────────────────────────────────
-    // PHASE 3: POST-BUNK RECOVERY ROADMAP
-    // Strictly starts after lastBunkDate and follows timetable calendar
+    // PHASE 3: POST-BUNK RECOVERY SCHEDULE (Strictly matches Image 3 Card Grid)
     // ─────────────────────────────────────────────────────────────────────────
     let overallClassesToTarget = 0;
     if (postBunkOverallPct < targetPct) {
@@ -385,8 +488,7 @@ export default function FuturePredictor({
       overallClassesToTarget = Math.max(1, Math.ceil(num / den));
     }
 
-    // Chronological Recovery Simulation through Timetable
-    const chronologicalRecoveryTimeline = [];
+    const recoverySessions = [];
     const scanRecoveryDate = new Date(lastBunkDate);
     const lastSessionDate = new Date(CUTM_SESSION_BOUNDARIES?.lastDateOfInstruction || "2026-10-31T23:59:59");
 
@@ -394,21 +496,14 @@ export default function FuturePredictor({
     let runningRecovDel = postBunkOverallDel;
     let milestoneDateReached = null;
     let milestoneSession = null;
-
-    // Track per-subject recovery running state
-    const subRunningAttMap = new Map();
-    const subRunningDelMap = new Map();
-    affectedSubjectsList.forEach((s) => {
-      subRunningAttMap.set(s.subjectName, s.postBunkAttended);
-      subRunningDelMap.set(s.subjectName, s.postBunkDelivered);
-    });
+    let alreadyMarkedMilestone = false;
 
     let safetyGuard = 0;
     const maxRecoverySessionsToSimulate = Math.max(overallClassesToTarget + 6, 20);
 
     while (
       scanRecoveryDate <= lastSessionDate &&
-      chronologicalRecoveryTimeline.length < maxRecoverySessionsToSimulate &&
+      recoverySessions.length < maxRecoverySessionsToSimulate &&
       safetyGuard < 60
     ) {
       scanRecoveryDate.setDate(scanRecoveryDate.getDate() + 1);
@@ -422,55 +517,50 @@ export default function FuturePredictor({
       }
 
       for (const cls of sched.classes) {
-        if (chronologicalRecoveryTimeline.length >= maxRecoverySessionsToSimulate) break;
+        if (recoverySessions.length >= maxRecoverySessionsToSimulate) break;
 
         const cleanName = cls.cleanName || cleanSubjectBaseName(cls.subject);
         runningRecovAtt += 1;
         runningRecovDel += 1;
         const newOverallPct = Number(((runningRecovAtt / runningRecovDel) * 100).toFixed(2));
 
-        // Update subject state
-        let newSubPct = null;
-        if (subRunningAttMap.has(cleanName)) {
-          const sAtt = subRunningAttMap.get(cleanName) + 1;
-          const sDel = subRunningDelMap.get(cleanName) + 1;
-          subRunningAttMap.set(cleanName, sAtt);
-          subRunningDelMap.set(cleanName, sDel);
-          newSubPct = Number(((sAtt / sDel) * 100).toFixed(2));
-        }
-
-        const sessionEntry = {
-          sessionNumber: chronologicalRecoveryTimeline.length + 1,
-          date: new Date(scanRecoveryDate),
-          dateFormatted: formatFriendlyDate(scanRecoveryDate),
-          dayName: sched.dayName,
-          timeSlot: cls.slot?.label || (TIME_SLOTS[cls.slotIndex]?.label || "Slot " + (cls.slotIndex + 1)),
-          subjectName: cleanName,
-          subCode: resolveSubjectCode({ subject: cleanName }, studentData),
-          room: cls.room || "Room TBA",
-          faculty: cls.faculty || "Faculty",
-          type: cls.type || "PP",
-          overallPctAfter: newOverallPct,
-          subjectPctAfter: newSubPct,
-          isOverallMilestone: false,
-        };
-
-        if (!milestoneDateReached && newOverallPct >= targetPct) {
+        const isMilestoneTarget = !alreadyMarkedMilestone && newOverallPct >= targetPct;
+        if (isMilestoneTarget) {
+          alreadyMarkedMilestone = true;
           milestoneDateReached = formatFriendlyDate(scanRecoveryDate, {
-            weekday: "long",
+            weekday: "short",
             day: "numeric",
             month: "short",
             year: "numeric",
           });
-          sessionEntry.isOverallMilestone = true;
-          milestoneSession = sessionEntry;
         }
 
-        chronologicalRecoveryTimeline.push(sessionEntry);
+        const sessionItem = {
+          sessionNumber: recoverySessions.length + 1,
+          date: new Date(scanRecoveryDate),
+          dateStr: formatFriendlyDate(scanRecoveryDate),
+          dayName: sched.dayName,
+          timeSlot: cls.slot?.label || (TIME_SLOTS[cls.slotIndex]?.label || `Slot ${cls.slotIndex + 1}`),
+          subjectName: cleanName,
+          subCode: resolveSubjectCode({ subject: cleanName }, studentData),
+          room: cls.room || `CSE-F-AR-${310 + ((cls.slotIndex || 0) % 8)}`,
+          faculty: cls.faculty || "Faculty",
+          type: cls.type || "PP",
+          runningAttended: runningRecovAtt,
+          runningDelivered: runningRecovDel,
+          runningPercentage: newOverallPct,
+          isMilestoneTarget,
+        };
+
+        if (isMilestoneTarget) {
+          milestoneSession = sessionItem;
+        }
+
+        recoverySessions.push(sessionItem);
       }
     }
 
-    // Next instructional return date
+    // First instructional return date after bunk
     const firstReturnDate = new Date(lastBunkDate);
     firstReturnDate.setDate(firstReturnDate.getDate() + 1);
     let returnGuard = 0;
@@ -504,7 +594,7 @@ export default function FuturePredictor({
       overallClassesToTarget,
       milestoneDateReached,
       milestoneSession,
-      chronologicalRecoveryTimeline,
+      recoverySessions,
       targetPct,
     };
   }, [
@@ -521,10 +611,16 @@ export default function FuturePredictor({
     recoveryTargetPct,
   ]);
 
+  const visibleRecoverySessions = useMemo(() => {
+    if (!simulation?.recoverySessions) return [];
+    if (showAllRecoveryDates) return simulation.recoverySessions;
+    return simulation.recoverySessions.slice(0, 15);
+  }, [simulation?.recoverySessions, showAllRecoveryDates]);
+
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 16, width: "100%", boxSizing: "border-box" }}>
       {/* ═══════════════════════════════════════════════════════════════════════
-          HEADER: FUTURE PREDICTOR HERO INTELLIGENCE BANNER
+          HERO BANNER
       ═══════════════════════════════════════════════════════════════════════ */}
       <div
         style={{
@@ -566,7 +662,7 @@ export default function FuturePredictor({
               }}
             >
               <Zap size={14} />
-              <span>Section {selectedSection} Master Routine Engine</span>
+              <span>Section {selectedSection} Routine Engine</span>
             </div>
             <h2
               style={{
@@ -592,7 +688,7 @@ export default function FuturePredictor({
                 lineHeight: 1.45,
               }}
             >
-              Date-wise bunk impact and timetable attendance recovery planner. Simulates your accumulated attendance up to the chosen leave date, calculates sequential class drops, and maps the exact future classes to recover.
+              Date-wise attendance simulation engine following official CUTM academic calendar & timetable. Simulates pre-bunk attendance accumulation, calculates sequential class drop, and generates exact post-absence recovery schedule.
             </p>
           </div>
 
@@ -627,7 +723,7 @@ export default function FuturePredictor({
           </div>
         </div>
 
-        {/* ── Quick Vacation / Leave Presets Bar ── */}
+        {/* ── Quick Vacation Presets ── */}
         <div
           style={{
             display: "flex",
@@ -728,7 +824,10 @@ export default function FuturePredictor({
           {selectedBunkKeys.length > 0 && (
             <button
               type="button"
-              onClick={() => setSelectedBunkKeys([])}
+              onClick={() => {
+                setSelectedBunkKeys([]);
+                setNonInstructionalNotice(null);
+              }}
               style={{
                 padding: "4px 10px",
                 borderRadius: 7,
@@ -751,7 +850,7 @@ export default function FuturePredictor({
       </div>
 
       {/* ═══════════════════════════════════════════════════════════════════════
-          DATE WITH DAY STRIP (FOLLOWS TIMETABLE & ACADEMIC CALENDAR)
+          DATE WITH DAY SELECTOR (HONORS EXAMS & HOLIDAYS)
       ═══════════════════════════════════════════════════════════════════════ */}
       <div
         style={{
@@ -775,19 +874,24 @@ export default function FuturePredictor({
         >
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
             <CalendarCheck size={18} color="#2563eb" />
-            <h3 style={{ fontSize: 15, fontWeight: 900, color: "#0f172a", margin: 0 }}>
-              Select Planned Bunk Date(s)
-            </h3>
-            <span style={{ fontSize: 11, color: "#64748b", fontWeight: 600 }}>
-              (Click days to plan absence)
-            </span>
+            <div>
+              <h3 style={{ fontSize: 15, fontWeight: 900, color: "#0f172a", margin: 0 }}>
+                Select Planned Bunk Date(s)
+              </h3>
+              <span style={{ fontSize: 11, color: "#64748b", fontWeight: 600 }}>
+                Week of {weekRangeTitle}
+              </span>
+            </div>
           </div>
 
-          {/* Week Navigation Controls */}
+          {/* Week Switcher */}
           <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
             <button
               type="button"
-              onClick={() => setWeekOffset((prev) => prev - 1)}
+              onClick={() => {
+                setWeekOffset((prev) => prev - 1);
+                setNonInstructionalNotice(null);
+              }}
               style={{
                 padding: "5px 9px",
                 borderRadius: 8,
@@ -807,7 +911,10 @@ export default function FuturePredictor({
             </button>
             <button
               type="button"
-              onClick={() => setWeekOffset(0)}
+              onClick={() => {
+                setWeekOffset(0);
+                setNonInstructionalNotice(null);
+              }}
               style={{
                 padding: "5px 10px",
                 borderRadius: 8,
@@ -823,7 +930,10 @@ export default function FuturePredictor({
             </button>
             <button
               type="button"
-              onClick={() => setWeekOffset((prev) => prev + 1)}
+              onClick={() => {
+                setWeekOffset((prev) => prev + 1);
+                setNonInstructionalNotice(null);
+              }}
               style={{
                 padding: "5px 9px",
                 borderRadius: 8,
@@ -844,7 +954,85 @@ export default function FuturePredictor({
           </div>
         </div>
 
-        {/* ── Day Cards Grid ── */}
+        {/* ── Notice Banner if week is suspended for Exams / Holidays ── */}
+        {weekInstructionalCount === 0 && (
+          <div
+            style={{
+              background: "#fff7ed",
+              border: "1px solid #fed7aa",
+              borderRadius: 12,
+              padding: "10px 14px",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              flexWrap: "wrap",
+              gap: 10,
+            }}
+          >
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <AlertTriangle size={16} color="#ea580c" style={{ flexShrink: 0 }} />
+              <div style={{ fontSize: 12, color: "#9a3412", lineHeight: 1.4 }}>
+                <strong>Examinations / Holidays Scheduled This Week:</strong> Regular timetable classes are suspended during this week per the academic calendar. Routine classes resume on next week (14 Sept onwards).
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={() => {
+                setWeekOffset((prev) => prev + 1);
+                setNonInstructionalNotice(null);
+              }}
+              style={{
+                background: "#ea580c",
+                color: "#ffffff",
+                border: "none",
+                borderRadius: 7,
+                padding: "5px 11px",
+                fontSize: 11.5,
+                fontWeight: 800,
+                cursor: "pointer",
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 5,
+                flexShrink: 0,
+              }}
+            >
+              <span>Jump to Class Week (14 Sept)</span>
+              <ArrowRight size={13} />
+            </button>
+          </div>
+        )}
+
+        {/* ── Non-Instructional Click Notice ── */}
+        {nonInstructionalNotice && (
+          <div
+            style={{
+              background: "#fef2f2",
+              border: "1px solid #fecaca",
+              borderRadius: 10,
+              padding: "9px 12px",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              gap: 8,
+              fontSize: 12,
+              color: "#991b1b",
+            }}
+          >
+            <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
+              <Info size={15} color="#dc2626" style={{ flexShrink: 0 }} />
+              <span>{nonInstructionalNotice.message}</span>
+            </div>
+            <button
+              type="button"
+              onClick={() => setNonInstructionalNotice(null)}
+              style={{ background: "transparent", border: "none", color: "#991b1b", cursor: "pointer", padding: 0 }}
+            >
+              <X size={14} />
+            </button>
+          </div>
+        )}
+
+        {/* ── Date Cards Grid (Follows getSectionScheduleForDate) ── */}
         <div
           style={{
             display: "grid",
@@ -854,18 +1042,20 @@ export default function FuturePredictor({
         >
           {activeWeekDays.map((dayItem) => {
             const isSelected = selectedBunkKeys.includes(dayItem.dateKey);
+            const isInstructional = dayItem.isInstructional;
             const isPast = dayItem.isPast;
             const isToday = dayItem.isToday;
-            const hasClasses = dayItem.isInstructional && dayItem.totalClasses > 0;
 
             return (
               <button
                 key={dayItem.dateKey}
                 type="button"
-                onClick={() => toggleBunkDate(dayItem.dateKey)}
+                onClick={() => toggleBunkDate(dayItem)}
                 style={{
                   background: isSelected
                     ? "#fef2f2"
+                    : !isInstructional
+                    ? "#f8fafc"
                     : isToday
                     ? "#f8fafc"
                     : isPast
@@ -875,6 +1065,8 @@ export default function FuturePredictor({
                     ? "2px solid #dc2626"
                     : isToday
                     ? "2px solid #2563eb"
+                    : !isInstructional
+                    ? "1px dashed #cbd5e1"
                     : "1px solid #e2e8f0",
                   borderRadius: 14,
                   padding: "10px 8px",
@@ -884,7 +1076,7 @@ export default function FuturePredictor({
                   gap: 4,
                   cursor: "pointer",
                   transition: "all 0.15s ease",
-                  opacity: isPast && !isSelected ? 0.75 : 1,
+                  opacity: !isInstructional ? 0.85 : isPast && !isSelected ? 0.75 : 1,
                   boxShadow: isSelected
                     ? "0 4px 12px rgba(220, 38, 38, 0.12)"
                     : isToday
@@ -893,7 +1085,7 @@ export default function FuturePredictor({
                   position: "relative",
                 }}
               >
-                {/* Status Dot / Bunk Checkmark */}
+                {/* Top Right Status: Checkbox (Instructional) or Lock (Non-Instructional) */}
                 <div
                   style={{
                     position: "absolute",
@@ -902,16 +1094,19 @@ export default function FuturePredictor({
                     width: 16,
                     height: 16,
                     borderRadius: 4,
-                    background: isSelected ? "#dc2626" : "transparent",
-                    border: isSelected ? "none" : "1px solid #cbd5e1",
+                    background: isSelected ? "#dc2626" : !isInstructional ? "#f1f5f9" : "transparent",
+                    border: isSelected ? "none" : !isInstructional ? "none" : "1px solid #cbd5e1",
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "center",
-                    color: "#ffffff",
-                    fontSize: 10,
+                    color: isSelected ? "#ffffff" : "#94a3b8",
                   }}
                 >
-                  {isSelected && <Check size={11} strokeWidth={3} />}
+                  {isSelected ? (
+                    <Check size={11} strokeWidth={3} />
+                  ) : !isInstructional ? (
+                    <Lock size={10} color="#94a3b8" />
+                  ) : null}
                 </div>
 
                 {/* Day Name */}
@@ -920,7 +1115,7 @@ export default function FuturePredictor({
                     style={{
                       fontSize: 12,
                       fontWeight: 800,
-                      color: isSelected ? "#991b1b" : "#0f172a",
+                      color: isSelected ? "#991b1b" : !isInstructional ? "#64748b" : "#0f172a",
                     }}
                   >
                     {isMobile ? dayItem.dayName.slice(0, 3) : dayItem.dayName}
@@ -941,7 +1136,7 @@ export default function FuturePredictor({
                   )}
                 </div>
 
-                {/* Date formatted */}
+                {/* Date String */}
                 <span
                   style={{
                     fontSize: 11,
@@ -952,7 +1147,7 @@ export default function FuturePredictor({
                   {dayItem.dateFormatted}
                 </span>
 
-                {/* Timetable Class Badge */}
+                {/* Status Badge */}
                 <span
                   style={{
                     fontSize: 9.5,
@@ -962,33 +1157,33 @@ export default function FuturePredictor({
                     marginTop: 2,
                     background: isSelected
                       ? "#fee2e2"
+                      : dayItem.isExam
+                      ? "#fff7ed"
                       : dayItem.isHoliday
                       ? "#fffbeb"
-                      : dayItem.isExam
-                      ? "#eff6ff"
-                      : hasClasses
+                      : isInstructional
                       ? "#ecfdf5"
                       : "#f1f5f9",
                     color: isSelected
                       ? "#b91c1c"
+                      : dayItem.isExam
+                      ? "#c2410c"
                       : dayItem.isHoliday
                       ? "#b45309"
-                      : dayItem.isExam
-                      ? "#1d4ed8"
-                      : hasClasses
+                      : isInstructional
                       ? "#047857"
                       : "#64748b",
                   }}
                 >
                   {isSelected
                     ? "Planned Bunk"
-                    : dayItem.isHoliday
-                    ? "Holiday"
                     : dayItem.isExam
-                    ? "Exams"
-                    : hasClasses
+                    ? "Exams (No Class)"
+                    : dayItem.isHoliday
+                    ? "Holiday (Closed)"
+                    : isInstructional
                     ? `${dayItem.totalClasses} Classes`
-                    : "No Classes"}
+                    : "No Class"}
                 </span>
               </button>
             );
@@ -1033,7 +1228,7 @@ export default function FuturePredictor({
               No Bunk Date Selected
             </h4>
             <p style={{ fontSize: 13, color: "#64748b", margin: 0, lineHeight: 1.5 }}>
-              Tap any date above (e.g. 10th Sep, or 8, 9, 10, 11 Sep) or pick a preset like <strong>Long Weekend</strong> to simulate your future attendance, sequential drops, and recovery roadmap.
+              Tap any date above with scheduled classes to simulate your future attendance, sequential class drops, and recovery roadmap. If viewing an examination week, tap <strong>"Next Week &gt;"</strong> to select regular class dates.
             </p>
           </div>
         </div>
@@ -1045,7 +1240,7 @@ export default function FuturePredictor({
       {simulation && (
         <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
           {/* ─────────────────────────────────────────────────────────────────
-              PHASE 1: PRE-BUNK ACCUMULATION BANNER
+              PHASE 1: PRE-BUNK ATTENDANCE ACCUMULATION (MATCHES IMAGE 2 + DETAILS)
           ───────────────────────────────────────────────────────────────── */}
           {simulation.preBunkTotalClasses > 0 && (
             <motion.div
@@ -1112,7 +1307,7 @@ export default function FuturePredictor({
                 From today until the day before your planned leave ({formatFriendlyDate(new Date(simulation.firstBunkDate.getTime() - 86400000))}), if you attend all <strong>{simulation.preBunkTotalClasses} scheduled classes</strong> across your timetable, your overall attendance will rise from <strong>{currentOverallPct}%</strong> to <strong>{simulation.preBunkOverallPct}%</strong> before taking leave.
               </p>
 
-              {/* Pre-Bunk Subject Gain Chips */}
+              {/* Summary Subject Chips (Exact Image 2) */}
               <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
                 {simulation.affectedSubjectsList
                   .filter((s) => s.preBunkClassesAdded > 0)
@@ -1140,11 +1335,100 @@ export default function FuturePredictor({
                     </div>
                   ))}
               </div>
+
+              {/* View Toggle: Detailed Day-by-Day Pre-Bunk Breakdown */}
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 4 }}>
+                <span style={{ fontSize: 11, fontWeight: 800, color: "#475569", textTransform: "uppercase", letterSpacing: "0.5px" }}>
+                  Day-by-Day Pre-Bunk Schedule ({simulation.preBunkDays.length} Days):
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setPreBunkViewMode((prev) => (prev === "detailed" ? "summary" : "detailed"))}
+                  style={{
+                    background: "transparent",
+                    border: "none",
+                    color: "#2563eb",
+                    fontSize: 11.5,
+                    fontWeight: 800,
+                    cursor: "pointer",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 3,
+                  }}
+                >
+                  <span>{preBunkViewMode === "detailed" ? "Hide Daily Classes" : "Show Daily Classes"}</span>
+                  {preBunkViewMode === "detailed" ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+                </button>
+              </div>
+
+              {/* Detailed Day-by-Day Classes List */}
+              {preBunkViewMode === "detailed" && (
+                <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 2 }}>
+                  {simulation.preBunkDays.map((pDay) => (
+                    <div
+                      key={pDay.dateKey}
+                      style={{
+                        background: "#ffffff",
+                        border: "1px solid #cbd5e1",
+                        borderRadius: 12,
+                        padding: "10px 12px",
+                        display: "flex",
+                        flexDirection: "column",
+                        gap: 8,
+                      }}
+                    >
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                        <span style={{ fontSize: 12.5, fontWeight: 900, color: "#0f172a" }}>
+                          {pDay.dateFormatted} ({pDay.dayName}) &bull; {pDay.classesCount} Classes Attended
+                        </span>
+                        <span style={{ fontSize: 11, fontWeight: 800, color: "#059669" }}>
+                          Day-End Overall: {pDay.dayEndOverallPct}%
+                        </span>
+                      </div>
+
+                      <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(auto-fill, minmax(260px, 1fr))", gap: 6 }}>
+                        {pDay.classes.map((cls, cIdx) => (
+                          <div
+                            key={cIdx}
+                            style={{
+                              background: "#f8fafc",
+                              border: "1px solid #e2e8f0",
+                              borderRadius: 8,
+                              padding: "6px 8px",
+                              display: "flex",
+                              flexDirection: "column",
+                              gap: 3,
+                            }}
+                          >
+                            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                              <span style={{ fontSize: 11.5, fontWeight: 800, color: "#0f172a" }}>
+                                {cls.subjectName}
+                              </span>
+                              <span style={{ fontSize: 9.5, fontWeight: 800, background: "#eff6ff", color: "#2563eb", padding: "1px 4px", borderRadius: 4 }}>
+                                {cls.type}
+                              </span>
+                            </div>
+                            <div style={{ fontSize: 10, color: "#64748b" }}>
+                              {cls.timeSlot} &bull; Room {cls.room}
+                            </div>
+                            <div style={{ display: "flex", justifyContent: "space-between", fontSize: 10.5, borderTop: "1px dashed #e2e8f0", paddingTop: 3, marginTop: 2 }}>
+                              <span style={{ color: "#64748b" }}>Course %:</span>
+                              <strong style={{ color: "#059669" }}>
+                                {cls.prevSubPct}% &rarr; {cls.newSubPct}% (+{cls.subDelta}%)
+                              </strong>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </motion.div>
           )}
 
           {/* ─────────────────────────────────────────────────────────────────
-              PHASE 2: BUNK DROP IMPACT CARD
+              PHASE 2: BUNK DROP SIMULATION
           ───────────────────────────────────────────────────────────────── */}
           <motion.div
             initial={{ opacity: 0, y: 10 }}
@@ -1237,7 +1521,7 @@ export default function FuturePredictor({
               </div>
             </div>
 
-            {/* Impact Metric Summary Cards */}
+            {/* Impact Metric Cards */}
             <div
               style={{
                 display: "grid",
@@ -1290,10 +1574,10 @@ export default function FuturePredictor({
               </div>
             </div>
 
-            {/* Day-by-Day Sequential Drop Table */}
+            {/* Sequential Bunk Days Breakdown */}
             <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
               <span style={{ fontSize: 11.5, fontWeight: 800, color: "#475569", textTransform: "uppercase", letterSpacing: "0.5px" }}>
-                Sequential Day-by-Day Breakdown:
+                Sequential Drop After Each Missed Day:
               </span>
               <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
                 {simulation.bunkDaysBreakdown.map((bDay) => (
@@ -1346,7 +1630,7 @@ export default function FuturePredictor({
                     </div>
 
                     <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                      <span style={{ fontSize: 11, color: "#64748b" }}>Overall drops to:</span>
+                      <span style={{ fontSize: 11, color: "#64748b" }}>Cumulative Overall:</span>
                       <span style={{ fontSize: 12.5, fontWeight: 900, color: bDay.endOfDayOverallPct >= 75 ? "#0f172a" : "#dc2626" }}>
                         {bDay.endOfDayOverallPct}%
                       </span>
@@ -1359,7 +1643,7 @@ export default function FuturePredictor({
               </div>
             </div>
 
-            {/* Subject-Wise Affected Breakdown Accordion */}
+            {/* Course-Wise Bunk Impact Accordion */}
             <div style={{ display: "flex", flexDirection: "column", gap: 6, marginTop: 4 }}>
               <span style={{ fontSize: 11.5, fontWeight: 800, color: "#475569", textTransform: "uppercase", letterSpacing: "0.5px" }}>
                 Course-Wise Bunk Impact:
@@ -1430,7 +1714,6 @@ export default function FuturePredictor({
                         </div>
                       </div>
 
-                      {/* Expandable Details */}
                       {isExpanded && (
                         <div
                           style={{
@@ -1467,7 +1750,7 @@ export default function FuturePredictor({
           </motion.div>
 
           {/* ─────────────────────────────────────────────────────────────────
-              PHASE 3: POST-BUNK RECOVERY ROADMAP
+              PHASE 3: MANDATORY POST-ABSENCE RECOVERY SCHEDULE (IMAGE 3 UI)
           ───────────────────────────────────────────────────────────────── */}
           <motion.div
             initial={{ opacity: 0, y: 10 }}
@@ -1510,28 +1793,25 @@ export default function FuturePredictor({
                   }}
                 >
                   <Target size={13} />
-                  <span>Phase 3 &bull; Post-Bunk Recovery Roadmap</span>
+                  <span>Phase 3 &bull; Timetable Recovery Engine</span>
                 </div>
                 <h3 style={{ fontSize: 16, fontWeight: 900, color: "#0f172a", margin: 0 }}>
-                  Timetable Recovery Plan (Starts {simulation.firstReturnDateFormatted})
+                  Attendance Recovery Target & Roadmap
                 </h3>
                 <p style={{ fontSize: 12, color: "#64748b", margin: "2px 0 0 0" }}>
-                  Select your target percentage below to see the exact upcoming classes needed to recover your attendance.
+                  Select your recovery percentage target below to recalculate the exact timetable schedule:
                 </p>
               </div>
 
-              {/* Recovery Target Option Buttons */}
+              {/* Target Buttons */}
               <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
                 {[75, 80, 85, 90].map((tVal) => {
-                  const isTargetSelected = !isCustomTargetActive && recoveryTargetPct === tVal;
+                  const isTargetSelected = recoveryTargetPct === tVal;
                   return (
                     <button
                       key={tVal}
                       type="button"
-                      onClick={() => {
-                        setIsCustomTargetActive(false);
-                        setRecoveryTargetPct(tVal);
-                      }}
+                      onClick={() => setRecoveryTargetPct(tVal)}
                       style={{
                         padding: "6px 12px",
                         borderRadius: 8,
@@ -1551,238 +1831,213 @@ export default function FuturePredictor({
               </div>
             </div>
 
-            {/* ── Celebratory / Recovery Milestone Card ── */}
+            {/* ── Exact Image 3 Card Grid: Mandatory Post-Absence Recovery Schedule ── */}
             <div
               style={{
-                background: simulation.isOverallSafeAtTarget
-                  ? "linear-gradient(135deg, #ecfdf5 0%, #f0fdf4 100%)"
-                  : "linear-gradient(135deg, #eff6ff 0%, #f5f3ff 100%)",
-                border: `1px solid ${simulation.isOverallSafeAtTarget ? "#a7f3d0" : "#bfdbfe"}`,
+                background: "#ffffff",
+                border: "1px solid #e2e8f0",
                 borderRadius: 14,
                 padding: "16px 18px",
                 display: "flex",
-                alignItems: "center",
-                justifyContent: "space-between",
-                flexWrap: "wrap",
+                flexDirection: "column",
                 gap: 12,
               }}
             >
-              <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                <div
-                  style={{
-                    width: 42,
-                    height: 42,
-                    borderRadius: 12,
-                    background: simulation.isOverallSafeAtTarget ? "#059669" : "#2563eb",
-                    color: "#ffffff",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    flexShrink: 0,
-                  }}
-                >
-                  <Sparkles size={22} />
-                </div>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 10 }}>
                 <div>
-                  <div style={{ fontSize: 11, fontWeight: 800, color: simulation.isOverallSafeAtTarget ? "#065f46" : "#1e40af", textTransform: "uppercase" }}>
-                    Recovery Milestone
-                  </div>
-                  <div style={{ fontSize: 14.5, fontWeight: 900, color: "#0f172a" }}>
-                    {simulation.isOverallSafeAtTarget
-                      ? `Already Above Target! (${simulation.postBunkOverallPct}% &ge; ${simulation.targetPct}%)`
-                      : simulation.milestoneDateReached
-                      ? `Recover ${simulation.targetPct}% on: ${simulation.milestoneDateReached}`
-                      : `${simulation.overallClassesToTarget} Classes Required for Complete Recovery`}
-                  </div>
-                  <div style={{ fontSize: 12, color: "#475569", marginTop: 2 }}>
-                    {simulation.isOverallSafeAtTarget
-                      ? `Your attendance remains safely above your ${simulation.targetPct}% target goal even after taking this planned absence.`
-                      : `Attend the next ${simulation.overallClassesToTarget} scheduled classes consecutively starting ${simulation.firstReturnDateFormatted} to reach ${simulation.targetPct}%.`}
-                  </div>
+                  <h5 style={{ fontSize: 14, fontWeight: 900, color: "#0f172a", margin: 0, display: "flex", alignItems: "center", gap: 6 }}>
+                    <CalendarCheck size={16} color="#059669" />
+                    Mandatory Post-Absence Recovery Schedule ({simulation.recoverySessions.length} total classes)
+                  </h5>
+                  <p style={{ fontSize: 12, color: "#64748b", margin: "2px 0 0 0" }}>
+                    Every class you must consecutively attend post-absence to restore your {simulation.targetPct}% attendance goal:
+                  </p>
                 </div>
-              </div>
 
-              {simulation.milestoneSession && (
-                <div
-                  style={{
-                    background: "#ffffff",
-                    border: "1px solid #cbd5e1",
-                    padding: "6px 12px",
-                    borderRadius: 8,
-                    textAlign: "right",
-                  }}
-                >
-                  <span style={{ fontSize: 10, fontWeight: 700, color: "#64748b" }}>Achieved in Session:</span>
-                  <div style={{ fontSize: 12.5, fontWeight: 800, color: "#2563eb" }}>
-                    {simulation.milestoneSession.subjectName}
-                  </div>
-                </div>
-              )}
-            </div>
-
-            {/* Roadmap Tab Selector: Chronological vs By Subject */}
-            <div style={{ display: "flex", alignItems: "center", gap: 6, borderBottom: "1px solid #f1f5f9", paddingBottom: 6 }}>
-              <button
-                type="button"
-                onClick={() => setRoadmapViewTab("chronological")}
-                style={{
-                  padding: "5px 12px",
-                  borderRadius: 7,
-                  border: "none",
-                  background: roadmapViewTab === "chronological" ? "#0f172a" : "#f1f5f9",
-                  color: roadmapViewTab === "chronological" ? "#ffffff" : "#475569",
-                  fontSize: 12,
-                  fontWeight: 800,
-                  cursor: "pointer",
-                }}
-              >
-                Chronological Timetable Schedule
-              </button>
-              <button
-                type="button"
-                onClick={() => setRoadmapViewTab("by_subject")}
-                style={{
-                  padding: "5px 12px",
-                  borderRadius: 7,
-                  border: "none",
-                  background: roadmapViewTab === "by_subject" ? "#0f172a" : "#f1f5f9",
-                  color: roadmapViewTab === "by_subject" ? "#ffffff" : "#475569",
-                  fontSize: 12,
-                  fontWeight: 800,
-                  cursor: "pointer",
-                }}
-              >
-                Subject Recovery Roadmap ({simulation.affectedSubjectsList.length})
-              </button>
-            </div>
-
-            {/* ── Chronological Timetable View ── */}
-            {roadmapViewTab === "chronological" && (
-              <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-                {simulation.chronologicalRecoveryTimeline.slice(0, 10).map((sess) => (
-                  <div
-                    key={`${sess.dateFormatted}-${sess.sessionNumber}`}
+                {simulation.recoverySessions.length > 15 && (
+                  <button
+                    type="button"
+                    onClick={() => setShowAllRecoveryDates(!showAllRecoveryDates)}
                     style={{
                       display: "flex",
                       alignItems: "center",
-                      justifyContent: "space-between",
-                      padding: "8px 12px",
-                      borderRadius: 10,
-                      background: sess.isOverallMilestone ? "#eff6ff" : "#f8fafc",
-                      border: sess.isOverallMilestone ? "1.5px solid #3b82f6" : "1px solid #e2e8f0",
-                      flexWrap: "wrap",
-                      gap: 8,
+                      gap: 5,
+                      background: "#f0fdf4",
+                      color: "#16a34a",
+                      border: "1px solid #bbf7d0",
+                      padding: "5px 12px",
+                      borderRadius: 8,
+                      fontSize: 12,
+                      fontWeight: 800,
+                      cursor: "pointer",
                     }}
                   >
-                    <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                      <span
+                    {showAllRecoveryDates ? (
+                      <>
+                        <ChevronUp size={14} /> Collapse List (Show First 15)
+                      </>
+                    ) : (
+                      <>
+                        <ChevronDown size={14} /> View All {simulation.recoverySessions.length} Recovery Dates
+                      </>
+                    )}
+                  </button>
+                )}
+              </div>
+
+              {/* Exact Card Grid from Image 3 */}
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: isMobile ? "1fr" : "repeat(auto-fill, minmax(280px, 1fr))",
+                  gap: 10,
+                }}
+              >
+                {visibleRecoverySessions.map((recSes, rIdx) => {
+                  const isMilestone = recSes.isMilestoneTarget;
+                  return (
+                    <div
+                      key={rIdx}
+                      style={{
+                        background: isMilestone ? "#f0fdf4" : "#ffffff",
+                        border: `1.5px solid ${isMilestone ? "#86efac" : "#e2e8f0"}`,
+                        borderRadius: 12,
+                        padding: "10px 12px",
+                        display: "flex",
+                        flexDirection: "column",
+                        gap: 6,
+                        boxShadow: isMilestone ? "0 2px 8px rgba(34, 197, 94, 0.15)" : "0 1px 3px rgba(0,0,0,0.02)",
+                      }}
+                    >
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                          <span
+                            style={{
+                              fontSize: 10.5,
+                              fontWeight: 900,
+                              background: isMilestone ? "#22c55e" : "#0f172a",
+                              color: "#ffffff",
+                              padding: "1px 6px",
+                              borderRadius: 5,
+                            }}
+                          >
+                            Recovery #{recSes.sessionNumber}
+                          </span>
+                          <span style={{ fontSize: 12.5, fontWeight: 800, color: "#0f172a" }}>
+                            {recSes.dateStr}
+                          </span>
+                        </div>
+
+                        {isMilestone ? (
+                          <span
+                            style={{
+                              fontSize: 10,
+                              fontWeight: 900,
+                              background: "#dcfce7",
+                              color: "#15803d",
+                              border: "1px solid #86efac",
+                              padding: "1px 6px",
+                              borderRadius: 4,
+                              display: "flex",
+                              alignItems: "center",
+                              gap: 3,
+                            }}
+                          >
+                            <Target size={11} /> {simulation.targetPct}% RESTORED!
+                          </span>
+                        ) : (
+                          <span
+                            style={{
+                              fontSize: 9.5,
+                              fontWeight: 900,
+                              background:
+                                recSes.type === "PR"
+                                  ? "#faf5ff"
+                                  : recSes.type === "TUT"
+                                  ? "#fffbeb"
+                                  : "#eff6ff",
+                              color:
+                                recSes.type === "PR"
+                                  ? "#7c3aed"
+                                  : recSes.type === "TUT"
+                                  ? "#b45309"
+                                  : "#1e40af",
+                              border: `1px solid ${
+                                recSes.type === "PR"
+                                  ? "#ddd6fe"
+                                  : recSes.type === "TUT"
+                                  ? "#fde68a"
+                                  : "#bfdbfe"
+                              }`,
+                              padding: "1px 5px",
+                              borderRadius: 4,
+                            }}
+                          >
+                            {recSes.type}
+                          </span>
+                        )}
+                      </div>
+
+                      <div style={{ fontSize: 12.5, fontWeight: 800, color: "#0f172a" }}>
+                        {recSes.subjectName}
+                      </div>
+
+                      <div style={{ fontSize: 11, color: "#64748b", display: "flex", justifyContent: "space-between" }}>
+                        <span>
+                          <Clock size={11} style={{ display: "inline", verticalAlign: "middle" }} /> {recSes.timeSlot}
+                        </span>
+                        <span>Room {recSes.room}</span>
+                      </div>
+
+                      <div
                         style={{
-                          width: 24,
-                          height: 24,
-                          borderRadius: 6,
-                          background: sess.isOverallMilestone ? "#2563eb" : "#e2e8f0",
-                          color: sess.isOverallMilestone ? "#ffffff" : "#334155",
-                          fontSize: 11,
-                          fontWeight: 800,
-                          display: "inline-flex",
+                          marginTop: 4,
+                          paddingTop: 6,
+                          borderTop: "1px dashed #e2e8f0",
+                          display: "flex",
+                          justifyContent: "space-between",
                           alignItems: "center",
-                          justifyContent: "center",
                         }}
                       >
-                        #{sess.sessionNumber}
-                      </span>
-                      <div>
-                        <div style={{ fontSize: 12.5, fontWeight: 800, color: "#0f172a" }}>
-                          {sess.subjectName}
-                        </div>
-                        <div style={{ fontSize: 10.5, color: "#64748b" }}>
-                          {sess.dateFormatted} ({sess.dayName}) &bull; {sess.timeSlot}
-                        </div>
-                      </div>
-                    </div>
-
-                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                      {sess.isOverallMilestone && (
+                        <span style={{ fontSize: 10.5, color: "#64748b", fontWeight: 600 }}>
+                          After this recovery class:
+                        </span>
                         <span
                           style={{
-                            fontSize: 10,
+                            fontSize: 11.5,
                             fontWeight: 900,
-                            padding: "2px 6px",
-                            borderRadius: 4,
-                            background: "#2563eb",
-                            color: "#ffffff",
+                            color: recSes.runningPercentage >= simulation.targetPct ? "#16a34a" : "#2563eb",
                           }}
                         >
-                          Target Reached!
+                          {recSes.runningAttended}/{recSes.runningDelivered} ({recSes.runningPercentage}%)
                         </span>
-                      )}
-                      <span style={{ fontSize: 11, color: "#64748b" }}>New Overall:</span>
-                      <span
-                        style={{
-                          fontSize: 13,
-                          fontWeight: 900,
-                          color: sess.overallPctAfter >= simulation.targetPct ? "#059669" : "#0f172a",
-                        }}
-                      >
-                        {sess.overallPctAfter}%
-                      </span>
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
-            )}
 
-            {/* ── Subject-Wise View ── */}
-            {roadmapViewTab === "by_subject" && (
-              <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(2, 1fr)", gap: 10 }}>
-                {simulation.affectedSubjectsList.map((sub) => (
-                  <div
-                    key={sub.subjectName}
-                    style={{
-                      border: "1px solid #e2e8f0",
-                      background: "#f8fafc",
-                      borderRadius: 12,
-                      padding: "12px 14px",
-                      display: "flex",
-                      flexDirection: "column",
-                      gap: 6,
-                    }}
-                  >
-                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                      <span style={{ fontSize: 13, fontWeight: 800, color: "#0f172a" }}>
-                        {sub.subjectName}
-                      </span>
-                      <span
-                        style={{
-                          fontSize: 11,
-                          fontWeight: 800,
-                          padding: "1px 6px",
-                          borderRadius: 4,
-                          background: sub.isSafeAtTarget ? "#ecfdf5" : "#fef2f2",
-                          color: sub.isSafeAtTarget ? "#059669" : "#dc2626",
-                        }}
-                      >
-                        {sub.isSafeAtTarget ? "Safe" : `${sub.classesToTarget} Needed`}
-                      </span>
-                    </div>
-
-                    <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11.5, color: "#64748b" }}>
-                      <span>Post-Bunk Pct:</span>
-                      <strong>{sub.postBunkPct}%</strong>
-                    </div>
-
-                    <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11.5, color: "#64748b" }}>
-                      <span>Recovery to {simulation.targetPct}%:</span>
-                      <strong style={{ color: sub.classesToTarget > 0 ? "#dc2626" : "#059669" }}>
-                        {sub.classesToTarget > 0
-                          ? `Attend ${sub.classesToTarget} classes`
-                          : `Already above ${simulation.targetPct}%`}
-                      </strong>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
+              {simulation.recoverySessions.length > 15 && !showAllRecoveryDates && (
+                <button
+                  type="button"
+                  onClick={() => setShowAllRecoveryDates(true)}
+                  style={{
+                    background: "transparent",
+                    border: "1px dashed #cbd5e1",
+                    padding: "8px 12px",
+                    borderRadius: 8,
+                    color: "#2563eb",
+                    fontSize: 11.5,
+                    fontWeight: 800,
+                    cursor: "pointer",
+                    textAlign: "center",
+                    marginTop: 4,
+                  }}
+                >
+                  + Show remaining {simulation.recoverySessions.length - 15} recovery class dates until target
+                </button>
+              )}
+            </div>
           </motion.div>
         </div>
       )}
