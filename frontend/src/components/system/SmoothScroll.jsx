@@ -19,6 +19,7 @@ export default function SmoothScroll() {
       wheelMultiplier: 0.9,
       touchMultiplier: 1.15,
       autoRaf: false,
+      allowNestedScroll: true,
     });
 
     let animationFrameId;

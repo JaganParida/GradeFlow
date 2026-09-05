@@ -3955,7 +3955,7 @@ export default function AttendanceTracker() {
               gap: 16,
               boxShadow: "0 1px 3px rgba(0,0,0,0.03)",
               minWidth: 0,
-              overflow: "hidden",
+              overflow: "visible",
             }}
           >
             {/* Routine Quick Subject Selector */}
