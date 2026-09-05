@@ -22,7 +22,7 @@ import {
   ArrowRight,
   Sun,
   Target,
-  Sparkles,
+  Award,
   Sliders,
   RotateCcw,
   Building,
@@ -430,12 +430,27 @@ export default function FuturePredictor({
     let runningOverallDelivered = preBunkOverallDel;
     const runningOverallAttended = preBunkOverallAtt;
 
+    // Track sequential simulation running counts per subject across bunk dates
+    subjectMap.forEach((sub) => {
+      sub.simRunningAtt = sub.preBunkAttended;
+      sub.simRunningDel = sub.preBunkDelivered;
+    });
+
     sortedBunkDates.forEach((bunkDate, index) => {
       const dKey = toDateKey(bunkDate);
       const isBunkDateToday = dKey === todayKey;
       const sched = getSectionScheduleForDate(selectedSection, bunkDate);
       const scheduledClasses = sched.isInstructional ? sched.classes || [] : [];
       const dateFormatted = formatFriendlyDate(bunkDate);
+
+      // Snapshot subject attendance at the start of this specific bunk date
+      const dayStartSubjectMap = new Map();
+      subjectMap.forEach((sub, name) => {
+        const sAtt = sub.simRunningAtt;
+        const sDel = sub.simRunningDel;
+        const sPct = sDel > 0 ? Number(((sAtt / sDel) * 100).toFixed(2)) : sub.preBunkPct;
+        dayStartSubjectMap.set(name, { startAtt: sAtt, startDel: sDel, startPct: sPct });
+      });
 
       // If bunking TODAY: only unmarked remaining classes are missed
       const classesToBunk = isBunkDateToday
@@ -455,16 +470,43 @@ export default function FuturePredictor({
           ? Number(((runningOverallAttended / runningOverallDelivered) * 100).toFixed(2))
           : preBunkOverallPct;
 
+      const daySubjectsMap = new Map();
+
       const classesDetail = scheduledClasses.map((cls) => {
         const cleanName = cls.cleanName || cleanSubjectBaseName(cls.subject);
         const subData = subjectMap.get(cleanName);
         const isClassMarked = isBunkDateToday && Boolean(todayLogs[cls.slotIndex]);
         const classMarkStatus = isClassMarked ? todayLogs[cls.slotIndex] : null;
+        const timeSlotLabel = cls.slot?.label || (TIME_SLOTS[cls.slotIndex]?.label || `Slot ${cls.slotIndex + 1}`);
+
+        if (!daySubjectsMap.has(cleanName)) {
+          daySubjectsMap.set(cleanName, {
+            subjectName: cleanName,
+            subCode: resolveSubjectCode({ subject: cleanName }, studentData),
+            type: cls.type || "PP",
+            room: cls.room || "Room TBA",
+            faculty: cls.faculty || "Faculty",
+            missedSlots: [],
+            alreadyMarkedSlots: [],
+            missedCount: 0,
+          });
+        }
+
+        const group = daySubjectsMap.get(cleanName);
 
         if (!isClassMarked) {
+          group.missedCount += 1;
+          group.missedSlots.push({
+            slotIndex: cls.slotIndex,
+            timeSlot: timeSlotLabel,
+            room: cls.room || "Room TBA",
+            type: cls.type || "PP",
+          });
+
           if (subData) {
             subData.bunkMissedCount += 1;
             subData.postBunkDelivered += 1;
+            subData.simRunningDel += 1; // Delivered increases on this day
             if (!subData.missedDates.includes(dateFormatted)) {
               subData.missedDates.push(dateFormatted);
             }
@@ -472,16 +514,23 @@ export default function FuturePredictor({
               dateFormatted,
               dayName: sched.dayName,
               slotIndex: cls.slotIndex,
-              timeSlot: cls.slot?.label || (TIME_SLOTS[cls.slotIndex]?.label || `Slot ${cls.slotIndex + 1}`),
+              timeSlot: timeSlotLabel,
               type: cls.type || "PP",
               room: cls.room || "Room TBA",
             });
           }
+        } else {
+          group.alreadyMarkedSlots.push({
+            slotIndex: cls.slotIndex,
+            timeSlot: timeSlotLabel,
+            room: cls.room || "Room TBA",
+            markStatus: classMarkStatus,
+          });
         }
 
         return {
           slotIndex: cls.slotIndex,
-          timeSlot: cls.slot?.label || (TIME_SLOTS[cls.slotIndex]?.label || `Slot ${cls.slotIndex + 1}`),
+          timeSlot: timeSlotLabel,
           subjectName: cleanName,
           subCode: resolveSubjectCode({ subject: cleanName }, studentData),
           type: cls.type || "PP",
@@ -490,6 +539,29 @@ export default function FuturePredictor({
           isAlreadyMarked: isClassMarked,
           markStatus: classMarkStatus,
         };
+      });
+
+      // Compute exact percentage drop for each subject on this day
+      const targetPct = Number(recoveryTargetPct) || 75;
+      const daySubjectsImpactList = [];
+      daySubjectsMap.forEach((grp) => {
+        const subData = subjectMap.get(grp.subjectName);
+        const startStats = dayStartSubjectMap.get(grp.subjectName) || { startPct: 100, startAtt: 0, startDel: 0 };
+        const endAtt = subData ? subData.simRunningAtt : startStats.startAtt;
+        const endDel = subData ? subData.simRunningDel : startStats.startDel;
+        const endPct = endDel > 0 ? Number(((endAtt / endDel) * 100).toFixed(2)) : startStats.startPct;
+        const dayDropDelta = Number((endPct - startStats.startPct).toFixed(2));
+        const breachedCutoffToday = startStats.startPct >= targetPct && endPct < targetPct;
+        const isSafeAfterDay = endPct >= targetPct;
+
+        daySubjectsImpactList.push({
+          ...grp,
+          startPct: startStats.startPct,
+          endPct,
+          dayDropDelta,
+          breachedCutoffToday,
+          isSafeAfterDay,
+        });
       });
 
       bunkDaysBreakdown.push({
@@ -507,6 +579,7 @@ export default function FuturePredictor({
         classesMissedCount: dayMissedCount,
         alreadyMarkedCount: alreadyMarkedToday.length,
         classes: classesDetail,
+        daySubjectsImpactList,
         cumulativeMissedSoFar: cumulativeMissedClasses,
         endOfDayOverallPct: dayPostPct,
         dayDelta: Number((dayPostPct - preBunkOverallPct).toFixed(2)),
@@ -1884,8 +1957,136 @@ export default function FuturePredictor({
                       </div>
                     </div>
 
-                    {/* Classes missed on this specific day */}
-                    {bDay.classes.length > 0 && (
+                    {/* Subject-wise drop details for this specific day */}
+                    {bDay.daySubjectsImpactList && bDay.daySubjectsImpactList.length > 0 ? (
+                      <div style={{ display: "flex", flexDirection: "column", gap: 6, marginTop: 4 }}>
+                        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 6 }}>
+                          <span style={{ fontSize: 11, fontWeight: 800, color: "#64748b", textTransform: "uppercase", letterSpacing: "0.5px", display: "inline-flex", alignItems: "center", gap: 4 }}>
+                            <TrendingDown size={12} color="#dc2626" />
+                            Subject-wise Attendance Drop on {bDay.dayName}:
+                          </span>
+                          <span style={{ fontSize: 10.5, color: "#94a3b8", fontWeight: 600 }}>
+                            {bDay.classesMissedCount} class{bDay.classesMissedCount > 1 ? "es" : ""} missed across {bDay.daySubjectsImpactList.filter((s) => s.missedCount > 0).length} subject(s)
+                          </span>
+                        </div>
+
+                        <div
+                          style={{
+                            display: "grid",
+                            gridTemplateColumns: isMobile ? "1fr" : "repeat(auto-fill, minmax(310px, 1fr))",
+                            gap: 8,
+                          }}
+                        >
+                          {bDay.daySubjectsImpactList.map((subImp, sIdx) => {
+                            const isBreached = subImp.breachedCutoffToday;
+                            const isSafe = subImp.isSafeAfterDay;
+                            const hasMissed = subImp.missedCount > 0;
+                            const hasMarked = subImp.alreadyMarkedSlots && subImp.alreadyMarkedSlots.length > 0;
+
+                            return (
+                              <div
+                                key={sIdx}
+                                style={{
+                                  background: isBreached ? "#fff5f5" : "#ffffff",
+                                  border: `1.5px solid ${isBreached ? "#fca5a5" : "#e2e8f0"}`,
+                                  borderRadius: 10,
+                                  padding: "9px 12px",
+                                  display: "flex",
+                                  flexDirection: "column",
+                                  gap: 6,
+                                  boxShadow: isBreached ? "0 2px 6px rgba(220, 38, 38, 0.08)" : "0 1px 2px rgba(0,0,0,0.02)",
+                                }}
+                              >
+                                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 6 }}>
+                                  <div style={{ minWidth: 0 }}>
+                                    <div style={{ fontSize: 12.5, fontWeight: 900, color: "#0f172a", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                                      {subImp.subjectName}
+                                    </div>
+                                    <div style={{ fontSize: 10.5, color: "#64748b", marginTop: 1, display: "flex", alignItems: "center", gap: 5, flexWrap: "wrap" }}>
+                                      <span style={{ fontWeight: 700, color: "#475569" }}>
+                                        {hasMissed ? `${subImp.missedCount} class${subImp.missedCount > 1 ? "es" : ""} missed` : "0 missed"} ({subImp.type})
+                                      </span>
+                                      {hasMarked && (
+                                        <span style={{ fontSize: 9.5, fontWeight: 800, background: "#e2e8f0", color: "#475569", padding: "1px 5px", borderRadius: 4 }}>
+                                          {subImp.alreadyMarkedSlots.length} logged today
+                                        </span>
+                                      )}
+                                    </div>
+                                    {subImp.missedSlots && subImp.missedSlots.length > 0 && (
+                                      <div style={{ fontSize: 10, color: "#94a3b8", marginTop: 2 }}>
+                                        🕒 {subImp.missedSlots.map((s) => s.timeSlot).join(", ")}
+                                      </div>
+                                    )}
+                                  </div>
+
+                                  {/* Subject day drop badge */}
+                                  <span
+                                    style={{
+                                      fontSize: 11,
+                                      fontWeight: 900,
+                                      padding: "2px 7px",
+                                      borderRadius: 5,
+                                      background: subImp.dayDelta < 0 ? "#fef2f2" : "#f8fafc",
+                                      color: subImp.dayDelta < 0 ? "#dc2626" : "#64748b",
+                                      border: `1px solid ${subImp.dayDelta < 0 ? "#fecaca" : "#e2e8f0"}`,
+                                      whiteSpace: "nowrap",
+                                      display: "inline-flex",
+                                      alignItems: "center",
+                                      gap: 3,
+                                      flexShrink: 0,
+                                    }}
+                                  >
+                                    <TrendingDown size={11} /> {subImp.dayDelta}%
+                                  </span>
+                                </div>
+
+                                {/* Attendance Before -> After on this Day */}
+                                <div
+                                  style={{
+                                    display: "flex",
+                                    alignItems: "center",
+                                    justifyContent: "space-between",
+                                    background: isBreached ? "#fee2e2" : "#f8fafc",
+                                    padding: "5px 8px",
+                                    borderRadius: 6,
+                                    fontSize: 11,
+                                  }}
+                                >
+                                  <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
+                                    <span style={{ color: "#64748b" }}>Pre-Day:</span>
+                                    <span style={{ fontWeight: 700, color: "#334155" }}>{subImp.startPct}%</span>
+                                    <ArrowRight size={10} color="#64748b" />
+                                    <span style={{ color: "#64748b" }}>Post-Day:</span>
+                                    <strong style={{ color: isSafe ? "#059669" : "#dc2626" }}>{subImp.endPct}%</strong>
+                                  </div>
+
+                                  <span
+                                    style={{
+                                      fontSize: 9.5,
+                                      fontWeight: 900,
+                                      padding: "1px 5px",
+                                      borderRadius: 4,
+                                      background: isBreached
+                                        ? "#dc2626"
+                                        : isSafe
+                                        ? "#ecfdf5"
+                                        : "#fee2e2",
+                                      color: isBreached
+                                        ? "#ffffff"
+                                        : isSafe
+                                        ? "#059669"
+                                        : "#dc2626",
+                                    }}
+                                  >
+                                    {isBreached ? "⚠️ Drops Below Cutoff!" : isSafe ? "✓ Safe" : "Cutoff Breached"}
+                                  </span>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    ) : bDay.classes.length > 0 ? (
                       <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 2 }}>
                         {bDay.classes.map((cls, cIdx) => (
                           <span
@@ -1912,7 +2113,7 @@ export default function FuturePredictor({
                           </span>
                         ))}
                       </div>
-                    )}
+                    ) : null}
                   </div>
                 ))}
               </div>
@@ -2131,9 +2332,11 @@ export default function FuturePredictor({
                       >
                         <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
                           {isImpossible ? (
-                            <AlertTriangle size={15} color="#ea580c" style={{ flexShrink: 0 }} />
+                            <AlertTriangle size={16} color="#ea580c" style={{ flexShrink: 0 }} />
+                          ) : sub.milestoneDateStr ? (
+                            <CheckCircle2 size={16} color="#16a34a" style={{ flexShrink: 0 }} />
                           ) : (
-                            <Sparkles size={14} color={sub.milestoneDateStr ? "#16a34a" : "#64748b"} style={{ flexShrink: 0 }} />
+                            <ShieldCheck size={16} color="#059669" style={{ flexShrink: 0 }} />
                           )}
                           <div style={{ fontSize: 11, color: isImpossible ? "#9a3412" : "#0f172a", lineHeight: 1.35 }}>
                             {isImpossible ? (
@@ -2410,7 +2613,7 @@ export default function FuturePredictor({
                               gap: 3,
                             }}
                           >
-                            <Sparkles size={11} /> Max Peak: {recSes.runningPercentage}%
+                            <TrendingUp size={11} /> Max Peak: {recSes.runningPercentage}%
                           </span>
                         ) : (
                           <span
