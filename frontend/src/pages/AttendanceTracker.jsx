@@ -4858,6 +4858,7 @@ export default function AttendanceTracker() {
           studentData={studentData}
           todayDayName={todayDayName}
           isMobile={isMobile}
+          allDailyLogs={allDailyLogs}
         />
       </motion.div>
     )}
