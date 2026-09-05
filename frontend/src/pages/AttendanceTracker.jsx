@@ -440,9 +440,6 @@ export default function AttendanceTracker() {
 
   const [activeTab, setActiveTab] = useState(getInitialTab);
   const hasUserManuallySelectedTabRef = useRef(Boolean(urlTabParam));
-  // Subject-wise Attendance Matrix Filter & Search State
-  const [matrixFilter, setMatrixFilter] = useState("all"); // "all" | "shortage" | "eligible" | "recovery" | "safe"
-  const [matrixSearchQuery, setMatrixSearchQuery] = useState("");
 
   const isStudioTab =
     activeTab === "studio" ||
@@ -1538,55 +1535,6 @@ export default function AttendanceTracker() {
     });
   }, [allSectionSubjects, sectionCatalog, studentData, targetGoal]);
 
-  const matrixCounts = useMemo(() => {
-    let shortage = 0;
-    let eligible = 0;
-    let recovery = 0;
-    let safe = 0;
-
-    matrixSubjectsAnalysis.forEach((item) => {
-      if (item.hasConductedClasses) {
-        if (item.isShortage) shortage++;
-        else eligible++;
-        if (item.isRecovery) recovery++;
-        if (item.isSafe) safe++;
-      }
-    });
-
-    return {
-      all: matrixSubjectsAnalysis.length,
-      shortage,
-      eligible,
-      recovery,
-      safe,
-    };
-  }, [matrixSubjectsAnalysis]);
-
-  const filteredMatrixSubjects = useMemo(() => {
-    let list = matrixSubjectsAnalysis;
-
-    if (matrixFilter === "shortage") {
-      list = list.filter((i) => i.isShortage);
-    } else if (matrixFilter === "eligible") {
-      list = list.filter((i) => i.isPassing75 && i.hasConductedClasses);
-    } else if (matrixFilter === "recovery") {
-      list = list.filter((i) => i.isRecovery);
-    } else if (matrixFilter === "safe") {
-      list = list.filter((i) => i.isSafe);
-    }
-
-    if (matrixSearchQuery.trim()) {
-      const q = matrixSearchQuery.trim().toLowerCase();
-      list = list.filter((i) => {
-        const nameMatch = i.sub.subjectName?.toLowerCase().includes(q);
-        const codeMatch = i.subCode?.toLowerCase().includes(q);
-        return nameMatch || codeMatch;
-      });
-    }
-
-    return list;
-  }, [matrixSubjectsAnalysis, matrixFilter, matrixSearchQuery]);
-
   const [isRecoveryHighlightActive, setIsRecoveryHighlightActive] = useState(false);
   const [isShortageHighlightActive, setIsShortageHighlightActive] = useState(false);
   const [isSafeMarginHighlightActive, setIsSafeMarginHighlightActive] = useState(false);
@@ -1605,8 +1553,6 @@ export default function AttendanceTracker() {
     if (recoverySubjectsCount <= 0 && overallCalculation.classesNeeded <= 0) return;
     if (highlightTimerRef.current) clearTimeout(highlightTimerRef.current);
 
-    setMatrixFilter("all");
-    setMatrixSearchQuery("");
     setIsShortageHighlightActive(false);
     setIsSafeMarginHighlightActive(false);
     setIsRecoveryHighlightActive(true);
@@ -1629,8 +1575,6 @@ export default function AttendanceTracker() {
     if (shortageCount <= 0) return;
     if (highlightTimerRef.current) clearTimeout(highlightTimerRef.current);
 
-    setMatrixFilter("all");
-    setMatrixSearchQuery("");
     setIsSafeMarginHighlightActive(false);
     setIsRecoveryHighlightActive(false);
     setIsShortageHighlightActive(true);
@@ -1653,8 +1597,6 @@ export default function AttendanceTracker() {
     if (overallCalculation.safeBunks <= 0) return;
     if (highlightTimerRef.current) clearTimeout(highlightTimerRef.current);
 
-    setMatrixFilter("all");
-    setMatrixSearchQuery("");
     setIsShortageHighlightActive(false);
     setIsRecoveryHighlightActive(false);
     setIsSafeMarginHighlightActive(true);
@@ -3555,313 +3497,70 @@ export default function AttendanceTracker() {
                 boxShadow: "0 1px 3px rgba(15, 23, 42, 0.03)",
               }}
             >
-              {/* Header: Title, Description & Executive Health Scorecard */}
-              <div
-                style={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: isMobile ? "stretch" : "center",
-                  flexDirection: isMobile ? "column" : "row",
-                  gap: 14,
-                }}
-              >
-                <div>
-                  <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                    <div
-                      style={{
-                        width: 34,
-                        height: 34,
-                        borderRadius: 9,
-                        background: "#0f172a",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        color: "#ffffff",
-                        boxShadow: "0 2px 5px rgba(15, 23, 42, 0.15)",
-                        flexShrink: 0,
-                      }}
-                    >
-                      <Layers size={18} color="#38bdf8" />
-                    </div>
-                    <div>
-                      <h3
-                        style={{
-                          fontSize: isMobile ? 16.5 : 18.5,
-                          fontWeight: 800,
-                          color: "#0f172a",
-                          margin: 0,
-                          letterSpacing: "-0.3px",
-                          display: "flex",
-                          alignItems: "center",
-                          gap: 8,
-                          flexWrap: "wrap",
-                        }}
-                      >
-                        <span>Subject-wise Attendance</span>
-                        <span
-                          style={{
-                            fontSize: 11,
-                            fontWeight: 700,
-                            padding: "2px 8px",
-                            borderRadius: 6,
-                            background: "#f1f5f9",
-                            color: "#475569",
-                            border: "1px solid #e2e8f0",
-                          }}
-                        >
-                          {allSectionSubjects.length} Subjects
-                        </span>
-                      </h3>
-                    </div>
-                  </div>
-                  <p
-                    style={{
-                      fontSize: 12.5,
-                      color: "#64748b",
-                      margin: "5px 0 0 0",
-                      lineHeight: 1.45,
-                    }}
-                  >
-                    Theory (PP), Practical (PR) & Tutorial (TUT) breakdown with real-time target projection for Section {selectedSection}.
-                  </p>
-                </div>
-
-                {/* Overall Semester Score Card */}
-                <div
-                  style={{
-                    background: overallAggregate.percentage >= 75 ? "#f0fdf4" : "#fef2f2",
-                    border: `1px solid ${overallAggregate.percentage >= 75 ? "#bbf7d0" : "#fecaca"}`,
-                    borderRadius: 10,
-                    padding: "9px 14px",
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 12,
-                    boxShadow: "0 1px 2px rgba(0, 0, 0, 0.02)",
-                    flexShrink: 0,
-                  }}
-                >
+              {/* Header: Title & Description */}
+              <div>
+                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                   <div
                     style={{
-                      width: 36,
-                      height: 36,
-                      borderRadius: "50%",
-                      background: overallAggregate.percentage >= 75 ? "#dcfce7" : "#fee2e2",
+                      width: 34,
+                      height: 34,
+                      borderRadius: 9,
+                      background: "#0f172a",
                       display: "flex",
                       alignItems: "center",
                       justifyContent: "center",
+                      color: "#ffffff",
+                      boxShadow: "0 2px 5px rgba(15, 23, 42, 0.15)",
                       flexShrink: 0,
                     }}
                   >
-                    {overallAggregate.percentage >= 75 ? (
-                      <CheckCircle2 size={20} color="#15803d" />
-                    ) : (
-                      <AlertTriangle size={20} color="#dc2626" />
-                    )}
+                    <Layers size={18} color="#38bdf8" />
                   </div>
                   <div>
-                    <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                    <h3
+                      style={{
+                        fontSize: isMobile ? 16.5 : 18.5,
+                        fontWeight: 800,
+                        color: "#0f172a",
+                        margin: 0,
+                        letterSpacing: "-0.3px",
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 8,
+                        flexWrap: "wrap",
+                      }}
+                    >
+                      <span>Subject-wise Attendance</span>
                       <span
                         style={{
-                          fontSize: 10,
-                          fontWeight: 800,
-                          color: overallAggregate.percentage >= 75 ? "#166534" : "#991b1b",
-                          textTransform: "uppercase",
-                          letterSpacing: "0.5px",
+                          fontSize: 11,
+                          fontWeight: 700,
+                          padding: "2px 8px",
+                          borderRadius: 6,
+                          background: "#f1f5f9",
+                          color: "#475569",
+                          border: "1px solid #e2e8f0",
                         }}
                       >
-                        Overall Semester Score
+                        {allSectionSubjects.length} Subjects
                       </span>
-                      <span
-                        style={{
-                          fontSize: 9.5,
-                          fontWeight: 800,
-                          padding: "1px 6px",
-                          borderRadius: 4,
-                          background: overallAggregate.percentage >= 75 ? "#15803d" : "#dc2626",
-                          color: "#ffffff",
-                        }}
-                      >
-                        {overallAggregate.percentage >= 75 ? "ELIGIBLE" : "SHORTAGE"}
-                      </span>
-                    </div>
-                    <div style={{ display: "flex", alignItems: "baseline", gap: 6, marginTop: 1 }}>
-                      <span
-                        style={{
-                          fontSize: 18,
-                          fontWeight: 900,
-                          color: overallAggregate.percentage >= 75 ? "#15803d" : "#dc2626",
-                          fontFamily: "'DM Sans', sans-serif",
-                        }}
-                      >
-                        {overallAggregate.percentage}%
-                      </span>
-                      <span style={{ fontSize: 11.5, fontWeight: 600, color: "#64748b" }}>
-                        ({overallAggregate.totalAttended}/{overallAggregate.totalDelivered} classes)
-                      </span>
-                    </div>
+                    </h3>
                   </div>
                 </div>
-              </div>
-
-              {/* Filter Chips & Search Toolbar */}
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "space-between",
-                  flexWrap: "wrap",
-                  gap: 10,
-                  paddingTop: 6,
-                  borderTop: "1px solid #f1f5f9",
-                }}
-              >
-                {/* Horizontal Scrollable Filter Chips */}
-                <div
+                <p
                   style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 6,
-                    overflowX: "auto",
-                    maxWidth: "100%",
-                    paddingBottom: 2,
-                  }}
-                  className="hide-scrollbar"
-                >
-                  {[
-                    { id: "all", label: "All Subjects", count: matrixCounts.all },
-                    { id: "shortage", label: "Shortage (<75%)", count: matrixCounts.shortage, alert: matrixCounts.shortage > 0 },
-                    { id: "eligible", label: "Eligible (≥75%)", count: matrixCounts.eligible },
-                    { id: "recovery", label: `Needs Recovery (${targetGoal}%)`, count: matrixCounts.recovery },
-                    { id: "safe", label: "Safe Buffer", count: matrixCounts.safe },
-                  ].map((tab) => {
-                    const isActive = matrixFilter === tab.id;
-                    return (
-                      <button
-                        key={tab.id}
-                        type="button"
-                        onClick={() => setMatrixFilter(tab.id)}
-                        style={{
-                          padding: "5.5px 11px",
-                          borderRadius: 8,
-                          fontSize: 11.5,
-                          fontWeight: isActive ? 800 : 600,
-                          cursor: "pointer",
-                          whiteSpace: "nowrap",
-                          border: isActive
-                            ? "1px solid #0f172a"
-                            : tab.alert
-                            ? "1px solid #fca5a5"
-                            : "1px solid #e2e8f0",
-                          background: isActive
-                            ? "#0f172a"
-                            : tab.alert
-                            ? "#fff1f2"
-                            : "#ffffff",
-                          color: isActive
-                            ? "#ffffff"
-                            : tab.alert
-                            ? "#be123c"
-                            : "#475569",
-                          display: "inline-flex",
-                          alignItems: "center",
-                          gap: 5,
-                          transition: "all 0.15s ease",
-                          boxShadow: isActive ? "0 1px 3px rgba(15, 23, 42, 0.12)" : "none",
-                        }}
-                      >
-                        <span>{tab.label}</span>
-                        <span
-                          style={{
-                            fontSize: 10.5,
-                            fontWeight: 800,
-                            padding: "1px 5.5px",
-                            borderRadius: 4,
-                            background: isActive
-                              ? "rgba(255, 255, 255, 0.2)"
-                              : tab.alert
-                              ? "#fee2e2"
-                              : "#f1f5f9",
-                            color: isActive ? "#ffffff" : tab.alert ? "#991b1b" : "#64748b",
-                          }}
-                        >
-                          {tab.count}
-                        </span>
-                      </button>
-                    );
-                  })}
-                </div>
-
-                {/* Search Input Box */}
-                <div
-                  style={{
-                    position: "relative",
-                    width: isMobile ? "100%" : 230,
+                    fontSize: 12.5,
+                    color: "#64748b",
+                    margin: "5px 0 0 0",
+                    lineHeight: 1.45,
                   }}
                 >
-                  <Search
-                    size={13}
-                    color="#94a3b8"
-                    style={{
-                      position: "absolute",
-                      left: 10,
-                      top: "50%",
-                      transform: "translateY(-50%)",
-                      pointerEvents: "none",
-                    }}
-                  />
-                  <input
-                    type="text"
-                    placeholder="Search subject or code..."
-                    value={matrixSearchQuery}
-                    onChange={(e) => setMatrixSearchQuery(e.target.value)}
-                    style={{
-                      width: "100%",
-                      boxSizing: "border-box",
-                      padding: "6.5px 28px 6.5px 30px",
-                      borderRadius: 8,
-                      border: "1px solid #cbd5e1",
-                      background: "#f8fafc",
-                      fontSize: 12,
-                      color: "#0f172a",
-                      outline: "none",
-                      fontFamily: "'DM Sans', sans-serif",
-                      transition: "all 0.15s ease",
-                    }}
-                    onFocus={(e) => {
-                      e.target.style.borderColor = "#2563eb";
-                      e.target.style.background = "#ffffff";
-                    }}
-                    onBlur={(e) => {
-                      e.target.style.borderColor = "#cbd5e1";
-                      e.target.style.background = "#f8fafc";
-                    }}
-                  />
-                  {matrixSearchQuery && (
-                    <button
-                      type="button"
-                      onClick={() => setMatrixSearchQuery("")}
-                      style={{
-                        position: "absolute",
-                        right: 8,
-                        top: "50%",
-                        transform: "translateY(-50%)",
-                        background: "transparent",
-                        border: "none",
-                        color: "#94a3b8",
-                        cursor: "pointer",
-                        padding: 2,
-                        display: "flex",
-                      }}
-                      title="Clear search"
-                    >
-                      <X size={13} />
-                    </button>
-                  )}
-                </div>
+                  Theory (PP), Practical (PR) & Tutorial (TUT) breakdown with real-time target projection for Section {selectedSection}.
+                </p>
               </div>
 
-              {/* Subject Cards Grid or Filter Empty State */}
-              {filteredMatrixSubjects.length === 0 ? (
+              {/* Subject Cards Grid */}
+              {matrixSubjectsAnalysis.length === 0 ? (
                 <div
                   style={{
                     background: "#f8fafc",
@@ -3881,52 +3580,20 @@ export default function AttendanceTracker() {
                       width: 44,
                       height: 44,
                       borderRadius: "50%",
-                      background: matrixFilter === "shortage" ? "#ecfdf5" : "#f1f5f9",
+                      background: "#f1f5f9",
                       display: "flex",
                       alignItems: "center",
                       justifyContent: "center",
                     }}
                   >
-                    {matrixFilter === "shortage" ? (
-                      <Sparkles size={22} color="#059669" />
-                    ) : (
-                      <Search size={22} color="#64748b" />
-                    )}
+                    <Layers size={22} color="#64748b" />
                   </div>
                   <div style={{ fontSize: 15, fontWeight: 800, color: "#0f172a" }}>
-                    {matrixFilter === "shortage"
-                      ? "No Attendance Shortages!"
-                      : `No subjects matching "${matrixSearchQuery || matrixFilter}"`}
+                    No Subjects Found
                   </div>
                   <p style={{ fontSize: 12.5, color: "#64748b", margin: 0, maxWidth: 400, lineHeight: 1.45 }}>
-                    {matrixFilter === "shortage"
-                      ? "Congratulations! All your semester routine subjects are currently at or above the 75% statutory requirement."
-                      : "Try resetting your filter or clearing your search keywords to view all semester subjects."}
+                    No routine subjects configured for Section {selectedSection}.
                   </p>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setMatrixFilter("all");
-                      setMatrixSearchQuery("");
-                    }}
-                    style={{
-                      marginTop: 8,
-                      padding: "6px 14px",
-                      borderRadius: 7,
-                      background: "#0f172a",
-                      color: "#ffffff",
-                      fontSize: 12,
-                      fontWeight: 700,
-                      border: "none",
-                      cursor: "pointer",
-                      display: "inline-flex",
-                      alignItems: "center",
-                      gap: 5,
-                    }}
-                  >
-                    <RotateCcw size={12} />
-                    <span>View All Subjects</span>
-                  </button>
                 </div>
               ) : (
                 <div
@@ -3936,7 +3603,7 @@ export default function AttendanceTracker() {
                     gap: 12,
                   }}
                 >
-                  {filteredMatrixSubjects.map((item) => {
+                  {matrixSubjectsAnalysis.map((item) => {
                     const {
                       sub,
                       idx,
