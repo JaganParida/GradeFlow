@@ -142,8 +142,9 @@ export default function SubjectDropdown({
           background: isOpen ? "#f8fafc" : "#ffffff",
           border: isOpen ? "1.5px solid #0f172a" : "1px solid #cbd5e1",
           borderRadius: 10,
-          padding: isMobile ? "9px 12px" : "10px 14px",
-          height: isMobile ? 42 : 44,
+          padding: isMobile ? "8px 12px" : "10px 14px",
+          minHeight: isMobile ? 44 : 44,
+          height: isMobile ? "auto" : 44,
           display: "flex",
           alignItems: "center",
           justifyContent: "space-between",
@@ -178,7 +179,7 @@ export default function SubjectDropdown({
             gap: 8,
             flex: 1,
             minWidth: 0,
-            overflow: "hidden",
+            flexWrap: isMobile ? "wrap" : "nowrap",
           }}
         >
           <span
@@ -186,10 +187,11 @@ export default function SubjectDropdown({
               fontSize: isMobile ? 13.5 : 14,
               fontWeight: 750,
               color: "#0f172a",
-              lineHeight: 1.3,
-              overflow: "hidden",
-              textOverflow: "ellipsis",
-              whiteSpace: "nowrap",
+              lineHeight: 1.35,
+              overflow: isMobile ? "visible" : "hidden",
+              textOverflow: isMobile ? "clip" : "ellipsis",
+              whiteSpace: isMobile ? "normal" : "nowrap",
+              wordBreak: "break-word",
             }}
           >
             {activeItem ? activeItem.subjectName : placeholder}
@@ -198,7 +200,7 @@ export default function SubjectDropdown({
           {activeCode && (
             <span
               style={{
-                fontSize: 11,
+                fontSize: 10.5,
                 fontWeight: 750,
                 color: "#475569",
                 background: "#f1f5f9",
@@ -469,7 +471,7 @@ export default function SubjectDropdown({
                     }}
                   >
                     {/* Left: Indicator & Subject + Code */}
-                    <div style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0, flex: 1 }}>
+                    <div style={{ display: "flex", alignItems: "flex-start", gap: 10, minWidth: 0, flex: 1 }}>
                       <div
                         style={{
                           width: 18,
@@ -482,21 +484,23 @@ export default function SubjectDropdown({
                           justifyContent: "center",
                           color: "#ffffff",
                           flexShrink: 0,
+                          marginTop: 2,
                           transition: "all 0.15s ease",
                         }}
                       >
                         {isSelected && <Check size={11} strokeWidth={3} />}
                       </div>
 
-                      <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0, flex: 1, overflow: "hidden" }}>
+                      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, minWidth: 0, flex: 1 }}>
                         <span
                           style={{
                             fontSize: isMobile ? 13 : 13.5,
                             fontWeight: isSelected ? 800 : 650,
                             color: isSelected ? "#0f172a" : "#1e293b",
-                            overflow: "hidden",
-                            textOverflow: "ellipsis",
-                            whiteSpace: "nowrap",
+                            overflow: isMobile ? "visible" : "hidden",
+                            textOverflow: isMobile ? "clip" : "ellipsis",
+                            whiteSpace: isMobile ? "normal" : "nowrap",
+                            wordBreak: "break-word",
                             lineHeight: 1.35,
                           }}
                           title={item.subjectName}
@@ -516,6 +520,8 @@ export default function SubjectDropdown({
                               borderRadius: 4,
                               flexShrink: 0,
                               letterSpacing: "0.2px",
+                              alignSelf: "flex-start",
+                              marginTop: 1,
                             }}
                           >
                             {code}

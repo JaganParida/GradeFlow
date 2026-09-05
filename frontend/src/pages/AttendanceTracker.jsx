@@ -2071,35 +2071,60 @@ export default function AttendanceTracker() {
                   width: "100%",
                   display: "flex",
                   alignItems: "center",
-                  justifyContent: "center",
-                  gap: 8,
-                  padding: "10px 14px",
-                  borderRadius: 8,
-                  border: "1px solid #059669",
-                  background: scanStatus.isLimitReached ? "#64748b" : "#059669",
+                  justifyContent: "space-between",
+                  padding: "9px 14px",
+                  borderRadius: 10,
+                  border: "1px solid #1e293b",
+                  background: scanStatus.isLimitReached ? "#475569" : "#0f172a",
                   color: "#ffffff",
-                  fontSize: 13,
-                  fontWeight: 700,
                   cursor: scanStatus.isLimitReached ? "not-allowed" : "pointer",
+                  boxShadow: "0 2px 6px rgba(15, 23, 42, 0.12)",
+                  transition: "all 0.15s ease",
+                  boxSizing: "border-box",
                   fontFamily: "'DM Sans', sans-serif",
-                  boxShadow: "none",
                 }}
               >
-                <Camera size={15} />
-                <span>Auto-Import Screenshot</span>
-                <span
-                  style={{
-                    fontSize: 10,
-                    fontWeight: 800,
-                    padding: "2px 6px",
-                    borderRadius: 5,
-                    background: "rgba(255,255,255,0.2)",
-                    color: "#ffffff",
-                    marginLeft: 2,
-                  }}
-                >
-                  {scanStatus.isExempt ? "Unlimited" : `${scanStatus.remaining}/${scanStatus.max} left`}
-                </span>
+                <div style={{ display: "flex", alignItems: "center", gap: 9 }}>
+                  <div
+                    style={{
+                      width: 28,
+                      height: 28,
+                      borderRadius: 7,
+                      background: "rgba(255, 255, 255, 0.12)",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      flexShrink: 0,
+                    }}
+                  >
+                    <Camera size={14} color="#38bdf8" />
+                  </div>
+                  <div style={{ textAlign: "left" }}>
+                    <div style={{ fontSize: 12.5, fontWeight: 800, color: "#ffffff", lineHeight: 1.2 }}>
+                      Auto-Import Screenshot
+                    </div>
+                    <div style={{ fontSize: 10, color: "#94a3b8", fontWeight: 500, marginTop: 1 }}>
+                      1-tap instant AI scan from ERP table
+                    </div>
+                  </div>
+                </div>
+                <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                  <span
+                    style={{
+                      fontSize: 9.5,
+                      fontWeight: 800,
+                      padding: "2px 7px",
+                      borderRadius: 5,
+                      background: "rgba(56, 189, 248, 0.15)",
+                      color: "#38bdf8",
+                      border: "1px solid rgba(56, 189, 248, 0.3)",
+                      letterSpacing: "0.2px",
+                    }}
+                  >
+                    {scanStatus.isExempt ? "Unlimited" : `${scanStatus.remaining}/${scanStatus.max} left`}
+                  </span>
+                  <ArrowRight size={13} color="#94a3b8" />
+                </div>
               </button>
             </div>
           )}
