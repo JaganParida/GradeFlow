@@ -295,63 +295,26 @@ export default function AttendanceTargetPredictor({
           boxShadow: "0 1px 3px rgba(15, 23, 42, 0.03)",
         }}
       >
-        {/* Small Desc so student understands what this is & what to do here */}
+        {/* ONE LINE: Subject Selector on Left + Miss Selector on Right, each with its own clear description */}
         <div
           style={{
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: isMobile ? "flex-start" : "center",
-            flexDirection: isMobile ? "column" : "row",
-            gap: 6,
-            paddingBottom: 10,
-            borderBottom: "1px solid #f1f5f9",
+            display: "grid",
+            gridTemplateColumns: isMobile ? "1fr" : (isPenaltyView ? "minmax(280px, 1.2fr) minmax(320px, 1fr)" : "1fr"),
+            gap: isMobile ? 12 : 20,
+            alignItems: "flex-end",
           }}
         >
-          <div style={{ display: "flex", alignItems: "center", gap: 7, flexWrap: "wrap" }}>
-            <span
-              style={{
-                fontSize: 10.5,
-                fontWeight: 800,
-                textTransform: "uppercase",
-                letterSpacing: "0.5px",
-                background: isPenaltyView ? "#fff1f2" : "#eff6ff",
-                color: isPenaltyView ? "#e11d48" : "#2563eb",
-                padding: "2px 7px",
-                borderRadius: 5,
-                display: "inline-flex",
-                alignItems: "center",
-                gap: 4,
-              }}
-            >
-              {isPenaltyView ? <TrendingDown size={12} /> : <BookOpen size={12} />}
-              {isPenaltyView ? "Simulation Controls" : "Active Subject"}
-            </span>
-            <p style={{ fontSize: 12, color: "#64748b", margin: 0, lineHeight: 1.4 }}>
-              {isPenaltyView
-                ? "Select a subject, then pick or type how many classes you might miss to instantly forecast your attendance drop & recovery."
-                : "Choose a subject to examine routine timetable forecast, weekly load, and date milestones."}
-            </p>
-          </div>
+          {/* 1. Sub Choose (Subject Dropdown) with desc */}
+          <div style={{ display: "flex", flexDirection: "column", gap: 6, minWidth: 0 }}>
+            <div>
+              <div style={{ fontSize: 11, fontWeight: 800, color: "#334155", textTransform: "uppercase", letterSpacing: "0.5px" }}>
+                Select Subject
+              </div>
+              <div style={{ fontSize: 11, color: "#64748b", fontWeight: 500, marginTop: 1 }}>
+                Choose routine subject to evaluate
+              </div>
+            </div>
 
-          {isPenaltyView && (
-            <span style={{ fontSize: 11, color: "#94a3b8", fontWeight: 600, whiteSpace: "nowrap" }}>
-              Direct type or click presets
-            </span>
-          )}
-        </div>
-
-        {/* ONE LINE: Subject Selector on Left + Miss Selector on Right */}
-        <div
-          style={{
-            display: "flex",
-            alignItems: isMobile ? "stretch" : "center",
-            flexDirection: isMobile ? "column" : "row",
-            justifyContent: "space-between",
-            gap: 12,
-          }}
-        >
-          {/* Sub Choose (Subject Dropdown) */}
-          <div style={{ flex: 1, minWidth: 0 }}>
             {sectionCatalog && sectionCatalog.length > 0 && onSelectSubject && (
               <SubjectDropdown
                 catalog={sectionCatalog}
@@ -365,126 +328,135 @@ export default function AttendanceTargetPredictor({
             )}
           </div>
 
-          {/* Miss Select (Presets + Stepper) on the SAME LINE */}
+          {/* 2. Miss Select (Presets + Stepper) with desc */}
           {isPenaltyView && (
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 8,
-                flexWrap: "wrap",
-                justifyContent: isMobile ? "flex-start" : "flex-end",
-                flexShrink: 0,
-              }}
-            >
-              {/* Presets */}
-              <div style={{ display: "flex", alignItems: "center", gap: isMobile ? 4 : 5 }}>
-                {[1, 2, 3, 5, 8].map((num) => (
-                  <button
-                    key={num}
-                    type="button"
-                    onClick={() => setSimulateMissCount(num)}
-                    style={{
-                      background: simulateMissCount === num ? "#0f172a" : "#f8fafc",
-                      color: simulateMissCount === num ? "#ffffff" : "#475569",
-                      border: `1px solid ${simulateMissCount === num ? "#0f172a" : "#cbd5e1"}`,
-                      padding: isMobile ? "4px 8px" : "6px 10px",
-                      borderRadius: 7,
-                      fontSize: isMobile ? 11 : 11.5,
-                      fontWeight: 700,
-                      cursor: "pointer",
-                      transition: "all 0.15s ease",
-                      whiteSpace: "nowrap",
-                    }}
-                  >
-                    +{num} Miss
-                  </button>
-                ))}
+            <div style={{ display: "flex", flexDirection: "column", gap: 6, minWidth: 0 }}>
+              <div>
+                <div style={{ fontSize: 11, fontWeight: 800, color: "#334155", textTransform: "uppercase", letterSpacing: "0.5px" }}>
+                  Planned Missed Classes
+                </div>
+                <div style={{ fontSize: 11, color: "#64748b", fontWeight: 500, marginTop: 1 }}>
+                  Select preset or enter classes to miss
+                </div>
               </div>
 
-              {/* Direct Type / Stepper Input */}
               <div
                 style={{
                   display: "flex",
                   alignItems: "center",
-                  gap: 5,
-                  background: "#ffffff",
-                  border: "1px solid #cbd5e1",
-                  borderRadius: 8,
-                  padding: "3px 6px",
-                  boxSizing: "border-box",
+                  gap: 8,
+                  flexWrap: "wrap",
                 }}
               >
-                <button
-                  type="button"
-                  onClick={() => setSimulateMissCount(Math.max(1, simulateMissCount - 1))}
-                  style={{
-                    width: 26,
-                    height: 26,
-                    borderRadius: 5,
-                    border: "1px solid #e2e8f0",
-                    background: "#f8fafc",
-                    color: "#0f172a",
-                    fontSize: 15,
-                    fontWeight: 800,
-                    cursor: "pointer",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                  }}
-                >
-                  -
-                </button>
-
-                <div style={{ display: "flex", alignItems: "center", gap: 3 }}>
-                  <input
-                    type="text"
-                    inputMode="numeric"
-                    pattern="[0-9]*"
-                    value={simulateMissCount}
-                    onChange={(e) => {
-                      const raw = e.target.value.replace(/[^0-9]/g, "");
-                      const val = parseInt(raw, 10);
-                      setSimulateMissCount(isNaN(val) ? 1 : Math.max(1, Math.min(50, val)));
-                    }}
-                    style={{
-                      width: 30,
-                      textAlign: "center",
-                      border: "none",
-                      background: "transparent",
-                      fontSize: 13.5,
-                      fontWeight: 800,
-                      color: "#0f172a",
-                      outline: "none",
-                      padding: 0,
-                      fontFamily: "'DM Sans', sans-serif",
-                    }}
-                  />
-                  <span style={{ fontSize: 11, fontWeight: 700, color: "#475569" }}>
-                    {simulateMissCount === 1 ? "Class" : "Classes"}
-                  </span>
+                {/* Presets */}
+                <div style={{ display: "flex", alignItems: "center", gap: isMobile ? 4 : 5 }}>
+                  {[1, 2, 3, 5, 8].map((num) => (
+                    <button
+                      key={num}
+                      type="button"
+                      onClick={() => setSimulateMissCount(num)}
+                      style={{
+                        background: simulateMissCount === num ? "#0f172a" : "#f8fafc",
+                        color: simulateMissCount === num ? "#ffffff" : "#475569",
+                        border: `1px solid ${simulateMissCount === num ? "#0f172a" : "#cbd5e1"}`,
+                        padding: isMobile ? "6px 9px" : "7px 11px",
+                        borderRadius: 8,
+                        fontSize: isMobile ? 11 : 11.5,
+                        fontWeight: 700,
+                        cursor: "pointer",
+                        transition: "all 0.15s ease",
+                        whiteSpace: "nowrap",
+                      }}
+                    >
+                      +{num} Miss
+                    </button>
+                  ))}
                 </div>
 
-                <button
-                  type="button"
-                  onClick={() => setSimulateMissCount(Math.min(50, simulateMissCount + 1))}
+                {/* Direct Type / Stepper Input */}
+                <div
                   style={{
-                    width: 26,
-                    height: 26,
-                    borderRadius: 5,
-                    border: "1px solid #e2e8f0",
-                    background: "#f8fafc",
-                    color: "#0f172a",
-                    fontSize: 15,
-                    fontWeight: 800,
-                    cursor: "pointer",
                     display: "flex",
                     alignItems: "center",
-                    justifyContent: "center",
+                    gap: 5,
+                    background: "#ffffff",
+                    border: "1px solid #cbd5e1",
+                    borderRadius: 8,
+                    padding: "3px 6px",
+                    boxSizing: "border-box",
                   }}
                 >
-                  +
-                </button>
+                  <button
+                    type="button"
+                    onClick={() => setSimulateMissCount(Math.max(1, simulateMissCount - 1))}
+                    style={{
+                      width: 26,
+                      height: 26,
+                      borderRadius: 5,
+                      border: "1px solid #e2e8f0",
+                      background: "#f8fafc",
+                      color: "#0f172a",
+                      fontSize: 15,
+                      fontWeight: 800,
+                      cursor: "pointer",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                    }}
+                  >
+                    -
+                  </button>
+
+                  <div style={{ display: "flex", alignItems: "center", gap: 3 }}>
+                    <input
+                      type="text"
+                      inputMode="numeric"
+                      pattern="[0-9]*"
+                      value={simulateMissCount}
+                      onChange={(e) => {
+                        const raw = e.target.value.replace(/[^0-9]/g, "");
+                        const val = parseInt(raw, 10);
+                        setSimulateMissCount(isNaN(val) ? 1 : Math.max(1, Math.min(50, val)));
+                      }}
+                      style={{
+                        width: 30,
+                        textAlign: "center",
+                        border: "none",
+                        background: "transparent",
+                        fontSize: 13.5,
+                        fontWeight: 800,
+                        color: "#0f172a",
+                        outline: "none",
+                        padding: 0,
+                        fontFamily: "'DM Sans', sans-serif",
+                      }}
+                    />
+                    <span style={{ fontSize: 11, fontWeight: 700, color: "#475569" }}>
+                      {simulateMissCount === 1 ? "Class" : "Classes"}
+                    </span>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => setSimulateMissCount(Math.min(50, simulateMissCount + 1))}
+                    style={{
+                      width: 26,
+                      height: 26,
+                      borderRadius: 5,
+                      border: "1px solid #e2e8f0",
+                      background: "#f8fafc",
+                      color: "#0f172a",
+                      fontSize: 15,
+                      fontWeight: 800,
+                      cursor: "pointer",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                    }}
+                  >
+                    +
+                  </button>
+                </div>
               </div>
             </div>
           )}
