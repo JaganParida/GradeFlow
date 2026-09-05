@@ -523,6 +523,48 @@ export default function FuturePredictor({
     const netChangeFromCurrent = Number((postBunkOverallPct - currentOverallPct).toFixed(2));
 
     const targetPct = Number(recoveryTargetPct) || 75;
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // SCAN REMAINING SEMESTER CLASSES (From day after lastBunkDate to Oct 31, 2026)
+    // ─────────────────────────────────────────────────────────────────────────
+    const lastSessionDate = new Date(CUTM_SESSION_BOUNDARIES?.lastDateOfInstruction || "2026-10-31T23:59:59");
+    const upcomingSemesterClassesMap = new Map();
+    allSectionSubjects.forEach((sub) => {
+      upcomingSemesterClassesMap.set(sub.subjectName, []);
+    });
+
+    let totalUpcomingOverallClasses = 0;
+    const semesterScanDate = new Date(lastBunkDate);
+    let semesterScanGuard = 0;
+
+    while (semesterScanDate < lastSessionDate && semesterScanGuard < 90) {
+      semesterScanDate.setDate(semesterScanDate.getDate() + 1);
+      semesterScanGuard++;
+      if (semesterScanDate > lastSessionDate) break;
+
+      const sched = getSectionScheduleForDate(selectedSection, semesterScanDate);
+      if (sched.isInstructional && sched.classes && sched.classes.length > 0) {
+        for (const cls of sched.classes) {
+          const cleanName = cls.cleanName || cleanSubjectBaseName(cls.subject);
+          totalUpcomingOverallClasses++;
+          if (!upcomingSemesterClassesMap.has(cleanName)) {
+            upcomingSemesterClassesMap.set(cleanName, []);
+          }
+          upcomingSemesterClassesMap.get(cleanName).push({
+            date: new Date(semesterScanDate),
+            dateStr: formatFriendlyDate(semesterScanDate),
+            dayName: sched.dayName,
+            slotIndex: cls.slotIndex,
+            timeSlot: cls.slot?.label || (TIME_SLOTS[cls.slotIndex]?.label || `Slot ${cls.slotIndex + 1}`),
+            type: cls.type || "PP",
+            room: cls.room || `CSE-F-AR-${310 + ((cls.slotIndex || 0) % 8)}`,
+            faculty: cls.faculty || "Faculty",
+            cleanName,
+          });
+        }
+      }
+    }
+
     const affectedSubjectsList = [];
     const missedOnlySubjectsList = [];
 
@@ -534,18 +576,43 @@ export default function FuturePredictor({
             : sub.preBunkPct;
         sub.bunkDropDelta = Number((sub.postBunkPct - sub.preBunkPct).toFixed(2));
         sub.netChange = Number((sub.postBunkPct - sub.currentPct).toFixed(2));
-        sub.isSafeAtTarget = sub.postBunkPct >= targetPct;
 
-        // Formula for classes needed to reach targetPct in this subject
-        let classesToTarget = 0;
-        if (sub.postBunkPct < targetPct) {
-          const num = (targetPct / 100) * sub.postBunkDelivered - sub.postBunkAttended;
-          const den = 1 - targetPct / 100;
-          classesToTarget = Math.max(1, Math.ceil(num / den));
-        } else if (sub.bunkMissedCount > 0) {
-          classesToTarget = 1; // 1 class to maintain/demonstrate buffer
+        // Feasibility check against remaining semester classes
+        const upcomingForSub = upcomingSemesterClassesMap.get(sub.subjectName) || [];
+        const totalRemainingInSemester = upcomingForSub.length;
+        const maxPossibleAttended = sub.postBunkAttended + totalRemainingInSemester;
+        const maxPossibleDelivered = sub.postBunkDelivered + totalRemainingInSemester;
+        const maxPossiblePct =
+          maxPossibleDelivered > 0
+            ? Number(((maxPossibleAttended / maxPossibleDelivered) * 100).toFixed(2))
+            : sub.postBunkPct;
+
+        sub.totalRemainingInSemester = totalRemainingInSemester;
+        sub.maxPossibleAttended = maxPossibleAttended;
+        sub.maxPossibleDelivered = maxPossibleDelivered;
+        sub.maxPossiblePct = maxPossiblePct;
+
+        if (sub.postBunkPct >= targetPct) {
+          sub.isSafeAtTarget = true;
+          sub.isTargetImpossible = false;
+          sub.classesToTarget = 0;
+        } else {
+          sub.isSafeAtTarget = false;
+          if (maxPossiblePct < targetPct) {
+            // Target is mathematically impossible this semester even with 100% future attendance!
+            sub.isTargetImpossible = true;
+            const num = (targetPct / 100) * sub.postBunkDelivered - sub.postBunkAttended;
+            const den = 1 - targetPct / 100;
+            sub.theoreticalClassesNeeded = den > 0 ? Math.max(1, Math.ceil(num / den)) : 999;
+            sub.classesToTarget = totalRemainingInSemester; // Show up to maximum possible classes
+          } else {
+            sub.isTargetImpossible = false;
+            const num = (targetPct / 100) * sub.postBunkDelivered - sub.postBunkAttended;
+            const den = 1 - targetPct / 100;
+            sub.classesToTarget = Math.max(1, Math.ceil(num / den));
+          }
         }
-        sub.classesToTarget = classesToTarget;
+
         sub.code = resolveSubjectCode({ subject: sub.subjectName }, studentData);
 
         affectedSubjectsList.push(sub);
@@ -555,102 +622,101 @@ export default function FuturePredictor({
       }
     });
 
+    // Overall attendance feasibility check
+    const maxPossibleOverallAttended = postBunkOverallAtt + totalUpcomingOverallClasses;
+    const maxPossibleOverallDelivered = postBunkOverallDel + totalUpcomingOverallClasses;
+    const maxPossibleOverallPct =
+      maxPossibleOverallDelivered > 0
+        ? Number(((maxPossibleOverallAttended / maxPossibleOverallDelivered) * 100).toFixed(2))
+        : postBunkOverallPct;
+    const isOverallTargetImpossible = postBunkOverallPct < targetPct && maxPossibleOverallPct < targetPct;
+
     // ─────────────────────────────────────────────────────────────────────────
     // PHASE 3: TIMETABLE RECOVERY ENGINE FOR MISSED SUBJECTS
-    // Scans exact upcoming calendar dates for the subjects missed during bunk!
+    // Builds exact recovery roadmap up to target (or up to max possible peak)
     // ─────────────────────────────────────────────────────────────────────────
-    const lastSessionDate = new Date(CUTM_SESSION_BOUNDARIES?.lastDateOfInstruction || "2026-10-31T23:59:59");
-    const missedSubjectsNames = new Set(missedOnlySubjectsList.map((s) => s.subjectName));
-
-    // Per-subject recovery sessions map & milestone projection
     const subjectRecoverySessionsMap = new Map();
     missedOnlySubjectsList.forEach((sub) => {
       subjectRecoverySessionsMap.set(sub.subjectName, []);
     });
 
-    const masterMissedRecoverySessions = [];
-    const scanRecovDate = new Date(lastBunkDate);
-    let recovSafetyGuard = 0;
-
-    // Track running stats for each missed subject
-    const subRunningStats = new Map();
     missedOnlySubjectsList.forEach((sub) => {
-      subRunningStats.set(sub.subjectName, {
-        runningAtt: sub.postBunkAttended,
-        runningDel: sub.postBunkDelivered,
-        milestoneFound: false,
-        milestoneDateStr: null,
-        milestoneTimeSlot: null,
-      });
-    });
+      const upcoming = upcomingSemesterClassesMap.get(sub.subjectName) || [];
+      let runningAtt = sub.postBunkAttended;
+      let runningDel = sub.postBunkDelivered;
+      let milestoneFound = false;
+      let milestoneDateStr = null;
+      let milestoneTimeSlot = null;
 
-    while (scanRecovDate <= lastSessionDate && recovSafetyGuard < 60) {
-      scanRecovDate.setDate(scanRecovDate.getDate() + 1);
-      recovSafetyGuard++;
-
-      if (scanRecovDate > lastSessionDate) break;
-
-      const sched = getSectionScheduleForDate(selectedSection, scanRecovDate);
-      if (!sched.isInstructional || !sched.classes || sched.classes.length === 0) {
-        continue;
-      }
-
-      for (const cls of sched.classes) {
-        const cleanName = cls.cleanName || cleanSubjectBaseName(cls.subject);
-        if (missedSubjectsNames.has(cleanName)) {
-          const stats = subRunningStats.get(cleanName);
-          const subTargetNeeded = subjectMap.get(cleanName)?.classesToTarget || 1;
-          const currentSessionsForSub = subjectRecoverySessionsMap.get(cleanName) || [];
-
-          // Record up to needed + 2 buffer sessions for this subject
-          if (currentSessionsForSub.length < Math.max(subTargetNeeded + 2, 4)) {
-            stats.runningAtt += 1;
-            stats.runningDel += 1;
-            const newPct = Number(((stats.runningAtt / stats.runningDel) * 100).toFixed(2));
-            const isMilestone = !stats.milestoneFound && newPct >= targetPct;
-
-            const timeSlotStr = cls.slot?.label || (TIME_SLOTS[cls.slotIndex]?.label || `Slot ${cls.slotIndex + 1}`);
-            const dateStr = formatFriendlyDate(scanRecovDate);
-
-            if (isMilestone) {
-              stats.milestoneFound = true;
-              stats.milestoneDateStr = dateStr;
-              stats.milestoneTimeSlot = timeSlotStr;
-            }
-
-            const sessionItem = {
-              sessionNumber: masterMissedRecoverySessions.length + 1,
-              subjectSessionNumber: currentSessionsForSub.length + 1,
-              date: new Date(scanRecovDate),
-              dateStr,
-              dayName: sched.dayName,
-              timeSlot: timeSlotStr,
-              subjectName: cleanName,
-              subCode: resolveSubjectCode({ subject: cleanName }, studentData),
-              room: cls.room || `CSE-F-AR-${310 + ((cls.slotIndex || 0) % 8)}`,
-              faculty: cls.faculty || "Faculty",
-              type: cls.type || "PP",
-              runningAttended: stats.runningAtt,
-              runningDelivered: stats.runningDel,
-              runningPercentage: newPct,
-              isMilestoneTarget: isMilestone,
-              missedOnDates: subjectMap.get(cleanName)?.missedDates || [],
-            };
-
-            currentSessionsForSub.push(sessionItem);
-            subjectRecoverySessionsMap.set(cleanName, currentSessionsForSub);
-            masterMissedRecoverySessions.push(sessionItem);
-          }
+      // Determine how many classes to display:
+      // - If impossible: display ALL remaining classes in semester ("jitna tak hoga utna hi dikhayega")
+      // - If achievable: display up to classesToTarget + 2 buffer sessions (min 3)
+      // - If already safe: display up to 2 buffer sessions
+      let sessionLimit = upcoming.length;
+      if (!sub.isTargetImpossible) {
+        if (sub.isSafeAtTarget) {
+          sessionLimit = Math.min(upcoming.length, 3);
+        } else {
+          sessionLimit = Math.min(upcoming.length, sub.classesToTarget + 2);
         }
       }
-    }
 
-    // Attach computed milestones to missed subjects
-    missedOnlySubjectsList.forEach((sub) => {
-      const stats = subRunningStats.get(sub.subjectName);
-      sub.milestoneDateStr = stats?.milestoneDateStr || null;
-      sub.milestoneTimeSlot = stats?.milestoneTimeSlot || null;
-      sub.recoverySessionsList = subjectRecoverySessionsMap.get(sub.subjectName) || [];
+      const subSessions = [];
+
+      for (let i = 0; i < sessionLimit; i++) {
+        const cls = upcoming[i];
+        runningAtt += 1;
+        runningDel += 1;
+        const runningPercentage = Number(((runningAtt / runningDel) * 100).toFixed(2));
+
+        const isMilestone = !milestoneFound && runningPercentage >= targetPct;
+        if (isMilestone) {
+          milestoneFound = true;
+          milestoneDateStr = cls.dateStr;
+          milestoneTimeSlot = cls.timeSlot;
+        }
+
+        const isLastAvailable = i === upcoming.length - 1;
+        const isMaxPeakSession = sub.isTargetImpossible && isLastAvailable;
+
+        const sessionItem = {
+          subjectSessionNumber: i + 1,
+          date: cls.date,
+          dateStr: cls.dateStr,
+          dayName: cls.dayName,
+          timeSlot: cls.timeSlot,
+          subjectName: sub.subjectName,
+          subCode: resolveSubjectCode({ subject: sub.subjectName }, studentData),
+          room: cls.room,
+          faculty: cls.faculty,
+          type: cls.type,
+          runningAttended: runningAtt,
+          runningDelivered: runningDel,
+          runningPercentage,
+          isMilestoneTarget: isMilestone,
+          isMaxPeakSession,
+          isTargetImpossible: sub.isTargetImpossible,
+          maxPossiblePct: sub.maxPossiblePct,
+          missedOnDates: sub.missedDates,
+        };
+
+        subSessions.push(sessionItem);
+      }
+
+      sub.milestoneDateStr = milestoneDateStr;
+      sub.milestoneTimeSlot = milestoneTimeSlot;
+      sub.recoverySessionsList = subSessions;
+      subjectRecoverySessionsMap.set(sub.subjectName, subSessions);
+    });
+
+    // Flatten and sort chronologically across all missed subjects
+    const masterMissedRecoverySessions = [];
+    subjectRecoverySessionsMap.forEach((sessions) => {
+      masterMissedRecoverySessions.push(...sessions);
+    });
+    masterMissedRecoverySessions.sort((a, b) => a.date - b.date || a.timeSlot.localeCompare(b.timeSlot));
+    masterMissedRecoverySessions.forEach((ses, idx) => {
+      ses.sessionNumber = idx + 1;
     });
 
     // First instructional return date
@@ -682,9 +748,13 @@ export default function FuturePredictor({
       totalBunkDropDelta,
       netChangeFromCurrent,
       isOverallSafeAtTarget: postBunkOverallPct >= targetPct,
+      isOverallTargetImpossible,
+      maxPossibleOverallPct,
+      totalUpcomingOverallClasses,
       affectedSubjectsList,
       missedOnlySubjectsList,
       criticalSubjectsList: affectedSubjectsList.filter((s) => !s.isSafeAtTarget),
+      impossibleSubjectsList: affectedSubjectsList.filter((s) => s.isTargetImpossible),
       masterMissedRecoverySessions,
       targetPct,
     };
@@ -1620,18 +1690,24 @@ export default function FuturePredictor({
                   display: "inline-flex",
                   alignItems: "center",
                   gap: 6,
-                  background: simulation.isOverallSafeAtTarget
+                  background: simulation.isOverallTargetImpossible
+                    ? "#fff7ed"
+                    : simulation.isOverallSafeAtTarget
                     ? simulation.criticalSubjectsList.length === 0
                       ? "#ecfdf5"
                       : "#fffbeb"
                     : "#fef2f2",
-                  color: simulation.isOverallSafeAtTarget
+                  color: simulation.isOverallTargetImpossible
+                    ? "#c2410c"
+                    : simulation.isOverallSafeAtTarget
                     ? simulation.criticalSubjectsList.length === 0
                       ? "#047857"
                       : "#b45309"
                     : "#dc2626",
                   border: `1px solid ${
-                    simulation.isOverallSafeAtTarget
+                    simulation.isOverallTargetImpossible
+                      ? "#fdba74"
+                      : simulation.isOverallSafeAtTarget
                       ? simulation.criticalSubjectsList.length === 0
                         ? "#a7f3d0"
                         : "#fde68a"
@@ -1639,7 +1715,12 @@ export default function FuturePredictor({
                   }`,
                 }}
               >
-                {simulation.isOverallSafeAtTarget ? (
+                {simulation.isOverallTargetImpossible ? (
+                  <>
+                    <AlertTriangle size={14} color="#ea580c" />
+                    <span>Overall {simulation.targetPct}% Unattainable (Max: {simulation.maxPossibleOverallPct}%)</span>
+                  </>
+                ) : simulation.isOverallSafeAtTarget ? (
                   simulation.criticalSubjectsList.length === 0 ? (
                     <>
                       <CheckCircle2 size={14} />
@@ -1712,6 +1793,27 @@ export default function FuturePredictor({
                 </div>
               </div>
             </div>
+
+            {/* Feasibility Warning Banner if target is mathematically impossible in any subject */}
+            {simulation.impossibleSubjectsList.length > 0 && (
+              <div
+                style={{
+                  background: "#fff7ed",
+                  border: "1.5px solid #fed7aa",
+                  borderRadius: 12,
+                  padding: "10px 14px",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 10,
+                }}
+              >
+                <AlertTriangle size={18} color="#ea580c" style={{ flexShrink: 0 }} />
+                <div style={{ fontSize: 12, color: "#9a3412", lineHeight: 1.45 }}>
+                  <strong>Target {simulation.targetPct}% Unattainable in {simulation.impossibleSubjectsList.length} Subject(s):</strong>{" "}
+                  {simulation.impossibleSubjectsList.map((s) => `${s.subjectName} (Max: ${s.maxPossiblePct}%)`).join(", ")}. Even with 100% attendance in all scheduled classes until semester end (Oct 31), {simulation.targetPct}% cannot be achieved. See Phase 3 for full recovery roadmap up to maximum achievable ceiling.
+                </div>
+              </div>
+            )}
 
             {/* Sequential Drop Breakdown per Bunk Date */}
             <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
@@ -1914,15 +2016,24 @@ export default function FuturePredictor({
               >
                 {simulation.missedOnlySubjectsList.map((sub) => {
                   const isSafe = sub.isSafeAtTarget;
+                  const isImpossible = sub.isTargetImpossible;
                   const isFiltered = recoverySubjectFilter === sub.subjectName;
 
                   return (
                     <div
                       key={sub.subjectName}
                       style={{
-                        background: isFiltered ? "#eff6ff" : isSafe ? "#ffffff" : "#fff8f8",
+                        background: isFiltered
+                          ? "#eff6ff"
+                          : isImpossible
+                          ? "#fffbeb"
+                          : isSafe
+                          ? "#ffffff"
+                          : "#fff8f8",
                         border: isFiltered
                           ? "2px solid #2563eb"
+                          : isImpossible
+                          ? "2px solid #ea580c"
                           : isSafe
                           ? "1.5px solid #e2e8f0"
                           : "1.5px solid #fca5a5",
@@ -1931,7 +2042,9 @@ export default function FuturePredictor({
                         display: "flex",
                         flexDirection: "column",
                         gap: 8,
-                        boxShadow: "0 1px 3px rgba(0,0,0,0.02)",
+                        boxShadow: isImpossible
+                          ? "0 3px 12px rgba(234, 88, 12, 0.12)"
+                          : "0 1px 3px rgba(0,0,0,0.02)",
                       }}
                     >
                       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 6 }}>
@@ -1948,15 +2061,26 @@ export default function FuturePredictor({
                           style={{
                             fontSize: 10,
                             fontWeight: 900,
-                            padding: "2px 6px",
-                            borderRadius: 4,
-                            background: isSafe ? "#ecfdf5" : "#fef2f2",
-                            color: isSafe ? "#059669" : "#dc2626",
-                            border: `1px solid ${isSafe ? "#a7f3d0" : "#fecaca"}`,
+                            padding: "2px 7px",
+                            borderRadius: 5,
+                            background: isImpossible ? "#ea580c" : isSafe ? "#ecfdf5" : "#fef2f2",
+                            color: isImpossible ? "#ffffff" : isSafe ? "#059669" : "#dc2626",
+                            border: `1px solid ${isImpossible ? "#c2410c" : isSafe ? "#a7f3d0" : "#fecaca"}`,
                             whiteSpace: "nowrap",
+                            display: "inline-flex",
+                            alignItems: "center",
+                            gap: 3,
                           }}
                         >
-                          {isSafe ? "Above Target" : `${sub.classesToTarget} Cls Needed`}
+                          {isImpossible ? (
+                            <>
+                              <AlertTriangle size={10} /> {simulation.targetPct}% Impossible (Max: {sub.maxPossiblePct}%)
+                            </>
+                          ) : isSafe ? (
+                            "Above Target"
+                          ) : (
+                            `${sub.classesToTarget} Cls Needed`
+                          )}
                         </span>
                       </div>
 
@@ -1971,11 +2095,32 @@ export default function FuturePredictor({
                         </div>
                       </div>
 
+                      {/* If target is impossible: show the exact ceiling in a highlighted row */}
+                      {isImpossible && (
+                        <div
+                          style={{
+                            display: "flex",
+                            justifyContent: "space-between",
+                            alignItems: "center",
+                            fontSize: 11,
+                            background: "#fff7ed",
+                            border: "1px solid #ffedd5",
+                            padding: "4px 8px",
+                            borderRadius: 6,
+                          }}
+                        >
+                          <span style={{ color: "#9a3412", fontWeight: 700 }}>Semester Max Ceiling:</span>
+                          <strong style={{ color: "#c2410c", fontWeight: 900 }}>
+                            {sub.maxPossiblePct}% ({sub.totalRemainingInSemester} classes left)
+                          </strong>
+                        </div>
+                      )}
+
                       {/* Recovery Milestone Date Box */}
                       <div
                         style={{
-                          background: sub.milestoneDateStr ? "#f0fdf4" : "#f8fafc",
-                          border: `1px solid ${sub.milestoneDateStr ? "#bbf7d0" : "#e2e8f0"}`,
+                          background: isImpossible ? "#fff7ed" : sub.milestoneDateStr ? "#f0fdf4" : "#f8fafc",
+                          border: `1px solid ${isImpossible ? "#fed7aa" : sub.milestoneDateStr ? "#bbf7d0" : "#e2e8f0"}`,
                           borderRadius: 8,
                           padding: "8px 10px",
                           display: "flex",
@@ -1985,9 +2130,17 @@ export default function FuturePredictor({
                         }}
                       >
                         <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                          <Sparkles size={14} color={sub.milestoneDateStr ? "#16a34a" : "#64748b"} />
-                          <div style={{ fontSize: 11, color: "#0f172a" }}>
-                            {sub.milestoneDateStr ? (
+                          {isImpossible ? (
+                            <AlertTriangle size={15} color="#ea580c" style={{ flexShrink: 0 }} />
+                          ) : (
+                            <Sparkles size={14} color={sub.milestoneDateStr ? "#16a34a" : "#64748b"} style={{ flexShrink: 0 }} />
+                          )}
+                          <div style={{ fontSize: 11, color: isImpossible ? "#9a3412" : "#0f172a", lineHeight: 1.35 }}>
+                            {isImpossible ? (
+                              <span>
+                                <strong>{simulation.targetPct}% unattainable.</strong> Max achievable is <strong>{sub.maxPossiblePct}%</strong> (Oct 31)
+                              </span>
+                            ) : sub.milestoneDateStr ? (
                               <span>
                                 Recovers {simulation.targetPct}% on: <strong>{sub.milestoneDateStr}</strong>
                               </span>
@@ -2001,18 +2154,19 @@ export default function FuturePredictor({
                           type="button"
                           onClick={() => setRecoverySubjectFilter((prev) => (prev === sub.subjectName ? "ALL" : sub.subjectName))}
                           style={{
-                            background: isFiltered ? "#2563eb" : "#ffffff",
-                            color: isFiltered ? "#ffffff" : "#2563eb",
-                            border: "1px solid #cbd5e1",
-                            padding: "3px 7px",
+                            background: isFiltered ? "#2563eb" : isImpossible ? "#ea580c" : "#ffffff",
+                            color: isFiltered || isImpossible ? "#ffffff" : "#2563eb",
+                            border: isFiltered ? "1px solid #1d4ed8" : isImpossible ? "1px solid #c2410c" : "1px solid #cbd5e1",
+                            padding: "3px 8px",
                             borderRadius: 6,
                             fontSize: 10.5,
                             fontWeight: 800,
                             cursor: "pointer",
                             whiteSpace: "nowrap",
+                            flexShrink: 0,
                           }}
                         >
-                          {isFiltered ? "Showing" : "Filter Dates"}
+                          {isFiltered ? "Showing" : isImpossible ? "View Max" : "Filter Dates"}
                         </button>
                       </div>
                     </div>
@@ -2045,6 +2199,7 @@ export default function FuturePredictor({
               {simulation.missedOnlySubjectsList.map((sub) => {
                 const isSelected = recoverySubjectFilter === sub.subjectName;
                 const count = sub.recoverySessionsList?.length || 0;
+                const isImpossible = sub.isTargetImpossible;
                 return (
                   <button
                     key={sub.subjectName}
@@ -2053,15 +2208,36 @@ export default function FuturePredictor({
                     style={{
                       padding: "4px 9px",
                       borderRadius: 7,
-                      border: isSelected ? "1.5px solid #2563eb" : "1px solid #cbd5e1",
-                      background: isSelected ? "#eff6ff" : "#ffffff",
-                      color: isSelected ? "#1d4ed8" : "#475569",
+                      border: isSelected
+                        ? "1.5px solid #2563eb"
+                        : isImpossible
+                        ? "1.5px solid #ea580c"
+                        : "1px solid #cbd5e1",
+                      background: isSelected
+                        ? "#eff6ff"
+                        : isImpossible
+                        ? "#fff7ed"
+                        : "#ffffff",
+                      color: isSelected
+                        ? "#1d4ed8"
+                        : isImpossible
+                        ? "#c2410c"
+                        : "#475569",
                       fontSize: 11,
                       fontWeight: 800,
                       cursor: "pointer",
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: 4,
                     }}
                   >
-                    {sub.subjectName} ({count})
+                    {isImpossible && <AlertTriangle size={11} color="#ea580c" />}
+                    <span>{sub.subjectName} ({count})</span>
+                    {isImpossible && (
+                      <span style={{ fontSize: 9, fontWeight: 900, background: "#ea580c", color: "#ffffff", padding: "1px 4px", borderRadius: 3 }}>
+                        Max {sub.maxPossiblePct}%
+                      </span>
+                    )}
                   </button>
                 );
               })}
@@ -2121,6 +2297,37 @@ export default function FuturePredictor({
                 )}
               </div>
 
+              {/* Feasibility Notice if currently viewed subjects cannot reach targetPct */}
+              {(() => {
+                const impossibleInView = simulation.missedOnlySubjectsList.filter(
+                  (s) => s.isTargetImpossible && (recoverySubjectFilter === "ALL" || recoverySubjectFilter === s.subjectName)
+                );
+                if (impossibleInView.length === 0) return null;
+                return (
+                  <div
+                    style={{
+                      background: "#fff7ed",
+                      border: "1px solid #fed7aa",
+                      borderRadius: 10,
+                      padding: "9px 12px",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 8,
+                      fontSize: 12,
+                      color: "#9a3412",
+                      lineHeight: 1.4,
+                    }}
+                  >
+                    <AlertTriangle size={15} color="#ea580c" style={{ flexShrink: 0 }} />
+                    <div>
+                      <strong>Target {simulation.targetPct}% is mathematically out of reach</strong> for{" "}
+                      {impossibleInView.map((s) => `${s.subjectName} (Ceiling: ${s.maxPossiblePct}%)`).join(", ")}.
+                      Displaying all available recovery sessions up to your maximum possible ceiling before the semester ends on 31 Oct.
+                    </div>
+                  </div>
+                );
+              })()}
+
               {/* Exact Card Grid from Image 3 */}
               <div
                 style={{
@@ -2131,18 +2338,25 @@ export default function FuturePredictor({
               >
                 {visibleRecoverySessions.map((recSes, rIdx) => {
                   const isMilestone = recSes.isMilestoneTarget;
+                  const isPeak = recSes.isMaxPeakSession;
+                  const isImpossible = recSes.isTargetImpossible;
+
                   return (
                     <div
                       key={rIdx}
                       style={{
-                        background: isMilestone ? "#f0fdf4" : "#ffffff",
-                        border: `1.5px solid ${isMilestone ? "#86efac" : "#e2e8f0"}`,
+                        background: isMilestone ? "#f0fdf4" : isPeak ? "#fffbeb" : "#ffffff",
+                        border: `1.5px solid ${isMilestone ? "#86efac" : isPeak ? "#f59e0b" : "#e2e8f0"}`,
                         borderRadius: 12,
                         padding: "10px 12px",
                         display: "flex",
                         flexDirection: "column",
                         gap: 6,
-                        boxShadow: isMilestone ? "0 2px 8px rgba(34, 197, 94, 0.15)" : "0 1px 3px rgba(0,0,0,0.02)",
+                        boxShadow: isMilestone
+                          ? "0 2px 8px rgba(34, 197, 94, 0.15)"
+                          : isPeak
+                          ? "0 2px 8px rgba(245, 158, 11, 0.2)"
+                          : "0 1px 3px rgba(0,0,0,0.02)",
                       }}
                     >
                       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
@@ -2151,7 +2365,7 @@ export default function FuturePredictor({
                             style={{
                               fontSize: 10.5,
                               fontWeight: 900,
-                              background: isMilestone ? "#22c55e" : "#0f172a",
+                              background: isMilestone ? "#22c55e" : isPeak ? "#d97706" : "#0f172a",
                               color: "#ffffff",
                               padding: "1px 6px",
                               borderRadius: 5,
@@ -2180,6 +2394,23 @@ export default function FuturePredictor({
                             }}
                           >
                             <Target size={11} /> {simulation.targetPct}% RESTORED!
+                          </span>
+                        ) : isPeak ? (
+                          <span
+                            style={{
+                              fontSize: 9.5,
+                              fontWeight: 900,
+                              background: "#fef3c7",
+                              color: "#b45309",
+                              border: "1px solid #fcd34d",
+                              padding: "1px 6px",
+                              borderRadius: 4,
+                              display: "flex",
+                              alignItems: "center",
+                              gap: 3,
+                            }}
+                          >
+                            <Sparkles size={11} /> Max Peak: {recSes.runningPercentage}%
                           </span>
                         ) : (
                           <span
@@ -2236,17 +2467,28 @@ export default function FuturePredictor({
                         }}
                       >
                         <span style={{ fontSize: 10.5, color: "#64748b", fontWeight: 600 }}>
-                          After this recovery class:
+                          {isPeak ? "Semester peak score:" : "After this recovery class:"}
                         </span>
-                        <span
-                          style={{
-                            fontSize: 11.5,
-                            fontWeight: 900,
-                            color: recSes.runningPercentage >= simulation.targetPct ? "#16a34a" : "#2563eb",
-                          }}
-                        >
-                          {recSes.runningAttended}/{recSes.runningDelivered} ({recSes.runningPercentage}%)
-                        </span>
+                        <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
+                          <span
+                            style={{
+                              fontSize: 11.5,
+                              fontWeight: 900,
+                              color: recSes.runningPercentage >= simulation.targetPct
+                                ? "#16a34a"
+                                : isPeak
+                                ? "#b45309"
+                                : "#2563eb",
+                            }}
+                          >
+                            {recSes.runningAttended}/{recSes.runningDelivered} ({recSes.runningPercentage}%)
+                          </span>
+                          {isImpossible && !isPeak && (
+                            <span style={{ fontSize: 9, color: "#9a3412", fontWeight: 700 }}>
+                              (&rarr; max {recSes.maxPossiblePct}%)
+                            </span>
+                          )}
+                        </div>
                       </div>
                     </div>
                   );
