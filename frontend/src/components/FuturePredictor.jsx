@@ -928,7 +928,27 @@ export default function FuturePredictor({
     });
 
     missedOnlySubjectsList.forEach((sub) => {
-      const upcoming = upcomingSemesterClassesMap.get(sub.subjectName) || [];
+      // 1. If subject is ALREADY safe at or above targetPct:
+      // It does NOT need recovery classes! Its attendance remains >= targetPct.
+      if (sub.isSafeAtTarget) {
+        sub.milestoneDateStr = null;
+        sub.milestoneTimeSlot = null;
+        sub.classesToTarget = 0;
+        sub.recoverySessionsList = [];
+        subjectRecoverySessionsMap.set(sub.subjectName, []);
+        return;
+      }
+
+      // 2. Otherwise, subject dropped below target and NEEDS recovery:
+      const rawUpcoming = upcomingSemesterClassesMap.get(sub.subjectName) || [];
+      const upcoming = [...rawUpcoming];
+      // Sort strictly in chronological order by date and period slot index
+      upcoming.sort((a, b) => {
+        const dateDiff = a.date.getTime() - b.date.getTime();
+        if (dateDiff !== 0) return dateDiff;
+        return (a.slotIndex ?? 0) - (b.slotIndex ?? 0);
+      });
+
       let runningAtt = sub.postBunkAttended;
       let runningDel = sub.postBunkDelivered;
       let milestoneFound = false;
@@ -936,16 +956,11 @@ export default function FuturePredictor({
       let milestoneTimeSlot = null;
 
       // Determine how many classes to display:
-      // - If impossible: display ALL remaining classes in semester ("jitna tak hoga utna hi dikhayega")
-      // - If achievable: display up to classesToTarget + 2 buffer sessions (min 3)
-      // - If already safe: display up to 2 buffer sessions
+      // - If impossible: display ALL remaining classes in semester
+      // - If achievable: display up to classesToTarget + 2 buffer sessions
       let sessionLimit = upcoming.length;
       if (!sub.isTargetImpossible) {
-        if (sub.isSafeAtTarget) {
-          sessionLimit = Math.min(upcoming.length, 3);
-        } else {
-          sessionLimit = Math.min(upcoming.length, sub.classesToTarget + 2);
-        }
+        sessionLimit = Math.min(upcoming.length, sub.classesToTarget + 2);
       }
 
       const subSessions = [];
@@ -956,7 +971,8 @@ export default function FuturePredictor({
         runningDel += 1;
         const runningPercentage = Number(((runningAtt / runningDel) * 100).toFixed(2));
 
-        const isMilestone = !milestoneFound && runningPercentage >= targetPct;
+        const isTargetRestored = runningPercentage >= targetPct;
+        const isMilestone = !milestoneFound && isTargetRestored;
         if (isMilestone) {
           milestoneFound = true;
           milestoneDateStr = cls.dateStr;
@@ -965,12 +981,18 @@ export default function FuturePredictor({
 
         const isLastAvailable = i === upcoming.length - 1;
         const isMaxPeakSession = sub.isTargetImpossible && isLastAvailable;
+        const isBufferSession = sub.classesToTarget > 0 && i >= sub.classesToTarget;
+        const bufferIndex = isBufferSession ? i - sub.classesToTarget + 1 : null;
 
         const sessionItem = {
           subjectSessionNumber: i + 1,
+          classesNeededTotal: sub.classesToTarget,
+          isBufferSession,
+          bufferIndex,
           date: cls.date,
           dateStr: cls.dateStr,
           dayName: cls.dayName,
+          slotIndex: cls.slotIndex,
           timeSlot: cls.timeSlot,
           subjectName: sub.subjectName,
           subCode: resolveSubjectCode({ subject: sub.subjectName }, studentData),
@@ -996,12 +1018,16 @@ export default function FuturePredictor({
       subjectRecoverySessionsMap.set(sub.subjectName, subSessions);
     });
 
-    // Flatten and sort chronologically across all missed subjects
+    // Flatten and sort chronologically across all missed subjects needing recovery
     const masterMissedRecoverySessions = [];
     subjectRecoverySessionsMap.forEach((sessions) => {
       masterMissedRecoverySessions.push(...sessions);
     });
-    masterMissedRecoverySessions.sort((a, b) => a.date - b.date || a.timeSlot.localeCompare(b.timeSlot));
+    masterMissedRecoverySessions.sort((a, b) => {
+      const dateDiff = a.date.getTime() - b.date.getTime();
+      if (dateDiff !== 0) return dateDiff;
+      return (a.slotIndex ?? 0) - (b.slotIndex ?? 0);
+    });
     masterMissedRecoverySessions.forEach((ses, idx) => {
       ses.sessionNumber = idx + 1;
     });
@@ -3251,10 +3277,12 @@ export default function FuturePredictor({
                               </span>
                             ) : sub.milestoneDateStr ? (
                               <span>
-                                Recovers {simulation.targetPct}% on: <strong>{sub.milestoneDateStr}</strong>
+                                Recovers {simulation.targetPct}% on: <strong>{sub.milestoneDateStr}</strong> ({sub.classesToTarget} class{sub.classesToTarget > 1 ? "es" : ""})
                               </span>
                             ) : (
-                              <span>Attendance remains &ge; {simulation.targetPct}%</span>
+                              <span>
+                                <strong>Safe:</strong> Attendance remains &ge; {simulation.targetPct}% ({sub.postBunkPct}%). No recovery needed!
+                              </span>
                             )}
                           </div>
                         </div>
@@ -3263,9 +3291,25 @@ export default function FuturePredictor({
                           type="button"
                           onClick={() => setRecoverySubjectFilter((prev) => (prev === sub.subjectName ? "ALL" : sub.subjectName))}
                           style={{
-                            background: isFiltered ? "#2563eb" : isImpossible ? "#ea580c" : "#ffffff",
-                            color: isFiltered || isImpossible ? "#ffffff" : "#2563eb",
-                            border: isFiltered ? "1px solid #1d4ed8" : isImpossible ? "1px solid #c2410c" : "1px solid #cbd5e1",
+                            background: isFiltered
+                              ? "#2563eb"
+                              : isImpossible
+                              ? "#ea580c"
+                              : isSafe
+                              ? "#f0fdf4"
+                              : "#ffffff",
+                            color: isFiltered || isImpossible
+                              ? "#ffffff"
+                              : isSafe
+                              ? "#166534"
+                              : "#2563eb",
+                            border: isFiltered
+                              ? "1px solid #1d4ed8"
+                              : isImpossible
+                              ? "1px solid #c2410c"
+                              : isSafe
+                              ? "1px solid #bbf7d0"
+                              : "1px solid #cbd5e1",
                             padding: "3px 8px",
                             borderRadius: 6,
                             fontSize: 10.5,
@@ -3275,7 +3319,13 @@ export default function FuturePredictor({
                             flexShrink: 0,
                           }}
                         >
-                          {isFiltered ? "Showing" : isImpossible ? "View Max" : "Filter Dates"}
+                          {isFiltered
+                            ? "Showing"
+                            : isImpossible
+                            ? "View Max"
+                            : isSafe
+                            ? "Safe"
+                            : "Filter Dates"}
                         </button>
                       </div>
                     </div>
@@ -3309,6 +3359,8 @@ export default function FuturePredictor({
                 const isSelected = recoverySubjectFilter === sub.subjectName;
                 const count = sub.recoverySessionsList?.length || 0;
                 const isImpossible = sub.isTargetImpossible;
+                const isSafe = sub.isSafeAtTarget;
+
                 return (
                   <button
                     key={sub.subjectName}
@@ -3318,19 +3370,31 @@ export default function FuturePredictor({
                       padding: "4px 9px",
                       borderRadius: 7,
                       border: isSelected
-                        ? "1.5px solid #2563eb"
+                        ? isSafe
+                          ? "1.5px solid #16a34a"
+                          : "1.5px solid #2563eb"
                         : isImpossible
                         ? "1.5px solid #ea580c"
+                        : isSafe
+                        ? "1px solid #bbf7d0"
                         : "1px solid #cbd5e1",
                       background: isSelected
-                        ? "#eff6ff"
+                        ? isSafe
+                          ? "#f0fdf4"
+                          : "#eff6ff"
                         : isImpossible
                         ? "#fff7ed"
+                        : isSafe
+                        ? "#f8fafc"
                         : "#ffffff",
                       color: isSelected
-                        ? "#1d4ed8"
+                        ? isSafe
+                          ? "#166534"
+                          : "#1d4ed8"
                         : isImpossible
                         ? "#c2410c"
+                        : isSafe
+                        ? "#166534"
                         : "#475569",
                       fontSize: 11,
                       fontWeight: 800,
@@ -3340,12 +3404,56 @@ export default function FuturePredictor({
                       gap: 4,
                     }}
                   >
-                    {isImpossible && <AlertTriangle size={11} color="#ea580c" />}
-                    <span>{sub.subjectName} ({count})</span>
-                    {isImpossible && (
-                      <span style={{ fontSize: 9, fontWeight: 900, background: "#ea580c", color: "#ffffff", padding: "1px 4px", borderRadius: 3 }}>
-                        Max {sub.maxPossiblePct}%
-                      </span>
+                    {isSafe ? (
+                      <>
+                        <ShieldCheck size={11} color={isSelected ? "#166534" : "#059669"} />
+                        <span>{sub.subjectName}</span>
+                        <span
+                          style={{
+                            fontSize: 9.5,
+                            fontWeight: 800,
+                            background: isSelected ? "#16a34a" : "#dcfce7",
+                            color: isSelected ? "#ffffff" : "#166534",
+                            padding: "1px 5px",
+                            borderRadius: 4,
+                          }}
+                        >
+                          Safe
+                        </span>
+                      </>
+                    ) : isImpossible ? (
+                      <>
+                        <AlertTriangle size={11} color="#ea580c" />
+                        <span>{sub.subjectName} ({count})</span>
+                        <span
+                          style={{
+                            fontSize: 9,
+                            fontWeight: 900,
+                            background: "#ea580c",
+                            color: "#ffffff",
+                            padding: "1px 4px",
+                            borderRadius: 3,
+                          }}
+                        >
+                          Max {sub.maxPossiblePct}%
+                        </span>
+                      </>
+                    ) : (
+                      <>
+                        <span>{sub.subjectName}</span>
+                        <span
+                          style={{
+                            fontSize: 9.5,
+                            fontWeight: 800,
+                            background: isSelected ? "#2563eb" : "#f1f5f9",
+                            color: isSelected ? "#ffffff" : "#475569",
+                            padding: "1px 5px",
+                            borderRadius: 4,
+                          }}
+                        >
+                          {sub.classesToTarget} needed
+                        </span>
+                      </>
                     )}
                   </button>
                 );
@@ -3353,230 +3461,329 @@ export default function FuturePredictor({
             </div>
 
             {/* ── Exact Image 3 Card Grid: Mandatory Post-Absence Recovery Schedule ── */}
-            <div
-              style={{
-                background: "#ffffff",
-                border: "1px solid #e2e8f0",
-                borderRadius: 14,
-                padding: effectiveIsMobile ? "12px 10px" : "16px 18px",
-                display: "flex",
-                flexDirection: "column",
-                gap: 12,
-                maxWidth: "100%",
-                boxSizing: "border-box",
-                overflow: "hidden",
-              }}
-            >
-              <div
-                style={{
-                  display: "flex",
-                  flexDirection: effectiveIsMobile ? "column" : "row",
-                  justifyContent: "space-between",
-                  alignItems: effectiveIsMobile ? "stretch" : "center",
-                  gap: 10,
-                  width: "100%",
-                }}
-              >
-                <div style={{ minWidth: 0, width: "100%" }}>
-                  <h5 style={{ fontSize: effectiveIsMobile ? 13.5 : 14, fontWeight: 900, color: "#0f172a", margin: 0, display: "flex", alignItems: "center", gap: 6, wordBreak: "break-word" }}>
-                    <CalendarCheck size={16} color="#059669" style={{ flexShrink: 0 }} />
-                    Classes You Need to Attend for Recovery ({filteredRecoverySessions.length} classes)
-                  </h5>
-                  <p style={{ fontSize: 12, color: "#64748b", margin: "2px 0 0 0", wordBreak: "break-word" }}>
-                    Attend these scheduled timetable classes consecutively to restore your attendance back to {simulation.targetPct}%:
-                  </p>
-                </div>
+            {(() => {
+              const selectedSubjectObj =
+                recoverySubjectFilter !== "ALL"
+                  ? simulation.missedOnlySubjectsList.find((s) => s.subjectName === recoverySubjectFilter)
+                  : null;
+              const isSelectedSubjectSafe = selectedSubjectObj?.isSafeAtTarget === true;
 
-                {filteredRecoverySessions.length > 15 && (
-                  <button
-                    type="button"
-                    onClick={() => setShowAllRecoveryDates(!showAllRecoveryDates)}
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      gap: 5,
-                      background: "#f0fdf4",
-                      color: "#166534",
-                      border: "1px solid #bbf7d0",
-                      padding: "6px 12px",
-                      borderRadius: 8,
-                      fontSize: 12,
-                      fontWeight: 800,
-                      cursor: "pointer",
-                      width: effectiveIsMobile ? "100%" : "auto",
-                    }}
-                  >
-                    {showAllRecoveryDates ? (
-                      <>
-                        <ChevronUp size={14} /> Collapse List (Show First 15)
-                      </>
-                    ) : (
-                      <>
-                        <ChevronDown size={14} /> View All {filteredRecoverySessions.length} Recovery Dates
-                      </>
-                    )}
-                  </button>
-                )}
-              </div>
-
-              {/* Feasibility Notice if currently viewed subjects cannot reach targetPct */}
-              {(() => {
-                const impossibleInView = simulation.missedOnlySubjectsList.filter(
-                  (s) => s.isTargetImpossible && (recoverySubjectFilter === "ALL" || recoverySubjectFilter === s.subjectName)
-                );
-                if (impossibleInView.length === 0) return null;
-                return (
+              return (
+                <div
+                  style={{
+                    background: "#ffffff",
+                    border: "1px solid #e2e8f0",
+                    borderRadius: 14,
+                    padding: effectiveIsMobile ? "12px 10px" : "16px 18px",
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: 12,
+                    maxWidth: "100%",
+                    boxSizing: "border-box",
+                    overflow: "hidden",
+                  }}
+                >
                   <div
                     style={{
-                      background: "#fff7ed",
-                      border: "1px solid #fed7aa",
-                      borderRadius: 10,
-                      padding: "9px 12px",
                       display: "flex",
-                      alignItems: "center",
-                      gap: 8,
-                      fontSize: 12,
-                      color: "#9a3412",
-                      lineHeight: 1.4,
+                      flexDirection: effectiveIsMobile ? "column" : "row",
+                      justifyContent: "space-between",
+                      alignItems: effectiveIsMobile ? "stretch" : "center",
+                      gap: 10,
+                      width: "100%",
                     }}
                   >
-                    <AlertTriangle size={15} color="#ea580c" style={{ flexShrink: 0 }} />
-                    <div>
-                      <strong>Target {simulation.targetPct}% is mathematically out of reach</strong> for{" "}
-                      {impossibleInView.map((s) => `${s.subjectName} (Ceiling: ${s.maxPossiblePct}%)`).join(", ")}.
-                      Displaying all available recovery sessions up to your maximum possible ceiling before the semester ends on 31 Oct.
+                    <div style={{ minWidth: 0, width: "100%" }}>
+                      {isSelectedSubjectSafe ? (
+                        <>
+                          <h5 style={{ fontSize: effectiveIsMobile ? 13.5 : 14, fontWeight: 900, color: "#166534", margin: 0, display: "flex", alignItems: "center", gap: 6, wordBreak: "break-word" }}>
+                            <ShieldCheck size={18} color="#059669" style={{ flexShrink: 0 }} />
+                            {selectedSubjectObj.subjectName} is Safe &bull; 0 Recovery Classes Needed
+                          </h5>
+                          <p style={{ fontSize: 12, color: "#64748b", margin: "2px 0 0 0", wordBreak: "break-word" }}>
+                            Attendance remains at {selectedSubjectObj.postBunkPct}% (&ge; {simulation.targetPct}% target). No recovery classes required!
+                          </p>
+                        </>
+                      ) : (
+                        <>
+                          <h5 style={{ fontSize: effectiveIsMobile ? 13.5 : 14, fontWeight: 900, color: "#0f172a", margin: 0, display: "flex", alignItems: "center", gap: 6, wordBreak: "break-word" }}>
+                            <CalendarCheck size={16} color="#059669" style={{ flexShrink: 0 }} />
+                            {recoverySubjectFilter === "ALL"
+                              ? `Classes You Need to Attend for Recovery (${filteredRecoverySessions.length} classes)`
+                              : `${recoverySubjectFilter} Recovery Plan (${filteredRecoverySessions.length} classes)`}
+                          </h5>
+                          <p style={{ fontSize: 12, color: "#64748b", margin: "2px 0 0 0", wordBreak: "break-word" }}>
+                            {recoverySubjectFilter === "ALL"
+                              ? `Attend these scheduled timetable classes consecutively to restore your attendance back to ${simulation.targetPct}%:`
+                              : `Attend these scheduled ${recoverySubjectFilter} classes consecutively to restore your attendance back to ${simulation.targetPct}%:`}
+                          </p>
+                        </>
+                      )}
                     </div>
+
+                    {!isSelectedSubjectSafe && filteredRecoverySessions.length > 15 && (
+                      <button
+                        type="button"
+                        onClick={() => setShowAllRecoveryDates(!showAllRecoveryDates)}
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          gap: 5,
+                          background: "#f0fdf4",
+                          color: "#166534",
+                          border: "1px solid #bbf7d0",
+                          padding: "6px 12px",
+                          borderRadius: 8,
+                          fontSize: 12,
+                          fontWeight: 800,
+                          cursor: "pointer",
+                          width: effectiveIsMobile ? "100%" : "auto",
+                        }}
+                      >
+                        {showAllRecoveryDates ? (
+                          <>
+                            <ChevronUp size={14} /> Collapse List (Show First 15)
+                          </>
+                        ) : (
+                          <>
+                            <ChevronDown size={14} /> View All {filteredRecoverySessions.length} Recovery Dates
+                          </>
+                        )}
+                      </button>
+                    )}
                   </div>
-                );
-              })()}
 
-              {/* Exact Card Grid from Image 3 */}
-              <div
-                style={{
-                  display: "grid",
-                  gridTemplateColumns: effectiveIsMobile ? "1fr" : "repeat(auto-fill, minmax(280px, 1fr))",
-                  gap: 10,
-                  width: "100%",
-                  boxSizing: "border-box",
-                }}
-              >
-                {visibleRecoverySessions.map((recSes, rIdx) => {
-                  const isMilestone = recSes.isMilestoneTarget;
-                  const isPeak = recSes.isMaxPeakSession;
-                  const isImpossible = recSes.isTargetImpossible;
+                  {/* Feasibility Notice if currently viewed subjects cannot reach targetPct */}
+                  {(() => {
+                    const impossibleInView = simulation.missedOnlySubjectsList.filter(
+                      (s) => s.isTargetImpossible && (recoverySubjectFilter === "ALL" || recoverySubjectFilter === s.subjectName)
+                    );
+                    if (impossibleInView.length === 0) return null;
+                    return (
+                      <div
+                        style={{
+                          background: "#fff7ed",
+                          border: "1px solid #fed7aa",
+                          borderRadius: 10,
+                          padding: "9px 12px",
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 8,
+                          fontSize: 12,
+                          color: "#9a3412",
+                          lineHeight: 1.4,
+                        }}
+                      >
+                        <AlertTriangle size={15} color="#ea580c" style={{ flexShrink: 0 }} />
+                        <div>
+                          <strong>Target {simulation.targetPct}% is mathematically out of reach</strong> for{" "}
+                          {impossibleInView.map((s) => `${s.subjectName} (Ceiling: ${s.maxPossiblePct}%)`).join(", ")}.
+                          Displaying all available recovery sessions up to your maximum possible ceiling before the semester ends on 31 Oct.
+                        </div>
+                      </div>
+                    );
+                  })()}
 
-                  return (
+                  {/* Safe Subject Dedicated Card */}
+                  {isSelectedSubjectSafe ? (
                     <div
-                      key={rIdx}
                       style={{
-                        background: isMilestone ? "#f0fdf4" : isPeak ? "#fffbeb" : "#ffffff",
-                        border: `1.5px solid ${isMilestone ? "#86efac" : isPeak ? "#f59e0b" : "#e2e8f0"}`,
+                        background: "#f0fdf4",
+                        border: "1.5px solid #bbf7d0",
                         borderRadius: 12,
-                        padding: "10px 12px",
+                        padding: effectiveIsMobile ? "14px 12px" : "18px 20px",
                         display: "flex",
                         flexDirection: "column",
-                        gap: 6,
-                        boxShadow: isMilestone
-                          ? "0 2px 8px rgba(34, 197, 94, 0.15)"
-                          : isPeak
-                          ? "0 2px 8px rgba(245, 158, 11, 0.2)"
-                          : "0 1px 3px rgba(0,0,0,0.02)",
-                        minWidth: 0,
-                        width: "100%",
-                        boxSizing: "border-box",
-                        overflow: "hidden",
+                        gap: 10,
                       }}
                     >
-                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 6 }}>
-                        <div style={{ display: "flex", alignItems: "center", gap: 6, minWidth: 0, flexWrap: "wrap" }}>
-                          <span
-                            style={{
-                              fontSize: 10.5,
-                              fontWeight: 900,
-                              background: isMilestone ? "#22c55e" : isPeak ? "#d97706" : "#0f172a",
-                              color: "#ffffff",
-                              padding: "1px 6px",
-                              borderRadius: 5,
-                              flexShrink: 0,
-                            }}
-                          >
-                            Recovery #{recSes.sessionNumber}
-                          </span>
-                          <span style={{ fontSize: 12.5, fontWeight: 800, color: "#0f172a" }}>
-                            {recSes.dateStr}
-                          </span>
-                        </div>
-
-                        {isMilestone ? (
-                          <span
-                            style={{
-                              fontSize: 10,
-                              fontWeight: 900,
-                              background: "#dcfce7",
-                              color: "#15803d",
-                              border: "1px solid #86efac",
-                              padding: "1px 6px",
-                              borderRadius: 4,
-                              display: "flex",
-                              alignItems: "center",
-                              gap: 3,
-                              flexShrink: 0,
-                            }}
-                          >
-                            <Target size={11} /> {simulation.targetPct}% RESTORED!
-                          </span>
-                        ) : isPeak ? (
-                          <span
-                            style={{
-                              fontSize: 9.5,
-                              fontWeight: 900,
-                              background: "#fef3c7",
-                              color: "#b45309",
-                              border: "1px solid #fcd34d",
-                              padding: "1px 6px",
-                              borderRadius: 4,
-                              display: "flex",
-                              alignItems: "center",
-                              gap: 3,
-                              flexShrink: 0,
-                            }}
-                          >
-                            <TrendingUp size={11} /> Max Peak: {recSes.runningPercentage}%
-                          </span>
-                        ) : (
-                          <span
-                            style={{
-                              fontSize: 9.5,
-                              fontWeight: 900,
-                              background:
-                                recSes.type === "PR"
-                                  ? "#faf5ff"
-                                  : recSes.type === "TUT"
-                                  ? "#fffbeb"
-                                  : "#eff6ff",
-                              color:
-                                recSes.type === "PR"
-                                  ? "#7c3aed"
-                                  : recSes.type === "TUT"
-                                  ? "#b45309"
-                                  : "#1e40af",
-                              border: `1px solid ${
-                                recSes.type === "PR"
-                                  ? "#ddd6fe"
-                                  : recSes.type === "TUT"
-                                  ? "#fde68a"
-                                  : "#bfdbfe"
-                              }`,
-                              padding: "1px 5px",
-                              borderRadius: 4,
-                              flexShrink: 0,
-                            }}
-                          >
-                            {recSes.type}
-                          </span>
-                        )}
+                      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                        <CheckCircle2 size={20} color="#16a34a" />
+                        <span style={{ fontSize: 14, fontWeight: 900, color: "#166534" }}>
+                          Safe Subject &bull; Attendance Won't Drop Below {simulation.targetPct}%
+                        </span>
                       </div>
+                      <p style={{ fontSize: 12.5, color: "#166534", margin: 0, lineHeight: 1.5 }}>
+                        Even after taking leave on your selected dates ({selectedSubjectObj.bunkMissedCount} class{selectedSubjectObj.bunkMissedCount > 1 ? "es" : ""} missed), your attendance in <strong>{selectedSubjectObj.subjectName}</strong> will remain at <strong>{selectedSubjectObj.postBunkAttended}/{selectedSubjectObj.postBunkDelivered} ({selectedSubjectObj.postBunkPct}%)</strong>, which is comfortably above your <strong>{simulation.targetPct}%</strong> target threshold. You do not need any recovery classes for this subject!
+                      </p>
+                      <div>
+                        <button
+                          type="button"
+                          onClick={() => setRecoverySubjectFilter("ALL")}
+                          style={{
+                            background: "#ffffff",
+                            border: "1px solid #86efac",
+                            color: "#15803d",
+                            padding: "6px 12px",
+                            borderRadius: 8,
+                            fontSize: 12,
+                            fontWeight: 800,
+                            cursor: "pointer",
+                            display: "inline-flex",
+                            alignItems: "center",
+                            gap: 5,
+                          }}
+                        >
+                          <CalendarCheck size={13} /> View All Missed Subjects Needing Recovery ({simulation.masterMissedRecoverySessions.length} classes)
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    /* Exact Card Grid from Image 3 */
+                    <div
+                      style={{
+                        display: "grid",
+                        gridTemplateColumns: effectiveIsMobile ? "1fr" : "repeat(auto-fill, minmax(280px, 1fr))",
+                        gap: 10,
+                        width: "100%",
+                        boxSizing: "border-box",
+                      }}
+                    >
+                      {visibleRecoverySessions.map((recSes, rIdx) => {
+                        const isMilestone = recSes.isMilestoneTarget;
+                        const isPeak = recSes.isMaxPeakSession;
+                        const isImpossible = recSes.isTargetImpossible;
+
+                        return (
+                          <div
+                            key={rIdx}
+                            style={{
+                              background: isMilestone ? "#f0fdf4" : isPeak ? "#fffbeb" : "#ffffff",
+                              border: `1.5px solid ${isMilestone ? "#86efac" : isPeak ? "#f59e0b" : "#e2e8f0"}`,
+                              borderRadius: 12,
+                              padding: "10px 12px",
+                              display: "flex",
+                              flexDirection: "column",
+                              gap: 6,
+                              boxShadow: isMilestone
+                                ? "0 2px 8px rgba(34, 197, 94, 0.15)"
+                                : isPeak
+                                ? "0 2px 8px rgba(245, 158, 11, 0.2)"
+                                : "0 1px 3px rgba(0,0,0,0.02)",
+                              minWidth: 0,
+                              width: "100%",
+                              boxSizing: "border-box",
+                              overflow: "hidden",
+                            }}
+                          >
+                            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 6 }}>
+                              <div style={{ display: "flex", alignItems: "center", gap: 6, minWidth: 0, flexWrap: "wrap" }}>
+                                <span
+                                  style={{
+                                    fontSize: 10.5,
+                                    fontWeight: 900,
+                                    background: isMilestone
+                                      ? "#22c55e"
+                                      : isPeak
+                                      ? "#d97706"
+                                      : recSes.isBufferSession
+                                      ? "#64748b"
+                                      : "#0f172a",
+                                    color: "#ffffff",
+                                    padding: "1px 6px",
+                                    borderRadius: 5,
+                                    flexShrink: 0,
+                                  }}
+                                >
+                                  {recSes.isBufferSession
+                                    ? `Buffer #${recSes.bufferIndex}`
+                                    : recSes.classesNeededTotal > 0
+                                    ? `Class ${recSes.subjectSessionNumber} of ${recSes.classesNeededTotal}`
+                                    : `Recovery #${recSes.sessionNumber}`}
+                                </span>
+                                <span style={{ fontSize: 12.5, fontWeight: 800, color: "#0f172a" }}>
+                                  {recSes.dateStr}
+                                </span>
+                              </div>
+
+                              {isMilestone ? (
+                                <span
+                                  style={{
+                                    fontSize: 10,
+                                    fontWeight: 900,
+                                    background: "#dcfce7",
+                                    color: "#15803d",
+                                    border: "1px solid #86efac",
+                                    padding: "1px 6px",
+                                    borderRadius: 4,
+                                    display: "flex",
+                                    alignItems: "center",
+                                    gap: 3,
+                                    flexShrink: 0,
+                                  }}
+                                >
+                                  <Target size={11} /> {simulation.targetPct}% RESTORED!
+                                </span>
+                              ) : recSes.isBufferSession ? (
+                                <span
+                                  style={{
+                                    fontSize: 9.5,
+                                    fontWeight: 800,
+                                    background: "#f1f5f9",
+                                    color: "#475569",
+                                    border: "1px solid #cbd5e1",
+                                    padding: "1px 6px",
+                                    borderRadius: 4,
+                                    display: "flex",
+                                    alignItems: "center",
+                                    gap: 3,
+                                    flexShrink: 0,
+                                  }}
+                                >
+                                  <ShieldCheck size={11} color="#059669" /> Safe Buffer
+                                </span>
+                              ) : isPeak ? (
+                                <span
+                                  style={{
+                                    fontSize: 9.5,
+                                    fontWeight: 900,
+                                    background: "#fef3c7",
+                                    color: "#b45309",
+                                    border: "1px solid #fcd34d",
+                                    padding: "1px 6px",
+                                    borderRadius: 4,
+                                    display: "flex",
+                                    alignItems: "center",
+                                    gap: 3,
+                                    flexShrink: 0,
+                                  }}
+                                >
+                                  <TrendingUp size={11} /> Max Peak: {recSes.runningPercentage}%
+                                </span>
+                              ) : (
+                                <span
+                                  style={{
+                                    fontSize: 9.5,
+                                    fontWeight: 900,
+                                    background:
+                                      recSes.type === "PR"
+                                        ? "#faf5ff"
+                                        : recSes.type === "TUT"
+                                        ? "#fffbeb"
+                                        : "#eff6ff",
+                                    color:
+                                      recSes.type === "PR"
+                                        ? "#7c3aed"
+                                        : recSes.type === "TUT"
+                                        ? "#b45309"
+                                        : "#1e40af",
+                                    border: `1px solid ${
+                                      recSes.type === "PR"
+                                        ? "#ddd6fe"
+                                        : recSes.type === "TUT"
+                                        ? "#fde68a"
+                                        : "#bfdbfe"
+                                    }`,
+                                    padding: "1px 5px",
+                                    borderRadius: 4,
+                                    flexShrink: 0,
+                                  }}
+                                >
+                                  {recSes.type}
+                                </span>
+                              )}
+                            </div>
 
                       <div style={{ fontSize: 12.5, fontWeight: 800, color: "#0f172a", wordBreak: "break-word" }}>
                         {recSes.subjectName}
@@ -3629,29 +3836,32 @@ export default function FuturePredictor({
                   );
                 })}
               </div>
+            )}
 
-              {filteredRecoverySessions.length > 15 && !showAllRecoveryDates && (
-                <button
-                  type="button"
-                  onClick={() => setShowAllRecoveryDates(true)}
-                  style={{
-                    background: "transparent",
-                    border: "1px dashed #cbd5e1",
-                    padding: "8px 12px",
-                    borderRadius: 8,
-                    color: "#2563eb",
-                    fontSize: 11.5,
-                    fontWeight: 800,
-                    cursor: "pointer",
-                    textAlign: "center",
-                    marginTop: 4,
-                  }}
-                >
-                  + Show remaining {filteredRecoverySessions.length - 15} recovery class dates until target
-                </button>
-              )}
-            </div>
-          </motion.div>
+            {!isSelectedSubjectSafe && filteredRecoverySessions.length > 15 && !showAllRecoveryDates && (
+              <button
+                type="button"
+                onClick={() => setShowAllRecoveryDates(true)}
+                style={{
+                  background: "transparent",
+                  border: "1px dashed #cbd5e1",
+                  padding: "8px 12px",
+                  borderRadius: 8,
+                  color: "#2563eb",
+                  fontSize: 11.5,
+                  fontWeight: 800,
+                  cursor: "pointer",
+                  textAlign: "center",
+                  marginTop: 4,
+                }}
+              >
+                + Show remaining {filteredRecoverySessions.length - 15} recovery class dates until target
+              </button>
+            )}
+          </div>
+        );
+      })()}
+    </motion.div>
         </motion.div>
       )}
     </AnimatePresence>
