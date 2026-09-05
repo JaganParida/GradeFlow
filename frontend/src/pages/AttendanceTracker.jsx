@@ -77,6 +77,7 @@ import {
 import { isMatch } from "../utils/basketLogic";
 import FuturePredictor from "../components/FuturePredictor";
 import AttendanceTargetPredictor from "../components/AttendanceTargetPredictor";
+import SubjectDropdown from "../components/SubjectDropdown";
 import AttendanceScreenshotModal from "../components/AttendanceScreenshotModal";
 import { AttendanceSkeleton } from "../components/LoadingSpinner";
 import ModernMobileSubNav from "../components/ModernMobileSubNav";
@@ -3958,127 +3959,40 @@ export default function AttendanceTracker() {
             }}
           >
             {/* Routine Quick Subject Selector */}
-            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                <span style={{ fontSize: isMobile ? 12 : 13.5, fontWeight: 800, color: "#1e293b", display: "flex", alignItems: "center", gap: 6 }}>
-                  <BookOpen size={isMobile ? 14 : 16} color="#059669" />
-                  Select Subject from Routine:
-                </span>
-                {activeCatalogItem && activeCatalogItem.classesPerWeek > 0 && (
-                  <span
-                    style={{
-                      fontSize: isMobile ? 10.5 : 12,
-                      fontWeight: 800,
-                      color: "#2563eb",
-                      background: "#eff6ff",
-                      padding: isMobile ? "2px 8px" : "3px 10px",
-                      borderRadius: 8,
-                      border: "1px solid #bfdbfe",
-                    }}
-                  >
-                    {activeCatalogItem.classesPerWeek} classes / week
+            {sectionCatalog.length > 0 && (
+              <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                  <span style={{ fontSize: isMobile ? 12 : 13, fontWeight: 800, color: "#1e293b", display: "flex", alignItems: "center", gap: 6 }}>
+                    <BookOpen size={isMobile ? 14 : 16} color="#059669" />
+                    Select Subject to Simulate:
                   </span>
-                )}
-              </div>
-
-              {/* Quick Subject Pills with Arrow Scroll Buttons */}
-              {sectionCatalog.length > 0 && (
-                <div style={{ position: "relative", display: "flex", alignItems: "center", gap: 6, width: "100%", maxWidth: "100%", boxSizing: "border-box" }}>
-                  <button
-                    type="button"
-                    onClick={() => scrollSubjectPills("left")}
-                    disabled={!canScrollSubjectLeft}
-                    aria-label="Scroll subjects left"
-                    style={{
-                      width: isMobile ? 30 : 34,
-                      height: isMobile ? 30 : 34,
-                      borderRadius: 8,
-                      border: "1px solid #cbd5e1",
-                      background: "#ffffff",
-                      color: canScrollSubjectLeft ? "#0f172a" : "#cbd5e1",
-                      cursor: canScrollSubjectLeft ? "pointer" : "default",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      flexShrink: 0,
-                      boxShadow: "0 1px 2px rgba(0,0,0,0.04)",
-                      transition: "all 0.15s",
-                    }}
-                  >
-                    <ChevronLeft size={isMobile ? 16 : 18} />
-                  </button>
-
-                  <div
-                    ref={subjectPillsRef}
-                    onScroll={checkSubjectScroll}
-                    style={{
-                      flex: 1,
-                      minWidth: 0,
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 8,
-                      overflowX: "auto",
-                      scrollBehavior: "smooth",
-                      scrollbarWidth: "none",
-                      msOverflowStyle: "none",
-                      padding: "4px 0",
-                    }}
-                  >
-                    {sectionCatalog.map((s) => {
-                      const isSelected = selectedSubjectName === s.subjectName;
-                      return (
-                        <button
-                          key={s.subjectName}
-                          data-subject-id={s.subjectName}
-                          type="button"
-                          onClick={() => selectSubjectFromCatalog(s)}
-                          style={{
-                            padding: isMobile ? "7px 14px" : "8px 16px",
-                            borderRadius: 10,
-                            fontSize: isMobile ? 12.5 : 13,
-                            fontWeight: 700,
-                            cursor: "pointer",
-                            border: isSelected ? "1.5px solid #059669" : "1px solid #e2e8f0",
-                            background: isSelected ? "linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%)" : "#ffffff",
-                            color: isSelected ? "#065f46" : "#475569",
-                            whiteSpace: "nowrap",
-                            flexShrink: 0,
-                            boxShadow: isSelected ? "0 2px 6px rgba(5, 150, 105, 0.15)" : "0 1px 2px rgba(0,0,0,0.02)",
-                            transition: "all 0.15s ease",
-                          }}
-                        >
-                          {s.subjectName}
-                        </button>
-                      );
-                    })}
-                  </div>
-
-                  <button
-                    type="button"
-                    onClick={() => scrollSubjectPills("right")}
-                    disabled={!canScrollSubjectRight}
-                    aria-label="Scroll subjects right"
-                    style={{
-                      width: isMobile ? 30 : 34,
-                      height: isMobile ? 30 : 34,
-                      borderRadius: 8,
-                      border: "1px solid #cbd5e1",
-                      background: "#ffffff",
-                      color: canScrollSubjectRight ? "#0f172a" : "#cbd5e1",
-                      cursor: canScrollSubjectRight ? "pointer" : "default",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      flexShrink: 0,
-                      boxShadow: "0 1px 2px rgba(0,0,0,0.04)",
-                      transition: "all 0.15s",
-                    }}
-                  >
-                    <ChevronRight size={isMobile ? 16 : 18} />
-                  </button>
+                  {activeCatalogItem && activeCatalogItem.classesPerWeek > 0 && (
+                    <span
+                      style={{
+                        fontSize: isMobile ? 10.5 : 12,
+                        fontWeight: 800,
+                        color: "#2563eb",
+                        background: "#eff6ff",
+                        padding: isMobile ? "2px 8px" : "3px 10px",
+                        borderRadius: 8,
+                        border: "1px solid #bfdbfe",
+                      }}
+                    >
+                      {activeCatalogItem.classesPerWeek} classes / week
+                    </span>
+                  )}
                 </div>
-              )}
-            </div>
+                <SubjectDropdown
+                  catalog={sectionCatalog}
+                  selectedSubjectName={selectedSubjectName}
+                  onSelectSubject={selectSubjectFromCatalog}
+                  savedSubjects={savedSubjects}
+                  studentData={studentData}
+                  targetGoal={targetGoal}
+                  isMobile={isMobile}
+                />
+              </div>
+            )}
 
             {/* Component Breakdown Card Rows */}
             <div style={{ display: "flex", flexDirection: "column", gap: isMobile ? 10 : 14 }}>
@@ -4969,74 +4883,6 @@ export default function AttendanceTracker() {
             </div>
           )}
 
-          {/* Quick Subject Selector for Sections 2, 3, 4 */}
-          {currentStudioSection !== "simulator" && sectionCatalog.length > 0 && (
-            <div
-              style={{
-                background: "#ffffff",
-                border: "1px solid #e2e8f0",
-                borderRadius: 14,
-                padding: isMobile ? "10px 12px" : "12px 16px",
-                display: "flex",
-                flexDirection: "column",
-                gap: 8,
-                boxShadow: "0 1px 2px rgba(0,0,0,0.02)",
-              }}
-            >
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                <span style={{ fontSize: isMobile ? 12 : 13, fontWeight: 800, color: "#1e293b", display: "flex", alignItems: "center", gap: 6 }}>
-                  <BookOpen size={isMobile ? 14 : 15} color="#059669" />
-                  Select Subject to Inspect:
-                </span>
-                {activeCatalogItem && activeCatalogItem.classesPerWeek > 0 && (
-                  <span
-                    style={{
-                      fontSize: 11,
-                      fontWeight: 800,
-                      color: "#2563eb",
-                      background: "#eff6ff",
-                      padding: "2px 8px",
-                      borderRadius: 6,
-                      border: "1px solid #bfdbfe",
-                    }}
-                  >
-                    {activeCatalogItem.classesPerWeek} classes / week
-                  </span>
-                )}
-              </div>
-
-              {/* Subject Pills */}
-              <div style={{ display: "flex", alignItems: "center", gap: 6, width: "100%", overflowX: "auto", scrollbarWidth: "none", padding: "2px 0" }}>
-                {sectionCatalog.map((s) => {
-                  const isSelected = selectedSubjectName === s.subjectName;
-                  return (
-                    <button
-                      key={s.subjectName}
-                      type="button"
-                      onClick={() => selectSubjectFromCatalog(s)}
-                      style={{
-                        padding: isMobile ? "6px 12px" : "7px 14px",
-                        borderRadius: 8,
-                        fontSize: isMobile ? 11.5 : 12.5,
-                        fontWeight: 700,
-                        cursor: "pointer",
-                        border: isSelected ? "1.5px solid #059669" : "1px solid #e2e8f0",
-                        background: isSelected ? "linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%)" : "#ffffff",
-                        color: isSelected ? "#065f46" : "#475569",
-                        whiteSpace: "nowrap",
-                        flexShrink: 0,
-                        boxShadow: isSelected ? "0 2px 5px rgba(5, 150, 105, 0.15)" : "none",
-                        transition: "all 0.15s ease",
-                      }}
-                    >
-                      {s.subjectName}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-          )}
-
           {/* ── SECTIONS 02, 03, 04: SCHEDULE, MISS PENALTY, ROADMAP ── */}
           {(currentStudioSection === "schedule" || currentStudioSection === "penalty" || currentStudioSection === "roadmap") && (
             <AttendanceTargetPredictor
@@ -5050,6 +4896,9 @@ export default function AttendanceTracker() {
               isMobile={isMobile}
               activeSection={currentStudioSection}
               onSectionChange={handleStudioSectionChange}
+              sectionCatalog={sectionCatalog}
+              onSelectSubject={selectSubjectFromCatalog}
+              savedSubjects={savedSubjects}
             />
           )}
         </motion.div>

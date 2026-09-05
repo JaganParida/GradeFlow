@@ -23,7 +23,9 @@ import {
   CalendarCheck,
   CalendarX,
   Compass,
+  BookOpen,
 } from "lucide-react";
+import SubjectDropdown from "./SubjectDropdown";
 import {
   calculateAttendance,
   estimateTargetReachDate,
@@ -44,6 +46,9 @@ export default function AttendanceTargetPredictor({
   isMobile = false,
   activeSection = "schedule",
   onSectionChange = null,
+  sectionCatalog = [],
+  onSelectSubject = null,
+  savedSubjects = [],
 }) {
   // Current active subject data
   const subjectName = activeCatalogItem?.subjectName || "Selected Subject";
@@ -181,60 +186,154 @@ export default function AttendanceTargetPredictor({
       <div
         style={{
           display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          flexWrap: "wrap",
-          gap: 12,
+          flexDirection: "column",
+          gap: 14,
           paddingBottom: 16,
           borderBottom: "1.5px solid #f1f5f9",
         }}
       >
-        <div>
-          <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-            <h3 style={{ fontSize: isMobile ? 16 : 19, fontWeight: 900, color: "#0f172a", margin: 0, letterSpacing: "-0.3px" }}>
-              {subjectName} — Target Predictor &amp; Class Schedule
-            </h3>
-            {subCode && (
-              <span
+        {/* Top Title & Target Row */}
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: isMobile ? "flex-start" : "center",
+            flexWrap: "wrap",
+            gap: 12,
+          }}
+        >
+          <div>
+            <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+              <h3
                 style={{
-                  fontSize: 11,
-                  fontWeight: 800,
-                  background: "#eff6ff",
-                  color: "#2563eb",
-                  border: "1px solid #bfdbfe",
-                  padding: "2px 8px",
-                  borderRadius: 6,
+                  fontSize: isMobile ? 18 : 22,
+                  fontWeight: 900,
+                  color: "#0f172a",
+                  margin: 0,
+                  letterSpacing: "-0.4px",
                 }}
               >
-                {subCode}
-              </span>
-            )}
+                Target Predictor &amp; Class Schedule
+              </h3>
+              {activeSection === "schedule" && (
+                <span
+                  style={{
+                    fontSize: 11,
+                    fontWeight: 800,
+                    background: "#ecfdf5",
+                    color: "#065f46",
+                    border: "1px solid #a7f3d0",
+                    padding: "2px 8px",
+                    borderRadius: 6,
+                  }}
+                >
+                  Schedule
+                </span>
+              )}
+              {activeSection === "penalty" && (
+                <span
+                  style={{
+                    fontSize: 11,
+                    fontWeight: 800,
+                    background: "#fff1f2",
+                    color: "#e11d48",
+                    border: "1px solid #fecdd3",
+                    padding: "2px 8px",
+                    borderRadius: 6,
+                  }}
+                >
+                  Miss Penalty
+                </span>
+              )}
+              {activeSection === "roadmap" && (
+                <span
+                  style={{
+                    fontSize: 11,
+                    fontWeight: 800,
+                    background: "#eff6ff",
+                    color: "#2563eb",
+                    border: "1px solid #bfdbfe",
+                    padding: "2px 8px",
+                    borderRadius: 6,
+                  }}
+                >
+                  Roadmap
+                </span>
+              )}
+            </div>
+            <p style={{ fontSize: isMobile ? 12 : 13, color: "#64748b", margin: "4px 0 0 0" }}>
+              Exact date-by-date timetable schedule, holiday exclusions, penalty multiplier facts &amp; post-target bunk planning.
+            </p>
           </div>
-          <p style={{ fontSize: 12.5, color: "#64748b", margin: "4px 0 0 0" }}>
-            Exact date-by-date timetable schedule, holiday exclusions, penalty multiplier facts &amp; post-target bunk planning.
-          </p>
+
+          {/* Active Target Goal Indicator */}
+          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+            <span
+              style={{
+                fontSize: 12,
+                fontWeight: 800,
+                background: "#eff6ff",
+                color: "#2563eb",
+                border: "1px solid #bfdbfe",
+                padding: "5px 12px",
+                borderRadius: 8,
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 6,
+              }}
+            >
+              <Target size={14} color="#2563eb" />
+              Target: <strong>{targetGoal}%</strong>
+            </span>
+          </div>
         </div>
 
-        {/* Active Target Goal Indicator */}
-        <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-          <span
-            style={{
-              fontSize: 11.5,
-              fontWeight: 800,
-              background: "#eff6ff",
-              color: "#2563eb",
-              border: "1px solid #bfdbfe",
-              padding: "4px 10px",
-              borderRadius: 8,
-              display: "inline-flex",
-              alignItems: "center",
-              gap: 5,
-            }}
-          >
-            <Target size={13} color="#2563eb" />
-            Target: <strong>{targetGoal}%</strong>
-          </span>
-        </div>
+        {/* Professional Subject Dropdown Selector */}
+        {sectionCatalog && sectionCatalog.length > 0 && onSelectSubject && (
+          <div style={{ display: "flex", flexDirection: "column", gap: 6, paddingTop: 4 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <span
+                style={{
+                  fontSize: isMobile ? 11.5 : 12.5,
+                  fontWeight: 800,
+                  color: "#475569",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 6,
+                  textTransform: "uppercase",
+                  letterSpacing: "0.4px",
+                }}
+              >
+                <BookOpen size={isMobile ? 13 : 15} color="#059669" />
+                Select Subject to Inspect:
+              </span>
+              {weeklyOccurrences.length > 0 && (
+                <span
+                  style={{
+                    fontSize: 11,
+                    fontWeight: 800,
+                    color: "#2563eb",
+                    background: "#eff6ff",
+                    padding: "2px 8px",
+                    borderRadius: 6,
+                    border: "1px solid #bfdbfe",
+                  }}
+                >
+                  {weeklyOccurrences.length} classes / week
+                </span>
+              )}
+            </div>
+            <SubjectDropdown
+              catalog={sectionCatalog}
+              selectedSubjectName={subjectName}
+              onSelectSubject={onSelectSubject}
+              savedSubjects={savedSubjects}
+              studentData={studentData}
+              targetGoal={targetGoal}
+              isMobile={isMobile}
+            />
+          </div>
+        )}
       </div>
 
       {/* ── HIGH-LEVEL SUMMARY HERO CARDS ─────────────────────────────────── */}
