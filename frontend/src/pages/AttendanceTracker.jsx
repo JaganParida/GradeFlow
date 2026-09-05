@@ -1737,7 +1737,7 @@ export default function AttendanceTracker() {
       <div
         className="gf-skeleton-fade"
         style={{
-          background: "#f8fafc",
+          background: "#f1f5f9",
           minHeight: "100vh",
           color: "#0f172a",
           fontFamily: "'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif",

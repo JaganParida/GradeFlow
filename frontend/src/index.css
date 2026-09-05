@@ -397,27 +397,60 @@ h6 {
 }
 .gf-attendance-skeleton-sidebar {
   background: #ffffff;
-  border: 1px solid #cbd5e1;
-  border-radius: 12px;
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
   padding: 16px 14px;
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 13px;
   box-sizing: border-box;
   width: 100%;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04), 0 1px 2px rgba(15, 23, 42, 0.02);
 }
 .gf-attendance-skeleton-main {
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 16px;
   min-width: 0;
   width: 100%;
   box-sizing: border-box;
 }
+.gf-attendance-skeleton-card {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  padding: 16px 18px;
+  box-sizing: border-box;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.03);
+}
 .gf-attendance-skeleton-hero-grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+}
+.gf-attendance-skeleton-routine-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
   gap: 10px;
+}
+.gf-attendance-skeleton-matrix-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 12px;
+}
+.gf-attendance-skeleton-mobile-cta {
+  display: none !important;
+}
+.gf-attendance-skeleton-mobile-nav {
+  display: none !important;
+}
+.gf-attendance-skeleton-desktop-header-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.gf-attendance-skeleton-mobile-header-target {
+  display: none !important;
 }
 
 .gf-analytics-skeleton-wrap {
@@ -506,7 +539,18 @@ h6 {
 }
 
 @media (max-width: 1024px) {
+  .gf-attendance-skeleton-wrap {
+    grid-template-columns: 240px minmax(0, 1fr) !important;
+    gap: 16px !important;
+    padding: 18px 20px 80px 20px !important;
+  }
   .gf-attendance-skeleton-hero-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+  .gf-attendance-skeleton-routine-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+  .gf-attendance-skeleton-matrix-grid {
     grid-template-columns: repeat(2, 1fr) !important;
   }
 }
@@ -529,8 +573,34 @@ h6 {
   .gf-attendance-skeleton-sidebar {
     display: none !important;
   }
+  .gf-attendance-skeleton-mobile-cta {
+    display: flex !important;
+  }
+  .gf-attendance-skeleton-mobile-nav {
+    display: flex !important;
+  }
+  .gf-attendance-skeleton-desktop-header-right {
+    display: none !important;
+  }
+  .gf-attendance-skeleton-mobile-header-target {
+    display: flex !important;
+    width: 100% !important;
+  }
+  .gf-attendance-skeleton-card {
+    padding: 12px 12px !important;
+    border-radius: 12px !important;
+  }
   .gf-attendance-skeleton-hero-grid {
     grid-template-columns: repeat(2, 1fr) !important;
+    gap: 8px !important;
+  }
+  .gf-attendance-skeleton-routine-grid {
+    grid-template-columns: 1fr !important;
+    gap: 8px !important;
+  }
+  .gf-attendance-skeleton-matrix-grid {
+    grid-template-columns: 1fr !important;
+    gap: 10px !important;
   }
   .gf-analytics-skeleton-wrap {
     padding: 12px 10px 40px 10px !important;
