@@ -3558,7 +3558,7 @@ export default function AttendanceTracker() {
                       flexShrink: 0,
                     }}
                   >
-                    <Layers size={18} color="#38bdf8" />
+                    <BookOpen size={18} color="#ffffff" />
                   </div>
                   <div>
                     <h3
@@ -3630,7 +3630,7 @@ export default function AttendanceTracker() {
                       justifyContent: "center",
                     }}
                   >
-                    <Layers size={22} color="#64748b" />
+                    <BookOpen size={22} color="#64748b" />
                   </div>
                   <div style={{ fontSize: 15, fontWeight: 800, color: "#0f172a" }}>
                     No Subjects Found
