@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Calendar as CalendarIcon,
@@ -42,6 +42,8 @@ export default function AttendanceTargetPredictor({
   selectedSection = "CSE-A",
   studentData = null,
   isMobile = false,
+  activeSection = "schedule",
+  onSectionChange = null,
 }) {
   // Current active subject data
   const subjectName = activeCatalogItem?.subjectName || "Selected Subject";
@@ -49,7 +51,29 @@ export default function AttendanceTargetPredictor({
   const weeklyOccurrences = activeCatalogItem?.weeklyOccurrences || [];
 
   // Internal Tabs within the Target Predictor Engine
-  const [engineView, setEngineView] = useState("all_schedule"); // "all_schedule" | "penalty_simulator" | "multiphase_planner"
+  const getInitialView = () => {
+    if (activeSection === "schedule") return "all_schedule";
+    if (activeSection === "penalty") return "penalty_simulator";
+    if (activeSection === "roadmap") return "multiphase_planner";
+    return "all_schedule";
+  };
+
+  const [engineView, setEngineView] = useState(getInitialView);
+
+  useEffect(() => {
+    if (activeSection === "schedule") setEngineView("all_schedule");
+    else if (activeSection === "penalty") setEngineView("penalty_simulator");
+    else if (activeSection === "roadmap") setEngineView("multiphase_planner");
+  }, [activeSection]);
+
+  const setEngineViewSync = (newView) => {
+    setEngineView(newView);
+    if (onSectionChange) {
+      if (newView === "all_schedule") onSectionChange("schedule");
+      else if (newView === "penalty_simulator") onSectionChange("penalty");
+      else if (newView === "multiphase_planner") onSectionChange("roadmap");
+    }
+  };
 
   // 1. All-dates schedule expansion state
   const [showAllDates, setShowAllDates] = useState(false);
@@ -364,11 +388,11 @@ export default function AttendanceTargetPredictor({
         </div>
       </div>
 
-      {/* ── 3-SECTION NAVIGATION TABS ────────────────────────────────────────── */}
+      {/* ── 4-SECTION NAVIGATION TABS ────────────────────────────────────────── */}
       <div
         style={{
           display: "grid",
-          gridTemplateColumns: "repeat(3, 1fr)",
+          gridTemplateColumns: onSectionChange ? "repeat(4, 1fr)" : "repeat(3, 1fr)",
           background: "#f1f5f9",
           padding: 4,
           borderRadius: 12,
@@ -377,82 +401,110 @@ export default function AttendanceTargetPredictor({
           boxSizing: "border-box",
         }}
       >
+        {onSectionChange && (
+          <button
+            type="button"
+            onClick={() => onSectionChange("simulator")}
+            style={{
+              display: "flex",
+              flexDirection: isMobile ? "column" : "row",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: isMobile ? 2 : 6,
+              padding: isMobile ? "8px 2px" : "9px 12px",
+              borderRadius: 9,
+              fontSize: isMobile ? 11 : 12.5,
+              fontWeight: 800,
+              background: activeSection === "simulator" ? "#ffffff" : "transparent",
+              color: activeSection === "simulator" ? "#2563eb" : "#64748b",
+              border: "none",
+              boxShadow: activeSection === "simulator" ? "0 2px 6px rgba(15, 23, 42, 0.08)" : "none",
+              cursor: "pointer",
+              transition: "all 0.15s ease",
+              textAlign: "center",
+            }}
+          >
+            <Sliders size={14} color={activeSection === "simulator" ? "#2563eb" : "#64748b"} />
+            <span>{isMobile ? "1. Simulator" : "1. What-If Simulator"}</span>
+          </button>
+        )}
+
         <button
           type="button"
-          onClick={() => setEngineView("all_schedule")}
+          onClick={() => setEngineViewSync("all_schedule")}
           style={{
             display: "flex",
             flexDirection: isMobile ? "column" : "row",
             alignItems: "center",
             justifyContent: "center",
             gap: isMobile ? 2 : 6,
-            padding: isMobile ? "8px 2px" : "9px 14px",
+            padding: isMobile ? "8px 2px" : "9px 12px",
             borderRadius: 9,
             fontSize: isMobile ? 11 : 12.5,
             fontWeight: 800,
-            background: engineView === "all_schedule" ? "#ffffff" : "transparent",
-            color: engineView === "all_schedule" ? "#0f172a" : "#64748b",
+            background: engineView === "all_schedule" && activeSection !== "simulator" ? "#ffffff" : "transparent",
+            color: engineView === "all_schedule" && activeSection !== "simulator" ? "#059669" : "#64748b",
             border: "none",
-            boxShadow: engineView === "all_schedule" ? "0 2px 6px rgba(15, 23, 42, 0.08)" : "none",
+            boxShadow: engineView === "all_schedule" && activeSection !== "simulator" ? "0 2px 6px rgba(15, 23, 42, 0.08)" : "none",
             cursor: "pointer",
             transition: "all 0.15s ease",
             textAlign: "center",
           }}
         >
-          <CalendarCheck size={14} color={engineView === "all_schedule" ? "#2563eb" : "#64748b"} />
-          <span>{isMobile ? "1. Schedule" : "1. Complete Schedule"}</span>
+          <CalendarCheck size={14} color={engineView === "all_schedule" && activeSection !== "simulator" ? "#059669" : "#64748b"} />
+          <span>{isMobile ? "2. Schedule" : "2. Complete Schedule"}</span>
         </button>
 
         <button
           type="button"
-          onClick={() => setEngineView("penalty_simulator")}
+          onClick={() => setEngineViewSync("penalty_simulator")}
           style={{
             display: "flex",
             flexDirection: isMobile ? "column" : "row",
             alignItems: "center",
             justifyContent: "center",
             gap: isMobile ? 2 : 6,
-            padding: isMobile ? "8px 2px" : "9px 14px",
+            padding: isMobile ? "8px 2px" : "9px 12px",
             borderRadius: 9,
             fontSize: isMobile ? 11 : 12.5,
             fontWeight: 800,
-            background: engineView === "penalty_simulator" ? "#ffffff" : "transparent",
-            color: engineView === "penalty_simulator" ? "#0f172a" : "#64748b",
+            background: engineView === "penalty_simulator" && activeSection !== "simulator" ? "#ffffff" : "transparent",
+            color: engineView === "penalty_simulator" && activeSection !== "simulator" ? "#ea580c" : "#64748b",
             border: "none",
-            boxShadow: engineView === "penalty_simulator" ? "0 2px 6px rgba(15, 23, 42, 0.08)" : "none",
+            boxShadow: engineView === "penalty_simulator" && activeSection !== "simulator" ? "0 2px 6px rgba(15, 23, 42, 0.08)" : "none",
             cursor: "pointer",
             transition: "all 0.15s ease",
             textAlign: "center",
           }}
         >
-          <Flame size={14} color={engineView === "penalty_simulator" ? "#ea580c" : "#64748b"} />
-          <span>{isMobile ? "2. Miss Penalty" : "2. Miss Penalty"}</span>
+          <Flame size={14} color={engineView === "penalty_simulator" && activeSection !== "simulator" ? "#ea580c" : "#64748b"} />
+          <span>{isMobile ? "3. Miss Penalty" : "3. Miss Penalty"}</span>
         </button>
 
         <button
           type="button"
-          onClick={() => setEngineView("multiphase_planner")}
+          onClick={() => setEngineViewSync("multiphase_planner")}
           style={{
             display: "flex",
             flexDirection: isMobile ? "column" : "row",
             alignItems: "center",
             justifyContent: "center",
             gap: isMobile ? 2 : 6,
-            padding: isMobile ? "8px 2px" : "9px 14px",
+            padding: isMobile ? "8px 2px" : "9px 12px",
             borderRadius: 9,
             fontSize: isMobile ? 11 : 12.5,
             fontWeight: 800,
-            background: engineView === "multiphase_planner" ? "#ffffff" : "transparent",
-            color: engineView === "multiphase_planner" ? "#0f172a" : "#64748b",
+            background: engineView === "multiphase_planner" && activeSection !== "simulator" ? "#ffffff" : "transparent",
+            color: engineView === "multiphase_planner" && activeSection !== "simulator" ? "#7c3aed" : "#64748b",
             border: "none",
-            boxShadow: engineView === "multiphase_planner" ? "0 2px 6px rgba(15, 23, 42, 0.08)" : "none",
+            boxShadow: engineView === "multiphase_planner" && activeSection !== "simulator" ? "0 2px 6px rgba(15, 23, 42, 0.08)" : "none",
             cursor: "pointer",
             transition: "all 0.15s ease",
             textAlign: "center",
           }}
         >
-          <Compass size={14} color={engineView === "multiphase_planner" ? "#7c3aed" : "#64748b"} />
-          <span>{isMobile ? "3. Roadmap" : "3. Multi-Phase Roadmap"}</span>
+          <Compass size={14} color={engineView === "multiphase_planner" && activeSection !== "simulator" ? "#7c3aed" : "#64748b"} />
+          <span>{isMobile ? "4. Roadmap" : "4. Attendance Roadmap"}</span>
         </button>
       </div>
 

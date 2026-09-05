@@ -75,6 +75,7 @@ import {
 import { isMatch } from "../utils/basketLogic";
 import FuturePredictor from "../components/FuturePredictor";
 import AttendanceTargetPredictor from "../components/AttendanceTargetPredictor";
+import PredictorStudioNav from "../components/PredictorStudioNav";
 import AttendanceScreenshotModal from "../components/AttendanceScreenshotModal";
 import { AttendanceSkeleton } from "../components/LoadingSpinner";
 import ModernMobileSubNav from "../components/ModernMobileSubNav";
@@ -374,8 +375,38 @@ export default function AttendanceTracker() {
     }
   }, [decodedParam, urlParam, navigate]);
 
-  const [searchParams] = useSearchParams();
-  const urlTabParam = searchParams.get("tab");
+  const [searchParams, setSearchParams] = useSearchParams();
+  const urlTabParam = searchParams.get("tab") || searchParams.get("view");
+  const urlSectionParam = searchParams.get("section") || searchParams.get("sec");
+
+  const getInitialStudioSection = () => {
+    if (urlSectionParam === "schedule" || urlSectionParam === "complete_schedule") return "schedule";
+    if (urlSectionParam === "penalty" || urlSectionParam === "miss_penalty") return "penalty";
+    if (urlSectionParam === "roadmap" || urlSectionParam === "multiphase") return "roadmap";
+    if (urlSectionParam === "simulator" || urlSectionParam === "whatif" || urlSectionParam === "calculator") return "simulator";
+    return "simulator";
+  };
+
+  const [studioSection, setStudioSection] = useState(getInitialStudioSection);
+
+  const handleSelectStudioSection = (secId) => {
+    setStudioSection(secId);
+    setSearchParams(
+      (prev) => {
+        const next = new URLSearchParams(prev);
+        next.set("tab", "studio");
+        next.set("section", secId);
+        return next;
+      },
+      { replace: true }
+    );
+  };
+
+  useEffect(() => {
+    if (urlSectionParam && ["simulator", "schedule", "penalty", "roadmap"].includes(urlSectionParam)) {
+      setStudioSection(urlSectionParam);
+    }
+  }, [urlSectionParam]);
 
   // Section Subjects Catalog from Timetable Database
   const sectionCatalog = useMemo(() => {
@@ -1499,7 +1530,7 @@ export default function AttendanceTracker() {
   const navMenuItems = [
     { id: "checkin", label: "Daily Check-In Hub", shortLabel: "Daily Hub", icon: <CalendarCheck size={16} />, badge: "Routine", desc: "Today's fast attendance logger & summary" },
     { id: "matrix", label: "Subject-wise Matrix", shortLabel: "Subjects", icon: <Grid size={16} />, badge: `${allSectionSubjects.length} Subs`, desc: "Detailed attendance % across all subjects" },
-    { id: "studio", label: "Predictor Studio", shortLabel: "Predictor", icon: <Sliders size={16} />, badge: "Simulate", desc: "Safe bunk margin & target attendance goal" },
+    { id: "studio", label: "Predictor Studio", shortLabel: "Predictor", icon: <Sliders size={16} />, badge: "4 Sections", desc: "Simulator, Schedule, Miss Penalty & Roadmap" },
     { id: "bunk_analyzer", label: "Future Predictor", shortLabel: "Predictor", icon: <TrendingUp size={16} />, badge: "Date-wise", desc: "Date-wise bunk impact & timetable recovery roadmap" },
   ];
 
@@ -3780,18 +3811,53 @@ export default function AttendanceTracker() {
               
 
         {/* ═══════════════════════════════════════════════════════════════
-            MAIN INTERACTIVE ATTENDANCE SIMULATOR STUDIO
+            STUDIO 4-SECTION MASTER WORKSPACE WITH ROUTING SIDEBAR & BOTTOM SHEET
         ═══════════════════════════════════════════════════════════════ */}
         <div
           style={{
-            display: "grid",
-            gridTemplateColumns: isMobile ? "1fr" : "1.15fr 0.85fr",
-            gap: 16,
-            alignItems: "start",
+            display: "flex",
+            flexDirection: isMobile ? "column" : "row",
+            gap: isMobile ? 12 : 20,
+            alignItems: "flex-start",
             width: "100%",
             boxSizing: "border-box",
           }}
         >
+          {/* Studio Routing Sidebar (Desktop) + Mobile Bottom Sheet / Quick Pills (Mobile) */}
+          <PredictorStudioNav
+            activeSection={studioSection}
+            onSelectSection={handleSelectStudioSection}
+            isMobile={isMobile}
+            activeSubjectName={selectedSubjectName}
+            currentPercentage={activeCalculation.currentPercentage}
+            targetGoal={targetGoal}
+            setTargetGoal={setTargetGoal}
+          />
+
+          {/* Main Studio Dynamic Section Container */}
+          <div
+            style={{
+              flex: 1,
+              minWidth: 0,
+              width: "100%",
+              display: "flex",
+              flexDirection: "column",
+              gap: 16,
+              boxSizing: "border-box",
+            }}
+          >
+            {/* ── SECTION 01: CALCULATOR & WHAT-IF SIMULATOR ── */}
+            {studioSection === "simulator" && (
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: isMobile ? "1fr" : "1.15fr 0.85fr",
+                  gap: 16,
+                  alignItems: "start",
+                  width: "100%",
+                  boxSizing: "border-box",
+                }}
+              >
           {/* LEFT COLUMN: Subject & Multi-Component Breakdown Manager */}
           <div
             style={{
@@ -4823,19 +4889,94 @@ export default function AttendanceTracker() {
               )}
             </div>
           </div>
-        </div>
+              </div>
+            )}
 
-        {/* Enhanced Interactive Attendance Target Predictor & Class Calendar */}
-        <AttendanceTargetPredictor
-          activeCatalogItem={activeCatalogItem}
-          activeCalculation={activeCalculation}
-          targetGoal={targetGoal}
-          setTargetGoal={setTargetGoal}
-          componentInputs={componentInputs}
-          selectedSection={selectedSection}
-          studentData={studentData}
-          isMobile={isMobile}
-        />
+            {/* Quick Subject Selector for Sections 2, 3, 4 */}
+            {studioSection !== "simulator" && sectionCatalog.length > 0 && (
+              <div
+                style={{
+                  background: "#ffffff",
+                  border: "1px solid #e2e8f0",
+                  borderRadius: 14,
+                  padding: isMobile ? "10px 12px" : "12px 16px",
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: 8,
+                  boxShadow: "0 1px 2px rgba(0,0,0,0.02)",
+                }}
+              >
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                  <span style={{ fontSize: isMobile ? 12 : 13, fontWeight: 800, color: "#1e293b", display: "flex", alignItems: "center", gap: 6 }}>
+                    <BookOpen size={isMobile ? 14 : 15} color="#059669" />
+                    Select Subject to Inspect:
+                  </span>
+                  {activeCatalogItem && activeCatalogItem.classesPerWeek > 0 && (
+                    <span
+                      style={{
+                        fontSize: 11,
+                        fontWeight: 800,
+                        color: "#2563eb",
+                        background: "#eff6ff",
+                        padding: "2px 8px",
+                        borderRadius: 6,
+                        border: "1px solid #bfdbfe",
+                      }}
+                    >
+                      {activeCatalogItem.classesPerWeek} classes / week
+                    </span>
+                  )}
+                </div>
+
+                {/* Subject Pills */}
+                <div style={{ display: "flex", alignItems: "center", gap: 6, width: "100%", overflowX: "auto", scrollbarWidth: "none", padding: "2px 0" }}>
+                  {sectionCatalog.map((s) => {
+                    const isSelected = selectedSubjectName === s.subjectName;
+                    return (
+                      <button
+                        key={s.subjectName}
+                        type="button"
+                        onClick={() => selectSubjectFromCatalog(s)}
+                        style={{
+                          padding: isMobile ? "6px 12px" : "7px 14px",
+                          borderRadius: 8,
+                          fontSize: isMobile ? 11.5 : 12.5,
+                          fontWeight: 700,
+                          cursor: "pointer",
+                          border: isSelected ? "1.5px solid #059669" : "1px solid #e2e8f0",
+                          background: isSelected ? "linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%)" : "#ffffff",
+                          color: isSelected ? "#065f46" : "#475569",
+                          whiteSpace: "nowrap",
+                          flexShrink: 0,
+                          boxShadow: isSelected ? "0 2px 5px rgba(5, 150, 105, 0.15)" : "none",
+                          transition: "all 0.15s ease",
+                        }}
+                      >
+                        {s.subjectName}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* ── SECTIONS 02, 03, 04: SCHEDULE, MISS PENALTY, ROADMAP ── */}
+            {(studioSection === "schedule" || studioSection === "penalty" || studioSection === "roadmap") && (
+              <AttendanceTargetPredictor
+                activeCatalogItem={activeCatalogItem}
+                activeCalculation={activeCalculation}
+                targetGoal={targetGoal}
+                setTargetGoal={setTargetGoal}
+                componentInputs={componentInputs}
+                selectedSection={selectedSection}
+                studentData={studentData}
+                isMobile={isMobile}
+                activeSection={studioSection}
+                onSectionChange={handleSelectStudioSection}
+              />
+            )}
+          </div>
+        </div>
       </motion.div>
     )}
 
