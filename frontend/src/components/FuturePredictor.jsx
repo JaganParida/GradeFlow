@@ -957,10 +957,10 @@ export default function FuturePredictor({
 
       // Determine how many classes to display:
       // - If impossible: display ALL remaining classes in semester
-      // - If achievable: display up to classesToTarget + 2 buffer sessions
+      // - If achievable: display EXACTLY classesToTarget sessions (stop strictly when target is restored!)
       let sessionLimit = upcoming.length;
       if (!sub.isTargetImpossible) {
-        sessionLimit = Math.min(upcoming.length, sub.classesToTarget + 2);
+        sessionLimit = Math.min(upcoming.length, sub.classesToTarget);
       }
 
       const subSessions = [];
@@ -981,14 +981,10 @@ export default function FuturePredictor({
 
         const isLastAvailable = i === upcoming.length - 1;
         const isMaxPeakSession = sub.isTargetImpossible && isLastAvailable;
-        const isBufferSession = sub.classesToTarget > 0 && i >= sub.classesToTarget;
-        const bufferIndex = isBufferSession ? i - sub.classesToTarget + 1 : null;
 
         const sessionItem = {
           subjectSessionNumber: i + 1,
           classesNeededTotal: sub.classesToTarget,
-          isBufferSession,
-          bufferIndex,
           date: cls.date,
           dateStr: cls.dateStr,
           dayName: cls.dayName,
@@ -3677,8 +3673,6 @@ export default function FuturePredictor({
                                       ? "#22c55e"
                                       : isPeak
                                       ? "#d97706"
-                                      : recSes.isBufferSession
-                                      ? "#64748b"
                                       : "#0f172a",
                                     color: "#ffffff",
                                     padding: "1px 6px",
@@ -3686,9 +3680,7 @@ export default function FuturePredictor({
                                     flexShrink: 0,
                                   }}
                                 >
-                                  {recSes.isBufferSession
-                                    ? `Buffer #${recSes.bufferIndex}`
-                                    : recSes.classesNeededTotal > 0
+                                  {recSes.classesNeededTotal > 0
                                     ? `Class ${recSes.subjectSessionNumber} of ${recSes.classesNeededTotal}`
                                     : `Recovery #${recSes.sessionNumber}`}
                                 </span>
@@ -3714,24 +3706,6 @@ export default function FuturePredictor({
                                   }}
                                 >
                                   <Target size={11} /> {simulation.targetPct}% RESTORED!
-                                </span>
-                              ) : recSes.isBufferSession ? (
-                                <span
-                                  style={{
-                                    fontSize: 9.5,
-                                    fontWeight: 800,
-                                    background: "#f1f5f9",
-                                    color: "#475569",
-                                    border: "1px solid #cbd5e1",
-                                    padding: "1px 6px",
-                                    borderRadius: 4,
-                                    display: "flex",
-                                    alignItems: "center",
-                                    gap: 3,
-                                    flexShrink: 0,
-                                  }}
-                                >
-                                  <ShieldCheck size={11} color="#059669" /> Safe Buffer
                                 </span>
                               ) : isPeak ? (
                                 <span
