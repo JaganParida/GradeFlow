@@ -22,6 +22,9 @@ export default function SmoothScroll() {
       allowNestedScroll: true,
     });
 
+    // Expose Lenis globally for application-wide smooth scrolling targets
+    window.__lenis = lenis;
+
     let animationFrameId;
     const raf = (time) => {
       lenis.raf(time);
@@ -32,8 +35,18 @@ export default function SmoothScroll() {
     const resetScroll = () => lenis.scrollTo(0, { immediate: true, force: true });
     window.addEventListener("gradeflow:scroll-top", resetScroll);
 
+    const handleScrollTo = (e) => {
+      const { target, offset = 0, duration = 0.85, immediate = false } = e.detail || {};
+      if (target !== undefined) {
+        lenis.scrollTo(target, { offset, duration, immediate });
+      }
+    };
+    window.addEventListener("gradeflow:scroll-to", handleScrollTo);
+
     return () => {
+      window.__lenis = null;
       window.removeEventListener("gradeflow:scroll-top", resetScroll);
+      window.removeEventListener("gradeflow:scroll-to", handleScrollTo);
       cancelAnimationFrame(animationFrameId);
       lenis.destroy();
     };
