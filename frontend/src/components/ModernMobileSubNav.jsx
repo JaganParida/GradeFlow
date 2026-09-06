@@ -142,6 +142,21 @@ export default function ModernMobileSubNav({
 
         requestAnimationFrame(() => {
           const targetY = getSubNavDocTop();
+          const currentY = window.pageYOffset || window.scrollY || document.documentElement.scrollTop || 0;
+          const distance = Math.abs(targetY - currentY);
+
+          // Already at/near the subnav top — just snap precisely, no visible motion
+          if (distance < 15) {
+            window.scrollTo(0, targetY);
+            if (document.documentElement) document.documentElement.scrollTop = targetY;
+            if (document.body) document.body.scrollTop = targetY;
+            if (window.__lenis && typeof window.__lenis.scrollTo === "function") {
+              try { window.__lenis.scrollTo(targetY, { immediate: true }); } catch (_) {}
+            }
+            return;
+          }
+
+          // Meaningful distance — smooth scroll with cubic ease-out
           smoothScrollToY(targetY, 420);
         });
       } else {
