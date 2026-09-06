@@ -22,7 +22,6 @@ import {
   Sun,
   MapPin,
   User,
-  Compass,
   Target,
 } from "lucide-react";
 import {

@@ -20,7 +20,7 @@ import {
   Moon,
   RefreshCw,
   UserCheck,
-  Compass,
+  Route,
   Eye,
   AlertTriangle,
   ArrowRight,
@@ -1643,7 +1643,7 @@ export default function AdminLiveTrafficManager({ authHeaders, API }) {
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16, flexWrap: "wrap", gap: 12 }}>
           <div>
             <h3 style={{ fontSize: 16, fontWeight: 800, color: "#0f172a", margin: 0, display: "flex", alignItems: "center", gap: 8 }}>
-              <Compass size={18} color="#2563eb" /> Page Route Traffic Analytics
+              <Route size={18} color="#2563eb" /> Page Route Traffic Analytics
             </h3>
             <p style={{ fontSize: 12.5, color: "#64748b", margin: "2px 0 0 0" }}>
               Dynamically categorized from MongoDB traffic records alongside active viewers right now.

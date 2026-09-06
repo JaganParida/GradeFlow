@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   BarChart3,
   Calendar,
-  Compass,
+  Briefcase,
   ShieldCheck,
   ArrowRight,
   X,
@@ -113,7 +113,7 @@ export default function UpgradeModal() {
       desc: "Live class countdowns, venue routing, and real-time attendance logs.",
     },
     {
-      icon: Compass,
+      icon: Briefcase,
       iconBg: "#faf5ff",
       iconColor: "#9333ea",
       title: "Career & Domains",
