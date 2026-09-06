@@ -419,6 +419,8 @@ export default function AttendanceTracker() {
 
   // Saved Subjects (In-Memory React State, synced direct to MongoDB Atlas)
   const [savedSubjects, setSavedSubjects] = useState([]);
+  // Unified Loading State (Single smooth continuous loader, zero flicker)
+  const [pageLoading, setPageLoading] = useState(true);
 
   // Check if student has actual non-zero saved attendance data in DB
   const hasSavedAttendance = useMemo(() => {
@@ -576,13 +578,6 @@ export default function AttendanceTracker() {
       { replace: true }
     );
   };
-
-  // Safety auto-redirect to Edit & What-If if current tab is locked and student has no attendance saved
-  useEffect(() => {
-    if (!pageLoading && !hasSavedAttendance && LOCKED_TAB_IDS.has(activeTab)) {
-      setActiveTab("studio_simulator");
-    }
-  }, [pageLoading, hasSavedAttendance, activeTab, LOCKED_TAB_IDS]);
 
   const animVariants = {
     "slide-left": {
@@ -812,9 +807,6 @@ export default function AttendanceTracker() {
     }
   };
 
-  // Unified Loading State (Single smooth continuous loader, zero flicker)
-  const [pageLoading, setPageLoading] = useState(true);
-
   // Load student profile & saved Attendance from MongoDB Atlas in one smooth pass
   useEffect(() => {
     const targetReg = decodedParam || studentSession?.regNo || studentData?.regNo;
@@ -939,6 +931,13 @@ export default function AttendanceTracker() {
       isMounted = false;
     };
   }, [decodedParam, studentSession?.regNo, API, todayDateKey, defaultMinTrackingDateKey]);
+
+  // Safety auto-redirect to Edit & What-If if current tab is locked and student has no attendance saved
+  useEffect(() => {
+    if (!pageLoading && !hasSavedAttendance && LOCKED_TAB_IDS.has(activeTab)) {
+      setActiveTab("studio_simulator");
+    }
+  }, [pageLoading, hasSavedAttendance, activeTab, LOCKED_TAB_IDS]);
 
   // Synchronize componentInputs whenever savedSubjects loads or updates from MongoDB Atlas
   useEffect(() => {
