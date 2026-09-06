@@ -728,138 +728,109 @@ export default function Timetable() {
             </div>
           )}
 
-          {/* Search Bar & View Mode Switcher Row */}
-          <div
-            style={{
-              paddingTop: 12,
-              borderTop: "1px solid #f1f5f9",
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-              flexWrap: "wrap",
-              gap: 12,
-            }}
-          >
-            {/* Admin Search OR Verified Student Lock Badge */}
-            {adminToken ? (
-              <form
-                onSubmit={handleSearchStudent}
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 8,
-                  maxWidth: 400,
-                  width: "100%",
-                }}
-              >
+          {/* Section 2: Status & View Mode Switcher (Clean UI/UX for Large & Mobile Devices) */}
+          {isMobile ? (
+            <div
+              style={{
+                paddingTop: 10,
+                borderTop: "1px solid #f1f5f9",
+                display: "flex",
+                flexDirection: "column",
+                gap: 8,
+                width: "100%",
+              }}
+            >
+              {/* Compact Status Pill on Mobile */}
+              {currentRegNo ? (
                 <div
                   style={{
-                    position: "relative",
-                    flex: 1,
+                    display: "inline-flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: 6,
+                    padding: "5px 10px",
+                    borderRadius: 8,
+                    background: "#f0fdf4",
+                    border: "1px solid #bbf7d0",
+                    color: "#166534",
+                    fontSize: 11,
+                    fontWeight: 700,
+                    width: "100%",
+                    boxSizing: "border-box",
+                  }}
+                >
+                  <ShieldCheck size={13} color="#16a34a" />
+                  <span>
+                    Authorized: <strong>{currentRegNo}</strong> &middot; Section <strong>{selectedSection}</strong>
+                  </span>
+                </div>
+              ) : adminToken ? (
+                <div
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: 6,
+                    padding: "5px 10px",
+                    borderRadius: 8,
+                    background: "#f8fafc",
+                    border: "1px solid #e2e8f0",
+                    color: "#334155",
+                    fontSize: 11,
+                    fontWeight: 700,
+                    width: "100%",
+                    boxSizing: "border-box",
+                  }}
+                >
+                  <ShieldCheck size={13} color="#2563eb" />
+                  <span>
+                    Admin View &middot; Section <strong>{selectedSection}</strong>
+                  </span>
+                </div>
+              ) : (
+                <div
+                  style={{
                     display: "flex",
                     alignItems: "center",
+                    justifyContent: "space-between",
+                    gap: 8,
+                    padding: "5px 10px",
+                    borderRadius: 8,
+                    background: "#f8fafc",
+                    border: "1px solid #e2e8f0",
+                    width: "100%",
+                    boxSizing: "border-box",
                   }}
                 >
-                  <Search
-                    size={15}
-                    color="#94a3b8"
-                    style={{ position: "absolute", left: 12, pointerEvents: "none" }}
-                  />
-                  <input
-                    type="text"
-                    placeholder="Admin: Lookup Reg No (e.g. 230301120001)"
-                    value={searchRegInput}
-                    onChange={(e) => setSearchRegInput(e.target.value)}
+                  <span style={{ fontSize: 11, color: "#64748b", fontWeight: 600, display: "inline-flex", alignItems: "center", gap: 4 }}>
+                    <Lock size={12} color="#94a3b8" />
+                    <span>Personalized timetable</span>
+                  </span>
+                  <button
+                    type="button"
+                    onClick={openStudentAuthModal}
                     style={{
-                      width: "100%",
-                      padding: "8px 12px 8px 36px",
-                      borderRadius: 10,
-                      border: "1px solid #cbd5e1",
-                      fontSize: 12.5,
-                      color: "#0f172a",
-                      fontWeight: 600,
-                      outline: "none",
-                      background: "#ffffff",
-                      boxSizing: "border-box",
+                      padding: "4px 10px",
+                      borderRadius: 6,
+                      border: "none",
+                      background: "#2563eb",
+                      color: "#ffffff",
+                      fontSize: 11,
+                      fontWeight: 700,
+                      cursor: "pointer",
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: 4,
                     }}
-                  />
+                  >
+                    <GraduationCap size={12} />
+                    <span>Login</span>
+                  </button>
                 </div>
+              )}
 
-                <button
-                  type="submit"
-                  disabled={isSearching}
-                  style={{
-                    padding: "8px 16px",
-                    borderRadius: 10,
-                    border: "none",
-                    background: "#0f172a",
-                    color: "#ffffff",
-                    fontSize: 12.5,
-                    fontWeight: 700,
-                    cursor: isSearching ? "not-allowed" : "pointer",
-                    display: "inline-flex",
-                    alignItems: "center",
-                    gap: 5,
-                    whiteSpace: "nowrap",
-                    transition: "background 0.2s",
-                  }}
-                >
-                  <span>{isSearching ? "Searching..." : "Find"}</span>
-                  <ArrowRight size={13} />
-                </button>
-              </form>
-            ) : currentRegNo ? (
-              <div
-                style={{
-                  display: "inline-flex",
-                  alignItems: "center",
-                  gap: 8,
-                  padding: "7px 14px",
-                  borderRadius: 10,
-                  background: "#f0fdf4",
-                  border: "1px solid #bbf7d0",
-                  color: "#166534",
-                  fontSize: 12.5,
-                  fontWeight: 700,
-                }}
-              >
-                <ShieldCheck size={16} color="#16a34a" />
-                <span>
-                  Authorized Student: <strong>{currentRegNo}</strong> &middot; Section <strong>{selectedSection}</strong>
-                </span>
-              </div>
-            ) : (
-              <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
-                <span style={{ fontSize: 12.5, color: "#64748b", fontWeight: 600, display: "inline-flex", alignItems: "center", gap: 5 }}>
-                  <Lock size={13} color="#64748b" />
-                  <span>Log in to view your personalized class timetable.</span>
-                </span>
-                <button
-                  type="button"
-                  onClick={openStudentAuthModal}
-                  style={{
-                    padding: "7px 14px",
-                    borderRadius: 9,
-                    border: "none",
-                    background: "linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)",
-                    color: "#ffffff",
-                    fontSize: 12.5,
-                    fontWeight: 700,
-                    cursor: "pointer",
-                    display: "inline-flex",
-                    alignItems: "center",
-                    gap: 6,
-                  }}
-                >
-                  <GraduationCap size={14} />
-                  <span>Student Login</span>
-                </button>
-              </div>
-            )}
-
-            {/* View Mode Switcher: ModernMobileSubNav on Mobile, Clean Segmented Pills on Desktop */}
-            {isMobile ? (
-              <div style={{ width: "100%", marginTop: 6 }}>
+              {/* View Mode Switcher: ModernMobileSubNav on Mobile */}
+              <div style={{ width: "100%" }}>
                 <ModernMobileSubNav
                   items={TIMETABLE_VIEW_MODES}
                   activeTab={viewMode}
@@ -872,23 +843,111 @@ export default function Timetable() {
                   themeBg="#eff6ff"
                 />
               </div>
-            ) : (
+            </div>
+          ) : (
+            <div
+              style={{
+                paddingTop: 12,
+                borderTop: "1px solid #f1f5f9",
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                gap: 16,
+                flexWrap: "wrap",
+              }}
+            >
+              {/* Left: Authorized Student / Admin Status Pill on Desktop */}
+              <div style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0 }}>
+                {currentRegNo ? (
+                  <div
+                    style={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: 7,
+                      padding: "6px 13px",
+                      borderRadius: 8,
+                      background: "#f0fdf4",
+                      border: "1px solid #bbf7d0",
+                      color: "#166534",
+                      fontSize: 12,
+                      fontWeight: 700,
+                      whiteSpace: "nowrap",
+                    }}
+                  >
+                    <ShieldCheck size={14} color="#16a34a" />
+                    <span>
+                      Authorized Student: <strong>{currentRegNo}</strong> &middot; Section <strong>{selectedSection}</strong>
+                    </span>
+                  </div>
+                ) : adminToken ? (
+                  <div
+                    style={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: 7,
+                      padding: "6px 13px",
+                      borderRadius: 8,
+                      background: "#f8fafc",
+                      border: "1px solid #e2e8f0",
+                      color: "#334155",
+                      fontSize: 12,
+                      fontWeight: 700,
+                      whiteSpace: "nowrap",
+                    }}
+                  >
+                    <ShieldCheck size={14} color="#2563eb" />
+                    <span>
+                      Admin Privileged View &middot; Section <strong>{selectedSection}</strong> Routine
+                    </span>
+                  </div>
+                ) : (
+                  <div style={{ display: "inline-flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                    <span style={{ fontSize: 12, color: "#64748b", fontWeight: 600, display: "inline-flex", alignItems: "center", gap: 5 }}>
+                      <Lock size={13} color="#94a3b8" />
+                      <span>Log in to view your personalized class timetable</span>
+                    </span>
+                    <button
+                      type="button"
+                      onClick={openStudentAuthModal}
+                      style={{
+                        padding: "5px 12px",
+                        borderRadius: 7,
+                        border: "none",
+                        background: "linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)",
+                        color: "#ffffff",
+                        fontSize: 11.5,
+                        fontWeight: 700,
+                        cursor: "pointer",
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: 5,
+                        boxShadow: "0 1px 3px rgba(37, 99, 235, 0.2)",
+                      }}
+                    >
+                      <GraduationCap size={13} />
+                      <span>Student Login</span>
+                    </button>
+                  </div>
+                )}
+              </div>
+
+              {/* Right: Clean Segmented View Mode Pills on Desktop */}
               <div
                 ref={modeSwitcherRef}
                 style={{
                   display: "inline-flex",
                   alignItems: "center",
                   background: "#f1f5f9",
-                  padding: 4,
-                  borderRadius: 12,
-                  gap: 3,
+                  padding: 3,
+                  borderRadius: 10,
+                  gap: 2,
                   border: "1px solid #e2e8f0",
                   overflowX: "auto",
-                  scrollBehavior: "smooth",
                   scrollbarWidth: "none",
                   msOverflowStyle: "none",
                   maxWidth: "100%",
                   boxSizing: "border-box",
+                  flexShrink: 0,
                 }}
               >
                 <button
@@ -991,8 +1050,8 @@ export default function Timetable() {
                   <span>Holidays</span>
                 </button>
               </div>
-            )}
-          </div>
+            </div>
+          )}
 
           {searchError && (
             <div
