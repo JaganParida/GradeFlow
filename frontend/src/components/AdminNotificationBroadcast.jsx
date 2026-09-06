@@ -27,7 +27,6 @@ import {
   Search,
   Filter,
   RefreshCw,
-  Sparkles,
   CheckCheck,
   X,
   ChevronDown,

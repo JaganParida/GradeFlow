@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, useMemo } from "react";
-import { BookOpen, ChevronDown, Check, Search, X, Sparkles, ArrowUpDown } from "lucide-react";
+import { BookOpen, ChevronDown, Check, Search, X, ArrowUpDown } from "lucide-react";
 import { resolveSubjectCode } from "../utils/timetableHelper";
 
 // Helper to normalize and compare subject names

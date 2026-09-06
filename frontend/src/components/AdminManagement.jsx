@@ -29,7 +29,6 @@ import {
   ChevronRight,
   ChevronDown,
   Info,
-  Sparkles,
   Search,
   Filter,
   LogOut,

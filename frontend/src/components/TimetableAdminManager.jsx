@@ -29,7 +29,6 @@ import {
   Save,
   Sliders,
   ChevronDown,
-  Sparkles,
   Coffee,
   Utensils,
   Zap,
