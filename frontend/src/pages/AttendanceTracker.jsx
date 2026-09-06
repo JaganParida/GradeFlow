@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef } from "react";
+import { createPortal } from "react-dom";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import axios from "axios";
 import { useApp } from "../context/AppContext";
@@ -443,10 +444,25 @@ export default function AttendanceTracker() {
   const isTabLocked = (tabId) => !hasSavedAttendance && LOCKED_TAB_IDS.has(tabId);
 
   const [lockedTabNotice, setLockedTabNotice] = useState("");
+  const [lockedNoticeKey, setLockedNoticeKey] = useState(0);
+  const lockedNoticeTimerRef = useRef(null);
+
   const handleLockedTabAttempt = (tabName = "this module") => {
+    if (lockedNoticeTimerRef.current) {
+      clearTimeout(lockedNoticeTimerRef.current);
+    }
     setLockedTabNotice(`Save attendance for at least 1 subject to unlock ${tabName}.`);
-    setTimeout(() => setLockedTabNotice(""), 4000);
+    setLockedNoticeKey((prev) => prev + 1);
+    lockedNoticeTimerRef.current = setTimeout(() => {
+      setLockedTabNotice("");
+    }, 4500);
   };
+
+  useEffect(() => {
+    return () => {
+      if (lockedNoticeTimerRef.current) clearTimeout(lockedNoticeTimerRef.current);
+    };
+  }, []);
 
   const getInitialTab = () => {
     if (urlTabParam === "studio_schedule" || urlTabParam === "schedule") return "studio_schedule";
@@ -935,7 +951,24 @@ export default function AttendanceTracker() {
   // Safety auto-redirect to Edit & What-If if current tab is locked and student has no attendance saved
   useEffect(() => {
     if (!pageLoading && !hasSavedAttendance && LOCKED_TAB_IDS.has(activeTab)) {
+      const tabNames = {
+        checkin: "Daily Attendance",
+        studio_schedule: "Target Date & Schedule",
+        studio_penalty: "Target & Miss Impact",
+        studio_roadmap: "Miss Classes After Target",
+        bunk_analyzer: "Future Predictor",
+      };
+      handleLockedTabAttempt(tabNames[activeTab] || "this module");
       setActiveTab("studio_simulator");
+      setSearchParams(
+        (prev) => {
+          const next = new URLSearchParams(prev);
+          next.set("tab", "studio_simulator");
+          next.delete("section");
+          return next;
+        },
+        { replace: true }
+      );
     }
   }, [pageLoading, hasSavedAttendance, activeTab, LOCKED_TAB_IDS]);
 
@@ -1671,6 +1704,10 @@ export default function AttendanceTracker() {
   };
 
   const handleOpenSubjectInSchedule = (sub) => {
+    if (isTabLocked("studio_schedule")) {
+      handleLockedTabAttempt("Target Date & Schedule");
+      return;
+    }
     const catMatch = sectionCatalog.find((c) => isSameSubject(c, sub));
     if (catMatch) {
       selectSubjectFromCatalog(catMatch);
@@ -5470,6 +5507,10 @@ export default function AttendanceTracker() {
               <button
                 type="button"
                 onClick={() => {
+                  if (isTabLocked("studio_schedule")) {
+                    handleLockedTabAttempt("Target Date & Schedule");
+                    return;
+                  }
                   handleStudioSectionChange("schedule");
                   setTimeout(() => {
                     const el = document.getElementById("attendance-predictor-studio");
@@ -5564,49 +5605,85 @@ export default function AttendanceTracker() {
   </AnimatePresence>
 </div>
 
-    {/* Floating Locked Tab Notice Toast */}
-    {lockedTabNotice && (
-      <div
-        style={{
-          position: "fixed",
-          bottom: 24,
-          left: "50%",
-          transform: "translateX(-50%)",
-          zIndex: 99999,
-          background: "#0f172a",
-          color: "#ffffff",
-          border: "1px solid #334155",
-          borderRadius: 10,
-          padding: "10px 18px",
-          boxShadow: "0 10px 30px rgba(0, 0, 0, 0.35)",
-          maxWidth: "92vw",
-          display: "flex",
-          alignItems: "center",
-          gap: 10,
-          fontSize: 12.5,
-          fontWeight: 700,
-        }}
-      >
-        <Lock size={15} color="#f59e0b" style={{ flexShrink: 0 }} />
-        <span>{lockedTabNotice}</span>
-        <button
-          type="button"
-          onClick={() => setLockedTabNotice("")}
-          style={{
-            background: "transparent",
-            border: "none",
-            color: "#94a3b8",
-            cursor: "pointer",
-            padding: 0,
-            marginLeft: 4,
-            display: "flex",
-            alignItems: "center",
-          }}
-        >
-          <X size={14} />
-        </button>
-      </div>
-    )}
+    {/* Floating Locked Tab Notice Toast (Portaled to document.body for guaranteed top-level viewport visibility) */}
+    {typeof document !== "undefined" &&
+      createPortal(
+        <AnimatePresence>
+          {lockedTabNotice && (
+            <motion.div
+              key={lockedNoticeKey}
+              initial={{ opacity: 0, y: 25, scale: 0.95 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 15, scale: 0.95 }}
+              transition={{ duration: 0.2, ease: "easeOut" }}
+              style={{
+                position: "fixed",
+                bottom: isMobile ? 84 : 32,
+                left: "50%",
+                transform: "translateX(-50%)",
+                zIndex: 99999999,
+                background: "#0f172a",
+                color: "#ffffff",
+                border: "1.5px solid rgba(245, 158, 11, 0.45)",
+                borderRadius: 12,
+                padding: "11px 18px",
+                boxShadow: "0 14px 40px rgba(0, 0, 0, 0.45), 0 0 0 1px rgba(245, 158, 11, 0.15)",
+                maxWidth: "92vw",
+                width: "max-content",
+                display: "flex",
+                alignItems: "center",
+                gap: 11,
+                fontSize: 13,
+                fontWeight: 700,
+                pointerEvents: "auto",
+              }}
+            >
+              <div
+                style={{
+                  width: 26,
+                  height: 26,
+                  borderRadius: 7,
+                  background: "rgba(245, 158, 11, 0.18)",
+                  border: "1px solid rgba(245, 158, 11, 0.35)",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  flexShrink: 0,
+                }}
+              >
+                <Lock size={14} color="#f59e0b" strokeWidth={2.5} />
+              </div>
+              <span style={{ lineHeight: 1.35 }}>{lockedTabNotice}</span>
+              <button
+                type="button"
+                onClick={() => setLockedTabNotice("")}
+                aria-label="Dismiss notice"
+                style={{
+                  background: "rgba(255, 255, 255, 0.12)",
+                  border: "none",
+                  borderRadius: "50%",
+                  color: "#cbd5e1",
+                  cursor: "pointer",
+                  width: 22,
+                  height: 22,
+                  padding: 0,
+                  marginLeft: 4,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  flexShrink: 0,
+                  transition: "background 0.15s ease",
+                }}
+                onMouseEnter={(e) => (e.currentTarget.style.background = "rgba(255, 255, 255, 0.25)")}
+                onMouseLeave={(e) => (e.currentTarget.style.background = "rgba(255, 255, 255, 0.12)")}
+              >
+                <X size={12} strokeWidth={2.4} />
+              </button>
+            </motion.div>
+          )}
+        </AnimatePresence>,
+        document.body
+      )}
 
     {/* Floating Scan Limit Warning Toast */}
     {scanLimitWarning && (
