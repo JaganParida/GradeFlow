@@ -53,7 +53,6 @@ import {
   HelpCircle,
   Upload,
   Edit3,
-  Sparkles,
 } from "lucide-react";
 import {
   ALL_SECTIONS,
@@ -4072,7 +4071,7 @@ export default function AttendanceTracker() {
                         flexShrink: 0,
                       }}
                     >
-                      <Sparkles size={isMobile ? 18 : 20} />
+                      <Compass size={isMobile ? 18 : 20} strokeWidth={2.2} />
                     </div>
                     <div>
                       <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>

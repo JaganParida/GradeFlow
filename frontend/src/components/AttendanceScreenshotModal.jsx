@@ -20,7 +20,6 @@ import {
   Loader2,
   FileCheck,
   Percent,
-  Sparkles,
   Clock,
   Layers,
   ArrowRight,
