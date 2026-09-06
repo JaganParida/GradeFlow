@@ -443,7 +443,7 @@ export default function AttendanceTracker() {
 
   const isTabLocked = (tabId) => !hasSavedAttendance && LOCKED_TAB_IDS.has(tabId);
 
-  const [lockedTabNotice, setLockedTabNotice] = useState("");
+  const [lockedTabNotice, setLockedTabNotice] = useState(null);
   const [lockedNoticeKey, setLockedNoticeKey] = useState(0);
   const lockedNoticeTimerRef = useRef(null);
 
@@ -451,10 +451,10 @@ export default function AttendanceTracker() {
     if (lockedNoticeTimerRef.current) {
       clearTimeout(lockedNoticeTimerRef.current);
     }
-    setLockedTabNotice(`Save attendance for at least 1 subject to unlock ${tabName}.`);
+    setLockedTabNotice({ tabName: tabName || "this module" });
     setLockedNoticeKey((prev) => prev + 1);
     lockedNoticeTimerRef.current = setTimeout(() => {
-      setLockedTabNotice("");
+      setLockedTabNotice(null);
     }, 4500);
   };
 
@@ -5521,81 +5521,127 @@ export default function AttendanceTracker() {
   </AnimatePresence>
 </div>
 
-    {/* Floating Locked Tab Notice Toast (Portaled to document.body for guaranteed top-level viewport visibility) */}
+    {/* Floating Locked Tab Notice Toast (Google-Style Material Snackbar - Portaled to document.body, 100% Centered on All Devices) */}
     {typeof document !== "undefined" &&
       createPortal(
         <AnimatePresence>
           {lockedTabNotice && (
-            <motion.div
-              key={lockedNoticeKey}
-              initial={{ opacity: 0, y: 25, scale: 0.95 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, y: 15, scale: 0.95 }}
-              transition={{ duration: 0.2, ease: "easeOut" }}
+            <div
               style={{
                 position: "fixed",
-                bottom: isMobile ? 84 : 32,
-                left: "50%",
-                transform: "translateX(-50%)",
-                zIndex: 99999999,
-                background: "#0f172a",
-                color: "#ffffff",
-                border: "1.5px solid rgba(245, 158, 11, 0.45)",
-                borderRadius: 12,
-                padding: "11px 18px",
-                boxShadow: "0 14px 40px rgba(0, 0, 0, 0.45), 0 0 0 1px rgba(245, 158, 11, 0.15)",
-                maxWidth: "92vw",
-                width: "max-content",
+                bottom: isMobile ? "max(20px, env(safe-area-inset-bottom, 20px))" : 32,
+                left: 0,
+                right: 0,
                 display: "flex",
+                justifyContent: "center",
                 alignItems: "center",
-                gap: 11,
-                fontSize: 13,
-                fontWeight: 700,
-                pointerEvents: "auto",
+                zIndex: 99999999,
+                pointerEvents: "none",
+                padding: "0 16px",
+                boxSizing: "border-box",
               }}
             >
-              <div
+              <motion.div
+                key={lockedNoticeKey}
+                initial={{ opacity: 0, y: 22, scale: 0.96 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: 14, scale: 0.96 }}
+                transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
                 style={{
-                  width: 26,
-                  height: 26,
-                  borderRadius: 7,
-                  background: "rgba(245, 158, 11, 0.18)",
-                  border: "1px solid rgba(245, 158, 11, 0.35)",
+                  pointerEvents: "auto",
+                  background: "rgba(17, 24, 39, 0.96)",
+                  backdropFilter: "blur(12px)",
+                  WebkitBackdropFilter: "blur(12px)",
+                  color: "#ffffff",
+                  border: "1px solid rgba(255, 255, 255, 0.12)",
+                  borderRadius: 14,
+                  padding: isMobile ? "10px 14px" : "11px 18px",
+                  boxShadow:
+                    "0 12px 36px -4px rgba(0, 0, 0, 0.5), 0 4px 12px rgba(0, 0, 0, 0.25), 0 0 0 1px rgba(245, 158, 11, 0.28)",
+                  maxWidth: isMobile ? "100%" : 560,
+                  width: "auto",
                   display: "flex",
                   alignItems: "center",
-                  justifyContent: "center",
-                  flexShrink: 0,
+                  gap: 12,
+                  boxSizing: "border-box",
                 }}
               >
-                <Lock size={14} color="#f59e0b" strokeWidth={2.5} />
-              </div>
-              <span style={{ lineHeight: 1.35 }}>{lockedTabNotice}</span>
-              <button
-                type="button"
-                onClick={() => setLockedTabNotice("")}
-                aria-label="Dismiss notice"
-                style={{
-                  background: "rgba(255, 255, 255, 0.12)",
-                  border: "none",
-                  borderRadius: "50%",
-                  color: "#cbd5e1",
-                  cursor: "pointer",
-                  width: 22,
-                  height: 22,
-                  padding: 0,
-                  marginLeft: 4,
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  flexShrink: 0,
-                  transition: "background 0.15s ease",
-                }}
-                onMouseEnter={(e) => (e.currentTarget.style.background = "rgba(255, 255, 255, 0.25)")}
-                onMouseLeave={(e) => (e.currentTarget.style.background = "rgba(255, 255, 255, 0.12)")}
-              >
-                <X size={12} strokeWidth={2.4} />
-              </button>
-            </motion.div>
+                <div
+                  style={{
+                    width: 28,
+                    height: 28,
+                    borderRadius: 8,
+                    background: "rgba(245, 158, 11, 0.16)",
+                    border: "1px solid rgba(245, 158, 11, 0.32)",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    flexShrink: 0,
+                  }}
+                >
+                  <Lock size={14} color="#f59e0b" strokeWidth={2.4} />
+                </div>
+
+                <div
+                  style={{
+                    fontSize: isMobile ? 12.5 : 13.5,
+                    fontWeight: 500,
+                    color: "#f1f5f9",
+                    lineHeight: 1.4,
+                    letterSpacing: "-0.1px",
+                    flex: 1,
+                    minWidth: 0,
+                  }}
+                >
+                  Save attendance for at least 1 subject to unlock{" "}
+                  <strong style={{ color: "#fbbf24", fontWeight: 700 }}>
+                    {typeof lockedTabNotice === "object" && lockedTabNotice?.tabName
+                      ? lockedTabNotice.tabName
+                      : typeof lockedTabNotice === "string"
+                      ? lockedTabNotice
+                          .replace(/^Save attendance for at least 1 subject to unlock /, "")
+                          .replace(/\.$/, "")
+                      : "this module"}
+                  </strong>
+                  .
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => setLockedTabNotice(null)}
+                  aria-label="Dismiss notice"
+                  style={{
+                    background: "rgba(255, 255, 255, 0.08)",
+                    border: "1px solid rgba(255, 255, 255, 0.12)",
+                    borderRadius: isMobile ? "50%" : 8,
+                    color: "#cbd5e1",
+                    cursor: "pointer",
+                    width: isMobile ? 26 : "auto",
+                    height: isMobile ? 26 : "auto",
+                    padding: isMobile ? 0 : "4px 9px",
+                    display: "inline-flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: 4,
+                    fontSize: 11.5,
+                    fontWeight: 700,
+                    flexShrink: 0,
+                    transition: "all 0.15s ease",
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.background = "rgba(255, 255, 255, 0.18)";
+                    e.currentTarget.style.color = "#ffffff";
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.background = "rgba(255, 255, 255, 0.08)";
+                    e.currentTarget.style.color = "#cbd5e1";
+                  }}
+                >
+                  {!isMobile && <span>Dismiss</span>}
+                  <X size={13} strokeWidth={2.4} />
+                </button>
+              </motion.div>
+            </div>
           )}
         </AnimatePresence>,
         document.body
