@@ -53,6 +53,7 @@ import {
   HelpCircle,
   Upload,
   Edit3,
+  ClipboardCheck,
 } from "lucide-react";
 import {
   ALL_SECTIONS,
@@ -4134,7 +4135,7 @@ export default function AttendanceTracker() {
                         flexShrink: 0,
                       }}
                     >
-                      <Compass size={isMobile ? 18 : 20} strokeWidth={2.2} />
+                      <ClipboardCheck size={isMobile ? 18 : 20} strokeWidth={2.2} />
                     </div>
                     <div>
                       <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
