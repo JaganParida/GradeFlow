@@ -85,19 +85,7 @@ export default function ModernMobileSubNav({
     requestAnimationFrame(step);
   };
 
-  // Handle smooth scroll when landing on or redirecting to any page via subnav selection
-  useEffect(() => {
-    try {
-      if (sessionStorage.getItem("gf_scroll_to_subnav") === "true") {
-        sessionStorage.removeItem("gf_scroll_to_subnav");
-        const timer = setTimeout(() => {
-          const targetY = getSubNavDocTop();
-          smoothScrollToY(targetY, 450);
-        }, 120);
-        return () => clearTimeout(timer);
-      }
-    } catch (_) {}
-  }, []);
+
 
   // Bulletproof body scroll lock for mobile & desktop (prevents background scroll, bounce & scroll-chaining)
   useEffect(() => {
@@ -198,9 +186,6 @@ export default function ModernMobileSubNav({
       setIsOpen(false);
       return;
     }
-    try {
-      sessionStorage.setItem("gf_scroll_to_subnav", "true");
-    } catch (_) {}
     shouldScrollToSubNav.current = true;
     onChange(id, { animation: "fade-up", direction: 0 });
     setIsOpen(false);
