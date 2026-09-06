@@ -3197,39 +3197,17 @@ export default function AttendanceTracker() {
                 </div>
               </div>
 
-              <AnimatePresence mode="wait" initial={false} custom={dateNavDirection}>
+              <AnimatePresence mode="wait" initial={false}>
                 <motion.div
                   key={selectedCheckInDateKey}
-                  custom={dateNavDirection}
-                  variants={{
-                    enter: (dir) => ({
-                      opacity: 0,
-                      x: dir > 0 ? 18 : dir < 0 ? -18 : 0,
-                      filter: "blur(3px)",
-                    }),
-                    center: {
-                      opacity: 1,
-                      x: 0,
-                      filter: "blur(0px)",
-                      transition: {
-                        duration: 0.22,
-                        ease: [0.16, 1, 0.3, 1],
-                      },
-                    },
-                    exit: (dir) => ({
-                      opacity: 0,
-                      x: dir > 0 ? -18 : dir < 0 ? 18 : 0,
-                      filter: "blur(3px)",
-                      transition: {
-                        duration: 0.15,
-                        ease: [0.16, 1, 0.3, 1],
-                      },
-                    }),
+                  initial={{ opacity: 0, y: isMobile ? 16 : 12 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: isMobile ? -10 : -8 }}
+                  transition={{
+                    duration: isMobile ? 0.24 : 0.22,
+                    ease: [0.16, 1, 0.3, 1],
                   }}
-                  initial="enter"
-                  animate="center"
-                  exit="exit"
-                  style={{ willChange: "transform, opacity, filter" }}
+                  style={{ willChange: "transform, opacity", width: "100%" }}
                 >
                   {selectedDayClasses.length === 0 ? (
                     <div
