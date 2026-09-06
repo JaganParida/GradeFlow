@@ -40,15 +40,14 @@ export default function ModernMobileSubNav({
   const unitName = (title || "").toLowerCase().includes("module") ? "modules" : "views";
   const hintText = subtitle || `Tap below to switch (${items.length} ${unitName})`;
 
-  // Calculate the true document top of ModernMobileSubNav
-  const getSubNavDocTop = (navEl) => {
-    if (!navEl) return 0;
+  // Calculate the true document top of ModernMobileSubNav using static anchor
+  const getSubNavDocTop = () => {
+    const anchor = document.getElementById("gf-mobile-subnav-anchor");
+    const navEl = document.getElementById("gf-mobile-subnav");
+    const targetEl = anchor || navEl;
+    if (!targetEl) return 0;
     const currentScroll = window.pageYOffset || window.scrollY || document.documentElement.scrollTop || 0;
-    const parent = navEl.parentElement;
-    if (parent && parent !== document.body) {
-      return Math.max(0, Math.round(currentScroll + parent.getBoundingClientRect().top));
-    }
-    return Math.max(0, Math.round(currentScroll + navEl.getBoundingClientRect().top));
+    return Math.max(0, Math.round(currentScroll + targetEl.getBoundingClientRect().top));
   };
 
   // High-performance 60fps/120fps cubic smooth scrolling to targetY
@@ -92,11 +91,8 @@ export default function ModernMobileSubNav({
       if (sessionStorage.getItem("gf_scroll_to_subnav") === "true") {
         sessionStorage.removeItem("gf_scroll_to_subnav");
         const timer = setTimeout(() => {
-          const navEl = document.getElementById("gf-mobile-subnav");
-          if (navEl) {
-            const targetY = getSubNavDocTop(navEl);
-            smoothScrollToY(targetY, 450);
-          }
+          const targetY = getSubNavDocTop();
+          smoothScrollToY(targetY, 450);
         }, 120);
         return () => clearTimeout(timer);
       }
@@ -157,11 +153,8 @@ export default function ModernMobileSubNav({
         if (document.body) document.body.scrollTop = scrollY;
 
         requestAnimationFrame(() => {
-          const navEl = document.getElementById("gf-mobile-subnav");
-          if (navEl) {
-            const targetY = getSubNavDocTop(navEl);
-            smoothScrollToY(targetY, 420);
-          }
+          const targetY = getSubNavDocTop();
+          smoothScrollToY(targetY, 420);
         });
       } else {
         // Normal dismiss without selecting: restore previous scroll position
@@ -215,6 +208,21 @@ export default function ModernMobileSubNav({
 
   return (
     <>
+      {/* Invisible static layout anchor for precise scroll targeting */}
+      <div
+        id="gf-mobile-subnav-anchor"
+        style={{
+          position: "relative",
+          height: 0,
+          width: "100%",
+          margin: 0,
+          padding: 0,
+          border: "none",
+          visibility: "hidden",
+          pointerEvents: "none",
+        }}
+      />
+
       {/* ── Main Sticky Anchor Bar (Modern, Spacious, Mobile-First UI, Zero Wrapping) ── */}
       <div
         id="gf-mobile-subnav"
