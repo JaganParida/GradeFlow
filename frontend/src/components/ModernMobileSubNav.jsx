@@ -31,7 +31,6 @@ export default function ModernMobileSubNav({
   themeBg = "#eff6ff",
 }) {
   const [isOpen, setIsOpen] = useState(false);
-  const [navbarHeight, setNavbarHeight] = useState(0);
   const scrollContainerRef = useRef(null);
   const touchStartY = useRef(null);
   const touchStartX = useRef(null);
@@ -41,76 +40,50 @@ export default function ModernMobileSubNav({
   const unitName = (title || "").toLowerCase().includes("module") ? "modules" : "views";
   const hintText = subtitle || `Tap below to switch (${items.length} ${unitName})`;
 
-  // Measure top sticky/fixed navbar height dynamically so sticky subnav positions flush below it
-  useEffect(() => {
-    const updateNavHeight = () => {
-      const nav = document.querySelector("nav") || document.querySelector(".gf-navbar-inner")?.closest("nav");
-      if (nav) {
-        const navStyle = window.getComputedStyle(nav);
-        if (navStyle.position === "fixed" || navStyle.position === "sticky") {
-          setNavbarHeight(nav.offsetHeight || 58);
-          return;
-        }
-      }
-      setNavbarHeight(0);
-    };
-    updateNavHeight();
-    window.addEventListener("resize", updateNavHeight);
-    return () => window.removeEventListener("resize", updateNavHeight);
-  }, []);
-
-  // Smoothly scroll the window so ModernMobileSubNav lands and stays pinned at top
-  const scrollToSubNav = (smooth = true) => {
-    try {
-      const navEl = document.getElementById("gf-mobile-subnav");
-      if (!navEl) return;
-
-      let topOffset = navbarHeight;
-      if (!topOffset) {
-        const nav = document.querySelector("nav") || document.querySelector(".gf-navbar-inner")?.closest("nav");
-        if (nav) {
-          const navStyle = window.getComputedStyle(nav);
-          if (navStyle.position === "fixed" || navStyle.position === "sticky") {
-            topOffset = nav.offsetHeight || 58;
-          }
-        }
-      }
-
-      const currentScrollY = window.pageYOffset || window.scrollY || document.documentElement.scrollTop || 0;
-      const rect = navEl.getBoundingClientRect();
-      const targetY = Math.max(0, Math.round(currentScrollY + rect.top - (topOffset || 0) - 2));
-
-      // 1. Lenis Global Smooth Scroll instance
-      if (window.__lenis && typeof window.__lenis.scrollTo === "function") {
-        window.__lenis.scrollTo(targetY, {
-          offset: 0,
-          duration: smooth ? 0.85 : 0,
-          immediate: !smooth,
-          easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
-        });
-        return;
-      }
-
-      // 2. Custom Lenis Event
-      window.dispatchEvent(
-        new CustomEvent("gradeflow:scroll-to", {
-          detail: {
-            target: targetY,
-            offset: 0,
-            duration: smooth ? 0.85 : 0,
-            immediate: !smooth,
-          },
-        })
-      );
-
-      // 3. Native Smooth Scroll Fallback
-      window.scrollTo({
-        top: targetY,
-        behavior: smooth ? "smooth" : "auto",
-      });
-    } catch (err) {
-      // ignore
+  // Calculate the true document top of ModernMobileSubNav
+  const getSubNavDocTop = (navEl) => {
+    if (!navEl) return 0;
+    const currentScroll = window.pageYOffset || window.scrollY || document.documentElement.scrollTop || 0;
+    const parent = navEl.parentElement;
+    if (parent && parent !== document.body) {
+      return Math.max(0, Math.round(currentScroll + parent.getBoundingClientRect().top));
     }
+    return Math.max(0, Math.round(currentScroll + navEl.getBoundingClientRect().top));
+  };
+
+  // High-performance 60fps/120fps cubic smooth scrolling to targetY
+  const smoothScrollToY = (targetY, duration = 400) => {
+    const startY = window.pageYOffset || window.scrollY || document.documentElement.scrollTop || 0;
+    const distance = targetY - startY;
+    if (Math.abs(distance) < 2) return;
+
+    const startTime = performance.now();
+    // Cubic ease-out curve (fast initial motion, silky smooth deceleration)
+    const easeOutCubic = (t) => 1 - Math.pow(1 - t, 3);
+
+    const step = (currentTime) => {
+      const elapsed = currentTime - startTime;
+      const progress = Math.min(elapsed / duration, 1);
+      const ease = easeOutCubic(progress);
+      const newY = Math.round(startY + distance * ease);
+
+      window.scrollTo(0, newY);
+      if (document.documentElement) document.documentElement.scrollTop = newY;
+      if (document.body) document.body.scrollTop = newY;
+
+      // Keep Lenis virtual scroll in sync so it doesn't fight or reset
+      if (window.__lenis && typeof window.__lenis.scrollTo === "function") {
+        try {
+          window.__lenis.scrollTo(newY, { immediate: true });
+        } catch (_) {}
+      }
+
+      if (progress < 1) {
+        requestAnimationFrame(step);
+      }
+    };
+
+    requestAnimationFrame(step);
   };
 
   // Handle smooth scroll when landing on or redirecting to any page via subnav selection
@@ -119,8 +92,12 @@ export default function ModernMobileSubNav({
       if (sessionStorage.getItem("gf_scroll_to_subnav") === "true") {
         sessionStorage.removeItem("gf_scroll_to_subnav");
         const timer = setTimeout(() => {
-          scrollToSubNav(true);
-        }, 140);
+          const navEl = document.getElementById("gf-mobile-subnav");
+          if (navEl) {
+            const targetY = getSubNavDocTop(navEl);
+            smoothScrollToY(targetY, 450);
+          }
+        }, 120);
         return () => clearTimeout(timer);
       }
     } catch (_) {}
@@ -171,17 +148,24 @@ export default function ModernMobileSubNav({
       document.body.style.width = originalBodyWidth;
       document.removeEventListener("touchmove", preventBackdropTouch);
 
-      // Restore scroll position cleanly without layout glitch
-      window.scrollTo(0, scrollY);
-
-      // If user selected an item from the bottom sheet, smoothly scroll to top of ModernSubNav
+      // If user selected an item from the bottom sheet, smoothly scroll directly to ModernSubNav top
       if (shouldScrollToSubNav.current) {
         shouldScrollToSubNav.current = false;
-        setTimeout(() => {
-          requestAnimationFrame(() => {
-            scrollToSubNav(true);
-          });
-        }, 35);
+        // Unfreeze body at scrollY without glitch
+        window.scrollTo(0, scrollY);
+        if (document.documentElement) document.documentElement.scrollTop = scrollY;
+        if (document.body) document.body.scrollTop = scrollY;
+
+        requestAnimationFrame(() => {
+          const navEl = document.getElementById("gf-mobile-subnav");
+          if (navEl) {
+            const targetY = getSubNavDocTop(navEl);
+            smoothScrollToY(targetY, 420);
+          }
+        });
+      } else {
+        // Normal dismiss without selecting: restore previous scroll position
+        window.scrollTo(0, scrollY);
       }
     };
   }, [isOpen]);
@@ -236,14 +220,13 @@ export default function ModernMobileSubNav({
         id="gf-mobile-subnav"
         style={{
           position: "sticky",
-          top: navbarHeight || 0,
-          zIndex: 30,
-          background: "rgba(248, 250, 252, 0.96)",
+          top: 0,
+          zIndex: 900,
+          background: "rgba(248, 250, 252, 0.98)",
           backdropFilter: "blur(12px)",
           WebkitBackdropFilter: "blur(12px)",
           padding: "4px 0 8px 0",
           width: "100%",
-          transition: "top 0.2s ease",
         }}
       >
         {/* Micro-Header above nav card: Informs user what this section is and how to use it */}
