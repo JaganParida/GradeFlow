@@ -74,6 +74,7 @@ export default function ModernMobileSubNav({
       if (typeof onLockedClick === "function") {
         onLockedClick(it);
       }
+      setIsOpen(false);
       return;
     }
     onChange(id, { animation: "fade-up", direction: 0 });
