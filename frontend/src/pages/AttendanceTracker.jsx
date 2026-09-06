@@ -416,6 +416,35 @@ export default function AttendanceTracker() {
   const [simulateMissCount, setSimulateMissCount] = useState(0);
   const [simulateAttendCount, setSimulateAttendCount] = useState(0);
 
+  // Saved Subjects (In-Memory React State, synced direct to MongoDB Atlas)
+  const [savedSubjects, setSavedSubjects] = useState([]);
+
+  // Check if student has actual non-zero saved attendance data in DB
+  const hasSavedAttendance = useMemo(() => {
+    return (
+      savedSubjects.length > 0 &&
+      savedSubjects.some((s) =>
+        (s.components || []).some((c) => (Number(c.delivered) || 0) > 0)
+      )
+    );
+  }, [savedSubjects]);
+
+  const LOCKED_TAB_IDS = useMemo(() => new Set([
+    "checkin",
+    "studio_schedule",
+    "studio_penalty",
+    "studio_roadmap",
+    "bunk_analyzer",
+  ]), []);
+
+  const isTabLocked = (tabId) => !hasSavedAttendance && LOCKED_TAB_IDS.has(tabId);
+
+  const [lockedTabNotice, setLockedTabNotice] = useState("");
+  const handleLockedTabAttempt = (tabName = "this module") => {
+    setLockedTabNotice(`Save attendance for at least 1 subject to unlock ${tabName}.`);
+    setTimeout(() => setLockedTabNotice(""), 4000);
+  };
+
   const getInitialTab = () => {
     if (urlTabParam === "studio_schedule" || urlTabParam === "schedule") return "studio_schedule";
     if (urlTabParam === "studio_penalty" || urlTabParam === "penalty") return "studio_penalty";
@@ -522,6 +551,17 @@ export default function AttendanceTracker() {
   const [subnavAnim, setSubnavAnim] = useState("fade-up");
   const handleTabClick = (tabKey, meta) => {
     const normalized = tabKey === "studio" ? "studio_simulator" : tabKey;
+    if (isTabLocked(normalized)) {
+      const tabNames = {
+        checkin: "Daily Attendance",
+        studio_schedule: "Target Date & Schedule",
+        studio_penalty: "Target & Miss Impact",
+        studio_roadmap: "Miss Classes After Target",
+        bunk_analyzer: "Future Predictor",
+      };
+      handleLockedTabAttempt(tabNames[normalized] || "this module");
+      return;
+    }
     if (meta?.animation) setSubnavAnim(meta.animation);
     hasUserManuallySelectedTabRef.current = true;
     setActiveTab(normalized);
@@ -535,6 +575,13 @@ export default function AttendanceTracker() {
       { replace: true }
     );
   };
+
+  // Safety auto-redirect to Edit & What-If if current tab is locked and student has no attendance saved
+  useEffect(() => {
+    if (!pageLoading && !hasSavedAttendance && LOCKED_TAB_IDS.has(activeTab)) {
+      setActiveTab("studio_simulator");
+    }
+  }, [pageLoading, hasSavedAttendance, activeTab, LOCKED_TAB_IDS]);
 
   const animVariants = {
     "slide-left": {
@@ -595,9 +642,6 @@ export default function AttendanceTracker() {
       setIsScreenshotModalOpen(true);
     }
   };
-
-  // Saved Subjects (In-Memory React State, synced direct to MongoDB Atlas)
-  const [savedSubjects, setSavedSubjects] = useState([]);
 
   // Accurate auto-centering for Section and Subject scroll tracks
   const centerActiveSection = (behavior = "smooth") => {
@@ -1322,16 +1366,6 @@ export default function AttendanceTracker() {
     return Array.from(map.values());
   }, [sectionCatalog, savedSubjects, studentData]);
 
-  // Check if student has actual non-zero saved attendance data in DB
-  const hasSavedAttendance = useMemo(() => {
-    return (
-      savedSubjects.length > 0 &&
-      savedSubjects.some((s) =>
-        (s.components || []).some((c) => (Number(c.delivered) || 0) > 0)
-      )
-    );
-  }, [savedSubjects]);
-
   // Default tab routing: Keep default tab "checkin" unless specified via URL parameter
   useEffect(() => {
     if (!hasUserManuallySelectedTabRef.current && urlTabParam) {
@@ -1660,14 +1694,15 @@ export default function AttendanceTracker() {
 
   const [isResetModalOpen, setIsResetModalOpen] = useState(false);
 
-  const navMenuItems = [
+  const navMenuItems = useMemo(() => [
     {
       id: "checkin",
       label: "Daily Attendance",
       shortLabel: "Daily",
       icon: <CalendarCheck size={16} />,
-      badge: "Routine",
+      badge: isTabLocked("checkin") ? "Locked" : "Routine",
       desc: "Today's fast attendance logger & routine summary",
+      isLocked: isTabLocked("checkin"),
     },
     {
       id: "matrix",
@@ -1676,6 +1711,7 @@ export default function AttendanceTracker() {
       icon: <Grid size={16} />,
       badge: `${allSectionSubjects.length} Subs`,
       desc: "Detailed attendance % across all semester subjects",
+      isLocked: false,
     },
     {
       id: "studio_simulator",
@@ -1686,46 +1722,51 @@ export default function AttendanceTracker() {
       desc: "Adjust Theory/Lab counts & test instant miss/attend impact",
       isStudio: true,
       studioSec: "simulator",
+      isLocked: false,
     },
     {
       id: "studio_schedule",
       label: "Target Date & Schedule",
       shortLabel: "Schedule",
       icon: <CalendarCheck size={16} />,
-      badge: "Date-Wise",
+      badge: isTabLocked("studio_schedule") ? "Locked" : "Date-Wise",
       desc: "Day-by-day timetable routine to reach your target milestone",
       isStudio: true,
       studioSec: "schedule",
+      isLocked: isTabLocked("studio_schedule"),
     },
     {
       id: "studio_penalty",
       label: "Target & Miss Impact",
       shortLabel: "Miss Impact",
       icon: <Flame size={16} />,
-      badge: "Target Check",
+      badge: isTabLocked("studio_penalty") ? "Locked" : "Target Check",
       desc: "Know how missing classes affects your target goal & recovery needed",
       isStudio: true,
       studioSec: "penalty",
+      isLocked: isTabLocked("studio_penalty"),
     },
     {
       id: "studio_roadmap",
       label: "Miss Classes After Target",
       shortLabel: "Post-Target",
       icon: <Compass size={16} />,
-      badge: "Post-Target",
+      badge: isTabLocked("studio_roadmap") ? "Locked" : "Post-Target",
       desc: "Plan classes you can skip once target is reached & see recovery path",
       isStudio: true,
       studioSec: "roadmap",
+      isLocked: isTabLocked("studio_roadmap"),
     },
     {
       id: "bunk_analyzer",
       label: "Future Predictor",
       shortLabel: "Predictor",
       icon: <TrendingUp size={16} />,
-      badge: "Date-wise",
+      badge: isTabLocked("bunk_analyzer") ? "Locked" : "Date-wise",
       desc: "Date-wise bunk impact & timetable recovery roadmap",
+      isLocked: isTabLocked("bunk_analyzer"),
     },
-  ];
+  ], [hasSavedAttendance, allSectionSubjects.length]);
 
   const handleResetAllAttendance = () => {
     setIsResetModalOpen(true);
@@ -2034,7 +2075,13 @@ export default function AttendanceTracker() {
                       )}
                       <button
                         type="button"
-                        onClick={() => handleTabClick(item.id)}
+                        onClick={() => {
+                          if (item.isLocked) {
+                            handleLockedTabAttempt(item.label);
+                            return;
+                          }
+                          handleTabClick(item.id);
+                        }}
                         style={{
                           width: "100%",
                           display: "flex",
@@ -2044,35 +2091,39 @@ export default function AttendanceTracker() {
                           borderRadius: 8,
                           border: "none",
                           background: isActive ? "#f1f5f9" : "transparent",
-                          color: isActive ? "#0f172a" : "#475569",
+                          color: item.isLocked ? "#94a3b8" : isActive ? "#0f172a" : "#475569",
                           fontSize: 12,
                           fontWeight: isActive ? 800 : 600,
-                          cursor: "pointer",
+                          cursor: item.isLocked ? "not-allowed" : "pointer",
+                          opacity: item.isLocked ? 0.52 : 1,
+                          filter: item.isLocked ? "grayscale(0.4)" : "none",
                           fontFamily: "'DM Sans', sans-serif",
                           transition: "all 0.15s ease",
                           textAlign: "left",
                           paddingLeft: item.isStudio ? 14 : 9,
                         }}
                         onMouseEnter={(e) => {
-                          if (!isActive) {
+                          if (!isActive && !item.isLocked) {
                             e.currentTarget.style.background = "#f8fafc";
                             e.currentTarget.style.color = "#0f172a";
                           }
                         }}
                         onMouseLeave={(e) => {
-                          if (!isActive) {
+                          if (!isActive && !item.isLocked) {
                             e.currentTarget.style.background = "transparent";
                             e.currentTarget.style.color = "#475569";
                           }
                         }}
                       >
-                        <span style={{ color: isActive ? "#0f172a" : "#64748b", display: "flex", alignItems: "center" }}>
+                        <span style={{ color: item.isLocked ? "#94a3b8" : isActive ? "#0f172a" : "#64748b", display: "flex", alignItems: "center" }}>
                           {item.icon}
                         </span>
                         <span style={{ flex: 1, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
                           {item.label}
                         </span>
-                        {isActive && (
+                        {item.isLocked ? (
+                          <Lock size={12} color="#94a3b8" style={{ flexShrink: 0 }} />
+                        ) : isActive ? (
                           <div
                             style={{
                               width: 5,
@@ -2082,7 +2133,7 @@ export default function AttendanceTracker() {
                               flexShrink: 0,
                             }}
                           />
-                        )}
+                        ) : null}
                       </button>
                     </React.Fragment>
                   );
@@ -2097,11 +2148,13 @@ export default function AttendanceTracker() {
                   Tools
                 </div>
 
-
-
                 <button
                   type="button"
                   onClick={() => {
+                    if (isTabLocked("checkin")) {
+                      handleLockedTabAttempt("Daily Attendance");
+                      return;
+                    }
                     setSelectedCheckInDateKey(todayDateKey);
                     handleTabClick("checkin");
                   }}
@@ -2113,26 +2166,35 @@ export default function AttendanceTracker() {
                     padding: "7.5px 9px",
                     borderRadius: 8,
                     border: "1px solid #e2e8f0",
-                    background: "#f8fafc",
-                    color: "#0f172a",
+                    background: isTabLocked("checkin") ? "#f1f5f9" : "#f8fafc",
+                    color: isTabLocked("checkin") ? "#94a3b8" : "#0f172a",
+                    opacity: isTabLocked("checkin") ? 0.55 : 1,
                     fontSize: 11.5,
                     fontWeight: 700,
-                    cursor: "pointer",
+                    cursor: isTabLocked("checkin") ? "not-allowed" : "pointer",
                     fontFamily: "'DM Sans', sans-serif",
                     transition: "all 0.15s ease",
                   }}
                   onMouseEnter={(e) => {
-                    e.currentTarget.style.background = "#f1f5f9";
-                    e.currentTarget.style.borderColor = "#cbd5e1";
+                    if (!isTabLocked("checkin")) {
+                      e.currentTarget.style.background = "#f1f5f9";
+                      e.currentTarget.style.borderColor = "#cbd5e1";
+                    }
                   }}
                   onMouseLeave={(e) => {
-                    e.currentTarget.style.background = "#f8fafc";
-                    e.currentTarget.style.borderColor = "#e2e8f0";
+                    if (!isTabLocked("checkin")) {
+                      e.currentTarget.style.background = "#f8fafc";
+                      e.currentTarget.style.borderColor = "#e2e8f0";
+                    }
                   }}
                 >
-                  <CalendarIcon size={13} color="#475569" />
+                  <CalendarIcon size={13} color={isTabLocked("checkin") ? "#94a3b8" : "#475569"} />
                   <span style={{ flex: 1, textAlign: "left" }}>Mark Today</span>
-                  <ArrowRight size={11} color="#94a3b8" />
+                  {isTabLocked("checkin") ? (
+                    <Lock size={11} color="#94a3b8" />
+                  ) : (
+                    <ArrowRight size={11} color="#94a3b8" />
+                  )}
                 </button>
 
                 <button
@@ -2246,6 +2308,7 @@ export default function AttendanceTracker() {
               items={navMenuItems}
               activeTab={activeTab}
               onChange={(newTab, meta) => handleTabClick(newTab, meta)}
+              onLockedClick={(lockedItem) => handleLockedTabAttempt(lockedItem?.label || "this module")}
               title="Attendance Modules"
               themeColor="#059669"
               themeBg="#ecfdf5"
@@ -4118,24 +4181,27 @@ export default function AttendanceTracker() {
                     onClick={handleOpenScreenshotModal}
                     style={{
                       width: isMobile ? "100%" : "auto",
-                      padding: isMobile ? "10px 16px" : "9px 18px",
+                      padding: isMobile ? "10px 14px" : "9px 18px",
                       borderRadius: 9,
                       border: "none",
                       background: scanStatus.isLimitReached
                         ? "#64748b"
                         : "#0f172a",
                       color: "#ffffff",
-                      fontSize: isMobile ? 13 : 13.5,
+                      fontSize: isMobile ? 12.5 : 13.5,
                       fontWeight: 750,
                       cursor: scanStatus.isLimitReached ? "not-allowed" : "pointer",
                       opacity: scanStatus.isLimitReached ? 0.65 : 1,
                       display: "inline-flex",
                       alignItems: "center",
                       justifyContent: "center",
-                      gap: 8,
+                      gap: 7,
                       boxShadow: "0 1px 2px rgba(0,0,0,0.05)",
                       transition: "background 0.15s ease",
                       flexShrink: 0,
+                      whiteSpace: "nowrap",
+                      overflow: "hidden",
+                      textOverflow: "ellipsis",
                     }}
                     onMouseEnter={(e) => {
                       if (!scanStatus.isLimitReached) e.currentTarget.style.background = "#1e293b";
@@ -4144,12 +4210,14 @@ export default function AttendanceTracker() {
                       if (!scanStatus.isLimitReached) e.currentTarget.style.background = "#0f172a";
                     }}
                   >
-                    <Camera size={16} />
-                    <span>
+                    <Camera size={15} style={{ flexShrink: 0 }} />
+                    <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                       {scanStatus.isExempt
-                        ? "Auto-Import via Screenshot"
+                        ? (isMobile ? "Auto-Import Screenshot" : "Auto-Import via Screenshot")
                         : scanStatus.isLimitReached
                         ? "Daily Limit Reached (0/2)"
+                        : isMobile
+                        ? `Auto-Import (${scanStatus.remaining}/${scanStatus.max} left)`
                         : `Auto-Import Screenshot (${scanStatus.remaining}/${scanStatus.max} left)`}
                     </span>
                   </button>
@@ -4240,7 +4308,7 @@ export default function AttendanceTracker() {
                         </div>
                       </div>
 
-                      {/* Simple 3 Steps */}
+                      {/* Simple 4 Steps */}
                       <div style={{ display: "flex", flexDirection: "column", gap: 8, fontSize: 12, color: "#475569" }}>
                         <div style={{ display: "flex", alignItems: "flex-start", gap: 8 }}>
                           <span style={{ width: 18, height: 18, borderRadius: 999, background: "#eff6ff", color: "#2563eb", fontSize: 10, fontWeight: 800, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, marginTop: 1 }}>1</span>
@@ -4252,7 +4320,11 @@ export default function AttendanceTracker() {
                         </div>
                         <div style={{ display: "flex", alignItems: "flex-start", gap: 8 }}>
                           <span style={{ width: 18, height: 18, borderRadius: 999, background: "#eff6ff", color: "#2563eb", fontSize: 10, fontWeight: 800, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, marginTop: 1 }}>3</span>
-                          <span>We'll read your classes automatically and save them to your dashboard!</span>
+                          <span>AI automatically reads your Theory (PP), Practical (PR) & Tutorial (TUT) classes.</span>
+                        </div>
+                        <div style={{ display: "flex", alignItems: "flex-start", gap: 8 }}>
+                          <span style={{ width: 18, height: 18, borderRadius: 999, background: "#eff6ff", color: "#2563eb", fontSize: 10, fontWeight: 800, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, marginTop: 1 }}>4</span>
+                          <span>Match each PP, PR & TUT with your ERP/screenshot, check the confirmation box, and click Save.</span>
                         </div>
                       </div>
                     </div>
@@ -4262,12 +4334,13 @@ export default function AttendanceTracker() {
                       onClick={handleOpenScreenshotModal}
                       style={{
                         marginTop: 4,
-                        padding: "9px 14px",
+                        width: "100%",
+                        padding: isMobile ? "9px 10px" : "9px 14px",
                         borderRadius: 8,
                         border: "1px solid #bfdbfe",
                         background: scanStatus.isLimitReached ? "#f1f5f9" : "#eff6ff",
                         color: scanStatus.isLimitReached ? "#64748b" : "#1d4ed8",
-                        fontSize: 12.5,
+                        fontSize: isMobile ? 12 : 12.5,
                         fontWeight: 750,
                         cursor: scanStatus.isLimitReached ? "not-allowed" : "pointer",
                         opacity: scanStatus.isLimitReached ? 0.65 : 1,
@@ -4276,6 +4349,10 @@ export default function AttendanceTracker() {
                         justifyContent: "center",
                         gap: 6,
                         transition: "all 0.15s ease",
+                        boxSizing: "border-box",
+                        whiteSpace: "nowrap",
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
                       }}
                       onMouseEnter={(e) => {
                         if (!scanStatus.isLimitReached) e.currentTarget.style.background = "#dbeafe";
@@ -4284,13 +4361,19 @@ export default function AttendanceTracker() {
                         if (!scanStatus.isLimitReached) e.currentTarget.style.background = "#eff6ff";
                       }}
                     >
-                      <CloudUpload size={15} />
-                      <span>
-                        {scanStatus.isExempt
-                          ? "Upload or Paste ERP Screenshot (Ctrl + V)"
-                          : scanStatus.isLimitReached
-                          ? "Daily Limit Reached (0/2 today)"
-                          : `Upload / Paste Screenshot (${scanStatus.remaining}/${scanStatus.max} left)`}
+                      <CloudUpload size={15} style={{ flexShrink: 0 }} />
+                      <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                        {isMobile
+                          ? (scanStatus.isExempt
+                              ? "Upload ERP Screenshot"
+                              : scanStatus.isLimitReached
+                              ? "Daily Limit Reached (0/2)"
+                              : `Upload Screenshot (${scanStatus.remaining}/${scanStatus.max} left)`)
+                          : (scanStatus.isExempt
+                              ? "Upload or Paste ERP Screenshot (Ctrl + V)"
+                              : scanStatus.isLimitReached
+                              ? "Daily Limit Reached (0/2 today)"
+                              : `Upload / Paste Screenshot (${scanStatus.remaining}/${scanStatus.max} left)`)}
                       </span>
                     </button>
                   </div>
@@ -4367,19 +4450,23 @@ export default function AttendanceTracker() {
                         <span>All {sectionCatalog.length || 7} semester subjects are already listed in the editor below.</span>
                       </div>
 
-                      {/* Simple 3 Steps */}
+                      {/* Simple 4 Steps */}
                       <div style={{ display: "flex", flexDirection: "column", gap: 8, fontSize: 12, color: "#475569" }}>
                         <div style={{ display: "flex", alignItems: "flex-start", gap: 8 }}>
                           <span style={{ width: 18, height: 18, borderRadius: 999, background: "#f1f5f9", color: "#475569", fontSize: 10, fontWeight: 800, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, marginTop: 1 }}>1</span>
-                          <span>Click on each subject pill below to open its class counts.</span>
+                          <span>Click on each subject pill in the editor below to open its class counts.</span>
                         </div>
                         <div style={{ display: "flex", alignItems: "flex-start", gap: 8 }}>
                           <span style={{ width: 18, height: 18, borderRadius: 999, background: "#f1f5f9", color: "#475569", fontSize: 10, fontWeight: 800, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, marginTop: 1 }}>2</span>
-                          <span>Enter your current <strong>Attended</strong> and <strong>Conducted</strong> classes.</span>
+                          <span>Enter your current <strong>Attended</strong> and <strong>Conducted</strong> classes for Theory (PP) or Lab (PR).</span>
                         </div>
                         <div style={{ display: "flex", alignItems: "flex-start", gap: 8 }}>
                           <span style={{ width: 18, height: 18, borderRadius: 999, background: "#f1f5f9", color: "#475569", fontSize: 10, fontWeight: 800, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, marginTop: 1 }}>3</span>
-                          <span>Check the confirmation box and click <strong>Save to Semester Dashboard</strong>.</span>
+                          <span>Confirm your calculated attendance percentage matches your ERP records.</span>
+                        </div>
+                        <div style={{ display: "flex", alignItems: "flex-start", gap: 8 }}>
+                          <span style={{ width: 18, height: 18, borderRadius: 999, background: "#f1f5f9", color: "#475569", fontSize: 10, fontWeight: 800, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, marginTop: 1 }}>4</span>
+                          <span>Check the verification box and click <strong>Save to Semester Dashboard</strong> to save.</span>
                         </div>
                       </div>
                     </div>
@@ -4402,6 +4489,43 @@ export default function AttendanceTracker() {
                       <CheckCircle2 size={14} color="#16a34a" style={{ flexShrink: 0 }} />
                       <span>Daily check-ins & bunk calculators unlock as soon as you save!</span>
                     </div>
+                  </div>
+                </div>
+
+                {/* Quick Unlock Info Strip */}
+                <div
+                  style={{
+                    background: "#f8fafc",
+                    border: "1px solid #e2e8f0",
+                    borderRadius: 10,
+                    padding: isMobile ? "10px 12px" : "11px 16px",
+                    display: "flex",
+                    alignItems: isMobile ? "flex-start" : "center",
+                    gap: 10,
+                    fontSize: isMobile ? 11.5 : 12,
+                    color: "#334155",
+                    lineHeight: 1.45,
+                  }}
+                >
+                  <div
+                    style={{
+                      width: 26,
+                      height: 26,
+                      borderRadius: 7,
+                      background: "#f1f5f9",
+                      color: "#475569",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      flexShrink: 0,
+                    }}
+                  >
+                    <Lock size={13} />
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <strong style={{ color: "#0f172a" }}>Unlock Full Attendance Suite:</strong>{" "}
+                    Once you add & save attendance for at least 1 subject (via screenshot or manual entry), all other features —{" "}
+                    <strong>Daily Attendance</strong>, <strong>Target Date & Schedule</strong>, <strong>Target & Miss Impact</strong>, <strong>Miss Classes After Target</strong>, and <strong>Future Predictor</strong> — will automatically unlock and activate!
                   </div>
                 </div>
               </div>
@@ -5439,6 +5563,50 @@ export default function AttendanceTracker() {
     )}
   </AnimatePresence>
 </div>
+
+    {/* Floating Locked Tab Notice Toast */}
+    {lockedTabNotice && (
+      <div
+        style={{
+          position: "fixed",
+          bottom: 24,
+          left: "50%",
+          transform: "translateX(-50%)",
+          zIndex: 99999,
+          background: "#0f172a",
+          color: "#ffffff",
+          border: "1px solid #334155",
+          borderRadius: 10,
+          padding: "10px 18px",
+          boxShadow: "0 10px 30px rgba(0, 0, 0, 0.35)",
+          maxWidth: "92vw",
+          display: "flex",
+          alignItems: "center",
+          gap: 10,
+          fontSize: 12.5,
+          fontWeight: 700,
+        }}
+      >
+        <Lock size={15} color="#f59e0b" style={{ flexShrink: 0 }} />
+        <span>{lockedTabNotice}</span>
+        <button
+          type="button"
+          onClick={() => setLockedTabNotice("")}
+          style={{
+            background: "transparent",
+            border: "none",
+            color: "#94a3b8",
+            cursor: "pointer",
+            padding: 0,
+            marginLeft: 4,
+            display: "flex",
+            alignItems: "center",
+          }}
+        >
+          <X size={14} />
+        </button>
+      </div>
+    )}
 
     {/* Floating Scan Limit Warning Toast */}
     {scanLimitWarning && (

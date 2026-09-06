@@ -7,6 +7,7 @@ import {
   CheckCircle2,
   X,
   Layers,
+  Lock,
 } from "lucide-react";
 
 /**
@@ -23,6 +24,7 @@ export default function ModernMobileSubNav({
   items = [],
   activeTab = "",
   onChange = () => {},
+  onLockedClick = null,
   title = "Select View",
   subtitle = "",
   themeColor = "#2563eb",
@@ -67,6 +69,13 @@ export default function ModernMobileSubNav({
   };
 
   const handleSelect = (id) => {
+    const it = items.find((item) => item.id === id);
+    if (it?.isLocked) {
+      if (typeof onLockedClick === "function") {
+        onLockedClick(it);
+      }
+      return;
+    }
     onChange(id, { animation: "fade-up", direction: 0 });
     setIsOpen(false);
     scrollToActiveContent();
@@ -467,7 +476,9 @@ export default function ModernMobileSubNav({
                         alignItems: "flex-start",
                         gap: 8,
                         textAlign: "left",
-                        cursor: "pointer",
+                        cursor: item.isLocked ? "not-allowed" : "pointer",
+                        opacity: item.isLocked ? 0.55 : 1,
+                        filter: item.isLocked ? "grayscale(0.6)" : "none",
                         boxShadow: "none",
                         transition: "all 0.15s ease",
                         boxSizing: "border-box",
@@ -537,8 +548,30 @@ export default function ModernMobileSubNav({
                         )}
                       </div>
 
-                      {/* Active Tick Badge - Safely pinned inside card corner, 0% overflow */}
-                      {isActive && (
+                      {/* Top-Right Badge: Locked badge if locked, Active Tick if active */}
+                      {item.isLocked ? (
+                        <div
+                          style={{
+                            position: "absolute",
+                            top: 9,
+                            right: 9,
+                            display: "flex",
+                            alignItems: "center",
+                            gap: 3,
+                            background: "#f1f5f9",
+                            border: "1px solid #e2e8f0",
+                            padding: "2px 5px",
+                            borderRadius: 4,
+                            fontSize: 9,
+                            fontWeight: 800,
+                            color: "#64748b",
+                            pointerEvents: "none",
+                          }}
+                        >
+                          <Lock size={10} color="#64748b" />
+                          <span>LOCKED</span>
+                        </div>
+                      ) : isActive ? (
                         <div
                           style={{
                             position: "absolute",
@@ -553,7 +586,7 @@ export default function ModernMobileSubNav({
                         >
                           <CheckCircle2 size={15} color={themeColor} strokeWidth={2.4} />
                         </div>
-                      )}
+                      ) : null}
                     </motion.button>
                   );
                 })}
