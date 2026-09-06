@@ -18,7 +18,7 @@ import {
   Trophy,
   Megaphone,
   Calendar,
-  Compass,
+  Sparkles,
   ArrowRight,
   ExternalLink,
   CheckCheck,
@@ -155,7 +155,7 @@ export default function NotificationBell({ isMobile = false }) {
       return <Calendar size={16} color="#7c3aed" />;
     }
     if (type === "FEATURE_EXPLORE" || badge.includes("explore") || badge.includes("feature")) {
-      return <Compass size={16} color="#059669" />;
+      return <Sparkles size={16} color="#059669" />;
     }
     if (type === "URGENT_ALERT" || type === "SYSTEM_ALERT" || badge.includes("alert")) {
       return <AlertTriangle size={16} color="#dc2626" />;

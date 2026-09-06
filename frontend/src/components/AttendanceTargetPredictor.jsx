@@ -22,7 +22,7 @@ import {
   Sliders,
   CalendarCheck,
   CalendarX,
-  Compass,
+  Route,
   BookOpen,
 } from "lucide-react";
 import SubjectDropdown from "./SubjectDropdown";
@@ -1483,7 +1483,7 @@ export default function AttendanceTargetPredictor({
                     boxShadow: "0 2px 5px rgba(15, 23, 42, 0.12)",
                   }}
                 >
-                  <Compass size={mobileMode ? 16 : 18} color="#ffffff" strokeWidth={2.2} />
+                  <Route size={mobileMode ? 16 : 18} color="#ffffff" strokeWidth={2.2} />
                 </div>
                 <div>
                   <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
