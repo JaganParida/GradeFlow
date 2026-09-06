@@ -132,27 +132,41 @@ export default function ModernMobileSubNav({
       document.body.style.width = originalBodyWidth;
       document.removeEventListener("touchmove", preventBackdropTouch);
 
+      // Helper: force both native scroll AND Lenis to the same Y, preventing any fighting
+      const forceScrollTo = (y) => {
+        window.scrollTo(0, y);
+        if (document.documentElement) document.documentElement.scrollTop = y;
+        if (document.body) document.body.scrollTop = y;
+        if (window.__lenis && typeof window.__lenis.scrollTo === "function") {
+          try { window.__lenis.scrollTo(y, { immediate: true }); } catch (_) {}
+        }
+      };
+
       // If user selected an item from the bottom sheet, smoothly scroll directly to ModernSubNav top
       if (shouldScrollToSubNav.current) {
         shouldScrollToSubNav.current = false;
-        // Unfreeze body at scrollY without glitch
-        window.scrollTo(0, scrollY);
-        if (document.documentElement) document.documentElement.scrollTop = scrollY;
-        if (document.body) document.body.scrollTop = scrollY;
+
+        // Stop Lenis temporarily so it doesn't fight our scroll position changes
+        if (window.__lenis && typeof window.__lenis.stop === "function") {
+          try { window.__lenis.stop(); } catch (_) {}
+        }
+
+        // Unfreeze body at captured scrollY — synced with Lenis
+        forceScrollTo(scrollY);
 
         requestAnimationFrame(() => {
           const targetY = getSubNavDocTop();
           const currentY = window.pageYOffset || window.scrollY || document.documentElement.scrollTop || 0;
           const distance = Math.abs(targetY - currentY);
 
+          // Re-start Lenis before any scroll action
+          if (window.__lenis && typeof window.__lenis.start === "function") {
+            try { window.__lenis.start(); } catch (_) {}
+          }
+
           // Already at/near the subnav top — just snap precisely, no visible motion
           if (distance < 15) {
-            window.scrollTo(0, targetY);
-            if (document.documentElement) document.documentElement.scrollTop = targetY;
-            if (document.body) document.body.scrollTop = targetY;
-            if (window.__lenis && typeof window.__lenis.scrollTo === "function") {
-              try { window.__lenis.scrollTo(targetY, { immediate: true }); } catch (_) {}
-            }
+            forceScrollTo(targetY);
             return;
           }
 
@@ -160,8 +174,8 @@ export default function ModernMobileSubNav({
           smoothScrollToY(targetY, 420);
         });
       } else {
-        // Normal dismiss without selecting: restore previous scroll position
-        window.scrollTo(0, scrollY);
+        // Normal dismiss without selecting: restore previous scroll position (synced with Lenis)
+        forceScrollTo(scrollY);
       }
     };
   }, [isOpen]);
